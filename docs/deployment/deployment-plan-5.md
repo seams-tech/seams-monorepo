@@ -911,9 +911,9 @@ resource name, workflow, or compatibility path.
 - `.github/workflows/deploy-production-backend.yml` (retired after replacement)
 - `.github/workflows/deploy-staging-frontend.yml`
 - `.github/workflows/deploy-production-frontend.yml`
-- `crates/router-ab-cloudflare/scripts/generate-github-env-values.mjs`
+- `deployment/wallet-system/scripts/generate-github-env-values.mjs`
 - `crates/router-ab-cloudflare/scripts/apply-github-environment-values.mjs`
-- `crates/router-ab-cloudflare/scripts/apply-github-external-values.mjs`
+- `deployment/wallet-system/scripts/apply-github-external-values.mjs`
 - `packages/console-server-ts/scripts/gateway-deployment-config.mjs`
 - `packages/console-server-ts/scripts/render-d1-gateway-config.mjs`
 - `apps/seams-site/src/config.ts`

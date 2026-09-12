@@ -226,6 +226,13 @@ jobs:
 
       - run: npm install --global npm@latest
 
+      - name: Require first-publication npm token
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SEAMS_NPM_BOOTSTRAP_TOKEN }}
+        run: test -n "$NODE_AUTH_TOKEN"
+
       - name: Publish @seams/wallet-cli
         working-directory: packages/seams-cli
         run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.SEAMS_NPM_BOOTSTRAP_TOKEN }}

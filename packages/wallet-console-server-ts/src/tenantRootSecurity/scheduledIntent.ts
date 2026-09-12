@@ -4,11 +4,11 @@ import {
   tenantRootOperationDigestB64uV1,
   tenantRootOperationMaxLifetimeMsV1,
   type TenantRootOperationRecordV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   decodeTenantRootIdentityWireV1,
   type TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 import type { TenantRootSecurityStateReaderV1 } from './consoleRoute';
 import type {

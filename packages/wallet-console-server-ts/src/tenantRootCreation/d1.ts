@@ -4,7 +4,7 @@ import {
   type D1DatabaseLike,
   type D1Row,
 } from '@seams/wallet-server/cloud-host';
-import { decodeTenantRootIdentityWireV1 } from '@seams-internal/shared-ts/tenant-root';
+import { decodeTenantRootIdentityWireV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   TenantRootCreationGrantStoreError,
   type TenantRootCreationGrantServiceV1,

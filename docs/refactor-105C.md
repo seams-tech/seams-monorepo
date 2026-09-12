@@ -213,7 +213,7 @@ credential authorities.
 Keep direct static composition in private source:
 
 ```text
-apps/seams-console/
+apps/wallet-console/
   src/marketing/
   src/core/
   src/products/wallet/
@@ -275,7 +275,7 @@ topology. Each hosted stage declares:
 - the wallet Pages project, exact public-docs artifact revision, Console Worker
   name, routes, and readiness routes;
 - one Console D1 binding, name, and exact database ID;
-- the Console issuer, audience, `__Host-seams-console` cookie, and session
+- the Console issuer, audience, `__Host-wallet-console` cookie, and session
   secret reference;
 - Google and GitHub client-ID/secret references and exact callback paths;
 - the allowed Wallet service-binding handoff for each network in that stage.

@@ -32,9 +32,9 @@ Retain `sign.seams.sh` and existing hosted-wallet paths. Reserve the other produ
 ## Current coupling to remove
 
 - `scripts/deploy-frontend.mjs` builds the company site, console, docs, and wallet assets together, then copies the console into the site output under `/dashboard-static`.
-- `apps/seams-console/vite.config.ts` uses `/dashboard-static/` as its asset base.
+- `apps/wallet-console/vite.config.ts` uses `/dashboard-static/` as its asset base.
 - The company site's redirect rules and local Caddy configuration serve `/dashboard/*` and `/platform/*` through the console build.
-- `apps/seams-console/src/core/router/siteRouting.ts` uses `VITE_SITE_ORIGIN` when constructing links. Internal console navigation and company-site links need distinct meanings after the split.
+- `apps/wallet-console/src/core/router/siteRouting.ts` uses `VITE_SITE_ORIGIN` when constructing links. Internal console navigation and company-site links need distinct meanings after the split.
 - `deployment/wallet-system/targets.json` describes company-site, gateway, and
   iframe origins; `deployment/console/targets.json` owns the current Console
   origin. `consoleOriginFor()` in
@@ -72,7 +72,7 @@ Provision DNS/custom domains and confirm valid TLS for the wallet hostname befor
 
 ## Phase 2: unified wallet frontend deployment
 
-- Use `apps/seams-console` as the starting dashboard implementation and integrate the existing `seams.sh/wallet` product page into one wallet frontend build. Keep one application entry and clear marketing/dashboard route ownership; avoid adding another app merely to combine their outputs. Use a root-relative asset base and deep-link fallback for frontend routes only.
+- Use `apps/wallet-console` as the starting dashboard implementation and integrate the existing `seams.sh/wallet` product page into one wallet frontend build. Keep one application entry and clear marketing/dashboard route ownership; avoid adding another app merely to combine their outputs. Use a root-relative asset base and deep-link fallback for frontend routes only.
 - Move the public Wallet VitePress source and configuration into `seams-wallet`, configured with `base: '/docs/'`. Public CI produces an immutable, versioned static docs artifact. The private wallet-site release consumes an exact artifact and places it under the frontend output's `/docs/` tree; it does not check out or compile against the public source tree during deployment.
 - Adapt the existing frontend deployment script with the smallest explicit wallet-site operation. Add a wallet-site release workflow following current environment, branch, credentials, artifact, and smoke conventions. Build only the dependencies actually needed by the wallet frontend.
 - Keep company-site and wallet-site publication independent. Remove console copying from the company-site release after cutover; remove the old `/dashboard-static` mount and its supporting build/smoke assumptions.

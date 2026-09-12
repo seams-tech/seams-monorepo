@@ -10,7 +10,7 @@ The evidence analyzer prevents local or partial measurements from being
 reported as the Phase 0 baseline:
 
 ```sh
-node ./crates/router-ab-cloudflare/scripts/refactor93-production-evidence.mjs \
+node ./deployment/wallet-system/scripts/refactor93-production-evidence.mjs \
   analyze \
   --manifest /absolute/path/refactor93-cohort.json \
   --logs /absolute/path/gateway.jsonl \

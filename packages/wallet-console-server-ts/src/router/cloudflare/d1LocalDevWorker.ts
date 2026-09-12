@@ -1,7 +1,7 @@
 import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
 import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
 import { resolveRuntimeTenantRootLineage } from '@seams/wallet-server/cloud-host';
-import type { RuntimePolicyScope } from '@seams-internal/shared-ts/threshold/signingRootScope';
+import type { RuntimePolicyScope } from '@seams/wallet-server/cloud-host';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
 import { createConsoleProviderIdentity } from '@seams-internal/console-server/boundary/providerIdentity';
@@ -136,7 +136,7 @@ import {
 import { createTenantRootSecurityConsoleRouteV1 } from '../../tenantRootSecurity/consoleRoute';
 import { createCloudflareCron, type TenantRootRefreshResumptionRunner } from './cron';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams/wallet-server/cloud-host';
-import { decodeTenantRootIdentityWireV1 } from '@seams-internal/shared-ts/tenant-root';
+import { decodeTenantRootIdentityWireV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 
 interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly CONSOLE_DB: D1DatabaseLike;

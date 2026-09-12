@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { prepareRouterAbD1LocalRuntimeConfig } from '../../crates/router-ab-dev/scripts/d1-local-runtime-config.mjs';
+import { prepareRouterAbD1LocalRuntimeConfig } from '../../scripts/local-wallet/d1-local-runtime-config.mjs';
 import { localPeerVerifyingKeyHex } from '../../crates/router-ab-cloudflare/scripts/local-key-material.mjs';
 import { prepareRouterAbStrictLocalRuntimeConfigs } from '../../crates/router-ab-cloudflare/scripts/prepare-local-runtime-config.mjs';
 
@@ -400,7 +400,7 @@ test('strict local mode serves pair commands through production Wrangler shims',
   }
 
   const launcher = readFileSync(
-    path.join(repoRoot(), 'crates/router-ab-dev/scripts/dev-local-workers.mjs'),
+    path.join(repoRoot(), 'scripts/local-wallet/dev-local-workers.mjs'),
     'utf8',
   );
   expect(launcher).toContain("'wrangler'");

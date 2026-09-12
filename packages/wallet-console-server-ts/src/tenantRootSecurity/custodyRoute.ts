@@ -4,14 +4,14 @@ import type {
   TenantRootOperationSubjectV1,
   TenantRootRecoveryGovernanceV1,
   TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   buildTenantRootOperationRecordV1,
   tenantRootDownloadableRecoverySetV1,
   tenantRootOperationMaxLifetimeMsV1,
   tenantRootRecipientPairDigestB64uV1,
   tenantRootRecoveryGovernanceDigestB64uV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { RecoveryBackupCooldownError } from './d1';
 import {
   checkTenantRootAuditEventRedactionV1,

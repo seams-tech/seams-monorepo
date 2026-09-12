@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const PAGE_DIRECTORY = path.join(
   REPO_ROOT,
-  'apps/seams-console/src/products/wallet/derivation-root',
+  'apps/wallet-console/src/products/wallet/derivation-root',
 );
 const PAGE_ENTRY = path.join(PAGE_DIRECTORY, 'DerivationRootSecurityWorkspace.tsx');
 /** The page's own stylesheet, inlined so the test exercises the real rules. */
@@ -189,7 +189,7 @@ async function bundlePage(directory: string): Promise<void> {
     // The generated entry lives in a temp directory, so node resolution has to
     // be told where the workspace's modules are.
     nodePaths: [
-      path.join(REPO_ROOT, 'apps/seams-console/node_modules'),
+      path.join(REPO_ROOT, 'apps/wallet-console/node_modules'),
       path.join(REPO_ROOT, 'node_modules'),
     ],
     alias: {
@@ -404,7 +404,7 @@ test('recovery ZIP contains standard filenames under one identifiable folder', a
     const download = await downloadEvent;
     const archivePath = path.join(directory, 'backup.zip');
     await download.saveAs(archivePath);
-    const { unzipSync } = createRequire(path.join(REPO_ROOT, 'apps/seams-console/package.json'))('fflate');
+    const { unzipSync } = createRequire(path.join(REPO_ROOT, 'apps/wallet-console/package.json'))('fflate');
     const entries = Object.keys(unzipSync(readFileSync(archivePath)));
     const folder = download.suggestedFilename().replace(/\.zip$/, '');
     expect(folder).toMatch(/^seams-recovery-\d{4}-\d{2}-\d{2}-/);
@@ -462,7 +462,7 @@ for (const holder of ['a', 'b'] as const) {
       const download = await downloadEvent;
       const archivePath = path.join(directory, 'backup.zip');
       await download.saveAs(archivePath);
-      const { unzipSync } = createRequire(path.join(REPO_ROOT, 'apps/seams-console/package.json'))('fflate');
+      const { unzipSync } = createRequire(path.join(REPO_ROOT, 'apps/wallet-console/package.json'))('fflate');
       const folder = download.suggestedFilename().replace(/\.zip$/, '');
       expect(Object.keys(unzipSync(readFileSync(archivePath))).sort()).toEqual([
         `${folder}/deriver-${holder}.backup`, `${folder}/manifest.json`,

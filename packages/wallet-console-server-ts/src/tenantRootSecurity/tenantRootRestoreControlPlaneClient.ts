@@ -1,6 +1,6 @@
 import { signTenantRootRestoreCleanupGrantV1 } from './restoreCleanupGrantSigner';
 import { base64UrlDecode, base64UrlEncode } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import {
   tenantRootOperationDigestB64uV1,
   type TenantRootDeriverRoleV1,
@@ -10,7 +10,7 @@ import {
   type TenantRootRestoreCleanupEvidenceV1,
   type TenantRootRestoreRoleCleanupV1,
   type TenantRootRestoreRoleImportKeyIssueOperationRecordV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { ROUTER_AB_MPC_ROUTER_ORIGIN } from '@seams/wallet-server/cloud-host';
 import {
   signTenantRootRestoreRoleImportGrantV1,

@@ -16,8 +16,11 @@ import https from 'node:https';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const installedWalletRoot = path.dirname(require.resolve('@seams/wallet/package.json'));
 
-import { prepareRouterAbD1LocalRuntimeConfig } from '../../crates/router-ab-dev/scripts/d1-local-runtime-config.mjs';
+import { prepareRouterAbD1LocalRuntimeConfig } from '../../scripts/local-wallet/d1-local-runtime-config.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 dotenv.config({ path: path.join(repoRoot, '.env.local'), override: false });
@@ -66,37 +69,37 @@ const localConsoleOrganizationId = `org_${randomBytes(6).toString('hex')}`;
 let d1LocalRuntimeConfig;
 const transientViteCachePaths = [
   'tests/intended-app/node_modules/.vite',
-  'apps/seams-console/node_modules/.vite',
+  'apps/wallet-console/node_modules/.vite',
 ];
 const requiredSdkDistArtifacts = [
-  'packages/wallet/dist/esm/advanced.js',
-  'packages/wallet/dist/esm/core/config/chains.js',
-  'packages/wallet/dist/esm/core/idempotency/createIntentId.js',
-  'packages/wallet/dist/esm/core/rpcClients/evm/EvmClient.js',
-  'packages/wallet/dist/esm/core/rpcClients/near/NearClient.js',
-  'packages/wallet/dist/esm/react/context/SeamsWebProvider.js',
-  'packages/wallet/dist/esm/react/context/index.js',
-  'packages/wallet/dist/esm/react/index.js',
-  'packages/wallet/dist/esm/react/styles/styles.css',
-  'packages/wallet/dist/esm/sdk/router_ab_ed25519_yao_client_bg.wasm',
-  'packages/wallet/dist/esm/wasm/router_ab_ed25519_yao_client/pkg/router_ab_ed25519_yao_client.js',
-  'packages/wallet/dist/esm/wasm/router_ab_ed25519_yao_client/pkg/router_ab_ed25519_yao_client_bg.wasm',
-  'packages/wallet/dist/esm/wasm/near_signer/pkg/wasm_signer_worker.js',
-  'packages/wallet/dist/workers/router_ab_ed25519_yao_client_bg.wasm',
-  'packages/wallet/dist/workers/evm-crypto.worker.js',
-  'packages/wallet/dist/workers/near-signer.worker.js',
-  'packages/wallet/dist/workers/tempo-signer.worker.js',
+  path.join(installedWalletRoot, 'dist/esm/advanced.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/config/chains.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/idempotency/createIntentId.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/rpcClients/evm/EvmClient.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/rpcClients/near/NearClient.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/context/SeamsWebProvider.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/context/index.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/index.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/styles/styles.css'),
+  path.join(installedWalletRoot, 'dist/esm/sdk/router_ab_ed25519_yao_client_bg.wasm'),
+  path.join(installedWalletRoot, 'dist/esm/wasm/router_ab_ed25519_yao_client/pkg/router_ab_ed25519_yao_client.js'),
+  path.join(installedWalletRoot, 'dist/esm/wasm/router_ab_ed25519_yao_client/pkg/router_ab_ed25519_yao_client_bg.wasm'),
+  path.join(installedWalletRoot, 'dist/esm/wasm/near_signer/pkg/wasm_signer_worker.js'),
+  path.join(installedWalletRoot, 'dist/workers/router_ab_ed25519_yao_client_bg.wasm'),
+  path.join(installedWalletRoot, 'dist/workers/evm-crypto.worker.js'),
+  path.join(installedWalletRoot, 'dist/workers/near-signer.worker.js'),
+  path.join(installedWalletRoot, 'dist/workers/tempo-signer.worker.js'),
 ];
 const requiredWalletTestAppModuleGraphArtifacts = [
-  'packages/wallet/dist/esm/advanced.js',
-  'packages/wallet/dist/esm/core/config/chains.js',
-  'packages/wallet/dist/esm/core/idempotency/createIntentId.js',
-  'packages/wallet/dist/esm/core/rpcClients/evm/EvmClient.js',
-  'packages/wallet/dist/esm/core/rpcClients/near/NearClient.js',
-  'packages/wallet/dist/esm/react/context/SeamsWebProvider.js',
-  'packages/wallet/dist/esm/react/context/index.js',
-  'packages/wallet/dist/esm/react/index.js',
-  'packages/wallet/dist/esm/react/styles/styles.css',
+  path.join(installedWalletRoot, 'dist/esm/advanced.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/config/chains.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/idempotency/createIntentId.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/rpcClients/evm/EvmClient.js'),
+  path.join(installedWalletRoot, 'dist/esm/core/rpcClients/near/NearClient.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/context/SeamsWebProvider.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/context/index.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/index.js'),
+  path.join(installedWalletRoot, 'dist/esm/react/styles/styles.css'),
 ];
 if (isMainModule()) await main().catch(failStartup);
 
@@ -213,17 +216,14 @@ function resetLocalState() {
 }
 
 function buildSdkArtifacts() {
-  runRequiredBuild('sdk and Router A/B Workers', ['run', 'build:sdk-full'], {
-    ...process.env,
-    SEAMS_ROUTER_AB_LOCAL_ROOT: routerAbLocalRoot,
-  });
-  runRequiredBuild('wallet server', ['-C', 'packages/wallet-server', 'run', 'build']);
+  runRequiredBuild('Console core', ['-C', 'packages/console-server-ts', 'run', 'build']);
+  runRequiredBuild('Wallet Console', ['-C', 'packages/wallet-console-server-ts', 'run', 'build']);
 }
 
 function assertSdkDistArtifacts() {
   const missingArtifacts = requiredSdkDistArtifacts.filter(isMissingRepoPath);
   if (missingArtifacts.length > 0) {
-    throw new Error(`SDK build did not emit required artifacts: ${missingArtifacts.join(', ')}`);
+    throw new Error(`Installed Wallet release is missing required artifacts: ${missingArtifacts.join(', ')}`);
   }
   console.log(`[intended-services] verified ${requiredSdkDistArtifacts.length} SDK dist artifacts`);
 }
@@ -235,7 +235,7 @@ function clearTransientViteCaches() {
 }
 
 function isMissingRepoPath(relativePath) {
-  return !existsSync(path.join(repoRoot, relativePath));
+  return !existsSync(path.resolve(repoRoot, relativePath));
 }
 
 function runRequiredBuild(label, args, env = process.env) {
@@ -260,7 +260,6 @@ function assertD1LocalWasmArtifacts() {
     ['-C', 'packages/wallet-console-server-ts', 'run', 'd1:local:ensure-wasm'],
     {
       ...process.env,
-      SEAMS_D1_LOCAL_WASM_AUTO_BUILD: '0',
     },
   );
 }
@@ -281,7 +280,7 @@ function removeAbsolutePath(absolutePath) {
 function snapshotSdkDistArtifacts() {
   removeAbsolutePath(sdkDistSnapshotRoot);
   mkdirSync(path.dirname(sdkDistSnapshotRoot), { recursive: true });
-  cpSync(path.join(repoRoot, 'packages/wallet/dist'), sdkDistSnapshotRoot, { recursive: true });
+  cpSync(path.join(installedWalletRoot, 'dist'), sdkDistSnapshotRoot, { recursive: true });
 }
 
 function assertNoConflictingLocalProcesses() {
@@ -304,7 +303,7 @@ function startWalletTestApp() {
 function startConsole() {
   return spawnManaged(
     'console',
-    ['-C', 'apps/seams-console', 'exec', 'vite', '--host', '127.0.0.1', '--port', '4005'],
+    ['-C', 'apps/wallet-console', 'exec', 'vite', '--host', '127.0.0.1', '--port', '4005'],
     consoleEnv(),
   );
 }
@@ -329,15 +328,9 @@ function initializeRouterAbLocalEnv() {
   }
   console.log('[intended-services] generating Router A/B local runtime identity');
   const result = spawnSync(
-    'cargo',
+    process.execPath,
     [
-      'run',
-      '--quiet',
-      '--manifest-path',
-      'crates/router-ab-dev/Cargo.toml',
-      '--bin',
-      'router_ab_local_init',
-      '--',
+      require.resolve('@seams/wallet-server/local-runtime/initialize-local-wallet.mjs'),
       '--root',
       routerAbLocalRoot,
     ],
@@ -1081,7 +1074,7 @@ function isManagedProcessCommand(command) {
 }
 
 function isRouterDevWorkerCommand(command) {
-  return command.includes('crates/router-ab-dev/scripts/dev-local-workers.mjs --mode logs');
+  return command.includes('scripts/local-wallet/dev-local-workers.mjs --mode logs');
 }
 
 function isWranglerD1Command(command) {
@@ -1106,7 +1099,7 @@ function isSiteViteCommand(command) {
 
 function isConsoleViteCommand(command) {
   return (
-    command.includes(path.join(repoRoot, 'apps/seams-console')) &&
+    command.includes(path.join(repoRoot, 'apps/wallet-console')) &&
     command.includes('vite') &&
     command.includes('--port 4005')
   );

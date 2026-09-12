@@ -1,7 +1,7 @@
 # ElevenLabs Console Style
 
 Last reconciled: August 21, 2026 (extracted from the live app and applied to
-`apps/seams-console`)
+`apps/wallet-console`)
 
 ## Scope
 
@@ -157,7 +157,7 @@ A dark, faintly translucent slab over the white page — not a light card:
 
 ## How it maps onto the Console
 
-Everything lives in `apps/seams-console/src/core/dashboard/styles.css`, scoped
+Everything lives in `apps/wallet-console/src/core/dashboard/styles.css`, scoped
 by class. Tokens are declared on `:root`.
 
 | Reference idea         | Ours                                                                                                                                      |
@@ -232,7 +232,7 @@ needs the API env the launcher provides, or it falls back to
 
 ```
 VITE_CONSOLE_BASE_URL=https://localhost:4101 VITE_RELAYER_URL=https://localhost:4101 \
-VITE_WALLET_ORIGIN=https://localhost:4002 pnpm -C apps/seams-console dev
+VITE_WALLET_ORIGIN=https://localhost:4002 pnpm -C apps/wallet-console dev
 ```
 
 For visual work, drive it headlessly and assert computed styles rather than
@@ -240,6 +240,6 @@ eyeballing screenshots — sizes in a 2× capture are easy to misread. Check for
 horizontal overflow at 1680 / 1440 / 1180 / 980 / 760 before calling a layout
 change done.
 
-Note that `apps/seams-console/src` is **not** Prettier-clean at HEAD. Format
+Note that `apps/wallet-console/src` is **not** Prettier-clean at HEAD. Format
 only the files you edited; a tree-wide `prettier --write` reformats ~18
 untouched files and buries the real diff.

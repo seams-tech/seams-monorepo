@@ -8,7 +8,7 @@ import {
 import {
   isTenantRootOperationKindV1,
   type TenantRootOperationKindV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import type { TenantRootOperationApprovalRecordV1 } from './authorization';
 import {
   TENANT_ROOT_APPROVAL_RACE_MARKER_V1,

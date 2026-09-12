@@ -141,7 +141,7 @@ export default [
   },
 
   {
-    files: ['apps/seams-console/src/core/**/*.{ts,tsx}'],
+    files: ['apps/wallet-console/src/core/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -158,7 +158,7 @@ export default [
   },
 
   {
-    files: ['apps/seams-console/src/products/**/*.{ts,tsx}'],
+    files: ['apps/wallet-console/src/products/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',

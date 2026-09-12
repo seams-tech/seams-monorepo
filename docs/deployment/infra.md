@@ -279,7 +279,7 @@ Use these templates to fill each GitHub Environment:
 - [`router-ab-cloudflare-env.example.yml`](router-ab-cloudflare-env.example.yml):
   reviewable environment contract for Router, Deriver A, Deriver B, and
   SigningWorker.
-- [`../../crates/router-ab-cloudflare/env/github-environment.example.env`](../../crates/router-ab-cloudflare/env/github-environment.example.env):
+- [`../../deployment/wallet-system/env/github-environment.example.env`](../../deployment/wallet-system/env/github-environment.example.env):
   copy/paste variable and secret names for GitHub Environment setup.
 
 Role-specific configuration:

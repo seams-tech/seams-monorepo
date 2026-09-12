@@ -1,4 +1,4 @@
-import { decodeJsonRpcEnvelope } from '@seams-internal/shared-ts/utils/jsonRpc';
+import { decodeJsonRpcEnvelope } from '@seams/wallet-server/cloud-host';
 
 import {
   decodeEvmTransactionReceipt,
@@ -8,13 +8,13 @@ import {
   type EvmTransactionReceipt,
   type EvmBlockHeader,
   type EvmTransactionByHash,
-} from '@seams-internal/shared-ts/utils/evmRpcResults';
+} from '@seams/wallet-server/cloud-host';
 export {
   parseRpcHexQuantity,
   type EvmTransactionReceipt,
   type EvmBlockHeader,
   type EvmTransactionByHash,
-} from '@seams-internal/shared-ts/utils/evmRpcResults';
+} from '@seams/wallet-server/cloud-host';
 
 export type EvmBlockTag = 'latest' | 'pending' | 'safe' | 'finalized' | 'earliest';
 

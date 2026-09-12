@@ -501,7 +501,7 @@ secret, zero Shamir frontend variables, and no manual exponent or prime setup.
 - `deployment/targets.json`
 - `scripts/deployment-targets.mjs`
 - `scripts/deploy-backend.mjs`
-- `crates/router-ab-cloudflare/scripts/generate-github-env-values.mjs`
+- `deployment/wallet-system/scripts/generate-github-env-values.mjs`
 - `packages/console-server-ts/src/router/cloudflare/d1RouterApiStagingWorker.ts`
 - `packages/console-server-ts/src/router/cloudflare/d1LocalDevWorker.ts`
 - `packages/console-server-ts/wrangler.d1-local.toml`

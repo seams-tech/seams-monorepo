@@ -2,7 +2,7 @@ import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host'
 import type {
   TenantRootDeriverRoleV1,
   TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { checkTenantRootAuditEventRedactionV1 } from './audit';
 import type { TenantRootAuditWriterV1 } from './custodyRoute';
 import {

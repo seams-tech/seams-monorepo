@@ -18,8 +18,8 @@ import {
   type TenantRootRoleReceiptsV1,
   type TenantRootSourceCustodyDispositionV1,
   type TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import type { TenantRootCustodyStateV1, TenantRootCustodyStoreV1 } from './custodyService';
 import type {
   TenantRootRecipientChallengeRecordV1,

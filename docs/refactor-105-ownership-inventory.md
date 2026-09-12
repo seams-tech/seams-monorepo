@@ -52,8 +52,7 @@ is named inline and executes in Phases 1-2 (contracts/services) or Phase 6
 | `packages/wallet`            | wallet       | public `@seams/wallet`; renamed `packages/wallet` in Phase 7                                                                                   |
 | `packages/wallet-server`     | wallet       | public `@seams/wallet-server`; renamed `packages/wallet-server` in Phase 7                                                                     |
 | `packages/shared-ts`         | wallet       | shared browser/server contracts consumed by the Wallet packages (see shared-ts note)                                                           |
-| `apps/seams-site`            | MIXED        | historical state: company marketing + wallet content + demos; Wallet landing and `/dashboard/*` move to `apps/seams-console`                   |
-| `apps/web-server`            | composition  | Express in-memory console-only dev server (NOT the gateway; the hosted gateway entrypoints live in `console-server-ts/src/router/cloudflare/`) |
+| `apps/seams-site`            | MIXED        | historical state: company marketing + wallet content + demos; Wallet landing and `/dashboard/*` move to `apps/wallet-console`                   |
 | `apps/docs`                  | composition  | historical mixed docs host; public Wallet VitePress source moves to `seams-wallet`, while private operational documentation stays private      |
 | `crates/*`, `wasm/*`         | wallet       | signer runtime and protocol crates                                                                                                             |
 
@@ -130,7 +129,7 @@ schema is
 `tests/unit/consoleSchemaOwnership.unit.test.ts` holds both fresh schemas to
 exactly these ownership sets. The old `0001_console_d1_initial.sql` is
 deleted; both files apply the identical 49-table schema for the single
-`seams-console` D1 retained during R105.
+`wallet-console` D1 retained during R105.
 
 ## Signer D1 Tables (52)
 
@@ -335,7 +334,7 @@ Declared in `wrangler.d1-local.toml`, `wrangler.d1-staging-gateway.toml`, and
 
 | Binding                        | Type                                               | Owner                                      |
 | ------------------------------ | -------------------------------------------------- | ------------------------------------------ |
-| `CONSOLE_DB`                   | D1 `seams-console`                                 | console (Phase 4 removes from the Gateway) |
+| `CONSOLE_DB`                   | D1 `wallet-console`                                 | console (Phase 4 removes from the Gateway) |
 | `SIGNER_DB`                    | D1 `seams-signer`                                  | wallet                                     |
 | `MPC_ROUTER`, `SIGNING_WORKER` | service bindings to the private Router A/B Workers | wallet                                     |
 
@@ -428,10 +427,10 @@ the public `seams-wallet` output.
 | `/`, `/home2`, `/wallet`, `/ecommerce`, `/pricing`, `/company`, `/contact`, not-found                                                                                                              | seams-site (marketing)                        | `/pricing` CTA links to `/dashboard/login` — cross-app URL after Phase 5                                                                 |
 | `/near-login`, `/__intended-e2e`, `src/flows/demo/**` (mounted in marketing sections)                                                                                                              | seams-site (wallet demos / intended examples) |                                                                                                                                          |
 | `/dashboard/login`                                                                                                                                                                                 | console-core                                  | with `src/shared/auth/` OAuth helpers                                                                                                    |
-| `/dashboard/account-settings`, `/dashboard/team-members`, `/dashboard/api-keys`, `/dashboard/webhooks`, `/dashboard/audit`, `/dashboard/billing/*`, `/dashboard/invoices`, `/dashboard/onboarding` | console-core                                  | move to `apps/seams-console` `core/`                                                                                                     |
+| `/dashboard/account-settings`, `/dashboard/team-members`, `/dashboard/api-keys`, `/dashboard/webhooks`, `/dashboard/audit`, `/dashboard/billing/*`, `/dashboard/invoices`, `/dashboard/onboarding` | console-core                                  | move to `apps/wallet-console` `core/`                                                                                                     |
 | `/dashboard/overview`                                                                                                                                                                              | console-core                                  | MIXED: renders `OpsCockpitPage` + `consoleOpsCockpitApi`; the tenant overview stays, the ops-cockpit slices move to mpc-admin under R99B |
 | `/dashboard/observability`                                                                                                                                                                         | console-core                                  | tenant-scoped; fleet/platform slices → mpc-admin                                                                                         |
-| `/dashboard/wallets-list`, `/dashboard/gas-sponsorship`, `/dashboard/policy-engine` (+ page-less `routes/approvals/consoleApprovalsApi.ts`, `routes/wallets/consoleWalletApi.ts`)                  | wallet-console                                | move to `apps/seams-console` `products/wallet/`                                                                                          |
+| `/dashboard/wallets-list`, `/dashboard/gas-sponsorship`, `/dashboard/policy-engine` (+ page-less `routes/approvals/consoleApprovalsApi.ts`, `routes/wallets/consoleWalletApi.ts`)                  | wallet-console                                | move to `apps/wallet-console` `products/wallet/`                                                                                          |
 | `/platform/billing`, `/platform/*` (gated on `platformSupport`)                                                                                                                                    | mpc-admin                                     |                                                                                                                                          |
 | Dashboard shell (`page.tsx`, `consoleSession.tsx`, `consoleHttp.ts`, layout, components, icons, drafts, utils)                                                                                     | console-core                                  | moves wholesale                                                                                                                          |
 
@@ -477,21 +476,28 @@ fixtures remain private.
 | Group                                                       | Files                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Owner          |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | dashboard UI                                                | `tests/e2e/console/*.operating.test.ts`; `tests/unit/dashboard.*` (4 files)                                                                                                                                                                                                                                                                                                                                                                                                 | console-core   |
-| console server/router                                       | `tests/unit/router.consoleRouteSurface.unit.test.ts`, `cloudflareD1ConsoleServices.unit.test.ts`, `consoleApiKeys.secretFormat.unit.test.ts`, `consoleServer.stripeBillingProvider.unit.test.ts`, `webServer.consoleConfig.unit.test.ts`, `githubOAuth.unit.test.ts`                                                                                                                                                                                                        | console-core   |
+| console server/router                                       | `tests/unit/router.consoleRouteSurface.unit.test.ts`, `cloudflareD1ConsoleServices.unit.test.ts`, `consoleApiKeys.secretFormat.unit.test.ts`, `consoleServer.stripeBillingProvider.unit.test.ts`, `githubOAuth.unit.test.ts`                                                                                                                                                                                                        | console-core   |
 | sponsorship (wallet feature implemented in console package) | `tests/unit/sponsorship.*.unit.test.ts`, `sponsorshipPricing.d1.unit.test.ts`, `router.sponsoredEvmCallCloudflare.unit.test.ts`                                                                                                                                                                                                                                                                                                                                             | wallet-console |
-| mixed — split later                                         | `tests/scripts/start-intended-services.mjs`; `tests/e2e/pricing.checkout.apiWiring.test.ts`, `tests/unit/packageExports.contract.unit.test.ts`, `frontendRuntimeState.unit.test.ts`, the `d1Staging*`/`d1LocalDev*`/`d1HostedGatewayRouting`/`migrationFingerprint`/`signingRootScope`/`intendedYaoFault` script tests (import console-server-ts while testing wallet/signer behavior), OTP provider tests, shared fixtures (`tests/helpers/sqliteD1.ts`, staging fixtures) | composition    |
+| mixed — split later                                         | `tests/scripts/start-intended-services.mjs`; `tests/unit/packageExports.contract.unit.test.ts`, `frontendRuntimeState.unit.test.ts`, the `d1Staging*`/`d1LocalDev*`/`d1HostedGatewayRouting`/`migrationFingerprint`/`signingRootScope`/`intendedYaoFault` script tests (import console-server-ts while testing wallet/signer behavior), OTP provider tests, shared fixtures (`tests/helpers/sqliteD1.ts`, staging fixtures) | composition    |
 | Wallet suites                                               | `tests/wallet-iframe/`, `tests/lit-components/`, credential-free Wallet lifecycle contracts, Wallet relayer/unit families, `tests/scripts/run-wallet-intended-isolated.mjs`, and `playwright.wallet-intended*.config.ts`                                                                                                                                                                                                                                                    | wallet         |
 
 Boundary guards needing updates at each split: `tests/scripts/check-signer-console-module-boundaries.mjs`, `check-workspace-package-boundaries.mjs`, and the new `check-console-core-wallet-import-boundaries.mjs`.
 
+Site pricing/theme tests and Console-in-the-loop deployment tests remain private.
+Wallet-only tests move with their implementation; shared fixtures must expose only
+Wallet dependencies in the public repository. Tests used solely by the retired
+Node relay are removed.
+
 ## Local Runtime Classification
 
-`pnpm router` (`crates/router-ab-dev/scripts/dev-local-workers.mjs`) is the
+`pnpm router` (`scripts/local-wallet/dev-local-workers.mjs`) is the
 composed private development runtime: it prepares env/config, applies private
-Router A/B D1 migrations, starts the four Router A/B workers (:9100-:9103),
-spawns `pnpm gateway:server` (which applies console + signer D1 migrations
-via `d1:local:prepare`, then serves the combined local worker on :9090), and
-fronts it with Caddy on :9444. Ownership split for the public/private
+Router A/B D1 migrations, starts the five packaged Wallet workers (:4102-:4106),
+and spawns `pnpm gateway:server` (which applies Console + signer D1 migrations
+via `d1:local:prepare`, then serves the combined local Worker on :4100).
+`pnpm site` supplies the Caddy HTTPS proxy on :4101. The legacy Node relay
+`apps/web-server` and the unused `.router-ab-local/` directory have been retired.
+Ownership split for the public/private
 repositories:
 
 | Piece                                                                                                                                                                                | Owner                                                                                                                                                          |
@@ -501,7 +507,6 @@ repositories:
 | `router-ab-cloudflare/scripts/start-local-role-workers.mjs`                                                                                                                          | wallet; supervises the five Wallet role Workers and applies only their role-private D1 migrations                                                              |
 | Combined local worker (`d1LocalDevWorker.ts`), console+signer migration chaining (`d1:local:prepare`), Caddy topology, `gateway:server`, seeding (`seed-intended-local-console.mjs`) | composition (private composed development)                                                                                                                     |
 | Current `start-intended-services.mjs` manager                                                                                                                                        | composition until split; its Console startup/readiness/seeding moves private and its Wallet runtime/startup path becomes the public intended-behaviour manager |
-| `apps/web-server` Express in-memory console server (`gateway:server:threshold-3nodes`, `gateway:server:iphone`)                                                                      | composition (console-in-the-loop dev path)                                                                                                                     |
 | State-preserving startup (canonical-schema SHA check renames drifted state; `router:reset` renames, never deletes; `d1:local:reset` is the explicit destructive command)             | split: the Wallet-only local runtime keeps the preserve/reset semantics per the plan; the console halves move with composition                                 |
 
 `packages/shared-ts` (`@seams-internal/shared-ts`) is consumed exclusively by
@@ -599,13 +604,13 @@ Additional ownership to reconcile from the final tree:
 
 | Surface                                                                                                                                                  | Destination                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `apps/seams-console/src/products/wallet/derivation-root`, Wallet Console security/creation routes, scheduler, audit, operation and restore D1 migrations | Private Wallet Console                                                                                      |
+| `apps/wallet-console/src/products/wallet/derivation-root`, Wallet Console security/creation routes, scheduler, audit, operation and restore D1 migrations | Private Wallet Console                                                                                      |
 | `crates/seams-cli`, `crates/seams-recovery-core`, generic recovery protocol and role-private restore migrations                                          | Public Wallet implementation; native binary artifacts supplement npm                                        |
 | `packages/shared-ts/src/tenant-root`                                                                                                                     | Split portable protocol/CLI contracts from private Console governance and presentation models by consumer   |
 | `.github/workflows/release-seams-cli.yml`, production signing authority                                                                                  | Private release publisher consuming public CI build artifacts                                               |
 | Generic recovery/CLI instructions in `docs/tenant-recovery-runbook.md`                                                                                   | Public documentation; split out private provider and operating procedures                                   |
 | R120 KMS/R2 credentials and R121 deferred retention provider configuration                                                                               | Private Wallet-system role environments, separate from Console grants and CLI release signing               |
-| Current `seams.sh/wallet` page and owned assets                                                                                                          | Private wallet frontend composition in `apps/seams-console`, published at `wallet.seams.sh/`                |
+| Current `seams.sh/wallet` page and owned assets                                                                                                          | Private wallet frontend composition in `apps/wallet-console`, published at `wallet.seams.sh/`                |
 | Public Wallet VitePress source and configuration                                                                                                         | Public `seams-wallet`; configure `base: '/docs/'` and emit a versioned static artifact                      |
 | Wallet docs publication at `wallet.seams.sh/docs/*`                                                                                                      | Private wallet-site workflow consumes the exact public artifact and assembles it in the shared Pages output |
 | `voiceId/` experimental evidence lab                                                                                                                     | Private monorepo; independent of the public Wallet SDK and excluded from extraction                         |
@@ -616,17 +621,19 @@ now reaches the exact tenant-root operations through the narrow Wallet Runtime
 control port and carries neither broad role bindings nor the Wallet internal
 service credential.
 
-- The existing private repository is renamed in place to
-  `seams-tech/seams-monorepo`. It keeps Console, Admin, future products,
+- The fresh private `seams-tech/seams-monorepo` repository keeps Console, Admin, future products,
   the private operational portion of `apps/docs`, deployment topology,
   environment and provider configuration,
   secrets, operational runbooks, every staging/production workflow, and the
   private composed test/runtime harness.
+- The historical `seams-tech/seams-sdk` repository is preserved as an archive.
 - One fresh-history public `seams-tech/seams-wallet` repository owns
   `@seams/wallet`, `@seams/wallet-server`, required shared code, Rust/Wasm,
   signer migrations, public Wallet tests, Wallet VitePress source under
   `docs/`,
-  `examples/seams-auth-menu`, and the generic self-host/runtime example.
+  `examples/seams-auth-menu`, the local-only `examples/wallet-console-lite`
+  playground defined by Refactor 105E, and the generic self-host/runtime
+  example.
 - Current deployment/local scripts are not moved by directory assumption.
   Generic Wallet behavior is re-expressed in the public runtime; Console,
   environment, provider, and deployment orchestration remains private.

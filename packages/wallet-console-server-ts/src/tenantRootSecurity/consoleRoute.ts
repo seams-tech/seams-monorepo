@@ -4,7 +4,7 @@ import type {
   TenantRootIdentityV1,
   TenantRootRecoveryGovernanceV1,
   TenantRootSecurityStatusV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 
 import {
   guardTenantRootSecurityRequestV1,

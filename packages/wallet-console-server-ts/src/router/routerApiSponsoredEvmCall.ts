@@ -69,7 +69,7 @@ import type { RouteDefinition } from '@seams/wallet-server/cloud-host';
 import type { RouteErrorBody } from '@seams/wallet-server/cloud-host';
 import { routeJson } from '@seams/wallet-server/cloud-host';
 import type { ConsoleWebhookService } from '@seams-internal/console-server/webhooks/index';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 
 type SponsoredEvmExecution = {
   txHash: `0x${string}`;

@@ -3,8 +3,12 @@ name: Sign recovery trust
 on:
   workflow_dispatch:
     inputs:
+      public_revision:
+        description: Full seams-wallet commit SHA containing the signing tool and trust roots
+        required: true
+        type: string
       request_json:
-        description: Certificate or revocation_snapshot request JSON (see crates/seams-cli/trust/README.md)
+        description: Certificate or revocation_snapshot request JSON
         required: true
         type: string
 
@@ -21,12 +25,15 @@ jobs:
     environment: recovery-signing
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
+          repository: seams-tech/seams-wallet
+          ref: ${{ inputs.public_revision }}
+          path: wallet-source
           persist-credentials: false
 
       - name: Build the signing tool before exposing the key
-        run: cargo build --locked --release --manifest-path crates/seams-cli/Cargo.toml --bin seams-recovery-authority
+        run: cargo build --locked --release --manifest-path wallet-source/crates/seams-cli/Cargo.toml --bin seams-recovery-authority
 
       - name: Sign and verify the requested trust artifact
         env:
@@ -35,7 +42,7 @@ jobs:
           SEAMS_RECOVERY_SIGNER_KEY_ID: ${{ secrets.SEAMS_RECOVERY_SIGNER_KEY_ID }}
         run: |
           set -euo pipefail
-          pinned="$(jq -r .currentRoot.keyId crates/seams-cli/trust/recovery-trust-bundle.json)"
+          pinned="$(jq -r .currentRoot.keyId wallet-source/crates/seams-cli/trust/recovery-trust-bundle.json)"
           test -n "$SEAMS_RECOVERY_SIGNER_KEY_ID"
           test "$pinned" = "$SEAMS_RECOVERY_SIGNER_KEY_ID"
           umask 077
@@ -45,7 +52,7 @@ jobs:
           printf '%s' "$SEAMS_RECOVERY_SIGNING_KEY" > "$signing_key_file"
           unset SEAMS_RECOVERY_SIGNING_KEY
           exec 3< "$signing_key_file"
-          crates/seams-cli/target/release/seams-recovery-authority \
+          wallet-source/crates/seams-cli/target/release/seams-recovery-authority \
             --request request.json --signing-key-fd 3 > recovery-trust-artifact.json
           exec 3<&-
 

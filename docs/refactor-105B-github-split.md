@@ -10,8 +10,75 @@ R121's September 11 acceptance closeout is `6f088d2dd`. Freeze a later `dev` com
 also includes the R105 closeout changes. Outstanding R121 verification is
 recorded below and remains distinct from completed feature implementation.
 
-Implementation checkpoint: the retained repository and remote are now
-`seams-tech/seams-monorepo`. The public tree was extracted from private source
+## September 12 Source Removal Checkpoint
+
+September 12 implementation checkpoint: the private application is
+`apps/wallet-console`. The 21 Rust crates, `wasm/`, Wallet client/server/CLI
+packages, public docs/examples, and Wallet build tooling have been removed from
+the private working tree. Their source owner is `seams-wallet`; the original
+`seams-sdk` archive is unchanged.
+
+Private production consumers now pin `@seams/wallet` and
+`@seams/wallet-server` to `0.5.0`. Console-only tenant-root governance and
+security state live in `wallet-console-shared-ts`; portable protocol types
+come from the public server package's browser-safe `tenant-root` export.
+Private local composition lives in `scripts/local-wallet` and consumes
+packaged Worker assets, migrations, and a prebuilt local initializer. Private
+builds and type checks pass against locally packed public outputs with no
+Wallet source directories present. The existing Console-core import check
+passes, and a local initializer/configuration smoke check resolves all five
+packaged Workers without Cargo. This is package-boundary verification, not a
+completed browser acceptance journey or deployment.
+
+Wallet-system secret generation remains under
+`deployment/wallet-system/{scripts,env}`; Console inputs remain separate at
+`deployment/console/env`. No live secrets, deployments, or GitHub settings
+were changed during this closeout.
+
+The unused `.router-ab-local/` folder and legacy `apps/web-server` Node relay
+have been removed from the private working tree, together with their workspace
+entry, commands, and obsolete app tests. `gateway:server` runs the composed
+Cloudflare Worker. Private tests retain site, Console, and hosted composition
+coverage; SDK, protocol, signer, iframe, and generic Wallet runtime tests belong
+in `seams-wallet`. Byte-identical Wallet test copies already present there have
+been removed from the private tree (73 duplicate files). Two additional reviewed
+Wallet test files moved locally to `seams-wallet`; their 14 assertions pass.
+The extracted site-only assertion remains private and passes. The remaining
+unpublished and mixed tests still need transfer review and fixture separation;
+this handoff is incomplete. The legacy mixed source guards and test commands
+also need an ownership split that preserves the checks beside their source.
+
+R105 is still open at the release/CI/test handoff. Npm publication is blocked:
+anonymous package lookups return 404 and the local npm account returns 401.
+The exact-version registry lockfile therefore remains unfinished. Local packed
+artifacts were used only for verification; no temporary artifact overrides are
+committed. Approval review also blocked removal/replacement of the private CI
+workflows, switching recovery signing to the public native artifact, and
+transferring the remaining Wallet tests into the public repository. Those
+changes were not applied. Existing private test and CI commands that reference
+the removed source must be closed out before committing or deploying this
+working tree. Repository creation and a successful application build do not
+complete that handoff.
+
+
+Remaining closeout:
+
+- Publish the first `0.5.0` npm release and generate the exact registry lockfile.
+- Approve CI ownership changes: public Wallet build jobs leave the private repo;
+  private validation builds Console against installed packages; recovery trust
+  signing consumes the successful, exact-SHA public CLI tool artifact.
+- Approve the remaining test ownership transfer, keeping Console/mixed fixtures
+  private and moving only reviewed Wallet-owned tests to the public repository.
+  Update their remaining imports and commands after that transfer.
+- Complete one composed Console/Wallet operating flow and the separately gated
+  signed CLI publication and staging deployment. R123 hostname changes and
+  R105C authority/topology cutover remain separately coordinated work.
+
+## Earlier Extraction And Release Checkpoint
+
+Implementation checkpoint: the active private repository and remote are now
+the fresh `seams-tech/seams-monorepo`; the original `seams-tech/seams-sdk`
+repository is the historical archive. The public tree was extracted from private source
 commit `aa4c1220c`, committed with fresh history as `cdb1c4a`, and pushed to
 public `seams-tech/seams-wallet`. Follow-up `c2bff78` removed the private CLI
 release-signing and recovery-trust-signing workflows and installed the
@@ -117,8 +184,9 @@ Backend build, plan, migration, deployment, and smoke commands now require an
 explicit `console` or `wallet-system` authority. Their workflows produce,
 upload, deploy, and smoke only their own artifacts and endpoints.
 
-The retained repository has been renamed `seams-tech/seams-monorepo` and made
-private. The public `seams-tech/seams-wallet` repository remains available for
+The original repository was restored to `seams-tech/seams-sdk` and archived.
+The fresh `seams-tech/seams-monorepo` is private, and the public
+`seams-tech/seams-wallet` repository remains available for
 credential-free builds. This visibility cutover happened before the replacement
 CLI release, so fresh installs of older launchers that still embed the historical
 repository URL are unavailable until `0.4.1` is signed and published from
@@ -217,12 +285,13 @@ Use exactly two repositories:
 
 | Repository                  | Visibility | Ownership                                                                                                                                                                                                                      |
 | --------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `seams-tech/seams-monorepo` | private    | The current `seams-tech/seams-sdk` repository, renamed in place. It owns Console, future private products, deployment topology, environment configuration, secrets, provider configuration, and staging/production operations. |
+| `seams-tech/seams-monorepo` | private    | Fresh repository for Console, product sites, future private products, deployment topology, configuration, secrets, and staging/production operations. |
 | `seams-tech/seams-wallet`   | public     | One fresh-history repository containing the Wallet client and server SDKs, their Rust/Wasm implementation, public docs, public examples, and a generic self-hostable runtime.                                                  |
 
-The current repository keeps its history and is renamed. Do not create a
-second private repository. The public repository starts with one initial commit
-created from a fixed source revision; private history is not copied.
+Both active repositories start with fresh history from a recorded source
+snapshot. The original `seams-tech/seams-sdk` repository keeps its historical
+commits as an archive. The full-source private copy is an intermediate state
+until the package-consumption and source-removal steps are complete.
 
 Rust remains in `seams-wallet` beside the TypeScript packages that use it.
 Refactor 105B creates no additional Rust repositories and publishes no crates
@@ -252,6 +321,9 @@ Move the complete public Wallet implementation:
 - Wallet API, protocol, self-hosting, and development documentation under
   `docs/`, with the VitePress source configured for publication at `/docs/`;
 - `examples/seams-auth-menu`, containing the minimal `SeamsAuthMenu` consumer;
+- the later `examples/wallet-console-lite` local Wallet playground defined by
+  [Refactor 105E](./refactor-105E-wallet-console-lite.md), with local-only
+  organisation/project/dev setup and no hosted Console authority;
 - `examples/self-host-cloudflare-worker` and the generic local/self-host
   runtime;
 - package build configuration and newly authored credential-free CI and npm
@@ -265,7 +337,7 @@ secrets, private runbooks, or Console source.
 
 Keep:
 
-- `apps/seams-site`, `apps/seams-console`, `apps/web-server`, and the private
+- `apps/seams-site`, `apps/wallet-console`, and the private
   operational portion of `apps/docs`;
 - Console core, Wallet Console, Admin, and future private product packages;
 - every current `.github/workflows/*` file;
@@ -587,16 +659,16 @@ Exit: the public source and both npm packages are independently consumable.
 
 ### Phase 4: Rewire The Private Monorepo
 
-- [ ] Replace Wallet workspace ranges and source aliases with exact npm
+- [x] Replace Wallet workspace ranges and source aliases with exact npm
       versions, then regenerate the private lockfile.
-- [ ] Rewire frontend builds to import `@seams/wallet`.
+- [x] Rewire frontend builds to import `@seams/wallet`.
 - [x] Make private frontend releases resolve and consume the exact public docs
       artifact for an explicit full Wallet revision, with a recorded artifact
       and workflow-run identity, and assemble it at `/docs/` in the current
       wallet Pages output.
-- [ ] Rewire backend, migration, local-runtime, and deployment scripts to use
+- [x] Rewire backend, migration, local-runtime, and deployment scripts to use
       artifacts from `@seams/wallet-server`.
-- [ ] Replace the Console-owned local signer-migration adapter with the public
+- [x] Replace the Console-owned local signer-migration adapter with the public
       package command. Keep remote application and fingerprint checkpointing in
       the private Wallet-system deployment manager.
 - [x] Split `deployment/targets.json`, environment generation, update/rotation
@@ -648,8 +720,8 @@ overwriting or unpublishing one.
 
 ## Definition Of Done
 
-- `seams-tech/seams-monorepo` is the renamed private historical repository;
-- `seams-tech/seams-wallet` is the only new repository and has fresh history;
+- `seams-tech/seams-monorepo` and `seams-tech/seams-wallet` are separate fresh-history repositories;
+- the original `seams-tech/seams-sdk` repository is preserved as an archive;
 - Console, future private products, all existing workflows, environment and
   secret configuration, provider configuration, and staging/production
   deployment remain private;

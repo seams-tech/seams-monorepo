@@ -1,4 +1,4 @@
-import type { TenantRootOperationKindV1 } from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootOperationKindV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 
 /**
  * Server-issued proof that one console actor completed high-assurance step-up.

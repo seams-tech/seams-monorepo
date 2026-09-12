@@ -10,9 +10,13 @@
     "./apiKeyScopes": "./src/apiKeyScopes.ts",
     "./gasSponsorshipChains": "./src/gasSponsorshipChains.ts",
     "./gasSponsorshipSpendCapTargets": "./src/gasSponsorshipSpendCapTargets.ts",
-    "./webhookEventCategories": "./src/webhookEventCategories.ts"
+    "./webhookEventCategories": "./src/webhookEventCategories.ts",
+    "./tenant-root": "./src/tenant-root/index.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@seams/wallet-server": "0.5.0"
   }
 }

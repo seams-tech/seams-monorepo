@@ -81,7 +81,7 @@ does not claim a new staging or production deployment.
 - Preserve Wallet ownership of tenant-root creation/security/restore routes,
   custody adapters, active-lineage lookup, scheduler, dashboard, and CLI.
   Relevant paths are `packages/wallet-console-server-ts/src/tenantRootCreation`,
-  `tenantRootSecurity`, and the Wallet dashboard under `apps/seams-console/src/products/wallet`.
+  `tenantRootSecurity`, and the Wallet dashboard under `apps/wallet-console/src/products/wallet`.
   Generic Console authentication and environment records remain Console-owned.
 - Keep the public native CLI and npm launcher available through the repository
   split. `packages/seams-cli` is now 0.4.0; its signed native assets still come from

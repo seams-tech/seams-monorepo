@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   deriveDashboardOrganizationSlug,
   generateDashboardOrganizationId,
-} from '../../apps/seams-console/src/core/dashboard/utils/organizationIdentity';
+} from '../../apps/wallet-console/src/core/dashboard/utils/organizationIdentity';
 
 test.describe('dashboard organization identity helpers', () => {
   test('derive slug from organization name and generate org ids in the expected format', () => {

@@ -4,7 +4,7 @@ import type {
   TenantRootRecipientPairV1,
   TenantRootRecoveryBackupV1,
   TenantRootRecoveryGovernanceV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 
 export function recipientPairMatchesStagedV1(
   pair: TenantRootRecipientPairV1,

@@ -60,7 +60,7 @@ What the confirmation verified as already correct:
 - Core billing is product-neutral: `active_resource_v1` metering,
   `PRODUCT_EXECUTION_DEBIT`, and `revenue_product_execution` postings carry a
   second product without schema redesign.
-- `apps/seams-console` has the `core/` + `products/wallet/` + `app/` static
+- `apps/wallet-console` has the `core/` + `products/wallet/` + `app/` static
   composition shape with no plugin framework.
 
 ## Verified Gap Inventory
@@ -129,10 +129,10 @@ deployment composition. Neither remains owned by Console core.
 
 ### F1. Frontend core pages import the wallet product
 
-- `apps/seams-console/src/core/dashboard/routes/audit/page.tsx:55` imports
+- `apps/wallet-console/src/core/dashboard/routes/audit/page.tsx:55` imports
   `listDashboardApprovals` from `@wallet-product/approvals/consoleApprovalsApi`
   to build its approvals directory.
-- `apps/seams-console/src/core/dashboard/routes/ops-cockpit/page.tsx:17`
+- `apps/wallet-console/src/core/dashboard/routes/ops-cockpit/page.tsx:17`
   imports `approveDashboardApproval` / `rejectDashboardApproval` from the same
   module.
 
@@ -142,11 +142,11 @@ Refactor 99B; that later move does not excuse the import today.
 
 ### F2. Frontend core is product-aware and inverted against `app/`
 
-- `apps/seams-console/src/core/dashboard/page.tsx` and
+- `apps/wallet-console/src/core/dashboard/page.tsx` and
   `core/dashboard/useDashboardUiPreferences.ts` import `@app/dashboardConfig`,
   inverting the composition direction and pulling every wallet page into
   core's module graph.
-- `apps/seams-console/src/core/dashboard/types.ts` hardcodes
+- `apps/wallet-console/src/core/dashboard/types.ts` hardcodes
   `/dashboard/wallets-list`, `/dashboard/policy-engine`, and
   `/dashboard/gas-sponsorship` into the core `DashboardRoute` union and
   `'operationsSecurity'` into `SidebarGroupKey`.
@@ -160,7 +160,7 @@ Refactor 99B; that later move does not excuse the import today.
 
 `tests/scripts/check-console-core-wallet-import-boundaries.mjs` scans only
 `packages/console-server-ts/src` and `packages/console-shared-ts/src`. Nothing
-enforces `apps/seams-console/src/core` against `@wallet-product/*`, `@app/*`,
+enforces `apps/wallet-console/src/core` against `@wallet-product/*`, `@app/*`,
 or `@seams-internal/wallet-console-*`, which is why F1 and F2 exist.
 
 ## Fix Plan
@@ -276,13 +276,13 @@ names a wallet package or signer artifact.
       `@seams-internal/wallet-console-shared` nor `@wallet-product/*`.
 
 Exit: `grep -rn "@app/\|@wallet-product\|wallet-console-shared"
-apps/seams-console/src/core` returns nothing.
+apps/wallet-console/src/core` returns nothing.
 
 ### Phase 6: Enforce the boundary (F3)
 
 - [x] Add `no-restricted-imports` zones to `eslint.config.mjs` (per the
-      testing policy's preference for lint rules over new source-text guards): - `apps/seams-console/src/core/**` may not import `@app/*`,
-      `@wallet-product/*`, or `@seams-internal/wallet-console-*`; - `apps/seams-console/src/products/**` may not import `@app/*`.
+      testing policy's preference for lint rules over new source-text guards): - `apps/wallet-console/src/core/**` may not import `@app/*`,
+      `@wallet-product/*`, or `@seams-internal/wallet-console-*`; - `apps/wallet-console/src/products/**` may not import `@app/*`.
 - [x] Land the lint rules in the same change set as the last Phase 5 fix so
       they are born green with no allowlist.
 - [x] Re-run the Refactor 105 "Boundary Closeout And Final Split" checklist
@@ -290,7 +290,7 @@ apps/seams-console/src/core` returns nothing.
       reconciliation note.
 
 Exit: `pnpm check` fails on any new core-to-product, core-to-app, or
-product-to-app import in `apps/seams-console`.
+product-to-app import in `apps/wallet-console`.
 
 Reconciliation: Phases 1–4 separated route, observability, signer-read, and
 deployment ownership. Phase 5 now passes the composed routes, navigation,
@@ -309,7 +309,7 @@ Phases 3 and 4 are independent of both.
 
 ## Minimal Validation
 
-- type-check and build the four Console packages and `apps/seams-console`;
+- type-check and build the four Console packages and `apps/wallet-console`;
 - `tests/unit/consoleSchemaOwnership.unit.test.ts` and the extended vocabulary
   assertions;
 - `pnpm test:source-guards` (existing chain, unchanged scope) and the new

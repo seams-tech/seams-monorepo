@@ -1,10 +1,10 @@
-import type { TenantRootIdentityV1 } from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootIdentityV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 
 export type {
   TenantRootIdentityFieldV1,
   TenantRootIdentityV1,
   TenantRootIdentityWireV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 
 export type TenantRootCreationGrantReadyV1 = {
   readonly revision: number;

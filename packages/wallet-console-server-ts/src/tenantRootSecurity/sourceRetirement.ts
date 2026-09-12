@@ -1,4 +1,4 @@
-import type { TenantRootSourceCustodyDispositionV1 } from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootSourceCustodyDispositionV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { buildTenantRootAuditEventV1, type TenantRootAuditEventV1 } from './audit';
 
 /**

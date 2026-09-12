@@ -3,8 +3,8 @@ import {
   decodeTenantRootIdentityWireV1,
   tenantRootDownloadableRecoverySetV1,
   type TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { enrollmentBytes, enrollmentSecretHash, enrollmentText } from './cliEnrollmentStore';
 import {
   guardTenantRootSecurityRequestV1,

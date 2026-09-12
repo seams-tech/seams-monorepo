@@ -23,7 +23,7 @@ import {
   rotationStatusLine,
   shouldWarnBackupNeverDownloaded,
   trustLevelLine,
-} from '../../apps/seams-console/src/products/wallet/derivation-root/derivationRootPresentation';
+} from '../../apps/wallet-console/src/products/wallet/derivation-root/derivationRootPresentation';
 
 const GOVERNANCE: TenantRootRecoveryGovernanceV1 = {
   kind: 'two_person_v1',

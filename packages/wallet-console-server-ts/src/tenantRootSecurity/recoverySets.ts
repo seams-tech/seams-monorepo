@@ -6,7 +6,7 @@ import type {
   TenantRootRecoverySetStateV1,
   TenantRootRoleReceiptsV1,
   TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 
 /**
  * Recovery-set generation, replacement, and download evidence.

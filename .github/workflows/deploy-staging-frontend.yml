@@ -20,7 +20,6 @@ env:
   DEPLOY_SITE: staging
   DEPLOY_SHA: ${{ github.sha }}
   SEAMS_WALLET_REVISION: ${{ inputs.wallet_revision }}
-  RUST_TOOLCHAIN: 1.96.0
 
 jobs:
   deploy:
@@ -68,16 +67,8 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Add wasm target
-        run: rustup target add wasm32-unknown-unknown
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-      - name: Install pinned WASM tooling
-        run: bash packages/wallet/scripts/build/install-ci-wasm-tooling.sh
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
       - name: Download exact public Wallet docs
         env:
           GH_TOKEN: ${{ secrets.SEAMS_WALLET_ARTIFACT_READ_TOKEN }}

@@ -1,5 +1,5 @@
 import { base64UrlDecode, base64UrlEncode, sha256Bytes } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { ROUTER_AB_MPC_ROUTER_ORIGIN } from '@seams/wallet-server/cloud-host';
 import type {
   TenantRootRestoreManifestRegistrarV1,

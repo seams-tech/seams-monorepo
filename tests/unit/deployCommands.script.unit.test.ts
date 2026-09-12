@@ -26,11 +26,11 @@ const frontendScript = path.join(repoRoot, 'scripts/deploy-frontend.mjs');
 const frontendHeaders = path.join(repoRoot, 'apps/seams-site/src/public/_headers');
 const environmentGeneratorScript = path.join(
   repoRoot,
-  'crates/router-ab-cloudflare/scripts/generate-github-env-values.mjs',
+  'deployment/wallet-system/scripts/generate-github-env-values.mjs',
 );
 const deploymentKeyGeneratorScript = path.join(
   repoRoot,
-  'crates/router-ab-cloudflare/scripts/generate-deployment-keys.mjs',
+  'deployment/wallet-system/scripts/generate-deployment-keys.mjs',
 );
 const deploymentSecretNames = [
   'STRIPE_API_SK',

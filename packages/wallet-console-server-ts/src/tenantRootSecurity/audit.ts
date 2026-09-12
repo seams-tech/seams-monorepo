@@ -1,7 +1,7 @@
 import type {
   TenantRootDeriverRoleV1,
   TenantRootOperationKindV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 
 /**
  * Audit events for tenant derivation-root custody.

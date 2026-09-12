@@ -8,8 +8,8 @@ import type {
   TenantRootRoleReceiptsV1,
   TenantRootSourceCustodyDispositionV1,
   TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import { tenantRootDownloadableRecoverySetV1 } from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import { tenantRootDownloadableRecoverySetV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { buildTenantRootAuditEventV1, type TenantRootAuditEventV1 } from './audit';
 import {
   commitTenantRootRecipientPairV1,

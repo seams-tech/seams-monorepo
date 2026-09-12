@@ -1,4 +1,4 @@
-import type { DashboardRotationOutcome } from '../../apps/seams-console/src/products/wallet/derivation-root/consoleDerivationRootApi';
+import type { DashboardRotationOutcome } from '../../apps/wallet-console/src/products/wallet/derivation-root/consoleDerivationRootApi';
 
 // @ts-expect-error Completion requires the activation receipt.
 const missingReceipt: DashboardRotationOutcome = { kind: 'complete', operationId: 'operation' };
@@ -13,7 +13,7 @@ declare const completed: Extract<DashboardRotationOutcome, { kind: 'complete' }>
 const spreadOutcome: DashboardRotationOutcome = { ...completed, kind: 'refused', message: 'Refused' };
 void spreadOutcome;
 
-import type { DashboardDerivationRootStatus } from '../../apps/seams-console/src/products/wallet/derivation-root/consoleDerivationRootApi';
+import type { DashboardDerivationRootStatus } from '../../apps/wallet-console/src/products/wallet/derivation-root/consoleDerivationRootApi';
 
 // @ts-expect-error Active state requires the server's root status.
 const missingRoot: DashboardDerivationRootStatus = { kind: 'active' };

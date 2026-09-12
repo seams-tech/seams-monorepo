@@ -23,7 +23,7 @@ Support two account-level second factors: an authenticator app using TOTP and a 
 | Route requirements | `packages/console-server-ts/src/router/consoleRouteDefinitions.ts` | Declare admission for challenge, enrollment, management, and normal console routes. |
 | Existing WebAuthn implementation | `packages/wallet-console-server-ts/src/tenantRootSecurity/stepUpCeremony.ts`, `stepUpWebAuthnAdapter.ts`, `stepUpCredentialStore.ts` | Reuse verification patterns and the existing WebAuthn dependency. Account login gets explicit account ownership and challenge purpose. |
 | Account storage | `packages/console-server-ts/src/account/`, `migrations/d1-console-core/` | Add account factor, challenge, and recovery persistence using established D1 patterns. |
-| Login and account UI | `apps/seams-console/src/core/dashboard/login/page.tsx`, `routes/account-settings/page.tsx`, `consoleSession.tsx` | Add enrollment, challenge, recovery, and factor management states. |
+| Login and account UI | `apps/wallet-console/src/core/dashboard/login/page.tsx`, `routes/account-settings/page.tsx`, `consoleSession.tsx` | Add enrollment, challenge, recovery, and factor management states. |
 
 The existing WebAuthn adapter requests and verifies user verification. Existing step-up credentials are scoped by organization and user. They must not silently become account-wide credentials. Keep their custody purpose, require explicit account enrollment, and share only verification code that genuinely fits both flows. Audit the existing challenge store's separate read/delete consumption before reusing it: new authentication challenges require atomic consumption.
 

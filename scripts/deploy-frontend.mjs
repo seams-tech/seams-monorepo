@@ -12,13 +12,13 @@ import { consoleOriginFor } from '../packages/wallet-console-server-ts/scripts/g
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = path.resolve(SCRIPT_DIRECTORY, '..');
-const ROUTER_ROOT = path.join(REPOSITORY_ROOT, 'crates', 'router-ab-cloudflare');
+const ROUTER_ROOT = REPOSITORY_ROOT;
 const SITE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'seams-site');
 const SITE_OUTPUT = path.join(SITE_ROOT, 'dist');
-const CONSOLE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'seams-console');
+const CONSOLE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'wallet-console');
 const CONSOLE_OUTPUT = path.join(CONSOLE_ROOT, 'dist');
 const CONSOLE_DEPLOYMENT_OUTPUT = path.join(SITE_OUTPUT, 'dashboard-static');
-const DOCS_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'docs');
+const DOCS_ROOT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-docs');
 const DOCS_OUTPUT = path.join(DOCS_ROOT, 'dist');
 const PUBLIC_DOCS_ARTIFACT_ROOT = path.join(REPOSITORY_ROOT, '.artifacts', 'wallet-docs');
 const FRONTEND_SMOKE_PATHS = Object.freeze({
@@ -143,13 +143,10 @@ function formatLaneProvisioning(lanes) {
 function buildFrontend(site) {
   const buildEnvironment = buildFrontendEnvironment(site);
   runCommand('pnpm', ['install', '--frozen-lockfile']);
-  runCommand('pnpm', ['--filter', '@seams/wallet', 'run', 'build:prod'], {
-    env: buildEnvironment,
-  });
   runCommand('pnpm', ['-C', 'apps/seams-site', 'exec', 'vite', 'build'], {
     env: buildEnvironment,
   });
-  runCommand('pnpm', ['-C', 'apps/seams-console', 'run', 'build'], {
+  runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', 'build'], {
     env: buildEnvironment,
   });
   copyPublicDocsArtifact();

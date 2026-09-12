@@ -22,7 +22,6 @@ concurrency:
 env:
   DEPLOY_LANE: ${{ inputs.lane }}
   DEPLOY_SHA: ${{ github.sha }}
-  RUST_TOOLCHAIN: 1.96.0
 
 jobs:
   configure:
@@ -68,14 +67,8 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Add wasm target
-        run: rustup target add wasm32-unknown-unknown
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build backend artifact
         run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component console
       - name: Check Console build entry

@@ -1,5 +1,5 @@
 import { base64UrlDecode, base64UrlEncode } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import type { TenantRootCustodyControlPlaneV1 } from './custodyService';
 
 type RecipientProofControlPlane = Pick<

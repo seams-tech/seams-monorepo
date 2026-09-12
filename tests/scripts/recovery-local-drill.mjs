@@ -127,7 +127,7 @@ async function startService() {
   service = spawn(
     process.execPath,
     [
-      path.join(root, 'crates/router-ab-dev/scripts/recovery-local.mjs'),
+      path.join(root, 'scripts/local-wallet/recovery-local.mjs'),
       '--manifest',
       path.join(input, 'manifest.json'),
       '--state-dir',

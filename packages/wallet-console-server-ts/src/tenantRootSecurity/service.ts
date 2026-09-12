@@ -3,12 +3,12 @@ import type {
   TenantRootOperationRecordResultV1,
   TenantRootOperationRecordV1,
   TenantRootRecoveryGovernanceV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   canonicalTenantRootOperationRecordJsonV1,
   parseTenantRootOperationRecordV1,
   tenantRootOperationDigestB64uV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   authorizeTenantRootOperationV1,
   type TenantRootAuthorizationErrorV1,

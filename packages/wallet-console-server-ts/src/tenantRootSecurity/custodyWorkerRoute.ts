@@ -12,12 +12,12 @@ import {
   base64UrlEncode,
   type D1DatabaseLike,
 } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import {
   tenantRootRecoveryGovernanceDigestB64uV1,
   tenantRootDownloadableRecoverySetV1,
   type TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import type { ConsoleOrganizationAccessService } from '@seams-internal/console-server/teamRbac/service';
 import {
   createAuthorizedTenantRootCustodyHandlerV1,

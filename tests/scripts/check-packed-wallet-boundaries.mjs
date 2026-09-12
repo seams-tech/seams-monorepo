@@ -17,7 +17,7 @@ const forbidden = [
   '@seams-internal/wallet-console',
   'packages/console',
   'packages/wallet-console',
-  'apps/seams-console',
+  'apps/wallet-console',
   'deployment/console/targets.json',
   'deployment/wallet-system/targets.json',
   'CONSOLE_SESSION_HMAC_SECRET',

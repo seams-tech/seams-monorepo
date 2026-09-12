@@ -25,11 +25,11 @@ import {
   tenantRootOperationDigestB64uV1,
   tenantRootOperationMaxLifetimeMsV1,
   tenantRootRecoveryGovernanceDigestB64uV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { createComposedConsoleRouteDefinitions } from '../router/walletConsoleRouteDefinitions';
 import { authorizeConsoleRouteRequest } from '@seams-internal/console-server/router/consoleRoutePolicy';
 import { headersToRecord } from '@seams/wallet-server/cloud-host';
-import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/shared-ts/tenant-root';
+import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { ROUTER_AB_MPC_ROUTER_ORIGIN } from '@seams/wallet-server/cloud-host';
 import {
   randomTenantRootCreationGrantBytesV1,

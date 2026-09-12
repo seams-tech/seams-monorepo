@@ -3,7 +3,7 @@ import type {
   CloudflareD1EmailOtpDeliveryProviderInput,
   CloudflareD1EmailOtpDeliveryProviderResult,
 } from '@seams/wallet-server/cloud-host';
-import type { WalletEmailOtpOperation } from '@seams-internal/shared-ts/utils/emailOtpDomain';
+import type { WalletEmailOtpOperation } from '@seams/wallet-server/cloud-host';
 
 export type EmailOtpMessage = {
   readonly deliveryId: string;

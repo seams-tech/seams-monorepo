@@ -2,11 +2,11 @@ import type {
   TenantRootOperationKindV1,
   TenantRootOperationRecordV1,
   TenantRootRecoveryGovernanceV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   tenantRootGovernanceTransitionRequiresSecondOwnerV1,
   tenantRootOperationFollowsGovernanceV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   parseTenantRootStepUpV1,
   type TenantRootStepUpProofV1,

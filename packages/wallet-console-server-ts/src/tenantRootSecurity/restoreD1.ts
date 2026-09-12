@@ -1,4 +1,4 @@
-import { decodeTenantRootIdentityWireV1 } from '@seams-internal/shared-ts/tenant-root';
+import { decodeTenantRootIdentityWireV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 import {
   base64UrlDecode,
@@ -21,8 +21,8 @@ import type {
   TenantRootSourceCustodyDispositionV1,
   TenantRootTenantHeldExternalRecoverySetV1,
   TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import type {
   TenantRootDestinationStateV1,
   TenantRootRestoreBootstrapSessionV1,
@@ -46,7 +46,7 @@ import {
   TENANT_ROOT_RESTORE_REFRESH_GRANT_MAX_LIFETIME_MS_V1,
   type SignedTenantRootRestoreRefreshGrantV1,
 } from './restoreRefreshGrantSigner';
-import type { TenantRootRestoreSessionV1 } from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootRestoreSessionV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import type { TenantRootOperationEntryV1, TenantRootOperationStoreV1 } from './service';
 import { createD1TenantRootOperationStoreV1 } from './d1';
 

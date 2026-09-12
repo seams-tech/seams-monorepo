@@ -4,8 +4,8 @@ import {
   base64UrlEncode,
   type D1DatabaseLike,
 } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
-import type { TenantRootIdentityV1 } from '@seams-internal/shared-ts/tenant-root';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
+import type { TenantRootIdentityV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   CliEnrollmentStore,
   enrollmentBytes,

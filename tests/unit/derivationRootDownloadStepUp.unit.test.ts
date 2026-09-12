@@ -8,11 +8,11 @@ for (const mode of ['stale', 'fresh', 'cancel', 'still-stale', 'forbidden', 'cha
 test(`recovery artifact download: ${mode}`, async ({ page }) => {
   const bundle = await build({
     stdin: {
-      contents: `import { downloadRecoveryArtifact } from './apps/seams-console/src/products/wallet/derivation-root/consoleDerivationRootApi'; window.downloadArtifact = downloadRecoveryArtifact;`,
+      contents: `import { downloadRecoveryArtifact } from './apps/wallet-console/src/products/wallet/derivation-root/consoleDerivationRootApi'; window.downloadArtifact = downloadRecoveryArtifact;`,
       resolveDir: root,
     },
     bundle: true, write: false, format: 'iife',
-    alias: { '@core/dashboard/consoleHttp': path.join(root, 'apps/seams-console/src/core/dashboard/consoleHttp.ts') },
+    alias: { '@core/dashboard/consoleHttp': path.join(root, 'apps/wallet-console/src/core/dashboard/consoleHttp.ts') },
     plugins: [{
       name: 'console-http',
       setup(builder) {

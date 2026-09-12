@@ -1,4 +1,4 @@
-# seams-sdk — agent instructions
+# seams-monorepo — agent instructions
 
 Single instruction file for all coding agents: Codex reads it natively; Claude Code
 injects it via the SessionStart hook in `.claude/settings.json`. This repo deliberately
@@ -7,11 +7,11 @@ agent session. When working under `tests/`, also read `tests/AGENTS.md`.
 
 ## Repo shape (the non-obvious parts)
 
-- Monorepo: Rust crates in `crates/`, TypeScript in `packages/` + `apps/`, wasm signers in `wasm/`.
+- Private TypeScript applications and Console packages live in `apps/` and `packages/`. Wallet SDK, Rust/WASM, CLI, and public docs sources live in the separate `seams-wallet` repository; consume their exact package releases here.
 - ALL TypeScript tests live in the top-level `tests/` workspace (`tests/unit/`,
   `tests/e2e/`, `tests/relayer/`, `tests/wallet-iframe/`, ...) — never co-located with
   sources in `packages/*`.
-- Rust tests are per-crate under `crates/*/tests/`.
+- Wallet Rust and pure SDK tests run in `seams-wallet`; keep Console and composed acceptance tests private.
 
 ## Custody vocabulary (each term names exactly one thing)
 
@@ -115,6 +115,6 @@ Decision rules — classify before fixing:
   `tests/README.md`)
 - `pnpm test:unit` / `pnpm test:relayer` / `pnpm test:wallet-iframe` / `pnpm test:lit-components`
 - `pnpm test:source-guards` — the source-guard chain
-- `pnpm check` — lint + type-check + Rust lint + architecture boundary checks
-- Rust: `cargo test -p <crate>`; formal verification: `pnpm check:formal-verification`
+- `pnpm check` — private lint, type-check, and Console-core boundary checks
+- Run Rust builds and formal verification from `seams-wallet`, never from this private repository.
 - Full suite documentation: `tests/README.md`

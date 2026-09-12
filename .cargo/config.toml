@@ -1,2 +1,0 @@
-[alias]
-yao-fv = "run --locked --quiet --manifest-path crates/ed25519-yao/formal-verification/tasks/Cargo.toml --"

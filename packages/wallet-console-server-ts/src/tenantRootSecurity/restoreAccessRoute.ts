@@ -3,9 +3,9 @@ import { base64UrlEncode, type D1DatabaseLike } from '@seams/wallet-server/cloud
 import {
   decodeTenantRootIdentityWireV1,
   type TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { enrollmentBytes, enrollmentSecretHash, enrollmentText } from './cliEnrollmentStore';
 import {
   guardTenantRootSecurityRequestV1,

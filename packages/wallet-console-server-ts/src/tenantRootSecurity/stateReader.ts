@@ -3,8 +3,8 @@ import {
   type TenantRootDeriverHealthV1,
   type TenantRootRotationJobV1,
   type TenantRootSecurityStatusV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 import type { D1TenantRootActiveLineageResolverV1 } from './activeLineageD1';
 import type { TenantRootIdentityV1 } from '../tenantRootCreation/types';

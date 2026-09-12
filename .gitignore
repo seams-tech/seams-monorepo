@@ -15,9 +15,6 @@ apps/docs/docs/dist
 apps/docs/src/.vitepress/cache
 apps/seams-site/.caddy.log
 apps/web-client/.caddy.log
-apps/web-server/dist
-apps/web-server/grace-keys.json
-apps/web-server/.provision-cache.json
 examples/relay-cloudflare-worker/.wrangler
 packages/console-server-ts/.wrangler/
 .runtime/

@@ -13,18 +13,18 @@ import type {
   TenantRootRestoreSessionV1,
   TenantRootSourceCustodyDispositionV1,
   TenantRootTrustLevelV1,
-} from '@seams-internal/shared-ts/tenant-root';
-import type { TenantRootRestoreRoleImportKeyIssueOperationRecordV1 } from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
+import type { TenantRootRestoreRoleImportKeyIssueOperationRecordV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import type { TenantRootOperationEntryV1 } from './service';
-import type { TenantRootIdentityV1 } from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootIdentityV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   buildTenantRootOperationRecordV1,
   canonicalTenantRootOperationRecordJsonV1,
   parseTenantRootOperationRecordV1,
   tenantRootOperationDigestB64uV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import { base64UrlDecode, base64UrlEncode } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { buildTenantRootAuditEventV1, type TenantRootAuditEventV1 } from './audit';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 

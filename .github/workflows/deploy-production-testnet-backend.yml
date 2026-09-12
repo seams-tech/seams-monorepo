@@ -13,7 +13,6 @@ concurrency:
 env:
   DEPLOY_LANE: production-testnet
   DEPLOY_SHA: ${{ github.sha }}
-  RUST_TOOLCHAIN: 1.96.0
 
 jobs:
   build:
@@ -34,14 +33,8 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Add wasm target
-        run: rustup target add wasm32-unknown-unknown
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build backend artifact
         run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component wallet-system
       - name: Check fixed build entries
@@ -128,7 +121,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter router-ab-cloudflare
+        run: pnpm install --frozen-lockfile
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
@@ -176,7 +169,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter router-ab-cloudflare
+        run: pnpm install --frozen-lockfile
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
@@ -224,7 +217,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter router-ab-cloudflare
+        run: pnpm install --frozen-lockfile
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
@@ -268,7 +261,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter router-ab-cloudflare
+        run: pnpm install --frozen-lockfile
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
@@ -312,7 +305,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter router-ab-cloudflare
+        run: pnpm install --frozen-lockfile
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:

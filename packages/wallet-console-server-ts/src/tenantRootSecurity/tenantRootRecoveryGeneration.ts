@@ -5,12 +5,12 @@ import {
   sha256Bytes,
   type D1DatabaseLike,
 } from '@seams/wallet-server/cloud-host';
-import { isPlainObject } from '@seams-internal/shared-ts/utils/validation';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import {
   encodeTenantRootIdentityV1,
   type TenantRootIdentityV1,
   type TenantRootDeriverRoleV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import type {
   TenantRootCustodyControlPlaneV1,
   TenantRootCustodyStoreV1,

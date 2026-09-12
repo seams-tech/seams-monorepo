@@ -11,7 +11,7 @@ import {
 import {
   decodeTenantRootIdentityWireV1,
   type TenantRootIdentityV1,
-} from '@seams-internal/shared-ts/tenant-root';
+} from '@seams-internal/wallet-console-shared/tenant-root';
 import {
   decodeWalletConsoleTenantRootActiveLineageRequestV1,
   WALLET_CONSOLE_OP_PATHS_V1,

@@ -1226,7 +1226,7 @@
       "matchesDigestSha256": "9cc14f4ae79a4138e98fc4d35e7826416b5a985fc5c2f07a753f4c4e61547cf0"
     },
     {
-      "path": "crates/router-ab-cloudflare/env/github-environment.example.env",
+      "path": "deployment/wallet-system/env/github-environment.example.env",
       "category": "deployment",
       "hitCount": 2,
       "firstLine": 37,
@@ -1308,7 +1308,7 @@
       "matchesDigestSha256": "7ff806d4d334c02075f6d030d9d1ea4671376aa2c4a9f4a2bf3f7b156f2cc6f2"
     },
     {
-      "path": "crates/router-ab-cloudflare/scripts/generate-deployment-keys.mjs",
+      "path": "deployment/wallet-system/scripts/generate-deployment-keys.mjs",
       "category": "deployment",
       "hitCount": 29,
       "firstLine": 39,
@@ -1321,7 +1321,7 @@
       "matchesDigestSha256": "3a8da7c24f9270de373d7df1651363e35659ca3bf97e76adbb6791f4e930e3d1"
     },
     {
-      "path": "crates/router-ab-cloudflare/scripts/generate-github-env-values.mjs",
+      "path": "deployment/wallet-system/scripts/generate-github-env-values.mjs",
       "category": "deployment",
       "hitCount": 16,
       "firstLine": 87,

@@ -5,7 +5,7 @@ import {
   analyzeRefactor93ProductionEvidence,
   nearestRankPercentile,
   parseRefactor93SpanJsonl,
-} from '../../crates/router-ab-cloudflare/scripts/refactor93-production-evidence.mjs';
+} from '../../deployment/wallet-system/scripts/refactor93-production-evidence.mjs';
 
 const REQUIRED_SPANS = [
   'registration.post_touch_id',

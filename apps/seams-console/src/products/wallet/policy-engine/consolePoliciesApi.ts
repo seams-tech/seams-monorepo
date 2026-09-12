@@ -1,4 +1,7 @@
-import { listDashboardEnvironments, type DashboardConsoleEnvironment } from '@core/dashboard/consoleContextApi';
+import {
+  listDashboardEnvironments,
+  type DashboardConsoleEnvironment,
+} from '@core/dashboard/consoleContextApi';
 import {
   buildConsoleAcceptHeaders,
   buildConsoleJsonHeaders,
@@ -107,17 +110,6 @@ interface ConsolePolicyAssignmentsResponse {
   assignments?: unknown;
 }
 
-function decodeStringArray(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const out: string[] = [];
-  for (const entry of raw) {
-    const value = String(entry || '').trim();
-    if (!value) continue;
-    out.push(value);
-  }
-  return out;
-}
-
 function decodeSimulationDenyReasons(
   raw: unknown,
 ): DashboardConsolePolicySimulation['denyReasons'] {
@@ -126,7 +118,9 @@ function decodeSimulationDenyReasons(
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
     const row = entry as Record<string, unknown>;
-    const code = String(row.code || '').trim().toUpperCase();
+    const code = String(row.code || '')
+      .trim()
+      .toUpperCase();
     const message = String(row.message || '').trim();
     if (!message) continue;
     if (
@@ -149,10 +143,14 @@ function decodePolicy(raw: unknown): DashboardConsolePolicy | null {
   const id = String(row.id || '').trim();
   const orgId = String(row.orgId || '').trim();
   if (!id || !orgId) return null;
-  const statusRaw = String(row.status || '').trim().toUpperCase();
+  const statusRaw = String(row.status || '')
+    .trim()
+    .toUpperCase();
   const status =
     statusRaw === 'ARCHIVED' ? 'ARCHIVED' : statusRaw === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT';
-  const kindRaw = String(row.kind || '').trim().toUpperCase();
+  const kindRaw = String(row.kind || '')
+    .trim()
+    .toUpperCase();
   const kind = kindRaw === 'GAS_SPONSORSHIP' ? 'GAS_SPONSORSHIP' : 'TRANSACTION';
   const rulesRaw =
     row.rules && typeof row.rules === 'object' && !Array.isArray(row.rules)
@@ -179,10 +177,14 @@ function decodePolicyVersion(raw: unknown): DashboardConsolePolicyVersion | null
   const row = raw as Record<string, unknown>;
   const policyId = String(row.policyId || '').trim();
   if (!policyId) return null;
-  const statusRaw = String(row.status || '').trim().toUpperCase();
+  const statusRaw = String(row.status || '')
+    .trim()
+    .toUpperCase();
   const status =
     statusRaw === 'ARCHIVED' ? 'ARCHIVED' : statusRaw === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT';
-  const kindRaw = String(row.kind || '').trim().toUpperCase();
+  const kindRaw = String(row.kind || '')
+    .trim()
+    .toUpperCase();
   const kind = kindRaw === 'GAS_SPONSORSHIP' ? 'GAS_SPONSORSHIP' : 'TRANSACTION';
   const rulesRaw =
     row.rules && typeof row.rules === 'object' && !Array.isArray(row.rules)
@@ -205,7 +207,9 @@ function decodeSimulation(raw: unknown): DashboardConsolePolicySimulation | null
   const row = raw as Record<string, unknown>;
   const policyId = String(row.policyId || '').trim();
   if (!policyId) return null;
-  const decisionRaw = String(row.decision || '').trim().toUpperCase();
+  const decisionRaw = String(row.decision || '')
+    .trim()
+    .toUpperCase();
   const decision = decisionRaw === 'DENY' ? 'DENY' : 'ALLOW';
   return {
     policyId,
@@ -214,14 +218,21 @@ function decodeSimulation(raw: unknown): DashboardConsolePolicySimulation | null
     evaluatedAt: String(row.evaluatedAt || '').trim(),
     policyVersion: Number(row.policyVersion || 0),
     normalizedRequest:
-      row.normalizedRequest && typeof row.normalizedRequest === 'object' && !Array.isArray(row.normalizedRequest)
+      row.normalizedRequest &&
+      typeof row.normalizedRequest === 'object' &&
+      !Array.isArray(row.normalizedRequest)
         ? {
             action: String((row.normalizedRequest as Record<string, unknown>).action || '')
               .trim()
               .toLowerCase(),
             chain: (() => {
               const rawChain = (row.normalizedRequest as Record<string, unknown>).chain;
-              const value = rawChain == null ? '' : String(rawChain || '').trim().toLowerCase();
+              const value =
+                rawChain == null
+                  ? ''
+                  : String(rawChain || '')
+                      .trim()
+                      .toLowerCase();
               return value || null;
             })(),
             amountMinor: (() => {
@@ -230,13 +241,25 @@ function decodeSimulation(raw: unknown): DashboardConsolePolicySimulation | null
               return Number.isFinite(value) ? value : null;
             })(),
             contractAddress: (() => {
-              const rawContract = (row.normalizedRequest as Record<string, unknown>).contractAddress;
-              const value = rawContract == null ? '' : String(rawContract || '').trim().toLowerCase();
+              const rawContract = (row.normalizedRequest as Record<string, unknown>)
+                .contractAddress;
+              const value =
+                rawContract == null
+                  ? ''
+                  : String(rawContract || '')
+                      .trim()
+                      .toLowerCase();
               return value || null;
             })(),
             functionSelector: (() => {
-              const rawSelector = (row.normalizedRequest as Record<string, unknown>).functionSelector;
-              const value = rawSelector == null ? '' : String(rawSelector || '').trim().toLowerCase();
+              const rawSelector = (row.normalizedRequest as Record<string, unknown>)
+                .functionSelector;
+              const value =
+                rawSelector == null
+                  ? ''
+                  : String(rawSelector || '')
+                      .trim()
+                      .toLowerCase();
               return value || null;
             })(),
           }
@@ -282,9 +305,11 @@ function decodeAssignment(raw: unknown): DashboardConsolePolicyAssignment | null
   };
 }
 
-export async function listDashboardPolicies(input: {
-  kind?: DashboardConsolePolicy['kind'];
-} = {}): Promise<DashboardConsolePolicy[]> {
+export async function listDashboardPolicies(
+  input: {
+    kind?: DashboardConsolePolicy['kind'];
+  } = {},
+): Promise<DashboardConsolePolicy[]> {
   const base = requireConsoleBaseUrl();
   const search = new URLSearchParams();
   if (input.kind) search.set('kind', input.kind);
@@ -571,10 +596,12 @@ export async function simulateDashboardPolicy(input: {
   return simulation;
 }
 
-export async function listDashboardPolicyAssignments(input: {
-  scopeType?: 'ORG' | 'PROJECT' | 'ENVIRONMENT' | 'WALLET';
-  scopeId?: string;
-} = {}): Promise<DashboardConsolePolicyAssignment[]> {
+export async function listDashboardPolicyAssignments(
+  input: {
+    scopeType?: 'ORG' | 'PROJECT' | 'ENVIRONMENT' | 'WALLET';
+    scopeId?: string;
+  } = {},
+): Promise<DashboardConsolePolicyAssignment[]> {
   const params = new URLSearchParams();
   if (input.scopeType) params.set('scopeType', input.scopeType);
   if (input.scopeId) params.set('scopeId', input.scopeId);
@@ -610,10 +637,14 @@ function assignmentIncludesEnvironment(
   environment: DashboardConsoleEnvironment,
 ): boolean {
   switch (assignment.scopeType) {
-    case 'ORG': return assignment.scopeId === assignment.orgId;
-    case 'PROJECT': return assignment.scopeId === environment.projectId;
-    case 'ENVIRONMENT': return assignment.scopeId === environment.id;
-    case 'WALLET': return false;
+    case 'ORG':
+      return assignment.scopeId === assignment.orgId;
+    case 'PROJECT':
+      return assignment.scopeId === environment.projectId;
+    case 'ENVIRONMENT':
+      return assignment.scopeId === environment.id;
+    case 'WALLET':
+      return false;
     default: {
       const unexpected: never = assignment.scopeType;
       throw new Error(`Unknown policy scope: ${unexpected}`);
@@ -621,7 +652,9 @@ function assignmentIncludesEnvironment(
   }
 }
 
-async function listPolicyRuntimeEnvironments(policyId: string): Promise<DashboardConsoleEnvironment[]> {
+async function listPolicyRuntimeEnvironments(
+  policyId: string,
+): Promise<DashboardConsoleEnvironment[]> {
   const assignments = await listDashboardPolicyAssignments();
   const policyAssignments: DashboardConsolePolicyAssignment[] = [];
   for (const assignment of assignments) {
@@ -641,7 +674,9 @@ async function listPolicyRuntimeEnvironments(policyId: string): Promise<Dashboar
   return affected;
 }
 
-async function publishPolicyRuntimeEnvironments(environments: readonly DashboardConsoleEnvironment[]): Promise<void> {
+async function publishPolicyRuntimeEnvironments(
+  environments: readonly DashboardConsoleEnvironment[],
+): Promise<void> {
   for (const environment of environments) {
     await publishCurrentDashboardRuntimeSnapshot({
       projectId: environment.projectId,

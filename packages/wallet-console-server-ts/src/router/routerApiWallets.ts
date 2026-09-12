@@ -8,7 +8,10 @@ import {
 import { enforceRoutePolicy } from '@seams/wallet-server/cloud-host';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 import { resolveSecretKeyApiCredentialAuth } from '@seams/wallet-server/cloud-host';
-import type { RouterApiKeyAuthAdapter, RouterApiKeyPrincipal } from '@seams/wallet-server/cloud-host';
+import type {
+  RouterApiKeyAuthAdapter,
+  RouterApiKeyPrincipal,
+} from '@seams/wallet-server/cloud-host';
 import type { HeaderRecord, RouteResponse } from '@seams/wallet-server/cloud-host';
 import type { RouteDefinition } from '@seams/wallet-server/cloud-host';
 import { routeJson } from '@seams/wallet-server/cloud-host';
@@ -112,9 +115,7 @@ function walletErrorResponse(error: unknown): RouteResponse<RouterApiWalletError
   });
 }
 
-async function enforceApiWalletRoute(
-  input: RouterApiWalletInput,
-): Promise<
+async function enforceApiWalletRoute(input: RouterApiWalletInput): Promise<
   Awaited<
     ReturnType<
       typeof enforceRoutePolicy<{
@@ -144,7 +145,8 @@ async function enforceApiWalletRoute(
           headers: input.headers,
           route: input.route,
           ...(input.sourceIp ? { sourceIp: input.sourceIp } : {}),
-          routeAuthNotConfiguredMessage: 'API credential wallet auth is not configured on this server',
+          routeAuthNotConfiguredMessage:
+            'API credential wallet auth is not configured on this server',
         }),
     },
   });

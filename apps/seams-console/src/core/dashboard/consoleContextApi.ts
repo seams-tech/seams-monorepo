@@ -162,7 +162,9 @@ export async function listDashboardProjects(
   const params = new URLSearchParams();
   if (input.status) params.set('status', input.status);
   const suffix = params.toString();
-  const body = (await fetchJson(`/console/projects${suffix ? `?${suffix}` : ''}`)) as ConsoleProjectsResponse;
+  const body = (await fetchJson(
+    `/console/projects${suffix ? `?${suffix}` : ''}`,
+  )) as ConsoleProjectsResponse;
   const rows = Array.isArray(body.projects) ? body.projects : [];
   return rows
     .map((entry) => decodeProject(entry))

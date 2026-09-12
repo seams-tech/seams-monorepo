@@ -96,7 +96,6 @@ import {
 import type { RouterAbEd25519YaoExportAuthorizationIdentityV1 } from '@shared/utils/routerAbEd25519Yao';
 import type { RuntimePolicyScope } from '@shared/threshold/signingRootScope';
 import {
-  buildRouterAbEcdsaDerivationEvmDigestSigningFinalizeRequestV1,
   buildRouterAbEcdsaDerivationEvmDigestSigningRequestV1,
   parseRouterAbEcdsaPostRegistrationSessionActivationRequestV1,
   type RouterAbEcdsaDerivationNormalSigningStateV1,

@@ -201,9 +201,7 @@ function initializeGoogleIdentityForClientId(input: {
   initializedGoogleClientId = input.clientId;
 }
 
-function googlePromptMomentFailure(
-  notification: GooglePromptMomentNotification,
-): Error | null {
+function googlePromptMomentFailure(notification: GooglePromptMomentNotification): Error | null {
   if (notification.isNotDisplayed?.()) {
     const reason = notification.getNotDisplayedReason?.() || 'not_displayed';
     return new Error(`Google sign-in prompt was not displayed (${reason})`);

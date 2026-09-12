@@ -8,31 +8,19 @@ import {
   parseGeneratedPrepareEcdsaClientBootstrapCommand,
   parseEmailOtpWorkerIssuedSessionHandle,
 } from '@/core/platform';
-import {
-  thresholdEcdsaChainTargetFromChainFamily,
-  toWalletId,
-} from '@/core/signingEngine/interfaces/ecdsaChainTarget';
 import { toRpId } from '@/core/signingEngine/session/identity/evmFamilyEcdsaIdentity';
 import { buildThresholdPrfXClientBaseSecretSource } from '@/core/platform/secretSources';
 import {
   EcdsaDerivationClientCustomRequestType,
   EcdsaDerivationClientCustomResponseType,
 } from '@/core/signingEngine/workerManager/workerTypes';
-import {
-  toEcdsaDerivationSigningRootId,
-  toEcdsaDerivationSigningRootVersion,
-  toEcdsaDerivationThresholdKeyId,
-} from '@/core/signingEngine/session/identity/emailOtpEcdsaDerivationIdentity';
 import type { WorkerOperationContext } from '@/core/signingEngine/workerManager/executeWorkerOperation';
 import { SignerWorkerOperationError } from '@/core/signingEngine/workerManager/workerTypes';
 import {
-  WorkerResponseType,
   type WasmFinalizeThresholdEcdsaDerivationRoleLocalClientBootstrapRequest,
   type WasmPrepareThresholdEcdsaDerivationRoleLocalClientBootstrapRequest,
 } from '@/core/types/signer-worker';
 import {
-  buildFido2HmacSecretSource,
-  buildSecureEnclaveWrappedSecretSource,
   type EcdsaRoleLocalPendingStateBlob,
   type PrepareEcdsaClientBootstrapInput,
   type RequiredPrfAuthenticatorSuccess,

@@ -90,7 +90,9 @@ export function resolveVoiceIdTemplateEncryptionSecretFromEnv(
 ): VoiceIdTemplateEncryptionSecret {
   switch (keyConfig.kind) {
     case 'cloudflare_workers_secret':
-      return parseVoiceIdTemplateEncryptionSecret(requireSecretEnv(env, keyConfig.secretBindingName));
+      return parseVoiceIdTemplateEncryptionSecret(
+        requireSecretEnv(env, keyConfig.secretBindingName),
+      );
     case 'robot_local_secret':
       return parseVoiceIdTemplateEncryptionSecret(requireSecretEnv(env, keyConfig.secretEnvName));
   }
@@ -104,11 +106,13 @@ export class VoiceIdAesGcmTemplateCipher implements VoiceIdTemplateCipher {
 
   constructor(private readonly config: VoiceIdAesGcmTemplateCipherConfig) {
     this.cryptoApi = config.crypto ?? requireCrypto();
-    this.randomBytes = config.randomBytes ?? ((byteLength) => {
-      const bytes = new Uint8Array(byteLength);
-      this.cryptoApi.getRandomValues(bytes);
-      return bytes;
-    });
+    this.randomBytes =
+      config.randomBytes ??
+      ((byteLength) => {
+        const bytes = new Uint8Array(byteLength);
+        this.cryptoApi.getRandomValues(bytes);
+        return bytes;
+      });
   }
 
   async wrapTemplate(input: VoiceIdTemplateCipherInput): Promise<EncryptedBytes> {
@@ -214,9 +218,7 @@ export class VoiceIdTemplateWrappingEnrollmentStore implements VoiceIdEnrollment
     return await this.inner.completeAnalysis(wrapped);
   }
 
-  async disable(
-    record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>,
-  ): Promise<boolean> {
+  async disable(record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>): Promise<boolean> {
     const wrapped = await this.wrapDisabledRecord(record);
     return await this.inner.disable(wrapped);
   }
@@ -228,7 +230,10 @@ export class VoiceIdTemplateWrappingEnrollmentStore implements VoiceIdEnrollment
       case 'failed':
         return record;
       case 'enrolled': {
-        const encryptedTemplate = await this.cipher.wrapTemplate({ record, encryptedTemplate: record.encryptedTemplate });
+        const encryptedTemplate = await this.cipher.wrapTemplate({
+          record,
+          encryptedTemplate: record.encryptedTemplate,
+        });
         return {
           state: 'enrolled',
           userId: record.userId,
@@ -269,14 +274,19 @@ export class VoiceIdTemplateWrappingEnrollmentStore implements VoiceIdEnrollment
     };
   }
 
-  private async unwrapEnrollmentRecord(record: VoiceIdEnrollmentRecord): Promise<VoiceIdEnrollmentRecord> {
+  private async unwrapEnrollmentRecord(
+    record: VoiceIdEnrollmentRecord,
+  ): Promise<VoiceIdEnrollmentRecord> {
     switch (record.state) {
       case 'pending_continuous_recording':
       case 'analyzing_continuous_recording':
       case 'failed':
         return record;
       case 'enrolled': {
-        const encryptedTemplate = await this.cipher.unwrapTemplate({ record, encryptedTemplate: record.encryptedTemplate });
+        const encryptedTemplate = await this.cipher.unwrapTemplate({
+          record,
+          encryptedTemplate: record.encryptedTemplate,
+        });
         return {
           state: 'enrolled',
           userId: record.userId,
@@ -291,7 +301,10 @@ export class VoiceIdTemplateWrappingEnrollmentStore implements VoiceIdEnrollment
         };
       }
       case 'disabled': {
-        const encryptedTemplate = await this.cipher.unwrapTemplate({ record, encryptedTemplate: record.encryptedTemplate });
+        const encryptedTemplate = await this.cipher.unwrapTemplate({
+          record,
+          encryptedTemplate: record.encryptedTemplate,
+        });
         return {
           state: 'disabled',
           userId: record.userId,
@@ -372,7 +385,10 @@ function parseTemplateEnvelope(value: EncryptedBytes): VoiceIdTemplateEnvelope {
     schemaVersion: raw.schemaVersion,
     algorithm: raw.algorithm,
     keyId: parseEnvelopeString(raw.keyId, 'keyId') as VoiceIdTemplateEncryptionKeyId,
-    rotationVersion: parseEnvelopeString(raw.rotationVersion, 'rotationVersion') as VoiceIdTemplateEncryptionRotationVersion,
+    rotationVersion: parseEnvelopeString(
+      raw.rotationVersion,
+      'rotationVersion',
+    ) as VoiceIdTemplateEncryptionRotationVersion,
     aadLabel: parseEnvelopeString(raw.aadLabel, 'aadLabel') as VoiceIdTemplateEncryptionAadLabel,
     nonceBase64Url: parseEnvelopeString(raw.nonceBase64Url, 'nonceBase64Url'),
     ciphertextBase64Url: parseEnvelopeString(raw.ciphertextBase64Url, 'ciphertextBase64Url'),
@@ -453,7 +469,11 @@ function decodeBase64Url(value: string): Uint8Array {
     throw new Error('base64url value contains invalid characters');
   }
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const cleanLength = padded.endsWith('==') ? padded.length - 2 : padded.endsWith('=') ? padded.length - 1 : padded.length;
+  const cleanLength = padded.endsWith('==')
+    ? padded.length - 2
+    : padded.endsWith('=')
+      ? padded.length - 1
+      : padded.length;
   const outputLength = Math.floor((cleanLength * 3) / 4);
   const output = new Uint8Array(outputLength);
   let outputIndex = 0;

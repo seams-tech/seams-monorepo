@@ -935,10 +935,10 @@ export function PolicyEnginePage(): React.JSX.Element {
         }),
       );
       setAssignmentsByScope(nextAssignments);
-    } catch (error: unknown) {
+    } catch {
       setAssignmentsByScope(EMPTY_ASSIGNMENTS);
     }
-  }, [environmentScopeId, orgScopeId, projectScopeId, session.claims, session.errorMessage]);
+  }, [environmentScopeId, orgScopeId, projectScopeId, session.claims]);
 
   const loadCoverage = React.useCallback(async (): Promise<void> => {
     if (!session.claims) {

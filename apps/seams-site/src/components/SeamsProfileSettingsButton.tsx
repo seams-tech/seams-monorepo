@@ -4,7 +4,6 @@ import {
   useSeams,
   KeyExportEventPhase,
   LinkDeviceEventPhase,
-  useTheme,
   type KeyExportFlowEvent,
   type LinkDeviceFlowEvent,
 } from '@seams/wallet/react';
@@ -76,8 +75,7 @@ export const SeamsProfileSettingsButton: React.FC<SeamsProfileSettingsButtonProp
   className,
   style,
 }) => {
-  const { loginState, seams } = useSeams();
-  const { theme, setTheme } = useTheme();
+  const { loginState } = useSeams();
   const [isMobile, setIsMobile] = React.useState<boolean>(false);
   const { isMenuOpen, highlightedMenuItem, setMenuOpen, clearHighlight } = useProfileMenuControl();
 

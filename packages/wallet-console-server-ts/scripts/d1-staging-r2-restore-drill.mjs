@@ -82,20 +82,29 @@ export function runD1StagingR2RestoreDrill(input = {}) {
 function main() {
   try {
     const result = runD1StagingR2RestoreDrill(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging R2 restore drill manifest', 'Dry run commands:', result.manifest.commands);
+    printStagingManifestResult(
+      result,
+      'D1 staging R2 restore drill manifest',
+      'Dry run commands:',
+      result.manifest.commands,
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    ...d1StagingConfigManifestArgDefaults,
-    r2Bucket: '',
-  }, {
-    ...d1StagingConfigManifestFlagFields,
-    '--r2-bucket': 'r2Bucket',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      ...d1StagingConfigManifestArgDefaults,
+      r2Bucket: '',
+    },
+    {
+      ...d1StagingConfigManifestFlagFields,
+      '--r2-bucket': 'r2Bucket',
+    },
+  );
 }
 
 function normalizeOptions(input) {
@@ -240,7 +249,9 @@ function assertIntegrityCheckResult(command, result) {
   }
   const values = d1IntegrityCheckValues(parseIntegrityCheckJson(source));
   if (values.length === 0) {
-    throw new Error(`R2 restore drill integrity_check output did not include an integrity_check result`);
+    throw new Error(
+      `R2 restore drill integrity_check output did not include an integrity_check result`,
+    );
   }
   for (const value of values) {
     if (value === 'ok') continue;

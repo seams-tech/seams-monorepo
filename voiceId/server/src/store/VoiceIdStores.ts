@@ -11,19 +11,32 @@ import type {
 export type VoiceIdEnrollmentStore = {
   getByUserId(userId: UserId): Promise<VoiceIdEnrollmentRecord | null>;
   getByEnrollmentId(enrollmentId: VoiceIdEnrollmentId): Promise<VoiceIdEnrollmentRecord | null>;
-  create(record: Extract<VoiceIdEnrollmentRecord, { state: 'pending_continuous_recording' }>): Promise<boolean>;
-  claimPending(record: Extract<VoiceIdEnrollmentRecord, { state: 'analyzing_continuous_recording' }>): Promise<boolean>;
+  create(
+    record: Extract<VoiceIdEnrollmentRecord, { state: 'pending_continuous_recording' }>,
+  ): Promise<boolean>;
+  claimPending(
+    record: Extract<VoiceIdEnrollmentRecord, { state: 'analyzing_continuous_recording' }>,
+  ): Promise<boolean>;
   failPending(record: Extract<VoiceIdEnrollmentRecord, { state: 'failed' }>): Promise<boolean>;
-  completeAnalysis(record: Extract<VoiceIdEnrollmentRecord, { state: 'failed' | 'enrolled' }>): Promise<boolean>;
+  completeAnalysis(
+    record: Extract<VoiceIdEnrollmentRecord, { state: 'failed' | 'enrolled' }>,
+  ): Promise<boolean>;
   disable(record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>): Promise<boolean>;
 };
 
 export type VoiceIdVerificationStore = {
-  getByVerificationId(verificationId: VoiceIdVerificationId): Promise<VoiceIdVerificationRecord | null>;
+  getByVerificationId(
+    verificationId: VoiceIdVerificationId,
+  ): Promise<VoiceIdVerificationRecord | null>;
   create(record: Extract<VoiceIdVerificationRecord, { state: 'issued' }>): Promise<boolean>;
   claimIssued(record: Extract<VoiceIdVerificationRecord, { state: 'analyzing' }>): Promise<boolean>;
   expireIssued(record: Extract<VoiceIdVerificationRecord, { state: 'expired' }>): Promise<boolean>;
-  completeAnalysis(record: Extract<VoiceIdVerificationRecord, { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }>): Promise<boolean>;
+  completeAnalysis(
+    record: Extract<
+      VoiceIdVerificationRecord,
+      { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }
+    >,
+  ): Promise<boolean>;
 };
 
 export class InMemoryVoiceIdEnrollmentStore implements VoiceIdEnrollmentStore {
@@ -34,7 +47,9 @@ export class InMemoryVoiceIdEnrollmentStore implements VoiceIdEnrollmentStore {
     return this.byUserId.get(userId) ?? null;
   }
 
-  async getByEnrollmentId(enrollmentId: VoiceIdEnrollmentId): Promise<VoiceIdEnrollmentRecord | null> {
+  async getByEnrollmentId(
+    enrollmentId: VoiceIdEnrollmentId,
+  ): Promise<VoiceIdEnrollmentRecord | null> {
     return this.byEnrollmentId.get(enrollmentId) ?? null;
   }
 
@@ -70,18 +85,13 @@ export class InMemoryVoiceIdEnrollmentStore implements VoiceIdEnrollmentStore {
     expectedState: 'pending_continuous_recording' | 'analyzing_continuous_recording',
   ): boolean {
     const current = this.byEnrollmentId.get(record.enrollmentId);
-    if (
-      current?.state !== expectedState
-      || current.userId !== record.userId
-    ) return false;
+    if (current?.state !== expectedState || current.userId !== record.userId) return false;
     this.byUserId.set(record.userId, record);
     this.byEnrollmentId.set(record.enrollmentId, record);
     return true;
   }
 
-  async disable(
-    record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>,
-  ): Promise<boolean> {
+  async disable(record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>): Promise<boolean> {
     const current = this.byEnrollmentId.get(record.enrollmentId);
     if (current?.state !== 'enrolled' || current.userId !== record.userId) return false;
     this.byUserId.set(record.userId, record);
@@ -93,13 +103,13 @@ export class InMemoryVoiceIdEnrollmentStore implements VoiceIdEnrollmentStore {
 export class InMemoryVoiceIdVerificationStore implements VoiceIdVerificationStore {
   private readonly byVerificationId = new Map<VoiceIdVerificationId, VoiceIdVerificationRecord>();
 
-  async getByVerificationId(verificationId: VoiceIdVerificationId): Promise<VoiceIdVerificationRecord | null> {
+  async getByVerificationId(
+    verificationId: VoiceIdVerificationId,
+  ): Promise<VoiceIdVerificationRecord | null> {
     return this.byVerificationId.get(verificationId) ?? null;
   }
 
-  async create(
-    record: Extract<VoiceIdVerificationRecord, { state: 'issued' }>,
-  ): Promise<boolean> {
+  async create(record: Extract<VoiceIdVerificationRecord, { state: 'issued' }>): Promise<boolean> {
     if (this.byVerificationId.has(record.verificationId)) return false;
     this.byVerificationId.set(record.verificationId, record);
     return true;
@@ -118,7 +128,10 @@ export class InMemoryVoiceIdVerificationStore implements VoiceIdVerificationStor
   }
 
   async completeAnalysis(
-    record: Extract<VoiceIdVerificationRecord, { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }>,
+    record: Extract<
+      VoiceIdVerificationRecord,
+      { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }
+    >,
   ): Promise<boolean> {
     return this.transition(record, 'analyzing');
   }
@@ -129,10 +142,11 @@ export class InMemoryVoiceIdVerificationStore implements VoiceIdVerificationStor
   ): boolean {
     const current = this.byVerificationId.get(record.verificationId);
     if (
-      current?.state !== expectedState
-      || current.userId !== record.userId
-      || current.enrollmentId !== record.enrollmentId
-    ) return false;
+      current?.state !== expectedState ||
+      current.userId !== record.userId ||
+      current.enrollmentId !== record.enrollmentId
+    )
+      return false;
     this.byVerificationId.set(record.verificationId, record);
     return true;
   }

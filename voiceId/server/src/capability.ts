@@ -41,7 +41,13 @@ export type VoiceIdServerCapability = {
 };
 
 export const voiceIdCapabilityRoutes = Object.freeze([
-  evidenceRoute('voice_id_health', 'GET', '/voice-id/health', { kind: 'none' }, 'VoiceID E0 health metadata'),
+  evidenceRoute(
+    'voice_id_health',
+    'GET',
+    '/voice-id/health',
+    { kind: 'none' },
+    'VoiceID E0 health metadata',
+  ),
   evidenceRoute(
     'voice_id_evidence_enrollment_start',
     'POST',
@@ -79,10 +85,13 @@ export const voiceIdCapabilityRoutes = Object.freeze([
   ),
 ] satisfies readonly VoiceIdCapabilityRoute[]);
 
-export function createVoiceIdServerCapability(input: VoiceIdServerCapabilityInput): VoiceIdServerCapability {
-  const fetchHandler = input.kind === 'service'
-    ? createVoiceIdFetchHandler(input.service, input.httpSecurity)
-    : input.fetchHandler;
+export function createVoiceIdServerCapability(
+  input: VoiceIdServerCapabilityInput,
+): VoiceIdServerCapability {
+  const fetchHandler =
+    input.kind === 'service'
+      ? createVoiceIdFetchHandler(input.service, input.httpSecurity)
+      : input.fetchHandler;
   return {
     kind: 'voice_id_e0_evidence_capability_v1',
     routes: voiceIdCapabilityRoutes,

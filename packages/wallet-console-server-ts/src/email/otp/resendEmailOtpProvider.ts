@@ -1,6 +1,9 @@
 import type { CloudflareD1EmailOtpDeliveryProviderResult } from '@seams/wallet-server/cloud-host';
 import { createResendConsoleEmailProvider } from '@seams-internal/console-server/email/providers';
-import type { ConsoleEmailProvider, ConsoleEmailProviderSendResult } from '@seams-internal/console-server/email/types';
+import type {
+  ConsoleEmailProvider,
+  ConsoleEmailProviderSendResult,
+} from '@seams-internal/console-server/email/types';
 import type { EmailOtpMessage, EmailOtpMessageProvider } from './emailOtpDeliveryAdapter';
 
 const EMAIL_ADDRESS_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;

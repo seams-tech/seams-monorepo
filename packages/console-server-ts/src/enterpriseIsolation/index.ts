@@ -21,7 +21,4 @@ export {
   parseTriggerConsoleEnterpriseIsolationRequest,
 } from './requests';
 
-export {
-  ConsoleEnterpriseIsolationError,
-  isConsoleEnterpriseIsolationError,
-} from './errors';
+export { ConsoleEnterpriseIsolationError, isConsoleEnterpriseIsolationError } from './errors';

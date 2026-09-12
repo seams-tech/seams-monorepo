@@ -226,7 +226,10 @@ export function createTenantRootRestoreConsoleRouteV1(
         sessionToken: minted.sessionToken,
         expiresAt: new Date(minted.expiresAtMs).toISOString(),
       });
-      response.headers.set('x-seams-recovery-identity', await tenantRootIdentityDigestB64uV1(dependencies.identity));
+      response.headers.set(
+        'x-seams-recovery-identity',
+        await tenantRootIdentityDigestB64uV1(dependencies.identity),
+      );
       return response;
     }
 

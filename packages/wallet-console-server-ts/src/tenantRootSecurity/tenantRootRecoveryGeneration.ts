@@ -308,15 +308,18 @@ export class TenantRootRecoveryGenerationV1
   }
 
   private async cleanupPreviousRecoverySets(previousSet: string | null): Promise<boolean> {
-    const rows = await this.generation.database.prepare(
-      `SELECT recovery_set_id FROM tenant_root_security_recovery_generation
+    const rows = await this.generation.database
+      .prepare(
+        `SELECT recovery_set_id FROM tenant_root_security_recovery_generation
        WHERE namespace=?1 AND org_id=?2 AND identity_digest_b64u=?3 AND custody_lineage_b64u=?4 AND step='closed'`,
-    ).bind(
-      this.generation.namespace,
-      this.generation.identity.orgId,
-      this.generation.identityDigestB64u,
-      this.generation.custodyLineageB64u,
-    ).all();
+      )
+      .bind(
+        this.generation.namespace,
+        this.generation.identity.orgId,
+        this.generation.identityDigestB64u,
+        this.generation.custodyLineageB64u,
+      )
+      .all();
     const sets = new Set<string>();
     if (previousSet !== null) sets.add(previousSet);
     if (!Array.isArray(rows.results)) throw new Error('Could not read recovery cleanup journal');

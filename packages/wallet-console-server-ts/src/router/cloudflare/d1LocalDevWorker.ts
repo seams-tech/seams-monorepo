@@ -10,11 +10,6 @@ import { D1TenantRootActiveLineageResolverV1 } from '../../tenantRootSecurity/ac
 import { createTenantRootRestoreWorkerRouteV1 } from '../../tenantRootSecurity/restoreWorkerRoute';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type {
-  ConsoleAuthAdapter,
-  ConsoleAuthClaims,
-  HeaderRecord,
-} from '@seams-internal/console-server/router/consoleAuth';
-import type {
   CfEnv,
   CfExecutionContext,
   CfScheduledEvent,
@@ -119,7 +114,6 @@ import {
 } from '@seams/wallet-server/cloud-host';
 import { ROUTER_AB_TRACE_ID_HEADER_V1 } from '@seams/wallet-server/cloud-host';
 import { createD1TenantRootCreationGrantServiceV1 } from '../../tenantRootCreation/d1';
-import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 import {
   createTenantRootCreationConsoleRouteV1,
   createTenantRootRefreshConsoleRouteV1,
@@ -1557,25 +1551,6 @@ async function resolveLocalDeploymentTenantRoot(
   return tenantRoot;
 }
 
-async function resolveLocalRegistrationTenantRoot(
-  context: LocalTenantRootContext,
-  input: LocalTenantRootResolutionInput,
-): Promise<LocalTenantRootResolutionResult> {
-  switch (input.operation) {
-    case 'registration':
-      return await resolveLocalDeploymentTenantRoot(
-        context.env,
-        context.orgId,
-        context.tenantRootCustodyLineage,
-        input.admissionRequest.application_binding,
-        input.admissionRequest.scope.root_share_epoch,
-      );
-    case 'recovery':
-    case 'export':
-      throw new Error('Ed25519 active-material tenant-root resolver is unavailable');
-  }
-}
-
 async function resolveLocalTenantRoot(
   context: LocalTenantRootContext & {
     readonly resolveActiveTenantRoot: LocalActiveTenantRootResolver;
@@ -1615,18 +1590,6 @@ async function resolveLocalLinkedDeviceTenantRoot(
     input.applicationBinding,
     input.targetAdmission.binding.lifecycle.root_share_epoch,
   );
-}
-
-function createLocalRegistrationTenantRootResolver(
-  env: LocalD1DevEnv,
-  orgId: string,
-  tenantRootCustodyLineage: CloudflareD1RouterApiAuthServiceOptions['tenantRootCustodyLineage'],
-): RouterAbEd25519YaoTenantRootResolverV1 {
-  return resolveLocalRegistrationTenantRoot.bind(undefined, {
-    env,
-    orgId,
-    tenantRootCustodyLineage,
-  });
 }
 
 function createLocalTenantRootResolver(

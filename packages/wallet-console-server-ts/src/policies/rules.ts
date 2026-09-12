@@ -8,7 +8,6 @@ import type {
   ConsoleGasSponsorshipPolicyNetworkClass,
   ConsoleGasSponsorshipPolicyRuleKind,
   ConsoleGasSponsorshipPolicyRules,
-  ConsoleGasSponsorshipPolicyRulesInput,
   ConsoleGasSponsorshipPolicyScopeType,
   ConsoleGasSponsorshipPolicySpendCap,
   ConsoleGasSponsorshipPolicySpendCapMode,
@@ -62,10 +61,7 @@ const GAS_NETWORK_CLASSES = new Set<ConsoleGasSponsorshipPolicyNetworkClass>([
   'TESTNET',
   'MAINNET',
 ]);
-const GAS_RULE_KINDS = new Set<ConsoleGasSponsorshipPolicyRuleKind>([
-  'evm_call',
-  'near_delegate',
-]);
+const GAS_RULE_KINDS = new Set<ConsoleGasSponsorshipPolicyRuleKind>(['evm_call', 'near_delegate']);
 const GAS_EXECUTION_MODES = new Set<ConsoleGasSponsorshipExecutionMode>([
   'evm_eoa',
   'near_delegate',
@@ -198,9 +194,7 @@ export function normalizeConsolePolicyFunctionSignature(value: unknown): string 
   return normalized;
 }
 
-export function deriveConsolePolicyFunctionSelector(
-  functionSignature: string,
-): `0x${string}` {
+export function deriveConsolePolicyFunctionSelector(functionSignature: string): `0x${string}` {
   return bytesToHex(
     keccak256Bytes(new TextEncoder().encode(functionSignature)).slice(0, 4),
   ).toLowerCase() as `0x${string}`;
@@ -365,7 +359,9 @@ function readOptionalGasScopeType(
   mode: ParseMode,
 ): ConsoleGasSponsorshipPolicyScopeType | undefined {
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
-  const value = String(raw || '').trim().toUpperCase() as ConsoleGasSponsorshipPolicyScopeType;
+  const value = String(raw || '')
+    .trim()
+    .toUpperCase() as ConsoleGasSponsorshipPolicyScopeType;
   if (!GAS_SCOPE_TYPES.has(value)) {
     if (mode === 'request') {
       throw invalidRulesError(
@@ -380,7 +376,9 @@ function readOptionalGasScopeType(
 function readOptionalGasBoolean(raw: unknown, key: string, mode: ParseMode): boolean | undefined {
   if (raw === undefined || raw === null || raw === '') return undefined;
   if (typeof raw === 'boolean') return raw;
-  const normalized = String(raw || '').trim().toLowerCase();
+  const normalized = String(raw || '')
+    .trim()
+    .toLowerCase();
   if (normalized === 'true' || normalized === '1') return true;
   if (normalized === 'false' || normalized === '0') return false;
   if (mode === 'request') {
@@ -389,7 +387,11 @@ function readOptionalGasBoolean(raw: unknown, key: string, mode: ParseMode): boo
   return undefined;
 }
 
-function readOptionalPositiveInteger(raw: unknown, key: string, mode: ParseMode): number | undefined {
+function readOptionalPositiveInteger(
+  raw: unknown,
+  key: string,
+  mode: ParseMode,
+): number | undefined {
   if (raw === undefined || raw === null || raw === '') return undefined;
   const value = typeof raw === 'number' ? raw : Number(raw);
   if (!Number.isInteger(value) || value <= 0) {
@@ -406,7 +408,9 @@ function readOptionalGasNetworkClass(
   mode: ParseMode,
 ): ConsoleGasSponsorshipPolicyNetworkClass | undefined {
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
-  const value = String(raw || '').trim().toUpperCase() as ConsoleGasSponsorshipPolicyNetworkClass;
+  const value = String(raw || '')
+    .trim()
+    .toUpperCase() as ConsoleGasSponsorshipPolicyNetworkClass;
   if (!GAS_NETWORK_CLASSES.has(value)) {
     if (mode === 'request') {
       throw invalidRulesError(
@@ -423,7 +427,9 @@ function readOptionalGasRuleKind(
   mode: ParseMode,
 ): ConsoleGasSponsorshipPolicyRuleKind | undefined {
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
-  const value = String(raw || '').trim().toLowerCase() as ConsoleGasSponsorshipPolicyRuleKind;
+  const value = String(raw || '')
+    .trim()
+    .toLowerCase() as ConsoleGasSponsorshipPolicyRuleKind;
   if (!GAS_RULE_KINDS.has(value)) {
     if (mode === 'request') {
       throw invalidRulesError(
@@ -440,7 +446,9 @@ function readOptionalGasExecutionMode(
   mode: ParseMode,
 ): ConsoleGasSponsorshipExecutionMode | undefined {
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
-  const value = String(raw || '').trim().toLowerCase() as ConsoleGasSponsorshipExecutionMode;
+  const value = String(raw || '')
+    .trim()
+    .toLowerCase() as ConsoleGasSponsorshipExecutionMode;
   if (!GAS_EXECUTION_MODES.has(value)) {
     if (mode === 'request') {
       throw invalidRulesError(
@@ -560,11 +568,13 @@ function readGasAllowedDelegateActions(
     }
     const receiverId = String(entry.receiverId || '').trim();
     const methodsRaw = Array.isArray(entry.methods) ? entry.methods : [];
-    const methods = Array.from(new Set(
-      methodsRaw
-        .map((value) => (typeof value === 'string' ? value.trim() : ''))
-        .filter((value) => Boolean(value)),
-    ));
+    const methods = Array.from(
+      new Set(
+        methodsRaw
+          .map((value) => (typeof value === 'string' ? value.trim() : ''))
+          .filter((value) => Boolean(value)),
+      ),
+    );
     const maxDepositYocto = readUnsignedBigIntString(
       entry.maxDepositYocto,
       'allowedDelegateActions[].maxDepositYocto',
@@ -603,7 +613,9 @@ function readGasSpendCapMode(
   mode: ParseMode,
 ): ConsoleGasSponsorshipPolicySpendCapMode {
   if (raw === undefined || raw === null || raw === '') return 'NONE';
-  const value = String(raw || '').trim().toUpperCase() as ConsoleGasSponsorshipPolicySpendCapMode;
+  const value = String(raw || '')
+    .trim()
+    .toUpperCase() as ConsoleGasSponsorshipPolicySpendCapMode;
   if (!GAS_SPEND_CAP_MODES.has(value)) {
     if (mode === 'request') {
       throw invalidRulesError(
@@ -744,7 +756,9 @@ function parseGasSponsorshipPolicyRules(
 
   if (ruleKind === 'near_delegate') {
     if (executionMode && executionMode !== 'near_delegate' && mode === 'request') {
-      throw invalidRulesError('Policy rule executionMode must be near_delegate for near_delegate rules');
+      throw invalidRulesError(
+        'Policy rule executionMode must be near_delegate for near_delegate rules',
+      );
     }
     return {
       ...common,
@@ -766,9 +780,7 @@ function parseGasSponsorshipPolicyRules(
 }
 
 export function createDefaultConsolePolicyRules(): ConsoleTransactionPolicyRules;
-export function createDefaultConsolePolicyRules(
-  kind: 'TRANSACTION',
-): ConsoleTransactionPolicyRules;
+export function createDefaultConsolePolicyRules(kind: 'TRANSACTION'): ConsoleTransactionPolicyRules;
 export function createDefaultConsolePolicyRules(
   kind: 'GAS_SPONSORSHIP',
 ): ConsoleGasSponsorshipPolicyRules;
@@ -1039,7 +1051,9 @@ export function validateGasSponsorshipPolicyRulesForPublish(
     }
   }
   if (rules.spendCap.mode === 'NONE') return;
-  const invalidSpendCap = rules.spendCap.capsByChain.find((entry) => !allowedChainIds.has(entry.chainId));
+  const invalidSpendCap = rules.spendCap.capsByChain.find(
+    (entry) => !allowedChainIds.has(entry.chainId),
+  );
   if (invalidSpendCap) {
     throw invalidRulesError(
       `Gas sponsorship spend cap chain ${invalidSpendCap.chainId} is not covered by any allowedCall`,
@@ -1060,7 +1074,10 @@ export function normalizeConsolePolicyChainIdentifier(value: unknown): string | 
   return normalized || null;
 }
 
-function makeDenyReason(code: ConsolePolicyDenyReasonCode, message: string): ConsolePolicyDenyReason {
+function makeDenyReason(
+  code: ConsolePolicyDenyReasonCode,
+  message: string,
+): ConsolePolicyDenyReason {
   return { code, message };
 }
 
@@ -1099,7 +1116,9 @@ export function evaluateConsolePolicyRules(
     if (!allowedChains.has(chain)) {
       return {
         decision: 'DENY',
-        denyReasons: [makeDenyReason('CHAIN_NOT_ALLOWED', `Chain ${chain} is not allowed by policy`)],
+        denyReasons: [
+          makeDenyReason('CHAIN_NOT_ALLOWED', `Chain ${chain} is not allowed by policy`),
+        ],
         normalizedRequest,
       };
     }
@@ -1123,7 +1142,8 @@ export function evaluateConsolePolicyRules(
   if (action === 'contract_call' && rules.allowedContractCalls.length > 0) {
     const contractAddress = normalizedRequest.contractAddress;
     const target = contractAddress
-      ? rules.allowedContractCalls.find((entry) => entry.contractAddress === contractAddress) || null
+      ? rules.allowedContractCalls.find((entry) => entry.contractAddress === contractAddress) ||
+        null
       : null;
     if (!target) {
       return {

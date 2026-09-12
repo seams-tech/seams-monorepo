@@ -11,18 +11,11 @@ export function BrowserWithQR(props: {
   // Default dimensions for viewBox
   const vbW = 600;
   const vbH = 380;
-  const border = '#00000020';
   const windowFill = 'var(--w3a-colors-surface2)';
   const barFill = 'var(--w3a-colors-surface, rgba(0,0,0,0.04))';
   const controlRed = '#FF5F56';
   const controlYellow = '#FFBD2E';
   const controlGreen = '#27C93F';
-  // Theme-aware QR colors
-  // - Background follows surface token (dark grey in dark mode, light in light mode)
-  // - Ink uses textSecondary to be softer in light mode, but still high-contrast in dark
-  const qrBg = 'var(--w3a-colors-surface, #1f2937)';
-  const qrInk = 'var(--w3a-colors-textSecondary, #555)';
-
   return (
     <svg
       viewBox={`0 0 ${vbW} ${vbH}`}

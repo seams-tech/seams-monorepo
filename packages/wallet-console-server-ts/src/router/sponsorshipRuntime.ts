@@ -49,10 +49,7 @@ export type SponsorshipMatchResolution<TMatched, TBody extends Record<string, un
       response: RouteResponse<TBody>;
     };
 
-export type SponsorshipReplayOrMatchResolution<
-  TMatched,
-  TBody extends Record<string, unknown>,
-> =
+export type SponsorshipReplayOrMatchResolution<TMatched, TBody extends Record<string, unknown>> =
   | {
       kind: 'matched';
       matched: TMatched;
@@ -86,10 +83,7 @@ export function parseRoutePolicyFailureMessage(message: string): { code: string;
 export function buildSponsorshipRoutePolicyFailureResponse(
   resolved: RoutePolicyResolutionFailure,
 ): SponsorshipRouteFailureResponse {
-  if (
-    resolved.code === 'route_auth_not_configured' ||
-    resolved.code === 'service_not_configured'
-  ) {
+  if (resolved.code === 'route_auth_not_configured' || resolved.code === 'service_not_configured') {
     return routeJson(resolved.status, {
       ok: false,
       code: resolved.code,

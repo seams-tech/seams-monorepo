@@ -47,7 +47,9 @@ function main() {
   const wranglerVersion = runCommandArgs('pnpm', ['exec', 'wrangler', '--version'], {
     cwd: packageRoot,
   }).stdout.trim();
-  const sqliteVersion = runCommandArgs('sqlite3', ['--version'], { cwd: packageRoot }).stdout.trim();
+  const sqliteVersion = runCommandArgs('sqlite3', ['--version'], {
+    cwd: packageRoot,
+  }).stdout.trim();
   const outputDir = createDrillOutputDir(options);
   const databases = [];
 
@@ -77,17 +79,21 @@ function main() {
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    skipPrepare: false,
-    outputDir: '',
-  }, {
-    '--skip-prepare': { kind: 'boolean', field: 'skipPrepare' },
-    '--output-dir': {
-      kind: 'string',
-      field: 'outputDir',
-      parse: resolveOutputDirArg,
+  return parseFlagArgs(
+    args,
+    {
+      skipPrepare: false,
+      outputDir: '',
     },
-  });
+    {
+      '--skip-prepare': { kind: 'boolean', field: 'skipPrepare' },
+      '--output-dir': {
+        kind: 'string',
+        field: 'outputDir',
+        parse: resolveOutputDirArg,
+      },
+    },
+  );
 }
 
 function resolveOutputDirArg(value) {
@@ -103,8 +109,7 @@ function runPackageScript(scriptName) {
 
 function createDrillOutputDir(options) {
   const outputDir =
-    options.outputDir ||
-    path.join(drillRoot, new Date().toISOString().replace(/[:.]/g, '-'));
+    options.outputDir || path.join(drillRoot, new Date().toISOString().replace(/[:.]/g, '-'));
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(outputDir, { recursive: true });
   return outputDir;
@@ -183,13 +188,16 @@ function drillDatabase(input) {
 }
 
 function sqliteTableExists(databasePath, tableName) {
-  const rows = sqliteJson(databasePath, [
-    'SELECT name FROM sqlite_master WHERE type = ',
-    sqlString('table'),
-    ' AND name = ',
-    sqlString(tableName),
-    ' LIMIT 1;',
-  ].join(''));
+  const rows = sqliteJson(
+    databasePath,
+    [
+      'SELECT name FROM sqlite_master WHERE type = ',
+      sqlString('table'),
+      ' AND name = ',
+      sqlString(tableName),
+      ' LIMIT 1;',
+    ].join(''),
+  );
   return rows.length === 1;
 }
 
@@ -228,7 +236,7 @@ function inspectSqliteDatabase(databasePath) {
   );
   const migrationCount = sqliteInteger(
     databasePath,
-    "SELECT COUNT(*) AS count FROM d1_migrations WHERE name IS NOT NULL;",
+    'SELECT COUNT(*) AS count FROM d1_migrations WHERE name IS NOT NULL;',
   );
   return {
     integrityCheck,

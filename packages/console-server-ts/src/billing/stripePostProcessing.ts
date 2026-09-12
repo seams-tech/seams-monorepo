@@ -135,10 +135,7 @@ export function parseBillingStripePostProcessingPayload(
   }
   const audit = requireRecord(row.audit, 'payload.audit');
   const customerWebhook = requireRecord(row.customerWebhook, 'payload.customerWebhook');
-  const webhookPayload = requireRecord(
-    customerWebhook.payload,
-    'payload.customerWebhook.payload',
-  );
+  const webhookPayload = requireRecord(customerWebhook.payload, 'payload.customerWebhook.payload');
   const receiptId = webhookPayload.receiptId;
   if (receiptId !== null && typeof receiptId !== 'string') {
     throw new Error('payload.customerWebhook.payload.receiptId must be a string or null');

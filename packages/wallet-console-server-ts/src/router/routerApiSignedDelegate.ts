@@ -35,10 +35,7 @@ import {
   type SponsoredNearDelegateAuthService,
 } from '../sponsorship/nearExecutionAdapter';
 import { applyRouteMetering } from '@seams/wallet-server/cloud-host';
-import {
-  enforceRoutePolicy,
-  type RoutePolicyResolutionResult,
-} from '@seams/wallet-server/cloud-host';
+import { enforceRoutePolicy } from '@seams/wallet-server/cloud-host';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 import { resolvePublishableKeyApiCredentialAuth } from '@seams/wallet-server/cloud-host';
 import { extractRouterApiEnvironmentId } from '@seams/wallet-server/cloud-host';
@@ -560,7 +557,7 @@ async function meterSignedDelegate(input: {
       },
     ),
     handlers: {
-      gas: async ({ context, ledger, response, route }) => {
+      gas: async ({ context, ledger, response: _response, route }) => {
         if (ledger !== 'near_delegate') return;
         if (context.principal.kind !== 'api_credentials') return;
         if (context.principal.credentialType !== 'publishable_key') return;

@@ -125,7 +125,6 @@ import type {
 } from '@seams/wallet-server/cloud-host';
 import {
   createStaticCloudflareTenantStorageRouteResolverFromBindings,
-  type CloudflareTenantStorageRoute,
   type TenantStorageRouteResolver,
 } from './tenantStorageRoute';
 

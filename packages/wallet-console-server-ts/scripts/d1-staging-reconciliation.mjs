@@ -70,7 +70,10 @@ export function runD1StagingReconciliation(input = {}) {
 
   if (options.mode === 'remote') {
     for (const check of plan.checks) {
-      const result = requireSuccessfulCommandResult(check.command, options.commandRunner(check.command));
+      const result = requireSuccessfulCommandResult(
+        check.command,
+        options.commandRunner(check.command),
+      );
       const rows = parseRowsFromWranglerJson(result.stdout, check.id);
       executed.push({
         id: check.id,
@@ -96,7 +99,12 @@ export function runD1StagingReconciliation(input = {}) {
 function main() {
   try {
     const result = runD1StagingReconciliation(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging reconciliation manifest', 'Dry run commands:', d1StagingCommandLines(result.manifest.checks));
+    printStagingManifestResult(
+      result,
+      'D1 staging reconciliation manifest',
+      'Dry run commands:',
+      d1StagingCommandLines(result.manifest.checks),
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
@@ -151,7 +159,8 @@ function reconciliationChecks(input) {
     }),
     consoleCheck({
       id: 'sponsored_call_missing_billing_links',
-      description: 'Charged sponsored EVM calls must link to billing ledger and prepaid reservation records.',
+      description:
+        'Charged sponsored EVM calls must link to billing ledger and prepaid reservation records.',
       configPath: input.consoleConfigPath,
       sql: sponsoredCallMissingBillingLinksSql(input.stagingVars),
     }),

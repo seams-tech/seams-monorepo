@@ -2,9 +2,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
-const require = createRequire(
-  new URL('../package.json', import.meta.url),
-);
+const require = createRequire(new URL('../package.json', import.meta.url));
 const sdkServerRoot = dirname(require.resolve('@seams/wallet-server/package.json'));
 const requiredArtifacts = [
   'dist/esm/wasm/near_signer/pkg/wasm_signer_worker.js',

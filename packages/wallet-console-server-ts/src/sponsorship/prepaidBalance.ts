@@ -1,4 +1,7 @@
-import type { ConsoleBillingContext, ConsoleBillingService } from '@seams-internal/console-server/billing/service';
+import type {
+  ConsoleBillingContext,
+  ConsoleBillingService,
+} from '@seams-internal/console-server/billing/service';
 import type {
   ConsoleBillingPrepaidReservationContext,
   ConsoleBillingPrepaidReservationService,
@@ -11,10 +14,7 @@ import type {
   ConsoleSponsoredCallIntentKind,
   ConsoleSponsoredCallReceiptStatus,
 } from '../sponsoredCalls/types';
-import type {
-  SponsorshipSpendPricingQuote,
-  SponsorshipSpendPricingService,
-} from './spendCaps';
+import type { SponsorshipSpendPricingQuote, SponsorshipSpendPricingService } from './spendCaps';
 
 export class SponsorshipPrepaidBalanceEnforcementError extends Error {
   readonly code: string;

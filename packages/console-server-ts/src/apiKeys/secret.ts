@@ -18,7 +18,9 @@ export function makeSecretPreview(secret: string): string {
 }
 
 export function makeApiKeyLookupPrefix(secret: string): string {
-  return String(secret || '').trim().slice(0, LOOKUP_PREFIX_LENGTH);
+  return String(secret || '')
+    .trim()
+    .slice(0, LOOKUP_PREFIX_LENGTH);
 }
 
 export function makeId(prefix: string, now: Date): string {
@@ -31,7 +33,7 @@ export function makeId(prefix: string, now: Date): string {
   return `${prefix}_${ts}${suffix}`;
 }
 
-export function makeApiKeyId(now: Date): string {
+export function makeApiKeyId(): string {
   const random = new Uint8Array(8);
   requireCrypto().getRandomValues(random);
   const suffix = Array.from(random)
@@ -59,16 +61,12 @@ function randomAlphaNumeric(length: number): string {
   return out.join('');
 }
 
-export function makeApiKeySecret(input: {
-  kind?: 'secret_key' | 'publishable_key';
-}): string {
+export function makeApiKeySecret(input: { kind?: 'secret_key' | 'publishable_key' }): string {
   const kind = input.kind === 'publishable_key' ? 'publishable_key' : 'secret_key';
   return `${SECRET_PREFIX_BY_KIND[kind]}${randomAlphaNumeric(SECRET_BODY_LENGTH)}`;
 }
 
-export function parseApiKeySecret(
-  rawSecret: string,
-): {
+export function parseApiKeySecret(rawSecret: string): {
   kind: 'secret_key' | 'publishable_key';
 } | null {
   const secret = String(rawSecret || '').trim();

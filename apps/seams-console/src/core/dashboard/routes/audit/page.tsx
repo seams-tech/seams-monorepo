@@ -783,7 +783,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
     return () => {
       cancelled = true;
     };
-  }, [session.claims?.orgId, session.claims?.userId, session.loading]);
+  }, [session.claims, session.claims?.orgId, session.claims?.userId, session.loading]);
 
   React.useEffect(() => {
     if (session.loading) return;
@@ -822,6 +822,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
     approvalIntegration,
     selectedEnvironmentId,
     selectedProjectId,
+    session.claims,
     session.claims?.orgId,
     session.loading,
   ]);
@@ -869,7 +870,7 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
     return () => {
       cancelled = true;
     };
-  }, [selectedProjectId, session.claims?.orgId, session.loading]);
+  }, [selectedProjectId, session.claims, session.claims?.orgId, session.loading]);
 
   const copyAuditScopeValue = React.useCallback(
     async (value: string, label: 'Project' | 'Environment') => {

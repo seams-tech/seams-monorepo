@@ -15,7 +15,6 @@ import type {
   TenantRootOutstandingCleanupV1,
   TenantRootRestoreActivationEvidenceV1,
   TenantRootRestoreBootstrapCleanupV1,
-  TenantRootRestoreCleanupEvidenceV1,
   TenantRootRestoreRoleCleanupV1,
   TenantRootRoleImportProgressV1,
   TenantRootRoleReceiptsV1,
@@ -184,20 +183,6 @@ function recordCanonicalBase64Url(
     throw new Error(`tenant-root restore ${label}.${key} is invalid`);
   }
   if (decoded.length !== expectedBytes || base64UrlEncode(decoded) !== value) {
-    throw new Error(`tenant-root restore ${label}.${key} is invalid`);
-  }
-  return value;
-}
-
-function recordCanonicalNonzeroBase64Url(
-  record: Record<string, unknown>,
-  key: string,
-  expectedBytes: number,
-  label: string,
-): string {
-  const value = recordCanonicalBase64Url(record, key, expectedBytes, label);
-  const bytes = base64UrlDecode(value);
-  if (bytes.every((byte) => byte === 0)) {
     throw new Error(`tenant-root restore ${label}.${key} is invalid`);
   }
   return value;
@@ -579,17 +564,6 @@ function parseRoleCleanup(value: unknown, label: string): TenantRootRestoreRoleC
   }
 }
 
-function parseCleanupEvidence(value: unknown, label: string): TenantRootRestoreCleanupEvidenceV1 {
-  const record = requiredRecord(value, label);
-  if (!hasExactKeys(record, ['bootstrap', 'roles'])) {
-    throw new Error(`tenant-root restore ${label} is invalid`);
-  }
-  return {
-    bootstrap: parseBootstrapCleanup(recordValue(record, 'bootstrap', label), `${label}.bootstrap`),
-    roles: parseRoleCleanup(recordValue(record, 'roles', label), `${label}.roles`),
-  };
-}
-
 function parseActivationEvidence(
   value: unknown,
   label: string,
@@ -894,7 +868,16 @@ function parseRestoreSession(value: unknown, label: string): TenantRootRestoreSe
       const phase = recordText(record, 'phase', label);
       switch (phase) {
         case 'pre_activation':
-          if (!hasExactKeys(record, ['status', 'phase', 'sessionId', 'expiresAt', 'destinationFingerprintB64u', 'outstanding'])) {
+          if (
+            !hasExactKeys(record, [
+              'status',
+              'phase',
+              'sessionId',
+              'expiresAt',
+              'destinationFingerprintB64u',
+              'outstanding',
+            ])
+          ) {
             throw new Error(`tenant-root restore ${label} is invalid`);
           }
           return {

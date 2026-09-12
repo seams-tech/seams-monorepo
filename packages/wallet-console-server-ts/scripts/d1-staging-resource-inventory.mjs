@@ -99,7 +99,12 @@ export function runD1StagingResourceInventory(input = {}) {
 function main() {
   try {
     const result = runD1StagingResourceInventory(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging resource inventory manifest', 'Dry run commands:', d1StagingCommandLines(result.manifest.commands));
+    printStagingManifestResult(
+      result,
+      'D1 staging resource inventory manifest',
+      'Dry run commands:',
+      d1StagingCommandLines(result.manifest.commands),
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
@@ -186,18 +191,12 @@ function inventoryCommands(input) {
     inventoryCommand({
       id: 'console_d1_info',
       target: 'console_d1',
-      command: wranglerCommand(
-        'd1 info seams-console-staging-nrt --json',
-        input.consoleConfigPath,
-      ),
+      command: wranglerCommand('d1 info seams-console-staging-nrt --json', input.consoleConfigPath),
     }),
     inventoryCommand({
       id: 'signer_d1_info',
       target: 'signer_d1',
-      command: wranglerCommand(
-        'd1 info seams-signer-staging-nrt --json',
-        input.gatewayConfigPath,
-      ),
+      command: wranglerCommand('d1 info seams-signer-staging-nrt --json', input.gatewayConfigPath),
     }),
     inventoryCommand({
       id: 'console_worker_deployment_status',

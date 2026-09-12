@@ -1,4 +1,3 @@
-import { createWarmSessionStatusReader } from './helpers/warmSessionUiConfirm.fixtures';
 import { expect, test } from '@playwright/test';
 import {
   deriveEd25519CapabilityState,

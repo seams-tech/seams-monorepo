@@ -11,8 +11,6 @@ import type {
   TenantRootRestoreCleanupEvidenceV1,
   TenantRootRestoreRoleCleanupV1,
   TenantRootRestoreSessionV1,
-  TenantRootOutstandingCleanupV1,
-  TenantRootRoleReceiptsV1,
   TenantRootSourceCustodyDispositionV1,
   TenantRootTrustLevelV1,
 } from '@seams-internal/shared-ts/tenant-root';

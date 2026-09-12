@@ -109,7 +109,10 @@ export function parseMoonshineSpeechAnalysis(
   return { transcript, phrase, intent, sampleRateHz: 16000 };
 }
 
-function parsePhraseDecision(value: unknown, expectedPhrase: VoiceIdPromptPhrase): VoiceIdPhraseMatchResult {
+function parsePhraseDecision(
+  value: unknown,
+  expectedPhrase: VoiceIdPromptPhrase,
+): VoiceIdPhraseMatchResult {
   requireRecord(value, 'phrase');
   const data = value;
   const kind = requireString(data.kind, 'phrase.kind');
@@ -126,7 +129,13 @@ function parsePhraseDecision(value: unknown, expectedPhrase: VoiceIdPromptPhrase
     return { kind, reason: 'phrase_mismatch', expectedNormalized, spokenNormalized, confidence };
   }
   if (kind === 'uncertain') {
-    return { kind, reason: 'transcript_unavailable', expectedNormalized, spokenNormalized, confidence };
+    return {
+      kind,
+      reason: 'transcript_unavailable',
+      expectedNormalized,
+      spokenNormalized,
+      confidence,
+    };
   }
   throw new Error('Moonshine phrase decision kind is invalid');
 }

@@ -1,118 +1,36 @@
 import { expect, test } from '@playwright/test';
-import { isoCBOR } from '@simplewebauthn/server/helpers';
-import { createHash } from 'node:crypto';
-import type { D1DatabaseLike } from '../../packages/wallet-server/src/storage/tenantRoute';
-import type {
-  CloudflareDurableObjectNamespaceLike,
-  CloudflareDurableObjectStubLike,
-  EcdsaDerivationClientBootstrapRequest,
-  EcdsaDerivationServerBootstrapResponse,
-} from '../../packages/wallet-server/src/core/types';
-import type {
-  WalletRegistrationEcdsaClientBootstrap,
-  WalletRegistrationEcdsaPreparePayload,
-} from '../../packages/wallet-server/src/core/registrationContracts';
-import type {
-  CloudflareD1EmailOtpDeliveryProviderInput,
-  CloudflareD1EmailOtpDeliveryProviderResult,
-} from '../../packages/wallet-server/src/router/cloudflare/d1/auth/d1RouterApiAuthService';
 import { createCloudflareD1RouterApiAuthService } from '../../packages/wallet-server/src/router/cloudflare/d1/auth/d1RouterApiAuthService';
 import { emailOtpChallengeResponseBody } from '../../packages/wallet-server/src/router/domains/emailOtp/emailOtpSessionRouteHelpers';
 import {
   parseGoogleEmailOtpRegistrationAttemptRecord,
   parseGoogleEmailOtpRegistrationAttemptRow,
 } from '../../packages/wallet-server/src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationRecords';
-import { parseD1RegistrationIntent } from '../../packages/wallet-server/src/router/cloudflare/d1/registration/d1RegistrationCeremonyRecords';
 import { base64UrlDecode, base64UrlEncode } from '../../packages/shared-ts/src/utils/encoders';
 import {
   parseOrgId,
   parseWalletAuthMethodId,
   parseProviderSubject,
-  parseWebAuthnRpId,
   parseWalletId,
 } from '../../packages/shared-ts/src/utils/domainIds';
-import { normalizeRuntimePolicyScope } from '../../packages/shared-ts/src/threshold/signingRootScope';
 import { parseServerAllocatedWalletId } from '../../packages/shared-ts/src/utils/registrationIntent';
-import { buildPasskeyWalletAuthAuthority } from '../../packages/shared-ts/src/utils/walletAuthAuthority';
 import {
   secp256k1PrivateKey32ToPublicKey33,
   signSecp256k1Recoverable,
 } from '../../packages/wallet-server/src/core/ThresholdService/evmCryptoWasm';
-import {
-  applyD1MigrationFiles,
-  cleanupTemporaryD1Database,
-  createTemporaryD1Database,
-  listD1MigrationFiles,
-} from '../helpers/sqliteD1';
+import { cleanupTemporaryD1Database, createTemporaryD1Database } from '../helpers/sqliteD1';
 import {
   EMAIL_OTP_SERVER_SEAL_KEY_VERSION,
   EMAIL_OTP_SERVER_SEAL_ROOT_SECRET_B64U,
-  TEST_COMBINED_NEAR_ACCOUNT_ID,
   googleEmailOtpD1RegistrationAttemptBoundaryFixture,
-  testEvmFamilyRegistrationSignerSet,
-  testCombinedRegistrationSignerSet,
   requireParsedDomainId,
   RecordingEmailOtpDeliveryProvider,
-  ThrowingDurableObjectStub,
-  ThrowingDurableObjectNamespace,
-  RecordingDurableObjectStub,
-  RecordingDurableObjectNamespace,
-  parseRecordingDurableObjectRequest,
-  recordingDurableObjectJson,
-  isActiveRecordingReplayGuard,
-  isRecordingDurableObjectReplayReservationRequest,
-  recordingDurableObjectRequestKey,
-  recordingDurableObjectRequestOp,
-  countRecordingDurableObjectRequests,
-  recordingDurableObjectRequestsIncludeKey,
-  walletRegistrationDoKey,
-  requireRecordingDurableObjectRecord,
-  replaceRecordingDurableObjectRecord,
-  recordingDurableObjectKeysWithPrefix,
-  requireNestedRecordingDurableObjectRecord,
-  requireSingleEcdsaPrepare,
-  testEcdsaClientBootstrapTargets,
-  testEcdsaServerBootstrapResponse,
-  utf8Bytes,
-  arrayBufferCopy,
-  concatBytes,
-  derIntegerBytes,
-  rawP256SignatureToDer,
-  sha256,
-  hexBytes,
-  createWebAuthnAssertionFixture,
-  createWebAuthnAssertion,
-  jsonBase64Url,
-  fakeWebAuthnRegistrationCredential,
   encodePositiveBigIntB64u,
   createEmailOtpClientSealFixture,
-  generateGoogleOidcTestKey,
-  makeSignedGoogleIdToken,
-  googleJwksFetchMockPublicJwk,
-  oidcJwksFetchMockUrl,
-  oidcJwksFetchMockPublicJwk,
-  googleJwksFetchMock,
-  installGoogleJwksFetchMock,
-  restoreGoogleJwksFetchMock,
-  oidcJwksFetchMock,
-  installOidcJwksFetchMock,
-  restoreOidcJwksFetchMock,
   applySignerMigrations,
-  isSqliteJsonRow,
-  toInteger,
-  insertIdentity,
-  insertWebAuthn,
-  readWebAuthnChallengeRow,
-  readWebAuthnAuthenticatorRow,
-  insertNearPublicKey,
   insertSignerWallet,
-  readWalletAuthMethodRecord,
-  readSignerWalletRecord,
-  readWalletSignerRecord,
   insertEmailOtpEnrollment,
   listGoogleEmailOtpRegistrationAttemptRows,
   registrationAttemptRecordFromRow,
-  insertEmailOtpAuthState,
 } from './helpers/cloudflareD1RouterApiAuthService.fixtures';
 
 test('Cloudflare D1 Router API auth service applies and removes Email OTP server seals', async () => {

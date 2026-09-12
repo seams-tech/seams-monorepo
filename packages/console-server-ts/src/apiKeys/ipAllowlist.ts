@@ -26,14 +26,11 @@ function ipv4CidrContains(input: { cidr: string; ip: string }): boolean {
   const ipInt = parseIpv4ToInt(input.ip);
   if (baseInt == null || ipInt == null) return false;
   if (bits === 0) return true;
-  const mask = bits === 32 ? 0xffffffff : (~((1 << (32 - bits)) - 1)) >>> 0;
+  const mask = bits === 32 ? 0xffffffff : ~((1 << (32 - bits)) - 1) >>> 0;
   return (baseInt & mask) === (ipInt & mask);
 }
 
-export function isIpAllowlistMatch(input: {
-  allowlist: string[];
-  sourceIp?: string;
-}): boolean {
+export function isIpAllowlistMatch(input: { allowlist: string[]; sourceIp?: string }): boolean {
   if (!input.allowlist.length) return true;
   const sourceIp = normalizeSourceIp(input.sourceIp);
   if (!sourceIp) return false;

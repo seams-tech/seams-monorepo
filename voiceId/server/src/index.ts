@@ -32,9 +32,7 @@ import {
   type VoiceIdChallengeNonce,
 } from '../../shared/src/ids.ts';
 import { assertNever } from '../../shared/src/assertNever.ts';
-import {
-  PythonMoonshineAnalysisProvider,
-} from './analysis/PythonMoonshineAnalysisProvider.ts';
+import { PythonMoonshineAnalysisProvider } from './analysis/PythonMoonshineAnalysisProvider.ts';
 import {
   SplitVoiceIdAnalysisProvider,
   type VoiceIdAnalysisProvider,
@@ -60,14 +58,9 @@ export * from './verifier/PythonHttpVoiceIdVerifierTransport.ts';
 export * from './verifier/PythonVoiceIdVerifier.ts';
 export * from './verifier/VoiceIdVerifier.ts';
 
-export type VoiceIdVerifierTransportMode =
-  | 'fake'
-  | 'python-http';
+export type VoiceIdVerifierTransportMode = 'fake' | 'python-http';
 
-export type VoiceIdTranscriptProviderMode =
-  | 'fake'
-  | 'cloudflare-workers-ai'
-  | 'python-moonshine';
+export type VoiceIdTranscriptProviderMode = 'fake' | 'cloudflare-workers-ai' | 'python-moonshine';
 
 export function createDefaultVoiceIdService(input: {
   auditEvents?: VoiceIdAuditEvent[];
@@ -211,7 +204,9 @@ function pythonHttpConfigFromEnv(): PythonHttpVoiceIdVerifierTransportConfig {
   };
 }
 
-function verifierBackendFromEnv(env: Readonly<Record<string, string | undefined>>): 'placeholder' | 'ecapa' {
+function verifierBackendFromEnv(
+  env: Readonly<Record<string, string | undefined>>,
+): 'placeholder' | 'ecapa' {
   const backend = env.VOICEID_VERIFIER_BACKEND ?? 'placeholder';
   if (backend === 'placeholder' || backend === 'ecapa') {
     return backend;

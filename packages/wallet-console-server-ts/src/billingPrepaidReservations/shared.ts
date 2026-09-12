@@ -98,9 +98,7 @@ export function normalizeReserveRequest(
   };
 }
 
-export function normalizeSettleRequest(
-  request: SettleConsoleBillingPrepaidReservationRequest,
-): {
+export function normalizeSettleRequest(request: SettleConsoleBillingPrepaidReservationRequest): {
   sourceEventId: string;
   settledSpendMinor: number;
   txOrExecutionRef: string | null;
@@ -122,9 +120,9 @@ export function normalizeSettleRequest(
   };
 }
 
-export function normalizeReleaseRequest(
-  request: ReleaseConsoleBillingPrepaidReservationRequest,
-): { sourceEventId: string } {
+export function normalizeReleaseRequest(request: ReleaseConsoleBillingPrepaidReservationRequest): {
+  sourceEventId: string;
+} {
   const sourceEventId = String(request.sourceEventId || '').trim();
   if (!sourceEventId) {
     throw new ConsoleBillingPrepaidReservationError(
@@ -146,15 +144,17 @@ export function normalizeExpireRequest(
     throw new ConsoleBillingPrepaidReservationError('invalid_request', 400, 'Invalid at value');
   }
   const rawLimit = Number(request?.limit);
-  const limit =
-    Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 10_000) : 500;
+  const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 10_000) : 500;
   return {
     atMs,
     limit,
   };
 }
 
-export function buildEmptySummary(orgId: string, updatedAt: string): ConsoleBillingPrepaidReservationSummary {
+export function buildEmptySummary(
+  orgId: string,
+  updatedAt: string,
+): ConsoleBillingPrepaidReservationSummary {
   return {
     orgId,
     reservedMinor: 0,

@@ -4,7 +4,6 @@ import { parsePrincipalId, parseTenantId } from '@shared/authorization/capabilit
 import { deriveImplicitNearAccountIdFromEd25519PublicKey } from '@shared/utils/near';
 import {
   parseRegistrationEstablishedSessionResultV2,
-  type RegistrationEstablishedSessionResultV2,
 } from '@shared/utils/registrationEstablishedSession';
 import { base64UrlEncode } from '@shared/utils/base64';
 import { base58Encode } from '@shared/utils/base58';

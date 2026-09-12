@@ -7,7 +7,6 @@ import type {
 } from '../../packages/wallet-server/src/core/signingLanes/LaneLifecycleApplicationService';
 import type {
   LaneEnrollmentGatewayV1,
-  LaneHolderDeliveryReceiptV1,
   LaneProtocolCasResultV1,
   LaneProtocolCommitReceiptV1,
   LaneServerActivationReceiptV1,

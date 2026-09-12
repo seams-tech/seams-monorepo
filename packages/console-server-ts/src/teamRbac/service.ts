@@ -1342,10 +1342,11 @@ class InMemoryConsoleOrganizationAccessService implements ConsoleOrganizationAcc
     const actor = this.requireActiveActor(store, actorUserId);
     if (
       actor.role !== 'OWNER' &&
-      !(actor.role === 'ADMIN' && (
-        hasAdminPermission(store, actor.id, 'members.manage') ||
-        hasAdminPermission(store, actor.id, 'projects.manage')
-      ))
+      !(
+        actor.role === 'ADMIN' &&
+        (hasAdminPermission(store, actor.id, 'members.manage') ||
+          hasAdminPermission(store, actor.id, 'projects.manage'))
+      )
     ) {
       throw organizationAccessError('forbidden', 403, 'Membership read access is required');
     }

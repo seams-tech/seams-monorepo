@@ -99,10 +99,7 @@ function readOptionalAssignment(
   };
 }
 
-function readOptionalInteger(
-  body: Record<string, unknown>,
-  key: string,
-): number | undefined {
+function readOptionalInteger(body: Record<string, unknown>, key: string): number | undefined {
   const raw = body[key];
   if (raw === undefined || raw === null) return undefined;
   const n = typeof raw === 'number' ? raw : Number(raw);
@@ -158,11 +155,7 @@ export function parseUpdateConsolePolicyRequest(body: unknown): UpdateConsolePol
   const description = readOptionalString(obj, 'description');
   const rules = readRawOptionalRules(obj, 'rules');
   if (!name && !description && !rules) {
-    throw new ConsolePolicyError(
-      'invalid_body',
-      400,
-      'At least one mutable field is required',
-    );
+    throw new ConsolePolicyError('invalid_body', 400, 'At least one mutable field is required');
   }
   return {
     ...(name ? { name } : {}),
@@ -253,10 +246,16 @@ export function parseListConsolePolicyAssignmentsRequest(
     );
   }
   if (scopeId && !scopeType) {
-    throw new ConsolePolicyError('invalid_query', 400, 'scopeType is required when scopeId is provided');
+    throw new ConsolePolicyError(
+      'invalid_query',
+      400,
+      'scopeType is required when scopeId is provided',
+    );
   }
   return {
-    ...(scopeType ? { scopeType: scopeType as ListConsolePolicyAssignmentsRequest['scopeType'] } : {}),
+    ...(scopeType
+      ? { scopeType: scopeType as ListConsolePolicyAssignmentsRequest['scopeType'] }
+      : {}),
     ...(scopeId ? { scopeId } : {}),
   };
 }

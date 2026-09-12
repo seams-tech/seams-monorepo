@@ -64,7 +64,10 @@ export async function queryD1One(
   text: string,
   values: readonly unknown[],
 ): Promise<D1Row | null> {
-  return await database.prepare(text).bind(...values).first<D1Row>();
+  return await database
+    .prepare(text)
+    .bind(...values)
+    .first<D1Row>();
 }
 
 export async function queryD1All(
@@ -72,7 +75,10 @@ export async function queryD1All(
   text: string,
   values: readonly unknown[],
 ): Promise<readonly D1Row[]> {
-  const result = await database.prepare(text).bind(...values).all<D1Row>();
+  const result = await database
+    .prepare(text)
+    .bind(...values)
+    .all<D1Row>();
   return result.results || [];
 }
 

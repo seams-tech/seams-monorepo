@@ -7,11 +7,7 @@ import {
   queryD1One,
   type D1Row,
 } from '../boundary';
-import type {
-  D1DatabaseLike,
-  D1PreparedStatementLike,
-  D1ResultLike,
-} from '../boundary';
+import type { D1DatabaseLike, D1PreparedStatementLike, D1ResultLike } from '../boundary';
 import {
   parseConsoleEmailTemplate,
   renderConsoleEmailV1,

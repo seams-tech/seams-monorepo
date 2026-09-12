@@ -13,10 +13,7 @@ import type {
   UpdateConsoleApiKeyRequest,
 } from './types';
 
-function parseScopesOrThrow(
-  raw: unknown,
-  scopeValidation: ApiCredentialScopeValidation,
-): string[] {
+function parseScopesOrThrow(raw: unknown, scopeValidation: ApiCredentialScopeValidation): string[] {
   if (!Array.isArray(raw) || raw.length === 0) {
     throw new ConsoleApiKeyError('invalid_body', 400, 'Field scopes must be a non-empty array');
   }
@@ -118,7 +115,10 @@ function parseAllowedOriginsOrThrow(raw: unknown): string[] {
   return out;
 }
 
-function parseOptionalObjectOrThrow(raw: unknown, fieldName: string): Record<string, unknown> | undefined {
+function parseOptionalObjectOrThrow(
+  raw: unknown,
+  fieldName: string,
+): Record<string, unknown> | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ConsoleApiKeyError('invalid_body', 400, `Field ${fieldName} must be an object`);
@@ -145,7 +145,11 @@ function parseOptionalExpiresAtOrThrow(raw: unknown): string | undefined {
   if (!value) return undefined;
   const expiresAtMs = Date.parse(value);
   if (!Number.isFinite(expiresAtMs)) {
-    throw new ConsoleApiKeyError('invalid_body', 400, 'Field expiresAt must be a valid ISO timestamp');
+    throw new ConsoleApiKeyError(
+      'invalid_body',
+      400,
+      'Field expiresAt must be a valid ISO timestamp',
+    );
   }
   if (expiresAtMs <= Date.now()) {
     throw new ConsoleApiKeyError('invalid_body', 400, 'Field expiresAt must be in the future');
@@ -163,7 +167,10 @@ export function parseCreateConsoleApiKeyRequest(
   body: unknown,
   scopeValidation: ApiCredentialScopeValidation,
 ): CreateConsoleApiKeyRequest {
-  const obj = requireObject(body, (code, status, message) => new ConsoleApiKeyError(code, status, message));
+  const obj = requireObject(
+    body,
+    (code, status, message) => new ConsoleApiKeyError(code, status, message),
+  );
   const kind = readRequiredString(
     obj,
     'kind',
@@ -234,7 +241,10 @@ export function parseCreateConsoleApiKeyRequest(
 
 export function parseRotateConsoleApiKeyRequest(body: unknown): RotateConsoleApiKeyRequest {
   if (body === undefined || body === null) return {};
-  const obj = requireObject(body, (code, status, message) => new ConsoleApiKeyError(code, status, message));
+  const obj = requireObject(
+    body,
+    (code, status, message) => new ConsoleApiKeyError(code, status, message),
+  );
   return {
     reason: readOptionalString(obj, 'reason'),
   };
@@ -249,7 +259,8 @@ export function parseUpdateConsoleApiKeyRequest(
     (code, status, message) => new ConsoleApiKeyError(code, status, message),
   );
   const name = obj.name === undefined ? undefined : readOptionalString(obj, 'name');
-  const scopes = obj.scopes === undefined ? undefined : parseScopesOrThrow(obj.scopes, scopeValidation);
+  const scopes =
+    obj.scopes === undefined ? undefined : parseScopesOrThrow(obj.scopes, scopeValidation);
   const ipAllowlist =
     obj.ipAllowlist === undefined ? undefined : parseIpAllowlistOrThrow(obj.ipAllowlist);
   const allowedOrigins =
@@ -259,7 +270,9 @@ export function parseUpdateConsoleApiKeyRequest(
   const quotaBucket =
     obj.quotaBucket === undefined ? undefined : readOptionalString(obj, 'quotaBucket');
   const riskPolicy =
-    obj.riskPolicy === undefined ? undefined : parseOptionalObjectOrThrow(obj.riskPolicy, 'riskPolicy');
+    obj.riskPolicy === undefined
+      ? undefined
+      : parseOptionalObjectOrThrow(obj.riskPolicy, 'riskPolicy');
   const paymentPolicy =
     obj.paymentPolicy === undefined
       ? undefined
@@ -280,7 +293,10 @@ export function parseUpdateConsoleApiKeyRequest(
 
 export function parseRevokeConsoleApiKeyRequest(body: unknown): RevokeConsoleApiKeyRequest {
   if (body === undefined || body === null) return {};
-  const obj = requireObject(body, (code, status, message) => new ConsoleApiKeyError(code, status, message));
+  const obj = requireObject(
+    body,
+    (code, status, message) => new ConsoleApiKeyError(code, status, message),
+  );
   return {
     reason: readOptionalString(obj, 'reason'),
   };

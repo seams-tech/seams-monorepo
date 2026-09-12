@@ -29,7 +29,6 @@ import {
   type TenantRootRestoreExpiredSessionFinalizationInputV1,
   type TenantRootRestoreExpiredSessionFinalizationV1,
   type TenantRootRestoreInstalledImportV1,
-  type TenantRootRestoreRegisteredManifestBundleV1,
   type TenantRootRestoreRegisteredManifestV1,
   type TenantRootRestoreRoleImportKeyV1,
   type TenantRootRestoreRoleImportKeyIssueAdmissionInputV1,

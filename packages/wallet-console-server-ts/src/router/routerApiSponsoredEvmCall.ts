@@ -340,7 +340,9 @@ function buildFailedSponsoredEvmAssessment(error: unknown): SponsoredEvmExecutio
   };
 }
 
-function buildReplayResponse(existing: ConsoleSponsoredCallRecord): RouteResponse<Record<string, unknown>> {
+function buildReplayResponse(
+  existing: ConsoleSponsoredCallRecord,
+): RouteResponse<Record<string, unknown>> {
   const details = parseDetailsJson(existing.detailsJson);
   const feeAmount = String(existing.feeAmount || '').trim() || '0';
   const policyId = String(existing.policyId || '').trim() || null;
@@ -371,7 +373,9 @@ function buildReplayResponse(existing: ConsoleSponsoredCallRecord): RouteRespons
   });
 }
 
-function buildSpendCapFailureResponse(error: unknown): RouteResponse<Record<string, unknown>> | null {
+function buildSpendCapFailureResponse(
+  error: unknown,
+): RouteResponse<Record<string, unknown>> | null {
   if (!isSponsorshipSpendCapEnforcementError(error)) return null;
   return routeJson(error.status, {
     ok: false,
@@ -381,7 +385,9 @@ function buildSpendCapFailureResponse(error: unknown): RouteResponse<Record<stri
   });
 }
 
-function buildPrepaidFailureResponse(error: unknown): RouteResponse<Record<string, unknown>> | null {
+function buildPrepaidFailureResponse(
+  error: unknown,
+): RouteResponse<Record<string, unknown>> | null {
   if (!isSponsorshipPrepaidBalanceEnforcementError(error)) return null;
   return routeJson(error.status, {
     ok: false,
@@ -733,14 +739,15 @@ export async function handleRouterApiSponsoredEvmCall(
   }
 
   return await runSponsorshipExecution({
-    execute: async () =>
-      await executeSponsorshipAdapter(adapter),
+    execute: async () => await executeSponsorshipAdapter(adapter),
     assessResult: buildSuccessfulSponsoredEvmAssessment,
     onResult: async ({ assessment }): Promise<RouteResponse<Record<string, unknown>>> => {
-      let spendCapSettlement: (SponsorshipSpendCapSettlement & {
-        sourceEventId: string;
-        estimatedSpendMinor: number;
-      }) | null = null;
+      let spendCapSettlement:
+        | (SponsorshipSpendCapSettlement & {
+            sourceEventId: string;
+            estimatedSpendMinor: number;
+          })
+        | null = null;
       try {
         const settled = await settleSponsoredSpendCap({
           reservation: spendCapReservation,
@@ -832,8 +839,8 @@ export async function handleRouterApiSponsoredEvmCall(
           prepaidReservationId: prepaidSettlement?.reservationId || null,
           charged: Boolean(
             prepaidSettlement &&
-              !prepaidSettlement.released &&
-              prepaidSettlement.settledSpendMinor > 0,
+            !prepaidSettlement.released &&
+            prepaidSettlement.settledSpendMinor > 0,
           ),
           chargedReason: prepaidSettlement
             ? prepaidSettlement.released
@@ -886,10 +893,12 @@ export async function handleRouterApiSponsoredEvmCall(
     },
     assessThrownError: buildFailedSponsoredEvmAssessment,
     onThrownError: async ({ assessment }): Promise<RouteResponse<Record<string, unknown>>> => {
-      let spendCapSettlement: (SponsorshipSpendCapSettlement & {
-        sourceEventId: string;
-        estimatedSpendMinor: number;
-      }) | null = null;
+      let spendCapSettlement:
+        | (SponsorshipSpendCapSettlement & {
+            sourceEventId: string;
+            estimatedSpendMinor: number;
+          })
+        | null = null;
       try {
         const settled = await settleSponsoredSpendCap({
           reservation: spendCapReservation,
@@ -981,8 +990,8 @@ export async function handleRouterApiSponsoredEvmCall(
           prepaidReservationId: prepaidSettlement?.reservationId || null,
           charged: Boolean(
             prepaidSettlement &&
-              !prepaidSettlement.released &&
-              prepaidSettlement.settledSpendMinor > 0,
+            !prepaidSettlement.released &&
+            prepaidSettlement.settledSpendMinor > 0,
           ),
           chargedReason: prepaidSettlement
             ? prepaidSettlement.released

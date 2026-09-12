@@ -1,5 +1,9 @@
 import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
-import { normalizeLogger, type Logger, type NormalizedLogger } from '@seams/wallet-server/cloud-host';
+import {
+  normalizeLogger,
+  type Logger,
+  type NormalizedLogger,
+} from '@seams/wallet-server/cloud-host';
 import {
   d1Number as toNumber,
   d1ChangedRows,
@@ -80,8 +84,7 @@ export interface D1ConsoleRuntimeSnapshotOutboxDispatchOptions {
 export type D1ConsoleRuntimeSnapshotOutboxDispatchResult =
   ConsoleRuntimeSnapshotOutboxDispatchResult;
 
-export interface D1ConsoleRuntimeSnapshotRetentionCleanupOptions
-  extends D1ConsoleRuntimeSnapshotSchemaOptions {
+export interface D1ConsoleRuntimeSnapshotRetentionCleanupOptions extends D1ConsoleRuntimeSnapshotSchemaOptions {
   namespace?: string;
   orgId: string;
   ensureSchema?: boolean;
@@ -283,9 +286,8 @@ export function getConsoleRuntimeSnapshotD1Runtime(
 ): ConsoleRuntimeSnapshotD1Runtime | null {
   if (!service || typeof service !== 'object') return null;
   return (
-    (service as Partial<ConsoleRuntimeSnapshotD1Service>)[
-      CONSOLE_RUNTIME_SNAPSHOT_D1_RUNTIME
-    ] || null
+    (service as Partial<ConsoleRuntimeSnapshotD1Service>)[CONSOLE_RUNTIME_SNAPSHOT_D1_RUNTIME] ||
+    null
   );
 }
 
@@ -300,7 +302,6 @@ function nowMs(now: Date): number {
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
-
 
 function normalizeNamespace(namespace: string | undefined): string {
   const normalized = String(namespace || 'default').trim();
@@ -333,9 +334,7 @@ function normalizePositiveInteger(raw: unknown, fallback: number, max?: number):
 }
 
 function normalizeOrgIds(orgIds: readonly string[]): string[] {
-  return Array.from(
-    new Set(orgIds.map((orgId) => String(orgId || '').trim()).filter(Boolean)),
-  );
+  return Array.from(new Set(orgIds.map((orgId) => String(orgId || '').trim()).filter(Boolean)));
 }
 
 function cloneObject(input: Record<string, unknown>): Record<string, unknown> {
@@ -889,7 +888,8 @@ async function markD1OutboxDispatchFailure(input: {
   nowValueMs: number;
   message: string;
 }): Promise<void> {
-  const nextStatus = input.claimed.attemptCount >= input.state.maxAttempts ? 'DEAD_LETTER' : 'PENDING';
+  const nextStatus =
+    input.claimed.attemptCount >= input.state.maxAttempts ? 'DEAD_LETTER' : 'PENDING';
   const availableAtMs =
     nextStatus === 'PENDING' ? input.nowValueMs + input.state.retryBackoffMs : input.nowValueMs;
   await input.state.database

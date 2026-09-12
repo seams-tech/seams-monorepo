@@ -83,7 +83,8 @@ async function verifyStepUpCredential(
   ceremony: 'registration' | 'assertion',
   credential: Credential | null,
 ): Promise<void> {
-  if (credential === null) throw new DOMException('Passkey verification was cancelled.', 'AbortError');
+  if (credential === null)
+    throw new DOMException('Passkey verification was cancelled.', 'AbortError');
   if (!(credential instanceof PublicKeyCredential))
     throw new Error('The browser returned an invalid passkey credential.');
   const result = await rotationPost(`/console/step-up/webauthn/${ceremony}/verify`, {
@@ -335,7 +336,6 @@ async function custodyMutation<T>(input: {
   readonly operation: string;
   readonly parseResult: (value: unknown) => T | null;
 }): Promise<DashboardCustodyOutcome<T>> {
-  const base = requireConsoleBaseUrl();
   let response = await rotationPost(input.path, input.body);
   let raw: unknown = await parseConsoleJson(response);
   if (response.status === 403 && responseObject(raw) && raw.code === 'step_up_required') {

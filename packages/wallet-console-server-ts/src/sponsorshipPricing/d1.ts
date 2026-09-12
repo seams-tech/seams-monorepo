@@ -505,10 +505,7 @@ export async function seedD1ConsoleStaticEvmSponsorshipPricingRule(
     options.minorPerWeiDenominator,
     'minorPerWeiDenominator',
   ).toString();
-  const minSpendMinor = requireNonNegativeSafeInteger(
-    options.minSpendMinor || 0,
-    'minSpendMinor',
-  );
+  const minSpendMinor = requireNonNegativeSafeInteger(options.minSpendMinor || 0, 'minSpendMinor');
   const createdBy = requireNonEmptyString(options.createdBy, 'createdBy');
   const nowMs = requirePositiveTimestampMs((options.now || defaultNow)().getTime(), 'nowMs');
   const effectiveFromMs = requirePositiveTimestampMs(

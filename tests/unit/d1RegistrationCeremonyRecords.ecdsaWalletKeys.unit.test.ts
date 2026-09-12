@@ -6,7 +6,6 @@ import {
 } from '@server/router/cloudflare/d1/registration/d1RegistrationCeremonyRecords';
 import type { EcdsaDerivationServerBootstrapResponse } from '@server/core/types';
 import {
-  thresholdEcdsaChainTargetKey,
   type ThresholdEcdsaChainTarget,
 } from '@server/core/thresholdEcdsaChainTarget';
 import { fixtureEcdsaRoleLocalPublicCapability } from './helpers/ecdsaBootstrap.fixtures';

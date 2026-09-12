@@ -27,13 +27,17 @@ function deploymentFor(network: ConsoleNetwork): ConsoleDeployment {
   const env = import.meta.env;
   const prefix = network === 'mainnet' ? 'MAINNET_' : 'TESTNET_';
   const relayerUrl =
-    trimmedEnv(env[`VITE_${prefix}RELAYER_URL`]) || trimmedEnv(env.VITE_RELAYER_URL) || windowOrigin();
+    trimmedEnv(env[`VITE_${prefix}RELAYER_URL`]) ||
+    trimmedEnv(env.VITE_RELAYER_URL) ||
+    windowOrigin();
   const consoleBaseUrl =
     trimmedEnv(env[`VITE_${prefix}CONSOLE_BASE_URL`]) ||
     trimmedEnv(env.VITE_CONSOLE_BASE_URL) ||
     relayerUrl;
   const walletOrigin =
-    trimmedEnv(env[`VITE_${prefix}WALLET_ORIGIN`]) || trimmedEnv(env.VITE_WALLET_ORIGIN) || relayerUrl;
+    trimmedEnv(env[`VITE_${prefix}WALLET_ORIGIN`]) ||
+    trimmedEnv(env.VITE_WALLET_ORIGIN) ||
+    relayerUrl;
   return { network, consoleBaseUrl, relayerUrl, walletOrigin };
 }
 

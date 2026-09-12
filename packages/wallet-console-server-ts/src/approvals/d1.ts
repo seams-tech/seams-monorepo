@@ -22,7 +22,6 @@ import type {
   RejectConsoleApprovalRequest,
 } from './types';
 
-
 const OPERATION_DEFAULTS: Record<
   ConsoleApprovalOperationType,
   {
@@ -180,7 +179,6 @@ function toNullableIso(value: unknown): string | null {
   return Number.isFinite(parsed) ? toIso(parsed) : null;
 }
 
-
 function normalizeString(raw: unknown): string {
   return String(raw || '').trim();
 }
@@ -277,7 +275,6 @@ function ensureMetadataObject(raw: unknown): Record<string, unknown> {
   return { ...(raw as Record<string, unknown>) };
 }
 
-
 function isD1ConstraintError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error || '');
   return message.includes('UNIQUE constraint failed') || message.includes('constraint failed');
@@ -314,10 +311,7 @@ function buildApprovalListQuery(
   };
 }
 
-function actorAlreadyDecided(
-  record: ConsoleApprovalRequestRecord,
-  actorUserId: string,
-): boolean {
+function actorAlreadyDecided(record: ConsoleApprovalRequestRecord, actorUserId: string): boolean {
   return record.decisions.some((entry) => entry.actorUserId === actorUserId);
 }
 
@@ -349,11 +343,7 @@ function buildApproveTransition(input: {
   readonly decidedAtMs: number;
 }): ApprovalTransition {
   if (input.record.requireMfa && !input.request.mfaVerified) {
-    throw new ConsoleApprovalsError(
-      'mfa_required',
-      400,
-      'MFA is required to approve this request',
-    );
+    throw new ConsoleApprovalsError('mfa_required', 400, 'MFA is required to approve this request');
   }
   const decision: ConsoleApprovalDecisionRecord = {
     decision: 'APPROVE',

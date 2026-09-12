@@ -182,7 +182,8 @@ function decodePolicyCoverage(raw: unknown): DashboardPolicyCoverage | null {
       activeWalletCount: Number(policy.activeWalletCount || 0),
       archivedWalletCount: Number(policy.archivedWalletCount || 0),
       totalBalanceMinor: Number(policy.totalBalanceMinor || 0),
-      lastActivityAt: policy.lastActivityAt == null ? null : String(policy.lastActivityAt || '').trim() || null,
+      lastActivityAt:
+        policy.lastActivityAt == null ? null : String(policy.lastActivityAt || '').trim() || null,
     });
   }
   const unassignedWalletSample: DashboardPolicyCoverageWalletSample[] = [];
@@ -201,13 +202,15 @@ function decodePolicyCoverage(raw: unknown): DashboardPolicyCoverage | null {
       policyName: wallet.policyName == null ? null : String(wallet.policyName || '').trim() || null,
       policyKind: decodePolicyKind(wallet.policyKind),
       userId: String(wallet.userId || '').trim(),
-      lastActivityAt: wallet.lastActivityAt == null ? null : String(wallet.lastActivityAt || '').trim() || null,
+      lastActivityAt:
+        wallet.lastActivityAt == null ? null : String(wallet.lastActivityAt || '').trim() || null,
       updatedAt: String(wallet.updatedAt || '').trim(),
     });
   }
   return {
     scope: {
-      projectId: scopeRaw.projectId == null ? null : String(scopeRaw.projectId || '').trim() || null,
+      projectId:
+        scopeRaw.projectId == null ? null : String(scopeRaw.projectId || '').trim() || null,
       environmentId:
         scopeRaw.environmentId == null ? null : String(scopeRaw.environmentId || '').trim() || null,
     },
@@ -267,13 +270,15 @@ function decodeGasReadiness(raw: unknown): DashboardGasReadiness | null {
       policyName: wallet.policyName == null ? null : String(wallet.policyName || '').trim() || null,
       policyKind: decodePolicyKind(wallet.policyKind),
       userId: String(wallet.userId || '').trim(),
-      lastActivityAt: wallet.lastActivityAt == null ? null : String(wallet.lastActivityAt || '').trim() || null,
+      lastActivityAt:
+        wallet.lastActivityAt == null ? null : String(wallet.lastActivityAt || '').trim() || null,
       updatedAt: String(wallet.updatedAt || '').trim(),
     });
   }
   return {
     scope: {
-      projectId: scopeRaw.projectId == null ? null : String(scopeRaw.projectId || '').trim() || null,
+      projectId:
+        scopeRaw.projectId == null ? null : String(scopeRaw.projectId || '').trim() || null,
       environmentId:
         scopeRaw.environmentId == null ? null : String(scopeRaw.environmentId || '').trim() || null,
     },
@@ -322,8 +327,12 @@ function decodeExportGovernance(raw: unknown): DashboardExportGovernance | null 
       approvalCount: Number(request.approvalCount || 0),
       pendingApprovals: Number(request.pendingApprovals || 0),
       constraints: {
-        roles: decodeStringArray((request.constraints as Record<string, unknown> | undefined)?.roles),
-        chains: decodeStringArray((request.constraints as Record<string, unknown> | undefined)?.chains),
+        roles: decodeStringArray(
+          (request.constraints as Record<string, unknown> | undefined)?.roles,
+        ),
+        chains: decodeStringArray(
+          (request.constraints as Record<string, unknown> | undefined)?.chains,
+        ),
         walletTypes: decodeStringArray(
           (request.constraints as Record<string, unknown> | undefined)?.walletTypes,
         ),
@@ -384,10 +393,12 @@ async function fetchJson(path: string): Promise<any> {
   return body;
 }
 
-export async function getDashboardPolicyCoverage(input: {
-  projectId?: string;
-  environmentId?: string;
-} = {}): Promise<DashboardPolicyCoverage> {
+export async function getDashboardPolicyCoverage(
+  input: {
+    projectId?: string;
+    environmentId?: string;
+  } = {},
+): Promise<DashboardPolicyCoverage> {
   const params = new URLSearchParams();
   if (input.projectId) params.set('projectId', input.projectId);
   if (input.environmentId) params.set('environmentId', input.environmentId);
@@ -400,10 +411,12 @@ export async function getDashboardPolicyCoverage(input: {
   return coverage;
 }
 
-export async function getDashboardGasReadiness(input: {
-  projectId?: string;
-  environmentId?: string;
-} = {}): Promise<DashboardGasReadiness> {
+export async function getDashboardGasReadiness(
+  input: {
+    projectId?: string;
+    environmentId?: string;
+  } = {},
+): Promise<DashboardGasReadiness> {
   const params = new URLSearchParams();
   if (input.projectId) params.set('projectId', input.projectId);
   if (input.environmentId) params.set('environmentId', input.environmentId);
@@ -416,9 +429,11 @@ export async function getDashboardGasReadiness(input: {
   return readiness;
 }
 
-export async function getDashboardExportGovernance(input: {
-  environmentId?: string;
-} = {}): Promise<DashboardExportGovernance> {
+export async function getDashboardExportGovernance(
+  input: {
+    environmentId?: string;
+  } = {},
+): Promise<DashboardExportGovernance> {
   const params = new URLSearchParams();
   if (input.environmentId) params.set('environmentId', input.environmentId);
   const suffix = params.toString();

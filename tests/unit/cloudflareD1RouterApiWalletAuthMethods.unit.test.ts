@@ -41,7 +41,6 @@ import {
   fixtureRouterAbEcdsaActivationFacts,
   fixtureRouterAbEcdsaMaterialActivation,
   FIXTURE_TENANT_ROOT_CUSTODY_LINEAGE,
-  FixtureRouterAbEcdsaStrictRegistrationPort,
   SuccessfulFixtureRouterAbEcdsaStrictRegistrationPort,
 } from '../helpers/routerAbSigningRuntimeTestUtils';
 import { base64UrlDecode, base64UrlEncode } from '../../packages/shared-ts/src/utils/encoders';
@@ -67,7 +66,6 @@ import {
 } from './helpers/linkedDeviceManagement.fixtures';
 import {
   RecordingDurableObjectNamespace,
-  requireSingleEcdsaPrepare,
   utf8Bytes,
   sha256,
   hexBytes,

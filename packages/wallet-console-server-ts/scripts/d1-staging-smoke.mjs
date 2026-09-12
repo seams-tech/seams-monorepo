@@ -14,7 +14,6 @@ import {
   parseFlagArgs,
   printD1StagingCliError,
   printStagingManifestResult,
-  resolvePackagePath,
   writeD1StagingManifest,
 } from './d1-staging-config.mjs';
 
@@ -60,28 +59,37 @@ export async function runD1StagingSmoke(input = {}) {
 async function main() {
   try {
     const result = await runD1StagingSmoke(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging smoke manifest', 'Dry run endpoints:', d1StagingHttpLines(result.manifest.endpoints));
+    printStagingManifestResult(
+      result,
+      'D1 staging smoke manifest',
+      'Dry run endpoints:',
+      d1StagingHttpLines(result.manifest.endpoints),
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    consoleOrigin: '',
-    generatedAtIso: '',
-    manifestPath: '',
-    mode: 'dry-run',
-    gatewayOrigin: '',
-    timeoutMs: '',
-  }, {
-    '--console-origin': 'consoleOrigin',
-    '--generated-at': 'generatedAtIso',
-    '--manifest': 'manifestPath',
-    '--mode': 'mode',
-    '--gateway-origin': 'gatewayOrigin',
-    '--timeout-ms': 'timeoutMs',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      consoleOrigin: '',
+      generatedAtIso: '',
+      manifestPath: '',
+      mode: 'dry-run',
+      gatewayOrigin: '',
+      timeoutMs: '',
+    },
+    {
+      '--console-origin': 'consoleOrigin',
+      '--generated-at': 'generatedAtIso',
+      '--manifest': 'manifestPath',
+      '--mode': 'mode',
+      '--gateway-origin': 'gatewayOrigin',
+      '--timeout-ms': 'timeoutMs',
+    },
+  );
 }
 
 function normalizeOptions(input) {

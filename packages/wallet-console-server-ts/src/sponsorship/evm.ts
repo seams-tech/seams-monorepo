@@ -58,7 +58,9 @@ export function normalizeHexData(value: unknown): `0x${string}` | null {
 }
 
 export function normalizeEvmSelector(value: unknown): `0x${string}` | null {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   return /^0x[0-9a-f]{8}$/.test(normalized) ? (normalized as `0x${string}`) : null;
 }
 
@@ -94,9 +96,7 @@ export function parseRequiredUnsignedBigInt(value: unknown, field: string): bigi
 
 function parseResolvedSponsoredEvmCallSpendCap(raw: unknown): ResolvedSponsoredEvmCallSpendCap {
   const row =
-    raw && typeof raw === 'object' && !Array.isArray(raw)
-      ? (raw as Record<string, unknown>)
-      : {};
+    raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const modeRaw = String(row.mode || '')
     .trim()
     .toUpperCase();
@@ -141,7 +141,9 @@ export function extractEvmFunctionSelector(data: `0x${string}`): `0x${string}` |
   return data.length >= 10 ? (`0x${data.slice(2, 10).toLowerCase()}` as `0x${string}`) : null;
 }
 
-export function parseResolvedSponsoredEvmCallPolicies(snapshot: unknown): ResolvedSponsoredEvmCallPolicy[] {
+export function parseResolvedSponsoredEvmCallPolicies(
+  snapshot: unknown,
+): ResolvedSponsoredEvmCallPolicy[] {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return [];
   const payload = snapshot as Record<string, unknown>;
   const gasSponsorship = payload.gasSponsorship;
@@ -154,10 +156,17 @@ export function parseResolvedSponsoredEvmCallPolicies(snapshot: unknown): Resolv
   for (const entry of policiesRaw) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
     const row = entry as Record<string, unknown>;
-    if (String(row.kind || '').trim().toLowerCase() !== 'evm_call') continue;
+    if (
+      String(row.kind || '')
+        .trim()
+        .toLowerCase() !== 'evm_call'
+    )
+      continue;
     const policyId = String(row.policyId || '').trim();
     const policyName = String(row.policyName || '').trim() || policyId;
-    const networkClass = String(row.networkClass || 'ANY').trim().toUpperCase();
+    const networkClass = String(row.networkClass || 'ANY')
+      .trim()
+      .toUpperCase();
     const allowedCallsRaw = Array.isArray(row.allowedCalls) ? row.allowedCalls : [];
     if (!policyId) continue;
     const allowedCalls = allowedCallsRaw
@@ -182,7 +191,9 @@ export function parseResolvedSponsoredEvmCallPolicies(snapshot: unknown): Resolv
           maxValueWei,
         };
       })
-      .filter((call): call is ResolvedSponsoredEvmCallPolicy['allowedCalls'][number] => Boolean(call));
+      .filter((call): call is ResolvedSponsoredEvmCallPolicy['allowedCalls'][number] =>
+        Boolean(call),
+      );
     const allowedChainIds = Array.from(new Set(allowedCalls.map((call) => call.chainId)));
     if (allowedCalls.length === 0 || allowedChainIds.length === 0) continue;
     out.push({

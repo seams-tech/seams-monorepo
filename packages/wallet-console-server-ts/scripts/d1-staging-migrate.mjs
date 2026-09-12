@@ -1,10 +1,5 @@
 #!/usr/bin/env node
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-} from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -84,7 +79,10 @@ export function runD1StagingMigration(input = {}) {
 
   if (options.mode === 'remote') {
     for (const step of plan.commands) {
-      const result = requireSuccessfulCommandResult(step.command, options.commandRunner(step.command));
+      const result = requireSuccessfulCommandResult(
+        step.command,
+        options.commandRunner(step.command),
+      );
       executed.push({
         target: step.target,
         action: step.action,
@@ -103,7 +101,12 @@ export function runD1StagingMigration(input = {}) {
 function main() {
   try {
     const result = runD1StagingMigration(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging migration manifest', 'Dry run commands:', d1StagingCommandLines(result.manifest.commands));
+    printStagingManifestResult(
+      result,
+      'D1 staging migration manifest',
+      'Dry run commands:',
+      d1StagingCommandLines(result.manifest.commands),
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
@@ -123,7 +126,9 @@ function normalizeOptions(input) {
 function inspectMigrationTarget(target) {
   const migrationsPath = path.join(packageRoot, target.migrationsDir);
   if (!existsSync(migrationsPath)) {
-    throw new Error(`${target.logicalName} migrations directory does not exist: ${target.migrationsDir}`);
+    throw new Error(
+      `${target.logicalName} migrations directory does not exist: ${target.migrationsDir}`,
+    );
   }
   const files = listMigrationFiles(migrationsPath);
   if (files.length === 0) {

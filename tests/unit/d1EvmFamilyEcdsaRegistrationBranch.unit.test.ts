@@ -10,7 +10,6 @@ import type {
   RouterAbEcdsaStrictRegistrationPort,
   RouterAbEcdsaStrictRegistrationTopology,
 } from '../../packages/wallet-server/src/router/domains/ecdsa/routerAbEcdsaStrictRegistration';
-import { routerAbEcdsaStrictRegistrationRequestBindingJson } from '../../packages/wallet-server/src/router/domains/ecdsa/routerAbEcdsaStrictRegistration';
 import type {
   RouterAbEcdsaRegistrationRequestFactsV1,
   RouterAbEcdsaRegistrationRequestV1,

@@ -23,7 +23,6 @@ import type { EmailOtpWalletEnrollmentRecord } from '../../packages/wallet-serve
 import type { D1DatabaseLike } from '../../packages/wallet-server/src/storage/tenantRoute';
 import {
   parseDeviceId,
-  parseMpcWalletSigningQuotaId,
   parsePrincipalId,
   parseTenantId,
   parseWalletSessionMintId,

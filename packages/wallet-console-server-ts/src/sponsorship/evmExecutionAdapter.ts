@@ -1,7 +1,5 @@
 import type { SponsoredEvmExecutionAdapterResolver } from './evmExecutorTypes';
-import type {
-  SponsoredEvmCall,
-} from './evm';
+import type { SponsoredEvmCall } from './evm';
 import type {
   SponsoredEvmChainExecutorConfig,
   SponsoredEvmExecutionAdapter,

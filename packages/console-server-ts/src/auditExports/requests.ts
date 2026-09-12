@@ -98,7 +98,9 @@ function parseLimit(raw: unknown): number {
   return Math.min(Math.floor(parsed), MAX_LIMIT);
 }
 
-export function parseListConsoleAuditExportsRequest(query: unknown): ListConsoleAuditExportsRequest {
+export function parseListConsoleAuditExportsRequest(
+  query: unknown,
+): ListConsoleAuditExportsRequest {
   const obj = requireQueryObject(query, createError);
   const requestedLimit = readOptionalPositiveInteger(obj, 'limit', createError);
   return {
@@ -112,7 +114,9 @@ export function parseListConsoleAuditExportsRequest(query: unknown): ListConsole
   };
 }
 
-export function parseCreateConsoleAuditExportRequest(body: unknown): CreateConsoleAuditExportRequest {
+export function parseCreateConsoleAuditExportRequest(
+  body: unknown,
+): CreateConsoleAuditExportRequest {
   const obj = requireObject(body, createError);
   const from = parseOptionalIsoDate(readOptionalString(obj, 'from'), 'from');
   const to = parseOptionalIsoDate(readOptionalString(obj, 'to'), 'to');
@@ -125,7 +129,9 @@ export function parseCreateConsoleAuditExportRequest(body: unknown): CreateConso
     ...(parseOptionalDomain(readOptionalString(obj, 'domain'), 'body')
       ? { domain: parseOptionalDomain(readOptionalString(obj, 'domain'), 'body') }
       : {}),
-    ...(readOptionalString(obj, 'projectId') ? { projectId: readOptionalString(obj, 'projectId') } : {}),
+    ...(readOptionalString(obj, 'projectId')
+      ? { projectId: readOptionalString(obj, 'projectId') }
+      : {}),
     ...(readOptionalString(obj, 'environmentId')
       ? { environmentId: readOptionalString(obj, 'environmentId') }
       : {}),

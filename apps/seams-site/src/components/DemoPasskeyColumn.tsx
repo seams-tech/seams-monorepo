@@ -6,6 +6,8 @@ import { GlassBorder } from './GlassBorder';
 import { DemoTxCardSkeleton } from './DemoTxCardSkeleton';
 import { Carousel } from './Carousel/Carousel';
 import { HostedPasskeyLoginMenu } from '@/flows/demo/HostedPasskeyLoginMenu';
+import { ProfileMenuControlProvider } from '@/context/ProfileMenuControl';
+import { useDemoWalletSessionLifecycle } from '@/flows/demo/hooks/useDemoWalletSessionLifecycle';
 
 // Post-login flows stay deferred until the user unlocks the wallet.
 const DemoPage = React.lazy(() =>
@@ -14,8 +16,6 @@ const DemoPage = React.lazy(() =>
 const SyncAccount = React.lazy(() =>
   import('@/flows/demo/SyncAccount').then((m) => ({ default: m.SyncAccount })),
 );
-import { ProfileMenuControlProvider } from '@/context/ProfileMenuControl';
-import { useDemoWalletSessionLifecycle } from '@/flows/demo/hooks/useDemoWalletSessionLifecycle';
 
 type DemoToastThemeVar = (typeof DEMO_TOAST_THEME_VARS)[number];
 type DemoThemeTokens = ReturnType<typeof useTheme>['tokens'];

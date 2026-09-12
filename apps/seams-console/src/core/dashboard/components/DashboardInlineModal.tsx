@@ -41,7 +41,7 @@ export function DashboardInlineModal({
   React.useEffect(() => {
     if (!isOpen || typeof document === 'undefined') return;
     const host =
-      scrollHost || ((document.querySelector('.dashboard-main') as HTMLElement | null) || null);
+      scrollHost || (document.querySelector('.dashboard-main') as HTMLElement | null) || null;
     const overlayHost =
       portalHost?.classList.contains('dashboard-overlay-layer') === true ? portalHost : null;
 

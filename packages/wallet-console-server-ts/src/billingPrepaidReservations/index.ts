@@ -31,4 +31,7 @@ export {
   getConsoleBillingPrepaidReservationD1Runtime,
 } from './d1';
 
-export { ConsoleBillingPrepaidReservationError, isConsoleBillingPrepaidReservationError } from './errors';
+export {
+  ConsoleBillingPrepaidReservationError,
+  isConsoleBillingPrepaidReservationError,
+} from './errors';

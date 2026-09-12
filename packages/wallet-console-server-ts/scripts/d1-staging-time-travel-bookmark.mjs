@@ -88,22 +88,31 @@ export function runD1StagingTimeTravelBookmark(input = {}) {
 function main() {
   try {
     const result = runD1StagingTimeTravelBookmark(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging Time Travel bookmark manifest', 'Dry run commands:', result.manifest.commands);
+    printStagingManifestResult(
+      result,
+      'D1 staging Time Travel bookmark manifest',
+      'Dry run commands:',
+      result.manifest.commands,
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    ...d1StagingConfigManifestArgDefaults,
-    purpose: '',
-    timestampIso: '',
-  }, {
-    ...d1StagingConfigManifestFlagFields,
-    '--purpose': 'purpose',
-    '--timestamp': 'timestampIso',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      ...d1StagingConfigManifestArgDefaults,
+      purpose: '',
+      timestampIso: '',
+    },
+    {
+      ...d1StagingConfigManifestFlagFields,
+      '--purpose': 'purpose',
+      '--timestamp': 'timestampIso',
+    },
+  );
 }
 
 function normalizeOptions(input) {
@@ -111,7 +120,8 @@ function normalizeOptions(input) {
     modes: bookmarkModes,
     modeLabel: 'Time Travel bookmark',
   });
-  const timestampIso = normalizeOptionalIso(input.timestampIso, '--timestamp') || base.generatedAtIso;
+  const timestampIso =
+    normalizeOptionalIso(input.timestampIso, '--timestamp') || base.generatedAtIso;
   return {
     ...base,
     purpose: normalizePurpose(input.purpose),

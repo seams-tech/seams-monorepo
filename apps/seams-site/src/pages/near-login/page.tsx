@@ -131,9 +131,7 @@ function compareNearWalletOptions(a: NearWalletOption, b: NearWalletOption): num
 }
 
 function readWalletOptions(connector: NearConnector): readonly NearWalletOption[] {
-  return connector.availableWallets
-    .map(normalizeNearWalletOption)
-    .sort(compareNearWalletOptions);
+  return connector.availableWallets.map(normalizeNearWalletOption).sort(compareNearWalletOptions);
 }
 
 function walletsForState(state: NearLoginState): readonly NearWalletOption[] {
@@ -190,7 +188,9 @@ function requireAccount(accounts: readonly Account[]): Account {
   return account;
 }
 
-function requireSignedAccount(accounts: readonly AccountWithSignedMessage[]): AccountWithSignedMessage {
+function requireSignedAccount(
+  accounts: readonly AccountWithSignedMessage[],
+): AccountWithSignedMessage {
   const account = accounts[0];
   if (!account?.accountId || !account.signedMessage) {
     throw new Error('Wallet did not return a signed NEAR account');
@@ -313,7 +313,12 @@ const WalletTile: React.FC<WalletTileProps> = ({ wallet, disabled, onSelect }) =
   }, [disabled, onSelect, wallet]);
 
   return (
-    <button className="near-login-wallet-tile" type="button" disabled={disabled} onClick={handleClick}>
+    <button
+      className="near-login-wallet-tile"
+      type="button"
+      disabled={disabled}
+      onClick={handleClick}
+    >
       <span className="near-login-wallet-tile__icon" aria-hidden>
         {wallet.iconUrl ? <img src={wallet.iconUrl} alt="" /> : <Wallet size={28} />}
       </span>
@@ -354,7 +359,12 @@ const WalletPicker: React.FC<WalletPickerProps> = ({
       >
         <div className="near-login-modal__header">
           <h2 id="near-login-wallet-title">Choose your NEAR wallet</h2>
-          <button className="near-login-icon-button" type="button" onClick={onClose} aria-label="Close">
+          <button
+            className="near-login-icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={22} aria-hidden />
           </button>
         </div>
@@ -519,7 +529,8 @@ export function NearLoginPage(): React.JSX.Element {
 
   const wallets = walletsForState(state);
   const connectingWalletId = state.tag === 'connecting' ? state.wallet.id : '';
-  const walletCountLabel = wallets.length === 1 ? '1 wallet available' : `${wallets.length} wallets available`;
+  const walletCountLabel =
+    wallets.length === 1 ? '1 wallet available' : `${wallets.length} wallets available`;
   const actionDisabled = state.tag === 'loading-wallets' || state.tag === 'connecting';
 
   return (
@@ -559,7 +570,9 @@ export function NearLoginPage(): React.JSX.Element {
           </button>
           <div className="near-login-method-note">
             <ShieldCheck size={18} aria-hidden />
-            <span>{state.tag === 'loading-wallets' ? 'Loading wallet manifest' : walletCountLabel}</span>
+            <span>
+              {state.tag === 'loading-wallets' ? 'Loading wallet manifest' : walletCountLabel}
+            </span>
           </div>
         </div>
 

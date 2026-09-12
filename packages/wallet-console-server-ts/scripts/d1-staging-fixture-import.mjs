@@ -1,10 +1,5 @@
 #!/usr/bin/env node
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-} from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -119,22 +114,31 @@ export function runD1StagingFixtureImport(input = {}) {
 function main() {
   try {
     const result = runD1StagingFixtureImport(parseArgs(process.argv.slice(2)));
-    printStagingManifestResult(result, 'D1 staging fixture import manifest', 'Dry run commands:', result.manifest.commands);
+    printStagingManifestResult(
+      result,
+      'D1 staging fixture import manifest',
+      'Dry run commands:',
+      result.manifest.commands,
+    );
   } catch (error) {
     printD1StagingCliError(error);
   }
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    ...d1StagingConfigManifestArgDefaults,
-    consoleFixturePath: '',
-    signerFixturePath: '',
-  }, {
-    ...d1StagingConfigManifestFlagFields,
-    '--console-fixture': 'consoleFixturePath',
-    '--signer-fixture': 'signerFixturePath',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      ...d1StagingConfigManifestArgDefaults,
+      consoleFixturePath: '',
+      signerFixturePath: '',
+    },
+    {
+      ...d1StagingConfigManifestFlagFields,
+      '--console-fixture': 'consoleFixturePath',
+      '--signer-fixture': 'signerFixturePath',
+    },
+  );
 }
 
 function normalizeOptions(input) {
@@ -151,7 +155,9 @@ function normalizeOptions(input) {
 function inspectFixture(input) {
   const filePath = input.fixturePath;
   if (!existsSync(filePath)) {
-    throw new Error(`${input.target.logicalName} fixture does not exist: ${relativeToRepo(filePath)}`);
+    throw new Error(
+      `${input.target.logicalName} fixture does not exist: ${relativeToRepo(filePath)}`,
+    );
   }
   const source = readFileSync(filePath, 'utf8');
   const touchedTables = validateFixtureSql({
@@ -210,7 +216,9 @@ function checkTouchedTables(input) {
   }
   for (const tableName of input.tableNames) {
     if (input.allowedTableNames.includes(tableName)) continue;
-    input.errors.push(`${input.label} touches ${tableName}; expected ${input.tableFamily} D1 tables only`);
+    input.errors.push(
+      `${input.label} touches ${tableName}; expected ${input.tableFamily} D1 tables only`,
+    );
   }
 }
 
@@ -226,7 +234,8 @@ function readD1MigrationTableNames(relativeDir) {
 }
 
 function collectMigrationCreatedTables(source, tableNames) {
-  const pattern = /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?/gi;
+  const pattern =
+    /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?([A-Za-z_][A-Za-z0-9_]*)["'`]?/gi;
   let match = pattern.exec(source);
   while (match) {
     const tableName = normalizeString(match[1]);

@@ -3,7 +3,6 @@ import { base64UrlDecode, base64UrlEncode } from '@shared/utils/base64';
 import type { OperationDigestSet } from '@shared/authorization/operationFingerprint';
 import { toWalletId } from '@/core/signingEngine/interfaces/ecdsaChainTarget';
 import {
-  SigningOperationIntent,
   SigningSessionIds,
 } from '@/core/signingEngine/session/operationState/types';
 import type { SigningAuthPlan } from '@/core/signingEngine/stepUpConfirmation/types';

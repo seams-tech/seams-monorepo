@@ -65,7 +65,6 @@ function recordingRunner(steps: Step[]) {
       default:
         return {};
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any;
 }
 
@@ -159,7 +158,6 @@ test('the continuity cache is returned separately, not on the payload', async ()
         return { ceremonyId: String(payload.ceremonyId), keySet: 'near_ed25519_v1' };
       }
       return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   });
 
@@ -299,7 +297,6 @@ function rejoinArgs(steps: Step[], overrides: Record<string, unknown> = {}) {
         return { ceremonyId: String(payload.ceremonyId), keySet: 'near_ed25519_v1' };
       }
       return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
     custodyJson: JSON.stringify({ envelopeBinding: {}, nonceB64u: 'AQIDBAUGBwgJCgsM' }),
     registeredPublicKeyB64u: 'cHVibGlj',
@@ -371,7 +368,6 @@ test('a cold unlock that somehow established custody is refused', async () => {
           return { ceremonyId: String(payload.ceremonyId), keySet: 'near_ed25519_v1' };
         }
         return {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
     }),
   ).rejects.toThrow(/must not establish custody/);

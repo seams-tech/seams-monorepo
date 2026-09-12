@@ -7,6 +7,8 @@ export interface ConsoleObservabilityModuleStatus {
 }
 
 export type ConsoleObservabilityLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+// Declaration-merging extension point for product-owned observability sources.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConsoleObservabilitySourceExtensions {}
 
 export type ConsoleObservabilitySource =

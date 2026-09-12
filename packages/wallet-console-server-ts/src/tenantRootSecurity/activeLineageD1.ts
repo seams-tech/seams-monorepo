@@ -1,5 +1,8 @@
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import type { TenantRootIdentityV1, TenantRootRestoreSessionV1 } from '@seams-internal/shared-ts/tenant-root';
+import type {
+  TenantRootIdentityV1,
+  TenantRootRestoreSessionV1,
+} from '@seams-internal/shared-ts/tenant-root';
 import { createD1TenantRootCreationGrantServiceV1 } from '../tenantRootCreation/d1';
 import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
 import { findD1RestoredTenantRootActiveLineageV1 } from './restoreD1';

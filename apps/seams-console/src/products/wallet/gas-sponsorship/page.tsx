@@ -38,10 +38,6 @@ import { useSessionDraft } from '@core/dashboard/drafts/useSessionDraft';
 import type { DashboardDraftIdentity } from '@core/dashboard/drafts/sessionDraftStore';
 import { useDashboardSelectedContext } from '@core/dashboard/selectedContext';
 import {
-  getDashboardEnvironmentLabel,
-  getDashboardProjectLabel,
-} from '@core/dashboard/utils/scopeLabels';
-import {
   BillingMetricsGrid,
   type BillingMetric,
 } from '@core/dashboard/routes/billing/billingShared';
@@ -59,15 +55,13 @@ import {
   type DashboardGasSponsorshipAllowedCall,
   type DashboardGasSponsorshipAllowedDelegateAction,
   type DashboardGasSponsorshipEvmPolicy,
-  type DashboardGasSponsorshipNearPolicy,
   type DashboardGasSponsorshipPolicy,
 } from './consoleGasSponsorshipApi';
 
 const SCOPE_TYPES = ['ORG', 'PROJECT', 'ENVIRONMENT', 'POLICY', 'WALLET_SEGMENT'] as const;
 type ScopeType = (typeof SCOPE_TYPES)[number];
 
-const GAS_NETWORK_CLASSES = ['ANY', 'TESTNET', 'MAINNET'] as const;
-type GasNetworkClass = (typeof GAS_NETWORK_CLASSES)[number];
+type GasNetworkClass = 'ANY' | 'TESTNET' | 'MAINNET';
 type GasNetworkToggleClass = Exclude<GasNetworkClass, 'ANY'> & GasSponsorshipTargetNetworkClass;
 const GAS_SPEND_CAP_MODES = ['NONE', 'CHAIN_TOTAL', 'WALLET_CHAIN_TOTAL'] as const;
 type GasSpendCapMode = (typeof GAS_SPEND_CAP_MODES)[number];
@@ -984,56 +978,6 @@ function buildGasSponsorshipRequest(
   };
 }
 
-function describeScopeTarget(
-  scopeTypeRaw: string,
-  ids: {
-    projectId?: string | null;
-    environmentId?: string | null;
-    scopePolicyId?: string | null;
-    scopePolicyName?: string | null;
-    walletSegmentId?: string | null;
-    projectName?: string | null;
-    environmentName?: string | null;
-  },
-): string {
-  const scopeType = String(scopeTypeRaw || 'ENVIRONMENT').toUpperCase();
-  if (scopeType === 'ORG') return 'Organization';
-  if (scopeType === 'PROJECT') {
-    return getDashboardProjectLabel({
-      projectId: ids.projectId,
-      projectName: ids.projectName,
-    });
-  }
-  if (scopeType === 'POLICY') {
-    return `Policy ${ids.scopePolicyName || ids.scopePolicyId || '-'}`;
-  }
-  if (scopeType === 'WALLET_SEGMENT') return `Wallet segment ${ids.walletSegmentId || '-'}`;
-  return getDashboardEnvironmentLabel({
-    environmentId: ids.environmentId,
-    environmentName: ids.environmentName,
-  });
-}
-
-function describeScope(
-  policy: DashboardGasSponsorshipPolicy,
-  labels: {
-    projectNamesById: Readonly<Record<string, string>>;
-    environmentNamesById: Readonly<Record<string, string>>;
-  },
-): string {
-  return describeScopeTarget(policy.scopeType, {
-    projectId: policy.projectId,
-    environmentId: policy.environmentId,
-    scopePolicyId: policy.scopePolicyId,
-    scopePolicyName: policy.scopePolicyName,
-    walletSegmentId: policy.walletSegmentId,
-    projectName: policy.projectId ? labels.projectNamesById[policy.projectId] || '' : '',
-    environmentName: policy.environmentId
-      ? labels.environmentNamesById[policy.environmentId] || ''
-      : '',
-  });
-}
-
 function describeCoverageProjectLabel(input: {
   projectName?: string;
   projectId?: string | null;
@@ -1186,10 +1130,8 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const [selectedProjectName, setSelectedProjectName] = React.useState<string>('');
   const [selectedEnvironmentKey, setSelectedEnvironmentKey] = React.useState<string>('');
   const [selectedEnvironmentName, setSelectedEnvironmentName] = React.useState<string>('');
-  const [projectNamesById, setProjectNamesById] = React.useState<Record<string, string>>({});
-  const [environmentNamesById, setEnvironmentNamesById] = React.useState<Record<string, string>>(
-    {},
-  );
+  const [, setProjectNamesById] = React.useState<Record<string, string>>({});
+  const [, setEnvironmentNamesById] = React.useState<Record<string, string>>({});
   const [modalInitialForm, setModalInitialForm] = React.useState<GasSponsorshipFormState>(() =>
     createInitialFormState(selectedProjectId, selectedEnvironmentId),
   );

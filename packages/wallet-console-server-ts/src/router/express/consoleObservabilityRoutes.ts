@@ -26,10 +26,7 @@ export interface ExpressConsoleObservabilityRouteDeps<
     ctx: TContext,
     claims: ConsoleAuthClaims,
   ) => boolean;
-  requireObservabilityService: (
-    res: Response,
-    ctx: TContext,
-  ) => ConsoleObservabilityService | null;
+  requireObservabilityService: (res: Response, ctx: TContext) => ConsoleObservabilityService | null;
   toAuditContext: (
     claims: ConsoleAuthClaims,
   ) => Parameters<ConsoleObservabilityService['getSummary']>[0];

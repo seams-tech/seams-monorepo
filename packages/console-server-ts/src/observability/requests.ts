@@ -36,7 +36,11 @@ function parseOptionalIsoTimestamp(raw: unknown, field: string): string | undefi
   if (!value) return undefined;
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) {
-    throw createError('invalid_query', 400, `Query parameter ${field} must be a valid ISO timestamp`);
+    throw createError(
+      'invalid_query',
+      400,
+      `Query parameter ${field} must be a valid ISO timestamp`,
+    );
   }
   return new Date(parsed).toISOString();
 }
@@ -79,11 +83,7 @@ function ensureValidWindow(from?: string, to?: string): void {
     );
   }
   if (toMs - fromMs > MAX_QUERY_WINDOW_MS) {
-    throw createError(
-      'invalid_query',
-      400,
-      'Query window must be 7 days or less',
-    );
+    throw createError('invalid_query', 400, 'Query window must be 7 days or less');
   }
 }
 

@@ -209,7 +209,6 @@ function nullableIso(value: unknown): string | null {
   return parsed > 0 ? toIso(parsed) : null;
 }
 
-
 function normalizeOptionalString(value: unknown): string | null {
   const normalized = String(value || '').trim();
   return normalized || null;
@@ -218,7 +217,6 @@ function normalizeOptionalString(value: unknown): string | null {
 function makeId(prefix: string, now: Date): string {
   return `${prefix}_${now.getTime().toString(36)}_${secureRandomBase36(8, 'console IDs')}`;
 }
-
 
 function isD1ConstraintError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error || '');
@@ -341,10 +339,7 @@ async function policyIdExists(state: D1ConsolePolicyState, policyId: string): Pr
   return Boolean(row);
 }
 
-async function generatePolicyId(
-  state: D1ConsolePolicyState,
-  now: Date,
-): Promise<string> {
+async function generatePolicyId(state: D1ConsolePolicyState, now: Date): Promise<string> {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const candidate = makeId('policy', now);
     if (!(await policyIdExists(state, candidate))) return candidate;
@@ -699,13 +694,7 @@ async function publishPolicyInD1(input: {
             AND org_id = ?
             AND id = ?`,
       )
-      .bind(
-        publishedAtMs,
-        publishedAtMs,
-        input.state.namespace,
-        input.ctx.orgId,
-        input.policy.id,
-      ),
+      .bind(publishedAtMs, publishedAtMs, input.state.namespace, input.ctx.orgId, input.policy.id),
     input.state.database
       .prepare(
         `INSERT INTO policy_versions

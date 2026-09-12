@@ -153,7 +153,12 @@ export async function handleCliEnrollment(
           )
             return json({ ok: false, code: 'confirmation_failed' }, 409);
         }
-        return json({ ok: true, state: 'completed', identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity), recipient: JSON.parse(record.result) });
+        return json({
+          ok: true,
+          state: 'completed',
+          identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity),
+          recipient: JSON.parse(record.result),
+        });
       }
       if (action === '/poll')
         return json({
@@ -184,7 +189,12 @@ export async function handleCliEnrollment(
           }))
         ) {
           await store.complete(record, JSON.stringify(staged), nowMs);
-          return json({ ok: true, state: 'completed', identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity), recipient: staged });
+          return json({
+            ok: true,
+            state: 'completed',
+            identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity),
+            recipient: staged,
+          });
         }
       }
       const result = await confirmRecipientV1(custody, deps.controlPlane, {
@@ -200,7 +210,12 @@ export async function handleCliEnrollment(
       if (result.value.recipientPublicKeyB64u !== record.publicKeyB64u)
         throw new Error('Recipient mismatch');
       await store.complete(record, JSON.stringify(result.value), nowMs);
-      return json({ ok: true, state: 'completed', identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity), recipient: result.value });
+      return json({
+        ok: true,
+        state: 'completed',
+        identityDigestB64u: await tenantRootIdentityDigestB64uV1(approval.identity),
+        recipient: result.value,
+      });
     }
     if (action !== '/request' && action !== '/approve' && action !== '/deny')
       return json({ ok: false, code: 'method_not_allowed' }, 405);
@@ -216,7 +231,8 @@ export async function handleCliEnrollment(
       !(await deps.isOwner(actor.orgId, actor.actorUserId))
     )
       return json({ ok: false, code: 'environment_or_owner_mismatch' }, 403);
-    if (action === '/request') return json({ ok: true, organizationId:actor.orgId, ...(await publicRequest(record)) });
+    if (action === '/request')
+      return json({ ok: true, organizationId: actor.orgId, ...(await publicRequest(record)) });
     if (record.kind !== 'pending') return json({ ok: true, ...(await publicRequest(record)) });
     if (actor.stepUp === null) return json({ ok: false, code: 'step_up_required' }, 403);
     const custody = await deps.custody(actor.identity);

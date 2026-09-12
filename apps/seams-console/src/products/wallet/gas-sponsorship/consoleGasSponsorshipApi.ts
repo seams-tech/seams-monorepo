@@ -143,13 +143,7 @@ function decodeAllowedDelegateActions(
       const row = entry as Record<string, unknown>;
       const receiverId = normalizeString(row.receiverId);
       const methods = Array.isArray(row.methods)
-        ? Array.from(
-            new Set(
-              row.methods
-                .map((value) => normalizeString(value))
-                .filter(Boolean),
-            ),
-          )
+        ? Array.from(new Set(row.methods.map((value) => normalizeString(value)).filter(Boolean)))
         : [];
       const maxDepositYocto = normalizeString(row.maxDepositYocto) || '0';
       const allowTransfers = row.allowTransfers === true;

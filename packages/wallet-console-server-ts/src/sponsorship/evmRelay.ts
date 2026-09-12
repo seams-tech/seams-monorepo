@@ -60,12 +60,6 @@ function normalizeTxHashOrThrow(value: unknown): `0x${string}` {
   return normalized as `0x${string}`;
 }
 
-function normalizeTxHashOrNull(value: unknown): `0x${string}` | null {
-  const normalized = String(value || '').trim();
-  if (!/^0x[0-9a-fA-F]{64}$/.test(normalized)) return null;
-  return normalized as `0x${string}`;
-}
-
 function bytesToHex(bytes: Uint8Array): `0x${string}` {
   return `0x${Array.from(bytes)
     .map((entry) => entry.toString(16).padStart(2, '0'))

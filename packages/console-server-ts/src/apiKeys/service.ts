@@ -78,7 +78,9 @@ function toIso(date: Date): string {
   return date.toISOString();
 }
 
-function cloneJsonObject(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function cloneJsonObject(
+  input: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!input) return undefined;
   return { ...input };
 }
@@ -100,7 +102,16 @@ function cloneApiKey(apiKey: StoredApiKey): ConsoleApiKey {
     revokedReason: apiKey.revokedReason,
     endpointUsageCounts: { ...apiKey.endpointUsageCounts },
     anomalyFlags: [...apiKey.anomalyFlags],
-  } satisfies Omit<ConsoleApiKey, 'scopes' | 'ipAllowlist' | 'allowedOrigins' | 'rateLimitBucket' | 'quotaBucket' | 'riskPolicy' | 'paymentPolicy'>;
+  } satisfies Omit<
+    ConsoleApiKey,
+    | 'scopes'
+    | 'ipAllowlist'
+    | 'allowedOrigins'
+    | 'rateLimitBucket'
+    | 'quotaBucket'
+    | 'riskPolicy'
+    | 'paymentPolicy'
+  >;
   if (apiKey.kind === 'publishable_key') {
     return {
       ...common,
@@ -159,10 +170,16 @@ function applyApiKeyUpdate(
     return {
       ...apiKey,
       ...(request.name !== undefined ? { name: request.name } : {}),
-      ...(request.allowedOrigins !== undefined ? { allowedOrigins: [...request.allowedOrigins] } : {}),
-      ...(request.rateLimitBucket !== undefined ? { rateLimitBucket: request.rateLimitBucket } : {}),
+      ...(request.allowedOrigins !== undefined
+        ? { allowedOrigins: [...request.allowedOrigins] }
+        : {}),
+      ...(request.rateLimitBucket !== undefined
+        ? { rateLimitBucket: request.rateLimitBucket }
+        : {}),
       ...(request.quotaBucket !== undefined ? { quotaBucket: request.quotaBucket } : {}),
-      ...(request.riskPolicy !== undefined ? { riskPolicy: cloneJsonObject(request.riskPolicy) || {} } : {}),
+      ...(request.riskPolicy !== undefined
+        ? { riskPolicy: cloneJsonObject(request.riskPolicy) || {} }
+        : {}),
       ...(request.paymentPolicy !== undefined
         ? { paymentPolicy: cloneJsonObject(request.paymentPolicy) || {} }
         : {}),
@@ -185,7 +202,9 @@ function applyApiKeyUpdate(
   return {
     ...apiKey,
     ...(request.name !== undefined ? { name: request.name } : {}),
-    ...(request.scopes !== undefined ? { scopes: normalizeApiCredentialScopes(request.scopes, scopeValidation) } : {}),
+    ...(request.scopes !== undefined
+      ? { scopes: normalizeApiCredentialScopes(request.scopes, scopeValidation) }
+      : {}),
     ...(request.ipAllowlist !== undefined ? { ipAllowlist: [...request.ipAllowlist] } : {}),
     ...(request.expiresAt !== undefined ? { expiresAt: request.expiresAt } : {}),
   };
@@ -226,10 +245,18 @@ export function createInMemoryConsoleApiKeyService(
   function hasRequiredScopes(scopes: string[], requiredScopes: string[]): boolean {
     if (!requiredScopes.length) return true;
     const available = new Set(
-      scopes.map((scope) => String(scope || '').trim().toLowerCase()).filter(Boolean),
+      scopes
+        .map((scope) =>
+          String(scope || '')
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
     );
     for (const scope of requiredScopes) {
-      const normalized = String(scope || '').trim().toLowerCase();
+      const normalized = String(scope || '')
+        .trim()
+        .toLowerCase();
       if (!normalized) continue;
       if (!available.has(normalized)) return false;
     }
@@ -268,7 +295,7 @@ export function createInMemoryConsoleApiKeyService(
     async createApiKey(ctx, request): Promise<CreateConsoleApiKeyResult> {
       const createdAt = now();
       const iso = toIso(createdAt);
-      const id = makeApiKeyId(createdAt);
+      const id = makeApiKeyId();
       const secret = makeApiKeySecret({ kind: request.kind });
       const secretHash = await hashApiKeySecret(secret);
       const base: Omit<
@@ -345,10 +372,7 @@ export function createInMemoryConsoleApiKeyService(
       return { revoked: true, apiKey: cloneApiKey(apiKey) };
     },
 
-    async deleteApiKey(
-      ctx,
-      apiKeyId,
-    ): Promise<{ deleted: boolean; apiKey: ConsoleApiKey | null }> {
+    async deleteApiKey(ctx, apiKeyId): Promise<{ deleted: boolean; apiKey: ConsoleApiKey | null }> {
       const store = requireOrgStore(ctx.orgId);
       const apiKey = store.get(apiKeyId);
       if (!apiKey) {
@@ -503,7 +527,9 @@ export function createInMemoryConsoleApiKeyService(
         };
       }
 
-      if (!isIpAllowlistMatch({ allowlist: apiKey.ipAllowlist || [], sourceIp: request.sourceIp })) {
+      if (
+        !isIpAllowlistMatch({ allowlist: apiKey.ipAllowlist || [], sourceIp: request.sourceIp })
+      ) {
         markAnomaly(apiKey, 'auth.ip_blocked');
         return {
           ok: false,
@@ -529,9 +555,7 @@ export function createInMemoryConsoleApiKeyService(
       };
     },
 
-    async authenticatePublishableKey(
-      request,
-    ): Promise<AuthenticateConsolePublishableKeyResult> {
+    async authenticatePublishableKey(request): Promise<AuthenticateConsolePublishableKeyResult> {
       const secret = String(request.secret || '').trim();
       if (!secret) {
         return {

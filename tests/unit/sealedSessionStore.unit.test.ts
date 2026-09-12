@@ -3,7 +3,6 @@ import { setupBasicPasskeyTest } from '../setup';
 import { createThresholdEcdsaBootstrapFixture } from './helpers/ecdsaBootstrap.fixtures';
 import {
   buildPasskeyEcdsaSealedRuntimeRecordFixture,
-  buildPasskeyEd25519SealedSessionRecordFixture,
   seedEmailOtpEcdsaSealedRestorePayload,
 } from './helpers/sealedSigningSession.fixtures';
 import {

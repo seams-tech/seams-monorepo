@@ -20,7 +20,6 @@ import type {
   UpdateConsoleWebhookEndpointRequest,
 } from './types';
 
-
 const WEBHOOK_ENDPOINT_STATUSES: Set<ConsoleWebhookEndpointStatus> = new Set([
   'ACTIVE',
   'DISABLED',
@@ -102,7 +101,10 @@ export function parseCreateConsoleWebhookEndpointRequest(
 ): CreateConsoleWebhookEndpointRequest {
   const obj = requireObject(body, createParseError);
   const url = normalizeWebhookUrlOrThrow(readRequiredString(obj, 'url', createParseError), 'url');
-  const eventCategories = parseWebhookEventCategoriesOrThrow(obj.eventCategories, categoryValidation);
+  const eventCategories = parseWebhookEventCategoriesOrThrow(
+    obj.eventCategories,
+    categoryValidation,
+  );
   const statusRaw = obj.status;
   const status =
     statusRaw === undefined ? undefined : parseWebhookStatusOrThrow(statusRaw, 'status');
@@ -127,7 +129,10 @@ export function parseUpdateConsoleWebhookEndpointRequest(
     out.url = normalizeWebhookUrlOrThrow(urlRaw, 'url');
   }
   if (eventCategoriesRaw !== undefined) {
-    out.eventCategories = parseWebhookEventCategoriesOrThrow(eventCategoriesRaw, categoryValidation);
+    out.eventCategories = parseWebhookEventCategoriesOrThrow(
+      eventCategoriesRaw,
+      categoryValidation,
+    );
   }
   if (statusRaw !== undefined) {
     out.status = parseWebhookStatusOrThrow(statusRaw, 'status');

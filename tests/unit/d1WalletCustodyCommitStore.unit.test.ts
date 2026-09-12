@@ -32,14 +32,12 @@ import { applySignerMigrations } from './helpers/cloudflareD1RouterApiAuthServic
 import {
   CREDENTIAL_ID_B64U,
   ALT_DIGEST_B64U,
-  DIGEST_B64U,
   ENVELOPE_ID,
   OTHER_WALLET_ID,
   RP_ID,
   WALLET_ID,
   passkeyCustodyEnvelope,
   rawEmailOtpFactor,
-  rawWalletCustodySeedBinding,
   rawWalletRecoveryEnvelopeSet,
   rawWalletRecoveryCodeLocators,
 } from './helpers/passkeyCustodyEnvelope.fixtures';

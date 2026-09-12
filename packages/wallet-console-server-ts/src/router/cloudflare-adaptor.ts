@@ -61,7 +61,10 @@ export {
   createStaticCloudflareTenantStorageRouteResolver,
   createStaticCloudflareTenantStorageRouteResolverFromBindings,
 } from './cloudflare/tenantStorageRoute';
-export type { ConsoleAuthAdapter, ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+export type {
+  ConsoleAuthAdapter,
+  ConsoleAuthClaims,
+} from '@seams-internal/console-server/router/consoleAuth';
 export { authenticateConsoleRequest } from '@seams-internal/console-server/router/consoleAuth';
 export type {
   RouterApiRuntimeSnapshotPublishedUpdate,

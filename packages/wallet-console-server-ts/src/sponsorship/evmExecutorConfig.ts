@@ -1,8 +1,8 @@
-import {
-  normalizeHex32,
-  parseOptionalPositiveInteger,
-} from './evm';
-import type { SponsoredEvmCallExecutorConfig, SponsoredEvmChainExecutorConfig } from './evmExecutorTypes';
+import { normalizeHex32, parseOptionalPositiveInteger } from './evm';
+import type {
+  SponsoredEvmCallExecutorConfig,
+  SponsoredEvmChainExecutorConfig,
+} from './evmExecutorTypes';
 
 export const DEFAULT_SPONSORED_EVM_RPC_URL = 'https://rpc.moderato.tempo.xyz';
 export const DEFAULT_SPONSORED_EVM_CHAIN_ID = 42_431;
@@ -83,8 +83,7 @@ async function parseSponsoredEvmExecutorRow(input: {
       (chainId === DEFAULT_SPONSORED_EVM_CHAIN_ID ? DEFAULT_SPONSORED_EVM_RPC_URL : ''),
     sponsorAddress,
     sponsorPrivateKeyHex,
-    maxPriorityFeePerGasFloor:
-      maxPriorityFeePerGasFloor ?? DEFAULT_MAX_PRIORITY_FEE_PER_GAS,
+    maxPriorityFeePerGasFloor: maxPriorityFeePerGasFloor ?? DEFAULT_MAX_PRIORITY_FEE_PER_GAS,
     maxFeePerGasFloor: maxFeePerGasFloor ?? DEFAULT_MAX_FEE_PER_GAS,
   };
 }

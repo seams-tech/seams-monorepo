@@ -19,12 +19,7 @@ export function EcosystemLattice(): React.JSX.Element {
     <div className="h2-lattice" role="img" aria-label={label}>
       <div className="h2-lattice__plane">
         {ECOSYSTEM_LOGO_MARKS.map((mark) => (
-          <span
-            key={mark.id}
-            className="h2-latticemark"
-            style={markStyle(mark)}
-            title={mark.label}
-          >
+          <span key={mark.id} className="h2-latticemark" style={markStyle(mark)} title={mark.label}>
             <svg
               viewBox="0 0 24 24"
               aria-hidden

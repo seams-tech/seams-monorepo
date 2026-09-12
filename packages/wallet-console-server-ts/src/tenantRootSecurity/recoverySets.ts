@@ -103,20 +103,21 @@ export function beginRecoverySetGenerationV1(input: {
       }
       return {
         ok: true,
-        value: input.backup.active === null
-          ? {
-              status: 'preparing_initial',
-              governance: input.governance,
-              recipientPair: input.recipientPair,
-              pendingRecoverySetId: input.pendingRecoverySetId,
-            }
-          : {
-              status: 'replacing',
-              governance: input.governance,
-              active: input.backup.active,
-              pendingRecipientPair: input.recipientPair,
-              pendingRecoverySetId: input.pendingRecoverySetId,
-            },
+        value:
+          input.backup.active === null
+            ? {
+                status: 'preparing_initial',
+                governance: input.governance,
+                recipientPair: input.recipientPair,
+                pendingRecoverySetId: input.pendingRecoverySetId,
+              }
+            : {
+                status: 'replacing',
+                governance: input.governance,
+                active: input.backup.active,
+                pendingRecipientPair: input.recipientPair,
+                pendingRecoverySetId: input.pendingRecoverySetId,
+              },
       };
   }
 }
@@ -172,7 +173,10 @@ export function activateRecoverySetV1(input: {
           status: 'cleanup_incomplete',
           governance: input.backup.governance,
           active: input.pending,
-          outstanding: { roles: ['deriver_a', 'deriver_b'], description: 'earlier recovery packages' },
+          outstanding: {
+            roles: ['deriver_a', 'deriver_b'],
+            description: 'earlier recovery packages',
+          },
         },
       };
     }

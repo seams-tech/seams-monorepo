@@ -42,7 +42,12 @@ function normalizeString(value: unknown): string | null {
   return out || null;
 }
 
-function toScopeKey(orgId: string, scope: ConsoleEnterpriseIsolationScope, projectId?: string, environmentId?: string): string {
+function toScopeKey(
+  orgId: string,
+  scope: ConsoleEnterpriseIsolationScope,
+  projectId?: string,
+  environmentId?: string,
+): string {
   const project = normalizeString(projectId) || '-';
   const environment = normalizeString(environmentId) || '-';
   return `${orgId}:${scope}:${project}:${environment}`;
@@ -79,7 +84,10 @@ export function createInMemoryConsoleEnterpriseIsolationService(
   const states = new Map<string, ConsoleEnterpriseIsolationState>();
 
   function resolveScopeFromRequest(
-    request: GetConsoleEnterpriseIsolationRequest | TriggerConsoleEnterpriseIsolationRequest | undefined,
+    request:
+      | GetConsoleEnterpriseIsolationRequest
+      | TriggerConsoleEnterpriseIsolationRequest
+      | undefined,
   ): {
     scope: ConsoleEnterpriseIsolationScope;
     projectId: string | null;
@@ -93,10 +101,18 @@ export function createInMemoryConsoleEnterpriseIsolationService(
 
   function resolveOrCreateState(
     ctx: ConsoleEnterpriseIsolationContext,
-    request: GetConsoleEnterpriseIsolationRequest | TriggerConsoleEnterpriseIsolationRequest | undefined,
+    request:
+      | GetConsoleEnterpriseIsolationRequest
+      | TriggerConsoleEnterpriseIsolationRequest
+      | undefined,
   ): ConsoleEnterpriseIsolationState {
     const scope = resolveScopeFromRequest(request);
-    const key = toScopeKey(ctx.orgId, scope.scope, scope.projectId || undefined, scope.environmentId || undefined);
+    const key = toScopeKey(
+      ctx.orgId,
+      scope.scope,
+      scope.projectId || undefined,
+      scope.environmentId || undefined,
+    );
     let row = states.get(key);
     if (!row) {
       const ts = now();

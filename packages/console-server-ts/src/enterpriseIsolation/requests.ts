@@ -14,9 +14,17 @@ import type {
 } from './types';
 
 const SCOPE_SET = new Set<ConsoleEnterpriseIsolationScope>(['ORG', 'PROJECT', 'ENVIRONMENT']);
-const TRIGGER_SET = new Set<ConsoleEnterpriseIsolationTrigger>(['MANUAL', 'SLA_BREACH', 'COMPLIANCE']);
+const TRIGGER_SET = new Set<ConsoleEnterpriseIsolationTrigger>([
+  'MANUAL',
+  'SLA_BREACH',
+  'COMPLIANCE',
+]);
 
-function createError(code: string, status: number, message: string): ConsoleEnterpriseIsolationError {
+function createError(
+  code: string,
+  status: number,
+  message: string,
+): ConsoleEnterpriseIsolationError {
   return new ConsoleEnterpriseIsolationError(code, status, message);
 }
 
@@ -40,7 +48,11 @@ function parseOptionalTrigger(raw: unknown): ConsoleEnterpriseIsolationTrigger |
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
   const value = String(raw).trim().toUpperCase() as ConsoleEnterpriseIsolationTrigger;
   if (!TRIGGER_SET.has(value)) {
-    throw createError('invalid_body', 400, `Field trigger must be one of: ${Array.from(TRIGGER_SET).join(', ')}`);
+    throw createError(
+      'invalid_body',
+      400,
+      `Field trigger must be one of: ${Array.from(TRIGGER_SET).join(', ')}`,
+    );
   }
   return value;
 }
@@ -93,6 +105,8 @@ export function parseTriggerConsoleEnterpriseIsolationRequest(
     ...(environmentId ? { environmentId } : {}),
     trigger,
     reason: readRequiredString(obj, 'reason', createError),
-    ...(readOptionalString(obj, 'ticketId') ? { ticketId: readOptionalString(obj, 'ticketId') } : {}),
+    ...(readOptionalString(obj, 'ticketId')
+      ? { ticketId: readOptionalString(obj, 'ticketId') }
+      : {}),
   };
 }

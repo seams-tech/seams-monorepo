@@ -32,8 +32,25 @@ export type VoiceIdCloudflareD1Database = {
 
 const enrollmentTable = 'voice_id_enrollments_v4';
 const verificationTable = 'voice_id_verifications_v4';
-const enrollmentColumns = ['schemaVersion', 'recordKind', 'userId', 'enrollmentId', 'lifecycleState', 'createdAt', 'recordJson'] as const;
-const verificationColumns = ['schemaVersion', 'recordKind', 'userId', 'enrollmentId', 'verificationId', 'lifecycleState', 'createdAt', 'recordJson'] as const;
+const enrollmentColumns = [
+  'schemaVersion',
+  'recordKind',
+  'userId',
+  'enrollmentId',
+  'lifecycleState',
+  'createdAt',
+  'recordJson',
+] as const;
+const verificationColumns = [
+  'schemaVersion',
+  'recordKind',
+  'userId',
+  'enrollmentId',
+  'verificationId',
+  'lifecycleState',
+  'createdAt',
+  'recordJson',
+] as const;
 
 export function voiceIdCloudflareD1SchemaStatements(): readonly string[] {
   return [
@@ -67,18 +84,26 @@ export class CloudflareD1VoiceIdEnrollmentStore implements VoiceIdEnrollmentStor
   constructor(private readonly database: VoiceIdCloudflareD1Database) {}
 
   async getByUserId(userId: UserId): Promise<VoiceIdEnrollmentRecord | null> {
-    const row = await this.database.prepare(
-      `SELECT ${enrollmentColumns.join(', ')} FROM ${enrollmentTable}
+    const row = await this.database
+      .prepare(
+        `SELECT ${enrollmentColumns.join(', ')} FROM ${enrollmentTable}
        WHERE userId = ? ORDER BY createdAt DESC LIMIT 1`,
-    ).bind(userId).first<VoiceIdCloudflareEnrollmentRow>();
+      )
+      .bind(userId)
+      .first<VoiceIdCloudflareEnrollmentRow>();
     return row === null ? null : parseCloudflareEnrollmentRow(row);
   }
 
-  async getByEnrollmentId(enrollmentId: VoiceIdEnrollmentId): Promise<VoiceIdEnrollmentRecord | null> {
-    const row = await this.database.prepare(
-      `SELECT ${enrollmentColumns.join(', ')} FROM ${enrollmentTable}
+  async getByEnrollmentId(
+    enrollmentId: VoiceIdEnrollmentId,
+  ): Promise<VoiceIdEnrollmentRecord | null> {
+    const row = await this.database
+      .prepare(
+        `SELECT ${enrollmentColumns.join(', ')} FROM ${enrollmentTable}
        WHERE enrollmentId = ? LIMIT 1`,
-    ).bind(enrollmentId).first<VoiceIdCloudflareEnrollmentRow>();
+      )
+      .bind(enrollmentId)
+      .first<VoiceIdCloudflareEnrollmentRow>();
     return row === null ? null : parseCloudflareEnrollmentRow(row);
   }
 
@@ -86,18 +111,21 @@ export class CloudflareD1VoiceIdEnrollmentStore implements VoiceIdEnrollmentStor
     record: Extract<VoiceIdEnrollmentRecord, { state: 'pending_continuous_recording' }>,
   ): Promise<boolean> {
     const row = serializeEnrollmentRecordForCloudflare(record);
-    const result = await this.database.prepare(
-      `INSERT OR IGNORE INTO ${enrollmentTable} (${enrollmentColumns.join(', ')})
+    const result = await this.database
+      .prepare(
+        `INSERT OR IGNORE INTO ${enrollmentTable} (${enrollmentColumns.join(', ')})
        VALUES (${placeholders(enrollmentColumns.length)})`,
-    ).bind(
-      row.schemaVersion,
-      row.recordKind,
-      row.userId,
-      row.enrollmentId,
-      row.lifecycleState,
-      row.createdAt,
-      row.recordJson,
-    ).run();
+      )
+      .bind(
+        row.schemaVersion,
+        row.recordKind,
+        row.userId,
+        row.enrollmentId,
+        row.lifecycleState,
+        row.createdAt,
+        row.recordJson,
+      )
+      .run();
     return parseMutationChanged(result);
   }
 
@@ -119,9 +147,7 @@ export class CloudflareD1VoiceIdEnrollmentStore implements VoiceIdEnrollmentStor
     return await this.transition(record, 'analyzing_continuous_recording');
   }
 
-  async disable(
-    record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>,
-  ): Promise<boolean> {
+  async disable(record: Extract<VoiceIdEnrollmentRecord, { state: 'disabled' }>): Promise<boolean> {
     return await this.transition(record, 'enrolled');
   }
 
@@ -130,17 +156,14 @@ export class CloudflareD1VoiceIdEnrollmentStore implements VoiceIdEnrollmentStor
     expectedState: 'pending_continuous_recording' | 'analyzing_continuous_recording' | 'enrolled',
   ): Promise<boolean> {
     const row = serializeEnrollmentRecordForCloudflare(record);
-    const result = await this.database.prepare(
-      `UPDATE ${enrollmentTable}
+    const result = await this.database
+      .prepare(
+        `UPDATE ${enrollmentTable}
        SET lifecycleState = ?, recordJson = ?
        WHERE enrollmentId = ? AND userId = ? AND lifecycleState = ?`,
-    ).bind(
-      row.lifecycleState,
-      row.recordJson,
-      row.enrollmentId,
-      row.userId,
-      expectedState,
-    ).run();
+      )
+      .bind(row.lifecycleState, row.recordJson, row.enrollmentId, row.userId, expectedState)
+      .run();
     return parseMutationChanged(result);
   }
 }
@@ -148,31 +171,37 @@ export class CloudflareD1VoiceIdEnrollmentStore implements VoiceIdEnrollmentStor
 export class CloudflareD1VoiceIdVerificationStore implements VoiceIdVerificationStore {
   constructor(private readonly database: VoiceIdCloudflareD1Database) {}
 
-  async getByVerificationId(verificationId: VoiceIdVerificationId): Promise<VoiceIdVerificationRecord | null> {
-    const row = await this.database.prepare(
-      `SELECT ${verificationColumns.join(', ')} FROM ${verificationTable}
+  async getByVerificationId(
+    verificationId: VoiceIdVerificationId,
+  ): Promise<VoiceIdVerificationRecord | null> {
+    const row = await this.database
+      .prepare(
+        `SELECT ${verificationColumns.join(', ')} FROM ${verificationTable}
        WHERE verificationId = ? LIMIT 1`,
-    ).bind(verificationId).first<VoiceIdCloudflareVerificationRow>();
+      )
+      .bind(verificationId)
+      .first<VoiceIdCloudflareVerificationRow>();
     return row === null ? null : parseCloudflareVerificationRow(row);
   }
 
-  async create(
-    record: Extract<VoiceIdVerificationRecord, { state: 'issued' }>,
-  ): Promise<boolean> {
+  async create(record: Extract<VoiceIdVerificationRecord, { state: 'issued' }>): Promise<boolean> {
     const row = serializeVerificationRecordForCloudflare(record);
-    const result = await this.database.prepare(
-      `INSERT OR IGNORE INTO ${verificationTable} (${verificationColumns.join(', ')})
+    const result = await this.database
+      .prepare(
+        `INSERT OR IGNORE INTO ${verificationTable} (${verificationColumns.join(', ')})
        VALUES (${placeholders(verificationColumns.length)})`,
-    ).bind(
-      row.schemaVersion,
-      row.recordKind,
-      row.userId,
-      row.enrollmentId,
-      row.verificationId,
-      row.lifecycleState,
-      row.createdAt,
-      row.recordJson,
-    ).run();
+      )
+      .bind(
+        row.schemaVersion,
+        row.recordKind,
+        row.userId,
+        row.enrollmentId,
+        row.verificationId,
+        row.lifecycleState,
+        row.createdAt,
+        row.recordJson,
+      )
+      .run();
     return parseMutationChanged(result);
   }
 
@@ -189,7 +218,10 @@ export class CloudflareD1VoiceIdVerificationStore implements VoiceIdVerification
   }
 
   async completeAnalysis(
-    record: Extract<VoiceIdVerificationRecord, { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }>,
+    record: Extract<
+      VoiceIdVerificationRecord,
+      { state: 'evidence_observed' | 'rejected' | 'uncertain' | 'analysis_failed' }
+    >,
   ): Promise<boolean> {
     return await this.transition(record, 'analyzing');
   }
@@ -199,18 +231,21 @@ export class CloudflareD1VoiceIdVerificationStore implements VoiceIdVerification
     expectedState: 'issued' | 'analyzing',
   ): Promise<boolean> {
     const row = serializeVerificationRecordForCloudflare(record);
-    const result = await this.database.prepare(
-      `UPDATE ${verificationTable}
+    const result = await this.database
+      .prepare(
+        `UPDATE ${verificationTable}
        SET lifecycleState = ?, recordJson = ?
        WHERE verificationId = ? AND userId = ? AND enrollmentId = ? AND lifecycleState = ?`,
-    ).bind(
-      row.lifecycleState,
-      row.recordJson,
-      row.verificationId,
-      row.userId,
-      row.enrollmentId,
-      expectedState,
-    ).run();
+      )
+      .bind(
+        row.lifecycleState,
+        row.recordJson,
+        row.verificationId,
+        row.userId,
+        row.enrollmentId,
+        expectedState,
+      )
+      .run();
     return parseMutationChanged(result);
   }
 }
@@ -227,10 +262,10 @@ function parseMutationChanged(value: unknown): boolean {
   const result = parseJsonObject(value, 'D1 mutation result');
   const meta = parseJsonObject(result.meta, 'D1 mutation metadata');
   if (
-    typeof meta.changes !== 'number'
-    || !Number.isSafeInteger(meta.changes)
-    || meta.changes < 0
-    || meta.changes > 1
+    typeof meta.changes !== 'number' ||
+    !Number.isSafeInteger(meta.changes) ||
+    meta.changes < 0 ||
+    meta.changes > 1
   ) {
     throw new Error('D1 mutation changes must be zero or one');
   }

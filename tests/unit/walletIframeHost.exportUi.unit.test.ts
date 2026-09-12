@@ -13,7 +13,6 @@ import {
 import {
   buildEvmFamilyEcdsaSignerBinding,
   exactEd25519ExportMaterialIdentity,
-  exactEd25519SigningLaneIdentity,
   exactEcdsaSigningLaneIdentity,
   nearEd25519SignerBindingFromBoundaryFields,
 } from '@/core/signingEngine/session/identity/exactSigningLaneIdentity';

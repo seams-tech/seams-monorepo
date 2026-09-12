@@ -10,9 +10,7 @@ import {
 
 export type WorkerEip1559UnsignedTx = ServerEip1559UnsignedTx;
 
-export async function computeWorkerEip1559TxHash(
-  tx: WorkerEip1559UnsignedTx,
-): Promise<Uint8Array> {
+export async function computeWorkerEip1559TxHash(tx: WorkerEip1559UnsignedTx): Promise<Uint8Array> {
   return await computeEip1559TxHash(tx);
 }
 

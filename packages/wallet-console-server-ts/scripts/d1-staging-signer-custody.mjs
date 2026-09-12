@@ -21,10 +21,7 @@ import {
   writeD1StagingManifest,
 } from './d1-staging-config.mjs';
 
-const defaultManifestRoot = path.join(
-  packageRoot,
-  '.wrangler/d1-staging-signer-custody',
-);
+const defaultManifestRoot = path.join(packageRoot, '.wrangler/d1-staging-signer-custody');
 const signerCustodyModes = Object.freeze(['dry-run', 'remote']);
 const ecdsaExportSharePath = '/router-ab/ecdsa-derivation/export/share';
 const healthChecks = Object.freeze([
@@ -43,19 +40,21 @@ const healthChecks = Object.freeze([
     expectedJson: { ok: true, configured: true },
   },
 ]);
-const responseSecretFieldNames = new Set([
-  'authorization',
-  'jwt',
-  'privateKeyHex',
-  'private_key_hex',
-  'server_export_share_32_b64u',
-  'serverExportShare32B64u',
-  'serverShare32B64u',
-  'server_share_32_b64u',
-  'signing_share_32_b64u',
-  'signingShare32B64u',
-  'token',
-].map(responseSecretFieldKey));
+const responseSecretFieldNames = new Set(
+  [
+    'authorization',
+    'jwt',
+    'privateKeyHex',
+    'private_key_hex',
+    'server_export_share_32_b64u',
+    'serverExportShare32B64u',
+    'serverShare32B64u',
+    'server_share_32_b64u',
+    'signing_share_32_b64u',
+    'signingShare32B64u',
+    'token',
+  ].map(responseSecretFieldKey),
+);
 
 export function buildD1StagingSignerCustodyPlan(input = {}) {
   const options = normalizeOptions(input);
@@ -127,25 +126,29 @@ async function main() {
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    exportShareFixturePath: '',
-    generatedAtIso: '',
-    manifestPath: '',
-    mode: 'dry-run',
-    origin: '',
-    gatewayOrigin: '',
-    timeoutMs: '',
-    walletSessionJwtEnvName: '',
-  }, {
-    '--export-share-fixture': 'exportShareFixturePath',
-    '--generated-at': 'generatedAtIso',
-    '--manifest': 'manifestPath',
-    '--mode': 'mode',
-    '--origin': 'origin',
-    '--gateway-origin': 'gatewayOrigin',
-    '--timeout-ms': 'timeoutMs',
-    '--wallet-session-jwt-env': 'walletSessionJwtEnvName',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      exportShareFixturePath: '',
+      generatedAtIso: '',
+      manifestPath: '',
+      mode: 'dry-run',
+      origin: '',
+      gatewayOrigin: '',
+      timeoutMs: '',
+      walletSessionJwtEnvName: '',
+    },
+    {
+      '--export-share-fixture': 'exportShareFixturePath',
+      '--generated-at': 'generatedAtIso',
+      '--manifest': 'manifestPath',
+      '--mode': 'mode',
+      '--origin': 'origin',
+      '--gateway-origin': 'gatewayOrigin',
+      '--timeout-ms': 'timeoutMs',
+      '--wallet-session-jwt-env': 'walletSessionJwtEnvName',
+    },
+  );
 }
 
 function normalizeOptions(input) {
@@ -282,7 +285,9 @@ function redactResponseBody(input) {
 }
 
 function responseSecretFieldKey(input) {
-  return String(input).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return String(input)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
 }
 
 function normalizeOptionalOrigin(input, mode) {

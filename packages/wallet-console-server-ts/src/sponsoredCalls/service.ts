@@ -57,11 +57,7 @@ function normalizeRequiredString(value: unknown): string {
 function normalizeRequiredIdempotencyKey(value: unknown): string {
   const normalized = normalizeRequiredString(value);
   if (!normalized) {
-    throw new ConsoleSponsoredCallError(
-      'invalid_request',
-      400,
-      'idempotencyKey is required',
-    );
+    throw new ConsoleSponsoredCallError('invalid_request', 400, 'idempotencyKey is required');
   }
   return normalized;
 }

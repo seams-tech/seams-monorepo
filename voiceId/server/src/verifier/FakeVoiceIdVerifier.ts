@@ -58,7 +58,9 @@ export class FakeVoiceIdVerifier implements VoiceIdVerifier {
     };
   }
 
-  async verifySpeaker(input: Parameters<VoiceIdVerifier['verifySpeaker']>[0]): Promise<VoiceIdSpeakerVerification> {
+  async verifySpeaker(
+    input: Parameters<VoiceIdVerifier['verifySpeaker']>[0],
+  ): Promise<VoiceIdSpeakerVerification> {
     const quality = evaluateAudioQuality(input.audio);
     const speaker = matchSpeaker({
       audio: input.audio,

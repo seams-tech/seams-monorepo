@@ -4,7 +4,11 @@ import type {
   ConsoleKeyExportsContext,
 } from '@seams-internal/wallet-console-server/keyExports/index';
 import type { ConsolePolicyKind } from '@seams-internal/wallet-console-server/policies/index';
-import type { ConsoleWallet, ConsoleWalletService, ConsoleWalletsContext } from '@seams-internal/wallet-console-server/wallets/index';
+import type {
+  ConsoleWallet,
+  ConsoleWalletService,
+  ConsoleWalletsContext,
+} from '@seams-internal/wallet-console-server/wallets/index';
 
 export interface ConsoleInsightsScope {
   projectId?: string;
@@ -224,7 +228,8 @@ export function resolveConsoleInsightsScope(input: {
   claimsProjectId?: string;
   claimsEnvironmentId?: string;
 }): ConsoleInsightsScope {
-  const projectId = normalizeScopeValue(input.projectIdRaw) || normalizeScopeValue(input.claimsProjectId);
+  const projectId =
+    normalizeScopeValue(input.projectIdRaw) || normalizeScopeValue(input.claimsProjectId);
   const environmentId =
     normalizeScopeValue(input.environmentIdRaw) || normalizeScopeValue(input.claimsEnvironmentId);
   return {
@@ -300,7 +305,11 @@ export async function buildConsolePolicyCoverageView(input: {
     const effectivePolicy =
       resolvedWalletPolicies[wallet.id] === undefined
         ? { policyId: wallet.policyId, policyName: null, policyKind: null }
-        : resolvedWalletPolicies[wallet.id] || { policyId: null, policyName: null, policyKind: null };
+        : resolvedWalletPolicies[wallet.id] || {
+            policyId: null,
+            policyName: null,
+            policyKind: null,
+          };
     const effectivePolicyId = String(effectivePolicy.policyId || '').trim();
     const policyId = effectivePolicyId || 'unassigned';
     const current = policies.get(policyId) || {
@@ -425,7 +434,9 @@ export async function buildConsoleGasReadinessView(input: {
     .map((wallet) =>
       toGasWalletSample(
         wallet,
-        resolvedWalletPolicies[wallet.id] === undefined ? undefined : resolvedWalletPolicies[wallet.id],
+        resolvedWalletPolicies[wallet.id] === undefined
+          ? undefined
+          : resolvedWalletPolicies[wallet.id],
       ),
     );
 
@@ -461,12 +472,17 @@ export async function buildConsoleExportGovernanceView(input: {
     scope: { environmentId: input.environmentIdFilter || null },
     totals: {
       requestCount: normalizedRequests.length,
-      pendingApprovalCount: normalizedRequests.filter((entry) => entry.status === 'PENDING_APPROVAL')
+      pendingApprovalCount: normalizedRequests.filter(
+        (entry) => entry.status === 'PENDING_APPROVAL',
+      ).length,
+      approvedRequestCount: normalizedRequests.filter((entry) => entry.status === 'APPROVED')
         .length,
-      approvedRequestCount: normalizedRequests.filter((entry) => entry.status === 'APPROVED').length,
-      executedRequestCount: normalizedRequests.filter((entry) => entry.status === 'EXECUTED').length,
-      rejectedRequestCount: normalizedRequests.filter((entry) => entry.status === 'REJECTED').length,
-      canceledRequestCount: normalizedRequests.filter((entry) => entry.status === 'CANCELED').length,
+      executedRequestCount: normalizedRequests.filter((entry) => entry.status === 'EXECUTED')
+        .length,
+      rejectedRequestCount: normalizedRequests.filter((entry) => entry.status === 'REJECTED')
+        .length,
+      canceledRequestCount: normalizedRequests.filter((entry) => entry.status === 'CANCELED')
+        .length,
       selectedEnvironmentRequestCount: normalizedSelected.length,
       selectedEnvironmentPendingApprovalCount: normalizedSelected.filter(
         (entry) => entry.status === 'PENDING_APPROVAL',

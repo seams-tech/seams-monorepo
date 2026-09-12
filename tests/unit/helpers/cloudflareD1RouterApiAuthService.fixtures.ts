@@ -14,9 +14,6 @@ import type {
   CloudflareD1EmailOtpDeliveryProviderInput,
   CloudflareD1EmailOtpDeliveryProviderResult,
 } from '../../../packages/wallet-server/src/router/cloudflare/d1/auth/d1RouterApiAuthService';
-import { createCloudflareD1RouterApiAuthService } from '../../../packages/wallet-server/src/router/cloudflare/d1/auth/d1RouterApiAuthService';
-import { parseGoogleEmailOtpRegistrationAttemptRecord } from '../../../packages/wallet-server/src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationRecords';
-import { parseD1RegistrationIntent } from '../../../packages/wallet-server/src/router/cloudflare/d1/registration/d1RegistrationCeremonyRecords';
 import { base64UrlDecode, base64UrlEncode } from '../../../packages/shared-ts/src/utils/encoders';
 import {
   parseWalletAuthMethodId,
@@ -25,11 +22,9 @@ import {
   parseWebAuthnRpId,
 } from '../../../packages/shared-ts/src/utils/domainIds';
 import type { WebAuthnAuthenticatorDeviceInfo } from '../../../packages/shared-ts/src/utils/webauthnDeviceInfo';
-import { normalizeRuntimePolicyScope } from '../../../packages/shared-ts/src/threshold/signingRootScope';
 import {
   buildWalletAuthMethodRecordV2,
   implicitNearAccountProvisioning,
-  parseServerAllocatedWalletId,
   walletIdFromString,
 } from '../../../packages/shared-ts/src/utils/registrationIntent';
 import { D1WalletAuthMethodStore } from '../../../packages/wallet-server/src/core/d1WalletAuthMethodStore';
@@ -42,11 +37,6 @@ import {
   type LinkedDeviceManagementAuthorityFixture,
   type LinkedDeviceManagementAuthorityIdentityV1,
 } from './linkedDeviceManagement.fixtures';
-import { buildPasskeyWalletAuthAuthority } from '../../../packages/shared-ts/src/utils/walletAuthAuthority';
-import {
-  secp256k1PrivateKey32ToPublicKey33,
-  signSecp256k1Recoverable,
-} from '../../../packages/wallet-server/src/core/ThresholdService/evmCryptoWasm';
 import { ensureSigningSessionSealShamir3PassWasm } from '../../../packages/wallet-server/src/threshold/session/signingSessionSeal/crypto/shamir3PassWasm';
 import {
   shamir3pass_add_lock,
@@ -54,12 +44,7 @@ import {
   shamir3pass_generate_lock_key_handle,
   shamir3pass_remove_lock,
 } from '../../../wasm/shamir3pass_runtime/pkg/shamir3pass_runtime.js';
-import {
-  applyD1MigrationFiles,
-  cleanupTemporaryD1Database,
-  createTemporaryD1Database,
-  listD1MigrationFiles,
-} from '../../helpers/sqliteD1';
+import { applyD1MigrationFiles, listD1MigrationFiles } from '../../helpers/sqliteD1';
 
 export type SqliteJsonRow = Record<string, unknown>;
 export type TestEcdsaClientSharePublicKey =

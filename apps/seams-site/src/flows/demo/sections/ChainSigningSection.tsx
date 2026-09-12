@@ -86,144 +86,146 @@ export function ChainSigningSection(props: ChainSigningSectionProps) {
 
       {/* keyed by chain: remount fades the new view in */}
       <div className="demo-chain-view" key={chain.id}>
-      <div className="greeting-controls-box">
-        <div className="on-chain-greeting-box">
-          <button
-            onClick={() => void chain.onRefreshGreeting()}
-            disabled={chain.greetingLoading}
-            title="Refresh greeting"
-            className="refresh-icon-button"
-            aria-busy={chain.greetingLoading}
-          >
-            <Refresh size={22} strokeWidth={2} />
-          </button>
-          <p>
-            <strong>{chain.greeting ?? '...'}</strong>
-          </p>
-        </div>
-
-        <div className="greeting-input-group">
-          <input
-            type="text"
-            name={`${chain.id}-greeting`}
-            value={chain.greetingInput}
-            onChange={(event) => chain.onGreetingInputChange(event.target.value)}
-            placeholder="Enter a new greeting"
-          />
-        </div>
-
-        {/* only mount when there's something to show, so it adds no spacing
-            while empty (the fixed demo cell height absorbs the size change) */}
-        {chain.statusText || chain.errorText ? (
-          <div className="demo-status-slot" role="status" aria-live="polite">
-            {chain.statusText ? (
-              <div className="near-funding-status">{chain.statusText}</div>
-            ) : null}
-            {chain.errorText ? <div className="error-message">{chain.errorText}</div> : null}
+        <div className="greeting-controls-box">
+          <div className="on-chain-greeting-box">
+            <button
+              onClick={() => void chain.onRefreshGreeting()}
+              disabled={chain.greetingLoading}
+              title="Refresh greeting"
+              className="refresh-icon-button"
+              aria-busy={chain.greetingLoading}
+            >
+              <Refresh size={22} strokeWidth={2} />
+            </button>
+            <p>
+              <strong>{chain.greeting ?? '...'}</strong>
+            </p>
           </div>
-        ) : null}
 
-        {/* funding is the precondition, so it leads; stays mounted (disabled)
+          <div className="greeting-input-group">
+            <input
+              type="text"
+              name={`${chain.id}-greeting`}
+              value={chain.greetingInput}
+              onChange={(event) => chain.onGreetingInputChange(event.target.value)}
+              placeholder="Enter a new greeting"
+            />
+          </div>
+
+          {/* only mount when there's something to show, so it adds no spacing
+            while empty (the fixed demo cell height absorbs the size change) */}
+          {chain.statusText || chain.errorText ? (
+            <div className="demo-status-slot" role="status" aria-live="polite">
+              {chain.statusText ? (
+                <div className="near-funding-status">{chain.statusText}</div>
+              ) : null}
+              {chain.errorText ? <div className="error-message">{chain.errorText}</div> : null}
+            </div>
+          ) : null}
+
+          {/* funding is the precondition, so it leads; stays mounted (disabled)
             once funded so the Tempo tab keeps a constant height instead of
             collapsing the button away */}
-        {chain.id === 'tempo' ? (
-          <>
+          {chain.id === 'tempo' ? (
+            <>
+              <LoadingButton
+                onClick={props.onPrepareTempoFeeToken}
+                loading={props.tempoFeeTokenPrepareLoading}
+                loadingText="Funding..."
+                variant="primary"
+                size="medium"
+                style={{ width: '100%' }}
+                disabled={
+                  props.tempoFeeTokenPrepareLoading ||
+                  props.tempoFundingStatus === 'checking' ||
+                  props.tempoFundingStatus === 'ready' ||
+                  Boolean(props.tempoPreparationUnavailableReason)
+                }
+              >
+                {props.tempoFundingStatus === 'ready'
+                  ? 'Tempo Account Funded'
+                  : 'Fund Tempo Account'}
+              </LoadingButton>
+              {props.tempoPreparationUnavailableReason ? (
+                <div className="demo-capability-note">
+                  {props.tempoPreparationUnavailableReason}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+
+          {chain.id === 'arc' ? (
             <LoadingButton
-              onClick={props.onPrepareTempoFeeToken}
-              loading={props.tempoFeeTokenPrepareLoading}
-              loadingText="Funding..."
+              onClick={props.onFundArcWallet}
               variant="primary"
               size="medium"
               style={{ width: '100%' }}
-              disabled={
-                props.tempoFeeTokenPrepareLoading ||
-                props.tempoFundingStatus === 'checking' ||
-                props.tempoFundingStatus === 'ready' ||
-                Boolean(props.tempoPreparationUnavailableReason)
-              }
+              disabled={!props.thresholdOwnerAddress}
             >
-              {props.tempoFundingStatus === 'ready' ? 'Tempo Account Funded' : 'Fund Tempo Account'}
+              Fund wallet
             </LoadingButton>
-            {props.tempoPreparationUnavailableReason ? (
-              <div className="demo-capability-note">
-                {props.tempoPreparationUnavailableReason}
-              </div>
-            ) : null}
-          </>
-        ) : null}
+          ) : null}
+
+          <LoadingButton
+            onClick={chain.onSign}
+            loading={chain.signLoading}
+            loadingText="Signing..."
+            variant="primary"
+            size="medium"
+            style={{ width: '100%' }}
+            disabled={!chain.canSign || chain.signLoading}
+          >
+            {chain.signLabel}
+          </LoadingButton>
+
+          {chain.id === 'near' ? (
+            <LoadingButton
+              onClick={props.onSignDelegate}
+              loading={props.delegateLoading}
+              loadingText="Signing delegate..."
+              variant="primary"
+              size="medium"
+              style={{ width: '100%' }}
+              disabled={!props.canSignDelegate || props.delegateLoading}
+            >
+              Send Delegate Action
+            </LoadingButton>
+          ) : null}
+        </div>
 
         {chain.id === 'arc' ? (
-          <LoadingButton
-            onClick={props.onFundArcWallet}
-            variant="primary"
-            size="medium"
-            style={{ width: '100%' }}
-            disabled={!props.thresholdOwnerAddress}
-          >
-            Fund wallet
-          </LoadingButton>
-        ) : null}
-
-        <LoadingButton
-          onClick={chain.onSign}
-          loading={chain.signLoading}
-          loadingText="Signing..."
-          variant="primary"
-          size="medium"
-          style={{ width: '100%' }}
-          disabled={!chain.canSign || chain.signLoading}
-        >
-          {chain.signLabel}
-        </LoadingButton>
-
-        {chain.id === 'near' ? (
-          <LoadingButton
-            onClick={props.onSignDelegate}
-            loading={props.delegateLoading}
-            loadingText="Signing delegate..."
-            variant="primary"
-            size="medium"
-            style={{ width: '100%' }}
-            disabled={!props.canSignDelegate || props.delegateLoading}
-          >
-            Send Delegate Action
-          </LoadingButton>
-        ) : null}
-      </div>
-
-      {chain.id === 'arc' ? (
-        <div className="demo-funding">
-          <div className="demo-funding__hint">
-            Fund this signer address with test gas from the{' '}
-            <a
-              className="demo-funding__link"
-              href="https://faucet.circle.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Circle Faucet
-            </a>
-            :
+          <div className="demo-funding">
+            <div className="demo-funding__hint">
+              Fund this signer address with test gas from the{' '}
+              <a
+                className="demo-funding__link"
+                href="https://faucet.circle.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Circle Faucet
+              </a>
+              :
+            </div>
+            <div className="funding-address-row">
+              <span className="funding-address-text">
+                {props.thresholdOwnerAddress ||
+                  'Threshold ECDSA address unavailable. Refresh the wallet session before funding or signing.'}
+              </span>
+              {props.thresholdOwnerAddress ? (
+                <CopyButton
+                  text={props.thresholdOwnerAddress}
+                  ariaLabel="Copy threshold owner address"
+                  className="funding-address-copy"
+                  size={18}
+                  onCopy={props.onCopyThresholdOwnerAddress}
+                />
+              ) : (
+                <span className="funding-address-copy-placeholder" aria-hidden="true" />
+              )}
+            </div>
           </div>
-          <div className="funding-address-row">
-            <span className="funding-address-text">
-              {props.thresholdOwnerAddress ||
-                'Threshold ECDSA address unavailable. Refresh the wallet session before funding or signing.'}
-            </span>
-            {props.thresholdOwnerAddress ? (
-              <CopyButton
-                text={props.thresholdOwnerAddress}
-                ariaLabel="Copy threshold owner address"
-                className="funding-address-copy"
-                size={18}
-                onCopy={props.onCopyThresholdOwnerAddress}
-              />
-            ) : (
-              <span className="funding-address-copy-placeholder" aria-hidden="true" />
-            )}
-          </div>
-        </div>
-      ) : null}
+        ) : null}
       </div>
     </div>
   );

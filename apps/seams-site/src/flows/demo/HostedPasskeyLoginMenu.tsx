@@ -215,6 +215,8 @@ function syncAuthMenuContainerLock(
 
 export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
   const authMenuContainerRef = React.useRef<HTMLDivElement>(null);
+  // Effect bodies are standalone to keep the component readable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(subscribeToHostedAuthMenuErrors.bind(null, authMenuContainerRef), []);
   React.useEffect(registerGoogleIdTokenRequestCancellation, []);
   const relayerBaseUrl = React.useMemo(
@@ -222,6 +224,7 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
     [],
   );
   const { refreshLoginState, walletLockState } = useSeams();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(
     syncAuthMenuContainerLock.bind(null, authMenuContainerRef, walletLockState.kind),
     [walletLockState.kind],

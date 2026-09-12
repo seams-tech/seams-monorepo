@@ -410,17 +410,24 @@ export function createD1TenantRootOperationStoreV1(
           input.operationKind === 'tenant_root_recovery_backup_create_v1' ||
           input.operationKind === 'tenant_root_recovery_backup_replace_v1'
         ) {
-          const recent = await database.prepare(
-            `SELECT MAX(created_at_ms) AS created_at_ms FROM tenant_root_security_operations
+          const recent = await database
+            .prepare(
+              `SELECT MAX(created_at_ms) AS created_at_ms FROM tenant_root_security_operations
              WHERE namespace=?1 AND org_id=?2 AND identity_digest_b64u=?3
                AND operation_kind IN ('tenant_root_recovery_backup_create_v1', 'tenant_root_recovery_backup_replace_v1')`,
-          ).bind(namespace, options.orgId, identity).first<{ created_at_ms: unknown }>();
+            )
+            .bind(namespace, options.orgId, identity)
+            .first<{ created_at_ms: unknown }>();
           if (recent === null) throw new Error('Could not read recovery backup cooldown');
           if (recent.created_at_ms !== null) {
-            if (typeof recent.created_at_ms !== 'number' || !Number.isSafeInteger(recent.created_at_ms)) {
+            if (
+              typeof recent.created_at_ms !== 'number' ||
+              !Number.isSafeInteger(recent.created_at_ms)
+            ) {
               throw new Error('Invalid recovery backup creation time');
             }
-            const remaining = recent.created_at_ms + (options.backupIntervalMs ?? 600_000) - input.createdAtMs;
+            const remaining =
+              recent.created_at_ms + (options.backupIntervalMs ?? 600_000) - input.createdAtMs;
             if (remaining > 0) throw new RecoveryBackupCooldownError(Math.ceil(remaining / 1000));
           }
         }

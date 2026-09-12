@@ -119,12 +119,7 @@ export function createConsoleTenantRootAuditWriterV1(
           )}`,
         );
       }
-      await appendTenantRootAuditEventV1(
-        options.audit,
-        options.actorType,
-        options.scope,
-        event,
-      );
+      await appendTenantRootAuditEventV1(options.audit, options.actorType, options.scope, event);
     },
   };
 }

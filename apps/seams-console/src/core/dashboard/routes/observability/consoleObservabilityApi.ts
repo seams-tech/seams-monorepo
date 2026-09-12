@@ -69,8 +69,7 @@ export interface DashboardConsoleObservabilitySnapshot {
   services: DashboardConsoleObservabilityServicesView;
 }
 
-export interface GetDashboardObservabilitySnapshotRequest
-  extends DashboardConsoleObservabilityScope {
+export interface GetDashboardObservabilitySnapshotRequest extends DashboardConsoleObservabilityScope {
   eventsCursor?: string;
   eventsLimit?: number;
   eventsQuery?: string;
@@ -124,8 +123,7 @@ export interface DashboardConsoleObservabilityScope {
   environmentId?: string;
 }
 
-export interface ListDashboardConsoleObservabilityEventsRequest
-  extends DashboardConsoleObservabilityScope {
+export interface ListDashboardConsoleObservabilityEventsRequest extends DashboardConsoleObservabilityScope {
   query?: string;
   level?: DashboardConsoleObservabilityLevel;
   service?: string;
@@ -135,8 +133,7 @@ export interface ListDashboardConsoleObservabilityEventsRequest
   limit?: number;
 }
 
-export interface ListDashboardConsoleObservabilityServicesRequest
-  extends DashboardConsoleObservabilityScope {
+export interface ListDashboardConsoleObservabilityServicesRequest extends DashboardConsoleObservabilityScope {
   limit?: number;
 }
 
@@ -183,10 +180,7 @@ function buildApiError(
   });
 }
 
-export function isDashboardConsoleObservabilityApiErrorCode(
-  error: unknown,
-  code: string,
-): boolean {
+export function isDashboardConsoleObservabilityApiErrorCode(error: unknown, code: string): boolean {
   if (!(error instanceof DashboardConsoleObservabilityApiError)) return false;
   return error.code === code;
 }
@@ -427,9 +421,10 @@ export async function getDashboardObservabilitySnapshot(
       : {}),
   };
   const eventsCursor = toTrimmedString(input?.eventsCursor);
-  const eventsLimit = Number.isFinite(Number(input?.eventsLimit)) && Number(input?.eventsLimit) > 0
-    ? Math.floor(Number(input?.eventsLimit))
-    : 50;
+  const eventsLimit =
+    Number.isFinite(Number(input?.eventsLimit)) && Number(input?.eventsLimit) > 0
+      ? Math.floor(Number(input?.eventsLimit))
+      : 50;
   const eventsQuery = toTrimmedString(input?.eventsQuery);
   const eventsService = toTrimmedString(input?.eventsService);
   const eventsComponent = toTrimmedString(input?.eventsComponent);

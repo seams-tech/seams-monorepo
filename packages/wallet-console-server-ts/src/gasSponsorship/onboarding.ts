@@ -1,13 +1,7 @@
-import type {
-  ConsoleGasSponsorshipPolicyProjection,
-  ResolvedGasSponsorshipPolicy,
-} from './types';
+import type { ConsoleGasSponsorshipPolicyProjection, ResolvedGasSponsorshipPolicy } from './types';
 import { ConsoleGasSponsorshipError } from './errors';
 import { projectConsoleGasSponsorshipPolicyProjection } from './service';
-import type {
-  ConsoleGasSponsorshipPolicyRulesInput,
-  ConsolePolicyService,
-} from '../policies';
+import type { ConsoleGasSponsorshipPolicyRulesInput, ConsolePolicyService } from '../policies';
 
 export const TEMPO_TESTNET_ONBOARDING_TEMPLATE_ID = 'tempo_testnet_onboarding';
 export const TEMPO_TESTNET_ONBOARDING_POLICY_NAME = 'Tempo Testnet Onboarding';
@@ -85,7 +79,9 @@ async function listProjectedGasPolicies(input: {
           await projectConsoleGasSponsorshipPolicyProjection(input.policies, input.ctx, policy),
       ),
     )
-  ).filter((projection): projection is ConsoleGasSponsorshipPolicyProjection => projection !== null);
+  ).filter(
+    (projection): projection is ConsoleGasSponsorshipPolicyProjection => projection !== null,
+  );
 }
 
 export async function ensureTempoTestnetOnboardingPolicyForEnvironment(input: {
@@ -188,8 +184,8 @@ export function resolveSponsoredCallPoliciesFromProjections(
       policy.kind === 'evm_call'
         ? policy.enabled && Array.isArray(policy.allowedCalls) && policy.allowedCalls.length > 0
         : policy.enabled &&
-            Array.isArray(policy.allowedDelegateActions) &&
-            policy.allowedDelegateActions.length > 0,
+          Array.isArray(policy.allowedDelegateActions) &&
+          policy.allowedDelegateActions.length > 0,
     )
     .map((policy) => {
       const common = {

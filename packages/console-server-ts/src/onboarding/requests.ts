@@ -23,10 +23,7 @@ function createParseError(code: string, status: number, message: string): Consol
   return new ConsoleOnboardingError(code, status, message);
 }
 
-function readObjectField(
-  source: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> {
+function readObjectField(source: Record<string, unknown>, key: string): Record<string, unknown> {
   const raw = source[key];
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw createParseError('invalid_body', 400, `Field ${key} must be an object`);
@@ -47,7 +44,9 @@ function readOptionalResourceId(source: Record<string, unknown>, key: string): s
   return value;
 }
 
-function parseOptionalOrgInput(source: Record<string, unknown>): ConsoleOnboardingOrgInput | undefined {
+function parseOptionalOrgInput(
+  source: Record<string, unknown>,
+): ConsoleOnboardingOrgInput | undefined {
   if (source.org === undefined || source.org === null) return undefined;
   const row = readObjectField(source, 'org');
   const name = readRequiredString(row, 'name', createParseError);
@@ -79,11 +78,7 @@ export function parseGetConsoleOnboardingTelemetryRequest(
   query: unknown,
 ): GetConsoleOnboardingTelemetryRequest {
   const q = requireQueryObject(query, createParseError);
-  const windowMinutes = readOptionalQueryPositiveIntegerField(
-    q,
-    'windowMinutes',
-    createParseError,
-  );
+  const windowMinutes = readOptionalQueryPositiveIntegerField(q, 'windowMinutes', createParseError);
   if (windowMinutes === undefined) return {};
   if (
     windowMinutes < MIN_TELEMETRY_WINDOW_MINUTES ||

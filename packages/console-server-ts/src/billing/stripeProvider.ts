@@ -268,11 +268,7 @@ class StripeBillingProvider implements StripeBillingProviderAdapter {
   ): void {
     setFormField(form, 'line_items[0][price_data][currency]', 'usd');
     setFormField(form, 'line_items[0][price_data][unit_amount]', input.amountMinor);
-    setFormField(
-      form,
-      'line_items[0][price_data][product_data][name]',
-      buildCreditPackName(input),
-    );
+    setFormField(form, 'line_items[0][price_data][product_data][name]', buildCreditPackName(input));
     setFormField(form, 'line_items[0][quantity]', 1);
   }
 

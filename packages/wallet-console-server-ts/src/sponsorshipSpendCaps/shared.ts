@@ -249,13 +249,7 @@ export function buildConsoleSponsorshipSpendCapWindowKey(
 export function buildConsoleSponsorshipSpendCapWindowKeyFromReservation(
   reservation: Pick<
     ConsoleSponsorshipSpendCapReservation,
-    | 'environmentId'
-    | 'policyId'
-    | 'accountRef'
-    | 'chainId'
-    | 'mode'
-    | 'period'
-    | 'windowStartAt'
+    'environmentId' | 'policyId' | 'accountRef' | 'chainId' | 'mode' | 'period' | 'windowStartAt'
   >,
 ): string {
   return buildConsoleSponsorshipSpendCapWindowKey({

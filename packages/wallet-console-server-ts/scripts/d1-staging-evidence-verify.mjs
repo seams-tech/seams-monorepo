@@ -19,10 +19,7 @@ import {
   writeJsonManifest,
 } from './d1-staging-config.mjs';
 
-const defaultOutputPath = path.join(
-  packageRoot,
-  '.wrangler/d1-staging-evidence/verification.json',
-);
+const defaultOutputPath = path.join(packageRoot, '.wrangler/d1-staging-evidence/verification.json');
 
 const evidenceSpecs = Object.freeze([
   Object.freeze({
@@ -188,19 +185,21 @@ const signerCustodyExpectedStatusesById = Object.freeze({
   signer_custody_ecdsa_derivation_healthz: 200,
   ecdsa_export_share_success: 200,
 });
-const signerCustodySensitiveBodyFieldNames = new Set([
-  'authorization',
-  'jwt',
-  'privateKeyHex',
-  'private_key_hex',
-  'server_export_share_32_b64u',
-  'serverExportShare32B64u',
-  'serverShare32B64u',
-  'server_share_32_b64u',
-  'signing_share_32_b64u',
-  'signingShare32B64u',
-  'token',
-].map(sensitiveBodyFieldKey));
+const signerCustodySensitiveBodyFieldNames = new Set(
+  [
+    'authorization',
+    'jwt',
+    'privateKeyHex',
+    'private_key_hex',
+    'server_export_share_32_b64u',
+    'serverExportShare32B64u',
+    'serverShare32B64u',
+    'server_share_32_b64u',
+    'signing_share_32_b64u',
+    'signingShare32B64u',
+    'token',
+  ].map(sensitiveBodyFieldKey),
+);
 const requiredReconciliationCheckIds = Object.freeze([
   'billing_account_balance_mismatch',
   'prepaid_reservation_summary_mismatch',
@@ -252,19 +251,23 @@ function main() {
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    bookmarkBeforeFixtureImport: '',
-    bookmarkBeforeRouteSwitch: '',
-    fixtureImport: '',
-    generatedAtIso: '',
-    migrations: '',
-    outputPath: '',
-    r2RestoreDrill: '',
-    reconciliation: '',
-    resources: '',
-    signerCustody: '',
-    smoke: '',
-  }, evidenceFlagFields);
+  return parseFlagArgs(
+    args,
+    {
+      bookmarkBeforeFixtureImport: '',
+      bookmarkBeforeRouteSwitch: '',
+      fixtureImport: '',
+      generatedAtIso: '',
+      migrations: '',
+      outputPath: '',
+      r2RestoreDrill: '',
+      reconciliation: '',
+      resources: '',
+      signerCustody: '',
+      smoke: '',
+    },
+    evidenceFlagFields,
+  );
 }
 
 function normalizeOptions(input) {
@@ -326,7 +329,9 @@ function validateResourceInventory(input) {
   for (const check of checks) {
     requireStatusZero(input, check, `checks.${String(check?.id || check?.target || 'unknown')}`);
     if (!isJsonRecord(check.json)) {
-      input.errors.push(`${input.id}: remote inventory check ${String(check?.id || '')} lacks JSON metadata`);
+      input.errors.push(
+        `${input.id}: remote inventory check ${String(check?.id || '')} lacks JSON metadata`,
+      );
     }
   }
   validateResourceInventoryD1Metadata(input, checks);
@@ -517,7 +522,9 @@ function validateOnlyResourceBindings(input) {
 function requireResourceD1DatabaseId(input) {
   const worker = resourceInventoryWorker(input.input.manifest, input.workerFieldName);
   if (!worker) {
-    input.input.errors.push(`resource_inventory: resources.${input.workerFieldName} must be present`);
+    input.input.errors.push(
+      `resource_inventory: resources.${input.workerFieldName} must be present`,
+    );
     return '';
   }
 
@@ -644,7 +651,9 @@ function validateBookmarkBeforeRouteSwitch(input) {
 
 function validateBookmark(input, expectedPurpose) {
   if (input.manifest.purpose !== expectedPurpose) {
-    input.errors.push(`${input.id}: expected purpose ${expectedPurpose}, got ${String(input.manifest.purpose)}`);
+    input.errors.push(
+      `${input.id}: expected purpose ${expectedPurpose}, got ${String(input.manifest.purpose)}`,
+    );
   }
   validateExecutedStatuses(input);
   validateExecutedCommandCoverage(input);
@@ -715,12 +724,16 @@ function expectedBookmarkArtifactPath(manifest, logicalName) {
 function validateBookmarkEvidenceJson(input) {
   const json = recordOrNull(input.json);
   if (!json) {
-    input.errors.push(`${input.id}: bookmarkEvidence.${input.logicalName}.json must be a JSON object`);
+    input.errors.push(
+      `${input.id}: bookmarkEvidence.${input.logicalName}.json must be a JSON object`,
+    );
     return;
   }
   const bookmark = d1TimeTravelBookmarkValue(json);
   if (bookmark) return;
-  input.errors.push(`${input.id}: bookmarkEvidence.${input.logicalName}.json must include a bookmark`);
+  input.errors.push(
+    `${input.id}: bookmarkEvidence.${input.logicalName}.json must include a bookmark`,
+  );
 }
 
 function validateOkResults(input, fieldName) {
@@ -816,7 +829,9 @@ function validateReconciliation(input) {
   for (const check of executed) {
     requireStatusZero(input, check, `executed.${String(check?.id || 'unknown')}`);
     if (Number(check?.rowCount) !== 0) {
-      input.errors.push(`${input.id}: ${String(check?.id || 'unknown')} returned ${String(check?.rowCount)} mismatch rows`);
+      input.errors.push(
+        `${input.id}: ${String(check?.id || 'unknown')} returned ${String(check?.rowCount)} mismatch rows`,
+      );
     }
   }
 }
@@ -946,7 +961,9 @@ function validateHttpPlanCoverage(input) {
     }
     const plan = planById.get(resultId);
     if (!plan) {
-      input.errors.push(`${input.id}: missing planned ${input.planFieldName} evidence for ${resultId}`);
+      input.errors.push(
+        `${input.id}: missing planned ${input.planFieldName} evidence for ${resultId}`,
+      );
       continue;
     }
     validateHttpResultMatchesPlan({
@@ -967,7 +984,9 @@ function validateHttpResultMatchesPlan(input) {
   if (!plannedUrl) {
     input.errors.push(`${input.id}: ${input.planFieldName}.${input.resultId}.url must be present`);
   } else if (!resultUrl) {
-    input.errors.push(`${input.id}: ${input.resultFieldName}.${input.resultId}.url must be present`);
+    input.errors.push(
+      `${input.id}: ${input.resultFieldName}.${input.resultId}.url must be present`,
+    );
   } else if (plannedUrl !== resultUrl) {
     input.errors.push(
       `${input.id}: ${input.resultFieldName}.${input.resultId}.url does not match planned ${input.planFieldName}.${input.resultId}.url`,
@@ -977,7 +996,9 @@ function validateHttpResultMatchesPlan(input) {
   const expectedStatus = Number(input.plan?.expectedStatus);
   const actualStatus = Number(input.result?.status);
   if (!Number.isInteger(expectedStatus)) {
-    input.errors.push(`${input.id}: ${input.planFieldName}.${input.resultId}.expectedStatus must be present`);
+    input.errors.push(
+      `${input.id}: ${input.planFieldName}.${input.resultId}.expectedStatus must be present`,
+    );
   } else if (actualStatus !== expectedStatus) {
     input.errors.push(
       `${input.id}: ${input.resultFieldName}.${input.resultId}.status ${String(input.result?.status)} does not match planned ${input.planFieldName}.${input.resultId}.expectedStatus ${expectedStatus}`,
@@ -1042,7 +1063,9 @@ function validateSignerCustodyRedactedValue(input) {
 }
 
 function sensitiveBodyFieldKey(input) {
-  return String(input).toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return String(input)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
 }
 
 function validateHttpsResultUrls(input, fieldName) {
@@ -1125,7 +1148,9 @@ function validateR2RestoreDrill(input) {
   const paths = artifactPathSet(artifactEvidence);
   for (const requiredPath of requiredPaths) {
     if (!requiredPath) {
-      input.errors.push(`${input.id}: artifacts must include console/signer export and restore paths`);
+      input.errors.push(
+        `${input.id}: artifacts must include console/signer export and restore paths`,
+      );
       continue;
     }
     if (paths.has(requiredPath)) {
@@ -1161,11 +1186,15 @@ function validateR2ArtifactMetadata(input) {
   if (!input.artifact) return;
   const bytes = Number(input.artifact.bytes);
   if (!Number.isSafeInteger(bytes) || bytes <= 0) {
-    input.errors.push(`${input.id}: artifactEvidence.${input.path}.bytes must be greater than zero`);
+    input.errors.push(
+      `${input.id}: artifactEvidence.${input.path}.bytes must be greater than zero`,
+    );
   }
   const sha256 = normalizeString(input.artifact.sha256);
   if (isSha256Hex(sha256)) return;
-  input.errors.push(`${input.id}: artifactEvidence.${input.path}.sha256 must be a SHA-256 hex digest`);
+  input.errors.push(
+    `${input.id}: artifactEvidence.${input.path}.sha256 must be a SHA-256 hex digest`,
+  );
 }
 
 function validateUniqueArtifactEvidencePaths(input, artifactEvidence) {
@@ -1276,7 +1305,9 @@ function requiredManifestString(input) {
 function validateIntegrityCheckStdout(input) {
   const source = normalizeString(input.stdout);
   if (!source) {
-    input.errors.push(`${input.id}: ${input.label}.stdout must include JSON integrity_check output`);
+    input.errors.push(
+      `${input.id}: ${input.label}.stdout must include JSON integrity_check output`,
+    );
     return;
   }
 
@@ -1467,7 +1498,9 @@ function validateTenantConsistency(input) {
     const resourceValue = normalizeString(resourceTenant?.[fieldName]);
     const reconciliationValue = normalizeString(reconciliationTenant?.[fieldName]);
     if (!resourceValue) {
-      input.errors.push(`resource_inventory: resources.gatewayWorker.stagingVars.${fieldName} must be present`);
+      input.errors.push(
+        `resource_inventory: resources.gatewayWorker.stagingVars.${fieldName} must be present`,
+      );
       continue;
     }
     if (!reconciliationValue) {

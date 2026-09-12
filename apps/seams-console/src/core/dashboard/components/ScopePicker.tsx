@@ -56,7 +56,11 @@ export function ScopePicker<Value extends string = string>(
           <span>{label}</span>
         </div>
 
-        <div className="dashboard-scope-picker__segments" role="group" aria-label={`${label} toggles`}>
+        <div
+          className="dashboard-scope-picker__segments"
+          role="group"
+          aria-label={`${label} toggles`}
+        >
           {options.map((option) => {
             const active = selected.includes(option.value);
             const stateLabel = active ? 'On' : 'Off';
@@ -100,7 +104,9 @@ export function ScopePicker<Value extends string = string>(
           })}
         </div>
 
-        {selected.length === 0 ? <p className="dashboard-scope-picker__empty">{emptyLabel}</p> : null}
+        {selected.length === 0 ? (
+          <p className="dashboard-scope-picker__empty">{emptyLabel}</p>
+        ) : null}
       </div>
     );
   }
@@ -126,9 +132,7 @@ export function ScopePicker<Value extends string = string>(
           }}
         >
           <option value="">
-            {availableOptions.length > 0
-              ? placeholderLabel
-              : 'All available scopes selected'}
+            {availableOptions.length > 0 ? placeholderLabel : 'All available scopes selected'}
           </option>
           {options.map((option) => (
             <option

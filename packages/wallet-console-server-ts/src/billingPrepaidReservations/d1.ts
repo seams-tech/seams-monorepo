@@ -1,5 +1,10 @@
 import { secureRandomBase36 } from '@seams-internal/console-server/boundary/index';
-import { d1ChangedRows, queryD1All, queryD1One, type D1Row } from '@seams-internal/console-server/boundary/index';
+import {
+  d1ChangedRows,
+  queryD1All,
+  queryD1One,
+  type D1Row,
+} from '@seams-internal/console-server/boundary/index';
 import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
@@ -42,10 +47,9 @@ export interface ConsoleBillingPrepaidReservationD1Runtime {
   defaultReservationTtlMs: number;
 }
 
-export type ConsoleBillingPrepaidReservationD1Service =
-  ConsoleBillingPrepaidReservationService & {
-    [CONSOLE_BILLING_PREPAID_RESERVATION_D1_RUNTIME]: ConsoleBillingPrepaidReservationD1Runtime;
-  };
+export type ConsoleBillingPrepaidReservationD1Service = ConsoleBillingPrepaidReservationService & {
+  [CONSOLE_BILLING_PREPAID_RESERVATION_D1_RUNTIME]: ConsoleBillingPrepaidReservationD1Runtime;
+};
 
 export interface D1ConsoleBillingPrepaidReservationServiceOptions {
   database: D1DatabaseLike;
@@ -53,7 +57,6 @@ export interface D1ConsoleBillingPrepaidReservationServiceOptions {
   now?: () => Date;
   defaultReservationTtlMs?: number;
 }
-
 
 export function getConsoleBillingPrepaidReservationD1Runtime(
   service: ConsoleBillingPrepaidReservationService | null | undefined,
@@ -139,7 +142,6 @@ function nowMs(now: Date): number {
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
-
 
 function normalizeString(value: unknown): string | null {
   const normalized = String(value || '').trim();

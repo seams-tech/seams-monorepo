@@ -22,7 +22,9 @@ export async function parseJsonRequest(request: Request): Promise<Record<string,
   }
 }
 
-export async function parseEnrollmentStartRequest(request: Request): Promise<{ userId: ReturnType<typeof parseUserId> }> {
+export async function parseEnrollmentStartRequest(
+  request: Request,
+): Promise<{ userId: ReturnType<typeof parseUserId> }> {
   const body = await parseJsonRequest(request);
   assertExactObjectKeys(body, ['userId'], 'enrollment start request');
   return { userId: parseUserId(body.userId) };
@@ -105,7 +107,8 @@ function assertExactFormFields(form: FormData): void {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   for (const key of allowed) {
-    if (counts.get(key) !== 1) throw new Error(`multipart request must contain exactly one ${key} field`);
+    if (counts.get(key) !== 1)
+      throw new Error(`multipart request must contain exactly one ${key} field`);
   }
 }
 

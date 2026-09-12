@@ -97,7 +97,10 @@ export async function handleConsoleObservabilityRoutes<
         environmentId: ctx.url.searchParams.get('environmentId') || undefined,
         bucketMinutes: ctx.url.searchParams.get('bucketMinutes') || undefined,
       });
-      const timeseries = await observability.getTimeseries(deps.toAuditContext(auth.claims), request);
+      const timeseries = await observability.getTimeseries(
+        deps.toAuditContext(auth.claims),
+        request,
+      );
       return deps.json(
         {
           ok: true,

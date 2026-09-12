@@ -5,23 +5,17 @@ import { Buffer } from 'node:buffer';
 import type { IncomingMessage } from 'node:http';
 import { AuthService, requireEnvVar, type ThresholdStoreConfigInput } from '@seams/wallet-server';
 import {
-  createInMemoryConsoleSponsorshipSpendCapService,
   createConsoleOrgProjectEnvServiceWithTempoOnboardingSponsorship,
   DEFAULT_TEMPO_ONBOARDING_CONTRACT,
   ensureTempoOnboardingSponsorshipForAllOrganizations,
   resolveSponsoredExecutionPricingFromEnv,
   resolveSponsoredEvmCallConfigFromEnv,
   resolveStaticSponsoredExecutionPricingFromEnv,
-  type ConsoleBillingPrepaidReservationService,
-  type ConsoleSponsoredCallService,
-  type ConsoleSponsorshipSpendCapService,
 } from '@seams-internal/wallet-console-server';
 import {
   createConsoleRouter,
   createInMemoryConsoleAccountService,
   createInMemoryConsoleBillingService,
-  createInMemoryConsoleBillingPrepaidReservationService,
-  createInMemoryConsoleSponsoredCallService,
   createInMemoryConsoleApiKeyService,
   createInMemoryConsoleAuditService,
   createInMemoryConsoleOnboardingService,
@@ -80,21 +74,6 @@ function shutdown(signal: string) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-function hostnameFromOrigin(origin: string): string {
-  try {
-    return new URL(origin).hostname.toLowerCase();
-  } catch {
-    return '';
-  }
-}
-
-function parseCsvValues(value: unknown): string[] {
-  return String(value || '')
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
 function parseBooleanFlag(value: unknown): boolean {
   const normalized = String(value || '')
     .trim()
@@ -104,21 +83,6 @@ function parseBooleanFlag(value: unknown): boolean {
 
 function captureRawJsonBody(req: IncomingMessage, _res: unknown, buffer: Buffer): void {
   (req as IncomingMessage & { rawBody?: Uint8Array }).rawBody = Uint8Array.from(buffer);
-}
-
-function isLocalDevelopmentHost(host: string): boolean {
-  const normalized = host.trim().toLowerCase();
-  return (
-    normalized === 'localhost' ||
-    normalized === '127.0.0.1' ||
-    normalized === '::1' ||
-    normalized.endsWith('.localhost') ||
-    normalized.endsWith('.local')
-  );
-}
-
-function isLocalDevelopmentOrigin(origin: string): boolean {
-  return isLocalDevelopmentHost(hostnameFromOrigin(origin));
 }
 
 function parseBooleanFlagWithDefault(value: unknown, fallback: boolean): boolean {
@@ -677,7 +641,6 @@ async function main() {
   });
   const sponsorshipStaticPricing =
     resolveStaticSponsoredExecutionPricingFromEnv(sponsorshipPricingEnv);
-  const sponsorshipPricing = sponsorshipRealPricing || sponsorshipStaticPricing;
   const hasStaticSponsorshipPricingConfig = Boolean(
     String(env.SPONSORED_EXECUTION_STATIC_PRICING_JSON || '').trim(),
   );
@@ -766,12 +729,6 @@ async function main() {
   const consoleOrganizationAccess: ConsoleOrganizationAccessService =
     createInMemoryConsoleOrganizationAccessService();
   const consoleWallets: ConsoleWalletService = createInMemoryConsoleWalletService();
-  const consoleSponsoredCalls: ConsoleSponsoredCallService =
-    createInMemoryConsoleSponsoredCallService();
-  const consoleBillingPrepaidReservations: ConsoleBillingPrepaidReservationService =
-    createInMemoryConsoleBillingPrepaidReservationService();
-  const consoleSponsorshipSpendCaps: ConsoleSponsorshipSpendCapService =
-    createInMemoryConsoleSponsorshipSpendCapService();
   const consoleDemoOrgId = await resolveConsoleDemoOrgId({
     configuredOrgId: configuredConsoleDemoOrgId,
     orgProjectEnv: consoleOrgProjectEnvBase,

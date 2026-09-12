@@ -13,7 +13,10 @@ import {
   parseMoonshineSpeechAnalysis,
   type VoiceIdMoonshineSpeechAnalysis,
 } from '../transcript/PythonMoonshineTranscriptProvider.ts';
-import type { VoiceIdAnalysisProvider, VoiceIdVerificationAnalysis } from './VoiceIdAnalysisProvider.ts';
+import type {
+  VoiceIdAnalysisProvider,
+  VoiceIdVerificationAnalysis,
+} from './VoiceIdAnalysisProvider.ts';
 
 export class PythonMoonshineAnalysisProvider implements VoiceIdAnalysisProvider {
   constructor(
@@ -34,11 +37,7 @@ export class PythonMoonshineAnalysisProvider implements VoiceIdAnalysisProvider 
           this.intentName,
         ),
       );
-      return parseVerificationAnalysisResponse(
-        response,
-        input.expectedPhrase,
-        this.intentName,
-      );
+      return parseVerificationAnalysisResponse(response, input.expectedPhrase, this.intentName);
     } catch {
       return unavailableVerificationAnalysis(
         input.audio.metadata.durationMs,

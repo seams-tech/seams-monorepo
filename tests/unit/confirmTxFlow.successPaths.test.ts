@@ -196,9 +196,7 @@ test.describe('confirmTxFlow – success paths', () => {
     }, IMPORT_PATHS.nonceCoordinator);
   });
 
-  test('LocalOnly: authorizeKeyExport returns credential (no prfOutput)', async ({
-    page,
-  }) => {
+  test('LocalOnly: authorizeKeyExport returns credential (no prfOutput)', async ({ page }) => {
     const result = await page.evaluate(
       async ({ paths }) => {
         const mod = await import(paths.handle);
@@ -326,7 +324,7 @@ test.describe('confirmTxFlow – success paths', () => {
         const localOnly = await import(paths.localOnly);
 
         // Force wallet-iframe host behavior (test-only global override).
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         (globalThis as any).__W3A_TEST_WALLET_IFRAME_HOST_MODE__ = true;
 
         // Detect any attempts to mount confirmation UI during this decrypt flow.
@@ -335,7 +333,7 @@ test.describe('confirmTxFlow – success paths', () => {
         );
         const originalCreateElement = document.createElement.bind(document);
         let createdConfirmUiElements = 0;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         (document as any).createElement = (tagName: any, options?: any) => {
           if (confirmTags.has(String(tagName).toLowerCase())) {
             createdConfirmUiElements++;
@@ -438,9 +436,9 @@ test.describe('confirmTxFlow – success paths', () => {
           };
         } finally {
           // Restore globals for test isolation.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           (document as any).createElement = originalCreateElement as any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           try {
             delete (globalThis as any).__W3A_TEST_WALLET_IFRAME_HOST_MODE__;
           } catch {}

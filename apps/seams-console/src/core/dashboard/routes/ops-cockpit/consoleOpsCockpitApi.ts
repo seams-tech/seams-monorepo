@@ -321,7 +321,10 @@ function decodeSummary(raw: unknown): DashboardOpsCockpitSummary | null {
     },
     onboardingTelemetry: {
       status: decodeStatus(onboardingTelemetryRaw.status),
-      windowMinutes: Math.max(1, Math.floor(toFiniteNumber(onboardingTelemetryRaw.windowMinutes, 60))),
+      windowMinutes: Math.max(
+        1,
+        Math.floor(toFiniteNumber(onboardingTelemetryRaw.windowMinutes, 60)),
+      ),
       alertCount: Math.max(0, Math.floor(toFiniteNumber(onboardingTelemetryRaw.alertCount))),
       alerts: Array.isArray(onboardingTelemetryRaw.alerts)
         ? onboardingTelemetryRaw.alerts

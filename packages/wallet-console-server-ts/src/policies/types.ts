@@ -11,10 +11,7 @@ export type ConsoleGasSponsorshipPolicyScopeType =
 export type ConsoleGasSponsorshipPolicyNetworkClass = 'ANY' | 'TESTNET' | 'MAINNET';
 export type ConsoleGasSponsorshipPolicyRuleKind = 'evm_call' | 'near_delegate';
 export type ConsoleGasSponsorshipExecutionMode = 'evm_eoa' | 'near_delegate';
-export type ConsoleGasSponsorshipPolicySpendCapMode =
-  | 'NONE'
-  | 'CHAIN_TOTAL'
-  | 'WALLET_CHAIN_TOTAL';
+export type ConsoleGasSponsorshipPolicySpendCapMode = 'NONE' | 'CHAIN_TOTAL' | 'WALLET_CHAIN_TOTAL';
 export type ConsoleGasSponsorshipPolicySpendCapPeriod = 'WEEKLY' | 'MONTHLY';
 export type ConsolePolicyDenyReasonCode =
   | 'ACTION_BLOCKED'
@@ -97,15 +94,13 @@ export interface ConsoleGasSponsorshipPolicyCommonRulesInput {
   spendCap?: ConsoleGasSponsorshipPolicySpendCap;
 }
 
-export interface ConsoleGasSponsorshipPolicyEvmRulesInput
-  extends ConsoleGasSponsorshipPolicyCommonRulesInput {
+export interface ConsoleGasSponsorshipPolicyEvmRulesInput extends ConsoleGasSponsorshipPolicyCommonRulesInput {
   kind?: 'evm_call';
   executionMode?: 'evm_eoa';
   allowedCalls?: ConsoleGasSponsorshipPolicyEvmAllowedCallInput[];
 }
 
-export interface ConsoleGasSponsorshipPolicyNearRulesInput
-  extends ConsoleGasSponsorshipPolicyCommonRulesInput {
+export interface ConsoleGasSponsorshipPolicyNearRulesInput extends ConsoleGasSponsorshipPolicyCommonRulesInput {
   kind: 'near_delegate';
   executionMode?: 'near_delegate';
   allowedDelegateActions?: ConsoleGasSponsorshipPolicyNearAllowedDelegateActionInput[];
@@ -136,15 +131,13 @@ export interface ConsoleGasSponsorshipPolicyCommonRules {
   spendCap: ConsoleGasSponsorshipPolicySpendCap;
 }
 
-export interface ConsoleGasSponsorshipPolicyEvmRules
-  extends ConsoleGasSponsorshipPolicyCommonRules {
+export interface ConsoleGasSponsorshipPolicyEvmRules extends ConsoleGasSponsorshipPolicyCommonRules {
   kind: 'evm_call';
   executionMode: 'evm_eoa';
   allowedCalls: ConsoleGasSponsorshipPolicyEvmAllowedCall[];
 }
 
-export interface ConsoleGasSponsorshipPolicyNearRules
-  extends ConsoleGasSponsorshipPolicyCommonRules {
+export interface ConsoleGasSponsorshipPolicyNearRules extends ConsoleGasSponsorshipPolicyCommonRules {
   kind: 'near_delegate';
   executionMode: 'near_delegate';
   allowedDelegateActions: ConsoleGasSponsorshipPolicyNearAllowedDelegateAction[];
@@ -158,9 +151,7 @@ export type ConsolePolicyRulesInput =
   | ConsoleTransactionPolicyRulesInput
   | ConsoleGasSponsorshipPolicyRulesInput;
 
-export type ConsolePolicyRules =
-  | ConsoleTransactionPolicyRules
-  | ConsoleGasSponsorshipPolicyRules;
+export type ConsolePolicyRules = ConsoleTransactionPolicyRules | ConsoleGasSponsorshipPolicyRules;
 
 export interface ConsolePolicy {
   id: string;

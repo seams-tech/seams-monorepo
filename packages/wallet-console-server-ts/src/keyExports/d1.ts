@@ -21,7 +21,6 @@ import type {
   ListConsoleKeyExportsRequest,
 } from './types';
 
-
 const MAX_CONDITIONAL_RETRIES = 3;
 
 interface D1ConsoleKeyExportState {
@@ -142,7 +141,6 @@ function nowMs(now: Date): number {
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
-
 
 function normalizeString(value: unknown): string | null {
   const normalized = String(value || '').trim();
@@ -269,7 +267,6 @@ function parseRecordRow(row: D1Row): ConsoleKeyExportRequestRecord {
     updatedAt: toIso(toNumber(row.updated_at_ms)),
   };
 }
-
 
 function isD1ConstraintError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error || '');

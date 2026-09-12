@@ -1,5 +1,10 @@
 import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
-import { d1Number as toNumber, queryD1All, queryD1One, type D1Row } from '@seams/wallet-server/cloud-host';
+import {
+  d1Number as toNumber,
+  queryD1All,
+  queryD1One,
+  type D1Row,
+} from '@seams/wallet-server/cloud-host';
 import type { D1DatabaseLike, D1PreparedStatementLike } from '@seams/wallet-server/cloud-host';
 import { ConsoleSponsoredCallError } from './errors';
 import type {
@@ -35,7 +40,6 @@ export interface D1ConsoleSponsoredCallServiceOptions {
   now?: () => Date;
 }
 
-
 type D1SponsoredCallInsertGuard = {
   readonly kind: 'previous_statement_changed_one';
 };
@@ -61,8 +65,7 @@ export function getConsoleSponsoredCallD1Runtime(
 ): ConsoleSponsoredCallD1Runtime | null {
   if (!service || typeof service !== 'object') return null;
   return (
-    (service as Partial<ConsoleSponsoredCallD1Service>)[CONSOLE_SPONSORED_CALL_D1_RUNTIME] ||
-    null
+    (service as Partial<ConsoleSponsoredCallD1Service>)[CONSOLE_SPONSORED_CALL_D1_RUNTIME] || null
   );
 }
 
@@ -83,7 +86,6 @@ function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
 
-
 function normalizeString(value: unknown): string | null {
   const normalized = String(value || '').trim();
   return normalized || null;
@@ -96,11 +98,7 @@ function normalizeRequiredString(value: unknown): string {
 function normalizeRequiredIdempotencyKey(value: unknown): string {
   const normalized = normalizeRequiredString(value);
   if (!normalized) {
-    throw new ConsoleSponsoredCallError(
-      'invalid_request',
-      400,
-      'idempotencyKey is required',
-    );
+    throw new ConsoleSponsoredCallError('invalid_request', 400, 'idempotencyKey is required');
   }
   return normalized;
 }
@@ -479,8 +477,7 @@ export function createD1ConsoleSponsoredCallRecordInsertStatement(input: {
 function d1SponsoredCallRecordInsertSourceSql(
   insertGuard: D1SponsoredCallInsertGuard | undefined,
 ): string {
-  const sourceSql =
-    'SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?';
+  const sourceSql = 'SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?';
   if (!insertGuard) return sourceSql;
   return `${sourceSql} WHERE changes() = 1`;
 }
@@ -629,7 +626,11 @@ export async function createD1ConsoleSponsoredCallService(
         });
       }
       if (normalized.cursor) {
-        values.push(normalized.cursor.createdAtMs, normalized.cursor.createdAtMs, normalized.cursor.id);
+        values.push(
+          normalized.cursor.createdAtMs,
+          normalized.cursor.createdAtMs,
+          normalized.cursor.id,
+        );
         whereClauses.push('(created_at_ms < ? OR (created_at_ms = ? AND id < ?))');
       }
       values.push(normalized.limit + 1);
@@ -647,7 +648,8 @@ export async function createD1ConsoleSponsoredCallService(
       const finalItem = finalListItem(items);
       return {
         items,
-        nextCursor: records.length > normalized.limit && finalItem ? buildListCursor(finalItem) : null,
+        nextCursor:
+          records.length > normalized.limit && finalItem ? buildListCursor(finalItem) : null,
       };
     },
 

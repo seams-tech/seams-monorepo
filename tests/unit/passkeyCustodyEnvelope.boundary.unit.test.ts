@@ -7,11 +7,9 @@ import {
 import { parseWalletRecoveryEnvelopeSetRecord } from '@shared/wallet-recovery';
 import type { WalletId } from '@shared/utils/domainIds';
 import {
-  ALT_DIGEST_B64U,
   CIPHERTEXT_B64U,
   DIGEST_B64U,
   EVM_LANE_ID,
-  EVM_WALLET_KEY_ID,
   NONCE_12_B64U,
   OTHER_WALLET_ID,
   RECOVERY_KEY_ID,

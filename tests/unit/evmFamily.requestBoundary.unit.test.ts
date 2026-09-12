@@ -5,12 +5,8 @@ import { expect, test } from '@playwright/test';
 import { evmFamilySigningTargetFromExplicitTarget } from '@/core/signingEngine/flows/signEvmFamily/types';
 import {
   thresholdEcdsaChainTargetFromChainFamily,
-  toWalletId,
 } from '@/core/signingEngine/interfaces/ecdsaChainTarget';
-import { buildEvmFamilyEcdsaKeyIdentity } from '@/core/signingEngine/session/identity/evmFamilyEcdsaIdentity';
 
-import { createThresholdEcdsaBootstrapFixture } from './helpers/ecdsaBootstrap.fixtures';
-import { testEcdsaChainTarget } from './helpers/ecdsaChainTarget.fixtures';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 test.describe('EVM-family request boundaries', () => {

@@ -571,7 +571,6 @@ export function DashboardOnboardingPage({
   ).trim();
   const completionOrgId = String(state?.orgId || session.claims?.orgId || '').trim();
 
-
   React.useEffect(() => {
     setVisibleStep('organization');
     setManualOrganizationStepSelection(false);

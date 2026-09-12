@@ -100,7 +100,14 @@ export default [
 
       // Prefer TS-aware version.
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
 
       // Too noisy for an existing TS codebase; keep as signal without blocking CI.
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -128,6 +135,7 @@ export default [
   {
     files: ['**/*.typecheck.ts', '**/tests/type-fixtures/**/*.ts'],
     rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
     },
   },

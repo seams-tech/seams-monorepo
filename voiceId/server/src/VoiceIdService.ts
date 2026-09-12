@@ -9,7 +9,6 @@ import {
   parsePromptPhrase,
   parsePromptSetId,
   parseThresholdVersion,
-  parseUserId,
   parseVerificationId,
   type IsoDateTime,
   type UserId,
@@ -35,7 +34,6 @@ import type {
 } from '../../shared/src/samples.ts';
 import type {
   VoiceIdPhraseMatchResult,
-  VoiceIdSpeakerMatchResult,
   VoiceIdVerificationChecks,
   VoiceIdVerificationResult,
 } from '../../shared/src/results.ts';
@@ -687,9 +685,12 @@ function buildEnrollmentAnalysisClaim(
 }
 
 function buildFailedEnrollmentRecord(
-  record: Extract<VoiceIdEnrollmentRecord, {
-    state: 'pending_continuous_recording' | 'analyzing_continuous_recording';
-  }>,
+  record: Extract<
+    VoiceIdEnrollmentRecord,
+    {
+      state: 'pending_continuous_recording' | 'analyzing_continuous_recording';
+    }
+  >,
   failureReason: Extract<VoiceIdEnrollmentRecord, { state: 'failed' }>['failureReason'],
   failedAt: IsoDateTime,
 ): Extract<VoiceIdEnrollmentRecord, { state: 'failed' }> {
@@ -753,7 +754,11 @@ function buildVerificationPrompt(
   }
   const selector = nonce.charCodeAt(nonce.length - 1) % promptBases.length;
   const base = promptBases[selector];
-  const randomFragment = nonce.replace(/[^a-z0-9]/gi, '').slice(-6).split('').join(' ');
+  const randomFragment = nonce
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(-6)
+    .split('')
+    .join(' ');
   if (randomFragment.split(' ').length !== 6) {
     throw new Error('challenge nonce must provide six alphanumeric prompt tokens');
   }
@@ -808,9 +813,9 @@ function buildVerificationResult(input: {
     );
   }
   if (
-    input.checks.phrase.kind === 'uncertain'
-    || input.checks.intent.kind === 'uncertain'
-    || input.checks.speaker.kind === 'uncertain'
+    input.checks.phrase.kind === 'uncertain' ||
+    input.checks.intent.kind === 'uncertain' ||
+    input.checks.speaker.kind === 'uncertain'
   ) {
     return uncertainVerification(
       input.verification.verificationId,

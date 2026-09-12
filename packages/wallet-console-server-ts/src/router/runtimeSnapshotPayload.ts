@@ -3,7 +3,10 @@ import {
   sortConsoleGasSponsorshipPolicyProjections,
 } from '@seams-internal/wallet-console-server/gasSponsorship/service';
 import { resolveSponsoredCallPoliciesFromProjections } from '@seams-internal/wallet-console-server/gasSponsorship/onboarding';
-import type { ConsolePolicy, ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/index';
+import type {
+  ConsolePolicy,
+  ConsolePolicyService,
+} from '@seams-internal/wallet-console-server/policies/index';
 import type { ConsoleRuntimeSnapshotPayload } from '@seams-internal/wallet-console-server/runtimeSnapshots/index';
 
 export interface ResolveConsoleRuntimeSnapshotPayloadInput {
@@ -30,7 +33,9 @@ function isSameScope(
 }
 
 function hasPublishedRuntimePolicy(policy: ConsolePolicy | null | undefined): boolean {
-  return Boolean(policy && String(policy.publishedAt || '').trim() && Number(policy.version || 0) > 0);
+  return Boolean(
+    policy && String(policy.publishedAt || '').trim() && Number(policy.version || 0) > 0,
+  );
 }
 
 async function resolveLiveRuntimePolicy(input: {
@@ -94,7 +99,9 @@ export async function resolveConsoleRuntimeSnapshotPayload(
       isSameScope(assignment, input.orgId, input.environmentId, input.projectId),
     );
     const policyById = new Map(policies.map((policy) => [policy.id, policy]));
-    const scopedPolicyIds = [...new Set(scopedAssignments.map((assignment) => assignment.policyId))];
+    const scopedPolicyIds = [
+      ...new Set(scopedAssignments.map((assignment) => assignment.policyId)),
+    ];
     const livePolicies = (
       await Promise.all(
         scopedPolicyIds.map(async (policyId) => {
@@ -109,7 +116,9 @@ export async function resolveConsoleRuntimeSnapshotPayload(
       )
     ).filter((policy): policy is ConsolePolicy => policy !== null);
     const livePolicyIds = new Set(livePolicies.map((policy) => policy.id));
-    const liveAssignments = scopedAssignments.filter((assignment) => livePolicyIds.has(assignment.policyId));
+    const liveAssignments = scopedAssignments.filter((assignment) =>
+      livePolicyIds.has(assignment.policyId),
+    );
     return {
       status: 'resolved',
       policyCount: livePolicies.length,
@@ -131,12 +140,13 @@ export async function resolveConsoleRuntimeSnapshotPayload(
     const gasPolicies = await input.policies.listPolicies(ctx, { kind: 'GAS_SPONSORSHIP' });
     const livePolicies = (
       await Promise.all(
-        gasPolicies.map(async (policy) =>
-          await resolveLiveRuntimePolicy({
-            policies: input.policies!,
-            ctx,
-            policy,
-          }),
+        gasPolicies.map(
+          async (policy) =>
+            await resolveLiveRuntimePolicy({
+              policies: input.policies!,
+              ctx,
+              policy,
+            }),
         ),
       )
     ).filter((policy): policy is ConsolePolicy => policy !== null);
@@ -166,10 +176,7 @@ export async function resolveConsoleRuntimeSnapshotPayload(
     };
   })();
 
-  const [policy, gasSponsorship] = await Promise.all([
-    policyPromise,
-    gasPromise,
-  ]);
+  const [policy, gasSponsorship] = await Promise.all([policyPromise, gasPromise]);
 
   return {
     policy,

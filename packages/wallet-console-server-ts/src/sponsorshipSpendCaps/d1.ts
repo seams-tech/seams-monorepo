@@ -1,5 +1,11 @@
 import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
-import { d1Integer as toNumber, d1ChangedRows, formatD1ExecStatement, queryD1One, type D1Row } from '@seams/wallet-server/cloud-host';
+import {
+  d1Integer as toNumber,
+  d1ChangedRows,
+  formatD1ExecStatement,
+  queryD1One,
+  type D1Row,
+} from '@seams/wallet-server/cloud-host';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { ConsoleSponsorshipSpendCapError } from './errors';
 import {
@@ -52,10 +58,9 @@ export interface ConsoleSponsorshipSpendCapD1Runtime {
   readonly now: () => Date;
 }
 
-export type ConsoleSponsorshipSpendCapD1Service =
-  ConsoleSponsorshipSpendCapService & {
-    readonly [CONSOLE_SPONSORSHIP_SPEND_CAP_D1_RUNTIME]: ConsoleSponsorshipSpendCapD1Runtime;
-  };
+export type ConsoleSponsorshipSpendCapD1Service = ConsoleSponsorshipSpendCapService & {
+  readonly [CONSOLE_SPONSORSHIP_SPEND_CAP_D1_RUNTIME]: ConsoleSponsorshipSpendCapD1Runtime;
+};
 
 export interface D1ConsoleSponsorshipSpendCapSchemaOptions {
   readonly database: D1DatabaseLike;
@@ -419,7 +424,6 @@ function toIso(ms: number): string {
   return new Date(ms).toISOString();
 }
 
-
 function normalizeString(value: unknown): string | null {
   const normalized = String(value || '').trim();
   return normalized || null;
@@ -430,7 +434,6 @@ function makeId(prefix: string, now: Date): string {
   const rand = secureRandomBase36(8, 'console IDs');
   return `${prefix}_${ts}_${rand}`;
 }
-
 
 function parseMode(value: unknown): ConsoleSponsorshipSpendCapMode {
   const normalized = String(value || '').trim();
@@ -676,9 +679,7 @@ function throwSpendCapInconsistent(): never {
   );
 }
 
-class D1ConsoleSponsorshipSpendCapServiceImpl
-  implements ConsoleSponsorshipSpendCapService
-{
+class D1ConsoleSponsorshipSpendCapServiceImpl implements ConsoleSponsorshipSpendCapService {
   readonly [CONSOLE_SPONSORSHIP_SPEND_CAP_D1_RUNTIME]: ConsoleSponsorshipSpendCapD1Runtime;
 
   private readonly state: D1ConsoleSponsorshipSpendCapState;

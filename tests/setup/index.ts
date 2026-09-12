@@ -170,7 +170,7 @@ export async function setupBasicPasskeyTest(
               return url;
             }
           };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           const PatchedWorker: any = function (
             this: any,
             url: string | URL,

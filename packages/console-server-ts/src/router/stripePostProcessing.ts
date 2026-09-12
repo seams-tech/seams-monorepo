@@ -98,9 +98,7 @@ export async function dispatchBillingStripePostProcessingEvent(
     return {
       eventId,
       found: true,
-      completed: Boolean(
-        completed?.auditCompletedAt && completed.customerWebhookCompletedAt,
-      ),
+      completed: Boolean(completed?.auditCompletedAt && completed.customerWebhookCompletedAt),
       error: null,
     };
   } catch (error: unknown) {

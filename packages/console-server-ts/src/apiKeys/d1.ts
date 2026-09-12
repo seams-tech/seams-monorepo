@@ -38,7 +38,6 @@ import type {
 import type { ConsoleApiKeysContext, ConsoleApiKeyService } from './service';
 import type { ApiCredentialScopeValidation } from './types';
 
-
 interface StoredApiKey extends ConsoleApiKey {
   readonly secretHash: string;
   readonly keyPrefix: string;
@@ -205,7 +204,6 @@ function toNullableIso(value: unknown): string | null {
   return parsed > 0 ? toIso(parsed) : null;
 }
 
-
 function toNullableMs(value: string | null): number | null {
   if (!value) return null;
   const parsed = Date.parse(value);
@@ -279,7 +277,9 @@ function parseUsageCounts(raw: unknown): Record<string, number> {
   return out;
 }
 
-function cloneJsonObject(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function cloneJsonObject(
+  input: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!input) return undefined;
   return { ...input };
 }
@@ -411,10 +411,7 @@ function hasAnyDefinedField(input: UpdateConsoleApiKeyRequest): boolean {
   return Object.values(input).some((value) => value !== undefined);
 }
 
-function hasRequiredScopes(
-  scopes: readonly string[],
-  requiredScopes: readonly string[],
-): boolean {
+function hasRequiredScopes(scopes: readonly string[], requiredScopes: readonly string[]): boolean {
   if (!requiredScopes.length) return true;
   const available = new Set(
     scopes.map((scope) => normalizeString(scope).toLowerCase()).filter(Boolean),
@@ -531,7 +528,6 @@ function applyApiKeyUpdate(
     updatedAt,
   };
 }
-
 
 class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
   readonly [CONSOLE_API_KEYS_D1_RUNTIME]: ConsoleApiKeysD1Runtime;
@@ -846,11 +842,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
 
     const currentNowMs = nowMs(this.state.now());
     if (keyRow.status === 'REVOKED') {
-      await this.appendAnomalyFlag(
-        keyRow,
-        'auth.publishable_key_revoked_attempt',
-        currentNowMs,
-      );
+      await this.appendAnomalyFlag(keyRow, 'auth.publishable_key_revoked_attempt', currentNowMs);
       return {
         ok: false,
         status: 403,
@@ -862,11 +854,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     if (keyRow.expiresAt) {
       const expiresAtMs = Date.parse(keyRow.expiresAt);
       if (Number.isFinite(expiresAtMs) && expiresAtMs <= currentNowMs) {
-        await this.appendAnomalyFlag(
-          keyRow,
-          'auth.publishable_key_expired_attempt',
-          currentNowMs,
-        );
+        await this.appendAnomalyFlag(keyRow, 'auth.publishable_key_expired_attempt', currentNowMs);
         return {
           ok: false,
           status: 403,
@@ -919,7 +907,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     readonly secret: string;
   }): Promise<StoredApiKey> {
     const base = {
-      id: makeApiKeyId(input.now),
+      id: makeApiKeyId(),
       orgId: input.orgId,
       name: input.request.name,
       environmentId: input.request.environmentId,
@@ -1018,12 +1006,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
                 updated_at_ms = ?
           WHERE namespace = ? AND org_id = ? AND id = ?`,
       )
-      .bind(
-        ...apiKeyColumnValues(apiKey),
-        this.state.namespace,
-        apiKey.orgId,
-        apiKey.id,
-      )
+      .bind(...apiKeyColumnValues(apiKey), this.state.namespace, apiKey.orgId, apiKey.id)
       .run();
   }
 

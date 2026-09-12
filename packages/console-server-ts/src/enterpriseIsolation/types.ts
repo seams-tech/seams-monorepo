@@ -1,6 +1,11 @@
 export type ConsoleEnterpriseIsolationMode = 'SHARED' | 'DEDICATED';
 
-export type ConsoleEnterpriseIsolationStatus = 'SHARED' | 'REQUESTED' | 'MIGRATING' | 'ISOLATED' | 'FAILED';
+export type ConsoleEnterpriseIsolationStatus =
+  | 'SHARED'
+  | 'REQUESTED'
+  | 'MIGRATING'
+  | 'ISOLATED'
+  | 'FAILED';
 
 export type ConsoleEnterpriseIsolationTrigger = 'MANUAL' | 'SLA_BREACH' | 'COMPLIANCE';
 

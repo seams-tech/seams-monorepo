@@ -765,7 +765,6 @@ export function PlatformBillingView(): React.JSX.Element {
       canSubmitRefund,
       loadLookup,
       lookupResult?.organization.id,
-      refundAmountInput,
       refundAmountMinor,
       refundPurchaseId,
       refundReason,

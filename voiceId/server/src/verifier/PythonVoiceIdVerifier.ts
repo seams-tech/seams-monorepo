@@ -171,10 +171,14 @@ export function parsePythonEnrollmentTemplateResponse(
       }
       return {
         kind: 'built',
-        encryptedTemplate: parseEncryptedBytes(requireNonEmptyString(response, 'encryptedTemplate')),
+        encryptedTemplate: parseEncryptedBytes(
+          requireNonEmptyString(response, 'encryptedTemplate'),
+        ),
         templateVersion: parseTemplateVersion(requireNonEmptyString(response, 'templateVersion')),
         modelVersion: parseModelVersion(requireNonEmptyString(response, 'modelVersion')),
-        thresholdVersion: parseThresholdVersion(requireNonEmptyString(response, 'thresholdVersion')),
+        thresholdVersion: parseThresholdVersion(
+          requireNonEmptyString(response, 'thresholdVersion'),
+        ),
         quality,
         analysis: parsePythonEnrollmentAnalysis(response.analysis),
       };
@@ -273,13 +277,14 @@ function parsePythonEnrollmentWindow(
     endMs,
     speechMs: requirePositiveNumber(window.speechMs, `windows[${arrayIndex}].speechMs`),
     signalScore: requireProbability(window.signalScore, `windows[${arrayIndex}].signalScore`),
-    templateWeight: requireProbability(window.templateWeight, `windows[${arrayIndex}].templateWeight`),
+    templateWeight: requireProbability(
+      window.templateWeight,
+      `windows[${arrayIndex}].templateWeight`,
+    ),
   };
 }
 
-export function parsePythonSpeakerVerificationResponse(
-  value: unknown,
-): VoiceIdSpeakerVerification {
+export function parsePythonSpeakerVerificationResponse(value: unknown): VoiceIdSpeakerVerification {
   const response = requireObject(value, 'speaker verification response');
   requireKind(response, 'speaker_verification');
   requireNonEmptyString(response, 'requestId');
@@ -381,7 +386,9 @@ function parsePythonSpeaker(value: unknown): VoiceIdSpeakerMatchResult {
         score: requireCosineScore(response.score, 'speaker.score'),
         threshold: requireProbability(response.threshold, 'speaker.threshold'),
         modelVersion: parseModelVersion(requireNonEmptyString(response, 'modelVersion')),
-        thresholdVersion: parseThresholdVersion(requireNonEmptyString(response, 'thresholdVersion')),
+        thresholdVersion: parseThresholdVersion(
+          requireNonEmptyString(response, 'thresholdVersion'),
+        ),
       };
     case 'rejected':
       return {
@@ -390,7 +397,9 @@ function parsePythonSpeaker(value: unknown): VoiceIdSpeakerMatchResult {
         score: requireCosineScore(response.score, 'speaker.score'),
         threshold: requireProbability(response.threshold, 'speaker.threshold'),
         modelVersion: parseModelVersion(requireNonEmptyString(response, 'modelVersion')),
-        thresholdVersion: parseThresholdVersion(requireNonEmptyString(response, 'thresholdVersion')),
+        thresholdVersion: parseThresholdVersion(
+          requireNonEmptyString(response, 'thresholdVersion'),
+        ),
       };
     case 'uncertain':
       return {
@@ -403,7 +412,9 @@ function parsePythonSpeaker(value: unknown): VoiceIdSpeakerMatchResult {
         score: requireCosineScore(response.score, 'speaker.score'),
         threshold: requireProbability(response.threshold, 'speaker.threshold'),
         modelVersion: parseModelVersion(requireNonEmptyString(response, 'modelVersion')),
-        thresholdVersion: parseThresholdVersion(requireNonEmptyString(response, 'thresholdVersion')),
+        thresholdVersion: parseThresholdVersion(
+          requireNonEmptyString(response, 'thresholdVersion'),
+        ),
       };
   }
 }
@@ -423,8 +434,8 @@ function requireExactKeys(
   const actualKeys = Object.keys(value).sort();
   const sortedExpectedKeys = [...expectedKeys].sort();
   if (
-    actualKeys.length !== sortedExpectedKeys.length
-    || actualKeys.some((key, index) => key !== sortedExpectedKeys[index])
+    actualKeys.length !== sortedExpectedKeys.length ||
+    actualKeys.some((key, index) => key !== sortedExpectedKeys[index])
   ) {
     throw new Error(`${fieldName} contains unexpected or missing fields`);
   }

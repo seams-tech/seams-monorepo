@@ -541,10 +541,18 @@ export function ObservabilityPage(): React.JSX.Element {
                           <span>{entry.component || DASHBOARD_EMPTY_VALUE}</span>
                         </DashboardTableDetailsItem>
                         <DashboardTableDetailsItem label="Request ID">
-                          {entry.requestId ? <code>{entry.requestId}</code> : <span>{DASHBOARD_EMPTY_VALUE}</span>}
+                          {entry.requestId ? (
+                            <code>{entry.requestId}</code>
+                          ) : (
+                            <span>{DASHBOARD_EMPTY_VALUE}</span>
+                          )}
                         </DashboardTableDetailsItem>
                         <DashboardTableDetailsItem label="Trace ID">
-                          {entry.traceId ? <code>{entry.traceId}</code> : <span>{DASHBOARD_EMPTY_VALUE}</span>}
+                          {entry.traceId ? (
+                            <code>{entry.traceId}</code>
+                          ) : (
+                            <span>{DASHBOARD_EMPTY_VALUE}</span>
+                          )}
                         </DashboardTableDetailsItem>
                         <DashboardTableDetailsItem label="Metadata">
                           <span>{metadataSummary(entry.metadata)}</span>

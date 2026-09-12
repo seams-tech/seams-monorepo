@@ -50,10 +50,7 @@ export function AnimatedHeight(props: {
   }, []);
 
   return (
-    <div
-      ref={outerRef}
-      className={['animated-height', props.className].filter(Boolean).join(' ')}
-    >
+    <div ref={outerRef} className={['animated-height', props.className].filter(Boolean).join(' ')}>
       <div ref={innerRef}>{props.children}</div>
     </div>
   );

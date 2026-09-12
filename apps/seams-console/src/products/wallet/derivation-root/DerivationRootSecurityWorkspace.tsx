@@ -152,7 +152,10 @@ async function loadRestoreAccess(
         'The configured recovery destination is invalid. Contact your deployment administrator.',
       );
     setDestination(destination);
-    const restoration = 'restoration' in body && (body.restoration === 'active' || body.restoration === 'pending') ? body.restoration : 'unavailable';
+    const restoration =
+      'restoration' in body && (body.restoration === 'active' || body.restoration === 'pending')
+        ? body.restoration
+        : 'unavailable';
     setAccess({ kind: 'ready', destination, restoration });
   } catch (error) {
     if (!signal.aborted)
@@ -174,7 +177,10 @@ function beginRestoreAccess(
   if (environment === null) return;
   const controller = new AbortController();
   void loadRestoreAccess(controller.signal, setAccess, setDestination);
-  const interval = window.setInterval(loadRestoreAccess.bind(null, controller.signal, setAccess, setDestination), 5000);
+  const interval = window.setInterval(
+    loadRestoreAccess.bind(null, controller.signal, setAccess, setDestination),
+    5000,
+  );
   return stopRestoreAccess.bind(null, controller, interval);
 }
 
@@ -291,7 +297,9 @@ function CommandList({ commands }: { commands: readonly DerivationRootCliCommand
         <li key={entry.label}>
           <h3>{entry.label}</h3>
           {entry.note && <p>{entry.note}</p>}
-          <div className={`derivation-root-command${entry.completed ? ' derivation-root-command--completed' : ''}`}>
+          <div
+            className={`derivation-root-command${entry.completed ? ' derivation-root-command--completed' : ''}`}
+          >
             <pre>
               <code>{entry.command.split(/(\s+)/).map(renderCommandToken)}</code>
             </pre>
@@ -587,7 +595,9 @@ function BackupProgress({
       {stage !== 'ready' && (
         <div className="derivation-root-progress-activity" role="status">
           <LoaderCircle className="derivation-root-spinner" size={24} aria-hidden="true" />
-          <strong>{stage === 'request' ? 'Creating your recovery backup…' : 'Checking your backup…'}</strong>
+          <strong>
+            {stage === 'request' ? 'Creating your recovery backup…' : 'Checking your backup…'}
+          </strong>
         </div>
       )}
       <ol className="derivation-root-progress-steps" data-stage={stage}>
@@ -665,6 +675,8 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   const [restoreAccess, setRestoreAccess] = React.useState<RestoreAccessState>({ kind: 'loading' });
   const restoreEnvironment = status?.identity.envId ?? null;
   const restartingKeys = restartEnvironment !== null && restartEnvironment === restoreEnvironment;
+  // The effect body is standalone and receives its complete dependency set explicitly.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(
     beginRestoreAccess.bind(null, restoreEnvironment, setRestoreAccess, setRestoreDestination),
     [restoreEnvironment],
@@ -714,24 +726,20 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
       job.status === 'verifying' ||
       job.status === 'activating' ||
       job.status === 'retiring');
+  const recoveryEnrollmentPending =
+    pageState.kind === 'active' && pageState.recoveryEnrollment !== 'committed';
 
   React.useEffect(() => {
     if (
       !jobInFlight &&
       !restartingKeys &&
       rotationOutcome?.kind !== 'retryable' &&
-      !(pageState.kind === 'active' && pageState.recoveryEnrollment !== 'committed')
+      !recoveryEnrollmentPending
     )
       return undefined;
     const timer = window.setInterval(() => void refresh(), 5_000);
     return () => window.clearInterval(timer);
-  }, [
-    restartingKeys,
-    jobInFlight,
-    rotationOutcome?.kind,
-    refresh,
-    pageState.kind === 'active' ? pageState.recoveryEnrollment : null,
-  ]);
+  }, [restartingKeys, jobInFlight, rotationOutcome?.kind, refresh, recoveryEnrollmentPending]);
 
   /**
    * Runs one custody mutation as an idempotent operation.
@@ -869,10 +877,14 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   const splitRecoveryDownloads =
     status.recoveryBackup.status !== 'not_configured' &&
     status.recoveryBackup.governance.kind === 'two_person_v1';
-  const kitRole = splitRecoveryDownloads && pageState.kind === 'active'
-    ? (pageState.recoveryDownloadAccess.deriverA ? 'deriver-a' : 'deriver-b')
-    : null;
-  const canDownloadKit = pageState.kind === 'active' &&
+  const kitRole =
+    splitRecoveryDownloads && pageState.kind === 'active'
+      ? pageState.recoveryDownloadAccess.deriverA
+        ? 'deriver-a'
+        : 'deriver-b'
+      : null;
+  const canDownloadKit =
+    pageState.kind === 'active' &&
     (pageState.recoveryDownloadAccess.deriverA || pageState.recoveryDownloadAccess.deriverB);
   const actions = recoveryActions(status.recoveryBackup);
   const consoleBaseUrl = requireConsoleBaseUrl();
@@ -889,11 +901,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
     destination !== restoreAccess.destination
       ? []
       : restoreCliCommands(destination, status.restore).map(
-          authorizeRestoreCommand.bind(
-            null,
-            consoleBaseUrl,
-                    status.identity.envId,
-          ),
+          authorizeRestoreCommand.bind(null, consoleBaseUrl, status.identity.envId),
         );
   const governancePending = pendingApprovals.governance;
   const backupPending = pendingApprovals.backup;
@@ -1147,20 +1155,25 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
             </summary>
             <div className="derivation-root-step-body">
               <p>
-                Generate wrapper keypairs to encrypt the server recovery material in step 3.
-                The private wrapper keys stay on the holders’ devices and decrypt those packages
-                during restoration.
+                Generate wrapper keypairs to encrypt the server recovery material in step 3. The
+                private wrapper keys stay on the holders’ devices and decrypt those packages during
+                restoration.
               </p>
               {status.recoveryBackup.status === 'not_configured' && (
                 <p>Save an approval policy to enroll public wrapper keys.</p>
               )}
-              {pageState.kind === 'active' && pageState.recoveryEnrollment === 'committed' && !restartingKeys ? (
+              {pageState.kind === 'active' &&
+              pageState.recoveryEnrollment === 'committed' &&
+              !restartingKeys ? (
                 <div role="status">
-                  <StatusLine line={{
-                    tone: 'success',
-                    label: 'Both public wrapper keys are registered and approved for this backup.',
-                    detail: 'Create your backup in step 3, then save the recovery ZIP in step 4.',
-                  }} />
+                  <StatusLine
+                    line={{
+                      tone: 'success',
+                      label:
+                        'Both public wrapper keys are registered and approved for this backup.',
+                      detail: 'Create your backup in step 3, then save the recovery ZIP in step 4.',
+                    }}
+                  />
                 </div>
               ) : pageState.kind === 'active' &&
                 pageState.recoveryEnrollment === 'ready_to_commit' ? null : enrolCommands.length ===
@@ -1179,25 +1192,27 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
 
               <CommandList commands={enrolCommands} />
 
-              {pageState.kind === 'active' && pageState.recoveryEnrollment === 'committed' && !restartingKeys && (
-                <div className="dashboard-actions">
-                  <button
-                    type="button"
-                    className="dashboard-pagination-button"
-                    disabled={!actions.canEnrolRecipients || custodyProgress.kind === 'saving'}
-                    onClick={setRestartEnvironment.bind(null, status.identity.envId)}
-                  >
-                    Restart from step 2
-                  </button>
-                </div>
-              )}
+              {pageState.kind === 'active' &&
+                pageState.recoveryEnrollment === 'committed' &&
+                !restartingKeys && (
+                  <div className="dashboard-actions">
+                    <button
+                      type="button"
+                      className="dashboard-pagination-button"
+                      disabled={!actions.canEnrolRecipients || custodyProgress.kind === 'saving'}
+                      onClick={setRestartEnvironment.bind(null, status.identity.envId)}
+                    >
+                      Restart from step 2
+                    </button>
+                  </div>
+                )}
 
               {pageState.kind === 'active' &&
                 pageState.recoveryEnrollment === 'ready_to_commit' && (
                   <>
                     <p>
-                      Both public wrapper keys are enrolled: each holder has proved control of the matching
-                      private wrapper key. Commit this pair to authorize backup creation.
+                      Both public wrapper keys are enrolled: each holder has proved control of the
+                      matching private wrapper key. Commit this pair to authorize backup creation.
                     </p>
                     <button
                       type="button"
@@ -1273,19 +1288,30 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                   <p>The wrapper key pair is committed. No backup is ready to download yet.</p>
                 )}
               {downloadable !== null && !canDownloadKit && (
-                <p>Your account does not have access to download a recovery package. Each designated holder must sign in to save their own kit.</p>
-              )}
-              {downloadable !== null && canDownloadKit && status.recoveryBackup.status !== 'failed_replacement' && (
                 <p>
-                  The encrypted backup is ready. Download and verify the files in step 4 to confirm
-                  they are saved safely.
+                  Your account does not have access to download a recovery package. Each designated
+                  holder must sign in to save their own kit.
                 </p>
               )}
+              {downloadable !== null &&
+                canDownloadKit &&
+                status.recoveryBackup.status !== 'failed_replacement' && (
+                  <p>
+                    The encrypted backup is ready. Download and verify the files in step 4 to
+                    confirm they are saved safely.
+                  </p>
+                )}
               {status.recoveryBackup.status === 'failed_replacement' && (
-                <p>The replacement failed. Step 4 still contains your previous backup and its original wrapper keys are required to open it.</p>
+                <p>
+                  The replacement failed. Step 4 still contains your previous backup and its
+                  original wrapper keys are required to open it.
+                </p>
               )}
               {pageState.kind === 'active' && pageState.recoveryEnrollment !== 'committed' && (
-                <p>Finish both enrollments, then select Commit wrapper keys in step 2 before creating the new backup.</p>
+                <p>
+                  Finish both enrollments, then select Commit wrapper keys in step 2 before creating
+                  the new backup.
+                </p>
               )}
               {backupPending ? (
                 <p role="status">
@@ -1367,16 +1393,24 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                       : 'Save a recovery kit containing the manifest, both encrypted packages, both private wrapper keys, and instructions.'}
                   </p>
                   <p>
-                    Run this command from the same Terminal folder you used for enrollment to create and save your recovery ZIP.
-                    {' '}Approve the matching code in your browser. The CLI downloads the encrypted recovery packages, verifies them with your local wrapper keys, and combines those files into a ZIP. Enter a ZIP password when prompted, or press Enter to skip encryption.
+                    Run this command from the same Terminal folder you used for enrollment to create
+                    and save your recovery ZIP. Approve the matching code in your browser. The CLI
+                    downloads the encrypted recovery packages, verifies them with your local wrapper
+                    keys, and combines those files into a ZIP. Enter a ZIP password when prompted,
+                    or press Enter to skip encryption.
                   </p>
-                  <CommandList commands={[{
-                    label: 'Save your recovery kit',
-                    command: `npx @seams/wallet-cli@0.4.1 derivation-root backup kit --console-url ${shellQuote(consoleBaseUrl)} --environment ${shellQuote(status.identity.envId)} --recovery-set ${shellQuote(downloadable.recoverySetId)}${kitRole === null ? '' : ` --role ${kitRole}`}`,
-                    note: kitRole === null
-                      ? 'Your private wrapper keys and password stay in Terminal. The ZIP includes both wrapper keys, both encrypted recovery packages, the manifest and restore instructions.'
-                      : 'Your private wrapper key and password stay in Terminal. The ZIP includes your wrapper key, your encrypted recovery package, the manifest and restore instructions.',
-                  }]} />
+                  <CommandList
+                    commands={[
+                      {
+                        label: 'Save your recovery kit',
+                        command: `npx @seams/wallet-cli@0.4.1 derivation-root backup kit --console-url ${shellQuote(consoleBaseUrl)} --environment ${shellQuote(status.identity.envId)} --recovery-set ${shellQuote(downloadable.recoverySetId)}${kitRole === null ? '' : ` --role ${kitRole}`}`,
+                        note:
+                          kitRole === null
+                            ? 'Your private wrapper keys and password stay in Terminal. The ZIP includes both wrapper keys, both encrypted recovery packages, the manifest and restore instructions.'
+                            : 'Your private wrapper key and password stay in Terminal. The ZIP includes your wrapper key, your encrypted recovery package, the manifest and restore instructions.',
+                      },
+                    ]}
+                  />
                 </>
               )}
             </div>
@@ -1585,15 +1619,15 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                 revoked since it was created. Both imported shares are saved; you do not need to
                 import them again.
               </p>
-              <CommandList commands={[authorizeRestoreCommand(
-                consoleBaseUrl,
-                status.identity.envId,
-                {
-                  label: 'Activate with offline verification',
-                  command: `seams-wallet derivation-root restore activate --destination ${shellQuote(destination)} --session-file ./restore-session.json --acknowledge-offline-trust`,
-                  note: 'If you accept offline verification, run this command from the same folder. Keep the existing restore-session.json file for retries.',
-                },
-              )]} />
+              <CommandList
+                commands={[
+                  authorizeRestoreCommand(consoleBaseUrl, status.identity.envId, {
+                    label: 'Activate with offline verification',
+                    command: `seams-wallet derivation-root restore activate --destination ${shellQuote(destination)} --session-file ./restore-session.json --acknowledge-offline-trust`,
+                    note: 'If you accept offline verification, run this command from the same folder. Keep the existing restore-session.json file for retries.',
+                  }),
+                ]}
+              />
             </details>
           )}
         </section>

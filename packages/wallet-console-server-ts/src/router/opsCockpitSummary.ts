@@ -1,6 +1,15 @@
-import type { ConsoleApprovalService, ConsoleApprovalRequestRecord } from '@seams-internal/wallet-console-server/approvals/index';
-import type { ConsoleAuditExportsService, ConsoleAuditExportRecord } from '@seams-internal/console-server/auditExports/index';
-import type { BillingInvoice, ConsoleBillingService } from '@seams-internal/console-server/billing/index';
+import type {
+  ConsoleApprovalService,
+  ConsoleApprovalRequestRecord,
+} from '@seams-internal/wallet-console-server/approvals/index';
+import type {
+  ConsoleAuditExportsService,
+  ConsoleAuditExportRecord,
+} from '@seams-internal/console-server/auditExports/index';
+import type {
+  BillingInvoice,
+  ConsoleBillingService,
+} from '@seams-internal/console-server/billing/index';
 import type {
   ConsoleEnterpriseIsolationService,
   ConsoleEnterpriseIsolationState,
@@ -10,7 +19,10 @@ import type {
   ConsoleOnboardingTelemetryAlert,
   ConsoleOnboardingTelemetrySnapshot,
 } from '@seams-internal/console-server/onboarding/index';
-import type { ConsoleWebhookDeadLetter, ConsoleWebhookService } from '@seams-internal/console-server/webhooks/index';
+import type {
+  ConsoleWebhookDeadLetter,
+  ConsoleWebhookService,
+} from '@seams-internal/console-server/webhooks/index';
 import type { ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 
@@ -163,7 +175,9 @@ function toOnboardingContext(claims: ConsoleAuthClaims): {
   return {
     orgId: claims.orgId,
     actorUserId: claims.userId,
-    actorEmail: String(claims.email ?? '').trim().toLowerCase(),
+    actorEmail: String(claims.email ?? '')
+      .trim()
+      .toLowerCase(),
     actorDisplayName: String(claims.name ?? '').trim() || null,
     projectId: claims.projectId ?? null,
     environmentId: claims.environmentId ?? null,
@@ -181,7 +195,10 @@ export async function buildConsoleOpsCockpitSummary(
     1,
     Math.floor(opts.maxWebhookEndpointsScanned || DEFAULT_MAX_WEBHOOK_ENDPOINTS_SCANNED),
   );
-  const maxPreviewItems = Math.max(1, Math.floor(opts.maxPreviewItems || DEFAULT_MAX_PREVIEW_ITEMS));
+  const maxPreviewItems = Math.max(
+    1,
+    Math.floor(opts.maxPreviewItems || DEFAULT_MAX_PREVIEW_ITEMS),
+  );
   const telemetryWindowMinutes = Math.max(
     1,
     Math.floor(opts.telemetryWindowMinutes || DEFAULT_TELEMETRY_WINDOW_MINUTES),
@@ -349,9 +366,10 @@ export async function buildConsoleOpsCockpitSummary(
 
   if (opts.enterpriseIsolation) {
     try {
-      const state = await opts.enterpriseIsolation.getIsolationState(scopedContext, { scope: 'ORG' });
-      const active =
-        state.status === 'REQUESTED' || state.status === 'MIGRATING' ? [state] : [];
+      const state = await opts.enterpriseIsolation.getIsolationState(scopedContext, {
+        scope: 'ORG',
+      });
+      const active = state.status === 'REQUESTED' || state.status === 'MIGRATING' ? [state] : [];
       summary.enterpriseIsolation = {
         status: toStatus('ok'),
         activeRequestCount: active.length,

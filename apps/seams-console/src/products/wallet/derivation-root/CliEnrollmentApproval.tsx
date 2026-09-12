@@ -120,7 +120,10 @@ async function approveEnrollment(
 export function CliEnrollmentApproval({ id }: { id: string }) {
   const [state, setState] = React.useState<State>({ kind: 'loading' });
   const [verificationMethod, setVerificationMethod] = React.useState<VerificationMethod>('passkey');
+  // Effect bodies are standalone to keep the component readable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(loadApprovalEffect.bind(null, id, setState), [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(pollApprovedEffect.bind(null, id, state.kind, setState), [id, state.kind]);
   return (
     <section

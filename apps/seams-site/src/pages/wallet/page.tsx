@@ -1,7 +1,14 @@
 import React from 'react';
 import { AuthMenuMode } from '@seams/wallet/react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
-import { H2DemoHero, H2Faq, H2Footer, H2Networks, H2Security, H2Start } from '@/components/h2/sections';
+import {
+  H2DemoHero,
+  H2Faq,
+  H2Footer,
+  H2Networks,
+  H2Security,
+  H2Start,
+} from '@/components/h2/sections';
 import '@/styles/h2.css';
 
 /* Embedded Wallet product page (ICP: teams that need wallets in their app).
@@ -14,11 +21,7 @@ export function WalletPage(): React.JSX.Element {
       <div className="h2-col">
         <H2DemoHero
           authDefaultModeWhenNoDetectedAccount={AuthMenuMode.Register}
-          title={
-            <>
-              Non&#8209;custodial wallets, opened with a passkey
-            </>
-          }
+          title={<>Non&#8209;custodial wallets, opened with a passkey</>}
           sub={
             <>
               Embed wallets your users can never lose: keys split between their device and your

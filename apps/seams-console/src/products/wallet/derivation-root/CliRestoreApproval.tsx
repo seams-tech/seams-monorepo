@@ -125,9 +125,13 @@ function message(state: State): string {
 export function CliRestoreApproval({ id }: { id: string }) {
   const dialogRef = React.useRef<HTMLDialogElement | null>(null);
   const titleId = React.useId();
+  // Effect bodies are standalone to keep the component readable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(openRestoreDialog.bind(null, dialogRef), []);
   const [state, setState] = React.useState<State>({ kind: 'loading' });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(begin.bind(null, id, setState), [id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(pollApprovedRestore.bind(null, state.kind, id, setState), [state.kind, id]);
   return (
     <dialog

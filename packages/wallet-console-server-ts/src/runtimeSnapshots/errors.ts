@@ -14,6 +14,8 @@ export class ConsoleRuntimeSnapshotError extends Error {
   }
 }
 
-export function isConsoleRuntimeSnapshotError(error: unknown): error is ConsoleRuntimeSnapshotError {
+export function isConsoleRuntimeSnapshotError(
+  error: unknown,
+): error is ConsoleRuntimeSnapshotError {
   return error instanceof ConsoleRuntimeSnapshotError;
 }

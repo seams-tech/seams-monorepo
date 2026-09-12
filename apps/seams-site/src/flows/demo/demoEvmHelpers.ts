@@ -11,7 +11,6 @@ import {
   type EvmClient,
 } from '@seams/wallet/advanced';
 
-import { FRONTEND_CONFIG } from '@/config';
 import faucetAbi from '@/assets/abis/Faucet.json';
 
 export { TEMPO_ALPHA_USD_FEE_TOKEN, TEMPO_FEE_MANAGER_CONTRACT, TEMPO_FEE_MANAGER_ABI };

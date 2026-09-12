@@ -46,7 +46,6 @@ import {
   buildBaseEvmFamilyEcdsaKeyIdentity,
   buildPasskeyEcdsaAuthBinding,
   buildResolvedEvmFamilyEcdsaKey,
-  buildVerifiedEcdsaPublicFacts,
   deriveEvmFamilySigningKeySlotId,
   toRpId,
   type EvmFamilyEcdsaKeyHandle,

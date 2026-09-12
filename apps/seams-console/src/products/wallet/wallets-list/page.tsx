@@ -13,17 +13,6 @@ import {
   dashboardTableColumns,
   useDashboardTablePagination,
 } from '@core/dashboard/components/DashboardTable';
-
-const USER_WALLETS_TABLE_COLUMNS = [
-  'Wallet',
-  'Owner',
-  'Policy',
-  'Balance',
-  'Status',
-  'Updated',
-] as const;
-const SEARCH_USER_WALLETS_PLACEHOLDER =
-  'Search by wallet address, wallet ID, user ID, or external reference ID';
 import {
   DASHBOARD_EMPTY_VALUE,
   dashboardStatusLabel,
@@ -46,6 +35,17 @@ import {
   type DashboardConsoleWalletSortOrder,
   type DashboardConsoleWalletType,
 } from '../wallets/consoleWalletApi';
+
+const USER_WALLETS_TABLE_COLUMNS = [
+  'Wallet',
+  'Owner',
+  'Policy',
+  'Balance',
+  'Status',
+  'Updated',
+] as const;
+const SEARCH_USER_WALLETS_PLACEHOLDER =
+  'Search by wallet address, wallet ID, user ID, or external reference ID';
 
 type WalletFilterOption = {
   value: string;

@@ -1,5 +1,7 @@
 export type ConsoleAuditActorType = 'USER' | 'SYSTEM';
 
+// Declaration-merging extension point for product-owned audit categories.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConsoleAuditCategoryExtensions {}
 
 export type ConsoleAuditCategory =
@@ -19,6 +21,8 @@ export type ConsoleAuditOutcome = 'SUCCESS' | 'FAILURE' | 'PENDING';
 
 export type ConsoleAuditEvidenceDomain = 'POLICY' | 'BILLING' | 'KEY_EXPORT' | 'SECURITY';
 
+// Declaration-merging extension point for product-owned evidence references.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConsoleAuditEvidenceReferenceKindExtensions {}
 
 export type ConsoleAuditEvidenceReferenceKind =

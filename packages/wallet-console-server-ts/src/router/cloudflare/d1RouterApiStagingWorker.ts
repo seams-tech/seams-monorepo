@@ -3,7 +3,6 @@ import {
   type CfExecutionContext,
   type CfScheduledEvent,
   type D1DatabaseLike,
-  type D1Row,
   type FetchHandler,
   readEnvironmentCsv,
   readEnvironmentString,
@@ -120,9 +119,7 @@ async function fetch(
   return await consoleHandler(request, env, ctx);
 }
 
-async function createConsoleHandler(
-  env: CloudflareD1RouterApiStagingEnv,
-): Promise<FetchHandler> {
+async function createConsoleHandler(env: CloudflareD1RouterApiStagingEnv): Promise<FetchHandler> {
   const namespace = requireEnvironmentString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const bundle = await createCloudflareD1ConsoleServiceBundle({

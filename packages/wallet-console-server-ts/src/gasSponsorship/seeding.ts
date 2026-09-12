@@ -1,4 +1,7 @@
-import type { ConsoleOrgProjectEnvService, ConsoleOrgProjectEnvContext } from '@seams-internal/console-server/orgProjectEnv/index';
+import type {
+  ConsoleOrgProjectEnvService,
+  ConsoleOrgProjectEnvContext,
+} from '@seams-internal/console-server/orgProjectEnv/index';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
 import type { ConsolePolicyService } from '../policies';
 import { ensureTempoTestnetOnboardingPolicyForEnvironment } from './onboarding';

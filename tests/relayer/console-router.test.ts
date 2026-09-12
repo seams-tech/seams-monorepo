@@ -19,7 +19,6 @@ import {
   createInMemoryConsoleOrganizationAccessService,
   createInMemoryConsoleWalletService,
   createInMemoryConsoleWebhookService,
-  type ConsoleApiKeyService,
   type ConsoleApprovalService,
   type ConsoleAuditService,
   type ConsoleAuditExportsService,
@@ -31,8 +30,6 @@ import {
   type ConsoleOrgProjectEnvService,
   type ConsolePolicyService,
   type ConsoleWallet,
-  type ConsoleWalletService,
-  type ConsoleWebhookService,
   type OrganizationAdminPermission,
   type ProjectAccessAssignment,
 } from '@seams-internal/wallet-console-server/router/express-adaptor';

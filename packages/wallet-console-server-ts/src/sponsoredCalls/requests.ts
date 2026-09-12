@@ -19,7 +19,11 @@ const SPONSORED_CALL_RECEIPT_STATUSES = new Set<ConsoleSponsoredCallReceiptStatu
   'rpc_rejected',
 ]);
 
-function createParseError(code: string, status: number, message: string): ConsoleSponsoredCallError {
+function createParseError(
+  code: string,
+  status: number,
+  message: string,
+): ConsoleSponsoredCallError {
   return new ConsoleSponsoredCallError(code, status, message);
 }
 
@@ -38,7 +42,11 @@ function parseOptionalReceiptStatus(
 ): ConsoleSponsoredCallReceiptStatus | undefined {
   if (!value) return undefined;
   if (!SPONSORED_CALL_RECEIPT_STATUSES.has(value as ConsoleSponsoredCallReceiptStatus)) {
-    throw new ConsoleSponsoredCallError('invalid_query', 400, `Unsupported receiptStatus: ${value}`);
+    throw new ConsoleSponsoredCallError(
+      'invalid_query',
+      400,
+      `Unsupported receiptStatus: ${value}`,
+    );
   }
   return value as ConsoleSponsoredCallReceiptStatus;
 }

@@ -1,8 +1,4 @@
-import type {
-  TenantRootIdentityFieldV1,
-  TenantRootIdentityV1,
-  TenantRootIdentityWireV1,
-} from '@seams-internal/shared-ts/tenant-root';
+import type { TenantRootIdentityV1 } from '@seams-internal/shared-ts/tenant-root';
 
 export type {
   TenantRootIdentityFieldV1,

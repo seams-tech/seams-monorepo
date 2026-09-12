@@ -210,10 +210,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const { go, linkProps } = useSiteRouter();
   const homeProps = linkProps('/');
   const consoleSession = useDashboardConsoleSession();
-  const persistedSelectedContext = React.useMemo(
-    () => readPersistedDashboardSelectedContext(),
-    [pathname],
-  );
+  const persistedSelectedContext = React.useMemo(() => readPersistedDashboardSelectedContext(), []);
   const persistedOrganizationId = String(persistedSelectedContext.organization || '').trim();
   const persistedProjectId = String(persistedSelectedContext.project || '').trim();
   const persistedEnvironmentId = String(persistedSelectedContext.environment || '').trim();
@@ -243,11 +240,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const [environmentSelection, setEnvironmentSelection] = React.useState<
     { readonly kind: 'idle' | 'pending' } | { readonly kind: 'failed'; readonly message: string }
   >({ kind: 'idle' });
-  const onboardingComplete = onboardingState
-    ? onboardingState.onboardingComplete === undefined
-      ? onboardingState.complete === true
-      : onboardingState.onboardingComplete
-    : false;
   const hasExistingOrganization = onboardingState?.hasOrganization === true;
   const sessionForbidden =
     !consoleSession.loading &&
@@ -286,9 +278,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   );
   const currentOrganizationProjectId = String(
     currentOrganizationSummary?.selectedProjectId || '',
-  ).trim();
-  const currentOrganizationProjectLabel = String(
-    currentOrganizationSummary?.selectedProjectName || '',
   ).trim();
   const currentOrganizationEnvironmentId = String(
     currentOrganizationSummary?.selectedEnvironmentId || '',
@@ -499,11 +488,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         const preferredOrganizationProjectLabel = String(
           preferredOrganization?.selectedProjectName || '',
         ).trim();
-        const hasScopedProjectFallback = Boolean(
-          preferredOrganizationProjectId ||
-          scopedOnboardingSelectedProjectId ||
-          scopedPersistedProjectId,
-        );
         setAccountOrganizations(organizations);
         const nextOrganizationOptions = dedupeOptions(
           organizations
@@ -734,7 +718,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     }),
     [
       DASHBOARD_ACCOUNT_SETTINGS_OPTIONS,
-      consoleSession.claims,
       environmentOptions,
       scopedOnboardingSelectedEnvironmentId,
       scopedOnboardingSelectedProjectId,
@@ -982,6 +965,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION,
       DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION,
       currentOrgId,
+      consoleSession,
       dropdownOptions.environment,
       go,
       logoutPending,

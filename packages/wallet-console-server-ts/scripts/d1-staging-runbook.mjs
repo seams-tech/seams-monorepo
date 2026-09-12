@@ -59,27 +59,31 @@ function main() {
 }
 
 function parseArgs(args) {
-  return parseFlagArgs(args, {
-    consoleConfigPath: '',
-    environmentName: 'staging',
-    generatedAtIso: '',
-    operator: '',
-    outputPath: '',
-    gatewayConfigPath: '',
-    r2Bucket: '',
-    consoleOrigin: '',
-    gatewayOrigin: '',
-  }, {
-    '--console-config': 'consoleConfigPath',
-    '--console-origin': 'consoleOrigin',
-    '--environment': 'environmentName',
-    '--generated-at': 'generatedAtIso',
-    '--operator': 'operator',
-    '--output': 'outputPath',
-    '--r2-bucket': 'r2Bucket',
-    '--gateway-config': 'gatewayConfigPath',
-    '--gateway-origin': 'gatewayOrigin',
-  });
+  return parseFlagArgs(
+    args,
+    {
+      consoleConfigPath: '',
+      environmentName: 'staging',
+      generatedAtIso: '',
+      operator: '',
+      outputPath: '',
+      gatewayConfigPath: '',
+      r2Bucket: '',
+      consoleOrigin: '',
+      gatewayOrigin: '',
+    },
+    {
+      '--console-config': 'consoleConfigPath',
+      '--console-origin': 'consoleOrigin',
+      '--environment': 'environmentName',
+      '--generated-at': 'generatedAtIso',
+      '--operator': 'operator',
+      '--output': 'outputPath',
+      '--r2-bucket': 'r2Bucket',
+      '--gateway-config': 'gatewayConfigPath',
+      '--gateway-origin': 'gatewayOrigin',
+    },
+  );
 }
 
 function normalizeOptions(input) {
@@ -113,14 +117,26 @@ function renderRunbook(input) {
   appendCommandSection(lines, 'Preflight', preflightCommands(input.options));
   appendCommandSection(lines, 'Resource Inventory Capture', resourceInventoryCommands());
   appendCommandSection(lines, 'Remote D1 Migrations', migrationCommands(input.options));
-  appendCommandSection(lines, 'Time Travel Bookmark Before Fixture Import', timeTravelCommands(input.options, 'before_fixture_import'));
+  appendCommandSection(
+    lines,
+    'Time Travel Bookmark Before Fixture Import',
+    timeTravelCommands(input.options, 'before_fixture_import'),
+  );
   appendCommandSection(lines, 'Fixture Import', fixtureImportCommands(input.options));
-  appendCommandSection(lines, 'Time Travel Bookmark Before Route Switch', timeTravelCommands(input.options, 'before_route_switch'));
+  appendCommandSection(
+    lines,
+    'Time Travel Bookmark Before Route Switch',
+    timeTravelCommands(input.options, 'before_route_switch'),
+  );
   appendCommandSection(lines, 'Worker Deploy', deployCommands(input.options));
   appendCommandSection(lines, 'Staging Smoke', smokeCommands(input.options));
   appendCommandSection(lines, 'D1 Data Reconciliation', reconciliationCommands());
   appendCommandSection(lines, 'Signer Custody Route Drill', signerCustodyCommands(input.options));
-  appendCommandSection(lines, 'Remote R2 Export And Restore Drill', r2ExportRestoreCommands(input.options));
+  appendCommandSection(
+    lines,
+    'Remote R2 Export And Restore Drill',
+    r2ExportRestoreCommands(input.options),
+  );
   appendCommandSection(lines, 'Final Evidence Verification', evidenceVerificationCommands());
   appendEvidenceTable(lines);
   appendSignOff(lines);
@@ -184,7 +200,7 @@ function resourceInventoryCommands() {
   ];
 }
 
-function migrationCommands(options) {
+function migrationCommands(_options) {
   return [
     'pnpm --dir packages/wallet-console-server-ts run d1:staging:migrate -- --mode dry-run',
     'pnpm --dir packages/wallet-console-server-ts run d1:staging:migrate -- --mode remote',
@@ -208,7 +224,7 @@ function timeTravelCommands(options, label) {
   ];
 }
 
-function fixtureImportCommands(options) {
+function fixtureImportCommands(_options) {
   return [
     'CONSOLE_FIXTURE_SQL="./staging/fixtures/console.sql"',
     'SIGNER_FIXTURE_SQL="./staging/fixtures/signer.sql"',
@@ -231,7 +247,10 @@ function fixtureImportCommands(options) {
 function deployCommands(options) {
   return [
     wranglerCommand('deploy --message "refactor-82 console D1 staging"', options.consoleConfigPath),
-    wranglerCommand('deploy --message "refactor-82 gateway D1/DO staging"', options.gatewayConfigPath),
+    wranglerCommand(
+      'deploy --message "refactor-82 gateway D1/DO staging"',
+      options.gatewayConfigPath,
+    ),
   ];
 }
 
@@ -364,10 +383,14 @@ function appendSignOff(lines) {
   lines.push('- [ ] Staging starts on D1/DO.');
   lines.push('- [ ] No request path mixes D1/DO and Postgres.');
   lines.push('- [ ] Console Worker has no signer D1 or Durable Object bindings.');
-  lines.push('- [ ] Time Travel bookmarks are captured before fixture import and before route traffic switch.');
+  lines.push(
+    '- [ ] Time Travel bookmarks are captured before fixture import and before route traffic switch.',
+  );
   lines.push('- [ ] R2 export and restore drill evidence is recorded.');
   lines.push('- [ ] Final evidence verification passes.');
-  lines.push('- [ ] Dashboard reconciliation, sponsored gas settlement, signer route health, and fixture-backed custody checks pass.');
+  lines.push(
+    '- [ ] Dashboard reconciliation, sponsored gas settlement, signer route health, and fixture-backed custody checks pass.',
+  );
   lines.push('');
 }
 

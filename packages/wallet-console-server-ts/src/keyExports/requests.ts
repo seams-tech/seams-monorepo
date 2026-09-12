@@ -36,7 +36,11 @@ function parseMode(raw: unknown): ConsoleKeyExportMode | undefined {
   if (raw === undefined || raw === null || String(raw).trim() === '') return undefined;
   const value = String(raw).trim().toUpperCase() as ConsoleKeyExportMode;
   if (!KEY_EXPORT_MODES.has(value)) {
-    throw createError('invalid_body', 400, `Field mode must be one of: ${Array.from(KEY_EXPORT_MODES).join(', ')}`);
+    throw createError(
+      'invalid_body',
+      400,
+      `Field mode must be one of: ${Array.from(KEY_EXPORT_MODES).join(', ')}`,
+    );
   }
   return value;
 }
@@ -88,7 +92,8 @@ function parseConstraints(raw: unknown): Partial<ConsoleKeyExportConstraints> | 
   const row = raw as Record<string, unknown>;
   const constraints: Partial<ConsoleKeyExportConstraints> = {};
   if (row.roles !== undefined) constraints.roles = parseStringArray(row.roles, 'constraints.roles');
-  if (row.chains !== undefined) constraints.chains = parseStringArray(row.chains, 'constraints.chains');
+  if (row.chains !== undefined)
+    constraints.chains = parseStringArray(row.chains, 'constraints.chains');
   if (row.walletTypes !== undefined) {
     constraints.walletTypes = parseStringArray(row.walletTypes, 'constraints.walletTypes');
   }
@@ -100,7 +105,9 @@ function parseConstraints(raw: unknown): Partial<ConsoleKeyExportConstraints> | 
 
 function parseMfaVerified(raw: unknown): boolean {
   if (typeof raw === 'boolean') return raw;
-  const value = String(raw || '').trim().toLowerCase();
+  const value = String(raw || '')
+    .trim()
+    .toLowerCase();
   if (value === 'true' || value === '1') return true;
   if (value === 'false' || value === '0') return false;
   throw createError('invalid_body', 400, 'Field mfaVerified must be a boolean');
@@ -123,13 +130,17 @@ export function parseCreateConsoleKeyExportRequest(body: unknown): CreateConsole
   return {
     ...(readOptionalString(obj, 'id') ? { id: readOptionalString(obj, 'id') } : {}),
     environmentId: readRequiredString(obj, 'environmentId', createError),
-    ...(readOptionalString(obj, 'walletId') ? { walletId: readOptionalString(obj, 'walletId') } : {}),
+    ...(readOptionalString(obj, 'walletId')
+      ? { walletId: readOptionalString(obj, 'walletId') }
+      : {}),
     ...(mode ? { mode } : {}),
     reason: readRequiredString(obj, 'reason', createError),
     ...(parsePositiveInteger(obj.requiredApprovals, 'requiredApprovals') !== undefined
       ? { requiredApprovals: parsePositiveInteger(obj.requiredApprovals, 'requiredApprovals') }
       : {}),
-    ...(parseConstraints(obj.constraints) !== undefined ? { constraints: parseConstraints(obj.constraints) } : {}),
+    ...(parseConstraints(obj.constraints) !== undefined
+      ? { constraints: parseConstraints(obj.constraints) }
+      : {}),
   };
 }
 

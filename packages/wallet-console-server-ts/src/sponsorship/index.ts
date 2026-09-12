@@ -16,10 +16,7 @@ export {
   matchResolvedSponsoredEvmCallPolicy,
   parseSponsoredEvmCallRequest,
 } from './evm';
-export type {
-  ResolvedSponsoredNearDelegatePolicy,
-  SponsoredNearDelegateSummary,
-} from './near';
+export type { ResolvedSponsoredNearDelegatePolicy, SponsoredNearDelegateSummary } from './near';
 export {
   parseResolvedSponsoredNearDelegatePolicies,
   summarizeSignedDelegateForSponsorship,
@@ -31,13 +28,8 @@ export type {
   SponsoredEvmCallExecutorConfig,
   SponsoredEvmExecutionResult,
 } from './evmExecutorTypes';
-export type {
-  RegisterSponsoredEvmCallRouteArgs,
-} from './evmRelay';
-export {
-  DEFAULT_SPONSORED_EVM_CALL_ROUTE,
-  DEFAULT_SPONSORED_EVM_CALL_ROUTE_ID,
-} from './evmRoutes';
+export type { RegisterSponsoredEvmCallRouteArgs } from './evmRelay';
+export { DEFAULT_SPONSORED_EVM_CALL_ROUTE, DEFAULT_SPONSORED_EVM_CALL_ROUTE_ID } from './evmRoutes';
 export {
   executeSponsoredEvmCall,
   resolveSponsoredEvmExecutorForChain,

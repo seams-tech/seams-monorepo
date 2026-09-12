@@ -33,10 +33,17 @@ function normalizeKey(raw: string): string {
     .replace(/[^a-z0-9]+/g, '_');
 }
 
-function toPolicy(input?: ConsoleObservabilityMetadataRedactionPolicy): Required<
+function toPolicy(
+  input?: ConsoleObservabilityMetadataRedactionPolicy,
+): Required<
   Pick<
     ConsoleObservabilityMetadataRedactionPolicy,
-    'denylistKeys' | 'allowlistKeys' | 'maxDepth' | 'maxStringLength' | 'replacement' | 'redactionVersion'
+    | 'denylistKeys'
+    | 'allowlistKeys'
+    | 'maxDepth'
+    | 'maxStringLength'
+    | 'replacement'
+    | 'redactionVersion'
   >
 > {
   const denylistKeys = Array.from(
@@ -70,10 +77,7 @@ function toPolicy(input?: ConsoleObservabilityMetadataRedactionPolicy): Required
   };
 }
 
-function shouldRedactKey(
-  key: string,
-  policy: ReturnType<typeof toPolicy>,
-): boolean {
+function shouldRedactKey(key: string, policy: ReturnType<typeof toPolicy>): boolean {
   const normalized = normalizeKey(key);
   if (!normalized) return false;
   if (policy.allowlistKeys.includes(normalized)) return false;

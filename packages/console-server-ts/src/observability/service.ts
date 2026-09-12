@@ -44,7 +44,9 @@ export interface ConsoleObservabilityService {
   ): Promise<ConsoleObservabilityServicesView>;
 }
 
-function buildStatus(opts: InMemoryConsoleObservabilityServiceOptions): ConsoleObservabilityModuleStatus {
+function buildStatus(
+  opts: InMemoryConsoleObservabilityServiceOptions,
+): ConsoleObservabilityModuleStatus {
   const state = opts.defaultStatusState || 'not_configured';
   return {
     state,

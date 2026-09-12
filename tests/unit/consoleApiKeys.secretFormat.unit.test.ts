@@ -38,7 +38,7 @@ test.describe('console API key secret format', () => {
   });
 
   test('creates opaque api key ids without extra separators', async () => {
-    const id = makeApiKeyId(new Date('2026-03-12T00:00:00.000Z'));
+    const id = makeApiKeyId();
 
     expect(id).toMatch(/^ak_[a-f0-9]+$/);
     expect(id.slice(3)).not.toContain('_');

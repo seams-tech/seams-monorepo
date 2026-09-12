@@ -7,7 +7,6 @@ import {
   buildEcdsaRoleLocalPublicFacts,
   buildEcdsaRoleLocalReadyRecord,
   buildRelayerKeyId,
-  buildSecureEnclaveWrappedSecretSource,
   createBrowserPlatformRuntime,
   type AuthenticatorPort,
   type DurableRecordStore,

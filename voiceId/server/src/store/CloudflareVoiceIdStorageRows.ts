@@ -81,10 +81,10 @@ export function parseCloudflareEnrollmentRow(
   assertRowHeader(row.schemaVersion, row.recordKind, 'enrollment');
   const record = parseEnrollmentRecord(parseStoredJson(row.recordJson, 'enrollment record'));
   if (
-    record.userId !== row.userId
-    || record.enrollmentId !== row.enrollmentId
-    || record.state !== row.lifecycleState
-    || record.createdAt !== row.createdAt
+    record.userId !== row.userId ||
+    record.enrollmentId !== row.enrollmentId ||
+    record.state !== row.lifecycleState ||
+    record.createdAt !== row.createdAt
   ) {
     throw new Error('enrollment row indexes do not match record payload');
   }
@@ -97,11 +97,11 @@ export function parseCloudflareVerificationRow(
   assertRowHeader(row.schemaVersion, row.recordKind, 'verification');
   const record = parseVerificationRecord(parseStoredJson(row.recordJson, 'verification record'));
   if (
-    record.userId !== row.userId
-    || record.enrollmentId !== row.enrollmentId
-    || record.verificationId !== row.verificationId
-    || record.state !== row.lifecycleState
-    || record.createdAt !== row.createdAt
+    record.userId !== row.userId ||
+    record.enrollmentId !== row.enrollmentId ||
+    record.verificationId !== row.verificationId ||
+    record.state !== row.lifecycleState ||
+    record.createdAt !== row.createdAt
   ) {
     throw new Error('verification row indexes do not match record payload');
   }
@@ -122,9 +122,17 @@ function parseEnrollmentRecord(value: unknown): VoiceIdEnrollmentRecord {
       assertExactObjectKeys(
         record,
         [
-          'state', 'userId', 'enrollmentId', 'promptSetId', 'promptSequence',
-          'modelVersion', 'createdAt', 'expiresAt', 'minimumCaptureMs',
-          'targetCaptureMs', 'maximumCaptureMs',
+          'state',
+          'userId',
+          'enrollmentId',
+          'promptSetId',
+          'promptSequence',
+          'modelVersion',
+          'createdAt',
+          'expiresAt',
+          'minimumCaptureMs',
+          'targetCaptureMs',
+          'maximumCaptureMs',
         ],
         'pending enrollment record',
       );
@@ -145,9 +153,19 @@ function parseEnrollmentRecord(value: unknown): VoiceIdEnrollmentRecord {
       assertExactObjectKeys(
         record,
         [
-          'state', 'userId', 'enrollmentId', 'promptSetId', 'promptSequence',
-          'modelVersion', 'createdAt', 'expiresAt', 'minimumCaptureMs',
-          'targetCaptureMs', 'maximumCaptureMs', 'analysisStartedAt', 'analysisExpiresAt',
+          'state',
+          'userId',
+          'enrollmentId',
+          'promptSetId',
+          'promptSequence',
+          'modelVersion',
+          'createdAt',
+          'expiresAt',
+          'minimumCaptureMs',
+          'targetCaptureMs',
+          'maximumCaptureMs',
+          'analysisStartedAt',
+          'analysisExpiresAt',
         ],
         'analyzing enrollment record',
       );
@@ -169,7 +187,16 @@ function parseEnrollmentRecord(value: unknown): VoiceIdEnrollmentRecord {
     case 'failed':
       assertExactObjectKeys(
         record,
-        ['state', 'userId', 'enrollmentId', 'promptSetId', 'modelVersion', 'createdAt', 'failedAt', 'failureReason'],
+        [
+          'state',
+          'userId',
+          'enrollmentId',
+          'promptSetId',
+          'modelVersion',
+          'createdAt',
+          'failedAt',
+          'failureReason',
+        ],
         'failed enrollment record',
       );
       return {
@@ -186,8 +213,16 @@ function parseEnrollmentRecord(value: unknown): VoiceIdEnrollmentRecord {
       assertExactObjectKeys(
         record,
         [
-          'state', 'userId', 'enrollmentId', 'promptSetId', 'modelVersion',
-          'templateVersion', 'thresholdVersion', 'encryptedTemplate', 'createdAt', 'enrolledAt',
+          'state',
+          'userId',
+          'enrollmentId',
+          'promptSetId',
+          'modelVersion',
+          'templateVersion',
+          'thresholdVersion',
+          'encryptedTemplate',
+          'createdAt',
+          'enrolledAt',
         ],
         'enrolled record',
       );
@@ -207,9 +242,17 @@ function parseEnrollmentRecord(value: unknown): VoiceIdEnrollmentRecord {
       assertExactObjectKeys(
         record,
         [
-          'state', 'userId', 'enrollmentId', 'promptSetId', 'modelVersion',
-          'templateVersion', 'thresholdVersion', 'encryptedTemplate', 'createdAt',
-          'enrolledAt', 'disabledAt',
+          'state',
+          'userId',
+          'enrollmentId',
+          'promptSetId',
+          'modelVersion',
+          'templateVersion',
+          'thresholdVersion',
+          'encryptedTemplate',
+          'createdAt',
+          'enrolledAt',
+          'disabledAt',
         ],
         'disabled enrollment record',
       );
@@ -337,8 +380,15 @@ function parseVerificationRecord(value: unknown): VoiceIdVerificationRecord {
       assertExactObjectKeys(
         record,
         [
-          'state', 'userId', 'enrollmentId', 'verificationId', 'expectedPhrase',
-          'challengeNonce', 'createdAt', 'expiresAt', 'completedAt',
+          'state',
+          'userId',
+          'enrollmentId',
+          'verificationId',
+          'expectedPhrase',
+          'challengeNonce',
+          'createdAt',
+          'expiresAt',
+          'completedAt',
         ],
         'expired verification record',
       );
@@ -399,8 +449,14 @@ function assertRowHeader(actualVersion: unknown, actualKind: unknown, expectedKi
 
 function verificationRecordKeys(branchKeys: readonly string[]): readonly string[] {
   const keys = [
-    'state', 'userId', 'enrollmentId', 'verificationId', 'expectedPhrase',
-    'challengeNonce', 'createdAt', 'expiresAt',
+    'state',
+    'userId',
+    'enrollmentId',
+    'verificationId',
+    'expectedPhrase',
+    'challengeNonce',
+    'createdAt',
+    'expiresAt',
   ];
   return [...keys, ...branchKeys];
 }

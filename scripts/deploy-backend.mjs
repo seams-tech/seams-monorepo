@@ -1517,7 +1517,7 @@ function migratePrivateD1(resource, configPath, component) {
     '--config',
     configPath,
     '--migrations-dir',
-    path.join(WALLET_SERVER_ROOT, migration.directory),
+    path.join(ROUTER_ROOT, 'migrations', component),
     '--expected-fingerprint',
     migration.fingerprint,
   ];

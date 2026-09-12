@@ -81,11 +81,12 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server...
+        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Apply D1 migrations
@@ -126,6 +127,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Signing Worker build entry
         run: test -s .release-artifacts/router-ab-runtime/build/signing-worker/worker/shim.mjs
       - name: Deploy Signing Worker
@@ -174,6 +176,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Deriver A build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-a/worker/shim.mjs
       - name: Deploy Deriver A
@@ -222,6 +225,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Deriver B build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-b/worker/shim.mjs
       - name: Deploy Deriver B
@@ -266,6 +270,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check control-plane build entry
         run: test -s .release-artifacts/router-ab-runtime/build/tenant-root-control-plane/worker/shim.mjs
       - name: Deploy tenant-root control plane
@@ -310,6 +315,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Router build entry
         run: test -s .release-artifacts/router-ab-runtime/build/router/worker/shim.mjs
       - name: Deploy Router
@@ -347,11 +353,12 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server...
+        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Wallet Runtime build entry
         run: test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
       - name: Deploy Wallet Runtime
@@ -389,11 +396,12 @@ jobs:
           node-version: '24'
           cache: pnpm
       - name: Install deployment dependencies
-        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server...
+        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
       - name: Download backend artifact
         uses: actions/download-artifact@v8
         with:
           name: backend-build-production-testnet
+          path: .release-artifacts
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Deploy Gateway

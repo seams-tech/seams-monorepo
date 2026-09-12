@@ -20,6 +20,7 @@ env:
   DEPLOY_SITE: production
   DEPLOY_SHA: ${{ github.sha }}
   SEAMS_WALLET_REVISION: ${{ inputs.wallet_revision }}
+  RUST_TOOLCHAIN: 1.96.0
 
 jobs:
   deploy:
@@ -64,6 +65,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
+      - name: Checkout exact public Wallet source
+        uses: actions/checkout@v6
+        with:
+          repository: seams-tech/seams-wallet
+          ref: ${{ env.SEAMS_WALLET_REVISION }}
+          path: .wallet-source
+          persist-credentials: false
       - name: Require main branch
         run: test "$GITHUB_REF" = refs/heads/main
       - name: Setup pnpm
@@ -75,10 +83,22 @@ jobs:
           cache: pnpm
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download exact public Wallet docs
-        env:
-          GH_TOKEN: ${{ secrets.SEAMS_WALLET_ARTIFACT_READ_TOKEN }}
-        run: node scripts/download-wallet-docs-artifact.mjs --revision "$SEAMS_WALLET_REVISION" --output .artifacts/wallet-docs
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install pinned WASM tooling
+        run: bash .wallet-source/packages/wallet/scripts/build/install-ci-wasm-tooling.sh
+      - name: Build exact public Wallet docs
+        run: |
+          pnpm --dir .wallet-source install --frozen-lockfile
+          pnpm --dir .wallet-source run build:docs
+      - name: Stage exact public Wallet docs
+        run: node scripts/prepare-wallet-docs-source.mjs --checkout .wallet-source --revision "$SEAMS_WALLET_REVISION" --output .artifacts/wallet-docs
       - name: Build frontend
         run: pnpm deploy:frontend build --site "$DEPLOY_SITE"
       - name: Deploy Pages

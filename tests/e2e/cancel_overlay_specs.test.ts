@@ -1,0 +1,236 @@
+// Validates the iframe cancel path collapses the overlay reliably across flows without host responses
+import { test, expect } from '@playwright/test';
+import { setupBasicPasskeyTest, handleInfrastructureErrors } from '../setup';
+import {
+  buildWalletServiceHtml,
+  registerWalletServiceRoute,
+  captureOverlay,
+} from '../wallet-iframe/harness';
+import { parseWebAuthnRpId } from '@shared/utils/domainIds';
+
+function unwrapFixture<T>(result: { ok: true; value: T } | { ok: false }): T {
+  if (!result.ok) throw new Error('invalid fixture value');
+  return result.value;
+}
+
+const REGISTRATION_RP_ID = unwrapFixture(parseWebAuthnRpId('example.localhost'));
+
+test.describe('Wallet iframe overlay specs on cancel', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupBasicPasskeyTest(page);
+    await page.waitForTimeout(500);
+    page.on('console', (msg) => {
+      console.log(`[browser] ${msg.type().toUpperCase()}: ${msg.text()}`);
+    });
+    // Ensure wallet service iframe endpoint is available for handshake
+    const WALLET_SERVICE_ROUTE = '**://wallet.example.localhost/wallet-service*';
+    await registerWalletServiceRoute(page, buildWalletServiceHtml(), WALLET_SERVICE_ROUTE);
+  });
+
+  test.afterEach(async ({ page }) => {
+    const WALLET_SERVICE_ROUTE = '**://wallet.example.localhost/wallet-service*';
+    await page.unroute(WALLET_SERVICE_ROUTE).catch(() => {});
+  });
+
+  // confirms cancelAll clears overlay visibility for login/register/action flows
+  test('Overlay shows then hides on cancel across core routes', async ({ page }) => {
+    test.setTimeout(60000);
+
+    const CAPTURE_OVERLAY_SOURCE = `(${captureOverlay.toString()})`;
+    const result = await page.evaluate(
+      async ({ captureOverlaySource, registrationRpId }) => {
+        try {
+          // Dynamically import the wallet iframe client
+          // @ts-ignore - runtime import path resolved by SDK build served at /sdk
+          const { WalletIframeRouter } =
+            await import('/_test-sdk/esm/SeamsWeb/walletIframe/client/router.js');
+
+          const cfg = (window as any).configs || {};
+
+          const walletOrigin = cfg.walletOrigin || 'https://wallet.example.localhost';
+
+          const router = new WalletIframeRouter({
+            walletOrigin,
+            servicePath: cfg.walletServicePath || '/wallet-service',
+            sdkBasePath: '/sdk',
+            connectTimeoutMs: 20000,
+            requestTimeoutMs: 30000,
+            debug: true,
+            theme: 'light',
+            nearRpcUrl: cfg.nearRpcUrl,
+            nearNetwork: cfg.nearNetwork || 'testnet',
+            relayer: cfg.relayer,
+            // Tag the test-owned iframe for deterministic selection
+            testOptions: { ownerTag: 'tests' },
+          });
+
+          await router.init();
+
+          const capture = eval(
+            captureOverlaySource,
+          ) as typeof import('../wallet-iframe/harness').captureOverlay;
+
+          const isOverlayVisible = (): boolean => {
+            const s = capture();
+            return !!(s.exists && (s as any).visible);
+          };
+
+          const captureOverlayState = () => capture();
+
+          const isOverlayHidden = (): boolean => {
+            const s = capture();
+            return !s.exists || !(s as any).visible;
+          };
+
+          const waitFor = async (pred: () => boolean, timeoutMs = 5000): Promise<boolean> => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+              if (pred()) return true;
+              await new Promise((r) => setTimeout(r, 50));
+            }
+            return pred();
+          };
+
+          const parentAccountId = String(cfg.relayerAccount || 'seams-v1.testnet')
+            .trim()
+            .replace(/^\./, '');
+          const nearAccountId = `e2etest${Date.now()}.${parentAccountId}`;
+          const receiverId = cfg.testReceiverAccountId || 'seams-v1.testnet';
+
+          const events: Record<string, any[]> = {};
+          const registrationSignerSet = {
+            kind: 'signer_set' as const,
+            signers: [
+              {
+                kind: 'near_ed25519' as const,
+                accountProvisioning: {
+                  kind: 'implicit_account' as const,
+                  accountIdSource: 'ed25519_public_key' as const,
+                },
+                signerSlot: 1,
+                participantIds: [1, 2],
+                derivationVersion: 1,
+              },
+            ],
+          };
+
+          const flows: Array<{ name: string; run: () => Promise<unknown> }> = [
+            {
+              name: 'login',
+              run: () =>
+                router.unlock({
+                  kind: 'custom_options',
+                  nearAccountId,
+                  options: {
+                    onEvent: (evt: any) => {
+                      (events.login ||= []).push({
+                        phase: evt?.phase,
+                        status: evt?.status,
+                        type: evt?.type,
+                      });
+                    },
+                  },
+                }),
+            },
+            {
+              name: 'register',
+              run: () =>
+                router.registerWallet({
+                  wallet: { kind: 'server_allocated' },
+                  authMethod: { kind: 'passkey', rpId: registrationRpId },
+                  signerSelection: registrationSignerSet,
+                  options: {
+                    onEvent: (evt: any) => {
+                      (events.register ||= []).push({
+                        phase: evt?.phase,
+                        status: evt?.status,
+                        type: evt?.type,
+                      });
+                    },
+                  },
+                }),
+            },
+            {
+              name: 'executeAction',
+              run: () =>
+                router.executeAction({
+                  walletId: nearAccountId,
+                  nearAccountId,
+                  receiverId,
+                  actionArgs: { type: 'Transfer', amount: '1' } as any,
+                  options: {
+                    onEvent: (evt: any) => {
+                      (events.executeAction ||= []).push({
+                        phase: evt?.phase,
+                        status: evt?.status,
+                        type: evt?.type,
+                      });
+                    },
+                  },
+                }),
+            },
+          ];
+
+          const results: Array<{ name: string; shown: boolean; hidden: boolean }> = [];
+          const overlayStates: Record<
+            string,
+            {
+              beforeCancel: ReturnType<typeof captureOverlayState>;
+              afterCancel: ReturnType<typeof captureOverlayState>;
+            }
+          > = {};
+
+          for (const flow of flows) {
+            // Start the flow; do not await — we intend to cancel
+            const p = flow.run().catch(() => undefined);
+
+            // Wait for the request surface to render the wallet iframe.
+            const shown = await waitFor(isOverlayVisible, 8000);
+
+            const beforeCancel = captureOverlayState();
+
+            // Cancel everything (best-effort); host emits PROGRESS('cancelled') + ERROR, and router hides even without pending
+            await router.cancelAll();
+
+            // Ensure overlay specs
+            const hidden = await waitFor(isOverlayHidden, 8000);
+            const afterCancel = captureOverlayState();
+
+            overlayStates[flow.name] = { beforeCancel, afterCancel };
+
+            results.push({ name: flow.name, shown, hidden });
+
+            // Let any pending promise settle to avoid unhandled rejections
+            try {
+              await p;
+            } catch {}
+          }
+
+          return { success: true, results, events, overlayStates };
+        } catch (error: any) {
+          return { success: false, error: error?.message || String(error) };
+        }
+      },
+      { captureOverlaySource: CAPTURE_OVERLAY_SOURCE, registrationRpId: REGISTRATION_RP_ID },
+    );
+
+    if (!result.success) {
+      console.log('overlay cancel failure', result);
+      if (handleInfrastructureErrors(result as any)) return;
+      expect(result.success).toBe(true);
+      return;
+    }
+
+    console.log('overlay cancel results', JSON.stringify(result, null, 2));
+
+    // Each flow should have shown and then hidden the overlay post-cancel
+    for (const r of (result as any).results as Array<{
+      name: string;
+      shown: boolean;
+      hidden: boolean;
+    }>) {
+      expect.soft(r.shown, `${r.name}: overlay did not become visible`).toBe(true);
+      expect.soft(r.hidden, `${r.name}: overlay did not hide after cancel`).toBe(true);
+    }
+  });
+});

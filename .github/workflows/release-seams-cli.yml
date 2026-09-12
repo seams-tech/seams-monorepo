@@ -1,0 +1,231 @@
+name: Release seams CLI
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release version, for example 0.4.1
+        required: true
+        type: string
+      public_revision:
+        description: Full seams-wallet commit SHA used by the public build
+        required: true
+        type: string
+      public_build_run_id:
+        description: Successful Build seams CLI workflow run ID for that revision
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  SEAMS_RELEASE_VERSION: ${{ inputs.release_version }}
+  SEAMS_PUBLIC_REVISION: ${{ inputs.public_revision }}
+  SEAMS_PUBLIC_BUILD_RUN_ID: ${{ inputs.public_build_run_id }}
+  SEAMS_TARGETS: aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu
+
+jobs:
+  trust:
+    if: github.ref == 'refs/heads/main'
+    environment: release-signing
+    name: Check public revision and pinned trust
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate release inputs
+        run: |
+          set -euo pipefail
+          [[ "$SEAMS_RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          [[ "$SEAMS_PUBLIC_REVISION" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SEAMS_PUBLIC_BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+
+      - uses: actions/checkout@v6
+        with:
+          repository: seams-tech/seams-wallet
+          ref: ${{ inputs.public_revision }}
+          path: wallet-source
+
+      - name: Validate package and binary versions
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./wallet-source/packages/seams-cli/package.json').version")" = "$SEAMS_RELEASE_VERSION"
+          test "$(sed -n 's/^version = "\([^"]*\)"/\1/p' wallet-source/crates/seams-cli/Cargo.toml | head -1)" = "$SEAMS_RELEASE_VERSION"
+
+      - name: Refuse repository test trust roots
+        run: |
+          set -euo pipefail
+          ! grep -q 'buCR_SgKm2hVT6c8WIEl1H00JcaKJroja02tkPkKj5I' \
+            wallet-source/crates/seams-cli/trust/recovery-trust-bundle.json
+          ! grep -q 'JfwyxHilpPhORVegNC4IJ4yINkG2FJvbC0qYarbCy3g' \
+            wallet-source/crates/seams-cli/trust/release-root.json
+
+      - name: Require the configured signer to match the public pin
+        env:
+          SEAMS_RELEASE_SIGNER_KEY_ID: ${{ secrets.SEAMS_RELEASE_SIGNER_KEY_ID }}
+        run: |
+          set -euo pipefail
+          pinned="$(jq -r .keyId wallet-source/crates/seams-cli/trust/release-root.json)"
+          test -n "$SEAMS_RELEASE_SIGNER_KEY_ID"
+          test "$pinned" = "$SEAMS_RELEASE_SIGNER_KEY_ID"
+
+  fetch:
+    environment: release-publication
+    name: Fetch verified public artifacts
+    needs: trust
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify the public workflow run
+        env:
+          GH_TOKEN: ${{ secrets.SEAMS_WALLET_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "repos/seams-tech/seams-wallet/actions/runs/$SEAMS_PUBLIC_BUILD_RUN_ID")"
+          test "$(jq -r .head_sha <<<"$run_json")" = "$SEAMS_PUBLIC_REVISION"
+          test "$(jq -r .conclusion <<<"$run_json")" = success
+          test "$(jq -r .path <<<"$run_json")" = '.github/workflows/build-seams-cli.yml'
+
+      - name: Download public build artifacts
+        env:
+          GH_TOKEN: ${{ secrets.SEAMS_WALLET_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh run download "$SEAMS_PUBLIC_BUILD_RUN_ID" \
+            --repo seams-tech/seams-wallet \
+            --dir public-artifacts
+          mkdir -p dist
+          for target in $SEAMS_TARGETS; do
+            cp "public-artifacts/seams-wallet-${target}-${SEAMS_PUBLIC_REVISION}/seams-wallet-${target}" \
+              "dist/seams-wallet-${target}"
+          done
+          cp "public-artifacts/seams-wallet-release-tools-${SEAMS_PUBLIC_REVISION}/seams-release-manifest" \
+            dist/seams-release-manifest
+          cp "public-artifacts/seams-wallet-release-tools-${SEAMS_PUBLIC_REVISION}/seams-sbom.txt" \
+            dist/seams-sbom.txt
+          cp "public-artifacts/seams-wallet-release-tools-${SEAMS_PUBLIC_REVISION}/THIRD_PARTY_NOTICES.md" \
+            dist/THIRD_PARTY_NOTICES.md
+          chmod +x dist/seams-release-manifest dist/seams-wallet-*
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seams-cli-public-${{ inputs.public_revision }}
+          path: dist
+          if-no-files-found: error
+
+  sign:
+    environment: release-signing
+    name: Sign and verify release manifest
+    needs: fetch
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: seams-cli-public-${{ inputs.public_revision }}
+          path: dist
+
+      - name: Sign the public artifact set
+        env:
+          SEAMS_RELEASE_SIGNING_KEY: ${{ secrets.SEAMS_RELEASE_SIGNING_KEY }}
+          SEAMS_RELEASE_SIGNER_KEY_ID: ${{ secrets.SEAMS_RELEASE_SIGNER_KEY_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          signing_key_file="$(mktemp)"
+          trap 'rm -f "$signing_key_file"' EXIT
+          printf '%s' "$SEAMS_RELEASE_SIGNING_KEY" > "$signing_key_file"
+          unset SEAMS_RELEASE_SIGNING_KEY
+          exec 3< "$signing_key_file"
+          dist/seams-release-manifest \
+            --release-version "$SEAMS_RELEASE_VERSION" \
+            --source-revision "$SEAMS_PUBLIC_REVISION" \
+            --minimum-protocol-version tenant_root_operation_record_v1 \
+            --signer-key-id "$SEAMS_RELEASE_SIGNER_KEY_ID" \
+            --signing-key-fd 3 \
+            --artifact aarch64-apple-darwin=dist/seams-wallet-aarch64-apple-darwin \
+            --artifact x86_64-apple-darwin=dist/seams-wallet-x86_64-apple-darwin \
+            --artifact x86_64-unknown-linux-gnu=dist/seams-wallet-x86_64-unknown-linux-gnu \
+            --artifact sbom=dist/seams-sbom.txt \
+            --artifact third-party-notices=dist/THIRD_PARTY_NOTICES.md \
+            > dist/seams-release-manifest.json
+          exec 3<&-
+
+      - name: Verify with the public Linux binary
+        run: |
+          set -euo pipefail
+          for target in $SEAMS_TARGETS; do
+            dist/seams-wallet-x86_64-unknown-linux-gnu release verify \
+              --manifest dist/seams-release-manifest.json \
+              --artifact "dist/seams-wallet-${target}"
+          done
+          dist/seams-wallet-x86_64-unknown-linux-gnu release verify \
+            --manifest dist/seams-release-manifest.json \
+            --artifact dist/seams-sbom.txt
+          dist/seams-wallet-x86_64-unknown-linux-gnu release verify \
+            --manifest dist/seams-release-manifest.json \
+            --artifact dist/THIRD_PARTY_NOTICES.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seams-cli-release-${{ inputs.release_version }}
+          path: |
+            dist/seams-wallet-*
+            dist/seams-release-manifest.json
+            dist/seams-sbom.txt
+            dist/THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+
+  publish:
+    environment: release-publication
+    name: Publish public release
+    needs: sign
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: seams-cli-release-${{ inputs.release_version }}
+          path: dist
+
+      - name: Create seams-wallet GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.SEAMS_WALLET_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="seams-cli-v${SEAMS_RELEASE_VERSION}"
+          gh release create "$tag" \
+            --repo seams-tech/seams-wallet \
+            --target "$SEAMS_PUBLIC_REVISION" \
+            --title "seams CLI ${SEAMS_RELEASE_VERSION}" \
+            --notes "Signed recovery tooling built from public seams-wallet revision ${SEAMS_PUBLIC_REVISION}." \
+            dist/seams-wallet-aarch64-apple-darwin \
+            dist/seams-wallet-x86_64-apple-darwin \
+            dist/seams-wallet-x86_64-unknown-linux-gnu \
+            dist/seams-release-manifest.json \
+            dist/seams-sbom.txt \
+            dist/THIRD_PARTY_NOTICES.md
+
+  publish_npm:
+    environment: npm-release
+    name: Publish npm launcher
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: seams-tech/seams-wallet
+          ref: ${{ inputs.public_revision }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate launcher version
+        run: test "$(node -p "require('./packages/seams-cli/package.json').version")" = "$SEAMS_RELEASE_VERSION"
+
+      - run: npm install --global npm@latest
+
+      - name: Publish @seams/wallet-cli
+        working-directory: packages/seams-cli
+        run: npm publish --access public --provenance

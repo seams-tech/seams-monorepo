@@ -1,0 +1,675 @@
+import { expect, test } from '@playwright/test';
+import { createEmailOtpWalletIframeHandlers } from '@/SeamsWeb/walletIframe/host/handlers/emailOtp';
+import type { HandlerDeps } from '@/SeamsWeb/walletIframe/host/handlers/walletIframeHandler.types';
+import type {
+  GoogleEmailOtpWalletAuthFlow,
+  GoogleEmailOtpWalletAuthLoginFlow,
+  GoogleEmailOtpWalletAuthRegistrationCompleted,
+  GoogleEmailOtpWalletAuthRegistrationFlow,
+  GoogleEmailOtpWalletAuthSubmitSuccess,
+} from '@/SeamsWeb/publicApi/types';
+import type {
+  PMGoogleEmailOtpWalletAuthHandlePayload,
+  PMGoogleEmailOtpWalletAuthSubmitPayload,
+  PMGoogleEmailOtpWalletAuthWireFlow,
+} from '@/SeamsWeb/walletIframe/shared/messages';
+import { walletIdFromString } from '@shared/utils/registrationIntent';
+import {
+  buildEmailOtpWalletAuthMethodBinding,
+  buildSelectedCurrentWalletAuthMethod,
+  buildWalletIdentity,
+  type WalletAuthMethodBinding,
+} from '@shared/utils/walletCapabilityBindings';
+import type { WalletSession } from '@/core/types/seams';
+import { parseEmailOtpChallengeDelivery } from '@/core/signingEngine/session/emailOtp/challengeDelivery';
+import { parseWalletAuthMethodId } from '@shared/utils/domainIds';
+
+let flowHandleRandomFillCalls = 0;
+
+function fillFlowHandleRandomBytes(bytes: Uint8Array): Uint8Array {
+  flowHandleRandomFillCalls += 1;
+  bytes.fill(42);
+  return bytes;
+}
+
+function throwIfMathRandomIsUsed(): number {
+  throw new Error('Math.random must not generate Email OTP flow handles');
+}
+
+function setGlobalCrypto(value: unknown): void {
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value,
+  });
+}
+
+function restoreGlobalCrypto(original: PropertyDescriptor | undefined): void {
+  if (original) {
+    Object.defineProperty(globalThis, 'crypto', original);
+    return;
+  }
+  delete (globalThis as { crypto?: unknown }).crypto;
+}
+
+function walletId(value: string) {
+  return walletIdFromString(value);
+}
+
+function emailOtpAuthMethodBinding(value: { walletId?: string } = {}): WalletAuthMethodBinding {
+  const walletAuthMethodId = parseWalletAuthMethodId('wallet-auth-method:email-otp-fixture');
+  if (!walletAuthMethodId.ok) throw new Error('Email OTP fixture auth method id is invalid');
+  return buildEmailOtpWalletAuthMethodBinding({
+    walletAuthMethodId: walletAuthMethodId.value,
+    wallet: buildWalletIdentity({ walletId: walletId(value.walletId ?? 'alice.testnet') }),
+    emailHashHex: 'email-hash',
+    registrationAuthorityId: 'google-email-otp',
+  });
+}
+
+function emailOtpWalletSession(value: { walletId?: string } = {}): WalletSession {
+  const binding = emailOtpAuthMethodBinding(value);
+  const resolvedWalletId = walletId(value.walletId ?? 'alice.testnet');
+  return {
+    login: {
+      isLoggedIn: true,
+      walletId: resolvedWalletId,
+      nearAccountId: resolvedWalletId,
+      publicKey: null,
+      userData: null,
+      currentAuthMethod: buildSelectedCurrentWalletAuthMethod({ binding }),
+      authMethods: [binding],
+    },
+    signingSession: null,
+    currentAuthMethod: buildSelectedCurrentWalletAuthMethod({ binding }),
+    authMethods: [binding],
+  };
+}
+
+function submitSuccess(
+  value: {
+    walletId?: string;
+    mode?: 'login' | 'register';
+  } = {},
+): GoogleEmailOtpWalletAuthSubmitSuccess {
+  return {
+    walletId: walletId(value.walletId ?? 'alice.testnet'),
+    mode: value.mode ?? 'login',
+    session: emailOtpWalletSession(value),
+  };
+}
+
+function registrationCompleted(
+  value: {
+    walletId?: string;
+  } = {},
+): GoogleEmailOtpWalletAuthRegistrationCompleted {
+  const resolvedWalletId = walletId(value.walletId ?? 'alice.testnet');
+  return {
+    walletId: resolvedWalletId,
+    mode: 'register',
+    session: emailOtpWalletSession(value),
+    registration: {
+      success: true,
+      kind: 'ecdsa_wallet_registered_near_pending',
+      walletId: resolvedWalletId,
+      capabilities: [
+        {
+          kind: 'evm_family_ecdsa',
+          thresholdEcdsaEthereumAddress: '0x1111111111111111111111111111111111111111',
+          thresholdEcdsaPublicKeyB64u: 'ecdsa-public-key',
+        },
+      ],
+      nearProvisioning: { status: 'pending' },
+    },
+  };
+}
+
+function makeLoginFlow(
+  overrides?: Partial<GoogleEmailOtpWalletAuthLoginFlow>,
+): GoogleEmailOtpWalletAuthLoginFlow {
+  return {
+    kind: 'google_email_otp_wallet_auth_flow_v1',
+    state: 'challenge_sent',
+    flowId: 'login-flow-1',
+    requestedMode: 'login',
+    mode: 'login',
+    walletId: walletId('alice.testnet'),
+    emailHint: 'alice@example.com',
+    prompt: {
+      title: 'Check your email',
+      description: 'Enter the code.',
+      submitLabel: 'Unlock wallet',
+      helperText: 'Use the code from your email.',
+    },
+    delivery: {
+      kind: 'provider',
+      status: 'sent',
+      emailHint: 'a***@example.test',
+    },
+    expiresAtMs: Date.now() + 60_000,
+    resend: async () => ({ ok: true, value: makeLoginFlow({ flowId: 'flow-resend' }) }),
+    submit: async () => ({
+      ok: true,
+      value: submitSuccess(),
+    }),
+    cancel: async () => undefined,
+    ...overrides,
+  };
+}
+
+function makeRegistrationFlow(
+  overrides?: Partial<GoogleEmailOtpWalletAuthRegistrationFlow>,
+): GoogleEmailOtpWalletAuthRegistrationFlow {
+  return {
+    kind: 'google_email_otp_wallet_auth_flow_v1',
+    state: 'registration_ready',
+    flowId: 'registration-flow-1',
+    requestedMode: 'register',
+    mode: 'register',
+    walletId: walletId('alice.testnet'),
+    emailHint: 'alice@example.com',
+    prompt: {
+      title: 'Create your Email OTP wallet',
+      description: 'Google verified alice@example.com.',
+      submitLabel: 'Create wallet',
+      helperText: 'Choose this wallet name or generate another one.',
+    },
+    expiresAtMs: Date.now() + 60_000,
+    completeRegistration: async () => ({
+      ok: true,
+      value: registrationCompleted(),
+    }),
+    rerollWalletId: async () => ({
+      ok: true,
+      value: makeRegistrationFlow({
+        flowId: 'registration-flow-rerolled',
+        walletId: walletId('alice-2.testnet'),
+      }),
+    }),
+    cancel: async () => undefined,
+    ...overrides,
+  };
+}
+
+function makeHarness(flow: GoogleEmailOtpWalletAuthFlow): {
+  handlers: ReturnType<typeof createEmailOtpWalletIframeHandlers>;
+  posted: unknown[];
+} {
+  const posted: unknown[] = [];
+  const deps: HandlerDeps = {
+    getSeamsWeb: () =>
+      ({
+        auth: {
+          beginGoogleEmailOtpWalletAuth: async () => ({ ok: true, value: flow }),
+        },
+      }) as unknown as ReturnType<HandlerDeps['getSeamsWeb']>,
+    post: (message) => {
+      posted.push(message);
+    },
+    postProgress: () => undefined,
+    isCancelled: () => false,
+    respondIfCancelled: () => false,
+  };
+  return { handlers: createEmailOtpWalletIframeHandlers(deps), posted };
+}
+
+async function beginFlow(input?: { flow?: GoogleEmailOtpWalletAuthFlow }): Promise<{
+  handlers: ReturnType<typeof createEmailOtpWalletIframeHandlers>;
+  posted: unknown[];
+  wireFlow: PMGoogleEmailOtpWalletAuthWireFlow;
+}> {
+  const { handlers, posted } = makeHarness(input?.flow ?? makeLoginFlow());
+  await handlers.PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH?.({
+    type: 'PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH',
+    requestId: 'begin-1',
+    payload: {
+      idToken: 'google-id-token',
+      mode: input?.flow?.mode ?? 'login',
+      diagnostics: {
+        emailOtpUnlockTimings: false,
+        registrationBenchmarkTimings: false,
+      },
+    },
+  });
+  const response = posted.at(-1) as {
+    payload: { result: { ok: true; value: unknown } };
+  };
+  return { handlers, posted, wireFlow: parseWireFlow(response.payload.result.value) };
+}
+
+function parseWireFlow(value: unknown): PMGoogleEmailOtpWalletAuthWireFlow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('expected wire flow object');
+  }
+  const flow = value as Record<string, unknown>;
+  const mode = flow.mode;
+  const requestedMode = flow.requestedMode;
+  if (
+    typeof flow.flowHandleId !== 'string' ||
+    typeof flow.flowId !== 'string' ||
+    typeof flow.walletId !== 'string' ||
+    typeof flow.emailHint !== 'string' ||
+    typeof flow.expiresAtMs !== 'number' ||
+    (mode !== 'login' && mode !== 'register') ||
+    (requestedMode !== 'login' && requestedMode !== 'register')
+  ) {
+    throw new Error('wire flow shape is invalid');
+  }
+  if (mode === 'login') {
+    if (flow.state !== 'challenge_sent') {
+      throw new Error('login wire flow shape is invalid');
+    }
+    parseEmailOtpChallengeDelivery(flow.delivery, 'login wire flow delivery');
+  } else if (flow.state !== 'registration_ready' || 'delivery' in flow) {
+    throw new Error('registration wire flow shape is invalid');
+  }
+  return value as PMGoogleEmailOtpWalletAuthWireFlow;
+}
+
+function handlePayload(
+  wireFlow: PMGoogleEmailOtpWalletAuthWireFlow,
+): PMGoogleEmailOtpWalletAuthHandlePayload {
+  return {
+    flowHandleId: wireFlow.flowHandleId,
+    flowId: wireFlow.flowId,
+    walletId: wireFlow.walletId,
+    mode: wireFlow.mode,
+  };
+}
+
+function submitPayload(
+  wireFlow: PMGoogleEmailOtpWalletAuthWireFlow,
+  otpCode: string,
+): PMGoogleEmailOtpWalletAuthSubmitPayload {
+  return { ...handlePayload(wireFlow), otpCode };
+}
+
+test.describe('Google Email OTP wallet iframe flow handles', () => {
+  test('uses WebCrypto when randomUUID is unavailable', async () => {
+    const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+    const originalMathRandom = Math.random;
+    flowHandleRandomFillCalls = 0;
+    setGlobalCrypto({ getRandomValues: fillFlowHandleRandomBytes });
+    Object.defineProperty(Math, 'random', {
+      configurable: true,
+      value: throwIfMathRandomIsUsed,
+    });
+
+    try {
+      const { wireFlow } = await beginFlow();
+      expect(wireFlow.flowHandleId).toBe('google-email-otp-KioqKioqKioqKioqKioqKg');
+      expect(flowHandleRandomFillCalls).toBe(1);
+    } finally {
+      Object.defineProperty(Math, 'random', {
+        configurable: true,
+        value: originalMathRandom,
+      });
+      restoreGlobalCrypto(originalCrypto);
+    }
+  });
+
+  test('fails closed when WebCrypto is unavailable', async () => {
+    const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+    setGlobalCrypto({});
+
+    try {
+      await expect(beginFlow()).rejects.toThrow(
+        'WebCrypto getRandomValues is required for Google Email OTP wallet auth flow handles',
+      );
+    } finally {
+      restoreGlobalCrypto(originalCrypto);
+    }
+  });
+
+  test('serializes login and registration flow shapes separately', async () => {
+    const login = await beginFlow({ flow: makeLoginFlow() });
+    expect(login.wireFlow).toMatchObject({
+      state: 'challenge_sent',
+      mode: 'login',
+      delivery: {
+        kind: 'provider',
+        status: 'sent',
+        emailHint: 'a***@example.test',
+      },
+    });
+
+    const registration = await beginFlow({ flow: makeRegistrationFlow() });
+    expect(registration.wireFlow).toMatchObject({
+      state: 'registration_ready',
+      mode: 'register',
+      walletId: 'alice.testnet',
+    });
+    expect(registration.wireFlow).not.toHaveProperty('delivery');
+  });
+
+  test('preserves provider and demo delivery metadata across the iframe wire', async () => {
+    const login = await beginFlow({
+      flow: makeLoginFlow({
+        delivery: {
+          kind: 'provider_and_demo_code',
+          status: 'sent',
+          emailHint: 'a***@example.test',
+          otpCode: '123456',
+        },
+      }),
+    });
+
+    expect(login.wireFlow).toMatchObject({
+      mode: 'login',
+      delivery: {
+        kind: 'provider_and_demo_code',
+        status: 'sent',
+        emailHint: 'a***@example.test',
+        otpCode: '123456',
+      },
+    });
+  });
+
+  test('registration begin wire result exposes only display metadata', async () => {
+    const leakedRegistrationFlow = Object.assign(makeRegistrationFlow(), {
+      appSessionJwt: 'secret-app-session',
+      runtimePolicyScope: { orgId: 'org-1' },
+      recoveryKeys: ['secret-code-1'],
+      bootstrap: { secret: true },
+      googleEmailOtpRegistrationOfferId: 'offer-secret',
+      googleEmailOtpRegistrationAttemptId: 'attempt-secret',
+    });
+    const registration = await beginFlow({
+      flow: leakedRegistrationFlow as GoogleEmailOtpWalletAuthRegistrationFlow,
+    });
+
+    expect(registration.wireFlow).toMatchObject({
+      state: 'registration_ready',
+      mode: 'register',
+      walletId: 'alice.testnet',
+      emailHint: 'alice@example.com',
+    });
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('appSessionJwt');
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('runtimePolicyScope');
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('recoveryKeys');
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('bootstrap');
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('offer-secret');
+    expect(JSON.stringify(registration.wireFlow)).not.toContain('attempt-secret');
+  });
+
+  test('rejects register begin messages with OTP challenge fields', async () => {
+    const { handlers } = makeHarness(makeRegistrationFlow());
+    const invalidPayload = {
+      idToken: 'google-id-token',
+      mode: 'register' as const,
+      otpCode: '123456',
+    };
+
+    await expect(
+      handlers.PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH?.({
+        type: 'PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH',
+        requestId: 'begin-register-otp-field',
+        payload: invalidPayload,
+      }),
+    ).rejects.toThrow(/must not include otpCode/);
+  });
+
+  test('enables registration benchmark diagnostics inside the wallet iframe', async () => {
+    const { handlers } = makeHarness(makeRegistrationFlow());
+    Reflect.set(globalThis, '__SEAMS_REGISTRATION_BENCHMARK_DIAGNOSTICS', false);
+
+    await handlers.PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH?.({
+      type: 'PM_BEGIN_GOOGLE_EMAIL_OTP_WALLET_AUTH',
+      requestId: 'begin-registration-diagnostics',
+      payload: {
+        idToken: 'google-id-token',
+        mode: 'register',
+        diagnostics: {
+          emailOtpUnlockTimings: false,
+          registrationBenchmarkTimings: true,
+        },
+      },
+    });
+
+    expect(Reflect.get(globalThis, '__SEAMS_REGISTRATION_BENCHMARK_DIAGNOSTICS')).toBe(true);
+  });
+
+  test('rejects a handle used with the wrong wallet id', async () => {
+    const { handlers, wireFlow } = await beginFlow();
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT',
+        requestId: 'submit-1',
+        payload: {
+          ...handlePayload(wireFlow),
+          walletId: 'mallory.testnet',
+          otpCode: '123456',
+        },
+      }),
+    ).rejects.toThrow(/does not match wallet/);
+  });
+
+  test('burns a login handle after successful submit', async () => {
+    const { handlers, wireFlow } = await beginFlow();
+    const payload = submitPayload(wireFlow, '123456');
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT',
+        requestId: 'submit-1',
+        payload,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT',
+        requestId: 'submit-2',
+        payload,
+      }),
+    ).rejects.toThrow(/not active/);
+  });
+
+  test('keeps a login handle active after failed submit result', async () => {
+    let attempts = 0;
+    const { handlers, posted, wireFlow } = await beginFlow({
+      flow: makeLoginFlow({
+        submit: async () => {
+          attempts += 1;
+          if (attempts === 1) {
+            return {
+              ok: false,
+              error: {
+                code: 'email_otp_invalid_code',
+                message: 'Enter the 6-digit code from your email.',
+              },
+            };
+          }
+          return { ok: true, value: submitSuccess() };
+        },
+      }),
+    });
+    const payload = submitPayload(wireFlow, '000000');
+
+    await handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT?.({
+      type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT',
+      requestId: 'submit-invalid',
+      payload,
+    });
+    expect((posted.at(-1) as { payload: { result: { ok: boolean } } }).payload.result.ok).toBe(
+      false,
+    );
+
+    await handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT?.({
+      type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_SUBMIT',
+      requestId: 'submit-retry',
+      payload: { ...payload, otpCode: '123456' },
+    });
+    expect((posted.at(-1) as { payload: { result: { ok: boolean } } }).payload.result.ok).toBe(
+      true,
+    );
+  });
+
+  test('burns a registration handle after successful completion', async () => {
+    const { handlers, wireFlow } = await beginFlow({ flow: makeRegistrationFlow() });
+    const payload = handlePayload(wireFlow);
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-1',
+        payload,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-2',
+        payload,
+      }),
+    ).rejects.toThrow(/not active/);
+  });
+
+  test('strips recovery codes from iframe registration completion result', async () => {
+    const leakedCompletion = Object.assign(registrationCompleted(), {
+      recoveryKeys: ['secret-code-1'],
+      appSessionJwt: 'secret-app-session',
+      bootstrap: { secret: true },
+    });
+    const { handlers, posted, wireFlow } = await beginFlow({
+      flow: makeRegistrationFlow({
+        completeRegistration: async () => ({
+          ok: true,
+          value: leakedCompletion,
+        }),
+      }),
+    });
+
+    await handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+      type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+      requestId: 'complete-strip-secrets',
+      payload: handlePayload(wireFlow),
+    });
+
+    const response = posted.at(-1) as {
+      payload: { result: { ok: true; value: Record<string, unknown> } };
+    };
+    expect(response.payload.result.value).toMatchObject({
+      walletId: 'alice.testnet',
+      mode: 'register',
+    });
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('recoveryKeys');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('secret-code-1');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('secret-app-session');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('bootstrap');
+  });
+
+  test('rejects registration completion with OTP fields without burning the handle', async () => {
+    const { handlers, wireFlow } = await beginFlow({ flow: makeRegistrationFlow() });
+    const payload = handlePayload(wireFlow);
+    const invalidPayload = { ...payload, otpCode: '123456' };
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-with-otp-field',
+        payload: invalidPayload,
+      }),
+    ).rejects.toThrow(/must not include otpCode/);
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-after-rejected-otp-field',
+        payload,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  test('burns the old registration handle after wallet-id reroll', async () => {
+    const { handlers, posted, wireFlow } = await beginFlow({ flow: makeRegistrationFlow() });
+    const payload = handlePayload(wireFlow);
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_REROLL_WALLET_ID?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_REROLL_WALLET_ID',
+        requestId: 'reroll-1',
+        payload,
+      }),
+    ).resolves.toBeUndefined();
+
+    const response = posted.at(-1) as {
+      payload: { result: { ok: true; value: Record<string, unknown> } };
+    };
+    expect(response.payload.result.value).toMatchObject({
+      flowId: 'registration-flow-rerolled',
+      walletId: 'alice-2.testnet',
+      mode: 'register',
+      state: 'registration_ready',
+    });
+    expect(response.payload.result.value).not.toHaveProperty('delivery');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('appSessionJwt');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('runtimePolicyScope');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('recoveryKeys');
+    expect(JSON.stringify(response.payload.result.value)).not.toContain('bootstrap');
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-old-reroll',
+        payload,
+      }),
+    ).rejects.toThrow(/not active/);
+  });
+
+  test('keeps a registration handle active after failed reroll result', async () => {
+    const { handlers, posted, wireFlow } = await beginFlow({
+      flow: makeRegistrationFlow({
+        rerollWalletId: async () => ({
+          ok: false,
+          error: {
+            code: 'google_exchange_failed',
+            message: 'reroll unavailable',
+          },
+        }),
+      }),
+    });
+    const payload = handlePayload(wireFlow);
+
+    await handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_REROLL_WALLET_ID?.({
+      type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_REROLL_WALLET_ID',
+      requestId: 'reroll-failed',
+      payload,
+    });
+    expect((posted.at(-1) as { payload: { result: { ok: boolean } } }).payload.result.ok).toBe(
+      false,
+    );
+
+    await handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+      type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+      requestId: 'complete-after-failed-reroll',
+      payload,
+    });
+    expect((posted.at(-1) as { payload: { result: { ok: boolean } } }).payload.result.ok).toBe(
+      true,
+    );
+  });
+
+  test('cancels registration flow when handle expires', async () => {
+    let cancelCalls = 0;
+    const { handlers, wireFlow } = await beginFlow({
+      flow: makeRegistrationFlow({
+        expiresAtMs: Date.now() - 1,
+        cancel: async () => {
+          cancelCalls += 1;
+        },
+      }),
+    });
+
+    await expect(
+      handlers.PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION?.({
+        type: 'PM_GOOGLE_EMAIL_OTP_WALLET_AUTH_COMPLETE_REGISTRATION',
+        requestId: 'complete-expired-registration',
+        payload: handlePayload(wireFlow),
+      }),
+    ).rejects.toThrow(/expired/);
+    expect(cancelCalls).toBe(1);
+  });
+});

@@ -1,0 +1,4540 @@
+import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
+import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
+import { expect, test } from '@playwright/test';
+import { createD1ConsoleAccountService } from '../../packages/console-server-ts/src/account/d1';
+import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
+import { createD1ConsoleApprovalService } from '../../packages/wallet-console-server-ts/src/approvals/d1';
+import { createD1ConsoleAuditService } from '../../packages/console-server-ts/src/audit/d1';
+import {
+  createD1ConsoleBillingService,
+  runD1ConsoleBillingMonthlyFinalization,
+} from '../../packages/console-server-ts/src/billing/d1';
+import { createD1ConsoleBillingPrepaidReservationService } from '../../packages/wallet-console-server-ts/src/billingPrepaidReservations/d1';
+import { createD1ConsoleKeyExportService } from '../../packages/wallet-console-server-ts/src/keyExports/d1';
+import {
+  createD1ConsoleObservabilityIngestionService,
+  createD1ConsoleObservabilityService,
+} from '../../packages/console-server-ts/src/observability/d1';
+import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsolePolicyService } from '../../packages/wallet-console-server-ts/src/policies/d1';
+import {
+  createD1ConsoleRuntimeSnapshotService,
+  runD1ConsoleRuntimeSnapshotOutboxDispatch,
+} from '../../packages/wallet-console-server-ts/src/runtimeSnapshots/d1';
+import { createD1ConsoleSponsoredCallService } from '../../packages/wallet-console-server-ts/src/sponsoredCalls/d1';
+import { createD1ConsoleSponsorshipSpendCapService } from '../../packages/wallet-console-server-ts/src/sponsorshipSpendCaps/d1';
+import { createD1ConsoleOrganizationAccessService } from '../../packages/console-server-ts/src/teamRbac/d1';
+import { createD1ConsoleWalletService } from '../../packages/wallet-console-server-ts/src/wallets/d1';
+import {
+  createD1ConsoleWebhookService,
+  runD1ConsoleWebhookRetryDispatch,
+} from '../../packages/console-server-ts/src/webhooks/d1';
+import {
+  D1EmailOtpAuthStateStore,
+  D1EmailOtpChallengeStore,
+  D1EmailOtpGrantStore,
+  D1EmailOtpRegistrationAttemptStore,
+  D1EmailOtpUnlockChallengeStore,
+  D1EmailOtpWalletEnrollmentStore,
+} from '../../packages/wallet-server/src/core/EmailOtpStores';
+import { D1WebAuthnAuthenticatorStore } from '../../packages/wallet-server/src/core/WebAuthnAuthenticatorStore';
+import {
+  deriveWebAuthnAuthenticatorDeviceInfo,
+  unknownWebAuthnAuthenticatorDeviceInfo,
+} from '../../packages/shared-ts/src/utils/webauthnDeviceInfo';
+import { D1WebAuthnCredentialBindingStore } from '../../packages/wallet-server/src/core/WebAuthnCredentialBindingStore';
+import { D1WebAuthnLoginChallengeStore } from '../../packages/wallet-server/src/core/WebAuthnLoginChallengeStore';
+import { D1WebAuthnSyncChallengeStore } from '../../packages/wallet-server/src/core/WebAuthnSyncChallengeStore';
+import { D1IdentityStore } from '../../packages/wallet-server/src/core/IdentityStore';
+import { D1NearPublicKeyStore } from '../../packages/wallet-server/src/core/NearPublicKeyStore';
+import { D1WalletAuthMethodStore } from '../../packages/wallet-server/src/core/WalletAuthMethodStore';
+import { D1WalletStore } from '../../packages/wallet-server/src/core/WalletStore';
+import { walletIdFromString } from '../../packages/shared-ts/src/utils/registrationIntent';
+import { parseWebAuthnRpId } from '../../packages/shared-ts/src/utils/domainIds';
+import { recordSponsoredExecution } from '../../packages/wallet-console-server-ts/src/router/sponsorshipExecution';
+import {
+  applyD1MigrationFiles,
+  cleanupTemporaryD1Database,
+  createTemporaryD1Database,
+  listD1MigrationFiles,
+  readTableColumnNames,
+} from '../helpers/sqliteD1';
+import { buildEd25519YaoCapabilityFixture } from '../helpers/ed25519YaoCapabilityFixtures';
+
+import {
+  applyConsoleD1Migrations,
+  unwrapFixture,
+  makeD1AccountOwnerContext,
+  RuntimeSnapshotOutboxRaceHarness,
+  TestMutableClock,
+  D1WebhookDispatchHarness,
+  D1WebhookRetryRaceHarness,
+  StaticSponsoredSpendPricingService,
+  AtomicD1SponsoredRecordBuilder,
+  StaleReadPrepaidReservationService,
+  fixedD1AtomicBillingNow,
+  buildRawD1SponsoredCallInsertInput,
+  buildRawD1PrepaidReservationInsertInput,
+  buildRawD1BillingLedgerEntryInsertInput,
+  buildRawD1BillingLedgerPostingInsertInput,
+  buildRawD1BillingMonthlyActiveWalletInsertInput,
+  buildRawD1RuntimeSnapshotInsertInput,
+  buildRawD1RuntimeSnapshotOutboxInsertInput,
+  buildRawD1WebhookEndpointInsertInput,
+  buildRawD1WebhookEndpointCategoryInsertInput,
+  buildRawD1PasskeyAuthMethodInsertInput,
+  buildRawD1EmailOtpAuthMethodInsertInput,
+  buildRawD1Ed25519WalletSignerInsertInput,
+  buildRawD1WalletInsertInput,
+  buildRawD1EcdsaWalletSignerInsertInput,
+  buildRawD1IdentityLinkInsertInput,
+  buildRawD1EmailOtpChallengeInsertInput,
+  buildRawD1EmailOtpGrantInsertInput,
+  buildRawD1EmailOtpEnrollmentInsertInput,
+  buildRawD1EmailOtpAuthStateInsertInput,
+  buildRawD1EmailOtpUnlockChallengeInsertInput,
+  buildRawD1EmailOtpRegistrationAttemptInsertInput,
+  buildRawD1EmailOtpRateLimitInsertInput,
+  insertRawD1SponsoredCallRecord,
+  insertRawD1PrepaidReservationRecord,
+  insertRawD1BillingLedgerEntryRecord,
+  insertRawD1BillingLedgerPostingRecord,
+  insertRawD1BillingMonthlyActiveWalletRecord,
+  insertRawD1RuntimeSnapshotRecord,
+  insertRawD1RuntimeSnapshotOutboxRecord,
+  insertRawD1WebhookEndpointRecord,
+  insertRawD1WebhookEndpointCategoryRecord,
+  insertRawD1WalletRecord,
+  insertRawD1WalletSignerRecord,
+  insertRawD1WalletAuthMethodRecord,
+  insertRawD1IdentityLinkRecord,
+  insertRawD1EmailOtpChallengeRecord,
+  insertRawD1EmailOtpGrantRecord,
+  insertRawD1EmailOtpEnrollmentRecord,
+  insertRawD1EmailOtpAuthStateRecord,
+  insertRawD1EmailOtpUnlockChallengeRecord,
+  insertRawD1EmailOtpRegistrationAttemptRecord,
+  insertRawD1EmailOtpRateLimitRecord,
+  expectRawD1EmailOtpChallengeInsertRejected,
+  expectRawD1EmailOtpGrantInsertRejected,
+  expectRawD1EmailOtpEnrollmentInsertRejected,
+  expectRawD1EmailOtpAuthStateInsertRejected,
+  expectRawD1EmailOtpUnlockChallengeInsertRejected,
+  expectRawD1EmailOtpRegistrationAttemptInsertRejected,
+  expectRawD1EmailOtpRateLimitInsertRejected,
+  expectRawD1SponsoredCallInsertRejected,
+  expectRawD1PrepaidReservationInsertRejected,
+  expectRawD1BillingLedgerEntryInsertRejected,
+  expectRawD1BillingLedgerPostingInsertRejected,
+  expectRawD1BillingMonthlyActiveWalletInsertRejected,
+  expectRawD1RuntimeSnapshotInsertRejected,
+  expectRawD1RuntimeSnapshotOutboxInsertRejected,
+  expectRawD1WebhookEndpointInsertRejected,
+  expectRawD1WalletInsertRejected,
+  expectRawD1WalletSignerInsertRejected,
+  expectRawD1WalletAuthMethodInsertRejected,
+  expectRawD1IdentityLinkInsertRejected,
+  createD1AtomicAssessment,
+  errorCode,
+  createD1WebhookTestSecretCipher,
+  nearPublicKeyValue,
+  webhookDispatchEventId,
+  buildD1EmailOtpChallengeContext,
+  buildD1EmailOtpChallengeRecord,
+  buildD1EmailOtpGrantRecord,
+  buildD1EmailOtpWalletEnrollmentRecord,
+  buildD1EmailOtpRegistrationAttemptRecord,
+  D1_MIGRATION_TARGETS,
+  type SqliteJsonRow,
+} from './helpers/consoleD1.fixtures';
+
+test.describe('D1 migration smoke', () => {
+  for (const target of D1_MIGRATION_TARGETS) {
+    test(`${target.directoryName} migrations apply in order`, async () => {
+      const temp = createTemporaryD1Database();
+      try {
+        const migrationFiles = listD1MigrationFiles(target.directoryName);
+        await applyD1MigrationFiles(temp.database, migrationFiles);
+
+        if (target.directoryName === 'd1-signer') {
+          const walletColumns = await readTableColumnNames(temp.database, 'wallets');
+          const authMethodColumns = await readTableColumnNames(
+            temp.database,
+            'wallet_auth_methods',
+          );
+          expect(walletColumns).toContain('wallet_id');
+          expect(walletColumns).not.toContain('rp_id');
+          expect(authMethodColumns).toContain('rp_id');
+
+          const retiredTables = await temp.database
+            .prepare(
+              `SELECT name
+                 FROM sqlite_master
+                WHERE type = 'table'
+                  AND name IN (
+                    'email_recovery_preparations',
+                    'recovery_sessions',
+                    'recovery_executions'
+                  )
+                ORDER BY name`,
+            )
+            .all<{ name?: unknown }>();
+          expect(retiredTables.results.map((row) => row.name)).toEqual([]);
+        }
+      } finally {
+        cleanupTemporaryD1Database(temp.tempDir);
+      }
+    });
+  }
+
+  test('d1-signer wallet migration rejects raw identity mismatches', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-signer'));
+
+      await expectRawD1WalletInsertRejected(
+        temp.database,
+        buildRawD1WalletInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wrong_wallet_version',
+            walletId: 'wallet-raw-identity',
+          }),
+        }),
+      );
+      await expectRawD1WalletInsertRejected(
+        temp.database,
+        buildRawD1WalletInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wallet_v1',
+            walletId: 'different-wallet-id',
+          }),
+        }),
+      );
+      await expectRawD1WalletInsertRejected(
+        temp.database,
+        buildRawD1WalletInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wallet_v1',
+          }),
+        }),
+      );
+
+      await insertRawD1WalletRecord(temp.database, buildRawD1WalletInsertInput({}));
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM wallets')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-signer wallet signer migration rejects invalid branch rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-signer'));
+
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1Ed25519WalletSignerInsertInput({
+          chainTargetKey: 'evm:eip155:8453',
+        }),
+      );
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1Ed25519WalletSignerInsertInput({
+          signerId: 'wrong-ed25519-signer-id',
+        }),
+      );
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1Ed25519WalletSignerInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wallet_signer_ed25519_v1',
+            walletId: 'different-wallet-id',
+            signerId: 'ed25519:wallet-raw-ed25519.testnet:1',
+          }),
+        }),
+      );
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1EcdsaWalletSignerInsertInput({
+          chainTargetKey: null,
+        }),
+      );
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1EcdsaWalletSignerInsertInput({
+          signerId: 'ecdsa:wrong-chain-target',
+        }),
+      );
+      await expectRawD1WalletSignerInsertRejected(
+        temp.database,
+        buildRawD1EcdsaWalletSignerInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wallet_signer_ecdsa_v1',
+            walletId: 'wallet-raw-ecdsa-signer',
+            signerId: 'ecdsa:evm:eip155:8453',
+            chainTargetKey: 'evm:eip155:11155111',
+          }),
+        }),
+      );
+
+      await insertRawD1WalletSignerRecord(
+        temp.database,
+        buildRawD1Ed25519WalletSignerInsertInput({}),
+      );
+      await insertRawD1WalletSignerRecord(
+        temp.database,
+        buildRawD1EcdsaWalletSignerInsertInput({}),
+      );
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM wallet_signers')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(2);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-signer wallet auth-method migration rejects invalid branch rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-signer'));
+
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1PasskeyAuthMethodInsertInput({
+          credentialIdB64u: null,
+        }),
+      );
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1PasskeyAuthMethodInsertInput({
+          walletAuthMethodId: 'passkey:wrong-id',
+        }),
+      );
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1PasskeyAuthMethodInsertInput({
+          emailHashHex: 'b'.repeat(64),
+        }),
+      );
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpAuthMethodInsertInput({
+          rpId: 'app.example.test',
+        }),
+      );
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpAuthMethodInsertInput({
+          registrationAuthorityId: null,
+        }),
+      );
+      await expectRawD1WalletAuthMethodInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpAuthMethodInsertInput({
+          authIdentifierKey: 'wrong-email-auth-identifier',
+        }),
+      );
+
+      await insertRawD1WalletAuthMethodRecord(
+        temp.database,
+        buildRawD1PasskeyAuthMethodInsertInput({}),
+      );
+      await insertRawD1WalletAuthMethodRecord(
+        temp.database,
+        buildRawD1EmailOtpAuthMethodInsertInput({}),
+      );
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM wallet_auth_methods')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(2);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-signer identity and recovery migrations reject corrupt raw rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-signer'));
+
+      await expectRawD1IdentityLinkInsertRejected(
+        temp.database,
+        buildRawD1IdentityLinkInsertInput({
+          namespace: '',
+        }),
+      );
+      await expectRawD1IdentityLinkInsertRejected(
+        temp.database,
+        buildRawD1IdentityLinkInsertInput({
+          subject: '',
+        }),
+      );
+      await expectRawD1IdentityLinkInsertRejected(
+        temp.database,
+        buildRawD1IdentityLinkInsertInput({
+          recordJson: JSON.stringify({
+            version: 'wrong_identity_version',
+            subject: 'google:raw-identity-subject',
+            userId: 'wallet-raw-identity-session',
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            updatedAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          }),
+        }),
+      );
+      await expectRawD1IdentityLinkInsertRejected(
+        temp.database,
+        buildRawD1IdentityLinkInsertInput({
+          recordJson: JSON.stringify({
+            version: 'identity_subject_v1',
+            subject: 'google:different-subject',
+            userId: 'wallet-raw-identity-session',
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            updatedAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          }),
+        }),
+      );
+      await expectRawD1IdentityLinkInsertRejected(
+        temp.database,
+        buildRawD1IdentityLinkInsertInput({
+          createdAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          updatedAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+        }),
+      );
+      await insertRawD1IdentityLinkRecord(temp.database, buildRawD1IdentityLinkInsertInput({}));
+
+      const identityRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM identity_links')
+        .first<{ record_count?: unknown }>();
+      expect(Number(identityRow?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-signer Email OTP migrations reject corrupt raw rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-signer'));
+
+      await expectRawD1EmailOtpChallengeInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpChallengeInsertInput({
+          namespace: '',
+        }),
+      );
+      await expectRawD1EmailOtpChallengeInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpChallengeInsertInput({
+          action: 'unsupported',
+        }),
+      );
+      await expectRawD1EmailOtpChallengeInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpChallengeInsertInput({
+          recordJson: JSON.stringify({
+            version: 'email_otp_challenge_v1',
+            challengeId: 'different-challenge-id',
+            challengeSubjectId: 'google-subject-raw-email-otp',
+            walletId: 'wallet-raw-email-otp',
+            orgId: 'org-d1-email-otp-schema',
+            otpChannel: 'email_otp',
+            ownerProofBindingDigest: 'owner-proof-binding-raw-email-otp',
+            otpCode: '123456',
+            action: 'wallet_email_otp_login',
+            operation: 'wallet_unlock',
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            expiresAtMs: Date.parse('2026-06-27T00:10:00.000Z'),
+          }),
+        }),
+      );
+      await insertRawD1EmailOtpChallengeRecord(
+        temp.database,
+        buildRawD1EmailOtpChallengeInsertInput({}),
+      );
+
+      await expectRawD1EmailOtpGrantInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpGrantInsertInput({
+          action: 'wallet_email_otp_registration',
+        }),
+      );
+      await expectRawD1EmailOtpGrantInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpGrantInsertInput({
+          recordJson: JSON.stringify({
+            version: 'email_otp_grant_v1',
+            grantToken: 'different-email-otp-grant',
+            userId: 'google-subject-raw-email-otp',
+            walletId: 'wallet-raw-email-otp',
+            orgId: 'org-d1-email-otp-schema',
+            challengeId: 'email-otp-challenge-raw-schema',
+            otpChannel: 'email_otp',
+            action: 'wallet_email_otp_factor_release',
+            issuedAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            expiresAtMs: Date.parse('2026-06-27T00:10:00.000Z'),
+          }),
+        }),
+      );
+      await insertRawD1EmailOtpGrantRecord(temp.database, buildRawD1EmailOtpGrantInsertInput({}));
+
+      await expectRawD1EmailOtpEnrollmentInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpEnrollmentInsertInput({
+          verifiedEmail: '',
+        }),
+      );
+      await expectRawD1EmailOtpEnrollmentInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpEnrollmentInsertInput({
+          recordJson: JSON.stringify({
+            version: 'email_otp_wallet_enrollment_v1',
+            walletId: 'different-wallet-id',
+            providerUserId: 'google-subject-raw-email-otp',
+            orgId: 'org-d1-email-otp-schema',
+            verifiedEmail: 'raw@example.test',
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            updatedAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          }),
+        }),
+      );
+      await insertRawD1EmailOtpEnrollmentRecord(
+        temp.database,
+        buildRawD1EmailOtpEnrollmentInsertInput({}),
+      );
+
+      await expectRawD1EmailOtpAuthStateInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpAuthStateInsertInput({
+          providerUserId: '',
+        }),
+      );
+      await expectRawD1EmailOtpAuthStateInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpAuthStateInsertInput({
+          updatedAtMs: Date.parse('2026-06-26T23:59:59.000Z'),
+        }),
+      );
+      await insertRawD1EmailOtpAuthStateRecord(
+        temp.database,
+        buildRawD1EmailOtpAuthStateInsertInput({}),
+      );
+
+      await expectRawD1EmailOtpUnlockChallengeInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpUnlockChallengeInsertInput({
+          challengeId: '',
+        }),
+      );
+      await expectRawD1EmailOtpUnlockChallengeInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpUnlockChallengeInsertInput({
+          recordJson: JSON.stringify({
+            version: 'email_otp_unlock_challenge_v1',
+            challengeId: 'email-otp-unlock-challenge-raw-schema',
+            walletId: 'wallet-raw-email-otp',
+            userId: 'different-user-id',
+            orgId: 'org-d1-email-otp-schema',
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            expiresAtMs: Date.parse('2026-06-27T00:10:00.000Z'),
+          }),
+        }),
+      );
+      await insertRawD1EmailOtpUnlockChallengeRecord(
+        temp.database,
+        buildRawD1EmailOtpUnlockChallengeInsertInput({}),
+      );
+
+      await expectRawD1EmailOtpRegistrationAttemptInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpRegistrationAttemptInsertInput({
+          state: 'unsupported',
+        }),
+      );
+      await expectRawD1EmailOtpRegistrationAttemptInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpRegistrationAttemptInsertInput({
+          recordJson: JSON.stringify({
+            version: 'google_email_otp_registration_attempt_v1',
+            attemptId: 'email-otp-registration-attempt-raw-schema',
+            providerSubject: 'google-subject-raw-email-otp',
+            email: 'raw@example.test',
+            walletId: 'different-wallet-id',
+            state: 'started',
+            ownerProofBindingDigest: 'owner-proof-binding-raw-email-otp',
+            runtimePolicyScope: {
+              orgId: 'org-d1-email-otp-schema',
+            },
+            createdAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+            updatedAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+            expiresAtMs: Date.parse('2026-06-27T00:10:00.000Z'),
+          }),
+        }),
+      );
+      await insertRawD1EmailOtpRegistrationAttemptRecord(
+        temp.database,
+        buildRawD1EmailOtpRegistrationAttemptInsertInput({}),
+      );
+
+      await expectRawD1EmailOtpRateLimitInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpRateLimitInsertInput({
+          rateKey: '',
+        }),
+      );
+      await expectRawD1EmailOtpRateLimitInsertRejected(
+        temp.database,
+        buildRawD1EmailOtpRateLimitInsertInput({
+          resetAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+        }),
+      );
+      await insertRawD1EmailOtpRateLimitRecord(
+        temp.database,
+        buildRawD1EmailOtpRateLimitInsertInput({}),
+      );
+
+      const challengeRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_challenges')
+        .first<{ record_count?: unknown }>();
+      const grantRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_grants')
+        .first<{ record_count?: unknown }>();
+      const enrollmentRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_wallet_enrollments')
+        .first<{ record_count?: unknown }>();
+      const authStateRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_auth_states')
+        .first<{ record_count?: unknown }>();
+      const unlockChallengeRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_unlock_challenges')
+        .first<{ record_count?: unknown }>();
+      const registrationAttemptRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_registration_attempts')
+        .first<{ record_count?: unknown }>();
+      const rateLimitRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM email_otp_rate_limits')
+        .first<{ record_count?: unknown }>();
+      expect(Number(challengeRow?.record_count || 0)).toBe(1);
+      expect(Number(grantRow?.record_count || 0)).toBe(1);
+      expect(Number(enrollmentRow?.record_count || 0)).toBe(1);
+      expect(Number(authStateRow?.record_count || 0)).toBe(1);
+      expect(Number(unlockChallengeRow?.record_count || 0)).toBe(1);
+      expect(Number(registrationAttemptRow?.record_count || 0)).toBe(1);
+      expect(Number(rateLimitRow?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-console webhook migration rejects corrupt raw endpoint rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-console'));
+
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          namespace: '',
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          id: '',
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          url: 'ftp://webhook.example.test/receive',
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          signingSecretCiphertextB64u: 'sealed-secret=',
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          secretPreview: '',
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          createdAtMs: 0,
+        }),
+      );
+      await expectRawD1WebhookEndpointInsertRejected(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({
+          updatedAtMs: Date.parse('2026-06-26T23:59:59.000Z'),
+        }),
+      );
+
+      await insertRawD1WebhookEndpointRecord(
+        temp.database,
+        buildRawD1WebhookEndpointInsertInput({}),
+      );
+      await insertRawD1WebhookEndpointCategoryRecord(
+        temp.database,
+        buildRawD1WebhookEndpointCategoryInsertInput({}),
+      );
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM webhook_endpoints')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-console sponsored-call migration rejects corrupt raw records', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-console'));
+
+      await expectRawD1SponsoredCallInsertRejected(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-empty-idempotency',
+          idempotencyKey: '',
+        }),
+      );
+      await expectRawD1SponsoredCallInsertRejected(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-invalid-details',
+          detailsJson: '{invalid-json',
+        }),
+      );
+      await expectRawD1SponsoredCallInsertRejected(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-negative-estimate',
+          estimatedSpendMinor: -1,
+        }),
+      );
+      await expectRawD1SponsoredCallInsertRejected(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-zero-created',
+          createdAtMs: 0,
+        }),
+      );
+      await expectRawD1SponsoredCallInsertRejected(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-regressed-updated',
+          createdAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          updatedAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+        }),
+      );
+
+      await insertRawD1SponsoredCallRecord(
+        temp.database,
+        buildRawD1SponsoredCallInsertInput({
+          id: 'raw-sponsored-valid',
+          estimatedSpendMinor: 100,
+          settledSpendMinor: 75,
+        }),
+      );
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM sponsored_call_records')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-console prepaid-reservation migration rejects corrupt raw records', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-console'));
+
+      await expectRawD1PrepaidReservationInsertRejected(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-empty-source',
+          sourceEventId: '',
+        }),
+      );
+      await expectRawD1PrepaidReservationInsertRejected(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-zero-request',
+          requestedMinor: 0,
+          settledMinor: 0,
+          releasedMinor: 0,
+        }),
+      );
+      await expectRawD1PrepaidReservationInsertRejected(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-bad-release-math',
+          requestedMinor: 100,
+          settledMinor: 40,
+          releasedMinor: 10,
+        }),
+      );
+      await expectRawD1PrepaidReservationInsertRejected(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-reserved-settlement-data',
+          status: 'RESERVED',
+          settledMinor: 0,
+          releasedMinor: 0,
+          txOrExecutionRef: '0xshould-not-exist',
+          pricingVersion: null,
+        }),
+      );
+      await expectRawD1PrepaidReservationInsertRejected(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-regressed-updated',
+          createdAtMs: Date.parse('2026-06-27T00:00:01.000Z'),
+          updatedAtMs: Date.parse('2026-06-27T00:00:00.000Z'),
+        }),
+      );
+
+      await insertRawD1PrepaidReservationRecord(
+        temp.database,
+        buildRawD1PrepaidReservationInsertInput({
+          id: 'raw-prepaid-valid',
+        }),
+      );
+      const row = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM billing_prepaid_reservations')
+        .first<{ record_count?: unknown }>();
+      expect(Number(row?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-console billing ledger migration rejects corrupt raw records', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-console'));
+
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          namespace: '',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          id: '',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          description: '',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          monthUtc: '2026-13',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          sourceEventId: '',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          idempotencyKey: '',
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          entryType: 'CREDIT_PURCHASE',
+          amountMinor: -100,
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          entryType: 'PRODUCT_EXECUTION_DEBIT',
+          amountMinor: 100,
+        }),
+      );
+      await expectRawD1BillingLedgerEntryInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({
+          entryType: 'MANUAL_ADJUSTMENT',
+          amountMinor: 0,
+        }),
+      );
+
+      await insertRawD1BillingLedgerEntryRecord(
+        temp.database,
+        buildRawD1BillingLedgerEntryInsertInput({}),
+      );
+
+      await expectRawD1BillingLedgerPostingInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerPostingInsertInput({
+          id: '',
+        }),
+      );
+      await expectRawD1BillingLedgerPostingInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerPostingInsertInput({
+          accountCode: '',
+        }),
+      );
+      await expectRawD1BillingLedgerPostingInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerPostingInsertInput({
+          amountMinor: 0,
+        }),
+      );
+      await expectRawD1BillingLedgerPostingInsertRejected(
+        temp.database,
+        buildRawD1BillingLedgerPostingInsertInput({
+          createdAtMs: 0,
+        }),
+      );
+      await insertRawD1BillingLedgerPostingRecord(
+        temp.database,
+        buildRawD1BillingLedgerPostingInsertInput({}),
+      );
+
+      await expectRawD1BillingMonthlyActiveWalletInsertRejected(
+        temp.database,
+        buildRawD1BillingMonthlyActiveWalletInsertInput({
+          monthUtc: '2026-00',
+        }),
+      );
+      await expectRawD1BillingMonthlyActiveWalletInsertRejected(
+        temp.database,
+        buildRawD1BillingMonthlyActiveWalletInsertInput({
+          walletId: '',
+        }),
+      );
+      await expectRawD1BillingMonthlyActiveWalletInsertRejected(
+        temp.database,
+        buildRawD1BillingMonthlyActiveWalletInsertInput({
+          sourceEventId: '',
+        }),
+      );
+      await expectRawD1BillingMonthlyActiveWalletInsertRejected(
+        temp.database,
+        buildRawD1BillingMonthlyActiveWalletInsertInput({
+          createdAtMs: 0,
+        }),
+      );
+      await insertRawD1BillingMonthlyActiveWalletRecord(
+        temp.database,
+        buildRawD1BillingMonthlyActiveWalletInsertInput({}),
+      );
+
+      const ledgerRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM billing_ledger_entries')
+        .first<{ record_count?: unknown }>();
+      const postingRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM billing_ledger_postings')
+        .first<{ record_count?: unknown }>();
+      const walletRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM billing_monthly_active_resources')
+        .first<{ record_count?: unknown }>();
+      expect(Number(ledgerRow?.record_count || 0)).toBe(1);
+      expect(Number(postingRow?.record_count || 0)).toBe(3);
+      expect(Number(walletRow?.record_count || 0)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('d1-console runtime snapshot migration rejects corrupt raw outbox rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyD1MigrationFiles(temp.database, listD1MigrationFiles('d1-console'));
+
+      await expectRawD1RuntimeSnapshotInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({
+          namespace: '',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({
+          environmentId: '',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({
+          payloadJson: '{invalid-json',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({
+          effectiveAtMs: 0,
+        }),
+      );
+      await expectRawD1RuntimeSnapshotInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({
+          createdBy: '',
+        }),
+      );
+
+      await insertRawD1RuntimeSnapshotRecord(
+        temp.database,
+        buildRawD1RuntimeSnapshotInsertInput({}),
+      );
+
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          eventId: '',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          payloadJson: '{invalid-json',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          claimedBy: 'worker-a',
+        }),
+      );
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          claimedBy: 'worker-a',
+          claimExpiresAtMs: Date.parse('2026-06-27T00:00:00.500Z'),
+        }),
+      );
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          status: 'DISPATCHED',
+          attemptCount: 1,
+          dispatchedAtMs: null,
+        }),
+      );
+      await expectRawD1RuntimeSnapshotOutboxInsertRejected(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          status: 'DEAD_LETTER',
+          attemptCount: 1,
+          lastError: null,
+        }),
+      );
+
+      await insertRawD1RuntimeSnapshotOutboxRecord(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          eventId: 'runtime_snapshot_event_raw_pending',
+          snapshotId: 'runtime_snapshot_raw_pending',
+        }),
+      );
+      await insertRawD1RuntimeSnapshotOutboxRecord(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          eventId: 'runtime_snapshot_event_raw_dispatched',
+          snapshotId: 'runtime_snapshot_raw_dispatched',
+          status: 'DISPATCHED',
+          attemptCount: 1,
+          dispatchedAtMs: Date.parse('2026-06-27T00:00:02.000Z'),
+        }),
+      );
+      await insertRawD1RuntimeSnapshotOutboxRecord(
+        temp.database,
+        buildRawD1RuntimeSnapshotOutboxInsertInput({
+          eventId: 'runtime_snapshot_event_raw_dead_letter',
+          snapshotId: 'runtime_snapshot_raw_dead_letter',
+          status: 'DEAD_LETTER',
+          attemptCount: 1,
+          lastError: 'delivery failed',
+        }),
+      );
+      const snapshotRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM runtime_snapshots')
+        .first<{ record_count?: unknown }>();
+      const outboxRow = await temp.database
+        .prepare('SELECT COUNT(*) AS record_count FROM runtime_snapshot_outbox')
+        .first<{ record_count?: unknown }>();
+      expect(Number(snapshotRow?.record_count || 0)).toBe(1);
+      expect(Number(outboxRow?.record_count || 0)).toBe(3);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+});
+
+test.describe('D1 adapter contracts', () => {
+  test('org project environment adapter scopes tenants and default environments', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const service = await createD1ConsoleOrgProjectEnvService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-projects-primary',
+        actorUserId: 'user-d1-projects-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-projects-secondary',
+        actorUserId: 'user-d1-projects-secondary',
+      };
+
+      let missingOrgError: unknown = null;
+      try {
+        await service.getOrganization(primaryCtx);
+      } catch (error: unknown) {
+        missingOrgError = error;
+      }
+      expect(errorCode(missingOrgError)).toBe('organization_not_found');
+
+      const primaryOrg = await service.upsertOrganization(primaryCtx, {
+        name: 'D1 Primary Org',
+      });
+      expect(primaryOrg.slug).toBe('d1-primary-org');
+      await expect(service.findDefaultOrganization()).resolves.toMatchObject({
+        id: primaryCtx.orgId,
+      });
+
+      const project = await service.createProject(primaryCtx, {
+        id: 'project-d1-org',
+        name: 'D1 Control Plane',
+        liveEnvironmentsEnabled: false,
+      });
+      expect(project.environmentCount).toBe(3);
+
+      const environments = await service.listEnvironments(primaryCtx, {
+        projectId: project.id,
+      });
+      expect(environments.map((environment) => environment.key)).toEqual([
+        'prod',
+        'staging',
+        'dev',
+      ]);
+      expect(environments.map((environment) => environment.status)).toEqual([
+        'DISABLED',
+        'DISABLED',
+        'ACTIVE',
+      ]);
+
+      const prodEnvironment = await service.updateEnvironment(primaryCtx, 'project-d1-org:prod', {
+        runtimeVersion: 'runtime-d1-v2',
+        name: 'Production Root',
+      });
+      expect(prodEnvironment?.runtimeVersion).toBe('runtime-d1-v2');
+
+      await service.upsertOrganization(secondaryCtx, {
+        name: 'D1 Secondary Org',
+      });
+      await expect(service.findDefaultOrganization()).resolves.toBeNull();
+      await expect(service.listProjects(secondaryCtx)).resolves.toHaveLength(0);
+      await expect(
+        service.updateEnvironment(secondaryCtx, 'project-d1-org:prod', {
+          name: 'Cross Tenant Mutation',
+        }),
+      ).resolves.toBeNull();
+
+      await expect(
+        service.findOrganizationForScope({ projectId: project.id }),
+      ).resolves.toMatchObject({
+        id: primaryCtx.orgId,
+      });
+      await expect(
+        service.findOrganizationForScope({
+          projectId: project.id,
+          environmentId: 'project-d1-org:prod',
+        }),
+      ).resolves.toMatchObject({
+        id: primaryCtx.orgId,
+      });
+      await expect(service.searchOrganizations({ query: 'primary', limit: 5 })).resolves.toEqual([
+        expect.objectContaining({ id: primaryCtx.orgId }),
+      ]);
+
+      let duplicateEnvironmentKeyError: unknown = null;
+      try {
+        await service.createEnvironment(primaryCtx, {
+          projectId: project.id,
+          key: 'dev',
+          name: 'Duplicate Development',
+        });
+      } catch (error: unknown) {
+        duplicateEnvironmentKeyError = error;
+      }
+      expect(errorCode(duplicateEnvironmentKeyError)).toBe('environment_key_conflict');
+
+      const archivedProject = await service.archiveProject(primaryCtx, project.id);
+      expect(archivedProject?.status).toBe('ARCHIVED');
+      const archivedEnvironments = await service.listEnvironments(primaryCtx, {
+        projectId: project.id,
+        status: 'ARCHIVED',
+      });
+      expect(archivedEnvironments).toHaveLength(3);
+
+      let archivedProjectError: unknown = null;
+      try {
+        await service.updateProject(primaryCtx, project.id, {
+          name: 'Archived Project Update',
+        });
+      } catch (error: unknown) {
+        archivedProjectError = error;
+      }
+      expect(errorCode(archivedProjectError)).toBe('project_archived');
+
+      const deleted = await service.deleteOrganization(primaryCtx);
+      expect(deleted.deleted).toBe(true);
+      await expect(service.findOrganizationForScope({ projectId: project.id })).resolves.toBeNull();
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('account adapter stores profiles and resolves created organizations from D1', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const namespace = 'd1-contracts';
+      const orgProjectEnv = await createD1ConsoleOrgProjectEnvService({
+        database: temp.database,
+        namespace,
+        ensureSchema: true,
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const organizationAccess = await createD1ConsoleOrganizationAccessService({
+        database: temp.database,
+        namespace,
+        ensureSchema: true,
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const service = await createD1ConsoleAccountService({
+        database: temp.database,
+        namespace,
+        ensureSchema: true,
+        orgProjectEnv,
+        organizationAccess,
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const ctx = makeD1AccountOwnerContext();
+
+      const initialProfile = await service.getProfile(ctx);
+      expect(initialProfile.displayName).toBe('D1 Account User');
+      expect(initialProfile.primaryEmail).toBe('user-d1-account@example.com');
+      expect(initialProfile.backupEmails).toHaveLength(0);
+
+      const updatedProfile = await service.updateProfile(ctx, {
+        displayName: 'D1 Account Owner',
+        primaryEmail: 'owner-d1-account@example.com',
+        addBackupEmail: 'backup-d1-account@example.com',
+      });
+      expect(updatedProfile.displayName).toBe('D1 Account Owner');
+      expect(updatedProfile.primaryEmail).toBe('owner-d1-account@example.com');
+      expect(updatedProfile.backupEmails).toEqual([
+        expect.objectContaining({
+          email: 'backup-d1-account@example.com',
+          status: 'PENDING',
+        }),
+      ]);
+
+      const duplicateBackupProfile = await service.updateProfile(ctx, {
+        addBackupEmail: 'backup-d1-account@example.com',
+      });
+      expect(duplicateBackupProfile.backupEmails).toHaveLength(1);
+
+      const removedBackupProfile = await service.updateProfile(ctx, {
+        removeBackupEmail: 'backup-d1-account@example.com',
+      });
+      expect(removedBackupProfile.backupEmails).toHaveLength(0);
+
+      let readOnlyEmailError: unknown = null;
+      try {
+        await service.updateProfile(
+          { ...ctx, provider: 'oidc' },
+          { primaryEmail: 'oidc-owned@example.com' },
+        );
+      } catch (error: unknown) {
+        readOnlyEmailError = error;
+      }
+      expect(errorCode(readOnlyEmailError)).toBe('primary_email_read_only');
+
+      const organization = await service.createOrganization(ctx, {
+        id: 'org-d1-account-created',
+        name: 'D1 Account Created Org',
+      });
+      expect(organization.role).toBe('OWNER');
+      expect(organization.projectAccess.kind).toBe('all');
+
+      await orgProjectEnv.createProject(
+        {
+          orgId: organization.id,
+          actorUserId: ctx.userId,
+        },
+        {
+          id: 'project-d1-account',
+          name: 'D1 Account Project',
+          liveEnvironmentsEnabled: true,
+        },
+      );
+
+      const organizations = await service.listOrganizations(ctx);
+      expect(organizations).toHaveLength(1);
+      expect(organizations[0]).toMatchObject({
+        id: organization.id,
+        selectedProjectId: 'project-d1-account',
+        selectedEnvironmentId: 'project-d1-account:prod',
+      });
+
+      const switched = await service.switchOrganizationContext(ctx, organization.id);
+      expect(switched.role).toBe('OWNER');
+      expect(switched.projectId).toBe('project-d1-account');
+      expect(switched.environmentId).toBe('project-d1-account:prod');
+
+      const renamed = await service.updateOrganization(ctx, organization.id, {
+        name: 'D1 Account Renamed Org',
+      });
+      expect(renamed.name).toBe('D1 Account Renamed Org');
+
+      let duplicateOrganizationError: unknown = null;
+      try {
+        await service.createOrganization(ctx, {
+          id: organization.id,
+          name: 'Duplicate Org',
+        });
+      } catch (error: unknown) {
+        duplicateOrganizationError = error;
+      }
+      expect(errorCode(duplicateOrganizationError)).toBe('organization_already_exists');
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('wallet index adapter scopes tenants and paginates filtered D1 rows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      let nowMsValue = Date.parse('2026-06-27T00:30:00.000Z');
+      const service = await createD1ConsoleWalletService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date(nowMsValue),
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-wallets-primary',
+        actorUserId: 'user-d1-wallets-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-wallets-secondary',
+        actorUserId: 'user-d1-wallets-secondary',
+      };
+      const upsertWallet = service.upsertWallet;
+      if (!upsertWallet) throw new Error('D1 wallet adapter must expose wallet upsert');
+
+      const alpha = await upsertWallet(primaryCtx, {
+        id: 'wallet-d1-shared',
+        projectId: 'project-d1-wallets',
+        environmentId: 'env-d1-wallets-prod',
+        userId: 'user-alpha',
+        externalRefId: 'external-alpha',
+        address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        chain: 'Ethereum',
+        walletType: 'EOA',
+        status: 'ACTIVE',
+        policyId: 'policy-alpha',
+        balanceMinor: 500,
+        lastActivityAt: '2026-06-27T00:31:00.000Z',
+        createdAt: '2026-06-27T00:30:00.000Z',
+        updatedAt: '2026-06-27T00:31:00.000Z',
+      });
+      expect(alpha).toMatchObject({
+        id: 'wallet-d1-shared',
+        orgId: primaryCtx.orgId,
+        chain: 'Ethereum',
+        walletType: 'EOA',
+        status: 'ACTIVE',
+        balanceMinor: 500,
+        lastActivityAt: '2026-06-27T00:31:00.000Z',
+      });
+
+      await upsertWallet(primaryCtx, {
+        id: 'wallet-d1-beta',
+        projectId: 'project-d1-wallets',
+        environmentId: 'env-d1-wallets-prod',
+        userId: 'user-beta',
+        externalRefId: 'external-beta',
+        address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        chain: 'Base',
+        walletType: 'SMART',
+        status: 'FROZEN',
+        policyId: 'policy-beta',
+        balanceMinor: 2_500,
+        lastActivityAt: '2026-06-27T00:35:00.000Z',
+        createdAt: '2026-06-27T00:32:00.000Z',
+        updatedAt: '2026-06-27T00:35:00.000Z',
+      });
+      await upsertWallet(primaryCtx, {
+        id: 'wallet-d1-gamma',
+        projectId: 'project-d1-wallets',
+        environmentId: 'env-d1-wallets-dev',
+        userId: 'user-gamma',
+        externalRefId: 'external-gamma',
+        address: '0xcccccccccccccccccccccccccccccccccccccccc',
+        chain: 'NEAR',
+        walletType: 'EOA',
+        status: 'ARCHIVED',
+        balanceMinor: 1_000,
+        lastActivityAt: null,
+        createdAt: '2026-06-27T00:34:00.000Z',
+        updatedAt: '2026-06-27T00:36:00.000Z',
+      });
+      const secondaryWallet = await upsertWallet(secondaryCtx, {
+        id: 'wallet-d1-shared',
+        projectId: 'project-d1-wallets-other',
+        environmentId: 'env-d1-wallets-other-prod',
+        userId: 'user-secondary',
+        externalRefId: 'external-secondary',
+        address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        chain: 'Ethereum',
+        walletType: 'EOA',
+        status: 'ACTIVE',
+        balanceMinor: 9_999,
+      });
+      expect(secondaryWallet.orgId).toBe(secondaryCtx.orgId);
+
+      await expect(service.getWallet(primaryCtx, 'wallet-d1-shared')).resolves.toMatchObject({
+        orgId: primaryCtx.orgId,
+        userId: 'user-alpha',
+      });
+      await expect(service.getWallet(secondaryCtx, 'wallet-d1-shared')).resolves.toMatchObject({
+        orgId: secondaryCtx.orgId,
+        userId: 'user-secondary',
+      });
+      await expect(service.listWallets(secondaryCtx)).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'wallet-d1-shared' })],
+      });
+
+      await expect(
+        service.listWallets(primaryCtx, {
+          environmentId: 'env-d1-wallets-prod',
+          chain: 'Base',
+          walletType: 'SMART',
+          status: 'FROZEN',
+          policyId: 'policy-beta',
+          userId: 'user-beta',
+          externalRefId: 'external-beta',
+        }),
+      ).resolves.toEqual({
+        items: [expect.objectContaining({ id: 'wallet-d1-beta' })],
+      });
+      await expect(
+        service.searchWallets(primaryCtx, {
+          q: 'BBBB',
+          limit: 10,
+        }),
+      ).resolves.toEqual({
+        items: [expect.objectContaining({ id: 'wallet-d1-beta' })],
+      });
+      await expect(
+        service.searchWallets(primaryCtx, {
+          q: 'external-gamma',
+          limit: 10,
+        }),
+      ).resolves.toEqual({
+        items: [expect.objectContaining({ id: 'wallet-d1-gamma' })],
+      });
+
+      const firstBalancePage = await service.listWallets(primaryCtx, {
+        sortBy: 'balance',
+        sortOrder: 'desc',
+        limit: 2,
+      });
+      expect(firstBalancePage.items.map((wallet) => wallet.id)).toEqual([
+        'wallet-d1-beta',
+        'wallet-d1-gamma',
+      ]);
+      expect(firstBalancePage.nextCursor).toBeTruthy();
+      const secondBalancePage = await service.listWallets(primaryCtx, {
+        sortBy: 'balance',
+        sortOrder: 'desc',
+        limit: 2,
+        cursor: firstBalancePage.nextCursor,
+      });
+      expect(secondBalancePage.items.map((wallet) => wallet.id)).toEqual(['wallet-d1-shared']);
+
+      await expect(
+        service.listWallets(primaryCtx, {
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          cursor: firstBalancePage.nextCursor,
+        }),
+      ).rejects.toMatchObject({ code: 'invalid_query' });
+
+      nowMsValue = Date.parse('2026-06-27T00:40:00.000Z');
+      const updatedAlpha = await upsertWallet(primaryCtx, {
+        id: 'wallet-d1-shared',
+        projectId: 'project-d1-wallets',
+        environmentId: 'env-d1-wallets-prod',
+        userId: 'user-alpha',
+        externalRefId: 'external-alpha',
+        address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        chain: 'Ethereum',
+        walletType: 'EOA',
+        status: 'ARCHIVED',
+        balanceMinor: 750,
+        lastActivityAt: '2026-06-27T00:39:00.000Z',
+      });
+      expect(updatedAlpha).toMatchObject({
+        id: 'wallet-d1-shared',
+        status: 'ARCHIVED',
+        balanceMinor: 750,
+        createdAt: '2026-06-27T00:30:00.000Z',
+        updatedAt: '2026-06-27T00:40:00.000Z',
+      });
+
+      await expect(
+        upsertWallet(primaryCtx, {
+          id: 'wallet-d1-conflict',
+          projectId: 'project-d1-wallets',
+          environmentId: 'env-d1-wallets-prod',
+          userId: 'user-conflict',
+          externalRefId: 'external-conflict',
+          address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          chain: 'Base',
+        }),
+      ).rejects.toMatchObject({ code: 'wallet_address_conflict' });
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('API key adapter scopes tenants and authenticates hashed D1 credentials', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      let nowMsValue = Date.parse('2026-06-27T01:00:00.000Z');
+      const service = await createD1ConsoleApiKeyService({
+        scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date(nowMsValue),
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-api-keys-primary',
+        actorUserId: 'user-d1-api-keys-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-api-keys-secondary',
+        actorUserId: 'user-d1-api-keys-secondary',
+      };
+
+      const createdSecretKey = await service.createApiKey(primaryCtx, {
+        kind: 'secret_key',
+        name: 'D1 Server Key',
+        environmentId: 'env-d1-api-prod',
+        scopes: ['wallets.read', 'accounts.create'],
+        ipAllowlist: ['203.0.113.0/24'],
+      });
+      expect(createdSecretKey.secret).toMatch(/^sk_/);
+      await expect(service.listApiKeys(primaryCtx)).resolves.toHaveLength(1);
+      await expect(service.listApiKeys(secondaryCtx)).resolves.toHaveLength(0);
+      await expect(
+        service.updateApiKey(secondaryCtx, createdSecretKey.apiKey.id, {
+          name: 'Cross Tenant Rename',
+        }),
+      ).resolves.toBeNull();
+
+      const authenticateApiKey = service.authenticateApiKey;
+      if (!authenticateApiKey) throw new Error('D1 API key adapter must expose secret auth');
+      const authOk = await authenticateApiKey({
+        secret: createdSecretKey.secret,
+        endpoint: '/v1/wallets',
+        requiredScopes: ['wallets.read'],
+        sourceIp: '203.0.113.42',
+        environmentId: 'env-d1-api-prod',
+      });
+      expect(authOk.ok).toBe(true);
+      if (!authOk.ok) throw new Error(authOk.message);
+      expect(authOk.apiKey.endpointUsageCounts['/v1/wallets']).toBe(1);
+      expect(authOk.apiKey.lastUsedAt).toBe('2026-06-27T01:00:00.000Z');
+
+      nowMsValue = Date.parse('2026-06-27T01:01:00.000Z');
+      const scopeDenied = await authenticateApiKey({
+        secret: createdSecretKey.secret,
+        endpoint: '/v1/wallets/signers',
+        requiredScopes: ['wallets.signers.create'],
+        sourceIp: '203.0.113.42',
+        environmentId: 'env-d1-api-prod',
+      });
+      expect(scopeDenied).toMatchObject({
+        ok: false,
+        status: 403,
+        code: 'secret_key_forbidden_scope',
+      });
+      const afterScopeDenied = await service.listApiKeys(primaryCtx);
+      expect(afterScopeDenied[0]?.anomalyFlags).toContain('auth.scope_denied');
+
+      const updatedSecretKey = await service.updateApiKey(primaryCtx, createdSecretKey.apiKey.id, {
+        name: 'D1 Server Key Renamed',
+        scopes: ['wallets.read'],
+        ipAllowlist: ['203.0.113.42'],
+      });
+      expect(updatedSecretKey).toMatchObject({
+        id: createdSecretKey.apiKey.id,
+        name: 'D1 Server Key Renamed',
+        scopes: ['wallets.read'],
+        ipAllowlist: ['203.0.113.42'],
+      });
+
+      const rotatedSecretKey = await service.rotateApiKey(primaryCtx, createdSecretKey.apiKey.id);
+      expect(rotatedSecretKey?.apiKey.secretVersion).toBe(2);
+      expect(rotatedSecretKey?.secret).toMatch(/^sk_/);
+      expect(rotatedSecretKey?.secret).not.toBe(createdSecretKey.secret);
+      const staleSecretAuth = await authenticateApiKey({
+        secret: createdSecretKey.secret,
+        endpoint: '/v1/wallets',
+        requiredScopes: ['wallets.read'],
+        sourceIp: '203.0.113.42',
+        environmentId: 'env-d1-api-prod',
+      });
+      expect(staleSecretAuth).toMatchObject({
+        ok: false,
+        status: 401,
+        code: 'secret_key_invalid',
+      });
+
+      const createdPublishableKey = await service.createApiKey(primaryCtx, {
+        kind: 'publishable_key',
+        name: 'D1 Browser Key',
+        environmentId: 'env-d1-api-prod',
+        allowedOrigins: ['https://app.example.com'],
+        rateLimitBucket: 'browser-default',
+        quotaBucket: 'prepaid-default',
+        riskPolicy: { mode: 'standard' },
+        paymentPolicy: { billing: 'prepaid' },
+      });
+      expect(createdPublishableKey.secret).toMatch(/^pk_/);
+
+      const authenticatePublishableKey = service.authenticatePublishableKey;
+      if (!authenticatePublishableKey) {
+        throw new Error('D1 API key adapter must expose publishable auth');
+      }
+      nowMsValue = Date.parse('2026-06-27T01:02:00.000Z');
+      const publishableAuthOk = await authenticatePublishableKey({
+        secret: createdPublishableKey.secret,
+        origin: 'https://app.example.com',
+        environmentId: 'env-d1-api-prod',
+      });
+      expect(publishableAuthOk.ok).toBe(true);
+      if (!publishableAuthOk.ok) throw new Error(publishableAuthOk.message);
+      expect(publishableAuthOk.apiKey.lastUsedAt).toBe('2026-06-27T01:02:00.000Z');
+
+      const blockedOrigin = await authenticatePublishableKey({
+        secret: createdPublishableKey.secret,
+        origin: 'https://evil.example.com',
+        environmentId: 'env-d1-api-prod',
+      });
+      expect(blockedOrigin).toMatchObject({
+        ok: false,
+        status: 403,
+        code: 'publishable_key_origin_blocked',
+      });
+
+      const revoked = await service.revokeApiKey(primaryCtx, createdPublishableKey.apiKey.id, {
+        reason: 'credential_rotation',
+      });
+      expect(revoked.apiKey).toMatchObject({
+        id: createdPublishableKey.apiKey.id,
+        status: 'REVOKED',
+        revokedReason: 'credential_rotation',
+      });
+      await expect(
+        service.rotateApiKey(primaryCtx, createdPublishableKey.apiKey.id),
+      ).rejects.toMatchObject({ code: 'api_key_revoked' });
+
+      const deleted = await service.deleteApiKey(primaryCtx, createdPublishableKey.apiKey.id);
+      expect(deleted).toMatchObject({
+        deleted: true,
+        apiKey: expect.objectContaining({ id: createdPublishableKey.apiKey.id }),
+      });
+      const remaining = await service.listApiKeys(primaryCtx);
+      expect(remaining.map((apiKey) => apiKey.id)).toEqual([createdSecretKey.apiKey.id]);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('approval adapter records MFA-gated decisions through D1 conditional updates', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      let nowMsValue = Date.parse('2026-06-27T02:30:00.000Z');
+      const service = await createD1ConsoleApprovalService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date(nowMsValue),
+      });
+      const requesterCtx = {
+        orgId: 'org-d1-approvals-primary',
+        actorUserId: 'user-d1-approvals-requester',
+      };
+      const approverCtx = {
+        orgId: requesterCtx.orgId,
+        actorUserId: 'user-d1-approvals-approver',
+      };
+      const finalApproverCtx = {
+        orgId: requesterCtx.orgId,
+        actorUserId: 'user-d1-approvals-final-approver',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-approvals-secondary',
+        actorUserId: 'user-d1-approvals-secondary',
+      };
+
+      const keyExport = await service.createApprovalRequest(requesterCtx, {
+        id: 'approval-d1-key-export',
+        operationType: 'KEY_EXPORT',
+        reason: 'Export production root share envelope',
+        projectId: 'project-d1-approvals',
+        environmentId: 'env-d1-approvals-prod',
+        resourceType: 'signing_root',
+        resourceId: 'signing-root-d1-approvals',
+        metadata: { exportFormat: 'encrypted_bundle', custodyTicket: 'ticket-42' },
+      });
+      expect(keyExport).toMatchObject({
+        id: 'approval-d1-key-export',
+        orgId: requesterCtx.orgId,
+        operationType: 'KEY_EXPORT',
+        status: 'PENDING',
+        requestedByUserId: requesterCtx.actorUserId,
+        requiredApprovals: 2,
+        requireMfa: true,
+        projectId: 'project-d1-approvals',
+        environmentId: 'env-d1-approvals-prod',
+        metadata: { exportFormat: 'encrypted_bundle', custodyTicket: 'ticket-42' },
+        decisions: [],
+        createdAt: '2026-06-27T02:30:00.000Z',
+        resolvedAt: null,
+      });
+
+      await expect(service.getApprovalRequest(secondaryCtx, keyExport.id)).resolves.toBeNull();
+      await expect(
+        service.approveApprovalRequest(secondaryCtx, keyExport.id, {
+          reason: 'Cross-tenant approval',
+          mfaVerified: true,
+        }),
+      ).resolves.toBeNull();
+      await expect(service.listApprovalRequests(secondaryCtx)).resolves.toHaveLength(0);
+
+      let duplicateCreateError: unknown = null;
+      try {
+        await service.createApprovalRequest(requesterCtx, {
+          id: keyExport.id,
+          operationType: 'KEY_EXPORT',
+          reason: 'Duplicate key export request',
+        });
+      } catch (error: unknown) {
+        duplicateCreateError = error;
+      }
+      expect(errorCode(duplicateCreateError)).toBe('approval_request_exists');
+
+      let missingMfaError: unknown = null;
+      try {
+        await service.approveApprovalRequest(approverCtx, keyExport.id, {
+          reason: 'Approve without MFA',
+          mfaVerified: false,
+        });
+      } catch (error: unknown) {
+        missingMfaError = error;
+      }
+      expect(errorCode(missingMfaError)).toBe('mfa_required');
+
+      nowMsValue = Date.parse('2026-06-27T02:31:00.000Z');
+      const firstApproval = await service.approveApprovalRequest(approverCtx, keyExport.id, {
+        reason: 'MFA verified for custody export',
+        mfaVerified: true,
+      });
+      expect(firstApproval).toMatchObject({
+        status: 'PENDING',
+        resolvedAt: null,
+        decisions: [
+          {
+            decision: 'APPROVE',
+            actorUserId: approverCtx.actorUserId,
+            mfaVerified: true,
+            decidedAt: '2026-06-27T02:31:00.000Z',
+          },
+        ],
+      });
+
+      let duplicateDecisionError: unknown = null;
+      try {
+        await service.approveApprovalRequest(approverCtx, keyExport.id, {
+          reason: 'Duplicate approval',
+          mfaVerified: true,
+        });
+      } catch (error: unknown) {
+        duplicateDecisionError = error;
+      }
+      expect(errorCode(duplicateDecisionError)).toBe('already_decided');
+
+      await expect(
+        service.listApprovalRequests(requesterCtx, {
+          status: 'PENDING',
+          operationType: 'KEY_EXPORT',
+          projectId: 'project-d1-approvals',
+          environmentId: 'env-d1-approvals-prod',
+        }),
+      ).resolves.toEqual([expect.objectContaining({ id: keyExport.id })]);
+
+      nowMsValue = Date.parse('2026-06-27T02:32:00.000Z');
+      const finalApproval = await service.approveApprovalRequest(finalApproverCtx, keyExport.id, {
+        reason: 'Second custody approval',
+        mfaVerified: true,
+      });
+      expect(finalApproval).toMatchObject({
+        status: 'APPROVED',
+        resolvedAt: '2026-06-27T02:32:00.000Z',
+      });
+      expect(finalApproval?.decisions).toHaveLength(2);
+
+      let approvedRejectError: unknown = null;
+      try {
+        await service.rejectApprovalRequest(finalApproverCtx, keyExport.id, {
+          reason: 'Too late to reject',
+        });
+      } catch (error: unknown) {
+        approvedRejectError = error;
+      }
+      expect(errorCode(approvedRejectError)).toBe('invalid_state');
+
+      await expect(
+        service.listApprovalRequests(requesterCtx, { status: 'APPROVED' }),
+      ).resolves.toEqual([expect.objectContaining({ id: keyExport.id })]);
+
+      nowMsValue = Date.parse('2026-06-27T02:33:00.000Z');
+      const policyPublish = await service.createApprovalRequest(requesterCtx, {
+        id: 'approval-d1-policy-publish',
+        operationType: 'POLICY_PUBLISH',
+        reason: 'Publish production policy',
+        projectId: 'project-d1-approvals',
+        environmentId: 'env-d1-approvals-prod',
+      });
+      expect(policyPublish).toMatchObject({
+        requiredApprovals: 1,
+        requireMfa: false,
+        status: 'PENDING',
+      });
+
+      nowMsValue = Date.parse('2026-06-27T02:34:00.000Z');
+      const rejected = await service.rejectApprovalRequest(approverCtx, policyPublish.id, {
+        reason: 'Policy needs another review',
+      });
+      expect(rejected).toMatchObject({
+        status: 'REJECTED',
+        resolvedAt: '2026-06-27T02:34:00.000Z',
+        decisions: [
+          {
+            decision: 'REJECT',
+            actorUserId: approverCtx.actorUserId,
+            mfaVerified: false,
+          },
+        ],
+      });
+
+      let rejectedApproveError: unknown = null;
+      try {
+        await service.approveApprovalRequest(finalApproverCtx, policyPublish.id, {
+          reason: 'Too late to approve',
+          mfaVerified: true,
+        });
+      } catch (error: unknown) {
+        rejectedApproveError = error;
+      }
+      expect(errorCode(rejectedApproveError)).toBe('invalid_state');
+
+      await expect(
+        service.listApprovalRequests(requesterCtx, { status: 'REJECTED' }),
+      ).resolves.toEqual([expect.objectContaining({ id: policyPublish.id })]);
+      await expect(service.listApprovalRequests(requesterCtx)).resolves.toEqual([
+        expect.objectContaining({ id: policyPublish.id }),
+        expect.objectContaining({ id: keyExport.id }),
+      ]);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('key export adapter records MFA approvals through D1 conditional updates', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T02:40:00.000Z');
+      const service = await createD1ConsoleKeyExportService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: clock.now,
+      });
+      const requesterCtx = {
+        orgId: 'org-d1-key-exports-primary',
+        actorUserId: 'user-d1-key-exports-requester',
+      };
+      const approverCtx = {
+        orgId: requesterCtx.orgId,
+        actorUserId: 'user-d1-key-exports-approver',
+      };
+      const finalApproverCtx = {
+        orgId: requesterCtx.orgId,
+        actorUserId: 'user-d1-key-exports-final-approver',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-key-exports-secondary',
+        actorUserId: 'user-d1-key-exports-secondary',
+      };
+
+      const created = await service.createKeyExport(requesterCtx, {
+        id: 'key-export-d1-root',
+        environmentId: 'env-d1-key-exports-prod',
+        walletId: 'wallet-d1-key-export',
+        mode: 'APPROVAL_REQUIRED',
+        reason: 'Export encrypted root share for custody recovery',
+        requiredApprovals: 2,
+        constraints: {
+          roles: ['OWNER', 'OWNER', 'ADMIN'],
+          chains: ['Base'],
+          walletTypes: ['EOA'],
+          environmentIds: ['env-d1-key-exports-prod'],
+        },
+      });
+      expect(created).toMatchObject({
+        id: 'key-export-d1-root',
+        orgId: requesterCtx.orgId,
+        environmentId: 'env-d1-key-exports-prod',
+        walletId: 'wallet-d1-key-export',
+        status: 'PENDING_APPROVAL',
+        requestedByUserId: requesterCtx.actorUserId,
+        requiredApprovals: 2,
+        approvals: [],
+        constraints: {
+          roles: ['OWNER', 'ADMIN'],
+          chains: ['Base'],
+          walletTypes: ['EOA'],
+          environmentIds: ['env-d1-key-exports-prod'],
+        },
+        createdAt: '2026-06-27T02:40:00.000Z',
+      });
+
+      await expect(service.listKeyExports(secondaryCtx)).resolves.toHaveLength(0);
+      await expect(
+        service.approveKeyExport(secondaryCtx, created.id, {
+          reason: 'Cross tenant approval',
+          mfaVerified: true,
+        }),
+      ).resolves.toBeNull();
+
+      let duplicateCreateError: unknown = null;
+      try {
+        await service.createKeyExport(requesterCtx, {
+          id: created.id,
+          environmentId: 'env-d1-key-exports-prod',
+          reason: 'Duplicate export',
+        });
+      } catch (error: unknown) {
+        duplicateCreateError = error;
+      }
+      expect(errorCode(duplicateCreateError)).toBe('key_export_exists');
+
+      let missingMfaError: unknown = null;
+      try {
+        await service.approveKeyExport(approverCtx, created.id, {
+          reason: 'Approve without MFA',
+          mfaVerified: false,
+        });
+      } catch (error: unknown) {
+        missingMfaError = error;
+      }
+      expect(errorCode(missingMfaError)).toBe('mfa_required');
+
+      clock.set('2026-06-27T02:41:00.000Z');
+      const firstApproval = await service.approveKeyExport(approverCtx, created.id, {
+        reason: 'MFA verified',
+        mfaVerified: true,
+      });
+      expect(firstApproval).toMatchObject({
+        status: 'PENDING_APPROVAL',
+        approvals: [
+          {
+            approverUserId: approverCtx.actorUserId,
+            approvedAt: '2026-06-27T02:41:00.000Z',
+            reason: 'MFA verified',
+            mfaVerified: true,
+          },
+        ],
+      });
+
+      await expect(
+        service.approveKeyExport(approverCtx, created.id, {
+          reason: 'Duplicate approval',
+          mfaVerified: true,
+        }),
+      ).rejects.toMatchObject({ code: 'already_approved' });
+
+      await expect(
+        service.listKeyExports(requesterCtx, {
+          environmentId: 'env-d1-key-exports-prod',
+          status: 'PENDING_APPROVAL',
+        }),
+      ).resolves.toEqual([expect.objectContaining({ id: created.id })]);
+
+      clock.set('2026-06-27T02:42:00.000Z');
+      const finalApproval = await service.approveKeyExport(finalApproverCtx, created.id, {
+        reason: 'Second approval',
+        mfaVerified: true,
+      });
+      expect(finalApproval).toMatchObject({
+        status: 'APPROVED',
+        updatedAt: '2026-06-27T02:42:00.000Z',
+      });
+      expect(finalApproval?.approvals).toHaveLength(2);
+
+      await expect(
+        service.approveKeyExport(finalApproverCtx, created.id, {
+          reason: 'Too late',
+          mfaVerified: true,
+        }),
+      ).rejects.toMatchObject({ code: 'invalid_state' });
+
+      await expect(service.listKeyExports(requesterCtx, { status: 'APPROVED' })).resolves.toEqual([
+        expect.objectContaining({ id: created.id }),
+      ]);
+
+      clock.set('2026-06-27T02:43:00.000Z');
+      const second = await service.createKeyExport(requesterCtx, {
+        id: 'key-export-d1-dev',
+        environmentId: 'env-d1-key-exports-dev',
+        mode: 'ALLOWED_WITH_CONSTRAINTS',
+        reason: 'Development export',
+        requiredApprovals: 1,
+      });
+      expect(second).toMatchObject({
+        status: 'PENDING_APPROVAL',
+        mode: 'ALLOWED_WITH_CONSTRAINTS',
+        requiredApprovals: 1,
+      });
+      await expect(
+        service.listKeyExports(requesterCtx, {
+          environmentId: 'env-d1-key-exports-dev',
+        }),
+      ).resolves.toEqual([expect.objectContaining({ id: second.id })]);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('webhook test events target one active endpoint and remain replayable', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const dispatcher = new D1WebhookDispatchHarness();
+      const service = await createD1ConsoleWebhookService({
+        categoryValidation: WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION,
+        database: temp.database,
+        namespace: 'webhook-test-events',
+        ensureSchema: true,
+        dispatcher,
+        secretCipher: createD1WebhookTestSecretCipher(),
+      });
+      const ctx = { orgId: 'test-org', actorUserId: 'test-user' };
+      const { endpoint } = await service.createEndpoint(ctx, {
+        url: 'https://example.com/selected',
+        eventCategories: ['policy'],
+      });
+      const other = await service.createEndpoint(ctx, {
+        url: 'https://example.com/other',
+        eventCategories: ['policy'],
+      });
+      dispatcher.pushResult({
+        ok: false,
+        statusCode: 500,
+        responseBody: 'failed',
+        errorMessage: 'HTTP 500',
+      });
+      const result = await service.sendTestEvent(ctx, endpoint.id);
+      expect(result).toMatchObject({ attempted: 1, delivered: 0, failed: 1 });
+      expect(dispatcher.requests).toHaveLength(1);
+      expect(JSON.parse(dispatcher.requests[0].body)).toMatchObject({
+        id: result.eventId,
+        type: 'webhook.test',
+        data: { test: true, endpointId: endpoint.id },
+      });
+      expect(dispatcher.requests[0].headers['X-Console-Webhook-Signature']).toContain('v1=');
+      expect((await service.listDeliveries(ctx, other.endpoint.id)).items).toHaveLength(0);
+      const delivery = (await service.listDeliveries(ctx, endpoint.id)).items[0];
+      expect(delivery.status).toBe('FAILED');
+      dispatcher.pushResult({ ok: true, statusCode: 200, responseBody: 'accepted' });
+      await service.replayDelivery(ctx, endpoint.id, { deliveryId: delivery.id });
+      expect((await service.listDeliveries(ctx, endpoint.id)).items[0]).toMatchObject({
+        status: 'SUCCEEDED',
+        attemptCount: 2,
+        replayCount: 1,
+      });
+      await expect(
+        service.sendTestEvent({ orgId: 'other-org', actorUserId: 'other-user' }, endpoint.id),
+      ).rejects.toMatchObject({ code: 'webhook_not_found' });
+      await service.updateEndpoint(ctx, endpoint.id, { status: 'DISABLED' });
+      await expect(service.sendTestEvent(ctx, endpoint.id)).rejects.toMatchObject({
+        code: 'endpoint_disabled',
+      });
+      expect(dispatcher.requests).toHaveLength(2);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('webhook adapter stores sealed secrets and records D1 delivery lifecycle', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T02:50:00.000Z');
+      const dispatcher = new D1WebhookDispatchHarness();
+      const service = await createD1ConsoleWebhookService({
+        categoryValidation: WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION,
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: clock.now,
+        dispatcher,
+        secretCipher: createD1WebhookTestSecretCipher(),
+        endpointDegradedThreshold: 1,
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-webhooks-primary',
+        actorUserId: 'user-d1-webhooks-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-webhooks-secondary',
+        actorUserId: 'user-d1-webhooks-secondary',
+      };
+
+      const { endpoint } = await service.createEndpoint(primaryCtx, {
+        url: 'https://example.com/d1-webhooks',
+        eventCategories: ['billing', 'session', 'billing'],
+      });
+      expect(endpoint).toMatchObject({
+        orgId: primaryCtx.orgId,
+        url: 'https://example.com/d1-webhooks',
+        eventCategories: ['billing', 'session'],
+        status: 'ACTIVE',
+        secretVersion: 1,
+        createdAt: '2026-06-27T02:50:00.000Z',
+      });
+      expect(endpoint.secretPreview.startsWith('whsec_')).toBe(true);
+      await expect(service.listEndpoints(secondaryCtx)).resolves.toHaveLength(0);
+
+      const secretRow = await temp.database
+        .prepare(
+          `SELECT signing_secret_ciphertext_b64u, signing_secret_key_id
+             FROM webhook_endpoints
+            WHERE namespace = ?
+              AND org_id = ?
+              AND id = ?`,
+        )
+        .bind('d1-contracts', primaryCtx.orgId, endpoint.id)
+        .first<SqliteJsonRow>();
+      expect(String(secretRow?.signing_secret_ciphertext_b64u || '').startsWith('whsec_')).toBe(
+        false,
+      );
+      expect(secretRow?.signing_secret_key_id).toBe('webhook-test-key-r1');
+
+      dispatcher.pushResult({
+        ok: true,
+        statusCode: 202,
+        responseBody: 'accepted',
+      });
+      clock.set('2026-06-27T02:51:00.000Z');
+      const delivered = await service.emitEvent(primaryCtx, {
+        eventId: 'evt-d1-webhooks-billing',
+        eventType: 'billing.credit_purchase.settled',
+        payload: { invoiceId: 'inv-d1-webhooks' },
+      });
+      expect(delivered).toEqual({
+        eventId: 'evt-d1-webhooks-billing',
+        attempted: 1,
+        delivered: 1,
+        failed: 0,
+      });
+      expect(dispatcher.requests).toHaveLength(1);
+      expect(dispatcher.requests[0].headers['X-Console-Webhook-Signature']).toContain('v1=');
+      expect(JSON.parse(dispatcher.requests[0].body)).toMatchObject({
+        id: 'evt-d1-webhooks-billing',
+        type: 'billing.credit_purchase.settled',
+        data: { invoiceId: 'inv-d1-webhooks' },
+      });
+      const duplicateDelivery = await service.emitEvent(primaryCtx, {
+        eventId: 'evt-d1-webhooks-billing',
+        eventType: 'billing.credit_purchase.settled',
+        payload: { invoiceId: 'inv-d1-webhooks' },
+      });
+      expect(duplicateDelivery.attempted).toBe(1);
+      expect(dispatcher.requests).toHaveLength(1);
+
+      const deliveryPage = await service.listDeliveries(primaryCtx, endpoint.id);
+      expect(deliveryPage.items).toHaveLength(1);
+      expect(deliveryPage.items[0]).toMatchObject({
+        eventId: 'evt-d1-webhooks-billing',
+        status: 'SUCCEEDED',
+        attemptCount: 1,
+        replayCount: 0,
+        responseStatus: 202,
+      });
+      const attemptPage = await service.listAttempts(primaryCtx, endpoint.id, {
+        deliveryId: deliveryPage.items[0].id,
+      });
+      expect(attemptPage.items).toEqual([
+        expect.objectContaining({
+          status: 'SUCCEEDED',
+          responseStatus: 202,
+          isReplay: false,
+        }),
+      ]);
+
+      dispatcher.pushResult({
+        ok: false,
+        statusCode: 500,
+        responseBody: 'failed',
+        errorMessage: 'HTTP 500',
+      });
+      clock.set('2026-06-27T02:52:00.000Z');
+      const failed = await service.emitEvent(primaryCtx, {
+        eventId: 'evt-d1-webhooks-session',
+        eventType: 'session.warm.expired',
+        payload: { sessionId: 'sess-d1-webhooks' },
+      });
+      expect(failed).toEqual({
+        eventId: 'evt-d1-webhooks-session',
+        attempted: 1,
+        delivered: 0,
+        failed: 1,
+      });
+
+      const deadLetterPage = await service.listDeadLetters(primaryCtx, endpoint.id, {
+        includeResolved: false,
+      });
+      expect(deadLetterPage.items).toHaveLength(1);
+      expect(deadLetterPage.items[0]).toMatchObject({
+        eventId: 'evt-d1-webhooks-session',
+        failedAttempts: 1,
+        lastResponseStatus: 500,
+        resolvedAt: null,
+      });
+
+      dispatcher.pushResult({
+        ok: true,
+        statusCode: 200,
+        responseBody: 'replayed',
+      });
+      clock.set('2026-06-27T02:53:00.000Z');
+      const replay = await service.replayDelivery(primaryCtx, endpoint.id, {
+        deliveryId: deadLetterPage.items[0].deliveryId,
+      });
+      expect(replay).toMatchObject({
+        replayed: true,
+        delivery: {
+          status: 'SUCCEEDED',
+          attemptCount: 2,
+          replayCount: 1,
+          responseStatus: 200,
+        },
+      });
+
+      await expect(
+        service.listDeadLetters(primaryCtx, endpoint.id, { includeResolved: false }),
+      ).resolves.toEqual({ items: [] });
+      await expect(
+        service.listDeadLetters(primaryCtx, endpoint.id, { includeResolved: true }),
+      ).resolves.toEqual({
+        items: [expect.objectContaining({ resolvedAt: '2026-06-27T02:53:00.000Z' })],
+      });
+
+      const disabled = await service.updateEndpoint(primaryCtx, endpoint.id, {
+        status: 'DISABLED',
+        eventCategories: ['billing'],
+      });
+      expect(disabled).toMatchObject({
+        status: 'DISABLED',
+        eventCategories: ['billing'],
+      });
+      const skipped = await service.emitEvent(primaryCtx, {
+        eventId: 'evt-d1-webhooks-disabled',
+        eventType: 'billing.credit_purchase.settled',
+        payload: {},
+      });
+      expect(skipped).toEqual({
+        eventId: 'evt-d1-webhooks-disabled',
+        attempted: 0,
+        delivered: 0,
+        failed: 0,
+      });
+
+      const removed = await service.deleteEndpoint(primaryCtx, endpoint.id);
+      expect(removed).toMatchObject({
+        removed: true,
+        endpoint: { id: endpoint.id },
+      });
+      await expect(service.listEndpoints(primaryCtx)).resolves.toEqual([]);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('webhook D1 retry dispatch claims failed deliveries before sending', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T03:00:00.000Z');
+      const namespace = 'd1-contracts';
+      const orgId = 'org-d1-webhook-retry';
+      const secretCipher = createD1WebhookTestSecretCipher();
+      const initialDispatcher = new D1WebhookDispatchHarness();
+      const service = await createD1ConsoleWebhookService({
+        categoryValidation: WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION,
+        database: temp.database,
+        namespace,
+        ensureSchema: true,
+        now: clock.now,
+        dispatcher: initialDispatcher,
+        secretCipher,
+      });
+      const ctx = {
+        orgId,
+        actorUserId: 'user-d1-webhook-retry',
+      };
+
+      const { endpoint } = await service.createEndpoint(ctx, {
+        url: 'https://example.com/d1-webhook-retry',
+        eventCategories: ['billing'],
+      });
+      initialDispatcher.pushResult({
+        ok: false,
+        statusCode: 503,
+        responseBody: 'unavailable',
+        errorMessage: 'HTTP 503',
+      });
+      clock.set('2026-06-27T03:01:00.000Z');
+      await expect(
+        service.emitEvent(ctx, {
+          eventId: 'evt-d1-webhook-retry',
+          eventType: 'billing.credit_purchase.settled',
+          payload: { invoiceId: 'inv-d1-webhook-retry' },
+        }),
+      ).resolves.toMatchObject({
+        attempted: 1,
+        delivered: 0,
+        failed: 1,
+      });
+
+      const failedDeliveryPage = await service.listDeliveries(ctx, endpoint.id);
+      expect(failedDeliveryPage.items).toEqual([
+        expect.objectContaining({
+          status: 'FAILED',
+          attemptCount: 1,
+        }),
+      ]);
+
+      clock.set('2026-06-27T03:02:00.000Z');
+      const retryHarness = new D1WebhookRetryRaceHarness({
+        database: temp.database,
+        namespace,
+        orgId,
+        secretCipher,
+        now: clock.now,
+      });
+      const retryResult = await runD1ConsoleWebhookRetryDispatch({
+        categoryValidation: WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION,
+        database: temp.database,
+        namespace,
+        orgIds: [orgId],
+        secretCipher,
+        ensureSchema: false,
+        now: clock.now,
+        dispatcher: retryHarness,
+        initialBackoffMs: 0,
+        maxBackoffMs: 0,
+        workerId: 'webhook-retry-worker-a',
+      });
+
+      expect(retryResult).toMatchObject({
+        attemptedCount: 1,
+        deliveredCount: 1,
+        failedCount: 0,
+      });
+      expect(retryHarness.competitorResult).toMatchObject({
+        attemptedCount: 0,
+        skippedCount: 0,
+      });
+      expect(retryHarness.requests.map(webhookDispatchEventId)).toEqual(['evt-d1-webhook-retry']);
+      await expect(service.listDeliveries(ctx, endpoint.id)).resolves.toMatchObject({
+        items: [
+          expect.objectContaining({
+            status: 'SUCCEEDED',
+            attemptCount: 2,
+            replayCount: 0,
+            responseStatus: 200,
+          }),
+        ],
+      });
+      await expect(
+        service.listDeadLetters(ctx, endpoint.id, { includeResolved: false }),
+      ).resolves.toEqual({ items: [] });
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('observability adapter stores compact D1 incident events and request rollups', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T03:05:00.000Z');
+      const ingestion = await createD1ConsoleObservabilityIngestionService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: clock.now,
+        redactionPolicy: {
+          denylistKeys: ['token'],
+          replacement: '[masked]',
+          redactionVersion: 3,
+        },
+      });
+      const service = await createD1ConsoleObservabilityService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: false,
+        now: clock.now,
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-observability-primary',
+        actorUserId: 'user-d1-observability-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-observability-secondary',
+        actorUserId: 'user-d1-observability-secondary',
+      };
+
+      const appendResult = await ingestion.appendEvent(primaryCtx, {
+        eventId: 'evt-d1-observability-dead-letter',
+        schemaVersion: 1,
+        source: 'WEBHOOK',
+        ingestedAtMs: Date.parse('2026-06-27T03:01:00.000Z'),
+        timestamp: '2026-06-27T03:01:00.000Z',
+        orgId: primaryCtx.orgId,
+        service: 'webhooks',
+        component: 'delivery_dispatch',
+        level: 'ERROR',
+        eventType: 'webhook.delivery.dead_letter',
+        message: 'Webhook delivery moved to DLQ',
+        requestId: 'req-d1-observability',
+        traceId: 'trace-d1-observability',
+        metadata: {
+          deliveryId: 'delivery-d1-observability',
+          token: 'should-not-persist',
+        },
+        redactionVersion: 1,
+        redactionApplied: false,
+      });
+      expect(appendResult).toEqual({ accepted: 1, deduplicated: 0 });
+      await expect(
+        ingestion.appendEvent(primaryCtx, {
+          eventId: 'evt-d1-observability-dead-letter',
+          schemaVersion: 1,
+          source: 'WEBHOOK',
+          ingestedAtMs: Date.parse('2026-06-27T03:01:00.000Z'),
+          timestamp: '2026-06-27T03:01:00.000Z',
+          orgId: primaryCtx.orgId,
+          service: 'webhooks',
+          component: 'delivery_dispatch',
+          level: 'ERROR',
+          eventType: 'webhook.delivery.dead_letter',
+          message: 'Duplicate dead letter',
+          metadata: {},
+          redactionVersion: 1,
+          redactionApplied: false,
+        }),
+      ).resolves.toEqual({ accepted: 0, deduplicated: 1 });
+
+      await ingestion.observeRequestMetric(primaryCtx, {
+        orgId: primaryCtx.orgId,
+        projectId: 'project-d1-observability',
+        environmentId: 'env-d1-observability',
+        route: '/console/webhooks/wh_1/replay',
+        method: 'POST',
+        statusCode: 500,
+        latencyMs: 420,
+        timestamp: '2026-06-27T03:02:00.000Z',
+      });
+      await ingestion.observeRequestMetric(primaryCtx, {
+        orgId: primaryCtx.orgId,
+        projectId: 'project-d1-observability',
+        environmentId: 'env-d1-observability',
+        route: '/console/webhooks',
+        method: 'GET',
+        statusCode: 200,
+        latencyMs: 100,
+        timestamp: '2026-06-27T03:03:00.000Z',
+      });
+
+      const summary = await service.getSummary(primaryCtx, {
+        from: '2026-06-27T03:00:00.000Z',
+        to: '2026-06-27T03:10:00.000Z',
+      });
+      expect(summary).toMatchObject({
+        status: { state: 'ok' },
+        errorRate: 1,
+        p95LatencyMs: 500,
+        failingServices: 1,
+        deadLetterCount: 1,
+      });
+
+      await expect(
+        service.getSummary(secondaryCtx, {
+          from: '2026-06-27T03:00:00.000Z',
+          to: '2026-06-27T03:10:00.000Z',
+        }),
+      ).resolves.toMatchObject({
+        errorRate: 0,
+        failingServices: 0,
+        deadLetterCount: 0,
+      });
+
+      const events = await service.listEvents(primaryCtx, {
+        from: '2026-06-27T03:00:00.000Z',
+        to: '2026-06-27T03:10:00.000Z',
+        query: 'DLQ',
+        limit: 10,
+      });
+      expect(events).toMatchObject({
+        status: { state: 'ok' },
+        totalPages: 1,
+      });
+      expect(events.events).toEqual([
+        expect.objectContaining({
+          id: 'evt-d1-observability-dead-letter',
+          orgId: primaryCtx.orgId,
+          service: 'webhooks',
+          level: 'ERROR',
+          eventType: 'webhook.delivery.dead_letter',
+          metadata: {
+            deliveryId: 'delivery-d1-observability',
+            token: '[masked]',
+          },
+        }),
+      ]);
+
+      const services = await service.listServices(primaryCtx, {
+        from: '2026-06-27T03:00:00.000Z',
+        to: '2026-06-27T03:10:00.000Z',
+      });
+      expect(services.services).toEqual([
+        expect.objectContaining({
+          service: 'webhooks',
+          status: 'DEGRADED',
+          recentFailureCount: 2,
+        }),
+      ]);
+
+      const timeseries = await service.getTimeseries(primaryCtx, {
+        from: '2026-06-27T03:00:00.000Z',
+        to: '2026-06-27T03:10:00.000Z',
+        service: 'webhooks',
+        bucketMinutes: 5,
+      });
+      expect(timeseries.buckets.filter((bucket) => bucket.requestCount > 0)).toEqual([
+        expect.objectContaining({
+          errorCount: 1,
+          requestCount: 1,
+          p95LatencyMs: 500,
+        }),
+      ]);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('audit adapter stores append-only events and evidence with tenant filters', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      let nowMsValue = Date.parse('2026-06-27T03:00:00.000Z');
+      const service = await createD1ConsoleAuditService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date(nowMsValue),
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-audit-primary',
+        actorUserId: 'user-d1-audit-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-audit-secondary',
+        actorUserId: 'user-d1-audit-secondary',
+      };
+
+      const policyEvent = await service.appendEvent(primaryCtx, {
+        id: 'aud-d1-policy-publish',
+        projectId: 'project-d1-audit',
+        environmentId: 'env-d1-audit-prod',
+        category: 'POLICY',
+        action: 'policy.publish',
+        outcome: 'SUCCESS',
+        summary: 'Published policy to production',
+        metadata: { policyId: 'policy-d1-audit', version: 7 },
+      });
+      expect(policyEvent).toMatchObject({
+        orgId: primaryCtx.orgId,
+        actorUserId: primaryCtx.actorUserId,
+        actorType: 'USER',
+        metadata: { policyId: 'policy-d1-audit', version: 7 },
+        createdAt: '2026-06-27T03:00:00.000Z',
+      });
+
+      nowMsValue = Date.parse('2026-06-27T03:05:00.000Z');
+      const billingEvent = await service.appendEvent(primaryCtx, {
+        id: 'aud-d1-billing-failure',
+        projectId: 'project-d1-audit',
+        environmentId: 'env-d1-audit-dev',
+        actorUserId: 'system-billing',
+        actorType: 'SYSTEM',
+        category: 'BILLING',
+        action: 'billing.webhook.failed',
+        outcome: 'FAILURE',
+        summary: 'Stripe webhook failed reconciliation',
+        metadata: { providerRef: 'evt-d1-audit', retryable: true },
+      });
+      expect(billingEvent.actorType).toBe('SYSTEM');
+
+      await expect(service.listEvents(secondaryCtx)).resolves.toHaveLength(0);
+      await expect(service.listEvents(primaryCtx, { limit: 1 })).resolves.toEqual([
+        expect.objectContaining({ id: billingEvent.id }),
+      ]);
+      await expect(service.listEvents(primaryCtx, { category: 'POLICY' })).resolves.toEqual([
+        expect.objectContaining({ id: policyEvent.id }),
+      ]);
+      await expect(
+        service.listEvents(primaryCtx, {
+          projectId: 'project-d1-audit',
+          environmentId: 'env-d1-audit-dev',
+          outcome: 'FAILURE',
+        }),
+      ).resolves.toEqual([expect.objectContaining({ id: billingEvent.id })]);
+      await expect(service.listEvents(primaryCtx, { q: 'stripe webhook' })).resolves.toEqual([
+        expect.objectContaining({ id: billingEvent.id }),
+      ]);
+      await expect(
+        service.listEvents(primaryCtx, {
+          from: '2026-06-27T03:01:00.000Z',
+          to: '2026-06-27T03:06:00.000Z',
+        }),
+      ).resolves.toEqual([expect.objectContaining({ id: billingEvent.id })]);
+
+      let duplicateEventError: unknown = null;
+      try {
+        await service.appendEvent(primaryCtx, {
+          id: policyEvent.id,
+          category: 'POLICY',
+          action: 'policy.publish',
+          outcome: 'SUCCESS',
+          summary: 'Duplicate policy event',
+        });
+      } catch (error: unknown) {
+        duplicateEventError = error;
+      }
+      expect(errorCode(duplicateEventError)).toBe('event_already_exists');
+
+      nowMsValue = Date.parse('2026-06-27T03:10:00.000Z');
+      const evidence = await service.appendEvidence(primaryCtx, {
+        id: 'evd-d1-policy-bundle',
+        projectId: 'project-d1-audit',
+        environmentId: 'env-d1-audit-prod',
+        domain: 'POLICY',
+        title: 'Policy publish evidence',
+        summary: 'Policy publish evidence bundle',
+        eventIds: [policyEvent.id, policyEvent.id, billingEvent.id],
+        references: [
+          { kind: 'APPROVAL', referenceId: 'approval-d1-audit', label: 'Approval request' },
+          { kind: 'APPROVAL', referenceId: 'approval-d1-audit', label: 'Approval request' },
+          { kind: 'LOG', referenceId: 'policy-d1-audit:v7', label: 'Policy version log' },
+        ],
+      });
+      expect(evidence.eventIds).toEqual([policyEvent.id, billingEvent.id]);
+      expect(evidence.references).toEqual([
+        { kind: 'APPROVAL', referenceId: 'approval-d1-audit', label: 'Approval request' },
+        { kind: 'LOG', referenceId: 'policy-d1-audit:v7', label: 'Policy version log' },
+      ]);
+      await expect(service.listEvidence(primaryCtx, { domain: 'POLICY' })).resolves.toEqual([
+        expect.objectContaining({ id: evidence.id }),
+      ]);
+      await expect(
+        service.listEvidence(primaryCtx, { environmentId: 'env-d1-audit-dev' }),
+      ).resolves.toHaveLength(0);
+      await expect(service.listEvidence(secondaryCtx)).resolves.toHaveLength(0);
+
+      let duplicateEvidenceError: unknown = null;
+      try {
+        await service.appendEvidence(primaryCtx, {
+          id: evidence.id,
+          domain: 'POLICY',
+          title: 'Duplicate evidence',
+          summary: 'Duplicate evidence bundle',
+        });
+      } catch (error: unknown) {
+        duplicateEvidenceError = error;
+      }
+      expect(errorCode(duplicateEvidenceError)).toBe('evidence_already_exists');
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('policy adapter bootstraps defaults and resolves published scope precedence', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const service = await createD1ConsolePolicyService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const ctx = {
+        orgId: 'org-d1-policies',
+        actorUserId: 'user-d1-policies',
+      };
+
+      const initialPolicies = await service.listPolicies(ctx);
+      expect(initialPolicies).toHaveLength(1);
+      const defaultPolicy = initialPolicies[0];
+      expect(defaultPolicy).toMatchObject({
+        orgId: ctx.orgId,
+        isSystemDefault: true,
+        kind: 'TRANSACTION',
+        status: 'PUBLISHED',
+        version: 1,
+      });
+
+      const defaultVersions = await service.listPolicyVersions(ctx, defaultPolicy.id);
+      expect(defaultVersions).toEqual([
+        expect.objectContaining({
+          policyId: defaultPolicy.id,
+          version: 1,
+          actorUserId: 'system-bootstrap',
+        }),
+      ]);
+
+      let defaultDeleteError: unknown = null;
+      try {
+        await service.deletePolicy(ctx, defaultPolicy.id);
+      } catch (error: unknown) {
+        defaultDeleteError = error;
+      }
+      expect(errorCode(defaultDeleteError)).toBe('default_policy_protected');
+
+      const created = await service.createPolicy(ctx, {
+        kind: 'TRANSACTION',
+        name: 'D1 Project Policy',
+        rules: {
+          allowedChains: ['eip155:84532'],
+          blockedActions: ['delete_wallet'],
+        },
+        assignment: {
+          scopeType: 'PROJECT',
+          scopeId: 'project-d1-policy',
+        },
+      });
+      expect(created.status).toBe('DRAFT');
+      expect(created.version).toBe(0);
+
+      const firstPublish = await service.publishPolicy(ctx, created.id);
+      expect(firstPublish?.policy).toMatchObject({
+        id: created.id,
+        status: 'PUBLISHED',
+        version: 1,
+      });
+
+      const updated = await service.updatePolicy(ctx, created.id, {
+        rules: {
+          allowedChains: ['eip155:1'],
+          blockedActions: ['delete_wallet'],
+        },
+      });
+      expect(updated?.status).toBe('DRAFT');
+      const secondPublish = await service.publishPolicy(ctx, created.id);
+      expect(secondPublish?.policy.version).toBe(2);
+
+      const versions = await service.listPolicyVersions(ctx, created.id);
+      expect(versions?.map((version) => version.version)).toEqual([2, 1]);
+      expect(versions?.map((version) => version.actorUserId)).toEqual([
+        ctx.actorUserId,
+        ctx.actorUserId,
+      ]);
+
+      const allowedSimulation = await service.simulatePolicy(ctx, created.id, {
+        action: 'sign_transaction',
+        chain: 'eip155:1',
+        amountMinor: 1,
+      });
+      expect(allowedSimulation?.decision).toBe('ALLOW');
+
+      const deniedSimulation = await service.simulatePolicy(ctx, created.id, {
+        action: 'sign_transaction',
+        chain: 'eip155:84532',
+        amountMinor: 1,
+      });
+      expect(deniedSimulation?.decision).toBe('DENY');
+      expect(deniedSimulation?.denyReasons.map((reason) => reason.code)).toContain(
+        'CHAIN_NOT_ALLOWED',
+      );
+
+      const envAssignment = await service.upsertAssignment(ctx, {
+        scopeType: 'ENVIRONMENT',
+        scopeId: 'env-d1-policy',
+        policyId: created.id,
+      });
+      const resolved = await service.resolvePoliciesForWallets(ctx, [
+        {
+          walletId: 'wallet-d1-env',
+          projectId: 'project-d1-policy',
+          environmentId: 'env-d1-policy',
+        },
+        {
+          walletId: 'wallet-d1-project',
+          projectId: 'project-d1-policy',
+        },
+        {
+          walletId: 'wallet-d1-default',
+        },
+      ]);
+      expect(resolved).toEqual({
+        'wallet-d1-env': created.id,
+        'wallet-d1-project': created.id,
+        'wallet-d1-default': defaultPolicy.id,
+      });
+
+      const removedAssignment = await service.deleteAssignment(ctx, envAssignment.id);
+      expect(removedAssignment.removed).toBe(true);
+      const resolvedAfterDelete = await service.resolvePoliciesForWallets(ctx, [
+        {
+          walletId: 'wallet-d1-env',
+          projectId: 'project-d1-policy',
+          environmentId: 'env-d1-policy',
+        },
+      ]);
+      expect(resolvedAfterDelete['wallet-d1-env']).toBe(created.id);
+
+      const gasPolicy = await service.createPolicy(ctx, {
+        kind: 'GAS_SPONSORSHIP',
+        name: 'D1 Gas Policy',
+        rules: {
+          kind: 'evm_call',
+          scopeType: 'ENVIRONMENT',
+          projectId: 'project-d1-policy',
+          environmentId: 'env-d1-policy',
+          allowedCalls: [
+            {
+              chainId: 84532,
+              to: '0x1111111111111111111111111111111111111111',
+              functionSignature: 'mint(address)',
+              maxGasLimit: '100000',
+              maxValueWei: '0',
+            },
+          ],
+        },
+      });
+
+      let gasAssignmentError: unknown = null;
+      try {
+        await service.upsertAssignment(ctx, {
+          scopeType: 'WALLET',
+          scopeId: 'wallet-d1-gas',
+          policyId: gasPolicy.id,
+        });
+      } catch (error: unknown) {
+        gasAssignmentError = error;
+      }
+      expect(errorCode(gasAssignmentError)).toBe('policy_assignment_unsupported');
+
+      const otherCtx = {
+        orgId: 'org-d1-policies-other',
+        actorUserId: 'user-d1-policies-other',
+      };
+      await expect(service.getPolicy(otherCtx, created.id)).resolves.toBeNull();
+      const otherPolicies = await service.listPolicies(otherCtx);
+      expect(otherPolicies).toHaveLength(1);
+      expect(otherPolicies[0].id).not.toBe(defaultPolicy.id);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('billing reservations are trigger-atomic and idempotent', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const service = await createD1ConsoleBillingPrepaidReservationService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+        defaultReservationTtlMs: 60_000,
+      });
+      const ctx = {
+        orgId: 'org-d1-billing',
+        actorUserId: 'user-d1-billing',
+      };
+
+      const first = await service.reserve(ctx, {
+        sourceEventId: 'reservation-source-1',
+        environmentId: 'env-production',
+        policyId: 'policy-sponsored-gas',
+        postedBalanceMinor: 500,
+        estimatedSpendMinor: 300,
+      });
+      expect(first.summary.reservedMinor).toBe(300);
+      expect(first.summary.activeReservationCount).toBe(1);
+
+      const duplicate = await service.reserve(ctx, {
+        sourceEventId: 'reservation-source-1',
+        environmentId: 'env-production',
+        policyId: 'policy-sponsored-gas',
+        postedBalanceMinor: 500,
+        estimatedSpendMinor: 450,
+      });
+      expect(duplicate.reservation.id).toBe(first.reservation.id);
+      expect(duplicate.summary.reservedMinor).toBe(300);
+      expect(duplicate.summary.activeReservationCount).toBe(1);
+
+      let insufficientError: unknown = null;
+      try {
+        await service.reserve(ctx, {
+          sourceEventId: 'reservation-source-2',
+          environmentId: 'env-production',
+          policyId: 'policy-sponsored-gas',
+          postedBalanceMinor: 500,
+          estimatedSpendMinor: 250,
+        });
+      } catch (error: unknown) {
+        insufficientError = error;
+      }
+      expect(errorCode(insufficientError)).toBe('prepaid_balance_insufficient');
+      expect(await service.getReservationBySourceEventId(ctx, 'reservation-source-2')).toBeNull();
+
+      const summaryAfterFailure = await service.getSummary(ctx);
+      expect(summaryAfterFailure.reservedMinor).toBe(300);
+      expect(summaryAfterFailure.activeReservationCount).toBe(1);
+
+      const settled = await service.settle(ctx, {
+        sourceEventId: 'reservation-source-1',
+        settledSpendMinor: 175,
+        txOrExecutionRef: '0xsettled',
+        pricingVersion: 'static:v1',
+      });
+      expect(settled?.reservation.status).toBe('SETTLED');
+      expect(settled?.reservation.settledMinor).toBe(175);
+      expect(settled?.reservation.releasedMinor).toBe(125);
+      expect(settled?.summary.reservedMinor).toBe(0);
+      expect(settled?.summary.activeReservationCount).toBe(0);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('sponsorship spend caps reserve and settle through trigger-backed D1 windows', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      let nowMsValue = Date.parse('2026-06-27T04:00:00.000Z');
+      const service = await createD1ConsoleSponsorshipSpendCapService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        ensureSchema: true,
+        now: () => new Date(nowMsValue),
+      });
+      const primaryCtx = {
+        orgId: 'org-d1-spend-caps-primary',
+        actorUserId: 'user-d1-spend-caps-primary',
+      };
+      const secondaryCtx = {
+        orgId: 'org-d1-spend-caps-secondary',
+        actorUserId: 'user-d1-spend-caps-secondary',
+      };
+
+      const first = await service.reserve(primaryCtx, {
+        sourceEventId: 'spend-cap-reservation-1',
+        environmentId: 'env-d1-spend-caps-prod',
+        policyId: 'policy-d1-sponsored-gas',
+        chainId: 8453,
+        mode: 'CHAIN_TOTAL',
+        period: 'MONTHLY',
+        capMinor: 1_000,
+        estimatedSpendMinor: 400,
+      });
+      expect(first.reservation).toMatchObject({
+        orgId: primaryCtx.orgId,
+        status: 'RESERVED',
+        accountRef: null,
+        requestedMinor: 400,
+        windowStartAt: '2026-06-01T00:00:00.000Z',
+        windowEndAt: '2026-07-01T00:00:00.000Z',
+      });
+      expect(first.usage).toMatchObject({
+        reservedMinor: 400,
+        settledMinor: 0,
+        availableMinor: 600,
+      });
+
+      const duplicate = await service.reserve(primaryCtx, {
+        sourceEventId: 'spend-cap-reservation-1',
+        environmentId: 'env-d1-spend-caps-prod',
+        policyId: 'policy-d1-sponsored-gas',
+        chainId: 8453,
+        mode: 'CHAIN_TOTAL',
+        period: 'MONTHLY',
+        capMinor: 1_000,
+        estimatedSpendMinor: 900,
+      });
+      expect(duplicate.reservation.id).toBe(first.reservation.id);
+      expect(duplicate.usage).toMatchObject({
+        reservedMinor: 400,
+        settledMinor: 0,
+        availableMinor: 600,
+      });
+
+      await expect(
+        service.getReservationBySourceEventId(secondaryCtx, 'spend-cap-reservation-1'),
+      ).resolves.toBeNull();
+      await expect(
+        service.getWindowUsage(secondaryCtx, {
+          environmentId: 'env-d1-spend-caps-prod',
+          policyId: 'policy-d1-sponsored-gas',
+          chainId: 8453,
+          mode: 'CHAIN_TOTAL',
+          period: 'MONTHLY',
+          at: new Date('2026-06-27T04:00:00.000Z'),
+        }),
+      ).resolves.toBeNull();
+
+      let exceededError: unknown = null;
+      try {
+        await service.reserve(primaryCtx, {
+          sourceEventId: 'spend-cap-reservation-2',
+          environmentId: 'env-d1-spend-caps-prod',
+          policyId: 'policy-d1-sponsored-gas',
+          chainId: 8453,
+          mode: 'CHAIN_TOTAL',
+          period: 'MONTHLY',
+          capMinor: 1_000,
+          estimatedSpendMinor: 700,
+        });
+      } catch (error: unknown) {
+        exceededError = error;
+      }
+      expect(errorCode(exceededError)).toBe('spend_cap_exceeded');
+      await expect(
+        service.getReservationBySourceEventId(primaryCtx, 'spend-cap-reservation-2'),
+      ).resolves.toBeNull();
+
+      nowMsValue = Date.parse('2026-06-27T04:05:00.000Z');
+      const settled = await service.settle(primaryCtx, {
+        sourceEventId: 'spend-cap-reservation-1',
+        settledSpendMinor: 250,
+      });
+      expect(settled?.reservation).toMatchObject({
+        status: 'SETTLED',
+        settledMinor: 250,
+        releasedMinor: 150,
+        updatedAt: '2026-06-27T04:05:00.000Z',
+      });
+      expect(settled?.usage).toMatchObject({
+        reservedMinor: 0,
+        settledMinor: 250,
+        availableMinor: 750,
+      });
+
+      await expect(
+        service.settle(primaryCtx, {
+          sourceEventId: 'spend-cap-reservation-1',
+          settledSpendMinor: 250,
+        }),
+      ).resolves.toMatchObject({
+        reservation: expect.objectContaining({ status: 'SETTLED' }),
+        usage: expect.objectContaining({ settledMinor: 250 }),
+      });
+      await expect(
+        service.settle(primaryCtx, {
+          sourceEventId: 'spend-cap-reservation-1',
+          settledSpendMinor: 300,
+        }),
+      ).rejects.toMatchObject({ code: 'invalid_state' });
+
+      await expect(
+        service.release(primaryCtx, { sourceEventId: 'spend-cap-reservation-1' }),
+      ).resolves.toMatchObject({
+        reservation: expect.objectContaining({ status: 'SETTLED' }),
+        usage: expect.objectContaining({ settledMinor: 250 }),
+      });
+
+      nowMsValue = Date.parse('2026-06-27T04:10:00.000Z');
+      const walletBucket = await service.reserve(primaryCtx, {
+        sourceEventId: 'spend-cap-wallet-1',
+        environmentId: 'env-d1-spend-caps-prod',
+        policyId: 'policy-d1-sponsored-gas',
+        accountRef: 'wallet-d1-alpha',
+        chainId: 8453,
+        mode: 'WALLET_CHAIN_TOTAL',
+        period: 'MONTHLY',
+        capMinor: 500,
+        estimatedSpendMinor: 200,
+      });
+      expect(walletBucket.reservation.accountRef).toBe('wallet-d1-alpha');
+      expect(walletBucket.usage).toMatchObject({
+        reservedMinor: 200,
+        settledMinor: 0,
+        availableMinor: 300,
+      });
+
+      nowMsValue = Date.parse('2026-06-27T04:11:00.000Z');
+      const released = await service.release(primaryCtx, {
+        sourceEventId: 'spend-cap-wallet-1',
+      });
+      expect(released?.reservation).toMatchObject({
+        status: 'RELEASED',
+        releasedMinor: 200,
+        updatedAt: '2026-06-27T04:11:00.000Z',
+      });
+      expect(released?.usage).toMatchObject({
+        reservedMinor: 0,
+        settledMinor: 0,
+        availableMinor: 500,
+      });
+
+      await expect(
+        service.settle(primaryCtx, {
+          sourceEventId: 'spend-cap-wallet-1',
+          settledSpendMinor: 100,
+        }),
+      ).rejects.toMatchObject({ code: 'invalid_state' });
+
+      await expect(
+        service.reserve(primaryCtx, {
+          sourceEventId: 'spend-cap-wallet-missing-account',
+          environmentId: 'env-d1-spend-caps-prod',
+          policyId: 'policy-d1-sponsored-gas',
+          chainId: 8453,
+          mode: 'WALLET_CHAIN_TOTAL',
+          period: 'MONTHLY',
+          capMinor: 500,
+          estimatedSpendMinor: 100,
+        }),
+      ).rejects.toMatchObject({ code: 'invalid_request' });
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('billing credit purchases settle through D1 Stripe webhook idempotency', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const billing = await createD1ConsoleBillingService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        now: fixedD1AtomicBillingNow,
+      });
+      const ctx = {
+        orgId: 'org-d1-billing-purchase',
+        actorUserId: 'user-d1-billing-purchase',
+      };
+
+      const checkout = await billing.createStripeCheckoutSession(ctx, {
+        creditPackId: 'usd_10',
+      });
+      expect(checkout.amountMinor).toBe(1000);
+      expect(checkout.id).toMatch(/^cs_/);
+
+      const settled = await billing.reconcileStripeCheckoutSession(ctx, {
+        checkoutSessionId: checkout.id,
+      });
+      expect(settled.settled).toBe(true);
+      expect(settled.settledNow).toBe(true);
+      expect(settled.purchase).toMatchObject({
+        status: 'SETTLED',
+        amountMinor: 1000,
+        providerCheckoutSessionRef: checkout.id,
+      });
+      expect(settled.invoice).toMatchObject({
+        documentType: 'PURCHASE_RECEIPT',
+        status: 'PAID',
+        amountDueMinor: 1000,
+        amountPaidMinor: 1000,
+      });
+
+      const lineItems = await billing.listInvoiceLineItems(ctx, settled.invoice?.id || '');
+      expect(lineItems).toEqual([
+        expect.objectContaining({
+          itemType: 'CREDIT_TOP_UP',
+          quantity: 1,
+          unitAmountMinor: 1000,
+          amountMinor: 1000,
+        }),
+      ]);
+      await expect(billing.getOverview(ctx)).resolves.toMatchObject({
+        creditBalanceMinor: 1000,
+        recentCreditPurchasedMinor: 1000,
+      });
+
+      const duplicateReconcile = await billing.reconcileStripeCheckoutSession(ctx, {
+        checkoutSessionId: checkout.id,
+      });
+      expect(duplicateReconcile.settled).toBe(true);
+      expect(duplicateReconcile.settledNow).toBe(false);
+
+      const duplicateWebhook = await billing.processStripeWebhookEvent({
+        eventId: `stripe_checkout_reconcile:${checkout.id}`,
+        eventType: 'checkout.session.completed',
+        orgId: ctx.orgId,
+        checkoutSessionId: checkout.id,
+        providerCustomerRef: checkout.customerRef,
+        providerPaymentRef: `pi_${checkout.purchaseId}`,
+        providerRef: checkout.id,
+        purchaseId: checkout.purchaseId,
+        creditPackId: checkout.creditPackId,
+        amountMinor: checkout.amountMinor,
+        currency: 'USD',
+        paymentStatus: 'paid',
+      });
+      expect(duplicateWebhook.accepted).toBe(false);
+      expect(duplicateWebhook.purchase?.id).toBe(settled.purchase?.id);
+
+      const freshWebhook = await billing.processStripeWebhookEvent({
+        eventId: 'evt_d1_purchase_second_delivery',
+        eventType: 'checkout.session.completed',
+        orgId: ctx.orgId,
+        checkoutSessionId: checkout.id,
+        providerCustomerRef: checkout.customerRef,
+        providerPaymentRef: `pi_${checkout.purchaseId}`,
+        providerRef: checkout.id,
+        purchaseId: checkout.purchaseId,
+        creditPackId: checkout.creditPackId,
+        amountMinor: checkout.amountMinor,
+        currency: 'USD',
+        paymentStatus: 'paid',
+      });
+      expect(freshWebhook.accepted).toBe(true);
+      expect(freshWebhook.purchase?.id).toBe(settled.purchase?.id);
+
+      const creditActivity = await billing.listAccountActivity(ctx, {
+        eventType: 'CREDIT_PURCHASE',
+        limit: 10,
+      });
+      expect(creditActivity.entries).toHaveLength(1);
+      await expect(billing.getOverview(ctx)).resolves.toMatchObject({
+        creditBalanceMinor: 1000,
+      });
+
+      const invoices = await billing.listInvoicesPage(ctx, {
+        documentType: 'PURCHASE_RECEIPT',
+        limit: 10,
+      });
+      expect(invoices.totalCount).toBe(1);
+      expect(invoices.summary.receiptCount).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('billing monthly finalization persists D1 usage statements idempotently', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const namespace = 'd1-contracts';
+      const orgId = 'org-d1-billing-monthly';
+      const billing = await createD1ConsoleBillingService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+      });
+      const ctx = {
+        orgId,
+        actorUserId: 'user-d1-billing-monthly',
+      };
+
+      await temp.database
+        .prepare(
+          `INSERT INTO billing_monthly_active_resources
+            (namespace, org_id, month_utc, resource_id, source_event_id, created_at_ms)
+           VALUES
+            (?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          namespace,
+          orgId,
+          '2026-05',
+          'wallet-d1-monthly-1',
+          'usage-event-d1-monthly-1',
+          Date.parse('2026-05-10T00:00:00.000Z'),
+        )
+        .run();
+
+      const first = await runD1ConsoleBillingMonthlyFinalization({
+        database: temp.database,
+        namespace,
+        orgIds: [orgId],
+        periodMonthUtc: '2026-05',
+        now: fixedD1AtomicBillingNow,
+      });
+      expect(first).toMatchObject({
+        periodMonthUtc: '2026-05',
+        orgCount: 1,
+        generatedCount: 1,
+        skippedCount: 0,
+        failures: [],
+      });
+
+      const invoices = await billing.listInvoicesPage(ctx, {
+        documentType: 'USAGE_STATEMENT',
+        periodMonthUtc: '2026-05',
+        limit: 10,
+      });
+      expect(invoices.totalCount).toBe(1);
+      expect(invoices.invoices[0]).toMatchObject({
+        documentType: 'USAGE_STATEMENT',
+        status: 'PAID',
+        amountDueMinor: 300,
+        amountPaidMinor: 300,
+      });
+
+      const lineItems = await billing.listInvoiceLineItems(ctx, invoices.invoices[0]?.id || '');
+      expect(lineItems).toEqual([
+        expect.objectContaining({
+          itemType: 'ACTIVE_RESOURCE_USAGE_DEBIT',
+          quantity: 1,
+          unitAmountMinor: 300,
+          amountMinor: 300,
+        }),
+      ]);
+
+      const activity = await billing.listAccountActivity(ctx, {
+        eventType: 'USAGE_DEBIT',
+        periodMonthUtc: '2026-05',
+        limit: 10,
+      });
+      expect(activity.entries).toHaveLength(1);
+      expect(activity.entries[0]).toMatchObject({
+        amountMinor: -300,
+        reasonCode: 'usage_statement_reconciliation',
+      });
+
+      const second = await runD1ConsoleBillingMonthlyFinalization({
+        database: temp.database,
+        namespace,
+        orgIds: [orgId],
+        periodMonthUtc: '2026-05',
+        now: fixedD1AtomicBillingNow,
+      });
+      expect(second).toMatchObject({
+        generatedCount: 0,
+        skippedCount: 1,
+        failures: [],
+      });
+      const repeatedActivity = await billing.listAccountActivity(ctx, {
+        eventType: 'USAGE_DEBIT',
+        periodMonthUtc: '2026-05',
+        limit: 10,
+      });
+      expect(repeatedActivity.entries).toHaveLength(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('sponsored gas settlement writes reservation, billing, and call record in one D1 batch', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const namespace = 'd1-contracts';
+      const billing = await createD1ConsoleBillingService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+      });
+      const prepaidReservations = await createD1ConsoleBillingPrepaidReservationService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+        defaultReservationTtlMs: 60_000,
+      });
+      const sponsoredCalls = await createD1ConsoleSponsoredCallService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+      });
+      const ctx = {
+        orgId: 'org-d1-atomic-sponsored',
+        actorUserId: 'user-d1-atomic-sponsored',
+      };
+      const reservationSourceEventId = 'prepaid-reservation-d1-atomic';
+
+      await billing.grantManualSupportCredit(ctx, {
+        amountMinor: 1000,
+        reasonCode: 'test_credit',
+        note: 'Seed prepaid balance for D1 sponsored settlement',
+        idempotencyKey: 'manual-credit-d1-atomic',
+      });
+      const overviewBeforeReservation = await billing.getOverview(ctx);
+      expect(overviewBeforeReservation.creditBalanceMinor).toBe(1000);
+
+      const reserved = await prepaidReservations.reserve(ctx, {
+        sourceEventId: reservationSourceEventId,
+        environmentId: 'env-production',
+        policyId: 'policy-sponsored-gas',
+        postedBalanceMinor: overviewBeforeReservation.creditBalanceMinor,
+        estimatedSpendMinor: 700,
+      });
+      const pricing = new StaticSponsoredSpendPricingService(700, 425);
+      const builder = new AtomicD1SponsoredRecordBuilder('sponsored-call-d1-atomic');
+      const assessment = createD1AtomicAssessment();
+      const record = await recordSponsoredExecution({
+        billing,
+        billingSourceEventIdPrefix: 'sponsored_evm_call_debit',
+        context: ctx,
+        ledger: sponsoredCalls,
+        buildRecord: builder.build.bind(builder),
+        assessment,
+        walletId: 'wallet-d1-atomic',
+        prepaidSettlementInput: {
+          reservation: {
+            sourceEventId: reservationSourceEventId,
+            estimatedSpendMinor: 700,
+            estimatedPricingVersion: 'static:estimate',
+          },
+          prepaidReservations,
+          pricing,
+          ctx,
+          chainFamily: 'evm',
+          intentKind: 'evm_call',
+          executorKind: 'evm_eoa',
+          environmentId: 'env-production',
+          policyId: 'policy-sponsored-gas',
+          accountRef: '0x1111111111111111111111111111111111111111',
+          targetRef: '0x2222222222222222222222222222222222222222',
+          chainId: 84532,
+          txOrExecutionRef: assessment.txOrExecutionRef,
+          receiptStatus: assessment.receiptStatus,
+          feeUnit: assessment.feeUnit,
+          feeAmount: assessment.feeAmount,
+          requestDetails: {
+            kind: 'd1-atomic-sponsored-settlement',
+          },
+        },
+      });
+
+      expect(record.charged).toBe(true);
+      expect(record.settledSpendMinor).toBe(425);
+      expect(record.billingLedgerEntryId).toMatch(/^ble_scr_/);
+      expect(record.prepaidReservationId).toBe(reserved.reservation.id);
+
+      const settledReservation = await prepaidReservations.getReservationBySourceEventId(
+        ctx,
+        reservationSourceEventId,
+      );
+      expect(settledReservation?.status).toBe('SETTLED');
+      expect(settledReservation?.settledMinor).toBe(425);
+      expect(settledReservation?.releasedMinor).toBe(275);
+
+      const summary = await prepaidReservations.getSummary(ctx);
+      expect(summary.reservedMinor).toBe(0);
+      expect(summary.activeReservationCount).toBe(0);
+
+      const debits = await billing.getProductExecutionDebitsByIds(ctx, [
+        record.billingLedgerEntryId || '',
+      ]);
+      expect(debits).toHaveLength(1);
+      expect(debits[0]).toMatchObject({
+        amountMinor: -425,
+        sourceEventId: `sponsored_evm_call_debit:${reservationSourceEventId}`,
+      });
+      const overviewAfterSettlement = await billing.getOverview(ctx);
+      expect(overviewAfterSettlement.creditBalanceMinor).toBe(575);
+
+      const duplicate = await recordSponsoredExecution({
+        billing,
+        billingSourceEventIdPrefix: 'sponsored_evm_call_debit',
+        context: ctx,
+        ledger: sponsoredCalls,
+        buildRecord: builder.build.bind(builder),
+        assessment,
+        walletId: 'wallet-d1-atomic',
+        prepaidSettlementInput: {
+          reservation: {
+            sourceEventId: reservationSourceEventId,
+            estimatedSpendMinor: 700,
+            estimatedPricingVersion: 'static:estimate',
+          },
+          prepaidReservations,
+          pricing,
+          ctx,
+          chainFamily: 'evm',
+          intentKind: 'evm_call',
+          executorKind: 'evm_eoa',
+          environmentId: 'env-production',
+          policyId: 'policy-sponsored-gas',
+          accountRef: '0x1111111111111111111111111111111111111111',
+          targetRef: '0x2222222222222222222222222222222222222222',
+          chainId: 84532,
+          txOrExecutionRef: assessment.txOrExecutionRef,
+          receiptStatus: assessment.receiptStatus,
+          feeUnit: assessment.feeUnit,
+          feeAmount: assessment.feeAmount,
+          requestDetails: {
+            kind: 'd1-atomic-sponsored-settlement',
+          },
+        },
+      });
+      expect(duplicate.id).toBe(record.id);
+
+      const sponsoredDebitActivity = await billing.listAccountActivity(ctx, {
+        eventType: 'PRODUCT_EXECUTION_DEBIT',
+        limit: 10,
+      });
+      expect(sponsoredDebitActivity.entries).toHaveLength(1);
+      await expect(billing.getOverview(ctx)).resolves.toMatchObject({
+        creditBalanceMinor: 575,
+      });
+
+      const conflictingBuilder = new AtomicD1SponsoredRecordBuilder(
+        'sponsored-call-d1-atomic-conflict',
+      );
+      let duplicateReservationError: unknown = null;
+      try {
+        await recordSponsoredExecution({
+          billing,
+          billingSourceEventIdPrefix: 'sponsored_evm_call_debit',
+          context: ctx,
+          ledger: sponsoredCalls,
+          buildRecord: conflictingBuilder.build.bind(conflictingBuilder),
+          assessment,
+          walletId: 'wallet-d1-atomic',
+          prepaidSettlementInput: {
+            reservation: {
+              sourceEventId: reservationSourceEventId,
+              estimatedSpendMinor: 700,
+              estimatedPricingVersion: 'static:estimate',
+            },
+            prepaidReservations,
+            pricing,
+            ctx,
+            chainFamily: 'evm',
+            intentKind: 'evm_call',
+            executorKind: 'evm_eoa',
+            environmentId: 'env-production',
+            policyId: 'policy-sponsored-gas',
+            accountRef: '0x1111111111111111111111111111111111111111',
+            targetRef: '0x2222222222222222222222222222222222222222',
+            chainId: 84532,
+            txOrExecutionRef: assessment.txOrExecutionRef,
+            receiptStatus: assessment.receiptStatus,
+            feeUnit: assessment.feeUnit,
+            feeAmount: assessment.feeAmount,
+            requestDetails: {
+              kind: 'd1-atomic-sponsored-settlement',
+            },
+          },
+        });
+      } catch (error: unknown) {
+        duplicateReservationError = error;
+      }
+      expect(errorCode(duplicateReservationError)).toBe('invalid_state');
+      await expect(billing.getOverview(ctx)).resolves.toMatchObject({
+        creditBalanceMinor: 575,
+      });
+      const recordsPage = await sponsoredCalls.listRecords(ctx, { limit: 10, lookbackDays: 1 });
+      expect(recordsPage.items).toHaveLength(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('sponsored gas settlement rejects stale D1 reservation transitions without side effects', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const namespace = 'd1-contracts';
+      const billing = await createD1ConsoleBillingService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+      });
+      const prepaidReservations = await createD1ConsoleBillingPrepaidReservationService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+        defaultReservationTtlMs: 60_000,
+      });
+      const sponsoredCalls = await createD1ConsoleSponsoredCallService({
+        database: temp.database,
+        namespace,
+        now: fixedD1AtomicBillingNow,
+      });
+      const ctx = {
+        orgId: 'org-d1-atomic-sponsored-stale',
+        actorUserId: 'user-d1-atomic-sponsored-stale',
+      };
+      const reservationSourceEventId = 'prepaid-reservation-d1-atomic-stale';
+
+      await billing.grantManualSupportCredit(ctx, {
+        amountMinor: 1000,
+        reasonCode: 'test_credit',
+        note: 'Seed prepaid balance for stale D1 sponsored settlement',
+        idempotencyKey: 'manual-credit-d1-atomic-stale',
+      });
+      const overviewBeforeReservation = await billing.getOverview(ctx);
+      const reserved = await prepaidReservations.reserve(ctx, {
+        sourceEventId: reservationSourceEventId,
+        environmentId: 'env-production',
+        policyId: 'policy-sponsored-gas',
+        postedBalanceMinor: overviewBeforeReservation.creditBalanceMinor,
+        estimatedSpendMinor: 700,
+      });
+      await prepaidReservations.release(ctx, {
+        sourceEventId: reservationSourceEventId,
+      });
+
+      const stalePrepaidReservations = new StaleReadPrepaidReservationService(
+        prepaidReservations,
+        reserved.reservation,
+      );
+      const pricing = new StaticSponsoredSpendPricingService(700, 425);
+      const builder = new AtomicD1SponsoredRecordBuilder('sponsored-call-d1-atomic-stale');
+      const assessment = createD1AtomicAssessment();
+      let staleTransitionError: unknown = null;
+      try {
+        await recordSponsoredExecution({
+          billing,
+          billingSourceEventIdPrefix: 'sponsored_evm_call_debit',
+          context: ctx,
+          ledger: sponsoredCalls,
+          buildRecord: builder.build.bind(builder),
+          assessment,
+          walletId: 'wallet-d1-atomic-stale',
+          prepaidSettlementInput: {
+            reservation: {
+              sourceEventId: reservationSourceEventId,
+              estimatedSpendMinor: 700,
+              estimatedPricingVersion: 'static:estimate',
+            },
+            prepaidReservations: stalePrepaidReservations,
+            pricing,
+            ctx,
+            chainFamily: 'evm',
+            intentKind: 'evm_call',
+            executorKind: 'evm_eoa',
+            environmentId: 'env-production',
+            policyId: 'policy-sponsored-gas',
+            accountRef: '0x1111111111111111111111111111111111111111',
+            targetRef: '0x2222222222222222222222222222222222222222',
+            chainId: 84532,
+            txOrExecutionRef: assessment.txOrExecutionRef,
+            receiptStatus: assessment.receiptStatus,
+            feeUnit: assessment.feeUnit,
+            feeAmount: assessment.feeAmount,
+            requestDetails: {
+              kind: 'd1-atomic-sponsored-settlement-stale',
+            },
+          },
+        });
+      } catch (error: unknown) {
+        staleTransitionError = error;
+      }
+
+      expect(errorCode(staleTransitionError)).toBe('invalid_state');
+      await expect(billing.getOverview(ctx)).resolves.toMatchObject({
+        creditBalanceMinor: 1000,
+      });
+      const sponsoredDebitActivity = await billing.listAccountActivity(ctx, {
+        eventType: 'PRODUCT_EXECUTION_DEBIT',
+        limit: 10,
+      });
+      expect(sponsoredDebitActivity.entries).toHaveLength(0);
+      const recordsPage = await sponsoredCalls.listRecords(ctx, { limit: 10, lookbackDays: 1 });
+      expect(recordsPage.items).toHaveLength(0);
+      const releasedReservation = await prepaidReservations.getReservationBySourceEventId(
+        ctx,
+        reservationSourceEventId,
+      );
+      expect(releasedReservation?.status).toBe('RELEASED');
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('sponsored call idempotency returns the original record', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      await applyConsoleD1Migrations(temp.database);
+      const service = await createD1ConsoleSponsoredCallService({
+        database: temp.database,
+        namespace: 'd1-contracts',
+        now: () => new Date('2026-06-27T00:00:00.000Z'),
+      });
+      const ctx = {
+        orgId: 'org-d1-sponsored',
+        actorUserId: 'user-d1-sponsored',
+      };
+      const request = {
+        environmentId: 'env-production',
+        apiKeyId: 'api-key-1',
+        apiKeyKind: 'secret_key' as const,
+        route: 'sponsored_evm_call_v1',
+        policyId: 'policy-sponsored-gas',
+        chainFamily: 'evm' as const,
+        intentKind: 'evm_call' as const,
+        executorKind: 'evm_eoa' as const,
+        accountRef: '0x1111111111111111111111111111111111111111',
+        targetRef: '0x2222222222222222222222222222222222222222',
+        sponsorRef: '0x3333333333333333333333333333333333333333',
+        receiptStatus: 'success' as const,
+        feeUnit: 'wei' as const,
+        feeAmount: '1000000000000000',
+        detailsJson: '{"kind":"contract-test"}',
+        estimatedSpendMinor: 100,
+        settledSpendMinor: 75,
+        pricingVersion: 'static:v1',
+        pricingSource: 'contract-test',
+        billingLedgerEntryId: 'ledger-entry-1',
+        prepaidReservationId: 'reservation-1',
+        charged: true,
+        chargedReason: 'sponsored_gas',
+        settledAt: '2026-06-27T00:00:01.000Z',
+        idempotencyKey: 'sponsored-idempotency-1',
+      };
+
+      const first = await service.createRecord(ctx, request);
+      const duplicate = await service.createRecord(ctx, {
+        ...request,
+        id: 'different-record-id',
+        feeAmount: '9999999999999999',
+      });
+      const page = await service.listRecords(ctx, { limit: 10, lookbackDays: 1 });
+
+      expect(duplicate.id).toBe(first.id);
+      expect(duplicate.feeAmount).toBe(first.feeAmount);
+      expect(page.items).toHaveLength(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('signer wallet metadata and auth methods are scoped by tenant environment', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const walletId = walletIdFromString('wallet-d1-metadata');
+      const scope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+      };
+      const otherEnvScope = {
+        ...scope,
+        envId: 'env-development',
+      };
+      const walletStore = new D1WalletStore(scope);
+      const otherWalletStore = new D1WalletStore({
+        ...otherEnvScope,
+        ensureSchema: false,
+      });
+      const authMethodStore = new D1WalletAuthMethodStore(scope);
+      const otherAuthMethodStore = new D1WalletAuthMethodStore({
+        ...otherEnvScope,
+        ensureSchema: false,
+      });
+
+      await walletStore.putSubject({
+        version: 'wallet_v1',
+        walletId,
+        createdAtMs: 1000,
+        updatedAtMs: 2000,
+      });
+      const runtimePolicyScope = {
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+        signingRootVersion: 'signing-root-version-v1',
+      } as const;
+      const activeYao = buildEd25519YaoCapabilityFixture({
+        walletId,
+        nearAccountId: 'wallet-d1-metadata.testnet',
+        nearEd25519SigningKeyId: 'near-ed25519-key-1',
+        thresholdSessionId: 'threshold-session-d1-wallet',
+        signerSlot: 1,
+        signingWorkerId: 'signing-worker-d1-wallet',
+        participantIds: [1, 2],
+        runtimePolicyScope,
+        seed: 71,
+      });
+      await walletStore.putSigner({
+        version: 'wallet_signer_ed25519_v1',
+        walletId,
+        signerId: 'ed25519:wallet-d1-metadata:1',
+        nearAccountId: 'wallet-d1-metadata.testnet',
+        nearEd25519SigningKeyId: 'near-ed25519-key-1',
+        thresholdSessionId: 'threshold-session-d1-wallet',
+        signerSlot: 1,
+        publicKey: activeYao.publicKey,
+        signingWorkerId: 'signing-worker-d1-wallet',
+        keyVersion: 'signer-key-v1',
+        recoveryExportCapable: true,
+        participantIds: [1, 2],
+        signingRootId: 'project-d1-signer:env-production',
+        signingRootVersion: 'signing-root-version-v1',
+        runtimePolicyScope,
+        activeYaoCapability: activeYao.capability,
+        createdAtMs: 1000,
+        updatedAtMs: 2000,
+      });
+      await authMethodStore.put({
+        version: 'wallet_auth_method_v1',
+        kind: 'passkey',
+        status: 'active',
+        walletId,
+        rpId: unwrapFixture(parseWebAuthnRpId('app.seams.test')),
+        credentialIdB64u: 'credential-d1-wallet',
+        credentialPublicKeyB64u: 'public-key-d1-wallet',
+        counter: 3,
+        createdAtMs: 3000,
+        updatedAtMs: 3000,
+      });
+      await authMethodStore.put({
+        version: 'wallet_auth_method_v1',
+        kind: 'email_otp',
+        status: 'active',
+        walletId,
+        emailHashHex: '0123456789abcdef',
+        registrationAuthorityId: 'registration-authority-d1',
+        createdAtMs: 4000,
+        updatedAtMs: 4000,
+      });
+
+      await expect(walletStore.getWallet({ walletId })).resolves.toMatchObject({
+        version: 'wallet_v1',
+        walletId,
+      });
+      await expect(otherWalletStore.getWallet({ walletId })).resolves.toBeNull();
+      await expect(
+        authMethodStore.getPasskey({
+          rpId: 'app.seams.test',
+          credentialIdB64u: 'credential-d1-wallet',
+        }),
+      ).resolves.toMatchObject({
+        kind: 'passkey',
+        walletId,
+        credentialIdB64u: 'credential-d1-wallet',
+      });
+      await expect(
+        authMethodStore.getEmailOtp({
+          walletId,
+          emailHashHex: '0123456789abcdef',
+        }),
+      ).resolves.toMatchObject({
+        kind: 'email_otp',
+        walletId,
+        emailHashHex: '0123456789abcdef',
+      });
+      await expect(
+        otherAuthMethodStore.getPasskey({
+          rpId: 'app.seams.test',
+          credentialIdB64u: 'credential-d1-wallet',
+        }),
+      ).resolves.toBeNull();
+
+      const authMethods = await authMethodStore.listForWallet({
+        walletId,
+        rpId: 'app.seams.test',
+      });
+      expect(authMethods.map((record) => record.kind)).toEqual(['passkey', 'email_otp']);
+
+      const signerRow = await temp.database
+        .prepare(
+          `SELECT COUNT(*) AS signer_count
+             FROM wallet_signers
+            WHERE namespace = ?
+              AND org_id = ?
+              AND project_id = ?
+              AND env_id = ?
+              AND wallet_id = ?`,
+        )
+        .bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId)
+        .first<SqliteJsonRow>();
+      expect(Number(signerRow?.signer_count)).toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('signer WebAuthn stores persist scoped credentials and atomic challenges', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T04:00:00.000Z');
+      const scope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+      };
+      const otherEnvScope = {
+        ...scope,
+        envId: 'env-development',
+      };
+      const authenticatorStore = new D1WebAuthnAuthenticatorStore(scope);
+      const otherAuthenticatorStore = new D1WebAuthnAuthenticatorStore({
+        ...otherEnvScope,
+        ensureSchema: false,
+      });
+      const bindingStore = new D1WebAuthnCredentialBindingStore(scope);
+      const otherBindingStore = new D1WebAuthnCredentialBindingStore({
+        ...otherEnvScope,
+        ensureSchema: false,
+      });
+      const loginChallengeStore = new D1WebAuthnLoginChallengeStore({
+        ...scope,
+        now: clock.now,
+      });
+      const syncChallengeStore = new D1WebAuthnSyncChallengeStore({
+        ...scope,
+        ensureSchema: false,
+        now: clock.now,
+      });
+
+      await authenticatorStore.put('user-d1-webauthn', {
+        version: 'webauthn_authenticator_v1',
+        credentialIdB64u: 'credential-d1-webauthn',
+        credentialPublicKeyB64u: 'public-key-d1-webauthn',
+        counter: 1,
+        createdAtMs: 1000,
+        updatedAtMs: 1000,
+        deviceInfo: unknownWebAuthnAuthenticatorDeviceInfo(),
+      });
+      await authenticatorStore.put('user-d1-webauthn', {
+        version: 'webauthn_authenticator_v1',
+        credentialIdB64u: 'credential-d1-webauthn',
+        credentialPublicKeyB64u: 'public-key-d1-webauthn',
+        counter: 3,
+        createdAtMs: 900,
+        updatedAtMs: 2000,
+        deviceInfo: deriveWebAuthnAuthenticatorDeviceInfo({
+          userAgent:
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+          aaguid: 'fbfc3007-154e-4ecc-8c0b-6e020557d7bd',
+          backedUp: true,
+          transports: ['internal', 'hybrid'],
+        }),
+      });
+      await bindingStore.put({
+        version: 'webauthn_credential_binding_v1',
+        rpId: 'app.seams.test',
+        credentialIdB64u: 'credential-d1-webauthn',
+        userId: 'user-d1-webauthn',
+        nearAccountId: 'wallet-d1-webauthn.testnet',
+        nearEd25519SigningKeyId: 'near-ed25519-key-webauthn',
+        signerSlot: 7,
+        publicKey: 'ed25519:public-key-webauthn',
+        relayerKeyId: 'relayer-key-webauthn',
+        keyVersion: 'webauthn-key-v1',
+        recoveryExportCapable: true,
+        createdAtMs: 1000,
+        updatedAtMs: 2000,
+      });
+
+      await expect(
+        authenticatorStore.get('user-d1-webauthn', 'credential-d1-webauthn'),
+      ).resolves.toMatchObject({
+        credentialIdB64u: 'credential-d1-webauthn',
+        counter: 3,
+        createdAtMs: 900,
+        updatedAtMs: 2000,
+        deviceInfo: {
+          label: 'Safari on macOS',
+          browser: 'safari',
+          os: 'macos',
+          synced: true,
+          transports: ['internal', 'hybrid'],
+          provider: 'icloud-keychain',
+          providerLabel: 'iCloud Keychain',
+        },
+      });
+      await expect(
+        otherAuthenticatorStore.get('user-d1-webauthn', 'credential-d1-webauthn'),
+      ).resolves.toBeNull();
+      await expect(authenticatorStore.list('user-d1-webauthn')).resolves.toEqual([
+        expect.objectContaining({
+          credentialIdB64u: 'credential-d1-webauthn',
+        }),
+      ]);
+
+      await expect(
+        bindingStore.get('app.seams.test', 'credential-d1-webauthn'),
+      ).resolves.toMatchObject({
+        userId: 'user-d1-webauthn',
+        signerSlot: 7,
+      });
+      await expect(
+        otherBindingStore.get('app.seams.test', 'credential-d1-webauthn'),
+      ).resolves.toBeNull();
+      await expect(
+        bindingStore.getMaxSignerSlot({
+          userId: 'user-d1-webauthn',
+          rpId: 'app.seams.test',
+        }),
+      ).resolves.toBe(7);
+      await expect(
+        bindingStore.listByUserId({
+          userId: 'user-d1-webauthn',
+          rpId: 'app.seams.test',
+        }),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          credentialIdB64u: 'credential-d1-webauthn',
+          signerSlot: 7,
+        }),
+      ]);
+
+      await loginChallengeStore.put({
+        version: 'webauthn_login_challenge_v1',
+        challengeId: 'login-challenge-d1',
+        userId: 'user-d1-webauthn',
+        rpId: 'app.seams.test',
+        challengeB64u: 'login-challenge-b64u',
+        createdAtMs: Date.parse('2026-06-27T04:00:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T04:05:00.000Z'),
+      });
+      await expect(loginChallengeStore.consume('login-challenge-d1')).resolves.toMatchObject({
+        challengeId: 'login-challenge-d1',
+        userId: 'user-d1-webauthn',
+      });
+      await expect(loginChallengeStore.consume('login-challenge-d1')).resolves.toBeNull();
+
+      await syncChallengeStore.put({
+        version: 'webauthn_sync_challenge_v1',
+        challengeId: 'sync-challenge-d1',
+        rpId: 'app.seams.test',
+        expectedUserId: 'user-d1-webauthn',
+        challengeB64u: 'sync-challenge-b64u',
+        createdAtMs: Date.parse('2026-06-27T04:00:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T04:05:00.000Z'),
+      });
+      await expect(syncChallengeStore.consume('sync-challenge-d1')).resolves.toMatchObject({
+        challengeId: 'sync-challenge-d1',
+        expectedUserId: 'user-d1-webauthn',
+      });
+      await expect(syncChallengeStore.consume('sync-challenge-d1')).resolves.toBeNull();
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('signer identity links and app session versions are scoped in D1', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const clock = new TestMutableClock('2026-06-27T05:00:00.000Z');
+      const scope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+        now: clock.now,
+      };
+      const identity = new D1IdentityStore(scope);
+      const otherEnvIdentity = new D1IdentityStore({
+        ...scope,
+        envId: 'env-development',
+        ensureSchema: false,
+      });
+
+      await expect(
+        identity.linkSubjectToUserId({
+          userId: 'user-d1-identity-alice',
+          subject: 'google:alice',
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(
+        identity.linkSubjectToUserId({
+          userId: 'user-d1-identity-alice',
+          subject: 'passkey:alice',
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(identity.getUserIdBySubject('google:alice')).resolves.toBe(
+        'user-d1-identity-alice',
+      );
+      await expect(identity.listSubjectsByUserId('user-d1-identity-alice')).resolves.toEqual([
+        'google:alice',
+        'passkey:alice',
+      ]);
+      await expect(otherEnvIdentity.getUserIdBySubject('google:alice')).resolves.toBeNull();
+
+      await expect(
+        identity.linkSubjectToUserId({
+          userId: 'user-d1-identity-bob',
+          subject: 'github:bob',
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(
+        identity.linkSubjectToUserId({
+          userId: 'user-d1-identity-charlie',
+          subject: 'github:bob',
+        }),
+      ).resolves.toMatchObject({
+        ok: false,
+        code: 'already_linked',
+      });
+      await expect(
+        identity.linkSubjectToUserId({
+          userId: 'user-d1-identity-charlie',
+          subject: 'github:bob',
+          allowMoveIfSoleIdentity: true,
+        }),
+      ).resolves.toEqual({
+        ok: true,
+        movedFromUserId: 'user-d1-identity-bob',
+      });
+      await expect(identity.getUserIdBySubject('github:bob')).resolves.toBe(
+        'user-d1-identity-charlie',
+      );
+
+      await expect(
+        identity.unlinkSubjectFromUserId({
+          userId: 'user-d1-identity-charlie',
+          subject: 'github:bob',
+        }),
+      ).resolves.toMatchObject({
+        ok: false,
+        code: 'cannot_unlink_last_identity',
+      });
+      await expect(
+        identity.unlinkSubjectFromUserId({
+          userId: 'user-d1-identity-alice',
+          subject: 'passkey:alice',
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(identity.listSubjectsByUserId('user-d1-identity-alice')).resolves.toEqual([
+        'google:alice',
+      ]);
+      await expect(
+        identity.deleteSubjectLinkForDevCleanup({
+          userId: 'user-d1-identity-alice',
+          subject: 'google:alice',
+        }),
+      ).resolves.toEqual({ ok: true });
+      await expect(identity.getUserIdBySubject('google:alice')).resolves.toBeNull();
+
+      const ensuredVersion =
+        await identity.ensureAppSessionVersionByUserId('user-d1-identity-alice');
+      expect(ensuredVersion).toEqual(expect.any(String));
+      expect(ensuredVersion.length).toBeGreaterThan(20);
+      await expect(
+        identity.ensureAppSessionVersionByUserId('user-d1-identity-alice'),
+      ).resolves.toBe(ensuredVersion);
+      await expect(
+        otherEnvIdentity.getAppSessionVersionByUserId('user-d1-identity-alice'),
+      ).resolves.toBeNull();
+      const rotatedVersion =
+        await identity.rotateAppSessionVersionByUserId('user-d1-identity-alice');
+      expect(rotatedVersion).toEqual(expect.any(String));
+      expect(rotatedVersion).not.toBe(ensuredVersion);
+      await expect(identity.getAppSessionVersionByUserId('user-d1-identity-alice')).resolves.toBe(
+        rotatedVersion,
+      );
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('signer Email OTP stores are scoped and consume one-time records in D1', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const nowMs = Date.parse('2026-06-27T10:05:00.000Z');
+      const scope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+      };
+      const otherEnvScope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-development',
+        ensureSchema: false,
+      };
+      const challengeStore = new D1EmailOtpChallengeStore(scope);
+      const otherEnvChallengeStore = new D1EmailOtpChallengeStore(otherEnvScope);
+      const grantStore = new D1EmailOtpGrantStore(scope);
+      const otherEnvGrantStore = new D1EmailOtpGrantStore(otherEnvScope);
+      const enrollmentStore = new D1EmailOtpWalletEnrollmentStore(scope);
+      const otherEnvEnrollmentStore = new D1EmailOtpWalletEnrollmentStore(otherEnvScope);
+      const authStateStore = new D1EmailOtpAuthStateStore(scope);
+      const otherEnvAuthStateStore = new D1EmailOtpAuthStateStore(otherEnvScope);
+      const unlockChallengeStore = new D1EmailOtpUnlockChallengeStore(scope);
+      const otherEnvUnlockChallengeStore = new D1EmailOtpUnlockChallengeStore(otherEnvScope);
+      const registrationAttemptStore = new D1EmailOtpRegistrationAttemptStore(scope);
+      const otherEnvRegistrationAttemptStore = new D1EmailOtpRegistrationAttemptStore(
+        otherEnvScope,
+      );
+
+      const oldestChallenge = buildD1EmailOtpChallengeRecord({
+        challengeId: 'email-otp-challenge-oldest',
+        otpCode: '111111',
+        createdAtMs: Date.parse('2026-06-27T10:00:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      const latestChallenge = buildD1EmailOtpChallengeRecord({
+        challengeId: 'email-otp-challenge-latest',
+        otpCode: '222222',
+        createdAtMs: Date.parse('2026-06-27T10:01:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:40:00.000Z'),
+      });
+      const expiredChallenge = buildD1EmailOtpChallengeRecord({
+        challengeId: 'email-otp-challenge-expired',
+        otpCode: '333333',
+        createdAtMs: Date.parse('2026-06-27T09:00:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T09:30:00.000Z'),
+      });
+      const challengeContext = buildD1EmailOtpChallengeContext({ nowMs });
+
+      await challengeStore.put(oldestChallenge);
+      await challengeStore.put(latestChallenge);
+      await challengeStore.put(expiredChallenge);
+      await expect(challengeStore.get('email-otp-challenge-latest')).resolves.toMatchObject({
+        challengeId: 'email-otp-challenge-latest',
+      });
+      await expect(otherEnvChallengeStore.get('email-otp-challenge-latest')).resolves.toBeNull();
+      await expect(challengeStore.countActiveByContext(challengeContext)).resolves.toBe(2);
+      await expect(
+        challengeStore.findLatestActiveByContext(challengeContext),
+      ).resolves.toMatchObject({ challengeId: 'email-otp-challenge-latest' });
+      await expect(
+        challengeStore.findActiveByContext({
+          ...challengeContext,
+          otpCode: '222222',
+        }),
+      ).resolves.toMatchObject({ challengeId: 'email-otp-challenge-latest' });
+      await expect(
+        challengeStore.deleteOldestActiveByContext(challengeContext),
+      ).resolves.toMatchObject({ challengeId: 'email-otp-challenge-oldest' });
+      await expect(challengeStore.countActiveByContext(challengeContext)).resolves.toBe(1);
+      const expiredChallenges = await challengeStore.deleteExpired(nowMs);
+      expect(expiredChallenges.map((challenge) => challenge.challengeId)).toEqual([
+        'email-otp-challenge-expired',
+      ]);
+
+      const grant = buildD1EmailOtpGrantRecord({
+        grantToken: 'email-otp-grant-d1',
+        issuedAtMs: nowMs,
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      await grantStore.put(grant);
+      await expect(grantStore.get('email-otp-grant-d1')).resolves.toMatchObject({
+        grantToken: 'email-otp-grant-d1',
+      });
+      await expect(otherEnvGrantStore.get('email-otp-grant-d1')).resolves.toBeNull();
+      await expect(grantStore.consume('email-otp-grant-d1')).resolves.toMatchObject({
+        grantToken: 'email-otp-grant-d1',
+      });
+      await expect(grantStore.consume('email-otp-grant-d1')).resolves.toBeNull();
+
+      const enrollment = buildD1EmailOtpWalletEnrollmentRecord({
+        updatedAtMs: Date.parse('2026-06-27T10:01:00.000Z'),
+      });
+      await enrollmentStore.put(enrollment);
+      await expect(enrollmentStore.get('wallet-d1-email-otp')).resolves.toMatchObject({
+        walletId: 'wallet-d1-email-otp',
+        providerUserId: 'google-subject-d1-email-otp',
+      });
+      await expect(
+        enrollmentStore.getByProviderUserId({
+          providerUserId: 'google-subject-d1-email-otp',
+          orgId: 'org-d1-signer',
+        }),
+      ).resolves.toMatchObject({ walletId: 'wallet-d1-email-otp' });
+      await expect(otherEnvEnrollmentStore.get('wallet-d1-email-otp')).resolves.toBeNull();
+
+      await authStateStore.put({
+        version: 'email_otp_auth_state_v1',
+        walletId: 'wallet-d1-email-otp',
+        providerUserId: 'google-subject-d1-email-otp',
+        orgId: 'org-d1-signer',
+        createdAtMs: nowMs,
+        updatedAtMs: nowMs,
+        otpFailureCount: 1,
+        lastEmailOtpLoginAtMs: nowMs,
+      });
+      await expect(authStateStore.get('wallet-d1-email-otp')).resolves.toMatchObject({
+        otpFailureCount: 1,
+      });
+      await expect(otherEnvAuthStateStore.get('wallet-d1-email-otp')).resolves.toBeNull();
+
+      await unlockChallengeStore.put({
+        version: 'email_otp_unlock_challenge_v1',
+        challengeId: 'email-otp-unlock-challenge-d1',
+        walletId: 'wallet-d1-email-otp',
+        userId: 'google-subject-d1-email-otp',
+        orgId: 'org-d1-signer',
+        challengeB64u: 'unlockChallengeB64u',
+        createdAtMs: nowMs,
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      await expect(
+        otherEnvUnlockChallengeStore.consume('email-otp-unlock-challenge-d1'),
+      ).resolves.toBeNull();
+      await expect(
+        unlockChallengeStore.consume('email-otp-unlock-challenge-d1'),
+      ).resolves.toMatchObject({ challengeId: 'email-otp-unlock-challenge-d1' });
+      await expect(
+        unlockChallengeStore.consume('email-otp-unlock-challenge-d1'),
+      ).resolves.toBeNull();
+
+      const activeAttempt = buildD1EmailOtpRegistrationAttemptRecord({
+        attemptId: 'email-otp-registration-active',
+        appSessionVersion: 'app-session-v1',
+        walletId: 'wallet-d1-email-otp-registration',
+        runtimeProjectId: 'project-d1-signer',
+        updatedAtMs: Date.parse('2026-06-27T10:01:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      const wrongRuntimeAttempt = buildD1EmailOtpRegistrationAttemptRecord({
+        attemptId: 'email-otp-registration-wrong-runtime',
+        appSessionVersion: 'app-session-v1',
+        walletId: 'wallet-d1-email-otp-registration-wrong-runtime',
+        runtimeProjectId: 'project-other-runtime',
+        updatedAtMs: Date.parse('2026-06-27T10:04:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      const replacedAttempt = buildD1EmailOtpRegistrationAttemptRecord({
+        attemptId: 'email-otp-registration-replaced',
+        appSessionVersion: 'app-session-old',
+        walletId: 'wallet-d1-email-otp-registration-replaced',
+        runtimeProjectId: 'project-d1-signer',
+        updatedAtMs: Date.parse('2026-06-27T10:02:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:30:00.000Z'),
+      });
+      const expiredAttempt = buildD1EmailOtpRegistrationAttemptRecord({
+        attemptId: 'email-otp-registration-expired',
+        appSessionVersion: 'app-session-expired',
+        walletId: 'wallet-d1-email-otp-registration-expired',
+        runtimeProjectId: 'project-d1-signer',
+        updatedAtMs: Date.parse('2026-06-27T10:02:00.000Z'),
+        expiresAtMs: Date.parse('2026-06-27T10:04:00.000Z'),
+      });
+      await registrationAttemptStore.put(activeAttempt);
+      await registrationAttemptStore.put(wrongRuntimeAttempt);
+      await registrationAttemptStore.put(replacedAttempt);
+      await registrationAttemptStore.put(expiredAttempt);
+      await expect(
+        otherEnvRegistrationAttemptStore.get('email-otp-registration-active'),
+      ).resolves.toBeNull();
+      await expect(
+        registrationAttemptStore.findStartedBySubjectEmail({
+          providerSubject: 'google-subject-d1-email-otp',
+          email: 'email-otp-d1@example.com',
+          orgId: 'org-d1-signer',
+          appSessionVersion: 'app-session-v1',
+          runtimePolicyScope: {
+            orgId: 'org-d1-signer',
+            projectId: 'project-d1-signer',
+            envId: 'env-production',
+            signingRootVersion: 'signing-root-version-v1',
+          },
+          nowMs,
+        }),
+      ).resolves.toMatchObject({ attemptId: 'email-otp-registration-active' });
+      await expect(
+        registrationAttemptStore.hasLiveStartedWalletAttempt({
+          walletId: 'wallet-d1-email-otp-offer-candidate',
+          nowMs,
+        }),
+      ).resolves.toBe(true);
+      await expect(
+        registrationAttemptStore.abandonStartedBySubjectEmailExceptAppSession({
+          providerSubject: 'google-subject-d1-email-otp',
+          email: 'email-otp-d1@example.com',
+          orgId: 'org-d1-signer',
+          appSessionVersion: 'app-session-v1',
+          runtimePolicyScope: {
+            orgId: 'org-d1-signer',
+            projectId: 'project-d1-signer',
+            envId: 'env-production',
+            signingRootVersion: 'signing-root-version-v1',
+          },
+          nowMs,
+          failureCode: 'app_session_version_replaced',
+        }),
+      ).resolves.toBe(1);
+      await expect(
+        registrationAttemptStore.get('email-otp-registration-replaced'),
+      ).resolves.toMatchObject({ state: 'abandoned' });
+      await expect(registrationAttemptStore.deleteExpired(nowMs)).resolves.toBe(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('signer NEAR public key metadata is scoped in D1', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const scope = {
+        database: temp.database,
+        namespace: 'd1-contracts',
+        orgId: 'org-d1-signer',
+        projectId: 'project-d1-signer',
+        envId: 'env-production',
+      };
+      const keyStore = new D1NearPublicKeyStore(scope);
+      const otherEnvKeyStore = new D1NearPublicKeyStore({
+        ...scope,
+        envId: 'env-development',
+        ensureSchema: false,
+      });
+      const thresholdKey = {
+        version: 'near_public_key_v1',
+        userId: 'user-d1-near-key',
+        publicKey: 'ed25519:threshold-public-key',
+        kind: 'threshold',
+        signerSlot: 2,
+        authBinding: {
+          kind: 'passkey',
+          credentialIdB64u: 'credential-d1-near-key',
+          rpId: unwrapFixture(parseWebAuthnRpId('app.seams.test')),
+        },
+        createdAtMs: Date.parse('2026-06-27T08:00:00.000Z'),
+        updatedAtMs: Date.parse('2026-06-27T08:00:00.000Z'),
+        addedTxHash: 'near-tx-add-threshold',
+      } as const;
+      const backupKey = {
+        version: 'near_public_key_v1',
+        userId: 'user-d1-near-key',
+        publicKey: 'ed25519:backup-public-key',
+        kind: 'backup',
+        signerSlot: 1,
+        createdAtMs: Date.parse('2026-06-27T08:01:00.000Z'),
+        updatedAtMs: Date.parse('2026-06-27T08:01:00.000Z'),
+      } as const;
+      const removedThresholdKey = {
+        ...thresholdKey,
+        updatedAtMs: Date.parse('2026-06-27T08:02:00.000Z'),
+        removedAtMs: Date.parse('2026-06-27T08:02:00.000Z'),
+      } as const;
+
+      await keyStore.put(thresholdKey);
+      await keyStore.put(backupKey);
+      await keyStore.put(removedThresholdKey);
+
+      const keys = await keyStore.listByUserId('user-d1-near-key');
+      expect(keys.map(nearPublicKeyValue)).toEqual([
+        'ed25519:backup-public-key',
+        'ed25519:threshold-public-key',
+      ]);
+      expect(keys[1]).toMatchObject({
+        kind: 'threshold',
+        signerSlot: 2,
+        removedAtMs: Date.parse('2026-06-27T08:02:00.000Z'),
+      });
+      await expect(otherEnvKeyStore.listByUserId('user-d1-near-key')).resolves.toHaveLength(0);
+      await expect(keyStore.listByUserId('')).resolves.toHaveLength(0);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+
+  test('runtime snapshot outbox claim lease prevents duplicate dispatch', async () => {
+    const temp = createTemporaryD1Database();
+    try {
+      const namespace = 'd1-contracts';
+      const orgId = 'org-d1-runtime-snapshot';
+      const nowMs = Date.parse('2026-06-27T00:00:00.000Z');
+      const harness = new RuntimeSnapshotOutboxRaceHarness(temp.database, namespace, orgId, nowMs);
+      const service = await createD1ConsoleRuntimeSnapshotService({
+        database: temp.database,
+        namespace,
+        ensureSchema: true,
+        now: harness.now.bind(harness),
+        retentionTtlMs: 1000 * 60 * 60,
+      });
+      const ctx = {
+        orgId,
+        actorUserId: 'user-d1-runtime-snapshot',
+      };
+
+      await service.publishSnapshot(ctx, {
+        snapshotId: 'snapshot-race-1',
+        projectId: 'project-runtime',
+        environmentId: 'env-production',
+        payload: {
+          policy: { id: 'policy-runtime' },
+          gasSponsorship: { enabled: true },
+          metadata: { source: 'd1-contract-test' },
+        },
+      });
+
+      const primaryResult = await runD1ConsoleRuntimeSnapshotOutboxDispatch({
+        database: temp.database,
+        namespace,
+        orgIds: [orgId],
+        limit: 1,
+        ensureSchema: false,
+        now: harness.now.bind(harness),
+        workerId: 'snapshot-race-worker-a',
+        claimTtlMs: 60_000,
+        dispatch: harness.dispatch.bind(harness),
+      });
+      const afterDispatchResult = await runD1ConsoleRuntimeSnapshotOutboxDispatch({
+        database: temp.database,
+        namespace,
+        orgIds: [orgId],
+        limit: 1,
+        ensureSchema: false,
+        now: harness.now.bind(harness),
+        workerId: 'snapshot-race-worker-c',
+        claimTtlMs: 60_000,
+        dispatch: harness.competitorDispatch.bind(harness),
+      });
+
+      expect(primaryResult.dispatchedCount).toBe(1);
+      expect(primaryResult.failureCount).toBe(0);
+      expect(harness.competitorResult?.dispatchedCount).toBe(0);
+      expect(harness.competitorResult?.failureCount).toBe(0);
+      expect(afterDispatchResult.dispatchedCount).toBe(0);
+      expect(harness.dispatchedEventIds).toHaveLength(1);
+    } finally {
+      cleanupTemporaryD1Database(temp.tempDir);
+    }
+  });
+});

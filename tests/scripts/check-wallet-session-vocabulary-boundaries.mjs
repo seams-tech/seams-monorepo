@@ -1,0 +1,433 @@
+#!/usr/bin/env node
+
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as ts from 'typescript';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const sourceRoots = [
+  'packages/wallet-server/src',
+  'packages/wallet/src',
+  'packages/shared-ts/src',
+  'crates/router-ab-dev/src',
+  'tests',
+];
+const activeDocPaths = [
+  'apps/docs/src/concepts/sessions/wallet-sessions.md',
+  'docs/intended-behaviours.md',
+  'docs/otp/email-otp.md',
+  'docs/router-ab/protocol.md',
+  'docs/signing-session-architecture/README.md',
+  'docs/signing-session-architecture/sealed-refresh.md',
+  'docs/threshold-ecdsa/ecdsa-threshold-signing.md',
+];
+const activeSigningPaths = [
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/signEvmFamily.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/authPlanning.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/ecdsaLanes.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/preparedSigning.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/readySecp256k1Material.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/signers/secp256k1.ts',
+  'packages/wallet/src/core/signingEngine/flows/signEvmFamily/signingFlowRuntime.ts',
+  'packages/wallet/src/core/signingEngine/routerAb/ecdsaDerivation/presignaturePool.ts',
+  'packages/wallet/src/core/signingEngine/flows/signNear/signNear.ts',
+  'packages/wallet/src/core/signingEngine/flows/signNear/signTransactions.ts',
+  'packages/wallet/src/core/signingEngine/flows/signNear/signDelegate.ts',
+  'packages/wallet/src/core/signingEngine/flows/signNear/signNep413.ts',
+];
+const selfPaths = new Set([
+  'tests/unit/walletSessionVocabularyBoundaries.guard.unit.test.ts',
+  'tests/scripts/check-wallet-session-vocabulary-boundaries.mjs',
+]);
+
+const sessionIdPublicSurfaceRoots = [
+  'packages/wallet-server/src',
+  'packages/wallet/src',
+  'packages/shared-ts/src',
+  'apps/seams-site/src/flows/demo',
+];
+const sessionIdBoundaryRoots = [
+  'apps/docs/src/concepts',
+  'crates/signer-core/src/commands',
+  'wasm/near_signer/src',
+];
+const classifiedSessionIdPublicSurfaceFiles = {
+  'packages/shared-ts/src/tenant-root/tenantRootSecurityState.ts':
+    'keep_app_device_or_recovery_session',
+  'apps/seams-site/src/flows/demo/hooks/useDemoSigningSession.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet-server/src/authorization/domain.ts': 'keep_app_device_or_recovery_session',
+  'packages/wallet-server/src/authorization/service.ts': 'keep_app_device_or_recovery_session',
+  'packages/wallet-server/src/core/RegistrationCeremonyStore.ts':
+    'keep_ed25519_yao_protocol_session',
+  'packages/wallet-server/src/core/types.ts': 'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet-server/src/router/framework/authServicePort.ts':
+    'keep_app_device_or_recovery_session',
+  'packages/wallet-server/src/router/domains/ed25519Yao/export/routerAbEd25519YaoExport.ts':
+    'keep_ed25519_yao_protocol_session',
+  'packages/wallet-server/src/router/domains/ed25519Yao/recovery/routerAbEd25519YaoRecovery.ts':
+    'keep_ed25519_yao_protocol_session',
+  'packages/wallet-server/src/router/domains/ed25519Yao/registration/routerAbEd25519YaoRegistration.ts':
+    'keep_ed25519_yao_protocol_session',
+  'packages/wallet-server/src/router/domains/ecdsa/routerAbEcdsaStrictRegistration.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/SeamsWeb/signingSurface/ports.ts': 'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/platform/generated/signerCoreCommands.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/platform/ports.ts': 'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/platform/secretSources.ts': 'keep_email_otp_worker_session',
+  'packages/wallet/src/core/rpcClients/relayer/thresholdEcdsa.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/flows/signNear/shared/ed25519YaoCapabilityResolution.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/workerManager/ecdsaClientWorkerChannels.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/rpcClients/relayer/walletRegistration.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/assembly/ports/shared.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/flows/signNear/shared/signingSessionAuthMode.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/flows/signNear/signNear.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/interfaces/near.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/interfaces/nearKeyOps.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/interfaces/operationDeps.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/interfaces/signing.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/routerAb/ecdsaDerivation/presignaturePool.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/availability/persistedAvailableSigningLanes.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/availability/readiness.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/ecdsaRecovery.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/ed25519Warmup.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/ports.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/provisioning.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/recoveryCodeWarmSessionHydration.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/workerRequests.ts':
+    'keep_email_otp_worker_session',
+  'packages/wallet/src/core/signingEngine/session/emailOtp/warmSessionRuntime.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/identity/evmFamilyEcdsaIdentity.ts':
+    'keep_email_otp_worker_session',
+  'packages/wallet/src/core/signingEngine/session/identity/emailOtpEcdsaDerivationIdentity.ts':
+    'forbidden_never_field',
+  'packages/wallet/src/core/signingEngine/session/passkey/prfCache.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/passkey/ed25519YaoSealedSession.ts':
+    'rename_to_threshold_session_id',
+  'packages/wallet/src/core/signingEngine/session/passkey/warmSessionMaterialWriter.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/passkey/warmSessionHydration.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/warmCapabilities/public.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/session/warmCapabilities/types.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/stepUpConfirmation/confirmOperation.ts':
+    'keep_ui_or_operation_session',
+  'packages/wallet/src/core/signingEngine/stepUpConfirmation/types.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/threshold/crypto/webauthn.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/threshold/ed25519/connectSession.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/threshold/sessionPolicy.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/uiConfirm/uiConfirm.types.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/uiConfirm/ui/export-viewer-host.ts':
+    'keep_ui_or_operation_session',
+  'packages/wallet/src/core/signingEngine/uiConfirm/warmSessionUiConfirm.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/useCases/provisionEcdsa.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/signingEngine/workerManager/workerTypes.ts':
+    'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/types/linkDevice.ts': 'keep_app_device_or_recovery_session',
+  'packages/wallet/src/core/types/seams.ts': 'rename_later_agent_b_signing_or_wasm',
+  'packages/wallet/src/core/types/secure-confirm-worker.ts': 'keep_secureconfirm_session',
+  'packages/wallet/src/core/types/signer-worker.ts': 'rename_later_agent_b_signing_or_wasm',
+  'packages/shared-ts/src/threshold/ecdsaDerivationRoleLocalBootstrap.ts':
+    'rename_later_agent_b_signing_or_wasm',
+};
+const classifiedSessionIdBoundaryFiles = {
+  'apps/docs/src/concepts/security-model.md': 'keep_secureconfirm_session',
+  'crates/signer-core/src/commands/ecdsa_bootstrap.rs': 'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/handlers/handle_sign_delegate_action.rs':
+    'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/handlers/handle_sign_nep413_message.rs':
+    'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/handlers/handle_sign_transactions_with_actions.rs':
+    'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/handlers/handle_threshold_ed25519_derive_client_verifying_share.rs':
+    'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/threshold/coordinator.rs': 'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/threshold/relayer_http.rs': 'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/threshold/signer_backend.rs': 'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/threshold/transport.rs': 'rename_later_agent_b_signing_or_wasm',
+  'wasm/near_signer/src/types/signing.rs': 'rename_later_agent_b_signing_or_wasm',
+};
+const forbiddenWalletSigningSessionMarkers = [
+  joined(['wallet', 'SigningSessionId']),
+  joined(['Wallet', 'SigningSessionId']),
+  joined(['wallet_', 'signing_', 'session_id']),
+  joined(['wallet-', 'signing-', 'session']),
+  'wallet signing session',
+  'Wallet signing session',
+  'wallet signing-session',
+  'Wallet signing-session',
+  'wallet-signing session',
+];
+const retiredWalletSessionMarkers = [
+  'reusable_wallet_sessions',
+  'opaque_wallet_session_tokens',
+  'registration_replay_opaque_wallet_session_tokens_v1',
+  'not_v2',
+  'readActiveForWallet',
+  'wallet_session_authorization_v3',
+  'WALLET_SESSION_AUTHORIZATION_RECORD_VERSION_V4',
+  'WALLET_SESSION_AUTHORIZATION_RECORD_VERSION_V5',
+  'issueReusableWalletSession',
+  'readReusableWalletSessionStatus',
+  'resolveOpaqueWalletSessionToken',
+  'issueOpaqueWalletSessionToken',
+  'readOpaqueWalletSessionTokenByIdentity',
+  joined(['Opaque', 'WalletSessionToken']),
+  joined(['Opaque', 'WalletSessionAuth']),
+  joined(['WalletSession', 'RouteAuth']),
+  joined(['requireOpaque', 'WalletSessionToken']),
+  'resolveOpaqueOwnerWalletSessionAdmission',
+  'issueWalletSessionAuthorizationV2FromReusableSession',
+  'refreshWalletSessionAuthorizationV2FromReusableSession',
+  'projectReusableWalletSessionV2',
+  'mintRouterAbEd25519YaoWalletSessionV1',
+  'issueRouterAbEd25519OpaqueWalletSessionToken',
+  'walletSessionPolicyMintId',
+  'ReusableWalletSessionMintId',
+  'parseReusableWalletSessionMintId',
+  'registration_established_wallet_session_v1',
+  'RegistrationEstablishedSessionTokens',
+  'walletSessionTokenForCurve',
+  'walletSessionClientCapability',
+  'direct_exact_response_future_record_tolerant',
+];
+
+function joined(parts) {
+  return parts.join('');
+}
+
+function readSource(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+function listFilesMatching(relativePath, extensionPattern) {
+  const absolutePath = path.join(repoRoot, relativePath);
+  const stat = fs.statSync(absolutePath);
+  if (stat.isFile()) return extensionPattern.test(relativePath) ? [relativePath] : [];
+  return fs.readdirSync(absolutePath, { withFileTypes: true }).flatMap((entry) => {
+    const childPath = path.join(relativePath, entry.name);
+    if (entry.isDirectory()) {
+      if (
+        entry.name === 'node_modules' ||
+        entry.name === 'dist' ||
+        entry.name === 'target' ||
+        entry.name === 'test-results'
+      ) {
+        return [];
+      }
+      return listFilesMatching(childPath, extensionPattern);
+    }
+    return extensionPattern.test(entry.name) ? [childPath] : [];
+  });
+}
+
+function listSourceFiles(relativePath) {
+  return listFilesMatching(relativePath, /\.(ts|tsx|rs)$/);
+}
+
+function listBoundaryFiles(relativePath) {
+  return listFilesMatching(relativePath, /\.(ts|tsx|rs|md)$/);
+}
+
+function activeSourceFiles() {
+  return sourceRoots
+    .flatMap((root) => listSourceFiles(root))
+    .filter((file) => !selfPaths.has(file));
+}
+
+function activeProductionSourceFiles() {
+  return sourceRoots.filter((root) => root !== 'tests').flatMap((root) => listSourceFiles(root));
+}
+
+function publicSurfaceFiles() {
+  return sessionIdPublicSurfaceRoots
+    .flatMap((root) => listSourceFiles(root))
+    .filter((file) => !selfPaths.has(file));
+}
+
+function boundaryFiles() {
+  return sessionIdBoundaryRoots.flatMap((root) => listBoundaryFiles(root));
+}
+
+function sourceContainsSessionIdMarker(source) {
+  return /\bsessionId\b|session_id/.test(source);
+}
+
+function hasExportModifier(node) {
+  if (!ts.canHaveModifiers(node)) return false;
+  return (
+    ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ===
+    true
+  );
+}
+
+function propertyNameText(name) {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+    return name.text;
+  }
+  return '';
+}
+
+function nodeHasSessionIdProperty(node) {
+  if (ts.isPropertySignature(node) && propertyNameText(node.name) === 'sessionId') return true;
+  return ts.forEachChild(node, nodeHasSessionIdProperty) === true;
+}
+
+function fileHasExportedSessionIdSurface(relativePath) {
+  if (!/\.(ts|tsx)$/.test(relativePath)) return false;
+  const source = readSource(relativePath);
+  if (!source.includes('sessionId')) return false;
+  const sourceFile = ts.createSourceFile(relativePath, source, ts.ScriptTarget.Latest, true);
+  for (const statement of sourceFile.statements) {
+    if (!hasExportModifier(statement)) continue;
+    if (ts.isInterfaceDeclaration(statement) && nodeHasSessionIdProperty(statement)) return true;
+    if (ts.isTypeAliasDeclaration(statement) && nodeHasSessionIdProperty(statement)) return true;
+  }
+  return false;
+}
+
+function assertNoViolations(label, violations) {
+  assert.deepEqual(violations, [], `${label}\n${violations.join('\n')}`);
+}
+
+function collectOldSigningGrantNameViolations(files) {
+  const offenders = [];
+  for (const file of files) {
+    const source = readSource(file);
+    for (const marker of forbiddenWalletSigningSessionMarkers) {
+      if (source.includes(marker)) offenders.push(`${file} contains ${marker}`);
+    }
+  }
+  return offenders;
+}
+
+function checkActiveSourcesAvoidOldSigningGrantNames() {
+  assertNoViolations(
+    'active package and test sources do not expose the old signing-grant names',
+    collectOldSigningGrantNameViolations(activeSourceFiles()),
+  );
+}
+
+function collectRetiredWalletSessionMarkerViolations(files) {
+  const offenders = [];
+  for (const file of files) {
+    const source = readSource(file);
+    for (const marker of retiredWalletSessionMarkers) {
+      const escapedMarker = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`\\b${escapedMarker}\\b`).test(source)) {
+        offenders.push(`${file} contains retired marker ${marker}`);
+      }
+    }
+  }
+  return offenders;
+}
+
+function checkProductionSourcesAvoidRetiredWalletSessionMarkers() {
+  assertNoViolations(
+    'active production sources do not expose retired Wallet Session tables, fallbacks, or record markers',
+    collectRetiredWalletSessionMarkerViolations(activeProductionSourceFiles()),
+  );
+}
+
+function checkRouterAbSessionIssuerAvoidsRetiredClaimBuilders() {
+  const relativePath = 'packages/wallet-server/src/router/auth/commonRouterUtils.ts';
+  const source = readSource(relativePath);
+  const offenders = [];
+  for (const marker of [
+    'extraClaims',
+    'allowedSessionKinds',
+    'WalletSessionJwtKind',
+    'signWalletSessionJwt',
+    'isEcdsaWalletSessionJwtKind',
+  ]) {
+    if (source.includes(marker)) offenders.push(`${relativePath} contains ${marker}`);
+  }
+  assertNoViolations('Router A/B session issuer does not use retired claim builders', offenders);
+}
+
+function checkDocsAvoidOldSigningGrantNames() {
+  assertNoViolations(
+    'current docs do not present the old signing-grant names as live terminology',
+    collectOldSigningGrantNameViolations(activeDocPaths),
+  );
+}
+
+function checkActiveSigningPathsAvoidThresholdSessionAuthTokenNaming() {
+  const offenders = [];
+  for (const file of activeSigningPaths) {
+    const source = readSource(file);
+    if (source.includes('thresholdSessionAuthToken')) {
+      offenders.push(`${file} contains thresholdSessionAuthToken`);
+    }
+  }
+  assertNoViolations(
+    'active signing paths do not use threshold-session auth token naming',
+    offenders,
+  );
+}
+
+function checkExportedSessionIdPublicSurfacesAreClassified() {
+  const offenders = [];
+  for (const file of publicSurfaceFiles()) {
+    if (!fileHasExportedSessionIdSurface(file)) continue;
+    if (classifiedSessionIdPublicSurfaceFiles[file]) continue;
+    offenders.push(`${file} exposes an unclassified exported sessionId field`);
+  }
+  assertNoViolations('exported sessionId public surfaces have explicit classifications', offenders);
+}
+
+function checkBoundarySessionIdMarkersAreClassified() {
+  const offenders = [];
+  for (const file of boundaryFiles()) {
+    if (!sourceContainsSessionIdMarker(readSource(file))) continue;
+    if (classifiedSessionIdBoundaryFiles[file]) continue;
+    offenders.push(`${file} contains an unclassified sessionId/session_id marker`);
+  }
+  assertNoViolations(
+    'non-package sessionId boundary files have explicit classifications',
+    offenders,
+  );
+}
+
+checkActiveSourcesAvoidOldSigningGrantNames();
+checkProductionSourcesAvoidRetiredWalletSessionMarkers();
+checkRouterAbSessionIssuerAvoidsRetiredClaimBuilders();
+checkDocsAvoidOldSigningGrantNames();
+checkActiveSigningPathsAvoidThresholdSessionAuthTokenNaming();
+checkExportedSessionIdPublicSurfacesAreClassified();
+checkBoundarySessionIdMarkersAreClassified();
+
+console.log('[wallet-session-vocabulary-boundaries] ok');

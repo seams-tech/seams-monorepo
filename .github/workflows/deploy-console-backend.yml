@@ -1,0 +1,169 @@
+name: Deploy / Console backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: Console deployment lane
+        required: true
+        type: choice
+        options:
+          - staging-testnet
+          - production-testnet
+          - production-mainnet
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployment-console-${{ inputs.lane }}
+  cancel-in-progress: false
+
+env:
+  DEPLOY_LANE: ${{ inputs.lane }}
+  DEPLOY_SHA: ${{ github.sha }}
+  RUST_TOOLCHAIN: 1.96.0
+
+jobs:
+  configure:
+    name: Configure / Console / ${{ inputs.lane }}
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.target.outputs.environment }}
+    steps:
+      - id: target
+        name: Resolve deployment environment
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          case "$DEPLOY_LANE" in
+            staging-testnet)
+              test "$REF_NAME" = dev
+              echo "environment=staging-console" >> "$GITHUB_OUTPUT"
+              ;;
+            production-testnet)
+              test "$REF_NAME" = main
+              echo "environment=production-testnet-console" >> "$GITHUB_OUTPUT"
+              ;;
+            production-mainnet)
+              test "$REF_NAME" = main
+              echo "environment=production-console" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  build:
+    name: Build / Console / ${{ inputs.lane }}
+    needs: configure
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Build backend artifact
+        run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component console
+      - name: Check Console build entry
+        run: test -s .release-artifacts/console/payload/d1ConsoleStagingWorker.js
+      - name: Upload Console artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: console-build-${{ inputs.lane }}
+          overwrite: true
+          include-hidden-files: true
+          retention-days: 30
+          compression-level: 0
+          path: |
+            .release-artifacts/console
+            packages/console-server-ts/.wrangler/generated
+
+  migrate:
+    name: Migrate / Console / ${{ inputs.lane }}
+    needs: [configure, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ needs.configure.outputs.environment }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install deployment dependencies
+        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
+      - name: Download Console artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: console-build-${{ inputs.lane }}
+      - name: Apply Console D1 migrations
+        run: pnpm deploy:backend migrate --lane "$DEPLOY_LANE" --component console
+
+  deploy:
+    name: Deploy / Console / ${{ inputs.lane }}
+    needs: [configure, migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: ${{ needs.configure.outputs.environment }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CONSOLE_SESSION_HMAC_SECRET: ${{ secrets.CONSOLE_SESSION_HMAC_SECRET }}
+      CONSOLE_EMAIL_INVITATION_SECRET_KEY_B64U: ${{ secrets.CONSOLE_EMAIL_INVITATION_SECRET_KEY_B64U }}
+      CONSOLE_WEBHOOK_SECRET_KEY_B64U: ${{ secrets.CONSOLE_WEBHOOK_SECRET_KEY_B64U }}
+      STRIPE_API_SK: ${{ secrets.STRIPE_API_SK }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID: ${{ secrets.TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID }}
+      TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED: ${{ secrets.TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED }}
+      TENANT_ROOT_RECOVERY_CERTIFICATES_JSON: ${{ vars.TENANT_ROOT_RECOVERY_CERTIFICATES_JSON }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      GITHUB_OAUTH_CLIENT_ID: ${{ secrets.SEAMS_GITHUB_OAUTH_CLIENT_ID }}
+      GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.SEAMS_GITHUB_OAUTH_CLIENT_SECRET }}
+      GITHUB_OAUTH_CALLBACK_URL: ${{ secrets.SEAMS_GITHUB_OAUTH_CALLBACK_URL }}
+    steps:
+      - name: Checkout workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install deployment dependencies
+        run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
+      - name: Download Console artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: console-build-${{ inputs.lane }}
+      - name: Deploy Console
+        run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component console
+      - name: Smoke Console
+        run: pnpm deploy:backend smoke --lane "$DEPLOY_LANE" --component console

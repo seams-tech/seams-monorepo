@@ -1,0 +1,83 @@
+name: Build seams CLI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/seams-cli/**'
+      - 'crates/seams-recovery-core/**'
+      - '.github/workflows/build-seams-cli.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-seams-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-14
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build release binary
+        run: |
+          cargo build --locked --release \
+            --manifest-path crates/seams-cli/Cargo.toml \
+            --bin seams-wallet \
+            --target ${{ matrix.target }}
+      - name: Stage artifact
+        run: |
+          mkdir -p dist
+          cp "crates/seams-cli/target/${{ matrix.target }}/release/seams-wallet" \
+            "dist/seams-wallet-${{ matrix.target }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seams-wallet-${{ matrix.target }}-${{ github.sha }}
+          path: dist/seams-wallet-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 30
+
+  release_tools:
+    name: Build release metadata tools
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build manifest signer and SBOM
+        run: |
+          mkdir -p dist
+          cargo tree --locked --manifest-path crates/seams-cli/Cargo.toml \
+            --edges normal --prefix depth > dist/seams-sbom.txt
+          cargo build --locked --release \
+            --manifest-path crates/seams-cli/Cargo.toml \
+            --bin seams-release-manifest
+          cp crates/seams-cli/target/release/seams-release-manifest \
+            dist/seams-release-manifest
+          cp THIRD_PARTY_NOTICES.md dist/THIRD_PARTY_NOTICES.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seams-wallet-release-tools-${{ github.sha }}
+          path: |
+            dist/seams-release-manifest
+            dist/seams-sbom.txt
+            dist/THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,200 @@
+import { expect, test } from '@playwright/test';
+import { requireNearStepUpAuth } from '../../packages/wallet/src/core/signingEngine/flows/signNear/requireNearStepUpAuth';
+import {
+  buildEd25519EmailOtpSigningLane,
+  buildEd25519PasskeySigningLane,
+} from '../../packages/wallet/src/core/signingEngine/session/operationState/lanes';
+import { SigningSessionIds } from '../../packages/wallet/src/core/signingEngine/session/operationState/types';
+import { SigningAuthPlanKind } from '../../packages/wallet/src/core/signingEngine/stepUpConfirmation/types';
+import { ActionType } from '../../packages/wallet/src/core/types/actions';
+import { requiredNearTransactionSignatureUses } from '../../packages/wallet/src/core/signingEngine/flows/signNear/signatureUses';
+import { toAccountId } from '../../packages/wallet/src/core/types/accountIds';
+import { toWalletId } from '../../packages/wallet/src/core/signingEngine/interfaces/ecdsaChainTarget';
+import { toRpId } from '../../packages/wallet/src/core/signingEngine/session/identity/evmFamilyEcdsaIdentity';
+import { nearEd25519SigningKeyIdFromString } from '../../packages/shared-ts/src/utils/registrationIntent';
+import { buildPasskeyWalletAuthAuthority } from '../../packages/shared-ts/src/utils/walletAuthAuthority';
+import { parseDigestB64u } from '../../packages/shared-ts/src/utils/canonicalPrimitives';
+
+const WALLET_ID = toWalletId('frost-vermillion-k7p9m2');
+const NEAR_ACCOUNT_ID = toAccountId('alice.testnet');
+const ED25519_KEY_SCOPE_ID = nearEd25519SigningKeyIdFromString('scope-frost-vermillion-k7p9m2');
+const PASSKEY_AUTH = {
+  kind: 'passkey' as const,
+  rpId: toRpId('localhost'),
+  credentialIdB64u: 'credential-near-step-up',
+};
+const EMAIL_OTP_AUTH = {
+  kind: 'email_otp' as const,
+  providerSubjectId: 'google:near-step-up',
+};
+const OPERATION_FINGERPRINT_DIGEST = parseDigestB64u('A'.repeat(43));
+test.describe('requireNearStepUpAuth', () => {
+  test('returns a warm-session branch without prompt wrappers', async () => {
+    const signingAuthPlan = {
+      kind: SigningAuthPlanKind.WarmSession,
+      method: 'passkey' as const,
+      accountId: 'alice.testnet',
+      intent: 'transaction_sign' as const,
+      thresholdSessionId: 'threshold-session-warm',
+      expiresAtMs: 1_777_777_777_000,
+      remainingUses: 3,
+    };
+    const signingLane = buildEd25519PasskeySigningLane({
+      walletId: WALLET_ID,
+      nearAccountId: NEAR_ACCOUNT_ID,
+      nearEd25519SigningKeyId: ED25519_KEY_SCOPE_ID,
+      signerSlot: 1,
+      auth: PASSKEY_AUTH,
+      walletSessionId: SigningSessionIds.walletSession('wallet-session-warm'),
+      quotaId: SigningSessionIds.walletSessionQuota('quota-warm'),
+      thresholdSessionId: SigningSessionIds.thresholdEd25519Session('threshold-session-warm'),
+      storageSource: 'login',
+    });
+
+    const prepared = await requireNearStepUpAuth({
+      signingAuthPlan,
+      signingLaneAuth: signingLane.auth,
+      requiredSignatureUses: 1,
+      operationFingerprintDigest: OPERATION_FINGERPRINT_DIGEST,
+    });
+
+    expect(prepared).toEqual({
+      kind: 'warm_session',
+      confirmationAuthPayload: {
+        signingAuthPlan,
+      },
+    });
+  });
+
+  test('uses a one-remaining-use warm session for one multi-action transaction', async () => {
+    const requiredSignatureUses = requiredNearTransactionSignatureUses({
+      receiverId: 'contract.testnet',
+      actions: [
+        {
+          action_type: ActionType.FunctionCall,
+          method_name: 'setGreeting',
+          args: '{}',
+          gas: '30000000000000',
+          deposit: '0',
+        },
+        {
+          action_type: ActionType.Transfer,
+          deposit: '1',
+        },
+      ],
+    });
+    const signingAuthPlan = {
+      kind: SigningAuthPlanKind.WarmSession,
+      method: 'passkey' as const,
+      accountId: 'alice.testnet',
+      intent: 'transaction_sign' as const,
+      thresholdSessionId: 'threshold-session-warm-one',
+      expiresAtMs: 1_777_777_777_000,
+      remainingUses: 1,
+    };
+    const signingLane = buildEd25519PasskeySigningLane({
+      walletId: WALLET_ID,
+      nearAccountId: NEAR_ACCOUNT_ID,
+      nearEd25519SigningKeyId: ED25519_KEY_SCOPE_ID,
+      signerSlot: 1,
+      auth: PASSKEY_AUTH,
+      walletSessionId: SigningSessionIds.walletSession('wallet-session-warm-one'),
+      quotaId: SigningSessionIds.walletSessionQuota('quota-warm-one'),
+      thresholdSessionId: SigningSessionIds.thresholdEd25519Session('threshold-session-warm-one'),
+      storageSource: 'login',
+    });
+
+    const prepared = await requireNearStepUpAuth({
+      signingAuthPlan,
+      signingLaneAuth: signingLane.auth,
+      requiredSignatureUses,
+      operationFingerprintDigest: OPERATION_FINGERPRINT_DIGEST,
+    });
+
+    expect(prepared.kind).toBe('warm_session');
+  });
+
+  test('returns an email-otp branch with the typed challenge prompt', async () => {
+    const signingAuthPlan = {
+      kind: SigningAuthPlanKind.EmailOtpReauth,
+      method: 'email_otp' as const,
+    };
+    const signingLane = buildEd25519EmailOtpSigningLane({
+      walletId: WALLET_ID,
+      nearAccountId: NEAR_ACCOUNT_ID,
+      nearEd25519SigningKeyId: ED25519_KEY_SCOPE_ID,
+      signerSlot: 1,
+      auth: EMAIL_OTP_AUTH,
+      walletSessionId: SigningSessionIds.walletSession('wallet-session-email'),
+      quotaId: SigningSessionIds.walletSessionQuota('quota-email'),
+      thresholdSessionId: SigningSessionIds.thresholdEd25519Session('threshold-session-email'),
+    });
+    let challengeRequests = 0;
+    let challengeOperationFingerprintDigest: typeof OPERATION_FINGERPRINT_DIGEST | undefined;
+
+    const prepared = await requireNearStepUpAuth({
+      signingAuthPlan,
+      signingLaneAuth: signingLane.auth,
+      requiredSignatureUses: 1,
+      operationFingerprintDigest: OPERATION_FINGERPRINT_DIGEST,
+      emailOtpEd25519StepUp: {
+        prepare: async ({ operationFingerprintDigest }) => {
+          challengeRequests += 1;
+          challengeOperationFingerprintDigest = operationFingerprintDigest;
+          return { challengeId: 'otp-1', emailHint: 'a***@x.test' };
+        },
+      },
+    });
+
+    expect(challengeRequests).toBe(1);
+    expect(challengeOperationFingerprintDigest).toBe(OPERATION_FINGERPRINT_DIGEST);
+    expect(prepared.kind).toBe('email_otp');
+    if (prepared.kind !== 'email_otp') throw new Error('expected email_otp branch');
+    expect(prepared.emailOtpPrompt.challengeId).toBe('otp-1');
+    expect(prepared.confirmationAuthPayload.signingAuthPlan.kind).toBe(
+      SigningAuthPlanKind.EmailOtpReauth,
+    );
+  });
+
+  test('returns a passkey branch with the planned operation-step-up identity', async () => {
+    const signingAuthPlan = {
+      kind: SigningAuthPlanKind.PasskeyReauth,
+      method: 'passkey' as const,
+    };
+    const signingLane = buildEd25519PasskeySigningLane({
+      walletId: WALLET_ID,
+      nearAccountId: NEAR_ACCOUNT_ID,
+      nearEd25519SigningKeyId: ED25519_KEY_SCOPE_ID,
+      signerSlot: 1,
+      auth: PASSKEY_AUTH,
+      walletSessionId: SigningSessionIds.walletSession('wallet-session-passkey'),
+      quotaId: SigningSessionIds.walletSessionQuota('quota-passkey'),
+      thresholdSessionId: SigningSessionIds.thresholdEd25519Session('threshold-session-passkey'),
+      storageSource: 'login',
+    });
+    const prepared = await requireNearStepUpAuth({
+      signingAuthPlan,
+      signingLaneAuth: signingLane.auth,
+      requiredSignatureUses: 1,
+      operationFingerprintDigest: OPERATION_FINGERPRINT_DIGEST,
+      passkeyEd25519OperationStepUp: {
+        prepare: async () => {
+          return {
+            thresholdSessionId: 'threshold-session-passkey',
+            authority: buildPasskeyWalletAuthAuthority({
+              walletId: WALLET_ID,
+              rpId: PASSKEY_AUTH.rpId,
+              credentialIdB64u: PASSKEY_AUTH.credentialIdB64u,
+            }),
+          };
+        },
+      },
+    });
+
+    expect(prepared.kind).toBe('passkey');
+    if (prepared.kind !== 'passkey') throw new Error('expected passkey branch');
+    expect(prepared.plannedPasskeyOperationStepUp).toMatchObject({
+      thresholdSessionId: 'threshold-session-passkey',
+    });
+  });
+});

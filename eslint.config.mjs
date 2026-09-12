@@ -1,0 +1,224 @@
+import js from '@eslint/js';
+import globals from 'globals';
+import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
+import tseslint from 'typescript-eslint';
+
+const R103E_DOMAIN_CAST_TYPE_NAME =
+  '/^(?:WalletAuthorityV1|PendingWalletAuthorityV1|ActiveWalletAuthorityV1|RevokedWalletAuthorityV1|ActiveEd25519WalletAuthorityV1|ActiveEcdsaWalletAuthorityV1|ActiveCombinedWalletAuthorityV1|WalletSignerActivationSetV1|WalletSignerActivationMaterialsV1|WalletAuthMethodRecordV2|WalletSessionAuthorizationV2|IssuedWalletSessionAuthorizationV2|PreparedWalletSessionAuthorizationV2|ActiveWalletSessionV1|ActiveSigningLaneReference|ActiveLaneProtocolSourceV1|LaneProductEpochActiveV1|ActiveWalletExecutionLaneHydration|ActiveRotatableWalletExecutionLaneHydrationV1|RestorableMpcMaterialRef|SigningLaneLifecycle|UsableRuntimeLane|ActiveUsableRuntimeLane|RestorableUsableRuntimeLane|RestorableRuntimeLaneMaterial|WalletSelectionRecordV1|WalletLockGenerationAdvanceInputV1)$/';
+
+const R103E_DOMAIN_CAST_RESTRICTION = {
+  selector: `TSAsExpression[typeAnnotation.typeName.name=${R103E_DOMAIN_CAST_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.name=${R103E_DOMAIN_CAST_TYPE_NAME}], TSAsExpression[typeAnnotation.typeName.right.name=${R103E_DOMAIN_CAST_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.right.name=${R103E_DOMAIN_CAST_TYPE_NAME}]`,
+  message:
+    'Do not manufacture R103E lifecycle, authority, session, lane, or lock state with a TypeScript assertion. Use its boundary parser or branch-specific builder.',
+};
+
+export default [
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.next/**',
+      '**/.svelte-kit/**',
+      '**/.vercel/**',
+      '**/.wrangler/**',
+      '**/.turbo/**',
+      '**/.vitepress/cache/**',
+      '**/.lake/**',
+      '**/.playwright-cli/**',
+      '**/.runtime/**',
+      '**/coverage/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
+      'crates/ed25519-yao-cloudflare-bench/build/**',
+      'crates/**/build/**',
+      'crates/**/bundled/**',
+      'crates/**/wasm-bench/pkg*/**',
+      'crates/**/pkg/**',
+      'crates/**/_build/**',
+      'tools/**/target/**',
+      'wasm/**/pkg/**',
+      'crates/router-ab-ed25519-yao-client/pkg/**',
+      'wasm/**/target/**',
+      'apps/seams-site/public/**',
+    ],
+  },
+
+  js.configs.recommended,
+
+  ...tseslint.configs.recommended,
+
+  {
+    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.es2022,
+        ...globals.browser,
+        ...globals.node,
+        ...globals.worker,
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'max-len': [
+        'warn',
+        {
+          code: 140,
+          tabWidth: 2,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true,
+          ignoreComments: true,
+        },
+      ],
+      // TS-aware version should apply only to TS files (see TS override).
+      '@typescript-eslint/no-unused-vars': 'off',
+
+      // Common, intentional patterns in this repo (e.g. `catch {}` around optional APIs).
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
+
+  {
+    files: ['**/*.{jsx,tsx}'],
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+    },
+  },
+
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      // TypeScript handles this better than ESLint.
+      'no-undef': 'off',
+
+      // Prefer TS-aware version.
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+
+      // Too noisy for an existing TS codebase; keep as signal without blocking CI.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true, allowTernary: true },
+      ],
+
+      // Prefer `@ts-expect-error`, but don't fail the build on existing usage.
+      '@typescript-eslint/ban-ts-comment': 'warn',
+
+      'no-restricted-syntax': ['error', R103E_DOMAIN_CAST_RESTRICTION],
+    },
+  },
+
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      // Declaration files frequently need `any` to model external libs.
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
+  {
+    files: ['**/*.typecheck.ts', '**/tests/type-fixtures/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
+
+  {
+    files: ['apps/seams-console/src/core/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@app/*', '@wallet-product/*', '@seams-internal/wallet-console-*'],
+              message: 'Console core receives product and application behavior through contracts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['apps/seams-console/src/products/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@app/*'],
+              message: 'Product modules do not depend on the application composition layer.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: ['tests/**/*.{ts,tsx,js,jsx,mjs,cjs}', '**/*.{test,spec}.{ts,tsx,js,jsx,mjs,cjs}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+
+  {
+    // Complex domain-state records in tests must come from the shared factories
+    // (tests/AGENTS.md "Fixture rules"); inline literals drift when domain types change.
+    files: ['tests/unit/**/*.test.ts', 'tests/relayer/**/*.test.ts'],
+    ignores: [
+      'tests/unit/helpers/**',
+      'tests/helpers/**',
+      // Grandfathered pre-existing offenders (2026-07-23): migrate onto the shared
+      // factories and delete the entry. Do not add new entries.
+      'tests/unit/touchConfirm.workerRouter.integration.test.ts',
+      'tests/unit/evmClient.waitForReceipt.unit.test.ts',
+      'tests/unit/addWalletSigner.orchestration.unit.test.ts',
+      'tests/unit/seamsWeb.chainSigners.integration.test.ts',
+      'tests/unit/nonceCoordinator.unit.test.ts',
+      'tests/unit/d1StagingEvidenceVerify.script.unit.test.ts',
+      'tests/unit/cloudflareD1RouterApiServiceSurface.unit.test.ts',
+      'tests/unit/warmSessionStore.concurrency.unit.test.ts',
+      'tests/unit/warmEd25519SigningSessionAuthorization.unit.test.ts',
+      'tests/unit/walletRegistrationEcdsaRouterAbBootstrap.unit.test.ts',
+      'tests/unit/vite-wallet-corp.unit.test.ts',
+      'tests/unit/pluginRorOrigins.unit.test.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'TSSatisfiesExpression > TSTypeReference[typeName.name=/(Record|CapabilityState|AuthorizationState|SessionStatus)$/][typeName.name!="Record"]',
+          message:
+            'Inline domain-state record literal. Build it with a shared factory from tests/unit/helpers/ or tests/helpers/ (see tests/AGENTS.md, "Fixture rules").',
+        },
+        {
+          selector:
+            'VariableDeclarator[id.typeAnnotation.typeAnnotation.typeName.name=/(Record|CapabilityState|AuthorizationState|SessionStatus)$/][id.typeAnnotation.typeAnnotation.typeName.name!="Record"] > ObjectExpression',
+          message:
+            'Inline domain-state record literal. Build it with a shared factory from tests/unit/helpers/ or tests/helpers/ (see tests/AGENTS.md, "Fixture rules").',
+        },
+        R103E_DOMAIN_CAST_RESTRICTION,
+      ],
+    },
+  },
+
+  // Keep ESLint from fighting Prettier.
+  prettier,
+];

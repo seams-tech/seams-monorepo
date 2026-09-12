@@ -1,0 +1,444 @@
+import { expect, test } from '@playwright/test';
+import { orchestrateSigningConfirmation } from '@/core/signingEngine/uiConfirm/handlers/flowOrchestrator';
+import {
+  PENDING_INTENT_DIGEST,
+  clearIntentDigestPreparation,
+  consumeIntentDigestPreparation,
+} from '@/core/signingEngine/stepUpConfirmation/intentDigestPreparation';
+import {
+  getEmailOtpPrompt,
+  getSigningAuthMode,
+} from '@/core/signingEngine/uiConfirm/handlers/flows/adapters/request';
+import type { WebAuthnChallenge } from '@/core/signingEngine/stepUpConfirmation/channel/confirmTypes';
+import type {
+  EmailOtpConfirmPrompt,
+  SigningAuthPlan,
+} from '@/core/signingEngine/stepUpConfirmation/types';
+import { toAccountId } from '@/core/types/accountIds';
+import { toWalletId } from '@/core/signingEngine/interfaces/ecdsaChainTarget';
+import {
+  SigningOperationIntent,
+  SigningSessionIds,
+} from '@/core/signingEngine/session/operationState/types';
+
+const passkeyPlan: Extract<SigningAuthPlan, { kind: 'passkeyReauth' }> = {
+  kind: 'passkeyReauth',
+  method: 'passkey',
+};
+
+function warmSessionPlan(
+  thresholdSessionId: string,
+): Extract<SigningAuthPlan, { kind: 'warmSession' }> {
+  return {
+    kind: 'warmSession',
+    method: 'passkey',
+    accountId: 'alice.testnet',
+    intent: 'transaction_sign',
+    curve: 'ed25519',
+    thresholdSessionId,
+    retention: 'session',
+    expiresAtMs: Date.now() + 60_000,
+    remainingUses: 1,
+  };
+}
+
+function emailOtpPrompt(challengeId: string): EmailOtpConfirmPrompt {
+  return {
+    challengeId,
+    emailHint: 'a***e@example.com',
+  };
+}
+
+function roleLocalBootstrapChallenge(id: string): WebAuthnChallenge {
+  return {
+    kind: 'ecdsa_role_local_bootstrap',
+    digest32B64u: `role-local-bootstrap-digest-${id}`,
+    requestId: `tecdsa-keygen-${id}`,
+    thresholdSessionId: `threshold-session-${id}`,
+  };
+}
+
+function nearFundingRequest(operationIdRaw: string, operationFingerprintRaw: string) {
+  const nearAccountId = toAccountId('alice.testnet');
+  return {
+    subject: {
+      walletId: toWalletId('alice.testnet'),
+      nearAccountId,
+      nearPublicKeyStr: 'ed25519:warm-session-key',
+    },
+    operation: {
+      operationId: SigningSessionIds.signingOperation(operationIdRaw),
+      operationFingerprint: SigningSessionIds.signingOperationFingerprint(operationFingerprintRaw),
+      intent: SigningOperationIntent.TransactionSign,
+      accountId: nearAccountId,
+    },
+    signatureUses: 1,
+  };
+}
+
+test.describe('touchConfirm orchestration manager bridge', () => {
+  test('uses ctx.touchConfirm.requestUserConfirmation', async () => {
+    let managerCalls = 0;
+
+    const result = await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: {
+            requestId: string;
+            intentDigest?: string;
+          }) => {
+            managerCalls += 1;
+            return {
+              requestId: request.requestId,
+              confirmed: true,
+              intentDigest: request.intentDigest,
+            };
+          },
+        },
+      } as any,
+      sessionId: 'session-bridge',
+      chain: 'near',
+      kind: 'intentDigest',
+      signingSubject: {
+        kind: 'near_wallet',
+        walletId: 'alice-wallet',
+        nearAccountId: 'alice.testnet',
+      },
+      challengeB64u: 'AQ',
+      intentDigest: 'intent-bridge',
+      signingAuthPlan: passkeyPlan,
+      webauthnChallenge: roleLocalBootstrapChallenge('bridge'),
+    });
+
+    expect(managerCalls).toBe(1);
+    expect(result.intentDigest).toBe('intent-bridge');
+  });
+
+  test('forwards signing auth plans as canonical auth input', async () => {
+    let capturedRequest: any;
+
+    const prompt = emailOtpPrompt('email-otp-plan-challenge');
+
+    await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: any) => {
+            capturedRequest = request;
+            return {
+              requestId: request.requestId,
+              confirmed: true,
+              intentDigest: request.intentDigest,
+            };
+          },
+        },
+      } as any,
+      sessionId: 'session-email-otp-plan',
+      chain: 'evm',
+      kind: 'intentDigest',
+      signingSubject: {
+        kind: 'evm_wallet',
+        walletId: 'frost-wallet-k7p9m2',
+      },
+      challengeB64u: 'AQ',
+      intentDigest: 'intent-email-otp-plan',
+      signingAuthPlan: {
+        kind: 'emailOtpReauth',
+        method: 'email_otp',
+        emailOtpPrompt: prompt,
+      },
+      emailOtpPrompt: prompt,
+    });
+
+    expect(capturedRequest?.payload?.signingAuthPlan?.kind).toBe('emailOtpReauth');
+    expect(getSigningAuthMode(capturedRequest)).toBe('emailOtp');
+    expect(getEmailOtpPrompt(capturedRequest)?.challengeId).toBe('email-otp-plan-challenge');
+  });
+
+  test('intent-digest passkey confirmation forwards typed WebAuthn challenge', async () => {
+    let capturedRequest: any;
+    const webauthnChallenge = {
+      kind: 'ecdsa_role_local_bootstrap' as const,
+      digest32B64u: 'role-local-bootstrap-digest',
+      requestId: 'tecdsa-keygen-request-1',
+      thresholdSessionId: 'threshold-session-passkey',
+    };
+
+    await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: any) => {
+            capturedRequest = request;
+            return {
+              requestId: request.requestId,
+              confirmed: true,
+              intentDigest: request.intentDigest,
+            };
+          },
+        },
+      } as any,
+      sessionId: 'session-ecdsa-passkey-reconnect',
+      chain: 'tempo',
+      kind: 'intentDigest',
+      signingSubject: {
+        kind: 'evm_wallet',
+        walletId: 'frost-wallet-k7p9m2',
+      },
+      challengeB64u: 'transaction-challenge',
+      intentDigest: 'intent-ecdsa-passkey-reconnect',
+      signingAuthPlan: passkeyPlan,
+      webauthnChallenge,
+    });
+
+    expect(capturedRequest?.payload?.webauthnChallenge).toEqual(webauthnChallenge);
+    expect(capturedRequest?.payload?.sessionPolicyDigest32).toBeUndefined();
+  });
+
+  test('near warmSession transaction uses placeholder digest and prepares real digest in background', async () => {
+    const sessionId = 'session-near-warm';
+    let capturedRequest: any;
+
+    try {
+      const result = await orchestrateSigningConfirmation({
+        ctx: {
+          touchConfirm: {
+            requestUserConfirmation: async (request: any) => {
+              capturedRequest = request;
+              const preparation = consumeIntentDigestPreparation(request.requestId);
+              expect(preparation).toBeTruthy();
+              const prepared = await preparation!;
+              return {
+                requestId: request.requestId,
+                confirmed: true,
+                intentDigest: prepared.intentDigest,
+                nearTransactionReadiness: {
+                  kind: 'context_ready',
+                  transactionContext: {
+                    nearPublicKeyStr: 'pk',
+                    accessKeyInfo: { nonce: 1 },
+                    nextNonce: '2',
+                    txBlockHeight: '100',
+                    txBlockHash: 'hash100',
+                  },
+                  nonceLeases: [],
+                },
+              };
+            },
+          },
+        } as any,
+        sessionId,
+        chain: 'near',
+        kind: 'transaction',
+        walletId: 'alice.testnet',
+        signingAuthPlan: warmSessionPlan('threshold-session-warm'),
+        txSigningRequests: [
+          {
+            receiverId: 'receiver.testnet',
+            actions: [{ action_type: 2, method_name: 'ping', args: '', gas: '1', deposit: '0' }],
+          } as any,
+        ],
+        rpcCall: {
+          nearRpcUrl: 'https://rpc.testnet.near.org',
+          nearAccountId: 'alice.testnet',
+        } as any,
+        nearPublicKeyStr: 'ed25519:warm-session-key',
+        nearFundingRequest: nearFundingRequest(sessionId, 'warm-placeholder-fingerprint'),
+      });
+
+      expect(capturedRequest?.payload?.intentDigest).toBe(PENDING_INTENT_DIGEST);
+      expect(capturedRequest?.payload?.nearPublicKeyStr).toBe('ed25519:warm-session-key');
+      expect(capturedRequest?.summary?.intentDigest).toBeUndefined();
+      expect(result.intentDigest).toBeTruthy();
+      expect(result.intentDigest).not.toBe(PENDING_INTENT_DIGEST);
+    } finally {
+      clearIntentDigestPreparation(sessionId);
+    }
+  });
+
+  test('near warmSession transaction can be driven by signingAuthPlan only', async () => {
+    const sessionId = 'session-near-warm-plan';
+    let capturedRequest: any;
+
+    try {
+      await orchestrateSigningConfirmation({
+        ctx: {
+          touchConfirm: {
+            requestUserConfirmation: async (request: any) => {
+              capturedRequest = request;
+              const preparation = consumeIntentDigestPreparation(request.requestId);
+              expect(preparation).toBeTruthy();
+              const prepared = await preparation!;
+              return {
+                requestId: request.requestId,
+                confirmed: true,
+                intentDigest: prepared.intentDigest,
+                nearTransactionReadiness: {
+                  kind: 'context_ready',
+                  transactionContext: {
+                    nearPublicKeyStr: 'pk',
+                    accessKeyInfo: { nonce: 1 },
+                    nextNonce: '2',
+                    txBlockHeight: '100',
+                    txBlockHash: 'hash100',
+                  },
+                  nonceLeases: [],
+                },
+              };
+            },
+          },
+        } as any,
+        sessionId,
+        chain: 'near',
+        kind: 'transaction',
+        walletId: 'alice.testnet',
+        signingAuthPlan: warmSessionPlan('threshold-session-1'),
+        txSigningRequests: [
+          {
+            receiverId: 'receiver.testnet',
+            actions: [{ action_type: 2, method_name: 'ping', args: '', gas: '1', deposit: '0' }],
+          } as any,
+        ],
+        rpcCall: {
+          nearRpcUrl: 'https://rpc.testnet.near.org',
+          nearAccountId: 'alice.testnet',
+        } as any,
+        nearPublicKeyStr: 'ed25519:warm-session-key',
+        nearFundingRequest: nearFundingRequest(sessionId, 'warm-plan-fingerprint'),
+      });
+
+      expect(capturedRequest?.payload?.intentDigest).toBe(PENDING_INTENT_DIGEST);
+      expect(capturedRequest?.payload?.signingAuthMode).toBeUndefined();
+      expect(capturedRequest?.payload?.signingAuthPlan?.kind).toBe('warmSession');
+    } finally {
+      clearIntentDigestPreparation(sessionId);
+    }
+  });
+
+  test('near warmSession delegate keeps request-scoped public key', async () => {
+    let capturedRequest: any;
+
+    const result = await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: any) => {
+            capturedRequest = request;
+            return {
+              requestId: request.requestId,
+              confirmed: true,
+              intentDigest: request.intentDigest,
+              transactionContext: {
+                nearPublicKeyStr: 'ed25519:delegate-key',
+                accessKeyInfo: { nonce: 5 },
+                nextNonce: '6',
+                txBlockHeight: '200',
+                txBlockHash: 'hash200',
+              },
+            };
+          },
+        },
+      } as any,
+      sessionId: 'session-near-delegate',
+      chain: 'near',
+      kind: 'delegate',
+      walletId: 'alice.testnet',
+      signingAuthPlan: warmSessionPlan('threshold-session-delegate'),
+      nearAccountId: 'alice.testnet',
+      nearPublicKeyStr: 'ed25519:delegate-key',
+      delegate: {
+        senderId: 'alice.testnet',
+        receiverId: 'receiver.testnet',
+        actions: [{ action_type: 2, method_name: 'ping', args: '', gas: '1', deposit: '0' }] as any,
+        nonce: '7',
+        maxBlockHeight: '999',
+      },
+      rpcCall: {
+        nearRpcUrl: 'https://rpc.testnet.near.org',
+        nearAccountId: 'alice.testnet',
+      } as any,
+    });
+
+    expect(capturedRequest?.payload?.nearPublicKeyStr).toBe('ed25519:delegate-key');
+    expect('transactionContext' in result).toBe(false);
+  });
+
+  test('near delegate returns operation step-up preparation from confirmation', async () => {
+    const operationStepUpPreparation = {
+      kind: 'near_operation_step_up_prepared_v1',
+      handle: 'near-operation-step-up:delegate',
+      challengeB64u: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    } as const;
+
+    const result = await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: any) => ({
+            requestId: request.requestId,
+            confirmed: true,
+            intentDigest: request.intentDigest,
+            operationStepUpPreparation,
+          }),
+        },
+      } as any,
+      sessionId: 'session-near-delegate-step-up',
+      chain: 'near',
+      kind: 'delegate',
+      walletId: 'alice.testnet',
+      signingAuthPlan: {
+        kind: 'passkeyReauth',
+        method: 'passkey',
+      },
+      nearAccountId: 'alice.testnet',
+      nearPublicKeyStr: 'ed25519:delegate-key',
+      delegate: {
+        senderId: 'alice.testnet',
+        receiverId: 'receiver.testnet',
+        actions: [{ action_type: 2, method_name: 'ping', args: '', gas: '1', deposit: '0' }] as any,
+        nonce: '7',
+        maxBlockHeight: '999',
+      },
+      rpcCall: {
+        nearRpcUrl: 'https://rpc.testnet.near.org',
+        nearAccountId: 'alice.testnet',
+      } as any,
+    });
+
+    expect(result.operationStepUpPreparation).toEqual(operationStepUpPreparation);
+  });
+
+  test('near warmSession nep413 keeps request-scoped public key', async () => {
+    let capturedRequest: any;
+
+    const result = await orchestrateSigningConfirmation({
+      ctx: {
+        touchConfirm: {
+          requestUserConfirmation: async (request: any) => {
+            capturedRequest = request;
+            return {
+              requestId: request.requestId,
+              confirmed: true,
+              intentDigest: request.intentDigest,
+              transactionContext: {
+                nearPublicKeyStr: 'ed25519:nep413-key',
+                accessKeyInfo: { nonce: 8 },
+                nextNonce: '9',
+                txBlockHeight: '300',
+                txBlockHash: 'hash300',
+              },
+            };
+          },
+        },
+      } as any,
+      sessionId: 'session-nep413',
+      chain: 'near',
+      kind: 'nep413',
+      walletId: 'alice.testnet',
+      signingAuthPlan: warmSessionPlan('threshold-session-nep413'),
+      nearAccountId: 'alice.testnet',
+      nearPublicKeyStr: 'ed25519:nep413-key',
+      message: 'hello threshold nep413',
+      recipient: 'receiver.testnet',
+    });
+
+    expect(capturedRequest?.payload?.nearPublicKeyStr).toBe('ed25519:nep413-key');
+    expect('transactionContext' in result).toBe(false);
+  });
+});

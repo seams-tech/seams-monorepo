@@ -1,0 +1,706 @@
+import React from 'react';
+import {
+  Bot,
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  Hash,
+  Home,
+  ListChecks,
+  Lock,
+  ScrollText,
+  ShieldCheck,
+  Slack,
+  Store,
+  Wallet,
+} from 'lucide-react';
+import { AuthMenuMode, SeamsAuthMenuSkeletonInner } from '@seams/wallet/react';
+import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
+import NavbarCompact from '@/components/Navbar/NavbarCompact';
+import SeamsWordmark from '@/components/icons/SeamsWordmark';
+import { ArrowRightAnim } from '@/components/ArrowRightAnim';
+import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { H2Ecosystem, H2Faq, H2Footer, H2Pillars, SplitKeyVisual } from '@/components/h2/sections';
+import '@/styles/h2.css';
+
+/* Umbrella front page: a simple headline, then a paged two-panel scene band
+   showing the products (mock placeholders with the same footprint as the real
+   screenshots/videos that will replace them), and the
+   two-platforms split that routes each ICP to its page. */
+
+/* ---------- hero scene mocks (placeholders for real product imagery) ---------- */
+
+function DashboardWindow(): React.JSX.Element {
+  return (
+    <div className="h2-window" role="img" aria-label="Seams merchant dashboard overview">
+      <div className="h2-window__side">
+        <div className="h2-window__brand">
+          <SeamsWordmark height={14} />
+        </div>
+        <div className="h2-window__navitem is-active">
+          <Home aria-hidden /> Home
+        </div>
+        <div className="h2-window__navitem">
+          <Bot aria-hidden /> Agents
+        </div>
+        <div className="h2-window__navitem">
+          <ListChecks aria-hidden /> Policies
+        </div>
+        <div className="h2-window__navitem">
+          <ShieldCheck aria-hidden /> Approvals
+        </div>
+        <div className="h2-window__navitem">
+          <ScrollText aria-hidden /> Audit
+        </div>
+      </div>
+      <div className="h2-window__main">
+        <p className="h2-window__title">Store overview</p>
+        <div className="h2-stats">
+          <span className="h2-stat">
+            <small>Actions today</small>
+            <strong>1,284</strong>
+          </span>
+          <span className="h2-stat">
+            <small>Held for approval</small>
+            <strong>3</strong>
+          </span>
+          <span className="h2-stat">
+            <small>Agents active</small>
+            <strong>2</strong>
+          </span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Support agent (AI)
+            <small>emails + refunds ≤ ¥10,000</small>
+          </span>
+          <span className="h2-chip h2-chip--green">Active</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Discount 12% · cart #8841
+            <small>waiting on owner approval</small>
+          </span>
+          <span className="h2-chip h2-chip--amber">Held</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Restock order signed
+            <small>sig 0x8c31…f27</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Logged</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Support inbox triaged
+            <small>14 tickets · 2 escalated to owner</small>
+          </span>
+          <span className="h2-chip h2-chip--plain">Logged</span>
+        </div>
+        <div className="h2-mockrow">
+          <span className="h2-mockrow__main">
+            Price update · autumn catalog
+            <small>runs 06:00 JST · within ±5% band</small>
+          </span>
+          <span className="h2-chip h2-chip--green">Scheduled</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsWindow(): React.JSX.Element {
+  return (
+    <div
+      className="h2-window"
+      role="img"
+      aria-label="Approval request delivered to a Slack channel"
+    >
+      <div className="h2-window__side h2-window__side--slack">
+        <div className="h2-window__brand">Kanda Goods</div>
+        <div className="h2-window__navitem">
+          <Hash aria-hidden /> general
+        </div>
+        <div className="h2-window__navitem is-active">
+          <Hash aria-hidden /> store-ops
+        </div>
+        <div className="h2-window__navitem">
+          <Hash aria-hidden /> support
+        </div>
+        <div className="h2-window__navitem">
+          <Hash aria-hidden /> restocks
+        </div>
+      </div>
+      <div className="h2-window__main">
+        <p className="h2-window__title"># store-ops</p>
+        <div className="h2-chat">
+          <div className="h2-chat__bubble">
+            <small>Seams Harness · APP · 09:14</small>
+            Held for approval: support agent wants to send a 12% discount for cart #8841 (¥12,400).
+            Policy: discounts over 10% need an owner.
+          </div>
+          <div className="h2-chat__bubble">
+            <small>Seams Harness · APP · 09:14</small>
+            Approve with your passkey to release the action.
+          </div>
+          <div className="h2-chat__bubble h2-chat__bubble--reply">
+            Approved ✓ signed sig 0x8c31…f27, offer email sent
+          </div>
+          <div className="h2-chat__bubble">
+            <small>Seams Harness · APP · 09:31</small>
+            Daily digest: 1,284 actions inside policy, 3 held, 0 declined. Full audit trail on the
+            dashboard.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* The real SeamsAuthMenu shell, inert: the SDK's skeleton renders identical
+   markup/CSS with all controls disabled and no wallet logic. The Inner export
+   reads no theme context; the Paper palette is pinned as CSS variables on the
+   wrapper so the card can't inherit the site theme (which may be dark or
+   Rosé Pine). pointer-events off so clicks fall through to the panel link. */
+const paperShellVars = Object.fromEntries(
+  Object.entries(PAPER_LIGHT_COLORS).map(([key, value]) => [`--w3a-colors-${key}`, value]),
+) as React.CSSProperties;
+
+function WalletShellCard(): React.JSX.Element {
+  return (
+    <div className="h2-heroscene__shell" aria-hidden data-w3a-theme="light" style={paperShellVars}>
+      {/* Login mode shows the full method stack (passkey, SSO, other options) */}
+      <SeamsAuthMenuSkeletonInner defaultMode={AuthMenuMode.Login} />
+    </div>
+  );
+}
+
+type HeroWalletPreview =
+  | {
+      kind: 'signIn';
+      sub: string;
+    }
+  | {
+      kind: 'transactionConfirm';
+      sub: string;
+    };
+
+const signInWalletPreview: HeroWalletPreview = {
+  kind: 'signIn',
+  sub: 'Non-custodial wallets, opened with a passkey',
+};
+
+const transactionWalletPreview: HeroWalletPreview = {
+  kind: 'transactionConfirm',
+  sub: 'Review a demo transaction before signing',
+};
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled hero wallet preview: ${String(value)}`);
+}
+
+/* The signing drawer carries the scene as an HTML replica of the confirmer,
+   showing a multi-step escrow release. Behind it, the merchant dashboard
+   sits blurred and dimmed, the way the drawer actually overlays an app. */
+function WalletTransactionPreview(): React.JSX.Element {
+  return (
+    <div
+      className="h2-wallet-confirm"
+      role="img"
+      aria-label="Transaction confirmer drawer preview: escrow release for an order"
+    >
+      <div className="h2-wallet-confirm__card h2-wallet-confirm__card--front h2-txmock">
+        <span className="h2-txmock__handle" />
+        <p className="h2-txmock__title">Review transaction</p>
+        <p className="h2-txmock__meta">
+          <Lock aria-hidden /> localhost
+          <Box aria-hidden /> Tempo | ChainID: 42431
+        </p>
+        <p className="h2-txmock__desc">Release escrow for order #8841: delivery confirmed.</p>
+        <div className="h2-txmock__tree">
+          <p>
+            Transaction to contract <strong className="h2-txmock__addr">0xE5C7...F204</strong>
+          </p>
+          <p className="h2-txmock__step">
+            Calling <strong>verifyDelivery()</strong>
+            <span className="h2-txmock__args">{'{ "trackingId": "YMT-2984-8841" }'}</span>
+          </p>
+          <p className="h2-txmock__step">
+            Calling <strong>swapUsdcToJpyc()</strong>
+            <span className="h2-txmock__args">{'{ "rate": "155.2", "maxSlippage": "0.5%" }'}</span>
+          </p>
+          <p className="h2-txmock__step">
+            Calling <strong>releaseEscrow()</strong>
+            <span className="h2-txmock__args">
+              {'{ "orderId": "#8841", "amount": 12_400, "currency": "JPYC" }'}
+            </span>
+          </p>
+          <p className="h2-txmock__step">
+            Calling <strong>closeOrder()</strong> using 180k gas
+          </p>
+        </div>
+        <div className="h2-txmock__actions">
+          <span className="h2-txmock__btn h2-txmock__btn--ghost">Cancel</span>
+          <span className="h2-txmock__btn h2-txmock__btn--solid">Confirm</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element {
+  switch (preview.kind) {
+    case 'signIn':
+      return <WalletShellCard />;
+    case 'transactionConfirm':
+      return <WalletTransactionPreview />;
+    default:
+      return assertNever(preview);
+  }
+}
+
+/* ---------- hero: headline + paged scenes ---------- */
+
+type HeroScene = {
+  id: string;
+  icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
+  title: string;
+  sub: string;
+  left: React.ReactNode;
+  wallet: HeroWalletPreview;
+};
+
+/* Left column pages through views of the agents product; the wallet shell
+   stays fixed in the right column, like the reference hero's assistant card. */
+const heroScenes: HeroScene[] = [
+  {
+    id: 'dashboard',
+    icon: Store,
+    title: 'Ecommerce Agents',
+    sub: 'Agents run your store: limits, approvals, and audit built in',
+    left: <DashboardWindow />,
+    wallet: signInWalletPreview,
+  },
+  {
+    id: 'integrations',
+    icon: Slack,
+    title: 'Integrations',
+    sub: 'Approvals land where your team already works',
+    left: <IntegrationsWindow />,
+    wallet: transactionWalletPreview,
+  },
+];
+
+function HomeHeroCurrent(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const startProps = linkProps('/docs/concepts/');
+  const contactProps = linkProps('/contact/');
+  const agentsProps = linkProps('/ecommerce');
+  const walletProps = linkProps('/wallet');
+  const [page, setPage] = React.useState(0);
+  const scene = heroScenes[page];
+
+  return (
+    <>
+      <header className="h2-hero-simple h2-hero-simple--sage" aria-labelledby="h2-home-title">
+        <div className="h2-shell">
+          <h1 id="h2-home-title" className="h2-display h2-hero-simple__title">
+            Ecommerce on autopilot. Embedded wallets made simple.
+          </h1>
+          <p className="h2-hero-simple__sub">
+            Auth, wallets, credentials, and delegated access in one SDK. Policy checks every action
+            before it runs.
+          </p>
+          <div className="h2-hero-simple__ctas">
+            <a
+              className="h2-btn h2-btn--primary h2-btn--lg"
+              href={startProps.href}
+              onClick={startProps.onClick}
+            >
+              Start building
+            </a>
+            <a
+              className="h2-btn h2-btn--outline h2-btn--lg"
+              href={contactProps.href}
+              onClick={contactProps.onClick}
+            >
+              Contact sales
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section className="h2-heroscene h2-rule" aria-label="Product tour">
+        <div className="h2-heroscene__split">
+          {/* whole panel navigates; the pager is a sibling so it stays clickable */}
+          <a
+            className="h2-heroscene__stage"
+            href={agentsProps.href}
+            onClick={agentsProps.onClick}
+            aria-label="Explore Ecommerce Agents"
+          >
+            <div className="h2-heroscene__intro h2-fadein" key={`intro-${scene.id}`}>
+              <span className="h2-heroscene__intro-icon" aria-hidden>
+                <scene.icon />
+              </span>
+              <div>
+                <p className="h2-heroscene__intro-title">{scene.title}</p>
+                <p className="h2-heroscene__intro-sub">{scene.sub}</p>
+              </div>
+            </div>
+            <div
+              className="h2-heroscene__frame h2-fadein h2-fadein--late"
+              key={`frame-${scene.id}`}
+            >
+              {scene.left}
+            </div>
+          </a>
+
+          <a
+            className="h2-heroscene__aside"
+            href={walletProps.href}
+            onClick={walletProps.onClick}
+            aria-label="Explore Embedded Wallet"
+          >
+            {/* confirmer scene: the merchant app fills the panel, blurred and
+                dimmed under the drawer like a live bottom sheet */}
+            {scene.wallet.kind === 'transactionConfirm' ? (
+              <div className="h2-heroscene__aside-appback h2-fadein" aria-hidden>
+                <DashboardWindow />
+              </div>
+            ) : null}
+            <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
+              <span className="h2-heroscene__intro-icon" aria-hidden>
+                <Wallet />
+              </span>
+              <div>
+                <p className="h2-heroscene__intro-title">Embedded Wallet</p>
+                <p className="h2-heroscene__intro-sub">{scene.wallet.sub}</p>
+              </div>
+            </div>
+            <div
+              className="h2-heroscene__aside-body h2-fadein h2-fadein--late"
+              key={`wallet-${scene.wallet.kind}`}
+            >
+              {renderHeroWalletPreview(scene.wallet)}
+            </div>
+          </a>
+
+          {/* Pager sits on the divider/border junction, like the demo hero's */}
+          <div className="h2-pager" role="group" aria-label="Product views">
+            <button
+              type="button"
+              className="h2-pager__btn"
+              aria-label="Previous product view"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              <ChevronLeft aria-hidden />
+            </button>
+            <span className="h2-pager__dots">
+              {heroScenes.map((s, i) => (
+                <span
+                  key={s.id}
+                  className={`h2-pager__dot${i === page ? ' is-active' : ''}`}
+                  title={s.title}
+                />
+              ))}
+            </span>
+            <button
+              type="button"
+              className="h2-pager__btn"
+              aria-label="Next product view"
+              disabled={page >= heroScenes.length - 1}
+              onClick={() => setPage((p) => Math.min(heroScenes.length - 1, p + 1))}
+            >
+              <ChevronRight aria-hidden />
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+type AgentMediaItemId = 'operations' | 'wallet' | 'approval' | 'audit';
+
+type AgentMediaItem = {
+  id: AgentMediaItemId;
+  icon: React.ComponentType<{ 'aria-hidden'?: boolean }>;
+  image: string;
+  label: string;
+  title: string;
+  copy: string;
+};
+
+const defaultAgentMediaItemId: AgentMediaItemId = 'operations';
+
+const agentMediaItems: readonly AgentMediaItem[] = [
+  {
+    id: 'operations',
+    icon: ListChecks,
+    image: '/gradients/web/ember-moss.jpg',
+    label: 'Store operations',
+    title: 'Discount request held',
+    copy: 'Agent proposes 12% off cart #8841. Policy routes it to owner approval.',
+  },
+  {
+    id: 'wallet',
+    icon: Wallet,
+    image: '/gradients/web/sage-charcoal.jpg',
+    label: 'Wallet signing',
+    title: 'Passkey unlock',
+    copy: 'The right user and key approve the signature before any wallet action runs.',
+  },
+  {
+    id: 'approval',
+    icon: ShieldCheck,
+    image: '/gradients/web/aqua-evergreen.jpg',
+    label: 'Approval',
+    title: 'Policy gate',
+    copy: 'High-risk actions pause for owner review while routine work keeps moving.',
+  },
+  {
+    id: 'audit',
+    icon: ScrollText,
+    image: '/gradients/web/dusk-blue-mauve.jpg',
+    label: 'Audit',
+    title: 'Action receipt',
+    copy: 'Every agent action records who delegated it, what ran, and which policy approved it.',
+  },
+];
+
+function parseAgentMediaItemId(value: string | undefined): AgentMediaItemId | null {
+  switch (value) {
+    case 'operations':
+    case 'wallet':
+    case 'approval':
+    case 'audit':
+      return value;
+    default:
+      return null;
+  }
+}
+
+function readAgentMediaItemId(target: EventTarget | null): AgentMediaItemId | null {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const button = target.closest<HTMLButtonElement>('[data-agent-media-id]');
+  return parseAgentMediaItemId(button?.dataset.agentMediaId);
+}
+
+function renderAgentMediaCard(
+  item: AgentMediaItem,
+  activeMediaItemId: AgentMediaItemId,
+): React.JSX.Element {
+  const Icon = item.icon;
+  const isActive = item.id === activeMediaItemId;
+
+  return (
+    <button
+      key={item.id}
+      type="button"
+      className={`h2-agent-card ${isActive ? 'is-active' : 'is-collapsed'}`}
+      data-agent-media-id={item.id}
+      aria-label={`Show ${item.label}`}
+      aria-pressed={isActive}
+    >
+      <img src={item.image} alt="" />
+      <span className="h2-agent-card__label">
+        <Icon aria-hidden />
+        {item.label}
+      </span>
+      <span className="h2-agent-card__caption">
+        <strong>{item.title}</strong>
+        {item.copy}
+      </span>
+    </button>
+  );
+}
+
+function HomeHeroMedia(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const startProps = linkProps('/docs/concepts/');
+  const contactProps = linkProps('/contact/');
+  const agentsProps = linkProps('/ecommerce');
+  const [activeMediaItemId, setActiveMediaItemId] =
+    React.useState<AgentMediaItemId>(defaultAgentMediaItemId);
+  const handleMediaRailClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const itemId = readAgentMediaItemId(event.target);
+
+    if (itemId === null) {
+      return;
+    }
+
+    setActiveMediaItemId(itemId);
+  }, []);
+
+  return (
+    <>
+      <header className="h2-hero-media" aria-labelledby="h2-home2-title">
+        <div className="h2-shell h2-hero-media__split">
+          <div className="h2-hero-media__main">
+            <p className="h2-hero-media__product">
+              <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+              <span>Seams Agents</span>
+            </p>
+            <h1 id="h2-home2-title" className="h2-display h2-hero-media__title">
+              Commerce agents that stay inside policy
+            </h1>
+            <div className="h2-hero-media__ctas">
+              <a
+                className="h2-btn h2-btn--primary h2-btn--lg"
+                href={startProps.href}
+                onClick={startProps.onClick}
+              >
+                Create an agent
+              </a>
+              <a
+                className="h2-btn h2-btn--outline h2-btn--lg"
+                href={contactProps.href}
+                onClick={contactProps.onClick}
+              >
+                Talk to sales
+              </a>
+            </div>
+          </div>
+          <aside className="h2-hero-media__copy" aria-label="Seams agent account summary">
+            <p>
+              Configure, deploy, and monitor AI agents for store operations. Seams gives every agent
+              scoped credentials, spending limits, owner approvals, and an audit trail.
+            </p>
+          </aside>
+        </div>
+      </header>
+
+      <section className="h2-agent-media h2-rule" aria-label="Seams agent use cases">
+        <div className="h2-shell">
+          <div
+            className={`h2-agent-media__rail is-active-${activeMediaItemId}`}
+            onClick={handleMediaRailClick}
+          >
+            {agentMediaItems.map((item) => renderAgentMediaCard(item, activeMediaItemId))}
+          </div>
+
+          <div className="h2-agent-chat-pill" aria-hidden="true">
+            <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+            <span>
+              Try a Seams agent
+              <small>Policy checked before execution</small>
+            </span>
+          </div>
+
+          <div className="h2-agent-media__footer" aria-label="Agent platform capabilities">
+            <span>Scoped credentials</span>
+            <span>Owner approvals</span>
+            <span>Action receipts</span>
+            <a href={agentsProps.href} onClick={agentsProps.onClick}>
+              Explore Ecommerce Agents
+              <ArrowRightAnim size={12} />
+            </a>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+/* ---------- two products, one account layer ---------- */
+
+function HomeDuo(): React.JSX.Element {
+  const { linkProps } = useSiteRouter();
+  const walletProps = linkProps('/wallet');
+  const agentsProps = linkProps('/ecommerce');
+
+  return (
+    <section className="h2-section h2-section--snug h2-rule" aria-labelledby="h2-duo-title">
+      <div className="h2-shell">
+        <div className="h2-duo__head">
+          <h2 id="h2-duo-title" className="h2-display">
+            Two products, one account layer
+          </h2>
+          <p className="h2-duo__copy">
+            Built on the same keys, credentials, and policy engine: one product for embedding
+            wallets, another for putting agents to work on your store.
+          </p>
+        </div>
+        <div className="h2-duo__grid">
+          <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
+            <h3 className="h2-duo__title">
+              <Wallet aria-hidden />
+              Embedded Wallet
+            </h3>
+            <p className="h2-duo__panel-copy">
+              Passkey-secured, non-custodial wallets for your users: recovery built in, every action
+              signed, keys split so neither side can sign alone.
+            </p>
+            <div className="h2-duo__visual">
+              <SplitKeyVisual />
+            </div>
+            <span className="h2-duo__cta">
+              Explore Embedded Wallet
+              <ArrowRightAnim size={12} />
+            </span>
+          </a>
+          <a className="h2-duo__panel" href={agentsProps.href} onClick={agentsProps.onClick}>
+            <h3 className="h2-duo__title">
+              <Bot aria-hidden />
+              Ecommerce Agents
+            </h3>
+            <p className="h2-duo__panel-copy">
+              Give AI agents and staff scoped credentials to run your store: limits, approvals, and
+              an audit trail on every action.
+            </p>
+            <div className="h2-duo__visual">
+              <div className="h2-chat" style={{ maxWidth: 324 }}>
+                <div className="h2-chat__bubble">
+                  <small>Seams Harness · 09:14</small>
+                  Held: 12% discount for cart #8841 needs owner approval.
+                </div>
+                <div className="h2-chat__bubble h2-chat__bubble--reply">
+                  Approved ✓ signed and sent
+                </div>
+              </div>
+            </div>
+            <span className="h2-duo__cta">
+              Explore Ecommerce Agents
+              <ArrowRightAnim size={12} />
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type HomeFrameProps = {
+  hero: React.JSX.Element;
+};
+
+function HomeFrame({ hero }: HomeFrameProps): React.JSX.Element {
+  return (
+    <div className="h2-page">
+      <NavbarCompact appearance="light" />
+      <div className="h2-col">
+        {hero}
+        <HomeDuo />
+        <H2Ecosystem />
+        <H2Pillars />
+        <H2Faq audience="home" />
+        <H2Footer />
+      </div>
+    </div>
+  );
+}
+
+export function HomePage(): React.JSX.Element {
+  return <HomeFrame hero={<HomeHeroCurrent />} />;
+}
+
+export function Home2Page(): React.JSX.Element {
+  return <HomeFrame hero={<HomeHeroMedia />} />;
+}
+
+export default Home2Page;

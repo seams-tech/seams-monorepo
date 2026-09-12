@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.playwright.json",
+  "include": [
+    "e2e/intended-behaviours/**/*.ts",
+    "e2e/linked-device.operating-path.test.ts",
+    "intended-app/src/**/*.ts",
+    "intended-app/src/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "playwright-report", "test-results"]
+}

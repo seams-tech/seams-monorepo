@@ -1,0 +1,526 @@
+import { expect, test } from '@playwright/test';
+import {
+  buildLinkedDeviceSessionClaimV1,
+  buildLinkedDeviceSessionRetryCommittedDeliveryRequestV1,
+  parseLinkedDeviceSessionClaimV1,
+  parseLinkSessionProjectionV1,
+} from '../../packages/shared-ts/src/device-linking';
+import type {
+  LinkSessionProjectionV1,
+  LocalAuthorityActivationFinalAckV1,
+} from '../../packages/shared-ts/src/device-linking';
+import { base64UrlDecode, base64UrlEncode } from '../../packages/shared-ts/src/utils/base64';
+import {
+  computeWalletSessionInstallationReceiptDigestB64u,
+  computeWalletSessionOperationCredentialDigestB64u,
+} from '../../packages/shared-ts/src/device-linking/digests';
+import { createDeviceLinkingAuthenticatedSessionTransportV1 } from '../../packages/wallet/src/SeamsWeb/operations/devices/deviceLinkingHttpTransport';
+import type { DeviceLinkingKeyMaterialPortV1 } from '../../packages/wallet/src/SeamsWeb/operations/devices/deviceLinkingPorts';
+import type { HttpTransport } from '../../packages/wallet/src/core/platform/http';
+import { buildR103DeviceLinkFixture } from './helpers/deviceLinkContracts.fixtures';
+import { buildResumeFixture } from './helpers/linkDeviceAuthorityResume.fixtures';
+import { buildPasskeyTargetPreparationFixtureV1 } from './helpers/linkedDeviceTargetPreparation.fixtures';
+
+const DELIVERY_RECIPIENT_PUBLIC_KEY_B64U =
+  'BGsX0fLhLEJH-Lzm5WOkQPJ3A32BLeszoPShOUXYmMKWT-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU';
+
+function responseBody(fixture: ReturnType<typeof buildR103DeviceLinkFixture>): {
+  readonly ok: true;
+  readonly outcome: 'applied';
+  readonly session: LinkSessionProjectionV1;
+} {
+  return {
+    ok: true,
+    outcome: 'applied',
+    session: {
+      kind: 'linked_device_session_projection_v1',
+      linkSessionId: fixture.payload.linkSessionId,
+      qrPayload: fixture.payload,
+      revision: 1,
+      createdAtMs: fixture.payload.issuedAtMs,
+      updatedAtMs: fixture.payload.issuedAtMs,
+      state: { state: 'displaying_qr' },
+    },
+  };
+}
+
+function buildBoundaryTransport(
+  fixture: ReturnType<typeof buildR103DeviceLinkFixture>,
+  body: unknown,
+  status = 200,
+): ReturnType<typeof createDeviceLinkingAuthenticatedSessionTransportV1> {
+  const http: HttpTransport = {
+    kind: 'http_transport',
+    async request() {
+      return { ok: true, value: { status, body } };
+    },
+  };
+  const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+    async createBootstrapKeyMaterialV1() {
+      throw new Error('bootstrap is outside this boundary test');
+    },
+    async discardKeyMaterialV1() {},
+    async signDeviceSessionRequestV1() {
+      return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+    },
+  };
+  return createDeviceLinkingAuthenticatedSessionTransportV1({
+    http,
+    relayerUrl: 'https://relay.example.test',
+    publishableKey: 'pk_test_registration_origin',
+    projectEnvironmentId: 'project:dev',
+    keyMaterial,
+    keyMaterialHandle: {
+      kind: 'device_linking_key_material_handle_v1',
+      handleId: 'worker-slot-r103',
+    },
+    devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+    nowMs: () => 2_000,
+    pollIntervalMs: 10,
+  });
+}
+
+test.describe('R103 authenticated linked-device browser transport', () => {
+  test('publishes the worker delivery recipient in the signed target-preparation request', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    const preparation = buildPasskeyTargetPreparationFixtureV1();
+    let requestBody: unknown;
+    let requestMethod: string | undefined;
+    const http: HttpTransport = {
+      kind: 'http_transport',
+      async request(input) {
+        requestBody = input.body;
+        requestMethod = input.method;
+        return { ok: true, value: { status: 200, body: preparation } };
+      },
+    };
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        return {
+          handle: { kind: 'device_linking_key_material_handle_v1', handleId: 'worker-slot-r103' },
+          linkPublicKeyB64u: fixture.payload.linkPublicKeyB64u,
+          devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+          deliveryRecipientPublicKey65B64u: preparation.deliveryRecipientPublicKey65B64u,
+        };
+      },
+      async discardKeyMaterialV1() {},
+      async signDeviceSessionRequestV1() {
+        return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: {
+        kind: 'device_linking_key_material_handle_v1',
+        handleId: 'worker-slot-r103',
+      },
+      devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 10_000,
+    });
+
+    await expect(
+      transport.getTargetPreparationV1({
+        linkSessionId: fixture.payload.linkSessionId,
+        deliveryRecipientPublicKey65B64u: preparation.deliveryRecipientPublicKey65B64u,
+      }),
+    ).resolves.toEqual(preparation);
+    expect(requestMethod).toBe('POST');
+    expect(requestBody).toEqual({
+      kind: 'linked_device_target_preparation_request_v1',
+      linkSessionId: fixture.payload.linkSessionId,
+      deliveryRecipientPublicKey65B64u: preparation.deliveryRecipientPublicKey65B64u,
+    });
+  });
+
+  test('binds each request to exact canonical proof fields and a fresh nonce', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    const calls: Array<{
+      readonly method: 'GET' | 'POST';
+      readonly url: string;
+      readonly authorization: string | undefined;
+      readonly environmentId: string | undefined;
+      readonly proof: Record<string, unknown>;
+      readonly body?: unknown;
+    }> = [];
+    const http: HttpTransport = {
+      kind: 'http_transport',
+      async request(input) {
+        const encodedProof = input.headers?.['x-seams-linked-device-proof-v1'];
+        if (!encodedProof) throw new Error('proof header missing');
+        const proof = JSON.parse(new TextDecoder().decode(base64UrlDecode(encodedProof))) as Record<
+          string,
+          unknown
+        >;
+        calls.push({
+          method: input.method,
+          url: input.url,
+          authorization: input.headers?.Authorization,
+          environmentId: input.headers?.['X-Seams-Environment-Id'],
+          proof,
+          ...(input.body === undefined ? {} : { body: input.body }),
+        });
+        return { ok: true, value: { status: 200, body: responseBody(fixture) } };
+      },
+    };
+    const signatures: Array<Record<string, unknown>> = [];
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        return {
+          handle: { kind: 'device_linking_key_material_handle_v1', handleId: 'worker-slot-r103' },
+          linkPublicKeyB64u: fixture.payload.linkPublicKeyB64u,
+          devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+          deliveryRecipientPublicKey65B64u: DELIVERY_RECIPIENT_PUBLIC_KEY_B64U,
+        };
+      },
+      async discardKeyMaterialV1() {
+        return;
+      },
+      async signDeviceSessionRequestV1(input) {
+        signatures.push(input);
+        return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test/',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: {
+        kind: 'device_linking_key_material_handle_v1',
+        handleId: 'worker-slot-r103',
+      },
+      devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 10_000,
+    });
+
+    await transport.createUnclaimedSessionV1({
+      payload: fixture.payload,
+      state: { state: 'displaying_qr' },
+    });
+    await transport.getSessionV1({ linkSessionId: fixture.payload.linkSessionId });
+    const retryRequest = buildLinkedDeviceSessionRetryCommittedDeliveryRequestV1({
+      linkSessionId: fixture.payload.linkSessionId,
+      enrollmentId: fixture.approval.enrollmentId,
+      deviceId: fixture.approval.deviceId,
+      requestedAtMs: 2_001,
+    });
+    await transport.retryCommittedDeliveryV1({ request: retryRequest });
+    await transport.retryCommittedDeliveryV1({ request: retryRequest });
+
+    expect(calls).toHaveLength(4);
+    expect(signatures).toHaveLength(4);
+    expect(calls[0]?.url).toBe(`https://relay.example.test/wallet/device-linking/v1/sessions`);
+    expect(calls[1]?.method).toBe('GET');
+    expect(calls[2]?.url).toBe(
+      `https://relay.example.test/wallet/device-linking/v1/sessions/${fixture.payload.linkSessionId}/retry`,
+    );
+    expect(calls[2]?.body).toEqual({
+      kind: 'linked_device_session_retry_committed_delivery_request_v1',
+      linkSessionId: fixture.payload.linkSessionId,
+      enrollmentId: fixture.approval.enrollmentId,
+      deviceId: fixture.approval.deviceId,
+      requestedAtMs: 2_001,
+    });
+    expect(calls[3]?.url).toBe(calls[2]?.url);
+    expect(calls[3]?.body).toEqual(calls[2]?.body);
+    expect(calls[0]?.authorization).toBe('Bearer pk_test_registration_origin');
+    expect(calls[0]?.environmentId).toBe('project:dev');
+    expect(calls[0]?.proof.requestNonceB64u).not.toBe(calls[1]?.proof.requestNonceB64u);
+    for (const call of calls) {
+      const proof = call.proof;
+      expect(base64UrlDecode(String(proof.requestNonceB64u))).toHaveLength(32);
+    }
+    expect(signatures[0]?.challengeB64u).toBe(calls[0]?.proof.requestNonceB64u);
+    expect(signatures[1]?.challengeB64u).toBe(calls[1]?.proof.requestNonceB64u);
+  });
+
+  test('parses strict session projections and owner response DTOs without key material crossing', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    const projection = parseLinkSessionProjectionV1(responseBody(fixture).session);
+    expect(projection.state).toEqual({ state: 'displaying_qr' });
+    const claim = parseLinkedDeviceSessionClaimV1(
+      buildLinkedDeviceSessionClaimV1({
+        linkSessionId: fixture.payload.linkSessionId,
+        walletId: fixture.approval.walletId,
+        enrollmentId: fixture.approval.enrollmentId,
+        deviceId: fixture.approval.deviceId,
+        devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+        targetFactor: fixture.payload.targetFactor,
+        sessionRevision: 2,
+        claimedAtMs: 2_000,
+        claimExpiresAtMs: 9_000,
+      }),
+    );
+    expect(claim.deviceId).toBe(fixture.approval.deviceId);
+    expect(JSON.stringify(projection)).not.toContain('private');
+  });
+
+  test('rejects non-plain and extra-key HTTP response envelopes', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    const response = responseBody(fixture);
+    await expect(
+      buildBoundaryTransport(fixture, { ...response, unexpected: true }).getSessionV1({
+        linkSessionId: fixture.payload.linkSessionId,
+      }),
+    ).rejects.toThrow('linked-device response contains invalid fields');
+    await expect(
+      buildBoundaryTransport(fixture, Object.assign(new Date(0), response)).getSessionV1({
+        linkSessionId: fixture.payload.linkSessionId,
+      }),
+    ).rejects.toThrow('linked-device response must be an object');
+    await expect(
+      buildBoundaryTransport(
+        fixture,
+        { ok: false, code: 'invalid_input', message: 'request is invalid', unexpected: true },
+        400,
+      ).getSessionV1({ linkSessionId: fixture.payload.linkSessionId }),
+    ).rejects.toThrow('linked-device request failed with HTTP 400');
+    await expect(
+      buildBoundaryTransport(
+        fixture,
+        { ok: false, code: 'invalid_input', message: 'request is invalid' },
+        400,
+      ).getSessionV1({ linkSessionId: fixture.payload.linkSessionId }),
+    ).rejects.toThrow('linked-device request failed: request is invalid');
+  });
+
+  test('replays activation acknowledgement with the exact Wallet Session bearer only', async () => {
+    const fixture = await buildResumeFixture('http-ack-replay');
+    const deviceLinkFixture = buildR103DeviceLinkFixture();
+    let request: Parameters<HttpTransport['request']>[0] | undefined;
+    const http: HttpTransport = {
+      kind: 'http_transport',
+      async request(input) {
+        request = input;
+        return { ok: true, value: { status: 204, body: null } };
+      },
+    };
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        return {
+          handle: { kind: 'device_linking_key_material_handle_v1', handleId: 'worker-slot-r103' },
+          linkPublicKeyB64u: deviceLinkFixture.payload.linkPublicKeyB64u,
+          devicePublicKeyB64u: deviceLinkFixture.payload.devicePublicKeyB64u,
+          deliveryRecipientPublicKey65B64u:
+            fixture.active.sealedDelivery.aad.recipientPublicKey65B64u,
+        };
+      },
+      async discardKeyMaterialV1() {},
+      async signDeviceSessionRequestV1() {
+        throw new Error('exact Wallet Session replay must not sign a device proof');
+      },
+      async openWalletSessionCredentialDeliveryV1() {
+        throw new Error('delivery opening is outside this transport test');
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test/',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: fixture.inputBase.keyMaterial,
+      devicePublicKeyB64u: deviceLinkFixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 10_000,
+    });
+    const acknowledgement: LocalAuthorityActivationFinalAckV1 = {
+      kind: 'local_authority_activation_final_ack_v1',
+      linkSessionId: fixture.inputBase.linkSessionId,
+      authorityId: fixture.active.authority.authorityId,
+      packageSetDigestB64u: fixture.committed.packageSetDigestB64u,
+      authorizationId: fixture.active.walletSession.authorizationId,
+      walletSessionId: fixture.operationCredential.walletSessionId,
+      credentialDigestB64u: await computeWalletSessionOperationCredentialDigestB64u(
+        fixture.operationCredential,
+      ),
+      installationReceiptDigestB64u: await computeWalletSessionInstallationReceiptDigestB64u(
+        fixture.receipt,
+      ),
+      acknowledgedAtMs: 2_000,
+    };
+
+    await transport.acknowledgeLocalAuthorityActivationWithWalletSessionV1({
+      acknowledgement,
+      operationCredential: fixture.operationCredential,
+    });
+
+    expect(request?.method).toBe('POST');
+    expect(request?.url).toBe(
+      `https://relay.example.test/wallet/device-linking/v1/sessions/${fixture.inputBase.linkSessionId}/receipt`,
+    );
+    expect(request?.headers).toEqual({
+      Accept: 'application/json',
+      Authorization: `Bearer ${fixture.operationCredential.token}`,
+      'Content-Type': 'application/json',
+      'X-Seams-Environment-Id': 'project:dev',
+    });
+    expect(request?.body).toEqual(acknowledgement);
+  });
+
+  test('does not schedule an orphan poll after bootstrap failure', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    let requests = 0;
+    const http: HttpTransport = {
+      kind: 'http_transport',
+      async request() {
+        requests += 1;
+        return { ok: false, message: 'bootstrap unavailable' };
+      },
+    };
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        throw new Error('bootstrap is outside this transport test');
+      },
+      async discardKeyMaterialV1() {},
+      async signDeviceSessionRequestV1() {
+        return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: {
+        kind: 'device_linking_key_material_handle_v1',
+        handleId: 'worker-slot-r103',
+      },
+      devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 5,
+    });
+
+    await expect(
+      transport.subscribeSessionV1({
+        linkSessionId: fixture.payload.linkSessionId,
+        onEvent: () => undefined,
+      }),
+    ).rejects.toThrow('bootstrap unavailable');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(requests).toBe(1);
+  });
+
+  test('single-flights session polls and retries transient failures with backoff', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    let requests = 0;
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const http: HttpTransport = {
+      async request() {
+        const requestNumber = requests++;
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, requestNumber === 0 ? 10 : 0));
+        inFlight -= 1;
+        if (requestNumber === 1) return { ok: false, message: 'temporary outage' };
+        const revision = requestNumber >= 2 ? 2 : 1;
+        return {
+          ok: true,
+          value: {
+            status: 200,
+            body: {
+              ...responseBody(fixture),
+              session: {
+                ...responseBody(fixture).session,
+                revision,
+                updatedAtMs: responseBody(fixture).session.updatedAtMs + revision,
+              },
+            },
+          },
+        };
+      },
+    };
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        throw new Error('bootstrap is outside this transport test');
+      },
+      async discardKeyMaterialV1() {},
+      async signDeviceSessionRequestV1() {
+        return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: {
+        kind: 'device_linking_key_material_handle_v1',
+        handleId: 'worker-slot-r103',
+      },
+      devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 1,
+    });
+    const events: number[] = [];
+    const subscription = await transport.subscribeSessionV1({
+      linkSessionId: fixture.payload.linkSessionId,
+      onEvent: (event) => events.push(event.state.state === 'displaying_qr' ? 1 : 2),
+    });
+    await expect.poll(() => events.length, { timeout: 1_000 }).toBe(2);
+    await subscription.close();
+
+    expect(requests).toBeGreaterThanOrEqual(3);
+    expect(maxInFlight).toBe(1);
+    expect(events).toHaveLength(2);
+  });
+
+  test('close resolves only after the in-flight poll settles', async () => {
+    const fixture = buildR103DeviceLinkFixture();
+    let requests = 0;
+    let inFlight = 0;
+    const http: HttpTransport = {
+      async request() {
+        requests += 1;
+        inFlight += 1;
+        await new Promise((resolve) => setTimeout(resolve, requests === 1 ? 0 : 25));
+        inFlight -= 1;
+        return { ok: true, value: { status: 200, body: responseBody(fixture) } };
+      },
+    };
+    const keyMaterial: DeviceLinkingKeyMaterialPortV1 = {
+      async createBootstrapKeyMaterialV1() {
+        throw new Error('bootstrap is outside this transport test');
+      },
+      async discardKeyMaterialV1() {},
+      async signDeviceSessionRequestV1() {
+        return { signatureB64u: base64UrlEncode(new Uint8Array(64).fill(9)) };
+      },
+    };
+    const transport = createDeviceLinkingAuthenticatedSessionTransportV1({
+      http,
+      relayerUrl: 'https://relay.example.test',
+      publishableKey: 'pk_test_registration_origin',
+      projectEnvironmentId: 'project:dev',
+      keyMaterial,
+      keyMaterialHandle: {
+        kind: 'device_linking_key_material_handle_v1',
+        handleId: 'worker-slot-r103',
+      },
+      devicePublicKeyB64u: fixture.payload.devicePublicKeyB64u,
+      nowMs: () => 2_000,
+      pollIntervalMs: 1,
+    });
+    const subscription = await transport.subscribeSessionV1({
+      linkSessionId: fixture.payload.linkSessionId,
+      onEvent: () => undefined,
+    });
+    // Wait for the second poll's request to be in flight, then close mid-read.
+    await expect.poll(() => requests, { timeout: 1_000 }).toBeGreaterThanOrEqual(2);
+    await subscription.close();
+    expect(inFlight).toBe(0);
+    const requestsAtClose = requests;
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(requests).toBe(requestsAtClose);
+  });
+});

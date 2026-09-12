@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "lanes": {
+    "staging-testnet": {
+      "environment": "staging-console",
+      "origin": "https://staging.console.seams.sh",
+      "siteOrigin": "https://staging.seams.sh",
+      "workerName": "seams-sdk-d1-console-staging",
+      "database": {
+        "name": "seams-console-staging-nrt",
+        "id": "572d1147-bc66-4f0a-9030-8c1cdd8752e7"
+      },
+      "emailDelivery": {
+        "kind": "capture"
+      },
+      "billing": {
+        "enabled": true,
+        "secrets": ["STRIPE_API_SK"]
+      }
+    },
+    "production-testnet": {
+      "environment": "production-testnet-console",
+      "origin": "https://test.console.seams.sh",
+      "siteOrigin": "https://seams.sh",
+      "workerName": "seams-sdk-d1-console-testnet",
+      "database": {
+        "name": "seams-console-testnet",
+        "id": "1b2b9265-ddab-4abd-88fb-ae2ed06cf0df"
+      },
+      "emailDelivery": {
+        "kind": "resend",
+        "fromAddress": "confirm@seams.sh"
+      },
+      "billing": {
+        "enabled": true,
+        "secrets": ["STRIPE_API_SK"]
+      }
+    },
+    "production-mainnet": {
+      "environment": "production-console",
+      "origin": "https://console.seams.sh",
+      "siteOrigin": "https://seams.sh",
+      "workerName": "seams-sdk-d1-console",
+      "database": {
+        "name": "seams-console",
+        "id": "f8fd0f23-1d3e-4031-9977-c5937b7b2470"
+      },
+      "emailDelivery": {
+        "kind": "resend",
+        "fromAddress": "confirm@seams.sh"
+      },
+      "billing": {
+        "enabled": true,
+        "secrets": ["STRIPE_API_SK"]
+      }
+    }
+  }
+}

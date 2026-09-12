@@ -1,0 +1,223 @@
+import { expect, test } from '@playwright/test';
+import {
+  D1_STAGING_GENERATED_AT_ISO,
+  D1_STAGING_GATEWAY_ORIGIN,
+  d1StagingJsonResponse,
+  d1StagingManifestPath,
+  d1StagingRequestUrl,
+  loadD1StagingScriptModule,
+  readD1StagingJsonFile,
+  writeD1StagingTempFile,
+} from './helpers/d1StagingScriptFixtures';
+
+type SignerCustodyPlan = {
+  readonly mode: string;
+  readonly healthChecks: readonly { readonly id: string; readonly url: string }[];
+  readonly checks: readonly {
+    readonly id: string;
+    readonly url: string;
+    readonly fixture: { readonly relativePath: string; readonly sha256: string };
+    readonly walletSessionJwtEnvName: string;
+  }[];
+};
+
+type SignerCustodyModule = {
+  readonly buildD1StagingSignerCustodyPlan: (input: {
+    readonly gatewayOrigin: string;
+    readonly exportShareFixturePath: string;
+    readonly generatedAtIso?: string;
+    readonly mode?: 'dry-run' | 'remote';
+    readonly origin?: string;
+  }) => SignerCustodyPlan;
+  readonly runD1StagingSignerCustody: (input: {
+    readonly gatewayOrigin: string;
+    readonly exportShareFixturePath: string;
+    readonly generatedAtIso?: string;
+    readonly manifestPath: string;
+    readonly mode?: 'dry-run' | 'remote';
+    readonly fetchImpl?: typeof fetch;
+    readonly env?: Record<string, string>;
+    readonly origin?: string;
+  }) => Promise<{
+    readonly manifestPath: string;
+    readonly manifest: SignerCustodyPlan & {
+      readonly results: readonly {
+        readonly id: string;
+        readonly status: number;
+        readonly ok: boolean;
+        readonly body: unknown;
+      }[];
+    };
+  }>;
+};
+
+const signerCustodyModule = loadD1StagingScriptModule<SignerCustodyModule>(
+  'd1-staging-signer-custody.mjs',
+  'wallet-console-server-ts',
+);
+
+type SignerCustodyPlanInput = Parameters<SignerCustodyModule['buildD1StagingSignerCustodyPlan']>[0];
+
+const exportShareFixtureSource = `${JSON.stringify(
+  {
+    formatVersion: 'ecdsa-derivation-role-local-export',
+    walletId: 'wallet-fixture-1',
+    walletKeyId: 'wallet-key-fixture-1',
+    ecdsaThresholdKeyId: 'ecdsa-threshold-fixture-1',
+    relayerKeyId: 'relayer-key-fixture-1',
+  },
+  null,
+  2,
+)}\n`;
+
+function writeExportShareFixture(): string {
+  return writeD1StagingTempFile(
+    'seams-d1-staging-export-share-',
+    'export-share.json',
+    exportShareFixtureSource,
+  );
+}
+
+function signerCustodyInput(): SignerCustodyPlanInput {
+  return {
+    exportShareFixturePath: writeExportShareFixture(),
+    generatedAtIso: D1_STAGING_GENERATED_AT_ISO,
+    gatewayOrigin: D1_STAGING_GATEWAY_ORIGIN,
+  };
+}
+
+function dryRunSignerCustodyFetch(): Promise<Response> {
+  throw new Error('dry-run signer custody must not call fetch');
+}
+
+function requestAuthorization(init?: RequestInit): string {
+  const headers = init?.headers;
+  if (headers instanceof Headers) return headers.get('authorization') || '';
+  return String((headers as Record<string, string> | undefined)?.authorization || '');
+}
+
+async function signerCustodyFetch(
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> {
+  const url = d1StagingRequestUrl(input);
+  if (url === `${D1_STAGING_GATEWAY_ORIGIN}/router-ab/ed25519/healthz`) {
+    return d1StagingJsonResponse({ ok: true, configured: true }, 200);
+  }
+  if (url === `${D1_STAGING_GATEWAY_ORIGIN}/router-ab/ecdsa-derivation/healthz`) {
+    return d1StagingJsonResponse({ ok: true, configured: true }, 200);
+  }
+  if (url === `${D1_STAGING_GATEWAY_ORIGIN}/router-ab/ecdsa-derivation/export/share`) {
+    expect(init?.method).toBe('POST');
+    const authorization = requestAuthorization(init);
+    expect(authorization).toBe('Bearer fixture-jwt');
+    return d1StagingJsonResponse(
+      {
+        ok: true,
+        value: {
+          serverExportShare32B64u: 'server-share-secret',
+          server_export_share_32_b64u: 'server-share-snake-secret',
+          private_key_hex: 'private-key-secret',
+          nested: {
+            signing_share_32_b64u: 'signing-share-secret',
+            authorization: 'Bearer body-token',
+          },
+          publicCheck: 'visible',
+        },
+      },
+      200,
+    );
+  }
+  return d1StagingJsonResponse({ ok: false }, 404);
+}
+
+test('D1 staging signer custody builds a fixture-backed production-route plan', async () => {
+  const module = await signerCustodyModule;
+  const plan = module.buildD1StagingSignerCustodyPlan(signerCustodyInput());
+
+  expect(plan.mode).toBe('dry-run');
+  expect(plan.healthChecks.map((check) => check.url)).toEqual([
+    'https://gateway.staging.example/router-ab/ed25519/healthz',
+    'https://gateway.staging.example/router-ab/ecdsa-derivation/healthz',
+  ]);
+  expect(plan.checks).toEqual([
+    expect.objectContaining({
+      id: 'ecdsa_export_share_success',
+      url: 'https://gateway.staging.example/router-ab/ecdsa-derivation/export/share',
+      walletSessionJwtEnvName: 'SEAMS_STAGING_ECDSA_WALLET_SESSION_JWT',
+    }),
+  ]);
+  expect(plan.checks[0]?.fixture.sha256).toMatch(/^[0-9a-f]{64}$/);
+});
+
+test('D1 staging signer custody writes dry-run evidence without calling fetch', async () => {
+  const module = await signerCustodyModule;
+  const manifestPath = d1StagingManifestPath('seams-d1-staging-signer-custody');
+  await module.runD1StagingSignerCustody({
+    ...signerCustodyInput(),
+    manifestPath,
+    fetchImpl: dryRunSignerCustodyFetch,
+  });
+
+  expect(readD1StagingJsonFile(manifestPath).results).toHaveLength(0);
+});
+
+test('D1 staging signer custody remote mode records redacted export-share evidence', async () => {
+  const module = await signerCustodyModule;
+  const manifestPath = d1StagingManifestPath('seams-d1-staging-signer-custody-remote');
+  const result = await module.runD1StagingSignerCustody({
+    ...signerCustodyInput(),
+    manifestPath,
+    mode: 'remote',
+    fetchImpl: signerCustodyFetch,
+    env: {
+      SEAMS_STAGING_ECDSA_WALLET_SESSION_JWT: 'fixture-jwt',
+    },
+  });
+
+  expect(result.manifest.results.map((check) => check.id)).toEqual([
+    'signer_custody_ed25519_healthz',
+    'signer_custody_ecdsa_derivation_healthz',
+    'ecdsa_export_share_success',
+  ]);
+  const serialized = JSON.stringify(result.manifest);
+  expect(serialized).not.toMatch(
+    /fixture-jwt|server-share-secret|server-share-snake-secret|private-key-secret|signing-share-secret|Bearer body-token/,
+  );
+  expect(serialized).toContain('<redacted>');
+});
+
+test('D1 staging signer custody remote mode requires JWTs from env', async () => {
+  const module = await signerCustodyModule;
+  await expect(
+    module.runD1StagingSignerCustody({
+      ...signerCustodyInput(),
+      manifestPath: d1StagingManifestPath('seams-d1-staging-signer-custody-missing-env'),
+      mode: 'remote',
+      fetchImpl: signerCustodyFetch,
+      env: {},
+    }),
+  ).rejects.toThrow(/SEAMS_STAGING_ECDSA_WALLET_SESSION_JWT is required/);
+});
+
+test('D1 staging signer custody requires HTTPS Gateway origins in remote mode', async () => {
+  const module = await signerCustodyModule;
+  expect(() =>
+    module.buildD1StagingSignerCustodyPlan({
+      ...signerCustodyInput(),
+      gatewayOrigin: 'http://gateway.staging.example',
+      mode: 'remote',
+    }),
+  ).toThrow(/--gateway-origin must use https in remote mode/);
+});
+
+test('D1 staging signer custody requires HTTPS request origins in remote mode', async () => {
+  const module = await signerCustodyModule;
+  expect(() =>
+    module.buildD1StagingSignerCustodyPlan({
+      ...signerCustodyInput(),
+      origin: 'http://console.staging.example',
+      mode: 'remote',
+    }),
+  ).toThrow(/--origin must use https in remote mode/);
+});

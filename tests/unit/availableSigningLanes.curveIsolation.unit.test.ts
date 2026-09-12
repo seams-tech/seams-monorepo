@@ -1,0 +1,486 @@
+import { expect, test } from '@playwright/test';
+import { setupBasicPasskeyTest } from '../setup';
+import {
+  buildEmailOtpExactEd25519AuthorizationFixture,
+  buildEmailOtpEd25519SealedSessionRecordFixture,
+  buildPasskeyExactEd25519AuthorizationFixture,
+  buildPasskeyEd25519SealedSessionRecordFixture,
+} from './helpers/sealedSigningSession.fixtures';
+import {
+  buildMpcMaterialActivationRefFixture,
+  buildWalletAuthAuthorityRefForAuthorityFixture,
+} from './helpers/ecdsaMaterialRef.fixtures';
+import {
+  buildPromotedActiveWalletSessionFixture,
+  extendFixtureAuthorityWithEcdsaSigner,
+} from './helpers/linkedDeviceManagement.fixtures';
+import { buildActiveNearEd25519WalletSessionAuthorization } from '@/core/signingEngine/session/material/nearEd25519YaoSigningPreparation';
+
+const AVAILABLE_SIGNING_LANES_PATH =
+  '/_test-sdk/esm/core/signingEngine/session/availability/availableSigningLanes.js';
+
+test.describe('available signing lane curve isolation', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupBasicPasskeyTest(page, { skipSeamsWebInit: true });
+  });
+
+  test('does not discover ECDSA capabilities when no ECDSA targets were requested', async ({
+    page,
+  }) => {
+    const result = await page.evaluate(async (modulePath) => {
+      const { readAvailableSigningLanes } = await import(modulePath);
+      let ecdsaDiscoveryCalls = 0;
+      const lanes = await readAvailableSigningLanes(
+        {
+          walletId: 'near-only-wallet',
+          ecdsaChainTargets: [],
+        },
+        {
+          listSealedRecordsForWallet: async () => [],
+          listCanonicalEcdsaLanesForWallet: async () => {
+            ecdsaDiscoveryCalls += 1;
+            throw new Error('ECDSA discovery must not run for an Ed25519-only read');
+          },
+        },
+      );
+      return {
+        ecdsaDiscoveryCalls,
+        nearLaneState: lanes.lanes.ed25519.near.state,
+      };
+    }, AVAILABLE_SIGNING_LANES_PATH);
+
+    expect(result).toEqual({
+      ecdsaDiscoveryCalls: 0,
+      nearLaneState: 'missing',
+    });
+  });
+
+  test('prefers durable Ed25519 policy over a duplicate public capability reference', async ({
+    page,
+  }) => {
+    const sealedRecord = buildPasskeyEd25519SealedSessionRecordFixture({
+      expiresAtMs: Date.now() + 60_000,
+      remainingUses: 7,
+    });
+    const authorization = buildPasskeyExactEd25519AuthorizationFixture(sealedRecord);
+    const restore = sealedRecord.ed25519Restore;
+    const publicCapabilityReference = {
+      walletId: sealedRecord.walletId,
+      nearAccountId: restore.nearAccountId,
+      thresholdSessionId: sealedRecord.thresholdSessionIds.ed25519,
+      runtimePolicyScope: restore.runtimePolicyScope,
+      materialActivation: restore.materialActivation,
+      auth: {
+        kind: 'passkey' as const,
+        rpId: restore.rpId,
+        credentialIdB64u: restore.credentialIdB64u,
+      },
+      nearEd25519SigningKeyId: restore.nearEd25519SigningKeyId,
+      signerSlot: restore.signerSlot,
+    };
+    const result = await page.evaluate(
+      async ({ modulePath, sealedRecord, publicCapabilityReference, authorization }) => {
+        const { readAvailableSigningLanes } = await import(modulePath);
+        const lanes = await readAvailableSigningLanes(
+          {
+            walletId: sealedRecord.walletId,
+            ecdsaChainTargets: [],
+            ownerScope: {
+              auth: {
+                kind: 'passkey',
+                rpId: sealedRecord.ed25519Restore.rpId,
+                credentialIdB64u: sealedRecord.ed25519Restore.credentialIdB64u,
+              },
+              signerSlot: sealedRecord.ed25519Restore.signerSlot,
+            },
+          },
+          {
+            listSealedRecordsForWallet: async () => [sealedRecord],
+            listPublicCapabilityReferences: async () => [publicCapabilityReference],
+            isPublicCapabilityActive: () => true,
+            readActiveWalletSessionAuthorization: async () => ({
+              kind: 'found',
+              authorization,
+            }),
+          },
+        );
+        const lane = lanes.lanes.ed25519.near;
+        return {
+          candidateCount: lanes.candidates.ed25519.near.length,
+          lane: {
+            authorizationState: lane.authorizationState,
+            expiresAtMs: lane.expiresAtMs,
+            remainingUses: lane.remainingUses,
+            source: lane.source,
+            state: lane.state,
+          },
+        };
+      },
+      {
+        modulePath: AVAILABLE_SIGNING_LANES_PATH,
+        sealedRecord,
+        publicCapabilityReference,
+        authorization,
+      },
+    );
+
+    expect(result).toEqual({
+      candidateCount: 1,
+      lane: {
+        authorizationState: 'authorized',
+        expiresAtMs: sealedRecord.expiresAtMs,
+        remainingUses: 7,
+        source: 'durable_sealed_record',
+        state: 'restorable',
+      },
+    });
+  });
+
+  test('prefers a current public capability over deferred durable policy', async ({ page }) => {
+    const durableRecord = buildPasskeyEd25519SealedSessionRecordFixture({
+      thresholdSessionId: 'ed25519-sealed-runtime-session-old',
+      materialActivation: buildMpcMaterialActivationRefFixture(
+        'ed25519-sealed-runtime-material-old',
+        'ed25519-sealed-runtime-wallet',
+      ),
+      expiresAtMs: Date.now() + 60_000,
+      remainingUses: 7,
+    });
+    const currentRecord = buildPasskeyEd25519SealedSessionRecordFixture({
+      thresholdSessionId: 'ed25519-sealed-runtime-session-current',
+      materialActivation: buildMpcMaterialActivationRefFixture(
+        'ed25519-sealed-runtime-material-current',
+        'ed25519-sealed-runtime-wallet',
+      ),
+      expiresAtMs: Date.now() + 60_000,
+      remainingUses: 9,
+    });
+    const authorization = buildPasskeyExactEd25519AuthorizationFixture(currentRecord);
+    const restore = currentRecord.ed25519Restore;
+    const publicCapabilityReference = {
+      walletId: currentRecord.walletId,
+      nearAccountId: restore.nearAccountId,
+      thresholdSessionId: currentRecord.thresholdSessionIds.ed25519,
+      runtimePolicyScope: restore.runtimePolicyScope,
+      materialActivation: restore.materialActivation,
+      auth: {
+        kind: 'passkey' as const,
+        rpId: restore.rpId,
+        credentialIdB64u: restore.credentialIdB64u,
+      },
+      nearEd25519SigningKeyId: restore.nearEd25519SigningKeyId,
+      signerSlot: restore.signerSlot,
+    };
+    const result = await page.evaluate(
+      async ({ modulePath, durableRecord, publicCapabilityReference, authorization }) => {
+        const { readAvailableSigningLanes } = await import(modulePath);
+        const lanes = await readAvailableSigningLanes(
+          {
+            walletId: durableRecord.walletId,
+            ecdsaChainTargets: [],
+            ownerScope: {
+              auth: {
+                kind: 'passkey',
+                rpId: durableRecord.ed25519Restore.rpId,
+                credentialIdB64u: durableRecord.ed25519Restore.credentialIdB64u,
+              },
+              signerSlot: durableRecord.ed25519Restore.signerSlot,
+            },
+          },
+          {
+            listSealedRecordsForWallet: async () => [durableRecord],
+            listPublicCapabilityReferences: async () => [publicCapabilityReference],
+            isPublicCapabilityActive: () => true,
+            readActiveWalletSessionAuthorization: async () => ({
+              kind: 'found',
+              authorization,
+            }),
+          },
+        );
+        const lane = lanes.lanes.ed25519.near;
+        return {
+          candidateCount: lanes.candidates.ed25519.near.length,
+          lane: {
+            authorizationState: lane.authorizationState,
+            expiresAtMs: lane.expiresAtMs,
+            remainingUses: lane.remainingUses,
+            source: lane.source,
+            state: lane.state,
+            thresholdSessionId: lane.thresholdSessionId,
+          },
+        };
+      },
+      {
+        modulePath: AVAILABLE_SIGNING_LANES_PATH,
+        durableRecord,
+        publicCapabilityReference,
+        authorization,
+      },
+    );
+
+    expect(result).toEqual({
+      candidateCount: 2,
+      lane: {
+        authorizationState: 'authorized',
+        expiresAtMs: currentRecord.expiresAtMs,
+        remainingUses: 9,
+        source: 'public_capability_reference',
+        state: 'ready',
+        thresholdSessionId: currentRecord.thresholdSessionIds.ed25519,
+      },
+    });
+  });
+
+  test('does not authorize a superseded passkey session with the current session token', async ({
+    page,
+  }) => {
+    const walletId = 'ed25519-session-rotation-wallet';
+    const retiredRecord = buildPasskeyEd25519SealedSessionRecordFixture({
+      walletId,
+      thresholdSessionId: 'ed25519-session-retired',
+      materialActivation: buildMpcMaterialActivationRefFixture(
+        'ed25519-material-retired',
+        walletId,
+      ),
+    });
+    const currentRecord = buildPasskeyEd25519SealedSessionRecordFixture({
+      walletId,
+      thresholdSessionId: 'ed25519-session-current',
+      materialActivation: buildMpcMaterialActivationRefFixture(
+        'ed25519-material-current',
+        walletId,
+      ),
+    });
+    const authorization = buildPasskeyExactEd25519AuthorizationFixture(currentRecord);
+    const result = await page.evaluate(
+      async ({ modulePath, retiredRecord, currentRecord, authorization }) => {
+        const { readAvailableSigningLanes } = await import(modulePath);
+        const lanes = await readAvailableSigningLanes(
+          {
+            walletId: currentRecord.walletId,
+            ecdsaChainTargets: [],
+            ownerScope: {
+              auth: {
+                kind: 'passkey',
+                rpId: currentRecord.ed25519Restore.rpId,
+                credentialIdB64u: currentRecord.ed25519Restore.credentialIdB64u,
+              },
+              signerSlot: currentRecord.ed25519Restore.signerSlot,
+            },
+          },
+          {
+            listSealedRecordsForWallet: async () => [retiredRecord, currentRecord],
+            readActiveWalletSessionAuthorization: async () => ({
+              kind: 'found',
+              authorization,
+            }),
+          },
+        );
+        return lanes.candidates.ed25519.near.map((lane: Record<string, unknown>) => ({
+          authorizationState: lane.authorizationState,
+          state: lane.state,
+          thresholdSessionId: lane.thresholdSessionId,
+        }));
+      },
+      {
+        modulePath: AVAILABLE_SIGNING_LANES_PATH,
+        retiredRecord,
+        currentRecord,
+        authorization,
+      },
+    );
+
+    expect(result).toEqual([
+      {
+        authorizationState: 'authorized',
+        state: 'restorable',
+        thresholdSessionId: 'ed25519-session-current',
+      },
+      {
+        authorizationState: 'authorization_required',
+        state: 'deferred',
+        thresholdSessionId: 'ed25519-session-retired',
+      },
+    ]);
+  });
+
+  test('prefers a fresh Email OTP unlock capability under a promoted full authority', async ({
+    page,
+  }) => {
+    const nowMs = Date.now();
+    const record = buildEmailOtpEd25519SealedSessionRecordFixture({
+      expiresAtMs: nowMs + 60_000,
+      remainingUses: 0,
+    });
+    const sourceAuthorization = buildEmailOtpExactEd25519AuthorizationFixture(record, {
+      remainingUses: 3,
+    });
+    const promotedAuthority = await extendFixtureAuthorityWithEcdsaSigner(
+      sourceAuthorization.selectedAuthority,
+    );
+    const promotedSession = buildPromotedActiveWalletSessionFixture({
+      source: sourceAuthorization.session,
+      authority: promotedAuthority,
+    });
+    const authorization = buildActiveNearEd25519WalletSessionAuthorization({
+      selectedAuthority: promotedAuthority,
+      selectedAuthMethod: sourceAuthorization.selectedAuthMethod,
+      selectedFactorAuthority: sourceAuthorization.selectedFactorAuthority,
+      session: promotedSession,
+      operationCredential: sourceAuthorization.operationCredential,
+      status: {
+        status: 'active',
+        walletSessionId: sourceAuthorization.status.walletSessionId,
+        quotaId: sourceAuthorization.status.quotaId,
+        remainingUses: sourceAuthorization.status.remainingUses,
+        expiresAtMs: sourceAuthorization.status.expiresAtMs,
+        quotaLifecycle: 'active',
+        authorization: promotedSession,
+      },
+      nowMs,
+    });
+    const factorAuthorityRef = buildWalletAuthAuthorityRefForAuthorityFixture(
+      sourceAuthorization.selectedFactorAuthority,
+    );
+    expect(promotedAuthority.authorityDigestB64u).not.toBe(factorAuthorityRef.authorityDigest);
+    const restore = record.ed25519Restore;
+    const publicCapabilityReference = {
+      walletId: record.walletId,
+      nearAccountId: restore.nearAccountId,
+      thresholdSessionId: record.thresholdSessionIds.ed25519,
+      runtimePolicyScope: restore.runtimePolicyScope,
+      materialActivation: restore.materialActivation,
+      auth: {
+        kind: 'email_otp' as const,
+        providerSubjectId: restore.providerSubjectId,
+      },
+      nearEd25519SigningKeyId: restore.nearEd25519SigningKeyId,
+      signerSlot: restore.signerSlot,
+      remainingUses: 3,
+      expiresAtMs: authorization.status.expiresAtMs,
+    };
+    const result = await page.evaluate(
+      async ({
+        modulePath,
+        record,
+        publicCapabilityReference,
+        authorization,
+        factorAuthorityRef,
+      }) => {
+        const { readAvailableSigningLanes } = await import(modulePath);
+        const lanes = await readAvailableSigningLanes(
+          {
+            walletId: publicCapabilityReference.walletId,
+            ecdsaChainTargets: [],
+            ownerScope: {
+              auth: {
+                kind: 'email_otp',
+                providerSubjectId: publicCapabilityReference.auth.providerSubjectId,
+              },
+              ownerAuthority: {
+                walletAuthMethodId: authorization.selectedAuthMethod.walletAuthMethodId,
+                authorityDigest: factorAuthorityRef.authorityDigest,
+              },
+            },
+          },
+          {
+            listSealedRecordsForWallet: async () => [record],
+            listPublicCapabilityReferences: async () => [publicCapabilityReference],
+            isPublicCapabilityActive: () => true,
+            readActiveWalletSessionAuthorization: async () => ({
+              kind: 'found',
+              authorization,
+            }),
+          },
+        );
+        const lane = lanes.lanes.ed25519.near;
+        return {
+          candidateCount: lanes.candidates.ed25519.near.length,
+          lane: {
+            authorizationState: lane.authorizationState,
+            remainingUses: lane.remainingUses,
+            source: lane.source,
+            state: lane.state,
+          },
+        };
+      },
+      {
+        modulePath: AVAILABLE_SIGNING_LANES_PATH,
+        record,
+        publicCapabilityReference,
+        authorization,
+        factorAuthorityRef,
+      },
+    );
+
+    expect(result).toEqual({
+      candidateCount: 1,
+      lane: {
+        authorizationState: 'authorized',
+        remainingUses: 3,
+        source: 'public_capability_reference',
+        state: 'ready',
+      },
+    });
+  });
+
+  test('retains the exact Email OTP Ed25519 owner lane after session exhaustion', async ({
+    page,
+  }) => {
+    const record = buildEmailOtpEd25519SealedSessionRecordFixture({
+      expiresAtMs: Date.now() + 60_000,
+      remainingUses: 0,
+    });
+    const authorization = buildEmailOtpExactEd25519AuthorizationFixture(record, {
+      remainingUses: 3,
+    });
+    const factorAuthorityRef = buildWalletAuthAuthorityRefForAuthorityFixture(
+      authorization.selectedFactorAuthority,
+    );
+    const result = await page.evaluate(
+      async ({ modulePath, record, authorization, factorAuthorityRef }) => {
+        const { readAvailableSigningLanes } = await import(modulePath);
+        const lanes = await readAvailableSigningLanes(
+          {
+            walletId: record.walletId,
+            ecdsaChainTargets: [],
+            ownerScope: {
+              auth: {
+                kind: 'email_otp',
+                providerSubjectId: record.ed25519Restore.providerSubjectId,
+              },
+              ownerAuthority: {
+                walletAuthMethodId: authorization.selectedAuthMethod.walletAuthMethodId,
+                authorityDigest: factorAuthorityRef.authorityDigest,
+              },
+            },
+          },
+          {
+            listSealedRecordsForWallet: async () => [record],
+            readActiveWalletSessionAuthorization: async () => ({ kind: 'missing' }),
+          },
+        );
+        const lane = lanes.lanes.ed25519.near;
+        return {
+          candidateCount: lanes.candidates.ed25519.near.length,
+          authorizationState: lane.authorizationState,
+          source: lane.source,
+          state: lane.state,
+        };
+      },
+      {
+        modulePath: AVAILABLE_SIGNING_LANES_PATH,
+        record,
+        authorization,
+        factorAuthorityRef,
+      },
+    );
+
+    expect(result).toEqual({
+      candidateCount: 1,
+      authorizationState: 'authorization_required',
+      source: 'durable_sealed_record',
+      state: 'deferred',
+    });
+  });
+});

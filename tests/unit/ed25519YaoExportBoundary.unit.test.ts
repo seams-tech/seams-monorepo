@@ -1,0 +1,139 @@
+import { expect, test } from '@playwright/test';
+import type { RouterAbEd25519YaoExportAdmissionRequestV1 } from '@shared/utils/routerAbEd25519Yao';
+import {
+  buildRouterAbEd25519YaoExportAdmissionBodyV1,
+  exportSessionConstructorForCustodyEnvelopeV1,
+} from '../../packages/wallet/src/core/signingEngine/threshold/ed25519/yaoClient';
+import {
+  WasmEd25519YaoClientRootExportSessionV1,
+  WasmWalletCustodySeedExportSessionV1,
+} from '../../crates/router-ab-ed25519-yao-client/pkg/router_ab_ed25519_yao_client.js';
+import type { WebAuthnAuthenticationCredential } from '../../packages/wallet/src/core/types/webauthn';
+
+const PARTICIPANT_IDS = [11, 29] as const;
+
+function bytes(value: number): number[] {
+  return new Array<number>(32).fill(value);
+}
+
+function materialActivation() {
+  return {
+    kind: 'mpc_material_activation_ref' as const,
+    activation_id: 'export-material-activation-1',
+    capability: 'export-capability-1',
+    material_owner: 'wallet-1',
+    key_binding: 'export-key-1',
+    lifecycle_binding: 'export-lifecycle-1',
+    signing_worker: 'signing-worker-1',
+  };
+}
+
+function exportAdmissionRequest(): RouterAbEd25519YaoExportAdmissionRequestV1 {
+  return {
+    scope: {
+      lifecycle_id: 'export-lifecycle-1',
+      root_share_epoch: 'root-epoch-1',
+      account_id: 'wallet-1',
+      threshold_session_id: 'wallet-session-1',
+      signer_set_id: 'signer-set-1',
+      signing_worker_id: 'signing-worker-1',
+      material_activation: materialActivation(),
+    },
+    application_binding: {
+      wallet_id: 'wallet-1',
+      near_ed25519_signing_key_id: 'near-key-1',
+      signing_root_id: 'project:test',
+      key_creation_signer_slot: 1,
+    },
+    participant_ids: PARTICIPANT_IDS,
+    registered_public_key: bytes(12),
+    state_epoch: 1,
+    runtime_policy_binding: bytes(13),
+    authorization: {
+      confirmation_digest: bytes(14),
+      authorization_digest: bytes(15),
+      nonce: bytes(16),
+      issued_at_ms: 1_000,
+      expires_at_ms: 61_000,
+    },
+  };
+}
+
+function authenticationCredential(): WebAuthnAuthenticationCredential {
+  return {
+    id: 'credential-1',
+    rawId: 'credential-1',
+    type: 'public-key',
+    authenticatorAttachment: undefined,
+    response: {
+      clientDataJSON: 'client-data',
+      authenticatorData: 'authenticator-data',
+      signature: 'signature',
+      userHandle: 'user-handle',
+    },
+    clientExtensionResults: {
+      prf: {
+        results: {
+          first: 'owned-client-root-secret',
+          second: 'other-prf-secret',
+        },
+      },
+    },
+  };
+}
+
+test.describe('Ed25519 Yao export browser boundary', () => {
+  test('selects the matching strict WASM export session for each envelope kind', () => {
+    expect(
+      exportSessionConstructorForCustodyEnvelopeV1({ kind: 'wallet_custody_seed_v1' }),
+    ).toBe(WasmWalletCustodySeedExportSessionV1);
+    expect(
+      exportSessionConstructorForCustodyEnvelopeV1({ kind: 'ed25519_yao_client_root_v1' }),
+    ).toBe(WasmEd25519YaoClientRootExportSessionV1);
+  });
+
+  test('removes PRF results from the server-bound authentication credential', () => {
+    const protocol = exportAdmissionRequest();
+    const body = buildRouterAbEd25519YaoExportAdmissionBodyV1({
+      protocol,
+      authorization: {
+        kind: 'passkey',
+        webauthnAuthentication: authenticationCredential(),
+      },
+    });
+    const serialized = JSON.stringify(body);
+
+    expect(body.protocol).toBe(protocol);
+    expect(body.authorization.kind).toBe('passkey');
+    if (body.authorization.kind !== 'passkey') throw new Error('passkey authorization required');
+    expect(body.authorization.webauthnAuthentication.clientExtensionResults).toBeNull();
+    expect(serialized).not.toContain('owned-client-root-secret');
+    expect(serialized).not.toContain('other-prf-secret');
+  });
+
+  test('encodes Email OTP factor authorization without passkey fields', () => {
+    const protocol = exportAdmissionRequest();
+    const body = buildRouterAbEd25519YaoExportAdmissionBodyV1({
+      protocol,
+      authorization: {
+        kind: 'email_otp_factor',
+        providerSubjectId: 'google:ed25519-export-user',
+        walletAuthMethodId: 'wallet-auth-method:ed25519-export',
+        challengeId: 'email-otp-challenge-1',
+        otpCode: '123456',
+      },
+    });
+
+    expect(body).toEqual({
+      protocol,
+      authorization: {
+        kind: 'email_otp_factor',
+        providerSubjectId: 'google:ed25519-export-user',
+        walletAuthMethodId: 'wallet-auth-method:ed25519-export',
+        challengeId: 'email-otp-challenge-1',
+        otpCode: '123456',
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain('webauthn');
+  });
+});

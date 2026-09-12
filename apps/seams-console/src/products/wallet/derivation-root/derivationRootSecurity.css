@@ -1,0 +1,1327 @@
+/*
+ * Derivation root security page layout.
+ *
+ * The page must reflow at 320 CSS pixels and at 200% zoom without the body
+ * scrolling horizontally. Wide content — long identifiers and CLI commands —
+ * scrolls or wraps inside its own container instead.
+ */
+
+.dashboard-shell--route-derivation-root .dashboard-main__header {
+  display: none;
+}
+
+.dashboard-shell--route-derivation-root .dashboard-main {
+  background: var(--dashboard-surface-soft);
+}
+
+.derivation-root-page {
+  --dashboard-graphite: var(--dashboard-alpha-600);
+  width: 100%;
+  max-width: 52rem;
+  min-width: 0;
+  margin-inline: auto;
+  font-size: var(--dashboard-text-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-page h1 {
+  margin: 0 0 0.625rem;
+  font-size: var(--dashboard-text-title);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.derivation-root-page h2 {
+  margin: 0;
+  font-size: var(--dashboard-text-heading);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.derivation-root-page h3 {
+  margin: 0 0 0.5rem;
+  font-size: var(--dashboard-text-body);
+  font-weight: 600;
+}
+
+.derivation-root-page p {
+  margin: 0;
+}
+
+.derivation-root-header > p,
+.derivation-root-page .derivation-root-description {
+  color: var(--dashboard-graphite);
+  max-width: 65ch;
+}
+
+.derivation-root-header .derivation-root-environment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  max-width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.75rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 10px;
+  background: var(--dashboard-surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.025);
+  font-size: var(--dashboard-text-caption);
+}
+
+.derivation-root-environment-label {
+  padding-inline-end: 0.625rem;
+  border-inline-end: 1px solid var(--dashboard-border);
+  color: var(--dashboard-graphite);
+  line-height: 1.5;
+}
+
+.derivation-root-environment .dashboard-shortid {
+  gap: 0.375rem;
+}
+
+.derivation-root-environment .dashboard-shortid__copy:focus-visible {
+  outline: 2px solid var(--dashboard-ink);
+  outline-offset: 1px;
+}
+
+.derivation-root-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-block: 1.75rem 1.25rem;
+  padding: 0.25rem;
+  border-radius: 12px;
+  background: var(--dashboard-muted);
+}
+
+.derivation-root-tabs > button {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dashboard-graphite);
+  font: inherit;
+  font-size: var(--dashboard-text-compact);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.derivation-root-tabs > button:hover {
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-tabs > button[aria-selected='true'] {
+  background: var(--dashboard-surface);
+  color: var(--dashboard-ink);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.08);
+}
+
+.derivation-root-tabs > button:focus-visible,
+.derivation-root-tab-panel:focus-visible {
+  outline: 2px solid var(--dashboard-ink);
+  outline-offset: 2px;
+}
+
+.derivation-root-tab-panel {
+  min-width: 0;
+}
+
+.derivation-root-tab-panel[hidden] {
+  display: none;
+}
+
+.derivation-root-tab-panel > .derivation-root-enrollment {
+  margin-block: 0 1.25rem;
+}
+
+.derivation-root-panel {
+  min-width: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 16px;
+  background: var(--dashboard-surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.025);
+}
+
+.derivation-root-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.derivation-root-epoch {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-sm);
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.derivation-root-derivers,
+.derivation-root-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.derivation-root-derivers > div {
+  padding: 1rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  background: var(--dashboard-surface-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.derivation-root-derivers dd,
+.derivation-root-dates dd {
+  margin: 0;
+}
+
+.derivation-root-dates dt {
+  margin-bottom: 0.375rem;
+  font-size: var(--dashboard-text-supporting);
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-dates dd {
+  font-size: var(--dashboard-text-compact);
+  font-variant-numeric: tabular-nums;
+}
+
+.derivation-root-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--dashboard-radius-sm);
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+}
+
+.derivation-root-page .dashboard-status {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+  padding: 0.875rem;
+  border-radius: var(--dashboard-radius-md);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.5;
+}
+
+.derivation-root-page .dashboard-status > svg {
+  margin-top: 0.125rem;
+}
+
+.derivation-root-page .dashboard-status strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.derivation-root-health--success,
+.derivation-root-page .dashboard-status--success {
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-success);
+}
+
+.derivation-root-health--warning,
+.derivation-root-page .dashboard-status--warning {
+  background: var(--dashboard-warning-soft);
+  color: color-mix(in srgb, var(--dashboard-warning) 80%, var(--dashboard-ink));
+}
+
+.derivation-root-health--danger,
+.derivation-root-page .dashboard-status--danger {
+  background: var(--dashboard-danger-soft);
+  color: var(--dashboard-danger);
+}
+
+.derivation-root-health--neutral,
+.derivation-root-page .dashboard-status--neutral,
+.derivation-root-page .dashboard-status--progress {
+  background: var(--dashboard-muted);
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-page .derivation-root-description {
+  margin-top: 1rem;
+  font-size: var(--dashboard-text-compact);
+}
+
+.derivation-root-page .derivation-root-rotate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  max-width: 100%;
+  margin-top: 1.25rem;
+  padding-block: 0.5rem;
+  white-space: normal;
+}
+
+.derivation-root-page .derivation-root-active {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.derivation-root-active svg {
+  flex-shrink: 0;
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-recovery {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0;
+}
+
+.derivation-root-modal p {
+  margin: 0;
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.5;
+}
+
+.derivation-root-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.derivation-root-modal-actions button {
+  min-height: 40px;
+  padding-block: 0.5rem;
+}
+
+.derivation-root-page .derivation-root-outcome,
+.derivation-root-modal .derivation-root-outcome {
+  font-size: var(--dashboard-text-compact);
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-outcome:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.derivation-root-error {
+  color: var(--dashboard-danger);
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-page pre {
+  /* A command block scrolls itself rather than widening the page. */
+  overflow-x: auto;
+  max-width: 100%;
+  white-space: pre;
+  padding: 0.75rem;
+  border-radius: var(--dashboard-radius-md);
+  background: var(--dashboard-muted);
+  font: var(--dashboard-text-supporting)/1.6 var(--console-font-mono);
+}
+
+.derivation-root-page .dashboard-definitions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  margin: 0 0 1rem;
+}
+
+@media (min-width: 32rem) {
+  .derivation-root-page .dashboard-definitions {
+    grid-template-columns: minmax(8rem, auto) minmax(0, 1fr);
+  }
+}
+
+.derivation-root-page .dashboard-definitions dd {
+  margin: 0 0 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-page .dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.derivation-root-page .dashboard-shortid {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.derivation-root-page .dashboard-shortid code {
+  color: var(--dashboard-ink);
+  font: var(--dashboard-text-supporting)/1.5 var(--console-font-mono);
+}
+
+.derivation-root-page .dashboard-shortid__copy {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--dashboard-radius-sm);
+  background: transparent;
+  color: var(--dashboard-graphite);
+  cursor: pointer;
+}
+
+.derivation-root-page .dashboard-shortid__copy:hover {
+  background: var(--dashboard-muted);
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-page .dashboard-progress,
+.derivation-root-page .dashboard-commands {
+  padding-inline-start: 1.25rem;
+  margin: 1.25rem 0 0;
+  min-width: 0;
+}
+
+.derivation-root-page .dashboard-progress {
+  display: grid;
+  gap: 0.375rem;
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-supporting);
+}
+
+.derivation-root-page .dashboard-progress [aria-current='step'] {
+  color: var(--dashboard-ink);
+  font-weight: 600;
+}
+
+.derivation-root-page .dashboard-commands li {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 40rem) {
+  .derivation-root-tabs > button {
+    padding-inline: 0.375rem;
+    overflow-wrap: normal;
+  }
+
+  .derivation-root-tabs > button:last-child {
+    flex: 1.35;
+  }
+
+  .derivation-root-panel {
+    padding: 1.125rem;
+  }
+
+  .derivation-root-page h1 {
+    font-size: var(--dashboard-text-title-compact);
+  }
+}
+
+@media (pointer: coarse) {
+  .derivation-root-page button,
+  .derivation-root-modal button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Visible only to assistive technology; the full value of a shortened id. */
+.derivation-root-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .derivation-root-page * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.derivation-root-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.derivation-root-section-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--dashboard-surface-soft);
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-recovery > .dashboard-status {
+  margin-top: 0;
+}
+
+.derivation-root-page .derivation-root-recovery-step {
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.derivation-root-recovery-step > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 76px;
+  padding: 1rem;
+  list-style: none;
+}
+
+.derivation-root-recovery-step > summary::-webkit-details-marker {
+  display: none;
+}
+.derivation-root-recovery-step > summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin-inline-start: auto;
+  margin-inline-end: 4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  color: var(--dashboard-graphite);
+}
+.derivation-root-recovery-step[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .derivation-root-recovery-step > summary::after {
+    transition: transform 220ms var(--dashboard-ease-layout);
+  }
+
+  @supports (interpolate-size: allow-keywords) {
+    .derivation-root-recovery-step::details-content {
+      interpolate-size: allow-keywords;
+      height: 0;
+      overflow: clip;
+      opacity: 0;
+      transition:
+        height 220ms var(--dashboard-ease-layout),
+        opacity 160ms ease-out,
+        content-visibility 220ms allow-discrete;
+    }
+
+    .derivation-root-recovery-step[open]::details-content {
+      height: auto;
+      opacity: 1;
+    }
+  }
+}
+
+.derivation-root-page .derivation-root-recovery-step[open] > summary {
+  margin-bottom: 0;
+}
+.derivation-root-recovery-step h3 {
+  margin: 0;
+  font-size: var(--dashboard-text-body);
+}
+.derivation-root-step-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.25rem 1.25rem 1.25rem 3.75rem;
+}
+.derivation-root-step-body > button {
+  justify-self: start;
+}
+.derivation-root-step-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--dashboard-muted);
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.derivation-root-step-body > p,
+.derivation-root-recovery-notes,
+.derivation-root-recovery > p {
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.6;
+}
+
+.derivation-root-page details {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+}
+
+.derivation-root-page summary {
+  padding-block: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.derivation-root-page details[open] > summary {
+  margin-bottom: 1rem;
+}
+.derivation-root-page details > p {
+  margin-top: 0.75rem;
+}
+
+.derivation-root-policy-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+
+.derivation-root-policy-options legend {
+  padding: 0 0 0.75rem;
+  font-size: var(--dashboard-text-supporting);
+  color: var(--dashboard-graphite);
+}
+.derivation-root-policy-options > p {
+  grid-column: 1 / -1;
+}
+
+.derivation-root-policy-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.derivation-root-policy-choice:has(input:checked) {
+  border-color: var(--dashboard-success);
+  background: var(--dashboard-success-soft);
+}
+
+.derivation-root-policy-choice input {
+  margin: 0.25rem 0 0;
+  flex: none;
+  accent-color: var(--dashboard-success);
+}
+.derivation-root-policy-choice > span {
+  display: grid;
+  gap: 0.375rem;
+}
+.derivation-root-policy-choice strong {
+  font-size: var(--dashboard-text-compact);
+  font-weight: 600;
+}
+.derivation-root-policy-choice > span > span {
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.5;
+  color: var(--dashboard-graphite);
+}
+.derivation-root-policy-choice:has(input:disabled) {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.derivation-root-recovery-step .dashboard-actions {
+  margin: 0;
+}
+.derivation-root-recovery-notes {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  font-size: var(--dashboard-text-supporting);
+  border-top: 1px solid var(--dashboard-border);
+}
+.derivation-root-page .dashboard-commands {
+  display: grid;
+  gap: 1.5rem;
+}
+.derivation-root-page pre {
+  border: 1px solid var(--dashboard-border);
+  padding: 1rem;
+}
+.derivation-root-page button {
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 40rem) {
+  .derivation-root-policy-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .derivation-root-step-body {
+    padding-inline-start: 1rem;
+  }
+  .derivation-root-page details {
+    padding: 0.875rem;
+  }
+}
+
+.derivation-root-instructions {
+  margin-top: 1.25rem;
+  font-size: var(--dashboard-text-compact);
+}
+
+.derivation-root-recovery .derivation-root-policy-choice {
+  padding: 0.75rem;
+}
+.derivation-root-recovery .derivation-root-policy-options {
+  margin-bottom: 0;
+}
+.derivation-root-recovery .derivation-root-policy-options > p {
+  font-size: var(--dashboard-text-supporting);
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-verification-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--dashboard-text-compact);
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-verification-choice strong {
+  color: var(--dashboard-ink);
+  font-weight: 500;
+}
+
+.derivation-root-verification-dialog {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 24px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 16px;
+  background: var(--dashboard-surface);
+  color: var(--dashboard-ink);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.2);
+  overscroll-behavior: contain;
+}
+
+.derivation-root-verification-dialog::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+.derivation-root-backup-dialog {
+  width: min(680px, calc(100vw - 32px));
+  overflow-wrap: anywhere;
+}
+.derivation-root-verification-dialog h2 {
+  margin: 0 0 20px;
+  font-size: var(--dashboard-text-heading);
+  font-weight: 600;
+}
+.derivation-root-verification-dialog .derivation-root-policy-options {
+  grid-template-columns: minmax(0, 1fr);
+}
+.derivation-root-verification-dialog > p {
+  margin: 16px 0;
+  font-size: var(--dashboard-text-compact);
+  line-height: 1.5;
+  color: var(--dashboard-graphite);
+}
+.derivation-root-verification-dialog button {
+  min-height: 44px;
+}
+
+.derivation-root-panel-intro,
+.derivation-root-step-label > span {
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.5;
+}
+
+.derivation-root-step-label {
+  min-width: 0;
+  flex: 1;
+}
+
+.derivation-root-step-label > span {
+  display: block;
+  margin-top: 0.25rem;
+  font-weight: 400;
+}
+
+.derivation-root-step-state {
+  flex: none;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--dashboard-radius-sm);
+  background: var(--dashboard-muted);
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+}
+
+.derivation-root-page .derivation-root-step-state.dashboard-status--success {
+  color: color-mix(in srgb, var(--dashboard-success) 90%, var(--dashboard-ink));
+}
+
+.derivation-root-page .derivation-root-recovery-step[open] {
+  background: var(--dashboard-surface-soft);
+  border-color: var(--dashboard-active-border);
+}
+
+.derivation-root-recovery-step[open] .derivation-root-step-number {
+  background: var(--dashboard-ink);
+  color: var(--dashboard-surface);
+}
+
+.derivation-root-recovery-step > summary:hover {
+  background: var(--dashboard-surface-soft);
+}
+
+.derivation-root-page summary:focus-visible {
+  outline: 2px solid var(--dashboard-ink);
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+.derivation-root-enrollment {
+  display: grid;
+  gap: 0.75rem 1rem;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+}
+
+.derivation-root-enrollment > button {
+  justify-self: start;
+}
+
+.derivation-root-enrollment--complete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.derivation-root-enrollment h2 {
+  font-size: var(--dashboard-text-body);
+}
+
+.derivation-root-enrollment p {
+  font-size: var(--dashboard-text-compact);
+}
+
+@media (max-width: 40rem) {
+  .derivation-root-step-state {
+    margin-inline-start: 2.375rem;
+  }
+
+  .derivation-root-step-label {
+    flex-basis: calc(100% - 3rem);
+  }
+
+  .derivation-root-recovery-step > summary {
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    padding: 0.875rem;
+  }
+
+  .derivation-root-derivers,
+  .derivation-root-dates {
+    gap: 0.75rem;
+  }
+}
+
+.derivation-root-command {
+  --command-executable: #6d28a0;
+  --command-option: #225ea8;
+  --command-package: #126b50;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+  margin-block: 0.75rem;
+  padding-inline-end: 0.5rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: var(--dashboard-radius-md);
+  background: var(--dashboard-muted);
+}
+
+.derivation-root-command-executable {
+  color: var(--command-executable);
+}
+
+.derivation-root-command--completed pre {
+  opacity: 0.6;
+}
+
+.derivation-root-command-option {
+  color: var(--command-option);
+}
+
+.derivation-root-command-package {
+  color: var(--command-package);
+}
+
+.derivation-root-page .derivation-root-command pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.derivation-root-command > .dashboard-shortid__copy {
+  flex: none;
+  margin-top: 0.625rem;
+}
+
+.derivation-root-command > .dashboard-shortid__copy:focus-visible {
+  outline: 2px solid var(--dashboard-ink);
+  outline-offset: 1px;
+}
+
+.derivation-root-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--dashboard-radius-md);
+  background: var(--dashboard-muted);
+}
+
+.derivation-root-page .derivation-root-error,
+.derivation-root-modal .derivation-root-error {
+  color: var(--dashboard-danger);
+}
+
+.derivation-root-error.derivation-root-feedback {
+  background: color-mix(in srgb, var(--dashboard-danger) 10%, transparent);
+}
+
+.derivation-root-spinner {
+  flex-shrink: 0;
+  animation: derivation-root-spin 1s linear infinite;
+}
+
+@keyframes derivation-root-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .derivation-root-spinner {
+    animation: none;
+  }
+}
+
+.derivation-root-backup-progress {
+  margin-block: 0.75rem;
+  padding-block: 0.5rem;
+}
+
+.derivation-root-refresh-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+}
+
+.derivation-root-refresh-status > button {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.derivation-root-refresh-status > p {
+  flex: 1 1 15rem;
+  margin: 0;
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+  line-height: 1.5;
+}
+
+.derivation-root-refresh-status > p:empty {
+  flex-basis: 0;
+}
+
+.derivation-root-progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 34rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.derivation-root-progress-steps li {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.5rem;
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+  line-height: 1.4;
+}
+
+.derivation-root-progress-steps li:not(:last-child) {
+  flex: 1;
+}
+
+.derivation-root-progress-steps li:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  min-width: 0.5rem;
+  height: 1px;
+  background: var(--dashboard-border);
+}
+
+.derivation-root-progress-pip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 50%;
+  font-size: var(--dashboard-text-caption);
+  line-height: 1;
+}
+
+.derivation-root-progress-steps li[aria-current='step'] {
+  color: var(--dashboard-ink);
+  font-weight: 500;
+}
+
+.derivation-root-progress-steps li[aria-current='step'] .derivation-root-progress-pip {
+  border-color: var(--dashboard-graphite);
+}
+
+.derivation-root-progress-steps li[data-complete='true'] .derivation-root-progress-pip {
+  background: var(--dashboard-muted);
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-backup-progress > p {
+  margin: 0;
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-supporting);
+  line-height: 1.6;
+}
+
+.derivation-root-backup-progress > .derivation-root-progress-elapsed {
+  margin-top: 0.25rem;
+  font-size: var(--dashboard-text-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.derivation-root-policy-choice:has(input:disabled) {
+  cursor: not-allowed;
+  background: var(--dashboard-muted);
+  border-color: var(--dashboard-border);
+}
+
+.derivation-root-policy-choice small {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: var(--dashboard-text-supporting);
+}
+
+.derivation-root-destination {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: 1.5rem;
+}
+
+.derivation-root-destination .dashboard-input {
+  width: 100%;
+  max-width: 42rem;
+}
+
+.derivation-root-kit-download {
+  display: grid;
+  gap: 1rem;
+  max-inline-size: 42rem;
+  min-inline-size: 0;
+}
+
+.derivation-root-kit-download label {
+  display: grid;
+  gap: 0.5rem;
+  min-inline-size: 0;
+}
+
+.derivation-root-kit-download input {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.derivation-root-kit-download > button {
+  justify-self: start;
+  max-inline-size: 100%;
+}
+
+.derivation-root-enrollment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.derivation-root-enrollment code {
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-progress-activity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+  background: var(--dashboard-muted);
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-enrollment-details {
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: var(--dashboard-muted);
+}
+
+.derivation-root-enrollment-code {
+  display: grid;
+  gap: 0.375rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--dashboard-border);
+}
+
+.derivation-root-enrollment-code > span,
+.derivation-root-enrollment-fields dt {
+  color: var(--dashboard-graphite);
+  font-size: var(--dashboard-text-caption);
+}
+
+.derivation-root-enrollment-code strong {
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+.derivation-root-enrollment-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.derivation-root-enrollment-fields > div {
+  min-width: 0;
+}
+
+.derivation-root-enrollment-fields dd {
+  margin: 0.25rem 0 0;
+  font-size: var(--dashboard-text-compact);
+  overflow-wrap: anywhere;
+}
+
+.derivation-root-enrollment-field-wide {
+  grid-column: 1 / -1;
+}
+
+.derivation-root-enrollment-help {
+  color: var(--dashboard-graphite);
+}
+
+.derivation-root-enrollment-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.derivation-root-enrollment-actions .derivation-root-verification-action > button {
+  background: var(--dashboard-ink);
+  color: var(--dashboard-surface);
+  border-color: var(--dashboard-ink);
+}
+
+.derivation-root-enrollment-refresh {
+  color: var(--dashboard-graphite);
+  background: transparent;
+  border-color: transparent;
+}
+
+@media (max-width: 40rem) {
+  .derivation-root-enrollment-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.derivation-root-step-body .dashboard-pagination-button,
+.derivation-root-enrollment-footer .dashboard-pagination-button {
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.derivation-root-step-body:has(.derivation-root-commit-keys) > .derivation-root-commit-keys,
+.derivation-root-step-body:has(.derivation-root-commit-keys) > .derivation-root-refresh-status > button {
+  width: 14rem;
+  max-width: 100%;
+}
+
+.derivation-root-backup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.derivation-root-backup-header h2 {
+  margin: 0;
+}
+
+.derivation-root-backup-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.derivation-root-backup-dialog .derivation-root-enrollment-footer {
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 40rem) {
+  .derivation-root-backup-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.derivation-root-enrollment-actions .derivation-root-verification-action > button:hover:not(:disabled) {
+  background: #454545;
+  border-color: #454545;
+  color: #ffffff;
+}
+
+.derivation-root-backup-header .derivation-root-backup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--dashboard-ink);
+}
+
+.derivation-root-backup-dialog .derivation-root-enrollment-footer {
+  justify-content: flex-end;
+}
+
+.derivation-root-backup-dialog .derivation-root-enrollment-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 25rem);
+}
+
+.derivation-root-backup-dialog .derivation-root-enrollment-actions > button,
+.derivation-root-backup-dialog .derivation-root-verification-action > button {
+  width: 100%;
+  height: 100%;
+}
+
+.derivation-root-page .derivation-root-restore-access-heading {
+  margin-top: 2rem;
+}
+
+.derivation-root-restore-approval[open] {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+.derivation-root-restore-approval .derivation-root-enrollment-footer {
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+.derivation-root-restore-approval-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: min(100%, 25rem);
+}
+
+.derivation-root-restore-approval-actions .dashboard-pagination-button--primary:hover:not(:disabled) {
+  background: #454545;
+  border-color: #454545;
+  color: #fff;
+}
+
+.derivation-root-offline-activation {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  background: var(--dashboard-muted);
+}
+.derivation-root-offline-activation > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.derivation-root-page .derivation-root-offline-activation > p {
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+.derivation-root-restore-success,
+.derivation-root-verification-dialog > p.derivation-root-restore-success {
+  margin-block: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-success);
+}
+.derivation-root-page .derivation-root-restore-success p {
+  margin-top: 0.5rem;
+}

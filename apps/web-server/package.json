@@ -1,0 +1,35 @@
+{
+  "name": "web-server",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w --preserveWatchOutput",
+    "start": "node dist/index.js",
+    "dev": "node ./scripts/dev.mjs",
+    "dev:threshold:3relays": "node ./scripts/dev-threshold-3relays.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@seams-internal/console-server": "workspace:*",
+    "@seams-internal/wallet-console-server": "workspace:*",
+    "@seams-internal/wallet-console-shared": "workspace:*",
+    "@seams/wallet": "workspace:*",
+    "@seams/wallet-server": "workspace:*",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.7.4",
+    "typescript": "^5.6.2"
+  }
+}

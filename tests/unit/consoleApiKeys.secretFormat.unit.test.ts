@@ -1,0 +1,47 @@
+import { test, expect } from '@playwright/test';
+import {
+  makeApiKeyLookupPrefix,
+  makeApiKeyId,
+  makeApiKeySecret,
+  parseApiKeySecret,
+} from '@seams-internal/console-server/apiKeys/secret';
+
+test.describe('console API key secret format', () => {
+  test('creates short opaque publishable keys', async () => {
+    const secret = makeApiKeySecret({ kind: 'publishable_key' });
+
+    expect(secret).toMatch(/^pk_[A-Za-z0-9]+$/);
+    expect(secret).not.toContain('.');
+    expect(secret.slice(3)).not.toContain('_');
+    expect(secret.slice(3)).not.toContain('-');
+    expect(secret.length).toBeLessThan(50);
+    expect(parseApiKeySecret(secret)).toEqual({ kind: 'publishable_key' });
+    expect(makeApiKeyLookupPrefix(secret)).toBe(secret.slice(0, 24));
+  });
+
+  test('creates short opaque secret keys', async () => {
+    const secret = makeApiKeySecret({ kind: 'secret_key' });
+
+    expect(secret).toMatch(/^sk_[A-Za-z0-9]+$/);
+    expect(secret).not.toContain('.');
+    expect(secret.slice(3)).not.toContain('_');
+    expect(secret.slice(3)).not.toContain('-');
+    expect(secret.length).toBeLessThan(50);
+    expect(parseApiKeySecret(secret)).toEqual({ kind: 'secret_key' });
+  });
+
+  test('rejects dotted and separator-heavy token layouts', async () => {
+    expect(parseApiKeySecret('pk_org.part.keypart')).toBeNull();
+    expect(parseApiKeySecret('sk_org.part.keypart')).toBeNull();
+    expect(parseApiKeySecret('pk_body-with-dash')).toBeNull();
+    expect(parseApiKeySecret('sk_body_with_underscore')).toBeNull();
+  });
+
+  test('creates opaque api key ids without extra separators', async () => {
+    const id = makeApiKeyId(new Date('2026-03-12T00:00:00.000Z'));
+
+    expect(id).toMatch(/^ak_[a-f0-9]+$/);
+    expect(id.slice(3)).not.toContain('_');
+    expect(id.slice(3)).not.toContain('-');
+  });
+});

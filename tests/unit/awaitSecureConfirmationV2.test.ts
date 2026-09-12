@@ -1,0 +1,600 @@
+import { test, expect } from '@playwright/test';
+import { setupBasicPasskeyTest } from '../setup';
+
+// awaitUserConfirmationV2 is exposed from the UserConfirm worker bundle.
+const WORKER_PATH = '/sdk/workers/passkey-confirm.worker.js';
+
+test.describe('awaitUserConfirmationV2 - error handling', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupBasicPasskeyTest(page);
+  });
+
+  test('rejects on invalid input and missing fields', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        // Load the UserConfirm worker bundle; it exposes awaitUserConfirmationV2 on globalThis
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+        const errors: string[] = [];
+        for (const input of [
+          'not-json',
+          {},
+          { kind: 'pending_request' },
+          { kind: 'export_request', request: {} },
+        ]) {
+          try {
+            await awaitUserConfirmation(input);
+          } catch (e: any) {
+            errors.push(String(e?.message || e));
+          }
+        }
+        return { errors };
+      },
+      { workerPath: WORKER_PATH },
+    );
+    expect(result.errors.length).toBe(4);
+    expect(result.errors.join(' ')).toContain('expected an object');
+    expect(result.errors.join(' ')).toContain('unsupported prompt kind');
+    expect(result.errors.join(' ')).toContain('missing requestId');
+  });
+
+  test('rejects immediately when aborted', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+        const controller = new AbortController();
+        controller.abort();
+        try {
+          await awaitUserConfirmation(
+            { kind: 'pending_request', requestId: 'id-2', requestToken: 'token-id-2' },
+            { signal: controller.signal },
+          );
+          return { ok: true };
+        } catch (e: any) {
+          return { ok: false, message: String(e?.message || e) };
+        }
+      },
+      { workerPath: WORKER_PATH },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('confirmation aborted');
+  });
+
+  test('times out when no matching response is received', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+        const originalPost = (self as any).postMessage;
+        // Stub to avoid Window.postMessage signature issues when used by worker-style code
+        (self as any).postMessage = (_msg: unknown) => {};
+        try {
+          await awaitUserConfirmation(
+            { kind: 'pending_request', requestId: 'id-3', requestToken: 'token-id-3' },
+            { timeoutMs: 50 },
+          );
+          return { ok: true };
+        } catch (e: any) {
+          return { ok: false, message: String(e?.message || e) };
+        } finally {
+          (self as any).postMessage = originalPost;
+        }
+      },
+      { workerPath: WORKER_PATH },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('confirmation timed out');
+  });
+
+  test('ignores mismatched response requestId', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+        const originalPost = (self as any).postMessage;
+        (self as any).postMessage = (_msg: unknown) => {};
+        const prompt = { kind: 'pending_request', requestId: 'id-4', requestToken: 'token-id-4' };
+        setTimeout(() => {
+          // Dispatch a message event with a mismatched requestId; listener should ignore it
+          self.dispatchEvent(
+            new MessageEvent('message', {
+              data: {
+                type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                data: { requestId: 'DIFFERENT', confirmed: true },
+              },
+            }),
+          );
+        }, 10);
+        try {
+          await awaitUserConfirmation(prompt, { timeoutMs: 60 });
+          return { ok: true };
+        } catch (e: any) {
+          return { ok: false, message: String(e?.message || e) };
+        } finally {
+          (self as any).postMessage = originalPost;
+        }
+      },
+      { workerPath: WORKER_PATH },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('confirmation timed out');
+  });
+
+  test('happy path: LocalOnly decrypt request returns confirmation response', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+
+        const request = {
+          requestId: 'sess-1',
+          type: 'authorizeKeyExport',
+          summary: {
+            operation: 'Export Private Key',
+            accountId: 'alice.testnet',
+            publicKey: '',
+            warning: 'Decrypting your private key grants full control of your account.',
+          },
+          payload: {
+            subject: { kind: 'near_wallet', nearAccountId: 'alice.testnet' },
+            credentialIdB64u: 'credential-id',
+            publicKey: '',
+          },
+        };
+
+        const originalAdd = self.addEventListener.bind(self);
+        // Intercept PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD and synthesize a matching response
+        self.addEventListener = ((type: string, listener: any, options?: any) => {
+          if (type === 'message') {
+            const wrapped = (ev: MessageEvent) => {
+              const data: any = ev.data;
+              if (data?.type === 'PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD') {
+                self.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: {
+                      type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                      requestId: data.requestId,
+                      channelToken: data.channelToken,
+                      data: {
+                        requestId: data.requestId,
+                        confirmed: true,
+                      },
+                    },
+                  }),
+                );
+              }
+              listener(ev);
+            };
+            return originalAdd(type, wrapped, options);
+          }
+          return originalAdd(type, listener, options);
+        }) as any;
+
+        const resp = await awaitUserConfirmation(
+          { kind: 'export_request', request },
+          { timeoutMs: 250 },
+        );
+        return {
+          requestId: resp?.request_id,
+          confirmed: resp?.confirmed,
+        };
+      },
+      { workerPath: WORKER_PATH },
+    );
+
+    expect(result.requestId).toBe('sess-1');
+    expect(result.confirmed).toBe(true);
+  });
+
+  test('preserves nonce leases across the worker confirmation bridge', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+
+        const request = {
+          requestId: 'near-tx-lease-1',
+          type: 'signTransaction',
+          summary: {
+            receiverId: 'contract.testnet',
+          },
+          payload: {
+            signingKind: 'transaction',
+            walletId: 'wallet-alice',
+            intentDigest: 'fingerprint-1',
+            nearPublicKeyStr: 'ed25519:test',
+            nearFundingRequest: {
+              subject: {
+                walletId: 'wallet-alice',
+                nearAccountId: 'alice.testnet',
+                nearPublicKeyStr: 'ed25519:test',
+              },
+              operation: {
+                operationId: 'near-tx-lease-1',
+                operationFingerprint: 'fingerprint-1',
+                intent: 'transaction_sign',
+                accountId: 'alice.testnet',
+              },
+              signatureUses: 1,
+            },
+            txSigningRequests: [{ receiverId: 'contract.testnet', actions: [] }],
+            rpcCall: {
+              nearAccountId: 'alice.testnet',
+              nearRpcUrl: 'https://rpc.testnet.near.org',
+            },
+            signingAuthPlan: {
+              kind: 'warmSession',
+              method: 'passkey',
+              accountId: 'wallet-alice',
+              intent: 'transaction_sign',
+              thresholdSessionId: 'threshold-session-lease',
+              retention: 'volatile',
+              expiresAtMs: Date.now() + 60_000,
+              remainingUses: 1,
+            },
+          },
+        };
+
+        const originalAdd = self.addEventListener.bind(self);
+        self.addEventListener = ((type: string, listener: any, options?: any) => {
+          if (type === 'message') {
+            const wrapped = (ev: MessageEvent) => {
+              const data: any = ev.data;
+              if (data?.type === 'PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD') {
+                self.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: {
+                      type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                      requestId: data.requestId,
+                      channelToken: data.channelToken,
+                      data: {
+                        requestId: data.requestId,
+                        confirmed: true,
+                        nearTransactionReadiness: {
+                          kind: 'context_ready',
+                          transactionContext: {
+                            nearPublicKeyStr: 'ed25519:test',
+                            nextNonce: '41',
+                            txBlockHeight: '123',
+                            txBlockHash: 'block-hash',
+                            accessKeyInfo: {
+                              nonce: '40',
+                              block_height: 123,
+                              block_hash: 'block-hash',
+                            },
+                          },
+                          nonceLeases: [
+                            {
+                              leaseId: 'lease-1',
+                              operationId: 'near-tx-lease-1',
+                              operationFingerprint: 'fingerprint-1',
+                              nonce: '41',
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  }),
+                );
+              }
+              listener(ev);
+            };
+            return originalAdd(type, wrapped, options);
+          }
+          return originalAdd(type, listener, options);
+        }) as any;
+
+        const resp = await awaitUserConfirmation(
+          {
+            kind: 'pending_request',
+            requestId: request.requestId,
+            requestToken: 'token-near-tx-lease-1',
+          },
+          { timeoutMs: 250 },
+        );
+        return {
+          requestId: resp?.request_id,
+          confirmed: resp?.confirmed,
+          readiness: resp?.near_transaction_readiness,
+        };
+      },
+      { workerPath: WORKER_PATH },
+    );
+
+    expect(result).toEqual({
+      requestId: 'near-tx-lease-1',
+      confirmed: true,
+      readiness: {
+        kind: 'context_ready',
+        transactionContext: {
+          nearPublicKeyStr: 'ed25519:test',
+          nextNonce: '41',
+          txBlockHeight: '123',
+          txBlockHash: 'block-hash',
+          accessKeyInfo: {
+            nonce: '40',
+            block_height: 123,
+            block_hash: 'block-hash',
+          },
+        },
+        nonceLeases: [
+          {
+            leaseId: 'lease-1',
+            operationId: 'near-tx-lease-1',
+            operationFingerprint: 'fingerprint-1',
+            nonce: '41',
+          },
+        ],
+      },
+    });
+  });
+
+  test('rejects transaction context without nonce leases across the worker confirmation bridge', async ({
+    page,
+  }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+
+        const request = {
+          requestId: 'near-tx-missing-lease-1',
+          type: 'signTransaction',
+          summary: {
+            receiverId: 'contract.testnet',
+          },
+          payload: {
+            walletId: 'wallet-alice',
+            signingAuthPlan: {
+              kind: 'warmSession',
+              method: 'passkey',
+              accountId: 'wallet-alice',
+              intent: 'transaction_sign',
+              thresholdSessionId: 'threshold-session-missing-lease',
+              retention: 'volatile',
+              expiresAtMs: Date.now() + 60_000,
+              remainingUses: 1,
+            },
+          },
+        };
+
+        const originalAdd = self.addEventListener.bind(self);
+        self.addEventListener = ((type: string, listener: any, options?: any) => {
+          if (type === 'message') {
+            const wrapped = (ev: MessageEvent) => {
+              const data: any = ev.data;
+              if (data?.type === 'PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD') {
+                self.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: {
+                      type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                      requestId: data.requestId,
+                      channelToken: data.channelToken,
+                      data: {
+                        requestId: data.requestId,
+                        confirmed: true,
+                        transactionContext: {
+                          nearPublicKeyStr: 'ed25519:test',
+                          nextNonce: '41',
+                          txBlockHeight: '123',
+                          txBlockHash: 'block-hash',
+                          accessKeyInfo: {
+                            nonce: '40',
+                            block_height: 123,
+                            block_hash: 'block-hash',
+                          },
+                        },
+                      },
+                    },
+                  }),
+                );
+              }
+              listener(ev);
+            };
+            return originalAdd(type, wrapped, options);
+          }
+          return originalAdd(type, listener, options);
+        }) as any;
+
+        try {
+          await awaitUserConfirmation(
+            {
+              kind: 'pending_request',
+              requestId: request.requestId,
+              requestToken: 'token-near-tx-missing-lease-1',
+            },
+            { timeoutMs: 250 },
+          );
+          return { ok: true };
+        } catch (error: any) {
+          return { ok: false, message: String(error?.message || error) };
+        }
+      },
+      { workerPath: WORKER_PATH },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('requires nonceLeases');
+  });
+
+  test('preserves Email OTP code and challenge id across the worker confirmation bridge', async ({
+    page,
+  }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+
+        const request = {
+          requestId: 'email-otp-export-1',
+          type: 'signIntentDigest',
+          summary: {
+            operation: 'Export Private Key',
+            accountId: 'alice.testnet',
+            publicKey: 'ed25519:test',
+            warning: 'Exporting this private key grants full control of the account.',
+          },
+          payload: {
+            nearAccountId: 'alice.testnet',
+            challengeB64u: 'challenge-1',
+            signingAuthPlan: {
+              kind: 'emailOtpReauth',
+              method: 'email_otp',
+              emailOtpPrompt: {
+                challengeId: 'email-otp-challenge-1',
+                title: 'Enter email code to export',
+                body: 'This one-time code authorizes private key export only.',
+              },
+            },
+          },
+          intentDigest: 'export-keys:alice.testnet:near:ed25519:email-otp',
+        };
+
+        const originalAdd = self.addEventListener.bind(self);
+        self.addEventListener = ((type: string, listener: any, options?: any) => {
+          if (type === 'message') {
+            const wrapped = (ev: MessageEvent) => {
+              const data: any = ev.data;
+              if (data?.type === 'PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD') {
+                self.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: {
+                      type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                      requestId: data.requestId,
+                      channelToken: data.channelToken,
+                      data: {
+                        requestId: data.requestId,
+                        confirmed: true,
+                        otpCode: '565253',
+                        emailOtpChallengeId: 'email-otp-challenge-1',
+                      },
+                    },
+                  }),
+                );
+              }
+              listener(ev);
+            };
+            return originalAdd(type, wrapped, options);
+          }
+          return originalAdd(type, listener, options);
+        }) as any;
+
+        const resp = await awaitUserConfirmation(
+          {
+            kind: 'pending_request',
+            requestId: request.requestId,
+            requestToken: 'token-email-otp-export-1',
+          },
+          { timeoutMs: 250 },
+        );
+        return {
+          requestId: resp?.request_id,
+          confirmed: resp?.confirmed,
+          otpCode: resp?.otp_code,
+          emailOtpChallengeId: resp?.email_otp_challenge_id,
+        };
+      },
+      { workerPath: WORKER_PATH },
+    );
+
+    expect(result).toEqual({
+      requestId: 'email-otp-export-1',
+      confirmed: true,
+      otpCode: '565253',
+      emailOtpChallengeId: 'email-otp-challenge-1',
+    });
+  });
+
+  test('ignores response with mismatched channel token', async ({ page }) => {
+    const result = await page.evaluate(
+      async ({ workerPath }) => {
+        await import(workerPath);
+        const awaitUserConfirmation = (globalThis as any).awaitUserConfirmationV2 as (
+          req: any,
+          opts?: any,
+        ) => Promise<any>;
+
+        const request = {
+          requestId: 'sess-channel-mismatch',
+          type: 'authorizeKeyExport',
+          summary: {
+            operation: 'Export Private Key',
+            accountId: 'alice.testnet',
+            publicKey: '',
+            warning: 'Decrypting your private key grants full control of your account.',
+          },
+          payload: {
+            subject: { kind: 'near_wallet', nearAccountId: 'alice.testnet' },
+            publicKey: '',
+          },
+        };
+
+        const originalAdd = self.addEventListener.bind(self);
+        self.addEventListener = ((type: string, listener: any, options?: any) => {
+          if (type === 'message') {
+            const wrapped = (ev: MessageEvent) => {
+              const data: any = ev.data;
+              if (data?.type === 'PROMPT_USER_CONFIRM_IN_JS_MAIN_THREAD') {
+                self.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: {
+                      type: 'USER_PASSKEY_CONFIRM_RESPONSE',
+                      requestId: data.requestId,
+                      channelToken: 'wrong-token',
+                      data: {
+                        requestId: data.requestId,
+                        confirmed: true,
+                      },
+                    },
+                  }),
+                );
+              }
+              listener(ev);
+            };
+            return originalAdd(type, wrapped, options);
+          }
+          return originalAdd(type, listener, options);
+        }) as any;
+
+        try {
+          await awaitUserConfirmation(
+            { kind: 'export_request', request },
+            { timeoutMs: 80 },
+          );
+          return { ok: true };
+        } catch (e: any) {
+          return { ok: false, message: String(e?.message || e) };
+        }
+      },
+      { workerPath: WORKER_PATH },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('confirmation timed out');
+  });
+});

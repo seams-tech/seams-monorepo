@@ -1,0 +1,15 @@
+{
+  "name": "@seams-internal/console-shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./organizationIdentity": "./src/organizationIdentity.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  }
+}

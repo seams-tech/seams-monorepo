@@ -1,0 +1,27 @@
+packages:
+  - tests
+  - tests/intended-app
+  - packages/seams-cli
+  - packages/console-shared-ts
+  - packages/wallet-console-shared-ts
+  - packages/console-server-ts
+  - packages/wallet-console-server-ts
+  - packages/wallet
+  - packages/wallet-server
+  - packages/shared-ts
+  - voiceId
+  - apps/web-server
+  - apps/seams-site
+  - apps/seams-console
+  - apps/docs
+  - crates/router-ab-cloudflare
+  - examples/self-host-cloudflare-worker
+  - examples/seams-auth-menu
+nodeLinker: hoisted
+verifyDepsBeforeRun: false
+allowBuilds:
+  bufferutil: true
+  esbuild: true
+  sharp: true
+  utf-8-validate: true
+  workerd: true

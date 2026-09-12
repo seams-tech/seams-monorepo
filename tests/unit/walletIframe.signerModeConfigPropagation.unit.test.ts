@@ -1,0 +1,397 @@
+import { test, expect } from '@playwright/test';
+import { setupBasicPasskeyTest } from '../setup';
+import { injectImportMap } from '../setup/bootstrap';
+import { buildWalletServiceHtml, registerWalletServiceRoute } from '../wallet-iframe/harness';
+
+const WALLET_ORIGIN = 'https://wallet.example.localhost';
+const WALLET_SERVICE_ROUTE = '**://wallet.example.localhost/wallet-service*';
+
+const WALLET_STUB_CAPTURE_SCRIPT = String.raw`
+  const originalAdoptPort = adoptPort;
+  adoptPort = function patchedAdoptPort(port) {
+    originalAdoptPort(port);
+    if (!adoptedPort) return;
+
+    const originalHandler = adoptedPort.onmessage;
+    adoptedPort.onmessage = (event) => {
+      originalHandler?.(event);
+      const data = event.data || {};
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'PM_SET_CONFIG') {
+        try {
+          window.__capturedSigningSessionPersistenceMode = (data.payload && typeof data.payload === 'object')
+            ? data.payload.signingSessionPersistenceMode
+            : undefined;
+          window.__capturedSigningSessionDefaults = (data.payload && typeof data.payload === 'object')
+            ? data.payload.signingSessionDefaults
+            : undefined;
+          window.__capturedRouterAbEcdsaDerivationPresignaturePool = (data.payload && typeof data.payload === 'object')
+            ? data.payload.routerAbEcdsaDerivationPresignaturePool
+            : undefined;
+          window.__capturedProvisioningDefaults = (data.payload && typeof data.payload === 'object')
+            ? data.payload.provisioningDefaults
+            : undefined;
+          window.__capturedRegistration = (data.payload && typeof data.payload === 'object')
+            ? data.payload.registration
+            : undefined;
+          window.__capturedAppearance = (data.payload && typeof data.payload === 'object')
+            ? data.payload.appearance
+            : undefined;
+        } catch {}
+      }
+
+      const requestId = data.requestId;
+      if (typeof requestId !== 'string') return;
+
+      const respond = (result) => {
+        try {
+          pendingRequests.delete(requestId);
+          adoptedPort.postMessage({ type: 'PM_RESULT', requestId, payload: { ok: true, result } });
+        } catch (err) {
+          console.error('post PM_RESULT failed', err);
+        }
+      };
+
+      if (data.type === 'PM_SET_CONFIG') {
+        respond(null);
+      }
+      if (data.type === 'PM_PREFETCH_BLOCKHEIGHT') {
+        respond(null);
+      }
+      if (data.type === 'PM_GET_WALLET_SESSION') {
+        respond({
+          login: {
+            isLoggedIn: false,
+            nearAccountId: null,
+            publicKey: null,
+            userData: null,
+          },
+          signingSession: null,
+        });
+      }
+      if (data.type === 'PM_GET_RECENT_UNLOCKS') {
+        respond([]);
+      }
+      if (data.type === 'PM_GET_CONFIRMATION_CONFIG') {
+        respond({ behavior: 'requireClick', uiMode: 'modal' });
+      }
+    };
+  };
+`;
+
+test.describe('Wallet iframe config propagation', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupBasicPasskeyTest(page, { skipSeamsWebInit: true });
+    await page.goto('about:blank');
+    await injectImportMap(page);
+    await registerWalletServiceRoute(
+      page,
+      buildWalletServiceHtml({ extraScript: WALLET_STUB_CAPTURE_SCRIPT }),
+      WALLET_SERVICE_ROUTE,
+    );
+  });
+
+  test.afterEach(async ({ page }) => {
+    await page.unroute(WALLET_SERVICE_ROUTE).catch(() => {});
+    await page.unroute(WALLET_SERVICE_ROUTE.replace('wallet-service', 'service')).catch(() => {});
+  });
+
+  test('forwards signing-session policy in PM_SET_CONFIG', async ({ page }) => {
+    await page.evaluate(
+      async ({ walletOrigin }) => {
+        const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
+        const { SeamsWeb } = mod as any;
+
+        const pm = new SeamsWeb({
+          relayer: { url: 'http://localhost:3000' },
+          signingSessionDefaults: {
+            ttlMs: 12_345,
+            remainingUses: 67,
+          },
+          signingSessionPersistenceMode: 'sealed_refresh_v1',
+          routerAbEcdsaDerivationPresignaturePool: {
+            enabled: false,
+            targetDepth: 5,
+            lowWatermark: 2,
+            maxRefillInFlight: 3,
+            refillAttemptTimeoutMs: 45_000,
+          },
+          provisioningDefaults: {
+            tempo: {
+              enabled: true,
+              participantIds: [1, 2],
+              signingSession: {
+                kind: 'jwt',
+                ttlMs: 54_321,
+                remainingUses: 9,
+              },
+            },
+            evm: {
+              enabled: true,
+              participantIds: [1, 2],
+              signingSession: {
+                kind: 'jwt',
+                ttlMs: 65_432,
+                remainingUses: 11,
+              },
+            },
+          },
+          iframeWallet: {
+            walletOrigin,
+            walletServicePath: '/wallet-service',
+            sdkBasePath: '/sdk',
+          },
+        });
+
+        await pm.initWalletIframe();
+      },
+      { walletOrigin: WALLET_ORIGIN },
+    );
+
+    const walletFrame = page.frames().find((frame) => {
+      const url = frame.url();
+      return url.startsWith(WALLET_ORIGIN) && url.includes('/wallet-service');
+    });
+    expect(walletFrame, 'wallet iframe should be mounted').toBeTruthy();
+
+    const capturedSigningSessionPersistenceMode = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedSigningSessionPersistenceMode ?? null;
+    });
+    const capturedSigningSessionDefaults = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedSigningSessionDefaults ?? null;
+    });
+    const capturedRouterAbEcdsaDerivationPresignaturePool = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedRouterAbEcdsaDerivationPresignaturePool ?? null;
+    });
+    const capturedProvisioningDefaults = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedProvisioningDefaults ?? null;
+    });
+    expect(capturedSigningSessionPersistenceMode).toBe('sealed_refresh_v1');
+    expect(capturedSigningSessionDefaults).toEqual({
+      ttlMs: 12_345,
+      remainingUses: 67,
+    });
+    expect(capturedRouterAbEcdsaDerivationPresignaturePool).toEqual({
+      enabled: false,
+      targetDepth: 5,
+      lowWatermark: 2,
+      maxRefillInFlight: 3,
+      refillAttemptTimeoutMs: 45_000,
+    });
+    expect(capturedProvisioningDefaults).toEqual({
+      tempo: {
+        enabled: true,
+        participantIds: [1, 2],
+        signingSession: {
+          kind: 'jwt',
+          ttlMs: 54_321,
+          remainingUses: 9,
+        },
+      },
+      evm: {
+        enabled: true,
+        participantIds: [1, 2],
+        signingSession: {
+          kind: 'jwt',
+          ttlMs: 65_432,
+          remainingUses: 11,
+        },
+      },
+    });
+  });
+
+  test('forwards disabled signing-session persistence mode', async ({ page }) => {
+    await page.evaluate(
+      async ({ walletOrigin }) => {
+        const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
+        const { SeamsWeb } = mod as any;
+
+        const pm = new SeamsWeb({
+          relayer: { url: 'http://localhost:3000' },
+          signingSessionPersistenceMode: 'none',
+          iframeWallet: {
+            walletOrigin,
+            walletServicePath: '/wallet-service',
+            sdkBasePath: '/sdk',
+          },
+        });
+
+        await pm.initWalletIframe();
+      },
+      { walletOrigin: WALLET_ORIGIN },
+    );
+
+    const walletFrame = page.frames().find((frame) => {
+      const url = frame.url();
+      return url.startsWith(WALLET_ORIGIN) && url.includes('/wallet-service');
+    });
+    expect(walletFrame, 'wallet iframe should be mounted').toBeTruthy();
+
+    const capturedSigningSessionPersistenceMode = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedSigningSessionPersistenceMode ?? null;
+    });
+    expect(capturedSigningSessionPersistenceMode).toBe('none');
+  });
+
+  test('forwards managed registration config in PM_SET_CONFIG', async ({ page }) => {
+    await page.evaluate(
+      async ({ walletOrigin }) => {
+        const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
+        const { SeamsWeb } = mod as any;
+
+        const pm = new SeamsWeb({
+          relayer: { url: 'https://localhost:4101' },
+          registration: {
+            mode: 'managed',
+            projectEnvironmentId: 'proj_demo:dev',
+            publishableKey: 'pk_demopublishablekeypreview',
+          },
+          iframeWallet: {
+            walletOrigin,
+            walletServicePath: '/wallet-service',
+            sdkBasePath: '/sdk',
+          },
+        });
+
+        await pm.initWalletIframe();
+      },
+      { walletOrigin: WALLET_ORIGIN },
+    );
+
+    const walletFrame = page.frames().find((frame) => {
+      const url = frame.url();
+      return url.startsWith(WALLET_ORIGIN) && url.includes('/wallet-service');
+    });
+    expect(walletFrame, 'wallet iframe should be mounted').toBeTruthy();
+
+    const capturedRegistration = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedRegistration ?? null;
+    });
+    expect(capturedRegistration).toEqual({
+      mode: 'managed',
+      projectEnvironmentId: 'proj_demo:dev',
+      publishableKey: 'pk_demopublishablekeypreview',
+      paymentMode: 'disabled',
+      nearAccountProvisioning: { kind: 'implicit_account' },
+    });
+  });
+
+  test('forwards resolved appearance in PM_SET_CONFIG for Lit confirmer theming', async ({
+    page,
+  }) => {
+    await page.evaluate(
+      async ({ walletOrigin }) => {
+        const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
+        const { SeamsWeb } = mod as any;
+
+        const pm = new SeamsWeb({
+          relayer: { url: 'http://localhost:3000' },
+          appearance: {
+            theme: {
+              id: 'customer-defined-theme',
+              mode: 'light',
+              colors: {
+                primary: '#abcdef',
+                surface: '#f5f7fb',
+              },
+            },
+          },
+          iframeWallet: {
+            walletOrigin,
+            walletServicePath: '/wallet-service',
+            sdkBasePath: '/sdk',
+          },
+        });
+
+        await pm.initWalletIframe();
+      },
+      { walletOrigin: WALLET_ORIGIN },
+    );
+
+    const walletFrame = page.frames().find((frame) => {
+      const url = frame.url();
+      return url.startsWith(WALLET_ORIGIN) && url.includes('/wallet-service');
+    });
+    expect(walletFrame, 'wallet iframe should be mounted').toBeTruthy();
+
+    const capturedAppearance = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedAppearance ?? null;
+    });
+    expect(capturedAppearance).toEqual({
+      theme: {
+        id: 'customer-defined-theme',
+        mode: 'light',
+        colors: {
+          primary: '#abcdef',
+          surface: '#f5f7fb',
+        },
+      },
+      palette: 'default',
+    });
+  });
+
+  test('uses current runtime appearance when wallet iframe initializes after theme changes', async ({
+    page,
+  }) => {
+    await page.evaluate(
+      async ({ walletOrigin }) => {
+        const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
+        const { SeamsWeb } = mod as any;
+
+        const pm = new SeamsWeb({
+          relayer: { url: 'http://localhost:3000' },
+          appearance: {
+            theme: {
+              id: 'initial-theme',
+              mode: 'dark',
+              colors: {
+                primary: '#111111',
+              },
+            },
+          },
+          iframeWallet: {
+            walletOrigin,
+            walletServicePath: '/wallet-service',
+            sdkBasePath: '/sdk',
+          },
+        });
+
+        pm.setAppearance({
+          theme: {
+            id: 'runtime-theme',
+            mode: 'light',
+            colors: {
+              primary: '#abcdef',
+              surface: '#f5f7fb',
+            },
+          },
+        });
+
+        await pm.initWalletIframe();
+      },
+      { walletOrigin: WALLET_ORIGIN },
+    );
+
+    const walletFrame = page.frames().find((frame) => {
+      const url = frame.url();
+      return url.startsWith(WALLET_ORIGIN) && url.includes('/wallet-service');
+    });
+    expect(walletFrame, 'wallet iframe should be mounted').toBeTruthy();
+
+    const capturedAppearance = await walletFrame!.evaluate(() => {
+      return (window as any).__capturedAppearance ?? null;
+    });
+    expect(capturedAppearance).toEqual({
+      theme: {
+        id: 'runtime-theme',
+        mode: 'light',
+        colors: {
+          primary: '#abcdef',
+          surface: '#f5f7fb',
+        },
+      },
+      palette: 'default',
+    });
+  });
+});

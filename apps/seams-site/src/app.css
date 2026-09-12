@@ -1,0 +1,159 @@
+@import './layout.css';
+@import './components/Carousel/CarouselStyles.css';
+
+:root,
+:host {
+  /* Text Sizes */
+  --site-font-size-xs: 0.8rem;
+  --site-font-size-sm: 0.9rem;
+  --site-font-size-md: 1rem;
+  --site-font-size-lg: 1.125rem;
+  --site-font-size-xl: 1.25rem;
+  --site-font-size-2xl: 1.5rem;
+
+  /* Sizing & Spacing */
+  --site-radius-sm: 12px;
+  --site-radius: 24px;
+  --site-radius-lg: 32px;
+  --site-radius-xl: 40px;
+  --site-space-1: 4px;
+  --site-space-2: 8px;
+  --site-space-3: 12px;
+  --site-space-4: 16px;
+  --site-space-6: 24px;
+
+  /* Motion */
+  --site-ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --site-duration-fast: 200ms;
+  --site-duration-medium: 400ms;
+
+  /* Fonts: set Hanken Grotesk as primary UI sans */
+  --site-font-sans:
+    'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --site-font-weight-medium: 500;
+  --site-font-weight-semibold: 600;
+  /* Display font for headings */
+  --site-font-display:
+    'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --site-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
+/* Ensure app variables derive from SDK tokens at the theme boundary inside ShadowRoot */
+.w3a-theme-provider,
+[data-w3a-theme] {
+  /* Site semantic aliases (core roles) */
+  --site-canvas: var(--w3a-colors-colorBackground);
+  --site-surface: var(--w3a-colors-surface);
+  --site-surface-muted: var(--w3a-colors-surface2);
+  --site-surface-strong: var(--w3a-colors-surface3);
+  --site-text-primary: var(--w3a-colors-textPrimary);
+  --site-text-secondary: var(--w3a-colors-textSecondary);
+  --site-text-button: var(--w3a-colors-textButton);
+  --site-border: var(--w3a-colors-borderPrimary);
+  --site-border-strong: var(--w3a-colors-borderHover);
+  /* The SDK theme still resolves --w3a-colors-focus to a blue; the site's
+     focus ring stays in the evergreen accent. */
+  --site-focus: #4fb894;
+  --site-brand: var(--w3a-colors-primary);
+  --site-brand-hover: var(--w3a-colors-primaryHover);
+  --site-action: var(--w3a-colors-buttonBackground);
+  --site-action-hover: var(--w3a-colors-buttonHoverBackground);
+  --site-accent: var(--w3a-colors-secondary);
+  --site-accent-hover: var(--w3a-colors-secondaryHover);
+  --site-danger: var(--w3a-colors-error);
+  --site-danger-surface: color-mix(in srgb, var(--site-danger) 12%, var(--site-surface) 88%);
+  --site-success: var(--w3a-colors-success);
+  --site-shadow-sm: var(--w3a-shadows-sm);
+  --site-shadow-md: var(--w3a-shadows-md);
+
+  /* Site semantic aliases (component domains) */
+  --site-navbar-surface: var(--site-surface);
+  --site-footer-surface: var(--site-surface-muted);
+  --site-marketing-surface: var(--site-surface);
+  --site-form-surface: var(--site-surface-muted);
+  --site-carousel-surface: var(--site-surface);
+}
+
+html[data-w3a-theme='light'],
+.w3a-theme-provider[data-w3a-theme='light'] {
+  --site-canvas: #ffffff;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+#app-root {
+  font-family: var(--site-font-sans);
+}
+
+.seams-logo-icon {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  user-select: none;
+}
+
+.seams-logo-icon--transparent-mark {
+  background: transparent;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+html[data-w3a-theme] {
+  color-scheme: light;
+  background: #ffffff;
+}
+
+a {
+  font-weight: 500;
+  color: var(--site-brand);
+}
+a:hover {
+  color: var(--site-brand-hover);
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--site-text-primary);
+  line-height: 1.2;
+  font-family: var(--site-font-display);
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--site-text-primary);
+  line-height: 1.2;
+  font-family: var(--site-font-display);
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--site-text-primary);
+  line-height: 1.1;
+  font-family: var(--site-font-display);
+}
+
+/* Explicit classes used around the homepage for titles/subtitles */
+.hero-title,
+.hero-subtitle,
+.bento-title,
+.demo-title,
+.demo-subtitle {
+  font-family: var(--site-font-display);
+}

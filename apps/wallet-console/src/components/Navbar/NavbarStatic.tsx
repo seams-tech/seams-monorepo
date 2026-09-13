@@ -80,7 +80,7 @@ const documentationDropdownPane: DropdownPane = {
     {
       title: 'Ecommerce Agents',
       description: 'AI agents with scoped credentials, acting inside policy',
-      to: '/ecommerce',
+      to: 'https://seams.sh/ecommerce',
       icon: Bot,
     },
     {

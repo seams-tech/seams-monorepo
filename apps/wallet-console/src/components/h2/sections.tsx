@@ -44,7 +44,7 @@ const demoPageNames = ['Login', 'Transactions', 'Account recovery'];
    so each product keeps one fabric. */
 const productForks = [
   { label: 'Wallet', to: '/wallet', chip: 'h2-fork__chip--wallet' },
-  { label: 'Harness', to: '/ecommerce', chip: 'h2-fork__chip--harness' },
+  { label: 'Harness', to: 'https://seams.sh/ecommerce', chip: 'h2-fork__chip--harness' },
   { label: 'API', to: '/docs/concepts/', chip: 'h2-fork__chip--api' },
 ];
 
@@ -1627,7 +1627,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     heading: 'Products',
     links: [
       { label: 'Embedded Wallet', to: '/wallet' },
-      { label: 'Ecommerce Agents', to: '/ecommerce' },
+      { label: 'Ecommerce Agents', to: 'https://seams.sh/ecommerce' },
       { label: 'Custody Model', to: '/docs/concepts/custody/' },
       { label: 'Wallet Sessions', to: '/docs/concepts/sessions/wallet-sessions' },
     ],

@@ -188,7 +188,7 @@ test('deployment topology keeps staging provisioning and isolates production ori
   expect(productionMainnet.provisioning.kind).toBe('provisioned');
   expect(staging.gatewayOrigin).toBe('https://staging.api.seams.sh');
   expect(productionTestnet.gatewayOrigin).toBe('https://test.api.seams.sh');
-  expect(productionMainnet.gatewayOrigin).toBe('https://api.seams.sh');
+  expect(productionMainnet.gatewayOrigin).toBe('https://api.wallet.seams.sh');
   expect(productionTestnet.walletOrigin).toBe('https://test.sign.seams.sh');
   expect(productionMainnet.walletOrigin).toBe('https://sign.seams.sh');
   expect(productionTestnet.resources.gateway.workerName).toBe('seams-sdk-d1-gateway-testnet');

@@ -419,7 +419,7 @@
         }
       },
       "mainnet": {
-        "gatewayOrigin": "https://api.seams.sh",
+        "gatewayOrigin": "https://api.wallet.seams.sh",
         "walletOrigin": "https://sign.seams.sh",
         "walletPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_MAINNET",
         "emailOtpDelivery": {
@@ -510,7 +510,7 @@
               "environmentId": "project_production:prod"
             },
             "origins": {
-              "gateway": "https://api.seams.sh",
+              "gateway": "https://api.wallet.seams.sh",
               "allowedCors": [
                 "https://seams.sh",
                 "https://wallet.seams.sh",

@@ -417,7 +417,7 @@ function buildSiteConfig(source: ImportMetaEnv): FrontendConfig {
     source,
     siteKind,
     'mainnet',
-    'https://api.seams.sh',
+    'https://api.wallet.seams.sh',
     'https://sign.seams.sh',
   );
   if (mainnet.nearNetwork !== 'mainnet') {

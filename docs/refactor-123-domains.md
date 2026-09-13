@@ -1,6 +1,7 @@
 # Refactor 123: product domains and unified wallet site deployment
 
-Status: implemented in repository configuration and release code. DNS, provider-console changes, and the first staged deployment remain operator cutover steps.
+Status: implemented. The unified staging and production wallet sites, Console routes,
+provider settings, and production Wallet Gateway hostname are deployed.
 
 ## Objective
 
@@ -18,7 +19,7 @@ and signing behavior intact.
 | `wallet.seams.sh/dashboard/*` | Customer dashboard                              | Shared wallet frontend                                          |
 | `wallet.seams.sh/docs/*`      | Public Wallet VitePress documentation           | Shared wallet frontend artifact; source owned by `seams-wallet` |
 | `wallet.seams.sh/console/*`   | Console management API                          | Console Worker                                                  |
-| `api.wallet.seams.sh`         | Public wallet API gateway; subsequent migration | Wallet Gateway                                                  |
+| `api.wallet.seams.sh`         | Public wallet API gateway                       | Wallet Gateway                                                  |
 | `sign.seams.sh`               | Hosted wallet iframe and signing UI             | Wallet hosting deployment                                       |
 | `console.bakery.seams.sh`     | BakeryOS dashboard                              | BakeryOS deployment; reserved here                              |
 | `console.satyr.seams.sh`      | Satyr dashboard                                 | Satyr deployment; reserved here                                 |

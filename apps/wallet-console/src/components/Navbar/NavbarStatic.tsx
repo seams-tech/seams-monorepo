@@ -536,7 +536,7 @@ export function NavbarStatic({
     };
   }, [closeMenus, isMobileMenuOpen, openDropdown]);
 
-  const homeProps = getNavLinkProps('/');
+  const homeProps = getNavLinkProps('https://seams.sh/');
   const aboutRootProps = getNavLinkProps('/company/');
   const contactSalesProps = getNavLinkProps('/contact/');
   const getStartedProps = getNavLinkProps('/dashboard');

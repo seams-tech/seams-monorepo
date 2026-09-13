@@ -130,7 +130,7 @@ function authConfigurationNote(input: {
 
 export function DashboardLoginPage(): React.JSX.Element {
   const { go, linkProps } = useSiteRouter();
-  const homeProps = linkProps('/');
+  const homeProps = linkProps('https://seams.sh/');
   const docsProps = linkProps('/docs');
   const contactProps = linkProps('/contact');
   const relayerBaseUrl = React.useMemo(() => {

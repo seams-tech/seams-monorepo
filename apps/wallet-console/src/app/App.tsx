@@ -10,6 +10,15 @@ const WalletMarketingRoute = React.lazy(() =>
     default: module.WalletMarketingRoute,
   })),
 );
+const PricingPage = React.lazy(() =>
+  import('../pages/pricing/page').then((module) => ({ default: module.PricingPage })),
+);
+const CompanyPage = React.lazy(() =>
+  import('../pages/company/page').then((module) => ({ default: module.CompanyPage })),
+);
+const ContactPage = React.lazy(() =>
+  import('../pages/contact/page').then((module) => ({ default: module.ContactPage })),
+);
 
 function WalletMarketingPage(): React.JSX.Element {
   return (
@@ -50,6 +59,15 @@ function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
   if (pathname === '/') {
     return <WalletMarketingPage />;
   }
+  if (pathname === '/pricing') {
+    return <PricingPage />;
+  }
+  if (pathname === '/company') {
+    return <CompanyPage />;
+  }
+  if (pathname === '/contact') {
+    return <ContactPage />;
+  }
   if (pathname === '/dashboard/login') {
     return <DashboardLoginPage />;
   }
@@ -68,7 +86,9 @@ export function App(): React.JSX.Element {
   const pathname = normalizePathname(location);
   return (
     <>
-      <AppRoute pathname={pathname} />
+      <React.Suspense fallback={null}>
+        <AppRoute pathname={pathname} />
+      </React.Suspense>
       <DashboardToaster />
     </>
   );

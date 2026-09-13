@@ -208,7 +208,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   } = composition;
   const frontendRuntime = useFrontendRuntime();
   const { go, linkProps } = useSiteRouter();
-  const homeProps = linkProps('/');
+  const homeProps = linkProps('https://seams.sh/');
   const consoleSession = useDashboardConsoleSession();
   const persistedSelectedContext = React.useMemo(() => readPersistedDashboardSelectedContext(), []);
   const persistedOrganizationId = String(persistedSelectedContext.organization || '').trim();

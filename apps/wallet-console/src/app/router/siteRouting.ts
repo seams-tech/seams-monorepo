@@ -1,8 +1,6 @@
 import { FRONTEND_CONFIG } from '@/config';
 
 const DOCS_PREFIX = '/docs';
-const COMPANY_ROUTES = new Set(['/company', '/contact', '/ecommerce', '/pricing']);
-const COMPANY_ORIGIN = String(import.meta.env.VITE_COMPANY_SITE_ORIGIN ?? '').replace(/\/$/, '');
 
 function stripTrailingSlash(path: string): string {
   if (path.length <= 1) return path;
@@ -42,10 +40,6 @@ export function resolveHref(target: string): string {
   if (isHttpUrl(target)) return target;
 
   if (target === '/wallet') return getSiteBase();
-  if (COMPANY_ROUTES.has(target)) {
-    if (!COMPANY_ORIGIN) throw new Error('VITE_COMPANY_SITE_ORIGIN is required');
-    return `${COMPANY_ORIGIN}${target}`;
-  }
 
   const docsHref = maybeDocsHref(target);
   if (docsHref) return docsHref;

@@ -1676,7 +1676,7 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
 
 export function H2Footer(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const homeProps = linkProps('/');
+  const homeProps = linkProps('https://seams.sh/');
 
   return (
     <footer className="h2-footer h2-rule" aria-label="Site footer">

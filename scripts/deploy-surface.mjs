@@ -195,15 +195,9 @@ function buildFrontendEnvironment(site, frontendOrigin) {
     VITE_WALLET_SITE_ORIGIN: site.walletSiteOrigin,
     VITE_DOCS_ORIGIN: `${site.docsOrigin}/`,
   };
-  const consoleLane =
-    site.id === 'production'
-      ? site.lanes.find((lane) => lane.network === 'mainnet')
-      : site.lanes[0];
-  if (!consoleLane) throw new Error(`Missing Console deployment lane for ${site.id}`);
   for (const lane of site.lanes) {
     const prefix = site.id === 'production' ? `VITE_${lane.network.toUpperCase()}_` : 'VITE_';
     environment[`${prefix}RELAYER_URL`] = lane.gatewayOrigin;
-    environment[`${prefix}CONSOLE_BASE_URL`] = consoleLane.console.origin;
     environment[`${prefix}WALLET_ORIGIN`] = lane.walletOrigin;
     environment[`${prefix}RP_ID_BASE`] = new URL(lane.walletOrigin).hostname;
     environment[`${prefix}ROUTER_AB_NORMAL_SIGNING_WORKER_ID`] =
@@ -219,6 +213,7 @@ function buildFrontendEnvironment(site, frontendOrigin) {
         `${prefix}NEAR_NETWORK`,
         `${prefix}NEAR_RPC_URL`,
         `${prefix}NEAR_EXPLORER`,
+        `${prefix}CONSOLE_BASE_URL`,
         `${prefix}SIGNING_SESSION_PERSISTENCE_MODE`,
       ],
       environment,

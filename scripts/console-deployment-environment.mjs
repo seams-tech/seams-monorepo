@@ -15,9 +15,7 @@ const OPTIONAL_SECRET_INPUTS = Object.freeze([
   ['SEAMS_GITHUB_OAUTH_CLIENT_SECRET', 'SEAMS_GITHUB_OAUTH_CLIENT_SECRET'],
   ['SEAMS_GITHUB_OAUTH_CALLBACK_URL', 'SEAMS_GITHUB_OAUTH_CALLBACK_URL'],
 ]);
-const OPTIONAL_VARIABLE_INPUTS = Object.freeze([
-  ['TENANT_ROOT_RECOVERY_CERTIFICATES_JSON', 'TENANT_ROOT_RECOVERY_CERTIFICATES_JSON'],
-]);
+const RECOVERY_CERTIFICATE_LANES = new Set(['staging-testnet', 'production-mainnet']);
 
 const options = parseOptions(process.argv.slice(2));
 await run(options);
@@ -185,7 +183,12 @@ function buildVariables(input, generationId, generatedAt, externalValues) {
   if (input.target.emailDelivery.kind === 'resend') {
     variables.CONSOLE_EMAIL_FROM = input.target.emailDelivery.fromAddress;
   }
-  addOptionalMappedValues(variables, externalValues, OPTIONAL_VARIABLE_INPUTS);
+  if (RECOVERY_CERTIFICATE_LANES.has(input.lane.id)) {
+    variables.TENANT_ROOT_RECOVERY_CERTIFICATES_JSON = requireValue(
+      externalValues,
+      'TENANT_ROOT_RECOVERY_CERTIFICATES_JSON',
+    );
+  }
   return variables;
 }
 
@@ -270,7 +273,12 @@ function updateExternalValues(input) {
     secrets.RESEND_API_KEY = requireValue(values, 'RESEND_API_KEY');
   }
   addOptionalMappedValues(secrets, values, OPTIONAL_SECRET_INPUTS);
-  addOptionalMappedValues(variables, values, OPTIONAL_VARIABLE_INPUTS);
+  if (RECOVERY_CERTIFICATE_LANES.has(input.lane.id)) {
+    variables.TENANT_ROOT_RECOVERY_CERTIFICATES_JSON = requireValue(
+      values,
+      'TENANT_ROOT_RECOVERY_CERTIFICATES_JSON',
+    );
+  }
   const plan = {
     repository: input.repository,
     environment: input.target.environment,

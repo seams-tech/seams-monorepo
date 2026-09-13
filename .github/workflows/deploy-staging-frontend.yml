@@ -65,6 +65,7 @@ jobs:
       VITE_SIGNING_SESSION_PERSISTENCE_MODE: ${{ vars.VITE_SIGNING_SESSION_PERSISTENCE_MODE }}
       VITE_ROUTER_AB_NORMAL_SIGNING_WORKER_ID: ${{ vars.VITE_ROUTER_AB_NORMAL_SIGNING_WORKER_ID }}
       VITE_DASHBOARD_WALLETS_ROUTES_ENABLED: ${{ vars.VITE_DASHBOARD_WALLETS_ROUTES_ENABLED }}
+      VITE_DASHBOARD_DERIVATION_ROOT_ENABLED: ${{ vars.VITE_DASHBOARD_DERIVATION_ROOT_ENABLED }}
     steps:
       - name: Checkout deployment revision
         uses: actions/checkout@v6
@@ -78,6 +79,9 @@ jobs:
           ref: ${{ env.SEAMS_WALLET_REVISION }}
           path: .wallet-source
           persist-credentials: false
+      - name: Resolve exact public Wallet revision
+        if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
+        run: echo "SEAMS_WALLET_REVISION=$(git -C .wallet-source rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Require dev branch
         run: test "$GITHUB_REF" = refs/heads/dev
       - name: Setup pnpm

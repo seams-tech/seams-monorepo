@@ -87,6 +87,9 @@ jobs:
           ref: ${{ env.SEAMS_WALLET_REVISION }}
           path: .wallet-source
           persist-credentials: false
+      - name: Resolve exact public Wallet revision
+        if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
+        run: echo "SEAMS_WALLET_REVISION=$(git -C .wallet-source rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Require main branch
         run: test "$GITHUB_REF" = refs/heads/main
       - name: Setup pnpm

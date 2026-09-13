@@ -18,4 +18,4 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - '@seams/wallet-server@0.5.0'
-  - '@seams/wallet@0.5.0'
+  - '@seams/wallet@0.5.1'

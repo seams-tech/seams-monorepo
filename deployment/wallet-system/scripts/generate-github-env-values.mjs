@@ -880,6 +880,7 @@ function buildGeneralEnvironment(input) {
         VITE_WALLET_SERVICE_PATH: '/wallet-service',
         VITE_SDK_BASE_PATH: '/sdk',
         VITE_DASHBOARD_WALLETS_ROUTES_ENABLED: 'true',
+        VITE_DASHBOARD_DERIVATION_ROOT_ENABLED: 'true',
       },
       secrets: {
         CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-pages-api-token`),

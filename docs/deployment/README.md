@@ -177,8 +177,8 @@ component operations:
 scripts/deploy-backend.mjs
   pnpm deploy:backend <plan|build|preflight|migrate|deploy|smoke> --lane <staging-testnet|production-testnet|production-mainnet>
 
-scripts/deploy-frontend.mjs
-  pnpm deploy:frontend <plan|build|deploy|smoke> --site <staging|production>
+scripts/deploy-surface.mjs
+  pnpm deploy:frontend <plan|build|deploy|smoke> --site <staging|production> --component <all|company|wallet-site|wallet-host>
 
 deployment/console/targets.json
   Console Worker, D1, origin, billing capability, and environment identity

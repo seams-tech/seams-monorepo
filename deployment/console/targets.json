@@ -3,8 +3,8 @@
   "lanes": {
     "staging-testnet": {
       "environment": "staging-console",
-      "origin": "https://staging.console.seams.sh",
-      "siteOrigin": "https://staging.seams.sh",
+      "origin": "https://wallet.staging.seams.sh",
+      "siteOrigin": "https://wallet.staging.seams.sh",
       "workerName": "seams-sdk-d1-console-staging",
       "database": {
         "name": "seams-console-staging-nrt",
@@ -21,7 +21,7 @@
     "production-testnet": {
       "environment": "production-testnet-console",
       "origin": "https://test.console.seams.sh",
-      "siteOrigin": "https://seams.sh",
+      "siteOrigin": "https://wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-testnet",
       "database": {
         "name": "seams-console-testnet",
@@ -38,8 +38,8 @@
     },
     "production-mainnet": {
       "environment": "production-console",
-      "origin": "https://console.seams.sh",
-      "siteOrigin": "https://seams.sh",
+      "origin": "https://wallet.seams.sh",
+      "siteOrigin": "https://wallet.seams.sh",
       "workerName": "seams-sdk-d1-console",
       "database": {
         "name": "seams-console",

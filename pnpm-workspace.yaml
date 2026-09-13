@@ -16,3 +16,6 @@ allowBuilds:
   sharp: true
   utf-8-validate: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@seams/wallet-server@0.5.0'
+  - '@seams/wallet@0.5.0'

@@ -1,0 +1,1058 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(
+    --site-font-sans,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  color: var(--site-text-primary);
+}
+
+.layout-root {
+  display: grid;
+  overflow-x: hidden;
+  overflow-x: clip;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: center;
+  grid-template-rows: auto auto auto;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--site-canvas);
+  min-height: 100dvh;
+  grid-template-areas:
+    'one'
+    'three'
+    'five';
+}
+
+@media (max-width: 1024px) {
+  .one {
+    margin-bottom: 1rem;
+  }
+}
+
+.constrained-column {
+  max-width: 600px;
+  /* same as layout-root */
+  padding: 0rem;
+  /* Allow content to shrink and avoid track stretching */
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.layout-column-left {
+  display: grid;
+  /* Allow the content column to grow/shrink naturally and stay centered */
+  justify-content: center;
+  min-width: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Stack content vertically and push footer to the bottom of the left column */
+.layout-column-left > .constrained-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cards */
+.card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: grid;
+}
+
+.card > .constrained-column {
+  justify-self: center;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.card > .single-column-content {
+  justify-self: center;
+  width: 100%;
+  max-width: 1240px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.card.one > .constrained-column {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 8rem;
+}
+
+.card > .single-column-content.marketing-stack {
+  max-width: 1300px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.one {
+  grid-area: one;
+}
+
+.three {
+  grid-area: three;
+}
+
+.five {
+  grid-area: five;
+}
+
+/* Full‑bleed utility: let content span entire viewport width inside centered grid */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  box-sizing: border-box;
+}
+
+.site-footer {
+  margin-top: 2rem;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 0.75rem 0 0.25rem 0;
+  flex-direction: column;
+  /* stack icons then badge */
+}
+
+.site-footer-icons {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  border: 1px solid var(--site-border);
+  color: var(--site-text-primary);
+  text-decoration: none;
+  background: var(--site-surface-muted);
+  transition:
+    background var(--site-duration-fast) var(--site-ease),
+    box-shadow var(--site-duration-fast) var(--site-ease);
+}
+
+.site-footer-link:hover {
+  background: var(--site-surface);
+  box-shadow: 0 2px 8px var(--site-shadow-sm);
+  color: var(--site-accent-hover);
+}
+
+@media (max-width: 768px) {
+  .layout-root > .hero,
+  .layout-root > .site-footer {
+    padding-left: 0rem;
+    padding-right: 0rem;
+  }
+
+  .layout-root > .hero {
+    padding-top: 0.5rem;
+  }
+}
+
+/* Hero section */
+.hero {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0;
+}
+
+.hero-title {
+  position: relative;
+  margin: 0;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--site-text-primary);
+}
+
+.hero-title-text {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 1rem 0 0.25rem 0;
+  line-height: 1.25;
+}
+
+/* Tweak hero typography for smaller screens */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+}
+
+.passkey-demo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding-top: 2rem;
+}
+
+.passkey-demo--with-profile {
+  padding-top: 5.25rem;
+}
+
+.passkey-demo__profile-button-slot {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  /* Above .h2-pager (z-index 5). The account menu expands downward from this
+     button in normal flow — it is not a positioned overlay of its own — so this
+     slot is the only stacking context it has, and both it and the pager resolve
+     against the root (see the .h2-pager comment in h2.css). At 2 the pager's
+     chevrons painted over the open menu's lower rows. */
+  z-index: 6;
+}
+
+/* Install panel (hero code block) */
+.install-panel {
+  --install-panel-surface: color-mix(in srgb, var(--site-surface) 90%, #eef4f1 10%);
+  margin-top: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--w3a-colors-borderPrimary);
+  overflow: visible;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.intall-panel[data-w3a-theme='light'] {
+  border: 1px solid var(--w3a-colors-borderPrimary);
+}
+
+.install-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.35rem 0.25rem 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--w3a-colors-surface);
+  border-radius: 1rem 1rem 0 0;
+}
+
+[data-w3a-theme='light'] .install-header {
+  /* border-bottom: 1px solid color-mix(in srgb, var(--site-border) 60%, transparent); */
+  background: var(--w3a-colors-surface2);
+}
+
+.install-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.install-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.install-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 1rem;
+  color: var(--site-text-secondary);
+  font: inherit;
+  padding: 4px 1rem 4px 1rem;
+  cursor: pointer;
+  /* Hint to browser that this is a tap target (reduces tap delay) */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* Animate active pill changes */
+  transition:
+    background var(--site-duration-fast) var(--site-ease),
+    border-color var(--site-duration-fast) var(--site-ease),
+    color var(--site-duration-fast) var(--site-ease),
+    transform var(--site-duration-fast) var(--site-ease);
+}
+
+.install-tab.active {
+  color: var(--site-text-primary);
+  background: color-mix(in srgb, var(--install-panel-surface) 92%, #dde9e3 8%);
+}
+
+/* Subtle press feedback */
+.install-tab:active {
+  transform: scale(0.98);
+}
+
+.install-copy {
+  display: grid;
+  place-content: center;
+  background: transparent;
+  border: none;
+  color: var(--site-text-secondary);
+  padding: 6px;
+  cursor: pointer;
+  /* Faster touch activation and cleaner highlight on mobile */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.install-copy {
+  transition: color var(--site-duration-fast) var(--site-ease);
+}
+
+.install-copy:hover {
+  color: color-mix(in srgb, var(--site-text-secondary) 70%, var(--site-canvas));
+}
+
+.install-copy.is-copied {
+  color: var(--site-text-primary);
+}
+
+/* Subtle press feedback */
+.install-copy:active {
+  transform: scale(0.98);
+}
+
+/* Animated icon swap for CopyButton */
+.install-copy-inner {
+  position: relative;
+  width: var(--install-copy-icon-size, 16px);
+  height: var(--install-copy-icon-size, 16px);
+  display: inline-block;
+}
+
+.install-copy-check,
+.install-copy-copy-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 300ms ease-in-out,
+    opacity 300ms ease-in-out,
+    filter 300ms ease-in-out;
+  will-change: transform, opacity, filter;
+}
+
+.install-copy-check {
+  transform: scale(0.25);
+  opacity: 0;
+  filter: blur(2px);
+}
+
+.install-copy-copy-icon {
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+.install-copy.is-copied .install-copy-check {
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+.install-copy.is-copied .install-copy-copy-icon {
+  transform: scale(0.25);
+  opacity: 0;
+  filter: blur(2px);
+}
+
+.install-body {
+  padding: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.install-body .shiki {
+  /* Ensure React/Core Shiki snippets have consistent height */
+  min-height: 275px;
+}
+
+.install-body > div {
+  min-width: 0;
+  width: 100%;
+}
+
+.code-block,
+.shiki {
+  color: var(--site-text-primary);
+  margin: 0;
+  /* remove margin on .shiki */
+  padding: 1rem;
+  /* unified padding */
+  border-radius: 0 0 1rem 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  contain: inline-size;
+  /* enforce monospace regardless of global font stacks */
+  font-family: var(
+    --site-font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas
+  ) !important;
+  line-height: 1;
+  /* compact code lines */
+}
+
+/* Make Shiki scrollbars as invisible as possible, but usable on hover */
+.shiki {
+  /* Firefox/Edge legacy */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox: hide by default */
+}
+
+.shiki:hover {
+  scrollbar-width: thin;
+  /* Firefox: show a thin bar on hover */
+}
+
+/* WebKit-based browsers */
+.shiki::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  /* hide by default */
+}
+
+.shiki:hover::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  /* show thin bar on hover */
+}
+
+.shiki::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shiki::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  /* invisible until hover */
+  border-radius: 8px;
+}
+
+.shiki:hover::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--site-text-secondary) 35%, transparent);
+}
+
+.shiki:hover::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--site-text-secondary) 55%, transparent);
+}
+
+.code-block code,
+.shiki code {
+  font-family: inherit !important;
+  font-size: 0.94rem;
+  display: block;
+}
+
+.code-block .line,
+.shiki .line {
+  display: block;
+}
+
+/* Simple keyword tint for CLI managers */
+.code-block .code-kw-pm,
+.shiki .code-kw-pm {
+  color: oklch(0.74 0.166 255);
+}
+
+.code-block .code-kw-pkg,
+.shiki .code-kw-pkg {
+  /* Package names inside strings should match string color */
+  color: inherit;
+}
+
+/* Make the primary provider component stand out as orange */
+.code-block .code-kw-seams-provider,
+.shiki .code-kw-seams-provider {
+  color: #953800;
+  /* GitHub light-ish orange */
+}
+
+.code-block .code-kw-pkg-install,
+.shiki .code-kw-pkg-install {
+  color: #4a6fa5;
+}
+
+/* Light mode overrides (VitePress + SDK synced) */
+[data-w3a-theme='light'] .code-block,
+[data-w3a-theme='light'] .shiki {
+  background: var(--w3a-colors-surface);
+}
+
+/* Homepage marketing system */
+.hero-subtitle {
+  margin-top: 0.75rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Non-custodial note under the install panel */
+.hero-proof {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--site-text-secondary);
+}
+
+.hero-ctas {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.hero-ctas a {
+  text-decoration: none;
+}
+
+/* Shared CTA button shape — matches the final CTA pills */
+.cta-3 {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  min-width: 160px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  transition:
+    background-color var(--site-duration-fast) var(--site-ease),
+    border-color var(--site-duration-fast) var(--site-ease),
+    color var(--site-duration-fast) var(--site-ease),
+    box-shadow var(--site-duration-fast) var(--site-ease);
+}
+
+.hero-ctas .cta-primary {
+  border: 1px solid transparent;
+  background: var(--site-brand);
+  color: var(--site-text-button, #fff);
+}
+
+.hero-ctas .cta-primary:hover {
+  background: var(--site-brand-hover);
+  color: var(--site-text-button, #fff);
+  box-shadow: 0 4px 12px var(--site-shadow-md);
+}
+
+.hero-ctas .cta-secondary {
+  border: 1px solid var(--site-border-strong, var(--site-border));
+  background: color-mix(in srgb, var(--site-surface) 70%, transparent);
+  color: var(--site-text-primary);
+}
+
+.hero-ctas .cta-secondary:hover {
+  background: var(--site-surface-muted);
+  color: var(--site-text-primary);
+  box-shadow: 0 3px 10px var(--site-shadow-sm);
+}
+
+.cta-primary:focus-visible,
+.cta-secondary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--site-brand) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.marketing-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.45rem;
+  padding-top: 1.85rem;
+  padding-bottom: 3rem;
+  --marketing-focus-ring: color-mix(in srgb, #7597bb 30%, transparent);
+  --marketing-panel-surface:
+    radial-gradient(
+      132% 170% at 96% -12%,
+      color-mix(in srgb, #6e90af 15%, var(--site-surface-strong) 85%) 0%,
+      transparent 52%
+    ),
+    linear-gradient(
+      154deg,
+      color-mix(in srgb, var(--site-surface-strong) 87%, #000 13%) 0%,
+      color-mix(in srgb, var(--site-surface-muted) 91%, #000 9%) 100%
+    );
+  --marketing-panel-highlight: linear-gradient(
+    118deg,
+    color-mix(in srgb, #7395b8 22%, transparent) 0%,
+    transparent 43%
+  );
+  --marketing-panel-highlight-opacity: 0.28;
+  --marketing-eyebrow: color-mix(
+    in srgb,
+    var(--site-text-secondary) 86%,
+    var(--site-text-primary) 14%
+  );
+  --marketing-title: var(--site-text-primary);
+  --marketing-trust-icon: color-mix(in srgb, #7c9fbf 52%, var(--site-text-secondary) 48%);
+  --marketing-trust-title: var(--site-text-primary);
+  --marketing-trust-copy: color-mix(
+    in srgb,
+    var(--site-text-secondary) 90%,
+    var(--site-text-primary) 10%
+  );
+  --marketing-item-surface: linear-gradient(
+    124deg,
+    color-mix(in srgb, var(--site-surface-strong) 86%, #000 14%) 0%,
+    color-mix(in srgb, var(--site-surface-muted) 90%, #000 10%) 100%
+  );
+  --marketing-solution-item-surface: var(--marketing-item-surface);
+  --marketing-solution-item-border: color-mix(in srgb, var(--site-border) 58%, transparent);
+  --marketing-item-text: var(--site-text-primary);
+  --marketing-item-title: var(--site-text-primary);
+  --marketing-item-copy: color-mix(
+    in srgb,
+    var(--site-text-secondary) 90%,
+    var(--site-text-primary) 10%
+  );
+  --marketing-final-cta-surface: linear-gradient(
+    24deg,
+    color-mix(in srgb, #6f92b2 17%, var(--site-surface-strong) 83%) 0%,
+    color-mix(in srgb, var(--site-surface-muted) 91%, #000 9%) 44%,
+    color-mix(in srgb, var(--site-canvas) 94%, #000 6%) 100%
+  );
+  --marketing-final-cta-copy: color-mix(
+    in srgb,
+    var(--site-text-secondary) 90%,
+    var(--site-text-primary) 10%
+  );
+  --marketing-btn-solid-surface: linear-gradient(
+    126deg,
+    color-mix(in srgb, var(--site-brand) 88%, var(--site-accent) 12%) 0%,
+    color-mix(in srgb, var(--site-brand-hover) 82%, var(--site-brand) 18%) 100%
+  );
+  --marketing-btn-solid-surface-hover: linear-gradient(
+    308deg,
+    color-mix(in srgb, var(--site-brand-hover) 86%, var(--site-brand) 14%) 0%,
+    color-mix(in srgb, var(--site-brand) 74%, var(--site-accent) 26%) 100%
+  );
+  --marketing-btn-solid-border: color-mix(in srgb, var(--site-brand) 54%, var(--site-border) 46%);
+  --marketing-btn-solid-text: var(--site-text-button);
+  --marketing-btn-solid-text-hover: var(--site-text-button);
+  --marketing-btn-outline-surface: color-mix(
+    in srgb,
+    var(--site-surface) 84%,
+    var(--site-brand) 16%
+  );
+  --marketing-btn-outline-border: color-mix(in srgb, var(--site-brand) 28%, var(--site-border) 72%);
+  --marketing-btn-outline-text: var(--site-text-primary);
+  --marketing-btn-ghost-surface: color-mix(
+    in srgb,
+    var(--site-surface-muted) 82%,
+    var(--site-brand) 18%
+  );
+  --marketing-btn-ghost-border: color-mix(in srgb, var(--site-brand) 24%, var(--site-border) 76%);
+  --marketing-btn-ghost-text: color-mix(
+    in srgb,
+    var(--site-text-secondary) 82%,
+    var(--site-brand) 18%
+  );
+}
+
+.marketing-stack {
+  --marketing-focus-ring: color-mix(in srgb, #88c0aa 32%, transparent);
+  --marketing-panel-surface:
+    radial-gradient(
+      132% 168% at 95% -12%,
+      color-mix(in srgb, #93c4b0 12%, #f1f7f4 88%) 0%,
+      transparent 52%
+    ),
+    linear-gradient(154deg, #f8fdfa 0%, #e8f2ed 100%);
+  --marketing-panel-highlight: linear-gradient(
+    118deg,
+    color-mix(in srgb, #8fc2ae 18%, transparent) 0%,
+    transparent 45%
+  );
+  --marketing-panel-highlight-opacity: 0.38;
+  --marketing-eyebrow: color-mix(in srgb, #5c7d72 84%, #16302a 16%);
+  --marketing-title: #16302a;
+  --marketing-trust-icon: color-mix(in srgb, #7cbda6 58%, #3f5d54 42%);
+  --marketing-trust-title: #16302a;
+  --marketing-trust-copy: color-mix(in srgb, #5c7d72 90%, #16302a 10%);
+  --marketing-item-surface: linear-gradient(124deg, #fafdfb 0%, #e7f1ec 100%);
+  --marketing-solution-item-surface: linear-gradient(
+    124deg,
+    color-mix(in srgb, var(--site-surface) 90%, var(--site-brand) 10%) 0%,
+    color-mix(in srgb, var(--site-surface-muted) 90%, var(--site-brand) 10%) 100%
+  );
+  --marketing-solution-item-border: color-mix(
+    in srgb,
+    var(--site-border) 70%,
+    var(--site-brand) 30%
+  );
+  --marketing-item-text: #16302a;
+  --marketing-item-title: #16302a;
+  --marketing-item-copy: color-mix(in srgb, #5c7d72 90%, #16302a 10%);
+  --marketing-final-cta-surface: linear-gradient(
+    24deg,
+    color-mix(in srgb, #8fc0ac 17%, #eef5f1 83%) 0%,
+    #e9f2ee 44%,
+    #e2ece7 100%
+  );
+  --marketing-final-cta-copy: color-mix(in srgb, #5c7d72 90%, #16302a 10%);
+}
+
+.credibility-bands {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.35rem 0;
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.credibility-bands__title {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--site-text-secondary) 86%, var(--site-text-primary) 14%);
+}
+
+.credibility-bands__logos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1rem, 2.35vw, 2.1rem);
+  align-items: center;
+}
+
+.credibility-logo {
+  text-align: center;
+  font-size: clamp(1rem, 1.2vw, 1.25rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--site-text-secondary) 62%, var(--site-text-primary) 38%);
+}
+
+/* Invisible wrapper — spacing only, no chrome of its own */
+.marketing-rail > * + * {
+  margin-top: clamp(1.3rem, 2.4vw, 1.9rem);
+}
+
+.product-cards,
+.solution-cards,
+.final-cta {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border-radius: 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--site-border) 55%, transparent);
+  background: var(--marketing-panel-surface);
+}
+
+.product-cards--combined {
+  padding-block: clamp(1.45rem, 2.85vw, 2.25rem);
+}
+
+.product-cards::before,
+.solution-cards::before,
+.final-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--marketing-panel-highlight-opacity);
+  background: var(--marketing-panel-highlight);
+}
+
+.product-cards__header,
+.solution-cards__header,
+.final-cta__content {
+  margin-bottom: 1rem;
+}
+
+.product-cards__eyebrow,
+.solution-cards__eyebrow,
+.final-cta__eyebrow {
+  margin: 0 0 0.42rem;
+  color: var(--marketing-eyebrow);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-cards__title,
+.solution-cards__title,
+.final-cta__title {
+  margin: 0;
+  font-size: clamp(1.45rem, 2vw, 2.1rem);
+  line-height: 1.15;
+  color: var(--marketing-title);
+  text-wrap: balance;
+}
+
+.product-cards__solutions {
+  margin-top: clamp(1.35rem, 2.6vw, 2.1rem);
+}
+
+.product-cards__grid,
+.solution-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.product-cards__item,
+.solution-cards__item {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--site-border) 58%, transparent);
+  background: var(--marketing-item-surface);
+  padding: 1.1rem;
+  text-decoration: none;
+  color: var(--marketing-item-text);
+  transition:
+    transform var(--site-duration-fast) var(--site-ease),
+    border-color var(--site-duration-fast) var(--site-ease),
+    background-color var(--site-duration-fast) var(--site-ease);
+}
+
+.product-cards__item:hover,
+.solution-cards__item:hover {
+  border-color: color-mix(in srgb, var(--site-border) 30%, var(--site-brand) 70%);
+}
+
+.product-cards__item {
+  background: var(--marketing-solution-item-surface, var(--marketing-item-surface));
+}
+
+.solution-cards__item {
+  border-color: var(
+    --marketing-solution-item-border,
+    color-mix(in srgb, var(--site-border) 58%, transparent)
+  );
+  background: var(--marketing-solution-item-surface, var(--marketing-item-surface));
+}
+
+.product-cards__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  box-sizing: border-box;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--marketing-trust-icon) 14%, transparent);
+  color: var(--marketing-trust-icon);
+  margin-bottom: 0.7rem;
+}
+
+.product-cards__item:focus-visible,
+.solution-cards__item:focus-visible {
+  outline: 2px solid var(--marketing-focus-ring);
+  outline-offset: 2px;
+}
+
+.product-cards__item h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: var(--marketing-trust-title);
+}
+
+.solution-cards__item h3 {
+  margin: 0 0 0.42rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: var(--marketing-item-title);
+}
+
+.product-cards__item p {
+  margin: 0;
+  color: var(--marketing-trust-copy);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.solution-cards__item p {
+  margin: 0;
+  color: var(--marketing-item-copy);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.final-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.1rem 1.4rem;
+  background: var(--marketing-final-cta-surface);
+}
+
+.final-cta__content {
+  max-width: 700px;
+}
+
+.final-cta__description {
+  margin: 0.75rem 0 0;
+  color: var(--marketing-final-cta-copy);
+}
+
+.final-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.final-cta__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.75rem 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  transition:
+    transform var(--site-duration-fast) var(--site-ease),
+    background-color var(--site-duration-fast) var(--site-ease),
+    border-color var(--site-duration-fast) var(--site-ease),
+    color var(--site-duration-fast) var(--site-ease);
+}
+
+.final-cta__button:focus-visible {
+  outline: 2px solid var(--marketing-focus-ring);
+  outline-offset: 2px;
+}
+
+.final-cta__button--solid {
+  background: var(--marketing-btn-solid-surface);
+  border-color: var(--marketing-btn-solid-border);
+  color: var(--marketing-btn-solid-text);
+}
+
+.final-cta__button--solid:hover {
+  color: var(--marketing-btn-solid-text-hover);
+  background: var(--marketing-btn-solid-surface-hover);
+}
+
+.final-cta__button--outline {
+  border-color: var(--marketing-btn-outline-border);
+  background: var(--marketing-btn-outline-surface);
+  color: var(--marketing-btn-outline-text);
+}
+
+.final-cta__button--ghost {
+  background: var(--marketing-btn-ghost-surface);
+  border-color: var(--marketing-btn-ghost-border);
+  color: var(--marketing-btn-ghost-text);
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    margin-top: 1.4rem;
+  }
+
+  .hero-ctas {
+    gap: 0.55rem;
+  }
+
+  .hero-ctas .cta-primary,
+  .hero-ctas .cta-secondary {
+    width: 100%;
+  }
+
+  .credibility-bands {
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    margin-top: 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .credibility-bands__logos {
+    gap: 0.62rem 0.85rem;
+  }
+
+  .credibility-logo {
+    font-size: 0.95rem;
+  }
+
+  .product-cards,
+  .solution-cards,
+  .final-cta {
+    padding: 0.9rem;
+  }
+
+  .product-cards--combined {
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+  }
+
+  .product-cards__solutions {
+    margin-top: 1.05rem;
+  }
+
+  .product-cards__grid,
+  .solution-cards__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-cards__title,
+  .solution-cards__title,
+  .final-cta__title {
+    font-size: 1.28rem;
+  }
+
+  .final-cta__actions {
+    width: 100%;
+  }
+
+  .final-cta__button {
+    width: 100%;
+    justify-content: center;
+  }
+}

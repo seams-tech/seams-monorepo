@@ -4,12 +4,12 @@
     "branch": "dev",
     "site": {
       "origin": "https://staging.seams.sh",
-      "docsOrigin": "https://staging.docs.seams.sh",
+      "walletSiteOrigin": "https://wallet.staging.seams.sh",
       "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
       "availableNetworks": ["testnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
-      "docsPagesProjectEnv": "CF_PAGES_PROJECT_DOCS"
+      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
     "lanes": {
       "testnet": {
@@ -106,7 +106,11 @@
             },
             "origins": {
               "gateway": "https://staging.api.seams.sh",
-              "allowedCors": ["https://staging.seams.sh", "https://staging.sign.seams.sh"]
+              "allowedCors": [
+                "https://staging.seams.sh",
+                "https://wallet.staging.seams.sh",
+                "https://staging.sign.seams.sh"
+              ]
             },
             "session": {
               "issuer": "seams-gateway-staging"
@@ -208,12 +212,12 @@
     "branch": "main",
     "site": {
       "origin": "https://seams.sh",
-      "docsOrigin": "https://docs.seams.sh",
+      "walletSiteOrigin": "https://wallet.seams.sh",
       "googleOidcClientId": "971053349716-p10qdg7lsjh24lcocbsckt4f85is5igs.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
       "availableNetworks": ["testnet", "mainnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
-      "docsPagesProjectEnv": "CF_PAGES_PROJECT_DOCS"
+      "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
     "lanes": {
       "testnet": {
@@ -315,7 +319,11 @@
             },
             "origins": {
               "gateway": "https://test.api.seams.sh",
-              "allowedCors": ["https://seams.sh", "https://test.sign.seams.sh"]
+              "allowedCors": [
+                "https://seams.sh",
+                "https://wallet.seams.sh",
+                "https://test.sign.seams.sh"
+              ]
             },
             "session": {
               "issuer": "seams-gateway-production-testnet"
@@ -503,7 +511,11 @@
             },
             "origins": {
               "gateway": "https://api.seams.sh",
-              "allowedCors": ["https://seams.sh", "https://sign.seams.sh"]
+              "allowedCors": [
+                "https://seams.sh",
+                "https://wallet.seams.sh",
+                "https://sign.seams.sh"
+              ]
             },
             "session": {
               "issuer": "seams-gateway-production"

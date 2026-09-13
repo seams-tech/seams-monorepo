@@ -1,6 +1,6 @@
 # Refactor 123: product domains and unified wallet site deployment
 
-Status: proposed implementation plan. No DNS, OAuth, runtime, or deployment changes are performed by this document.
+Status: implemented in repository configuration and release code. DNS, provider-console changes, and the first staged deployment remain operator cutover steps.
 
 ## Objective
 

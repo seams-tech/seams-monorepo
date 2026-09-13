@@ -15,7 +15,6 @@ import {
   DEFAULT_SESSION_COOKIE_NAME,
   GATEWAY_WORKER_COMPATIBILITY_DATE,
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
-  consoleOriginFor,
   gatewayRuntimeProfileNearNetwork,
 } from './gateway-deployment-config.mjs';
 import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
@@ -32,7 +31,13 @@ function main() {
   const deployment = requireProvisionedGatewayDeploymentConfig(options.lane, lane.provisioning);
   const config =
     options.worker === 'console'
-      ? buildConsoleConfig(deployment, lane.site.origin, lane.emailOtpDelivery, process.cwd())
+      ? buildConsoleConfig(
+          deployment,
+          lane.console,
+          lane.site.walletSiteOrigin,
+          lane.emailOtpDelivery,
+          process.cwd(),
+        )
       : options.worker === 'wallet-runtime'
         ? buildWalletRuntimeConfig(
             deployment,
@@ -128,16 +133,22 @@ export function walletRuntimeWorkerNameFor(gatewayWorkerName) {
 // The Console Worker (R105 Phase 4): its own origin, session plane, cron, and
 // only the Console D1 binding. It is also the private WALLET_CONSOLE service
 // binding target for the split Gateway.
-function buildConsoleConfig(deployment, siteOrigin, emailOtpDelivery, packageRoot) {
+function buildConsoleConfig(
+  deployment,
+  consoleTarget,
+  walletSiteOrigin,
+  emailOtpDelivery,
+  packageRoot,
+) {
   const resources = deployment.resources;
-  const consoleOrigin = consoleOriginFor(deployment.origins.gateway);
+  const consoleOrigin = consoleTarget.origin;
   const production = deployment.lane !== 'staging-testnet';
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
-    CONSOLE_BASE_URL: deployment.origins.allowedCors[0],
-    CONSOLE_CORS_ORIGINS: deployment.origins.allowedCors.join(','),
-    CONSOLE_STEP_UP_RP_ID: new URL(siteOrigin).hostname,
-    CONSOLE_STEP_UP_ORIGIN: siteOrigin,
+    CONSOLE_BASE_URL: consoleOrigin,
+    CONSOLE_CORS_ORIGINS: walletSiteOrigin,
+    CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
+    CONSOLE_STEP_UP_ORIGIN: walletSiteOrigin,
     CONSOLE_SESSION_COOKIE_NAME: DEFAULT_CONSOLE_SESSION_COOKIE_NAME,
     CONSOLE_SESSION_ISSUER: `${consoleOrigin}/console`,
     CONSOLE_SESSION_AUDIENCE: DEFAULT_CONSOLE_SESSION_AUDIENCE,
@@ -171,12 +182,7 @@ function buildConsoleConfig(deployment, siteOrigin, emailOtpDelivery, packageRoo
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,
-    routes: [
-      {
-        pattern: new URL(consoleOrigin).hostname,
-        custom_domain: true,
-      },
-    ],
+    routes: buildConsoleRoutes(consoleOrigin, walletSiteOrigin),
     d1_databases: [
       {
         binding: 'CONSOLE_DB',
@@ -202,6 +208,19 @@ function buildConsoleConfig(deployment, siteOrigin, emailOtpDelivery, packageRoo
     },
     vars,
   };
+}
+
+function buildConsoleRoutes(consoleOrigin, walletSiteOrigin) {
+  const hostname = new URL(consoleOrigin).hostname;
+  if (consoleOrigin !== walletSiteOrigin) {
+    return [{ pattern: hostname, custom_domain: true }];
+  }
+  const labels = hostname.split('.');
+  const zoneName = labels.slice(-2).join('.');
+  return [
+    { pattern: `${hostname}/console`, zone_name: zoneName },
+    { pattern: `${hostname}/console/*`, zone_name: zoneName },
+  ];
 }
 
 function buildWalletRuntimeConfig(

@@ -74,7 +74,7 @@ export async function fetchGoogleAuthOptions(relayerBaseUrl: string): Promise<Go
     return { configured: false, message: 'Relayer base URL is not configured' };
   }
 
-  const response = await fetch(`${baseUrl}/auth/google/options`, {
+  const response = await fetch(`${baseUrl}/console/auth/google/options`, {
     method: 'POST',
     credentials: 'include',
     headers: {

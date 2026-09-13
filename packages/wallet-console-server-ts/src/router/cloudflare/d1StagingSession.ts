@@ -1,7 +1,6 @@
 import {
   base64UrlDecode,
   base64UrlEncode,
-  CrossSiteSessionCookieAdapter,
   encodeSessionJsonSegment,
   normalizeSessionString,
   normalizeSessionTtlSeconds,
@@ -21,6 +20,38 @@ import type {
 } from '@seams-internal/console-server/router/consoleAuth';
 import type { SessionAdapter } from '@seams/wallet-server/cloud-host';
 import { readEnvironmentCsv, requireEnvironmentString } from '@seams/wallet-server/cloud-host';
+
+class ConsoleSessionCookieAdapter {
+  constructor(
+    private readonly cookieName: string,
+    private readonly ttlSeconds: number,
+  ) {}
+
+  buildSetHeader(token: string): string {
+    const expires = new Date(Date.now() + this.ttlSeconds * 1_000).toUTCString();
+    return [
+      `${this.cookieName}=${token}`,
+      'Path=/console',
+      'HttpOnly',
+      'Secure',
+      'SameSite=Lax',
+      `Max-Age=${this.ttlSeconds}`,
+      `Expires=${expires}`,
+    ].join('; ');
+  }
+
+  buildClearHeader(): string {
+    return [
+      `${this.cookieName}=`,
+      'Path=/console',
+      'HttpOnly',
+      'Secure',
+      'SameSite=Lax',
+      'Max-Age=0',
+      'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    ].join('; ');
+  }
+}
 
 export type CloudflareD1StagingSessionEnv = Readonly<Record<string, unknown>>;
 
@@ -267,7 +298,7 @@ class ConsoleSessionAuthAdapter implements ConsoleAuthAdapter {
 export function createHmacSessionAdapter(options: HmacSessionAdapterOptions): SessionAdapter {
   const jwt = new HmacSessionJwtAdapter(options);
   const cookieName = normalizeSessionString(options.cookieName) || 'seams-jwt';
-  const cookie = new CrossSiteSessionCookieAdapter(
+  const cookie = new ConsoleSessionCookieAdapter(
     cookieName,
     normalizeSessionTtlSeconds(options.ttlSeconds),
   );

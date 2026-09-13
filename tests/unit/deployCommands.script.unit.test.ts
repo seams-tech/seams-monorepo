@@ -22,7 +22,7 @@ type CommandResult = {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const backendScript = path.join(repoRoot, 'scripts/deploy-backend.mjs');
-const frontendScript = path.join(repoRoot, 'scripts/deploy-frontend.mjs');
+const frontendScript = path.join(repoRoot, 'scripts/deploy-surface.mjs');
 const frontendHeaders = path.join(repoRoot, 'apps/seams-site/src/public/_headers');
 const environmentGeneratorScript = path.join(
   repoRoot,
@@ -191,14 +191,14 @@ test('production-shaped project policy uses the canonical Seams environment id',
 test('frontend plan runs without deployment secrets', () => {
   const result = runCommand(
     frontendScript,
-    ['plan', '--site', 'staging'],
+    ['plan', '--site', 'staging', '--component', 'wallet-site'],
     environmentWithoutDeploymentSecrets(),
   );
 
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain('Docs: https://staging.docs.seams.sh');
-  expect(result.stdout).toContain('Docs Pages project environment: CF_PAGES_PROJECT_DOCS');
-  expectOrdered(result.stdout, ['build', 'deploy', 'smoke']);
+  expect(result.stdout).toContain('Origin: https://wallet.staging.seams.sh');
+  expect(result.stdout).toContain('Docs: https://wallet.staging.seams.sh/docs/');
+  expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_SITE');
 });
 
 test('frontend Pages headers align with hosted wallet asset policies', () => {
@@ -222,13 +222,7 @@ test('backend commands reject missing, unknown, and misplaced arguments', () => 
   expectFailure(runCommand(backendScript, ['plan']), /--lane.*required/u);
   expectFailure(runCommand(backendScript, ['plan', '--target', 'staging']), /usage:/u);
   expectFailure(
-    runCommand(backendScript, [
-      'plan',
-      '--lane',
-      'production',
-      '--component',
-      'wallet-system',
-    ]),
+    runCommand(backendScript, ['plan', '--lane', 'production', '--component', 'wallet-system']),
     /lane/u,
   );
   expectFailure(
@@ -709,40 +703,51 @@ service = "router-ab-deriver-b-testnet"
   );
 });
 
-test('frontend commands reject backend-only operations and extra component arguments', () => {
-  expectFailure(runCommand(frontendScript, ['migrate', '--site', 'staging']), /usage:/u);
-  expectFailure(runCommand(frontendScript, ['plan']), /--site.*required/u);
+test('frontend commands reject backend-only operations and unknown surface arguments', () => {
+  expectFailure(
+    runCommand(frontendScript, ['migrate', '--site', 'staging', '--component', 'company']),
+    /usage:/u,
+  );
+  expectFailure(runCommand(frontendScript, ['plan']), /usage:/u);
   expectFailure(
     runCommand(frontendScript, ['plan', '--site', 'staging', '--component', 'gateway']),
-    /--component.*not allowed|unexpected.*component/u,
+    /--component must be/u,
   );
   expectFailure(runCommand(frontendScript, ['plan', '--site', 'development']), /site/u);
 });
 
 test('frontend commands reject a site branch mismatch before deployment work', () => {
-  const result = runCommand(frontendScript, ['smoke', '--site', 'staging'], {
-    ...environmentWithoutDeploymentSecrets(),
-    GITHUB_REF: 'refs/heads/main',
-  });
+  const result = runCommand(
+    frontendScript,
+    ['smoke', '--site', 'staging', '--component', 'company'],
+    {
+      ...environmentWithoutDeploymentSecrets(),
+      GITHUB_REF: 'refs/heads/main',
+    },
+  );
 
   expectFailure(result, /site staging requires branch dev/u);
 });
 
 test('production frontend build rejects a project environment from the wrong lane', () => {
-  const result = runCommand(frontendScript, ['build', '--site', 'production'], {
-    ...environmentWithoutDeploymentSecrets(),
-    GITHUB_REF: 'refs/heads/main',
-    VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID: 'production',
-    VITE_TESTNET_SEAMS_PUBLISHABLE_KEY: 'pk_testnet',
-    VITE_TESTNET_NEAR_NETWORK: 'testnet',
-    VITE_TESTNET_NEAR_RPC_URL: 'https://rpc.testnet.near.org',
-    VITE_TESTNET_NEAR_EXPLORER: 'https://testnet.nearblocks.io',
-    VITE_TESTNET_SIGNING_SESSION_PERSISTENCE_MODE: 'sealed_refresh_v1',
-  });
+  const result = runCommand(
+    frontendScript,
+    ['build', '--site', 'production', '--component', 'wallet-site'],
+    {
+      ...environmentWithoutDeploymentSecrets(),
+      GITHUB_REF: 'refs/heads/main',
+      VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID: 'production',
+      VITE_TESTNET_SEAMS_PUBLISHABLE_KEY: 'pk_testnet',
+      VITE_TESTNET_NEAR_NETWORK: 'testnet',
+      VITE_TESTNET_NEAR_RPC_URL: 'https://rpc.testnet.near.org',
+      VITE_TESTNET_NEAR_EXPLORER: 'https://testnet.nearblocks.io',
+      VITE_TESTNET_SIGNING_SESSION_PERSISTENCE_MODE: 'sealed_refresh_v1',
+    },
+  );
 
   expectFailure(
     result,
-    /VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID must match production-testnet tenant environment production-testnet; received production/u,
+    /VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID must match production-testnet tenant environment production-testnet/u,
   );
 });
 
@@ -887,7 +892,8 @@ test('frontend workflows contain one environment-bound deployment job', () => {
     expect(workflow.jobs.deploy.environment).toBe(site);
     expect(workflow.env?.DEPLOY_SITE).toBe(site);
     expect(workflowSource).toContain('--site "$DEPLOY_SITE"');
-    expect(workflowSource).toContain('CF_PAGES_PROJECT_DOCS:');
+    expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_SITE:');
+    expect(workflowSource).toContain('--component "$DEPLOY_COMPONENT"');
     expect(workflowSource).not.toContain('VITE_DOCS_ORIGIN:');
     expect(workflowSource).not.toContain('--target');
     if (site === 'staging') {

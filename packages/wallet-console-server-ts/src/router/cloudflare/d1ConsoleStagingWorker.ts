@@ -412,12 +412,26 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   };
   // The Console Worker owns /console/auth/* end-to-end: provider verification
   // is Console-owned (no signer D1, Wasm, or identity-link store involved).
+  const googleOidcClientId = readEnvString(env, 'GOOGLE_OIDC_CLIENT_ID');
+  const githubOAuth = consoleGithubOAuthConfig(env);
   const authHandler = new HostedConsoleAuthHandler({
     handler: routerWithOps,
     identity: createConsoleProviderIdentity({
-      googleOidcClientId: readEnvString(env, 'GOOGLE_OIDC_CLIENT_ID'),
-      githubOAuth: consoleGithubOAuthConfig(env),
+      googleOidcClientId,
+      githubOAuth,
     }),
+    providers: {
+      google: googleOidcClientId
+        ? { configured: true, clientId: googleOidcClientId }
+        : { configured: false },
+      github: githubOAuth
+        ? {
+            configured: true,
+            clientId: githubOAuth.clientId,
+            callbackUrl: githubOAuth.callbackUrl,
+          }
+        : { configured: false },
+    },
     session,
     account: bundle.account,
     orgProjectEnv: bundle.orgProjectEnv,

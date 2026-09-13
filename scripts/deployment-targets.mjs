@@ -1,10 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  consoleOriginFor,
-  parseGatewayDeploymentConfig,
-} from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
+import { parseGatewayDeploymentConfig } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_WALLET_TARGETS_PATH = path.join(
@@ -418,12 +415,12 @@ function parseSite(value, releaseId, branch) {
     site,
     [
       'origin',
-      'docsOrigin',
+      'walletSiteOrigin',
       'googleOidcClientId',
       'defaultNetwork',
       'availableNetworks',
       'pagesProjectEnv',
-      'docsPagesProjectEnv',
+      'walletSitePagesProjectEnv',
     ],
     sitePath,
   );
@@ -437,12 +434,17 @@ function parseSite(value, releaseId, branch) {
   if (!availableNetworks.includes(defaultNetwork)) {
     throw new Error(sitePath + '.defaultNetwork must be one of ' + availableNetworks.join(', '));
   }
+  const walletSiteOrigin = requireHttpsOrigin(
+    site.walletSiteOrigin,
+    sitePath + '.walletSiteOrigin',
+  );
   return Object.freeze({
     id: releaseId,
     release: releaseId,
     branch,
     origin: requireHttpsOrigin(site.origin, sitePath + '.origin'),
-    docsOrigin: requireHttpsOrigin(site.docsOrigin, sitePath + '.docsOrigin'),
+    walletSiteOrigin,
+    docsOrigin: `${walletSiteOrigin}/docs`,
     googleOidcClientId: requirePattern(
       site.googleOidcClientId,
       /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/u,
@@ -451,9 +453,9 @@ function parseSite(value, releaseId, branch) {
     defaultNetwork,
     availableNetworks: Object.freeze(availableNetworks),
     pagesProjectEnv: requireEnvironmentName(site.pagesProjectEnv, sitePath + '.pagesProjectEnv'),
-    docsPagesProjectEnv: requireEnvironmentName(
-      site.docsPagesProjectEnv,
-      sitePath + '.docsPagesProjectEnv',
+    walletSitePagesProjectEnv: requireEnvironmentName(
+      site.walletSitePagesProjectEnv,
+      sitePath + '.walletSitePagesProjectEnv',
     ),
   });
 }
@@ -509,8 +511,8 @@ function assertConsoleTargetMatchesLane(lane, consoleTarget) {
   }[lane.id];
   if (
     consoleTarget.environment !== expectedEnvironment ||
-    consoleTarget.origin !== consoleOriginFor(lane.gatewayOrigin) ||
-    consoleTarget.siteOrigin !== lane.site.origin ||
+    consoleTarget.origin !== expectedConsoleOrigin(lane) ||
+    consoleTarget.siteOrigin !== lane.site.walletSiteOrigin ||
     consoleTarget.workerName !== lane.resources.gateway.workerName.replace('gateway', 'console') ||
     consoleTarget.database.name !== lane.resources.gateway.consoleD1Name ||
     consoleTarget.database.id !== config.resources.consoleD1.id ||
@@ -520,6 +522,12 @@ function assertConsoleTargetMatchesLane(lane, consoleTarget) {
   ) {
     throw new Error('Console target does not match backend lane ' + lane.id);
   }
+}
+
+function expectedConsoleOrigin(lane) {
+  return lane.id === 'production-testnet'
+    ? 'https://test.console.seams.sh'
+    : lane.site.walletSiteOrigin;
 }
 
 function parseProvisioning(value, laneId, network, provisioningPath) {
@@ -569,7 +577,7 @@ function parseProvisioning(value, laneId, network, provisioningPath) {
 function assertLaneOrigins(lane) {
   if (lane.provisioning.kind !== 'provisioned') return;
   const configOrigins = lane.provisioning.gatewayDeploymentConfig.origins;
-  const expectedCors = [lane.site.origin, lane.walletOrigin].sort();
+  const expectedCors = [lane.site.origin, lane.site.walletSiteOrigin, lane.walletOrigin].sort();
   const actualCors = [...configOrigins.allowedCors].sort();
   if (
     configOrigins.gateway !== lane.gatewayOrigin ||

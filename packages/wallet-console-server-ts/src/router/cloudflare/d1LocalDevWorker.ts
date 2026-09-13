@@ -1109,12 +1109,26 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
       tenantRootSecurityReadRoute,
     ],
   });
+  const googleOidcClientId = localGoogleOidcClientId(env);
+  const githubOAuth = localGithubOAuthConfig(env);
   const consoleAuthHandler = new HostedConsoleAuthHandler({
     handler: handlerWithTenantRootCreation,
     identity: createConsoleProviderIdentity({
-      googleOidcClientId: localGoogleOidcClientId(env),
-      githubOAuth: localGithubOAuthConfig(env),
+      googleOidcClientId,
+      githubOAuth,
     }),
+    providers: {
+      google: googleOidcClientId
+        ? { configured: true, clientId: googleOidcClientId }
+        : { configured: false },
+      github: githubOAuth
+        ? {
+            configured: true,
+            clientId: githubOAuth.clientId,
+            callbackUrl: githubOAuth.callbackUrl,
+          }
+        : { configured: false },
+    },
     session,
     account: bundle.account,
     orgProjectEnv: bundle.orgProjectEnv,

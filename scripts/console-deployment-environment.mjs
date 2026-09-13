@@ -98,6 +98,7 @@ function requireOption(values, name) {
 
 function prepareManifest(input) {
   const externalValues = readProtectedValues(input.valuesFile);
+  assertGithubCallback(input.target, externalValues);
   const grantAuthority = generateGrantAuthority(input.lane.id);
   const generatedAt = new Date().toISOString();
   const generationId = `console-${input.lane.id}-${randomBytes(12).toString('base64url')}`;
@@ -141,6 +142,15 @@ function prepareManifest(input) {
   manifest.manifestSha256 = manifestSha256(manifest);
   const manifestPath = writeManifest(input.lane.id, manifest);
   printResult(input, { manifestPath, ...manifest });
+}
+
+function assertGithubCallback(target, values) {
+  const callback = readValue(values, 'SEAMS_GITHUB_OAUTH_CALLBACK_URL');
+  if (!callback) return;
+  const expected = `${target.siteOrigin}/dashboard/login`;
+  if (callback !== expected) {
+    throw new Error(`SEAMS_GITHUB_OAUTH_CALLBACK_URL must be ${expected}`);
+  }
 }
 
 function generateGrantAuthority(laneId) {
@@ -241,11 +251,13 @@ function validateManifest(input, manifest) {
   if (manifest.manifestSha256 !== manifestSha256(manifest)) {
     throw new Error('Console deployment manifest SHA-256 does not match its contents');
   }
+  assertGithubCallback(input.target, manifest.secrets);
   assertOwnedSecretNames(input.lane, manifest.secrets);
 }
 
 function updateExternalValues(input) {
   const values = readProtectedValues(input.valuesFile);
+  assertGithubCallback(input.target, values);
   const secrets = {};
   const variables = {};
   addRequiredMappedValues(secrets, values, [

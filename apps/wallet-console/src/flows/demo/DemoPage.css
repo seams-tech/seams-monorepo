@@ -1,0 +1,472 @@
+/* left-aligned editorial header, flush with the section content edge (the
+   ChainSigningSection's own 1rem padding provides the gap below). Top padding
+   scales with the card radius so the heading clears the rounded corner:
+   1.5rem floor, rounded opens up. */
+.demo-page-header {
+  padding: max(1.5rem, calc(var(--w3a-shape-card, 16px) * 0.75 + 0.25rem)) 1rem 0;
+  text-align: left;
+  transition: padding 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.demo-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--site-text-primary);
+  margin: 0;
+}
+
+/* grouped rhythm: 8px inside a group (readout + input; button + button),
+   16px between groups. The gap carries the compact spacing; the first
+   button adds 8px margin to open the group break (8 + 8 = 16). */
+.greeting-controls-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.greeting-controls-box > .button:first-of-type {
+  margin-top: 8px;
+}
+
+.demo-capability-note {
+  border: 1px solid var(--site-border);
+  border-radius: var(--site-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent), var(--site-surface-muted);
+  color: var(--site-text-secondary);
+  padding: var(--site-space-4);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* field radius (not box): this row twins with the input directly below, so
+   they must share one curvature — the mismatch shows in rounded themes */
+.on-chain-greeting-box {
+  display: flex;
+  align-items: center;
+  gap: var(--site-space-3);
+  padding: 4px;
+  background: var(--site-surface-muted);
+  border-radius: var(--w3a-shape-field, 10px);
+  transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.on-chain-greeting-box p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--site-text-primary);
+  flex: 1;
+}
+
+.refresh-icon-button {
+  background: none;
+  border: none;
+  color: var(--w3a-colors-textSecondary);
+  cursor: pointer;
+  padding: var(--site-space-2);
+  border-radius: 4rem;
+  transition: background var(--site-duration-fast) var(--site-ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-icon-button:hover:not(:disabled) {
+  background: var(--site-border);
+}
+
+.refresh-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading state: spin the icon when busy/disabled */
+.refresh-icon-button[aria-busy='true'] svg,
+.refresh-icon-button:disabled svg {
+  animation: refresh-spin 0.9s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes refresh-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Greeting Input Group */
+.greeting-input-group {
+  margin-bottom: 0;
+}
+
+.greeting-input-group input {
+  width: 100%;
+  height: var(--w3a-shape-fieldHeight, 44px);
+  padding: var(--site-space-2) var(--site-space-4);
+  background-color: var(--site-surface-muted);
+  border: none;
+  border-radius: var(--w3a-shape-field, 10px);
+  color: var(--site-text-primary);
+  font-size: 0.9rem;
+  font-family: var(--site-font-sans);
+  /* the trailing entries override `all` for the shape morph props */
+  transition:
+    all var(--site-duration-fast) var(--site-ease),
+    border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.greeting-input-group input:focus {
+  outline: none;
+  border-color: var(--site-border-strong);
+  box-shadow: 0 0 0 3px var(--w3a-shadows-sm);
+}
+
+.greeting-input-group input::placeholder {
+  color: var(--site-text-secondary);
+}
+
+.near-greeting-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--site-space-2);
+  align-items: center;
+}
+
+.near-funding-status {
+  margin: 0;
+  color: var(--site-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.accent-btn {
+  background: var(--w3a-colors-primary);
+  padding: var(--site-space-3) var(--site-space-4);
+  border: none;
+  border-radius: var(--w3a-shape-control, 10px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--site-duration-fast) var(--site-ease);
+  align-items: center;
+  justify-content: center;
+}
+
+.error-message {
+  background: var(--site-danger-surface);
+  border: 1px solid var(--site-danger);
+  border-radius: var(--site-radius-sm);
+  padding: var(--site-space-3);
+  color: var(--site-danger);
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .demo-page-header {
+    padding: var(--site-space-4) var(--site-space-4) 0;
+  }
+
+  .greeting-input-group {
+    flex-direction: column;
+  }
+}
+
+/* EmbeddedTxButton styles merged */
+.embedded-tx-page-root {
+  display: grid;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  padding: 1rem;
+}
+
+.demo-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--site-text-primary);
+  margin: 0 0 16px 0;
+}
+
+.button-with-tooltip-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--site-space-2);
+  max-inline-size: 100%;
+}
+
+@media (max-width: 768px) {
+  .embedded-tx-page-root {
+    padding: var(--site-space-3);
+  }
+  .demo-subtitle {
+    font-size: var(--site-font-size-xl);
+  }
+}
+
+.action-section {
+  padding: 1rem;
+  margin-bottom: 0;
+  width: 100%;
+  transition: all var(--site-duration-fast) var(--site-ease);
+}
+
+/* a disabled primary here (e.g. "Tempo Account Funded") reads as more clearly
+   inactive than the shared 0.6 disabled opacity */
+.action-section .button--primary:disabled {
+  opacity: 0.4;
+}
+
+.action-text {
+  font-size: 1rem;
+  color: var(--site-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.funding-instructions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.funding-address-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 0em;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  border-radius: var(--w3a-shape-field, 10px);
+  background: var(--w3a-colors-surface2);
+  transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.funding-address-text {
+  flex: 1;
+  /* let the flex item shrink so the ellipsis works instead of forcing the
+     card wider than its fixed width */
+  min-width: 0;
+  color: var(--site-text-primary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funding-address-copy.install-copy {
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--site-text-secondary);
+  padding: 0;
+}
+
+.funding-address-copy.install-copy:hover {
+  background: var(--site-surface-muted);
+  color: var(--site-text-primary);
+}
+
+.funding-address-copy.install-copy.is-copied {
+  color: var(--site-text-primary);
+}
+
+.funding-address-copy-placeholder {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+}
+
+.demo-divider {
+  height: 1px;
+  width: 100%;
+  background: var(--site-border);
+  opacity: 0.9;
+  margin: 1.25rem 0 1rem;
+}
+
+/* Fade-in helper for embedded button */
+.button-with-tooltip-container {
+  position: relative;
+  z-index: 1;
+  opacity: 1;
+  will-change: opacity;
+}
+.fade-in {
+  animation: demo-embedded-fade-in 160ms var(--site-ease) forwards;
+}
+@keyframes demo-embedded-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button-with-tooltip-container {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Chain picker: segmented control matching the SeamsAuthMenu seg — same
+   track color, themable pill variable, and 320ms spring easing. Three equal
+   segments, so the pill needs no measurement: translateX percentages resolve
+   against the pill's own width (one segment). */
+.demo-chain-seg {
+  position: relative;
+  min-height: 38px;
+  margin-bottom: 0.5rem;
+  padding: 3px;
+  border-radius: 9999px;
+  /* A small amount of ink separates the track from the white card. */
+  background: color-mix(
+    in srgb,
+    var(--w3a-colors-surface2),
+    var(--w3a-colors-textPrimary, var(--site-text-primary)) 4%
+  );
+}
+
+.demo-chain-seg__pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 14px) / 3);
+  border-radius: 9999px;
+  background: var(--w3a-passkey-auth-menu2-seg-active-bg, var(--w3a-colors-surface));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--w3a-colors-borderPrimary) 80%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.07);
+  /* one pill-width plus one 4px gap per step */
+  transform: translateX(calc(var(--demo-seg-index, 0) * (100% + 4px)));
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.demo-chain-seg__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  min-height: 32px;
+  height: 100%;
+}
+
+.demo-chain-seg__btn {
+  border: none;
+  background: transparent;
+  border-radius: 9999px;
+  color: var(--site-text-secondary);
+  font-family: var(--site-font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 200ms var(--site-ease);
+}
+
+.demo-chain-seg__btn.is-active {
+  color: var(--site-text-primary);
+}
+
+/* Testnet funding instructions under the sign button: bare hint text reads
+   as the address row's caption (tight 6px), while the 16px above keeps the
+   signing/funding section break */
+.demo-funding {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--site-space-4);
+}
+
+.demo-funding__hint {
+  font-size: 0.85rem;
+  color: var(--site-text-secondary);
+  line-height: 1.45;
+}
+
+.demo-funding__link {
+  color: var(--site-brand);
+}
+
+.demo-funding__link:hover {
+  color: var(--site-brand-hover);
+}
+
+/* ---------- motion (transitions, not keyframes, so they stay interruptible;
+   easing per easeOutQuad, cubic-bezier(0.25, 0.46, 0.45, 0.94)) ---------- */
+
+/* The chain section follows its content height via the AnimatedHeight wrapper,
+   so switching NEAR/Tempo/Arc eases the height instead of jumping. The
+   fixed-height .h2-hero__demo cell (card centered) absorbs the change — the
+   container never resizes, so nothing outside the card shifts. */
+.animated-height {
+  transition: height 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  overflow: clip;
+}
+
+/* chain view enters softly: opacity + a touch of blur, no motion. The
+   min-height exceeds the NEAR and Tempo variants so those two render the
+   same height; Arc runs taller (its funding box is always visible) and the
+   wrapper eases that difference on switch. */
+.demo-chain-view {
+  min-height: 240px;
+  animation: demo-chain-in 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes demo-chain-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-height,
+  .demo-chain-seg__pill {
+    transition: none;
+  }
+
+  .demo-chain-view {
+    animation: none;
+  }
+}
+
+/* Single-reveal entrance: the whole card fades/rises once after the initial
+   data settles, instead of elements stepping in one by one */
+.demo-card-reveal {
+  animation: demo-card-reveal-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes demo-card-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Funding status / error line — only mounted when it has content, so it adds
+   no spacing while empty */
+.demo-status-slot {
+  display: grid;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-card-reveal {
+    animation: none;
+  }
+}

@@ -43,7 +43,7 @@ function clearGithubCallbackQuery(): void {
 export async function fetchGithubOAuthOptions(relayerBaseUrl: string): Promise<GithubOAuthOptions> {
   const baseUrl = normalizeRelayBaseUrl(relayerBaseUrl);
   if (!baseUrl) return { configured: false };
-  const response = await fetch(`${baseUrl}/auth/github/options`, {
+  const response = await fetch(`${baseUrl}/console/auth/github/options`, {
     method: 'POST',
     credentials: 'include',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

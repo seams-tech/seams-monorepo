@@ -22,17 +22,6 @@ export const DEFAULT_EMAIL_OTP_SENSITIVE_ATTEMPT_RATE_LIMIT_MAX = '5';
 export const GATEWAY_WORKER_COMPATIBILITY_DATE = '2026-07-18';
 export const GATEWAY_WORKER_COMPATIBILITY_FLAGS = Object.freeze(['nodejs_compat']);
 
-export function consoleOriginFor(gatewayOrigin) {
-  const url = new URL(gatewayOrigin);
-  if (!url.hostname.split('.').includes('api')) {
-    throw new Error(`cannot derive console origin from ${gatewayOrigin}`);
-  }
-  const hostname = url.hostname
-    .split('.')
-    .map((label) => (label === 'api' ? 'console' : label))
-    .join('.');
-  return `${url.protocol}//${hostname}`;
-}
 export const GATEWAY_RUNTIME_PROFILE_KINDS = {
   testnetLiveDemo: 'testnet_live_demo',
   testnetService: 'testnet_service',

@@ -15,7 +15,7 @@
     "site": "node ./scripts/stop-local-site-listeners.mjs && pnpm run site:serve",
     "site:serve": "concurrently --kill-others --names caddy,site,console,docs \"pnpm run caddy\" \"VITE_SITE_ORIGIN=http://localhost:4001 VITE_DOCS_ORIGIN=https://docs.localhost:4003 node ./scripts/start-local-site.mjs\" \"VITE_SITE_ORIGIN=http://localhost:4001 VITE_CONSOLE_BASE_URL=https://localhost:4101 VITE_RELAYER_URL=https://localhost:4101 VITE_WALLET_ORIGIN=https://localhost:4002 pnpm -C apps/wallet-console dev\" \"VITE_SITE_ORIGIN=http://localhost:4001 VITE_DOCS_ORIGIN=https://docs.localhost:4003 pnpm run docs:preview\"",
     "deploy:backend": "node ./scripts/deploy-backend.mjs",
-    "deploy:frontend": "node ./scripts/deploy-frontend.mjs",
+    "deploy:frontend": "node ./scripts/deploy-surface.mjs",
     "router:deploy:browser-evidence": "pnpm -C tests exec playwright test -c playwright.router-ab-deployed-evidence.config.ts --reporter=line",
     "router:deploy:keygen": "node ./deployment/wallet-system/scripts/generate-deployment-keys.mjs",
     "console:deploy:env-prepare": "node ./scripts/console-deployment-environment.mjs prepare",

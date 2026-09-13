@@ -887,7 +887,9 @@ function buildGeneralEnvironment(input) {
           `${environmentName}-public-wallet-actions-read-token`,
         ),
         CF_PAGES_PROJECT_VITE: manual(`${environmentName}-cloudflare-pages-app-project`),
-        CF_PAGES_PROJECT_DOCS: manual(`${environmentName}-cloudflare-pages-docs-project`),
+        CF_PAGES_PROJECT_WALLET_SITE: manual(
+          `${environmentName}-cloudflare-pages-wallet-site-project`,
+        ),
         CF_PAGES_PROJECT_WALLET: manual(`${environmentName}-cloudflare-pages-wallet-project`),
       },
     },
@@ -914,7 +916,9 @@ function buildProductionSiteEnvironment(input) {
         `${input.environmentPrefix}-public-wallet-actions-read-token`,
       ),
       CF_PAGES_PROJECT_VITE: manual(`${input.environmentPrefix}-cloudflare-pages-app-project`),
-      CF_PAGES_PROJECT_DOCS: manual(`${input.environmentPrefix}-cloudflare-pages-docs-project`),
+      CF_PAGES_PROJECT_WALLET_SITE: manual(
+        `${input.environmentPrefix}-cloudflare-pages-wallet-site-project`,
+      ),
       CF_PAGES_PROJECT_WALLET_TESTNET: manual(
         `${input.environmentPrefix}-cloudflare-pages-wallet-testnet-project`,
       ),

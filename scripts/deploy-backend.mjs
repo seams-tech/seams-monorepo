@@ -16,7 +16,6 @@ import {
 import { readMigrationSet } from './migration-fingerprint.mjs';
 import { formatFailedCheck, isFailedCheck, runReadinessChecks } from './deployment-smoke.mjs';
 import {
-  consoleOriginFor,
   GATEWAY_WORKER_COMPATIBILITY_DATE,
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
 } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
@@ -1554,8 +1553,7 @@ function runRouterCommand(args) {
 
 async function smokeBackend(lane, component) {
   const checks = [];
-  const consoleOrigin = consoleOriginFor(lane.gatewayOrigin);
-  const consoleApiOrigin = lane.release === 'staging' ? lane.gatewayOrigin : consoleOrigin;
+  const consoleOrigin = lane.console.origin;
   if (component === 'wallet-system') {
     for (const requestPath of BACKEND_SMOKE_PATHS) {
       checks.push({
@@ -1570,15 +1568,15 @@ async function smokeBackend(lane, component) {
     });
     checks.push({
       name: '/console/session CORS preflight',
-      url: new URL('/console/session', consoleApiOrigin).toString(),
+      url: new URL('/console/session', consoleOrigin).toString(),
       request: {
         method: 'OPTIONS',
         headers: {
-          Origin: lane.site.origin,
+          Origin: lane.site.walletSiteOrigin,
           'Access-Control-Request-Method': 'GET',
         },
       },
-      isReady: isDashboardConsoleCorsPreflight.bind(null, lane.site.origin),
+      isReady: isDashboardConsoleCorsPreflight.bind(null, lane.site.walletSiteOrigin),
     });
   }
   const results = await runReadinessChecks(checks);

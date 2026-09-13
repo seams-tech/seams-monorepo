@@ -137,7 +137,6 @@ export function DashboardLoginPage(): React.JSX.Element {
     const deployment = getActiveFrontendDeployment();
     return normalizeBaseUrl(deployment.consoleBaseUrl || deployment.relayerUrl);
   }, []);
-  const providerBaseUrl = normalizeBaseUrl(getActiveFrontendDeployment().relayerUrl);
   const githubLogin = React.useRef<ReturnType<typeof exchangeDashboardSession> | null>(null);
   const [googleClientId, setGoogleClientId] = React.useState<string>('');
   const [githubOptions, setGithubOptions] = React.useState<GithubOAuthOptions>({
@@ -183,7 +182,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   React.useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (!providerBaseUrl) {
+      if (!relayerBaseUrl) {
         if (!cancelled) {
           setGoogleConfigured(false);
           setGithubOptions({ configured: false });
@@ -191,8 +190,8 @@ export function DashboardLoginPage(): React.JSX.Element {
         return;
       }
       const [googleResult, githubResult] = await Promise.allSettled([
-        fetchGoogleAuthOptions(providerBaseUrl),
-        fetchGithubOAuthOptions(providerBaseUrl),
+        fetchGoogleAuthOptions(relayerBaseUrl),
+        fetchGithubOAuthOptions(relayerBaseUrl),
       ]);
       if (cancelled) return;
       if (googleResult.status === 'fulfilled') {
@@ -211,7 +210,7 @@ export function DashboardLoginPage(): React.JSX.Element {
       window.removeEventListener('focus', run);
       window.removeEventListener('online', run);
     };
-  }, [providerBaseUrl]);
+  }, [relayerBaseUrl]);
 
   React.useEffect(() => {
     if (!relayerBaseUrl) {

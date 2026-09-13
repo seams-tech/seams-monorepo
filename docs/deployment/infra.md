@@ -110,7 +110,7 @@ cross-run artifact inputs.
 | `CLOUDFLARE_API_TOKEN`                          | Pages, Router A/B deploy | Frontend environments use Pages-only tokens; backend role environments use Worker-scoped tokens.                                 |
 | `CLOUDFLARE_ACCOUNT_ID`                         | Pages, Router A/B deploy | Cloudflare account id, scoped to the matching authority environment.                                                             |
 | `CF_PAGES_PROJECT_VITE`                         | Pages deploy             | Cloudflare Pages project for the app/site surface.                                                                               |
-| `CF_PAGES_PROJECT_DOCS`                         | Pages deploy             | Cloudflare Pages project for the VitePress documentation surface.                                                                |
+| `CF_PAGES_PROJECT_WALLET_SITE`                  | Pages deploy             | Unified wallet landing, dashboard, and `/docs/*` Pages project.                                                                  |
 | `CF_PAGES_PROJECT_WALLET`                       | Pages deploy             | Staging wallet Pages project.                                                                                                    |
 | `CF_PAGES_PROJECT_WALLET_TESTNET`               | Pages deploy             | Production testnet wallet Pages project; pending production-testnet provisioning.                                                |
 | `CF_PAGES_PROJECT_WALLET_MAINNET`               | Pages deploy             | Production mainnet wallet Pages project; pending production-mainnet provisioning.                                                |
@@ -216,24 +216,24 @@ Apply mode creates the Pages projects for the selected release when they are
 absent:
 
 - app/site project: stored in `CF_PAGES_PROJECT_VITE`
-- VitePress docs project: stored in `CF_PAGES_PROJECT_DOCS`
+- unified wallet-site project: stored in `CF_PAGES_PROJECT_WALLET_SITE`
 - staging wallet-origin project: stored in `CF_PAGES_PROJECT_WALLET`
 - production testnet wallet-origin project: stored in
   `CF_PAGES_PROJECT_WALLET_TESTNET`
 - production mainnet wallet-origin project: stored in
   `CF_PAGES_PROJECT_WALLET_MAINNET`
 
-The matching frontend workflow builds the app and VitePress docs, then deploys
-the app, docs, and every declared wallet Pages project. The docs deploy binds
-`staging.docs.seams.sh` for staging and `docs.seams.sh` for production. It
-deploys branch alias `dev` for staging and `main` for production. Production frontend deployment remains gated while
+The matching frontend workflow can release the company site, unified wallet
+site, and hosted-wallet assets independently. The wallet-site artifact includes
+the exact public docs artifact at `/docs/*` and binds `wallet.staging.seams.sh`
+or `wallet.seams.sh`. It deploys branch alias `dev` for staging and `main` for production. Production frontend deployment remains gated while
 either backend lane is pending. The stack workflow has no Pages mutation jobs or
 Pages credentials.
 
 The workflow copies SDK runtime assets into the Pages output:
 
-- `packages/wallet/dist/esm/sdk/*` -> `apps/seams-site/dist/sdk/*`
-- `packages/wallet/dist/workers/*` -> `apps/seams-site/dist/sdk/workers/*`
+- `@seams/wallet/dist/esm/sdk/*` -> `apps/wallet-console/dist/sdk/*`
+- `@seams/wallet/dist/workers/*` -> `apps/wallet-console/dist/sdk/workers/*`
 
 That means Pages serves the same runtime assets at `/sdk/*` that were built
 for the commit being deployed.

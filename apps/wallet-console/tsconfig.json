@@ -17,6 +17,7 @@
     "useDefineForClassFields": true,
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
       "@core/*": ["src/core/*"],
       "@wallet-product/*": ["src/products/wallet/*"],
       "@app/*": ["src/app/*"]

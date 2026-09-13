@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(() => {
   const appSrc = fileURLToPath(new URL('./src', import.meta.url));
   return {
-    base: '/dashboard-static/',
+    base: '/',
     plugins: [react()],
     server: {
       host: 'localhost',
@@ -14,6 +14,7 @@ export default defineConfig(() => {
     },
     resolve: {
       alias: {
+        '@': appSrc,
         '@core': `${appSrc}/core`,
         '@wallet-product': `${appSrc}/products/wallet`,
         '@app': `${appSrc}/app`,

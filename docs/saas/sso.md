@@ -25,8 +25,8 @@ This document is the canonical dashboard auth reference. Any dashboard auth beha
 
 ## Implemented
 
-- `/dashboard/login` Google sign-in flow reads the public Google client ID from relay `/auth/google/options`.
-- `/dashboard/login` GitHub sign-in flow reads the public OAuth App client ID and callback URL from relay `/auth/github/options`.
+- `/dashboard/login` reads the public Google client ID from the Console Worker at `/console/auth/google/options`.
+- `/dashboard/login` reads the public GitHub OAuth App client ID and callback URL from the Console Worker at `/console/auth/github/options`.
 - GitHub OAuth callback state is generated and verified in the browser before its authorization code is exchanged.
 - Dashboard unauthenticated guard redirects to `/dashboard/login`.
 - Dashboard sign-out calls `POST /session/revoke` and clears local dashboard state.

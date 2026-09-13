@@ -67,7 +67,7 @@ async function hmacSessionRejectsWrongAudience(): Promise<void> {
   });
 }
 
-function hmacSessionUsesCrossSiteCookiePolicy(): void {
+function hmacSessionUsesConsolePathCookiePolicy(): void {
   const session = createHmacSessionAdapter({
     secret: SESSION_SECRET,
     cookieName: 'dashboard-session',
@@ -75,10 +75,10 @@ function hmacSessionUsesCrossSiteCookiePolicy(): void {
   });
 
   expect(session.buildSetCookie('session-token')).toMatch(
-    /^dashboard-session=session-token; Path=\/; HttpOnly; Secure; SameSite=None; Max-Age=3600; Expires=/,
+    /^dashboard-session=session-token; Path=\/console; HttpOnly; Secure; SameSite=Lax; Max-Age=3600; Expires=/,
   );
   expect(session.buildClearCookie()).toBe(
-    'dashboard-session=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'dashboard-session=; Path=/console; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
   );
 }
 
@@ -138,8 +138,8 @@ async function consoleAuthIgnoresTokenRoleEscalation(): Promise<void> {
 test('HMAC staging session signs and verifies JWT claims', hmacSessionRoundTrip);
 test('HMAC staging session rejects wrong audience', hmacSessionRejectsWrongAudience);
 test(
-  'HMAC staging session cookies support cross-site credentialed requests',
-  hmacSessionUsesCrossSiteCookiePolicy,
+  'HMAC staging session cookies stay on the Console API path',
+  hmacSessionUsesConsolePathCookiePolicy,
 );
 test(
   'console staging auth resolves current organization authorization',

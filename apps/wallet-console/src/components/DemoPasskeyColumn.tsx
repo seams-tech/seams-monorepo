@@ -1,0 +1,206 @@
+import React from 'react';
+import NavbarProfileOverlay from './Navbar/NavbarProfileOverlay';
+import { useSeams, useTheme, type AuthMenuMode } from '@seams/wallet/react';
+
+import { GlassBorder } from './GlassBorder';
+import { DemoTxCardSkeleton } from './DemoTxCardSkeleton';
+import { Carousel } from './Carousel/Carousel';
+import { HostedPasskeyLoginMenu } from '@/flows/demo/HostedPasskeyLoginMenu';
+import { ProfileMenuControlProvider } from '@/context/ProfileMenuControl';
+import { useDemoWalletSessionLifecycle } from '@/flows/demo/hooks/useDemoWalletSessionLifecycle';
+
+// Post-login flows stay deferred until the user unlocks the wallet.
+const DemoPage = React.lazy(() =>
+  import('@/flows/demo/DemoPage').then((m) => ({ default: m.DemoPage })),
+);
+const SyncAccount = React.lazy(() =>
+  import('@/flows/demo/SyncAccount').then((m) => ({ default: m.SyncAccount })),
+);
+
+type DemoToastThemeVar = (typeof DEMO_TOAST_THEME_VARS)[number];
+type DemoThemeTokens = ReturnType<typeof useTheme>['tokens'];
+
+const DEMO_TOAST_THEME_ATTR = 'data-site-toast-theme';
+const DEMO_TOAST_THEME_VARS = [
+  '--site-toast-background',
+  '--site-toast-border',
+  '--site-toast-text-primary',
+  '--site-toast-text-secondary',
+  '--site-toast-link',
+  '--site-toast-icon',
+  '--site-toast-success',
+  '--site-toast-info',
+  '--site-toast-warning',
+  '--site-toast-error',
+  '--site-toast-close-bg',
+  '--site-toast-close-hover-bg',
+  '--site-toast-shadow',
+] as const;
+
+function demoToastThemeVars(tokens: DemoThemeTokens): Record<DemoToastThemeVar, string> {
+  const colors = tokens.colors;
+  return {
+    '--site-toast-background': colors.surface,
+    '--site-toast-border': colors.borderPrimary,
+    '--site-toast-text-primary': colors.textPrimary,
+    '--site-toast-text-secondary': colors.textSecondary,
+    '--site-toast-link': colors.primary,
+    '--site-toast-icon': colors.textSecondary,
+    '--site-toast-success': colors.success,
+    '--site-toast-info': colors.info,
+    '--site-toast-warning': colors.warning,
+    '--site-toast-error': colors.error,
+    '--site-toast-close-bg': colors.surface2,
+    '--site-toast-close-hover-bg': colors.surface3,
+    '--site-toast-shadow': '0 16px 40px -24px rgba(15, 23, 42, 0.28)',
+  };
+}
+
+function applyDemoToastTheme(tokens: DemoThemeTokens): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const vars = demoToastThemeVars(tokens);
+  root.setAttribute(DEMO_TOAST_THEME_ATTR, 'light');
+  DEMO_TOAST_THEME_VARS.forEach((name) => {
+    root.style.setProperty(name, vars[name]);
+  });
+}
+
+function clearDemoToastTheme(): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.removeAttribute(DEMO_TOAST_THEME_ATTR);
+  DEMO_TOAST_THEME_VARS.forEach((name) => {
+    root.style.removeProperty(name);
+  });
+}
+
+function DemoToastThemeBridge(): null {
+  const { tokens } = useTheme();
+  React.useEffect(() => {
+    applyDemoToastTheme(tokens);
+    return clearDemoToastTheme;
+  }, [tokens]);
+  return null;
+}
+
+export type DemoPasskeyColumnProps = {
+  /** Controlled page index — pass with onCurrentPageChange to drive the carousel externally. */
+  currentPage?: number;
+  onCurrentPageChange?: (page: number) => void;
+  defaultModeWhenNoDetectedAccount?: AuthMenuMode;
+};
+
+export function DemoPasskeyColumn({
+  currentPage: controlledPage,
+  onCurrentPageChange,
+  defaultModeWhenNoDetectedAccount,
+}: DemoPasskeyColumnProps = {}) {
+  const { loginState } = useSeams();
+  const walletSessionLifecycle = useDemoWalletSessionLifecycle();
+  const isDemoUnlocked = walletSessionLifecycle.kind === 'ready' && loginState?.isLoggedIn === true;
+  const [internalPage, setInternalPage] = React.useState(0);
+  const currentPage = controlledPage ?? internalPage;
+  const setCurrentPage = React.useCallback(
+    (page: number) => {
+      setInternalPage(page);
+      onCurrentPageChange?.(page);
+    },
+    [onCurrentPageChange],
+  );
+  // After unlock, jump to Demo Tx page (index 1). On lock, go back to login page (index 0).
+  React.useEffect(() => {
+    setCurrentPage(isDemoUnlocked ? 1 : 0);
+  }, [isDemoUnlocked, setCurrentPage]);
+
+  // Warm the post-login page chunks while the visitor is still on the login
+  // page (idle time), so the unlock-time page switch never suspends into the
+  // fallback. Warming at unlock raced the switch and always flashed once.
+  React.useEffect(() => {
+    const warm = () => {
+      void import('@/flows/demo/DemoPage').catch(() => {});
+      void import('@/flows/demo/SyncAccount').catch(() => {});
+    };
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === 'function') {
+      const id = ric(warm, { timeout: 2000 });
+      return () =>
+        (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(warm, 300);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const pages = React.useMemo(
+    () => [
+      {
+        key: 'demo-auth',
+        title: 'Login',
+        element: () => (
+          <HostedPasskeyLoginMenu
+            defaultModeWhenNoDetectedAccount={defaultModeWhenNoDetectedAccount}
+          />
+        ),
+      },
+      {
+        key: 'transactions',
+        title: 'Transactions',
+        disabled: !isDemoUnlocked,
+        element: () => (
+          <>
+            <GlassBorder
+              className="demo-transaction-shell"
+              /* fixed width (content-sized width made the card snap around) —
+                 420px matches the auth card so both demo pages read as one */
+              style={{ width: 'min(420px, calc(100vw - 2rem))', marginTop: '1rem' }}
+            >
+              <React.Suspense fallback={<DemoTxCardSkeleton />}>
+                <DemoPage />
+              </React.Suspense>
+            </GlassBorder>
+          </>
+        ),
+      },
+      {
+        key: 'sync-account',
+        title: 'Account Recovery',
+        disabled: !isDemoUnlocked,
+        element: () => (
+          <>
+            <React.Suspense fallback={<SuspenseFallback />}>
+              <SyncAccount />
+            </React.Suspense>
+          </>
+        ),
+      },
+    ],
+    [defaultModeWhenNoDetectedAccount, isDemoUnlocked],
+  );
+
+  return (
+    <ProfileMenuControlProvider>
+      <DemoToastThemeBridge />
+      <div className={`passkey-demo${isDemoUnlocked ? ' passkey-demo--with-profile' : ''}`}>
+        {isDemoUnlocked ? <NavbarProfileOverlay /> : null}
+        {/* Fixed-width so switching pages never resizes/re-centers the card;
+            the external pager drives `index` (fully controlled). */}
+        <Carousel
+          pages={pages}
+          index={currentPage}
+          style={{ width: 'min(480px, calc(100vw - 2rem))', margin: '0 auto' }}
+        />
+      </div>
+    </ProfileMenuControlProvider>
+  );
+}
+
+const SuspenseFallback = () => (
+  <div
+    className={'suspense-fallback'}
+    style={{ height: 320, width: 'min(420px, calc(100vw - 2rem))' }}
+  />
+);

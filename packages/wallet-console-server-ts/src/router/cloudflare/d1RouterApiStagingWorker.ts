@@ -77,6 +77,10 @@ type CloudflareD1RouterApiStagingEnv = CloudflareD1GatewayEnv &
     readonly CONSOLE_SESSION_COOKIE_NAME: string;
     readonly CONSOLE_SESSION_ISSUER: string;
     readonly CONSOLE_SESSION_AUDIENCE: string;
+    readonly GOOGLE_OIDC_CLIENT_ID?: string;
+    readonly GITHUB_OAUTH_CLIENT_ID?: string;
+    readonly GITHUB_OAUTH_CLIENT_SECRET?: string;
+    readonly GITHUB_OAUTH_CALLBACK_URL?: string;
   };
 
 type ReadyRow = { readonly table_count?: unknown };
@@ -175,12 +179,33 @@ async function createConsoleHandler(env: CloudflareD1RouterApiStagingEnv): Promi
   const hosted = new HostedConsoleAuthHandler({
     handler: consoleRouter,
     identity: wallet.service.identity,
+    providers: consoleProviderOptions(env),
     session,
     account: bundle.account,
     orgProjectEnv: bundle.orgProjectEnv,
     corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS),
   });
   return hosted.fetch.bind(hosted);
+}
+
+function consoleProviderOptions(
+  env: CloudflareD1RouterApiStagingEnv,
+): import('../hostedConsoleAuth').HostedConsoleProviderOptions {
+  const googleClientId = readEnvironmentString(env, 'GOOGLE_OIDC_CLIENT_ID');
+  const githubClientId = readEnvironmentString(env, 'GITHUB_OAUTH_CLIENT_ID');
+  const githubClientSecret = readEnvironmentString(env, 'GITHUB_OAUTH_CLIENT_SECRET');
+  const githubCallbackUrl = readEnvironmentString(env, 'GITHUB_OAUTH_CALLBACK_URL');
+  return {
+    google: googleClientId ? { configured: true, clientId: googleClientId } : { configured: false },
+    github:
+      githubClientId && githubClientSecret && githubCallbackUrl
+        ? {
+            configured: true,
+            clientId: githubClientId,
+            callbackUrl: githubCallbackUrl,
+          }
+        : { configured: false },
+  };
 }
 
 function gatewayDependencies(

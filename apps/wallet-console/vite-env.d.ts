@@ -3,6 +3,8 @@
 // Project-specific env typings for Vite
 // Note: Keep keys in sync with the root .env.local and CI/Pages envs.
 interface ImportMetaEnv {
+  readonly VITE_COMPANY_SITE_ORIGIN?: string;
+  readonly VITE_WALLET_SITE_ORIGIN?: string;
   readonly VITE_SITE_ID?: 'staging' | 'production';
   readonly VITE_SITE_ORIGIN?: string;
   readonly VITE_RELAYER_URL?: string;

@@ -5,6 +5,20 @@ import { DashboardToaster } from '@core/dashboard/components/DashboardToaster';
 import { normalizePathname } from '@core/router/siteRouting';
 import { DASHBOARD_COMPOSITION } from './dashboardConfig';
 
+const WalletMarketingRoute = React.lazy(() =>
+  import('../marketing/WalletMarketingRoute').then((module) => ({
+    default: module.WalletMarketingRoute,
+  })),
+);
+
+function WalletMarketingPage(): React.JSX.Element {
+  return (
+    <React.Suspense fallback={null}>
+      <WalletMarketingRoute />
+    </React.Suspense>
+  );
+}
+
 function readConsoleLocation(): string {
   if (typeof window === 'undefined') return '/';
   const pathname = normalizePathname(window.location.pathname);
@@ -33,6 +47,9 @@ function useConsoleLocation(): string {
 // Console route group registered in dashboardConfig. No SeamsWebProvider,
 // no Wallet theme bridge — the Console owns its shell.
 function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
+  if (pathname === '/') {
+    return <WalletMarketingPage />;
+  }
   if (pathname === '/dashboard/login') {
     return <DashboardLoginPage />;
   }
@@ -43,10 +60,7 @@ function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
   ) {
     return <DashboardPage composition={DASHBOARD_COMPOSITION} pathname={pathname} />;
   }
-  if (typeof window !== 'undefined') {
-    window.location.replace('/dashboard/overview');
-  }
-  return <></>;
+  return <WalletMarketingPage />;
 }
 
 export function App(): React.JSX.Element {

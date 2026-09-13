@@ -43,6 +43,19 @@ export interface HostedConsoleIdentityPort {
   }>;
 }
 
+export type HostedConsoleProviderOptions = {
+  readonly google:
+    | { readonly configured: false }
+    | { readonly configured: true; readonly clientId: string };
+  readonly github:
+    | { readonly configured: false }
+    | {
+        readonly configured: true;
+        readonly clientId: string;
+        readonly callbackUrl: string;
+      };
+};
+
 type HostedConsoleLoginIdentity =
   | {
       readonly kind: 'google';
@@ -60,6 +73,7 @@ type HostedConsoleLoginIdentity =
 export interface HostedConsoleAuthHandlerOptions {
   readonly handler: FetchHandler;
   readonly identity: HostedConsoleIdentityPort;
+  readonly providers: HostedConsoleProviderOptions;
   readonly session: SessionAdapter;
   readonly account: ConsoleAccountService;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
@@ -156,6 +170,12 @@ export class HostedConsoleAuthHandler {
   }
 
   private async handleAuthRequest(request: Request, pathname: string): Promise<Response> {
+    if (request.method === 'POST' && pathname === '/console/auth/google/options') {
+      return consoleAuthJson({ ok: true, ...this.options.providers.google }, 200);
+    }
+    if (request.method === 'POST' && pathname === '/console/auth/github/options') {
+      return consoleAuthJson({ ok: true, ...this.options.providers.github }, 200);
+    }
     if (request.method === 'POST' && pathname === '/console/auth/environment')
       return this.selectEnvironment(request);
     if (request.method === 'GET' && pathname === '/console/auth/session') {

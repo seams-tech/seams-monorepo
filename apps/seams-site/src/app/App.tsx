@@ -19,9 +19,6 @@ const HomePage = React.lazy(() =>
 const Home2Page = React.lazy(() =>
   import('@/pages/home2/page').then((module) => ({ default: module.Home2Page })),
 );
-const WalletPage = React.lazy(() =>
-  import('@/pages/wallet/page').then((module) => ({ default: module.WalletPage })),
-);
 const EcommercePage = React.lazy(() =>
   import('@/pages/ecommerce/page').then((module) => ({ default: module.EcommercePage })),
 );
@@ -40,6 +37,15 @@ const NearLoginPage = React.lazy(() =>
 const NotFoundPage = React.lazy(() =>
   import('@/pages/not-found/page').then((module) => ({ default: module.NotFoundPage })),
 );
+
+function WalletProductRedirect(): React.JSX.Element {
+  React.useEffect(() => {
+    const walletSiteOrigin = String(import.meta.env.VITE_WALLET_SITE_ORIGIN ?? '').trim();
+    if (!walletSiteOrigin) throw new Error('VITE_WALLET_SITE_ORIGIN is required');
+    window.location.replace(walletSiteOrigin);
+  }, []);
+  return <></>;
+}
 
 type ThemeTokens = ReturnType<typeof useTheme>['tokens'];
 
@@ -124,7 +130,7 @@ const AppRuntimeBoundary: React.FC = () => {
       case '/home2':
         return <Home2Page />;
       case '/wallet':
-        return <WalletPage />;
+        return <WalletProductRedirect />;
       case '/ecommerce':
         return <EcommercePage />;
       case '/pricing':

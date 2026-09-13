@@ -53,6 +53,14 @@ function createHandler(calls: string[]): HostedConsoleAuthHandler {
   return new HostedConsoleAuthHandler({
     handler: async () => new Response('fallback'),
     identity,
+    providers: {
+      google: { configured: true, clientId: 'google-client-id' },
+      github: {
+        configured: true,
+        clientId: 'github-client-id',
+        callbackUrl: 'https://wallet.seams.sh/dashboard/login',
+      },
+    },
     session: new TestSessionAdapter(),
     orgProjectEnv: createInMemoryConsoleOrgProjectEnvService(),
     account: createInMemoryConsoleAccountService({
@@ -87,6 +95,28 @@ test('hosted console auth decodes an exact string-only provider request', async 
   const accepted = await postGoogle(handler, '{"idToken":"  token  "}');
   expect(accepted.status).toBe(401);
   expect(calls).toEqual(['token']);
+});
+
+test('hosted console auth serves Console-owned provider options', async () => {
+  const handler = createHandler([]);
+  const googleResponse = await handler.fetch(
+    new Request('https://wallet.seams.sh/console/auth/google/options', { method: 'POST' }),
+  );
+  const githubResponse = await handler.fetch(
+    new Request('https://wallet.seams.sh/console/auth/github/options', { method: 'POST' }),
+  );
+
+  await expect(googleResponse.json()).resolves.toEqual({
+    ok: true,
+    configured: true,
+    clientId: 'google-client-id',
+  });
+  await expect(githubResponse.json()).resolves.toEqual({
+    ok: true,
+    configured: true,
+    clientId: 'github-client-id',
+    callbackUrl: 'https://wallet.seams.sh/dashboard/login',
+  });
 });
 
 class VerifiedAccountIdentity implements HostedConsoleIdentityPort {
@@ -136,6 +166,10 @@ async function selfServiceOrganizationCreation(): Promise<void> {
   const handler = new HostedConsoleAuthHandler({
     handler: router,
     identity: new VerifiedAccountIdentity(),
+    providers: {
+      google: { configured: false },
+      github: { configured: false },
+    },
     session,
     account,
     orgProjectEnv,

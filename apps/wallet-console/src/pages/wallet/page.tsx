@@ -11,9 +11,6 @@ import {
 } from '@/components/h2/sections';
 import '@/styles/h2.css';
 
-/* Embedded Wallet product page (ICP: teams that need wallets in their app).
-   The live passkey demo IS the hero — the product proves itself in the fold. */
-
 export function WalletPage(): React.JSX.Element {
   return (
     <div className="h2-page h2-page--wallet">

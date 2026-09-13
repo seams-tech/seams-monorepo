@@ -277,7 +277,7 @@ function buildBasePlan(options, repository, values) {
 function appendProductionSiteUpdates(plan, values) {
   appendMappedUpdates(plan.secrets, plan.environmentPrefix, values, CLOUDFLARE_SECRET_INPUTS);
   appendMappedUpdates(plan.secrets, plan.environmentPrefix, values, [
-    ['CF_PAGES_PROJECT_DOCS', 'CF_PAGES_PROJECT_DOCS'],
+    ['CF_PAGES_PROJECT_WALLET_SITE', 'CF_PAGES_PROJECT_WALLET_SITE'],
     ['CF_PAGES_PROJECT_WALLET_TESTNET', 'CF_PAGES_PROJECT_WALLET_TESTNET'],
     ['CF_PAGES_PROJECT_WALLET_MAINNET', 'CF_PAGES_PROJECT_WALLET_MAINNET'],
   ]);

@@ -77,11 +77,12 @@ type FrontendSite = {
   readonly id: 'staging' | 'production';
   readonly branch: string;
   readonly origin: string;
+  readonly walletSiteOrigin: string;
   readonly docsOrigin: string;
   readonly defaultNetwork: string;
   readonly availableNetworks: readonly string[];
   readonly pagesProjectEnv: string;
-  readonly docsPagesProjectEnv: string;
+  readonly walletSitePagesProjectEnv: string;
   readonly lanes: readonly BackendLane[];
 };
 
@@ -163,11 +164,13 @@ test('deployment topology enforces release branches and network availability', a
   const production = targets.frontendSites.production;
 
   expect(staging.branch).toBe('dev');
-  expect(staging.docsOrigin).toBe('https://staging.docs.seams.sh');
-  expect(staging.docsPagesProjectEnv).toBe('CF_PAGES_PROJECT_DOCS');
+  expect(staging.walletSiteOrigin).toBe('https://wallet.staging.seams.sh');
+  expect(staging.docsOrigin).toBe('https://wallet.staging.seams.sh/docs');
+  expect(staging.walletSitePagesProjectEnv).toBe('CF_PAGES_PROJECT_WALLET_SITE');
   expect(staging.availableNetworks).toEqual(['testnet']);
   expect(production.branch).toBe('main');
-  expect(production.docsOrigin).toBe('https://docs.seams.sh');
+  expect(production.walletSiteOrigin).toBe('https://wallet.seams.sh');
+  expect(production.docsOrigin).toBe('https://wallet.seams.sh/docs');
   expect(production.availableNetworks).toEqual(['testnet', 'mainnet']);
   expect(targets.backendLanes['staging-testnet'].network).toBe('testnet');
   expect(targets.backendLanes['production-mainnet'].network).toBe('mainnet');

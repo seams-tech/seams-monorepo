@@ -1,5 +1,8 @@
 import { generateKeyPairSync, sign, verify } from 'node:crypto';
-import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import {
+  readBackendLane,
+  tenantRootManagedBackupConfig,
+} from '../../../scripts/deployment-targets.mjs';
 
 const argv = process.argv.slice(2).filter((arg) => arg !== '--');
 assertNoLegacyIdentityFlags();
@@ -33,8 +36,8 @@ the tenant-root creation grant authority is external to the deployment, and a
 command that could mint it would defeat the separation it exists for.
 
 This command only generates keys. Use generate-github-env-values.mjs to prepare
-and apply role-isolated per-Worker manifests. Production backup wrapping keys
-are provisioned externally in Google Cloud KMS.`);
+and apply role-isolated per-Worker manifests. Mainnet backup wrapping keys are
+provisioned externally in Google Cloud KMS.`);
   process.exit(laneId ? 0 : 1);
 }
 
@@ -43,9 +46,10 @@ const deriverBEnvelope = generateX25519KeyPair();
 const deriverARolePrivateD1Kek = generateX25519KeyPair();
 const deriverBRolePrivateD1Kek = generateX25519KeyPair();
 const deriverATenantRootOnline = generateX25519KeyPair();
-const deriverATenantRootManagedBackup = lane.release === 'staging' ? generateX25519KeyPair() : null;
+const managedBackupUsesHpke = tenantRootManagedBackupConfig(lane, 'a').kind === 'hpke';
+const deriverATenantRootManagedBackup = managedBackupUsesHpke ? generateX25519KeyPair() : null;
 const deriverBTenantRootOnline = generateX25519KeyPair();
-const deriverBTenantRootManagedBackup = lane.release === 'staging' ? generateX25519KeyPair() : null;
+const deriverBTenantRootManagedBackup = managedBackupUsesHpke ? generateX25519KeyPair() : null;
 const signingWorkerServerOutput = generateX25519KeyPair();
 const signingWorkerPrivateD1Kek = generateX25519KeyPair();
 const deriverAPeer = generateEd25519KeyPair();

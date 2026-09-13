@@ -17,6 +17,7 @@ import {
   gatewaySecretNames,
   readBackendLane,
   readFrontendSite,
+  tenantRootManagedBackupConfig,
 } from '../../../scripts/deployment-targets.mjs';
 
 const VALID_DEPLOYMENT_COMPONENTS = new Set(['wallet-system', 'site']);
@@ -337,7 +338,7 @@ attachDeploymentAuditMetadata(output);
 output.manualInputs = collectManualInputs(output.environments);
 output.requiredManualInputs = collectRequiredManualInputs(output.environments);
 validateOutput(output);
-validateWorkflowCoverage(output);
+validateWorkflowCoverage(output, deploymentComponent);
 const completenessOutput = prepare
   ? buildPreparedComponentManifest(output, deploymentComponent)
   : output;
@@ -1050,9 +1051,6 @@ function buildGatewayEnvironment(input) {
 
 function addMissingGatewaySecrets(secrets, lane, environmentPrefix) {
   const requiredNames = [...gatewaySecretNames(lane)];
-  if (lane.release === 'production') {
-    requiredNames.push('EMAIL_OTP_SES_ACCESS_KEY_ID', 'EMAIL_OTP_SES_SECRET_ACCESS_KEY');
-  }
   for (const name of requiredNames) {
     if (!(name in secrets)) {
       secrets[name] = manual(`${environmentPrefix}-${name.toLowerCase().replaceAll('_', '-')}`);
@@ -1086,7 +1084,11 @@ function buildGatewayDeploymentConfig(input) {
     },
     origins: {
       gateway: configuration.gatewayOrigin,
-      allowedCors: [configuration.appOrigin, configuration.walletOrigin],
+      allowedCors: [
+        configuration.appOrigin,
+        deploymentIdentity.lane.site.walletSiteOrigin,
+        configuration.walletOrigin,
+      ],
     },
     session: {
       issuer: configuration.relaySessionIssuer,
@@ -1207,10 +1209,14 @@ function buildMpcRouterEnvironment(input) {
 
 function buildManagedBackupEnvironment(input, role) {
   const prefix = `DERIVER_${role}_TENANT_ROOT_MANAGED_BACKUP`;
-  if (readBackendLane(input.laneId).release === 'production') {
+  const backupConfig = tenantRootManagedBackupConfig(
+    readBackendLane(input.laneId),
+    role.toLowerCase(),
+  );
+  if (backupConfig.kind === 'google_cloud_kms') {
     return {
       variables: {
-        [`ROUTER_AB_${prefix}_PROVIDER_ID`]: `google-cloud-kms-deriver-${role.toLowerCase()}-v1`,
+        [`ROUTER_AB_${prefix}_PROVIDER_ID`]: backupConfig.expectedProviderId,
         [`ROUTER_AB_${prefix}_KEY_VERSION`]: manual(
           `deriver-${role.toLowerCase()}-google-kms-key-version`,
         ),
@@ -2021,39 +2027,42 @@ function validateOutput(outputDocument) {
   validateSigningSessionConsistency(outputDocument);
 }
 
-function validateWorkflowCoverage(outputDocument) {
+function validateWorkflowCoverage(outputDocument, component) {
   const environmentPrefix = outputDocument.environmentPrefix;
   const backendWorkflow = readDeploymentWorkflow(outputDocument.lane, 'backend');
-  const frontendWorkflow = readDeploymentWorkflow(outputDocument.site, 'frontend');
-  const requirements = new Map([
-    [environmentPrefix, collectWorkflowRequirements(frontendWorkflow)],
-    [
+  const requirements = new Map();
+  if (component === 'site') {
+    const frontendWorkflow = readDeploymentWorkflow(outputDocument.site, 'frontend');
+    requirements.set(environmentPrefix, collectWorkflowRequirements(frontendWorkflow));
+  }
+  if (component === 'wallet-system') {
+    requirements.set(
       `${environmentPrefix}-gateway`,
       collectWorkflowRequirements(extractWorkflowJob(backendWorkflow, 'deploy_gateway')),
-    ],
-    [
+    );
+    requirements.set(
       `${environmentPrefix}-mpc-router`,
       collectWorkflowRequirements(extractWorkflowJob(backendWorkflow, 'deploy_router')),
-    ],
-    [
+    );
+    requirements.set(
       `${environmentPrefix}-deriver-a`,
       collectWorkflowRequirements(extractWorkflowJob(backendWorkflow, 'deploy_deriver_a')),
-    ],
-    [
+    );
+    requirements.set(
       `${environmentPrefix}-deriver-b`,
       collectWorkflowRequirements(extractWorkflowJob(backendWorkflow, 'deploy_deriver_b')),
-    ],
-    [
+    );
+    requirements.set(
       `${environmentPrefix}-signing-worker`,
       collectWorkflowRequirements(extractWorkflowJob(backendWorkflow, 'deploy_signing_worker')),
-    ],
-    [
+    );
+    requirements.set(
       `${environmentPrefix}-tenant-root-control-plane`,
       collectWorkflowRequirements(
         extractWorkflowJob(backendWorkflow, 'deploy_tenant_root_control_plane'),
       ),
-    ],
-  ]);
+    );
+  }
 
   for (const [environmentName, required] of requirements) {
     const environment = outputDocument.environments[environmentName];

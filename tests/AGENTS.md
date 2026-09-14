@@ -5,16 +5,15 @@ Root `AGENTS.md` has the short policy. This file is the operational detail for w
 
 ## Suite map
 
-- `e2e/intended-behaviours/*.contract.test.ts` (`pnpm test:intended`) — the normative
-  lifecycle oracle for registration, unlock, signing, step-up, and export. Spec:
-  `docs/intended-behaviours.md`. The generic Playwright config deliberately excludes
-  these; lifecycle assertions run only under the intended runner.
+- Public Wallet intended-behaviour contracts and their normative specifications live
+  in `seams-wallet`. Tests retained here cover private Console composition and deployed
+  product flows.
 - `unit/` (`pnpm test:unit`) — fast regression coverage. Trustworthy only insofar as its
   fixtures come from the shared factories below.
 - `relayer/`, `wallet-iframe/`, `lit-components/`, `yaos-local/` — integration surfaces
   (`pnpm test:relayer`, etc.).
-- `scripts/check-*.mjs` (`pnpm test:source-guards`) — literal source-text guards, governed
-  by `docs/refactor-88B-clean-source-guards.md`.
+- `scripts/check-*.mjs` — narrow private-repository architecture guards. Wallet-owned
+  guards belong in `seams-wallet`.
 
 Do not add lifecycle coverage as broad mocked unit tests (refactor-88 rule), and do not
 use `setupBasicPasskeyTest` as a lifecycle oracle.
@@ -61,10 +60,9 @@ test-fix vs code-fix.
 1. What does the failing test own? Lifecycle behaviour (intended contract), a
    crypto/wire invariant (vector test), a component invariant (factory-based unit test),
    or a snapshot of an old type shape / source text (inline fixture, source guard)?
-2. Is that invariant still intended? Check the current domain types and
-   `docs/intended-behaviours.md` / the active `docs/refactor-NN-*.md`. For lifecycle
-   claims, a green `pnpm test:intended` supports staleness; for other invariant classes
-   it proves nothing — the E2E suite never exercises them. Classify the failure:
+2. Is that invariant still intended? Check the current private domain types and the
+   owning Console/product specification. Check public Wallet lifecycle and architecture
+   claims in `seams-wallet`. Classify the failure:
    `production_regression`, `valid_test_needs_update`, `obsolete_test_or_fixture`, or
    `environment_or_infrastructure_failure` (Redis/Upstash, NEAR RPC, Safari, faucet 429
    gate several suites — don't touch fixtures or code for those). State the
@@ -76,6 +74,6 @@ test-fix vs code-fix.
    above), or delete the test/fixture/mock/helper if it encodes retired behaviour.
    Never copy the old shape back into product code, and never change production
    behaviour solely to satisfy a stale fixture.
-5. Source-guard failure (`scripts/check-*.mjs`): decide guard-vs-code with
-   `docs/refactor-88B-clean-source-guards.md`. Guards assert literal source patterns and
-   can themselves be stale; retirement is gated on intended-contract coverage.
+5. Source-guard failure (`scripts/check-*.mjs`): decide whether the guarded boundary is
+   still private repository policy. Retire guards for source or authority moved to
+   `seams-wallet`.

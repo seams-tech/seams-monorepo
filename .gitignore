@@ -17,6 +17,7 @@ apps/seams-site/.caddy.log
 apps/web-client/.caddy.log
 examples/relay-cloudflare-worker/.wrangler
 packages/console-server-ts/.wrangler/
+packages/wallet-console-server-ts/.wrangler/
 .runtime/
 .local/
 
@@ -76,6 +77,8 @@ server/src/**/*.js
 server/src/**/*.js.map
 
 # Local tooling caches
+/.release-artifacts/
+/.wrangler/
 .tooling/
 .router-ab-local/
 .pnpm-store/

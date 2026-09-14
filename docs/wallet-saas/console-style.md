@@ -1,4 +1,4 @@
-# ElevenLabs Console Style
+# Console Style
 
 Last reconciled: August 21, 2026 (extracted from the live app and applied to
 `apps/wallet-console`)

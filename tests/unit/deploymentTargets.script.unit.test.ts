@@ -164,8 +164,8 @@ test('deployment topology enforces release branches and network availability', a
   const production = targets.frontendSites.production;
 
   expect(staging.branch).toBe('dev');
-  expect(staging.walletSiteOrigin).toBe('https://wallet.staging.seams.sh');
-  expect(staging.docsOrigin).toBe('https://wallet.staging.seams.sh/docs');
+  expect(staging.walletSiteOrigin).toBe('https://staging.wallet.seams.sh');
+  expect(staging.docsOrigin).toBe('https://staging.wallet.seams.sh/docs');
   expect(staging.walletSitePagesProjectEnv).toBe('CF_PAGES_PROJECT_WALLET_SITE');
   expect(staging.availableNetworks).toEqual(['testnet']);
   expect(production.branch).toBe('main');

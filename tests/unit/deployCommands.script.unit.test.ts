@@ -197,8 +197,8 @@ test('frontend plan runs without deployment secrets', () => {
   );
 
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain('Origin: https://wallet.staging.seams.sh');
-  expect(result.stdout).toContain('Docs: https://wallet.staging.seams.sh/docs/');
+  expect(result.stdout).toContain('Origin: https://staging.wallet.seams.sh');
+  expect(result.stdout).toContain('Docs: https://staging.wallet.seams.sh/docs/');
   expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_SITE');
 });
 

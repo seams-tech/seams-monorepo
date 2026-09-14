@@ -181,17 +181,20 @@ function copySdkAssets(destination) {
   const sdkWorkers = path.join(sdkOutput, 'workers');
   const walletAssetsManifest = path.join(sdkOutput, 'public', 'wallet-assets.manifest.json');
   const walletHeadersManifest = path.join(sdkOutput, 'public', 'headers.manifest.json');
+  const pagesHeaders = path.join(sdkOutput, 'public', '_headers');
   const walletService = path.join(sdkOutput, 'public', 'wallet-service');
   assertDirectory(sdkEsm, 'SDK ESM output');
   assertDirectory(sdkWorkers, 'SDK Workers output');
   assertFile(walletAssetsManifest, 'SDK wallet assets manifest');
   assertFile(walletHeadersManifest, 'SDK wallet headers manifest');
+  assertFile(pagesHeaders, 'SDK Cloudflare Pages headers');
   assertFile(path.join(walletService, 'index.html'), 'SDK wallet-service output');
   fs.mkdirSync(destination, { recursive: true });
   copyDirectory(sdkEsm, path.join(destination, 'sdk'));
   copyDirectory(sdkWorkers, path.join(destination, 'sdk', 'workers'));
   fs.copyFileSync(walletAssetsManifest, path.join(destination, 'wallet-assets.manifest.json'));
   fs.copyFileSync(walletHeadersManifest, path.join(destination, 'headers.manifest.json'));
+  fs.copyFileSync(pagesHeaders, path.join(destination, '_headers'));
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
 }
 

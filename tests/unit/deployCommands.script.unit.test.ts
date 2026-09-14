@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -25,7 +26,13 @@ type CommandResult = {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const backendScript = path.join(repoRoot, 'scripts/deploy-backend.mjs');
 const frontendScript = path.join(repoRoot, 'scripts/deploy-surface.mjs');
-const frontendHeaders = path.join(repoRoot, 'apps/seams-site/src/public/_headers');
+const requireFromWalletSite = createRequire(
+  path.join(repoRoot, 'apps/wallet-console/package.json'),
+);
+const frontendHeaders = path.join(
+  path.dirname(requireFromWalletSite.resolve('@seams/wallet/package.json')),
+  'dist/public/_headers',
+);
 const environmentGeneratorScript = path.join(
   repoRoot,
   'deployment/wallet-system/scripts/generate-github-env-values.mjs',

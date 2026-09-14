@@ -222,14 +222,6 @@ body:has(.h2-page) {
   top: 0.5rem;
 }
 
-.h2-page .navbar-static--compact .navbar-static__shell,
-.h2-page .navbar-static--compact .navbar-static__shell.is-scrolled {
-  box-shadow:
-    0 16px 36px -20px color-mix(in srgb, var(--navbar-shadow-color) 56%, transparent),
-    0 4px 12px -7px color-mix(in srgb, var(--navbar-shadow-color) 34%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--navbar-border-hover) 50%, transparent);
-}
-
 /* The dropdown panel is content-width and self-anchored in Navbar.css; the
    pinned light skin resolves its palette, so no dropdown overrides here. */
 

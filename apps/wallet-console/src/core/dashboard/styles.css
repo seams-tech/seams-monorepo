@@ -6395,6 +6395,7 @@ select.dashboard-input {
 }
 
 .dashboard-onboarding-optional {
+  min-width: 0;
   display: grid;
   gap: 8px;
   align-content: start;
@@ -6404,9 +6405,9 @@ select.dashboard-input {
   border: 1px solid var(--dashboard-border);
   border-radius: 12px;
   background: color-mix(in srgb, var(--dashboard-surface) 96%, #f5f3f1 4%);
-  padding: 14px;
+  padding: 20px;
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .dashboard-onboarding-panel__lead {
@@ -6422,10 +6423,36 @@ select.dashboard-input {
 }
 
 .dashboard-onboarding-panel__fieldset {
+  grid-column: 1 / -1;
   border: 0;
   margin: 0;
   padding: 0;
   min-width: 0;
+}
+
+.dashboard-onboarding-form {
+  width: min(100%, 760px);
+  gap: 16px;
+}
+
+.dashboard-onboarding-form > *,
+.dashboard-onboarding-form .dashboard-form-field {
+  min-width: 0;
+}
+
+.dashboard-onboarding-form .dashboard-input,
+.dashboard-onboarding-form .dashboard-pagination-button {
+  min-height: 44px;
+}
+
+.dashboard-onboarding-form .dashboard-input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-onboarding-form .dashboard-form-actions {
+  padding-top: 2px;
 }
 
 .dashboard-shell--onboarding-focus .dashboard-main > * {

@@ -417,7 +417,7 @@ test('Wallet runtime operations reject public Gateway origins', async () => {
     throw new Error('must not resolve public requests');
   });
   const response = await handler(
-    new Request('https://staging.api.seams.sh/internal/wallet-runtime/v1/relayer-account', {
+    new Request('https://staging.api.wallet.seams.sh/internal/wallet-runtime/v1/relayer-account', {
       method: 'POST',
     }),
   );

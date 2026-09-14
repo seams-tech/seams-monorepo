@@ -13,7 +13,7 @@
     },
     "lanes": {
       "testnet": {
-        "gatewayOrigin": "https://staging.api.seams.sh",
+        "gatewayOrigin": "https://staging.api.wallet.seams.sh",
         "walletOrigin": "https://staging.sign.seams.sh",
         "walletPagesProjectEnv": "CF_PAGES_PROJECT_WALLET",
         "emailOtpDelivery": {
@@ -110,7 +110,7 @@
               "environmentId": "staging"
             },
             "origins": {
-              "gateway": "https://staging.api.seams.sh",
+              "gateway": "https://staging.api.wallet.seams.sh",
               "allowedCors": [
                 "https://staging.seams.sh",
                 "https://staging.wallet.seams.sh",
@@ -225,7 +225,7 @@
     },
     "lanes": {
       "testnet": {
-        "gatewayOrigin": "https://test.api.seams.sh",
+        "gatewayOrigin": "https://test.api.wallet.seams.sh",
         "walletOrigin": "https://test.sign.seams.sh",
         "walletPagesProjectEnv": "CF_PAGES_PROJECT_WALLET_TESTNET",
         "emailOtpDelivery": {
@@ -326,7 +326,7 @@
               "environmentId": "production-testnet"
             },
             "origins": {
-              "gateway": "https://test.api.seams.sh",
+              "gateway": "https://test.api.wallet.seams.sh",
               "allowedCors": [
                 "https://seams.sh",
                 "https://wallet.seams.sh",

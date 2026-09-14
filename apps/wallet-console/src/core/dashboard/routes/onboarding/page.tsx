@@ -682,13 +682,16 @@ export function DashboardOnboardingPage({
                 Confirm the organization name your team will use in the dashboard.
               </p>
               <form
-                className="dashboard-view-grid dashboard-view-grid--two"
+                className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"
                 onSubmit={onSubmitOrganization}
               >
                 <label className="dashboard-form-field">
                   <span>Organization name</span>
                   <input
                     className="dashboard-input"
+                    type="text"
+                    name="organizationName"
+                    autoComplete="organization"
                     value={orgNameInput}
                     onChange={onOrganizationNameChange}
                     onBlur={onOrganizationNameBlur}
@@ -707,6 +710,8 @@ export function DashboardOnboardingPage({
                     <span>Organization slug</span>
                     <input
                       className="dashboard-input"
+                      type="text"
+                      name="organizationSlug"
                       value={orgSlugInput}
                       disabled
                       placeholder="acme-wallets"
@@ -744,7 +749,7 @@ export function DashboardOnboardingPage({
                 created automatically.
               </p>
               <form
-                className="dashboard-view-grid dashboard-view-grid--two"
+                className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"
                 onSubmit={onSubmitProjectStep}
               >
                 <fieldset
@@ -755,6 +760,9 @@ export function DashboardOnboardingPage({
                     <span>Project name</span>
                     <input
                       className="dashboard-input"
+                      type="text"
+                      name="projectName"
+                      autoComplete="off"
                       value={projectNameInput}
                       onChange={onProjectNameChange}
                       onBlur={onProjectNameBlur}

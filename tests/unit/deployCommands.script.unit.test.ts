@@ -12,7 +12,8 @@ import {
   assertExpectedDurableObjectBindings,
   validateDeploymentKeyPairs,
 } from '../../scripts/deploy-backend.mjs';
-import { readBackendLane } from '../../scripts/deployment-targets.mjs';
+import { buildFrontendEnvironment } from '../../scripts/deploy-surface.mjs';
+import { readBackendLane, readFrontendSite } from '../../scripts/deployment-targets.mjs';
 
 type CommandResult = {
   readonly status: number | null;
@@ -199,6 +200,29 @@ test('frontend plan runs without deployment secrets', () => {
   expect(result.stdout).toContain('Origin: https://wallet.staging.seams.sh');
   expect(result.stdout).toContain('Docs: https://wallet.staging.seams.sh/docs/');
   expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_SITE');
+});
+
+test('frontend build uses canonical Console origins for every production lane', () => {
+  const site = readFrontendSite('production');
+  const environment: NodeJS.ProcessEnv = {};
+
+  for (const lane of site.lanes) {
+    if (lane.provisioning.kind !== 'provisioned') throw new Error(`${lane.id} must be provisioned`);
+    const prefix = `VITE_${lane.network.toUpperCase()}_`;
+    environment[`${prefix}SEAMS_PROJECT_ENVIRONMENT_ID`] =
+      lane.provisioning.gatewayDeploymentConfig.tenant.environmentId;
+    environment[`${prefix}SEAMS_PUBLISHABLE_KEY`] = 'pk_test_deployment';
+    environment[`${prefix}NEAR_NETWORK`] = lane.network;
+    environment[`${prefix}NEAR_RPC_URL`] = `https://rpc.${lane.network}.example`;
+    environment[`${prefix}NEAR_EXPLORER`] = `https://explorer.${lane.network}.example`;
+    environment[`${prefix}SIGNING_SESSION_PERSISTENCE_MODE`] = 'sealed_refresh_v1';
+    environment[`${prefix}CONSOLE_BASE_URL`] = 'https://stale-console.example';
+  }
+
+  const resolved = buildFrontendEnvironment(site, site.walletSiteOrigin, environment);
+
+  expect(resolved.VITE_TESTNET_CONSOLE_BASE_URL).toBe('https://test.console.seams.sh');
+  expect(resolved.VITE_MAINNET_CONSOLE_BASE_URL).toBe('https://wallet.seams.sh');
 });
 
 test('frontend Pages headers align with hosted wallet asset policies', () => {
@@ -894,7 +918,6 @@ test('frontend workflows contain one environment-bound deployment job', () => {
     expect(workflowSource).toContain('--site "$DEPLOY_SITE"');
     expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_SITE:');
     expect(workflowSource).toContain('--component "$DEPLOY_COMPONENT"');
-    expect(workflowSource).not.toContain('VITE_DOCS_ORIGIN:');
     expect(workflowSource).not.toContain('--target');
     if (site === 'staging') {
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET:');

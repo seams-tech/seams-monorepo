@@ -20,7 +20,16 @@ const PUBLIC_DOCS_ARTIFACT_ROOT = path.join(REPOSITORY_ROOT, '.artifacts', 'wall
 const SURFACES = Object.freeze(['company', 'wallet-site', 'wallet-host']);
 const COMPONENTS = Object.freeze(['all', ...SURFACES]);
 
-main(process.argv.slice(2)).catch(handleFailure);
+if (isDirectInvocation()) {
+  main(process.argv.slice(2)).catch(handleFailure);
+}
+
+function isDirectInvocation() {
+  return (
+    process.argv[1] &&
+    path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
+  );
+}
 
 async function main(args) {
   const options = parseArguments(args);
@@ -186,9 +195,9 @@ function copySdkAssets(destination) {
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
 }
 
-function buildFrontendEnvironment(site, frontendOrigin) {
+export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment = process.env) {
   const environment = {
-    ...process.env,
+    ...sourceEnvironment,
     VITE_SITE_ID: site.id,
     VITE_SITE_ORIGIN: frontendOrigin,
     VITE_COMPANY_SITE_ORIGIN: site.origin,
@@ -198,6 +207,7 @@ function buildFrontendEnvironment(site, frontendOrigin) {
   for (const lane of site.lanes) {
     const prefix = site.id === 'production' ? `VITE_${lane.network.toUpperCase()}_` : 'VITE_';
     environment[`${prefix}RELAYER_URL`] = lane.gatewayOrigin;
+    environment[`${prefix}CONSOLE_BASE_URL`] = lane.console.origin;
     environment[`${prefix}WALLET_ORIGIN`] = lane.walletOrigin;
     environment[`${prefix}RP_ID_BASE`] = new URL(lane.walletOrigin).hostname;
     environment[`${prefix}ROUTER_AB_NORMAL_SIGNING_WORKER_ID`] =

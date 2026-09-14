@@ -11,16 +11,15 @@
   --navbar-primary-hover: var(--site-action-hover, #262626);
   --navbar-text-button: var(--site-text-button, #ffffff);
   --navbar-focus: var(--site-focus, #4fb894);
-  --navbar-access-nav-surface: var(--navbar-surface);
+  --navbar-background: var(--navbar-surface);
   --navbar-access-trigger-active: var(--navbar-surface2);
-  --navbar-access-panel-surface: var(--navbar-surface);
   --navbar-access-divider: var(--navbar-border);
   --navbar-access-muted: var(--site-text-secondary);
-  --navbar-mobile-menu-surface: var(--navbar-surface);
+  --navbar-mobile-menu-surface: var(--navbar-background);
   --navbar-mobile-link-hover-surface: var(--navbar-surface2);
-  --navbar-mobile-section-surface: var(--navbar-surface2);
+  --navbar-mobile-section-surface: var(--navbar-background);
   --navbar-mobile-section-title: var(--site-text-secondary);
-  --navbar-mobile-subitem-surface: var(--navbar-surface3);
+  --navbar-mobile-subitem-surface: var(--navbar-background);
   --navbar-mobile-subitem-surface-hover: var(--navbar-surface2);
   --navbar-mobile-subitem-text: var(--navbar-text);
   --navbar-mobile-subitem-copy: var(--site-text-secondary);
@@ -48,7 +47,7 @@
   border-radius: 1rem;
   padding: 6px 8px 6px 20px;
   border: 1px solid var(--navbar-border);
-  background: var(--navbar-access-nav-surface);
+  background: var(--navbar-background);
   box-shadow:
     0 14px 32px -20px rgba(4, 3, 14, 0.42),
     0 3px 10px -6px rgba(4, 3, 14, 0.24);
@@ -58,14 +57,14 @@
 }
 
 .navbar-static__shell.is-scrolled {
-  background: var(--navbar-surface3);
+  background: var(--navbar-background);
   box-shadow:
     0 18px 42px -22px rgba(4, 3, 14, 0.5),
     0 4px 12px -7px rgba(4, 3, 14, 0.3);
 }
 
 html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
-  background: var(--navbar-access-nav-surface);
+  background: var(--navbar-background);
   box-shadow:
     0 18px 42px -22px rgba(15, 23, 42, 0.28),
     0 4px 12px -7px rgba(15, 23, 42, 0.16);
@@ -221,7 +220,7 @@ html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid var(--navbar-access-divider);
-  background: var(--navbar-access-panel-surface);
+  background: var(--navbar-background);
   box-shadow:
     0 18px 48px -20px rgba(4, 3, 14, 0.5),
     0 6px 18px -10px rgba(4, 3, 14, 0.3);
@@ -470,11 +469,9 @@ html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
 
 html[data-w3a-theme='light'] .navbar-static {
   --navbar-shadow-color: rgba(15, 23, 42, 0.34);
-  --navbar-access-nav-surface: var(--navbar-surface);
   /* same faint wash as the nav triggers (.navbar-static__link:hover), so a
      dropdown row doesn't read heavier than the trigger that opened it */
   --navbar-access-trigger-active: rgba(31, 41, 55, 0.05);
-  --navbar-access-panel-surface: var(--navbar-surface);
   --navbar-access-divider: var(--navbar-border);
   --navbar-access-muted: var(--site-text-secondary);
 }

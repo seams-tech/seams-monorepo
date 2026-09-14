@@ -79,6 +79,13 @@ const BACKEND_SMOKE_PATHS = Object.freeze([
   '/router-ab/ed25519/healthz',
   '/router-ab/ecdsa-derivation/healthz',
 ]);
+const GATEWAY_ROUTER_AB_PUBLIC_ENVIRONMENT_NAMES = Object.freeze([
+  'DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY',
+  'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
+  'DERIVER_A_PEER_VERIFYING_KEY_HEX',
+  'DERIVER_B_PEER_VERIFYING_KEY_HEX',
+  'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
+]);
 const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
   'signing-worker': Object.freeze({
     binding: 'SIGNING_WORKER_PRIVATE_DB',
@@ -506,6 +513,9 @@ function preflightBackend(lane, component, environment = process.env) {
   }
   requireEnvironmentValues(unique(requiredNames), environment);
   assertExternalManagedBackupProvider(lane, component, environment);
+  if (component === 'gateway' || component === 'wallet-runtime') {
+    validateGatewayRouterAbPublicConfiguration(lane, environment);
+  }
   if (component === 'gateway') warnDisabledGatewayIntegrations(environment);
   process.stdout.write(`Preflight passed: ${lane.id}/${component}\n`);
 }
@@ -764,9 +774,28 @@ function componentRuntimeRequirements(lane, component) {
         : [];
     case 'gateway':
     case 'wallet-runtime':
-      return [];
+      return GATEWAY_ROUTER_AB_PUBLIC_ENVIRONMENT_NAMES;
     default:
       throw new Error(`Unsupported backend component: ${component}`);
+  }
+}
+
+export function validateGatewayRouterAbPublicConfiguration(lane, environment = process.env) {
+  const config = requireProvisionedLane(lane);
+  const keyset = config.routerAb.publicKeyset;
+  const expectedValues = {
+    DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
+    DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
+    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
+    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
+    SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
+      keyset.signing_worker_server_output_hpke.public_key,
+  };
+  for (const name of GATEWAY_ROUTER_AB_PUBLIC_ENVIRONMENT_NAMES) {
+    const actual = requireEnvironmentValue(name, environment);
+    if (actual !== expectedValues[name]) {
+      throw new Error(`${name} does not match the checked-in Gateway Router A/B keyset`);
+    }
   }
 }
 

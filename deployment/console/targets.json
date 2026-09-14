@@ -3,8 +3,8 @@
   "lanes": {
     "staging-testnet": {
       "environment": "staging-console",
-      "origin": "https://wallet.staging.seams.sh",
-      "siteOrigin": "https://wallet.staging.seams.sh",
+      "origin": "https://staging.wallet.seams.sh",
+      "siteOrigin": "https://staging.wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-staging",
       "database": {
         "name": "seams-console-staging-nrt",

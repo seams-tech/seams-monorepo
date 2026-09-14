@@ -4,12 +4,10 @@
     "branch": "dev",
     "site": {
       "origin": "https://staging.seams.sh",
-      "walletSiteOrigin": "https://wallet.staging.seams.sh",
+      "walletSiteOrigin": "https://staging.wallet.seams.sh",
       "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
-      "availableNetworks": [
-        "testnet"
-      ],
+      "availableNetworks": ["testnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
@@ -76,9 +74,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -117,7 +113,7 @@
               "gateway": "https://staging.api.seams.sh",
               "allowedCors": [
                 "https://staging.seams.sh",
-                "https://wallet.staging.seams.sh",
+                "https://staging.wallet.seams.sh",
                 "https://staging.sign.seams.sh"
               ]
             },
@@ -128,9 +124,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-staging-r2",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-staging-r2"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-staging-r2"]
             },
             "routerAb": {
               "ceremonyJwtAudience": "router-ab",
@@ -225,10 +219,7 @@
       "walletSiteOrigin": "https://wallet.seams.sh",
       "googleOidcClientId": "971053349716-p10qdg7lsjh24lcocbsckt4f85is5igs.apps.googleusercontent.com",
       "defaultNetwork": "testnet",
-      "availableNetworks": [
-        "testnet",
-        "mainnet"
-      ],
+      "availableNetworks": ["testnet", "mainnet"],
       "pagesProjectEnv": "CF_PAGES_PROJECT_VITE",
       "walletSitePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_SITE"
     },
@@ -299,9 +290,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -351,9 +340,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-production-testnet-r2",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-testnet-r2"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-production-testnet-r2"]
             },
             "routerAb": {
               "ceremonyJwtAudience": "router-ab",
@@ -500,9 +487,7 @@
           "signingSessionSeal": {
             "enabled": true,
             "owner": "gateway",
-            "secrets": [
-              "SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"
-            ]
+            "secrets": ["SIGNING_SESSION_SEAL_ROOT_SECRET_B64U"]
           }
         },
         "provisioning": {
@@ -551,9 +536,7 @@
               "algorithm": "shamir3pass-v2",
               "groupId": "rfc2409-group2",
               "currentKeyVersion": "signing-session-seal-production-r2",
-              "acceptedWarmKeyVersions": [
-                "signing-session-seal-production-r2"
-              ]
+              "acceptedWarmKeyVersions": ["signing-session-seal-production-r2"]
             },
             "routerAb": {
               "ceremonyJwtAudience": "router-ab",

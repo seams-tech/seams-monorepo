@@ -186,8 +186,8 @@ test('deployment topology keeps staging provisioning and isolates production ori
   expect(staging.provisioning.kind).toBe('provisioned');
   expect(productionTestnet.provisioning.kind).toBe('provisioned');
   expect(productionMainnet.provisioning.kind).toBe('provisioned');
-  expect(staging.gatewayOrigin).toBe('https://staging.api.seams.sh');
-  expect(productionTestnet.gatewayOrigin).toBe('https://test.api.seams.sh');
+  expect(staging.gatewayOrigin).toBe('https://staging.api.wallet.seams.sh');
+  expect(productionTestnet.gatewayOrigin).toBe('https://test.api.wallet.seams.sh');
   expect(productionMainnet.gatewayOrigin).toBe('https://api.wallet.seams.sh');
   expect(productionTestnet.walletOrigin).toBe('https://test.sign.seams.sh');
   expect(productionMainnet.walletOrigin).toBe('https://sign.seams.sh');
@@ -296,7 +296,7 @@ test('deployment target parsing rejects cross-lane origin reuse', async () => {
   expect(() =>
     module.parseDeploymentTargets(
       withProduction(targets, {
-        testnet: { ...testnet, gatewayOrigin: 'https://staging.api.seams.sh' },
+        testnet: { ...testnet, gatewayOrigin: 'https://staging.api.wallet.seams.sh' },
       }),
     ),
   ).toThrow(/origin/u);

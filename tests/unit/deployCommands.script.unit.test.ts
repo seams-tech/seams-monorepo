@@ -754,6 +754,10 @@ test('frontend commands reject a site branch mismatch before deployment work', (
 });
 
 test('production frontend build rejects a project environment from the wrong lane', () => {
+  const productionTestnet = readBackendLane('production-testnet');
+  if (productionTestnet.provisioning.kind !== 'provisioned') {
+    throw new Error('production-testnet must be provisioned');
+  }
   const result = runCommand(
     frontendScript,
     ['build', '--site', 'production', '--component', 'wallet-site'],
@@ -769,9 +773,9 @@ test('production frontend build rejects a project environment from the wrong lan
     },
   );
 
-  expectFailure(
-    result,
-    /VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID must match production-testnet tenant environment production-testnet/u,
+  expect(result.status).not.toBe(0);
+  expect(`${result.stdout}\n${result.stderr}`).toContain(
+    `VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID must match production-testnet tenant environment ${productionTestnet.provisioning.gatewayDeploymentConfig.tenant.environmentId}`,
   );
 });
 

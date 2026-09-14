@@ -5,7 +5,6 @@ packages:
   - packages/wallet-console-shared-ts
   - packages/wallet-console-server-ts
   - packages/console-server-ts
-  - voiceId
   - apps/seams-site
   - apps/wallet-console
 nodeLinker: hoisted

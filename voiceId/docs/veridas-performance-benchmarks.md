@@ -1,9 +1,10 @@
 # Veridas VoiceID Public Observations And Research Hypotheses
 
-Status: vendor-claims research note; no signing assurance.
+Status: historical vendor-claims research note; no signing assurance or active
+release requirements.
 
-Normative signing requirements:
-[VoiceID Signing Security Profile](voiceId-signing-security-profile.md).
+Current architecture:
+[Local VoiceID implementation plan](voiceId-local-architecture-and-implementation-plan.md).
 
 This document records public Veridas voice-biometric positioning as input to
 experiments. The claims are vendor statements with potentially different data,

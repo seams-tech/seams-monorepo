@@ -60,7 +60,7 @@ class EnrollmentAnalysis:
 @dataclass(frozen=True)
 class BuiltEnrollment:
     kind: Literal["built"]
-    encrypted_template: str
+    encoded_template: str
     quality: AudioQuality
     analysis: EnrollmentAnalysis
 
@@ -129,7 +129,7 @@ def build_continuous_enrollment(
                 zero_float_sequence(template_embedding)
                 return RejectedEnrollment(kind="rejected", reason="incoherent_windows")
             try:
-                encrypted_template = encode_template(
+                encoded_template = encode_template(
                     runtime=runtime,
                     template_embedding=template_embedding,
                     sample_count=len(embeddings),
@@ -152,7 +152,7 @@ def build_continuous_enrollment(
         )
         return BuiltEnrollment(
             kind="built",
-            encrypted_template=encrypted_template,
+            encoded_template=encoded_template,
             quality=evaluated.quality,
             analysis=EnrollmentAnalysis(
                 source_codec=decoded_audio.source_codec,

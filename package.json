@@ -28,7 +28,6 @@
     "wallet-system:deploy": "node ./scripts/dispatch-deployment-workflow.mjs wallet-system",
     "site:deploy:env-apply": "node ./deployment/wallet-system/scripts/generate-github-env-values.mjs --apply --component site",
     "site:deploy:env-update": "node ./deployment/wallet-system/scripts/apply-github-external-values.mjs --component site",
-    "voiceId:demo": "pnpm -C voiceId dev:all",
     "build": "pnpm -C packages/console-server-ts build && pnpm -C packages/wallet-console-server-ts build && pnpm -C apps/wallet-console build && pnpm -C apps/seams-site build",
     "type-check:router-server": "pnpm -C packages/console-server-ts build:types && pnpm -C packages/wallet-console-server-ts type-check && pnpm -C packages/wallet-console-server-ts build:types",
     "type-check:app": "pnpm -C packages/console-shared-ts type-check && pnpm -C packages/wallet-console-shared-ts type-check && pnpm -C apps/seams-site typecheck && pnpm -C apps/wallet-console typecheck",

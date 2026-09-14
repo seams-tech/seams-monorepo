@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from array import array
 from dataclasses import dataclass
 from typing import Literal, Sequence
@@ -19,16 +18,13 @@ from voiceid_verifier.embeddings import (
     ECAPA_MODEL_VERSION,
     ECAPA_TEMPLATE_VERSION,
     ECAPA_THRESHOLD_VERSION,
-    PLACEHOLDER_MODEL_VERSION,
-    PLACEHOLDER_TEMPLATE_VERSION,
-    PLACEHOLDER_THRESHOLD_VERSION,
+    EmbeddingExtractionError,
     ExtractedSpeakerEmbedding,
-    PlaceholderEmbeddingExtractor,
     SpeechBrainEcapaEmbeddingExtractor,
 )
 
 
-VerifierBackend = Literal["placeholder", "ecapa"]
+VerifierBackend = Literal["ecapa"]
 
 
 @dataclass(frozen=True)
@@ -57,32 +53,6 @@ class EvaluatedAudio:
     voice_activity: VoiceActivity
     speech_windows: tuple[SpeechWindow, ...]
 
-
-class PlaceholderVerifierRuntime:
-    metadata = VerifierRuntimeMetadata(
-        backend="placeholder",
-        adapter_id="python-placeholder",
-        model_id="python-placeholder",
-        model_version=PLACEHOLDER_MODEL_VERSION,
-        threshold_version=PLACEHOLDER_THRESHOLD_VERSION,
-        template_version=PLACEHOLDER_TEMPLATE_VERSION,
-        embedding_dimensions=PlaceholderEmbeddingExtractor.embedding_dimensions,
-    )
-
-    def __init__(self) -> None:
-        self.extractor = PlaceholderEmbeddingExtractor()
-
-    def evaluate_audio(self, audio_bytes: bytes, claims: AudioClaims) -> EvaluatedAudio:
-        return evaluate_decoded_input(audio_bytes=audio_bytes, claims=claims)
-
-    def extract_verification_embedding(
-        self,
-        speech_windows: Sequence[SpeechWindow],
-    ) -> ExtractedSpeakerEmbedding:
-        return extract_embedding_from_speech_windows(self.extractor, speech_windows)
-
-    def extract_window_embedding(self, samples: Sequence[float]) -> ExtractedSpeakerEmbedding:
-        return self.extractor.extract_decoded(samples)
 
 class SpeechBrainEcapaVerifierRuntime:
     def __init__(
@@ -113,11 +83,12 @@ class SpeechBrainEcapaVerifierRuntime:
     def extract_window_embedding(self, samples: Sequence[float]) -> ExtractedSpeakerEmbedding:
         return self.extractor.extract_decoded(samples)
 
-VerifierRuntime = PlaceholderVerifierRuntime | SpeechBrainEcapaVerifierRuntime
+
+VerifierRuntime = SpeechBrainEcapaVerifierRuntime
 
 
 def extract_embedding_from_speech_windows(
-    extractor: PlaceholderEmbeddingExtractor | SpeechBrainEcapaEmbeddingExtractor,
+    extractor: SpeechBrainEcapaEmbeddingExtractor,
     speech_windows: Sequence[SpeechWindow],
 ) -> ExtractedSpeakerEmbedding:
     if len(speech_windows) == 0:
@@ -211,12 +182,3 @@ def allowed_codecs_for_mime_type(mime_type: str) -> frozenset[str]:
         "audio/mpeg": frozenset({"mp3"}),
     }
     return codecs_by_mime_type.get(normalized, frozenset())
-
-
-def create_verifier_runtime_from_env() -> VerifierRuntime:
-    backend = os.environ.get("VOICEID_VERIFIER_BACKEND", "placeholder").strip().lower()
-    if backend == "placeholder":
-        return PlaceholderVerifierRuntime()
-    if backend == "ecapa":
-        return SpeechBrainEcapaVerifierRuntime()
-    raise RuntimeError("VOICEID_VERIFIER_BACKEND must be 'placeholder' or 'ecapa'")

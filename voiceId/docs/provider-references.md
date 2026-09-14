@@ -1,9 +1,9 @@
 # VoiceID Provider References
 
-Status: research reference.
+Status: historical research reference; not an active integration or release plan.
 
-Normative signing requirements:
-[VoiceID Signing Security Profile](voiceId-signing-security-profile.md).
+Current wallet direction:
+[MPC wallet extension plan](voiceId-mpc-wallet-extension-plan.md).
 
 Last reviewed: 2026-07-11. All product, certification, latency, accuracy, and
 retention statements below are public vendor positioning to verify against a

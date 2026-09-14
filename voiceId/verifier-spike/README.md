@@ -1,7 +1,8 @@
 # VoiceID Verifier Spike
 
-Use this folder to compare pretrained speaker-verification models against
-browser-recorded fixtures before replacing the fake verifier.
+Use this folder for offline model, corpus, calibration, fuzz, and resilience
+evaluation. The former browser and HTTP verifier application has been removed.
+Existing browser-recorded fixtures remain historical research inputs.
 
 ## Fixture Import
 
@@ -25,7 +26,9 @@ packages:
 
 ```sh
 python3 -m pip install -e voiceId/verifier-spike
-pnpm -C voiceId fixtures:evaluate:spectral
+python3 voiceId/verifier-spike/evaluate_spectral_baseline.py \
+  --manifest voiceId/fixtures/voiceid-fixture-manifest.json \
+  --check-media
 ```
 
 The baseline decodes audio with `ffmpeg`, extracts MFCC/log-mel-style summary
@@ -37,7 +40,9 @@ The recommended first pretrained model is SpeechBrain ECAPA-TDNN:
 
 ```sh
 python3 -m pip install "speechbrain>=1.0.0" "torchaudio==2.6.*"
-pnpm -C voiceId fixtures:evaluate:ecapa
+python3 voiceId/verifier-spike/evaluate_speechbrain_ecapa.py \
+  --manifest voiceId/fixtures/voiceid-fixture-manifest.json \
+  --check-media
 ```
 
 Use `speechbrain/spkrec-ecapa-voxceleb` first because it has a simple embedding
@@ -48,10 +53,8 @@ The first ECAPA report is in `reports/speechbrain-ecapa-2026-06-11.md`.
 Compare x-vector, pyannote, or NeMo only if ECAPA calibration, licensing, or
 deployment constraints need another option.
 
-The production-shaped verifier runtime now supports the same ECAPA model behind
-the persistent Python HTTP sidecar boundary. Start that service with
-`VOICEID_VERIFIER_BACKEND=ecapa`; browser and mobile clients remain capture-only
-clients.
+The retained Python ECAPA adapter accepts decoded PCM for local and offline use.
+The removed HTTP request protocol is not a supported runtime boundary.
 
 Fixture manifest fields:
 
@@ -86,11 +89,15 @@ stay suppressed until the evaluation partition contains a qualifying human
 cohort.
 
 ```sh
-pnpm -C voiceId benchmark:test
-pnpm -C voiceId benchmark:run
+PYTHONPATH=voiceId/verifier:voiceId/verifier-spike python3 -m unittest discover \
+  -s voiceId/verifier-spike -p 'test_*.py'
+python3 voiceId/verifier-spike/benchmark.py \
+  --manifest voiceId/fixtures/voiceid-benchmark-manifest.json \
+  --json-out voiceId/verifier-spike/reports/benchmark-inventory.json \
+  --report-out voiceId/verifier-spike/reports/benchmark-inventory.md
 ```
 
-`benchmark:run` writes paired JSON and Markdown inventory reports. It fails
+`benchmark.py` writes paired JSON and Markdown inventory reports. It fails
 measurement readiness until development, calibration, and evaluation data cover
 every required case and presentation-attack class.
 
@@ -116,15 +123,13 @@ verified in the manifest for a separate Transformers/ONNX comparison; passing
 an F32 directory to the native runtime is rejected because its file format is
 different.
 
-The Python sidecar can use Moonshine over canonical mono 16 kHz float PCM. Set
+The retained Moonshine adapter can use canonical mono 16 kHz float PCM. Set
 `VOICEID_MOONSHINE_MODEL_PATH`,
 `VOICEID_MOONSHINE_INTENT_MODEL_PATH`, and
 `VOICEID_MOONSHINE_MODEL_ARCH=tiny_streaming` (benchmark Small only after Tiny
-latency is measured). The sidecar route is
-`POST /voice-id/verifier/analyze-speech`; it returns transcript, semantic
-intent, and phrase decisions as separate fields. The production-shaped
-verification path is `POST /voice-id/verifier/analyze-verification`, which
-shares one canonical decode between Moonshine, speaker verification, and PAD.
+latency is measured). The current adapter retains the previous batch analysis
+behavior for evaluation. The local runtime plan replaces it with a genuine
+incremental transcription lifecycle.
 
 ## Synthetic corpus generation and freeze
 
@@ -135,10 +140,10 @@ generic synthesis, and owner-authorized conditioned attacks. Run them only in
 the offline fixture pipeline:
 
 ```sh
-pnpm -C voiceId corpus:generate:dia2 --help
-pnpm -C voiceId corpus:generate:elevenlabs --help
-pnpm -C voiceId corpus:import:consented --help
-pnpm -C voiceId corpus:freeze --help
+python3 voiceId/verifier-spike/dia2_batch.py --help
+python3 voiceId/verifier-spike/elevenlabs_batch.py --help
+python3 voiceId/verifier-spike/import_consented_capture.py --help
+python3 voiceId/verifier-spike/freeze_corpus.py --help
 ```
 
 The Dia2 runner requires a durable state file and checkpoints each generated
@@ -147,7 +152,7 @@ and resumes only from the next ordered job; an uncheckpointed final or pending
 WAV stops the campaign for manual reconciliation:
 
 ```sh
-pnpm -C voiceId corpus:generate:dia2 \
+python3 voiceId/verifier-spike/dia2_batch.py \
   --plan voiceId/verifier-spike/dia2-corpus-plan.json \
   --source-root /private/path/to/dia2 \
   --model-dir /private/path/to/Dia2-1B \
@@ -201,7 +206,7 @@ private research corpus directory:
 ffmpeg -i /private/path/session-1.m4a -ac 1 -ar 16000 -c:a pcm_s16le \
   /private/path/owner-corpus/session-1.wav
 
-pnpm -C voiceId corpus:import:consented \
+python3 voiceId/verifier-spike/import_consented_capture.py \
   --source-audio /private/path/owner-corpus/session-1.wav \
   --output-dir /private/path/owner-corpus/session-1 \
   --manifest-out /private/path/owner-corpus/session-1/manifest.json \
@@ -240,7 +245,7 @@ The pinned Dia2 1B path has one verified CUDA qualification run recorded in
 smoke result; it does not make the complete corpus measurement-ready.
 
 ```sh
-pnpm -C voiceId corpus:augment \
+python3 voiceId/verifier-spike/augment_corpus.py \
   --manifest /path/to/source-manifest.json \
   --output-dir /path/to/transformed-audio \
   --manifest-out /path/to/transformed-audio/manifest.json \
@@ -257,11 +262,11 @@ deferred from this plan.
 Run measurements and calibration from the frozen manifest:
 
 ```sh
-pnpm -C voiceId benchmark:moonshine --help
-pnpm -C voiceId benchmark:calibrate:moonshine --help
-pnpm -C voiceId benchmark:ecapa --help
-pnpm -C voiceId benchmark:aasist --help
-pnpm -C voiceId benchmark:suite --help
+python3 voiceId/verifier-spike/benchmark_moonshine.py --help
+python3 voiceId/verifier-spike/calibrate_moonshine.py --help
+python3 voiceId/verifier-spike/benchmark_ecapa.py --help
+python3 voiceId/verifier-spike/benchmark_aasist.py --help
+python3 voiceId/verifier-spike/benchmark_suite.py --help
 ```
 
 The Moonshine report compares exact matching with the hybrid
@@ -272,10 +277,10 @@ reports FAR, FRR, EER, confidence intervals, latency, and clone-attack
 acceptance separately. AASIST calibrates independent reject/uncertain/accept
 regions and reports APCER/BPCER by attack class and capture profile.
 
-`benchmark:suite` runs all three adapters from one validated corpus invocation
+`benchmark_suite.py` runs all three adapters from one validated corpus invocation
 and writes paired JSON and Markdown outputs. It binds the corpus and local
 model manifests by SHA-256 and embeds the complete component reports. Run
-`pnpm -C voiceId benchmark:suite --help` for the required model paths and
+`python3 voiceId/verifier-spike/benchmark_suite.py --help` for the required model paths and
 output arguments.
 
 After the suite and release-budget checker pass, freeze one calibration record
@@ -283,7 +288,7 @@ that binds the intent, speaker, PAD, capture-profile, and retry decisions to
 the exact corpus and model manifests:
 
 ```sh
-pnpm -C voiceId calibration:freeze \
+python3 voiceId/verifier-spike/freeze_calibration.py \
   --corpus-manifest /path/to/frozen/voiceid-benchmark-manifest.json \
   --suite /path/to/benchmark-suite.json \
   --budgets /path/to/frozen-budgets.json \
@@ -301,7 +306,7 @@ Once the three owner sessions are processed by the verifier, measure their
 cross-day template stability with the offline stability boundary:
 
 ```sh
-pnpm -C voiceId enrollment:stability \
+PYTHONPATH=voiceId/verifier python3 voiceId/verifier-spike/enrollment_stability.py \
   --input /path/to/owner-enrollment-stability-input.json \
   --output /path/to/enrollment-stability-report.json
 ```
@@ -317,7 +322,7 @@ Check candidate adapters for repeated-input, cross-input, and
 failure-recovery stability with:
 
 ```sh
-pnpm -C voiceId benchmark:stability --help
+PYTHONPATH=voiceId/verifier python3 voiceId/verifier-spike/check_adapter_stability.py --help
 ```
 
 The pinned Apple Silicon run is recorded in
@@ -332,7 +337,7 @@ PAD calibration.
 Run the seeded malformed-media campaign separately from model benchmarks:
 
 ```sh
-pnpm -C voiceId fuzz:media \
+PYTHONPATH=voiceId/verifier python3 voiceId/verifier-spike/fuzz_media.py \
   --cases 64 \
   --seed 20260726 \
   --output /tmp/voiceid-media-fuzz.json
@@ -346,7 +351,7 @@ After calibration freezes a dataset-specific budget file, enforce it against
 the combined suite:
 
 ```sh
-pnpm -C voiceId benchmark:check \
+python3 voiceId/verifier-spike/check_benchmark_budgets.py \
   --suite /path/to/benchmark-suite.json \
   --budgets /path/to/frozen-budgets.json \
   --output /tmp/voiceid-budget-check.json

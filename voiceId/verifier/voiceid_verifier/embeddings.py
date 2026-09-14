@@ -14,10 +14,6 @@ ECAPA_THRESHOLD_VERSION = "ecapa-local-dev-v1"
 ECAPA_TEMPLATE_VERSION = "ecapa-medoid-weighted-template-v2"
 ECAPA_EMBEDDING_DIMENSIONS = 192
 
-PLACEHOLDER_MODEL_VERSION = "python-placeholder-model-v1"
-PLACEHOLDER_THRESHOLD_VERSION = "python-placeholder-threshold-v1"
-PLACEHOLDER_TEMPLATE_VERSION = "python-placeholder-medoid-weighted-template-v2"
-
 
 class EmbeddingExtractionError(RuntimeError):
     pass
@@ -27,31 +23,6 @@ class EmbeddingExtractionError(RuntimeError):
 class ExtractedSpeakerEmbedding:
     vector: list[float]
     speaker_label: str
-
-
-def extract_decoded_embedding(samples: Sequence[float]) -> list[float]:
-    if len(samples) == 0:
-        return []
-    absolute_total = sum(abs(float(sample)) for sample in samples)
-    signed_total = sum(float(sample) for sample in samples)
-    peak = max(abs(float(sample)) for sample in samples)
-    mean = signed_total / len(samples)
-    return [
-        min(1.0, absolute_total / len(samples) * 8.0),
-        max(-1.0, min(1.0, mean * 32.0)),
-        min(1.0, peak),
-        min(1.0, len(samples) / 48000.0),
-    ]
-
-
-class PlaceholderEmbeddingExtractor:
-    embedding_dimensions = 4
-
-    def extract_decoded(self, samples: Sequence[float]) -> ExtractedSpeakerEmbedding:
-        return ExtractedSpeakerEmbedding(
-            vector=extract_decoded_embedding(samples),
-            speaker_label="unknown_speaker",
-        )
 
 
 class SpeechBrainEcapaEmbeddingExtractor:

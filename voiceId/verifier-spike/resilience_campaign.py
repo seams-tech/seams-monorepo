@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from voiceid_verifier.app import BoundedStageExecutor, TimedStageResult
+from voiceid_verifier.execution import BoundedStageExecutor, TimedStageResult
 
 
 REPORT_SCHEMA_VERSION = "voice_id_runtime_resilience_campaign_v1"
@@ -22,6 +22,7 @@ DEFAULT_ITERATIONS = 1_000
 MAXIMUM_SOAK_P99_MS = 1_000.0
 MAXIMUM_SOAK_FD_GROWTH = 2
 MAXIMUM_SOAK_THREAD_GROWTH = 1
+VERIFIER_ROOT = Path(__file__).resolve().parents[1] / "verifier"
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,7 @@ def run_model_load_failure() -> dict[str, Any]:
             **os.environ,
             "HF_HUB_OFFLINE": "1",
             "TRANSFORMERS_OFFLINE": "1",
-            "PYTHONPATH": "verifier",
+            "PYTHONPATH": str(VERIFIER_ROOT),
         },
     )
     failed_closed = completed.returncode != 0

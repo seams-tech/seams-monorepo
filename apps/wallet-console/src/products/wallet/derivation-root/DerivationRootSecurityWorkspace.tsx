@@ -15,6 +15,7 @@ import {
   CircleCheck,
   CircleHelp,
   CircleX,
+  KeyRound,
   LoaderCircle,
   RefreshCw,
   TriangleAlert,
@@ -836,13 +837,30 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   if (pageState.kind === 'error') {
     return (
       <section className="dashboard-page derivation-root-page">
-        <h1>Threshold Keys</h1>
-        <p className="derivation-root-error" role="alert">
-          {pageState.message}
-        </p>
-        <button type="button" className="dashboard-pagination-button" onClick={refresh}>
-          Try again
-        </button>
+        <header className="derivation-root-header">
+          <h1>Threshold Keys</h1>
+        </header>
+        <section className="derivation-root-state-card" aria-labelledby="root-error-title">
+          <span className="derivation-root-state-icon derivation-root-state-icon--error">
+            <TriangleAlert size={22} aria-hidden="true" />
+          </span>
+          <div className="derivation-root-state-content">
+            <p className="derivation-root-state-eyebrow">Environment status</p>
+            <h2 id="root-error-title">Unable to load threshold keys</h2>
+            <p className="derivation-root-error" role="alert">
+              {pageState.message}
+            </p>
+            <div className="derivation-root-state-actions">
+              <button
+                type="button"
+                className="dashboard-pagination-button dashboard-pagination-button--primary"
+                onClick={refresh}
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </section>
       </section>
     );
   }
@@ -850,12 +868,24 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   if (pageState.kind === 'not_provisioned') {
     return (
       <section className="dashboard-page derivation-root-page">
-        <h1>Threshold Keys</h1>
-        <p>No server-side derivation root is provisioned for this environment.</p>
-        <CreateDerivationRoot refresh={refresh} />
-        <button type="button" className="dashboard-pagination-button" onClick={refresh}>
-          Refresh
-        </button>
+        <header className="derivation-root-header">
+          <h1>Threshold Keys</h1>
+          <p>Manage the key infrastructure used for threshold signing and wallet recovery.</p>
+        </header>
+        <section className="derivation-root-state-card" aria-labelledby="root-empty-title">
+          <span className="derivation-root-state-icon">
+            <KeyRound size={22} aria-hidden="true" />
+          </span>
+          <div className="derivation-root-state-content">
+            <p className="derivation-root-state-eyebrow">Environment setup</p>
+            <h2 id="root-empty-title">Derivation root required</h2>
+            <p className="derivation-root-description">
+              Create a server-side derivation root for this environment to enable threshold signing
+              and recovery setup.
+            </p>
+            <CreateDerivationRoot refresh={refresh} />
+          </div>
+        </section>
       </section>
     );
   }
@@ -863,8 +893,23 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
   if (status === null) {
     return (
       <section className="dashboard-page derivation-root-page">
-        <h1>Threshold Keys</h1>
-        <p aria-live="polite">Loading server-side share status…</p>
+        <header className="derivation-root-header">
+          <h1>Threshold Keys</h1>
+        </header>
+        <section
+          className="derivation-root-state-card"
+          aria-labelledby="root-loading-title"
+          aria-live="polite"
+        >
+          <span className="derivation-root-state-icon">
+            <LoaderCircle className="derivation-root-spinner" size={22} aria-hidden="true" />
+          </span>
+          <div className="derivation-root-state-content">
+            <p className="derivation-root-state-eyebrow">Environment status</p>
+            <h2 id="root-loading-title">Loading threshold keys</h2>
+            <p className="derivation-root-description">Checking the server-side share status…</p>
+          </div>
+        </section>
       </section>
     );
   }

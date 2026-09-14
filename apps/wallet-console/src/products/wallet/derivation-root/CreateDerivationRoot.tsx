@@ -1,4 +1,5 @@
 import React from 'react';
+import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { createDerivationRoot } from './consoleDerivationRootApi';
@@ -6,7 +7,13 @@ import { createDerivationRoot } from './consoleDerivationRootApi';
 type CreationState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'creating' }
-  | { readonly kind: 'error'; readonly message: string };
+  | { readonly kind: 'refreshing' }
+  | { readonly kind: 'refreshed' }
+  | {
+      readonly kind: 'error';
+      readonly action: 'creation' | 'refresh';
+      readonly message: string;
+    };
 
 async function submitCreation(
   storageKey: string,
@@ -27,10 +34,33 @@ async function submitCreation(
   } catch (error: unknown) {
     setState({
       kind: 'error',
+      action: 'creation',
       message:
         error instanceof Error
           ? error.message
           : 'Creation could not be confirmed. Retry to resume.',
+    });
+  } finally {
+    busy.current = false;
+  }
+}
+
+async function submitRefresh(
+  busy: React.MutableRefObject<boolean>,
+  setState: React.Dispatch<React.SetStateAction<CreationState>>,
+  refresh: () => Promise<void>,
+): Promise<void> {
+  if (busy.current) return;
+  busy.current = true;
+  setState({ kind: 'refreshing' });
+  try {
+    await refresh();
+    setState({ kind: 'refreshed' });
+  } catch (error: unknown) {
+    setState({
+      kind: 'error',
+      action: 'refresh',
+      message: error instanceof Error ? error.message : 'The latest status could not be loaded.',
     });
   } finally {
     busy.current = false;
@@ -46,30 +76,64 @@ function CreationButton({
 }): React.JSX.Element {
   const [state, setState] = React.useState<CreationState>({ kind: 'idle' });
   const busy = React.useRef(false);
+  const pending = state.kind === 'creating' || state.kind === 'refreshing';
   return (
-    <>
-      <p>Create the root for this environment to enable signing and recovery setup.</p>
-      <button
-        type="button"
-        className="dashboard-pagination-button"
-        disabled={state.kind === 'creating'}
-        onClick={submitCreation.bind(null, storageKey, busy, setState, refresh)}
-      >
-        {state.kind === 'creating'
-          ? 'Creating derivation root…'
-          : state.kind === 'error'
-            ? 'Retry creation'
-            : 'Create derivation root'}
-      </button>
+    <div className="derivation-root-create-flow">
+      <div className="derivation-root-create-actions">
+        <button
+          type="button"
+          className="dashboard-pagination-button dashboard-pagination-button--primary dashboard-pagination-button--with-icon"
+          disabled={pending}
+          onClick={submitCreation.bind(null, storageKey, busy, setState, refresh)}
+        >
+          {state.kind === 'creating' && (
+            <LoaderCircle className="derivation-root-spinner" size={16} aria-hidden="true" />
+          )}
+          {state.kind === 'creating'
+            ? 'Creating derivation root…'
+            : state.kind === 'error' && state.action === 'creation'
+              ? 'Retry creation'
+              : 'Create derivation root'}
+        </button>
+        <button
+          type="button"
+          className="dashboard-pagination-button dashboard-pagination-button--secondary dashboard-pagination-button--with-icon"
+          disabled={pending}
+          onClick={submitRefresh.bind(null, busy, setState, refresh)}
+        >
+          <RefreshCw
+            className={state.kind === 'refreshing' ? 'derivation-root-spinner' : undefined}
+            size={16}
+            aria-hidden="true"
+          />
+          {state.kind === 'refreshing' ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
       {state.kind === 'creating' && (
-        <p role="status">Creating your derivation root. This may take a moment.</p>
+        <div className="derivation-root-create-feedback" role="status" aria-live="polite">
+          <LoaderCircle className="derivation-root-spinner" size={17} aria-hidden="true" />
+          <p>Creating your derivation root. This may take a moment.</p>
+        </div>
       )}
-      {state.kind === 'error' && (
-        <p className="derivation-root-error" role="alert">
-          {state.message}
+      {state.kind === 'refreshing' && (
+        <div className="derivation-root-create-feedback" role="status" aria-live="polite">
+          <LoaderCircle className="derivation-root-spinner" size={17} aria-hidden="true" />
+          <p>Checking the latest root status…</p>
+        </div>
+      )}
+      {state.kind === 'refreshed' && (
+        <p className="derivation-root-create-note" role="status" aria-live="polite">
+          Status refreshed. No derivation root is active yet.
         </p>
       )}
-    </>
+      {state.kind === 'error' && (
+        <div className="derivation-root-create-feedback derivation-root-create-feedback--error">
+          <p className="derivation-root-error" role="alert">
+            {state.message}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -80,13 +144,17 @@ export function CreateDerivationRoot({
 }): React.JSX.Element {
   const { claims } = useDashboardConsoleSession();
   if (!claims?.projectId || !claims.environmentId)
-    return <p>Select an environment to create its derivation root.</p>;
+    return (
+      <p className="derivation-root-empty-guidance">
+        Select an environment to create its derivation root.
+      </p>
+    );
   if (
     claims.role !== 'OWNER' &&
     !(claims.role === 'ADMIN' && claims.adminPermissions.includes('projects.manage'))
   ) {
     return (
-      <p>
+      <p className="derivation-root-empty-guidance">
         Ask an organization owner or an administrator with project management access to create this
         root.
       </p>

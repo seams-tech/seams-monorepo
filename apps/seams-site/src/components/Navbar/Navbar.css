@@ -13,7 +13,11 @@
   --navbar-focus: var(--site-focus, #4fb894);
   --navbar-access-nav-surface: color-mix(in srgb, var(--navbar-surface3) 82%, transparent);
   --navbar-access-trigger-active: color-mix(in srgb, var(--navbar-surface2) 72%, transparent);
-  --navbar-access-panel-surface: color-mix(in srgb, var(--navbar-surface) 94%, var(--navbar-bg) 6%);
+  --navbar-access-panel-surface: color-mix(
+    in srgb,
+    var(--navbar-surface2) 92%,
+    var(--navbar-surface) 8%
+  );
   --navbar-access-divider: color-mix(in srgb, var(--navbar-border) 56%, transparent);
   --navbar-access-muted: color-mix(in srgb, var(--site-text-secondary) 88%, var(--navbar-text) 12%);
   --navbar-mobile-menu-surface:
@@ -262,7 +266,8 @@ html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
   background: var(--navbar-access-panel-surface);
   box-shadow:
     0 0 0 1px var(--navbar-access-divider),
-    0 16px 40px -24px color-mix(in srgb, var(--navbar-shadow-color) 62%, transparent);
+    0 18px 48px -20px color-mix(in srgb, var(--navbar-shadow-color) 62%, transparent),
+    0 6px 18px -10px color-mix(in srgb, var(--navbar-shadow-color) 38%, transparent);
 }
 
 /* Sized inline to the active pane; is-morphing animates between menus while
@@ -512,7 +517,11 @@ html[data-w3a-theme='light'] .navbar-static {
   /* same faint wash as the nav triggers (.navbar-static__link:hover), so a
      dropdown row doesn't read heavier than the trigger that opened it */
   --navbar-access-trigger-active: rgba(31, 41, 55, 0.05);
-  --navbar-access-panel-surface: color-mix(in srgb, var(--navbar-surface) 99%, var(--navbar-bg) 1%);
+  --navbar-access-panel-surface: color-mix(
+    in srgb,
+    var(--navbar-surface2) 92%,
+    var(--navbar-surface) 8%
+  );
   --navbar-access-divider: color-mix(in srgb, var(--navbar-border) 46%, transparent);
   --navbar-access-muted: color-mix(in srgb, var(--site-text-secondary) 92%, var(--navbar-text) 8%);
 }

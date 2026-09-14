@@ -11,55 +11,18 @@
   --navbar-primary-hover: var(--site-action-hover, #262626);
   --navbar-text-button: var(--site-text-button, #ffffff);
   --navbar-focus: var(--site-focus, #4fb894);
-  --navbar-access-nav-surface: color-mix(in srgb, var(--navbar-surface3) 82%, transparent);
-  --navbar-access-trigger-active: color-mix(in srgb, var(--navbar-surface2) 72%, transparent);
-  --navbar-access-panel-surface: color-mix(
-    in srgb,
-    var(--navbar-surface2) 92%,
-    var(--navbar-surface) 8%
-  );
-  --navbar-access-divider: color-mix(in srgb, var(--navbar-border) 56%, transparent);
-  --navbar-access-muted: color-mix(in srgb, var(--site-text-secondary) 88%, var(--navbar-text) 12%);
-  --navbar-mobile-menu-surface:
-    radial-gradient(
-      130% 170% at 10% -26%,
-      color-mix(in srgb, var(--navbar-surface3) 90%, var(--navbar-primary) 10%) 0%,
-      transparent 44%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--navbar-surface3) 84%, #000 16%) 0%,
-      color-mix(in srgb, var(--navbar-bg) 92%, #000 8%) 100%
-    );
-  --navbar-mobile-link-hover-surface: color-mix(in srgb, var(--navbar-surface3) 72%, transparent);
-  --navbar-mobile-section-surface:
-    radial-gradient(
-      130% 155% at 8% 0%,
-      color-mix(in srgb, var(--navbar-surface3) 88%, var(--navbar-primary) 12%) 0%,
-      transparent 48%
-    ),
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--navbar-surface3) 84%, #000 16%) 0%,
-      color-mix(in srgb, var(--navbar-surface2) 90%, #000 10%) 100%
-    );
-  --navbar-mobile-section-title: color-mix(
-    in srgb,
-    var(--site-text-secondary) 88%,
-    var(--navbar-text) 12%
-  );
-  --navbar-mobile-subitem-surface: color-mix(in srgb, var(--navbar-surface3) 72%, transparent);
-  --navbar-mobile-subitem-surface-hover: color-mix(
-    in srgb,
-    var(--navbar-surface3) 86%,
-    transparent
-  );
+  --navbar-background: var(--navbar-surface);
+  --navbar-access-trigger-active: var(--navbar-surface2);
+  --navbar-access-divider: var(--navbar-border);
+  --navbar-access-muted: var(--site-text-secondary);
+  --navbar-mobile-menu-surface: var(--navbar-background);
+  --navbar-mobile-link-hover-surface: var(--navbar-surface2);
+  --navbar-mobile-section-surface: var(--navbar-background);
+  --navbar-mobile-section-title: var(--site-text-secondary);
+  --navbar-mobile-subitem-surface: var(--navbar-background);
+  --navbar-mobile-subitem-surface-hover: var(--navbar-surface2);
   --navbar-mobile-subitem-text: var(--navbar-text);
-  --navbar-mobile-subitem-copy: color-mix(
-    in srgb,
-    var(--site-text-secondary) 90%,
-    var(--navbar-text) 10%
-  );
+  --navbar-mobile-subitem-copy: var(--site-text-secondary);
   position: fixed;
   top: 26px;
   left: 0;
@@ -83,35 +46,28 @@
   column-gap: 28px;
   border-radius: 1rem;
   padding: 6px 8px 6px 20px;
-  border: 0;
-  background: var(--navbar-access-nav-surface);
-  backdrop-filter: blur(4px);
+  border: 1px solid var(--navbar-border);
+  background: var(--navbar-background);
   box-shadow:
-    0 14px 32px -20px color-mix(in srgb, var(--navbar-shadow-color) 48%, transparent),
-    0 3px 10px -6px color-mix(in srgb, var(--navbar-shadow-color) 28%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--navbar-border) 34%, transparent);
+    0 14px 32px -20px rgba(4, 3, 14, 0.42),
+    0 3px 10px -6px rgba(4, 3, 14, 0.24);
   transition:
     background 300ms cubic-bezier(0.22, 1, 0.36, 1),
-    backdrop-filter 300ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .navbar-static__shell.is-scrolled {
-  background: color-mix(in srgb, var(--navbar-surface3) 88%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px color-mix(in srgb, var(--navbar-shadow-color) 58%, transparent),
-    0 4px 12px -7px color-mix(in srgb, var(--navbar-shadow-color) 34%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--navbar-border) 42%, transparent);
+    0 18px 42px -22px rgba(4, 3, 14, 0.5),
+    0 4px 12px -7px rgba(4, 3, 14, 0.3);
 }
 
 html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
-  background: var(--navbar-access-nav-surface);
-  backdrop-filter: blur(4px);
+  background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px color-mix(in srgb, var(--navbar-shadow-color) 52%, transparent),
-    0 4px 12px -7px color-mix(in srgb, var(--navbar-shadow-color) 30%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--navbar-border) 38%, transparent);
+    0 18px 42px -22px rgba(15, 23, 42, 0.28),
+    0 4px 12px -7px rgba(15, 23, 42, 0.16);
 }
 
 .navbar-static__left {
@@ -263,11 +219,11 @@ html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
   position: relative;
   overflow: hidden;
   border-radius: 14px;
-  background: var(--navbar-access-panel-surface);
+  border: 1px solid var(--navbar-access-divider);
+  background: var(--navbar-background);
   box-shadow:
-    0 0 0 1px var(--navbar-access-divider),
-    0 18px 48px -20px color-mix(in srgb, var(--navbar-shadow-color) 62%, transparent),
-    0 6px 18px -10px color-mix(in srgb, var(--navbar-shadow-color) 38%, transparent);
+    0 18px 48px -20px rgba(4, 3, 14, 0.5),
+    0 6px 18px -10px rgba(4, 3, 14, 0.3);
 }
 
 /* Sized inline to the active pane; is-morphing animates between menus while
@@ -513,17 +469,11 @@ html[data-w3a-theme='light'] .navbar-static__shell.is-scrolled {
 
 html[data-w3a-theme='light'] .navbar-static {
   --navbar-shadow-color: rgba(15, 23, 42, 0.34);
-  --navbar-access-nav-surface: color-mix(in srgb, var(--navbar-surface) 90%, transparent);
   /* same faint wash as the nav triggers (.navbar-static__link:hover), so a
      dropdown row doesn't read heavier than the trigger that opened it */
   --navbar-access-trigger-active: rgba(31, 41, 55, 0.05);
-  --navbar-access-panel-surface: color-mix(
-    in srgb,
-    var(--navbar-surface2) 92%,
-    var(--navbar-surface) 8%
-  );
-  --navbar-access-divider: color-mix(in srgb, var(--navbar-border) 46%, transparent);
-  --navbar-access-muted: color-mix(in srgb, var(--site-text-secondary) 92%, var(--navbar-text) 8%);
+  --navbar-access-divider: var(--navbar-border);
+  --navbar-access-muted: var(--site-text-secondary);
 }
 
 .navbar-static__actions {
@@ -553,23 +503,23 @@ html[data-w3a-theme='light'] .navbar-static {
 }
 
 .navbar-static__pill--ghost {
-  border-color: color-mix(in srgb, var(--navbar-border) 75%, transparent);
+  border-color: var(--navbar-border);
   color: var(--navbar-text);
-  background: color-mix(in srgb, var(--navbar-surface2) 72%, transparent);
+  background: var(--navbar-surface2);
 }
 
 .navbar-static__pill--ghost:hover {
-  background: color-mix(in srgb, var(--navbar-surface3) 76%, transparent);
+  background: var(--navbar-surface3);
 }
 
 .navbar-static__pill--solid {
   color: var(--navbar-text-button);
-  background: color-mix(in srgb, var(--navbar-primary) 88%, var(--navbar-bg) 12%);
+  background: var(--navbar-primary);
 }
 
 .navbar-static__pill--solid:hover {
-  color: color-mix(in srgb, var(--navbar-text-button) 92%, #ffffff 8%);
-  background: color-mix(in srgb, var(--navbar-primary-hover) 88%, var(--navbar-bg) 12%);
+  color: var(--navbar-text-button);
+  background: var(--navbar-primary-hover);
 }
 
 .navbar-static__context-icon {
@@ -598,8 +548,8 @@ html[data-w3a-theme='light'] .navbar-static {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--navbar-border) 75%, transparent);
-  background: color-mix(in srgb, var(--navbar-surface2) 65%, transparent);
+  border: 1px solid var(--navbar-border);
+  background: var(--navbar-surface2);
   color: var(--navbar-text);
   cursor: pointer;
   transition:
@@ -609,7 +559,7 @@ html[data-w3a-theme='light'] .navbar-static {
 
 .navbar-static__mobile-toggle:hover {
   border-color: var(--navbar-border-hover);
-  background: color-mix(in srgb, var(--navbar-surface3) 70%, transparent);
+  background: var(--navbar-surface3);
 }
 
 .navbar-static__mobile-menu {
@@ -704,10 +654,11 @@ html[data-w3a-theme='light'] .navbar-static {
     left: 50%;
     z-index: 1001;
     border-radius: 1rem;
+    border: 1px solid var(--navbar-border);
     background: var(--navbar-mobile-menu-surface);
     box-shadow:
-      0 28px 58px -36px color-mix(in srgb, var(--navbar-shadow-color) 78%, transparent),
-      inset 0 1px 0 color-mix(in srgb, var(--navbar-border) 36%, transparent);
+      0 28px 58px -36px rgba(4, 3, 14, 0.54),
+      0 8px 20px -14px rgba(4, 3, 14, 0.3);
     padding: 0.75rem;
     display: grid;
     gap: 0.25rem;
@@ -772,8 +723,8 @@ html[data-w3a-theme='light'] .navbar-static {
     display: grid;
     gap: 0.35rem;
     border-radius: 0.8rem;
+    border: 1px solid var(--navbar-border);
     background: var(--navbar-mobile-section-surface);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--navbar-border) 30%, transparent);
     padding: 0.55rem;
   }
 
@@ -816,67 +767,6 @@ html[data-w3a-theme='light'] .navbar-static {
 
   .navbar-static__mobile-cta-row .navbar-static__pill {
     flex: 1;
-  }
-
-  html[data-w3a-theme='light'] .navbar-static {
-    --navbar-mobile-menu-surface:
-      radial-gradient(
-        130% 170% at 10% -26%,
-        color-mix(in srgb, var(--navbar-surface) 93%, var(--navbar-primary) 7%) 0%,
-        transparent 46%
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--navbar-surface) 93%, var(--navbar-primary) 7%) 0%,
-        color-mix(in srgb, var(--navbar-surface2) 88%, var(--navbar-primary) 12%) 100%
-      );
-    --navbar-mobile-link-hover-surface: color-mix(
-      in srgb,
-      var(--navbar-surface2) 86%,
-      var(--navbar-primary) 14%
-    );
-    --navbar-mobile-section-surface:
-      radial-gradient(
-        130% 155% at 8% 0%,
-        color-mix(in srgb, var(--navbar-surface) 97%, var(--navbar-primary) 3%) 0%,
-        transparent 48%
-      ),
-      linear-gradient(
-        165deg,
-        color-mix(in srgb, var(--navbar-surface) 97%, var(--navbar-bg) 3%) 0%,
-        color-mix(in srgb, var(--navbar-surface2) 92%, var(--navbar-primary) 8%) 100%
-      );
-    --navbar-mobile-section-title: color-mix(
-      in srgb,
-      var(--site-text-secondary) 88%,
-      var(--navbar-text) 12%
-    );
-    --navbar-mobile-subitem-text: var(--navbar-text);
-    --navbar-mobile-subitem-surface: color-mix(
-      in srgb,
-      var(--navbar-surface) 93%,
-      var(--navbar-primary) 7%
-    );
-    --navbar-mobile-subitem-surface-hover: color-mix(
-      in srgb,
-      var(--navbar-surface2) 88%,
-      var(--navbar-primary) 12%
-    );
-    --navbar-mobile-subitem-copy: color-mix(
-      in srgb,
-      var(--site-text-secondary) 92%,
-      var(--navbar-text) 8%
-    );
-  }
-
-  html[data-w3a-theme='light'] .navbar-static__mobile-menu {
-    box-shadow:
-      0 22px 42px -34px color-mix(in srgb, var(--navbar-shadow-color) 34%, transparent),
-      inset 0 1px 0 color-mix(in srgb, var(--navbar-bg) 72%, transparent);
-  }
-
-  html[data-w3a-theme='light'] .navbar-static__mobile-section {
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--navbar-bg) 62%, transparent);
   }
 }
 

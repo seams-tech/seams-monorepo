@@ -176,6 +176,21 @@ body:has(.h2-page) {
 
 /* ---------- flat navbar (structural reskin of NavbarStatic on this page) ---------- */
 
+.h2-page .navbar-static {
+  --navbar-bg: var(--h2-bg);
+  --navbar-surface: var(--h2-bg);
+  --navbar-surface2: var(--h2-taupe);
+  --navbar-surface3: var(--h2-stone);
+  --navbar-text: var(--h2-ink);
+  --navbar-border: var(--h2-stone);
+  --navbar-border-hover: var(--h2-ash);
+  --navbar-primary: #000000;
+  --navbar-primary-hover: #262626;
+  --navbar-text-button: #ffffff;
+  --navbar-access-muted: var(--h2-smoke);
+  --navbar-background: var(--h2-bg);
+}
+
 .h2-page .navbar-static:not(.navbar-static--compact) {
   top: 0;
   padding: 0;

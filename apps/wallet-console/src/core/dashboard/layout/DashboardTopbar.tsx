@@ -62,7 +62,7 @@ export type TopbarSearchItem = {
 };
 
 type DashboardTopbarProps = {
-  workspace: SidebarWorkspaceProps;
+  workspace?: SidebarWorkspaceProps;
   isSidebarExpanded: boolean;
   onToggleSidebar: () => void;
   homeProps: HomeLinkProps;
@@ -337,6 +337,7 @@ export function DashboardTopbar({
       <header
         ref={topbarRef}
         className="dashboard-topbar dashboard-topbar--focused"
+        role="banner"
         aria-label="Workspace context"
       >
         <div className="dashboard-topbar__brand dashboard-topbar__brand--focused">
@@ -364,7 +365,12 @@ export function DashboardTopbar({
   }
 
   return (
-    <header ref={topbarRef} className="dashboard-topbar" aria-label="Workspace context">
+    <header
+      ref={topbarRef}
+      className="dashboard-topbar"
+      role="banner"
+      aria-label="Workspace context"
+    >
       <a className="dashboard-mobile-brand" {...homeProps} aria-label="Seams home">
         <SeamsWordmark height={24} />
       </a>
@@ -427,17 +433,19 @@ export function DashboardTopbar({
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <div className="dashboard-mobile-context">
-        <SidebarWorkspaceSwitcher {...workspace} />
-        <button
-          type="button"
-          className="dashboard-mobile-network-badge"
-          onClick={openMobileNavigation}
-          aria-label={`Network: ${network}. Open navigation to change network`}
-        >
-          {network === 'testnet' ? 'Testnet' : 'Mainnet'}
-        </button>
-      </div>
+      {workspace ? (
+        <div className="dashboard-mobile-context">
+          <SidebarWorkspaceSwitcher {...workspace} />
+          <button
+            type="button"
+            className="dashboard-mobile-network-badge"
+            onClick={openMobileNavigation}
+            aria-label={`Network: ${network}. Open navigation to change network`}
+          >
+            {network === 'testnet' ? 'Testnet' : 'Mainnet'}
+          </button>
+        </div>
+      ) : null}
       {paletteOpen && searchEnabled && onNavigate ? (
         <TopbarCommandPalette
           items={searchItems}

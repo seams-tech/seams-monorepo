@@ -62,6 +62,12 @@ const PLATFORM_BILLING_ROUTE: DashboardRoute = '/platform/billing';
 const DASHBOARD_LOGIN_ROUTE = '/dashboard/login';
 const DASHBOARD_ONBOARDING_STATE_UPDATED_EVENT = 'dashboard:onboarding-state-updated';
 const LOCKED_PRODUCTION_OPTION_PREFIX = '__production_locked__:';
+const INITIAL_ONBOARDING_CONTEXT: TopbarContextState = {
+  organization: '',
+  project: '',
+  environment: '',
+  accountSettings: '',
+};
 
 function isSelectableOption(option: TopbarOption): boolean {
   return option.disabled !== true;
@@ -1262,10 +1268,10 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
       );
     case 'onboarding':
       return (
-        <main className="dashboard-main" aria-label="Dashboard onboarding">
-          <h1 className="dashboard-main__title">Onboarding</h1>
-          <DashboardOnboardingPage onOrganizationCreated={setEntry.bind(null, 'workspace')} />
-        </main>
+        <InitialOnboardingShell
+          composition={props.composition}
+          onOrganizationCreated={setEntry.bind(null, 'workspace')}
+        />
       );
     case 'workspace':
       return (
@@ -1274,6 +1280,126 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
         </DashboardConsoleSessionProvider>
       );
   }
+}
+
+function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey extends string>({
+  composition,
+  onOrganizationCreated,
+}: DashboardPageProps<ProductRoute, ProductGroupKey> & {
+  onOrganizationCreated: () => void;
+}): React.JSX.Element {
+  const frontendRuntime = useFrontendRuntime();
+  const { go, linkProps } = useSiteRouter();
+  const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(true);
+  const [selectedProductId, setSelectedProductId] = React.useState<DashboardProductId>(
+    composition.defaultProductId,
+  );
+  const [expandedGroups, setExpandedGroups] = React.useState(
+    composition.defaultExpandedSidebarGroups,
+  );
+  const [logoutPending, setLogoutPending] = React.useState(false);
+  const homeProps = linkProps('https://seams.sh/');
+  const accountOptions = React.useMemo<TopbarOption[]>(
+    () => [
+      {
+        value: composition.accountSettingsSignOutOption,
+        label: logoutPending ? 'Signing out...' : composition.accountSettingsSignOutOption,
+        disabled: logoutPending,
+      },
+    ],
+    [composition.accountSettingsSignOutOption, logoutPending],
+  );
+  const dropdownOptions = React.useMemo<Record<TopbarMenuKey, TopbarOption[]>>(
+    () => ({
+      organization: [],
+      project: [],
+      environment: [],
+      accountSettings: accountOptions,
+    }),
+    [accountOptions],
+  );
+
+  const toggleSidebar = React.useCallback(() => {
+    setIsSidebarExpanded((current) => !current);
+  }, []);
+  const toggleGroup = React.useCallback((group: SidebarGroupKey | ProductGroupKey) => {
+    setExpandedGroups((current) => ({
+      ...current,
+      [group]: !current[group],
+    }));
+  }, []);
+  const selectAccountOption = React.useCallback(
+    (value: string) => {
+      if (value !== composition.accountSettingsSignOutOption || logoutPending) return;
+      setLogoutPending(true);
+      void revokeDashboardConsoleSession().finally(() => {
+        markDashboardConsoleSignOut();
+        clearDashboardUiState();
+        go(DASHBOARD_LOGIN_ROUTE);
+        setLogoutPending(false);
+      });
+    },
+    [composition.accountSettingsSignOutOption, go, logoutPending],
+  );
+  const selectTopbarContext = React.useCallback(
+    (menu: TopbarMenuKey, value: string) => {
+      if (menu === 'accountSettings') selectAccountOption(value);
+    },
+    [selectAccountOption],
+  );
+
+  const shellClassName = `dashboard-shell dashboard-shell--route-onboarding dashboard-shell--onboarding-focus${isSidebarExpanded ? '' : ' dashboard-shell--sidebar-collapsed'}`;
+
+  return (
+    <main className={shellClassName} aria-label="Dashboard workspace">
+      <DashboardTopbar
+        isSidebarExpanded={isSidebarExpanded}
+        onToggleSidebar={toggleSidebar}
+        homeProps={homeProps}
+        pageTitle="Onboarding"
+        selectedContext={INITIAL_ONBOARDING_CONTEXT}
+        onSelectContext={selectTopbarContext}
+        dropdownOptions={dropdownOptions}
+        accountLabel="Account"
+        network={frontendRuntime.selectedNetwork}
+        availableNetworks={frontendRuntime.availableNetworks}
+        onSelectNetwork={frontendRuntime.selectNetwork}
+      />
+
+      <DashboardSidebar
+        network={frontendRuntime.selectedNetwork}
+        availableNetworks={frontendRuntime.availableNetworks}
+        onSelectNetwork={frontendRuntime.selectNetwork}
+        accountLabel="Account"
+        accountOptions={accountOptions}
+        onSelectAccount={selectAccountOption}
+        groups={composition.sidebarGroups}
+        isSidebarExpanded={isSidebarExpanded}
+        expandedGroups={expandedGroups}
+        activeRoute={DASHBOARD_ONBOARDING_ROUTE}
+        disableNavigationItems
+        onToggleSidebar={toggleSidebar}
+        onToggleGroup={toggleGroup}
+        linkProps={linkProps}
+        homeProps={homeProps}
+        product={{
+          products: composition.products,
+          currentId: selectedProductId,
+          onSelect: setSelectedProductId,
+        }}
+      />
+
+      <section className="dashboard-main" aria-labelledby="dashboard-main-title">
+        <div className="dashboard-main__header">
+          <h1 id="dashboard-main-title" className="dashboard-main__title">
+            Onboarding
+          </h1>
+        </div>
+        <DashboardOnboardingPage onOrganizationCreated={onOrganizationCreated} />
+      </section>
+      <div className="dashboard-overlay-layer" aria-hidden="true" />
+    </main>
+  );
 }
 
 export function DashboardPage<ProductRoute extends string, ProductGroupKey extends string>(

@@ -132,7 +132,7 @@ test('backend plan runs without deployment secrets and prints the complete lane 
   expect(result.stdout).toContain('Release: staging');
   expect(result.stdout).toContain('Network: testnet');
   expect(result.stdout).toContain('Runtime profile: testnet_live_demo');
-  expect(result.stdout).toContain('Gateway origin: https://staging.api.seams.sh');
+  expect(result.stdout).toContain('Gateway origin: https://staging.api.wallet.seams.sh');
   expect(result.stdout).toContain('Wallet origin: https://staging.sign.seams.sh');
   expect(result.stdout).not.toContain('plan-secret-value');
   expect(result.stdout).not.toContain('bootstrap Gateway tenant');

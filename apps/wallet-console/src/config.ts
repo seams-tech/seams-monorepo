@@ -392,7 +392,7 @@ function buildSiteConfig(source: ImportMetaEnv): FrontendConfig {
     (siteKind === 'production' ? 'https://seams.sh' : 'https://staging.seams.sh');
   const testnetOrigin =
     siteKind === 'production'
-      ? 'https://test.api.seams.sh'
+      ? 'https://test.api.wallet.seams.sh'
       : readEnvironmentValue(source as Record<string, unknown>, 'VITE_RELAYER_URL');
   const testnetWalletOrigin =
     siteKind === 'production'

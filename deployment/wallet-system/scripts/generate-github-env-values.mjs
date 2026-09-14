@@ -1027,6 +1027,7 @@ function productionLaneValue(input, lane, name, generatedLaneValue, fallback) {
 
 function buildGatewayEnvironment(input) {
   const environmentName = `${input.environmentPrefix}-gateway`;
+  const variables = input.deployment.variables;
   const secrets = {
     CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-worker-api-token`),
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
@@ -1043,7 +1044,18 @@ function buildGatewayEnvironment(input) {
     environmentName,
     {
       purpose: 'Gateway Worker, D1, tenant state, and public ceremony JWT issuer',
-      variables: {},
+      variables: {
+        ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:
+          variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
+        ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:
+          variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
+        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
+          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
+        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
+          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
+        ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
+          variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
+      },
       optionalVariables: {},
       secrets,
     },

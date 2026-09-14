@@ -10,6 +10,7 @@ import {
   assertEd25519IssuerKeySet,
   assertEd25519RoleKeySet,
   assertExpectedDurableObjectBindings,
+  validateGatewayRouterAbPublicConfiguration,
   validateDeploymentKeyPairs,
 } from '../../scripts/deploy-backend.mjs';
 import { buildFrontendEnvironment } from '../../scripts/deploy-surface.mjs';
@@ -118,6 +119,22 @@ function validateMismatchedDeriverATenantRootOnlineKeyPair(): void {
     DERIVER_A_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY: `hpke-x25519-private-v1:${backup.privateKeyHex}`,
     DERIVER_A_TENANT_ROOT_MANAGED_BACKUP_HPKE_PUBLIC_KEY: backup.publicKey,
   });
+}
+
+function gatewayRouterAbEnvironment(): NodeJS.ProcessEnv {
+  const lane = readBackendLane('production-testnet');
+  if (lane.provisioning.kind !== 'provisioned') {
+    throw new Error('production-testnet must be provisioned');
+  }
+  const keyset = lane.provisioning.gatewayDeploymentConfig.routerAb.publicKeyset;
+  return {
+    DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
+    DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
+    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
+    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
+    SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
+      keyset.signing_worker_server_output_hpke.public_key,
+  };
 }
 
 test('backend plan runs without deployment secrets and prints the complete lane order', () => {
@@ -329,6 +346,18 @@ test('backend deployment rejects an HPKE private key that does not match its pub
   expect(validateMismatchedDeriverATenantRootOnlineKeyPair).toThrow(
     /DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY does not match DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY/u,
   );
+});
+
+test('gateway deployment rejects Router A/B public key drift', () => {
+  const lane = readBackendLane('production-testnet');
+  const environment = gatewayRouterAbEnvironment();
+  expect(() => validateGatewayRouterAbPublicConfiguration(lane, environment)).not.toThrow();
+  expect(() =>
+    validateGatewayRouterAbPublicConfiguration(lane, {
+      ...environment,
+      DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: `x25519:${'00'.repeat(32)}`,
+    }),
+  ).toThrow(/DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY does not match/u);
 });
 
 test('deployment key generation provisions distinct role-local tenant-root provider keys', () => {

@@ -8559,10 +8559,7 @@ select.dashboard-input {
   }
 }
 
-/* Toasts. The reference app floats a dark, faintly translucent slab over the
-   white page rather than a light card — a confirmation reads as chrome that
-   arrived, not as another panel in the layout. Colours and the inset/outer
-   shadow pair are its own toast tokens. */
+/* Toasts use the same opaque light surface as the rest of the console. */
 .dashboard-toaster {
   font-family: var(--console-font-sans);
 }
@@ -8573,18 +8570,11 @@ select.dashboard-input {
 .dashboard-toaster [data-sonner-toast] {
   gap: 10px;
   padding: 14px 16px;
-  border: 0;
+  border: 1px solid var(--dashboard-border);
   border-radius: var(--dashboard-radius-xl);
-  background: rgba(33, 33, 33, 0.85);
-  color: #fafafa;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.35),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.075),
-    0 0 0 0.5px rgba(0, 0, 0, 0.44),
-    0 2px 6px -2px rgba(0, 0, 0, 0.13),
-    0 18px 40px -10px rgba(0, 0, 0, 0.35);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-ink);
+  box-shadow: var(--dashboard-shadow-md);
 }
 
 .dashboard-toaster [data-sonner-toast] [data-title] {
@@ -8596,11 +8586,10 @@ select.dashboard-input {
 .dashboard-toaster [data-sonner-toast] [data-description] {
   font-size: var(--dashboard-text-supporting);
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.71);
+  color: var(--dashboard-ink-soft);
 }
 
-/* The status dot is the only colour on the slab, so it carries the whole
-   success/failure read; muted hues keep it legible against the dark ground. */
+/* The status dot carries the success/failure read without tinting the surface. */
 .dashboard-toaster [data-sonner-toast] [data-icon] {
   width: 8px;
   height: 8px;
@@ -8636,9 +8625,9 @@ select.dashboard-input {
 }
 
 .dashboard-toaster [data-sonner-toast] [data-close-button] {
-  border: 0;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fafafa;
+  border: 1px solid var(--dashboard-border);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-ink-soft);
 }
 
 /* Show-once signing secret. The value is the whole point of the dialog, so it

@@ -1904,8 +1904,7 @@ body:has(.h2-page) {
   height: var(--h2-demo-fixed-height);
 }
 
-.h2-hero__demo .h2-themeswitch,
-.h2-hero__demo .h2-shapeswitch {
+.h2-hero__demo .h2-themeswitch {
   justify-content: center;
   margin-top: 14px;
 }
@@ -2043,49 +2042,6 @@ body:has(.h2-page) {
   border-radius: 9999px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
-}
-
-.h2-shapeswitch {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 26px;
-}
-
-.h2-shapeswitch__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 13px;
-  border-radius: 9999px;
-  border: 1px solid var(--h2-stone);
-  background: var(--h2-bg);
-  color: var(--h2-smoke);
-  font-family: inherit;
-  font-size: var(--h2-text-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    color 150ms ease,
-    border-color 150ms ease,
-    background-color 150ms ease;
-}
-
-/* the Sharp chip previews the square geometry it selects */
-.h2-shapeswitch__btn--square {
-  border-radius: 4px;
-}
-
-.h2-shapeswitch__btn:hover {
-  color: var(--h2-ink);
-  border-color: var(--h2-ash);
-}
-
-.h2-shapeswitch__btn.is-active {
-  color: var(--h2-ink);
-  border-color: var(--h2-ink);
-  background: var(--h2-taupe);
 }
 
 /* Carousel pager: chevron circles flanking a dot pill. Positioned at the split

@@ -242,55 +242,6 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
   highlightAmount: '#f4f5f6',
 };
 
-// "Greenhouse" — the Ironclad palette (ironcladapp.com, from their own color
-// presets): navy ink on layered creams with the Ironclad green pair
-// (#308970 brand / #00ca88 logo) doing the accent work.
-const GREENHOUSE_LIGHT_COLORS: Record<string, string> = {
-  primary: '#308970',
-  primaryHover: '#27735e',
-  secondary: '#1c212b',
-  secondaryHover: '#308970',
-  accent: '#00ca88',
-
-  textPrimary: '#1c212b',
-  textSecondary: '#555555',
-  textMuted: '#adb9c4',
-  textButton: '#ffffff',
-
-  buttonBackground: '#308970',
-  secondaryButtonBackground: '#308970',
-  secondaryButtonHoverBackground: '#27735e',
-  secondaryButtonBorder: 'transparent',
-  secondaryButtonText: '#ffffff',
-  buttonHoverBackground: '#27735e',
-
-  colorBackground: '#ffffff',
-  surface: '#f5f5f3',
-  surface2: '#f2f1ee',
-  surface3: '#e9e5df',
-  surface4: '#dcd6cd',
-
-  hover: '#f2f1ee',
-  active: '#e9e5df',
-  focus: '#308970',
-
-  success: '#308970',
-  warning: '#b45309',
-  error: '#cf2e2e',
-  info: '#3860be',
-
-  borderPrimary: '#e3ded6',
-  borderSecondary: '#edeae5',
-  borderHover: '#c9c2b6',
-
-  highlightPrimary: '#00ca88',
-  highlightRow: 'rgba(0, 202, 136, 0.12)',
-  highlightHalo: '#7bdcb5',
-  highlightReceiver: '#308970',
-  highlightMethodName: '#1c212b',
-  highlightAmount: '#308970',
-};
-
 // "Pastel Dark" — the Pastel Rainbow palette on charcoal (Outlander-dashboard
 // style): plum-charcoal layers, mint carrying the CTAs with dark ink, and the
 // remaining pastels as status/highlight tones (pastels are light, so they
@@ -408,7 +359,6 @@ export type DemoThemeId =
   | 'carbon'
   | 'rose-pine-dark'
   | 'rose-pine-light'
-  | 'greenhouse'
   | 'pastel'
   | 'pastel-dark';
 
@@ -421,18 +371,26 @@ export interface DemoThemePreset {
   swatch: string;
   /** The active mode's color token map (source of truth for both consumers below). */
   colors: Record<string, string>;
-  /** Component geometry: 'square' (EL-style rects, default) or 'rounded' (soft pills). */
-  shape?: WalletShapeId;
+  /** Component geometry for this preset. */
+  shape: WalletShapeId;
 }
 
 export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
-  { id: 'paper', label: 'Paper', mode: 'light', swatch: '#fdfcfc', colors: PAPER_LIGHT_COLORS },
+  {
+    id: 'paper',
+    label: 'Paper',
+    mode: 'light',
+    swatch: '#fdfcfc',
+    colors: PAPER_LIGHT_COLORS,
+    shape: 'square',
+  },
   {
     id: 'carbon',
     label: 'Carbon',
     mode: 'dark',
     swatch: '#12171a',
     colors: CARBON_DARK_COLORS,
+    shape: 'square',
   },
   {
     id: 'rose-pine-dark',
@@ -440,6 +398,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'dark',
     swatch: '#c4a7e7',
     colors: ROSE_PINE_DARK_COLORS,
+    shape: 'rounded',
   },
   {
     id: 'rose-pine-light',
@@ -447,13 +406,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'light',
     swatch: '#faf4ed',
     colors: ROSE_PINE_LIGHT_COLORS,
-  },
-  {
-    id: 'greenhouse',
-    label: 'Greenhouse',
-    mode: 'light',
-    swatch: '#308970',
-    colors: GREENHOUSE_LIGHT_COLORS,
+    shape: 'rounded',
   },
   {
     id: 'pastel',
@@ -462,6 +415,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     // lavender reads most distinctly "pastel" next to the other swatches
     swatch: '#DBCDF0',
     colors: PASTEL_LIGHT_COLORS,
+    shape: 'square',
   },
   {
     id: 'pastel-dark',
@@ -469,40 +423,28 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'dark',
     swatch: '#1e1d22',
     colors: PASTEL_DARK_COLORS,
+    shape: 'square',
   },
 ];
 
-/* Shape is orthogonal to the color preset: the demo's corners toggle passes
-   it in; a preset's own shape (if any) is the fallback. */
-function resolveDemoShape(preset: DemoThemePreset, shape?: WalletShapeId): WalletShapeId {
-  return shape ?? preset.shape ?? 'square';
-}
-
 /** Build the React `<Theme tokens={...}>` value for a preset (includes a contained shadow). */
-export function demoReactTokens(
-  preset: DemoThemePreset,
-  shapeId?: WalletShapeId,
-): ThemeProps['tokens'] {
+export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
   const shadows = { lg: preset.mode === 'dark' ? CONTAINED_SHADOW_DARK : CONTAINED_SHADOW_LIGHT };
-  const shape = SHAPE_PRESETS[resolveDemoShape(preset, shapeId)];
+  const shape = SHAPE_PRESETS[preset.shape];
   return preset.mode === 'dark'
     ? { dark: { colors: preset.colors, shadows, shape } }
     : { light: { colors: preset.colors, shadows, shape } };
 }
 
 /** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.setAppearance. */
-export function demoIframeAppearance(
-  preset: DemoThemePreset,
-  shapeId?: WalletShapeId,
-): SdkAppearance {
+export function demoIframeAppearance(preset: DemoThemePreset): SdkAppearance {
   return {
     theme: {
       id: preset.id,
       mode: preset.mode,
       colors: preset.colors,
-      /* always send the full shape record so switching rounded → square
-         overwrites every key (the host merges appearance updates) */
-      shape: { ...SHAPE_PRESETS[resolveDemoShape(preset, shapeId)] },
+      /* Send the full shape record because the host merges appearance updates. */
+      shape: { ...SHAPE_PRESETS[preset.shape] },
     },
     palette: 'default',
   };
@@ -513,17 +455,3 @@ export const PAPER_THEME_TOKENS: ThemeProps['tokens'] = {
     colors: PAPER_LIGHT_COLORS,
   },
 };
-
-export function paperReactTokens(shapeId?: WalletShapeId): ThemeProps['tokens'] {
-  return {
-    light: {
-      colors: PAPER_LIGHT_COLORS,
-      shadows: { lg: CONTAINED_SHADOW_LIGHT },
-      shape: SHAPE_PRESETS[resolveDemoShape(DEMO_THEME_PRESETS[0], shapeId)],
-    },
-  };
-}
-
-export function paperIframeAppearance(shapeId?: WalletShapeId): SdkAppearance {
-  return demoIframeAppearance(DEMO_THEME_PRESETS[0], shapeId);
-}

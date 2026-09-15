@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const packageRoot = path.join(repositoryRoot, 'packages/wallet-console-server-ts');
 
-test('every database-heavy gateway enables Smart Placement without moving other workers', () => {
+test('every gateway runs near its D1 primary without moving other workers', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'seams-gateway-placement-'));
   try {
     for (const lane of ['staging-testnet', 'production-testnet', 'production-mainnet']) {
@@ -22,7 +22,8 @@ test('every database-heavy gateway enables Smart Placement without moving other 
         ], { cwd: packageRoot });
         const config = JSON.parse(readFileSync(output, 'utf8'));
         if (worker === 'gateway') {
-          expect(config.placement).toEqual({ mode: 'smart' });
+          const region = lane === 'production-testnet' ? 'aws:ap-southeast-1' : 'aws:ap-east-1';
+          expect(config.placement).toEqual({ region });
         } else {
           expect(config.placement).toBeUndefined();
         }

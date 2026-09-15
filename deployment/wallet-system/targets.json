@@ -94,6 +94,7 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway-staging",
+              "placementRegion": "aws:ap-east-1",
               "consoleD1": {
                 "name": "seams-console-staging-nrt",
                 "id": "f77260ef-0f8a-4063-9cab-ab648536f473"
@@ -310,6 +311,7 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway-testnet",
+              "placementRegion": "aws:ap-southeast-1",
               "consoleD1": {
                 "name": "seams-console-testnet",
                 "id": "204147dd-23a6-43b7-9f40-d4f96eb986f2"
@@ -506,6 +508,7 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway",
+              "placementRegion": "aws:ap-east-1",
               "consoleD1": {
                 "name": "seams-console",
                 "id": "b928549b-8cd8-41db-9e66-36e95afbe295"

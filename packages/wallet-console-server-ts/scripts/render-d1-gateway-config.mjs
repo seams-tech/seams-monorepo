@@ -281,7 +281,7 @@ function buildConfig(
     main: path.join(packageRoot, 'src/router/cloudflare/d1GatewayWorker.ts'),
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
-    placement: { mode: 'smart' },
+    placement: { region: resources.placementRegion },
     workers_dev: true,
     routes: [
       {

@@ -421,18 +421,26 @@ export interface DemoThemePreset {
   swatch: string;
   /** The active mode's color token map (source of truth for both consumers below). */
   colors: Record<string, string>;
-  /** Component geometry: 'square' (EL-style rects, default) or 'rounded' (soft pills). */
-  shape?: WalletShapeId;
+  /** Component geometry selected with the theme. */
+  shape: WalletShapeId;
 }
 
 export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
-  { id: 'paper', label: 'Paper', mode: 'light', swatch: '#fdfcfc', colors: PAPER_LIGHT_COLORS },
+  {
+    id: 'paper',
+    label: 'Paper',
+    mode: 'light',
+    swatch: '#fdfcfc',
+    colors: PAPER_LIGHT_COLORS,
+    shape: 'square',
+  },
   {
     id: 'carbon',
     label: 'Carbon',
     mode: 'dark',
     swatch: '#12171a',
     colors: CARBON_DARK_COLORS,
+    shape: 'square',
   },
   {
     id: 'rose-pine-dark',
@@ -440,6 +448,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'dark',
     swatch: '#c4a7e7',
     colors: ROSE_PINE_DARK_COLORS,
+    shape: 'rounded',
   },
   {
     id: 'rose-pine-light',
@@ -447,6 +456,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'light',
     swatch: '#faf4ed',
     colors: ROSE_PINE_LIGHT_COLORS,
+    shape: 'rounded',
   },
   {
     id: 'greenhouse',
@@ -454,6 +464,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'light',
     swatch: '#308970',
     colors: GREENHOUSE_LIGHT_COLORS,
+    shape: 'square',
   },
   {
     id: 'pastel',
@@ -462,6 +473,7 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     // lavender reads most distinctly "pastel" next to the other swatches
     swatch: '#DBCDF0',
     colors: PASTEL_LIGHT_COLORS,
+    shape: 'square',
   },
   {
     id: 'pastel-dark',
@@ -469,40 +481,27 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'dark',
     swatch: '#1e1d22',
     colors: PASTEL_DARK_COLORS,
+    shape: 'square',
   },
 ];
 
-/* Shape is orthogonal to the color preset: the demo's corners toggle passes
-   it in; a preset's own shape (if any) is the fallback. */
-function resolveDemoShape(preset: DemoThemePreset, shape?: WalletShapeId): WalletShapeId {
-  return shape ?? preset.shape ?? 'square';
-}
-
 /** Build the React `<Theme tokens={...}>` value for a preset (includes a contained shadow). */
-export function demoReactTokens(
-  preset: DemoThemePreset,
-  shapeId?: WalletShapeId,
-): ThemeProps['tokens'] {
+export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
   const shadows = { lg: preset.mode === 'dark' ? CONTAINED_SHADOW_DARK : CONTAINED_SHADOW_LIGHT };
-  const shape = SHAPE_PRESETS[resolveDemoShape(preset, shapeId)];
+  const shape = SHAPE_PRESETS[preset.shape];
   return preset.mode === 'dark'
     ? { dark: { colors: preset.colors, shadows, shape } }
     : { light: { colors: preset.colors, shadows, shape } };
 }
 
 /** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.setAppearance. */
-export function demoIframeAppearance(
-  preset: DemoThemePreset,
-  shapeId?: WalletShapeId,
-): SdkAppearance {
+export function demoIframeAppearance(preset: DemoThemePreset): SdkAppearance {
   return {
     theme: {
       id: preset.id,
       mode: preset.mode,
       colors: preset.colors,
-      /* always send the full shape record so switching rounded → square
-         overwrites every key (the host merges appearance updates) */
-      shape: { ...SHAPE_PRESETS[resolveDemoShape(preset, shapeId)] },
+      shape: { ...SHAPE_PRESETS[preset.shape] },
     },
     palette: 'default',
   };
@@ -514,16 +513,16 @@ export const PAPER_THEME_TOKENS: ThemeProps['tokens'] = {
   },
 };
 
-export function paperReactTokens(shapeId?: WalletShapeId): ThemeProps['tokens'] {
+export function paperReactTokens(): ThemeProps['tokens'] {
   return {
     light: {
       colors: PAPER_LIGHT_COLORS,
       shadows: { lg: CONTAINED_SHADOW_LIGHT },
-      shape: SHAPE_PRESETS[resolveDemoShape(DEMO_THEME_PRESETS[0], shapeId)],
+      shape: SHAPE_PRESETS[DEMO_THEME_PRESETS[0].shape],
     },
   };
 }
 
-export function paperIframeAppearance(shapeId?: WalletShapeId): SdkAppearance {
-  return demoIframeAppearance(DEMO_THEME_PRESETS[0], shapeId);
+export function paperIframeAppearance(): SdkAppearance {
+  return demoIframeAppearance(DEMO_THEME_PRESETS[0]);
 }

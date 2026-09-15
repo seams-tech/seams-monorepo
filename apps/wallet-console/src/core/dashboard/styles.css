@@ -8562,39 +8562,16 @@ select.dashboard-input {
   color: var(--dashboard-ink-soft);
 }
 
-/* The status dot carries the success/failure read without tinting the surface. */
 .dashboard-toaster [data-sonner-toast] [data-icon] {
-  width: 8px;
-  height: 8px;
-  margin: 0 2px 0 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
   align-self: center;
-  border-radius: 999px;
-  background: #a1a5ab;
-  box-shadow: 0 0 0 4px rgba(161, 165, 171, 0.15);
 }
 
 .dashboard-toaster [data-sonner-toast] [data-icon] > * {
-  display: none;
-}
-
-.dashboard-toaster [data-sonner-toast][data-type='success'] [data-icon] {
-  background: #8ab895;
-  box-shadow: 0 0 0 4px rgba(138, 184, 149, 0.15);
-}
-
-.dashboard-toaster [data-sonner-toast][data-type='error'] [data-icon] {
-  background: #c5857f;
-  box-shadow: 0 0 0 4px rgba(197, 133, 127, 0.15);
-}
-
-.dashboard-toaster [data-sonner-toast][data-type='warning'] [data-icon] {
-  background: #cfaa77;
-  box-shadow: 0 0 0 4px rgba(207, 170, 119, 0.15);
-}
-
-.dashboard-toaster [data-sonner-toast][data-type='info'] [data-icon] {
-  background: #83a8cf;
-  box-shadow: 0 0 0 4px rgba(131, 168, 207, 0.15);
+  width: 100%;
+  height: 100%;
 }
 
 .dashboard-toaster [data-sonner-toast] [data-close-button] {

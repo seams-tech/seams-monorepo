@@ -127,9 +127,31 @@ The retained Moonshine adapter can use canonical mono 16 kHz float PCM. Set
 `VOICEID_MOONSHINE_MODEL_PATH`,
 `VOICEID_MOONSHINE_INTENT_MODEL_PATH`, and
 `VOICEID_MOONSHINE_MODEL_ARCH=tiny_streaming` (benchmark Small only after Tiny
-latency is measured). The current adapter retains the previous batch analysis
-behavior for evaluation. The local runtime plan replaces it with a genuine
-incremental transcription lifecycle.
+latency is measured). `MoonshineRecognizer.start_stream()` now opens a native
+Moonshine stream. Feed canonical PCM with `add_audio()` as it arrives, then call
+`finish()` to stop the stream and drain its final transcript. Each `add_audio()`
+returns a partial snapshot; revisions replace the matching line instead of
+appending duplicate text. Partial snapshots carry no phrase/intent decision.
+
+The adapter accepts chunks of at most 1,600 mono 16 kHz samples (100 ms), requests
+native updates every 500 ms of input audio, and caps one utterance at 30 seconds.
+Shorter chunks are supported. These are bounded adapter defaults for evaluation;
+target-device latency and resource qualification remain open.
+
+Use the stream as a context manager or call `close()` on cancellation or a capture
+discontinuity. Finishing, cancelling, or failing closes the stream and decoder;
+subsequent calls cannot reuse that utterance. The existing cross-request isolation
+invariant is preserved by allocating a fresh decoder per utterance. The decoder
+stays open across that utterance's chunks. Decoder load time remains part of the
+latency budget until reuse is independently qualified.
+
+`analyze()` is the offline fixture entry point. It feeds bounded chunks through
+the same incremental path, then evaluates the final transcript's phrase/intent.
+There is no batch-transcription fallback. Fixture playback does not establish
+real-time microphone latency. Python-owned input copies are zeroed after their
+synchronous native call; upstream/native internal copies have separate lifetimes.
+No microphone acquisition, sensor-clock integration, or production native/WASM
+release is implemented by this adapter change.
 
 ## Synthetic corpus generation and freeze
 

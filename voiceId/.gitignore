@@ -2,3 +2,4 @@ __pycache__/
 *.py[cod]
 verifier-spike/.cache/
 verifier/.cache/
+engine/target/

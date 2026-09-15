@@ -24,6 +24,71 @@ part of this design.
 The MPC protocol and public wallet keys remain unchanged. New work belongs at
 the transaction-approval, local custody/access, and server-admission boundaries.
 
+## Public extension and proprietary provider
+
+The VoiceID wallet extension lives in the public `seams-wallet` repository. It
+exposes only the provider contract and wallet integration needed to support a
+VoiceID implementation. The engine, model integration, calibration, and private
+provider implementation remain in `seams-monorepo/voiceId` and are delivered as
+versioned proprietary native/WASM artifacts with any required host bindings.
+
+The integrating wallet runtime explicitly supplies a provider implementing the
+public contract. Public SDK builds, examples, and contract tests work without
+private source, models, or release credentials. VoiceID is optional: importing
+the base SDK does not load the engine or fetch biometric model assets. Use the
+existing wallet package conventions for an optional module/export; introduce a
+separate package only if the delivery boundary needs it.
+
+### Minimal provider surface
+
+These are responsibilities to map to exact wallet types in W0, rather than a
+second protocol schema or a commitment to method names.
+
+| Surface | Required boundary |
+| --- | --- |
+| Capabilities and readiness | Contract/artifact version, supported approval profiles, and explicit ready/unavailable states. A provider's capability report grants no wallet authority. |
+| Enrollment binding | Associate a deliberate local enrollment with a wallet-authorized device/credential setup. Expose only necessary opaque identifiers and public credential data; biometric collection and template administration stay private/local. |
+| Approve one operation | Accept the wallet's validated frozen operation/challenge, deterministic presentation context, required approval profile, and deadline. Return an operation-bound result with explicit approved, denied, insufficient, cancelled, expired, or unavailable state. |
+| Cancellation and lifecycle | Use the host's existing cancellation mechanism where possible. Invalidate pending work on cancellation, lock, enrollment replacement, disposal, or restart; late results cannot approve a new attempt. |
+
+Keep local-gating approval and signed device assertion results as distinct
+variants. A local result is consumed only by the pending wallet approval
+controller. For standalone admission, that controller's protected device-key
+adapter creates the assertion after local approval; the server's existing
+verification boundary alone creates verified factor evidence. Neither a generic
+`approved: true` nor a provider-constructed verified type is remote authority.
+
+The public wallet extension owns operation binding, presentation, result parsing,
+and the approval lifecycle. The private provider translates its request into the
+engine's local approval profile. The wallet's custody controller owns all MPC
+material and device authorization key access. No `unlockShare()`, raw-key export,
+sensor stream, template, embedding, or score API is exposed by this contract.
+The engine remains usable by robots without wallet protocol dependencies.
+
+### Native and browser delivery
+
+Native is the first integration target. The local engine structure selected on
+2026-09-15 is an embedded Rust shared library, initially developed on Apple
+Silicon macOS. Integrate it through the small C host boundary defined in the
+local contract checkpoint. Validate inputs and associate results with the exact
+pending request; define caller access and host restart behavior. Consume exact
+public extension and private artifact versions, with integrity and capability
+checks using existing release metadata. The Rust scaffold adds no wallet API.
+
+Browser WASM is a separate target under local-plan L7. The current browser wallet
+runs in its own hosted wallet iframe. Load the private provider/artifact through
+the wallet-controlled runtime and asset delivery, or design an explicit bridge
+to a native approval controller. Application-side callback injection across the
+iframe boundary is not an existing integration mechanism. Define the required
+origin checks, media permissions, cancellation, and worker/host ownership before
+implementing that transport. Biometric processing remains on the user device.
+
+Public contract compatibility, compiled artifact integrity, and device admission
+assurance are separate checks. Shipping proprietary WASM provides no proof of
+faithful VoiceID execution. Distributed binaries and model assets remain
+inspectable; preserve private source and comply with upstream redistribution
+licenses without promising that delivered assets are secret.
+
 ## Two delivery stages
 
 | Stage | Authority and guarantee | Scope |
@@ -218,13 +283,21 @@ authentication flow, with its actual method recorded accurately.
       and transaction allowlist. Keep the first real signing exercise on testnet.
 - [ ] Map challenge and approval fields to existing wallet operation, session,
       authority, quota, canonicalization, and confirmation boundaries.
+- [ ] Define the minimal public provider contract and optional extension surface
+      in `seams-wallet`, coordinating with local-plan L1. Specify distinct local
+      approval and device-assertion variants, boundary parsers, and cancellation.
+- [ ] Select the private artifact/native binding and version/capability contract.
+      Document the browser wallet-origin boundary for later L7 integration.
+- [ ] Add public contract tests with deterministic provider doubles independent
+      of private assets. Keep real model/provider evaluation in `seams-monorepo`.
 - [ ] Select the local trusted process boundary and how it exclusively controls
       the integration's signing entry point.
 - [ ] Set approval timeout, retry/rate limits, command/cue requirements, risk
       limits, and measurable acceptance criteria.
 
-Exit: an exact contract for local gating that preserves current remote auth,
-custody, operation retries, and MPC behavior.
+Exit: a public extension contract and a private provider delivery boundary for
+local gating that preserve current remote auth, custody, operation retries, and
+MPC behavior. No proprietary source is required to build or test the extension.
 
 ### W1 — Implement local voice-gated signing under existing authority
 
@@ -234,12 +307,18 @@ custody, operation retries, and MPC behavior.
       approval lifecycle within the existing wallet workflow.
 - [ ] Adapt local VoiceID to the wallet's fresh approval/cue profile without
       adding server challenges to ordinary robot interactions.
+- [ ] Implement the optional public extension in `seams-wallet` and the private
+      provider in `seams-monorepo`. Integrate the actual compiled native release
+      from local-plan L6; early development can use an explicit local build.
 - [ ] Gate the actual client signing entry point; keep secret material and the
       reusable session handle inaccessible to the conversational caller.
 - [ ] Add exact-operation consumption, failure, cancellation, restart, and
       uncertain-outcome behavior.
 - [ ] Exercise the complete path on testnet and qualify the wallet-specific
       captures. A successful robot demo alone does not pass this gate.
+- [ ] Verify clean-host composition of exact extension/artifact releases without
+      private source access. Missing providers, unsupported versions/profiles,
+      cancellation, and artifact/bridge failure cannot bypass approval.
 
 Exit: every operation through the native integration needs fresh local approval
 and valid existing server authority. No claim of standalone VoiceID login or
@@ -272,6 +351,9 @@ local-only enforcement claim.
 - [ ] Enforce device/factor revocation without changing sibling factors or wallet
       keys. Voice approval initially authorizes individual transactions only.
 - [ ] Add SDK/native integration and explicit UI method/assurance reporting.
+- [ ] Keep signed assertions unverified at the provider/client boundary; only
+      the server verifier constructs the new verified factor variant. Reject
+      local-only approval results wherever standalone admission is required.
 - [ ] Keep key export, recovery-code reveal, owner-factor administration, and
       unattended reusable sessions outside this initial voice factor scope.
 
@@ -292,6 +374,9 @@ and evaluated trust boundary, without biometric uploads or MPC protocol changes.
       local key access, admission, MPC rounds, and result delivery separately.
 - [ ] Verify media privacy in transport/logs and verify that approval can run
       locally while signing still correctly requires the remote MPC participant.
+- [ ] Verify public builds/tests have no private source/model dependency and that
+      real private-provider composition passes the same public contract scenarios.
+      Qualify any later browser/WASM integration separately with local-plan L7.
 
 Exit: held-out wallet-specific evaluation and lifecycle/security tests meet
 agreed criteria on the supported device and transaction profile. Real-value
@@ -299,11 +384,16 @@ rollout requires an explicit policy/review decision after testnet qualification.
 
 ## Repository ownership and tests
 
-- Local models, capture, and perception stay in `seams-monorepo/voiceId`.
-- Wallet SDK, client signing/custody integration, server factor admission, and
-  wallet lifecycle contracts belong in `seams-wallet`.
+- Proprietary engine source, local models/calibration, capture, perception,
+  native/WASM builds, and the private provider stay in `seams-monorepo/voiceId`.
+- The optional public VoiceID extension, provider contract, client
+  signing/custody integration, server factor admission, and wallet lifecycle
+  contracts belong in `seams-wallet`. Public contract tests use deterministic
+  providers that do not require private artifacts.
 - Private Console composition and deployed product acceptance tests stay in
-  `seams-monorepo/tests/`; consume exact wallet package releases.
+  `seams-monorepo/tests/`; consume exact wallet and proprietary artifact releases.
+  Private engine/model tests and evaluation remain with the VoiceID tooling;
+  all private TypeScript tests use the top-level `tests/` workspace.
 - Add behavioral tests for approval binding and replay/races, and TS type
   fixtures covering raw-result promotion, invalid branch combinations, broad
   spreads, and direct construction of verified authorization states.

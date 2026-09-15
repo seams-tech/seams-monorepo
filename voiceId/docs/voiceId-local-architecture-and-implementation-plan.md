@@ -1,8 +1,12 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Status: proposed implementation plan for the confirmed local-first direction.
-The replacement runtime and its acceptance gates are not implemented yet.
+Updated: 2026-09-15
+Status: structure decisions, private Rust modules, domain types, and adapter
+contracts are in place, with boundary and compile-fail tests.
+The production runtime, host API, model adapters, and acceptance gates remain
+unimplemented. The retained Python incremental Moonshine adapter is evaluation
+code.
 
 Related plans:
 
@@ -34,6 +38,10 @@ never creates a general unlocked state.
   responsibilities.
 - Reuse useful audio components while replacing the old application lifecycle.
 - Wallet signing is an optional consumer addressed by its own plan.
+- Develop the proprietary VoiceID engine and its provider implementation in
+  `seams-monorepo/voiceId`; distribute versioned compiled native/WASM artifacts.
+- Keep the optional wallet extension and its minimal public provider contract in
+  `seams-wallet`. Public SDK development requires no proprietary VoiceID source.
 
 ### Proposed first delivery scope
 
@@ -42,14 +50,120 @@ one native device profile, and a small allowlist of low-risk robot interactions.
 Other people can be present; they remain unknown participants and can cause
 ambiguity. Simultaneous speech requires clarification rather than a best guess.
 
-Use the existing Python package and model adapters for the first runtime. A
-single process with bounded model work is the default. Introduce a worker
-process only where an actual native-library isolation or cancellation need is
-demonstrated. No browser application, plugin framework, model-service mesh,
-general-purpose SDK, or multi-device synchronization is needed for this MVP.
+Use the existing Python package and model adapters as the evaluation baseline.
+The production engine is Rust, with a native shared library as the first artifact
+and explicitly provisioned runtime/model dependencies. The first development
+host is the current Apple Silicon Mac. Moonshine's native C API is the selected
+speech integration boundary; speaker/PAD backend choices and target-robot
+qualification remain open.
 
-These are planning assumptions. L0 records the actual hardware, language, action
-allowlist, and resource limits before they become release requirements.
+Keep execution direct, with bounded model work. Introduce process separation
+only where native-library isolation, cancellation, or the consumer boundary
+requires it. A narrow public wallet extension is in scope for the integration;
+a general plugin framework, model-service mesh, and multi-device synchronization
+remain unnecessary. Browser WASM is a later, separately qualified delivery target.
+
+The product-scope assumptions remain provisional. L0 records deployment hardware,
+spoken language, action allowlist, and resource limits before they become release
+requirements. The structure decisions below are settled for this scaffold.
+
+## Structural checkpoint — 2026-09-15
+
+Scaffolding steps 1 and 2, plus the domain/adapter contracts in step 3, are complete:
+
+- Rust 2024 is the production language, in the private
+  [`voiceId/engine` package](../engine/README.md). Python remains evaluation tooling.
+- `aarch64-apple-darwin` is the first native development target. This selects a
+  build/integration host; the actual robot, array, camera, and environment still
+  require L0 qualification.
+- The first deliverable is an embedded shared library (`cdylib`), with `rlib`
+  output for Rust composition/testing. Step 3 specifies host API responsibilities
+  and memory ownership; concrete C declarations and exports follow the runtime
+  shell. No executable service or IPC protocol is being introduced.
+- Moonshine stays a native dependency behind `adapters::native`. A standalone
+  Rust link/load probe against the provisioned Moonshine 0.0.71 arm64 artifact
+  returned C ABI version `20000`. Production stream integration and portable
+  release packaging remain implementation work.
+- Domain, runtime, utterance, presence, attribution, and enrollment logic remain
+  portable. Native capture/storage/clock/model bindings are excluded from WASM.
+  Browser model execution and platform adapters remain independently qualified
+  work under L7; compiling the core does not compile Moonshine's C++ backend.
+- The scaffold declares the eight module boundaries described below. Portable
+  domain values and adapter traits are exposed for private Rust composition/tests.
+  Capture/utterance identity, bounded media, partial/final text, explicit missing
+  capability/identity/presence states, and atomic template replacement have contracts.
+  There is no exported host API, placeholder identity success, runtime coordinator,
+  concrete adapter, or wallet integration.
+
+The [engine contract checkpoint](../engine/README.md#domain-and-adapter-contracts--step-3)
+documents typed boundaries, ownership, limits, cancellation, and native host
+responsibilities. Twelve boundary tests and seven compile-fail tests cover the
+implemented value/type invariants. Step 4 adds runtime wiring and lifecycle tests;
+real adapter implementations and concrete C exports follow. This progress does
+not complete the hardware, model, calibration, or release gates in L0-L7.
+
+## Repository, package, and release boundaries
+
+| Surface | Owner and delivery |
+| --- | --- |
+| VoiceID engine, capture adapters, enrollment storage, attribution, model integration and calibration | Proprietary source and evaluation in `seams-monorepo/voiceId`. Ship compiled runtime artifacts and the model assets permitted by their licenses. |
+| Private wallet provider implementation | Developed with VoiceID in `seams-monorepo`; adapts the engine to the public operation-approval contract. Released with the proprietary integration artifact. |
+| Optional VoiceID wallet extension and provider contract | Public implementation in `seams-wallet`; owns wallet-facing types, boundary validation, cancellation, and approval-flow integration. |
+| Wallet custody, challenge/operation binding, device credential verification and MPC | Existing public `seams-wallet` owners. VoiceID receives no wallet secret material. |
+| Robot controller and private product composition | Consume the local engine or exact wallet/VoiceID releases. Robot safety remains independent of identity. |
+
+The public extension depends on its public contract. The proprietary provider
+implements that contract; the integrating runtime supplies an explicit provider.
+The public SDK must build and test without access to the private repository,
+model weights, or private release credentials. Avoid copying engine source into
+`seams-wallet` or making the base SDK download models for users who do not enable
+VoiceID. Choose the smallest optional module/package surface that fits existing
+wallet conventions during W0 of the extension plan.
+
+### Engine and consumer separation
+
+The engine owns local perception and short-lived attribution state. A robot
+adapter consumes operation-specific commands. A separate private wallet provider
+uses the same engine with the wallet's fresh approval profile and the public
+extension's request/result contract. Wallet challenges and transaction types
+stay at that adapter boundary; ordinary robot conversations require no wallet.
+
+Sensor acquisition stays in the local runtime's platform adapter. A browser host
+may need to acquire media and supply timestamped frames to a local worker/WASM
+instance. That device-local capture boundary is separate from the wallet approval
+API, which carries no raw media, biometric templates, or model scores.
+
+### Delivery targets
+
+- **Native first:** ship an embedded Rust shared library with a narrow C host
+  binding, initially developed on Apple Silicon macOS. Define ownership,
+  cancellation, buffer lifetime, and host restart behavior at that boundary.
+  Ship a tested artifact and explicit dependencies without requiring private source.
+- **Browser WASM later:** reuse portable engine logic and qualified model assets
+  behind the same wallet-facing contract. Implement browser capture, worker,
+  permissions, and storage adapters explicitly. Benchmark actual supported
+  browser/device profiles; unavailable microphone-array or visual capabilities
+  remain unavailable in policy.
+
+The retained Python/PyTorch/SpeechBrain/native adapters are not an established
+WASM build pipeline. Evaluate model export, supported operators, streaming APIs,
+runtime size, acceleration, and memory before selecting a WASM backend. Native
+and WASM need separate qualification; neither target's measurements qualify the
+other. Keep one production definition of attribution/policy behavior, with thin
+platform adapters and shared behavioral scenarios. Retire replaced production
+paths; retain Python only where it serves documented evaluation/reference work.
+
+Release exact artifact versions with their target, public contract version,
+model/calibration identity, integrity information, and required license notices
+through the existing release/provenance mechanisms. Verify the supported
+combination at load time and reject unsupported versions or missing required
+capabilities. Provision assets explicitly; startup and inference remain offline.
+No new release registry, compatibility shim, or model-download fallback is needed.
+
+Proprietary source stays private. Distributed executables and model assets remain
+inspectable; compiled delivery provides no guarantee of reverse-engineering
+resistance or faithful execution on a compromised host. Wallet trust and device
+key enforcement are specified separately in the extension plan.
 
 ## Runtime responsibilities
 
@@ -64,12 +178,12 @@ allowlist, and resource limits before they become release requirements.
 | Command interpretation and policy | Interpret a bounded command vocabulary, determine whether speech addresses the robot, and apply the locally configured action policy. |
 | Robot adapter | Deliver an allowed, operation-specific command to the existing robot controller. The controller retains all physical safety checks. |
 
-Keep these as direct modules in `verifier/voiceid_verifier/`. Existing
-`embeddings.py`, `scoring.py`, `pad.py`, and useful enrollment helpers remain
-there. Rewrite `runtime.py` for coordination and add only the capture,
-presence/attribution, local-storage, and command modules needed by the slice.
-The `voiceid_verifier` package name can remain; a naming migration adds no
-product value.
+Keep the retained Python adapters and evaluation helpers in
+`verifier/voiceid_verifier/`. Implement the production responsibilities as direct
+modules in the private `engine/` Rust package. Reuse the retained model
+knowledge, algorithms, and test cases; port or replace adapters according to
+the selected backend. Avoid a naming-only migration or a second production
+Python coordinator alongside the compiled engine.
 
 ## Capture and model execution
 
@@ -107,6 +221,14 @@ thresholds are not release settings for conversational commands. Moonshine's
 old closed-set approval intent classifier is separate from the new robot
 command vocabulary.
 
+The retained Python Moonshine adapter now uses `create_stream()`, `start()`,
+`add_audio()`, and `stop()` with partial snapshots and explicit finalization or
+cancellation. Its offline evaluator feeds this same incremental path. It keeps
+a fresh decoder per utterance for the existing cross-request isolation invariant;
+decoder reuse needs separate qualification. Live capture, timestamp/utterance
+coordination, and the compiled production binding remain L2 work. See the
+[adapter contract](../verifier-spike/README.md#local-model-baselines).
+
 ### Video and spatial context
 
 Retain a short, bounded in-memory frame history only where a temporal visual
@@ -135,8 +257,9 @@ and photorealistic audiovisual spoof detection are outside the first scope.
 
 Use explicit domain states with required branch-specific data. Normalize raw
 device events, model responses, persisted records, and local IPC once at their
-boundaries. Python uses precise tagged variants and exhaustive handling; any
-later TS boundary follows the repository's discriminated-union and type-fixture
+boundaries. The production engine uses precise tagged variants and exhaustive
+handling; Python evaluation follows the same state meanings. Public and private
+TS boundaries follow the repository's discriminated-union and type-fixture
 rules. Diagnostic scores describe the decision and never replace domain state.
 
 | State | Required meaning |
@@ -211,26 +334,42 @@ its stronger or additional assumptions in the extension plan.
 
 - [ ] Select the actual robot/native host, OS, microphone channel access, camera,
       playback reference, and robot pose interface. Record unavailable features.
-- [ ] Choose the first language, owner setup, permitted commands, and supported
+- [ ] Choose the first spoken language, owner setup, permitted commands, and supported
       audio-only behavior. Keep all initial actions low-risk.
 - [ ] Set measurable latency, memory, buffer, and operating-environment budgets.
       As a starting experiment, propose warm p95 final attribution within
       500 ms of speech end and a 1 s decision deadline; confirm or revise from
       target-device measurements. These are targets, not inherited guarantees.
 - [ ] Confirm licenses, local model availability, and setup consent.
+- [x] Select Rust 2024, the Apple Silicon macOS development target, a shared
+      library artifact, and the Moonshine C API boundary. Run a Rust native
+      link/load spike against the provisioned evaluation artifact.
+- [ ] Define the VoiceID C host API in scaffolding step 3. Demonstrate streaming
+      model execution through the Rust adapter and record remaining model
+      backend/packaging work before a full pipeline implementation.
+- [ ] Record a candidate browser/WASM profile and feasibility questions for L7.
+      Its delivery is independent of native MVP acceptance.
 
-Exit: one concrete hardware profile and acceptance contract. A development Mac
-alone cannot establish target-robot performance.
+Exit: one concrete hardware profile, native packaging decision, and acceptance
+contract. A development Mac alone cannot establish target-robot performance.
 
 ### L1 — Retain adapters and create precise local boundaries
 
-Coordinate with deletion-plan D1.
+Build on the retained adapters from the completed source cutover.
 
+- [x] Scaffold the private engine's domain, runtime, utterance, presence,
+      attribution, enrollment, adapters, and consumers modules. Isolate native
+      bindings from the portable module build.
 - [ ] Define capture, utterance, enrollment, stage-result, and command states.
 - [ ] Decouple retained PCM adapters from HTTP and old enrollment/phrase DTOs.
 - [ ] Preserve adapter, quality, aggregation, timeout, and cleanup tests.
 - [ ] Add a deterministic timestamped event-replay test input without making it
       a production sensor source or an alternative authorization path.
+- [ ] Define engine/platform/consumer boundaries and coordinate the public
+      wallet provider contract with W0. Keep wallet protocol types outside the
+      perception core; wallet implementation does not block the robot slice.
+- [ ] Establish compiled-engine tests against retained evaluation scenarios and
+      select which Python helpers remain useful reference tooling.
 
 Exit: model work and state tests run without the old TS application.
 
@@ -243,11 +382,14 @@ Exit: model work and state tests run without the old TS application.
 - [ ] Interpret a small command set and expose local status plus a non-actuating
       command sink for testing. Missing calibration prevents restricted execution.
 - [ ] Document one runtime invocation, test command, and offline smoke procedure.
+- [ ] Exercise the audio slice through the selected compiled native artifact
+      and host binding, with no dependency on private source at installation.
 
 Exit: an enrolled owner can complete the audio slice on the selected device;
 stale results, unknown speakers, self-speech, and overload cannot trigger the
-test sink incorrectly. D2 can remove the old application. This is an interim
-audio milestone, not completion of the conversational visual-context MVP.
+test sink incorrectly. The old application has already been removed. This is an
+interim audio milestone; the conversational visual-context MVP also requires
+L3-L6.
 
 ### L3 — Add visual memory and source association
 
@@ -298,19 +440,58 @@ into execution through the supported API.
       model/capture/calibration versions in the existing provenance mechanism.
 
 Exit: all declared hardware and degraded-mode profiles meet agreed numerical
-acceptance criteria, the robot runbook is executable, and deletion-plan D3 is
-complete. Until criteria are selected and measured, label the system experimental.
+acceptance criteria and the robot runbook is executable. Until criteria are
+selected and measured, label the system experimental.
+
+### L6 — Release the proprietary native package
+
+- [ ] Build and publish a versioned artifact from `seams-monorepo` using the
+      selected release mechanism. Include required runtime/model dependencies,
+      integrity information, target profile, and license notices.
+- [ ] Install on a clean supported host without private repository access. Test
+      enrollment, inference, restart, and deletion with networking disabled
+      after provisioning; verify privacy in ordinary logs and transport.
+- [ ] Verify contract/version and capability handling, cancellation, pending
+      result invalidation, and artifact loading through the actual host binding.
+- [ ] Keep public contract tests independent of proprietary artifacts. Test the
+      actual private provider with an exact public extension release when W1 is
+      available; this wallet composition gate belongs to W1.
+
+Exit: the native robot MVP is installable and qualified as a proprietary compiled
+release. Wallet signing remains governed by its separate extension milestones.
+
+### L7 — Qualify the browser WASM target
+
+- [ ] Prove model/runtime portability and resource feasibility before building
+      the browser integration. Record replacements and recalibration required
+      by unsupported models or operators; leave unsupported profiles unavailable.
+- [ ] Package the portable engine and model assets with the required browser
+      capture/worker/storage adapters. Reuse the public provider contract.
+- [ ] Integrate with the wallet-controlled runtime and its asset delivery where
+      used for signing; define microphone/camera permission and lifecycle handling.
+- [ ] Run shared attribution scenarios plus browser-specific permission loss,
+      suspension, reload, cancellation, storage, privacy, and performance tests.
+      Requalify biometric behavior for the actual browser capture profile.
+
+Exit: a declared browser/device profile meets its own measured acceptance gates
+and installs without private source. A WASM release alone establishes no new
+server-recognized wallet factor. Native delivery does not depend on L7.
 
 ## Open decisions and dependencies
 
 | Decision | Needed by |
 | --- | --- |
 | Actual device, array/channel access, camera, calibration and pose interfaces | L0; blocks hardware-specific capture/localization work. |
+| Native structure | Selected: Rust 2024, Apple Silicon macOS development host, embedded shared library, Moonshine C API. Host API and real adapters remain steps 3/L2; release is L6. |
+| Speaker/PAD inference backends and production robot profile | L0/L2 qualification; retained Python integrations remain evaluation baselines. |
+| Exact public provider surface and release/version ownership | L1 with wallet W0; public contract in `seams-wallet`, private implementation in `seams-monorepo`. |
 | Allowed commands and the required evidence for camera-present and audio-only operation | L0; blocks executable policy. |
 | Face/tracking implementation and any mouth-motion check | L3; selected from target-device measurements and license review. |
 | Recent-context horizon, continuity rules, thresholds, and acceptable error rates | Initial rules in L0/L3; frozen before L5 evaluation. |
 | Device key protection and enrollment administration | L2; no claim of protected storage before implementation. |
 | Multisubject corpus access and consent | L5; blocks biometric/security qualification. |
+| Artifact delivery and redistributable model/runtime dependencies | L0 license/packaging review and L6 clean-host release test. |
+| Browser/WASM model portability, capture, permissions and storage profile | L7; separately qualified after the native target. |
 
 The wallet extension can be designed alongside this work. It cannot turn an
 unqualified robot perception result into a financial authorization, and it is

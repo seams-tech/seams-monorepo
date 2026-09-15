@@ -119,8 +119,11 @@ Do not run paid generation or upload human recordings as part of this cleanup.
 
 ## Repository and packaging cleanup
 
-The proposed runtime stays in the existing Python package. No replacement
-browser app or general-purpose TS SDK is needed for the robot MVP.
+The source cutover retains the Python package for evaluation. Production
+packaging is governed by the local plan: a proprietary compiled native release,
+followed by separately qualified WASM, with a narrow public wallet extension in
+`seams-wallet`. This cleanup adds no replacement browser app or general plugin
+framework.
 
 - Remove `voiceId/package.json` and `voiceId/tsconfig.json` once their TS
   consumers are gone. Document retained Python commands directly.

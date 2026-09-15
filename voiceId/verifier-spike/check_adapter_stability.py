@@ -161,16 +161,8 @@ class ObservedMoonshineTranscriber:
         self._delegate = delegate
         self._trigger = trigger
 
-    def transcribe_without_streaming(
-        self,
-        samples: Sequence[float],
-        *,
-        sample_rate: int,
-    ) -> Any:
-        return self._delegate.transcribe_without_streaming(
-            samples,
-            sample_rate=sample_rate,
-        )
+    def create_stream(self) -> Any:
+        return self._delegate.create_stream()
 
     def close(self) -> None:
         self._delegate.close()

@@ -19,23 +19,32 @@ custody, and onchain execution for the flows that need them.
 
 ## Priorities
 
-1. **Airwallex card payments:** the first path for broad merchant purchasing.
-   Complete the wallet-funded sandbox card journey, including exact approval,
-   authorization/capture, receipts, and reconciliation.
-2. **Wise transfers:** add owner-connected Wise accounts and Japan-relevant
-   payment proposals with recipient, quote, currencies, fees, and source debit.
+1. **Wise business payments:** support Japanese companies first. Connect an
+   eligible Wise business account and deliver transfer proposals, exact human
+   approvals, and durable status. Verify automated transfer execution and Wise
+   debit card API access as separate capabilities.
+2. **Airwallex card payments:** add broad merchant purchasing for eligible
+   account/issuing programs. Complete the wallet-funded sandbox card journey,
+   including approval, authorization/capture, receipts, and reconciliation.
 3. **Traditional bank transfers:** add one selected banking integration and
    approved beneficiaries through the same proposal and approval services.
 
-Deliver these in order. Wise and bank integrations use their own funding sources
-and need no Seams escrow deposit. Add their provider-specific state and UI as each
-phase is implemented.
+Support for Japanese companies is a launch requirement. Prove the Japanese
+company can own and use the source account for the selected payment flow. Wise
+and bank integrations use their own funds and require no Seams escrow deposit.
+Add provider-specific state and UI as each phase is implemented.
 
-Japan is a target market. Airwallex's
-[Japan card page](https://www.airwallex.com/ja-jp/spend-management/cards) currently
-states that corporate cards and global accounts are unavailable there. Keep
-Airwallex first while confirming issuing eligibility for the actual business.
-R130D requires verification of Wise's Japan transfer and API capabilities.
+Wise supports [Japanese business accounts](https://wise.com/help/articles/2972549/how-do-i-verify-my-japanese-business)
+and [business debit cards](https://wise.com/help/articles/2935775/can-my-business-get-a-wise-card),
+subject to eligibility and verification. The account-owning representative must
+reside in Japan. Standard business API tokens cannot fund transfers for Japanese
+accounts. The first milestone therefore centers on proposals and human approvals;
+automatic execution requires confirmed broader access. Wise card APIs also require
+separate verification. [Wise API access](https://docs.wise.com/guides/developer/auth-and-security/personal-api-token)
+
+Airwallex's [Japan card offering](https://www.airwallex.com/ja-jp/spend-management/cards)
+currently excludes Japanese corporate card issuance. Keep it as a later option
+for verified eligible programs; Japanese business support must work independently.
 
 ## One owner and agent experience
 
@@ -45,12 +54,14 @@ Connect an account -> grant agent authority -> propose a payment
   -> separately authorize execution -> reconcile -> inspect the result
 ```
 
-For example, an owner gives a procurement agent a $1,000 grant, a $200 per-payment
-limit, approved suppliers, an expiry date, and an approval threshold of $50. The
-agent proposes an $80 supplier payment. Console shows the funding account,
+For example, a Japanese business owner gives a procurement agent a ¥100,000 grant,
+a ¥20,000 per-payment limit, approved suppliers, an expiry date, and an approval
+threshold of ¥5,000. The agent proposes a supported Wise supplier transfer with
+a total debit of ¥8,000. Console shows the funding account,
 recipient, total debit including fees, delivery amount, and payment reference.
-The owner approves those exact terms. A separately authorized execution rechecks
-the grant and funds before submitting the payment.
+The owner approves those exact terms. Console shows any action required in Wise.
+Where execution access has been verified, a separately authorized execution
+rechecks the grant and funds before submitting the payment.
 
 A proposal can be useful before execution is enabled. Preparing or approving it
 moves no money. Proposal-only agent access cannot submit payments. Owners can
@@ -93,12 +104,18 @@ integrator backend. Neither belongs in model context.
 
 Operation and provider remain separate concepts: Wise can execute bank transfers.
 Implement concrete supported combinations around the shared services, beginning
-with Airwallex cards.
+with Wise transfers for Japanese business accounts. Wise is also the first card
+candidate to validate for these businesses; debit card availability alone cannot
+establish agent card issuance or automated spending controls.
 
-## Wallet and card funding
+## Account and card funding
 
-The Airwallex sandbox path uses an owner-initiated transfer of testnet stablecoins
-from the Seams wallet to controlled escrow. Finalized deposits credit card capacity
+The first Wise path spends from the business's Wise account. Its balance, Seams
+reservations, and agent grants have distinct meanings. Account connection creates
+no funds, and unavailable balance evidence blocks automatic execution.
+
+The later Airwallex sandbox path uses an owner-initiated transfer of testnet
+stablecoins from the Seams wallet to controlled escrow. Finalized deposits credit card capacity
 once, after confirmed sandbox funding evidence. The fiat bridge is explicitly
 simulated. Ordinary wallet balances and platform billing credits cannot create
 card capacity or fund a connected Wise or bank account.
@@ -113,21 +130,23 @@ The plans are maintained in the sibling `seams-wallet` repository. Hosted busine
 payment services, provider operations, Console UI, and composed tests belong in
 this private repository; reusable Wallet contracts remain in `seams-wallet`.
 
-| Plan                                                                       | Responsibility                                                                           |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [R130A](../../../seams-wallet/docs/refactor-130A-agent-expense-domain.md)  | Funding accounts, grants, payment proposals, exact approvals, admission, and accounting. |
-| [R130B](../../../seams-wallet/docs/refactor-130B-agent-connections.md)     | Authenticated agent connections and scoped proposal/status/execution tools.              |
-| [R130C](../../../seams-wallet/docs/refactor-130C-agent-expense-console.md) | Console and embedded account, agent, proposal, approval, and activity views.             |
-| [R130D](../../../seams-wallet/docs/refactor-130D-airwallex-card-rail.md)   | Airwallex cards first, Wise second, then traditional bank adapters and their evidence.   |
+| Plan                                                                        | Responsibility                                                                                              |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [R130A](../../../seams-wallet/docs/refactor-130A-agent-expense-domain.md)   | Funding accounts, grants, payment proposals, exact approvals, admission, and accounting.                    |
+| [R130B](../../../seams-wallet/docs/refactor-130B-agent-connections.md)      | Authenticated agent connections and scoped proposal/status/execution tools.                                 |
+| [R130C](../../../seams-wallet/docs/refactor-130C-agent-expense-console.md)  | Console and embedded account, agent, proposal, approval, and activity views.                                |
+| [R130D](../../../seams-wallet/docs/refactor-130D-wise-and-payment-rails.md) | Wise first for Japanese businesses, eligible Airwallex cards second, then bank adapters and their evidence. |
 
-First complete the Airwallex wallet-to-card sandbox journey through one agent
-integration and owner approval flow. Then add Wise proposals, followed by one
-traditional banking integration. Each phase has its own completion criteria;
-later integrations do not delay the first card milestone.
+First complete the Japanese business Wise account, transfer proposal, and exact
+approval journey through one agent integration. Record execution permissions,
+provider action requirements, and card API eligibility explicitly. Then add the
+eligible Airwallex sandbox card journey and one traditional banking integration.
+Each phase has its own completion criteria; later integrations do not delay Wise.
 
 Report transfer execution support separately for each adapter. Confirm account
 access, Japan eligibility, and supported test capabilities before claiming an
 integration works. A working proposal cannot establish execution availability.
 Live funds movement, autonomous scheduling, and hosting full business agents are
-subsequent work. The first deliverable is a usable, durable card-payment workflow
-with explicit human authority and software-enforced admission.
+subsequent work. The first deliverable is a usable Wise payment-proposal and
+approval workflow for Japanese companies, with durable status, explicit human
+authority, and software-enforced admission wherever execution is enabled.

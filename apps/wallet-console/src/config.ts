@@ -6,7 +6,7 @@ import {
   MAX_WALLET_SESSION_TTL_MS,
 } from '@seams/wallet/advanced';
 
-const DEFAULT_NEAR_RPC_URL = 'https://test.rpc.fastnear.com,https://rpc.testnet.near.org';
+const DEFAULT_NEAR_RPC_URL = 'https://rpc.testnet.fastnear.com';
 const DEFAULT_NEAR_EXPLORER_URL = 'https://testnet.nearblocks.io';
 const DEFAULT_DOCS_ORIGIN = 'https://docs.localhost:4003';
 const DEFAULT_TEMPO_RPC_URL = 'https://rpc.moderato.tempo.xyz';

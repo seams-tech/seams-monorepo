@@ -203,7 +203,7 @@
               "nearRelayer": {
                 "accountId": "w3a-relayer.testnet",
                 "publicKey": null,
-                "rpcUrl": "https://test.rpc.fastnear.com,https://rpc.testnet.near.org",
+                "rpcUrl": "https://rpc.testnet.fastnear.com",
                 "initialBalanceYocto": "30000000000000000000000"
               },
               "googleOidcClientId": "971053349716-p52bppo1gmlei9i88naa8eta5f3ebu2l.apps.googleusercontent.com"
@@ -420,7 +420,7 @@
               "nearRelayer": {
                 "accountId": "w3a-relayer.testnet",
                 "publicKey": null,
-                "rpcUrl": "https://rpc.testnet.near.org",
+                "rpcUrl": "https://rpc.testnet.fastnear.com",
                 "initialBalanceYocto": "30000000000000000000000"
               },
               "googleOidcClientId": "971053349716-p10qdg7lsjh24lcocbsckt4f85is5igs.apps.googleusercontent.com"

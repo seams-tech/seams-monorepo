@@ -725,12 +725,15 @@ textarea {
 }
 
 .dashboard-sidebar-toggle {
+  appearance: none;
   flex: none;
   width: 34px;
   height: 34px;
+  padding: 0;
   border-radius: 10px;
   border: 0;
   background: transparent;
+  box-shadow: none;
   display: inline-grid;
   place-items: center;
   cursor: pointer;
@@ -776,7 +779,6 @@ textarea {
 }
 
 .dashboard-sidebar-toggle:is(:hover, :focus-visible) {
-  background: color-mix(in srgb, var(--dashboard-muted) 72%, transparent);
   color: var(--dashboard-active-ink);
 }
 

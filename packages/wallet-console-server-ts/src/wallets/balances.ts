@@ -12,7 +12,7 @@ import type {
 } from './service';
 import type { ConsoleWallet, ConsoleWalletGasBalances } from './types';
 
-const DEFAULT_NEAR_RPC_URL = 'https://rpc.testnet.near.org';
+const DEFAULT_NEAR_RPC_URL = 'https://rpc.testnet.fastnear.com';
 const DEFAULT_TEMPO_RPC_URL = 'https://rpc.moderato.tempo.xyz';
 const DEFAULT_ARC_RPC_URL = 'https://rpc.drpc.testnet.arc.network';
 const TEMPO_ALPHA_USD_TOKEN = '0x20c0000000000000000000000000000000000001';

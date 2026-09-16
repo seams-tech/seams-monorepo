@@ -45,7 +45,7 @@ const PRODUCTION_LANE_VARIABLE_SUFFIXES = Object.freeze([
 ]);
 const NEAR_PUBLIC_CONFIG_BY_NETWORK = Object.freeze({
   testnet: Object.freeze({
-    rpcUrl: 'https://test.rpc.fastnear.com',
+    rpcUrl: 'https://rpc.testnet.fastnear.com',
     explorerUrl: 'https://testnet.nearblocks.io',
   }),
   mainnet: Object.freeze({

@@ -579,7 +579,9 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const nearRpcUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'NEAR_RPC_URL') ||
     checkedInGatewayConfig?.optional.nearRelayer?.rpcUrl ||
-    (nearNetwork === 'mainnet' ? 'https://rpc.mainnet.near.org' : 'https://rpc.testnet.near.org');
+    (nearNetwork === 'mainnet'
+      ? 'https://rpc.mainnet.near.org'
+      : 'https://rpc.testnet.fastnear.com');
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
@@ -952,7 +954,9 @@ function buildProductionLaneVariables(input, lane) {
       lane,
       'NEAR_RPC_URL',
       input.configuration.nearRpcUrl,
-      nearNetwork === 'mainnet' ? 'https://rpc.mainnet.near.org' : 'https://rpc.testnet.near.org',
+      nearNetwork === 'mainnet'
+        ? 'https://rpc.mainnet.near.org'
+        : 'https://rpc.testnet.fastnear.com',
     ),
     [`${prefix}NEAR_EXPLORER`]: productionLaneValue(
       input,

@@ -258,7 +258,7 @@ function requireNearFundingConfiguration(runtimeProfile, nearRelayer) {
 
 function knownNearNetworkForRpcUrl(rpcUrl) {
   const hostname = new URL(rpcUrl).hostname.toLowerCase();
-  if (hostname === 'rpc.testnet.near.org') return 'testnet';
+  if (hostname === 'rpc.testnet.fastnear.com') return 'testnet';
   if (hostname === 'rpc.mainnet.near.org') return 'mainnet';
   return null;
 }

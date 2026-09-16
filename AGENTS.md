@@ -50,8 +50,9 @@ Suites are not equally trustworthy, and each owns different invariants. Authorit
 with staleness risk under refactor:
 
 1. **Wallet intended-behaviour contracts** — public Wallet lifecycle behaviour and
-   its normative specs live in the separate `seams-wallet` repository. Private tests
-   here own only Console composition and deployed product flows.
+   its normative [specification](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md)
+   live in the separate `seams-wallet` repository. Private tests here own only Console
+   composition and deployed product flows.
 2. **Rust vector / anti-drift tests, and type fixtures** — vectors own explicit
    cryptographic, wire, and encoding invariants, self-validating against production
    encoders (e.g. `crates/router-ab-core/tests/normal_signing_vectors.rs`,

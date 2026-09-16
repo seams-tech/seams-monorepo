@@ -16,7 +16,6 @@ const sourceRoots = [
 ];
 const activeDocPaths = [
   'apps/docs/src/concepts/sessions/wallet-sessions.md',
-  'docs/intended-behaviours.md',
   'docs/otp/email-otp.md',
   'docs/router-ab/protocol.md',
   'docs/signing-session-architecture/README.md',

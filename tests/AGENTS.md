@@ -6,8 +6,8 @@ Root `AGENTS.md` has the short policy. This file is the operational detail for w
 ## Suite map
 
 - Public Wallet intended-behaviour contracts and their normative specifications live
-  in `seams-wallet`. Tests retained here cover private Console composition and deployed
-  product flows.
+  in [`seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md).
+  Tests retained here cover private Console composition and deployed product flows.
 - `unit/` (`pnpm test:unit`) — fast regression coverage. Trustworthy only insofar as its
   fixtures come from the shared factories below.
 - `relayer/`, `wallet-iframe/`, `lit-components/`, `yaos-local/` — integration surfaces
@@ -62,7 +62,9 @@ test-fix vs code-fix.
    or a snapshot of an old type shape / source text (inline fixture, source guard)?
 2. Is that invariant still intended? Check the current private domain types and the
    owning Console/product specification. Check public Wallet lifecycle and architecture
-   claims in `seams-wallet`. Classify the failure:
+   claims in the canonical
+   [`seams-wallet` specification](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md).
+   Classify the failure:
    `production_regression`, `valid_test_needs_update`, `obsolete_test_or_fixture`, or
    `environment_or_infrastructure_failure` (Redis/Upstash, NEAR RPC, Safari, faucet 429
    gate several suites — don't touch fixtures or code for those). State the

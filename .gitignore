@@ -1,91 +1,35 @@
-# Node modules
-node_modules
-**/node_modules
+# Dependencies and build outputs
+node_modules/
+dist/
+target/
 
-**/dist
-
+# Environment and local runtime state
 .env
-**/.env
-**/.env.*
-
-apps/docs/certs
-apps/docs/public
-apps/docs/dist
-apps/docs/docs/dist
-apps/docs/src/.vitepress/cache
-apps/seams-site/.caddy.log
-apps/web-client/.caddy.log
-examples/relay-cloudflare-worker/.wrangler
-packages/console-server-ts/.wrangler/
-packages/wallet-console-server-ts/.wrangler/
+.env.*
+.dev.vars
+.wrangler/
 .runtime/
 .local/
-
-# Local Wrangler secrets. Use packages/console-server-ts/dev.vars as the checked-in template.
-packages/console-server-ts/.dev.vars
-packages/wallet-server/.dev.vars
+sqlite/
+apps/seams-site/.caddy.log
 packages/wallet-console-server-ts/wrangler.d1-staging-console.toml
 packages/wallet-console-server-ts/wrangler.d1-staging-gateway.toml
-sqlite/
-packages/wallet-server/.wrangler/
-packages/wallet-server/cloudflare-router-ab/
-crates/router-ab-cloudflare/.wrangler/
 
-
-# Playwright artifacts
-playwright-report
-test-results
-output/
+# Test, browser, and release artifacts
+playwright-report/
+test-results/
 .artifacts/
 .playwright-cli/
 .playwright-mcp/
-packages/wallet/THIRD_PARTY_NOTICES.md
-packages/wallet-server/THIRD_PARTY_NOTICES.md
-
-# Benchmark artifacts
-benchmarks/router-ab-ecdsa-derivation-wasm/out/
-crates/router-ab-cloudflare/reports/startup-latencies/*.json
-
-# WASM worker outputs
-wasm/*/pkg
-wasm/*/target
-wasm/near_signer/pkg
-wasm/near_signer/target
-wasm/tempo_signer/pkg
-wasm/tempo_signer/target
-wasm/shamir3pass_runtime/pkg
-wasm/shamir3pass_runtime/target
-wasm/email_otp_runtime/pkg
-wasm/email_otp_runtime/target
-crates/*/target
-tools/*/target
-tools/ed25519-yao-generator/artifact-fs-policy/target/
-/target/
-/rust_out
-/librust_out.rlib
-crates/threshold-prf/wasm-bench/pkg
-crates/threshold-prf/wasm-bench/target
-crates/ed25519-yao/wasm-bench/pkg
-crates/ed25519-yao/wasm-bench/pkg-phase5
-crates/ed25519-yao/wasm-bench/target
-crates/*/formal-verification/**/target
-crates/*/formal-verification/**/.lake
-crates/*/formal-verification/lean-boundary/tools/
-
-# Transpiled server artifacts emitted into source tree during local runs
-server/src/**/*.js
-server/src/**/*.js.map
-
-# Local tooling caches
 /.release-artifacts/
-/.wrangler/
-.tooling/
-.router-ab-local/
+/output/
+
+# Local tool caches
 .pnpm-store/
 .claude/
-**/__pycache__/
+__pycache__/
 
-# editor configs
+# Editor files
 .vscode/*
 !.vscode/extensions.json
 .DS_Store

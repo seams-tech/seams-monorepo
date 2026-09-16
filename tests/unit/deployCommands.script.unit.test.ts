@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -13,7 +14,10 @@ import {
   validateGatewayRouterAbPublicConfiguration,
   validateDeploymentKeyPairs,
 } from '../../scripts/deploy-backend.mjs';
-import { buildFrontendEnvironment } from '../../scripts/deploy-surface.mjs';
+import {
+  buildFrontendEnvironment,
+  walletManifestMatchesPackageVersion,
+} from '../../scripts/deploy-surface.mjs';
 import { readBackendLane, readFrontendSite } from '../../scripts/deployment-targets.mjs';
 
 type CommandResult = {
@@ -25,7 +29,13 @@ type CommandResult = {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const backendScript = path.join(repoRoot, 'scripts/deploy-backend.mjs');
 const frontendScript = path.join(repoRoot, 'scripts/deploy-surface.mjs');
-const frontendHeaders = path.join(repoRoot, 'apps/seams-site/src/public/_headers');
+const requireFromWalletSite = createRequire(
+  path.join(repoRoot, 'apps/wallet-console/package.json'),
+);
+const frontendHeaders = path.join(
+  path.dirname(requireFromWalletSite.resolve('@seams/wallet/package.json')),
+  'dist/public/_headers',
+);
 const environmentGeneratorScript = path.join(
   repoRoot,
   'deployment/wallet-system/scripts/generate-github-env-values.mjs',
@@ -217,6 +227,28 @@ test('frontend plan runs without deployment secrets', () => {
   expect(result.stdout).toContain('Origin: https://staging.wallet.seams.sh');
   expect(result.stdout).toContain('Docs: https://staging.wallet.seams.sh/docs/');
   expect(result.stdout).toContain('Pages project environment: CF_PAGES_PROJECT_WALLET_SITE');
+});
+
+test('wallet host smoke requires the exact installed wallet package version', async () => {
+  const matchingManifest = new Response(
+    JSON.stringify({
+      packageName: '@seams/wallet',
+      packageVersion: '1.2.3',
+      versionSkewContract: { packageVersion: '1.2.3' },
+    }),
+    { headers: { 'content-type': 'application/json' } },
+  );
+  const staleManifest = new Response(
+    JSON.stringify({
+      packageName: '@seams/wallet',
+      packageVersion: '1.2.2',
+      versionSkewContract: { packageVersion: '1.2.2' },
+    }),
+    { headers: { 'content-type': 'application/json' } },
+  );
+
+  await expect(walletManifestMatchesPackageVersion(matchingManifest, '1.2.3')).resolves.toBe(true);
+  await expect(walletManifestMatchesPackageVersion(staleManifest, '1.2.3')).resolves.toBe(false);
 });
 
 test('frontend build uses canonical Console origins for every production lane', () => {

@@ -172,26 +172,25 @@ function copyPublicDocsArtifact() {
 }
 
 function copySdkAssets(destination) {
-  const requireFromWalletSite = createRequire(path.join(WALLET_SITE_ROOT, 'package.json'));
-  const sdkOutput = path.join(
-    path.dirname(requireFromWalletSite.resolve('@seams/wallet/package.json')),
-    'dist',
-  );
+  const sdkOutput = path.join(resolveInstalledWalletRoot(), 'dist');
   const sdkEsm = path.join(sdkOutput, 'esm', 'sdk');
   const sdkWorkers = path.join(sdkOutput, 'workers');
   const walletAssetsManifest = path.join(sdkOutput, 'public', 'wallet-assets.manifest.json');
   const walletHeadersManifest = path.join(sdkOutput, 'public', 'headers.manifest.json');
+  const pagesHeaders = path.join(sdkOutput, 'public', '_headers');
   const walletService = path.join(sdkOutput, 'public', 'wallet-service');
   assertDirectory(sdkEsm, 'SDK ESM output');
   assertDirectory(sdkWorkers, 'SDK Workers output');
   assertFile(walletAssetsManifest, 'SDK wallet assets manifest');
   assertFile(walletHeadersManifest, 'SDK wallet headers manifest');
+  assertFile(pagesHeaders, 'SDK Cloudflare Pages headers');
   assertFile(path.join(walletService, 'index.html'), 'SDK wallet-service output');
   fs.mkdirSync(destination, { recursive: true });
   copyDirectory(sdkEsm, path.join(destination, 'sdk'));
   copyDirectory(sdkWorkers, path.join(destination, 'sdk', 'workers'));
   fs.copyFileSync(walletAssetsManifest, path.join(destination, 'wallet-assets.manifest.json'));
   fs.copyFileSync(walletHeadersManifest, path.join(destination, 'headers.manifest.json'));
+  fs.copyFileSync(pagesHeaders, path.join(destination, '_headers'));
   copyDirectory(walletService, path.join(destination, 'wallet-service'));
 }
 
@@ -336,7 +335,7 @@ function buildSmokeChecks(site, component) {
   return site.lanes.flatMap((lane) =>
     smokeChecks(`wallet-${lane.network}`, lane.walletOrigin, [
       '/wallet-service/index.html',
-      { path: '/wallet-assets.manifest.json', isReady: jsonManifestIsReady },
+      { path: '/wallet-assets.manifest.json', isReady: walletManifestMatchesInstalledVersion },
       '/sdk/workers/router_ab_ed25519_yao_client_bg.wasm',
     ]),
   );
@@ -353,10 +352,28 @@ function smokeChecks(surface, origin, requests) {
   });
 }
 
-function jsonManifestIsReady(response) {
-  return (
-    response.ok && String(response.headers.get('content-type') || '').includes('application/json')
-  );
+async function walletManifestMatchesInstalledVersion(response) {
+  const installedWalletRoot = resolveInstalledWalletRoot();
+  const installedWalletVersion = readPackageVersion(path.join(installedWalletRoot, 'package.json'));
+  return walletManifestMatchesPackageVersion(response, installedWalletVersion);
+}
+
+export async function walletManifestMatchesPackageVersion(response, expectedVersion) {
+  if (!response.ok) return false;
+  if (!String(response.headers.get('content-type') || '').includes('application/json')) {
+    return false;
+  }
+  try {
+    const manifest = await response.json();
+    if (!isRecord(manifest) || !isRecord(manifest.versionSkewContract)) return false;
+    return (
+      manifest.packageName === '@seams/wallet' &&
+      manifest.packageVersion === expectedVersion &&
+      manifest.versionSkewContract.packageVersion === expectedVersion
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function consoleApplicationIsReady(response) {
@@ -416,6 +433,23 @@ function assertFile(filePath, label) {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     throw new Error(`${label} is missing: ${filePath}`);
   }
+}
+
+function readPackageVersion(packagePath) {
+  const packageDocument = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  if (!isRecord(packageDocument)) throw new Error(`Invalid package manifest: ${packagePath}`);
+  const version = String(packageDocument.version || '').trim();
+  if (!version) throw new Error(`Package version is missing: ${packagePath}`);
+  return version;
+}
+
+function resolveInstalledWalletRoot() {
+  const requireFromWalletSite = createRequire(path.join(WALLET_SITE_ROOT, 'package.json'));
+  return path.dirname(requireFromWalletSite.resolve('@seams/wallet/package.json'));
+}
+
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function handleFailure(error) {

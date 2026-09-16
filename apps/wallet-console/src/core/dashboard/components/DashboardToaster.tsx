@@ -9,6 +9,7 @@ export function DashboardToaster(): React.JSX.Element {
     <Toaster
       className="dashboard-toaster"
       position="bottom-right"
+      theme="light"
       offset={20}
       gap={10}
       duration={4000}

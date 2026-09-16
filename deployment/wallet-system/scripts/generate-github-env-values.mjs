@@ -577,8 +577,8 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     (identityPrefix === 'production' ? 'sign.seams.sh' : undefined) ||
     manual(`${identityPrefix}-webauthn-rp-id`);
   const nearRpcUrl =
-    readSuppliedValue(suppliedValues, targetName, targetName, 'NEAR_RPC_URL') ||
     checkedInGatewayConfig?.optional.nearRelayer?.rpcUrl ||
+    readSuppliedValue(suppliedValues, targetName, targetName, 'NEAR_RPC_URL') ||
     (nearNetwork === 'mainnet'
       ? 'https://rpc.mainnet.near.org'
       : 'https://rpc.testnet.fastnear.com');
@@ -640,6 +640,7 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     publishableKey,
     tenantNamespace,
     gatewayWorkerName: checkedInResources?.workerName || lane.resources.gateway.workerName,
+    gatewayPlacementRegion: checkedInResources?.placementRegion,
     mpcRouterWorkerName: lane.resources.router.workerName,
     deriverAWorkerName: lane.resources.deriverA.workerName,
     deriverBWorkerName: lane.resources.deriverB.workerName,
@@ -1084,6 +1085,7 @@ function buildGatewayDeploymentConfig(input) {
     runtimeProfile: configuration.runtimeProfile,
     resources: {
       workerName: configuration.gatewayWorkerName,
+      placementRegion: configuration.gatewayPlacementRegion,
       consoleD1: {
         name: configuration.consoleDatabaseName,
         id: configuration.consoleDatabaseId,

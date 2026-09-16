@@ -6,6 +6,13 @@ There is no runtime coordinator, concrete model/capture/storage adapter,
 enrollment implementation, robot action, wallet integration, or callable C host
 API yet.
 
+The planned
+[macOS virtual capture device](../docs/voiceId-macos-virtual-capture-device-plan.md)
+will emulate the future STM32 authenticated-capture boundary in a separate process.
+It does not change this crate into a service and does not make ordinary `AudioCapture`
+implementations implicitly trusted. Authenticated evidence, verifier-owned provenance,
+and assurance-aware admission remain unimplemented contract work.
+
 ## Structure decisions
 
 | Decision | Selected direction |
@@ -61,6 +68,10 @@ the runtime. Domain and adapter contracts are exposed through documented Rust
 modules; native bindings and consumer implementation stay private. Unsafe code
 is denied; any future FFI exception must be narrowly scoped and reviewed in the
 native adapter or host binding.
+
+The local plan's [guiding security principles](../docs/voiceId-local-architecture-and-implementation-plan.md#guiding-security-principles)
+govern runtime and adapter implementation, including bounded freshness, artifact
+verification, and the distinction between capture integrity and human intent.
 
 ## Domain and adapter contracts — step 3
 
@@ -180,5 +191,7 @@ dispatcher, or signing path to make the scaffold appear functional.
 
 The [local architecture plan](../docs/voiceId-local-architecture-and-implementation-plan.md)
 owns the implementation sequence. The
+[macOS virtual capture-device plan](../docs/voiceId-macos-virtual-capture-device-plan.md)
+owns authenticated capture emulation and the later STM32 substitution boundary. The
 [wallet extension plan](../docs/voiceId-mpc-wallet-extension-plan.md) owns the
 separate public contract and private provider.

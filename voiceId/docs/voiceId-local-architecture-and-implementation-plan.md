@@ -1,7 +1,7 @@
 # Local VoiceID architecture and implementation plan
 
 Date: 2026-09-14
-Updated: 2026-09-15
+Updated: 2026-09-16
 Status: structure decisions, private Rust modules, domain types, and adapter
 contracts are in place, with boundary and compile-fail tests.
 The production runtime, host API, model adapters, and acceptance gates remain
@@ -11,6 +11,7 @@ code.
 Related plans:
 
 - [Legacy removal](voiceId-legacy-removal-plan.md)
+- [macOS virtual capture device](voiceId-macos-virtual-capture-device-plan.md)
 - [MPC wallet extension](voiceId-mpc-wallet-extension-plan.md)
 
 ## Product direction
@@ -38,6 +39,9 @@ never creates a general unlocked state.
   responsibilities.
 - Reuse useful audio components while replacing the old application lifecycle.
 - Wallet signing is an optional consumer addressed by its own plan.
+- Prototype the future authenticated hardware-capture boundary with a separate
+  macOS virtual capture device. Its simulated and Mac protected-key assurances
+  remain distinct from qualified hardware-protected capture.
 - Develop the proprietary VoiceID engine and its provider implementation in
   `seams-monorepo/voiceId`; distribute versioned compiled native/WASM artifacts.
 - Keep the optional wallet extension and its minimal public provider contract in
@@ -66,6 +70,88 @@ remain unnecessary. Browser WASM is a later, separately qualified delivery targe
 The product-scope assumptions remain provisional. L0 records deployment hardware,
 spoken language, action allowlist, and resource limits before they become release
 requirements. The structure decisions below are settled for this scaffold.
+
+## Guiding security principles
+
+Recorded on 2026-09-16 following review of
+[Apple Reference Image](https://security.apple.com/blog/apple-reference-image/)
+(published 2026-09-15). Apple describes sensor-backed capture, protected processing,
+bounded timestamps, and revocation for photographic provenance. The principles
+below are VoiceID design decisions informed by that example. They preserve
+local-only processing, the current MVP trust model, and the decision to exclude ZK.
+
+### Separate capture integrity, human attribution, and intent
+
+Evaluate three distinct claims: whether samples came through the expected
+sensor/processing path, whether the enrolled person spoke nearby, and whether
+that person authorized the exact command. A genuine microphone can capture a
+loudspeaker replay; a genuine camera can capture a screen showing a synthetic
+face. Sensor authentication leaves speaker, presentation-attack, visual/source
+association, and operation-specific intent checks necessary. A signed capture
+or a remembered presence observation never grants command authority by itself.
+
+### State the capture trust boundary explicitly
+
+The MVP trusts the configured OS, runtime, and acquisition path. Validated frame
+formats, session identities, and timestamps provide consistency checks without
+proving hardware origin. Preserve a future hardware-backed capture option only
+when a selected platform demonstrates the required sensor and verification APIs.
+Apple's photo design establishes no equivalent microphone or real-time
+audiovisual capability for our targets.
+
+If such a target is qualified, verify the original sensor evidence before
+converting it into ordinary engine frames, and preserve its association through
+preprocessing. Represent verified assurance through the responsible verification
+boundary; a caller-provided `trusted` flag cannot establish it. Required assurance
+must never silently downgrade when verification is unavailable. Hardware-backed
+capture remains a later platform qualification, separate from MVP acceptance.
+
+### Evaluate freshness using its worst-case bound
+
+Use the common local monotonic timeline for offline conversational decisions.
+Include capture-clock mapping error, relevant cross-sensor uncertainty, and
+elapsed processing/queue time when evaluating evidence age. Recent presence is
+eligible only when its worst-case age is inside the configured validity horizon;
+its observed timestamp never refreshes because a model result arrived later.
+If uncertainty prevents that conclusion, require fresh evidence or return an
+explicit insufficient/degraded outcome under the selected profile.
+
+`ClockMapping.maximum_error` must affect runtime eligibility checks. A timestamp
+field or cryptographic signature alone cannot establish sufficiently recent
+human presence. No network timestamp service is required for the local MVP.
+
+### Preserve the processing chain and verify loaded artifacts
+
+Keep captured windows, preprocessing, stage results, and attribution associated
+with the same source and current enrollment version. Authenticated raw input
+cannot protect a later substituted transcript or bypassed matcher. Each deployment
+must state which parts of this processing chain its enforcement boundary protects.
+
+At artifact-loading boundaries, verify the actual engine/model/configuration
+artifacts against authenticated expected release identities using the existing
+release mechanism. Verification must cover the bytes actually consumed by the
+loader. Check the supported preprocessing, calibration, and policy
+combination before admitting work; reject mismatches and invalidate affected work
+on replacement. `ModelId`, `CalibrationId`, and `ProfileId` are metadata until
+those checks exist. Artifact verification establishes what was loaded; resistance
+to compromised execution requires separately qualified platform enforcement.
+
+### Minimize disclosure and invalidate compromised or changed authority
+
+Keep raw media, templates, embeddings, and full transcripts local. Consumers
+receive only the information needed for the current decision. Avoid exporting
+stable sensor identifiers or reusable biometric hashes as general identity claims.
+Enrollment/device changes, capture discontinuities, and runtime/model/profile
+replacement or withdrawal invalidate affected pending decisions and require
+fresh assessment. Previously successful evidence cannot survive a change in the
+conditions that made it eligible. The wallet extension owns remote device
+revocation and operation admission; local robots require no online revocation
+service or per-frame signing infrastructure.
+
+These principles add no cloud inference, retained biometric evidence archive,
+new attestation service, or ZK subsystem. Implement the runtime checks and
+artifact-loader checks in their existing milestones; qualify stronger hardware
+assurance separately when an actual deployment requires it.
 
 ## Structural checkpoint — 2026-09-15
 
@@ -365,6 +451,9 @@ Build on the retained adapters from the completed source cutover.
 - [ ] Preserve adapter, quality, aggregation, timeout, and cleanup tests.
 - [ ] Add a deterministic timestamped event-replay test input without making it
       a production sensor source or an alternative authorization path.
+- [ ] Implement the authenticated-capture domain and verifier according to the
+      macOS virtual capture-device plan. Keep raw OS capture, simulated evidence,
+      Mac protected-key evidence, and future hardware evidence distinct.
 - [ ] Define engine/platform/consumer boundaries and coordinate the public
       wallet provider contract with W0. Keep wallet protocol types outside the
       perception core; wallet implementation does not block the robot slice.
@@ -376,8 +465,13 @@ Exit: model work and state tests run without the old TS application.
 ### L2 — Deliver the native audio vertical slice
 
 - [ ] Capture real PCM continuously with bounded buffers and discontinuity handling.
+- [ ] Exercise the audio slice through the separate macOS virtual capture device
+      and its evidence verifier. Treat this as protocol emulation, not proof of
+      hardware microphone origin.
 - [ ] Implement actual streaming transcription and per-utterance speaker/quality/PAD
       assessment with independent states and bounded execution.
+- [ ] Verify loaded model/preprocessing/calibration artifacts against authenticated
+      expected release identities before admitting inference; reject mismatches.
 - [ ] Add explicit local enrollment, protected template storage, and deletion.
 - [ ] Interpret a small command set and expose local status plus a non-actuating
       command sink for testing. Missing calibration prevents restricted execution.
@@ -397,6 +491,9 @@ L3-L6.
       and bounded current/recent/expired/departed state.
 - [ ] Implement microphone direction where supported, clock/geometry/pose mapping,
       and uncertainty-aware association with visual tracks.
+- [ ] Apply worst-case evidence age, including clock-mapping uncertainty and
+      processing delay; insufficient freshness requires reacquisition or an
+      explicit outcome permitted by the selected degraded profile.
 - [ ] Evaluate concurrent mouth-motion timing; represent unavailable or unqualified
       checks explicitly.
 - [ ] Implement the interaction table, including looking away, leaving, track
@@ -414,7 +511,8 @@ requirement for starting the runtime.
 - [ ] Connect the low-risk allowlist to the existing robot controller. Keep its
       independent safety and emergency paths intact.
 - [ ] Invalidate pending decisions on lock, enrollment change, shutdown, and sensor
-      discontinuity. Restart begins without remembered authority.
+      discontinuity, plus runtime/model/profile replacement or withdrawal.
+      Restart begins without remembered authority.
 
 Exit: no consumer can turn generic presence or a stale successful model score
 into execution through the supported API.
@@ -436,6 +534,8 @@ into execution through the supported API.
       action dispatch, cold start, p50/p95/p99, peak RAM, and sustained resource use.
 - [ ] Test network-disabled operation, device loss, clock/pose discontinuity,
       process/model failure, bounded overload, cancellation, and a sustained soak.
+- [ ] Test clock-uncertainty and exact-expiry boundaries, delayed observations,
+      artifact mismatches, and result invalidation during model/profile replacement.
 - [ ] Fix acceptance thresholds before the held-out evaluation. Record the chosen
       model/capture/calibration versions in the existing provenance mechanism.
 
@@ -489,6 +589,7 @@ server-recognized wallet factor. Native delivery does not depend on L7.
 | Face/tracking implementation and any mouth-motion check | L3; selected from target-device measurements and license review. |
 | Recent-context horizon, continuity rules, thresholds, and acceptable error rates | Initial rules in L0/L3; frozen before L5 evaluation. |
 | Device key protection and enrollment administration | L2; no claim of protected storage before implementation. |
+| Authenticated capture encoding, signer, verifier, and virtual-device transport | M0-M3 in the macOS virtual capture-device plan; STM32 replacement is M4. |
 | Multisubject corpus access and consent | L5; blocks biometric/security qualification. |
 | Artifact delivery and redistributable model/runtime dependencies | L0 license/packaging review and L6 clean-host release test. |
 | Browser/WASM model portability, capture, permissions and storage profile | L7; separately qualified after the native target. |

@@ -1,6 +1,7 @@
 # Local VoiceID extension for MPC wallet signing
 
 Date: 2026-09-14
+Updated: 2026-09-16
 Status: proposed extension; no VoiceID wallet factor or signing integration is
 implemented by this plan. Local gating and standalone remote admission are
 separate delivery stages.
@@ -8,6 +9,7 @@ separate delivery stages.
 Related plans:
 
 - [Local VoiceID architecture and implementation](voiceId-local-architecture-and-implementation-plan.md)
+- [macOS virtual capture device](voiceId-macos-virtual-capture-device-plan.md)
 - [Legacy removal](voiceId-legacy-removal-plan.md)
 
 ## Objective
@@ -249,6 +251,10 @@ voice approval from a prior process.
 
 ## Device trust and biometric limits
 
+The local plan's [guiding security principles](voiceId-local-architecture-and-implementation-plan.md#guiding-security-principles)
+apply to this extension. Capture integrity, human attribution, and transaction
+intent remain separate claims, including on hardware-backed capture platforms.
+
 A signed challenge proves participation of its key and binds a fresh response.
 It does not establish that a human spoke, that the microphone is genuine, or
 that the matcher was executed correctly.
@@ -263,6 +269,27 @@ A hardware-stored key alone is insufficient when an ordinary application can
 invoke it after bypassing VoiceID. Attestation, if available, must be assessed
 for exactly what code/key/sensor properties it establishes. Do not infer sensor
 provenance from app identity or a TPM quote.
+
+The enforcement review must follow the complete path from acquired samples through
+preprocessing, artifact-verified models/configuration, current enrollment, fresh
+attribution, and approval of the exact presented operation to device-key use.
+Identify every handoff that can substitute data or bypass a check. A signed final
+approval cannot establish these properties unless the declared device boundary
+actually enforces them. Hardware-backed capture, if later available, strengthens
+only the properties its evaluated platform contract covers.
+
+Use local bounded freshness for human evidence and the wallet's existing server
+challenge/expiry checks for remote admission. Challenge freshness alone cannot
+make an old recording or prior presence observation fresh. An assurance profile
+that requires a verified property must reject its absence; any existing-method
+fallback retains its own explicit method and assurance state.
+
+Disclose only the wallet-scoped credential and operation binding needed for
+admission. A registered device key is intentionally linkable within that wallet;
+do not export underlying sensor identifiers or biometric hashes as additional
+cross-application identifiers. Enrollment/device revocation and changes to accepted
+runtime/model/profile revisions invalidate affected pending approvals. Revocation
+can block future admission and cannot undo a completed signature or transaction.
 
 This plan does not assume that arbitrary VoiceID models can run inside a phone's
 existing biometric enclave or become a built-in Face ID modality. Platform
@@ -328,6 +355,9 @@ server-verified biometrics is made.
 
 - [ ] Qualify the enforcement platform and state its compromise assumptions.
       Confirm its actual capability to protect the approval-to-key-use path.
+- [ ] Review capture-to-key-use handoffs against the guiding principles. Specify
+      verified properties, accepted artifact/profile revisions, and behavior when
+      required assurance is unavailable or withdrawn; test bypass attempts in W4.
 - [ ] Choose the linked-device lane and provisioning flow; record exactly which
       curve-specific material resides where. Preserve the wallet's public keys.
 - [ ] Register a separate device authorization public key under existing wallet

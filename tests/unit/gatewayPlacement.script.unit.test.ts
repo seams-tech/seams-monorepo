@@ -14,19 +14,12 @@ test('every gateway runs near its D1 primary without moving other workers', () =
     for (const lane of ['staging-testnet', 'production-testnet', 'production-mainnet']) {
       for (const worker of ['gateway', 'console', 'wallet-runtime']) {
         const output = path.join(directory, `${lane}.${worker}.json`);
-        execFileSync(
-          process.execPath,
-          [
-            'scripts/render-d1-gateway-config.mjs',
-            '--lane',
-            lane,
-            '--worker',
-            worker,
-            '--output',
-            output,
-          ],
-          { cwd: packageRoot },
-        );
+        execFileSync(process.execPath, [
+          'scripts/render-d1-gateway-config.mjs',
+          '--lane', lane,
+          '--worker', worker,
+          '--output', output,
+        ], { cwd: packageRoot });
         const config = JSON.parse(readFileSync(output, 'utf8'));
         if (worker === 'gateway') {
           const region = lane === 'production-testnet' ? 'aws:ap-southeast-1' : 'aws:ap-east-1';

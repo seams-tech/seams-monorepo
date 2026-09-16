@@ -577,8 +577,8 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     (identityPrefix === 'production' ? 'sign.seams.sh' : undefined) ||
     manual(`${identityPrefix}-webauthn-rp-id`);
   const nearRpcUrl =
-    checkedInGatewayConfig?.optional.nearRelayer?.rpcUrl ||
     readSuppliedValue(suppliedValues, targetName, targetName, 'NEAR_RPC_URL') ||
+    checkedInGatewayConfig?.optional.nearRelayer?.rpcUrl ||
     (nearNetwork === 'mainnet'
       ? 'https://rpc.mainnet.near.org'
       : 'https://rpc.testnet.fastnear.com');

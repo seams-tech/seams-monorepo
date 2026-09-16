@@ -354,7 +354,9 @@ function smokeChecks(surface, origin, requests) {
 
 async function walletManifestMatchesInstalledVersion(response) {
   const installedWalletRoot = resolveInstalledWalletRoot();
-  const installedWalletVersion = readPackageVersion(path.join(installedWalletRoot, 'package.json'));
+  const installedWalletVersion = readPackageVersion(
+    path.join(installedWalletRoot, 'package.json'),
+  );
   return walletManifestMatchesPackageVersion(response, installedWalletVersion);
 }
 

@@ -247,7 +247,9 @@ test('wallet host smoke requires the exact installed wallet package version', as
     { headers: { 'content-type': 'application/json' } },
   );
 
-  await expect(walletManifestMatchesPackageVersion(matchingManifest, '1.2.3')).resolves.toBe(true);
+  await expect(
+    walletManifestMatchesPackageVersion(matchingManifest, '1.2.3'),
+  ).resolves.toBe(true);
   await expect(walletManifestMatchesPackageVersion(staleManifest, '1.2.3')).resolves.toBe(false);
 });
 

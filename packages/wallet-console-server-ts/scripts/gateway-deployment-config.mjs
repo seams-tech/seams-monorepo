@@ -265,11 +265,7 @@ function knownNearNetworkForRpcUrl(rpcUrl) {
 
 function parseResources(value) {
   const resources = requireObject(value, 'resources');
-  requireExactKeys(
-    resources,
-    ['workerName', 'placementRegion', 'consoleD1', 'signerD1'],
-    'resources',
-  );
+  requireExactKeys(resources, ['workerName', 'placementRegion', 'consoleD1', 'signerD1'], 'resources');
   return {
     workerName: requirePattern(resources.workerName, RESOURCE_NAME_PATTERN, 'resources.workerName'),
     placementRegion: requireString(resources.placementRegion, 'resources.placementRegion'),

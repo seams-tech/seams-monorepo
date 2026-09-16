@@ -52,7 +52,7 @@
     "@seams-internal/console-server": "workspace:*",
     "@seams-internal/console-shared": "workspace:*",
     "@seams-internal/wallet-console-shared": "workspace:*",
-    "@seams/wallet-server": "0.5.13",
+    "@seams/wallet-server": "0.5.15",
     "bs58": "^6.0.0",
     "express": "^4.21.2",
     "tslib": "^2.8.1"

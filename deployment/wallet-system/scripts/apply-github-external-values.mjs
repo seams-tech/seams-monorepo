@@ -283,6 +283,10 @@ function appendProductionSiteUpdates(plan, values) {
   ]);
   for (const lane of plan.site.lanes) {
     const prefix = `VITE_${lane.network.toUpperCase()}_`;
+    const configuredNearRpcUrl =
+      lane.provisioning.kind === 'provisioned'
+        ? lane.provisioning.gatewayDeploymentConfig.optional.nearRelayer?.rpcUrl
+        : undefined;
     plan.variables.push(
       {
         environment: plan.environmentPrefix,
@@ -313,7 +317,10 @@ function appendProductionSiteUpdates(plan, values) {
       },
     );
     for (const suffix of PRODUCTION_LANE_VARIABLE_SUFFIXES) {
-      const value = readValue(values, `${prefix}${suffix}`);
+      const value =
+        suffix === 'NEAR_RPC_URL' && configuredNearRpcUrl
+          ? configuredNearRpcUrl
+          : readValue(values, `${prefix}${suffix}`);
       if (value) {
         plan.variables.push({
           environment: plan.environmentPrefix,

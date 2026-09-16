@@ -52,7 +52,8 @@ with staleness risk under refactor:
 1. **Intended-behaviour contracts** — own supported user-facing lifecycle behaviour
    (registration, unlock, signing, step-up, export).
    `tests/e2e/intended-behaviours/*.contract.test.ts`, run with `pnpm test:intended`.
-   Spec: `docs/intended-behaviours.md` and the active `docs/refactor-NN-*.md`.
+   Spec: [Intended Behaviours in `seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md)
+   and the active `docs/refactor-NN-*.md`.
 2. **Rust vector / anti-drift tests, and type fixtures** — vectors own explicit
    cryptographic, wire, and encoding invariants, self-validating against production
    encoders (e.g. `crates/router-ab-core/tests/normal_signing_vectors.rs`,

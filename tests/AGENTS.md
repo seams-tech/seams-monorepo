@@ -6,9 +6,10 @@ Root `AGENTS.md` has the short policy. This file is the operational detail for w
 ## Suite map
 
 - `e2e/intended-behaviours/*.contract.test.ts` (`pnpm test:intended`) — the normative
-  lifecycle oracle for registration, unlock, signing, step-up, and export. Spec:
-  `docs/intended-behaviours.md`. The generic Playwright config deliberately excludes
-  these; lifecycle assertions run only under the intended runner.
+  lifecycle oracle for registration, unlock, signing, step-up, and export. The
+  canonical spec is [Intended Behaviours in `seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md).
+  The generic Playwright config deliberately excludes these; lifecycle assertions
+  run only under the intended runner.
 - `unit/` (`pnpm test:unit`) — fast regression coverage. Trustworthy only insofar as its
   fixtures come from the shared factories below.
 - `relayer/`, `wallet-iframe/`, `lit-components/`, `yaos-local/` — integration surfaces
@@ -61,10 +62,11 @@ test-fix vs code-fix.
 1. What does the failing test own? Lifecycle behaviour (intended contract), a
    crypto/wire invariant (vector test), a component invariant (factory-based unit test),
    or a snapshot of an old type shape / source text (inline fixture, source guard)?
-2. Is that invariant still intended? Check the current domain types and
-   `docs/intended-behaviours.md` / the active `docs/refactor-NN-*.md`. For lifecycle
-   claims, a green `pnpm test:intended` supports staleness; for other invariant classes
-   it proves nothing — the E2E suite never exercises them. Classify the failure:
+2. Is that invariant still intended? Check the current domain types, the canonical
+   [`seams-wallet` Intended Behaviours](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md),
+   and the active `docs/refactor-NN-*.md`. For lifecycle claims, a green
+   `pnpm test:intended` supports staleness; for other invariant classes it proves
+   nothing — the E2E suite never exercises them. Classify the failure:
    `production_regression`, `valid_test_needs_update`, `obsolete_test_or_fixture`, or
    `environment_or_infrastructure_failure` (Redis/Upstash, NEAR RPC, Safari, faucet 429
    gate several suites — don't touch fixtures or code for those). State the

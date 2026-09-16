@@ -240,7 +240,7 @@ the current tree treats their stabilized outputs as upstream inputs:
 - [Refactor 103E](./refactor-103E.md) owns public Wallet APIs, React and iframe
   flows, Gateway routes, D1 state, linked-device enrollment, exact authority
   activation, and the canonical metadata projection. Durable product behavior
-  lives in [Intended Behaviours](./intended-behaviours.md#linked-devices);
+  lives in [Intended Behaviours in `seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md#linked-devices);
 - [Refactor 103F](./refactor-103F-final-cutover.md) owns the exact Wallet
   Session cutover and final signer-D1 schema consumed by R120 and R105;
 - the completed R107 cutover removed Wallet AppSessions and established

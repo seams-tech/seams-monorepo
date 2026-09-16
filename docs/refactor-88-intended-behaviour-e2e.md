@@ -32,7 +32,7 @@ contracts in 4.1m.
 
 Status: in progress.
 
-Source of truth: [Intended Behaviours](./intended-behaviours.md)
+Source of truth: [Intended Behaviours in `seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md)
 
 Sequencing:
 

@@ -13,7 +13,7 @@
     "@fontsource/hanken-grotesk": "^5.2.8",
     "@seams-internal/console-shared": "workspace:*",
     "@seams-internal/wallet-console-shared": "workspace:*",
-    "@seams/wallet": "0.5.17",
+    "@seams/wallet": "0.5.18",
     "@radix-ui/react-select": "^2.0.0",
     "@tanstack/react-query": "^5.76.1",
     "borsh": "^2.0.0",
@@ -23,7 +23,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sonner": "^1.5.0",
-    "@seams/wallet-server": "0.5.17"
+    "@seams/wallet-server": "0.5.18"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

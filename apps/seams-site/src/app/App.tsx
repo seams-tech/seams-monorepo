@@ -31,9 +31,6 @@ const CompanyPage = React.lazy(() =>
 const ContactPage = React.lazy(() =>
   import('@/pages/contact/page').then((module) => ({ default: module.ContactPage })),
 );
-const NearLoginPage = React.lazy(() =>
-  import('@/pages/near-login/page').then((module) => ({ default: module.NearLoginPage })),
-);
 const NotFoundPage = React.lazy(() =>
   import('@/pages/not-found/page').then((module) => ({ default: module.NotFoundPage })),
 );
@@ -143,15 +140,6 @@ const AppRuntimeBoundary: React.FC = () => {
         return <NotFoundPage />;
     }
   }, [pathname]);
-
-  if (pathname === '/near-login') {
-    return (
-      <React.Suspense fallback={null}>
-        <NearLoginPage />
-        <ToasterThemed />
-      </React.Suspense>
-    );
-  }
 
   return (
     <FrontendSdkProvider

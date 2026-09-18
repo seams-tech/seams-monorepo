@@ -484,7 +484,6 @@ const currentDocumentationPaths = [
   'benchmarks/router-ab-ecdsa-derivation-wasm/README.md',
   'crates/router-ab-ed25519-yao/README.md',
   'crates/seams-embedded/docs/robotics-key-choice.md',
-  'docs/intended-behaviours.md',
   'docs/otp/email-otp.md',
   'docs/threshold-ecdsa/cait-sith-math.md',
   'docs/threshold-ecdsa/ecdsa-threshold-signing.md',

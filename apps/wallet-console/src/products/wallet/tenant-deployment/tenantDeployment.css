@@ -1,0 +1,221 @@
+.tenant-deployment-page {
+  max-width: 72rem;
+}
+
+.tenant-deployment-header {
+  max-width: 48rem;
+  margin-block-end: 2rem;
+}
+
+.tenant-deployment-header h1 {
+  margin: 0.25rem 0 0.75rem;
+}
+
+.tenant-deployment-header > p:last-child,
+.tenant-deployment-section-heading p,
+.tenant-deployment-activation p {
+  color: var(--dashboard-muted-foreground, #71717a);
+  line-height: 1.6;
+}
+
+.tenant-deployment-eyebrow {
+  margin: 0;
+  color: var(--dashboard-muted-foreground, #71717a);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tenant-deployment-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  max-width: 48rem;
+  margin-block-end: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--dashboard-border, #e4e4e7);
+  border-radius: 1rem;
+  background: var(--dashboard-surface, #fff);
+}
+
+.tenant-deployment-summary-icon {
+  display: grid;
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.tenant-deployment-summary div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.tenant-deployment-summary span:last-child {
+  overflow-wrap: anywhere;
+  color: var(--dashboard-muted-foreground, #71717a);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.tenant-deployment-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.tenant-deployment-section {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--dashboard-border, #e4e4e7);
+  border-radius: 1rem;
+  background: var(--dashboard-surface, #fff);
+}
+
+.tenant-deployment-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.tenant-deployment-section-heading > span {
+  display: grid;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.625rem;
+  background: #18181b;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.tenant-deployment-section-heading h2,
+.tenant-deployment-activation h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.tenant-deployment-section-heading p,
+.tenant-deployment-activation p {
+  margin: 0.25rem 0 0;
+}
+
+.tenant-deployment-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tenant-deployment-field-grid label {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.tenant-deployment-field-grid input {
+  width: 100%;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--dashboard-border, #d4d4d8);
+  border-radius: 0.75rem;
+  background: var(--dashboard-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+}
+
+.tenant-deployment-field-grid input:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+.tenant-deployment-field-grid input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.tenant-deployment-activation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: #f4f4f5;
+}
+
+.tenant-deployment-activation > div {
+  max-width: 42rem;
+}
+
+.tenant-deployment-activation button {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+}
+
+.tenant-deployment-status {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 1.5rem;
+  color: var(--dashboard-muted-foreground, #71717a);
+}
+
+.tenant-deployment-status--idle {
+  min-height: 0;
+}
+
+.tenant-deployment-status--error {
+  color: #b91c1c;
+}
+
+.tenant-deployment-status--complete {
+  color: #047857;
+}
+
+.tenant-deployment-spinner {
+  animation: tenant-deployment-spin 0.8s linear infinite;
+}
+
+@keyframes tenant-deployment-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tenant-deployment-spinner {
+    animation: none;
+  }
+}
+
+@media (max-width: 52rem) {
+  .tenant-deployment-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-deployment-activation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tenant-deployment-activation button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 32rem) {
+  .tenant-deployment-section,
+  .tenant-deployment-activation {
+    padding: 1rem;
+  }
+}

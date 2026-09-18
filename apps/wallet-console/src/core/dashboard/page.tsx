@@ -2,9 +2,10 @@ import { DashboardOnboardingPage } from './routes/onboarding/page';
 import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
 import { requireConsoleBaseUrl } from './consoleHttp';
 import React from 'react';
-import DashboardSidebar, { type SidebarProjectGroup } from './layout/DashboardSidebar';
-import DashboardTopbar from './layout/DashboardTopbar';
+import type { SidebarProjectGroup } from './layout/DashboardSidebar';
+import DashboardNavigation from './layout/DashboardNavigation';
 import { DASHBOARD_PAGE_ACTIONS_SLOT_ID } from './components/DashboardPageActions';
+import { DashboardLoadingState } from './components/DashboardLoadingState';
 import type {
   DashboardComposition,
   DashboardProductId,
@@ -63,13 +64,6 @@ const PLATFORM_BILLING_ROUTE: DashboardRoute = '/platform/billing';
 const DASHBOARD_LOGIN_ROUTE = '/dashboard/login';
 const DASHBOARD_ONBOARDING_STATE_UPDATED_EVENT = 'dashboard:onboarding-state-updated';
 const LOCKED_PRODUCTION_OPTION_PREFIX = '__production_locked__:';
-const INITIAL_ONBOARDING_CONTEXT: TopbarContextState = {
-  organization: '',
-  project: '',
-  environment: '',
-  accountSettings: '',
-};
-
 function isSelectableOption(option: TopbarOption): boolean {
   return option.disabled !== true;
 }
@@ -304,9 +298,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     });
   const hasConfiguredOrganization =
     hasExistingOrganization && onboardingHasConfiguredOrganizationName;
-  const focusedOnboardingOrganizationValue = onboardingHasConfiguredOrganizationName
-    ? onboardingOrganizationName
-    : '';
   const billingReady = onboardingState?.billingReady === true;
   const isPlatformRoute = pathname === PLATFORM_BILLING_ROUTE || pathname.startsWith('/platform/');
   const isPlatformAdmin = consoleSession.claims?.platformSupport === true;
@@ -815,10 +806,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   const {
     isSidebarExpanded,
-    expandedGroups,
     selectedContext,
     toggleSidebar,
-    toggleGroup,
     onSelectContext: onSelectContextRaw,
   } = useDashboardUiPreferences(pathname, {
     dropdownOptions,
@@ -1085,8 +1074,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const ActiveViewComponent = activeView.component;
   const onboardingRouteActive = activeRoute === DASHBOARD_ONBOARDING_ROUTE;
   const focusedOnboardingMode = onboardingRouteActive;
-  const isSidebarCollapsed = !focusedOnboardingMode && !isSidebarExpanded;
-  const sidebarExpanded = focusedOnboardingMode ? true : isSidebarExpanded;
+  const isSidebarCollapsed = !isSidebarExpanded;
   const shellClassName = `dashboard-shell dashboard-shell--route-${activeView.key}${focusedOnboardingMode ? ' dashboard-shell--onboarding-focus' : ''}${isSidebarCollapsed ? ' dashboard-shell--sidebar-collapsed' : ''}`;
   const navigationLockExemptPaths = React.useMemo<ReadonlySet<DashboardRoute | ProductRoute>>(
     () =>
@@ -1109,6 +1097,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           label: item.label,
           path: item.path,
           group: group.label,
+          icon: item.icon,
         })),
       ),
     [visibleSidebarGroups],
@@ -1130,20 +1119,34 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   if (!consoleSession.claims || isDashboardEntryRoutePending) {
     return (
       <main className="dashboard-session-gate" aria-label="Dashboard workspace" aria-busy>
-        <p className="dashboard-session-gate__note" role="status">
-          {consoleSession.claims
-            ? 'Opening dashboard...'
-            : consoleSession.loading
-              ? 'Checking your session...'
-              : 'Redirecting to sign in...'}
-        </p>
+        <DashboardLoadingState
+          title={
+            consoleSession.claims
+              ? 'Opening dashboard...'
+              : consoleSession.loading
+                ? 'Checking your session...'
+                : 'Redirecting to sign in...'
+          }
+        />
       </main>
     );
   }
 
   return (
     <main className={shellClassName} aria-label="Dashboard workspace">
-      <DashboardTopbar
+      <DashboardNavigation
+        accountLabel={consoleSession.claims?.name || consoleSession.claims?.email || 'Account'}
+        onSelectContext={onSelectContext}
+        dropdownOptions={dropdownOptions}
+        pageTitle={activeView.label}
+        groups={visibleSidebarGroups}
+        activeRoute={activeRoute}
+        isSidebarExpanded={isSidebarExpanded}
+        onToggleSidebar={toggleSidebar}
+        linkProps={linkProps}
+        homeProps={homeProps}
+        disableNavigationItems={isSidebarNavigationLocked}
+        enabledWhenLockedPaths={onboardingRouteActive ? undefined : navigationLockExemptPaths}
         workspace={{
           projectGroups: workspaceProjectGroups,
           projectValue: selectedContext.project,
@@ -1151,50 +1154,14 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           onSelectEnvironment: onSelectWorkspaceEnvironment,
           organizationOptions: dropdownOptions.organization,
           organizationValue: selectedContext.organization,
-          onSelectOrganization: onSelectContext.bind(null, 'organization'),
         }}
-        isSidebarExpanded={isSidebarExpanded}
-        onToggleSidebar={toggleSidebar}
-        homeProps={homeProps}
-        pageTitle={activeView.label}
-        selectedContext={selectedContext}
-        onSelectContext={onSelectContext}
-        dropdownOptions={dropdownOptions}
-        focusedMode={false}
-        focusedContextValue={focusedOnboardingMode ? focusedOnboardingOrganizationValue : undefined}
-        accountLabel={consoleSession.claims?.name || consoleSession.claims?.email || 'Account'}
-        searchItems={topbarSearchItems}
-        onNavigate={(path) => go(path)}
-      />
-
-      <DashboardSidebar
-        accountLabel={consoleSession.claims.name || consoleSession.claims.email || 'Account'}
-        accountOptions={dropdownOptions.accountSettings}
-        onSelectAccount={onSelectContext.bind(null, 'accountSettings')}
-        groups={visibleSidebarGroups}
-        isSidebarExpanded={sidebarExpanded}
-        expandedGroups={expandedGroups}
-        activeRoute={activeRoute}
-        disableNavigationItems={isSidebarNavigationLocked}
-        enabledWhenLockedPaths={onboardingRouteActive ? undefined : navigationLockExemptPaths}
-        onToggleSidebar={toggleSidebar}
-        onToggleGroup={toggleGroup}
-        linkProps={linkProps}
-        homeProps={homeProps}
         product={{
           products: DASHBOARD_PRODUCTS,
           currentId: selectedProductId,
           onSelect: setSelectedProductId,
         }}
-        workspace={{
-          projectGroups: workspaceProjectGroups,
-          projectValue: selectedContext.project,
-          environmentValue: selectedContext.environment,
-          onSelectEnvironment: onSelectWorkspaceEnvironment,
-          organizationOptions: dropdownOptions.organization,
-          organizationValue: selectedContext.organization,
-          onSelectOrganization: (value) => onSelectContext('organization', value),
-        }}
+        searchItems={topbarSearchItems}
+        onNavigate={go}
       />
 
       <section className="dashboard-main" aria-labelledby="dashboard-main-title">
@@ -1233,7 +1200,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
                 </button>
               </div>
             ) : (
-              <p role="status">Opening environment...</p>
+              <DashboardLoadingState title="Opening environment..." />
             )
           ) : (
             <ActiveViewComponent
@@ -1271,7 +1238,7 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
     case 'loading':
       return (
         <main className="dashboard-session-gate" aria-busy>
-          <p role="status">Opening dashboard...</p>
+          <DashboardLoadingState title="Opening dashboard..." />
         </main>
       );
     case 'onboarding':
@@ -1301,9 +1268,6 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   const [selectedProductId, setSelectedProductId] = React.useState<DashboardProductId>(
     composition.defaultProductId,
   );
-  const [expandedGroups, setExpandedGroups] = React.useState(
-    composition.defaultExpandedSidebarGroups,
-  );
   const [logoutPending, setLogoutPending] = React.useState(false);
   const homeProps = linkProps('https://seams.sh/');
   const accountOptions = React.useMemo<TopbarOption[]>(
@@ -1329,12 +1293,6 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   const toggleSidebar = React.useCallback(() => {
     setIsSidebarExpanded((current) => !current);
   }, []);
-  const toggleGroup = React.useCallback((group: SidebarGroupKey | ProductGroupKey) => {
-    setExpandedGroups((current) => ({
-      ...current,
-      [group]: !current[group],
-    }));
-  }, []);
   const selectAccountOption = React.useCallback(
     (value: string) => {
       if (value !== composition.accountSettingsSignOutOption || logoutPending) return;
@@ -1359,30 +1317,18 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
 
   return (
     <main className={shellClassName} aria-label="Dashboard workspace">
-      <DashboardTopbar
-        isSidebarExpanded={isSidebarExpanded}
-        onToggleSidebar={toggleSidebar}
-        homeProps={homeProps}
-        pageTitle="Onboarding"
-        selectedContext={INITIAL_ONBOARDING_CONTEXT}
+      <DashboardNavigation
+        accountLabel="Account"
         onSelectContext={selectTopbarContext}
         dropdownOptions={dropdownOptions}
-        accountLabel="Account"
-      />
-
-      <DashboardSidebar
-        accountLabel="Account"
-        accountOptions={accountOptions}
-        onSelectAccount={selectAccountOption}
+        pageTitle="Onboarding"
         groups={composition.sidebarGroups}
-        isSidebarExpanded={isSidebarExpanded}
-        expandedGroups={expandedGroups}
         activeRoute={DASHBOARD_ONBOARDING_ROUTE}
-        disableNavigationItems
+        isSidebarExpanded={isSidebarExpanded}
         onToggleSidebar={toggleSidebar}
-        onToggleGroup={toggleGroup}
         linkProps={linkProps}
         homeProps={homeProps}
+        disableNavigationItems
         product={{
           products: composition.products,
           currentId: selectedProductId,

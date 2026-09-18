@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import math
 import re
 import threading
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Sequence
 
-from voiceid_verifier.audio_decode import zero_float_sequence
+from voiceid_verifier.audio_decode import MAXIMUM_DECODE_DURATION_MS, zero_float_sequence
 
 
 CANONICAL_SAMPLE_RATE_HZ = 16000
+STREAM_UPDATE_INTERVAL_SECONDS = 0.5
+STREAM_CHUNK_SAMPLES = 1600
+MAXIMUM_STREAM_SAMPLES = CANONICAL_SAMPLE_RATE_HZ * MAXIMUM_DECODE_DURATION_MS // 1000
 MODEL_ARCHES = {
     "tiny_streaming": 2,
     "small_streaming": 4,
@@ -83,8 +87,161 @@ class MoonshineSpeechAnalysis:
         }
 
 
+@dataclass(frozen=True)
+class MoonshineTranscript:
+    kind: Literal["partial", "final"]
+    text: str
+
+
+@dataclass(frozen=True)
+class MoonshineTranscriptLine:
+    line_id: int
+    start_time: float
+    text: str
+    is_complete: bool
+
+
+class MoonshineTranscriptStream:
+    """Own one bounded utterance and its native decoder until finish or close."""
+
+    def __init__(self, transcriber: Any) -> None:
+        self._transcriber = transcriber
+        self._lock = threading.Lock()
+        self._state: Literal["active", "finished", "cancelled", "failed"] = "active"
+        self._sample_count = 0
+        self._lines: dict[int, MoonshineTranscriptLine] = {}
+        self._error: Exception | None = None
+        try:
+            self._stream = transcriber.create_stream()
+        except BaseException:
+            transcriber.close()
+            raise
+        try:
+            self._stream.add_listener(self._on_event)
+            self._stream.start()
+            self._raise_stream_error()
+        except BaseException:
+            self._close_locked("failed")
+            raise
+
+    def __enter__(self) -> MoonshineTranscriptStream:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
+
+    def add_audio(self, samples: Sequence[float]) -> MoonshineTranscript:
+        with self._lock:
+            self._require_active()
+            audio_chunk: list[float] = []
+            try:
+                if not 0 < len(samples) <= STREAM_CHUNK_SAMPLES:
+                    raise ValueError(
+                        f"audio chunks must contain 1-{STREAM_CHUNK_SAMPLES} samples"
+                    )
+                if self._sample_count + len(samples) > MAXIMUM_STREAM_SAMPLES:
+                    raise ValueError("utterance exceeds the maximum duration")
+                audio_chunk = list(samples)
+                if any(not math.isfinite(value) or abs(value) > 1 for value in audio_chunk):
+                    raise ValueError("PCM samples must be finite values between -1 and 1")
+                self._stream.add_audio(audio_chunk, sample_rate=CANONICAL_SAMPLE_RATE_HZ)
+                self._raise_stream_error()
+                self._sample_count += len(audio_chunk)
+                return MoonshineTranscript(kind="partial", text=self._text())
+            except BaseException:
+                self._close_locked("failed")
+                raise
+            finally:
+                zero_float_sequence(audio_chunk)
+
+    def finish(self) -> MoonshineTranscript:
+        with self._lock:
+            self._require_active()
+            try:
+                if self._sample_count == 0:
+                    raise ValueError("canonical PCM samples must not be empty")
+                # Moonshine stop() drains the tail but reports some errors as events.
+                result = self._stream.stop()
+                self._raise_stream_error()
+                if result is None:
+                    raise RuntimeError("Moonshine stream stopped without a final transcript")
+                for line in result.lines:
+                    self._record_line(line)
+                if any(not line.is_complete for line in self._lines.values()):
+                    raise RuntimeError("Moonshine stream returned an incomplete final transcript")
+                transcript = MoonshineTranscript(kind="final", text=self._text())
+            except BaseException:
+                self._close_locked("failed")
+                raise
+            self._close_locked("finished")
+            return transcript
+
+    def close(self) -> None:
+        with self._lock:
+            if self._state == "active":
+                self._close_locked("cancelled")
+
+    def _require_active(self) -> None:
+        if self._state != "active":
+            raise RuntimeError(f"Moonshine stream is {self._state}")
+
+    def _raise_stream_error(self) -> None:
+        if self._error is not None:
+            raise self._error
+
+    def _on_event(self, event: Any) -> None:
+        if self._state != "active":
+            return
+        try:
+            error = getattr(event, "error", None)
+            if error is not None:
+                raise error
+            self._record_line(event.line)
+        except Exception as error:
+            # The upstream listener dispatcher swallows raised callback errors.
+            if self._error is None:
+                self._error = error
+
+    def _record_line(self, line: Any) -> None:
+        try:
+            self._lines[line.line_id] = MoonshineTranscriptLine(
+                line_id=line.line_id,
+                start_time=line.start_time,
+                text=line.text.strip(),
+                is_complete=line.is_complete,
+            )
+        finally:
+            audio_data = getattr(line, "audio_data", None)
+            if audio_data is not None:
+                zero_float_sequence(audio_data)
+
+    def _text(self) -> str:
+        lines = sorted(self._lines.values(), key=transcript_line_order)
+        return " ".join(line.text for line in lines if line.text)
+
+    def _close_locked(
+        self,
+        state: Literal["finished", "cancelled", "failed"],
+    ) -> None:
+        self._state = state
+        self._lines.clear()
+        self._error = None
+        try:
+            try:
+                self._stream.close()
+            finally:
+                self._transcriber.close()
+        except BaseException:
+            self._state = "failed"
+            raise
+
+
+def transcript_line_order(line: MoonshineTranscriptLine) -> tuple[float, int]:
+    return line.start_time, line.line_id
+
+
 class MoonshineRecognizer:
-    """Run transcript and semantic intent recognition over one canonical PCM buffer."""
+    """Stream local speech; evaluate completed fixture utterances for phrase/intent."""
 
     def __init__(
         self,
@@ -190,32 +347,24 @@ class MoonshineRecognizer:
         )
 
     def _transcribe(self, samples: Sequence[float]) -> str:
-        transcriber_samples = list(samples)
-        transcriber = None
-        try:
-            transcriber = self._new_transcriber()
-            result = transcriber.transcribe_without_streaming(
-                transcriber_samples,
-                sample_rate=CANONICAL_SAMPLE_RATE_HZ,
-            )
-            lines = getattr(result, "lines", ())
-            return " ".join(
-                str(getattr(line, "text", "")).strip()
-                for line in lines
-                if str(getattr(line, "text", "")).strip()
-            ).strip()
-        finally:
-            try:
-                if transcriber is not None:
-                    transcriber.close()
-            finally:
-                zero_float_sequence(transcriber_samples)
+        with self.start_stream() as stream:
+            for offset in range(0, len(samples), STREAM_CHUNK_SAMPLES):
+                end = min(offset + STREAM_CHUNK_SAMPLES, len(samples))
+                chunk = [samples[index] for index in range(offset, end)]
+                try:
+                    stream.add_audio(chunk)
+                finally:
+                    zero_float_sequence(chunk)
+            return stream.finish().text
+
+    def start_stream(self) -> MoonshineTranscriptStream:
+        return MoonshineTranscriptStream(self._new_transcriber())
 
     def _new_transcriber(self) -> Any:
         return self._transcriber_factory(
             self._model_path,
             model_arch=self._model_arch_value,
-            update_interval=0.5,
+            update_interval=STREAM_UPDATE_INTERVAL_SECONDS,
         )
 
     def _intent_matches(self, transcript: str) -> Sequence[Any]:

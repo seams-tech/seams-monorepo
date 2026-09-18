@@ -4,18 +4,14 @@ import { PlusIcon } from '../icons/SidebarIcons';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import SeamsWordmark from '@core/components/SeamsWordmark';
-import type {
-  DashboardProduct,
-  DashboardProductId,
-  ExpandedSidebarGroupsState,
-  SidebarGroup,
-  TopbarOption,
-} from '../types';
+import type { DashboardProduct, DashboardProductId, SidebarGroup, TopbarOption } from '../types';
 
-type LinkPropsFactory = (to: string) => {
+export type DashboardLinkPropsFactory = (to: string) => {
   href: string;
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
 };
+
+export type DashboardHomeLinkProps = ReturnType<DashboardLinkPropsFactory>;
 
 export type SidebarProjectGroup = {
   project: TopbarOption;
@@ -38,25 +34,20 @@ export type SidebarProductProps = {
   onSelect: (id: DashboardProductId) => void;
 };
 
-type DashboardSidebarProps<Route extends string, GroupKey extends string> = {
+export type DashboardSidebarProps<Route extends string, GroupKey extends string> = {
   accountLabel: string;
   accountOptions: TopbarOption[];
   onSelectAccount: (value: string) => void;
   groups: SidebarGroup<Route, GroupKey>[];
   isSidebarExpanded: boolean;
-  expandedGroups: ExpandedSidebarGroupsState<GroupKey>;
   activeRoute: Route;
   disableNavigationItems?: boolean;
   enabledWhenLockedPaths?: ReadonlySet<Route>;
   onToggleSidebar: () => void;
-  onToggleGroup: (group: GroupKey) => void;
-  linkProps: LinkPropsFactory;
+  linkProps: DashboardLinkPropsFactory;
   product?: SidebarProductProps;
   workspace?: SidebarWorkspaceProps;
-  homeProps?: {
-    href: string;
-    onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-  };
+  homeProps?: DashboardHomeLinkProps;
 };
 
 /* Close an open switcher popup on outside pointerdown or Escape. */
@@ -519,7 +510,11 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
     serverMobileNavigation,
   );
   const content = (
-    <aside className="dashboard-sidebar" aria-label="Primary dashboard navigation">
+    <aside
+      id="dashboard-sidebar-navigation"
+      className="dashboard-sidebar"
+      aria-label="Primary dashboard navigation"
+    >
       {/* Pinned head: wordmark + product/org switchers stay fixed at the sidebar
           top (reference-app style) while the nav list scrolls beneath them. */}
       {homeProps || product || workspace ? (
@@ -541,6 +536,9 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
                 className="dashboard-sidebar-toggle dashboard-sidebar-toggle--rail"
                 aria-label={mobile ? 'Close navigation' : 'Collapse sidebar'}
                 aria-expanded="true"
+                aria-controls={
+                  mobile ? 'dashboard-mobile-navigation' : 'dashboard-sidebar-navigation'
+                }
                 onClick={mobile ? closeMobileNavigation : onToggleSidebar}
               >
                 {mobile ? (

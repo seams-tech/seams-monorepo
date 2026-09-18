@@ -19,8 +19,12 @@ if str(VERIFIER_ROOT) not in sys.path:
 
 from benchmark import BenchmarkManifest, build_inventory_report, load_benchmark_manifest  # noqa: E402
 from voiceid_verifier.audio_decode import decode_audio_bytes  # noqa: E402
-from voiceid_verifier.moonshine import MoonshineRecognizer  # noqa: E402
-from voiceid_verifier.moonshine import normalize_transcript  # noqa: E402
+from voiceid_verifier.moonshine import (  # noqa: E402
+    STREAM_CHUNK_SAMPLES,
+    STREAM_UPDATE_INTERVAL_SECONDS,
+    MoonshineRecognizer,
+    normalize_transcript,
+)
 
 
 REPORT_SCHEMA_VERSION = "voice_id_moonshine_benchmark_v2"
@@ -91,6 +95,9 @@ def run_benchmark(
         "schemaVersion": REPORT_SCHEMA_VERSION,
         "datasetVersion": manifest.dataset_version,
         "modelArch": model_arch,
+        "transcriptionMode": "incremental",
+        "audioChunkSamples": STREAM_CHUNK_SAMPLES,
+        "streamUpdateIntervalSeconds": STREAM_UPDATE_INTERVAL_SECONDS,
         "intentThreshold": intent_threshold,
         "intentMargin": intent_margin,
         "fixtureCount": len(results),

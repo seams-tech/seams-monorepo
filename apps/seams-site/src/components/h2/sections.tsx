@@ -14,7 +14,7 @@ import {
   Smartphone,
   Wallet,
 } from 'lucide-react';
-import { Theme, useSeams, type AuthMenuMode, type WalletShapeId } from '@seams/wallet/react';
+import { Theme, useSeams, type AuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -139,8 +139,6 @@ export function H2DemoHero({
   const { seams, loginState } = useSeams();
   const [demoPage, setDemoPage] = React.useState(0);
   const [demoTheme, setDemoTheme] = React.useState<DemoThemeId>('paper');
-  // Corner shape is independent from the selected color palette.
-  const [demoShape, setDemoShape] = React.useState<WalletShapeId>('square');
   const themeTrackRef = useDragScroll<HTMLDivElement>();
   const activePreset =
     DEMO_THEME_PRESETS.find((theme) => theme.id === demoTheme) ?? DEMO_THEME_PRESETS[0];
@@ -150,9 +148,9 @@ export function H2DemoHero({
 
   React.useEffect(() => {
     try {
-      seams.setAppearance(demoIframeAppearance(activePreset, demoShape));
+      seams.setAppearance(demoIframeAppearance(activePreset));
     } catch {}
-  }, [seams, activePreset, demoShape, loginState?.isLoggedIn, activeWalletId]);
+  }, [seams, activePreset, loginState?.isLoggedIn, activeWalletId]);
 
   // The Transactions / Account recovery screens need an unlocked wallet,
   // mirroring the carousel's own page gating.
@@ -200,7 +198,7 @@ export function H2DemoHero({
           <p className="h2-demo-label">Live Demo</p>
           <Theme
             theme={activePreset.mode}
-            tokens={demoReactTokens(activePreset, demoShape)}
+            tokens={demoReactTokens(activePreset)}
             tag="div"
             className="h2-demo-theme-root"
             style={{ display: 'contents' }}
@@ -238,27 +236,6 @@ export function H2DemoHero({
                 </button>
               ))}
             </div>
-          </div>
-          <div className="h2-shapeswitch" role="group" aria-label="Corner shape">
-            {(
-              [
-                { id: 'square', label: 'Sharp' },
-                { id: 'rounded', label: 'Rounded' },
-              ] as const
-            ).map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                /* the chip wears the corner style it selects */
-                className={`h2-shapeswitch__btn h2-shapeswitch__btn--${s.id}${
-                  demoShape === s.id ? ' is-active' : ''
-                }`}
-                aria-pressed={demoShape === s.id}
-                onClick={() => setDemoShape(s.id)}
-              >
-                {s.label}
-              </button>
-            ))}
           </div>
         </div>
 

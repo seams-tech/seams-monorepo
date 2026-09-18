@@ -42,43 +42,58 @@ import SeamsWordmark from '@core/components/SeamsWordmark';
 import {
   openMobileNavigation,
   SidebarWorkspaceSwitcher,
+  type DashboardHomeLinkProps,
   type SidebarWorkspaceProps,
 } from './DashboardSidebar';
-import SeamsLogo from '@core/components/SeamsLogo';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
-import type { TopbarContextState, TopbarMenuKey, TopbarOption } from '../types';
+import type { SidebarIconComponent, TopbarMenuKey, TopbarOption } from '../types';
 import { getDocsOrigin } from '@core/router/siteRouting';
-
-type HomeLinkProps = {
-  href: string;
-  onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-};
 
 export type TopbarSearchItem = {
   label: string;
   path: string;
   group: string;
+  icon: SidebarIconComponent;
 };
 
-type DashboardTopbarProps = {
+export type DashboardTopbarProps = {
   workspace?: SidebarWorkspaceProps;
   isSidebarExpanded: boolean;
   onToggleSidebar: () => void;
-  homeProps: HomeLinkProps;
+  homeProps: DashboardHomeLinkProps;
   pageTitle: string;
-  selectedContext: TopbarContextState;
   onSelectContext: (menu: TopbarMenuKey, value: string) => void;
   dropdownOptions: Record<TopbarMenuKey, TopbarOption[]>;
-  focusedMode?: boolean;
-  focusedContextValue?: string;
-  /* Trigger label for the account menu — the user's identity. */
-  accountLabel?: string;
+  accountLabel: string;
   searchItems?: TopbarSearchItem[];
   onNavigate?: (path: string) => void;
 };
 
 function isMetaK(event: KeyboardEvent): boolean {
   return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+}
+
+function movePaletteSelection(current: number, offset: number, itemCount: number): number {
+  if (itemCount === 0) return 0;
+  return (current + offset + itemCount) % itemCount;
+}
+
+function dismissPaletteFromBackdrop(
+  onClose: () => void,
+  event: React.PointerEvent<HTMLDivElement>,
+): void {
+  if (event.target === event.currentTarget) onClose();
+}
+
+function updatePaletteQuery(
+  setQuery: React.Dispatch<React.SetStateAction<string>>,
+  event: React.ChangeEvent<HTMLInputElement>,
+): void {
+  setQuery(event.target.value);
+}
+
+function keepPaletteInputFocused(event: React.PointerEvent<HTMLButtonElement>): void {
+  event.preventDefault();
 }
 
 /* Lightweight ⌘K palette: filters navigation destinations and jumps. */
@@ -94,6 +109,8 @@ function TopbarCommandPalette({
   const [query, setQuery] = React.useState('');
   const [activeIndex, setActiveIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const listboxId = React.useId();
+  const shortcutDescriptionId = React.useId();
 
   const matches = React.useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -102,12 +119,26 @@ function TopbarCommandPalette({
   }, [items, query]);
 
   React.useEffect(() => {
+    const shell = document.querySelector<HTMLElement>('.dashboard-shell');
+    const shellWasInert = shell?.inert === true;
+    const previousBodyOverflow = document.body.style.overflow;
+    if (shell) shell.inert = true;
+    document.body.style.overflow = 'hidden';
     inputRef.current?.focus();
+    return () => {
+      if (shell && !shellWasInert) shell.inert = false;
+      document.body.style.overflow = previousBodyOverflow;
+    };
   }, []);
 
   React.useEffect(() => {
     setActiveIndex(0);
   }, [query]);
+
+  React.useEffect(() => {
+    const activeOption = document.getElementById(`${listboxId}-option-${activeIndex}`);
+    activeOption?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, listboxId]);
 
   const commit = React.useCallback(
     (item: TopbarSearchItem | undefined) => {
@@ -123,53 +154,106 @@ function TopbarCommandPalette({
     <div
       className="dashboard-command-palette-backdrop"
       role="presentation"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      onPointerDown={dismissPaletteFromBackdrop.bind(null, onClose)}
     >
-      <div className="dashboard-command-palette" role="dialog" aria-label="Search everything">
-        <input
-          ref={inputRef}
-          className="dashboard-command-palette__input"
-          type="search"
-          placeholder="Search pages..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              onClose();
-            } else if (event.key === 'ArrowDown') {
-              event.preventDefault();
-              setActiveIndex((current) => Math.min(current + 1, matches.length - 1));
-            } else if (event.key === 'ArrowUp') {
-              event.preventDefault();
-              setActiveIndex((current) => Math.max(current - 1, 0));
-            } else if (event.key === 'Enter') {
-              event.preventDefault();
-              commit(matches[activeIndex]);
+      <div
+        className="dashboard-command-palette"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search pages"
+        aria-describedby={shortcutDescriptionId}
+      >
+        <div className="dashboard-command-palette__search">
+          <span className="dashboard-command-palette__search-icon" aria-hidden="true" />
+          <input
+            ref={inputRef}
+            className="dashboard-command-palette__input"
+            type="search"
+            role="combobox"
+            aria-label="Search pages"
+            aria-controls={listboxId}
+            aria-expanded="true"
+            aria-autocomplete="list"
+            aria-activedescendant={
+              matches.length > 0 ? `${listboxId}-option-${activeIndex}` : undefined
             }
-          }}
-        />
-        <div className="dashboard-command-palette__list" role="listbox">
+            placeholder="Search pages..."
+            value={query}
+            onChange={updatePaletteQuery.bind(null, setQuery)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose();
+              } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setActiveIndex((current) => movePaletteSelection(current, 1, matches.length));
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActiveIndex((current) => movePaletteSelection(current, -1, matches.length));
+              } else if (event.key === 'Enter') {
+                event.preventDefault();
+                commit(matches[activeIndex]);
+              } else if (event.key === 'Tab') {
+                event.preventDefault();
+                inputRef.current?.focus();
+              }
+            }}
+          />
+          <kbd className="dashboard-command-palette__escape" aria-hidden="true">
+            Esc
+          </kbd>
+        </div>
+        <div id={listboxId} className="dashboard-command-palette__list" role="listbox">
           {matches.length === 0 ? (
             <p className="dashboard-command-palette__empty">No matching pages.</p>
           ) : (
-            matches.map((item, index) => (
-              <button
-                key={item.path}
-                type="button"
-                role="option"
-                aria-selected={index === activeIndex}
-                className={`dashboard-command-palette__item${index === activeIndex ? ' is-active' : ''}`}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => commit(item)}
-              >
-                <span>{item.label}</span>
-                <span className="dashboard-command-palette__group">{item.group}</span>
-              </button>
-            ))
+            matches.map((item, index) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  id={`${listboxId}-option-${index}`}
+                  key={item.path}
+                  type="button"
+                  role="option"
+                  tabIndex={-1}
+                  aria-selected={index === activeIndex}
+                  className={`dashboard-command-palette__item${index === activeIndex ? ' is-active' : ''}`}
+                  onPointerDown={keepPaletteInputFocused}
+                  onMouseEnter={setActiveIndex.bind(null, index)}
+                  onClick={commit.bind(null, item)}
+                >
+                  <span className="dashboard-command-palette__item-main">
+                    <span className="dashboard-command-palette__item-icon" aria-hidden="true">
+                      <ItemIcon size={24} strokeWidth={1.8} />
+                    </span>
+                    <span className="dashboard-command-palette__item-label">{item.label}</span>
+                  </span>
+                  <span className="dashboard-command-palette__group">{item.group}</span>
+                </button>
+              );
+            })
           )}
+        </div>
+        <div
+          id={shortcutDescriptionId}
+          className="dashboard-command-palette__footer"
+          aria-label="Keyboard shortcuts"
+        >
+          <span className="dashboard-command-palette__shortcut">
+            <span className="dashboard-command-palette__shortcut-keys" aria-hidden="true">
+              <kbd>↑</kbd>
+              <kbd>↓</kbd>
+            </span>
+            <span>Navigate</span>
+          </span>
+          <span className="dashboard-command-palette__shortcut">
+            <kbd aria-hidden="true">↵</kbd>
+            <span>Open</span>
+          </span>
+          <span className="dashboard-command-palette__shortcut">
+            <kbd aria-hidden="true">Esc</kbd>
+            <span>Close</span>
+          </span>
         </div>
       </div>
     </div>,
@@ -183,26 +267,29 @@ export function DashboardTopbar({
   onToggleSidebar,
   homeProps,
   pageTitle,
-  selectedContext,
   onSelectContext,
   dropdownOptions,
-  focusedMode = false,
-  focusedContextValue,
   accountLabel,
   searchItems = [],
   onNavigate,
 }: DashboardTopbarProps): React.JSX.Element {
   const topbarRef = React.useRef<HTMLElement | null>(null);
+  const paletteReturnFocusRef = React.useRef<HTMLElement | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
-  const organizationLabel =
-    focusedContextValue !== undefined
-      ? focusedContextValue
-      : dropdownOptions.organization.find((entry) => entry.value === selectedContext.organization)
-          ?.label || '';
-  const accountName = accountLabel || 'Account';
+  const accountName = accountLabel;
   const accountInitial = (accountName.trim().charAt(0) || 'A').toUpperCase();
   const searchEnabled = searchItems.length > 0 && Boolean(onNavigate);
+  const openPalette = React.useCallback(() => {
+    paletteReturnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setAccountMenuOpen(false);
+    setPaletteOpen(true);
+  }, []);
+  const closePalette = React.useCallback(() => {
+    setPaletteOpen(false);
+    window.requestAnimationFrame(() => paletteReturnFocusRef.current?.focus());
+  }, []);
   React.useEffect(() => {
     if (!accountMenuOpen) return;
     const onPointerDown = (event: PointerEvent) => {
@@ -226,12 +313,13 @@ export function DashboardTopbar({
     const onKeyDown = (event: KeyboardEvent) => {
       if (isMetaK(event)) {
         event.preventDefault();
-        setPaletteOpen((current) => !current);
+        if (paletteOpen) closePalette();
+        else openPalette();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [searchEnabled]);
+  }, [closePalette, openPalette, paletteOpen, searchEnabled]);
 
   /* Docs live on their own origin, so this is a plain link out rather than a
      console route. */
@@ -303,35 +391,6 @@ export function DashboardTopbar({
     </div>
   );
 
-  if (focusedMode) {
-    return (
-      <header
-        ref={topbarRef}
-        className="dashboard-topbar dashboard-topbar--focused"
-        role="banner"
-        aria-label="Workspace context"
-      >
-        <div className="dashboard-topbar__brand dashboard-topbar__brand--focused">
-          <a
-            className="navbar-static__brand dashboard-home-link"
-            href={homeProps.href}
-            onClick={homeProps.onClick}
-            aria-label="Seams home"
-          >
-            <SeamsLogo size={34} />
-            <span>Seams</span>
-          </a>
-        </div>
-
-        <div className="dashboard-topbar__focused-context" role="status" aria-live="polite">
-          <span className="dashboard-topbar__focused-value">{organizationLabel}</span>
-        </div>
-
-        <div className="dashboard-topbar__utilities">{accountMenu}</div>
-      </header>
-    );
-  }
-
   return (
     <header
       ref={topbarRef}
@@ -349,6 +408,7 @@ export function DashboardTopbar({
             className="dashboard-sidebar-toggle"
             aria-label="Expand sidebar"
             aria-expanded="false"
+            aria-controls="dashboard-sidebar-navigation"
             onClick={onToggleSidebar}
           >
             <DashboardSidebarToggleIcon expanded={false} />
@@ -362,7 +422,7 @@ export function DashboardTopbar({
           type="button"
           className="dashboard-topbar__search"
           aria-label="Search pages"
-          onClick={() => setPaletteOpen(true)}
+          onClick={openPalette}
         >
           <span className="dashboard-search-icon" aria-hidden="true" />
           <span className="dashboard-topbar__search-placeholder">Search everything...</span>
@@ -406,11 +466,7 @@ export function DashboardTopbar({
         </div>
       ) : null}
       {paletteOpen && searchEnabled && onNavigate ? (
-        <TopbarCommandPalette
-          items={searchItems}
-          onNavigate={onNavigate}
-          onClose={() => setPaletteOpen(false)}
-        />
+        <TopbarCommandPalette items={searchItems} onNavigate={onNavigate} onClose={closePalette} />
       ) : null}
     </header>
   );

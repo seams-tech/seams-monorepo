@@ -49,10 +49,10 @@ security claim.
 Suites are not equally trustworthy, and each owns different invariants. Authority map,
 with staleness risk under refactor:
 
-1. **Intended-behaviour contracts** — own supported user-facing lifecycle behaviour
-   (registration, unlock, signing, step-up, export).
-   `tests/e2e/intended-behaviours/*.contract.test.ts`, run with `pnpm test:intended`.
-   Spec: `docs/intended-behaviours.md` and the active `docs/refactor-NN-*.md`.
+1. **Wallet intended-behaviour contracts** — public Wallet lifecycle behaviour and
+   its normative [specification](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md)
+   live in the separate `seams-wallet` repository. Private tests here own only Console
+   composition and deployed product flows.
 2. **Rust vector / anti-drift tests, and type fixtures** — vectors own explicit
    cryptographic, wire, and encoding invariants, self-validating against production
    encoders (e.g. `crates/router-ab-core/tests/normal_signing_vectors.rs`,
@@ -104,15 +104,14 @@ Decision rules — classify before fixing:
   only from the shared branch-specific factories — no inline `satisfies SomeRecord` /
   `: SomeRecord = {...}` literals for these. Simple value objects and request params may
   stay inline.
-- If a source-guard script fails during a refactor, the guard itself may be stale: see
-  `docs/refactor-88B-clean-source-guards.md` for whether to update or retire it. Do not
-  contort correct code to satisfy an obsolete pattern, and prefer type fixtures, lint
-  rules, or behavioural assertions over adding new source-text guards.
+- If a source-guard script fails during a refactor, classify the guarded boundary
+  against current ownership and retire Wallet guards that moved to `seams-wallet`.
+  Prefer type fixtures, lint rules, or behavioural assertions over new source-text
+  guards.
 
 ## Commands
 
-- `pnpm test:intended` — authoritative lifecycle contracts (service prerequisites:
-  `tests/README.md`)
+- Public Wallet lifecycle contracts and formal verification run in `seams-wallet`.
 - `pnpm test:unit` / `pnpm test:relayer` / `pnpm test:wallet-iframe` / `pnpm test:lit-components`
 - `pnpm test:source-guards` — the source-guard chain
 - `pnpm check` — private lint, type-check, and Console-core boundary checks

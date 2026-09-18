@@ -164,6 +164,10 @@ function parseEditableList(values: string[]): string[] {
   return out;
 }
 
+function includeRequiredOrigins(origins: string[], requiredOrigins: string[]): string[] {
+  return parseEditableList([...origins, ...requiredOrigins]);
+}
+
 function parseApiCredentialScopeSelection(
   values: string[],
   scopeCatalog: ApiCredentialScopeCatalog,
@@ -181,12 +185,6 @@ function parseApiCredentialScopeSelection(
 
 function formatTimestamp(value: string | null): string {
   return formatDashboardTimestamp(value, '—');
-}
-
-function normalizeOrigin(value: string): string {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
 }
 
 function normalizePaymentPolicyValue(
@@ -416,8 +414,8 @@ export function ApiKeyManagementPage({
     String(selectedContextDisplay.project || '').trim() || String(selectedContext.project).trim();
   const registrationOriginHint = React.useMemo(readBrowserOrigin, []);
   const defaultPublishableOrigins = React.useMemo(
-    () => parseEditableList([registrationOriginHint]),
-    [registrationOriginHint],
+    () => parseEditableList([registrationOriginHint, deployment.walletOrigin]),
+    [deployment.walletOrigin, registrationOriginHint],
   );
   const [apiKeys, setApiKeys] = React.useState<DashboardConsoleApiKey[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -524,24 +522,29 @@ export function ApiKeyManagementPage({
     setMutationError('');
   }, [creating]);
 
-  const onOpenEditApiKey = React.useCallback((apiKey: DashboardConsoleApiKey) => {
-    setIsCreateModalOpen(false);
-    setPendingAction(null);
-    setEditingApiKeyId(apiKey.id);
-    setEditingNameInput(apiKey.name || '');
-    setEditingScopesInput(apiKey.kind === 'secret_key' ? [...apiKey.scopes] : []);
-    setEditingIpAllowlistInput(apiKey.kind === 'secret_key' ? apiKey.ipAllowlist.join(',') : '');
-    setEditingAllowedOriginsInput(
-      apiKey.kind === 'publishable_key' ? [...apiKey.allowedOrigins] : [],
-    );
-    setEditingPaymentPolicyInput(
-      apiKey.kind === 'publishable_key'
-        ? normalizePaymentPolicyValue(apiKey.paymentPolicy)
-        : 'disabled',
-    );
-    setEditingExpiresAtInput(toDateTimeLocalValue(apiKey.expiresAt));
-    setEditingError('');
-  }, []);
+  const onOpenEditApiKey = React.useCallback(
+    (apiKey: DashboardConsoleApiKey) => {
+      setIsCreateModalOpen(false);
+      setPendingAction(null);
+      setEditingApiKeyId(apiKey.id);
+      setEditingNameInput(apiKey.name || '');
+      setEditingScopesInput(apiKey.kind === 'secret_key' ? [...apiKey.scopes] : []);
+      setEditingIpAllowlistInput(apiKey.kind === 'secret_key' ? apiKey.ipAllowlist.join(',') : '');
+      setEditingAllowedOriginsInput(
+        apiKey.kind === 'publishable_key'
+          ? includeRequiredOrigins(apiKey.allowedOrigins, defaultPublishableOrigins)
+          : [],
+      );
+      setEditingPaymentPolicyInput(
+        apiKey.kind === 'publishable_key'
+          ? normalizePaymentPolicyValue(apiKey.paymentPolicy)
+          : 'disabled',
+      );
+      setEditingExpiresAtInput(toDateTimeLocalValue(apiKey.expiresAt));
+      setEditingError('');
+    },
+    [defaultPublishableOrigins],
+  );
 
   const onCloseEditApiKey = React.useCallback(() => {
     if (editingBusy) return;
@@ -587,20 +590,12 @@ export function ApiKeyManagementPage({
       let payload: CreateDashboardApiKeyInput;
       try {
         if (credentialKindInput === 'publishable_key') {
-          const allowedOrigins = parseEditableList(allowedOriginsInput);
+          const allowedOrigins = includeRequiredOrigins(
+            allowedOriginsInput,
+            defaultPublishableOrigins,
+          );
           if (allowedOrigins.length === 0) {
             setMutationError('Add at least one allowed origin.');
-            return;
-          }
-          if (
-            registrationOriginHint &&
-            !allowedOrigins.some(
-              (origin) => normalizeOrigin(origin) === normalizeOrigin(registrationOriginHint),
-            )
-          ) {
-            setMutationError(
-              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
-            );
             return;
           }
           payload = {
@@ -669,7 +664,6 @@ export function ApiKeyManagementPage({
       selectedEnvironmentId,
       session.claims,
       session.errorMessage,
-      registrationOriginHint,
     ],
   );
 
@@ -696,20 +690,12 @@ export function ApiKeyManagementPage({
         setEditingError('');
 
         if (editingApiKey.kind === 'publishable_key') {
-          const allowedOrigins = parseEditableList(editingAllowedOriginsInput);
+          const allowedOrigins = includeRequiredOrigins(
+            editingAllowedOriginsInput,
+            defaultPublishableOrigins,
+          );
           if (allowedOrigins.length === 0) {
             setEditingError('Add at least one allowed origin.');
-            return;
-          }
-          if (
-            registrationOriginHint &&
-            !allowedOrigins.some(
-              (origin) => normalizeOrigin(origin) === normalizeOrigin(registrationOriginHint),
-            )
-          ) {
-            setEditingError(
-              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
-            );
             return;
           }
           await updateDashboardApiKey({
@@ -757,11 +743,11 @@ export function ApiKeyManagementPage({
       editingNameInput,
       editingPaymentPolicyInput,
       editingScopesInput,
+      defaultPublishableOrigins,
       loadApiKeys,
       scopeCatalog,
       session.claims,
       session.errorMessage,
-      registrationOriginHint,
     ],
   );
 
@@ -1140,11 +1126,11 @@ export function ApiKeyManagementPage({
                   label="Allowed origins"
                   description={
                     <>
-                      <p>Add the exact browser origin that calls the registration API.</p>
                       <p>
-                        This browser is running at <code>{registrationOriginHint}</code>, so it is
-                        included by default.
+                        Registration runs from <code>{registrationOriginHint}</code>. Passkey prompts
+                        run from <code>{deployment.walletOrigin}</code>.
                       </p>
+                      <p>Both required origins are kept on this key automatically.</p>
                     </>
                   }
                   values={allowedOriginsInput}
@@ -1255,10 +1241,11 @@ export function ApiKeyManagementPage({
                       description={
                         <>
                           <p className="dashboard-pagination-note">
-                            These origins are stored on this specific <code>publishable_key</code>.
+                            Registration runs from <code>{registrationOriginHint}</code>. Passkey
+                            prompts run from <code>{deployment.walletOrigin}</code>.
                           </p>
                           <p className="dashboard-pagination-note">
-                            Use exact browser origins only.
+                            Both required origins are restored automatically when you save.
                           </p>
                         </>
                       }

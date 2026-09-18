@@ -37,8 +37,6 @@ child.once('error', reportChildError);
 child.once('exit', exitWithChildStatus);
 
 function localSiteEnvironment(environment) {
-  const publishableKey = firstNonEmptyString([environment.VITE_SEAMS_PUBLISHABLE_KEY]);
-  const projectEnvironmentId = firstNonEmptyString([environment.VITE_SEAMS_PROJECT_ENVIRONMENT_ID]);
   return {
     ...environment,
     VITE_RELAYER_URL: firstNonEmptyString([environment.VITE_RELAYER_URL, 'https://localhost:4101']),
@@ -67,8 +65,6 @@ function localSiteEnvironment(environment) {
       environment.VITE_SIGNING_SESSION_PERSISTENCE_MODE,
       'sealed_refresh_v1',
     ]),
-    VITE_SEAMS_PROJECT_ENVIRONMENT_ID: projectEnvironmentId,
-    VITE_SEAMS_PUBLISHABLE_KEY: publishableKey,
   };
 }
 

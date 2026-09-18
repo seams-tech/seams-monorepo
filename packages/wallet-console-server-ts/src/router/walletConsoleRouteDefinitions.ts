@@ -91,6 +91,7 @@ const TENANT_ROOT_SECURITY_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
 ];
 
 const TENANT_ROOT_SECURITY_OWNER_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_tenant_deployment_cutover_get', 'GET', '/console/tenant-deployment/cutovers/:id'],
   [
     'console_tenant_root_security_durable_verification_record',
     'POST',
@@ -104,6 +105,22 @@ const TENANT_ROOT_SECURITY_OWNER_ROUTES: readonly ConsoleRouteTuple[] = [
 ];
 
 const TENANT_ROOT_SECURITY_RECOVERY_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_tenant_deployment_cutover_create', 'POST', '/console/tenant-deployment/cutovers'],
+  [
+    'console_tenant_deployment_cutover_tenant_root',
+    'POST',
+    '/console/tenant-deployment/cutovers/:id/tenant-root',
+  ],
+  [
+    'console_tenant_deployment_cutover_readiness',
+    'POST',
+    '/console/tenant-deployment/cutovers/:id/readiness',
+  ],
+  [
+    'console_tenant_deployment_cutover_activate',
+    'POST',
+    '/console/tenant-deployment/cutovers/:id/activate',
+  ],
   [
     'console_restore_access_approve',
     'POST',

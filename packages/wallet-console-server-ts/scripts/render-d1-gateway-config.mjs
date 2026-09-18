@@ -145,6 +145,7 @@ function buildConsoleConfig(
   const production = deployment.lane !== 'staging-testnet';
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
+    SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     CONSOLE_BASE_URL: consoleOrigin,
     CONSOLE_CORS_ORIGINS: walletSiteOrigin,
     CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
@@ -332,9 +333,7 @@ function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery,
     deployment.runtimeProfile.emailOtpDelivery.kind === 'provider_and_demo_code';
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
-    SEAMS_STAGING_ORG_ID: deployment.tenant.orgId,
-    SEAMS_STAGING_PROJECT_ID: deployment.tenant.projectId,
-    SEAMS_STAGING_ENV_ID: deployment.tenant.environmentId,
+    SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     ROUTER_AB_NORMAL_SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
     ROUTER_AB_PREWARM_ENABLED: 'true',
     SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,

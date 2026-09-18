@@ -211,14 +211,8 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
     environment[`${prefix}RP_ID_BASE`] = new URL(lane.walletOrigin).hostname;
     environment[`${prefix}ROUTER_AB_NORMAL_SIGNING_WORKER_ID`] =
       lane.resources.signingWorker.workerName;
-    const projectEnvironmentVariable =
-      site.id === 'staging'
-        ? 'VITE_SEAMS_PROJECT_ENVIRONMENT_ID'
-        : `${prefix}SEAMS_PROJECT_ENVIRONMENT_ID`;
     requireEnvironmentValues(
       [
-        projectEnvironmentVariable,
-        `${prefix}SEAMS_PUBLISHABLE_KEY`,
         `${prefix}NEAR_NETWORK`,
         `${prefix}NEAR_RPC_URL`,
         `${prefix}NEAR_EXPLORER`,
@@ -227,20 +221,8 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
       ],
       environment,
     );
-    assertLaneProjectEnvironmentId(lane, projectEnvironmentVariable, environment);
   }
   return environment;
-}
-
-function assertLaneProjectEnvironmentId(lane, variableName, environment) {
-  if (lane.provisioning.kind !== 'provisioned') {
-    throw new Error(`lane ${lane.id} must be provisioned before frontend configuration validation`);
-  }
-  const expected = lane.provisioning.gatewayDeploymentConfig.tenant.environmentId;
-  const received = String(environment[variableName] || '').trim();
-  if (received !== expected) {
-    throw new Error(`${variableName} must match ${lane.id} tenant environment ${expected}`);
-  }
 }
 
 async function deployFrontend(site, component) {
@@ -354,9 +336,7 @@ function smokeChecks(surface, origin, requests) {
 
 async function walletManifestMatchesInstalledVersion(response) {
   const installedWalletRoot = resolveInstalledWalletRoot();
-  const installedWalletVersion = readPackageVersion(
-    path.join(installedWalletRoot, 'package.json'),
-  );
+  const installedWalletVersion = readPackageVersion(path.join(installedWalletRoot, 'package.json'));
   return walletManifestMatchesPackageVersion(response, installedWalletVersion);
 }
 

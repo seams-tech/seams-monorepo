@@ -55,9 +55,7 @@ export function buildD1StagingReconciliationPlan(input = {}) {
     gatewayConfigPath: relativeToRepo(options.gatewayConfigPath),
     tenant: {
       namespace: stagingVars.namespace,
-      orgId: stagingVars.orgId,
-      projectId: stagingVars.projectId,
-      envId: stagingVars.envId,
+      deploymentLane: stagingVars.deploymentLane,
     },
     checks,
   };
@@ -130,9 +128,7 @@ function readGatewayStagingVars(input) {
   const vars = tableBody(source, 'vars');
   const stagingVars = {
     namespace: readRequiredVar(vars, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
-    orgId: readRequiredVar(vars, 'SEAMS_STAGING_ORG_ID'),
-    projectId: readRequiredVar(vars, 'SEAMS_STAGING_PROJECT_ID'),
-    envId: readRequiredVar(vars, 'SEAMS_STAGING_ENV_ID'),
+    deploymentLane: readRequiredVar(vars, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
   };
   return stagingVars;
 }
@@ -141,6 +137,11 @@ function readRequiredVar(source, key) {
   const value = readString(source, key);
   if (!value) throw new Error(`${key} is required under gateway [vars]`);
   return value;
+}
+
+function activeBindingColumn(vars, column) {
+  if (column !== 'org_id') throw new Error(`unsupported active binding column ${column}`);
+  return `(SELECT b.${column} FROM active_tenant_deployment_bindings a JOIN tenant_deployment_bindings b ON b.deployment_lane = a.deployment_lane AND b.revision = a.revision WHERE a.deployment_lane = ${sqlString(vars.deploymentLane)})`;
 }
 
 function reconciliationChecks(input) {
@@ -214,7 +215,7 @@ function billingAccountBalanceMismatchSql(vars) {
       ON e.namespace = a.namespace
      AND e.org_id = a.org_id
     WHERE a.namespace = ${sqlString(vars.namespace)}
-      AND a.org_id = ${sqlString(vars.orgId)}
+      AND a.org_id = ${activeBindingColumn(vars, 'org_id')}
     GROUP BY a.namespace, a.org_id, a.credit_balance_minor
     HAVING a.credit_balance_minor != COALESCE(SUM(e.amount_minor), 0)
     LIMIT 50
@@ -236,7 +237,7 @@ function prepaidReservationSummaryMismatchSql(vars) {
      AND r.org_id = s.org_id
      AND r.status = 'RESERVED'
     WHERE s.namespace = ${sqlString(vars.namespace)}
-      AND s.org_id = ${sqlString(vars.orgId)}
+      AND s.org_id = ${activeBindingColumn(vars, 'org_id')}
     GROUP BY s.namespace, s.org_id, s.reserved_minor, s.active_reservation_count
     HAVING s.reserved_minor != COALESCE(SUM(r.requested_minor), 0)
         OR s.active_reservation_count != COUNT(r.id)
@@ -262,7 +263,7 @@ function sponsoredCallMissingBillingLinksSql(vars) {
      AND r.org_id = c.org_id
      AND r.id = c.prepaid_reservation_id
     WHERE c.namespace = ${sqlString(vars.namespace)}
-      AND c.org_id = ${sqlString(vars.orgId)}
+      AND c.org_id = ${activeBindingColumn(vars, 'org_id')}
       AND c.intent_kind = 'evm_call'
       AND c.charged = 1
       AND (
@@ -289,7 +290,7 @@ function sponsoredCallSettlementAmountMismatchSql(vars) {
      AND e.org_id = c.org_id
      AND e.id = c.billing_ledger_entry_id
     WHERE c.namespace = ${sqlString(vars.namespace)}
-      AND c.org_id = ${sqlString(vars.orgId)}
+      AND c.org_id = ${activeBindingColumn(vars, 'org_id')}
       AND c.intent_kind = 'evm_call'
       AND c.charged = 1
       AND COALESCE(c.settled_spend_minor, -1) != ABS(e.amount_minor)

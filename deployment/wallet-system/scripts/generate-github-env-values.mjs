@@ -540,18 +540,6 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     readSuppliedValue(suppliedValues, targetName, gatewayEnvironment, 'SEAMS_ENV_ID') ||
     checkedInTenant?.environmentId ||
     manual(`${identityPrefix}-environment-id`);
-  const projectEnvironmentId =
-    readOption('--project-environment-id') ||
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      targetName,
-      'VITE_SEAMS_PROJECT_ENVIRONMENT_ID',
-    ) ||
-    manual(`${identityPrefix}-project-environment-id`);
-  const publishableKey =
-    readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_SEAMS_PUBLISHABLE_KEY') ||
-    manual(`${identityPrefix}-publishable-key`);
   const tenantNamespace =
     readOption('--tenant-namespace') ||
     readSuppliedValue(
@@ -636,8 +624,6 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     orgId,
     projectId,
     environmentId,
-    projectEnvironmentId,
-    publishableKey,
     tenantNamespace,
     gatewayWorkerName: checkedInResources?.workerName || lane.resources.gateway.workerName,
     mpcRouterWorkerName: lane.resources.router.workerName,
@@ -861,8 +847,6 @@ function buildGeneralEnvironment(input) {
       purpose: 'Pages builds',
       variables: {
         VITE_RELAYER_URL: configuration.gatewayOrigin,
-        VITE_SEAMS_PROJECT_ENVIRONMENT_ID: configuration.projectEnvironmentId,
-        VITE_SEAMS_PUBLISHABLE_KEY: configuration.publishableKey,
         VITE_NEAR_NETWORK: configuration.nearNetwork,
         VITE_NEAR_RPC_URL: configuration.nearRpcUrl,
         VITE_NEAR_EXPLORER: configuration.nearExplorerUrl,
@@ -940,14 +924,6 @@ function buildProductionLaneVariables(input, lane) {
   return {
     [`${prefix}RELAYER_URL`]: lane.gatewayOrigin,
     [`${prefix}CONSOLE_BASE_URL`]: lane.gatewayOrigin,
-    [`${prefix}SEAMS_PROJECT_ENVIRONMENT_ID`]: productionLaneEnvironmentId(lane),
-    [`${prefix}SEAMS_PUBLISHABLE_KEY`]: productionLaneValue(
-      input,
-      lane,
-      'SEAMS_PUBLISHABLE_KEY',
-      input.configuration.publishableKey,
-      manual(`production-${lane.network}-publishable-key`),
-    ),
     [`${prefix}NEAR_NETWORK`]: nearNetwork,
     [`${prefix}NEAR_RPC_URL`]: productionLaneValue(
       input,
@@ -1009,13 +985,6 @@ function buildProductionLaneVariables(input, lane) {
         }
       : {}),
   };
-}
-
-function productionLaneEnvironmentId(lane) {
-  if (lane.provisioning.kind === 'provisioned') {
-    return lane.provisioning.gatewayDeploymentConfig.tenant.environmentId;
-  }
-  return manual(`production-${lane.network}-project-environment-id`);
 }
 
 function productionLaneValue(input, lane, name, generatedLaneValue, fallback) {
@@ -2709,48 +2678,6 @@ function removeObsoleteGatewayVariables(environmentName, repositoryName) {
     removed.push(`${environmentName}.variables.${name}`);
   }
   return removed;
-}
-
-function readGitHubEnvironmentVariables(environmentName, repositoryName) {
-  const listed = runGhResult(
-    [
-      'variable',
-      'list',
-      '--env',
-      environmentName,
-      '--json',
-      'name,value',
-      ...githubRepoArgs(repositoryName),
-    ],
-    undefined,
-    repositoryName,
-  );
-  if (listed.status !== 0) {
-    throw new Error(formatGhFailure(`list variables for ${environmentName}`, listed));
-  }
-  let variables;
-  try {
-    variables = JSON.parse(listed.stdout);
-  } catch {
-    throw new Error(`GitHub returned invalid variable JSON for ${environmentName}`);
-  }
-  if (!Array.isArray(variables)) {
-    throw new Error(`GitHub variable response for ${environmentName} must be an array`);
-  }
-  return new Map(
-    variables.map((variable) => [
-      requireGitHubVariableField(variable, 'name', environmentName),
-      requireGitHubVariableField(variable, 'value', environmentName),
-    ]),
-  );
-}
-
-function requireGitHubVariableField(variable, field, environmentName) {
-  const value = typeof variable?.[field] === 'string' ? variable[field].trim() : '';
-  if (!value) {
-    throw new Error(`GitHub variable ${field} is missing in ${environmentName}`);
-  }
-  return value;
 }
 
 function resolveGitHubRepository(repositoryName) {

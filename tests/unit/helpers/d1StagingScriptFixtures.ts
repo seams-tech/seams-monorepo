@@ -33,7 +33,13 @@ export async function loadD1StagingScriptModule<T>(
   scriptFileName: string,
   packageName = 'wallet-console-server-ts',
 ): Promise<T> {
-  const scriptPath = path.join(D1_STAGING_REPO_ROOT, 'packages', packageName, 'scripts', scriptFileName);
+  const scriptPath = path.join(
+    D1_STAGING_REPO_ROOT,
+    'packages',
+    packageName,
+    'scripts',
+    scriptFileName,
+  );
   return (await import(pathToFileURL(scriptPath).href)) as T;
 }
 
@@ -165,6 +171,7 @@ migrations_dir = "migrations/d1-console"
 
 [vars]
 SEAMS_TENANT_STORAGE_NAMESPACE = "seams-staging"
+SEAMS_TENANT_DEPLOYMENT_LANE = "staging-testnet"
 CONSOLE_SESSION_ISSUER = "seams-console-staging-nrt"
 CONSOLE_SESSION_AUDIENCE = "seams-console-dashboard"
 
@@ -200,9 +207,7 @@ service = "router-ab-mpc-router-staging"
 
 [vars]
 SEAMS_TENANT_STORAGE_NAMESPACE = "seams-staging"
-SEAMS_STAGING_ORG_ID = "org_staging"
-SEAMS_STAGING_PROJECT_ID = "project_staging"
-SEAMS_STAGING_ENV_ID = "staging"
+SEAMS_TENANT_DEPLOYMENT_LANE = "staging-testnet"
 ROUTER_AB_NORMAL_SIGNING_WORKER_ID = "router-ab-signing-worker-staging"
 SIGNING_WORKER_ID = "router-ab-signing-worker-staging"
 DERIVER_A_ED25519_YAO_INPUT_PUBLIC_KEY = "x25519:1111111111111111111111111111111111111111111111111111111111111111"

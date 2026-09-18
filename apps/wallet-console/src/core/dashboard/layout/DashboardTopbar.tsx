@@ -47,7 +47,6 @@ import {
 import SeamsLogo from '@core/components/SeamsLogo';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import type { TopbarContextState, TopbarMenuKey, TopbarOption } from '../types';
-import type { ConsoleNetwork as FrontendNetwork } from '@core/runtime';
 import { getDocsOrigin } from '@core/router/siteRouting';
 
 type HomeLinkProps = {
@@ -76,9 +75,6 @@ type DashboardTopbarProps = {
   accountLabel?: string;
   searchItems?: TopbarSearchItem[];
   onNavigate?: (path: string) => void;
-  network?: FrontendNetwork;
-  availableNetworks?: readonly FrontendNetwork[];
-  onSelectNetwork?: (network: FrontendNetwork) => void;
 };
 
 function isMetaK(event: KeyboardEvent): boolean {
@@ -195,9 +191,6 @@ export function DashboardTopbar({
   accountLabel,
   searchItems = [],
   onNavigate,
-  network = 'testnet',
-  availableNetworks = ['testnet'],
-  onSelectNetwork,
 }: DashboardTopbarProps): React.JSX.Element {
   const topbarRef = React.useRef<HTMLElement | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
@@ -210,28 +203,6 @@ export function DashboardTopbar({
   const accountName = accountLabel || 'Account';
   const accountInitial = (accountName.trim().charAt(0) || 'A').toUpperCase();
   const searchEnabled = searchItems.length > 0 && Boolean(onNavigate);
-  const networkToggle =
-    availableNetworks.length > 1 && onSelectNetwork ? (
-      <div
-        className={`dashboard-network-toggle dashboard-network-toggle--${network}`}
-        role="group"
-        aria-label="Network"
-      >
-        <span className="dashboard-network-toggle__indicator" aria-hidden="true" />
-        {availableNetworks.map((candidate) => (
-          <button
-            key={candidate}
-            type="button"
-            className={`dashboard-network-toggle__option${candidate === network ? ' is-active' : ''}`}
-            aria-pressed={candidate === network}
-            onClick={() => onSelectNetwork(candidate)}
-          >
-            {candidate === 'testnet' ? 'Testnet' : 'Mainnet'}
-          </button>
-        ))}
-      </div>
-    ) : null;
-
   React.useEffect(() => {
     if (!accountMenuOpen) return;
     const onPointerDown = (event: PointerEvent) => {
@@ -356,10 +327,7 @@ export function DashboardTopbar({
           <span className="dashboard-topbar__focused-value">{organizationLabel}</span>
         </div>
 
-        <div className="dashboard-topbar__utilities">
-          {networkToggle}
-          {accountMenu}
-        </div>
+        <div className="dashboard-topbar__utilities">{accountMenu}</div>
       </header>
     );
   }
@@ -408,7 +376,6 @@ export function DashboardTopbar({
       )}
 
       <div className="dashboard-topbar__utilities">
-        {networkToggle}
         {docsLink}
         {accountMenu}
       </div>
@@ -436,14 +403,6 @@ export function DashboardTopbar({
       {workspace ? (
         <div className="dashboard-mobile-context">
           <SidebarWorkspaceSwitcher {...workspace} />
-          <button
-            type="button"
-            className="dashboard-mobile-network-badge"
-            onClick={openMobileNavigation}
-            aria-label={`Network: ${network}. Open navigation to change network`}
-          >
-            {network === 'testnet' ? 'Testnet' : 'Mainnet'}
-          </button>
         </div>
       ) : null}
       {paletteOpen && searchEnabled && onNavigate ? (

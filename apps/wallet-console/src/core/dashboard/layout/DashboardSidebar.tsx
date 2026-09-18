@@ -2,7 +2,6 @@ import React from 'react';
 import { dashboardCreateIntentHref } from '../utils/routeCreateIntent';
 import { PlusIcon } from '../icons/SidebarIcons';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
-import type { ConsoleNetwork } from '@core/runtime';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import SeamsWordmark from '@core/components/SeamsWordmark';
 import type {
@@ -40,9 +39,6 @@ export type SidebarProductProps = {
 };
 
 type DashboardSidebarProps<Route extends string, GroupKey extends string> = {
-  network: ConsoleNetwork;
-  availableNetworks: readonly ConsoleNetwork[];
-  onSelectNetwork: (network: ConsoleNetwork) => void;
   accountLabel: string;
   accountOptions: TopbarOption[];
   onSelectAccount: (value: string) => void;
@@ -503,9 +499,6 @@ function selectMobileAccountOption(onSelect: (value: string) => void, option: To
 }
 
 export function DashboardSidebar<Route extends string, GroupKey extends string>({
-  network,
-  availableNetworks,
-  onSelectNetwork,
   accountLabel,
   accountOptions,
   onSelectAccount,
@@ -560,20 +553,6 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
           </div>
           {mobile ? <p className="dashboard-mobile-section-label">Project</p> : null}
           {mobile && workspace ? <SidebarWorkspaceSwitcher {...workspace} /> : null}
-          {mobile ? (
-            <div className="dashboard-mobile-networks" role="group" aria-label="Network">
-              {availableNetworks.map((candidate) => (
-                <button
-                  type="button"
-                  key={candidate}
-                  aria-pressed={candidate === network}
-                  onClick={onSelectNetwork.bind(null, candidate)}
-                >
-                  {candidate === 'testnet' ? 'Testnet' : 'Mainnet'}
-                </button>
-              ))}
-            </div>
-          ) : null}
           {product ? <SidebarProductSwitcher {...product} /> : null}
           {!mobile && workspace ? <SidebarWorkspaceSwitcher {...workspace} /> : null}
         </div>

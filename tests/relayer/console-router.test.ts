@@ -4820,7 +4820,7 @@ test.describe('console router (express)', () => {
       { orgId, actorUserId: 'seed-admin' },
       {
         name: 'seed-key',
-        environmentId: 'env-rbac',
+        environmentId: 'project-rbac:dev',
         kind: 'secret_key',
         scopes: ['accounts.create'],
       },
@@ -4838,7 +4838,7 @@ test.describe('console router (express)', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'developer-create-key',
-          environmentId: 'env-rbac',
+          environmentId: 'project-rbac:dev',
           kind: 'secret_key',
           scopes: ['accounts.create'],
         }),

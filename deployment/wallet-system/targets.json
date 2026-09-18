@@ -323,9 +323,9 @@
             },
             "tenant": {
               "namespace": "seams-production-testnet",
-              "orgId": "org_qdbcgwpp69l4",
-              "projectId": "proj_mu0z4jwh_1vvi3n",
-              "environmentId": "proj_mu0z4jwh_1vvi3n:dev"
+              "orgId": "org_vrd74qdxxy4f",
+              "projectId": "proj_mu3mtq24_6ni46i",
+              "environmentId": "proj_mu3mtq24_6ni46i:dev"
             },
             "origins": {
               "gateway": "https://test.api.wallet.seams.sh",

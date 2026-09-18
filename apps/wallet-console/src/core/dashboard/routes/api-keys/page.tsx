@@ -113,30 +113,24 @@ function CredentialScopeSummary({
     >
       <div className="dashboard-credential-scope__header">
         <strong>{variant === 'dialog' ? 'Creating for' : 'Current credential scope'}</strong>
-        <span>
-          {projectName} · {environmentName}
-        </span>
+        <span>{projectName}</span>
       </div>
       <dl className="dashboard-credential-scope__facts">
-        <div>
-          <dt>Chain network</dt>
-          <dd>{formatNetworkLabel(network)}</dd>
-        </div>
         <div>
           <dt>Environment</dt>
           <dd>{environmentName}</dd>
         </div>
         <div>
+          <dt>Chain network</dt>
+          <dd>{formatNetworkLabel(network)}</dd>
+        </div>
+        <div className="dashboard-credential-scope__environment-id">
           <dt>Environment ID</dt>
           <dd>
             <code>{environmentId}</code>
           </dd>
         </div>
       </dl>
-      <p>
-        {environmentName} uses {formatNetworkLabel(network)}. A credential created here only works
-        for this environment.
-      </p>
     </section>
   );
 }

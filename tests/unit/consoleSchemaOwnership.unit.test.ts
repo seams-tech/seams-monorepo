@@ -62,6 +62,7 @@ const CONSOLE_CORE_TABLES = [
 ] as const;
 
 const WALLET_CONSOLE_TABLES = [
+  'active_tenant_deployment_bindings',
   'approvals',
   'billing_prepaid_reservation_summaries',
   'billing_prepaid_reservations',
@@ -77,6 +78,9 @@ const WALLET_CONSOLE_TABLES = [
   'sponsorship_pricing_rules',
   'sponsorship_spend_cap_reservations',
   'sponsorship_spend_cap_windows',
+  'tenant_deployment_bindings',
+  'tenant_deployment_activations',
+  'tenant_deployment_cutovers',
   'tenant_root_backup_access',
   'tenant_root_cli_enrollment',
   'tenant_root_cli_restore_access',

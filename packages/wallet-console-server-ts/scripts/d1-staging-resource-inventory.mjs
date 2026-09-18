@@ -180,9 +180,7 @@ function readStagingVars(source) {
   const vars = tableBody(source, 'vars');
   return {
     namespace: readString(vars, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
-    orgId: readString(vars, 'SEAMS_STAGING_ORG_ID'),
-    projectId: readString(vars, 'SEAMS_STAGING_PROJECT_ID'),
-    envId: readString(vars, 'SEAMS_STAGING_ENV_ID'),
+    deploymentLane: readString(vars, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
   };
 }
 

@@ -1,4 +1,5 @@
 import type { SeamsConfigsInput } from '@seams/wallet/react';
+import { decodeTenantDeploymentPublicProjectionV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import {
   DEFAULT_WALLET_SESSION_REMAINING_USES,
   DEFAULT_WALLET_SESSION_TTL_MS,
@@ -141,32 +142,6 @@ function stripTrailingSlash(path: string): string {
   return path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
-function resolveManagedRegistrationConfig(
-  source: Record<string, unknown>,
-  prefix: string,
-): ManagedRegistrationConfig | undefined {
-  const projectEnvironmentId = toOptionalString(source[`${prefix}SEAMS_PROJECT_ENVIRONMENT_ID`]);
-  const publishableKey = toOptionalString(source[`${prefix}SEAMS_PUBLISHABLE_KEY`]);
-
-  if (projectEnvironmentId && !publishableKey) {
-    throw new Error(
-      `Missing ${prefix}SEAMS_PUBLISHABLE_KEY: managed registration requires both project environment and publishable key`,
-    );
-  }
-  if (publishableKey && !projectEnvironmentId) {
-    throw new Error(
-      `Missing ${prefix}SEAMS_PROJECT_ENVIRONMENT_ID: managed registration requires both project environment and publishable key`,
-    );
-  }
-  if (!projectEnvironmentId || !publishableKey) return undefined;
-
-  return {
-    mode: 'managed',
-    projectEnvironmentId,
-    publishableKey,
-  };
-}
-
 function resolveRouterAbConfig(
   source: Record<string, unknown>,
   prefix: string,
@@ -275,16 +250,11 @@ function buildDeployment(
 ): FrontendDeployment {
   const laneValues = source as Record<string, unknown>;
   const prefix = resolveLanePrefix(network, siteKind);
-  const registration = resolveManagedRegistrationConfig(laneValues, prefix);
+  const registration: ManagedRegistrationConfig | undefined = undefined;
   const configuredNearNetwork = toOptionalString(laneValues[`${prefix}NEAR_NETWORK`]);
   if (configuredNearNetwork && configuredNearNetwork !== network) {
     throw new Error(
       `Invalid ${prefix}NEAR_NETWORK: expected ${network}, received ${configuredNearNetwork || 'empty'}`,
-    );
-  }
-  if (siteKind === 'production' && !registration) {
-    throw new Error(
-      `Missing ${prefix}SEAMS_PROJECT_ENVIRONMENT_ID or ${prefix}SEAMS_PUBLISHABLE_KEY: production registration is managed`,
     );
   }
   const relayerUrl =
@@ -336,8 +306,8 @@ function buildDeployment(
     apiOrigin: laneOrigin,
     relayerUrl,
     consoleBaseUrl,
-    projectEnvironmentId: registration?.projectEnvironmentId || '',
-    publishableKey: registration?.publishableKey || '',
+    projectEnvironmentId: '',
+    publishableKey: '',
     signingWorkerId,
     managedRegistration: registration,
     nearNetwork: network,
@@ -436,7 +406,52 @@ function buildSiteConfig(source: ImportMetaEnv): FrontendConfig {
   };
 }
 
-export const FRONTEND_CONFIG = Object.freeze(buildSiteConfig(import.meta.env));
+async function hydrateDeploymentBinding(
+  deployment: FrontendDeployment,
+  siteOrigin: string,
+): Promise<FrontendDeployment> {
+  const response = await fetch(`${deployment.apiOrigin}/.well-known/seams-tenant-deployment.json`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok)
+    throw new Error(`Tenant deployment discovery failed with HTTP ${response.status}`);
+  const decoded = decodeTenantDeploymentPublicProjectionV1(await response.json());
+  if (!decoded.ok) throw new Error(decoded.message);
+  const binding = decoded.value;
+  if (!deployment.routerAb) throw new Error('Tenant deployment requires Router A/B normal signing');
+  const expectedMode =
+    deployment.network === 'testnet' ? 'development_testnet_v1' : 'production_mainnet_v1';
+  if (
+    binding.mode.kind !== expectedMode ||
+    binding.gatewayOrigin !== deployment.apiOrigin ||
+    binding.hostedWalletOrigin !== deployment.walletOrigin ||
+    !binding.allowedOrigins.includes(siteOrigin)
+  ) {
+    throw new Error('Tenant deployment discovery does not match this frontend surface');
+  }
+  return {
+    ...deployment,
+    projectEnvironmentId: binding.environmentId,
+    publishableKey: binding.publishableKey,
+    rpIdBase: binding.relyingPartyId,
+    managedRegistration: {
+      mode: 'managed',
+      projectEnvironmentId: binding.environmentId,
+      publishableKey: binding.publishableKey,
+    },
+  };
+}
+
+async function hydrateSiteBindings(config: FrontendConfig): Promise<FrontendConfig> {
+  const testnet = await hydrateDeploymentBinding(config.deployments.testnet, config.siteOrigin);
+  if (config.siteKind === 'staging') return { ...config, ...testnet, deployments: { testnet } };
+  const mainnet = await hydrateDeploymentBinding(config.deployments.mainnet, config.siteOrigin);
+  return { ...config, ...testnet, deployments: { testnet, mainnet } };
+}
+
+export const FRONTEND_CONFIG = Object.freeze(
+  await hydrateSiteBindings(buildSiteConfig(import.meta.env)),
+);
 
 export function getFrontendDeployment(
   config: FrontendConfig,

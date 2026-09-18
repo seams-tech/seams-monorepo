@@ -36,6 +36,7 @@
     "unit/sealedSessionStore.unit.test.ts",
     "unit/signingSessionSeal.shared.unit.test.ts",
     "unit/tenantRootRefreshConsoleRoute.unit.test.ts",
+    "unit/tenantDeploymentBinding.unit.test.ts",
     "unit/tenantRootIdentityResolution.unit.test.ts",
     "unit/tenantRootOperationRecord.unit.test.ts",
     "unit/derivationRootPageReflow.unit.test.ts",

@@ -34,8 +34,7 @@ const consoleD1Database = Object.freeze({
 const signerD1Database = Object.freeze({
   binding: 'SIGNER_DB',
   databaseName: 'seams-signer-staging-nrt',
-  migrationsDir:
-    'node_modules/@seams/wallet-server/migrations/d1-signer',
+  migrationsDir: 'node_modules/@seams/wallet-server/migrations/d1-signer',
 });
 const requiredD1DatabasesByProfile = Object.freeze({
   console: Object.freeze([consoleD1Database]),
@@ -60,14 +59,13 @@ const requiredSecretVarsByProfile = Object.freeze({
 const requiredVarsByProfile = Object.freeze({
   console: Object.freeze([
     'SEAMS_TENANT_STORAGE_NAMESPACE',
+    'SEAMS_TENANT_DEPLOYMENT_LANE',
     'CONSOLE_SESSION_ISSUER',
     'CONSOLE_SESSION_AUDIENCE',
   ]),
   gateway: Object.freeze([
     'SEAMS_TENANT_STORAGE_NAMESPACE',
-    'SEAMS_STAGING_ORG_ID',
-    'SEAMS_STAGING_PROJECT_ID',
-    'SEAMS_STAGING_ENV_ID',
+    'SEAMS_TENANT_DEPLOYMENT_LANE',
     'ROUTER_AB_NORMAL_SIGNING_WORKER_ID',
     'SIGNING_WORKER_ID',
     'RELAYER_ACCOUNT_ID',

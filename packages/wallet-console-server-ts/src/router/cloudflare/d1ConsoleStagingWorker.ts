@@ -86,6 +86,16 @@ import {
   createTenantRootRefreshConsoleRouteV1,
   dispatchTenantRootRefreshOperationV1,
 } from '../../tenantRootCreation/consoleRoute';
+import {
+  createD1TenantDeploymentBindingReaderV1,
+  createD1TenantDeploymentServiceV1,
+  createD1TenantDeploymentSetupAdmissionReaderV1,
+} from '../../tenantDeployment/d1';
+import { createTenantDeploymentInternalBindingHandlerV1 } from '../../tenantDeployment/runtimeBinding';
+import { createTenantDeploymentRuntimeInspectionClientV1 } from '../../tenantDeployment/runtimeInspection';
+import { createProductionTenantDeploymentReadinessAdapterV1 } from '../../tenantDeployment/productionReadiness';
+import { createTenantDeploymentReadinessServiceV1 } from '../../tenantDeployment/readiness';
+import { createTenantDeploymentConsoleRouteV1 } from '../../tenantDeployment/consoleRoute';
 
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
@@ -97,6 +107,7 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID?: string;
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
+  readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -162,9 +173,14 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'console_email_outbox',
   'console_email_deliveries',
   'tenant_root_creation_grants',
+  'tenant_deployment_bindings',
+  'active_tenant_deployment_bindings',
+  'tenant_deployment_cutovers',
+  'tenant_deployment_activations',
 ]);
 
 async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
+  let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
@@ -221,7 +237,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
     auth,
-    readyCheck: createConsoleReadyCheck(env),
+    readyCheck: async () => {
+      await createConsoleReadyCheck(env)();
+      if (tenantDeploymentReadyCheck) await tenantDeploymentReadyCheck();
+    },
     billingStripeWebhookSigningSecret: requireEnvString(env, 'STRIPE_WEBHOOK_SECRET'),
   });
   const relayHandler = createWalletConsoleRelayHandler(
@@ -308,17 +327,18 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
       expectedOrigin: requireEnvString(env, 'CONSOLE_STEP_UP_ORIGIN'),
     }),
   });
+  const tenantRootState = createTenantRootSecurityStateReaderV1({
+    activeRoots: new D1TenantRootActiveLineageResolverV1(env.CONSOLE_DB, namespace),
+    router: walletControl.router,
+    internalServiceAuthSecret: WALLET_CONTROL_AUTH_MARKER_V1,
+  });
   const tenantRootCustody = new TenantRootCustodyWorkerRouteV1({
     auth,
     orgProjectEnv: bundle.orgProjectEnv,
     stepUp: tenantRootStepUp,
     database: env.CONSOLE_DB,
     namespace: namespace,
-    state: createTenantRootSecurityStateReaderV1({
-      activeRoots: new D1TenantRootActiveLineageResolverV1(env.CONSOLE_DB, namespace),
-      router: walletControl.router,
-      internalServiceAuthSecret: WALLET_CONTROL_AUTH_MARKER_V1,
-    }),
+    state: tenantRootState,
     organizationAccess: bundle.organizationAccess,
     audit: createConsoleTenantRootAuditWriterV1({ audit: bundle.audit, actorType: 'USER' }),
     internalServiceAuthSecret: WALLET_CONTROL_AUTH_MARKER_V1,
@@ -370,6 +390,42 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     internalServiceAuthSecret: WALLET_CONTROL_AUTH_MARKER_V1,
     stepUp: tenantRootStepUp,
   });
+  const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
+    database: env.CONSOLE_DB,
+  });
+  const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
+    namespace,
+    deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+    orgProjectEnv: bundle.orgProjectEnv,
+    apiKeys: bundle.apiKeys,
+    runtimeSnapshots: bundle.runtimeSnapshots,
+    tenantRootState,
+    bindings: tenantDeploymentBindings,
+    walletRuntime: createTenantDeploymentRuntimeInspectionClientV1(env.WALLET_RUNTIME),
+  });
+  const tenantDeploymentReadiness = createTenantDeploymentReadinessServiceV1({
+    inspector: tenantDeploymentReadinessAdapter,
+  });
+  const tenantDeploymentStore = createD1TenantDeploymentServiceV1({
+    database: env.CONSOLE_DB,
+  });
+  tenantDeploymentReadyCheck = async () => {
+    const active = await tenantDeploymentBindings.resolveActiveBinding(
+      requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+    );
+    if (!active) throw new Error('active tenant deployment binding is unavailable');
+    await tenantDeploymentReadinessAdapter.inspect(active);
+  };
+  const tenantDeploymentRoute = createTenantDeploymentConsoleRouteV1({
+    auth,
+    orgProjectEnv: bundle.orgProjectEnv,
+    stepUp: tenantRootStepUp,
+    tenantRootState,
+    candidates: tenantDeploymentReadinessAdapter,
+    readiness: tenantDeploymentReadiness,
+    store: tenantDeploymentStore,
+    deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+  });
   // Private service-binding target: exactly the five declared Wallet Console
   // operations, served ahead of the console router.
   const opsHandler = createWalletConsoleOpsHandler({
@@ -406,6 +462,8 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     if (consoleStepUpResponse) return consoleStepUpResponse;
     const tenantRootSecurityReadResponse = await tenantRootSecurityReadRoute(request);
     if (tenantRootSecurityReadResponse) return tenantRootSecurityReadResponse;
+    const tenantDeploymentResponse = await tenantDeploymentRoute(request);
+    if (tenantDeploymentResponse) return tenantDeploymentResponse;
     const relayResponse = await relayHandler(request, ctx);
     if (relayResponse) return relayResponse;
     return await router(request, workerEnv, ctx);
@@ -501,6 +559,17 @@ async function fetch(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
+    database: env.CONSOLE_DB,
+  });
+  const tenantDeploymentResponse = await createTenantDeploymentInternalBindingHandlerV1({
+    deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+    reader: tenantDeploymentReader,
+    setupAdmission: createD1TenantDeploymentSetupAdmissionReaderV1({
+      database: env.CONSOLE_DB,
+    }),
+  })(request);
+  if (tenantDeploymentResponse) return tenantDeploymentResponse;
   if (request.method === 'OPTIONS') {
     const response = new Response(null, { status: 204 });
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);

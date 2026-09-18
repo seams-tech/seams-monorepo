@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-import { isDeepStrictEqual, parseEnv } from 'node:util';
+import { parseEnv } from 'node:util';
 import { gatewayRuntimeProfileNearNetwork } from '../../../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 import { readBackendLane, readFrontendSite } from '../../../scripts/deployment-targets.mjs';
 
@@ -33,8 +33,6 @@ const GATEWAY_SECRET_INPUTS = Object.freeze([
 ]);
 const GATEWAY_EMAIL_SECRET_INPUTS = Object.freeze([['RESEND_API_KEY', 'RESEND_API_KEY']]);
 const PRODUCTION_LANE_VARIABLE_SUFFIXES = Object.freeze([
-  'SEAMS_PROJECT_ENVIRONMENT_ID',
-  'SEAMS_PUBLISHABLE_KEY',
   'NEAR_RPC_URL',
   'NEAR_EXPLORER',
   'TEMPO_RPC_URL',
@@ -428,13 +426,6 @@ function validateCheckedInGatewayConfiguration(config, values) {
 function assertSuppliedValueMatches(values, name, expected) {
   const supplied = readValue(values, name);
   if (supplied && supplied !== expected) {
-    throw new Error(`${name} must be updated in deployment/wallet-system/targets.json first`);
-  }
-}
-
-function assertSuppliedJsonMatches(values, name, expected) {
-  const supplied = parseOptionalJsonObject(values, name);
-  if (supplied && !isDeepStrictEqual(supplied, expected)) {
     throw new Error(`${name} must be updated in deployment/wallet-system/targets.json first`);
   }
 }

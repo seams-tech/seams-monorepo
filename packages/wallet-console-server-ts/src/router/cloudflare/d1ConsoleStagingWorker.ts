@@ -471,6 +471,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
     orgProjectEnv: bundle.orgProjectEnv,
     apiKeys: bundle.apiKeys,
+    policies: bundle.policies,
     runtimeSnapshots: bundle.runtimeSnapshots,
     tenantRootState,
     bindings: tenantDeploymentBindings,

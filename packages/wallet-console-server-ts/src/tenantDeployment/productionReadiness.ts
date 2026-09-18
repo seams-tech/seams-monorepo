@@ -11,6 +11,8 @@ import {
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots/service';
+import type { ConsolePolicyService } from '../policies/service';
+import { resolveConsoleRuntimeSnapshotPayload } from '../router/runtimeSnapshotPayload';
 import type { TenantRootSecurityStateReaderV1 } from '../tenantRootSecurity/consoleRoute';
 import type { TenantRootIdentityV1 } from '../tenantRootCreation/types';
 import type {
@@ -50,6 +52,7 @@ export type ProductionTenantDeploymentReadinessOptionsV1 = {
   readonly deploymentLane: string;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
   readonly apiKeys: ConsoleApiKeyService;
+  readonly policies: ConsolePolicyService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
   readonly tenantRootState: TenantRootSecurityStateReaderV1;
   readonly bindings: TenantDeploymentBindingReaderV1;
@@ -162,11 +165,29 @@ async function authenticateCredential(
 async function resolveRuntimePolicyDigest(
   options: ProductionTenantDeploymentReadinessOptionsV1,
   identity: TenantRootIdentityV1,
+  publishInitialSnapshot: boolean,
 ): Promise<string> {
-  const snapshot = await options.runtimeSnapshots.getLatestSnapshot(
+  let snapshot = await options.runtimeSnapshots.getLatestSnapshot(
     { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
     { environmentId: identity.envId, projectId: identity.projectId },
   );
+  if (!snapshot && publishInitialSnapshot) {
+    const payload = await resolveConsoleRuntimeSnapshotPayload({
+      orgId: identity.orgId,
+      actorUserId: SYSTEM_ACTOR_USER_ID,
+      environmentId: identity.envId,
+      projectId: identity.projectId,
+      policies: options.policies,
+    });
+    snapshot = await options.runtimeSnapshots.publishSnapshot(
+      { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
+      {
+        environmentId: identity.envId,
+        projectId: identity.projectId,
+        payload,
+      },
+    );
+  }
   if (!snapshot) throw new Error('target environment has no published runtime snapshot');
   const payload = encodeTenantDeploymentJsonValueV1(
     jsonValue({
@@ -272,7 +293,11 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   }): Promise<TenantDeploymentBindingV1> {
     const environment = await resolveEnvironment(this.options, input.identity);
     const credential = await resolveCredential(this.options, input.identity, input.credentialId);
-    const runtimePolicyDigestB64u = await resolveRuntimePolicyDigest(this.options, input.identity);
+    const runtimePolicyDigestB64u = await resolveRuntimePolicyDigest(
+      this.options,
+      input.identity,
+      true,
+    );
     const decoded = await buildTenantDeploymentBindingV1({
       kind: 'tenant_deployment_binding_v1',
       schemaVersion: 1,
@@ -312,7 +337,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
     const [root, storedCredential, runtimePolicyDigestB64u, active] = await Promise.all([
       this.options.tenantRootState.readStatus({ identity }),
       resolveCredential(this.options, identity, binding.browserCredential.credentialId),
-      resolveRuntimePolicyDigest(this.options, identity),
+      resolveRuntimePolicyDigest(this.options, identity, false),
       this.options.bindings.resolveActiveBinding(binding.deploymentLane),
     ]);
     assertRootStatus(binding, root);

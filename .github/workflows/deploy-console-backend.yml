@@ -13,6 +13,7 @@ on:
           - production-mainnet
 
 permissions:
+  actions: write
   contents: read
 
 concurrency:
@@ -20,6 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  CONSOLE_BUILD_CACHE_KEY: console-build-${{ inputs.lane }}-${{ github.run_id }}-${{ github.run_attempt }}
   DEPLOY_LANE: ${{ inputs.lane }}
   DEPLOY_SHA: ${{ github.sha }}
 
@@ -73,14 +75,10 @@ jobs:
         run: pnpm deploy:backend build --lane "$DEPLOY_LANE" --component console
       - name: Check Console build entry
         run: test -s .release-artifacts/console/payload/d1ConsoleStagingWorker.js
-      - name: Upload Console artifact
-        uses: actions/upload-artifact@v7
+      - name: Save Console build
+        uses: actions/cache/save@v6
         with:
-          name: console-build-${{ inputs.lane }}
-          overwrite: true
-          include-hidden-files: true
-          retention-days: 30
-          compression-level: 0
+          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
           path: |
             .release-artifacts/console
             packages/console-server-ts/.wrangler/generated
@@ -109,10 +107,14 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Download Console artifact
-        uses: actions/download-artifact@v8
+      - name: Restore Console build
+        uses: actions/cache/restore@v6
         with:
-          name: console-build-${{ inputs.lane }}
+          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
+          path: |
+            .release-artifacts/console
+            packages/console-server-ts/.wrangler/generated
+          fail-on-cache-miss: true
       - name: Apply Console D1 migrations
         run: pnpm deploy:backend migrate --lane "$DEPLOY_LANE" --component console
 
@@ -152,10 +154,14 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Download Console artifact
-        uses: actions/download-artifact@v8
+      - name: Restore Console build
+        uses: actions/cache/restore@v6
         with:
-          name: console-build-${{ inputs.lane }}
+          key: ${{ env.CONSOLE_BUILD_CACHE_KEY }}
+          path: |
+            .release-artifacts/console
+            packages/console-server-ts/.wrangler/generated
+          fail-on-cache-miss: true
       - name: Deploy Console
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component console
       - name: Smoke Console

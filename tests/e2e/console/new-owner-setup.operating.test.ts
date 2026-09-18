@@ -47,7 +47,8 @@ test.describe('Console operating paths', () => {
     ).toBeVisible();
     const pageCredentialScope = page.getByRole('region', { name: 'Credential scope' });
     await expect(pageCredentialScope).toContainText('Current credential scope');
-    await expect(pageCredentialScope).toContainText(`${tenant.projectName} · Development`);
+    await expect(pageCredentialScope).toContainText(tenant.projectName);
+    await expect(pageCredentialScope).toContainText('Development');
     await expect(pageCredentialScope).toContainText('Chain network');
     await expect(pageCredentialScope).toContainText('Environment ID');
 
@@ -56,8 +57,9 @@ test.describe('Console operating paths', () => {
     await expect(createDialog).toBeVisible();
     const dialogCredentialScope = createDialog.getByRole('region', { name: 'Credential scope' });
     await expect(dialogCredentialScope).toContainText('Creating for');
-    await expect(dialogCredentialScope).toContainText(`${tenant.projectName} · Development`);
-    await expect(dialogCredentialScope).toContainText('Development uses Testnet.');
+    await expect(dialogCredentialScope).toContainText(tenant.projectName);
+    await expect(dialogCredentialScope).toContainText('Development');
+    await expect(dialogCredentialScope).toContainText('Testnet');
     await createDialog.getByRole('button', { name: /Browser publishable_key/ }).click();
     await expect(createDialog.getByLabel('Allowed origins URI 1')).toHaveValue(
       new URL(page.url()).origin,

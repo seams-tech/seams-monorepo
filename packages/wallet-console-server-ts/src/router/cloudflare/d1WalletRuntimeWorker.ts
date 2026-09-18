@@ -3,7 +3,10 @@ import {
   handleSplitGatewayWalletRuntimeRequest,
   type CloudflareD1GatewayEnv,
 } from '@seams/wallet-server/hosted-wallet-gateway';
-import type { WalletControlRuntimeBindings } from '@seams/wallet-server/cloud-host';
+import {
+  handleWalletControlRequest,
+  type WalletControlRuntimeBindings,
+} from '@seams/wallet-server/cloud-host';
 import { resolveEmailOtpDeliveryProviderFromEnv } from '../../email/otp/emailOtpProviders';
 import {
   resolveBoundTenantDeploymentRuntimeEnvironmentV1,
@@ -25,6 +28,8 @@ async function fetch(
     database: env.SIGNER_DB,
   })(request);
   if (inspectionResponse) return inspectionResponse;
+  const controlResponse = await handleWalletControlRequest(request, env);
+  if (controlResponse) return controlResponse;
   const url = new URL(request.url);
   if (request.method === 'POST' && url.pathname === '/wallets/register/setup') {
     const allowed = await resolveTenantDeploymentSetupAdmissionFromServiceV1({

@@ -1,7 +1,7 @@
 # Refactor 127: immutable tenant deployment bindings and coordinated cutover
 
 **Status:** In progress. The canonical contracts, insert-only persistence,
-atomic compare-and-swap activation, cutover state store, signed semantic
+atomic compare-and-swap activation, cutover state store, versioned semantic
 readiness, public projection, and deployed Gateway/Wallet runtime resolution
 are implemented. Authenticated, step-up-protected plan, status, tenant-root,
 readiness, and activation operations now use production Console, Router, and

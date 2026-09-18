@@ -4,7 +4,8 @@ const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_JWKS = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
 const EXPECTED_AUDIENCE = 'seams-tenant-cutover';
-const EXPECTED_SUBJECT = 'repo:seams-tech/seams-monorepo:environment:production-live-demo';
+const EXPECTED_SUBJECT =
+  'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo';
 const EXPECTED_WORKFLOW =
   'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main';
 

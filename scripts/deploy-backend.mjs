@@ -14,7 +14,12 @@ import {
   tenantRootManagedBackupConfig,
 } from './deployment-targets.mjs';
 import { readMigrationSet } from './migration-fingerprint.mjs';
-import { formatFailedCheck, isFailedCheck, runReadinessChecks } from './deployment-smoke.mjs';
+import {
+  formatFailedCheck,
+  isFailedCheck,
+  isWalletSystemDeploymentReady,
+  runReadinessChecks,
+} from './deployment-smoke.mjs';
 import {
   GATEWAY_WORKER_COMPATIBILITY_DATE,
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
@@ -1588,6 +1593,7 @@ async function smokeBackend(lane, component) {
       checks.push({
         name: requestPath,
         url: new URL(requestPath, lane.gatewayOrigin).toString(),
+        isReady: isWalletSystemDeploymentReady,
       });
     }
   } else {

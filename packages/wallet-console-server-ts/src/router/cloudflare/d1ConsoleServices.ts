@@ -1226,15 +1226,32 @@ export async function createCloudflareD1ConsoleOnlyServiceBundle(
 ): Promise<CloudflareD1ConsoleOnlyServiceBundle> {
   const normalized = normalizeCloudflareD1ConsoleOnlyServiceBundleOptions(options);
   const services = await createCloudflareD1ConsoleCommonServices(normalized);
+  const apiKeys = normalized.sponsoredEvmCallConfig
+    ? createTempoOnboardingApiKeyService({
+        apiKeys: services.apiKeys,
+        orgProjectEnv: services.orgProjectEnv,
+        policies: services.policies,
+        runtimeSnapshots: services.runtimeSnapshots,
+        pricingSeed: {
+          database: normalized.consoleDatabase,
+          namespace: normalized.namespace,
+          now: normalized.now,
+        },
+      })
+    : services.apiKeys;
+  const servicesWithApiKeys = {
+    ...services,
+    apiKeys,
+  };
   const spendCaps = await createCloudflareD1SpendCaps(normalized);
   const sponsorshipPricing = await createCloudflareD1RouterApiSponsorshipPricing(normalized);
   return {
     tenantStorageNamespace: normalized.namespace,
-    ...services,
+    ...servicesWithApiKeys,
     spendCaps,
     sponsorshipPricing,
     consoleRouterOptions: {
-      ...services,
+      ...servicesWithApiKeys,
     },
   };
 }

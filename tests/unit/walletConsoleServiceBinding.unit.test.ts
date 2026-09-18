@@ -26,7 +26,7 @@ const CTX = {
   orgId: 'org-binding-test',
   actorUserId: 'user-binding-test',
   projectId: 'project-1',
-  environmentId: 'env-1',
+  environmentId: 'project-1:dev',
 };
 
 function buildTenantRootIdentity(): TenantRootIdentityV1 {

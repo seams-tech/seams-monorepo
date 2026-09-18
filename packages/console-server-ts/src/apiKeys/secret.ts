@@ -6,6 +6,18 @@ const LOOKUP_PREFIX_LENGTH = 24;
 const SECRET_BODY_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const SECRET_BODY_LENGTH = 32;
 
+type ApiKeyEnvironmentTag = 'dev' | 'stg' | 'prod';
+
+function apiKeyEnvironmentTag(environmentId: string): ApiKeyEnvironmentTag {
+  const normalized = String(environmentId || '')
+    .trim()
+    .toLowerCase();
+  if (normalized.endsWith(':dev')) return 'dev';
+  if (normalized.endsWith(':staging')) return 'stg';
+  if (normalized.endsWith(':prod')) return 'prod';
+  throw new Error(`API key environment ID must end with :dev, :staging, or :prod`);
+}
+
 function requireCrypto(): Crypto {
   if (!globalThis.crypto?.getRandomValues) {
     throw new Error('WebCrypto getRandomValues is required for API key secret generation');
@@ -33,13 +45,13 @@ export function makeId(prefix: string, now: Date): string {
   return `${prefix}_${ts}${suffix}`;
 }
 
-export function makeApiKeyId(): string {
+export function makeApiKeyId(input: { environmentId: string }): string {
   const random = new Uint8Array(8);
   requireCrypto().getRandomValues(random);
   const suffix = Array.from(random)
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('');
-  return `ak_${suffix}`;
+  return `ak_${apiKeyEnvironmentTag(input.environmentId)}_${suffix}`;
 }
 
 function randomAlphaNumeric(length: number): string {
@@ -61,9 +73,12 @@ function randomAlphaNumeric(length: number): string {
   return out.join('');
 }
 
-export function makeApiKeySecret(input: { kind?: 'secret_key' | 'publishable_key' }): string {
-  const kind = input.kind === 'publishable_key' ? 'publishable_key' : 'secret_key';
-  return `${SECRET_PREFIX_BY_KIND[kind]}${randomAlphaNumeric(SECRET_BODY_LENGTH)}`;
+export function makeApiKeySecret(input: {
+  kind: 'secret_key' | 'publishable_key';
+  environmentId: string;
+}): string {
+  const environmentTag = apiKeyEnvironmentTag(input.environmentId);
+  return `${SECRET_PREFIX_BY_KIND[input.kind]}${environmentTag}_${randomAlphaNumeric(SECRET_BODY_LENGTH)}`;
 }
 
 export function parseApiKeySecret(rawSecret: string): {
@@ -77,9 +92,7 @@ export function parseApiKeySecret(rawSecret: string): {
       : null;
   if (!kind) return null;
   const body = secret.slice(SECRET_PREFIX_BY_KIND[kind].length).trim();
-  if (!body) return null;
-  if (body.includes('.')) return null;
-  if (!/^[A-Za-z0-9]+$/.test(body)) return null;
+  if (!/^(?:(?:dev|stg|prod)_)?[A-Za-z0-9]+$/.test(body)) return null;
   return { kind };
 }
 

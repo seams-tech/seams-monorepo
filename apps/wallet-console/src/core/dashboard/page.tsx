@@ -41,6 +41,7 @@ import {
 import { isDashboardDefaultOrganizationName } from './utils/organizationIdentity';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useFrontendRuntime } from '@core/runtime';
+import { networkForConsoleEnvironmentId } from './environmentNetwork';
 import {
   listDashboardAccountOrganizations,
   switchDashboardAccountOrganizationContext,
@@ -966,6 +967,10 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       if (menu === 'project') {
         setSelectedProjectId(value);
       }
+      if (menu === 'environment') {
+        const network = networkForConsoleEnvironmentId(value);
+        if (network) frontendRuntime.selectNetwork(network);
+      }
     },
     [
       DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION,
@@ -976,6 +981,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       go,
       logoutPending,
       onSelectContextRaw,
+      frontendRuntime,
       switchOrganizationContext,
     ],
   );
@@ -993,9 +999,17 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       });
       setSelectedProjectId(projectId);
       setEnvironmentSelection({ kind: 'idle' });
+      const network = networkForConsoleEnvironmentId(environmentId);
+      if (network) frontendRuntime.selectNetwork(network);
     },
-    [currentOrgId, workspaceProjectGroups],
+    [currentOrgId, frontendRuntime, workspaceProjectGroups],
   );
+
+  React.useEffect(() => {
+    const network = networkForConsoleEnvironmentId(selectedContext.environment);
+    if (!network || network === frontendRuntime.selectedNetwork) return;
+    frontendRuntime.selectNetwork(network);
+  }, [frontendRuntime, selectedContext.environment]);
 
   React.useEffect(() => {
     if (!consoleSession.claims) return;
@@ -1151,15 +1165,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         accountLabel={consoleSession.claims?.name || consoleSession.claims?.email || 'Account'}
         searchItems={topbarSearchItems}
         onNavigate={(path) => go(path)}
-        network={frontendRuntime.selectedNetwork}
-        availableNetworks={frontendRuntime.availableNetworks}
-        onSelectNetwork={frontendRuntime.selectNetwork}
       />
 
       <DashboardSidebar
-        network={frontendRuntime.selectedNetwork}
-        availableNetworks={frontendRuntime.availableNetworks}
-        onSelectNetwork={frontendRuntime.selectNetwork}
         accountLabel={consoleSession.claims.name || consoleSession.claims.email || 'Account'}
         accountOptions={dropdownOptions.accountSettings}
         onSelectAccount={onSelectContext.bind(null, 'accountSettings')}
@@ -1288,7 +1296,6 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
 }: DashboardPageProps<ProductRoute, ProductGroupKey> & {
   onOrganizationCreated: () => void;
 }): React.JSX.Element {
-  const frontendRuntime = useFrontendRuntime();
   const { go, linkProps } = useSiteRouter();
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(true);
   const [selectedProductId, setSelectedProductId] = React.useState<DashboardProductId>(
@@ -1361,15 +1368,9 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
         onSelectContext={selectTopbarContext}
         dropdownOptions={dropdownOptions}
         accountLabel="Account"
-        network={frontendRuntime.selectedNetwork}
-        availableNetworks={frontendRuntime.availableNetworks}
-        onSelectNetwork={frontendRuntime.selectNetwork}
       />
 
       <DashboardSidebar
-        network={frontendRuntime.selectedNetwork}
-        availableNetworks={frontendRuntime.availableNetworks}
-        onSelectNetwork={frontendRuntime.selectNetwork}
         accountLabel="Account"
         accountOptions={accountOptions}
         onSelectAccount={selectAccountOption}

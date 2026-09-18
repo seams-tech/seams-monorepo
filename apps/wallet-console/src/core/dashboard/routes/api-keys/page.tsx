@@ -24,7 +24,10 @@ import {
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import { DashboardPageActions } from '../../components/DashboardPageActions';
 import { useDashboardConsoleSession } from '../../consoleSession';
-import { useDashboardSelectedContext } from '../../selectedContext';
+import {
+  useDashboardSelectedContext,
+  useDashboardSelectedContextDisplay,
+} from '../../selectedContext';
 import {
   createDashboardApiKey,
   deleteRevokedDashboardApiKey,
@@ -35,10 +38,11 @@ import {
   type CreateDashboardApiKeyInput,
   type DashboardConsoleApiKey,
 } from './consoleApiKeysApi';
-import { getActiveFrontendDeployment } from '@core/runtime';
+import { useFrontendRuntime, type ConsoleNetwork } from '@core/runtime';
 import { CopyButton } from '@core/components/CopyButton';
 import { UriListEditor } from '../../components/UriListEditor';
 import { ScopePicker } from '../../components/ScopePicker';
+import { networkForConsoleEnvironmentId } from '../../environmentNetwork';
 import { getDashboardEnvironmentLabel } from '../../utils/scopeLabels';
 import type { ApiCredentialScope, ApiCredentialScopeCatalog } from './apiKeyScopeCatalog';
 
@@ -80,6 +84,62 @@ type PendingCredentialAction = {
   type: 'rotate' | 'revoke';
   apiKey: DashboardConsoleApiKey;
 } | null;
+
+function formatNetworkLabel(network: ConsoleNetwork): string {
+  return network === 'mainnet' ? 'Mainnet' : 'Testnet';
+}
+
+function readBrowserOrigin(): string {
+  return typeof window === 'undefined' ? '' : window.location.origin;
+}
+
+function CredentialScopeSummary({
+  environmentId,
+  environmentName,
+  network,
+  projectName,
+  variant,
+}: {
+  environmentId: string;
+  environmentName: string;
+  network: ConsoleNetwork;
+  projectName: string;
+  variant: 'page' | 'dialog';
+}): React.JSX.Element {
+  return (
+    <section
+      className={`dashboard-credential-scope dashboard-credential-scope--${variant}`}
+      aria-label="Credential scope"
+    >
+      <div className="dashboard-credential-scope__header">
+        <strong>{variant === 'dialog' ? 'Creating for' : 'Current credential scope'}</strong>
+        <span>
+          {projectName} · {environmentName}
+        </span>
+      </div>
+      <dl className="dashboard-credential-scope__facts">
+        <div>
+          <dt>Chain network</dt>
+          <dd>{formatNetworkLabel(network)}</dd>
+        </div>
+        <div>
+          <dt>Environment</dt>
+          <dd>{environmentName}</dd>
+        </div>
+        <div>
+          <dt>Environment ID</dt>
+          <dd>
+            <code>{environmentId}</code>
+          </dd>
+        </div>
+      </dl>
+      <p>
+        {environmentName} uses {formatNetworkLabel(network)}. A credential created here only works
+        for this environment.
+      </p>
+    </section>
+  );
+}
 
 function parseCsvValues(raw: string): string[] {
   const out: string[] = [];
@@ -351,14 +411,19 @@ export function ApiKeyManagementPage({
 }): React.JSX.Element {
   const session = useDashboardConsoleSession();
   const selectedContext = useDashboardSelectedContext();
+  const selectedContextDisplay = useDashboardSelectedContextDisplay();
+  const { deployment, selectedNetwork } = useFrontendRuntime();
   const selectedEnvironmentId = String(selectedContext.environment || '').trim();
-  const walletOriginHint = React.useMemo(
-    () => String(getActiveFrontendDeployment().walletOrigin || 'https://localhost:4002').trim(),
-    [],
-  );
+  const credentialNetwork =
+    networkForConsoleEnvironmentId(selectedEnvironmentId) ?? selectedNetwork;
+  const selectedEnvironmentName =
+    String(selectedContextDisplay.environment || '').trim() || selectedEnvironmentId;
+  const selectedProjectName =
+    String(selectedContextDisplay.project || '').trim() || String(selectedContext.project).trim();
+  const registrationOriginHint = React.useMemo(readBrowserOrigin, []);
   const defaultPublishableOrigins = React.useMemo(
-    () => parseEditableList(['http://localhost:4001', walletOriginHint]),
-    [walletOriginHint],
+    () => parseEditableList([registrationOriginHint]),
+    [registrationOriginHint],
   );
   const [apiKeys, setApiKeys] = React.useState<DashboardConsoleApiKey[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -534,13 +599,13 @@ export function ApiKeyManagementPage({
             return;
           }
           if (
-            walletOriginHint &&
+            registrationOriginHint &&
             !allowedOrigins.some(
-              (origin) => normalizeOrigin(origin) === normalizeOrigin(walletOriginHint),
+              (origin) => normalizeOrigin(origin) === normalizeOrigin(registrationOriginHint),
             )
           ) {
             setMutationError(
-              `Allowed origins are missing the wallet origin ${walletOriginHint}. Managed registration runs from that origin, so add it to this publishable_key.`,
+              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
             );
             return;
           }
@@ -610,7 +675,7 @@ export function ApiKeyManagementPage({
       selectedEnvironmentId,
       session.claims,
       session.errorMessage,
-      walletOriginHint,
+      registrationOriginHint,
     ],
   );
 
@@ -643,13 +708,13 @@ export function ApiKeyManagementPage({
             return;
           }
           if (
-            walletOriginHint &&
+            registrationOriginHint &&
             !allowedOrigins.some(
-              (origin) => normalizeOrigin(origin) === normalizeOrigin(walletOriginHint),
+              (origin) => normalizeOrigin(origin) === normalizeOrigin(registrationOriginHint),
             )
           ) {
             setEditingError(
-              `Allowed origins are missing the wallet origin ${walletOriginHint}. Managed registration runs from that origin, so add it to this publishable_key.`,
+              `Allowed origins must include the registration origin ${registrationOriginHint}.`,
             );
             return;
           }
@@ -702,7 +767,7 @@ export function ApiKeyManagementPage({
       scopeCatalog,
       session.claims,
       session.errorMessage,
-      walletOriginHint,
+      registrationOriginHint,
     ],
   );
 
@@ -805,6 +870,14 @@ export function ApiKeyManagementPage({
         </button>
       </DashboardPageActions>
 
+      <CredentialScopeSummary
+        environmentId={selectedEnvironmentId}
+        environmentName={selectedEnvironmentName}
+        network={credentialNetwork}
+        projectName={selectedProjectName}
+        variant="page"
+      />
+
       {mutationError && !isCreateModalOpen && pendingAction === null ? (
         <p className="dashboard-form-alert" role="alert">
           {mutationError}
@@ -832,6 +905,10 @@ export function ApiKeyManagementPage({
             <div className="dashboard-secret-banner__fact">
               <span className="dashboard-secret-banner__fact-label">Credential ID</span>
               <code>{revealedCredential.apiKey.id}</code>
+            </div>
+            <div className="dashboard-secret-banner__fact">
+              <span className="dashboard-secret-banner__fact-label">Environment ID</span>
+              <code>{revealedCredential.apiKey.environmentId}</code>
             </div>
             <div className="dashboard-secret-banner__fact">
               <span className="dashboard-secret-banner__fact-label">Credential value</span>
@@ -889,7 +966,7 @@ export function ApiKeyManagementPage({
                     revealedCredential.credential,
                     revealedCredential.apiKey.environmentId,
                     revealedCredential.apiKey.allowedOrigins,
-                    walletOriginHint,
+                    deployment.walletOrigin,
                   )
                 : buildSecretKeyServerSnippet(
                     revealedCredential.credential,
@@ -1016,6 +1093,14 @@ export function ApiKeyManagementPage({
       >
         <h2>Create credential</h2>
 
+        <CredentialScopeSummary
+          environmentId={selectedEnvironmentId}
+          environmentName={selectedEnvironmentName}
+          network={credentialNetwork}
+          projectName={selectedProjectName}
+          variant="dialog"
+        />
+
         <div className="dashboard-mode-toggle" aria-label="Credential kind">
           {(['secret_key', 'publishable_key'] as DashboardCredentialKind[]).map((kind) => {
             const mode = describeCredentialMode(kind);
@@ -1061,12 +1146,10 @@ export function ApiKeyManagementPage({
                   label="Allowed origins"
                   description={
                     <>
+                      <p>Add the exact browser origin that calls the registration API.</p>
                       <p>
-                        Use exact browser origins only. Managed registration runs from the wallet
-                        origin, not the app origin.
-                      </p>
-                      <p>
-                        In this local dev setup, include <code>{walletOriginHint}</code>.
+                        This browser is running at <code>{registrationOriginHint}</code>, so it is
+                        included by default.
                       </p>
                     </>
                   }

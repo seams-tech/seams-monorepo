@@ -11,6 +11,18 @@ Both credentials are stored in the Console D1 `api_keys` table. Secret values
 are shown once when created. The database retains only the verification
 material and display-safe prefix.
 
+Credential values and management IDs identify their environment class:
+
+- Development uses Testnet and creates `pk_dev_...`, `sk_dev_...`, and
+  `ak_dev_...` identifiers.
+- Production uses Mainnet and creates `pk_prod_...`, `sk_prod_...`, and
+  `ak_prod_...` identifiers.
+- Staging uses Testnet and creates `pk_stg_...`, `sk_stg_...`, and
+  `ak_stg_...` identifiers.
+
+The environment selector is the network selector. Changing environments
+switches the Console and Gateway endpoints together.
+
 ## Browser registration
 
 The browser sends its environment's `publishable_key` directly to
@@ -42,6 +54,8 @@ of browser-visible responses, logs, and build artifacts.
 The API keys page lets an authorized organization operator:
 
 - create a publishable or secret key for the selected environment;
+- see the environment name, environment ID, and derived chain network before
+  creating a key;
 - set origin restrictions for a publishable key;
 - view key kind, prefix, status, scopes, and timestamps;
 - revoke a key without revealing its secret again.

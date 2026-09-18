@@ -53,6 +53,7 @@ export type SidebarItem<Route extends string = DashboardRoute> = {
   component: DashboardViewComponent;
   /** Renders a trailing "+" in the rail that opens this route's create dialog. */
   createLabel?: string;
+  access?: 'owner';
 };
 
 export type SidebarGroup<

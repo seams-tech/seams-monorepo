@@ -1,26 +1,25 @@
 .tenant-deployment-page {
-  max-width: 72rem;
+  max-width: 980px;
 }
 
 .tenant-deployment-header {
-  max-width: 48rem;
-  margin-block-end: 2rem;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 28px;
 }
 
-.tenant-deployment-header h1 {
-  margin: 0.25rem 0 0.75rem;
+.tenant-deployment-header h1,
+.tenant-deployment-header p {
+  margin: 0;
 }
 
 .tenant-deployment-header > p:last-child,
-.tenant-deployment-section-heading p,
-.tenant-deployment-activation p {
-  color: var(--dashboard-muted-foreground, #71717a);
-  line-height: 1.6;
+.tenant-deployment-section-heading p {
+  color: var(--dashboard-text-muted);
 }
 
 .tenant-deployment-eyebrow {
-  margin: 0;
-  color: var(--dashboard-muted-foreground, #71717a);
+  color: var(--dashboard-text-muted);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -30,192 +29,99 @@
 .tenant-deployment-summary {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  max-width: 48rem;
-  margin-block-end: 1.5rem;
-  padding: 1rem;
-  border: 1px solid var(--dashboard-border, #e4e4e7);
-  border-radius: 1rem;
-  background: var(--dashboard-surface, #fff);
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 16px;
 }
 
 .tenant-deployment-summary-icon {
   display: grid;
-  flex: 0 0 2.5rem;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border-radius: 0.75rem;
-  color: #047857;
-  background: #ecfdf5;
+  border-radius: 12px;
+  color: var(--dashboard-success-text);
+  background: var(--dashboard-success-surface);
 }
 
 .tenant-deployment-summary div {
   display: grid;
-  gap: 0.25rem;
-  min-width: 0;
+  gap: 4px;
 }
 
 .tenant-deployment-summary span:last-child {
-  overflow-wrap: anywhere;
-  color: var(--dashboard-muted-foreground, #71717a);
+  color: var(--dashboard-text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8125rem;
-}
-
-.tenant-deployment-form {
-  display: grid;
-  gap: 1.5rem;
+  overflow-wrap: anywhere;
 }
 
 .tenant-deployment-section {
-  display: grid;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  border: 1px solid var(--dashboard-border, #e4e4e7);
-  border-radius: 1rem;
-  background: var(--dashboard-surface, #fff);
+  padding: 28px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 18px;
 }
 
 .tenant-deployment-section-heading {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
+  gap: 14px;
+  margin-bottom: 24px;
 }
 
 .tenant-deployment-section-heading > span {
   display: grid;
-  flex: 0 0 2rem;
-  width: 2rem;
-  height: 2rem;
+  width: 34px;
+  height: 34px;
+  flex: none;
   place-items: center;
-  border-radius: 0.625rem;
-  background: #18181b;
-  color: #fff;
-  font-size: 0.8125rem;
-  font-weight: 700;
+  border-radius: 10px;
+  color: var(--dashboard-text-strong);
+  background: var(--dashboard-surface-muted);
 }
 
 .tenant-deployment-section-heading h2,
-.tenant-deployment-activation h2 {
+.tenant-deployment-section-heading p {
   margin: 0;
-  font-size: 1rem;
 }
 
-.tenant-deployment-section-heading p,
-.tenant-deployment-activation p {
-  margin: 0.25rem 0 0;
+.tenant-deployment-section-heading p {
+  margin-top: 5px;
 }
 
-.tenant-deployment-field-grid {
+.tenant-deployment-status-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 16px;
+  margin: 0;
 }
 
-.tenant-deployment-field-grid label {
-  display: grid;
-  gap: 0.5rem;
+.tenant-deployment-status-value {
   min-width: 0;
-  font-weight: 600;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--dashboard-surface-muted);
 }
 
-.tenant-deployment-field-grid input {
-  width: 100%;
-  min-height: 2.75rem;
-  box-sizing: border-box;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--dashboard-border, #d4d4d8);
-  border-radius: 0.75rem;
-  background: var(--dashboard-surface, #fff);
-  color: inherit;
-  font: inherit;
-  font-weight: 400;
+.tenant-deployment-status-value dt {
+  margin-bottom: 7px;
+  color: var(--dashboard-text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
 }
 
-.tenant-deployment-field-grid input:focus-visible {
-  outline: 2px solid #059669;
-  outline-offset: 2px;
+.tenant-deployment-status-value dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.tenant-deployment-field-grid input:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.tenant-deployment-activation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  background: #f4f4f5;
-}
-
-.tenant-deployment-activation > div {
-  max-width: 42rem;
-}
-
-.tenant-deployment-activation button {
-  flex: 0 0 auto;
-  min-height: 2.75rem;
-}
-
-.tenant-deployment-status {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-height: 1.5rem;
-  color: var(--dashboard-muted-foreground, #71717a);
-}
-
-.tenant-deployment-status--idle {
-  min-height: 0;
-}
-
-.tenant-deployment-status--error {
-  color: #b91c1c;
-}
-
-.tenant-deployment-status--complete {
-  color: #047857;
-}
-
-.tenant-deployment-spinner {
-  animation: tenant-deployment-spin 0.8s linear infinite;
-}
-
-@keyframes tenant-deployment-spin {
-  to {
-    rotate: 360deg;
+@media (max-width: 720px) {
+  .tenant-deployment-section {
+    padding: 20px;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .tenant-deployment-spinner {
-    animation: none;
-  }
-}
-
-@media (max-width: 52rem) {
-  .tenant-deployment-field-grid {
+  .tenant-deployment-status-grid {
     grid-template-columns: 1fr;
-  }
-
-  .tenant-deployment-activation {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .tenant-deployment-activation button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 32rem) {
-  .tenant-deployment-section,
-  .tenant-deployment-activation {
-    padding: 1rem;
   }
 }

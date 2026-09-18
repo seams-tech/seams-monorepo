@@ -1086,8 +1086,16 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     [isPlatformAdmin],
   );
   const visibleSidebarGroups = React.useMemo(
-    () => SIDEBAR_GROUPS.filter((group) => group.key !== 'platform' || isPlatformAdmin),
-    [SIDEBAR_GROUPS, isPlatformAdmin],
+    () =>
+      SIDEBAR_GROUPS.filter((group) => group.key !== 'platform' || isPlatformAdmin)
+        .map((group) => ({
+          ...group,
+          items: group.items.filter(
+            (item) => item.access !== 'owner' || consoleSession.claims?.role === 'OWNER',
+          ),
+        }))
+        .filter((group) => group.items.length > 0),
+    [SIDEBAR_GROUPS, consoleSession.claims?.role, isPlatformAdmin],
   );
 
   const topbarSearchItems = React.useMemo(

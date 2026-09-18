@@ -1,283 +1,192 @@
 import React from 'react';
-import { CircleCheck, LoaderCircle, Rocket, TriangleAlert } from 'lucide-react';
-import { getActiveFrontendDeployment } from '@core/runtime';
+import { CircleCheck, ShieldCheck } from 'lucide-react';
+import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
 import {
-  activateTenantDeployment,
-  type TenantDeploymentCutoverInput,
-  type TenantDeploymentCutoverProgress,
-} from './consoleTenantDeploymentApi';
+  useDashboardSelectedContext,
+  useDashboardSelectedContextDisplay,
+} from '@core/dashboard/selectedContext';
+import { listDashboardAuditEvents } from '@core/dashboard/routes/audit/consoleAuditApi';
+import { getActiveFrontendDeployment } from '@core/runtime';
 import './tenantDeployment.css';
 
-type FormFields = {
-  readonly credentialId: string;
-  readonly publishableKey: string;
-  readonly applicationOrigin: string;
-  readonly hostedWalletOrigin: string;
-  readonly gatewayOrigin: string;
-  readonly relyingPartyId: string;
-};
+type DeploymentStatus =
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'error'; readonly message: string }
+  | {
+      readonly kind: 'ready';
+      readonly revision: string;
+      readonly environmentId: string;
+      readonly mode: string;
+      readonly applicationOrigin: string;
+      readonly hostedWalletOrigin: string;
+      readonly gatewayOrigin: string;
+      readonly relyingPartyId: string;
+      readonly activatedAt: string | null;
+      readonly activationSequence: number | null;
+      readonly canaryDigest: string | null;
+    };
 
-function initialFields(): FormFields {
+function textField(source: Record<string, unknown>, name: string): string {
+  const value = source[name];
+  return typeof value === 'string' ? value : '';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+async function loadDeploymentStatus(input: {
+  readonly projectId: string;
+  readonly environmentId: string;
+}): Promise<DeploymentStatus> {
   const deployment = getActiveFrontendDeployment();
-  const hostedWalletOrigin = new URL(deployment.walletOrigin).origin;
+  const [projectionResponse, auditEvents] = await Promise.all([
+    fetch(`${deployment.relayerUrl}/.well-known/seams-tenant-deployment.json`, {
+      cache: 'no-store',
+    }),
+    listDashboardAuditEvents({
+      projectId: input.projectId,
+      environmentId: input.environmentId,
+      category: 'SYSTEM',
+      q: 'tenant_deployment.activate',
+      limit: 10,
+    }),
+  ]);
+  const raw: unknown = await projectionResponse.json().catch(() => null);
+  if (!projectionResponse.ok || !isRecord(raw)) {
+    throw new Error('The active deployment projection is unavailable.');
+  }
+  const projection = raw;
+  if (textField(projection, 'environmentId') !== input.environmentId) {
+    throw new Error('This environment does not have an active deployment binding.');
+  }
+  const latestActivation = auditEvents.find(
+    (event) => event.action === 'tenant_deployment.activate' && event.outcome === 'SUCCESS',
+  );
+  const metadata = latestActivation?.metadata ?? {};
+  const mode = projection.mode;
   return {
-    credentialId: '',
-    publishableKey: '',
-    applicationOrigin: window.location.origin,
-    hostedWalletOrigin,
-    gatewayOrigin: new URL(deployment.relayerUrl).origin,
-    relyingPartyId: new URL(hostedWalletOrigin).hostname,
+    kind: 'ready',
+    revision: textField(projection, 'revision'),
+    environmentId: textField(projection, 'environmentId'),
+    mode: isRecord(mode) ? textField(mode, 'kind') : '',
+    applicationOrigin: textField(projection, 'applicationOrigin'),
+    hostedWalletOrigin: textField(projection, 'hostedWalletOrigin'),
+    gatewayOrigin: textField(projection, 'gatewayOrigin'),
+    relyingPartyId: textField(projection, 'relyingPartyId'),
+    activatedAt: latestActivation?.createdAt ?? null,
+    activationSequence:
+      typeof metadata.activationSequence === 'number' ? metadata.activationSequence : null,
+    canaryDigest:
+      typeof metadata.canaryResponseDigestB64u === 'string'
+        ? metadata.canaryResponseDigestB64u
+        : null,
   };
 }
 
-function fieldChanged(
-  setFields: React.Dispatch<React.SetStateAction<FormFields>>,
-  field: keyof FormFields,
-  event: React.ChangeEvent<HTMLInputElement>,
-): void {
-  const value = event.currentTarget.value;
-  setFields((current) => ({ ...current, [field]: value }));
-}
-
-function cutoverInput(fields: FormFields): TenantDeploymentCutoverInput {
-  return {
-    credentialId: parseCredentialId(fields.credentialId),
-    publishableKey: parsePublishableKey(fields.publishableKey),
-    surfaces: {
-      applicationOrigin: new URL(fields.applicationOrigin.trim()).origin,
-      hostedWalletOrigin: new URL(fields.hostedWalletOrigin.trim()).origin,
-      gatewayOrigin: new URL(fields.gatewayOrigin.trim()).origin,
-      relyingPartyId: fields.relyingPartyId.trim(),
-    },
-  };
-}
-
-function parseCredentialId(value: string): `ak_${string}` {
-  const normalized = value.trim();
-  if (!normalized.startsWith('ak_') || normalized.length <= 3) {
-    throw new Error('Use a credential ID that starts with ak_.');
-  }
-  return `ak_${normalized.slice(3)}`;
-}
-
-function parsePublishableKey(value: string): `pk_${string}` {
-  const normalized = value.trim();
-  if (!normalized.startsWith('pk_') || normalized.length <= 3) {
-    throw new Error('Use a publishable key that starts with pk_.');
-  }
-  return `pk_${normalized.slice(3)}`;
-}
-
-function submitCutover(
-  fields: FormFields,
-  progress: TenantDeploymentCutoverProgress,
-  setProgress: React.Dispatch<React.SetStateAction<TenantDeploymentCutoverProgress>>,
-  event: React.FormEvent<HTMLFormElement>,
-): void {
-  event.preventDefault();
-  if (progress.kind !== 'idle' && progress.kind !== 'error') return;
-  void activateTenantDeployment({ cutover: cutoverInput(fields), setProgress });
-}
-
-function progressMessage(progress: TenantDeploymentCutoverProgress): string {
-  switch (progress.kind) {
-    case 'idle':
-      return '';
-    case 'verifying_passkey':
-      return 'Verify your identity with a Console passkey.';
-    case 'planning':
-      return 'Creating the versioned deployment plan…';
-    case 'preparing_tenant_root':
-      return 'Verifying the active tenant root…';
-    case 'draining':
-      return `Pausing new registrations for ${progress.secondsRemaining} more seconds…`;
-    case 'checking_readiness':
-      return 'Checking the API key, origins, tenant root, and wallet runtime…';
-    case 'activating':
-      return 'Activating the verified deployment binding…';
-    case 'complete':
-      return `Deployment ${progress.bindingRevision} is active.`;
-    case 'error':
-      return progress.message;
-  }
-}
-
-function isPending(progress: TenantDeploymentCutoverProgress): boolean {
-  return !['idle', 'error', 'complete'].includes(progress.kind);
-}
-
-function statusIcon(progress: TenantDeploymentCutoverProgress): React.JSX.Element | null {
-  if (progress.kind === 'idle') return null;
-  if (progress.kind === 'error') return <TriangleAlert size={18} aria-hidden="true" />;
-  if (progress.kind === 'complete') return <CircleCheck size={18} aria-hidden="true" />;
-  return <LoaderCircle className="tenant-deployment-spinner" size={18} aria-hidden="true" />;
+function StatusValue(props: { readonly label: string; readonly value: string }): React.JSX.Element {
+  return (
+    <div className="tenant-deployment-status-value">
+      <dt>{props.label}</dt>
+      <dd>{props.value || 'Unavailable'}</dd>
+    </div>
+  );
 }
 
 export function TenantDeploymentPage(): React.JSX.Element {
-  const [fields, setFields] = React.useState<FormFields>(initialFields);
-  const [progress, setProgress] = React.useState<TenantDeploymentCutoverProgress>({ kind: 'idle' });
-  const deployment = getActiveFrontendDeployment();
-  const pending = isPending(progress);
-  const completed = progress.kind === 'complete';
+  const session = useDashboardConsoleSession();
+  const selectedContext = useDashboardSelectedContext();
+  const selectedContextDisplay = useDashboardSelectedContextDisplay();
+  const [status, setStatus] = React.useState<DeploymentStatus>({ kind: 'loading' });
+  const isOwner = session.claims?.role === 'OWNER';
+
+  React.useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    setStatus({ kind: 'loading' });
+    void loadDeploymentStatus({
+      projectId: selectedContext.project,
+      environmentId: selectedContext.environment,
+    })
+      .then((next) => {
+        if (!cancelled) setStatus(next);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setStatus({
+            kind: 'error',
+            message: error instanceof Error ? error.message : 'Deployment status is unavailable.',
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwner, selectedContext.environment, selectedContext.project]);
+
+  if (!isOwner) {
+    return (
+      <section className="dashboard-page tenant-deployment-page">
+        <h1>Deployment status</h1>
+        <p role="alert">Only organization owners can view deployment status and audit evidence.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="dashboard-page tenant-deployment-page">
       <header className="tenant-deployment-header">
-        <p className="tenant-deployment-eyebrow">Environment operation</p>
-        <h1>Tenant deployment</h1>
+        <p className="tenant-deployment-eyebrow">Owner view</p>
+        <h1>Deployment status</h1>
         <p>
-          Verify and activate one immutable binding for the project, tenant root, browser key, and
-          runtime surfaces.
+          Read-only evidence for {selectedContextDisplay.project} ·{' '}
+          {selectedContextDisplay.environment}. Cutovers run from the protected repository workflow.
         </p>
       </header>
 
-      <div className="tenant-deployment-summary" aria-label="Selected environment">
-        <span className="tenant-deployment-summary-icon">
-          <Rocket size={20} aria-hidden="true" />
-        </span>
-        <div>
-          <strong>
-            {deployment.network === 'testnet' ? 'Development · Testnet' : 'Production · Mainnet'}
-          </strong>
-          <span>{deployment.consoleBaseUrl}</span>
-        </div>
-      </div>
-
-      <form
-        className="tenant-deployment-form"
-        onSubmit={submitCutover.bind(null, fields, progress, setProgress)}
-      >
-        <section
-          className="tenant-deployment-section"
-          aria-labelledby="deployment-credential-title"
-        >
-          <div className="tenant-deployment-section-heading">
-            <span>1</span>
+      {status.kind === 'loading' ? <p role="status">Loading deployment evidence…</p> : null}
+      {status.kind === 'error' ? <p role="alert">{status.message}</p> : null}
+      {status.kind === 'ready' ? (
+        <>
+          <div className="tenant-deployment-summary">
+            <span className="tenant-deployment-summary-icon">
+              <CircleCheck size={20} aria-hidden="true" />
+            </span>
             <div>
-              <h2 id="deployment-credential-title">Browser credential</h2>
-              <p>Use the publishable credential created for this environment.</p>
+              <strong>Active and verified</strong>
+              <span>{status.revision}</span>
             </div>
           </div>
-          <div className="tenant-deployment-field-grid">
-            <label>
-              <span>Credential ID</span>
-              <input
-                name="credentialId"
-                value={fields.credentialId}
-                onChange={fieldChanged.bind(null, setFields, 'credentialId')}
-                placeholder="ak_dev_…"
-                pattern="ak_(dev|prod)_[A-Za-z0-9_-]+"
-                required
-                disabled={pending || completed}
-                autoComplete="off"
-              />
-            </label>
-            <label>
-              <span>Publishable key</span>
-              <input
-                name="publishableKey"
-                value={fields.publishableKey}
-                onChange={fieldChanged.bind(null, setFields, 'publishableKey')}
-                placeholder="pk_dev_…"
-                pattern="pk_(dev|prod)_[A-Za-z0-9_-]+"
-                required
-                disabled={pending || completed}
-                autoComplete="off"
-              />
-            </label>
-          </div>
-        </section>
-
-        <section className="tenant-deployment-section" aria-labelledby="deployment-surfaces-title">
-          <div className="tenant-deployment-section-heading">
-            <span>2</span>
-            <div>
-              <h2 id="deployment-surfaces-title">Runtime surfaces</h2>
-              <p>Confirm the exact origins that must agree before activation.</p>
+          <section className="tenant-deployment-section" aria-labelledby="binding-status-title">
+            <div className="tenant-deployment-section-heading">
+              <span>
+                <ShieldCheck size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="binding-status-title">Immutable binding</h2>
+                <p>The active tenant identity, origins, and canary receipt are audit-only here.</p>
+              </div>
             </div>
-          </div>
-          <div className="tenant-deployment-field-grid">
-            <label>
-              <span>Application origin</span>
-              <input
-                type="url"
-                name="applicationOrigin"
-                value={fields.applicationOrigin}
-                onChange={fieldChanged.bind(null, setFields, 'applicationOrigin')}
-                required
-                disabled={pending || completed}
+            <dl className="tenant-deployment-status-grid">
+              <StatusValue label="Environment ID" value={status.environmentId} />
+              <StatusValue label="Mode" value={status.mode} />
+              <StatusValue label="Application origin" value={status.applicationOrigin} />
+              <StatusValue label="Hosted wallet origin" value={status.hostedWalletOrigin} />
+              <StatusValue label="Gateway origin" value={status.gatewayOrigin} />
+              <StatusValue label="Passkey relying party" value={status.relyingPartyId} />
+              <StatusValue
+                label="Activation"
+                value={
+                  status.activatedAt && status.activationSequence
+                    ? `#${status.activationSequence} · ${status.activatedAt}`
+                    : ''
+                }
               />
-            </label>
-            <label>
-              <span>Hosted wallet origin</span>
-              <input
-                type="url"
-                name="hostedWalletOrigin"
-                value={fields.hostedWalletOrigin}
-                onChange={fieldChanged.bind(null, setFields, 'hostedWalletOrigin')}
-                required
-                disabled={pending || completed}
-              />
-            </label>
-            <label>
-              <span>Gateway origin</span>
-              <input
-                type="url"
-                name="gatewayOrigin"
-                value={fields.gatewayOrigin}
-                onChange={fieldChanged.bind(null, setFields, 'gatewayOrigin')}
-                required
-                disabled={pending || completed}
-              />
-            </label>
-            <label>
-              <span>Passkey relying party ID</span>
-              <input
-                name="relyingPartyId"
-                value={fields.relyingPartyId}
-                onChange={fieldChanged.bind(null, setFields, 'relyingPartyId')}
-                placeholder="test.sign.seams.sh"
-                required
-                disabled={pending || completed}
-                autoComplete="off"
-              />
-            </label>
-          </div>
-        </section>
-
-        <section
-          className="tenant-deployment-activation"
-          aria-labelledby="deployment-activation-title"
-        >
-          <div>
-            <h2 id="deployment-activation-title">Verify and activate</h2>
-            <p>
-              The Console verifies your passkey, pauses new registrations, checks every dependency,
-              and activates the binding atomically.
-            </p>
-          </div>
-          <button
-            type="submit"
-            className="dashboard-pagination-button dashboard-pagination-button--primary"
-            disabled={pending || completed}
-          >
-            {pending
-              ? 'Activation in progress…'
-              : completed
-                ? 'Deployment active'
-                : 'Verify passkey and activate'}
-          </button>
-        </section>
-
-        <div
-          className={`tenant-deployment-status tenant-deployment-status--${progress.kind}`}
-          role={progress.kind === 'error' ? 'alert' : 'status'}
-          aria-live={progress.kind === 'error' ? 'assertive' : 'polite'}
-        >
-          {statusIcon(progress)}
-          <span>{progressMessage(progress)}</span>
-        </div>
-      </form>
+              <StatusValue label="Canary receipt digest" value={status.canaryDigest ?? ''} />
+            </dl>
+          </section>
+        </>
+      ) : null}
     </section>
   );
 }

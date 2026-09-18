@@ -63,7 +63,7 @@ export type WalletDashboardRoute =
   | '/dashboard/wallets-list'
   | '/dashboard/policy-engine'
   | '/dashboard/derivation-root'
-  | '/dashboard/tenant-deployment'
+  | '/dashboard/deployment-status'
   | '/dashboard/gas-sponsorship';
 export type ComposedDashboardRoute = DashboardRoute | WalletDashboardRoute;
 export type ComposedSidebarGroupKey = SidebarGroupKey | 'operationsSecurity';
@@ -305,11 +305,12 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         component: WalletApiKeyManagementPage,
       },
       {
-        key: 'tenant-deployment',
-        label: 'Tenant deployment',
-        path: '/dashboard/tenant-deployment',
+        key: 'deployment-status',
+        label: 'Deployment status',
+        path: '/dashboard/deployment-status',
         icon: ServerIcon,
         component: TenantDeploymentPage,
+        access: 'owner',
       },
       {
         key: 'webhooks',

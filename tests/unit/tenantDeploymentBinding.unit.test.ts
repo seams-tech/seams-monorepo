@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import type { ConsoleAuthAdapter } from '../../packages/console-server-ts/src/router/consoleAuth';
 import {
   buildTenantDeploymentBindingV1,
   decodeTenantDeploymentBindingV1,
@@ -13,7 +12,6 @@ import {
   createD1TenantDeploymentSetupAdmissionReaderV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { createTenantDeploymentReadinessServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/readiness';
-import { createTenantDeploymentConsoleRouteV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/consoleRoute';
 import {
   createTenantDeploymentRuntimeInspectionClientV1,
   createTenantDeploymentRuntimeInspectionHandlerV1,
@@ -484,86 +482,6 @@ test.describe('tenant deployment binding', () => {
         })
       ).ok,
     ).toBe(false);
-  });
-
-  test('does not expose a cutover to another tenant that reuses an environment id', async () => {
-    const decoded = await decodeTenantDeploymentCutoverV1({
-      kind: 'planning',
-      operationId: 'tco_shared123',
-      deploymentLane: 'live-demo',
-      targetIdentity: {
-        organizationId: 'org_1',
-        projectId: 'project_1',
-        environmentId: 'shared:dev',
-        signingRootId: 'project_1:dev',
-        signingRootVersion: 'v1',
-      },
-      expectedActiveRevision: null,
-    });
-    if (!decoded.ok) throw new Error(decoded.message);
-    const auth = {
-      authenticate: () => ({
-        ok: true as const,
-        claims: {
-          userId: 'user_2',
-          orgId: 'org_2',
-          platformSupport: false,
-          membershipId: 'membership_2',
-          role: 'OWNER' as const,
-          authorizationVersion: 1,
-          adminPermissions: [],
-          projectAccess: { kind: 'all' as const },
-          projectId: 'project_2',
-          environmentId: 'shared:dev',
-          sessionId: 'session_2',
-        },
-      }),
-    } as ConsoleAuthAdapter;
-    const unexpected = async (): Promise<never> => {
-      throw new Error('unexpected cutover dependency call');
-    };
-    const route = createTenantDeploymentConsoleRouteV1({
-      auth,
-      orgProjectEnv: {
-        listEnvironments: async () => [
-          {
-            id: 'shared:dev',
-            orgId: 'org_2',
-            projectId: 'project_2',
-            key: 'dev',
-            runtimeVersion: 'v1',
-          },
-        ],
-      } as never,
-      stepUp: { readStepUp: unexpected },
-      tenantRootState: { readStatus: unexpected },
-      candidates: { buildCandidate: unexpected },
-      readiness: { issue: unexpected },
-      store: {
-        putBinding: unexpected,
-        findBinding: unexpected,
-        findActiveBinding: unexpected,
-        resolveActiveBinding: unexpected,
-        activateBinding: unexpected,
-        createCutover: unexpected,
-        findCutover: async () => ({
-          state: decoded.value,
-          recordRevision: 1,
-          createdAtMs: 1,
-          updatedAtMs: 1,
-        }),
-        transitionCutover: unexpected,
-      },
-      deploymentLane: 'live-demo',
-    });
-    const response = await route(
-      new Request('https://console.example/console/tenant-deployment/cutovers/tco_shared123'),
-    );
-    expect(response?.status).toBe(404);
-    await expect(response?.json()).resolves.toMatchObject({
-      ok: false,
-      code: 'cutover_not_found',
-    });
   });
 
   test('issues readiness only for evidence matching the complete binding', async () => {

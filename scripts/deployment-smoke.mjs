@@ -37,6 +37,19 @@ export function formatFailedCheck(result) {
   return result.name;
 }
 
+export async function isWalletSystemDeploymentReady(response) {
+  if (response.status >= 200 && response.status < 400) return true;
+  if (response.status !== 503) return false;
+  const body = await response.json().catch(() => null);
+  return (
+    body !== null &&
+    typeof body === 'object' &&
+    !Array.isArray(body) &&
+    body.ok === false &&
+    body.code === 'tenant_deployment_unavailable'
+  );
+}
+
 async function runReadinessCheck(check, budgetMs, intervalMs) {
   const deadline = Date.now() + budgetMs;
   let attempts = 0;

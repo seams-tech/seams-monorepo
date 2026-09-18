@@ -1,14 +1,11 @@
 # Refactor 127: immutable tenant deployment bindings and coordinated cutover
 
 **Status:** In progress. The canonical contracts, insert-only persistence,
-atomic compare-and-swap activation, cutover state store, versioned semantic
-readiness, public projection, and deployed Gateway/Wallet runtime resolution
-are implemented. Authenticated, step-up-protected plan, status, tenant-root,
-readiness, and activation operations now use production Console, Router, and
-Wallet Runtime adapters. Setup admission is quiesced and drained before the
-zero-ceremony readiness receipt is issued. Ceremony revision pinning in
-`seams-wallet`, canary/retire/rollback operations, the cutover CLI, and the
-safe readiness response projection remain delivery gates.
+atomic activation, semantic readiness, public projection, production adapters,
+repository cutover command, protected live-demo workflow, and automatic
+onboarding hook are implemented. Browser cutover controls have been removed.
+Owners retain a read-only status and audit view. Ceremony revision pinning in
+`seams-wallet` and explicit retirement/rollback remain delivery gates.
 
 ## Decision
 
@@ -455,22 +452,30 @@ insufficient evidence for registration readiness.
 
 ## Coordinated cutover workflow
 
-Expose the workflow through an authenticated Console operation and a CLI used
-by deployment automation:
+Expose the workflow through one repository command used by deployment
+automation:
 
 ```text
-pnpm tenant:cutover plan --lane production-testnet \
+pnpm tenant:cutover --lane production-testnet \
   --environment-id proj_example:dev
-
-pnpm tenant:cutover status --operation tco_...
-pnpm tenant:cutover activate --operation tco_...
-pnpm tenant:cutover retire --operation tco_...
-pnpm tenant:cutover rollback --operation tco_...
 ```
 
-`plan` resolves organization and project identity from the target environment.
-It does not accept separate organization and project overrides that can form
-an inconsistent identity.
+The command accepts only the deployment lane and environment ID. The Console
+resolves organization and project identity from the target environment. It
+does not accept separate organization, project, root, credential, or origin
+overrides that can form an inconsistent deployment.
+
+The production command runs only in `.github/workflows/deploy-live-demo.yml`.
+The job uses the protected `production-live-demo` GitHub environment and a
+short-lived GitHub OIDC token scoped to that workflow, repository, environment,
+branch, and audience. No cutover signing secret or readiness HMAC environment
+variable exists.
+
+The protected workflow deploys and smokes the complete production-testnet
+Wallet runtime plus the Console control plane before it invokes the cutover.
+An empty Console with no active binding remains infrastructure-ready so the
+first automated cutover can bootstrap it; an existing active binding must still
+pass semantic readiness during the Console health check.
 
 The workflow is:
 
@@ -481,7 +486,7 @@ The workflow is:
    - write the `planning` operation.
 2. **Prepare tenant root**
    - reuse an exact active root when one already exists;
-   - otherwise direct the operator through existing creation or restore;
+   - otherwise create it through the existing grant and Router protocol;
    - record only the resulting identity digest and active lineage reference.
 3. **Prepare browser credential**
    - issue a new environment-scoped publishable credential;
@@ -495,7 +500,7 @@ The workflow is:
 5. **Verify candidate**
    - run semantic readiness;
    - store the readiness receipt in the versioned cutover record;
-   - display every old-to-new identity and endpoint change for approval.
+   - record every old-to-new identity and endpoint change in the operation.
 6. **Quiesce setup**
    - stop admitting new setup operations for the lane;
    - allow existing ceremonies to remain pinned to their binding revision;
@@ -511,7 +516,7 @@ The workflow is:
    - create one short-lived canary setup record;
    - prove that the record, signed authorization, Router policy, and root
      lineage carry the activated revision;
-   - expire the canary record explicitly.
+   - retain its bounded expiry and response digest in the activation audit receipt.
 9. **Retire**
    - wait until ceremonies pinned to the previous revision expire;
    - revoke its browser credential;
@@ -521,6 +526,25 @@ The workflow is:
 The workflow must be idempotent by operation ID. Retrying an uncertain
 activation reads the durable operation and active pointer before performing
 another write.
+
+### Tenant onboarding
+
+Initial deployment binding creation is part of project onboarding. After the
+development environment and its initial runtime snapshot exist, the onboarding
+service calls the same provisioner used by `tenant:cutover`. It automatically
+resolves the project, creates or reuses the tenant root, issues the scoped
+publishable key from repository-derived origins, verifies all runtime surfaces,
+activates the immutable binding, runs the registration canary, and stores the
+audit receipt. Onboarding does not complete when provisioning fails.
+
+Retrying onboarding for an environment whose identity and runtime surfaces
+already match the active binding reuses that binding. It does not mint another
+credential or create another registration canary.
+
+Tenants never enter root identifiers, credential values, origins, or binding
+fields. The Console has no browser mutation route for deployment state. The
+owner-only Deployment status page reads the public active projection and the
+activation audit event; all other roles do not see the navigation item.
 
 ## Deployment integration
 

@@ -1,6 +1,12 @@
 name: Deploy / Console backend
 
 on:
+  workflow_call:
+    inputs:
+      lane:
+        description: Console deployment lane
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       lane:

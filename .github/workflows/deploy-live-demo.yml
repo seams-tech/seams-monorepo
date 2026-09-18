@@ -1,0 +1,77 @@
+name: Deploy / production live demo
+run-name: deploy / production live demo / ${{ inputs.environment_id }} / ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_id:
+        description: Development environment ID used by wallet.seams.sh
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deployment-production-live-demo
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate production revision
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require main branch
+        run: test "$GITHUB_REF" = refs/heads/main
+
+  authorize:
+    name: Authorize production live-demo deployment
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: production-live-demo
+    steps:
+      - run: echo "Production live-demo deployment authorized"
+
+  deploy_console:
+    name: Deploy Console control plane
+    needs: authorize
+    uses: ./.github/workflows/deploy-console-backend.yml
+    with:
+      lane: production-testnet
+    secrets: inherit
+
+  deploy_wallet_system:
+    name: Deploy live-demo runtime surfaces
+    needs: authorize
+    uses: ./.github/workflows/deploy-production-testnet-backend.yml
+    secrets: inherit
+
+  cutover:
+    name: Activate live-demo tenant binding
+    needs: [deploy_console, deploy_wallet_system]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production-live-demo
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Coordinate and verify cutover
+        run: >-
+          pnpm tenant:cutover
+          --lane production-testnet
+          --environment-id "${{ inputs.environment_id }}"

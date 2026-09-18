@@ -13,4 +13,5 @@ export * from './tenantDeployment/service';
 export * from './tenantDeployment/d1';
 export * from './tenantDeployment/runtimeInspection';
 export * from './tenantDeployment/productionReadiness';
-export * from './tenantDeployment/consoleRoute';
+export * from './tenantDeployment/provisioning';
+export * from './tenantDeployment/automationRoute';

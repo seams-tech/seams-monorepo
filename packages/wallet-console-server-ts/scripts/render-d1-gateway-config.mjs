@@ -35,6 +35,8 @@ function main() {
           deployment,
           lane.console,
           lane.site.walletSiteOrigin,
+          lane.walletOrigin,
+          lane.gatewayOrigin,
           lane.emailOtpDelivery,
           process.cwd(),
         )
@@ -137,6 +139,8 @@ function buildConsoleConfig(
   deployment,
   consoleTarget,
   walletSiteOrigin,
+  walletOrigin,
+  gatewayOrigin,
   emailOtpDelivery,
   packageRoot,
 ) {
@@ -146,6 +150,12 @@ function buildConsoleConfig(
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
+    TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
+      applicationOrigin: walletSiteOrigin,
+      hostedWalletOrigin: walletOrigin,
+      gatewayOrigin,
+      relyingPartyId: new URL(walletOrigin).hostname,
+    }),
     CONSOLE_BASE_URL: consoleOrigin,
     CONSOLE_CORS_ORIGINS: walletSiteOrigin,
     CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,

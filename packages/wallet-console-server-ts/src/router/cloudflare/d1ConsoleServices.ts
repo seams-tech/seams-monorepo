@@ -54,6 +54,7 @@ import {
 } from '../../observability';
 import {
   createInMemoryConsoleOnboardingService,
+  type ConsoleOnboardingEnvironmentProvisioner,
   type ConsoleOnboardingService,
 } from '@seams-internal/console-server/onboarding/service';
 import { createD1ConsoleOnboardingWelcomeEmail } from '@seams-internal/console-server/onboarding/welcomeEmail';
@@ -170,6 +171,7 @@ export interface CloudflareD1ConsoleAdapterOptions {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
   };
+  readonly onboardingEnvironmentProvisioner?: ConsoleOnboardingEnvironmentProvisioner | null;
   readonly defaultPrepaidReservationTtlMs?: number;
   readonly webhookSecretCipher?: ConsoleWebhookSecretCipher;
   readonly webhookDispatcher?: WebhookDispatchAdapter;
@@ -342,6 +344,7 @@ interface NormalizedCloudflareD1ConsoleCommonOptions {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
   };
+  readonly onboardingEnvironmentProvisioner?: ConsoleOnboardingEnvironmentProvisioner | null;
   readonly defaultPrepaidReservationTtlMs?: number;
   readonly webhookSecretCipher?: ConsoleWebhookSecretCipher;
   readonly webhookDispatcher?: WebhookDispatchAdapter;
@@ -616,6 +619,7 @@ function normalizeCloudflareD1ConsoleServiceBundleOptions(
     billingProviders: options.adapters?.billingProviders,
     billingEmailConsoleBaseUrl: options.adapters?.billingEmailConsoleBaseUrl,
     onboardingEmail: options.adapters?.onboardingEmail,
+    onboardingEnvironmentProvisioner: options.adapters?.onboardingEnvironmentProvisioner,
     defaultPrepaidReservationTtlMs: options.adapters?.defaultPrepaidReservationTtlMs,
     webhookSecretCipher: options.adapters?.webhookSecretCipher,
     webhookDispatcher: options.adapters?.webhookDispatcher,
@@ -648,6 +652,7 @@ function normalizeCloudflareD1ConsoleOnlyServiceBundleOptions(
     billingProviders: options.adapters?.billingProviders,
     billingEmailConsoleBaseUrl: options.adapters?.billingEmailConsoleBaseUrl,
     onboardingEmail: options.adapters?.onboardingEmail,
+    onboardingEnvironmentProvisioner: options.adapters?.onboardingEnvironmentProvisioner,
     defaultPrepaidReservationTtlMs: options.adapters?.defaultPrepaidReservationTtlMs,
     webhookSecretCipher: options.adapters?.webhookSecretCipher,
     webhookDispatcher: options.adapters?.webhookDispatcher,
@@ -924,6 +929,7 @@ function createCloudflareD1Onboarding(input: {
     billing: input.billing,
     organizationAccess: input.organizationAccess,
     welcomeEmail,
+    environmentProvisioner: input.options.onboardingEnvironmentProvisioner,
     logger: input.options.logger,
   });
 }

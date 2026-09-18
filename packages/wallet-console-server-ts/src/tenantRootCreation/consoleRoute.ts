@@ -337,6 +337,38 @@ async function createAtRouter(
   return parseRouterCreationReadyResponse(body);
 }
 
+export async function ensureTenantRootActiveV1(input: {
+  readonly dependencies: TenantRootCreationConsoleRouteDependenciesV1;
+  readonly operationId: string;
+  readonly identity: TenantRootIdentityV1;
+}): Promise<{
+  readonly record: TenantRootCreationGrantRecordV1;
+  readonly replayed: boolean;
+}> {
+  const issued = await issueGrant(input.dependencies, input.operationId, input.identity);
+  if (issued.record.status === 'ACTIVE') return { record: issued.record, replayed: true };
+  const ready = await createAtRouter(input.dependencies, issued.record);
+  if (
+    ready.identityDigestB64u !== issued.record.identityDigestB64u ||
+    ready.custodyLineageB64u !== issued.record.custodyLineageB64u
+  ) {
+    throw new Error('Router tenant-root creation response changed the issued identity');
+  }
+  const record = await input.dependencies.grants.markActiveFromReady({
+    operationId: input.operationId,
+    identity: input.identity,
+    identityDigestB64u: issued.record.identityDigestB64u,
+    custodyLineageB64u: issued.record.custodyLineageB64u,
+    ready: {
+      revision: ready.revision,
+      rootCommitmentB64u: ready.rootCommitmentB64u,
+      journalDigestB64u: ready.journalDigestB64u,
+      capabilityDigestB64u: ready.capabilityDigestB64u,
+    },
+  });
+  return { record, replayed: issued.replayed || ready.replayed };
+}
+
 async function refreshAtRouter(
   dependencies: Pick<
     TenantRootRefreshConsoleRouteDependenciesV1,
@@ -848,30 +880,8 @@ export function createTenantRootCreationConsoleRouteV1(
     try {
       const operationId = await parseOperationId(request);
       const identity = await resolveIdentity(dependencies, auth.claims);
-      const issued = await issueGrant(dependencies, operationId, identity);
-      if (issued.record.status === 'ACTIVE') {
-        return json({ ok: true, status: 'ACTIVE', replayed: true });
-      }
-      const ready = await createAtRouter(dependencies, issued.record);
-      if (
-        ready.identityDigestB64u !== issued.record.identityDigestB64u ||
-        ready.custodyLineageB64u !== issued.record.custodyLineageB64u
-      ) {
-        throw new Error('Router tenant-root creation response changed the issued identity');
-      }
-      await dependencies.grants.markActiveFromReady({
-        operationId,
-        identity,
-        identityDigestB64u: issued.record.identityDigestB64u,
-        custodyLineageB64u: issued.record.custodyLineageB64u,
-        ready: {
-          revision: ready.revision,
-          rootCommitmentB64u: ready.rootCommitmentB64u,
-          journalDigestB64u: ready.journalDigestB64u,
-          capabilityDigestB64u: ready.capabilityDigestB64u,
-        },
-      });
-      return json({ ok: true, status: 'ACTIVE', replayed: issued.replayed || ready.replayed });
+      const root = await ensureTenantRootActiveV1({ dependencies, operationId, identity });
+      return json({ ok: true, status: 'ACTIVE', replayed: root.replayed });
     } catch (error: unknown) {
       if (isTenantRootCreationGrantStoreError(error)) {
         return json({ ok: false, code: error.code, message: error.message }, error.statusCode);

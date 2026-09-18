@@ -1,6 +1,7 @@
 name: Deploy / production-testnet / backend
 
 on:
+  workflow_call:
   workflow_dispatch:
 
 permissions:

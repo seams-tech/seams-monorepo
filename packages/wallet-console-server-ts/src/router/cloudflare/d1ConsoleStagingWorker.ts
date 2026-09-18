@@ -85,6 +85,7 @@ import {
   createTenantRootCreationConsoleRouteV1,
   createTenantRootRefreshConsoleRouteV1,
   dispatchTenantRootRefreshOperationV1,
+  type TenantRootCreationConsoleRouteDependenciesV1,
 } from '../../tenantRootCreation/consoleRoute';
 import {
   createD1TenantDeploymentBindingReaderV1,
@@ -95,7 +96,14 @@ import { createTenantDeploymentInternalBindingHandlerV1 } from '../../tenantDepl
 import { createTenantDeploymentRuntimeInspectionClientV1 } from '../../tenantDeployment/runtimeInspection';
 import { createProductionTenantDeploymentReadinessAdapterV1 } from '../../tenantDeployment/productionReadiness';
 import { createTenantDeploymentReadinessServiceV1 } from '../../tenantDeployment/readiness';
-import { createTenantDeploymentConsoleRouteV1 } from '../../tenantDeployment/consoleRoute';
+import {
+  createGatewayTenantDeploymentRegistrationCanaryV1,
+  createTenantDeploymentProvisionerV1,
+} from '../../tenantDeployment/provisioning';
+import { createTenantDeploymentAutomationRouteV1 } from '../../tenantDeployment/automationRoute';
+import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment/productionReadiness';
+import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
+import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
@@ -108,6 +116,7 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly TENANT_DEPLOYMENT_SURFACES_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -132,6 +141,64 @@ interface CloudflareD1ConsoleStagingEnv
   readonly SPONSORED_EVM_EXECUTORS_JSON?: string;
   readonly SPONSORED_EXECUTION_REAL_PRICING_JSON?: string;
   readonly SPONSORED_EXECUTION_STATIC_PRICING_JSON?: string;
+}
+
+function readTenantDeploymentSurfaceText(
+  source: Record<string, unknown>,
+  name: 'applicationOrigin' | 'hostedWalletOrigin' | 'gatewayOrigin' | 'relyingPartyId',
+): string {
+  const candidate = source[name];
+  if (typeof candidate !== 'string' || !candidate || candidate.trim() !== candidate) {
+    throw new Error(`TENANT_DEPLOYMENT_SURFACES_JSON.${name} is invalid`);
+  }
+  return candidate;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseTenantDeploymentSurfaces(raw: string): TenantDeploymentCandidateSurfacesV1 {
+  if (!raw || raw.trim() !== raw) throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON is required');
+  const value: unknown = JSON.parse(raw);
+  if (!isRecord(value)) {
+    throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON must be an object');
+  }
+  const source = value;
+  const required = [
+    'applicationOrigin',
+    'hostedWalletOrigin',
+    'gatewayOrigin',
+    'relyingPartyId',
+  ] as const;
+  if (Object.keys(source).sort().join(',') !== [...required].sort().join(',')) {
+    throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON has unexpected fields');
+  }
+  return {
+    applicationOrigin: new URL(readTenantDeploymentSurfaceText(source, 'applicationOrigin')).origin,
+    hostedWalletOrigin: new URL(readTenantDeploymentSurfaceText(source, 'hostedWalletOrigin'))
+      .origin,
+    gatewayOrigin: new URL(readTenantDeploymentSurfaceText(source, 'gatewayOrigin')).origin,
+    relyingPartyId: readTenantDeploymentSurfaceText(source, 'relyingPartyId'),
+  };
+}
+
+class DeferredTenantDeploymentOnboardingProvisioner implements ConsoleOnboardingEnvironmentProvisioner {
+  private provisioner: TenantDeploymentProvisionerV1 | null = null;
+
+  constructor(private readonly deploymentLane: string) {}
+
+  attach(provisioner: TenantDeploymentProvisionerV1): void {
+    this.provisioner = provisioner;
+  }
+
+  async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
+    if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
+    await this.provisioner.provision({
+      deploymentLane: this.deploymentLane,
+      environmentId: input.environment.id,
+    });
+  }
 }
 
 function consoleGithubOAuthConfig(
@@ -182,6 +249,8 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
 async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
   let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
+  const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
+  const onboardingDeployment = new DeferredTenantDeploymentOnboardingProvisioner(deploymentLane);
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
   const emailDispatch = resolveCloudflareConsoleEmailDispatchCronOptions({
@@ -218,6 +287,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
       walletBalanceReader: {
         resolveWalletIdentities: walletRuntime.getWalletIdentities,
       },
+      onboardingEnvironmentProvisioner: onboardingDeployment,
     },
   });
   const session = createHmacSessionAdapterFromEnv({
@@ -294,7 +364,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     grantSigningSeedB64u: requireEnvString(env, 'TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED'),
     audit: createConsoleTenantRootAuditWriterV1({ audit: bundle.audit, actorType: 'USER' }),
   });
-  const tenantRootCreationRoute = createTenantRootCreationConsoleRouteV1({
+  const tenantRootCreationDependencies: TenantRootCreationConsoleRouteDependenciesV1 = {
     auth,
     orgProjectEnv: bundle.orgProjectEnv,
     grants: tenantRootGrants,
@@ -307,7 +377,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
       env,
       'TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED',
     ),
-  });
+  };
+  const tenantRootCreationRoute = createTenantRootCreationConsoleRouteV1(
+    tenantRootCreationDependencies,
+  );
   const tenantRootStepUp = createD1TenantRootStepUpStoreV1({
     database: env.CONSOLE_DB,
     namespace,
@@ -413,18 +486,25 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     const active = await tenantDeploymentBindings.resolveActiveBinding(
       requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
     );
-    if (!active) throw new Error('active tenant deployment binding is unavailable');
+    if (!active) return;
     await tenantDeploymentReadinessAdapter.inspect(active);
   };
-  const tenantDeploymentRoute = createTenantDeploymentConsoleRouteV1({
-    auth,
+  const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
+    deploymentLane,
+    surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
     orgProjectEnv: bundle.orgProjectEnv,
-    stepUp: tenantRootStepUp,
+    apiKeys: bundle.apiKeys,
+    audit: bundle.audit,
+    tenantRootCreation: tenantRootCreationDependencies,
     tenantRootState,
     candidates: tenantDeploymentReadinessAdapter,
     readiness: tenantDeploymentReadiness,
     store: tenantDeploymentStore,
-    deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+    canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
+  });
+  onboardingDeployment.attach(tenantDeploymentProvisioner);
+  const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
+    provisioner: tenantDeploymentProvisioner,
   });
   // Private service-binding target: exactly the five declared Wallet Console
   // operations, served ahead of the console router.
@@ -462,8 +542,8 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     if (consoleStepUpResponse) return consoleStepUpResponse;
     const tenantRootSecurityReadResponse = await tenantRootSecurityReadRoute(request);
     if (tenantRootSecurityReadResponse) return tenantRootSecurityReadResponse;
-    const tenantDeploymentResponse = await tenantDeploymentRoute(request);
-    if (tenantDeploymentResponse) return tenantDeploymentResponse;
+    const tenantDeploymentAutomationResponse = await tenantDeploymentAutomationRoute(request);
+    if (tenantDeploymentAutomationResponse) return tenantDeploymentAutomationResponse;
     const relayResponse = await relayHandler(request, ctx);
     if (relayResponse) return relayResponse;
     return await router(request, workerEnv, ctx);

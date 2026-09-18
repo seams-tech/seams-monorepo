@@ -7,6 +7,7 @@ import { GasSponsorshipPage } from '@wallet-product/gas-sponsorship/page';
 import { InvoicesPage } from '@core/dashboard/routes/invoices/page';
 import { PlatformBillingPage } from '@core/dashboard/routes/platform-billing/page';
 import { DerivationRootSecurityPage } from '@wallet-product/derivation-root/page';
+import { TenantDeploymentPage } from '@wallet-product/tenant-deployment/page';
 import { PolicyEnginePage } from '@wallet-product/policy-engine/page';
 import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
 import { DashboardOnboardingPage } from '@core/dashboard/routes/onboarding/page';
@@ -42,6 +43,7 @@ import {
   LayoutDashboardIcon,
   ScaleIcon,
   ScrollTextIcon,
+  ServerIcon,
   UserCogIcon,
   WalletCardsIcon,
   WebhookIcon,
@@ -61,6 +63,7 @@ export type WalletDashboardRoute =
   | '/dashboard/wallets-list'
   | '/dashboard/policy-engine'
   | '/dashboard/derivation-root'
+  | '/dashboard/tenant-deployment'
   | '/dashboard/gas-sponsorship';
 export type ComposedDashboardRoute = DashboardRoute | WalletDashboardRoute;
 export type ComposedSidebarGroupKey = SidebarGroupKey | 'operationsSecurity';
@@ -300,6 +303,13 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/api-keys',
         icon: KeyRoundIcon,
         component: WalletApiKeyManagementPage,
+      },
+      {
+        key: 'tenant-deployment',
+        label: 'Tenant deployment',
+        path: '/dashboard/tenant-deployment',
+        icon: ServerIcon,
+        component: TenantDeploymentPage,
       },
       {
         key: 'webhooks',

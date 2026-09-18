@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '../../packages/shared-ts/src/tenant-root/tenantRootIdentity';
+import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { createInMemoryConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
 import {
@@ -15,6 +15,7 @@ import {
   handleWalletControlRequest,
   WALLET_CONTROL_AUTH_MARKER_V1,
 } from '@seams/wallet-server/cloud-host';
+import walletRuntimeWorker from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1WalletRuntimeWorker';
 
 async function getNoWalletIdentities() {
   return { identities: [] };
@@ -53,6 +54,25 @@ function recordingBinding(requests: Request[]) {
     },
   };
 }
+
+function unexpectedD1Prepare(): never {
+  throw new Error('Wallet control request reached the tenant database');
+}
+
+async function unexpectedD1Operation(): Promise<never> {
+  throw new Error('Wallet control request reached the tenant database');
+}
+
+const UNREACHABLE_D1 = {
+  prepare: unexpectedD1Prepare,
+  batch: unexpectedD1Operation,
+  exec: unexpectedD1Operation,
+};
+
+const WORKER_CONTEXT = {
+  waitUntil() {},
+  passThroughOnException() {},
+};
 
 function bindingHarness() {
   const apiKeys = createInMemoryConsoleApiKeyService({
@@ -690,6 +710,43 @@ test('Wallet control binding admits an exact operation and injects Wallet-owned 
   expect(controlPlaneRequests).toHaveLength(0);
   expect(deriverARequests).toHaveLength(0);
   expect(deriverBRequests).toHaveLength(0);
+});
+
+test('Wallet Runtime routes private control operations before an active tenant binding exists', async () => {
+  const routerRequests: Request[] = [];
+  const walletConsoleRequests: Request[] = [];
+  const unusedRequests: Request[] = [];
+  const response = await walletRuntimeWorker.fetch(
+    new Request(
+      'https://wallet-runtime.internal/internal/wallet-runtime/v1/tenant-root-control/status',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ identity: 'tenant-root-1' }),
+      },
+    ),
+    {
+      SIGNER_DB: UNREACHABLE_D1,
+      WALLET_CONSOLE: recordingBinding(walletConsoleRequests),
+      MPC_ROUTER: recordingBinding(routerRequests),
+      SIGNING_WORKER: recordingBinding(unusedRequests),
+      TENANT_ROOT_CONTROL_PLANE: recordingBinding(unusedRequests),
+      DERIVER_A: recordingBinding(unusedRequests),
+      DERIVER_B: recordingBinding(unusedRequests),
+      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'wallet-owned-secret',
+      ROUTER_AB_PREWARM_ENABLED: 'true',
+      SEAMS_TENANT_DEPLOYMENT_LANE: 'production-testnet',
+    },
+    WORKER_CONTEXT,
+  );
+
+  expect(response.status).toBe(200);
+  expect(routerRequests).toHaveLength(1);
+  expect(routerRequests[0].headers.get('x-router-ab-internal-service-auth')).toBe(
+    'wallet-owned-secret',
+  );
+  expect(walletConsoleRequests).toHaveLength(0);
+  expect(unusedRequests).toHaveLength(0);
 });
 
 test('Wallet control binding rejects routes outside its declared operation set', async () => {

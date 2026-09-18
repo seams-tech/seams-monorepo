@@ -39,6 +39,9 @@ import {
   createHmacSessionAdapterFromEnv,
 } from './d1StagingSession';
 import { createCloudflareCron, resolveCloudflareConsoleEmailDispatchCronOptions } from './cron';
+import { createD1TenantDeploymentBindingReaderV1 } from '../../tenantDeployment/d1';
+import { createTenantDeploymentPublicProjectionHandlerV1 } from '../../tenantDeployment/publicProjection';
+import { bindTenantDeploymentToRuntimeEnvironmentV1 } from '../../tenantDeployment/runtimeBinding';
 
 export {
   handleSplitGatewayRequest,
@@ -77,6 +80,7 @@ type CloudflareD1RouterApiStagingEnv = CloudflareD1GatewayEnv &
     readonly CONSOLE_SESSION_COOKIE_NAME: string;
     readonly CONSOLE_SESSION_ISSUER: string;
     readonly CONSOLE_SESSION_AUDIENCE: string;
+    readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
     readonly GOOGLE_OIDC_CLIENT_ID?: string;
     readonly GITHUB_OAUTH_CLIENT_ID?: string;
     readonly GITHUB_OAUTH_CLIENT_SECRET?: string;
@@ -84,6 +88,17 @@ type CloudflareD1RouterApiStagingEnv = CloudflareD1GatewayEnv &
   };
 
 type ReadyRow = { readonly table_count?: unknown };
+
+async function bindActiveTenantDeployment(
+  env: CloudflareD1RouterApiStagingEnv,
+): Promise<CloudflareD1RouterApiStagingEnv | null> {
+  const reader = createD1TenantDeploymentBindingReaderV1({ database: env.CONSOLE_DB });
+  const binding = await reader.resolveActiveBinding(
+    requireEnvironmentString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+  );
+  if (!binding) return null;
+  return bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
+}
 
 const CONSOLE_READY_TABLES = Object.freeze([
   'organizations',
@@ -108,6 +123,10 @@ const CONSOLE_READY_TABLES = Object.freeze([
   'sponsored_call_records',
   'console_email_outbox',
   'console_email_deliveries',
+  'tenant_deployment_bindings',
+  'active_tenant_deployment_bindings',
+  'tenant_deployment_cutovers',
+  'tenant_deployment_activations',
 ]);
 
 async function fetch(
@@ -116,14 +135,33 @@ async function fetch(
   ctx: CfExecutionContext,
 ): Promise<Response> {
   const pathname = new URL(request.url).pathname;
+  if (pathname === '/.well-known/seams-tenant-deployment.json') {
+    if (request.method !== 'GET')
+      return new Response(null, { status: 405, headers: { Allow: 'GET' } });
+    const reader = createD1TenantDeploymentBindingReaderV1({ database: env.CONSOLE_DB });
+    return await createTenantDeploymentPublicProjectionHandlerV1({
+      deploymentLane: requireEnvironmentString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+      reader,
+    })(request);
+  }
   if (pathname !== '/console' && !pathname.startsWith('/console/')) {
-    return await handleSplitGatewayRequest(request, env, ctx, gatewayDependencies(env));
+    const boundEnv = await bindActiveTenantDeployment(env);
+    if (!boundEnv) {
+      return Response.json(
+        { ok: false, code: 'tenant_deployment_unavailable' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    return await handleSplitGatewayRequest(request, boundEnv, ctx, gatewayDependencies(boundEnv));
   }
   const consoleHandler = await createConsoleHandler(env);
   return await consoleHandler(request, env, ctx);
 }
 
 async function createConsoleHandler(env: CloudflareD1RouterApiStagingEnv): Promise<FetchHandler> {
+  const boundEnv = await bindActiveTenantDeployment(env);
+  if (!boundEnv) throw new Error('active tenant deployment binding is required');
+  env = boundEnv;
   const namespace = requireEnvironmentString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const bundle = await createCloudflareD1ConsoleServiceBundle({

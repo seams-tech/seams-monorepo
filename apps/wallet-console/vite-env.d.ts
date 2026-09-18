@@ -8,8 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_SITE_ORIGIN?: string;
   readonly VITE_RELAYER_URL?: string;
   readonly VITE_CONSOLE_BASE_URL?: string;
-  readonly VITE_SEAMS_PROJECT_ENVIRONMENT_ID?: string;
-  readonly VITE_SEAMS_PUBLISHABLE_KEY?: string;
   readonly VITE_RELAYER_ACCOUNT_ID?: string;
 
   readonly VITE_NEAR_NETWORK?: 'testnet' | 'mainnet';
@@ -36,8 +34,6 @@ interface ImportMetaEnv {
 
   readonly VITE_TESTNET_RELAYER_URL?: string;
   readonly VITE_TESTNET_CONSOLE_BASE_URL?: string;
-  readonly VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID?: string;
-  readonly VITE_TESTNET_SEAMS_PUBLISHABLE_KEY?: string;
   readonly VITE_TESTNET_RELAYER_ACCOUNT_ID?: string;
   readonly VITE_TESTNET_NEAR_NETWORK?: 'testnet';
   readonly VITE_TESTNET_NEAR_RPC_URL?: string;
@@ -57,8 +53,6 @@ interface ImportMetaEnv {
 
   readonly VITE_MAINNET_RELAYER_URL?: string;
   readonly VITE_MAINNET_CONSOLE_BASE_URL?: string;
-  readonly VITE_MAINNET_SEAMS_PROJECT_ENVIRONMENT_ID?: string;
-  readonly VITE_MAINNET_SEAMS_PUBLISHABLE_KEY?: string;
   readonly VITE_MAINNET_RELAYER_ACCOUNT_ID?: string;
   readonly VITE_MAINNET_NEAR_NETWORK?: 'mainnet';
   readonly VITE_MAINNET_NEAR_RPC_URL?: string;

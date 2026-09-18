@@ -15,9 +15,7 @@ type ReconciliationPlan = {
   readonly mode: string;
   readonly tenant: {
     readonly namespace: string;
-    readonly orgId: string;
-    readonly projectId: string;
-    readonly envId: string;
+    readonly deploymentLane: string;
   };
   readonly checks: readonly {
     readonly id: string;
@@ -104,9 +102,7 @@ test('D1 staging reconciliation builds read-only console checks', async () => {
 
   expect(plan.tenant).toEqual({
     namespace: 'seams-staging',
-    orgId: 'org_staging',
-    projectId: 'project_staging',
-    envId: 'staging',
+    deploymentLane: 'staging-testnet',
   });
   expect(plan.checks.map((check) => check.id)).toEqual([
     'billing_account_balance_mismatch',

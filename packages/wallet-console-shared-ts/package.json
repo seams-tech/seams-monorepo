@@ -10,6 +10,7 @@
     "./apiKeyScopes": "./src/apiKeyScopes.ts",
     "./gasSponsorshipChains": "./src/gasSponsorshipChains.ts",
     "./gasSponsorshipSpendCapTargets": "./src/gasSponsorshipSpendCapTargets.ts",
+    "./tenant-deployment": "./src/tenant-deployment/index.ts",
     "./webhookEventCategories": "./src/webhookEventCategories.ts",
     "./tenant-root": "./src/tenant-root/index.ts"
   },

@@ -247,9 +247,7 @@ test('wallet host smoke requires the exact installed wallet package version', as
     { headers: { 'content-type': 'application/json' } },
   );
 
-  await expect(
-    walletManifestMatchesPackageVersion(matchingManifest, '1.2.3'),
-  ).resolves.toBe(true);
+  await expect(walletManifestMatchesPackageVersion(matchingManifest, '1.2.3')).resolves.toBe(true);
   await expect(walletManifestMatchesPackageVersion(staleManifest, '1.2.3')).resolves.toBe(false);
 });
 
@@ -814,32 +812,6 @@ test('frontend commands reject a site branch mismatch before deployment work', (
   );
 
   expectFailure(result, /site staging requires branch dev/u);
-});
-
-test('production frontend build rejects a project environment from the wrong lane', () => {
-  const productionTestnet = readBackendLane('production-testnet');
-  if (productionTestnet.provisioning.kind !== 'provisioned') {
-    throw new Error('production-testnet must be provisioned');
-  }
-  const result = runCommand(
-    frontendScript,
-    ['build', '--site', 'production', '--component', 'wallet-site'],
-    {
-      ...environmentWithoutDeploymentSecrets(),
-      GITHUB_REF: 'refs/heads/main',
-      VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID: 'production',
-      VITE_TESTNET_SEAMS_PUBLISHABLE_KEY: 'pk_testnet',
-      VITE_TESTNET_NEAR_NETWORK: 'testnet',
-      VITE_TESTNET_NEAR_RPC_URL: 'https://rpc.testnet.near.org',
-      VITE_TESTNET_NEAR_EXPLORER: 'https://testnet.nearblocks.io',
-      VITE_TESTNET_SIGNING_SESSION_PERSISTENCE_MODE: 'sealed_refresh_v1',
-    },
-  );
-
-  expect(result.status).not.toBe(0);
-  expect(`${result.stdout}\n${result.stderr}`).toContain(
-    `VITE_TESTNET_SEAMS_PROJECT_ENVIRONMENT_ID must match production-testnet tenant environment ${productionTestnet.provisioning.gatewayDeploymentConfig.tenant.environmentId}`,
-  );
 });
 
 test('Wallet-system and Console workflows use separate deployment authority', () => {

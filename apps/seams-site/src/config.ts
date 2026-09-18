@@ -1,5 +1,8 @@
 import type { SeamsConfigsInput } from '@seams/wallet/react';
-import { decodeTenantDeploymentPublicProjectionV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import {
+  decodeTenantDeploymentPublicProjectionV1,
+  type TenantDeploymentPublicProjectionV1,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
 import {
   DEFAULT_WALLET_SESSION_REMAINING_USES,
   DEFAULT_WALLET_SESSION_TTL_MS,
@@ -74,17 +77,41 @@ export type StagingFrontendConfig = FrontendSiteCommon & {
   };
 };
 
-export type ProductionFrontendConfig = FrontendSiteCommon & {
-  siteKind: 'production';
-  defaultNetwork: 'testnet';
-  availableNetworks: readonly ['testnet', 'mainnet'];
-  deployments: {
-    testnet: FrontendDeployment;
-    mainnet: FrontendDeployment;
-  };
-};
+export type ProductionFrontendConfig = FrontendSiteCommon &
+  (
+    | {
+        siteKind: 'production';
+        defaultNetwork: 'testnet';
+        availableNetworks: readonly ['testnet'];
+        deployments: {
+          testnet: FrontendDeployment;
+          mainnet?: never;
+        };
+      }
+    | {
+        siteKind: 'production';
+        defaultNetwork: 'testnet';
+        availableNetworks: readonly ['testnet', 'mainnet'];
+        deployments: {
+          testnet: FrontendDeployment;
+          mainnet: FrontendDeployment;
+        };
+      }
+  );
 
 export type FrontendConfig = StagingFrontendConfig | ProductionFrontendConfig;
+
+type FrontendConfigCandidate =
+  | StagingFrontendConfig
+  | (FrontendSiteCommon & {
+      siteKind: 'production';
+      defaultNetwork: 'testnet';
+      availableNetworks: readonly ['testnet', 'mainnet'];
+      deployments: {
+        testnet: FrontendDeployment;
+        mainnet: FrontendDeployment;
+      };
+    });
 
 function toTrimmedString(value: unknown): string {
   return String(value ?? '').trim();
@@ -351,7 +378,7 @@ function buildDeployment(
   };
 }
 
-function buildSiteConfig(source: ImportMetaEnv): FrontendConfig {
+function buildSiteConfig(source: ImportMetaEnv): FrontendConfigCandidate {
   const siteKind = source.VITE_SITE_ID === 'production' ? 'production' : 'staging';
   const docsOrigin = stripTrailingSlash(
     toTrimmedString(source.VITE_DOCS_ORIGIN) || DEFAULT_DOCS_ORIGIN,
@@ -406,18 +433,25 @@ function buildSiteConfig(source: ImportMetaEnv): FrontendConfig {
   };
 }
 
-async function hydrateDeploymentBinding(
+async function fetchDeploymentBinding(
   deployment: FrontendDeployment,
-  siteOrigin: string,
-): Promise<FrontendDeployment> {
+): Promise<TenantDeploymentPublicProjectionV1 | null> {
   const response = await fetch(`${deployment.apiOrigin}/.well-known/seams-tenant-deployment.json`, {
     headers: { Accept: 'application/json' },
   });
+  if (response.status === 404 || response.status === 503) return null;
   if (!response.ok)
     throw new Error(`Tenant deployment discovery failed with HTTP ${response.status}`);
   const decoded = decodeTenantDeploymentPublicProjectionV1(await response.json());
   if (!decoded.ok) throw new Error(decoded.message);
-  const binding = decoded.value;
+  return decoded.value;
+}
+
+function applyDeploymentBinding(
+  deployment: FrontendDeployment,
+  siteOrigin: string,
+  binding: TenantDeploymentPublicProjectionV1,
+): FrontendDeployment {
   if (!deployment.routerAb) throw new Error('Tenant deployment requires Router A/B normal signing');
   const expectedMode =
     deployment.network === 'testnet' ? 'development_testnet_v1' : 'production_mainnet_v1';
@@ -442,11 +476,48 @@ async function hydrateDeploymentBinding(
   };
 }
 
-async function hydrateSiteBindings(config: FrontendConfig): Promise<FrontendConfig> {
+async function hydrateDeploymentBinding(
+  deployment: FrontendDeployment,
+  siteOrigin: string,
+): Promise<FrontendDeployment> {
+  const binding = await fetchDeploymentBinding(deployment);
+  if (!binding) throw new Error('Tenant deployment is unavailable');
+  return applyDeploymentBinding(deployment, siteOrigin, binding);
+}
+
+async function hydrateOptionalDeploymentBinding(
+  deployment: FrontendDeployment,
+  siteOrigin: string,
+): Promise<FrontendDeployment | null> {
+  const binding = await fetchDeploymentBinding(deployment);
+  return binding ? applyDeploymentBinding(deployment, siteOrigin, binding) : null;
+}
+
+async function hydrateSiteBindings(config: FrontendConfigCandidate): Promise<FrontendConfig> {
   const testnet = await hydrateDeploymentBinding(config.deployments.testnet, config.siteOrigin);
   if (config.siteKind === 'staging') return { ...config, ...testnet, deployments: { testnet } };
-  const mainnet = await hydrateDeploymentBinding(config.deployments.mainnet, config.siteOrigin);
-  return { ...config, ...testnet, deployments: { testnet, mainnet } };
+  const mainnet = await hydrateOptionalDeploymentBinding(
+    config.deployments.mainnet,
+    config.siteOrigin,
+  );
+  if (!mainnet) {
+    return {
+      ...config,
+      ...testnet,
+      siteKind: 'production',
+      defaultNetwork: 'testnet',
+      availableNetworks: ['testnet'],
+      deployments: { testnet },
+    };
+  }
+  return {
+    ...config,
+    ...testnet,
+    siteKind: 'production',
+    defaultNetwork: 'testnet',
+    availableNetworks: ['testnet', 'mainnet'],
+    deployments: { testnet, mainnet },
+  };
 }
 
 export const FRONTEND_CONFIG = Object.freeze(
@@ -464,7 +535,12 @@ export function getFrontendDeployment(
       }
       return config.deployments.testnet;
     case 'production':
-      return config.deployments[network];
+      if (network === 'mainnet') {
+        const mainnet = config.deployments.mainnet;
+        if (!mainnet) throw new Error('Production mainnet is not available');
+        return mainnet;
+      }
+      return config.deployments.testnet;
     default:
       return assertNever(config);
   }

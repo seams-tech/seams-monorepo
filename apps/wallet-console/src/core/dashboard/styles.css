@@ -148,7 +148,7 @@ textarea {
 }
 
 .dashboard-shell--route-overview .dashboard-main {
-  padding: 24px;
+  padding: calc(24px + var(--dashboard-topbar-height)) 24px 24px;
 }
 
 /* The Overview hero heading is the visual lead on that page; keep the shell
@@ -7432,17 +7432,71 @@ select.dashboard-input {
    sign-out until the redirect lands. Same paper canvas as the login page it
    hands off to. */
 .dashboard-session-gate {
+  box-sizing: border-box;
   min-height: 100dvh;
   display: grid;
   place-content: center;
   padding: 1rem;
-  background: #ffffff;
+  background: var(--dashboard-bg);
 }
 
-.dashboard-session-gate__note {
+.dashboard-loading-state {
+  min-block-size: clamp(18rem, 55dvh, 36rem);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+  padding: 32px 16px;
+  box-sizing: border-box;
+  text-align: center;
+  color: var(--dashboard-ink);
+}
+
+.dashboard-loading-state__icon {
+  display: grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border-radius: var(--dashboard-radius-2xl);
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-accent);
+}
+
+.dashboard-loading-state__icon svg {
+  animation: dashboard-loading-spin 1.2s linear infinite;
+}
+
+.dashboard-loading-state__copy {
+  display: grid;
+  gap: 8px;
+  max-inline-size: 32ch;
+}
+
+.dashboard-loading-state__copy h2 {
   margin: 0;
-  color: #a59f97;
+  color: var(--dashboard-ink);
+  font-size: var(--dashboard-text-heading);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.dashboard-loading-state__copy p {
+  margin: 0;
+  color: var(--dashboard-alpha-600);
   font-size: var(--dashboard-text-compact);
+  line-height: 1.5;
+}
+
+@keyframes dashboard-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-loading-state__icon svg {
+    animation: none;
+  }
 }
 
 /* The login page uses the same Paper palette as the console. */

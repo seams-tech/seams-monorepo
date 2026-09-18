@@ -5,6 +5,7 @@ import React from 'react';
 import type { SidebarProjectGroup } from './layout/DashboardSidebar';
 import DashboardNavigation from './layout/DashboardNavigation';
 import { DASHBOARD_PAGE_ACTIONS_SLOT_ID } from './components/DashboardPageActions';
+import { DashboardLoadingState } from './components/DashboardLoadingState';
 import type {
   DashboardComposition,
   DashboardProductId,
@@ -1104,13 +1105,15 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   if (!consoleSession.claims || isDashboardEntryRoutePending) {
     return (
       <main className="dashboard-session-gate" aria-label="Dashboard workspace" aria-busy>
-        <p className="dashboard-session-gate__note" role="status">
-          {consoleSession.claims
-            ? 'Opening dashboard...'
-            : consoleSession.loading
-              ? 'Checking your session...'
-              : 'Redirecting to sign in...'}
-        </p>
+        <DashboardLoadingState
+          title={
+            consoleSession.claims
+              ? 'Opening dashboard...'
+              : consoleSession.loading
+                ? 'Checking your session...'
+                : 'Redirecting to sign in...'
+          }
+        />
       </main>
     );
   }
@@ -1186,7 +1189,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
                 </button>
               </div>
             ) : (
-              <p role="status">Opening environment...</p>
+              <DashboardLoadingState title="Opening environment..." />
             )
           ) : (
             <ActiveViewComponent
@@ -1224,7 +1227,7 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
     case 'loading':
       return (
         <main className="dashboard-session-gate" aria-busy>
-          <p role="status">Opening dashboard...</p>
+          <DashboardLoadingState title="Opening dashboard..." />
         </main>
       );
     case 'onboarding':

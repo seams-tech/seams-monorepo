@@ -2,6 +2,7 @@ import { createInitialOrganization } from './initialOrganizationApi';
 import React from 'react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useDashboardConsoleSession } from '../../consoleSession';
+import { DashboardLoadingState } from '../../components/DashboardLoadingState';
 import {
   clearDashboardUiState,
   persistDashboardSelectedContext,
@@ -672,7 +673,7 @@ export function DashboardOnboardingPage({
       ) : null}
 
       {onboardingComplete ? (
-        <p role="status">Opening overview...</p>
+        <DashboardLoadingState title="Opening overview..." />
       ) : (
         <section className="dashboard-view__section" aria-label="Onboarding form">
           {showOrganizationStep ? (

@@ -1553,7 +1553,7 @@ test.describe('D1 adapter contracts', () => {
       const createdSecretKey = await service.createApiKey(primaryCtx, {
         kind: 'secret_key',
         name: 'D1 Server Key',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
         scopes: ['wallets.read', 'accounts.create'],
         ipAllowlist: ['203.0.113.0/24'],
       });
@@ -1573,7 +1573,7 @@ test.describe('D1 adapter contracts', () => {
         endpoint: '/v1/wallets',
         requiredScopes: ['wallets.read'],
         sourceIp: '203.0.113.42',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
       });
       expect(authOk.ok).toBe(true);
       if (!authOk.ok) throw new Error(authOk.message);
@@ -1586,7 +1586,7 @@ test.describe('D1 adapter contracts', () => {
         endpoint: '/v1/wallets/signers',
         requiredScopes: ['wallets.signers.create'],
         sourceIp: '203.0.113.42',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
       });
       expect(scopeDenied).toMatchObject({
         ok: false,
@@ -1617,7 +1617,7 @@ test.describe('D1 adapter contracts', () => {
         endpoint: '/v1/wallets',
         requiredScopes: ['wallets.read'],
         sourceIp: '203.0.113.42',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
       });
       expect(staleSecretAuth).toMatchObject({
         ok: false,
@@ -1628,7 +1628,7 @@ test.describe('D1 adapter contracts', () => {
       const createdPublishableKey = await service.createApiKey(primaryCtx, {
         kind: 'publishable_key',
         name: 'D1 Browser Key',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
         allowedOrigins: ['https://app.example.com'],
         rateLimitBucket: 'browser-default',
         quotaBucket: 'prepaid-default',
@@ -1645,7 +1645,7 @@ test.describe('D1 adapter contracts', () => {
       const publishableAuthOk = await authenticatePublishableKey({
         secret: createdPublishableKey.secret,
         origin: 'https://app.example.com',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
       });
       expect(publishableAuthOk.ok).toBe(true);
       if (!publishableAuthOk.ok) throw new Error(publishableAuthOk.message);
@@ -1654,7 +1654,7 @@ test.describe('D1 adapter contracts', () => {
       const blockedOrigin = await authenticatePublishableKey({
         secret: createdPublishableKey.secret,
         origin: 'https://evil.example.com',
-        environmentId: 'env-d1-api-prod',
+        environmentId: 'project-d1-api:prod',
       });
       expect(blockedOrigin).toMatchObject({
         ok: false,

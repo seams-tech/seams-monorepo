@@ -1,6 +1,6 @@
 import { expect, test } from './harness';
 
-const FULL_PUBLISHABLE_SECRET = /^pk_[A-Za-z0-9]{32}$/;
+const FULL_PUBLISHABLE_SECRET = /^pk_dev_[A-Za-z0-9]{32}$/;
 
 test.describe('Console operating paths', () => {
   test('new owner setup creates a publishable key that reveals once and survives reload', async ({
@@ -45,11 +45,24 @@ test.describe('Console operating paths', () => {
     await expect(
       page.getByRole('button', { name: `${tenant.projectName}, Development`, exact: true }),
     ).toBeVisible();
+    const pageCredentialScope = page.getByRole('region', { name: 'Credential scope' });
+    await expect(pageCredentialScope).toContainText('Current credential scope');
+    await expect(pageCredentialScope).toContainText(`${tenant.projectName} · Development`);
+    await expect(pageCredentialScope).toContainText('Chain network');
+    await expect(pageCredentialScope).toContainText('Environment ID');
 
     await page.getByRole('button', { name: 'Create credential', exact: true }).click();
     const createDialog = page.getByRole('dialog', { name: 'Create credential modal' });
     await expect(createDialog).toBeVisible();
+    const dialogCredentialScope = createDialog.getByRole('region', { name: 'Credential scope' });
+    await expect(dialogCredentialScope).toContainText('Creating for');
+    await expect(dialogCredentialScope).toContainText(`${tenant.projectName} · Development`);
+    await expect(dialogCredentialScope).toContainText('Development uses Testnet.');
     await createDialog.getByRole('button', { name: /Browser publishable_key/ }).click();
+    await expect(createDialog.getByLabel('Allowed origins URI 1')).toHaveValue(
+      new URL(page.url()).origin,
+    );
+    await expect(createDialog.getByLabel('Allowed origins URI 2')).toHaveCount(0);
     await createDialog.getByLabel('Name').fill(`${tenant.projectName} browser key`);
     await createDialog.getByRole('button', { name: 'Create publishable_key', exact: true }).click();
 

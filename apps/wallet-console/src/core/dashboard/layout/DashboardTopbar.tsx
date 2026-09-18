@@ -47,7 +47,6 @@ import {
 } from './DashboardSidebar';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import type { SidebarIconComponent, TopbarMenuKey, TopbarOption } from '../types';
-import type { ConsoleNetwork as FrontendNetwork } from '@core/runtime';
 import { getDocsOrigin } from '@core/router/siteRouting';
 
 export type TopbarSearchItem = {
@@ -68,9 +67,6 @@ export type DashboardTopbarProps = {
   accountLabel: string;
   searchItems?: TopbarSearchItem[];
   onNavigate?: (path: string) => void;
-  network: FrontendNetwork;
-  availableNetworks: readonly FrontendNetwork[];
-  onSelectNetwork: (network: FrontendNetwork) => void;
 };
 
 function isMetaK(event: KeyboardEvent): boolean {
@@ -276,9 +272,6 @@ export function DashboardTopbar({
   accountLabel,
   searchItems = [],
   onNavigate,
-  network,
-  availableNetworks,
-  onSelectNetwork,
 }: DashboardTopbarProps): React.JSX.Element {
   const topbarRef = React.useRef<HTMLElement | null>(null);
   const paletteReturnFocusRef = React.useRef<HTMLElement | null>(null);
@@ -297,28 +290,6 @@ export function DashboardTopbar({
     setPaletteOpen(false);
     window.requestAnimationFrame(() => paletteReturnFocusRef.current?.focus());
   }, []);
-  const networkToggle =
-    availableNetworks.length > 1 ? (
-      <div
-        className={`dashboard-network-toggle dashboard-network-toggle--${network}`}
-        role="group"
-        aria-label="Network"
-      >
-        <span className="dashboard-network-toggle__indicator" aria-hidden="true" />
-        {availableNetworks.map((candidate) => (
-          <button
-            key={candidate}
-            type="button"
-            className={`dashboard-network-toggle__option${candidate === network ? ' is-active' : ''}`}
-            aria-pressed={candidate === network}
-            onClick={() => onSelectNetwork(candidate)}
-          >
-            {candidate === 'testnet' ? 'Testnet' : 'Mainnet'}
-          </button>
-        ))}
-      </div>
-    ) : null;
-
   React.useEffect(() => {
     if (!accountMenuOpen) return;
     const onPointerDown = (event: PointerEvent) => {
@@ -465,7 +436,6 @@ export function DashboardTopbar({
       )}
 
       <div className="dashboard-topbar__utilities">
-        {networkToggle}
         {docsLink}
         {accountMenu}
       </div>
@@ -493,14 +463,6 @@ export function DashboardTopbar({
       {workspace ? (
         <div className="dashboard-mobile-context">
           <SidebarWorkspaceSwitcher {...workspace} />
-          <button
-            type="button"
-            className="dashboard-mobile-network-badge"
-            onClick={openMobileNavigation}
-            aria-label={`Network: ${network}. Open navigation to change network`}
-          >
-            {network === 'testnet' ? 'Testnet' : 'Mainnet'}
-          </button>
         </div>
       ) : null}
       {paletteOpen && searchEnabled && onNavigate ? (

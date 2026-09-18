@@ -27,9 +27,6 @@ test('dashboard navigation retains the expanded and collapsed sidebar controls',
     const noop = () => undefined;
     const icon = () => React.createElement('svg');
     const props = {
-      network: 'testnet',
-      availableNetworks: ['testnet', 'mainnet'],
-      onSelectNetwork: noop,
       accountLabel: 'Ada',
       onSelectContext: noop,
       dropdownOptions: {
@@ -75,6 +72,7 @@ test('dashboard navigation retains the expanded and collapsed sidebar controls',
 
     expect(expanded).toContain('aria-label="Collapse sidebar"');
     expect(expanded).toContain('aria-controls="dashboard-sidebar-navigation"');
+    expect(expanded).not.toContain('aria-label="Network"');
     expect(collapsed).toContain('aria-label="Expand sidebar"');
     expect(collapsed).toContain('aria-controls="dashboard-sidebar-navigation"');
   } finally {

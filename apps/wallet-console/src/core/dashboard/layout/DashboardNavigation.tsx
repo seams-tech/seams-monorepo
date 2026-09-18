@@ -1,5 +1,4 @@
 import React from 'react';
-import type { ConsoleNetwork } from '@core/runtime';
 import type {
   DashboardProduct,
   DashboardProductId,
@@ -30,9 +29,6 @@ export type DashboardProductNavigation = {
 };
 
 export type DashboardNavigationProps<Route extends string, GroupKey extends string> = {
-  network: ConsoleNetwork;
-  availableNetworks: readonly ConsoleNetwork[];
-  onSelectNetwork: (network: ConsoleNetwork) => void;
   accountLabel: string;
   onSelectContext: (menu: TopbarMenuKey, value: string) => void;
   dropdownOptions: Record<TopbarMenuKey, TopbarOption[]>;
@@ -60,9 +56,6 @@ function selectContextOption(
 }
 
 export function DashboardNavigation<Route extends string, GroupKey extends string>({
-  network,
-  availableNetworks,
-  onSelectNetwork,
   accountLabel,
   onSelectContext,
   dropdownOptions,
@@ -100,14 +93,8 @@ export function DashboardNavigation<Route extends string, GroupKey extends strin
         accountLabel={accountLabel}
         searchItems={searchItems}
         onNavigate={onNavigate}
-        network={network}
-        availableNetworks={availableNetworks}
-        onSelectNetwork={onSelectNetwork}
       />
       <DashboardSidebar
-        network={network}
-        availableNetworks={availableNetworks}
-        onSelectNetwork={onSelectNetwork}
         accountLabel={accountLabel}
         accountOptions={dropdownOptions.accountSettings}
         onSelectAccount={selectContextOption.bind(null, onSelectContext, 'accountSettings')}

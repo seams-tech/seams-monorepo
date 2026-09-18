@@ -295,8 +295,11 @@ export function createInMemoryConsoleApiKeyService(
     async createApiKey(ctx, request): Promise<CreateConsoleApiKeyResult> {
       const createdAt = now();
       const iso = toIso(createdAt);
-      const id = makeApiKeyId();
-      const secret = makeApiKeySecret({ kind: request.kind });
+      const id = makeApiKeyId({ environmentId: request.environmentId });
+      const secret = makeApiKeySecret({
+        kind: request.kind,
+        environmentId: request.environmentId,
+      });
       const secretHash = await hashApiKeySecret(secret);
       const base: Omit<
         StoredApiKey,
@@ -402,7 +405,10 @@ export function createInMemoryConsoleApiKeyService(
         );
       }
       const rotatedAt = now();
-      const secret = makeApiKeySecret({ kind: apiKey.kind });
+      const secret = makeApiKeySecret({
+        kind: apiKey.kind,
+        environmentId: apiKey.environmentId,
+      });
       apiKey.secretHash = await hashApiKeySecret(secret);
       apiKey.keyPrefix = makeApiKeyLookupPrefix(secret);
       apiKey.secretVersion += 1;

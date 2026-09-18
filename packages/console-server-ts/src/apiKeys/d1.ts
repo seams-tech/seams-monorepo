@@ -572,7 +572,10 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
   ): Promise<CreateConsoleApiKeyResult> {
     const now = this.state.now();
     const iso = toIso(nowMs(now));
-    const secret = makeApiKeySecret({ kind: request.kind });
+    const secret = makeApiKeySecret({
+      kind: request.kind,
+      environmentId: request.environmentId,
+    });
     const apiKey = await this.buildNewApiKey({
       orgId: ctx.orgId,
       request,
@@ -662,7 +665,10 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     }
 
     const now = this.state.now();
-    const secret = makeApiKeySecret({ kind: current.kind });
+    const secret = makeApiKeySecret({
+      kind: current.kind,
+      environmentId: current.environmentId,
+    });
     const updatedAt = toIso(nowMs(now));
     const rotated: StoredApiKey = {
       ...current,
@@ -907,7 +913,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     readonly secret: string;
   }): Promise<StoredApiKey> {
     const base = {
-      id: makeApiKeyId(),
+      id: makeApiKeyId({ environmentId: input.request.environmentId }),
       orgId: input.orgId,
       name: input.request.name,
       environmentId: input.request.environmentId,

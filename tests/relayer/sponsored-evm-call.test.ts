@@ -50,7 +50,7 @@ const apiKeyCtx = {
   actorUserId: 'user-tempo-sponsor-admin',
   roles: ['admin'],
 };
-const environmentId = 'env-tempo-sponsor-prod';
+const environmentId = 'project-tempo-sponsor:prod';
 const allowedOrigin = 'https://app.example.com';
 const blockedOrigin = 'https://blocked.example.com';
 const walletAddress = '0x1111111111111111111111111111111111111111' as const;

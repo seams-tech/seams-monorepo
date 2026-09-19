@@ -28,8 +28,9 @@ versions, recovery artifacts, and workflow logs were preserved.
 Applying the new retention ages to completed Wallet runs removed another 78
 intermediate local-tool and ordinary documentation artifacts, reclaiming
 68,059,532 bytes. Versioned release docs and CLI artifacts were retained.
-The combined cleanup reclaimed 2,610,443,207 bytes; listed unexpired artifacts
-across both repositories now total 483,617,940 bytes (about 461 MiB).
+The combined cleanup reclaimed 2,610,443,207 bytes; immediately afterward, listed
+unexpired artifacts across both repositories totaled 483,617,940 bytes (about
+461 MiB). Subsequent successful public documentation builds add to that inventory.
 
 GitHub documents a [6–12 hour artifact usage update window](https://docs.github.com/en/billing/concepts/product-billing/github-actions#example-artifact-storage-cost-calculation).
 Deleting artifacts stops future storage accrual; it does not erase storage
@@ -62,7 +63,14 @@ The retention changes are merged in [Wallet PR 5](https://github.com/seams-tech/
 and [monorepo PR 23](https://github.com/seams-tech/seams-monorepo/pull/23).
 Mainnet deployment `35443614586` successfully consumed its exact build cache and
 deleted it after deployment. The cache inventory confirms that run's key is gone.
-A subsequent private artifact upload remains the verification of quota recovery.
+At 13:14 UTC, a [private upload probe](https://github.com/seams-tech/seams-monorepo/actions/runs/35445137780)
+still failed to upload a 20-byte file with `Artifact storage quota has been hit`.
+The cleanup had occurred around 11:00–11:10 UTC, within GitHub's stated
+reconciliation window. The probe created no artifact; its temporary PR was
+closed without merging, and its branch was deleted. Quota recovery is still
+unverified. Retry a private upload after reconciliation, then inspect billing
+usage if the same failure persists. Successful public uploads do not establish
+that private artifact uploads are available.
 
 ## Mainnet availability is a separate issue
 
@@ -125,3 +133,11 @@ an improvement in the cached path and a remaining generation bottleneck. They
 do not establish a production p95. See the canonical
 [optimization plan](https://github.com/seams-tech/seams-wallet/blob/main/docs/optimization-10.md)
 for cohort details and remaining acceptance work.
+
+[PR 25](https://github.com/seams-tech/seams-monorepo/pull/25) merged the placement
+configuration. Standard testnet [deployment `35444951877`](https://github.com/seams-tech/seams-monorepo/actions/runs/35444951877)
+then completed successfully. A fresh Cloudflare settings read confirmed the
+placement survived deployment, all five live Gateway smoke routes returned
+HTTP 200, and the run's temporary build cache was removed. The measurements
+above belong to the earlier placement comparison; they were not repeated
+against this subsequent deployment.

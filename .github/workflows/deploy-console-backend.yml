@@ -172,3 +172,14 @@ jobs:
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component console
       - name: Smoke Console
         run: pnpm deploy:backend smoke --lane "$DEPLOY_LANE" --component console
+
+  cleanup_build_cache:
+    name: Cleanup / Console / ${{ inputs.lane }}
+    if: always() && needs.build.result == 'success'
+    needs: [build, migrate, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete ephemeral Console build cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh cache delete "$CONSOLE_BUILD_CACHE_KEY" --repo "$GITHUB_REPOSITORY"

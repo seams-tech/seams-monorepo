@@ -871,7 +871,9 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       return Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
     };
 
-    expect(Object.keys(workflow.jobs)).toEqual(workflowOrder);
+    const cleanupJob =
+      lane.id === 'staging-testnet' ? 'cleanup_build_artifact' : 'cleanup_build_cache';
+    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, cleanupJob]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);
     expect(workflowSource).not.toContain('--target');

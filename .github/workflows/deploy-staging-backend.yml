@@ -19,6 +19,8 @@ jobs:
     name: Build / staging-testnet / backend
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    outputs:
+      artifact_id: ${{ steps.backend_artifact.outputs.artifact-id }}
     steps:
       - name: Checkout workflow revision
         uses: actions/checkout@v6
@@ -46,13 +48,14 @@ jobs:
           test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
           test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
       - name: Upload backend artifact
+        id: backend_artifact
         uses: actions/upload-artifact@v7
         with:
           name: backend-build-staging-testnet
           overwrite: true
           include-hidden-files: true
-          retention-days: 30
-          compression-level: 0
+          retention-days: 1
+          compression-level: 6
           path: |
             .release-artifacts
 
@@ -431,3 +434,27 @@ jobs:
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component gateway
       - name: Run backend smoke tests
         run: pnpm deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system
+
+  cleanup_build_artifact:
+    name: Cleanup / staging-testnet / backend build artifact
+    if: always() && needs.build.result == 'success'
+    needs:
+      - build
+      - migrate
+      - deploy_signing_worker
+      - deploy_deriver_a
+      - deploy_deriver_b
+      - deploy_tenant_root_control_plane
+      - deploy_router
+      - deploy_wallet_runtime
+      - deploy_gateway
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete consumed backend build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKEND_BUILD_ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$BACKEND_BUILD_ARTIFACT_ID"

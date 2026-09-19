@@ -432,17 +432,17 @@ test.describe('linked devices modal lifecycle', () => {
     });
 
     const dialog = page.getByRole('dialog', { name: 'Your devices' });
-    const names = dialog.locator('.w3a-linked-devices-modal-item-name');
+    const names = dialog.locator('.seams-linked-devices-modal-item-name');
     await expect(names.filter({ hasText: 'Phone passkey' })).toBeVisible();
     await expect(names.filter({ hasText: 'Email code' })).toBeVisible();
     await expect(dialog.getByText('owner@example.test')).toBeVisible();
     await expect(names.filter({ hasText: 'Laptop passkey' })).toBeVisible();
     await expect(names.filter({ hasText: 'Old passkey' })).toHaveCount(0);
     await expect(
-      dialog.locator('.w3a-linked-devices-modal-item[data-device-state="active"]'),
+      dialog.locator('.seams-linked-devices-modal-item[data-device-state="active"]'),
     ).toHaveCount(2);
     /* Healthy devices carry no chip; only interesting lifecycle states do. */
-    await expect(dialog.locator('.w3a-linked-devices-modal-standing')).toHaveCount(1);
+    await expect(dialog.locator('.seams-linked-devices-modal-standing')).toHaveCount(1);
     await expect(dialog.getByText('Paused', { exact: true })).toBeVisible();
     await expect(
       dialog.getByRole('button', { name: /Remove Device 1, Phone passkey/ }),
@@ -460,15 +460,15 @@ test.describe('linked devices modal lifecycle', () => {
     });
 
     const dialog = page.getByRole('dialog', { name: 'Your devices' });
-    const names = dialog.locator('.w3a-linked-devices-modal-item-name');
+    const names = dialog.locator('.seams-linked-devices-modal-item-name');
     await expect(names.first()).toHaveText('Linked passkey');
     await expect(names.nth(1)).toHaveText('Original passkey');
     await expect(
-      dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]'),
+      dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]'),
     ).toHaveCount(1);
     await expect(
       dialog.locator(
-        '.w3a-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
+        '.seams-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
       ),
     ).toHaveCount(1);
     await expect(dialog.getByText(/These devices can use this wallet/)).toHaveCount(0);
@@ -516,7 +516,7 @@ test.describe('linked devices modal lifecycle', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Your devices' });
     await expect(
-      dialog.locator('.w3a-linked-devices-modal-item-name').filter({ hasText: 'Only passkey' }),
+      dialog.locator('.seams-linked-devices-modal-item-name').filter({ hasText: 'Only passkey' }),
     ).toBeVisible();
     await expect(dialog.getByRole('button', { name: /Remove Device 1/ })).toHaveCount(0);
   });
@@ -549,7 +549,7 @@ test.describe('linked devices modal lifecycle', () => {
     const dialog = page.getByRole('dialog', { name: 'Your devices' });
     await expect(dialog.getByText('Phone passkey')).toBeVisible();
     await expect(dialog.getByText('Laptop passkey')).toBeVisible();
-    const geometry = await dialog.locator('.w3a-linked-devices-modal-body').evaluate((element) => {
+    const geometry = await dialog.locator('.seams-linked-devices-modal-body').evaluate((element) => {
       const rect = element.getBoundingClientRect();
       return {
         left: rect.left,

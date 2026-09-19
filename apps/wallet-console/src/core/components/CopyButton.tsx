@@ -60,14 +60,14 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
         if (anyE.pointerType && anyE.pointerType !== 'mouse') {
           // Immediate copy on touch/pen; prevent follow-up click
           e.preventDefault();
-          (e.currentTarget as any)._w3aSkipNextClick = true;
+          (e.currentTarget as any)._seamsSkipNextClick = true;
           await handleCopy();
         }
       }}
       onClick={(e) => {
         const tgt = e.currentTarget as any;
-        if (tgt._w3aSkipNextClick) {
-          tgt._w3aSkipNextClick = false;
+        if (tgt._seamsSkipNextClick) {
+          tgt._seamsSkipNextClick = false;
           return;
         }
         void handleCopy();

@@ -3,7 +3,7 @@
    scales with the card radius so the heading clears the rounded corner:
    1.5rem floor, rounded opens up. */
 .demo-page-header {
-  padding: max(1.5rem, calc(var(--w3a-shape-card, 16px) * 0.75 + 0.25rem)) 1rem 0;
+  padding: max(1.5rem, calc(var(--seams-shape-card, 16px) * 0.75 + 0.25rem)) 1rem 0;
   text-align: left;
   transition: padding 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -47,7 +47,7 @@
   gap: var(--site-space-3);
   padding: 4px;
   background: var(--site-surface-muted);
-  border-radius: var(--w3a-shape-field, 10px);
+  border-radius: var(--seams-shape-field, 10px);
   transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -61,7 +61,7 @@
 .refresh-icon-button {
   background: none;
   border: none;
-  color: var(--w3a-colors-textSecondary);
+  color: var(--seams-colors-textSecondary);
   cursor: pointer;
   padding: var(--site-space-2);
   border-radius: 4rem;
@@ -103,11 +103,11 @@
 
 .greeting-input-group input {
   width: 100%;
-  height: var(--w3a-shape-fieldHeight, 44px);
+  height: var(--seams-shape-fieldHeight, 44px);
   padding: var(--site-space-2) var(--site-space-4);
   background-color: var(--site-surface-muted);
   border: none;
-  border-radius: var(--w3a-shape-field, 10px);
+  border-radius: var(--seams-shape-field, 10px);
   color: var(--site-text-primary);
   font-size: 0.9rem;
   font-family: var(--site-font-sans);
@@ -121,7 +121,7 @@
 .greeting-input-group input:focus {
   outline: none;
   border-color: var(--site-border-strong);
-  box-shadow: 0 0 0 3px var(--w3a-shadows-sm);
+  box-shadow: 0 0 0 3px var(--seams-shadows-sm);
 }
 
 .greeting-input-group input::placeholder {
@@ -143,10 +143,10 @@
 }
 
 .accent-btn {
-  background: var(--w3a-colors-primary);
+  background: var(--seams-colors-primary);
   padding: var(--site-space-3) var(--site-space-4);
   border: none;
-  border-radius: var(--w3a-shape-control, 10px);
+  border-radius: var(--seams-shape-control, 10px);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -239,8 +239,8 @@
   width: 100%;
   min-height: 0em;
   padding: 0.25rem 0.5rem 0.25rem 0.75rem;
-  border-radius: var(--w3a-shape-field, 10px);
-  background: var(--w3a-colors-surface2);
+  border-radius: var(--seams-shape-field, 10px);
+  background: var(--seams-colors-surface2);
   transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -332,8 +332,8 @@
   /* A small amount of ink separates the track from the white card. */
   background: color-mix(
     in srgb,
-    var(--w3a-colors-surface2),
-    var(--w3a-colors-textPrimary, var(--site-text-primary)) 4%
+    var(--seams-colors-surface2),
+    var(--seams-colors-textPrimary, var(--site-text-primary)) 4%
   );
 }
 
@@ -344,9 +344,9 @@
   left: 3px;
   width: calc((100% - 14px) / 3);
   border-radius: 9999px;
-  background: var(--w3a-passkey-auth-menu2-seg-active-bg, var(--w3a-colors-surface));
+  background: var(--seams-passkey-auth-menu2-seg-active-bg, var(--seams-colors-surface));
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--w3a-colors-borderPrimary) 80%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--seams-colors-borderPrimary) 80%, transparent),
     0 1px 3px rgba(0, 0, 0, 0.07);
   /* one pill-width plus one 4px gap per step */
   transform: translateX(calc(var(--demo-seg-index, 0) * (100% + 4px)));

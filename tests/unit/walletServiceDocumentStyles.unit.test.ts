@@ -13,16 +13,16 @@ import path from 'path';
  * Read from source rather than importing the plugin: this asserts a property
  * of the document every wallet origin serves, not of one bundle.
  */
-const repoRoot = process.env.W3A_REPO_ROOT ?? path.resolve(process.cwd(), '..');
+const repoRoot = process.env.SEAMS_REPO_ROOT ?? path.resolve(process.cwd(), '..');
 const walletSrc = path.join(repoRoot, 'packages/wallet/src');
 
 /** Marker attribute -> the component that blocks its first paint on it. */
 const GATED_STYLESHEETS: ReadonlyArray<readonly [string, string]> = [
-  ['data-w3a-components-css', 'shared component tokens'],
-  ['data-w3a-recovery-code-backup-css', 'RecoveryCodeBackup/viewer.ts'],
-  ['data-w3a-copy-icon-css', 'ExportPrivateKey/viewer.ts'],
-  ['data-w3a-export-viewer-css', 'ExportPrivateKey/viewer.ts'],
-  ['data-w3a-export-iframe-css', 'ExportPrivateKey/iframe-host.ts'],
+  ['data-seams-components-css', 'shared component tokens'],
+  ['data-seams-recovery-code-backup-css', 'RecoveryCodeBackup/viewer.ts'],
+  ['data-seams-copy-icon-css', 'ExportPrivateKey/viewer.ts'],
+  ['data-seams-export-viewer-css', 'ExportPrivateKey/viewer.ts'],
+  ['data-seams-export-iframe-css', 'ExportPrivateKey/iframe-host.ts'],
 ];
 
 test('the wallet document carries every stylesheet a measured surface waits for', () => {

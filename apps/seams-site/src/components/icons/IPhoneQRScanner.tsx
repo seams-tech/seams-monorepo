@@ -9,9 +9,9 @@ export function IPhoneQRScanner(props: {
   const { width = 140, height, className, style } = props;
   const vbW = 200;
   const vbH = 400;
-  const bodyFill = 'var(--w3a-colors-surface2)';
+  const bodyFill = 'var(--seams-colors-surface2)';
   const border = 'none';
-  const screenFill = 'var(--w3a-colors-surface, rgba(0,0,0,0.04))';
+  const screenFill = 'var(--seams-colors-surface, rgba(0,0,0,0.04))';
   const details = 'var(--site-text-secondary)';
 
   return (

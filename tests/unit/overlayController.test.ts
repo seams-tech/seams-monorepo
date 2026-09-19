@@ -83,7 +83,7 @@ test.describe('OverlayController', () => {
             requestId: 'request-a',
           },
         });
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const modal = {
           ...overlay.getState(),
@@ -213,7 +213,7 @@ test.describe('OverlayController', () => {
           focusTrap: true,
           identity,
         });
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const provisionalBackdrop = getComputedStyle(dialog, '::backdrop').backgroundColor;
 
@@ -263,7 +263,7 @@ test.describe('OverlayController', () => {
 
     expect(result.provisionalBackdrop).toBe('rgba(0, 0, 0, 0)');
     expect(result.fallbackBackdrop).toBe('rgba(0, 0, 0, 0)');
-    expect(result.measuredAnimationName).toBe('w3a-wallet-overlay-backdrop-in');
+    expect(result.measuredAnimationName).toBe('seams-wallet-overlay-backdrop-in');
     expect(result.measuredBackdrop).toBe('rgba(0, 0, 0, 0.26)');
   });
 
@@ -319,7 +319,7 @@ test.describe('OverlayController', () => {
           focusTrap: true,
           identity,
         });
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const provisional = {
           open: dialog.open,
@@ -450,7 +450,7 @@ test.describe('OverlayController', () => {
           focusTrap: true,
           identity,
         });
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         const dialogBeforeResize = dialog;
@@ -557,7 +557,7 @@ test.describe('OverlayController', () => {
           });
 
         apply(360, 164);
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -635,7 +635,7 @@ test.describe('OverlayController', () => {
         };
 
         applyDrawer('provisional_bottom_drawer');
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const initial = {
           provisional: dialog.classList.contains('is-provisional'),
@@ -823,9 +823,9 @@ test.describe('OverlayController', () => {
           },
           authMenuSessionId: 'auth-menu-layer-session',
         });
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog') as HTMLDialogElement;
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog') as HTMLDialogElement;
         const authMenu = {
-          inlineClass: dialog.classList.contains('w3a-wallet-inline-dialog'),
+          inlineClass: dialog.classList.contains('seams-wallet-inline-dialog'),
           zIndex: getComputedStyle(dialog).zIndex,
           // Absolute (document-coordinate) positioning scrolls with the page;
           // fixed would float over it.
@@ -849,7 +849,7 @@ test.describe('OverlayController', () => {
           },
         });
         const modal = {
-          inlineClass: dialog.classList.contains('w3a-wallet-inline-dialog'),
+          inlineClass: dialog.classList.contains('seams-wallet-inline-dialog'),
           zIndex: getComputedStyle(dialog).zIndex,
           position: getComputedStyle(dialog).position,
           topLayer: dialog.matches(':modal'),
@@ -891,7 +891,7 @@ test.describe('OverlayController', () => {
         });
 
         overlay.apply(mode);
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const cancelEvent = new Event('cancel', { bubbles: true, cancelable: true });
         const dispatchResult = dialog.dispatchEvent(cancelEvent);
@@ -973,7 +973,7 @@ test.describe('OverlayController', () => {
           },
         });
         overlay.apply(mode);
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         const backdrop = getComputedStyle(dialog, '::backdrop');
         return {
@@ -1026,7 +1026,7 @@ test.describe('OverlayController', () => {
         });
 
         overlay.apply(firstMode);
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         dialog.dispatchEvent(
           new PointerEvent('pointerdown', {
@@ -1106,7 +1106,7 @@ test.describe('OverlayController', () => {
           onDismiss: (event: unknown) => dismissals.push(event),
         });
         overlay.apply(mode);
-        const dialog = iframe.closest('dialog.w3a-wallet-overlay-dialog');
+        const dialog = iframe.closest('dialog.seams-wallet-overlay-dialog');
         if (!(dialog instanceof HTMLDialogElement)) throw new Error('overlay dialog missing');
         overlay.dispose();
 

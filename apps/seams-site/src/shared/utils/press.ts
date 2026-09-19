@@ -11,14 +11,14 @@ export function mobilePressHandlers(onActivate: () => void) {
       const pt = (e as any).pointerType as string | undefined;
       if (pt && pt !== 'mouse') {
         e.preventDefault();
-        (e.currentTarget as any)._w3aSkipNextClick = true;
+        (e.currentTarget as any)._seamsSkipNextClick = true;
         onActivate();
       }
     },
     onClick: (e: React.MouseEvent<HTMLElement>) => {
       const tgt = e.currentTarget as any;
-      if (tgt._w3aSkipNextClick) {
-        tgt._w3aSkipNextClick = false;
+      if (tgt._seamsSkipNextClick) {
+        tgt._seamsSkipNextClick = false;
         return;
       }
       onActivate();

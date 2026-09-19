@@ -36,7 +36,7 @@ test.describe('SSR sanity: SeamsAuthMenu adapter', () => {
     );
     expect(html).toContain('data-seams-auth-menu-host="true"');
     expect(html).not.toContain('<button');
-    expect(html).not.toContain('w3a-signup-menu-root');
+    expect(html).not.toContain('seams-signup-menu-root');
 
     expect(typeof (globalThis as any).window).toBe('undefined');
   });

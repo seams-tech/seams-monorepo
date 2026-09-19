@@ -13,12 +13,12 @@ test.describe('export viewer host cleanup', () => {
         ).toString()
       );
 
-      const staleHost = document.createElement('w3a-export-viewer-iframe');
+      const staleHost = document.createElement('seams-export-viewer-iframe');
       document.body.appendChild(staleHost);
 
-      const before = !!document.querySelector('w3a-export-viewer-iframe');
+      const before = !!document.querySelector('seams-export-viewer-iframe');
       mod.removeExportViewerHostIfPresent();
-      const after = !!document.querySelector('w3a-export-viewer-iframe');
+      const after = !!document.querySelector('seams-export-viewer-iframe');
 
       return { before, after };
     });
@@ -58,8 +58,8 @@ test.describe('export viewer host cleanup', () => {
       });
 
       const before = mod.isExportViewerSessionOpen(sessionId);
-      const host = document.querySelector('w3a-export-viewer-iframe');
-      const standaloneSurface = host?.getAttribute('data-w3a-export-surface');
+      const host = document.querySelector('seams-export-viewer-iframe');
+      const standaloneSurface = host?.getAttribute('data-seams-export-surface');
       await mod.upsertExportViewerHost({
         theme: 'dark',
         variant: 'drawer',
@@ -72,7 +72,7 @@ test.describe('export viewer host cleanup', () => {
           postMeasurement: () => undefined,
         },
       });
-      const walletDrawerSurface = host?.getAttribute('data-w3a-export-surface');
+      const walletDrawerSurface = host?.getAttribute('data-seams-export-surface');
       await mod.upsertExportViewerHost({
         theme: 'dark',
         variant: 'modal',
@@ -85,10 +85,10 @@ test.describe('export viewer host cleanup', () => {
           postMeasurement: () => undefined,
         },
       });
-      const walletModalSurface = host?.getAttribute('data-w3a-export-surface');
+      const walletModalSurface = host?.getAttribute('data-seams-export-surface');
       mod.removeExportViewerHostIfPresent();
       const after = mod.isExportViewerSessionOpen(sessionId);
-      const hostExists = !!document.querySelector('w3a-export-viewer-iframe');
+      const hostExists = !!document.querySelector('seams-export-viewer-iframe');
 
       return {
         before,
@@ -144,9 +144,9 @@ test.describe('export viewer host cleanup', () => {
       await new Promise<void>((resolve, reject) => {
         const startedAt = performance.now();
         const check = () => {
-          const host = document.querySelector('w3a-export-viewer-iframe');
+          const host = document.querySelector('seams-export-viewer-iframe');
           const iframe = host?.shadowRoot?.querySelector('iframe') as HTMLIFrameElement | null;
-          const drawer = iframe?.contentDocument?.querySelector('w3a-drawer');
+          const drawer = iframe?.contentDocument?.querySelector('seams-drawer');
           const innerDrawer = drawer?.querySelector('.drawer');
           if (drawer && innerDrawer) {
             resolve();
@@ -161,10 +161,10 @@ test.describe('export viewer host cleanup', () => {
         check();
       });
 
-      const host = document.querySelector('w3a-export-viewer-iframe');
+      const host = document.querySelector('seams-export-viewer-iframe');
       const iframe = host?.shadowRoot?.querySelector('iframe') as HTMLIFrameElement | null;
       const iframeDocument = iframe.contentDocument;
-      const drawer = iframeDocument?.querySelector('w3a-drawer');
+      const drawer = iframeDocument?.querySelector('seams-drawer');
       const innerDrawer = drawer?.querySelector('.drawer') as HTMLElement | null;
       if (!iframeDocument || !drawer || !innerDrawer) {
         throw new Error('export drawer DOM is incomplete');
@@ -211,8 +211,8 @@ test.describe('export viewer host cleanup', () => {
       const widthAfterContentUpdate = innerDrawer.getBoundingClientRect().width;
 
       return {
-        hostSurface: (host as HTMLElement).getAttribute('data-w3a-export-surface'),
-        surface: drawer.getAttribute('data-w3a-export-surface'),
+        hostSurface: (host as HTMLElement).getAttribute('data-seams-export-surface'),
+        surface: drawer.getAttribute('data-seams-export-surface'),
         open: drawer.hasAttribute('open'),
         widthWhileOpen,
         widthWhileClosed,
@@ -287,9 +287,9 @@ test.describe('export viewer host cleanup', () => {
       let sheet: HTMLElement | null = null;
       while (performance.now() - startedAt < 3_000) {
         const iframe = document
-          .querySelector('w3a-export-viewer-iframe')
+          .querySelector('seams-export-viewer-iframe')
           ?.shadowRoot?.querySelector('iframe') as HTMLIFrameElement | null;
-        drawer = iframe?.contentDocument?.querySelector('w3a-drawer') as HTMLElement | null;
+        drawer = iframe?.contentDocument?.querySelector('seams-drawer') as HTMLElement | null;
         handle = drawer?.querySelector('.handle') as HTMLElement | null;
         sheet = drawer?.querySelector('.drawer') as HTMLElement | null;
         const viewportHeight = iframe?.contentDocument?.documentElement.clientHeight ?? 0;
@@ -311,7 +311,7 @@ test.describe('export viewer host cleanup', () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const iframe = document
-        .querySelector('w3a-export-viewer-iframe')
+        .querySelector('seams-export-viewer-iframe')
         ?.shadowRoot?.querySelector('iframe') as HTMLIFrameElement | null;
       if (!iframe) throw new Error('export drawer iframe did not mount');
       const rect = handle.getBoundingClientRect();
@@ -331,9 +331,9 @@ test.describe('export viewer host cleanup', () => {
     await page.mouse.move(result.point.x, result.point.y + 80, { steps: 2 });
     const during = await page.evaluate(() => {
       const iframe = document
-        .querySelector('w3a-export-viewer-iframe')
+        .querySelector('seams-export-viewer-iframe')
         ?.shadowRoot?.querySelector('iframe') as HTMLIFrameElement | null;
-      const drawer = iframe?.contentDocument?.querySelector('w3a-drawer') as HTMLElement | null;
+      const drawer = iframe?.contentDocument?.querySelector('seams-drawer') as HTMLElement | null;
       const sheet = iframe?.contentDocument?.querySelector('.drawer') as HTMLElement | null;
       if (!drawer || !sheet) return null;
       const sheetStyle = getComputedStyle(sheet);
@@ -342,7 +342,7 @@ test.describe('export viewer host cleanup', () => {
         open: drawer.hasAttribute('open'),
         loading: Boolean((drawer as any).loading),
         dragging: sheet.classList.contains('dragging'),
-        dragTranslate: sheetStyle.getPropertyValue('--w3a-drawer__drag-translate').trim(),
+        dragTranslate: sheetStyle.getPropertyValue('--seams-drawer__drag-translate').trim(),
       };
     });
     await page.mouse.up();

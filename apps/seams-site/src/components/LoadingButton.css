@@ -3,9 +3,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(var(--w3a-shape-controlHeight, 44px) - 2px);
+  min-height: calc(var(--seams-shape-controlHeight, 44px) - 2px);
   border: none;
-  border-radius: var(--w3a-shape-control, 10px);
+  border-radius: var(--seams-shape-control, 10px);
   font-size: 0.9rem;
   font-weight: var(--site-font-weight-medium);
   font-family: var(--site-font-sans);
@@ -22,12 +22,12 @@
 }
 
 .button--primary {
-  background: var(--w3a-colors-buttonBackground, var(--w3a-colors-primary));
-  color: var(--w3a-colors-textButton, white);
+  background: var(--seams-colors-buttonBackground, var(--seams-colors-primary));
+  color: var(--seams-colors-textButton, white);
 }
 
 .button--primary:hover:not(:disabled) {
-  background: var(--w3a-colors-buttonHoverBackground, var(--w3a-colors-primaryHover));
+  background: var(--seams-colors-buttonHoverBackground, var(--seams-colors-primaryHover));
   box-shadow: 0 1px 2px var(--site-shadow-sm);
 }
 
@@ -37,13 +37,13 @@
 
 /* quiet bordered secondary: fills belong to the primary action only */
 .button--secondary {
-  background: var(--w3a-colors-surface);
-  color: var(--w3a-colors-textPrimary);
-  border: 1px solid var(--w3a-colors-borderHover, var(--w3a-colors-borderPrimary));
+  background: var(--seams-colors-surface);
+  color: var(--seams-colors-textPrimary);
+  border: 1px solid var(--seams-colors-borderHover, var(--seams-colors-borderPrimary));
 }
 
 .button--secondary:hover:not(:disabled) {
-  background: var(--w3a-colors-surface2);
+  background: var(--seams-colors-surface2);
 }
 
 .button:disabled,

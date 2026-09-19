@@ -14,8 +14,8 @@ test.afterEach(() => {
 
 test('resolveWasmUrl uses the embedded wallet SDK workers base when available', () => {
   g.window = {
-    __W3A_WALLET_SDK_BASE__: 'https://wallet.example.test/sdk/',
-  } as (Window & typeof globalThis) & { __W3A_WALLET_SDK_BASE__?: string };
+    __SEAMS_WALLET_SDK_BASE__: 'https://wallet.example.test/sdk/',
+  } as (Window & typeof globalThis) & { __SEAMS_WALLET_SDK_BASE__?: string };
   g.self = {
     location: {
       href: 'https://wallet.example.test/sdk/wallet-iframe-host-runtime.js?v=1',

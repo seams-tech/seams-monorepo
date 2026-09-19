@@ -16,7 +16,10 @@ import {
   createTenantDeploymentRuntimeInspectionClientV1,
   createTenantDeploymentRuntimeInspectionHandlerV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
-import { createTenantDeploymentPublicProjectionHandlerV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/publicProjection';
+import {
+  createTenantDeploymentPublicProjectionHandlerV1,
+  tenantDeploymentPublicProjectionResponseV1,
+} from '../../packages/wallet-console-server-ts/src/tenantDeployment/publicProjection';
 import {
   bindTenantDeploymentToRuntimeEnvironmentV1,
   createTenantDeploymentInternalBindingHandlerV1,
@@ -73,6 +76,32 @@ async function binding(createdAtMs: number) {
 }
 
 test.describe('tenant deployment binding', () => {
+  test('lets browser discovery read an unavailable lane without exposing tenant data', async () => {
+    const request = new Request(
+      'https://api.wallet.seams.sh/.well-known/seams-tenant-deployment.json',
+      {
+        headers: { Origin: 'https://wallet.seams.sh' },
+      },
+    );
+    const response = tenantDeploymentPublicProjectionResponseV1({
+      request,
+      binding: null,
+      maxAgeSeconds: 30,
+    });
+    expect(response.status).toBe(503);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await response.json()).toEqual({ ok: false, code: 'tenant_deployment_unavailable' });
+
+    const available = tenantDeploymentPublicProjectionResponseV1({
+      request,
+      binding: await binding(1_700_000_000_000),
+      maxAgeSeconds: 30,
+    });
+    expect(available.status).toBe(200);
+    expect(available.headers.get('Access-Control-Allow-Origin')).toBe('https://wallet.seams.sh');
+  });
+
   test('reads durable wallet and live ceremony counts through the private runtime binding', async () => {
     const fixture = createTemporaryD1Database();
     try {

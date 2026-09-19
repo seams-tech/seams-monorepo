@@ -29,12 +29,6 @@ async function fetch(
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
   });
-  if (!binding) {
-    return Response.json(
-      { ok: false, code: 'tenant_deployment_unavailable' },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } },
-    );
-  }
   if (new URL(request.url).pathname === '/.well-known/seams-tenant-deployment.json') {
     if (request.method !== 'GET') {
       return new Response(null, { status: 405, headers: { Allow: 'GET' } });
@@ -44,6 +38,12 @@ async function fetch(
       binding,
       maxAgeSeconds: 30,
     });
+  }
+  if (!binding) {
+    return Response.json(
+      { ok: false, code: 'tenant_deployment_unavailable' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
   return await handleSplitGatewayRequest(request, boundEnv, ctx, {

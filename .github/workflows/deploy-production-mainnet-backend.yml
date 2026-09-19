@@ -45,16 +45,11 @@ jobs:
           done
           test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
           test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
-      - name: Upload backend artifact
-        uses: actions/upload-artifact@v7
+      - name: Save backend build cache
+        uses: actions/cache/save@v4
         with:
-          name: backend-build-production-mainnet
-          overwrite: true
-          include-hidden-files: true
-          retention-days: 30
-          compression-level: 0
-          path: |
-            .release-artifacts
+          path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
 
   migrate:
     name: Migrate / production-mainnet / gateway
@@ -81,11 +76,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Apply D1 migrations
@@ -122,11 +117,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Signing Worker build entry
         run: test -s .release-artifacts/router-ab-runtime/build/signing-worker/worker/shim.mjs
       - name: Deploy Signing Worker
@@ -179,11 +174,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Deriver A build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-a/worker/shim.mjs
       - name: Deploy Deriver A
@@ -236,11 +231,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Deriver B build entry
         run: test -s .release-artifacts/router-ab-runtime/build/deriver-b/worker/shim.mjs
       - name: Deploy Deriver B
@@ -282,11 +277,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check control-plane build entry
         run: test -s .release-artifacts/router-ab-runtime/build/tenant-root-control-plane/worker/shim.mjs
       - name: Deploy tenant-root control plane
@@ -329,11 +324,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Router build entry
         run: test -s .release-artifacts/router-ab-runtime/build/router/worker/shim.mjs
       - name: Deploy Router
@@ -375,11 +370,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Wallet Runtime build entry
         run: test -s .release-artifacts/wallet-runtime/payload/d1WalletRuntimeWorker.js
       - name: Deploy Wallet Runtime
@@ -420,11 +415,11 @@ jobs:
           cache: pnpm
       - name: Install deployment dependencies
         run: pnpm install --frozen-lockfile --filter @seams-internal/console-server... --filter @seams-internal/wallet-console-server...
-      - name: Download backend artifact
-        uses: actions/download-artifact@v8
+      - name: Restore backend build cache
+        uses: actions/cache/restore@v4
         with:
-          name: backend-build-production-mainnet
           path: .release-artifacts
+          key: backend-build-production-mainnet-${{ github.sha }}
       - name: Check Gateway build entry
         run: test -s .release-artifacts/gateway/payload/d1GatewayWorker.js
       - name: Deploy Gateway

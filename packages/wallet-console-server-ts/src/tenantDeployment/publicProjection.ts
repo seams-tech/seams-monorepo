@@ -12,9 +12,19 @@ export type TenantDeploymentPublicProjectionHandlerOptionsV1 = {
 
 export function tenantDeploymentPublicProjectionResponseV1(input: {
   readonly request: Request;
-  readonly binding: TenantDeploymentBindingV1;
+  readonly binding: TenantDeploymentBindingV1 | null;
   readonly maxAgeSeconds: number;
 }): Response {
+  if (!input.binding) {
+    // Discovery must expose the unavailable state before a tenant origin policy exists.
+    return Response.json(
+      { ok: false, code: 'tenant_deployment_unavailable' },
+      {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
+      },
+    );
+  }
   const etag = `"${input.binding.revision}"`;
   const requestOrigin = input.request.headers.get('Origin');
   const allowedOrigin =
@@ -42,12 +52,6 @@ export function createTenantDeploymentPublicProjectionHandlerV1(
   }
   return async function tenantDeploymentPublicProjection(request: Request): Promise<Response> {
     const binding = await options.reader.resolveActiveBinding(options.deploymentLane);
-    if (!binding) {
-      return Response.json(
-        { ok: false, code: 'tenant_deployment_unavailable' },
-        { status: 503, headers: { 'Cache-Control': 'no-store' } },
-      );
-    }
     return tenantDeploymentPublicProjectionResponseV1({ request, binding, maxAgeSeconds });
   };
 }

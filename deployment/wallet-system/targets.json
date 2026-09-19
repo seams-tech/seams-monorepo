@@ -267,6 +267,7 @@
           },
           "signingWorker": {
             "workerName": "router-ab-signing-worker-testnet",
+            "placementRegion": "aws:ap-northeast-3",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
             "deploymentEnvironment": {
               "kind": "named",

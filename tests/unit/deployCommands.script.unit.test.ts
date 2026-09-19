@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
+import { unstable_readConfig as readWranglerConfig } from 'wrangler';
 import {
   assertExpectedWorkerServices,
   assertEd25519IssuerKeySet,
@@ -13,6 +15,7 @@ import {
   assertExpectedDurableObjectBindings,
   validateGatewayRouterAbPublicConfiguration,
   validateDeploymentKeyPairs,
+  renderWorkerPlacement,
 } from '../../scripts/deploy-backend.mjs';
 import {
   buildFrontendEnvironment,
@@ -50,6 +53,50 @@ const deploymentSecretNames = [
   'SPONSORED_EVM_EXECUTORS_JSON',
   'SIGNING_SESSION_SEAL_ROOT_SECRET_B64U',
 ];
+
+test('worker placement targets the selected lane and preserves other environments', () => {
+  const resource = readBackendLane('production-testnet').resources.signingWorker;
+  const source = `name = "placement-test"
+compatibility_date = "2026-06-12"
+[placement]
+region = "aws:ap-east-1"
+[env.production-testnet]
+name = "placement-test-testnet"
+[env.production-testnet.placement]
+mode = "smart"
+[env.staging]
+name = "placement-test-staging"
+[env.staging.placement]
+mode = "off"
+`;
+  const directory = mkdtempSync(path.join(tmpdir(), 'seams-worker-placement-'));
+  const config = path.join(directory, 'wrangler.toml');
+  try {
+    const rendered = renderWorkerPlacement(source, resource);
+    writeFileSync(config, rendered);
+    expect(readWranglerConfig({ config, env: 'production-testnet' }).placement).toEqual({
+      region: 'aws:ap-northeast-3',
+    });
+    expect(readWranglerConfig({ config, env: 'staging' }).placement).toEqual({ mode: 'off' });
+    expect(readWranglerConfig({ config }).placement).toEqual({ region: 'aws:ap-east-1' });
+    expect(renderWorkerPlacement(rendered, resource)).toBe(rendered);
+
+    const withoutPlacement = source.replace(
+      '[env.production-testnet.placement]\nmode = "smart"\n',
+      '',
+    );
+    writeFileSync(config, renderWorkerPlacement(withoutPlacement, resource));
+    expect(readWranglerConfig({ config, env: 'production-testnet' }).placement).toEqual({
+      region: 'aws:ap-northeast-3',
+    });
+    expect(
+      renderWorkerPlacement(source, readBackendLane('production-mainnet').resources.signingWorker),
+    ).toBe(source);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 function runCommand(
   script: string,
   args: readonly string[],

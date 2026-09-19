@@ -686,7 +686,9 @@ function parseGatewayResource(value, pathName) {
 
 function parseWorkerResource(value, pathName) {
   const resource = requireObject(value, pathName);
-  requireExactKeys(resource, ['workerName', 'configPath', 'deploymentEnvironment'], pathName);
+  const keys = ['workerName', 'configPath', 'deploymentEnvironment'];
+  if (Object.hasOwn(resource, 'placementRegion')) keys.push('placementRegion');
+  requireExactKeys(resource, keys, pathName);
   return Object.freeze({
     workerName: requireResourceName(resource.workerName, pathName + '.workerName'),
     configPath: requireRelativePath(resource.configPath, pathName + '.configPath'),
@@ -694,6 +696,15 @@ function parseWorkerResource(value, pathName) {
       resource.deploymentEnvironment,
       pathName + '.deploymentEnvironment',
     ),
+    ...(Object.hasOwn(resource, 'placementRegion')
+      ? {
+          placementRegion: requirePattern(
+            resource.placementRegion,
+            /^(aws|gcp|azure):[a-z0-9-]+$/u,
+            pathName + '.placementRegion',
+          ),
+        }
+      : {}),
   });
 }
 

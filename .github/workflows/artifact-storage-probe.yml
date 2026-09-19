@@ -1,0 +1,32 @@
+name: Temporary artifact storage probe
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/artifact-storage-probe.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create quota probe
+        run: printf 'Artifact quota probe\n' > "$RUNNER_TEMP/artifact-quota-probe.txt"
+      - name: Upload private artifact
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: artifact-quota-probe-${{ github.run_id }}
+          path: ${{ runner.temp }}/artifact-quota-probe.txt
+          retention-days: 1
+      - name: Delete successful probe
+        if: always() && steps.upload.outputs.artifact-id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          REPOSITORY: ${{ github.repository }}
+        run: gh api --method DELETE "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID"

@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@seams/wallet':
-        specifier: 0.5.22
-        version: 0.5.22(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.23
+        version: 0.5.23(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@seams/wallet-server':
-        specifier: 0.5.22
-        version: 0.5.22
+        specifier: 0.5.23
+        version: 0.5.23
     devDependencies:
       '@eslint/js':
         specifier: ^9.0.0
@@ -1484,6 +1484,10 @@ packages:
     resolution: {integrity: sha512-DLKFeb37m8eKQ7R739CaPPaW0Q5ZZhG8tZJCc3OXTpxO03GyQjuCzk1y4wxOSBqssCLL5RCj5/SBLQHH0A5B5w==}
     hasBin: true
 
+  '@seams/wallet-server@0.5.23':
+    resolution: {integrity: sha512-NaW3zu7Pn7He0ukpfibdeZwwV0uieQf04OOLMXlq2I7jOhTQQ8hrbtPxJuAKIVYRX6IUKcbAhVqdjqLDLPs70g==}
+    hasBin: true
+
   '@seams/wallet@0.5.1':
     resolution: {integrity: sha512-SSzm0jU8Pl87AjYLQGHBHiQ6OmkwWpMAhOGwYLBM8R4svV38TfJ97kbiRmhtntaKcgbFAL8HJvQ9KGGT36AxFQ==}
     peerDependencies:
@@ -1503,6 +1507,23 @@ packages:
 
   '@seams/wallet@0.5.22':
     resolution: {integrity: sha512-uX7hM+aGnIFUMG2Jnxia+r6Cg+ptRNRnfZGA9xxoUq+YzFb36GbHM8Anopu3gkmPFb+6UI+QPM6ZEU899O/Dxg==}
+    peerDependencies:
+      jsqr: '>=1.4.0'
+      qrcode: '>=1.3.0'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      jsqr:
+        optional: true
+      qrcode:
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@seams/wallet@0.5.23':
+    resolution: {integrity: sha512-lX5PjPJCYmmeXZ+Bj4SBIQccBK1/q90YL14E48FQxD7sKOriT27e8sPJr4gW2wqA9q6tiFqXCohOzPXHzBJVKQ==}
     peerDependencies:
       jsqr: '>=1.4.0'
       qrcode: '>=1.3.0'
@@ -3933,6 +3954,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@seams/wallet-server@0.5.23':
+    dependencies:
+      '@simplewebauthn/server': 13.2.2
+      bs58: 6.0.0
+      express: 4.21.2
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - supports-color
+
   '@seams/wallet@0.5.1(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.1.12)
@@ -3967,7 +3997,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seams/wallet@0.5.22(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@seams/wallet@0.5.23(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.1.12)
       '@near-js/types': 2.5.1

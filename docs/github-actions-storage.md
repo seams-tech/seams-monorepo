@@ -58,10 +58,11 @@ the spending cap requires the account owner's decision; it was left at $0.
   does not release artifact quota. Keep using the deployment handoff while the
   artifact quota reconciles; it does not prove the artifact quota is resolved.
 
-The workflow changes require merging in their respective repositories before
-they affect new runs. Validate them with `actionlint` and the focused deployment
-command tests. A subsequent private artifact upload is the verification of quota
-recovery, rather than a cache-backed deployment.
+The retention changes are merged in [Wallet PR 5](https://github.com/seams-tech/seams-wallet/pull/5)
+and [monorepo PR 23](https://github.com/seams-tech/seams-monorepo/pull/23).
+Mainnet deployment `35443614586` successfully consumed its exact build cache and
+deleted it after deployment. The cache inventory confirms that run's key is gone.
+A subsequent private artifact upload remains the verification of quota recovery.
 
 ## Mainnet availability is a separate issue
 
@@ -91,3 +92,36 @@ Console revision as part of the coordinated release. After provisioning, require
 HTTP 200 and semantic tenant readiness before describing mainnet as healthy.
 Testnet signing measurements on `0.5.24` can proceed while mainnet activation is
 being resolved.
+
+The unavailable public discovery response also lacked CORS headers. Browsers
+could not inspect its HTTP 503 status, so the optional mainnet configuration
+prevented `wallet.seams.sh` from loading its available testnet demo. [PR 24](https://github.com/seams-tech/seams-monorepo/pull/24)
+now exposes that public, non-cacheable unavailable response to browser callers.
+[Deployment `35443614586`](https://github.com/seams-tech/seams-monorepo/actions/runs/35443614586)
+passed, and a fresh browser reload verified startup without interception.
+Mainnet still needs a supported credit/activation path; its ledger balance is $0.
+Stripe sandbox checkout has not been treated as production payment or used to
+bypass the existing billing guard.
+
+## Production signing placement
+
+Live `0.5.24` Tempo measurements found 9.76–10.55-second empty-pool signing and
+3.34–5.63-second cached signing before the placement change. A read-only D1 probe
+reported the gateway primary in Singapore (`SIN`) and the signing-worker private
+primary in Osaka (`KIX`). The gateway targets Singapore; the signing worker had
+no placement policy and executes multiple sequential primary operations.
+
+The production-testnet signing worker now targets `aws:ap-northeast-3`, near its
+existing private database. The target is stored in its existing resource entry
+in `deployment/wallet-system/targets.json` and rendered into the selected Wrangler
+environment. Other lanes retain their existing placement. Bindings and key
+material were unchanged in the live comparison. [Cloudflare placement documentation](https://developers.cloudflare.com/workers/configuration/placement/)
+describes how service-bound workers can be placed near their backend services.
+
+Three subsequent cached Tempo signatures took 2.46, 2.58, and 2.80 seconds, including
+one exact-operation step-up. Empty-pool samples still took 7.88–13.35 seconds;
+foreground generation accounted for 5.32–9.93 seconds. These small samples show
+an improvement in the cached path and a remaining generation bottleneck. They
+do not establish a production p95. See the canonical
+[optimization plan](https://github.com/seams-tech/seams-wallet/blob/main/docs/optimization-10.md)
+for cohort details and remaining acceptance work.

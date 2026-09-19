@@ -1486,13 +1486,43 @@ function deployGateway(lane) {
 }
 
 function workerDeployArguments(resource, renderedConfigPath) {
-  const configPath = renderedConfigPath || routerConfigPath(resource);
+  let configPath = renderedConfigPath || routerConfigPath(resource);
   assertFile(configPath, `Wrangler config for ${resource.workerName}`);
+  if (resource.placementRegion) {
+    const rendered = renderWorkerPlacement(fs.readFileSync(configPath, 'utf8'), resource);
+    configPath =
+      renderedConfigPath ||
+      path.join(path.dirname(configPath), `.wrangler.generated.${resource.workerName}.toml`);
+    fs.writeFileSync(configPath, rendered, { mode: 0o600 });
+  }
   const args = ['exec', 'wrangler', 'deploy', '--config', configPath];
   if (resource.deploymentEnvironment.kind === 'named') {
     args.push('--env', resource.deploymentEnvironment.name);
   }
   return args;
+}
+
+export function renderWorkerPlacement(source, resource) {
+  if (!resource.placementRegion) return source;
+  const table =
+    resource.deploymentEnvironment.kind === 'named'
+      ? `env.${resource.deploymentEnvironment.name}.placement`
+      : 'placement';
+  const header = `[${table}]`;
+  const lines = source.split('\n');
+  let start = -1;
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index].trim() === header) {
+      start = index;
+      break;
+    }
+  }
+  const placement = `${header}\nregion = ${JSON.stringify(resource.placementRegion)}`;
+  if (start < 0) return `${source.trimEnd()}\n\n${placement}\n`;
+  let end = start + 1;
+  while (end < lines.length && !lines[end].trimStart().startsWith('[')) end += 1;
+  lines.splice(start, end - start, placement, '');
+  return lines.join('\n');
 }
 
 function renderPrivateD1WorkerConfig(lane, resource, component) {

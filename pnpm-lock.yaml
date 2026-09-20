@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@seams/wallet':
-        specifier: 0.5.27
-        version: 0.5.27(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.28
+        version: 0.5.28(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@seams/wallet-server':
-        specifier: 0.5.27
-        version: 0.5.27
+        specifier: 0.5.28
+        version: 0.5.28
     devDependencies:
       '@eslint/js':
         specifier: ^9.0.0
@@ -67,8 +67,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.5.27
-        version: 0.5.27(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.5.28
+        version: 0.5.28(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query':
         specifier: ^5.76.1
         version: 5.87.1(react@18.3.1)
@@ -131,11 +131,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.5.27
-        version: 0.5.27(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.5.28
+        version: 0.5.28(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@seams/wallet-server':
-        specifier: 0.5.27
-        version: 0.5.27
+        specifier: 0.5.28
+        version: 0.5.28
       '@tanstack/react-query':
         specifier: ^5.76.1
         version: 5.87.1(react@18.3.1)
@@ -225,8 +225,8 @@ importers:
         specifier: workspace:*
         version: link:../wallet-console-shared-ts
       '@seams/wallet-server':
-        specifier: 0.5.27
-        version: 0.5.27
+        specifier: 0.5.28
+        version: 0.5.28
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
@@ -250,8 +250,8 @@ importers:
   packages/wallet-console-shared-ts:
     dependencies:
       '@seams/wallet-server':
-        specifier: 0.5.27
-        version: 0.5.27
+        specifier: 0.5.28
+        version: 0.5.28
 
   tests:
     devDependencies:
@@ -1465,8 +1465,8 @@ packages:
     resolution: {integrity: sha512-HFlF97oR/hjLAZs83bZLPo/yzfgZDRMdYiadv5+fZCKu/bVbFlHTDv9jGAFikAVfcjizin+tkuVDPJ2OAORCRg==}
     hasBin: true
 
-  '@seams/wallet-server@0.5.27':
-    resolution: {integrity: sha512-tzK+HiC0RItfL468GnrjWUUHAUoEWSnGfftOxRltge2SHuZk2/TQWgnyuNx/goBpjBEqIwkOrKY6eTJhX7h9Pw==}
+  '@seams/wallet-server@0.5.28':
+    resolution: {integrity: sha512-syH9jQefzk5ydEbXB5XPfphD+vpQh7Lx6DOfJOcRK4BwbhC7XRzPqjY9ZEAQMcAOAQj0XBexnmZRIojHnyqmEQ==}
     hasBin: true
 
   '@seams/wallet@0.5.1':
@@ -1486,8 +1486,8 @@ packages:
       react-dom:
         optional: true
 
-  '@seams/wallet@0.5.27':
-    resolution: {integrity: sha512-JsXmyHh/G7Ef+M6yBBYO6yeVYemSx4/mzblrJD/phCkbAUp1KumKNoCvtzlschGZaRNanl5Dl/2a98dXM1NKZw==}
+  '@seams/wallet@0.5.28':
+    resolution: {integrity: sha512-X08m0A9CzKH61Mj1enJ+9mrsStrqFlgqFEHCrC5Ux5OVQOBi1dP1HDzQhxZoTEgbDA9oxV0xyvKYy1ZrJaGkGA==}
     peerDependencies:
       jsqr: '>=1.4.0'
       qrcode: '>=1.3.0'
@@ -3909,7 +3909,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@seams/wallet-server@0.5.27':
+  '@seams/wallet-server@0.5.28':
     dependencies:
       '@simplewebauthn/server': 13.2.2
       bs58: 6.0.0
@@ -3935,7 +3935,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seams/wallet@0.5.27(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@seams/wallet@0.5.28(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.1.12)
       '@near-js/types': 2.5.1
@@ -3952,7 +3952,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seams/wallet@0.5.27(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@seams/wallet@0.5.28(@types/react@19.1.12)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.1.12)
       '@near-js/types': 2.5.1

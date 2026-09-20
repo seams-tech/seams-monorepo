@@ -365,16 +365,34 @@ export function createD1TenantDeploymentBindingReaderV1(
 
     async resolveActiveBinding(rawLane) {
       const deploymentLane = requiredText(rawLane, 'deploymentLane');
-      const active = await readActive(database, deploymentLane);
-      if (!active) return null;
-      const binding = await readBinding(database, deploymentLane, active.revision);
-      if (!binding) {
+      const row = await queryD1One(
+        database,
+        `SELECT active.deployment_lane AS active_deployment_lane,
+                active.revision AS active_revision,
+                active.previous_revision, active.activation_sequence, active.activated_at_ms,
+                binding.*
+           FROM active_tenant_deployment_bindings AS active
+           LEFT JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane
+            AND binding.revision = active.revision
+          WHERE active.deployment_lane = ?1`,
+        [deploymentLane],
+      );
+      if (!row) return null;
+      parseActiveRow({
+        deployment_lane: row.active_deployment_lane,
+        revision: row.active_revision,
+        previous_revision: row.previous_revision,
+        activation_sequence: row.activation_sequence,
+        activated_at_ms: row.activated_at_ms,
+      });
+      if (row.revision === null) {
         throw new TenantDeploymentStoreError(
           'invalid_record',
           'active tenant deployment binding does not exist',
         );
       }
-      return binding;
+      return await parseBindingRow(row);
     },
   };
 }

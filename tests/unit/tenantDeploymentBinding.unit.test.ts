@@ -76,6 +76,49 @@ async function binding(createdAtMs: number) {
 }
 
 test.describe('tenant deployment binding', () => {
+  test('resolves the current binding from one snapshot and rejects a dangling pointer', async () => {
+    const fixture = createTemporaryD1Database();
+    try {
+      const migration = path.resolve(
+        '..',
+        'packages/wallet-console-server-ts/migrations/d1-console/0046_tenant_deployment_bindings.sql',
+      );
+      await fixture.database.exec(readFileSync(migration, 'utf8'));
+      const service = createD1TenantDeploymentServiceV1({ database: fixture.database });
+      const first = await service.putBinding(await binding(1_700_000_000_000));
+      const second = await service.putBinding(await binding(1_700_000_000_001));
+      expect(await service.resolveActiveBinding(first.deploymentLane)).toBeNull();
+      await fixture.database
+        .prepare(
+          `INSERT INTO active_tenant_deployment_bindings
+           (deployment_lane, revision, previous_revision, activation_sequence, activated_at_ms)
+         VALUES (?1, ?2, NULL, 1, ?3)`,
+        )
+        .bind(first.deploymentLane, first.revision, 1_800_000_000_000)
+        .run();
+      expect(await service.resolveActiveBinding(first.deploymentLane)).toEqual(first);
+      await fixture.database
+        .prepare(
+          `UPDATE active_tenant_deployment_bindings
+            SET revision = ?2, previous_revision = ?3, activation_sequence = 2
+          WHERE deployment_lane = ?1`,
+        )
+        .bind(first.deploymentLane, second.revision, first.revision)
+        .run();
+      expect(await service.resolveActiveBinding(first.deploymentLane)).toEqual(second);
+      await fixture.database.exec(
+        `PRAGMA foreign_keys = OFF;
+         UPDATE active_tenant_deployment_bindings SET revision = 'tdb_missing';`,
+      );
+      await expect(service.resolveActiveBinding(first.deploymentLane)).rejects.toMatchObject({
+        code: 'invalid_record',
+        message: 'active tenant deployment binding does not exist',
+      });
+    } finally {
+      cleanupTemporaryD1Database(fixture.tempDir);
+    }
+  });
+
   test('lets browser discovery read an unavailable lane without exposing tenant data', async () => {
     const request = new Request(
       'https://api.wallet.seams.sh/.well-known/seams-tenant-deployment.json',

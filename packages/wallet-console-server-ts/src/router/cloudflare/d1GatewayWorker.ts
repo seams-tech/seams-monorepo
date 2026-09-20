@@ -25,11 +25,14 @@ async function fetch(
   env: TenantDeploymentGatewayEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  const startedAt = performance.now();
+  const pathname = new URL(request.url).pathname;
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
   });
-  if (new URL(request.url).pathname === '/.well-known/seams-tenant-deployment.json') {
+  const bindingDurationMs = performance.now() - startedAt;
+  if (pathname === '/.well-known/seams-tenant-deployment.json') {
     if (request.method !== 'GET') {
       return new Response(null, { status: 405, headers: { Allow: 'GET' } });
     }
@@ -46,9 +49,16 @@ async function fetch(
     );
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
-  return await handleSplitGatewayRequest(request, boundEnv, ctx, {
+  const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     emailOtpDeliveryProvider: resolveEmailOtpDeliveryProviderFromEnv(boundEnv),
   });
+  if (!pathname.startsWith('/router-ab/ecdsa-derivation/')) return response;
+  const result = new Response(response.body, response);
+  result.headers.append(
+    'Server-Timing',
+    `wallet_gateway_binding;dur=${bindingDurationMs.toFixed(1)}, wallet_gateway_total;dur=${(performance.now() - startedAt).toFixed(1)}`,
+  );
+  return result;
 }
 
 async function scheduled(

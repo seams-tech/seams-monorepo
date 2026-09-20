@@ -14,8 +14,7 @@ import {
   Store,
   Wallet,
 } from 'lucide-react';
-import { AuthMenuMode, SeamsAuthMenuSkeletonInner } from '@seams/wallet/react';
-import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
+import { SeamsAuthMenuMock } from './SeamsAuthMenuMock';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
@@ -157,24 +156,6 @@ function IntegrationsWindow(): React.JSX.Element {
   );
 }
 
-/* The real SeamsAuthMenu shell, inert: the SDK's skeleton renders identical
-   markup/CSS with all controls disabled and no wallet logic. The Inner export
-   reads no theme context; the Paper palette is pinned as CSS variables on the
-   wrapper so the card can't inherit the site theme (which may be dark or
-   Rosé Pine). pointer-events off so clicks fall through to the panel link. */
-const paperShellVars = Object.fromEntries(
-  Object.entries(PAPER_LIGHT_COLORS).map(([key, value]) => [`--seams-colors-${key}`, value]),
-) as React.CSSProperties;
-
-function WalletShellCard(): React.JSX.Element {
-  return (
-    <div className="h2-heroscene__shell" aria-hidden data-seams-theme="light" style={paperShellVars}>
-      {/* Login mode shows the full method stack (passkey, SSO, other options) */}
-      <SeamsAuthMenuSkeletonInner defaultMode={AuthMenuMode.Login} />
-    </div>
-  );
-}
-
 type HeroWalletPreview =
   | {
       kind: 'signIn';
@@ -251,7 +232,7 @@ function WalletTransactionPreview(): React.JSX.Element {
 function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element {
   switch (preview.kind) {
     case 'signIn':
-      return <WalletShellCard />;
+      return <SeamsAuthMenuMock />;
     case 'transactionConfirm':
       return <WalletTransactionPreview />;
     default:

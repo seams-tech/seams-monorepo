@@ -813,7 +813,7 @@ class LinkedDeviceFailureMonitor {
     if (
       message.type() !== 'error' ||
       (!text.includes('[Device2Linking] failed') &&
-        !text.includes('[SeamsAuthMenu:login] Error') &&
+        !text.includes('[HostedSeamsAuthMenu:login] Error') &&
         !text.includes('[DemoPage][TempoSignError]') &&
         !text.includes('[DemoPage][TempoWalletSessionExpired]') &&
         !text.includes('[DemoPage][TempoPreflightFailure]') &&

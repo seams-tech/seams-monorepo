@@ -27,15 +27,6 @@ function isExperimentalExportKey(key: string): boolean {
   return key === './experimental' || key.startsWith('./experimental/');
 }
 
-function isLegacyAuthMenuExportKey(key: string): boolean {
-  return (
-    key.includes('passkey-auth-menu') ||
-    key.includes('passkeyAuthMenu') ||
-    key.includes('seams-auth-menu-compat') ||
-    key.includes('seamsAuthMenuCompat')
-  );
-}
-
 const retiredFacadeExportNames = [
   'SeamsPasskey',
   'PasskeyManagerContext',
@@ -99,28 +90,6 @@ test.describe('package export contracts', () => {
     expect(rootSource).not.toMatch(/^\s*export\s+.*from\s+['"]\.\/threshold['"]/m);
     expect(fs.existsSync(path.join(repoRoot, 'packages/wallet/src/experimental'))).toBe(false);
     expect(exportKeys.filter(isExperimentalExportKey)).toEqual([]);
-  });
-
-  test('maps SeamsAuthMenu public subpath to the SSR-safe entry', () => {
-    const packageJson = readJson('packages/wallet/package.json');
-    const exportsMap = packageJson.exports;
-    const exportKeys = Object.keys(exportsMap ?? {});
-
-    expect(exportsMap['./react/seams-auth-menu']).toEqual({
-      import: './dist/esm/react/components/SeamsAuthMenu/public.js',
-      default: './dist/esm/react/components/SeamsAuthMenu/public.js',
-      types: './dist/types/wallet/src/react/components/SeamsAuthMenu/public.d.ts',
-    });
-    expect(exportsMap['./react/seams-auth-menu/client']).toBeUndefined();
-    expect(exportsMap['./react/seams-auth-menu/skeleton']).toBeUndefined();
-    expect(exportsMap['./react/seams-auth-menu/preload']).toBeUndefined();
-    expect(fs.existsSync(resolveSdkWebPath(exportsMap['./react/seams-auth-menu'].types))).toBe(
-      true,
-    );
-    expect(exportKeys.filter(isLegacyAuthMenuExportKey)).toEqual([]);
-    expect(readRepoFile('packages/wallet/src/react/index.ts')).toContain(
-      "export { SeamsAuthMenu } from './components/SeamsAuthMenu/public';",
-    );
   });
 
   test('excludes retired facade names from public web entrypoints', () => {

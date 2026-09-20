@@ -1084,36 +1084,71 @@ body:has(.h2-page) {
   padding-top: 0;
 }
 
-/* inert SDK skeleton: clicks fall through to the panel link. Scaled down so
-   the band can run shorter; the negative margins reclaim the layout space the
-   scale frees (card is ~518px tall, 10% per side), since transforms don't
-   shrink the layout box */
+/* Display-only auth artwork shares the hero's paper palette. */
 .h2-heroscene__shell {
-  /* This inert skeleton never anchors a document-level SDK surface. */
-  zoom: 0.9;
   pointer-events: none;
   filter: drop-shadow(0 22px 40px rgba(15, 23, 42, 0.14));
-  transform: scale(0.8);
-  margin: -52px 0;
-  /* an explicit width (not the grid's shrink-wrap) so the card inside can
-     stretch past its ~317px intrinsic footprint */
-  width: min(440px, 100%);
+  width: min(352px, 100%);
 }
 
-/* the card's own border (--seams-colors-borderPrimary) vanishes against the tinted
-   aside; lift it to a visible-but-light warm gray. Widened past the SDK's
-   natural min(330px) footprint, which reads narrow in the hero panel. */
-.h2-heroscene__shell .seams-signup-menu-root {
-  border-color: #ddd8d1;
-  width: 100%;
+.h2-auth-mock {
+  padding: 28px;
+  border: 1px solid #ddd8d1;
+  border-radius: 28px;
+  background: #fffdf9;
+  color: #292524;
 }
 
-/* the skeleton dims its disabled controls; restore the live card's contrast */
-.h2-heroscene__shell .seams-auth-method-btn:disabled,
-.h2-heroscene__shell .seams-seg-btn:disabled,
-.h2-heroscene__shell .seams-link-device-btn:disabled,
-.h2-heroscene__shell .seams-input:disabled {
-  opacity: 1;
+.h2-auth-mock h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.h2-auth-mock p {
+  margin: 8px 0 24px;
+  color: #78716c;
+  font-size: 13px;
+}
+
+.h2-auth-mock__input,
+.h2-auth-mock__method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #ddd8d1;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.h2-auth-mock__input {
+  justify-content: flex-start;
+  margin-bottom: 14px;
+  color: #78716c;
+}
+
+.h2-auth-mock__method + .h2-auth-mock__method {
+  margin-top: 10px;
+}
+
+.h2-auth-mock__method--primary {
+  background: #292524;
+  border-color: #292524;
+  color: #fffdf9;
+}
+
+.h2-auth-mock__divider {
+  margin: 14px 0;
+  text-align: center;
+  color: #78716c;
+  font-size: 12px;
+}
+
+.h2-auth-mock p.h2-auth-mock__footer {
+  margin: 24px 0 0;
+  text-align: center;
 }
 
 /* Confirmer scene: the signing drawer docked at the band's bottom edge,
@@ -1620,18 +1655,9 @@ body:has(.h2-page) {
     padding: 36px 22px 50px;
   }
 
-  /* the SDK card caps itself at 386px; also cap it to the padded column.
-     min-width: 0 lets the grid item shrink below the card's intrinsic width */
-  .h2-heroscene__shell,
-  .h2-heroscene__shell .seams-signup-menu-root {
+  .h2-heroscene__shell {
     min-width: 0;
     max-width: min(386px, 100%);
-  }
-
-  /* stacked layout sizes itself to content; no need for the desktop shrink */
-  .h2-heroscene__shell {
-    transform: none;
-    margin: 0;
   }
 
   /* narrow columns: keep the readable drawer, drop the app backdrop */

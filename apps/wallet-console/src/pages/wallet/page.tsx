@@ -1,5 +1,4 @@
 import React from 'react';
-import { AuthMenuMode } from '@seams/wallet/react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   H2DemoHero,
@@ -17,7 +16,7 @@ export function WalletPage(): React.JSX.Element {
       <NavbarCompact />
       <div className="h2-col">
         <H2DemoHero
-          authDefaultModeWhenNoDetectedAccount={AuthMenuMode.Register}
+          authDefaultModeWhenNoDetectedAccount="register"
           title={<>Non&#8209;custodial wallets, opened with a passkey</>}
           sub={
             <>

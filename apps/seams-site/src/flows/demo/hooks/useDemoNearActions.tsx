@@ -261,7 +261,7 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
       const relayResult = await seams.near.sendDelegateActionViaRelayer({
         relayerUrl,
         hash: result.hash,
-        signedDelegate: result.signedDelegate as unknown as Record<string, unknown>,
+        signedDelegate: result.signedDelegate,
         options: {
           afterCall: (success: boolean, res?: { ok?: boolean }) => {
             if (success && res?.ok !== false) {

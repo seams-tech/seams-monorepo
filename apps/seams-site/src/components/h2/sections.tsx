@@ -14,7 +14,7 @@ import {
   Smartphone,
   Wallet,
 } from 'lucide-react';
-import { Theme, useSeams, type AuthMenuMode } from '@seams/wallet/react';
+import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -116,7 +116,7 @@ function useDragScroll<T extends HTMLElement>(): React.RefObject<T | null> {
 export type H2DemoHeroProps = {
   title?: React.ReactNode;
   sub?: React.ReactNode;
-  authDefaultModeWhenNoDetectedAccount?: AuthMenuMode;
+  authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
 export function H2DemoHero({

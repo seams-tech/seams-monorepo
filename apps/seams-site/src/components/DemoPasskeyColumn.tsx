@@ -1,6 +1,6 @@
 import React from 'react';
 import NavbarProfileOverlay from './Navbar/NavbarProfileOverlay';
-import { useSeams, useTheme, type AuthMenuMode } from '@seams/wallet/react';
+import { useSeams, useTheme, type HostedAuthMenuMode } from '@seams/wallet/react';
 
 import { GlassBorder } from './GlassBorder';
 import { DemoTxCardSkeleton } from './DemoTxCardSkeleton';
@@ -88,7 +88,7 @@ export type DemoPasskeyColumnProps = {
   /** Controlled page index — pass with onCurrentPageChange to drive the carousel externally. */
   currentPage?: number;
   onCurrentPageChange?: (page: number) => void;
-  defaultModeWhenNoDetectedAccount?: AuthMenuMode;
+  defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
 export function DemoPasskeyColumn({

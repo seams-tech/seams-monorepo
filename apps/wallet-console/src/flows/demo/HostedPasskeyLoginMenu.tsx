@@ -1,5 +1,4 @@
 import {
-  AuthMenuMode,
   HostedSeamsAuthMenu,
   useSeams,
   type HostedAuthMenuExternalAuthEvidence,
@@ -21,7 +20,7 @@ import {
 } from '@/shared/auth/googleIdentity';
 
 type HostedPasskeyLoginMenuProps = {
-  defaultModeWhenNoDetectedAccount?: AuthMenuMode;
+  defaultModeWhenNoDetectedAccount?: HostedAuthMenuMode;
 };
 
 const HOSTED_AUTH_MENU_ERROR_EVENT = 'seams:hosted-auth-menu-error';
@@ -31,10 +30,6 @@ type HostedAuthMenuErrorEventDetail = {
   readonly mode: 'login' | 'register';
   readonly message: string;
 };
-
-function hostedModeFromReactMode(mode: AuthMenuMode | undefined): HostedAuthMenuMode {
-  return mode === AuthMenuMode.Register ? 'register' : 'login';
-}
 
 type GoogleSsoReadiness =
   | { kind: 'checking' }
@@ -93,7 +88,7 @@ function parseHostedAuthMenuErrorEvent(event: Event): HostedAuthMenuErrorEventDe
 function handleHostedAuthMenuError(event: Event): void {
   const error = parseHostedAuthMenuErrorEvent(event);
   if (!error) return;
-  console.error(`[SeamsAuthMenu:${error.mode}]`, new Error(error.message));
+  console.error(`[HostedSeamsAuthMenu:${error.mode}]`, new Error(error.message));
   toast.error(error.message, { id: error.mode === 'register' ? 'registration' : 'login' });
 }
 
@@ -169,7 +164,7 @@ function handleHostedAuthMenuOutcome(
       toast.info('Wallet authentication cancelled', { id: 'login' });
       return;
     case 'failed':
-      console.error('[SeamsAuthMenu]', new Error(outcomeMessage(outcome)));
+      console.error('[HostedSeamsAuthMenu]', new Error(outcomeMessage(outcome)));
       toast.error(outcomeMessage(outcome), { id: 'login' });
       return;
     default:
@@ -270,7 +265,7 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
     [googleSsoReadiness],
   );
 
-  const resolvedInitialMode = hostedModeFromReactMode(props.defaultModeWhenNoDetectedAccount);
+  const resolvedInitialMode = props.defaultModeWhenNoDetectedAccount ?? 'login';
 
   return (
     <div

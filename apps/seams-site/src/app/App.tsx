@@ -49,16 +49,16 @@ type ThemeTokens = ReturnType<typeof useTheme>['tokens'];
 function tokensToCssVars(tokens: ThemeTokens): Record<string, string> {
   const vars: Record<string, string> = {};
   Object.entries(tokens.colors).forEach(([key, value]) => {
-    vars[`--w3a-colors-${key}`] = String(value);
+    vars[`--seams-colors-${key}`] = String(value);
   });
   Object.entries(tokens.spacing).forEach(([key, value]) => {
-    vars[`--w3a-spacing-${key}`] = String(value);
+    vars[`--seams-spacing-${key}`] = String(value);
   });
   Object.entries(tokens.borderRadius).forEach(([key, value]) => {
-    vars[`--w3a-border-radius-${key}`] = String(value);
+    vars[`--seams-border-radius-${key}`] = String(value);
   });
   Object.entries(tokens.shadows).forEach(([key, value]) => {
-    vars[`--w3a-shadows-${key}`] = String(value);
+    vars[`--seams-shadows-${key}`] = String(value);
   });
   return vars;
 }
@@ -71,8 +71,8 @@ const DocumentThemeTokenBridge: React.FC = () => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove('dark');
-    root.setAttribute('data-w3a-theme', theme);
-    document.body.setAttribute('data-w3a-theme', theme);
+    root.setAttribute('data-seams-theme', theme);
+    document.body.setAttribute('data-seams-theme', theme);
     Object.entries(vars).forEach(([name, value]) => {
       root.style.setProperty(name, value);
     });

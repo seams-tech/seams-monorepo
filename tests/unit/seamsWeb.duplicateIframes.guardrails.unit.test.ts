@@ -83,7 +83,7 @@ test.describe('Wallet iframe duplicate guardrails', () => {
         const mod = await import('/_test-sdk/esm/SeamsWeb/index.js');
         const { SeamsWeb } = mod as any;
 
-        for (const el of Array.from(document.querySelectorAll('iframe.w3a-wallet-overlay'))) {
+        for (const el of Array.from(document.querySelectorAll('iframe.seams-wallet-overlay'))) {
           try {
             el.remove();
           } catch {}
@@ -100,11 +100,11 @@ test.describe('Wallet iframe duplicate guardrails', () => {
 
         const a = new SeamsWeb(cfg);
         await a.initWalletIframe();
-        const countAfterFirst = document.querySelectorAll('iframe.w3a-wallet-overlay').length;
+        const countAfterFirst = document.querySelectorAll('iframe.seams-wallet-overlay').length;
 
         const b = new SeamsWeb(cfg);
         await b.initWalletIframe();
-        const countAfterSecond = document.querySelectorAll('iframe.w3a-wallet-overlay').length;
+        const countAfterSecond = document.querySelectorAll('iframe.seams-wallet-overlay').length;
 
         return {
           countAfterFirst,

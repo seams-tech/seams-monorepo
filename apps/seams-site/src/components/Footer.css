@@ -90,11 +90,11 @@
 }
 
 .app-footer__col a:hover {
-  color: var(--w3a-colors-primary);
+  color: var(--seams-colors-primary);
 }
 
 .app-footer__col a:focus-visible {
-  outline: 2px solid var(--w3a-colors-primary);
+  outline: 2px solid var(--seams-colors-primary);
   outline-offset: 3px;
   border-radius: 2px;
 }

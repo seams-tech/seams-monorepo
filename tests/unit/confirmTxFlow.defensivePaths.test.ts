@@ -308,7 +308,7 @@ test.describe('confirmTxFlow – defensive paths', () => {
 
         const triggerCancel = () => {
           const attempt = () => {
-            const portal = document.getElementById('w3a-confirm-portal');
+            const portal = document.getElementById('seams-confirm-portal');
             const host = portal?.firstElementChild as HTMLElement | null;
             if (host) {
               host.dispatchEvent(
@@ -524,7 +524,7 @@ test.describe('confirmTxFlow – defensive paths', () => {
 
         const triggerCancel = () => {
           const attempt = () => {
-            const portal = document.getElementById('w3a-confirm-portal');
+            const portal = document.getElementById('seams-confirm-portal');
             const host = portal?.firstElementChild as HTMLElement | null;
             if (host) {
               host.dispatchEvent(
@@ -653,7 +653,7 @@ test.describe('confirmTxFlow – defensive paths', () => {
 
         const triggerCancel = () => {
           const attempt = () => {
-            const portal = document.getElementById('w3a-confirm-portal');
+            const portal = document.getElementById('seams-confirm-portal');
             const host = portal?.firstElementChild as HTMLElement | null;
             if (host) {
               host.dispatchEvent(
@@ -771,7 +771,7 @@ test.describe('confirmTxFlow – defensive paths', () => {
           worker,
         );
         const response = workerMessages[0]?.data;
-        const viewer = document.querySelector('w3a-export-viewer-iframe');
+        const viewer = document.querySelector('seams-export-viewer-iframe');
         const stillMounted = !!viewer;
         viewer?.remove();
         return { confirmed: response?.confirmed, stillMounted };

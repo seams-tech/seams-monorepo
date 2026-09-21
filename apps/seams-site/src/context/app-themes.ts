@@ -118,7 +118,7 @@ export const ROSE_PINE_LIGHT_COLORS: Record<string, string> = {
 };
 
 // ============================================================================
-// Live-demo theme presets (fed to the SeamsAuthMenu via the SDK Theme provider)
+// Live-demo theme presets (fed to the hosted auth menu via the SDK Theme provider)
 // ============================================================================
 
 // "Paper" — the ElevenLabs style: eggshell paper, ink buttons, warm

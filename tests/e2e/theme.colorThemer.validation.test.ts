@@ -26,8 +26,8 @@ function readPaperThemeState(): PaperThemeState {
   const root = document.documentElement;
   const styles = getComputedStyle(root);
   return {
-    dataTheme: root.getAttribute('data-w3a-theme'),
-    bodyTheme: document.body.getAttribute('data-w3a-theme'),
+    dataTheme: root.getAttribute('data-seams-theme'),
+    bodyTheme: document.body.getAttribute('data-seams-theme'),
     hasDarkClass: root.classList.contains('dark'),
     canvas: styles.getPropertyValue('--site-canvas').trim(),
     text: styles.getPropertyValue('--site-text-primary').trim(),

@@ -13,7 +13,7 @@ test.describe('useAccountInput refresh prefill behavior', () => {
   test('refreshAccountData does not repopulate input after explicit clear', async ({ page }) => {
     const result = await page.evaluate(
       async ({ paths }) => {
-        const mountId = 'w3a-use-account-input-mount';
+        const mountId = 'seams-use-account-input-mount';
         let mount = document.getElementById(mountId);
         if (!mount) {
           mount = document.createElement('div');
@@ -77,11 +77,11 @@ test.describe('useAccountInput refresh prefill behavior', () => {
           });
 
           React.useEffect(() => {
-            (window as any).__w3aUseAccountInputHook = hook;
+            (window as any).__seamsUseAccountInputHook = hook;
           }, [hook]);
 
           return React.createElement('div', {
-            id: 'w3a-use-account-input-state',
+            id: 'seams-use-account-input-state',
             'data-username': hook.inputUsername,
           });
         }
@@ -95,7 +95,7 @@ test.describe('useAccountInput refresh prefill behavior', () => {
           const timeoutMs = 3_000;
           const start = Date.now();
           while (Date.now() - start < timeoutMs) {
-            const current = String((window as any).__w3aUseAccountInputHook?.inputUsername || '');
+            const current = String((window as any).__seamsUseAccountInputHook?.inputUsername || '');
             if (current === expected) return current;
             await new Promise((resolve) => setTimeout(resolve, 10));
           }
@@ -103,15 +103,15 @@ test.describe('useAccountInput refresh prefill behavior', () => {
         };
 
         await waitForInput('alice');
-        const initial = String((window as any).__w3aUseAccountInputHook?.inputUsername || '');
+        const initial = String((window as any).__seamsUseAccountInputHook?.inputUsername || '');
 
-        (window as any).__w3aUseAccountInputHook?.setInputUsername('');
+        (window as any).__seamsUseAccountInputHook?.setInputUsername('');
         await waitForInput('');
-        const afterClear = String((window as any).__w3aUseAccountInputHook?.inputUsername || '');
+        const afterClear = String((window as any).__seamsUseAccountInputHook?.inputUsername || '');
 
-        await (window as any).__w3aUseAccountInputHook?.refreshAccountData?.();
+        await (window as any).__seamsUseAccountInputHook?.refreshAccountData?.();
         await new Promise((resolve) => setTimeout(resolve, 20));
-        const afterRefresh = String((window as any).__w3aUseAccountInputHook?.inputUsername || '');
+        const afterRefresh = String((window as any).__seamsUseAccountInputHook?.inputUsername || '');
 
         root.unmount();
         return { initial, afterClear, afterRefresh };

@@ -1566,8 +1566,8 @@ test.describe('signing session sealed store', () => {
     const result = await page.evaluate(
       async ({ paths }) => {
         (
-          globalThis as { __W3A_TEST_WALLET_IFRAME_HOST_MODE__?: boolean }
-        ).__W3A_TEST_WALLET_IFRAME_HOST_MODE__ = true;
+          globalThis as { __SEAMS_TEST_WALLET_IFRAME_HOST_MODE__?: boolean }
+        ).__SEAMS_TEST_WALLET_IFRAME_HOST_MODE__ = true;
         try {
           const mod = await import(paths.sealedSessionStore);
           const thresholdSessionId = 'sess-host-mode';
@@ -1609,8 +1609,8 @@ test.describe('signing session sealed store', () => {
             ),
           };
         } finally {
-          delete (globalThis as { __W3A_TEST_WALLET_IFRAME_HOST_MODE__?: boolean })
-            .__W3A_TEST_WALLET_IFRAME_HOST_MODE__;
+          delete (globalThis as { __SEAMS_TEST_WALLET_IFRAME_HOST_MODE__?: boolean })
+            .__SEAMS_TEST_WALLET_IFRAME_HOST_MODE__;
         }
       },
       { paths: IMPORT_PATHS },

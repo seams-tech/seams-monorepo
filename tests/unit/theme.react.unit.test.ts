@@ -12,9 +12,9 @@ async function getColorBackgroundVar(page: Page, scopeSelector: string): Promise
     const el = document.querySelector(sel) as HTMLElement | null;
     if (!el) return '';
     // Prefer inline style since some global token sheets can override computed values.
-    const inline = el.style.getPropertyValue('--w3a-colors-colorBackground').trim();
+    const inline = el.style.getPropertyValue('--seams-colors-colorBackground').trim();
     if (inline) return inline;
-    return window.getComputedStyle(el).getPropertyValue('--w3a-colors-colorBackground').trim();
+    return window.getComputedStyle(el).getPropertyValue('--seams-colors-colorBackground').trim();
   }, scopeSelector);
 }
 
@@ -50,8 +50,8 @@ test.describe('React Theme integration', () => {
   });
 
   test('Theme scope follows the controlled theme prop', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-scope';
-    const scopeSelector = `#${mountId} .w3a-theme-provider`;
+    const mountId = 'seams-theme-harness-scope';
+    const scopeSelector = `#${mountId} .seams-theme-provider`;
 
     await page.evaluate(
       async ({ paths, mountId }) => {
@@ -98,13 +98,13 @@ test.describe('React Theme integration', () => {
     );
 
     const scope = page.locator(scopeSelector);
-    await expect(scope).toHaveAttribute('data-w3a-theme', 'light');
+    await expect(scope).toHaveAttribute('data-seams-theme', 'light');
 
     const initialBg = await getColorBackgroundVar(page, scopeSelector);
     expect(initialBg).not.toBe('');
 
     await page.locator(`#${mountId}-dark`).click();
-    await expect(scope).toHaveAttribute('data-w3a-theme', 'dark');
+    await expect(scope).toHaveAttribute('data-seams-theme', 'dark');
 
     const nextBg = await getColorBackgroundVar(page, scopeSelector);
     expect(nextBg).not.toBe('');
@@ -112,8 +112,8 @@ test.describe('React Theme integration', () => {
   });
 
   test('SeamsWebProvider applies config appearance color overrides', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-config-appearance';
-    const scopeSelector = `#${mountId} .w3a-theme-provider`;
+    const mountId = 'seams-theme-harness-config-appearance';
+    const scopeSelector = `#${mountId} .seams-theme-provider`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -171,13 +171,13 @@ test.describe('React Theme integration', () => {
       }
     }
 
-    const primary = await getThemeVar(page, scopeSelector, '--w3a-colors-primary');
+    const primary = await getThemeVar(page, scopeSelector, '--seams-colors-primary');
     expect(primary).toBe('#112233');
   });
 
   test('provider theme tokens override config appearance colors', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-token-precedence';
-    const scopeSelector = `#${mountId} .w3a-theme-provider`;
+    const mountId = 'seams-theme-harness-token-precedence';
+    const scopeSelector = `#${mountId} .seams-theme-provider`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -247,12 +247,12 @@ test.describe('React Theme integration', () => {
       }
     }
 
-    const primary = await getThemeVar(page, scopeSelector, '--w3a-colors-primary');
+    const primary = await getThemeVar(page, scopeSelector, '--seams-colors-primary');
     expect(primary).toBe('#abcdef');
   });
 
   test('provider also bridges merged token overrides to Lit host selectors', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-lit-bridge';
+    const mountId = 'seams-theme-harness-lit-bridge';
 
     await page.evaluate(
       async ({ paths, mountId }) => {
@@ -305,7 +305,7 @@ test.describe('React Theme integration', () => {
           );
         });
 
-        const litHost = document.createElement('w3a-drawer');
+        const litHost = document.createElement('seams-drawer');
         litHost.id = `${mountId}-lit-host`;
         document.body.appendChild(litHost);
       },
@@ -314,23 +314,23 @@ test.describe('React Theme integration', () => {
 
     await expect
       .poll(async () => {
-        return await getThemeVar(page, `#${mountId}-lit-host`, '--w3a-colors-primary');
+        return await getThemeVar(page, `#${mountId}-lit-host`, '--seams-colors-primary');
       })
       .toBe('#abcdef');
 
     await page.evaluate(() => {
-      document.documentElement.setAttribute('data-w3a-theme', 'dark');
+      document.documentElement.setAttribute('data-seams-theme', 'dark');
     });
     await expect
       .poll(async () => {
-        return await getThemeVar(page, `#${mountId}-lit-host`, '--w3a-colors-primary');
+        return await getThemeVar(page, `#${mountId}-lit-host`, '--seams-colors-primary');
       })
       .toBe('#112233');
   });
 
   test('SeamsWebProvider syncs theme and proxies seams.setTheme to host', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-provider';
-    const scopeSelector = `#${mountId} .w3a-theme-provider`;
+    const mountId = 'seams-theme-harness-provider';
+    const scopeSelector = `#${mountId} .seams-theme-provider`;
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -411,21 +411,21 @@ test.describe('React Theme integration', () => {
     const hostTheme = page.locator(`#${mountId}-host-theme`).first();
     const sdkTheme = page.locator(`#${mountId}-sdk-theme`).first();
 
-    await expect(scope).toHaveAttribute('data-w3a-theme', 'light');
+    await expect(scope).toHaveAttribute('data-seams-theme', 'light');
     await expect(reactTheme).toHaveText('light');
     await expect(hostTheme).toHaveText('light');
     await expect(sdkTheme).toHaveText('light');
 
     await page.locator(`#${mountId}-set-dark`).click();
 
-    await expect(scope).toHaveAttribute('data-w3a-theme', 'dark');
+    await expect(scope).toHaveAttribute('data-seams-theme', 'dark');
     await expect(reactTheme).toHaveText('dark');
     await expect(hostTheme).toHaveText('dark');
     await expect(sdkTheme).toHaveText('dark');
   });
 
   test('SeamsWebProvider syncs full appearance colors to SeamsWeb manager', async ({ page }) => {
-    const mountId = 'w3a-theme-harness-provider-appearance';
+    const mountId = 'seams-theme-harness-provider-appearance';
 
     await page.evaluate(
       async ({ paths, mountId }) => {
@@ -467,7 +467,7 @@ test.describe('React Theme integration', () => {
         const Harness: React.FC = () => {
           const { seams } = useSeams();
           React.useEffect(() => {
-            (window as any).__w3aThemeManager = seams;
+            (window as any).__seamsThemeManager = seams;
           }, [seams]);
           return React.createElement('div', { id: `${mountId}-child` }, 'ready');
         };
@@ -489,7 +489,7 @@ test.describe('React Theme integration', () => {
     await expect
       .poll(async () => {
         return await page.evaluate(() => {
-          const manager = (window as any).__w3aThemeManager;
+          const manager = (window as any).__seamsThemeManager;
           return {
             theme: manager?.theme,
             appearance: manager?.signingEngine?.appearance,

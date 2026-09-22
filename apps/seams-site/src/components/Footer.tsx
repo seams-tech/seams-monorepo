@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import './Footer.css';
-import SeamsLogo from './icons/SeamsLogo';
+import SeamsWordmark from './icons/SeamsWordmark';
 
 type FooterLink = {
   label: string;
@@ -84,8 +84,7 @@ export function Footer(): React.JSX.Element {
             onClick={homeProps.onClick}
             aria-label="Seams home"
           >
-            <SeamsLogo size={32} />
-            <span>Seams</span>
+            <SeamsWordmark height={28} />
           </a>
           <p className="app-footer__legal">
             Copyright © {new Date().getFullYear()} Seams Technologies KK. All rights reserved.

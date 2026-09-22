@@ -17,6 +17,7 @@ import {
 import { SeamsAuthMenuMock } from './SeamsAuthMenuMock';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
+import SeamsLogo from '@/components/icons/SeamsLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import { H2Ecosystem, H2Faq, H2Footer, H2Pillars, SplitKeyVisual } from '@/components/h2/sections';
@@ -524,7 +525,7 @@ function HomeHeroMedia(): React.JSX.Element {
         <div className="h2-shell h2-hero-media__split">
           <div className="h2-hero-media__main">
             <p className="h2-hero-media__product">
-              <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+              <SeamsLogo size={20} />
               <span>Seams Agents</span>
             </p>
             <h1 id="h2-home2-title" className="h2-display h2-hero-media__title">
@@ -566,7 +567,7 @@ function HomeHeroMedia(): React.JSX.Element {
           </div>
 
           <div className="h2-agent-chat-pill" aria-hidden="true">
-            <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+            <SeamsLogo size={38} />
             <span>
               Try a Seams agent
               <small>Policy checked before execution</small>

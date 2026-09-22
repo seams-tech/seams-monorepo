@@ -543,12 +543,6 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-hero-media__product img {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-}
-
 .h2-hero-media__title {
   max-width: 648px;
   font-size: 61px;
@@ -790,12 +784,6 @@ body:has(.h2-page) {
 .h2-agent-media__rail.is-active-audit + .h2-agent-chat-pill {
   right: 44px;
   left: auto;
-}
-
-.h2-agent-chat-pill img {
-  width: 38px;
-  height: 38px;
-  border-radius: 9999px;
 }
 
 .h2-agent-chat-pill span {

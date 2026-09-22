@@ -1,14 +1,12 @@
 import React from 'react';
-import { resolveSeamsLogoAsset, type SeamsLogoVariant } from '@/context/seamsBranding';
+import { SEAMS_BRAND_ASSETS } from '@/context/seamsBranding';
 
 export type SeamsLogoProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
   size?: number | string;
-  variant?: SeamsLogoVariant;
 };
 
 const SeamsLogo: React.FC<SeamsLogoProps> = ({
   size = 36,
-  variant = 'app-icon',
   className,
   alt = '',
   draggable = false,
@@ -19,14 +17,12 @@ const SeamsLogo: React.FC<SeamsLogoProps> = ({
   return (
     <img
       {...rest}
-      src={resolveSeamsLogoAsset(variant)}
+      src={SEAMS_BRAND_ASSETS.mark}
       alt={alt}
       width={numericSize}
       height={numericSize}
       draggable={draggable}
-      className={['seams-logo-icon', `seams-logo-icon--${variant}`, className]
-        .filter(Boolean)
-        .join(' ')}
+      className={['seams-logo-icon', className].filter(Boolean).join(' ')}
       style={{ width: size, height: size, ...style }}
       aria-hidden={alt ? rest['aria-hidden'] : true}
     />

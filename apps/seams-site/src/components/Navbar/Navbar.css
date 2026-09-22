@@ -119,8 +119,6 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
 
 .navbar-static__brand-wordmark {
   display: block;
-  height: 20px;
-  width: auto;
 }
 
 .navbar-static__links {

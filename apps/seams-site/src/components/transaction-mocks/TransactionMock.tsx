@@ -5,6 +5,8 @@ export type TransactionMockExample = 'transfer' | 'evm' | 'near';
 export interface TransactionMockProps {
   example: TransactionMockExample;
   theme?: 'light' | 'dark';
+  variant?: 'modal' | 'drawer';
+  stage?: 'review' | 'signing' | 'broadcasting' | 'confirmed';
 }
 
 const titles: Record<TransactionMockExample, string> = {
@@ -14,12 +16,12 @@ const titles: Record<TransactionMockExample, string> = {
 };
 
 /** Interactive UI snapshot. The embedded document blocks all network connections. */
-export function TransactionMock({ example, theme = 'light' }: TransactionMockProps) {
+export function TransactionMock({ example, theme = 'light', variant = 'modal', stage = 'review' }: TransactionMockProps) {
   return (
     <iframe
       className="site-transaction-mock"
       title={`${titles[example]} — simulated interactive demo`}
-      src={`/transaction-mocks/index.html?example=${example}&theme=${theme}`}
+      src={`/transaction-mocks/index.html?example=${example}&theme=${theme}&variant=${variant}&stage=${stage}`}
       sandbox="allow-scripts allow-same-origin"
       loading="lazy"
     />

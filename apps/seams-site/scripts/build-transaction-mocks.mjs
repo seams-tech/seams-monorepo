@@ -23,6 +23,8 @@ if (['transfer', 'evm', 'near'].includes(requestedExample)) {
   document.querySelector('[data-example="' + requestedExample + '"]').click();
 }
 if (new URLSearchParams(location.search).get('theme') === 'dark') toggleTheme();
+const requestedStage = new URLSearchParams(location.search).get('stage');
+if (['signing', 'broadcasting', 'confirmed'].includes(requestedStage)) showStage(requestedStage);
 `,
     resolveDir: dirname(entry),
     sourcefile: 'transaction-mock.js',

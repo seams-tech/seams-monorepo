@@ -5083,6 +5083,8 @@ body.seams-transparent {
   );
 }
 :where(.seams-wallet-ui) .seams-transaction-toast {
+  position: relative;
+  background: var(--seams-colors-colorBackground);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -5092,7 +5094,7 @@ body.seams-transparent {
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: var(--seams-colors-borderPrimary);
+  background: var(--seams-colors-colorBackground);
   overflow: hidden;
 }
 :where(.seams-wallet-ui) .seams-toast-progress > span {

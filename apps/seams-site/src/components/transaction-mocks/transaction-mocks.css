@@ -24,3 +24,25 @@
 .site-transaction-mocks-grid > section {
   min-width: 0;
 }
+
+.site-transaction-mocks-view {
+  display: flex;
+  gap: 20px;
+  width: fit-content;
+  margin-block: 20px;
+  padding: 12px 16px;
+  border: 1px solid #d5dfd8;
+  border-radius: 12px;
+}
+
+.site-transaction-mocks-view label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.site-transaction-mocks-view input {
+  accent-color: #235840;
+}

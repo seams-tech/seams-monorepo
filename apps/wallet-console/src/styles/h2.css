@@ -2455,19 +2455,11 @@ body:has(.h2-page) {
 }
 
 .h2-mpc__flow {
+  --h2-dash-cycle: 10;
   fill: none;
   stroke: var(--h2-smoke);
   stroke-width: 1;
   stroke-linecap: round;
-}
-
-.h2-mpc__flow--device {
-  --h2-dash-cycle: 5;
-  stroke-dasharray: 1 4;
-}
-
-.h2-mpc__flow--infrastructure {
-  --h2-dash-cycle: 10;
   stroke-dasharray: 6 4;
 }
 
@@ -3218,19 +3210,10 @@ body:has(.h2-page) {
 }
 
 .h2-security__item h3 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
   margin: 0 0 7px;
   font-size: var(--h2-text-title);
   font-weight: 600;
   color: var(--h2-ink);
-}
-
-.h2-security__item h3 svg {
-  width: 14px;
-  height: 14px;
-  color: var(--h2-graphite);
 }
 
 .h2-security__item p {

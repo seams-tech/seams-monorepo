@@ -20,7 +20,14 @@ import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import SeamsLogo from '@/components/icons/SeamsLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
-import { H2Ecosystem, H2Faq, H2Footer, H2Pillars, SplitKeyVisual } from '@/components/h2/sections';
+import {
+  H2Ecosystem,
+  H2Faq,
+  H2Footer,
+  H2Pillars,
+  H2Security,
+  SplitKeyVisual,
+} from '@/components/h2/sections';
 import '@/styles/h2.css';
 
 /* Umbrella front page: a simple headline, then a paged two-panel scene band
@@ -670,6 +677,7 @@ function HomeFrame({ hero }: HomeFrameProps): React.JSX.Element {
         <HomeDuo />
         <H2Ecosystem />
         <H2Pillars />
+        <H2Security />
         <H2Faq audience="home" />
         <H2Footer />
       </div>

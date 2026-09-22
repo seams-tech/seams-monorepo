@@ -4,9 +4,9 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 860px;
-  border: 1px solid var(--w3a-colors-borderPrimary);
-  border-radius: var(--w3a-shape-card, 16px);
-  background: var(--site-surface, var(--w3a-colors-surface));
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: var(--seams-shape-card, 16px);
+  background: var(--site-surface, var(--seams-colors-surface));
   /* quiet two-layer lift: a hairline contact shadow plus a soft ambient */
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.05),

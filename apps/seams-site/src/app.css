@@ -21,9 +21,9 @@
   --site-space-3: 12px;
   --site-space-4: 16px;
   --site-space-6: 24px;
-  --w3a-shadows-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --w3a-shadows-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --w3a-shadows-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --seams-shadows-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --seams-shadows-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --seams-shadows-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
   /* Motion */
   --site-ease: cubic-bezier(0.2, 0.6, 0.2, 1);
@@ -46,32 +46,32 @@
 }
 
 /* Ensure app variables derive from SDK tokens at the theme boundary inside ShadowRoot */
-.w3a-theme-provider,
-[data-w3a-theme] {
+.seams-theme-provider,
+[data-seams-theme] {
   /* Site semantic aliases (core roles) */
-  --site-canvas: var(--w3a-colors-colorBackground);
-  --site-surface: var(--w3a-colors-surface);
-  --site-surface-muted: var(--w3a-colors-surface2);
-  --site-surface-strong: var(--w3a-colors-surface3);
-  --site-text-primary: var(--w3a-colors-textPrimary);
-  --site-text-secondary: var(--w3a-colors-textSecondary);
-  --site-text-button: var(--w3a-colors-textButton);
-  --site-border: var(--w3a-colors-borderPrimary);
-  --site-border-strong: var(--w3a-colors-borderHover);
-  /* The SDK theme still resolves --w3a-colors-focus to a blue; the site's
+  --site-canvas: var(--seams-colors-colorBackground);
+  --site-surface: var(--seams-colors-surface);
+  --site-surface-muted: var(--seams-colors-surface2);
+  --site-surface-strong: var(--seams-colors-surface3);
+  --site-text-primary: var(--seams-colors-textPrimary);
+  --site-text-secondary: var(--seams-colors-textSecondary);
+  --site-text-button: var(--seams-colors-textButton);
+  --site-border: var(--seams-colors-borderPrimary);
+  --site-border-strong: var(--seams-colors-borderHover);
+  /* The SDK theme still resolves --seams-colors-focus to a blue; the site's
      focus ring stays in the evergreen accent. */
   --site-focus: #4fb894;
-  --site-brand: var(--w3a-colors-primary);
-  --site-brand-hover: var(--w3a-colors-primaryHover);
-  --site-action: var(--w3a-colors-buttonBackground);
-  --site-action-hover: var(--w3a-colors-buttonHoverBackground);
-  --site-accent: var(--w3a-colors-secondary);
-  --site-accent-hover: var(--w3a-colors-secondaryHover);
-  --site-danger: var(--w3a-colors-error);
+  --site-brand: var(--seams-colors-primary);
+  --site-brand-hover: var(--seams-colors-primaryHover);
+  --site-action: var(--seams-colors-buttonBackground);
+  --site-action-hover: var(--seams-colors-buttonHoverBackground);
+  --site-accent: var(--seams-colors-secondary);
+  --site-accent-hover: var(--seams-colors-secondaryHover);
+  --site-danger: var(--seams-colors-error);
   --site-danger-surface: color-mix(in srgb, var(--site-danger) 12%, var(--site-surface) 88%);
-  --site-success: var(--w3a-colors-success);
-  --site-shadow-sm: var(--w3a-shadows-sm);
-  --site-shadow-md: var(--w3a-shadows-md);
+  --site-success: var(--seams-colors-success);
+  --site-shadow-sm: var(--seams-shadows-sm);
+  --site-shadow-md: var(--seams-shadows-md);
 
   /* Site semantic aliases (component domains) */
   --site-navbar-surface: var(--site-surface);
@@ -81,8 +81,8 @@
   --site-carousel-surface: var(--site-surface);
 }
 
-html[data-w3a-theme='light'],
-.w3a-theme-provider[data-w3a-theme='light'] {
+html[data-seams-theme='light'],
+.seams-theme-provider[data-seams-theme='light'] {
   --site-canvas: #ffffff;
 }
 
@@ -115,7 +115,7 @@ textarea {
   font-family: inherit;
 }
 
-html[data-w3a-theme] {
+html[data-seams-theme] {
   color-scheme: light;
   background: #ffffff;
 }

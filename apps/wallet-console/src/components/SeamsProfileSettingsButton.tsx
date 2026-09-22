@@ -117,12 +117,12 @@ export const SeamsProfileSettingsButton: React.FC<SeamsProfileSettingsButtonProp
     try {
       const loggedIn = !!loginState.isLoggedIn;
       const nearId = loginState.nearAccountId || '';
-      document.body.setAttribute('data-w3a-logged-in', loggedIn ? 'true' : 'false');
-      if (loggedIn && nearId) document.body.setAttribute('data-w3a-near-account-id', nearId);
-      else document.body.removeAttribute('data-w3a-near-account-id');
+      document.body.setAttribute('data-seams-logged-in', loggedIn ? 'true' : 'false');
+      if (loggedIn && nearId) document.body.setAttribute('data-seams-near-account-id', nearId);
+      else document.body.removeAttribute('data-seams-near-account-id');
       try {
         window.dispatchEvent(
-          new CustomEvent('w3a:login-state', { detail: { loggedIn, nearAccountId: nearId } }),
+          new CustomEvent('seams:login-state', { detail: { loggedIn, nearAccountId: nearId } }),
         );
       } catch {}
     } catch {}

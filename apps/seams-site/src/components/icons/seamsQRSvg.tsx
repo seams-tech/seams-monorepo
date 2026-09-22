@@ -7,8 +7,8 @@ export function SeamsQRSvg(props: {
   style?: React.CSSProperties;
 }) {
   const { width = 232, height = 232, className, style } = props;
-  const bg = 'var(--w3a-colors-surface, #ffffff)';
-  const ink = 'var(--w3a-colors-textSecondary, #000000)';
+  const bg = 'var(--seams-colors-surface, #ffffff)';
+  const ink = 'var(--seams-colors-textSecondary, #000000)';
 
   return (
     <svg

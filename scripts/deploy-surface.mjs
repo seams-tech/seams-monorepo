@@ -139,8 +139,28 @@ function buildFrontend(site, component) {
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
   }
-  resetDirectory(WALLET_HOST_OUTPUT);
+  assertWalletSettingsExport();
+  runCommand(
+    'pnpm',
+    [
+      '-C',
+      'apps/wallet-console',
+      'exec',
+      'vite',
+      'build',
+      '--config',
+      'wallet-host/vite.config.ts',
+    ],
+    {
+      env: buildFrontendEnvironment(site, site.walletSiteOrigin),
+    },
+  );
   copySdkAssets(WALLET_HOST_OUTPUT);
+  assertFile(path.join(WALLET_HOST_OUTPUT, 'index.html'), 'Wallet settings entry');
+  fs.writeFileSync(
+    path.join(WALLET_HOST_OUTPUT, '_redirects'),
+    '/wallet-settings /index.html 200\n',
+  );
   assertFile(path.join(WALLET_HOST_OUTPUT, 'wallet-service', 'index.html'), 'wallet-service entry');
 }
 
@@ -316,6 +336,8 @@ function buildSmokeChecks(site, component) {
   }
   return site.lanes.flatMap((lane) =>
     smokeChecks(`wallet-${lane.network}`, lane.walletOrigin, [
+      { path: '/', isReady: walletSettingsApplicationIsReady },
+      { path: '/wallet-settings', isReady: walletSettingsApplicationIsReady },
       '/wallet-service/index.html',
       { path: '/wallet-assets.manifest.json', isReady: walletManifestMatchesInstalledVersion },
       '/sdk/workers/router_ab_ed25519_yao_client_bg.wasm',
@@ -368,9 +390,22 @@ async function consoleApplicationIsReady(response) {
   return assetPaths.length > 0 && assetPaths.every((assetPath) => assetPath.startsWith('/assets/'));
 }
 
-function resetDirectory(directory) {
-  fs.rmSync(directory, { recursive: true, force: true });
-  fs.mkdirSync(directory, { recursive: true });
+export async function walletSettingsApplicationIsReady(response) {
+  if (!response.ok) return false;
+  const html = await response.text();
+  return (
+    html.includes('<title>Seams Wallet Settings</title>') &&
+    /<script[^>]+src="\/assets\/[^"\s]+\.js"/.test(html)
+  );
+}
+
+function assertWalletSettingsExport() {
+  const entry = path.join(resolveInstalledWalletRoot(), 'dist', 'esm', 'react', 'index.js');
+  if (!fs.readFileSync(entry, 'utf8').includes('WalletSettingsPage')) {
+    throw new Error(
+      'The pinned @seams/wallet release does not export WalletSettingsPage. Publish the settings SDK release and update the exact package pins and lockfile before deploying wallet-host.',
+    );
+  }
 }
 
 function copyDirectory(source, destination) {

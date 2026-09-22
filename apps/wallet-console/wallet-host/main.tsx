@@ -14,7 +14,9 @@ async function mountWalletSettings(): Promise<void> {
   try {
     const config = await loadWalletHostConfig(import.meta.env, window.location.origin);
     root.render(
-      <SeamsWebProvider config={config}>
+      <SeamsWebProvider
+        config={{ ...config, appearance: { theme: { id: 'default', mode: 'light' } } }}
+      >
         <TransactionReviewHost>
           <WalletSettingsPage />
         </TransactionReviewHost>

@@ -4161,6 +4161,14 @@ body.seams-transparent {
   box-shadow: none;
 }
 
+/* The parent overlay paints the persistent shell for an R140 review handoff. */
+.seams-wallet-ui[data-seams-review-frame] .seams-confirmation-modal--hosted .modal-container-root {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 :where(.seams-wallet-ui) .seams-confirmation-modal .seams-confirmation-content {
   display: grid;
   gap: 0.5rem;
@@ -4973,6 +4981,9 @@ body.seams-transparent {
   padding: 0.9375rem;
   border-top: 1px solid var(--seams-colors-borderPrimary);
   font-size: 0.6875rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-footer > svg:first-child {
+  margin-inline-end: -2px;
 }
 :where(.seams-wallet-ui) .seams-receipt-footer .seams-receipt-wordmark {
   width: 4.25rem;

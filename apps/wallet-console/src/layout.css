@@ -238,15 +238,15 @@ body {
   --install-panel-surface: color-mix(in srgb, var(--site-surface) 90%, #eef4f1 10%);
   margin-top: 1rem;
   border-radius: 1rem;
-  border: 1px solid var(--w3a-colors-borderPrimary);
+  border: 1px solid var(--seams-colors-borderPrimary);
   overflow: visible;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
 }
 
-.intall-panel[data-w3a-theme='light'] {
-  border: 1px solid var(--w3a-colors-borderPrimary);
+.intall-panel[data-seams-theme='light'] {
+  border: 1px solid var(--seams-colors-borderPrimary);
 }
 
 .install-header {
@@ -256,13 +256,13 @@ body {
   padding: 0.35rem 0.35rem 0.25rem 0.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  background: var(--w3a-colors-surface);
+  background: var(--seams-colors-surface);
   border-radius: 1rem 1rem 0 0;
 }
 
-[data-w3a-theme='light'] .install-header {
+[data-seams-theme='light'] .install-header {
   /* border-bottom: 1px solid color-mix(in srgb, var(--site-border) 60%, transparent); */
-  background: var(--w3a-colors-surface2);
+  background: var(--seams-colors-surface2);
 }
 
 .install-header-left {
@@ -510,9 +510,9 @@ body {
 }
 
 /* Light mode overrides (VitePress + SDK synced) */
-[data-w3a-theme='light'] .code-block,
-[data-w3a-theme='light'] .shiki {
-  background: var(--w3a-colors-surface);
+[data-seams-theme='light'] .code-block,
+[data-seams-theme='light'] .shiki {
+  background: var(--seams-colors-surface);
 }
 
 /* Homepage marketing system */

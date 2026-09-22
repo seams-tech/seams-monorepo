@@ -162,12 +162,12 @@ function IntegrationsWindow(): React.JSX.Element {
    is pinned on the wrapper so the card cannot inherit the site theme.
    Pointer events stay off so clicks fall through to the panel link. */
 const paperShellVars = Object.fromEntries(
-  Object.entries(PAPER_LIGHT_COLORS).map(([key, value]) => [`--w3a-colors-${key}`, value]),
+  Object.entries(PAPER_LIGHT_COLORS).map(([key, value]) => [`--seams-colors-${key}`, value]),
 ) as React.CSSProperties;
 
 function WalletShellCard(): React.JSX.Element {
   return (
-    <div className="h2-heroscene__shell" aria-hidden data-w3a-theme="light" style={paperShellVars}>
+    <div className="h2-heroscene__shell" aria-hidden data-seams-theme="light" style={paperShellVars}>
       {/* Login mode shows the full method stack (passkey, SSO, other options) */}
       <SeamsAuthMenuMock initialMode="login" />
     </div>

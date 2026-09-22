@@ -11,11 +11,11 @@ export const ToasterThemed: React.FC = () => {
       toastOptions={{
         duration: 3500,
         style: {
-          background: 'var(--site-toast-background, var(--w3a-colors-surface))',
-          color: 'var(--site-toast-text-primary, var(--w3a-colors-textPrimary))',
-          border: '1px solid var(--site-toast-border, var(--w3a-colors-borderPrimary))',
+          background: 'var(--site-toast-background, var(--seams-colors-surface))',
+          color: 'var(--site-toast-text-primary, var(--seams-colors-textPrimary))',
+          border: '1px solid var(--site-toast-border, var(--seams-colors-borderPrimary))',
           borderRadius: '1rem',
-          boxShadow: 'var(--site-toast-shadow, var(--w3a-shadows-lg))',
+          boxShadow: 'var(--site-toast-shadow, var(--seams-shadows-lg))',
         },
         // Keep error toasts (e.g., registration failures) visible
         // until the user explicitly closes them.

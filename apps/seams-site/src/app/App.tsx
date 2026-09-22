@@ -40,10 +40,10 @@ function DocumentThemeTokenBridge(): null {
 
   React.useEffect(() => {
     const root = document.documentElement;
-    root.setAttribute('data-w3a-theme', theme);
-    document.body.setAttribute('data-w3a-theme', theme);
+    root.setAttribute('data-seams-theme', theme);
+    document.body.setAttribute('data-seams-theme', theme);
     for (const [name, value] of Object.entries(PAPER_LIGHT_COLORS)) {
-      root.style.setProperty(`--w3a-colors-${name}`, value);
+      root.style.setProperty(`--seams-colors-${name}`, value);
     }
   }, [theme]);
 

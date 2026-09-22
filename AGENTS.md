@@ -5,6 +5,16 @@ injects it via the SessionStart hook in `.claude/settings.json`. This repo delib
 has no CLAUDE.md — do not create one. Keep this file lean: it is loaded into every
 agent session. When working under `tests/`, also read `tests/AGENTS.md`.
 
+## Shared development workflow
+
+- Work directly on `dev` in the main repository checkout. This applies to this
+  repository and the separate `seams-wallet` repository.
+- Create branches or worktrees only when the user explicitly requests them.
+- Coordinate Git operations with concurrent agents. Preserve their edits and stage
+  only your own files; never commit another agent's staged work accidentally.
+- Keep completed work committed on `dev`. Report any work that remains elsewhere.
+- Preserve active worktrees until their owning agent has safely integrated the work.
+
 ## Repo shape (the non-obvious parts)
 
 - Private TypeScript applications and Console packages live in `apps/` and `packages/`. Wallet SDK, Rust/WASM, CLI, and public docs sources live in the separate `seams-wallet` repository; consume their exact package releases here.

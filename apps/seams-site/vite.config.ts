@@ -13,17 +13,6 @@ export default defineConfig(({ mode }) => {
   const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
   const env = loadEnv(mode, workspaceRoot, '');
 
-  /* Production builds must receive the public signing mode and relayer URL from CI. */
-  const requiredEnvKeys = ['VITE_SIGNING_SESSION_PERSISTENCE_MODE', 'VITE_RELAYER_URL'];
-  const missingEnvKeys = requiredEnvKeys.filter((key) => !String(env[key] || '').trim());
-  if (missingEnvKeys.length > 0) {
-    console.warn(
-      `\n[seams-site] WARNING: missing env vars: ${missingEnvKeys.join(', ')}.\n` +
-        '[seams-site] Add them to the root .env.local (see apps/seams-site/env.example) — ' +
-        'without them, signing-session sealing is disabled.\n',
-    );
-  }
-
   const appSrc = fileURLToPath(new URL('./src', import.meta.url));
   const appPublic = fileURLToPath(new URL('./src/public', import.meta.url));
   const workspaceNodeModules = fileURLToPath(new URL('../../node_modules', import.meta.url));

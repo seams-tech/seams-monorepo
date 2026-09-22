@@ -1,6 +1,5 @@
-import { FRONTEND_CONFIG } from '@/config';
-
 const DOCS_PREFIX = '/docs';
+const DEFAULT_DOCS_ORIGIN = 'https://docs.localhost:4003';
 
 function stripTrailingSlash(path: string): string {
   if (path.length <= 1) return path;
@@ -8,12 +7,13 @@ function stripTrailingSlash(path: string): string {
 }
 
 export function getSiteBase(): string {
-  const base = FRONTEND_CONFIG.baseUrl;
+  const base = import.meta.env.BASE_URL || '/';
   return stripTrailingSlash(base) || '/';
 }
 
 export function getDocsOrigin(): string {
-  return stripTrailingSlash(FRONTEND_CONFIG.docsOrigin);
+  const origin = String(import.meta.env.VITE_DOCS_ORIGIN || '').trim() || DEFAULT_DOCS_ORIGIN;
+  return stripTrailingSlash(origin);
 }
 
 export function isHttpUrl(value: string): boolean {

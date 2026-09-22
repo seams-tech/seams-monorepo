@@ -1,17 +1,8 @@
 import React from 'react';
-import { useTheme } from '@seams/wallet/react';
 
-import { ToasterThemed } from '@/components/ToasterThemed';
 import { useSiteTheme } from '@/shared/hooks/useSiteTheme';
-import { useBodyLoginStateBridge } from '@/shared/hooks/useBodyLoginStateBridge';
-import { useExportKeyCancelToast } from '@/shared/hooks/useExportKeyCancelToast';
 import { normalizePathname } from '@/app/router/siteRouting';
-import { SITE_APPEARANCE, SITE_THEME_TOKEN_OVERRIDES } from '@/context/siteThemeOverrides';
-import {
-  FrontendRuntimeProvider,
-  FrontendSdkProvider,
-  useFrontendRuntime,
-} from '@/context/frontendRuntime';
+import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
 
 const HomePage = React.lazy(() =>
   import('@/pages/home2/page').then((module) => ({ default: module.HomePage })),
@@ -44,42 +35,20 @@ function WalletProductRedirect(): React.JSX.Element {
   return <></>;
 }
 
-type ThemeTokens = ReturnType<typeof useTheme>['tokens'];
-
-function tokensToCssVars(tokens: ThemeTokens): Record<string, string> {
-  const vars: Record<string, string> = {};
-  Object.entries(tokens.colors).forEach(([key, value]) => {
-    vars[`--w3a-colors-${key}`] = String(value);
-  });
-  Object.entries(tokens.spacing).forEach(([key, value]) => {
-    vars[`--w3a-spacing-${key}`] = String(value);
-  });
-  Object.entries(tokens.borderRadius).forEach(([key, value]) => {
-    vars[`--w3a-border-radius-${key}`] = String(value);
-  });
-  Object.entries(tokens.shadows).forEach(([key, value]) => {
-    vars[`--w3a-shadows-${key}`] = String(value);
-  });
-  return vars;
-}
-
-const DocumentThemeTokenBridge: React.FC = () => {
-  const { theme, tokens } = useTheme();
-  const vars = React.useMemo(() => tokensToCssVars(tokens), [tokens]);
+function DocumentThemeTokenBridge(): null {
+  const { theme } = useSiteTheme();
 
   React.useEffect(() => {
-    if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    root.classList.remove('dark');
     root.setAttribute('data-w3a-theme', theme);
     document.body.setAttribute('data-w3a-theme', theme);
-    Object.entries(vars).forEach(([name, value]) => {
-      root.style.setProperty(name, value);
-    });
-  }, [theme, vars]);
+    for (const [name, value] of Object.entries(PAPER_LIGHT_COLORS)) {
+      root.style.setProperty(`--w3a-colors-${name}`, value);
+    }
+  }, [theme]);
 
   return null;
-};
+}
 
 function usePathname(): string {
   const read = React.useCallback(() => {
@@ -102,23 +71,7 @@ function usePathname(): string {
 }
 
 export const App: React.FC = () => {
-  return (
-    <FrontendRuntimeProvider>
-      <AppRuntimeBoundary />
-    </FrontendRuntimeProvider>
-  );
-};
-
-const AppRuntimeBoundary: React.FC = () => {
-  const { theme } = useSiteTheme();
   const pathname = usePathname();
-  const runtime = useFrontendRuntime();
-
-  const VitepressStateSync: React.FC = () => {
-    useBodyLoginStateBridge();
-    useExportKeyCancelToast();
-    return null;
-  };
 
   const page = React.useMemo(() => {
     switch (pathname) {
@@ -142,17 +95,10 @@ const AppRuntimeBoundary: React.FC = () => {
   }, [pathname]);
 
   return (
-    <FrontendSdkProvider
-      eager
-      network={runtime.selectedNetwork}
-      appearance={SITE_APPEARANCE}
-      theme={{ theme, tokens: SITE_THEME_TOKEN_OVERRIDES }}
-    >
+    <>
       <DocumentThemeTokenBridge />
       <React.Suspense fallback={null}>{page}</React.Suspense>
-      <VitepressStateSync />
-      <ToasterThemed />
-    </FrontendSdkProvider>
+    </>
   );
 };
 

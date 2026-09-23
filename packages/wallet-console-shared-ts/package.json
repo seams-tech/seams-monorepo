@@ -18,6 +18,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@seams/wallet-server": "0.5.33"
+    "@seams/wallet-server": "0.6.0"
   }
 }

@@ -517,12 +517,84 @@ function preflightBackend(lane, component, environment = process.env) {
     if (config.optional.nearRelayer) requiredNames.push('RELAYER_PRIVATE_KEY');
   }
   requireEnvironmentValues(unique(requiredNames), environment);
+  verifyPrivateD1PrimaryLocation(lane, component, environment);
   assertExternalManagedBackupProvider(lane, component, environment);
   if (component === 'gateway' || component === 'wallet-runtime') {
     validateGatewayRouterAbPublicConfiguration(lane, environment);
   }
   if (component === 'gateway') warnDisabledGatewayIntegrations(environment);
   process.stdout.write(`Preflight passed: ${lane.id}/${component}\n`);
+}
+
+function privateD1Resource(lane, component) {
+  return {
+    'signing-worker': lane.resources.signingWorker,
+    'deriver-a': lane.resources.deriverA,
+    'deriver-b': lane.resources.deriverB,
+  }[component];
+}
+
+function verifyPrivateD1PrimaryLocation(lane, component, environment) {
+  const deployment = PRIVATE_D1_DEPLOYMENTS[component];
+  const resource = privateD1Resource(lane, component);
+  if (!deployment || !resource?.d1PrimaryColo) return;
+  const databaseId = requireEnvironmentValue(deployment.databaseIdEnvironment, environment);
+  const child = spawnSync(
+    'pnpm',
+    [
+      'exec',
+      'wrangler',
+      'd1',
+      'execute',
+      databaseId,
+      '--remote',
+      '--json',
+      '--command',
+      'SELECT 1 AS ready',
+    ],
+    {
+      cwd: REPOSITORY_ROOT,
+      env: { ...environment, WRANGLER_SEND_METRICS: 'false' },
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+  if (child.error) throw child.error;
+  if (child.status !== 0) {
+    throw new Error(
+      `${lane.id}/${component} could not verify its D1 primary location (status ${child.status})`,
+    );
+  }
+  assertExpectedD1PrimaryLocation({
+    raw: child.stdout,
+    expectedColo: resource.d1PrimaryColo,
+    label: `${lane.id}/${component}`,
+  });
+  process.stdout.write(
+    `D1 primary verified: ${lane.id}/${component} colo=${resource.d1PrimaryColo}\n`,
+  );
+}
+
+export function assertExpectedD1PrimaryLocation(input) {
+  let parsed;
+  try {
+    parsed = JSON.parse(input.raw);
+  } catch {
+    throw new Error(`${input.label} D1 primary probe returned invalid JSON`);
+  }
+  const result = Array.isArray(parsed) ? parsed[0] : undefined;
+  const meta = result?.meta;
+  if (result?.success !== true || meta?.served_by_primary !== true) {
+    throw new Error(`${input.label} D1 probe was not served by the primary`);
+  }
+  if (typeof meta.served_by_colo !== 'string' || !meta.served_by_colo) {
+    throw new Error(`${input.label} D1 primary probe omitted served_by_colo`);
+  }
+  if (meta.served_by_colo !== input.expectedColo) {
+    throw new Error(
+      `${input.label} D1 primary must be in ${input.expectedColo}; received ${meta.served_by_colo}`,
+    );
+  }
 }
 
 function assertExternalManagedBackupProvider(lane, component, environment) {

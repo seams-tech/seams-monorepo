@@ -688,6 +688,7 @@ function parseWorkerResource(value, pathName) {
   const resource = requireObject(value, pathName);
   const keys = ['workerName', 'configPath', 'deploymentEnvironment'];
   if (Object.hasOwn(resource, 'placementRegion')) keys.push('placementRegion');
+  if (Object.hasOwn(resource, 'd1PrimaryColo')) keys.push('d1PrimaryColo');
   requireExactKeys(resource, keys, pathName);
   return Object.freeze({
     workerName: requireResourceName(resource.workerName, pathName + '.workerName'),
@@ -702,6 +703,15 @@ function parseWorkerResource(value, pathName) {
             resource.placementRegion,
             /^(aws|gcp|azure):[a-z0-9-]+$/u,
             pathName + '.placementRegion',
+          ),
+        }
+      : {}),
+    ...(Object.hasOwn(resource, 'd1PrimaryColo')
+      ? {
+          d1PrimaryColo: requirePattern(
+            resource.d1PrimaryColo,
+            /^[A-Z0-9]{3}$/u,
+            pathName + '.d1PrimaryColo',
           ),
         }
       : {}),

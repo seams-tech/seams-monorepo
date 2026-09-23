@@ -169,6 +169,12 @@ do not match, create a replacement and verify it while it is still empty.
 [Cloudflare's D1 data location documentation](https://developers.cloudflare.com/d1/configuration/data-location/)
 describes location hints as best effort.
 
+The production-testnet deployment target records `NRT` as each Deriver's
+required D1 primary colo. Component preflight executes the remote primary query
+and refuses deployment when Cloudflare reports another metro. This turns an
+otherwise silent placement change into a deployment failure before the Worker
+binding is updated.
+
 On 2026-09-23, both production-testnet databases were migrated to verified
 Tokyo (`NRT`) primaries. Both Deriver Workers now target
 `aws:ap-northeast-1` in `deployment/wallet-system/targets.json`. The Worker

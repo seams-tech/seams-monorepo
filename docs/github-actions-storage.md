@@ -141,3 +141,63 @@ placement survived deployment, all five live Gateway smoke routes returned
 HTTP 200, and the run's temporary build cache was removed. The measurements
 above belong to the earlier placement comparison; they were not repeated
 against this subsequent deployment.
+
+## Production-testnet Deriver placement
+
+The production-testnet Deriver databases were both provisioned with the D1
+`apac` location hint, yet Cloudflare placed Deriver A in Singapore (`SIN`) and
+Deriver B in Seoul (`ICN`). The databases must remain separate for share
+isolation. Their different metros added network latency to the dependent A/B
+rounds of every Yao ceremony.
+
+The `apac` value is only a broad creation hint. It cannot select Tokyo or
+guarantee that related databases share a metro. A successful provisioning run
+therefore does not establish correct placement. For each new or replacement
+Deriver database, execute a remote primary query and inspect the returned
+metadata:
+
+```sh
+pnpm exec wrangler d1 execute <database-name> \
+  --remote \
+  --json \
+  --command "SELECT 1 AS ready"
+```
+
+Require `meta.served_by_primary` to be `true`. The two
+`meta.served_by_colo` values must match before activating the databases. If they
+do not match, create a replacement and verify it while it is still empty.
+[Cloudflare's D1 data location documentation](https://developers.cloudflare.com/d1/configuration/data-location/)
+describes location hints as best effort.
+
+On 2026-09-23, both production-testnet databases were migrated to verified
+Tokyo (`NRT`) primaries. Both Deriver Workers now target
+`aws:ap-northeast-1` in `deployment/wallet-system/targets.json`. The Worker
+placement follows the verified database metro; changing Worker placement alone
+does not relocate D1. [PR 41](https://github.com/seams-tech/seams-monorepo/pull/41)
+records the committed placement change.
+
+The live migration used this sequence:
+
+1. Create candidate D1 databases and use the remote query above to verify both
+   candidates report `NRT`.
+2. Keep the existing Deriver databases active and export them to protected
+   temporary storage.
+3. Import each export into its role-matched replacement and verify migrations
+   and application row counts.
+4. Deploy each Deriver with the replacement database ID and
+   `aws:ap-northeast-1` placement.
+5. Update the production-testnet GitHub environment variables
+   `ROUTER_AB_DERIVER_A_PRIVATE_D1_ID` and
+   `ROUTER_AB_DERIVER_B_PRIVATE_D1_ID`, plus the protected local deployment
+   values.
+6. Export the old databases again and compare normalized snapshots with the
+   pre-cutover exports. The snapshots matched, confirming that no concurrent
+   writes were omitted.
+7. Confirm the active Worker versions, D1 bindings, placement, and public
+   health. Retain the former databases until ceremony benchmarks and rollback
+   confidence are complete.
+
+[Custom Regions](https://blog.cloudflare.com/custom-regions/) does not solve
+this D1 placement problem. It controls eligible traffic processing and Worker
+execution in a chosen region; D1 primary placement remains governed by D1's
+separate location system.

@@ -98,6 +98,12 @@ mode = "off"
   }
 });
 
+test('production testnet Derivers run together beside their D1 primaries', () => {
+  const resources = readBackendLane('production-testnet').resources;
+  expect(resources.deriverA.placementRegion).toBe('aws:ap-northeast-1');
+  expect(resources.deriverB.placementRegion).toBe('aws:ap-northeast-1');
+});
+
 function runCommand(
   script: string,
   args: readonly string[],

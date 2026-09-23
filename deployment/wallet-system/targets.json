@@ -251,6 +251,7 @@
           },
           "deriverA": {
             "workerName": "router-ab-deriver-a-testnet",
+            "placementRegion": "aws:ap-northeast-1",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
             "deploymentEnvironment": {
               "kind": "named",
@@ -259,6 +260,7 @@
           },
           "deriverB": {
             "workerName": "router-ab-deriver-b-testnet",
+            "placementRegion": "aws:ap-northeast-1",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
             "deploymentEnvironment": {
               "kind": "named",

@@ -10,6 +10,7 @@ import { parse as parseYaml } from 'yaml';
 import { unstable_readConfig as readWranglerConfig } from 'wrangler';
 import {
   assertExpectedWorkerServices,
+  assertExpectedD1PrimaryLocation,
   assertEd25519IssuerKeySet,
   assertEd25519RoleKeySet,
   assertExpectedDurableObjectBindings,
@@ -102,7 +103,45 @@ test('production testnet Derivers run together beside their D1 primaries', () =>
   const resources = readBackendLane('production-testnet').resources;
   expect(resources.deriverA.placementRegion).toBe('aws:ap-northeast-1');
   expect(resources.deriverB.placementRegion).toBe('aws:ap-northeast-1');
+  expect(resources.deriverA.d1PrimaryColo).toBe('NRT');
+  expect(resources.deriverB.d1PrimaryColo).toBe('NRT');
 });
+
+test('D1 primary preflight rejects a Deriver in the wrong metro', () => {
+  expect(() =>
+    assertExpectedD1PrimaryLocation({
+      raw: d1PrimaryProbe('NRT'),
+      expectedColo: 'NRT',
+      label: 'production-testnet/deriver-a',
+    }),
+  ).not.toThrow();
+  expect(() =>
+    assertExpectedD1PrimaryLocation({
+      raw: d1PrimaryProbe('SIN'),
+      expectedColo: 'NRT',
+      label: 'production-testnet/deriver-b',
+    }),
+  ).toThrow(/must be in NRT; received SIN/u);
+  expect(() =>
+    assertExpectedD1PrimaryLocation({
+      raw: d1PrimaryProbe('NRT', false),
+      expectedColo: 'NRT',
+      label: 'production-testnet/deriver-a',
+    }),
+  ).toThrow(/was not served by the primary/u);
+});
+
+function d1PrimaryProbe(colo: string, servedByPrimary = true): string {
+  return JSON.stringify([
+    {
+      success: true,
+      meta: {
+        served_by_primary: servedByPrimary,
+        served_by_colo: colo,
+      },
+    },
+  ]);
+}
 
 function runCommand(
   script: string,

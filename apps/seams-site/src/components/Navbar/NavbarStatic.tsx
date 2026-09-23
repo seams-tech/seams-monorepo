@@ -11,12 +11,12 @@ import {
   Rocket,
   Sprout,
   TrendingUp,
+  Wallet,
   Wrench,
   X,
 } from 'lucide-react';
 import { ArrowRightAnim } from '../ArrowRightAnim';
 import SeamsWordmark from '../icons/SeamsWordmark';
-import SeamsWalletLogo from '../icons/SeamsWalletLogo';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import './Navbar.css';
 
@@ -75,7 +75,7 @@ const documentationDropdownPane: DropdownPane = {
       title: 'Embedded Wallet',
       description: 'Non-custodial wallets with policy-bound keys and sessions',
       to: '/wallet',
-      icon: SeamsWalletLogo,
+      icon: Wallet,
     },
     {
       title: 'Ecommerce Agents',
@@ -715,7 +715,7 @@ export function NavbarStatic({
             onClick={homeProps.onClick}
             aria-label="Seams home"
           >
-            <SeamsWordmark className="navbar-static__brand-wordmark" height={22} />
+            <SeamsWordmark className="navbar-static__brand-wordmark" height={17} />
           </a>
         </div>
 

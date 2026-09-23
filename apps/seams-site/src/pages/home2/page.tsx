@@ -18,7 +18,6 @@ import { SeamsAuthMenuMock } from './SeamsAuthMenuMock';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import SeamsLogo from '@/components/icons/SeamsLogo';
-import SeamsWalletLogo from '@/components/icons/SeamsWalletLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
@@ -361,7 +360,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             ) : null}
             <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
               <span className="h2-heroscene__intro-icon" aria-hidden>
-                <SeamsWalletLogo size={26} />
+                <Wallet />
               </span>
               <div>
                 <p className="h2-heroscene__intro-title">Embedded Wallet</p>
@@ -618,8 +617,8 @@ function HomeDuo(): React.JSX.Element {
         </div>
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
-            <SeamsWordmark variant="wallet" height={26} />
             <h3 className="h2-duo__title">
+              <Wallet aria-hidden />
               Embedded Wallet
             </h3>
             <p className="h2-duo__panel-copy">

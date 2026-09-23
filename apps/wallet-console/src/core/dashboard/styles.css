@@ -637,7 +637,7 @@ textarea {
   min-width: 0;
 }
 
-/* The lettering collapses while the key remains in the icon rail. */
+/* The lettering collapses while the Seams mark remains in the icon rail. */
 .dashboard-sidebar__brand .seams-wordmark__text {
   display: inline-block;
   max-width: 120px;

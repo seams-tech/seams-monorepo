@@ -2,7 +2,7 @@ import React from 'react';
 import { SEAMS_BRAND_ASSETS } from './seamsBranding';
 
 export type SeamsWordmarkProps = {
-  /** Height of the complete wordmark and key. */
+  /** Height of the complete wordmark and symbol. */
   height?: number;
   className?: string;
   style?: React.CSSProperties;
@@ -21,11 +21,11 @@ const SeamsWordmark: React.FC<SeamsWordmarkProps> = ({ height = 28, className, s
       style={{
         display: 'block',
         flex: '0 1 auto',
-        width: (height * 1072) / 256,
+        width: (height * 1131) / 285,
         height,
         backgroundColor: 'currentColor',
         maskImage: `url("${SEAMS_BRAND_ASSETS.wordmark}")`,
-        maskSize: `${(height * 1072) / 256}px ${height}px`,
+        maskSize: `${(height * 1428) / 285}px ${height}px`,
         maskPosition: 'left center',
         maskRepeat: 'no-repeat',
       }}
@@ -36,7 +36,7 @@ const SeamsWordmark: React.FC<SeamsWordmarkProps> = ({ height = 28, className, s
       style={{
         display: 'block',
         flex: '0 0 auto',
-        width: (height * 493) / 256,
+        width: (height * 298) / 285,
         height,
         backgroundColor: 'currentColor',
         maskImage: `url("${SEAMS_BRAND_ASSETS.mark}")`,

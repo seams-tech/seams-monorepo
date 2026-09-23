@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+
+.wallet-load-error {
+  max-width: 36rem;
+  margin: 5rem auto;
+  padding: 1.5rem;
+}

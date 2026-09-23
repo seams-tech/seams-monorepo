@@ -14,13 +14,21 @@ import {
   Store,
   Wallet,
 } from 'lucide-react';
-import { SeamsAuthMenuMock } from '@seams/wallet/react';
-import { PAPER_LIGHT_COLORS } from '@/context/app-themes';
+import { SeamsAuthMenuMock } from './SeamsAuthMenuMock';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
+import SeamsLogo from '@/components/icons/SeamsLogo';
+import SeamsWalletLogo from '@/components/icons/SeamsWalletLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
-import { H2Ecosystem, H2Faq, H2Footer, H2Pillars, SplitKeyVisual } from '@/components/h2/sections';
+import {
+  H2Ecosystem,
+  H2Faq,
+  H2Footer,
+  H2Pillars,
+  H2Security,
+  SplitKeyVisual,
+} from '@/components/h2/sections';
 import '@/styles/h2.css';
 
 /* Umbrella front page: a simple headline, then a paged two-panel scene band
@@ -157,23 +165,6 @@ function IntegrationsWindow(): React.JSX.Element {
   );
 }
 
-/* The real SeamsAuthMenu shell, inert: the SDK mock renders identical
-   markup/CSS with all controls disabled and no wallet logic. The Paper palette
-   is pinned on the wrapper so the card cannot inherit the site theme.
-   Pointer events stay off so clicks fall through to the panel link. */
-const paperShellVars = Object.fromEntries(
-  Object.entries(PAPER_LIGHT_COLORS).map(([key, value]) => [`--seams-colors-${key}`, value]),
-) as React.CSSProperties;
-
-function WalletShellCard(): React.JSX.Element {
-  return (
-    <div className="h2-heroscene__shell" aria-hidden data-seams-theme="light" style={paperShellVars}>
-      {/* Login mode shows the full method stack (passkey, SSO, other options) */}
-      <SeamsAuthMenuMock initialMode="login" />
-    </div>
-  );
-}
-
 type HeroWalletPreview =
   | {
       kind: 'signIn';
@@ -250,7 +241,7 @@ function WalletTransactionPreview(): React.JSX.Element {
 function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element {
   switch (preview.kind) {
     case 'signIn':
-      return <WalletShellCard />;
+      return <SeamsAuthMenuMock />;
     case 'transactionConfirm':
       return <WalletTransactionPreview />;
     default:
@@ -370,7 +361,7 @@ function HomeHeroCurrent(): React.JSX.Element {
             ) : null}
             <div className="h2-heroscene__intro h2-fadein" key={`aside-intro-${scene.wallet.kind}`}>
               <span className="h2-heroscene__intro-icon" aria-hidden>
-                <Wallet />
+                <SeamsWalletLogo size={26} />
               </span>
               <div>
                 <p className="h2-heroscene__intro-title">Embedded Wallet</p>
@@ -542,7 +533,7 @@ function HomeHeroMedia(): React.JSX.Element {
         <div className="h2-shell h2-hero-media__split">
           <div className="h2-hero-media__main">
             <p className="h2-hero-media__product">
-              <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+              <SeamsLogo size={20} />
               <span>Seams Agents</span>
             </p>
             <h1 id="h2-home2-title" className="h2-display h2-hero-media__title">
@@ -584,7 +575,7 @@ function HomeHeroMedia(): React.JSX.Element {
           </div>
 
           <div className="h2-agent-chat-pill" aria-hidden="true">
-            <img src="/seams-v9/png/gradient-fabric/seams-mark-gradient-fabric-256.png" alt="" />
+            <SeamsLogo size={38} />
             <span>
               Try a Seams agent
               <small>Policy checked before execution</small>
@@ -627,8 +618,8 @@ function HomeDuo(): React.JSX.Element {
         </div>
         <div className="h2-duo__grid">
           <a className="h2-duo__panel" href={walletProps.href} onClick={walletProps.onClick}>
+            <SeamsWordmark variant="wallet" height={26} />
             <h3 className="h2-duo__title">
-              <Wallet aria-hidden />
               Embedded Wallet
             </h3>
             <p className="h2-duo__panel-copy">
@@ -687,6 +678,7 @@ function HomeFrame({ hero }: HomeFrameProps): React.JSX.Element {
         <HomeDuo />
         <H2Ecosystem />
         <H2Pillars />
+        <H2Security />
         <H2Faq audience="home" />
         <H2Footer />
       </div>

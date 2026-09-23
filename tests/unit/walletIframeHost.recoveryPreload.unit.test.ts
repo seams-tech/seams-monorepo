@@ -14,7 +14,7 @@ test('full wallet host preloads the lightweight recovery runtime and Lit surface
   await page.goto('/');
   await injectImportMap(page);
   await page.evaluate((base) => {
-    (window as typeof window & { __W3A_WALLET_SDK_BASE__?: string }).__W3A_WALLET_SDK_BASE__ = base;
+    (window as typeof window & { __SEAMS_WALLET_SDK_BASE__?: string }).__SEAMS_WALLET_SDK_BASE__ = base;
   }, `${SDK_ESM_BASE_PATH}/sdk/`);
 
   await page.evaluate(async (entry) => {
@@ -25,7 +25,7 @@ test('full wallet host preloads the lightweight recovery runtime and Lit surface
     .poll(async () => {
       return {
         recoveryElementDefined: await page.evaluate(() =>
-          Boolean(customElements.get('w3a-recovery-code-backup-host')),
+          Boolean(customElements.get('seams-recovery-code-backup-host')),
         ),
         recoveryRuntimeStarted: Array.from(requestedPaths).some((name) =>
           name.includes('/runtime-recovery-codes-'),

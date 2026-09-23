@@ -104,8 +104,14 @@ body,
   user-select: none;
 }
 
-.seams-logo-icon--transparent-mark {
-  background: transparent;
+.seams-wordmark {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
 }
 
 button,

@@ -341,7 +341,7 @@ function checkEcdsaDerivationClientHasOneExplicitOwner() {
     'hss_client_signer.js',
     'threshold_ed25519_seed_export_artifact_from_seed',
     'mod threshold_hss',
-    '__W3A_HSS_CLIENT_WORKER_URL__',
+    '__SEAMS_HSS_CLIENT_WORKER_URL__',
     "'hssClient'",
     'HSS_CLIENT_SIGNER',
     'SOURCE_WASM_HSS_CLIENT_SIGNER',

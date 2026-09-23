@@ -1,0 +1,5897 @@
+/* wallet-service.css */
+html,
+body {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  color-scheme: normal;
+}
+
+html.seams-transparent,
+body.seams-transparent {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  color-scheme: normal;
+}
+
+.seams-portal {
+  position: relative;
+  z-index: 2147483647;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seams-portal.seams-portal--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.seams-offscreen {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root:not([data-seams-theme]) {
+  --seams-colors-textPrimary: #f6f7f8;
+  --seams-colors-textSecondary: rgba(255, 255, 255, 0.7);
+  --seams-colors-surface: rgba(255, 255, 255, 0.08);
+  --seams-colors-surface2: rgba(255, 255, 255, 0.06);
+  --seams-colors-surface3: rgba(255, 255, 255, 0.04);
+  --seams-colors-borderPrimary: rgba(255, 255, 255, 0.14);
+  --seams-colors-borderSecondary: rgba(255, 255, 255, 0.1);
+  --seams-colors-colorBackground: #0b0c10;
+  --seams-vw: 100vw;
+  --seams-vh: 100vh;
+}
+
+/* wallet-theme-tokens */
+/* Generated from src/theme/palette.json + src/theme/base-styles.js. Do not edit by hand. */
+.seams-wallet-ui {
+  --seams-modal__btn__focus-outline-color: oklch(0.74 0.166 255);
+  --seams-tree__file-content__scrollbar-track__background: rgba(255, 255, 255, 0.06);
+  --seams-tree__file-content__scrollbar-thumb__background: rgba(255, 255, 255, 0.22);
+  --seams-grey25: oklch(0.99 0.001 240);
+  --seams-grey50: oklch(0.98 0.001 240);
+  --seams-grey75: oklch(0.97 0.002 240);
+  --seams-grey100: oklch(0.95 0.005 240);
+  --seams-grey150: oklch(0.92 0.007 240);
+  --seams-grey200: oklch(0.88 0.01 240);
+  --seams-grey250: oklch(0.85 0.012 240);
+  --seams-grey300: oklch(0.82 0.014 240);
+  --seams-grey350: oklch(0.75 0.016 240);
+  --seams-grey400: oklch(0.65 0.02 240);
+  --seams-grey450: oklch(0.6 0.021 240);
+  --seams-grey500: oklch(0.53 0.02 240);
+  --seams-grey550: oklch(0.48 0.02 240);
+  --seams-grey600: oklch(0.4 0.02 240);
+  --seams-grey650: oklch(0.35 0.018 240);
+  --seams-grey700: oklch(0.3 0.015 240);
+  --seams-grey750: oklch(0.25 0.012 240);
+  --seams-grey800: oklch(0.2 0.01 240);
+  --seams-grey825: oklch(0.17 0.009 240);
+  --seams-grey850: oklch(0.15 0.008 240);
+  --seams-grey900: oklch(0.1 0.005 240);
+  --seams-grey950: oklch(0.05 0.002 240);
+  --seams-grey975: oklch(0.025 0.001 240);
+  --seams-slate25: oklch(0.99 0.003 240);
+  --seams-slate50: oklch(0.98 0.005 240);
+  --seams-slate75: oklch(0.965 0.007 240);
+  --seams-slate100: oklch(0.95 0.01 240);
+  --seams-slate150: oklch(0.915 0.0125 240);
+  --seams-slate200: oklch(0.88 0.015 240);
+  --seams-slate250: oklch(0.84 0.0175 240);
+  --seams-slate300: oklch(0.8 0.02 240);
+  --seams-slate350: oklch(0.725 0.0225 240);
+  --seams-slate400: oklch(0.65 0.025 240);
+  --seams-slate450: oklch(0.59 0.0275 240);
+  --seams-slate500: oklch(0.53 0.03 240);
+  --seams-slate550: oklch(0.465 0.0275 240);
+  --seams-slate600: oklch(0.4 0.025 240);
+  --seams-slate650: oklch(0.35 0.0225 240);
+  --seams-slate700: oklch(0.3 0.02 240);
+  --seams-slate750: oklch(0.25 0.0175 240);
+  --seams-slate800: oklch(0.2 0.015 240);
+  --seams-slate825: oklch(0.175 0.015 240);
+  --seams-slate850: oklch(0.15 0.0125 240);
+  --seams-slate900: oklch(0.1 0.01 240);
+  --seams-yellow50: oklch(0.97 0.050 95);
+  --seams-yellow100: oklch(0.95 0.070 95);
+  --seams-yellow150: oklch(0.93 0.082 95);
+  --seams-yellow200: oklch(0.90 0.094 95);
+  --seams-yellow250: oklch(0.87 0.108 95);
+  --seams-yellow300: oklch(0.82 0.140 95);
+  --seams-yellow350: oklch(0.78 0.160 95);
+  --seams-yellow400: oklch(0.74 0.176 95);
+  --seams-yellow450: oklch(0.70 0.184 95);
+  --seams-yellow500: oklch(0.66 0.188 95);
+  --seams-yellow550: oklch(0.62 0.182 95);
+  --seams-yellow600: oklch(0.56 0.160 95);
+  --seams-yellow650: oklch(0.52 0.138 95);
+  --seams-yellow700: oklch(0.46 0.106 95);
+  --seams-yellow750: oklch(0.42 0.086 95);
+  --seams-yellow800: oklch(0.36 0.062 95);
+  --seams-yellow850: oklch(0.32 0.052 95);
+  --seams-yellow900: oklch(0.26 0.044 95);
+  --seams-yellow950: oklch(0.22 0.036 95);
+  --seams-blue50: oklch(0.97 0.040 255);
+  --seams-blue100: oklch(0.95 0.062 255);
+  --seams-blue150: oklch(0.93 0.074 255);
+  --seams-blue200: oklch(0.90 0.086 255);
+  --seams-blue250: oklch(0.87 0.100 255);
+  --seams-blue300: oklch(0.82 0.130 255);
+  --seams-blue350: oklch(0.78 0.150 255);
+  --seams-blue400: oklch(0.74 0.166 255);
+  --seams-blue450: oklch(0.70 0.174 255);
+  --seams-blue500: oklch(0.66 0.180 255);
+  --seams-blue550: oklch(0.62 0.176 255);
+  --seams-blue600: oklch(0.56 0.158 255);
+  --seams-blue650: oklch(0.52 0.138 255);
+  --seams-blue700: oklch(0.46 0.108 255);
+  --seams-blue750: oklch(0.42 0.088 255);
+  --seams-blue800: oklch(0.36 0.065 255);
+  --seams-blue850: oklch(0.32 0.056 255);
+  --seams-blue900: oklch(0.26 0.050 255);
+  --seams-blue950: oklch(0.22 0.040 255);
+  --seams-red50: oklch(0.97 0.040 19);
+  --seams-red100: oklch(0.95 0.060 19);
+  --seams-red150: oklch(0.93 0.072 19);
+  --seams-red200: oklch(0.90 0.086 19);
+  --seams-red250: oklch(0.87 0.100 19);
+  --seams-red300: oklch(0.82 0.130 19);
+  --seams-red350: oklch(0.78 0.150 19);
+  --seams-red400: oklch(0.74 0.166 19);
+  --seams-red450: oklch(0.70 0.174 19);
+  --seams-red500: oklch(0.66 0.180 19);
+  --seams-red550: oklch(0.62 0.176 19);
+  --seams-red600: oklch(0.56 0.158 19);
+  --seams-red650: oklch(0.52 0.138 19);
+  --seams-red700: oklch(0.46 0.108 19);
+  --seams-red750: oklch(0.42 0.088 19);
+  --seams-red800: oklch(0.36 0.065 19);
+  --seams-red850: oklch(0.32 0.056 19);
+  --seams-red900: oklch(0.26 0.050 19);
+  --seams-red950: oklch(0.22 0.040 19);
+  --seams-orange100: oklch(0.82 0.08 52);
+  --seams-orange200: oklch(0.8 0.1 55);
+  --seams-orange300: oklch(0.75 0.12 58);
+  --seams-orange400: oklch(0.7 0.14 60);
+  --seams-orange500: oklch(0.65 0.13 62);
+  --seams-orange600: oklch(0.6 0.12 65);
+  --seams-orange700: oklch(0.55 0.11 68);
+  --seams-orange800: oklch(0.5 0.1 70);
+  --seams-orange900: oklch(0.45 0.09 72);
+  --seams-violet100: oklch(0.80 0.08 308);
+  --seams-violet200: oklch(0.75 0.1 305);
+  --seams-violet300: oklch(0.72 0.12 302);
+  --seams-violet400: oklch(0.68 0.14 300);
+  --seams-violet500: oklch(0.65 0.15 298);
+  --seams-violet600: oklch(0.6 0.14 295);
+  --seams-violet700: oklch(0.55 0.13 292);
+  --seams-violet800: oklch(0.5 0.12 290);
+  --seams-violet900: oklch(0.45 0.11 288);
+  --seams-green50: oklch(0.97 0.040 170);
+  --seams-green100: oklch(0.95 0.062 170);
+  --seams-green150: oklch(0.93 0.074 170);
+  --seams-green200: oklch(0.90 0.086 170);
+  --seams-green250: oklch(0.87 0.100 170);
+  --seams-green300: oklch(0.82 0.130 170);
+  --seams-green350: oklch(0.78 0.150 170);
+  --seams-green400: oklch(0.74 0.166 170);
+  --seams-green450: oklch(0.70 0.174 170);
+  --seams-green500: oklch(0.66 0.180 170);
+  --seams-green550: oklch(0.62 0.176 170);
+  --seams-green600: oklch(0.56 0.158 170);
+  --seams-green650: oklch(0.52 0.138 170);
+  --seams-green700: oklch(0.46 0.108 170);
+  --seams-green750: oklch(0.42 0.088 170);
+  --seams-green800: oklch(0.36 0.065 170);
+  --seams-green850: oklch(0.32 0.056 170);
+  --seams-green900: oklch(0.26 0.050 170);
+  --seams-green950: oklch(0.22 0.040 170);
+  --seams-gradient-blue: linear-gradient(45deg, oklch(0.82 0.130 255) 0%, oklch(0.66 0.180 255) 50%);
+  --seams-gradient-red: linear-gradient(45deg, oklch(0.82 0.130 19) 0%, oklch(0.66 0.180 19) 50%);
+  --seams-gradient-green: linear-gradient(45deg, oklch(0.82 0.130 170) 0%, oklch(0.66 0.180 170) 50%);
+  --seams-gradient-black: linear-gradient(45deg, oklch(0.53 0.03 240) 0%, oklch(0.2 0.015 240) 50%);
+  --seams-gradient-blueWhite: linear-gradient(90deg, hsla(213, 62%, 45%, 1) 0%, hsla(203, 89%, 71%, 1) 50%, hsla(0, 0%, 96%, 1) 100%);
+  --seams-gradient-sage: linear-gradient(160deg, #919690 0%, #c7d0cf 100%);
+  --seams-gradient-sageDeep: linear-gradient(160deg, #004737 0%, #919690 100%);
+
+  /* Default token aliases (dark) for UI surfaces */
+  --seams-colors-textPrimary: oklch(0.97 0.002 240);
+  --seams-colors-textSecondary: oklch(0.53 0.02 240);
+  --seams-colors-textMuted: oklch(0.35 0.018 240);
+  --seams-colors-textButton: oklch(0.97 0.002 240);
+  --seams-colors-colorBackground: oklch(0.2 0.01 240);
+  --seams-colors-surface: oklch(0.3 0.02 240);
+  --seams-colors-surface2: oklch(0.25 0.0175 240);
+  --seams-colors-txDetailsBackground: oklch(0.25 0.0175 240);
+  --seams-colors-surface3: oklch(0.2 0.015 240);
+  --seams-colors-surface4: oklch(0.175 0.015 240);
+  --seams-colors-primary: oklch(0.52 0.138 255);
+  --seams-colors-primaryHover: oklch(0.56 0.158 255);
+  --seams-colors-secondary: oklch(0.6 0.14 295);
+  --seams-colors-secondaryHover: oklch(0.65 0.15 298);
+  --seams-colors-accent: oklch(0.74 0.166 170);
+  --seams-colors-buttonBackground: oklch(0.66 0.180 255);
+  --seams-colors-buttonHoverBackground: oklch(0.70 0.174 255);
+  --seams-colors-hover: oklch(0.15 0.008 240);
+  --seams-colors-active: oklch(0.35 0.018 240);
+  --seams-colors-focus: oklch(0.74 0.166 255);
+  --seams-colors-success: oklch(0.74 0.166 255);
+  --seams-colors-warning: oklch(0.74 0.176 95);
+  --seams-colors-error: oklch(0.74 0.166 19);
+  --seams-colors-info: oklch(0.74 0.166 255);
+  --seams-colors-borderPrimary: oklch(0.35 0.018 240);
+  --seams-colors-borderSecondary: oklch(0.35 0.0225 240);
+  --seams-colors-borderHover: oklch(0.4 0.02 240);
+  --seams-colors-gradientPrimary: linear-gradient(45deg, oklch(0.82 0.130 255) 0%, oklch(0.66 0.180 255) 50%);
+  --seams-colors-gradientSecondary: linear-gradient(90deg, hsla(213, 62%, 45%, 1) 0%, hsla(203, 89%, 71%, 1) 50%, hsla(0, 0%, 96%, 1) 100%);
+  --seams-colors-gradientTertiary: linear-gradient(45deg, oklch(0.53 0.03 240) 0%, oklch(0.2 0.015 240) 50%);
+  --seams-colors-highlightReceiverId: undefined;
+  --seams-colors-highlightMethodName: oklch(0.74 0.166 255);
+  --seams-colors-highlightAmount: oklch(0.74 0.166 255);
+}
+
+:root {
+  --seams-colors-textPrimary: oklch(0.97 0.002 240);
+  --seams-colors-textSecondary: oklch(0.53 0.02 240);
+  --seams-colors-textMuted: oklch(0.35 0.018 240);
+  --seams-colors-textButton: oklch(0.97 0.002 240);
+  --seams-colors-colorBackground: oklch(0.2 0.01 240);
+  --seams-colors-surface: oklch(0.3 0.02 240);
+  --seams-colors-surface2: oklch(0.25 0.0175 240);
+  --seams-colors-txDetailsBackground: oklch(0.25 0.0175 240);
+  --seams-colors-surface3: oklch(0.2 0.015 240);
+  --seams-colors-surface4: oklch(0.175 0.015 240);
+  --seams-colors-primary: oklch(0.52 0.138 255);
+  --seams-colors-primaryHover: oklch(0.56 0.158 255);
+  --seams-colors-secondary: oklch(0.6 0.14 295);
+  --seams-colors-secondaryHover: oklch(0.65 0.15 298);
+  --seams-colors-accent: oklch(0.74 0.166 170);
+  --seams-colors-buttonBackground: oklch(0.66 0.180 255);
+  --seams-colors-buttonHoverBackground: oklch(0.70 0.174 255);
+  --seams-colors-hover: oklch(0.15 0.008 240);
+  --seams-colors-active: oklch(0.35 0.018 240);
+  --seams-colors-focus: oklch(0.74 0.166 255);
+  --seams-colors-success: oklch(0.74 0.166 255);
+  --seams-colors-warning: oklch(0.74 0.176 95);
+  --seams-colors-error: oklch(0.74 0.166 19);
+  --seams-colors-info: oklch(0.74 0.166 255);
+  --seams-colors-borderPrimary: oklch(0.35 0.018 240);
+  --seams-colors-borderSecondary: oklch(0.35 0.0225 240);
+  --seams-colors-borderHover: oklch(0.4 0.02 240);
+  --seams-colors-gradientPrimary: linear-gradient(45deg, oklch(0.82 0.130 255) 0%, oklch(0.66 0.180 255) 50%);
+  --seams-colors-gradientSecondary: linear-gradient(90deg, hsla(213, 62%, 45%, 1) 0%, hsla(203, 89%, 71%, 1) 50%, hsla(0, 0%, 96%, 1) 100%);
+  --seams-colors-gradientTertiary: linear-gradient(45deg, oklch(0.53 0.03 240) 0%, oklch(0.2 0.015 240) 50%);
+  --seams-colors-highlightReceiverId: undefined;
+  --seams-colors-highlightMethodName: oklch(0.74 0.166 255);
+  --seams-colors-highlightAmount: oklch(0.74 0.166 255);
+}
+
+:root[data-seams-theme="light"] {
+  --seams-colors-textPrimary: oklch(0.35 0.018 240);
+  --seams-colors-textSecondary: oklch(0.53 0.02 240);
+  --seams-colors-textMuted: oklch(0.75 0.016 240);
+  --seams-colors-textButton: oklch(0.97 0.002 240);
+  --seams-colors-colorBackground: oklch(0.98 0.001 240);
+  --seams-colors-surface: oklch(0.95 0.01 240);
+  --seams-colors-surface2: oklch(0.915 0.0125 240);
+  --seams-colors-txDetailsBackground: #f8f8f7;
+  --seams-colors-surface3: oklch(0.88 0.015 240);
+  --seams-colors-surface4: oklch(0.84 0.0175 240);
+  --seams-colors-primary: oklch(0.56 0.158 255);
+  --seams-colors-primaryHover: oklch(0.66 0.180 255);
+  --seams-colors-secondary: oklch(0.6 0.14 295);
+  --seams-colors-secondaryHover: oklch(0.65 0.15 298);
+  --seams-colors-accent: oklch(0.74 0.166 170);
+  --seams-colors-buttonBackground: oklch(0.66 0.180 255);
+  --seams-colors-buttonHoverBackground: oklch(0.70 0.174 255);
+  --seams-colors-hover: oklch(0.95 0.005 240);
+  --seams-colors-active: oklch(0.88 0.01 240);
+  --seams-colors-focus: oklch(0.74 0.166 255);
+  --seams-colors-success: oklch(0.66 0.180 255);
+  --seams-colors-warning: oklch(0.66 0.188 95);
+  --seams-colors-error: oklch(0.66 0.180 19);
+  --seams-colors-info: oklch(0.74 0.166 255);
+  --seams-colors-borderPrimary: oklch(0.8 0.02 240);
+  --seams-colors-borderSecondary: oklch(0.82 0.014 240);
+  --seams-colors-borderHover: oklch(0.725 0.0225 240);
+  --seams-colors-gradientPrimary: linear-gradient(45deg, oklch(0.82 0.130 255) 0%, oklch(0.66 0.180 255) 50%);
+  --seams-colors-gradientSecondary: linear-gradient(90deg, hsla(213, 62%, 45%, 1) 0%, hsla(203, 89%, 71%, 1) 50%, hsla(0, 0%, 96%, 1) 100%);
+  --seams-colors-gradientTertiary: linear-gradient(45deg, oklch(0.53 0.03 240) 0%, oklch(0.2 0.015 240) 50%);
+  --seams-colors-highlightReceiverId: undefined;
+  --seams-colors-highlightMethodName: oklch(0.66 0.180 255);
+  --seams-colors-highlightAmount: oklch(0.66 0.180 255);
+}
+
+.seams-wallet-ui[data-theme="light"],
+:root[data-seams-theme="light"] .seams-wallet-ui:not([data-theme="dark"]) {
+  --seams-colors-textPrimary: oklch(0.35 0.018 240);
+  --seams-colors-textSecondary: oklch(0.53 0.02 240);
+  --seams-colors-textMuted: oklch(0.75 0.016 240);
+  --seams-colors-textButton: oklch(0.97 0.002 240);
+  --seams-colors-colorBackground: oklch(0.98 0.001 240);
+  --seams-colors-surface: oklch(0.95 0.01 240);
+  --seams-colors-surface2: oklch(0.915 0.0125 240);
+  --seams-colors-txDetailsBackground: #f8f8f7;
+  --seams-colors-surface3: oklch(0.88 0.015 240);
+  --seams-colors-surface4: oklch(0.84 0.0175 240);
+  --seams-colors-primary: oklch(0.56 0.158 255);
+  --seams-colors-primaryHover: oklch(0.66 0.180 255);
+  --seams-colors-secondary: oklch(0.6 0.14 295);
+  --seams-colors-secondaryHover: oklch(0.65 0.15 298);
+  --seams-colors-accent: oklch(0.74 0.166 170);
+  --seams-colors-buttonBackground: oklch(0.66 0.180 255);
+  --seams-colors-buttonHoverBackground: oklch(0.70 0.174 255);
+  --seams-colors-hover: oklch(0.95 0.005 240);
+  --seams-colors-active: oklch(0.88 0.01 240);
+  --seams-colors-focus: oklch(0.74 0.166 255);
+  --seams-colors-success: oklch(0.66 0.180 255);
+  --seams-colors-warning: oklch(0.66 0.188 95);
+  --seams-colors-error: oklch(0.66 0.180 19);
+  --seams-colors-info: oklch(0.74 0.166 255);
+  --seams-colors-borderPrimary: oklch(0.8 0.02 240);
+  --seams-colors-borderSecondary: oklch(0.82 0.014 240);
+  --seams-colors-borderHover: oklch(0.725 0.0225 240);
+  --seams-colors-gradientPrimary: linear-gradient(45deg, oklch(0.82 0.130 255) 0%, oklch(0.66 0.180 255) 50%);
+  --seams-colors-gradientSecondary: linear-gradient(90deg, hsla(213, 62%, 45%, 1) 0%, hsla(203, 89%, 71%, 1) 50%, hsla(0, 0%, 96%, 1) 100%);
+  --seams-colors-gradientTertiary: linear-gradient(45deg, oklch(0.53 0.03 240) 0%, oklch(0.2 0.015 240) 50%);
+  --seams-colors-highlightReceiverId: undefined;
+  --seams-colors-highlightMethodName: oklch(0.66 0.180 255);
+  --seams-colors-highlightAmount: oklch(0.66 0.180 255);
+}
+
+/* auth-menu-surface */
+.seams-auth-menu-surface {
+  display: block;
+  inline-size: 100dvw;
+  max-inline-size: min(100dvw, 420px);
+  --seams-spacing-sm: 0.5rem;
+  --seams-spacing-md: 1rem;
+  --seams-spacing-lg: 1.5rem;
+  /* Two curves, no more — mixed generic eases read as cheap.
+     --seams-ease-out decelerates an entering view.
+     --seams-ease-settle is the container's resize curve: a critically damped
+     spring, i.e. bounce 0. Overshoot was the wrong instinct here. An elastic
+     curve on a box whose height is sampled across the iframe boundary spends
+     its most legible frames past the target and then walks back, which reads
+     as slop rather than life; the references this is modelled on use bounce 0
+     for every state change and reserve motion character for enters. Front-load
+     the distance instead: ~80% of the travel lands in the first ~40% of the
+     duration, so the deceleration stays readable at 200ms. */
+  /* One duration for the whole box. Every part of the card's geometry reads
+     from this, so header, switcher and root can never settle at different
+     rates and split one movement into two. --seams-duration-enter matches it
+     so the incoming view finishes with the box rather than trailing it. */
+  /* The card's height floor. The waiting view derives its own floor from this
+     so the two can never drift apart — see .seams-waiting. */
+  --seams-menu-min-block-size: 250px;
+  --seams-duration-resize: 200ms;
+  --seams-duration-enter: 200ms;
+  --seams-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --seams-ease-settle: cubic-bezier(0.32, 0.72, 0, 1);
+  /* The card's height is a composite: the content switcher animates px -> px
+     (syncContentHeight measures .seams-content-sizer and writes an explicit
+     height), while the header collapses `height: auto` -> `0px`, which is not
+     interpolable. So one part of the box eased and the other stepped, and the
+     sum read as a jump followed by a glide rather than one curve. Making
+     keyword sizes interpolable puts the header on the same settle as the
+     switcher, so the whole card moves as a single easing.
+     Chromium-only for now; elsewhere the header keeps stepping and the
+     switcher keeps easing, i.e. exactly today's behaviour. */
+  interpolate-size: allow-keywords;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--seams-colors-textPrimary);
+  line-height: normal;
+  background: transparent;
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+}
+
+/* Root container */
+:where(.seams-auth-menu-surface) .seams-no-animation {
+  animation: none !important;
+  transition: none !important;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root {
+  /* CSS sentinel (used by tests/diagnostics to confirm stylesheet is applied) */
+  --seams-auth-menu-css-ready: 1;
+  --seams-auth-menu-padding-top: calc(var(--seams-spacing-lg) + 4px);
+  position: relative;
+  box-sizing: border-box;
+  /* relative position to anchor back button */
+  width: min(100dvw, 420px);
+  max-width: 100dvw;
+  min-width: min(330px, 100dvw);
+  min-height: var(--seams-menu-min-block-size, 250px);
+  color: var(--seams-colors-textPrimary);
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  background: var(--seams-colors-colorBackground);
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: var(--seams-shape-card, 16px);
+  /* No box-shadow here: the iframe clips it at its layout edge (the surface
+     only extends 16px past the card). The elevation is painted by the host
+     page instead — a drop-shadow on the wallet iframe in overlay-styles.ts —
+     which follows the card's silhouette and can extend past the iframe. The
+     variable remains as an escape hatch for embedders. */
+  box-shadow: var(--seams-auth-menu-shadow, none);
+  padding: var(--seams-spacing-lg);
+  padding-top: var(--seams-auth-menu-padding-top);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition:
+    min-height var(--seams-duration-resize, 200ms)
+      var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1)),
+    padding var(--seams-duration-resize, 200ms) var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1)),
+    border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Back button */
+:where(.seams-auth-menu-surface) .seams-back-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  line-height: 0;
+  border-radius: 50%;
+  color: var(--seams-colors-textPrimary);
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  z-index: 20;
+  transition:
+    transform 120ms ease,
+    background-color 160ms ease,
+    opacity 220ms ease;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(0.2px);
+}
+
+:where(.seams-auth-menu-surface) .seams-back-button.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-scan-device='true'] .seams-back-button.is-visible,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-waiting='true'] .seams-back-button.is-visible,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-otp-prompt='true'] .seams-back-button.is-visible {
+  z-index: 30;
+}
+
+:where(.seams-auth-menu-surface) .seams-back-button:hover {
+  transform: scale(1.02);
+  background: var(--seams-colors-surface);
+}
+
+:where(.seams-auth-menu-surface) .seams-back-button:active {
+  transform: scale(0.96);
+}
+
+/* Header */
+:where(.seams-auth-menu-surface) .seams-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  opacity: 1;
+  height: auto;
+  overflow: hidden;
+  transition:
+    opacity 120ms ease-out,
+    height var(--seams-duration-resize, 200ms) var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1)),
+    padding var(--seams-duration-resize, 200ms) var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1)),
+    margin var(--seams-duration-resize, 200ms) var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1));
+  pointer-events: auto;
+  position: relative;
+}
+
+/* Hide the generic menu header when a sub-state renders its own header
+   (waiting / scan / OTP code / wallet-naming) — otherwise two headers stack
+   with a dead gap between them. */
+/* Entering the loading view is the one resize on the critical path of a
+   ceremony the user just initiated — snappier than the browsing-speed default.
+   The override lives on the root, so every geometry transition inside (header,
+   switcher, content area) retimes together; leaving the state restores the
+   default in the same style recalc that starts the return transition. */
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-waiting='true'] {
+  --seams-duration-resize: 150ms;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-waiting='true'] .seams-header,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-scan-device='true'] .seams-header,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-otp-prompt='true'] .seams-header,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-header {
+  opacity: 0;
+  height: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  pointer-events: none;
+}
+
+/* Adjust content area when header is hidden */
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-waiting='true'] .seams-content-area,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-scan-device='true'] .seams-content-area,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-otp-prompt='true'] .seams-content-area,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-content-area {
+  flex: 1 1 auto;
+  /* The switcher's box is what animates during a resize; the content inside
+     keeps its intrinsic height. Centre it in that animating box so the message
+     holds the centre line instead of riding the shrinking top edge downward.
+     Centring here rather than stretching the sizer is deliberate: the sizer's
+     scrollHeight is what drives the animation, so stretching it would feed its
+     own height back into the measurement. */
+  justify-content: center;
+  transition: height var(--seams-duration-resize, 200ms)
+    var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+/* Specific height adjustments for different states */
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-scan-device='true'] {
+  min-height: 280px;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-otp-prompt='true'] {
+  min-height: 270px;
+}
+
+:where(.seams-auth-menu-surface) .seams-title {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: normal;
+  margin: 0.5rem 0.75rem;
+  text-wrap: balance;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-header {
+  padding-left: 44px;
+}
+
+:where(.seams-auth-menu-surface) .seams-subhead {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 20%);
+  margin: 0;
+  margin-bottom: 1rem;
+  margin-left: 0.75rem;
+  text-wrap: pretty;
+}
+
+/* Content switcher container */
+:where(.seams-auth-menu-surface) .seams-content-switcher {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* ensure smooth height animations without spillover */
+  transition: height var(--seams-duration-resize, 200ms)
+    var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+:where(.seams-auth-menu-surface) .seams-content-switcher:has(.seams-account-menu.is-open) {
+  overflow: visible;
+}
+
+/* Content area container */
+:where(.seams-auth-menu-surface) .seams-content-area {
+  position: relative;
+  /* do not force-stretch; let content define intrinsic height */
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  transition: height var(--seams-duration-resize, 200ms)
+    var(--seams-ease-settle, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+/* Intrinsic sizer wrapper inside content area used for height measurement */
+:where(.seams-auth-menu-surface) .seams-content-sizer {
+  display: block;
+  width: 100%;
+}
+
+/* Default content */
+:where(.seams-auth-menu-surface) .seams-signin-menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  width: 100%;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-signin-menu {
+  padding-block-start: calc(var(--seams-spacing-md) + 0rem);
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-title,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-subhead {
+  text-align: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-header {
+  justify-content: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-back-button {
+  top: calc(var(--seams-auth-menu-padding-top) + var(--seams-spacing-md));
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-header > div {
+  inline-size: 100%;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-recovery='true'] .seams-subhead {
+  margin-inline: 0;
+}
+
+/* Enter recipe: opacity + blur + a small rise. No scale — scaling a text block
+   re-rasterizes glyphs mid-animation and shimmers. Exits stay instant: an
+   outgoing view doesn't deserve the attention an incoming one gets. */
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-methods {
+  margin-top: 12px;
+}
+
+:where(.seams-auth-menu-surface) .seams-passkey-row + .seams-auth-methods {
+  margin-top: 6px;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-note {
+  margin: 10px 0 0;
+  padding: 0 0.25rem;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-social-stack {
+  margin-top: 0;
+}
+
+:where(.seams-auth-menu-surface) .seams-social-provider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+:where(.seams-auth-menu-surface) .seams-social-helper {
+  margin-top: 0;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: var(--seams-shape-controlHeight, 44px);
+  padding: 0.5rem 1rem;
+  border-radius: var(--seams-shape-control, 10px);
+  border: 1px solid var(--seams-colors-borderPrimary);
+  background: var(--seams-colors-surface);
+  color: var(--seams-colors-textPrimary);
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 120ms ease,
+    box-shadow 160ms ease,
+    border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    min-height 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-badge {
+  --seams-auth-method-badge-background: var(
+    --seams-colors-lastUsedBadgeBackground,
+    var(--seams-colors-success)
+  );
+  --seams-auth-method-badge-text: var(--seams-colors-lastUsedBadgeText, var(--seams-colors-textButton));
+  --seams-auth-method-badge-border: var(
+    --seams-colors-lastUsedBadgeBorder,
+    var(--seams-colors-colorBackground)
+  );
+  position: absolute;
+  inset-block-start: -0.42rem;
+  inset-inline-end: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--seams-auth-method-badge-border);
+  border-radius: 999px;
+  background: var(--seams-auth-method-badge-background);
+  color: var(--seams-auth-method-badge-text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--seams-colors-textPrimary), transparent 72%),
+    0 6px 14px -10px var(--seams-auth-method-badge-background);
+  pointer-events: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:focus-visible {
+  background: var(--seams-colors-surface2);
+  box-shadow: var(--seams-shadows-sm);
+}
+
+/* Press acknowledgement. Lives in the existing transform transition, so a
+   released or moved pointer retargets mid-flight instead of finishing a
+   stale keyframe. */
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn-primary {
+  background: var(--seams-colors-buttonBackground, var(--seams-colors-primary, #3b82f6));
+  border-color: transparent;
+  color: var(--seams-colors-textButton, white);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn-primary:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-auth-method-btn-primary:focus-visible {
+  background: var(--seams-colors-buttonHoverBackground, var(--seams-colors-primaryHover, #2563eb));
+  color: var(--seams-colors-textButton, white);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn .seams-auth-method-arrow > .HoverArrow {
+  position: relative;
+  margin-top: 0.1rem;
+  margin-left: 0;
+  stroke-width: 2;
+  fill: none;
+  stroke: currentColor;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn .seams-auth-method-arrow > .HoverArrow .HoverArrow__linePath {
+  opacity: 0;
+  filter: none;
+  transform: scaleX(1);
+  transform-origin: right center;
+  transition:
+    opacity 120ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    filter 120ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    transform 120ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn .seams-auth-method-arrow > .HoverArrow .HoverArrow__tipPath {
+  transition: transform 120ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:hover:not(:disabled)
+  .seams-auth-method-arrow
+  > .HoverArrow
+  .HoverArrow__linePath,
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:focus-visible .seams-auth-method-arrow > .HoverArrow .HoverArrow__linePath {
+  opacity: 1;
+  filter: none;
+  transform: scaleX(1);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:hover:not(:disabled) .seams-auth-method-arrow > .HoverArrow .HoverArrow__tipPath,
+:where(.seams-auth-menu-surface) .seams-auth-method-btn:focus-visible .seams-auth-method-arrow > .HoverArrow .HoverArrow__tipPath {
+  transform: translateX(3px);
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-prompt {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  /* Floor, not a target: real content still grows the card. Sized so the OTP
+     view (title, delivery line, six slots, helper, resend) sits comfortably
+     without the ~2.5rem of dead air it used to reserve. padding-top stays —
+     it clears the absolute-positioned back button. */
+  min-height: 230px;
+  padding-top: 42px;
+  justify-content: center;
+  animation: content-enter var(--seams-duration-enter, 200ms) var(--seams-ease-out, ease-out);
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-prompt-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+  margin: 0 0 4px;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-title {
+  color: var(--seams-colors-textPrimary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-description,
+:where(.seams-auth-menu-surface) .seams-otp-helper {
+  margin: 0;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 25%);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: pretty;
+  /* A status line, not a hero: fade + focus only, no positional motion. */
+  animation: status-enter 200ms var(--seams-ease-out, ease-out) both;
+}
+
+@keyframes status-enter {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-account {
+  box-sizing: border-box;
+  align-self: center;
+  width: min(100%, 360px);
+  /* rounded shapes inset the label/value further so the corner curve does not
+     crowd them; square keeps the 12px fallback */
+  padding: 8px 12px 8px var(--seams-shape-boxPaddingInlineStart, 12px);
+  border: 1px solid color-mix(in srgb, var(--seams-colors-borderPrimary), transparent 18%);
+  border-radius: var(--seams-shape-box, 10px);
+  background: color-mix(in srgb, var(--seams-colors-surface), transparent 12%);
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-account-label {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 12%);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-account-value {
+  color: var(--seams-colors-textPrimary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-reroll {
+  align-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-reroll:disabled {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), transparent 20%);
+  cursor: not-allowed;
+}
+
+/* Registration (wallet-naming): with the generic header hidden, this block's
+   own title is the sole header. Anchor it to the top, left-align everything to
+   share one edge with the wallet field, and match the title to the auth-card
+   header scale (not larger). */
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-prompt {
+  justify-content: flex-start;
+  min-height: 0;
+}
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-prompt-copy {
+  text-align: left;
+}
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-title {
+  font-size: 21px;
+  font-weight: 600;
+}
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-description,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-helper {
+  text-align: left;
+}
+:where(.seams-auth-menu-surface) .seams-signup-menu-root[data-registration-prompt='true'] .seams-otp-account {
+  align-self: stretch;
+  width: 100%;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-code-field {
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  margin-inline: auto;
+  padding: 3px 4px;
+  cursor: text;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-code-field[data-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0.01;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: 16px;
+  outline: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-slots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 1.5vw, 10px);
+  width: 100%;
+  pointer-events: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-slot {
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--seams-colors-borderPrimary), var(--seams-colors-surface) 68%);
+  color: var(--seams-colors-textPrimary);
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  /* Equal-width digits: a slot's glyph can't nudge its neighbours as the
+     code fills in. */
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-slot.is-filled {
+  background: color-mix(in srgb, var(--seams-colors-surface), var(--seams-colors-textPrimary) 6%);
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-code-field:focus-within .seams-otp-slot {
+  border-color: var(--seams-colors-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seams-colors-primary), transparent 72%);
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-label-row .seams-field-label {
+  margin-bottom: 0;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--seams-colors-surface), transparent 6%);
+  color: var(--seams-colors-textPrimary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  outline: none;
+  text-transform: uppercase;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-input::placeholder {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), transparent 20%);
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-input:focus {
+  border-color: var(--seams-colors-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seams-colors-primary), transparent 72%);
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-scan {
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-key-scan:disabled {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), transparent 20%);
+  cursor: not-allowed;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-resend {
+  align-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+
+:where(.seams-auth-menu-surface) .seams-otp-resend:disabled {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), transparent 20%);
+  cursor: not-allowed;
+}
+
+/* Passkey row */
+:where(.seams-auth-menu-surface) .seams-passkey-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0;
+  z-index: 4;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-pill {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  padding: 0rem 1rem;
+  height: calc(var(--seams-shape-fieldHeight, 44px) + 4px);
+  gap: 8px;
+  /* field treatment comes from the shape preset: square is a bordered
+     surface (border carries the affordance), rounded is a tinted pill */
+  border: 1px solid var(--seams-shape-fieldBorder, var(--seams-colors-borderPrimary));
+  background: var(--seams-shape-fieldBackground, var(--seams-colors-surface));
+  border-radius: var(--seams-shape-field, 10px);
+  box-shadow: none;
+  overflow: visible;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* border-only focus: outward rings clip against the content switcher's
+   overflow:hidden, so the 1px border carries the focus state instead */
+:where(.seams-auth-menu-surface) .seams-input-pill:focus-within {
+  border-color: var(--seams-colors-focus, var(--seams-colors-primary));
+}
+
+:where(.seams-auth-menu-surface) .seams-input-wrap {
+  position: relative;
+  flex: 1;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  /* allow input to shrink inside flex container without clipping */
+}
+
+:where(.seams-auth-menu-surface) .seams-input {
+  width: 100%;
+  height: 32px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--seams-colors-textPrimary);
+  font-size: 16px;
+  padding: 0;
+  min-width: 0;
+  /* prevent overflow clipping in flex layouts */
+}
+
+/* Absolute status message anchored to bottom-right of the input area */
+:where(.seams-auth-menu-surface) .seams-input::placeholder {
+  /* Improve contrast for placeholders on dark */
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 35%);
+  opacity: 0.95;
+}
+
+:where(.seams-auth-menu-surface) .seams-input:read-only {
+  cursor: default;
+}
+
+:where(.seams-auth-menu-surface) .seams-postfix {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  color: var(--seams-colors-textSecondary);
+  font-size: 16px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden;
+  /* React enables once measured */
+  transition: left 32ms var(--seams-ease-out, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+:where(.seams-auth-menu-surface) .seams-postfix.is-existing {
+  color: var(--seams-colors-success);
+}
+
+/* On focus, keep postfix subtle for readability */
+:where(.seams-auth-menu-surface) .seams-input:focus ~ .seams-postfix {
+  color: var(--seams-colors-textMuted);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu {
+  position: static;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-trigger,
+:where(.seams-auth-menu-surface) .seams-account-menu-trigger {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--seams-colors-surface2), transparent 58%);
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), transparent 18%);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  line-height: 0;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 120ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-trigger:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-input-action-trigger:focus-visible,
+:where(.seams-auth-menu-surface) .seams-account-menu-trigger:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-account-menu-trigger:focus-visible,
+:where(.seams-auth-menu-surface) .seams-account-menu.is-open .seams-account-menu-trigger {
+  background: color-mix(in srgb, var(--seams-colors-surface2), transparent 18%);
+  color: color-mix(in srgb, var(--seams-colors-textPrimary), var(--seams-colors-primary) 18%);
+  box-shadow: none;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-trigger:active:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-account-menu-trigger:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-trigger:disabled,
+:where(.seams-auth-menu-surface) .seams-account-menu-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-icon,
+:where(.seams-auth-menu-surface) .seams-account-dropdown-arrow {
+  width: 21px;
+  height: 21px;
+  display: block;
+  pointer-events: none;
+  transition: color 160ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-action-icon {
+  fill: none;
+  stroke: currentColor;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-dropdown-arrow {
+  fill: currentColor;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  /* a hair wider than the input so their edges don't optically collide */
+  left: -1px;
+  width: calc(100% + 2px);
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--seams-colors-borderPrimary), transparent 8%);
+  /* control radius + 2px, capped so the rounded preset stays list-friendly */
+  border-radius: min(calc(var(--seams-shape-control, 10px) + 2px), 20px);
+  background: var(--seams-colors-colorBackground);
+  box-shadow: var(--seams-shadows-lg);
+  z-index: 20;
+  animation: content-enter 180ms var(--seams-ease-out, ease-out);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-group + .seams-account-menu-group {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--seams-colors-borderPrimary), transparent 45%);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-group-label {
+  padding: 2px 10px 6px;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 12%);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-option {
+  width: 100%;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--seams-shape-item, 8px);
+  background: transparent;
+  color: var(--seams-colors-textPrimary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-align: left;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-option:hover {
+  background: var(--seams-colors-surface2);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-option:focus-visible {
+  background: var(--seams-colors-surface2);
+  outline: 2px solid var(--seams-colors-focus, var(--seams-colors-primary));
+  outline-offset: -2px;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-option.is-selected {
+  background: color-mix(in srgb, var(--seams-colors-primary), transparent 84%);
+  color: var(--seams-colors-textPrimary);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-check {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-option.is-selected .seams-account-menu-check::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-account {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-account-primary,
+:where(.seams-auth-menu-surface) .seams-account-menu-account-secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.seams-auth-menu-surface) .seams-account-menu-account-secondary {
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 12%);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+:where(.seams-auth-menu-surface) .seams-selected-account {
+  width: 100%;
+  align-content: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-selected-account .seams-account-menu-account-primary {
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+/* Waiting state */
+:where(.seams-auth-menu-surface) .seams-waiting {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: transparent;
+  text-align: center;
+  /* Fill the card rather than just the message. The root carries a height
+     floor, so a shorter waiting box sat top-anchored inside a taller card:
+     justify-content centred the message in the BOX, and the box's own dead
+     space below it put the message above the card's true centre. While the
+     card animated its height, the message then rode the moving top edge
+     downward instead of holding still. Matching the card's inner height makes
+     the box and the card the same thing, so centring in one centres in both. */
+  min-height: calc(
+    var(--seams-menu-min-block-size, 250px) - var(--seams-auth-menu-padding-top) -
+      var(--seams-spacing-lg)
+  );
+}
+
+/* No enter animation on the waiting view: arriving here is instant, so the
+   spinner is already turning the moment the state flips. The spinner keeps
+   only its rotation (see .seams-spinner) — do not add an `animation:` shorthand
+   on this selector, it would shadow the rotation and freeze it. */
+
+:where(.seams-auth-menu-surface) .seams-waiting-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  /* Deliberately longer than --seams-duration-enter and than the 150ms resize
+     into this view: the box arrives first and the wording settles into it,
+     rather than both landing at once. `both` holds opacity 0 before the first
+     frame so the text cannot flash at full opacity.
+     This lives on the message wrapper, never on .seams-waiting — the spinner is
+     a sibling there, and an `animation` shorthand on the parent would shadow
+     its rotation and freeze it. */
+  animation: fade-in 250ms var(--seams-ease-out, ease-out) both;
+  /* Centring is recomputed by layout on every frame of the resize, so the
+     block's offset lands on fractional pixels and the glyphs re-rasterise at a
+     slightly different rounded position each frame — seen as jitter. Promoting
+     the block to its own layer lets the compositor interpolate that sub-pixel
+     offset instead of re-rendering the text at each rounded step.
+     This is the sanctioned use of will-change: a compositable property, added
+     only after observing the stutter. The layout-property will-change
+     declarations removed elsewhere in this file were neither. */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+:where(.seams-auth-menu-surface) .seams-waiting-text {
+  font-size: 18px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+:where(.seams-auth-menu-surface) .seams-waiting-subtext {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 25%);
+}
+
+:where(.seams-auth-menu-surface) .seams-waiting-sdk-events {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 15%);
+}
+
+:where(.seams-auth-menu-surface) .seams-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 3px solid var(--seams-colors-borderPrimary);
+  border-top-color: var(--seams-colors-primary);
+  animation: seams-spin 0.9s linear infinite;
+}
+
+/* Scan device content wrapper */
+:where(.seams-auth-menu-surface) .qr-code-container {
+  padding-top: 0.25rem;
+}
+
+/* The plate carries 1rem of its own padding around the code, so the title can
+   sit tight against it and still read as separated from the QR modules. */
+:where(.seams-auth-menu-surface) .qr-header {
+  position: relative;
+  display: grid;
+  place-content: center;
+  padding: 0;
+}
+
+/* Sized off the menu's own title (21px) rather than louder than it: this heading
+   sits inside the same card, so a heavier scale reads as a second, competing
+   header. Shared with the link-device confirmation and failure views so every
+   sub-view of this flow speaks at one volume. */
+:where(.seams-auth-menu-surface) .qr-title {
+  margin: 0;
+  padding-top: 0;
+  color: var(--seams-colors-textPrimary, #1e293b);
+  font-size: 1.3125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+:where(.seams-auth-menu-surface) .qr-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+}
+
+/* One tight gap for the whole stack: the three text lines read as a single
+   block, and the title sits close under the code plate. */
+:where(.seams-auth-menu-surface) .qr-code-section {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* The code always sits on an opaque white plate: the QR PNG is black-on-white,
+   so on a dark theme an unbacked image reads as a raw white rectangle. The
+   plate is a fixed square in both states — the placeholder below occupies the
+   same box, so nothing under it moves when the image arrives. */
+:where(.seams-auth-menu-surface) .qr-code-display {
+  display: grid;
+  place-items: center;
+  width: min(100%, 232px);
+  aspect-ratio: 1 / 1;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: #ffffff;
+}
+
+:where(.seams-auth-menu-surface) .qr-code-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.05);
+  animation: qr-placeholder-pulse 1.8s ease-in-out infinite;
+}
+
+/* On the white plate the spinner's default translucent-white track is invisible;
+   restate the track against the plate rather than the card. */
+:where(.seams-auth-menu-surface) .qr-code-placeholder .seams-spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  border-color: rgba(15, 23, 42, 0.12);
+  border-top-color: var(--seams-colors-primary);
+}
+
+@keyframes qr-placeholder-pulse {
+  0%,
+  100% {
+    background-color: rgba(15, 23, 42, 0.05);
+  }
+
+  50% {
+    background-color: rgba(15, 23, 42, 0.09);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-auth-menu-surface) .qr-code-placeholder {
+    animation: none;
+  }
+}
+
+:where(.seams-auth-menu-surface) .qr-instruction,
+:where(.seams-auth-menu-surface) .qr-status {
+  margin: 0;
+  color: var(--seams-colors-textSecondary, #1e293b);
+  font-weight: 500;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+:where(.seams-auth-menu-surface) .qr-instruction {
+  max-width: 34ch;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* The status is a running commentary on the pairing, not a peer of the
+   instruction — one step quieter and smaller so the two lines stack as a
+   hierarchy instead of a paragraph. */
+:where(.seams-auth-menu-surface) .qr-status {
+  margin-bottom: 0.25rem;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary, #64748b), transparent 25%);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+:where(.seams-auth-menu-surface) .animated-ellipsis {
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+}
+
+:where(.seams-auth-menu-surface) .animated-ellipsis::after {
+  content: '...';
+  animation: ellipsis 1.5s infinite;
+}
+
+@keyframes ellipsis {
+  0% {
+    content: '...';
+  }
+  25% {
+    content: '';
+  }
+  50% {
+    content: '.';
+  }
+  75% {
+    content: '..';
+  }
+  100% {
+    content: '...';
+  }
+}
+
+:where(.seams-auth-menu-surface) .qr-code-image {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  border-radius: 0.5rem;
+  animation: content-enter var(--seams-duration-enter, 200ms) var(--seams-ease-out, ease-out);
+  animation-fill-mode: both;
+}
+
+:where(.seams-auth-menu-surface) .seams-scan-device-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: transparent;
+  text-align: center;
+  min-height: 260px;
+  width: 100%;
+  overflow: hidden;
+  animation: content-enter var(--seams-duration-enter, 200ms) var(--seams-ease-out, ease-out);
+  animation-fill-mode: both;
+}
+
+/* Ensure QR code content stays within bounds */
+:where(.seams-auth-menu-surface) .seams-scan-device-content .qr-code-container,
+:where(.seams-auth-menu-surface) .seams-scan-device-content .qr-modal-backdrop,
+:where(.seams-auth-menu-surface) .seams-scan-device-content .qr-modal-content {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation {
+  min-height: 260px;
+  width: min(100%, 360px);
+  margin-inline: auto;
+  padding: 1.5rem 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  text-align: center;
+  animation: content-enter var(--seams-duration-enter, 200ms) var(--seams-ease-out, ease-out);
+  animation-fill-mode: both;
+}
+
+/* These sub-views title with a full instruction sentence, not a short heading,
+   so they speak one size quieter than the QR view's .qr-title. */
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .qr-title {
+  max-width: 26ch;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+}
+
+/* Dot-ring badge for the passkey confirmation. One geometry for both states:
+   while waiting the dots sweep like a clock spinner; once approved they settle
+   into a faint ring and the check strokes itself in. Monochrome on purpose —
+   nothing here should claim success louder than the flow has earned. */
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  color: var(--seams-colors-textSecondary, #64748b);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: rotate(calc(var(--dot-index) * 30deg)) translateY(-18px);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-waiting > span {
+  animation: seams-link-dot-sweep 1s linear infinite;
+  animation-delay: calc((var(--dot-index) - 12) / 12 * 1s);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-idle > span,
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-approved > span {
+  opacity: 0.25;
+}
+
+/* The badge's centre. A view can hand the ring a glyph (the envelope, for the
+   email code) to name what is being waited on; the check replaces it on
+   approval so the two never stack. */
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--seams-colors-textPrimary, #1e293b);
+  transition: opacity 160ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-approved .seams-link-device-dot-ring-glyph {
+  opacity: 0;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring-check {
+  position: absolute;
+  inset: 0;
+  color: var(--seams-colors-textPrimary, #1e293b);
+  opacity: 0;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-approved .seams-link-device-dot-ring-check {
+  opacity: 1;
+  stroke-dasharray: 23;
+  stroke-dashoffset: 0;
+  animation: seams-link-check-draw 450ms var(--seams-ease-out, ease-out) 150ms both;
+}
+
+@keyframes seams-link-dot-sweep {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.12;
+  }
+}
+
+@keyframes seams-link-check-draw {
+  from {
+    stroke-dashoffset: 23;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-waiting > span {
+    animation: none;
+    opacity: 0.45;
+  }
+
+  :where(.seams-auth-menu-surface) .seams-link-device-dot-ring.is-approved .seams-link-device-dot-ring-check {
+    animation: none;
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation-copy {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--seams-colors-textSecondary, #64748b);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .seams-link-device-btn {
+  width: min(100%, 280px);
+  margin-top: 0.25rem;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-factor-options {
+  width: min(100%, 280px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.5rem;
+  text-align: start;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-factor-options label {
+  min-height: 44px;
+  padding: 0.625rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  border: 1px solid var(--seams-colors-borderPrimary, #d7dde5);
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-factor-options label:has(input:checked) {
+  border-color: var(--seams-colors-textPrimary, #1e293b);
+  background: var(--seams-colors-surface2, #f1f5f9);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-choice-label {
+  flex: 1;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-factor-options input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin: 0 0 0 auto;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-factor-options input:focus-visible {
+  outline: 2px solid var(--seams-colors-focusRing, #2563eb);
+  outline-offset: 3px;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-target-email {
+  width: min(100%, 280px);
+  display: grid;
+  gap: 0.375rem;
+  text-align: start;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-target-email .seams-field-label {
+  color: var(--seams-colors-textSecondary, #64748b);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-target-email input {
+  min-height: 44px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  color: var(--seams-colors-textPrimary, #1e293b);
+  background: var(--seams-colors-surface, #ffffff);
+  border: 1px solid var(--seams-colors-borderPrimary, #d7dde5);
+  border-radius: var(--seams-shape-control, 10px);
+  font: inherit;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-target-email input:focus-visible {
+  outline: 2px solid var(--seams-colors-focusRing, #2563eb);
+  outline-offset: 2px;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-inline-error {
+  width: min(100%, 280px);
+  margin: 0;
+  color: var(--seams-colors-error, #ef4444);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: start;
+}
+
+:where(.seams-auth-menu-surface) .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Failure view. Same skeleton as the approved-device confirmation — badge,
+   title, copy, one control — so the flow's two end states are the same shape
+   and only the colour of the badge changes. */
+:where(.seams-auth-menu-surface) .seams-link-device-failure {
+  gap: 0.75rem;
+}
+
+/* A flat disc, sized to the dot-ring badge the other link views use, so the
+   failure frame sits where the confirmation frame sat. No halo or drop shadow:
+   the tint and the glyph carry the tone on their own. */
+:where(.seams-auth-menu-surface) .seams-link-device-failure-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--seams-colors-error, #ef4444);
+  background: color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 90%);
+  border: 1px solid color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 80%);
+}
+
+/* The detail is a raw error string, so it is sized and coloured as evidence
+   rather than as prose: quiet, tight, and allowed to break mid-token so a long
+   technical message wraps instead of forcing the card wider. */
+:where(.seams-auth-menu-surface) .seams-link-device-failure-detail {
+  width: min(100%, 320px);
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 84%);
+  border-radius: calc(var(--seams-shape-card, 16px) - 6px);
+  background: color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 94%);
+  color: color-mix(in srgb, var(--seams-colors-textSecondary, #64748b), transparent 15%);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+/* Email-OTP variant of the link-device confirmation. Same skeleton as the
+   passkey view — badge, title, copy, controls — so the two ways of finishing a
+   link read as one flow and only the badge's centre changes. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp {
+  gap: 0.625rem;
+}
+
+/* The masked address is the one fact the user has to check, so it leaves the
+   sentence and becomes an object: a quiet pill directly under the title. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-chip {
+  box-sizing: border-box;
+  max-width: min(100%, 260px);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--seams-colors-borderPrimary, #d7dde5), transparent 25%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--seams-colors-surface, #f1f5f9), transparent 45%);
+  color: var(--seams-colors-textPrimary, #1e293b);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-status {
+  max-width: 30ch;
+  margin: 0;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary, #64748b), transparent 15%);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-wrap: pretty;
+  animation: status-enter 200ms var(--seams-ease-out, ease-out) both;
+}
+
+/* A rejected or expired code is not a failure of the flow, so the error tone
+   stays inside the type and the slot borders — no red banner, no red badge
+   ring that would outrank the still-usable input below it. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-tone='error'] .seams-link-device-email-status {
+  color: color-mix(in srgb, var(--seams-colors-error, #ef4444), var(--seams-colors-textPrimary) 20%);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-tone='error'] .seams-link-device-dot-ring {
+  color: color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 45%);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-tone='error'] .seams-link-device-dot-ring-glyph {
+  color: var(--seams-colors-error, #ef4444);
+}
+
+/* Six slots at card width read as a keypad; capped so they stay finger-sized
+   rather than stretching to the full 360px card. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp .seams-otp-code-field {
+  width: min(100%, 296px);
+  margin-block: 0.125rem;
+}
+
+/* Tinted against the surface rather than toward transparency: a translucent
+   red washes out to nothing on the dark theme, where the card is already
+   near-black. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-tone='error'] .seams-otp-slot {
+  border-color: color-mix(in srgb, var(--seams-colors-error, #ef4444), transparent 45%);
+  background: color-mix(in srgb, var(--seams-colors-error, #ef4444), var(--seams-colors-surface) 82%);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-otp-phase='incorrect'] .seams-otp-slots {
+  animation: seams-otp-reject 320ms var(--seams-ease-out, ease-out) both;
+}
+
+/* Quiet neutral under an ink button: a brand-blue link below a black primary
+   reads as a second, competing call to action. */
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp .seams-otp-resend {
+  margin-top: -0.125rem;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 30%);
+  font-size: 0.8125rem;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color 160ms ease,
+    text-decoration-color 160ms ease;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp .seams-otp-resend:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-link-device-email-otp .seams-otp-resend:focus-visible {
+  color: var(--seams-colors-textPrimary);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+
+@keyframes seams-otp-reject {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-auth-menu-surface) .seams-link-device-email-otp[data-otp-phase='incorrect'] .seams-otp-slots {
+    animation: none;
+  }
+}
+
+/* Status message row */
+:where(.seams-auth-menu-surface) .seams-status-row {
+  position: absolute;
+  font-size: 0.75rem;
+  bottom: -10px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+:where(.seams-auth-menu-surface) .seams-status-message {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Section divider */
+:where(.seams-auth-menu-surface) .seams-section-divider {
+  display: flex;
+  align-items: center;
+  margin: var(--seams-spacing-md) 0;
+  position: relative;
+}
+
+:where(.seams-auth-menu-surface) .seams-section-divider::before,
+:where(.seams-auth-menu-surface) .seams-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--seams-colors-borderSecondary);
+}
+
+:where(.seams-auth-menu-surface) .seams-section-divider-text {
+  padding: 0 var(--seams-spacing-sm);
+  font-size: 12px;
+  color: var(--seams-colors-textSecondary);
+  font-weight: 500;
+  background: var(--seams-colors-colorBackground);
+}
+
+/* Labels and helper text */
+:where(.seams-auth-menu-surface) .seams-field-label {
+  font-size: 16px;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 35%);
+  /* left margin matches the OTP code field's inner padding so the label's
+     edge lines up with the first code slot */
+  margin: 8px 2px 6px 4px;
+  font-weight: 700;
+}
+
+/* Tooltip for account existence status */
+:where(.seams-auth-menu-surface) .seams-input-wrap .seams-tooltip {
+  position: absolute;
+  right: 0;
+  padding: 4px 8px;
+  border-radius: var(--seams-shape-item, 8px);
+  font-size: 0.7rem;
+  background: var(--seams-colors-surface2);
+  color: var(--seams-colors-textPrimary);
+  opacity: 0;
+  transform: translateX(50px) scale(0.9);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 200ms ease;
+  z-index: 2;
+}
+
+:where(.seams-auth-menu-surface) .seams-input-wrap .seams-tooltip.is-visible {
+  opacity: 0.8;
+  transform: translateX(0px) scale(1);
+}
+
+:where(.seams-auth-menu-surface) .seams-input-wrap .seams-tooltip.is-error {
+  color: var(--seams-colors-error);
+  background: var(--seams-colors-colorBackground);
+  /* background: color-mix(in srgb, var(--seams-colors-error), transparent 90%); */
+}
+
+:where(.seams-auth-menu-surface) .seams-input-wrap .seams-tooltip.is-success {
+  color: var(--seams-colors-blue400);
+  background: var(--seams-colors-colorBackground);
+  /* background: color-mix(in srgb, var(--seams-colors-blue400), transparent 90%); */
+}
+
+@keyframes seams-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes seams-ellipsis-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-ellipsis {
+  display: inline-block;
+}
+
+:where(.seams-auth-menu-surface) .seams-ellipsis-dot {
+  display: inline-block;
+  opacity: 0;
+  animation: seams-ellipsis-dot 1.2s infinite;
+}
+
+:where(.seams-auth-menu-surface) .seams-ellipsis-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+:where(.seams-auth-menu-surface) .seams-ellipsis-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-auth-menu-surface) .seams-ellipsis-dot {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Button System */
+:where(.seams-auth-menu-surface) .seams-scan-device-row {
+  padding-bottom: 1px;
+}
+
+:where(.seams-auth-menu-surface) .seams-secondary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-form,
+:where(.seams-auth-menu-surface) .seams-recovery-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 0.75rem 0.25rem;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-form {
+  gap: 8px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-field {
+  display: flex;
+  flex-direction: column;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-field .seams-field-label {
+  margin: 0 0 6px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: var(--seams-shape-control, 10px);
+  outline: none;
+  background: var(--seams-colors-surface);
+  color: var(--seams-colors-textPrimary);
+  font: inherit;
+  font-size: 16px;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-code-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-input:focus-visible {
+  border-color: var(--seams-colors-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seams-colors-primary), transparent 72%);
+}
+
+@media (forced-colors: active) {
+  :where(.seams-auth-menu-surface) .seams-recovery-input:focus-visible,
+  :where(.seams-auth-menu-surface) .seams-link-device-btn:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-input[aria-invalid='true'] {
+  border-color: var(--seams-colors-error);
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-error,
+:where(.seams-auth-menu-surface) .seams-recovery-status {
+  min-block-size: 1.25em;
+  margin: 5px 0 0;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+:where(.seams-auth-menu-surface) .seams-recovery-error {
+  color: var(--seams-colors-error);
+  text-align: center;
+}
+
+:where(.seams-auth-menu-surface) #seams-recovery-code-feedback {
+  margin: 4px;
+}
+
+@media (max-width: 320px) {
+  :where(.seams-auth-menu-surface) .seams-signup-menu-root {
+    padding-inline: 1rem;
+  }
+
+  :where(.seams-auth-menu-surface) .seams-recovery-form,
+  :where(.seams-auth-menu-surface) .seams-recovery-confirmation {
+    padding-inline: 0;
+  }
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 1rem 0 0;
+  color: color-mix(in srgb, var(--seams-colors-textSecondary), var(--seams-colors-textPrimary) 10%);
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch button,
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch-action {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-primary);
+  font: inherit;
+  font-weight: 700;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch button {
+  cursor: pointer;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch button:hover,
+:where(.seams-auth-menu-surface) .seams-auth-intent-switch button:focus-visible {
+  color: var(--seams-colors-primaryHover);
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  /* match .seams-auth-method-btn's min-height so stacked options align */
+  height: var(--seams-shape-controlHeight, 44px);
+  width: 100%;
+  max-width: 100%;
+  background: var(--seams-colors-surface) !important;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: var(--seams-shape-control, 10px);
+  cursor: pointer;
+  color: var(--seams-colors-textPrimary);
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hover/focus elevated state (theme-reactive via CSS vars) */
+:where(.seams-auth-menu-surface) .seams-link-device-btn:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-link-device-btn:focus-visible {
+  background: var(--seams-colors-surface2) !important;
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seams-colors-primary), transparent 72%);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-btn-primary {
+  background: var(--seams-colors-buttonBackground, var(--seams-colors-primary, #3b82f6)) !important;
+  border-color: transparent;
+  border-radius: var(--seams-shape-control, 10px);
+  color: var(--seams-colors-textButton, white);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-btn-primary:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-link-device-btn-primary:focus-visible {
+  background: var(
+    --seams-colors-buttonHoverBackground,
+    var(--seams-colors-primaryHover, #2563eb)
+  ) !important;
+  color: var(--seams-colors-textButton, white);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-choice-btn {
+  justify-content: flex-start;
+  min-height: 48px;
+  height: auto;
+  padding-inline: 0.875rem;
+  text-align: start;
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-choice-icon {
+  display: grid;
+  flex: 0 0 22px;
+  place-items: center;
+  color: var(--seams-colors-textSecondary, #64748b);
+}
+
+:where(.seams-auth-menu-surface) .seams-auth-method-choice-icon svg {
+  display: block;
+}
+
+/* The link-device confirmations commit in ink, not in brand blue: these views
+   are the end of a flow the user is already inside, so the one control reads
+   as "the next step" rather than as an offer. Derived from the text colour so
+   it inverts with the theme — near-black on light, near-white on dark — which
+   is what "black button" has to mean on a card that is itself near-black. */
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .seams-link-device-btn-primary {
+  background: color-mix(in srgb, var(--seams-colors-textPrimary, #1e293b), #000000 25%) !important;
+  border-color: transparent;
+  color: var(--seams-colors-colorBackground, #ffffff);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .seams-link-device-btn-primary:hover:not(:disabled),
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .seams-link-device-btn-primary:focus-visible {
+  background: color-mix(
+    in srgb,
+    var(--seams-colors-textPrimary, #1e293b),
+    var(--seams-colors-colorBackground, #ffffff) 14%
+  ) !important;
+  color: var(--seams-colors-colorBackground, #ffffff);
+}
+
+:where(.seams-auth-menu-surface) .seams-link-device-confirmation .seams-link-device-btn-primary:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--seams-colors-textPrimary), transparent 78%);
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root {
+  box-sizing: border-box;
+}
+
+:where(.seams-auth-menu-surface) .seams-signup-menu-root *,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root *::before,
+:where(.seams-auth-menu-surface) .seams-signup-menu-root *::after {
+  box-sizing: border-box;
+}
+
+/* No enter animation on the sign-in/sign-up rows. These re-render on every
+   mode toggle, so an opacity 0 -> 1 fade re-fires on content that is largely
+   unchanged and reads as a flash. The host dialog's own 150ms height
+   transition carries the toggle; the rows simply swap. */
+
+:where(.seams-auth-menu-surface) [data-dot-index="0"] { --dot-index: 0; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="1"] { --dot-index: 1; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="2"] { --dot-index: 2; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="3"] { --dot-index: 3; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="4"] { --dot-index: 4; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="5"] { --dot-index: 5; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="6"] { --dot-index: 6; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="7"] { --dot-index: 7; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="8"] { --dot-index: 8; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="9"] { --dot-index: 9; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="10"] { --dot-index: 10; }
+
+:where(.seams-auth-menu-surface) [data-dot-index="11"] { --dot-index: 11; }
+
+/* confirmation-surfaces */
+/* confirmation-primitives.css */
+:where(.seams-wallet-ui) {
+  display: block;
+  box-sizing: border-box;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--seams-colors-textPrimary);
+  background-color: var(--seams-colors-colorBackground);
+  scrollbar-width: thin;
+}
+
+:where(.seams-wallet-ui).seams-confirmation-surface {
+  --seams-modal__passkey-halo-loading-touch-icon__stroke-width: 3.5;
+  background-color: transparent;
+}
+
+:where(.seams-wallet-ui) .seams-halo-border {
+  display: inline-block;
+  background: transparent;
+  border-radius: 2rem;
+  padding: 0;
+  max-width: 860px;
+  box-sizing: border-box;
+  width: fit-content;
+  height: fit-content;
+  box-shadow: var(--halo-box-shadow, none);
+  --ring-gap: 4px;
+  --ring-width: 4px;
+  --ring-border-radius: 2rem;
+  --inner-padding: 2rem;
+  --inner-background: var(--seams-grey650, transparent);
+  --ring-stops:
+    transparent 0%,
+    var(
+        --seams-colors-highlightHalo,
+        var(--seams-colors-highlightPrimary, var(--seams-colors-info, #4daffe))
+      )
+      10%,
+    var(
+        --seams-colors-highlightHalo,
+        var(--seams-colors-highlightPrimary, var(--seams-colors-info, #4daffe))
+      )
+      25%,
+    transparent 35%;
+}
+
+:where(.seams-wallet-ui .seams-halo-border) .halo-root {
+  position: relative;
+}
+
+:where(.seams-wallet-ui .seams-halo-border) .halo-outer {
+  position: relative;
+  border-radius: 2rem;
+  overflow: visible;
+}
+
+:where(.seams-wallet-ui .seams-halo-border) .halo-inner {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2rem;
+  padding: calc(var(--ring-gap) + var(--ring-width));
+  position: relative;
+}
+
+:where(.seams-wallet-ui .seams-halo-border) .halo-ring {
+  position: absolute;
+  inset: calc(-1 * (var(--ring-gap) + var(--ring-width)));
+  border-radius: calc(var(--ring-border-radius) + var(--ring-gap) + var(--ring-width));
+  pointer-events: none;
+  z-index: 3;
+  background: conic-gradient(from var(--halo-angle, 0deg), var(--ring-stops));
+  padding: var(--ring-width);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+:where(.seams-wallet-ui .seams-halo-border) .halo-content {
+  background: var(--inner-background);
+  border-radius: var(--ring-border-radius);
+  padding: var(--inner-padding);
+  position: relative;
+  z-index: 2;
+}
+
+:where(.seams-wallet-ui) .seams-passkey-halo-loading {
+  display: inline-block;
+}
+
+:where(.seams-wallet-ui) .seams-padlock-icon {
+  display: block;
+}
+
+:where(.seams-wallet-ui .seams-passkey-halo-loading) .seams-halo-border {
+  --ring-border-radius: 1.125rem;
+  --inner-padding: 0px;
+  --inner-background: var(--seams-modal__passkey-halo-loading__inner-background, transparent);
+  --ring-stops: var(
+    --seams-modal__passkey-halo-loading__ring-background,
+    transparent 0%,
+    var(--seams-colors-highlightHalo, var(--seams-colors-info, #4daffe)) 10%,
+    var(--seams-colors-highlightHalo, var(--seams-colors-info, #4daffe)) 25%,
+    transparent 35%
+  );
+}
+
+:where(.seams-wallet-ui .seams-passkey-halo-loading) .seams-passkey-loading-root {
+  display: inline-grid;
+}
+
+:where(.seams-wallet-ui .seams-passkey-halo-loading) .seams-passkey-loading-touch-icon-container {
+  display: grid;
+  place-items: center;
+  background-color: var(
+    --seams-modal__passkey-halo-loading-icon-container__background-color,
+    var(--seams-colors-passkeyHaloBackground, var(--seams-colors-surface, oklch(0.3 0.02 240)))
+  );
+  border-radius: var(--seams-modal__passkey-halo-loading-icon-container__border-radius, 1.125rem);
+  width: fit-content;
+  height: fit-content;
+}
+
+:where(.seams-wallet-ui .seams-passkey-halo-loading) .seams-passkey-loading-touch-icon {
+  color: var(
+    --seams-modal__passkey-halo-loading-touch-icon__color,
+    var(--seams-colors-textMuted, oklch(0.35 0.018 240))
+  );
+  margin: var(--seams-modal__passkey-halo-loading-touch-icon__margin, 0.75rem);
+}
+
+:where(.seams-wallet-ui[data-theme='dark'] .seams-passkey-halo-loading) .seams-passkey-loading-touch-icon[data-icon='fingerprint'] {
+  color: var(
+    --seams-modal__passkey-halo-loading-touch-icon__color,
+    color-mix(in oklab, var(--seams-colors-textMuted, oklch(0.35 0.018 240)) 88%, white)
+  );
+}
+
+/* confirm-header.css */
+:where(.seams-wallet-ui) .seams-confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .hero-container {
+  min-height: 48px;
+  display: grid;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .hero-heading {
+  margin: 0;
+  font-size: var(--seams-font-size-lg, 1.125rem);
+  font-weight: 500;
+  color: var(--seams-colors-textPrimary);
+  text-align: start;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .rpid {
+  display: flex;
+  flex-direction: var(--seams-modal__rpid__flex-direction, column);
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: var(--seams-colors-textSecondary);
+  font-weight: 400;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .rpid-wrapper {
+  margin-bottom: 1rem;
+  padding-left: 0;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .secure-indicator,
+:where(.seams-wallet-ui) .seams-confirm-header .security-details {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .padlock-icon,
+:where(.seams-wallet-ui) .seams-confirm-header .block-height-icon {
+  width: 1em;
+  height: 1em;
+  margin-inline-end: 0.5em;
+  flex: none;
+  color: var(--seams-colors-info, var(--seams-blue600));
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .domain-text {
+  color: var(--seams-colors-textSecondary);
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .error-banner {
+  color: var(--seams-colors-error, var(--seams-red400));
+  font-size: 0.9rem;
+  text-align: var(--seams-modal__error-banner__text-align, start);
+  font-weight: 500;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .loading-ellipsis {
+  display: inline-flex;
+  min-inline-size: 1.25rem;
+  justify-content: center;
+  color: var(--seams-colors-textSecondary);
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .loading-ellipsis__dot {
+  opacity: 0.35;
+}
+
+:where(.seams-wallet-ui) .seams-confirm-header .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(.seams-wallet-ui) .seams-confirm-header .loading-ellipsis__dot {
+    animation: seams-confirm-header-pulse 1.2s ease-in-out infinite;
+  }
+  :where(.seams-wallet-ui) .seams-confirm-header .loading-ellipsis__dot:nth-child(2) {
+    animation-delay: 150ms;
+  }
+  :where(.seams-wallet-ui) .seams-confirm-header .loading-ellipsis__dot:nth-child(3) {
+    animation-delay: 300ms;
+  }
+}
+
+@keyframes seams-confirm-header-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* confirmation-body.css */
+:where(.seams-wallet-ui) .confirmation-body {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--seams-colors-textSecondary);
+  max-width: 340px;
+  margin: 0.5rem;
+  white-space: pre-line;
+}
+:where(.seams-wallet-ui) .confirmation-body--funding {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  color: var(--seams-colors-textPrimary);
+  font-weight: 500;
+  min-block-size: 1.55rem;
+  max-width: none;
+  margin: 0.5rem auto;
+  text-align: center;
+  white-space: nowrap;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .confirmation-body--funding {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.35rem clamp(0.75rem, 4vw, 1.25rem);
+  flex-wrap: wrap;
+  white-space: normal;
+}
+:where(.seams-wallet-ui) .confirmation-body--status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 1.55rem;
+  max-width: none;
+  margin: 0.5rem auto;
+  color: var(--seams-colors-textPrimary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: normal;
+}
+:where(.seams-wallet-ui) .confirmation-body__copy-target {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--seams-modal__funding-copy__background, rgba(151, 124, 184, 0.16));
+  color: var(
+    --seams-modal__funding-copy__color,
+    var(--seams-colors-accent, var(--seams-colors-primary, var(--seams-colors-textPrimary)))
+  );
+  cursor: copy;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0.1rem;
+  padding: 0.1rem 0.35rem;
+  vertical-align: baseline;
+}
+:where(.seams-wallet-ui) .confirmation-body__copy-target:hover {
+  background: var(--seams-modal__funding-copy__background-hover, rgba(151, 124, 184, 0.24));
+}
+:where(.seams-wallet-ui) .confirmation-body__copy-target:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* passkey-registration.css */
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn {
+  background-color: var(--seams-colors-surface);
+  box-shadow: var(--seams-modal__btn__box-shadow, none);
+  color: var(--seams-colors-textPrimary);
+  text-align: center;
+  border-radius: var(--seams-shape-control, 10px);
+  margin-right: 1px;
+  justify-content: center;
+  align-items: center;
+  /* Scalable tap target: ~44px at 16px root */
+  min-height: 2.75em;
+  width: 100%;
+  padding: var(--seams-modal__btn__padding, 0.7em 1em);
+  font-size: var(--seams-font-size-base);
+  display: inline-flex;
+  gap: 0.5em;
+  cursor: pointer;
+  border: none;
+  font-family: var(--seams-font-family);
+  font-weight: var(--seams-modal__btn__font-weight, 500);
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  /* Smooth press-down and release animation */
+  transition:
+    transform var(--seams-modal__btn__transition-transform, 120ms cubic-bezier(0.2, 0.6, 0.2, 1)),
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+  transform-origin: center;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn:hover {
+  background-color: var(--seams-colors-hover);
+  box-shadow: var(--seams-modal__btn-hover__box-shadow, none);
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn:active {
+  background-color: var(--seams-colors-active);
+  /* Default to a subtle scale-down on press; overridable via CSS var */
+  transform: var(--seams-modal__btn__active-transform, scale(0.98));
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-cancel {
+  box-shadow: none;
+  color: var(--seams-colors-textPrimary);
+  background-color: var(--seams-colors-surface);
+  border: 1px solid var(--seams-colors-borderPrimary);
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-cancel:hover {
+  color: var(--seams-colors-textPrimary);
+  background-color: var(--seams-colors-hover);
+  border: 1px solid var(--seams-colors-borderHover);
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-confirm {
+  background-color: var(--seams-colors-buttonBackground);
+  color: var(--seams-colors-textButton, #fff);
+  border: 1px solid transparent;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-confirm:hover {
+  background-color: var(--seams-colors-buttonHoverBackground);
+  border: 1px solid transparent;
+}
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn:focus-visible {
+  outline: 2px solid var(--seams-colors-focus, var(--seams-blue400));
+  outline-offset: 3px;
+  box-shadow: var(--seams-modal__btn__focus-box-shadow, 0 0 0 3px oklch(0.55 0.18 240 / 0.12));
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-confirm:disabled {
+  cursor: progress;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm {
+  gap: 0.75rem;
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: var(--seams-font-size-base, 1rem);
+  line-height: 1.5;
+  color: var(--seams-colors-textPrimary);
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm *,
+:where(.seams-wallet-ui) .passkey-registration-confirm *::before,
+:where(.seams-wallet-ui) .passkey-registration-confirm *::after {
+  box-sizing: border-box;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .hero-heading {
+  margin: 0;
+  font-size: var(--seams-font-size-lg, 1.125rem);
+  font-weight: 500;
+  color: var(--seams-colors-textPrimary);
+  text-align: start;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .error-banner {
+  color: var(--seams-colors-error, var(--seams-red400));
+  font-size: 0.9rem;
+  text-align: var(--seams-modal__error-banner__text-align, start);
+  font-weight: 500;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__hero {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__hero-copy {
+  display: grid;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+  min-height: 0;
+  gap: 0.25rem;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__body {
+  margin: 0;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.86rem;
+  line-height: 1.42;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__identity {
+  display: grid;
+  gap: 0.5rem;
+  /* one 0.75rem beat between hero, identity card, and actions */
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--seams-shape-box, 10px);
+  background: var(
+    --seams-colors-txDetailsBackground,
+    color-mix(in srgb, var(--seams-colors-surface), var(--seams-colors-colorBackground) 44%)
+  );
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, max-content) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+/* quiet labels, machine identifiers in mono: the values read as data, not as
+   the loudest text in the dialog */
+:where(.seams-wallet-ui) .passkey-registration-confirm__label {
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__value {
+  color: var(--seams-colors-textPrimary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.5;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Cancel needs a visible resting fill on the white card; scoped here so the
+   transaction confirmers keep their bordered cancel */
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-cancel {
+  background-color: var(--seams-colors-hover);
+  border-color: transparent;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm .btn-cancel:hover {
+  background-color: var(--seams-colors-active);
+  border-color: transparent;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__spinner {
+  display: inline-block;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: rgba(255, 255, 255, 0.95);
+  width: 20px;
+  height: 20px;
+  margin-right: 0;
+  border-width: 2px;
+}
+
+:where(.seams-wallet-ui) .passkey-registration-confirm__busy-label {
+  font-size: 0.875em;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(.seams-wallet-ui) .passkey-registration-confirm__spinner {
+    animation: seams-registration-spin 1s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .passkey-registration-confirm .btn {
+    transition: none;
+    transform: none;
+  }
+}
+
+@keyframes seams-registration-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  :where(.seams-wallet-ui) .passkey-registration-confirm__actions {
+    grid-template-columns: 1fr;
+  }
+
+  :where(.seams-wallet-ui) .passkey-registration-confirm__row {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  :where(.seams-wallet-ui) .passkey-registration-confirm .btn {
+    padding: var(--seams-spacing-md) calc(var(--seams-spacing-md) + var(--seams-spacing-xs));
+  }
+}
+
+/* email-otp.css */
+:where(.seams-wallet-ui) .email-otp-confirm {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.8rem auto 0.25rem;
+  max-width: 340px;
+  width: 100%;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__label {
+  color: var(--seams-colors-textPrimary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__code-field {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: text;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__code-field[data-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0.01;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-family: var(--seams-font-family);
+  font-size: 16px;
+  outline: none;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__slots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(0.4rem, 2vw, 0.65rem);
+  width: 100%;
+  pointer-events: none;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__slots.is-submitting {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__slot {
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 2.55rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: color-mix(
+    in srgb,
+    var(--seams-colors-borderPrimary),
+    var(--seams-colors-colorBackground) 68%
+  );
+  color: var(--seams-colors-textPrimary);
+  font-family: var(--seams-font-family);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__slot.is-filled {
+  background: color-mix(
+    in srgb,
+    var(--seams-colors-colorBackground),
+    var(--seams-colors-textPrimary) 7%
+  );
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__code-field:focus-within .email-otp-confirm__slot {
+  border-color: var(--seams-colors-primary, var(--seams-colors-textPrimary));
+  box-shadow: 0 0 0 3px rgba(142, 122, 180, 0.18);
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__helper {
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__error {
+  color: var(--seams-colors-error, var(--seams-red400));
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__resend {
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-primary, var(--seams-colors-textPrimary));
+  cursor: pointer;
+  font-family: var(--seams-font-family);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+}
+
+:where(.seams-wallet-ui) .email-otp-confirm__resend:disabled {
+  color: var(--seams-colors-textSecondary);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .email-otp-confirm__slots,
+  :where(.seams-wallet-ui) .email-otp-confirm__slot {
+    transition: none;
+  }
+  :where(.seams-wallet-ui) .email-otp-confirm__slots.is-submitting {
+    transform: none;
+  }
+}
+
+/* confirm-content.css */
+:where(.seams-wallet-ui) .seams-tx-confirm-content {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-family: var(
+    --seams-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: var(--seams-font-size-base, 1rem);
+  line-height: 1.5;
+  color: var(--seams-colors-textPrimary);
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .txc-root {
+  display: block;
+  width: 100%;
+  touch-action: auto;
+  --tooltip-width: 100%;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .txc-root.seams-surface-height-driven {
+  overflow: hidden;
+  height: var(--seams-surface-height-driven-target, auto);
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .tooltip-width {
+  width: min(100%, var(--tooltip-width, 100%));
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--seams-shape-box, 10px);
+  transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--seams-colors-txDetailsBackground, var(--seams-colors-surface2));
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .tooltip-width > .seams-tx-tree {
+  width: 100%;
+  max-width: 100%;
+  --seams-tree__tooltip-border-outer__background: var(
+    --seams-colors-txDetailsBackground,
+    var(--seams-colors-surface2)
+  );
+  --seams-tree__tooltip-tree-root__background: var(
+    --seams-colors-txDetailsBackground,
+    var(--seams-colors-surface2)
+  );
+  --seams-tree__file-content__background: var(
+    --seams-colors-txDetailsBackground,
+    var(--seams-colors-surface2)
+  );
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .actions > button {
+  box-sizing: border-box;
+  min-width: 0;
+  border-radius: var(--seams-shape-control, 10px);
+  transition: border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  font: inherit;
+  padding: 0.7em 1em;
+  min-height: 2.75em;
+  cursor: pointer;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .cancel {
+  background: none;
+  color: var(--seams-colors-textPrimary);
+  border: 1px solid var(--seams-colors-borderPrimary);
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  background: var(--seams-colors-buttonBackground);
+  color: var(--seams-colors-textButton, #fff);
+  border: 1px solid transparent;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .confirm.loading {
+  cursor: progress;
+  opacity: 0.9;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .cancel:hover {
+  background: var(--seams-colors-hover);
+  border-color: var(--seams-colors-borderHover);
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .confirm:hover {
+  background: var(--seams-colors-buttonHoverBackground);
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .actions > button:focus-visible {
+  outline: 2px solid var(--seams-colors-focus, var(--seams-blue400));
+  outline-offset: 3px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-confirm-content .loading-indicator {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: seams-confirm-content-spin 1s ease-in-out infinite;
+}
+
+@keyframes seams-confirm-content-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .seams-tx-confirm-content .loading-indicator {
+    animation: none;
+  }
+
+  :where(.seams-wallet-ui) .seams-tx-confirm-content .tooltip-width,
+  :where(.seams-wallet-ui) .seams-tx-confirm-content .actions > button {
+    transition: none;
+  }
+}
+
+/* transaction-tree.css */
+/* Document-owned transaction-tree styles; palette values come from wallet-ui.css. */
+
+:where(.seams-wallet-ui) .seams-tx-tree {
+  display: block;
+  box-sizing: border-box;
+  font-family: var(
+    --seams-tree__host__font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
+  font-size: var(--seams-tree__host__font-size, 1rem);
+  color: var(--seams-tree__host__color, #1e293b);
+  background: transparent;
+  -webkit-text-size-adjust: 100%;
+  padding-top: var(--seams-tree__host__padding-top, 0px);
+  padding-bottom: var(--seams-tree__host__padding-bottom, 0px);
+  padding-left: var(--seams-tree__host__padding-left, 0px);
+  padding-right: var(--seams-tree__host__padding-right, 0px);
+  --indent-step: var(--seams-tree__indent-step, 1rem);
+  --seams-tree__connector__color: var(--seams-colors-borderPrimary, var(--seams-grey650));
+  --seams-tree__connector__thickness: 1px;
+  --seams-tree__connector__elbow-length: 10px;
+  /* Optional per-surface tweak to adjust elbow length without overriding calc */
+  --seams-tree__connector__elbow-delta: 0rem;
+  --seams-tree__label-hover__resolved-background: var(
+    --seams-tree__label-hover__background,
+    rgba(255, 255, 255, 0.04)
+  );
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree[data-theme='dark'] {
+  --seams-tree__host__font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --seams-tree__host__font-size: 1rem;
+  --seams-tree__host__color: var(--seams-grey75);
+  --seams-tree__host__background-color: var(--seams-grey800);
+  --seams-tree__tooltip-border-outer__border-radius: var(--seams-shape-box, 10px);
+  --seams-tree__tooltip-border-outer__border: 1px solid transparent;
+  --seams-tree__tooltip-border-outer__box-shadow: 0 1px 3px 0px rgba(5, 5, 5, 0.4);
+  --seams-tree__tooltip-tree-root__background: var(--seams-colors-surface2);
+  --seams-tree__tooltip-tree-root__padding: 0rem;
+  --seams-tree__tooltip-tree-root__color: var(--seams-grey75);
+  --seams-tree__tooltip-tree-children__padding: 0.5rem 0rem;
+  --seams-tree__tooltip-border-outer__background: var(--seams-slate700);
+  --seams-tree__tooltip-tree-root__border: none;
+  --seams-tree__row__background: transparent;
+  --seams-tree__row__color: var(--seams-grey75);
+  --seams-tree__row__border-radius: 0.5rem;
+  --seams-tree__row__transition: all 160ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  --seams-tree__summary-row__background: transparent;
+  --seams-tree__summary-row-hover__border-color: var(--seams-colors-borderHover);
+  --seams-tree__summary-row__padding: 0rem 0.5rem;
+  --seams-tree__label__color: var(--seams-colors-textPrimary);
+  --seams-tree__label__font-size: 0.875rem;
+  --seams-tree__label__gap: 4px;
+  --seams-tree__label__line-height: 1.5;
+  --seams-tree__label__border: 1px solid transparent;
+  --seams-tree__label__padding: 0.25rem 0.75rem;
+  --seams-tree__label__border-radius: var(--seams-shape-item, 8px);
+  --seams-tree__label-hover__background: var(
+    --seams-colors-highlightRow,
+    var(--seams-colors-active, var(--seams-colors-hover))
+  );
+  --seams-tree__label-hover__border-color: var(--seams-colors-borderHover);
+  --seams-tree__chevron__color: var(--seams-grey500);
+  --seams-tree__chevron__width: 14px;
+  --seams-tree__chevron__height: 14px;
+  --seams-tree__file-row__font-size: 0.875rem;
+  --seams-tree__file-row__padding: 0.5rem 0.75rem;
+  --seams-tree__file-content__background: var(--seams-colors-surface2);
+  --seams-tree__file-content__color: var(--seams-grey500);
+  --seams-tree__file-content__border: 1px solid none;
+  --seams-tree__file-content__font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  --seams-tree__file-content__border-radius: 0.5rem;
+  --seams-tree__file-content__padding: 0rem;
+  --seams-tree__file-content__scrollbar-track__background: var(--seams-slate700);
+  --seams-tree__file-content__scrollbar-thumb__background: var(--seams-grey500);
+  --seams-tree__folder-children__padding: 0.5rem 0;
+  --seams-tree__folder-children__margin-left: 1rem;
+  --seams-tree__folder-children-mobile__margin-left: 0.75rem;
+  --seams-tree__tree-children-mobile__padding: 0.75rem;
+  --seams-tree__root-mobile__border-radius: 0.5rem;
+  --seams-tree__root-mobile__margin: 0;
+  --seams-tree__row-mobile__padding: 0.5rem;
+  --seams-tree__file-content-mobile__font-size: 0.7rem;
+  --seams-tree__file-content-mobile__max-height: 150px;
+  --seams-tree__highlight-receiver-id__color: var(
+    --seams-colors-highlightReceiver,
+    var(--seams-colors-highlightPrimary, var(--seams-colors-info, var(--seams-blue400)))
+  );
+  --seams-tree__highlight-receiver-id__font-weight: 600;
+  --seams-tree__highlight-method-name__color: var(--seams-colors-highlightMethodName);
+  --seams-tree__highlight-method-name__font-weight: 600;
+  --seams-tree__highlight-amount__color: var(--seams-colors-highlightAmount);
+  --seams-tree__highlight-amount__font-weight: 600;
+  --seams-tree__connector__color: var(--seams-colors-borderPrimary, oklch(0.8 0.02 240));
+  --seams-tree__connector__thickness: 2px;
+  --seams-tree__connector__elbow-length: 10px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree[data-theme='light'] {
+  --seams-tree__host__font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --seams-tree__host__font-size: 1rem;
+  --seams-tree__host__color: var(--seams-grey975);
+  --seams-tree__host__background-color: var(--seams-grey50);
+  --seams-tree__tooltip-border-outer__border-radius: var(--seams-shape-box, 10px);
+  --seams-tree__tooltip-border-outer__border: 1px solid var(--seams-slate300);
+  --seams-tree__tooltip-border-outer__box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --seams-tree__tooltip-tree-root__background: var(--seams-colors-surface);
+  --seams-tree__tooltip-tree-root__padding: 0rem;
+  --seams-tree__tooltip-tree-root__color: var(--seams-grey975);
+  --seams-tree__tooltip-tree-children__padding: 0.5rem 0rem;
+  --seams-tree__tooltip-border-outer__background: var(--seams-grey50);
+  --seams-tree__tooltip-tree-root__border: none;
+  --seams-tree__row__background: transparent;
+  --seams-tree__row__color: var(--seams-grey975);
+  --seams-tree__row__border-radius: 0.5rem;
+  --seams-tree__row__transition: all 160ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  --seams-tree__summary-row__background: transparent;
+  --seams-tree__summary-row-hover__border-color: var(--seams-colors-borderHover);
+  --seams-tree__summary-row__padding: 0rem 0.5rem;
+  --seams-tree__label__color: var(--seams-colors-textPrimary);
+  --seams-tree__label__font-size: 0.875rem;
+  --seams-tree__label__gap: 4px;
+  --seams-tree__label__line-height: 1.5;
+  --seams-tree__label__border: 1px solid transparent;
+  --seams-tree__label__padding: 0.25rem 0.75rem;
+  --seams-tree__label__border-radius: var(--seams-shape-item, 8px);
+  --seams-tree__label-hover__background: var(
+    --seams-colors-highlightRow,
+    var(--seams-colors-hover, var(--seams-colors-active))
+  );
+  --seams-tree__label-hover__border-color: var(--seams-colors-borderHover);
+  --seams-tree__label-hover__mix-color: var(--seams-colors-surface, #fff);
+  --seams-tree__chevron__color: var(--seams-grey500);
+  --seams-tree__chevron__width: 14px;
+  --seams-tree__chevron__height: 14px;
+  --seams-tree__file-row__font-size: 0.875rem;
+  --seams-tree__file-row__padding: 0.5rem 0.75rem;
+  --seams-tree__file-content__background: var(--seams-colors-surface);
+  --seams-tree__file-content__color: var(--seams-grey500);
+  --seams-tree__file-content__border: 1px solid var(--seams-slate300);
+  --seams-tree__file-content__font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  --seams-tree__file-content__border-radius: 0.5rem;
+  --seams-tree__file-content__padding: 0rem;
+  --seams-tree__file-content__scrollbar-track__background: var(--seams-slate100);
+  --seams-tree__file-content__scrollbar-thumb__background: var(--seams-slate300);
+  --seams-tree__folder-children__padding: 0.5rem 0;
+  --seams-tree__folder-children__margin-left: 1rem;
+  --seams-tree__folder-children-mobile__margin-left: 0.75rem;
+  --seams-tree__tree-children-mobile__padding: 0.75rem;
+  --seams-tree__root-mobile__border-radius: 0.5rem;
+  --seams-tree__root-mobile__margin: 0;
+  --seams-tree__row-mobile__padding: 0.5rem;
+  --seams-tree__file-content-mobile__font-size: 0.7rem;
+  --seams-tree__file-content-mobile__max-height: 150px;
+  --seams-tree__highlight-receiver-id__color: var(
+    --seams-colors-highlightReceiver,
+    var(--seams-colors-highlightPrimary, var(--seams-colors-info, var(--seams-blue500)))
+  );
+  --seams-tree__highlight-receiver-id__font-weight: 600;
+  --seams-tree__highlight-method-name__color: var(--seams-colors-highlightMethodName);
+  --seams-tree__highlight-method-name__font-weight: 600;
+  --seams-tree__highlight-amount__color: var(--seams-colors-highlightAmount);
+  --seams-tree__highlight-amount__font-weight: 600;
+  --seams-tree__connector__color: var(--seams-colors-borderPrimary, oklch(0.8 0.02 240));
+  --seams-tree__connector__thickness: 2px;
+  --seams-tree__connector__elbow-length: 10px;
+}
+
+/* Contextual custom properties (indent/connectors) moved near top for clarity */
+:where(.seams-wallet-ui) .seams-tx-tree .depth-0 {
+  --indent: 0;
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-1 {
+  --indent: calc(var(--indent-step) * 1);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-2 {
+  --indent: calc(var(--indent-step) * 2);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-3 {
+  --indent: calc(var(--indent-step) * 3);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-4 {
+  --indent: calc(var(--indent-step) * 4);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-5 {
+  --indent: calc(var(--indent-step) * 5);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-6 {
+  --indent: calc(var(--indent-step) * 6);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-7 {
+  --indent: calc(var(--indent-step) * 7);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-8 {
+  --indent: calc(var(--indent-step) * 8);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-9 {
+  --indent: calc(var(--indent-step) * 9);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-10 {
+  --indent: calc(var(--indent-step) * 10);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-11 {
+  --indent: calc(var(--indent-step) * 11);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .depth-12 {
+  --indent: calc(var(--indent-step) * 12);
+}
+
+/* Default elbow start for connector lines inside folder children */
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row {
+  --connector-indent: calc(var(--indent, 0));
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree [hidden] {
+  display: none !important;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .tooltip-border-outer {
+  width: 100%;
+  max-width: min(600px, 100%);
+  position: relative;
+  border: var(--seams-tree__tooltip-border-outer__border, 1px solid transparent);
+  border-radius: var(--seams-tree__tooltip-border-outer__border-radius, 10px);
+  margin: 0px;
+  padding: 0px;
+  height: auto;
+  overflow: hidden;
+  box-shadow: var(--seams-tree__tooltip-border-outer__box-shadow, 0 2px 4px rgba(0, 0, 0, 0.05));
+  background: var(--seams-tree__tooltip-border-outer__background, var(--seams-colors-surface));
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .tooltip-tree-root {
+  background: var(--seams-tree__tooltip-tree-root__background, #f1f1f1);
+  width: 100%;
+  max-width: min(600px, 100%);
+  margin: 0 auto;
+  border-radius: var(--seams-shape-box, 10px);
+  border: var(--seams-tree__tooltip-tree-root__border, none);
+  overflow: hidden;
+  height: auto;
+  padding: var(--seams-tree__tooltip-tree-root__padding, 0);
+  -webkit-text-size-adjust: 100%;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .tooltip-tree-root.scrollable-root {
+  overflow: auto;
+  max-height: 40vh;
+  max-height: 40dvh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .seams-tx-tree .tooltip-tree-root {
+    transition: none;
+  }
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .tooltip-tree-children {
+  display: block;
+  padding: var(--seams-tree__tooltip-tree-children__padding, 0px);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree details {
+  margin: 0;
+  padding: 0;
+  border-radius: var(--seams-shape-item, 8px);
+  overflow: hidden;
+  background: transparent;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree summary::-webkit-details-marker {
+  display: none;
+}
+:where(.seams-wallet-ui) .seams-tx-tree summary {
+  list-style: none;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .row {
+  display: grid;
+  grid-template-columns: var(--indent, 0) minmax(0, 1fr) 0px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  color: var(--seams-tree__row__color, #e6e9f5);
+  background: var(--seams-tree__row__background, transparent);
+  margin-bottom: 0px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .summary-row {
+  cursor: pointer;
+  padding: var(--seams-tree__summary-row__padding, 0px 0px);
+  margin-bottom: 0px;
+  border-radius: 0px;
+  transition: background 0.15s ease;
+  background: var(--seams-tree__summary-row__background, transparent);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .indent {
+  width: var(--indent, 0);
+  height: 100%;
+  position: relative;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label {
+  position: relative;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--seams-tree__label__gap, 0px);
+  padding: var(--seams-tree__label__padding, 0px);
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--seams-tree__label__font-size, 9px);
+  color: var(--seams-tree__label__color, inherit);
+  font-weight: inherit;
+  line-height: var(--seams-tree__label__line-height, 1.2);
+  border: var(--seams-tree__label__border, none);
+  border-radius: var(--seams-tree__label__border-radius, 0);
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .summary-row > .label {
+  display: flex;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label-text {
+  display: inline-flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label.label-action-node {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0rem 0rem 0rem 0.25rem;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label.gradient-text {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@supports (background: color-mix(in oklch, black 50%, white 50%)) {
+  :where(.seams-wallet-ui) .seams-tx-tree {
+    --seams-tree__label-hover__resolved-background: color-mix(
+      in oklch,
+      var(--seams-tree__label-hover__background, rgba(255, 255, 255, 0.04)) 88%,
+      var(--seams-tree__label-hover__mix-color, var(--seams-colors-textPrimary, #fff)) 12%
+    );
+  }
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label:hover {
+  background: var(--seams-tree__label-hover__resolved-background);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .label-text > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .copy-badge {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font-size: 0.7em;
+  color: var(--seams-color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 6px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color 100ms ease,
+    background 100ms ease;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .copy-badge:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--seams-color-primary);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .copy-badge[data-copied='true'] {
+  color: var(--seams-color-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .chevron {
+  display: inline-block;
+  width: var(--seams-tree__chevron__width, 8px);
+  height: var(--seams-tree__chevron__height, 8px);
+  transform: rotate(0deg);
+  transition: transform 0.12s ease;
+  opacity: 0.85;
+  color: var(--seams-tree__chevron__color, currentColor);
+  overflow: visible;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-row {
+  font-size: var(--seams-tree__file-row__font-size, 9px);
+  background: var(--seams-tree__file-row__background, transparent);
+  padding: var(--seams-tree__summary-row__padding, 0px 0.5rem);
+}
+
+/* Height animation helpers (used by TxTree animateOpen/animateClose) */
+:where(.seams-wallet-ui) .seams-tx-tree .anim-h {
+  overflow: hidden;
+  transition: height 100ms cubic-bezier(0.2, 0.6, 0.2, 1);
+  height: 0px;
+}
+:where(.seams-wallet-ui) .seams-tx-tree .anim-h-active {
+  height: var(--seams-tree__anim-target, auto);
+}
+/* A host that sizes the tree's box from outside (the wallet-iframe confirmer,
+   see confirm-surface-resize.ts) writes the height in frame by frame; a
+   transition here would only trail those writes. */
+:where(.seams-wallet-ui) .seams-tx-tree .anim-h.anim-h-driven,
+/* The start of a toggle is set without motion (see TxTree.animateOpen):
+   closed <details> content keeps a resolved height, and the transition
+   above would otherwise run from it. */
+:where(.seams-wallet-ui) .seams-tx-tree .anim-h.anim-h-hold {
+  transition: none;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row .indent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--connector-indent, var(--indent, 0));
+  right: auto;
+  width: var(--seams-tree__connector__thickness);
+  height: calc(100% + 0px);
+  background: var(--seams-tree__connector__color);
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row .indent::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  height: var(--seams-tree__connector__thickness);
+  width: calc(
+    (var(--indent, 0) - var(--connector-indent, var(--indent, 0))) +
+      var(--seams-tree__connector__elbow-length) + var(--seams-tree__connector__elbow-delta)
+  );
+  left: var(--connector-indent, var(--indent, 0));
+  background: var(--seams-tree__connector__color);
+  transition: opacity 0ms ease;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row.file-row .indent::after {
+  content: none;
+}
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row[data-no-elbow='true'] .indent::after {
+  content: none;
+}
+/* Content-only rows (no label/elbow) should continue from the parent connector column. */
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  .row[data-no-elbow='true']
+  .indent::before {
+  left: max(calc(var(--indent, 0) - var(--indent-step)), 0px);
+}
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children .row:has(> .label:hover) .indent::after,
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  .row:has(> .label:focus-visible)
+  .indent::after {
+  opacity: 0;
+}
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  > details:last-child
+  > summary
+  .indent::before {
+  height: calc(50% + 0px);
+}
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  > details.file:last-child
+  > summary
+  .indent::before {
+  height: calc(100% + 0px);
+}
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  > .row.file-row:last-child
+  .indent::before {
+  height: calc(50% + 0px);
+}
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .folder-children
+  > .row.file-row:last-child:not([data-no-elbow='true'])
+  .indent::after {
+  content: '';
+}
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .tooltip-tree-children
+  > details
+  > .folder-children
+  > details:last-child
+  .folder-children
+  .row
+  .indent::before,
+:where(.seams-wallet-ui)
+  .seams-tx-tree
+  .tooltip-tree-children
+  > details
+  > .folder-children
+  > details:last-child
+  .folder-children
+  .row
+  .indent::after {
+  content: none;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content {
+  box-sizing: border-box;
+  margin: 0rem;
+  padding: var(--seams-tree__file-content__padding, 0rem);
+  padding-left: var(--seams-tree__file-content__padding-left, 0rem);
+  border-radius: var(--seams-tree__file-content__border-radius, 0.5rem);
+  background: var(--seams-tree__file-content__background, rgba(255, 255, 255, 0.06));
+  max-height: 40vh;
+  resize: vertical;
+  min-height: 60px;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: var(--seams-tree__file-content__color, #e2e8f0);
+  font-family: var(
+    --seams-tree__file-content__font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    'Courier New',
+    monospace
+  );
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.3;
+  font-size: 0.7rem;
+  box-shadow: none;
+  overflow-wrap: anywhere;
+}
+
+/* A hosted confirmation is measured by the parent iframe. Viewport-relative
+   caps would make the content height follow the parent's easing box and post
+   a new measurement on every frame. */
+:where(.seams-wallet-ui[data-seams-confirm-surface='wallet-iframe'])
+  .seams-tx-tree
+  .file-content {
+  max-height: 12rem;
+  resize: none;
+}
+
+:where(.seams-wallet-ui[data-seams-confirm-surface='wallet-iframe'])
+  .seams-tx-tree
+  .tooltip-tree-root.scrollable-root {
+  max-height: 20rem;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content-shell {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .summary-row > .file-content-shell {
+  /* Render expanded payload on its own row and use the full content column. */
+  grid-column: 2 / -1;
+  grid-row: 2;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content-shell.has-mode-toggle .file-content {
+  padding-top: 0rem;
+  padding-right: 0rem;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content-mode-toggle {
+  position: absolute;
+  /* sit just inside the block on the sparse opening-brace line: clear of the
+     arg text below, and no longer clipped by the block's top edge */
+  top: var(--seams-tree__file-content-mode-toggle__top, 0.1rem);
+  right: var(--seams-tree__file-content-mode-toggle__right, 0.25rem);
+  z-index: 2;
+  white-space: nowrap;
+  /* borderless: the chip pokes above the args block, so a pill outline gets
+     clipped at the block edge */
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--seams-tree__file-content__color, #e2e8f0);
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 0.12rem 0.4rem;
+  cursor: pointer;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content-mode-toggle:hover {
+  opacity: 0.7;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content::-webkit-scrollbar-track {
+  background: var(
+    --seams-tree__file-content__scrollbar-track__background,
+    var(--seams-colors-surface, #f8fafc)
+  );
+  border-radius: 2px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .file-content::-webkit-scrollbar-thumb {
+  background: var(
+    --seams-tree__file-content__scrollbar-thumb__background,
+    var(--seams-color-border, #e2e8f0)
+  );
+  border-radius: 2px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .folder-children {
+  display: block;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .highlight-receiver-id {
+  color: var(
+    --seams-tree__highlight-receiver-id__color,
+    var(
+      --seams-colors-highlightReceiver,
+      var(--seams-colors-highlightPrimary, var(--seams-colors-info, #ff6b6b))
+    )
+  );
+  background: transparent;
+  -webkit-background-clip: none;
+  -webkit-text-fill-color: none;
+  margin: 0px 4px;
+  font-weight: var(--seams-tree__highlight-receiver-id__font-weight, 600);
+  text-decoration: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Underline on hover/focus to indicate link affordance */
+:where(.seams-wallet-ui) .seams-tx-tree .highlight-receiver-id:hover,
+:where(.seams-wallet-ui) .seams-tx-tree .highlight-receiver-id:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.08em;
+  text-decoration-thickness: 2px;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .highlight-method-name {
+  color: var(
+    --seams-tree__highlight-method-name__color,
+    var(--seams-colors-highlightMethodName, #4ecdc4)
+  );
+  background: transparent;
+  -webkit-background-clip: none;
+  -webkit-text-fill-color: none;
+  margin: 0px 4px;
+  font-weight: var(--seams-tree__highlight-method-name__font-weight, 600);
+  text-decoration: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:where(.seams-wallet-ui) .seams-tx-tree .highlight-amount {
+  color: var(--seams-tree__highlight-amount__color, var(--seams-colors-highlightAmount, #4ecdc4));
+  background: transparent;
+  -webkit-background-clip: none;
+  -webkit-text-fill-color: none;
+  margin: 0px 4px;
+  font-weight: var(--seams-tree__highlight-amount__font-weight, 600);
+  text-decoration: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:where(.seams-wallet-ui .seams-tx-tree) button.copy-badge {
+  font-family: inherit;
+  line-height: inherit;
+  color: var(--seams-color-text-secondary, inherit);
+}
+
+:where(.seams-wallet-ui .seams-tx-tree) button:focus-visible {
+  outline-offset: 2px;
+}
+
+:where(.seams-wallet-ui) .seams-offscreen {
+  position: fixed;
+  inset-inline-start: -10000px;
+}
+
+/* confirmation-modal.css */
+:where(.seams-wallet-ui) .seams-confirmation-modal {
+  box-sizing: border-box;
+  inline-size: min(var(--seams-modal__container-max-width, 26rem), calc(100vw - 2rem));
+  max-inline-size: calc(100vw - 2rem);
+  max-block-size: calc(100dvh - 2rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal::backdrop {
+  background: oklch(0.2 0.01 240 / 0.4);
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal--hosted {
+  inline-size: var(--seams-modal__container-max-width, 26rem);
+  max-inline-size: 100%;
+  max-block-size: none;
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal .modal-container-root {
+  box-sizing: border-box;
+  display: grid;
+  gap: 0.5rem;
+  inline-size: 100%;
+  position: relative;
+  border: 1px solid var(--seams-colors-borderPrimary);
+  border-radius: min(var(--seams-shape-card, 16px), 2rem);
+  margin: 0;
+  padding: 0.75rem;
+  padding-top: max(0.75rem, calc(var(--seams-shape-card, 16px) * 0.5));
+  overflow: hidden;
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+  background: var(--seams-colors-colorBackground);
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal .modal-container-root.seams-surface-height-driven {
+  block-size: var(--seams-surface-height-driven-target, auto);
+  overflow: hidden;
+}
+
+:where(.seams-wallet-ui[data-theme='light']) .seams-confirmation-modal .modal-container-root {
+  border-color: var(--seams-colors-surface);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal--hosted .modal-container-root {
+  box-shadow: none;
+}
+
+/* The parent overlay paints the persistent shell for an R140 review handoff. */
+.seams-wallet-ui[data-seams-review-frame] .seams-confirmation-modal--hosted .modal-container-root {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal .seams-confirmation-content {
+  display: grid;
+  gap: 0.5rem;
+  min-inline-size: 0;
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-modal .responsive-card {
+  position: relative;
+  inline-size: 100%;
+  min-inline-size: 0;
+  border-radius: 1rem;
+  padding: 0;
+  margin: 0;
+}
+
+/* confirmation-drawer.css */
+:where(.seams-wallet-ui) .seams-drawer-dialog {
+  position: fixed;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100dvh;
+  max-inline-size: none;
+  max-block-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  /* Focus must not scroll the outer dialog while the sheet enters from below. */
+  overflow: clip;
+}
+:where(.seams-wallet-ui) .seams-drawer-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.1);
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer {
+  box-sizing: border-box;
+  position: relative;
+  inline-size: 100%;
+  outline: none;
+  max-inline-size: min(100%, var(--seams-drawer__max-width, 384px));
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--seams-colors-colorBackground, #111);
+  color: var(--seams-colors-textPrimary, #f6f7f8);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    sans-serif;
+  font-size: 1rem;
+  border-radius: min(calc(var(--seams-shape-card, 16px) + 2px), 2.125rem)
+    min(calc(var(--seams-shape-card, 16px) + 2px), 2.125rem) 0 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(100%);
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-drawer[data-context='wallet-iframe'] {
+  inline-size: fit-content;
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer.seams-surface-height-driven {
+  block-size: var(--seams-surface-height-driven-target, auto);
+  overflow: hidden;
+}
+:where(.seams-wallet-ui[data-theme='light']) .seams-confirmation-drawer {
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.12);
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer[data-context='standalone'] {
+  position: absolute;
+  inset: auto 0 0;
+  max-inline-size: var(--seams-drawer__max-width, 384px);
+  margin-inline: auto;
+  block-size: 100dvh;
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer.is-open {
+  transform: translateY(var(--seams-drawer-rest, 0px));
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer.is-dragging {
+  transform: translateY(var(--seams-drawer-drag, var(--seams-drawer-rest, 0px)));
+  transition: none;
+}
+:where(.seams-wallet-ui) .seams-drawer-controls {
+  position: relative;
+}
+:where(.seams-wallet-ui) .seams-drawer-handle {
+  display: block;
+  inline-size: calc(100% - 96px);
+  block-size: 36px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+:where(.seams-wallet-ui) .seams-drawer-handle span {
+  display: block;
+  inline-size: 36px;
+  block-size: 4px;
+  margin: auto;
+  border-radius: 2px;
+  background: var(--seams-colors-borderPrimary);
+}
+:where(.seams-wallet-ui) .seams-drawer-close {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  inline-size: 40px;
+  block-size: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 2rem;
+  background: transparent;
+  color: var(--seams-colors-textMuted);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+:where(.seams-wallet-ui) .seams-drawer-close:hover {
+  color: var(--seams-colors-textPrimary);
+  background: var(--seams-colors-surface);
+}
+:where(.seams-wallet-ui) .seams-drawer-body {
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+:where(.seams-wallet-ui) .seams-drawer-content {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer .error {
+  color: var(--seams-colors-error, var(--seams-red400, #ff7a7a));
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+:where(.seams-wallet-ui) .seams-confirmation-drawer .seams-confirmation-content--drawer {
+  box-sizing: border-box;
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .responsive-card {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  margin: 4px 0;
+  padding: 0;
+  border-radius: 1rem;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .responsive-card-center {
+  display: block;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 0.5em;
+  margin: 0.25rem 0;
+  padding-left: 0.5rem;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .drawer-title {
+  margin: 0;
+  font-size: var(--seams-font-size-lg, 1.125rem);
+  line-height: 1.3;
+  font-weight: 600;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .rpid-wrapper {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .rpid {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-size: 0.7rem;
+  color: var(--seams-colors-textSecondary);
+  font-weight: 400;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .secure-indicator,
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .security-details {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .padlock-icon,
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .block-height-icon {
+  inline-size: 1em;
+  block-size: 1em;
+  margin-inline-end: 0.5em;
+  flex: none;
+  color: var(--seams-colors-info, var(--seams-blue600));
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .domain-text {
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .loading-ellipsis {
+  display: inline-flex;
+  min-inline-size: 1.25rem;
+  justify-content: center;
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .loading-ellipsis__dot {
+  opacity: 0.35;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+:where(.seams-wallet-ui)
+  .seams-confirmation-drawer
+  .seams-confirmation-content--drawer
+  .confirmation-body {
+  margin: 0 0.5rem 0.875rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(.seams-wallet-ui) .seams-confirmation-drawer {
+    transition:
+      transform 100ms cubic-bezier(0.2, 0.6, 0.2, 1),
+      border-radius 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  :where(.seams-wallet-ui) .seams-confirmation-drawer.is-dragging {
+    transition: none;
+  }
+  :where(.seams-wallet-ui) .seams-confirmation-drawer:has(.seams-review-technical[data-resizing]) {
+    transition: none;
+  }
+}
+
+/* export-private-key.css */
+:where(.seams-wallet-ui).seams-export-surface {
+  line-height: normal;
+  background: transparent;
+}
+
+:where(.seams-wallet-ui).seams-export-surface .seams-confirmation-drawer {
+  box-sizing: content-box;
+}
+
+:where(.seams-wallet-ui).seams-export-surface
+  .seams-confirmation-drawer[data-context='standalone'] {
+  inline-size: auto;
+  block-size: calc(100dvh - 1rem);
+}
+
+:where(.seams-wallet-ui).seams-export-surface[data-seams-export-surface='wallet-iframe'] {
+  position: relative;
+  inline-size: 24rem;
+  max-inline-size: 100%;
+  block-size: 36rem;
+  overflow: hidden;
+}
+
+:where(.seams-wallet-ui).seams-export-surface
+  .seams-confirmation-drawer[data-context='wallet-iframe'] {
+  inline-size: 100%;
+  max-block-size: calc(36rem - 1rem);
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer {
+  display: block;
+  position: relative;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+@media (min-width: 769px) {
+  :where(.seams-wallet-ui) .seams-export-key-viewer .content {
+    padding: 1rem;
+  }
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .title {
+  margin: 0rem;
+  padding-left: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .warning {
+  color: var(--seams-colors-textSecondary, rgba(255, 255, 255, 0.7));
+  padding: 12px;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .error-banner {
+  color: var(--seams-colors-error, #f87171);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-export-key-viewer .key-card {
+  border-radius: 1rem;
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-export-key-viewer .key-title {
+  color: var(--seams-colors-textPrimary, #f6f7f8);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding-left: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-export-key-viewer .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--seams-colors-surface2);
+  padding: 0.75rem;
+  border-radius: 1rem;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .copy-field {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .copy-field:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--seams-colors-surface2) 92%, currentColor 8%);
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .copy-field:focus-visible {
+  outline: 2px solid var(--seams-colors-primary, #4daffe);
+  outline-offset: 2px;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .copy-field:disabled {
+  cursor: default;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .field-label {
+  color: var(--seams-colors-textPrimary, #f6f7f8);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+/* small enough that a 42-char 0x address fits on one line in the drawer */
+:where(.seams-wallet-ui) .seams-export-key-viewer .field-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .value {
+  color: var(--seams-colors-textSecondary, rgba(255, 255, 255, 0.7));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all; /* allow breaks within long keys */
+  /* Clamp to 2 lines with ellipsis for overflow */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Crossfade mechanics live in the consolidated wallet-ui.css (which includes
+   this sheet); only the export-specific placement and resting color live
+   here. */
+:where(.seams-wallet-ui) .seams-export-key-viewer .copy-icon {
+  margin: 0 4px 0 auto;
+  color: var(--seams-colors-textSecondary, rgba(255, 255, 255, 0.7));
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .private-key-reel {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .reel-prefix,
+:where(.seams-wallet-ui) .seams-export-key-viewer .reel-slot {
+  display: inline-block;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .reel-slot {
+  width: 1ch;
+  text-align: center;
+  opacity: 0.62;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .reel-slot.settled {
+  opacity: 1;
+  animation: seams-export-reel-slot-settle 96ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes seams-export-reel-slot-settle {
+  from {
+    opacity: 0.24;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .seams-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:where(.seams-wallet-ui) .seams-export-key-viewer .muted {
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .seams-export-key-viewer .reel-slot {
+    opacity: 0.72;
+    animation: none;
+  }
+
+  /* copy-icon transitions are stilled by the consolidated wallet-ui.css */
+  :where(.seams-wallet-ui) .seams-export-key-viewer .copy-field {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* transaction-review.css */
+:where(.seams-wallet-ui) .seams-review-content,
+:where(.seams-wallet-ui) .seams-transaction-receipt {
+  --seams-review-inset: 1.5rem;
+  padding: 1.375rem 1.5rem 0;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  color: var(--seams-colors-textPrimary);
+}
+:where(.seams-wallet-ui) .seams-review-origin,
+:where(.seams-wallet-ui) .seams-review-toolbar,
+:where(.seams-wallet-ui) .seams-review-toolbar > div,
+:where(.seams-wallet-ui) .seams-receipt-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-review-toolbar {
+  justify-content: space-between;
+}
+:where(.seams-wallet-ui) .seams-review-title {
+  margin: 0;
+  font-size: 1.625rem;
+  font-weight: 550;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+:where(.seams-wallet-ui) .seams-review-origin svg,
+:where(.seams-wallet-ui) .seams-receipt-footer svg,
+:where(.seams-wallet-ui) .seams-review-copy svg,
+:where(.seams-wallet-ui) .seams-review-toolbar svg,
+:where(.seams-wallet-ui) .seams-receipt-open svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+:where(.seams-wallet-ui) .seams-review-amount {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 0 0.875rem;
+  font-size: 2.125rem;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+:where(.seams-wallet-ui) .seams-review-amount small {
+  color: var(--seams-colors-textSecondary);
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+:where(.seams-wallet-ui) .seams-review-fields {
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+:where(.seams-wallet-ui) .seams-review-fields > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 2px;
+}
+:where(.seams-wallet-ui) .seams-review-fields dt {
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui) .seams-transaction-review > .seams-review-fields > div {
+  box-sizing: border-box;
+  min-height: 1.875rem;
+}
+:where(.seams-wallet-ui) .seams-review-fields dd {
+  margin: 0;
+  min-width: 0;
+  max-width: 65%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+:where(.seams-wallet-ui) .seams-review-fields dt {
+  flex-shrink: 0;
+}
+:where(.seams-wallet-ui) .seams-review-fields .seams-review-recipient {
+  flex: 1;
+  max-width: none;
+}
+:where(.seams-wallet-ui) .seams-review-address {
+  display: block;
+  font:
+    0.75rem/1.5 ui-monospace,
+    SFMono-Regular,
+    monospace;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: start;
+}
+:where(.seams-wallet-ui) .seams-review-address[data-overflowing='true'] {
+  mask-image: linear-gradient(to right, black calc(100% - 6px), transparent);
+}
+:where(.seams-wallet-ui) .seams-review-address > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:where(.seams-wallet-ui) .seams-review-address[data-revealing] > span {
+  width: max-content;
+  overflow: visible;
+  text-overflow: clip;
+}
+:where(.seams-wallet-ui) .seams-review-address[data-revealing] {
+  text-overflow: clip;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8px,
+    black calc(100% - 8px),
+    transparent
+  );
+}
+:where(.seams-wallet-ui) .seams-review-address[data-reveal-end] {
+  mask-image: linear-gradient(to right, transparent, black 8px);
+}
+:where(.seams-wallet-ui) .seams-review-address:focus-visible {
+  outline: 2px solid var(--seams-colors-focus);
+  outline-offset: 2px;
+  mask-image: none;
+}
+:where(.seams-wallet-ui) .seams-review-copy,
+:where(.seams-wallet-ui) .seams-review-toolbar button {
+  border: 0;
+  background: transparent;
+  color: var(--seams-colors-textSecondary);
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.25rem;
+  cursor: pointer;
+  flex: none;
+}
+:where(.seams-wallet-ui) .seams-review-toolbar button {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+:where(.seams-wallet-ui) .seams-review-technical {
+  border-top: 1px solid var(--seams-colors-borderPrimary);
+  margin-block: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-review-disclosure-driven {
+  height: var(--seams-review-disclosure-height);
+  overflow: hidden;
+}
+:where(.seams-wallet-ui) .seams-transaction-review > .seams-review-technical > div {
+  margin-inline: calc(-1 * var(--seams-review-inset));
+  background: var(--seams-colors-surface2);
+  box-shadow: inset 0 1px 0 var(--seams-colors-borderPrimary),
+    inset 0 -1px 0 var(--seams-colors-borderPrimary),
+    inset 0 5px 8px -7px rgb(0 0 0 / 0.16);
+}
+:where(.seams-wallet-ui) .seams-transaction-review > .seams-review-technical > div > .seams-review-detail {
+  margin: 0;
+  padding: 0.75rem var(--seams-review-inset);
+}
+:where(.seams-wallet-ui) .seams-transaction-review .seams-review-detail-row--block > pre,
+:where(.seams-wallet-ui) .seams-transaction-review .seams-review-raw > pre {
+  background: var(--seams-colors-colorBackground);
+}
+:where(.seams-wallet-ui) .seams-review-technical summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 8px;
+  min-height: 2rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  list-style: none;
+}
+:where(.seams-wallet-ui) .seams-review-technical summary::-webkit-details-marker {
+  display: none;
+}
+:where(.seams-wallet-ui) .seams-review-caret {
+  flex: 0 0 auto;
+  transform-origin: center;
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+:where(.seams-wallet-ui) .seams-review-technical[open]:not([data-closing]) > summary > .seams-review-caret {
+  transform: rotate(180deg);
+}
+:where(.seams-wallet-ui) .seams-review-detail {
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+  margin-block: 0.25rem;
+}
+:where(.seams-wallet-ui) .seams-review-detail-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-review-detail-children {
+  --seams-review-tree-line: color-mix(in srgb, var(--seams-colors-borderPrimary), var(--seams-colors-textSecondary) 25%);
+  margin-inline-start: 0.25rem;
+  padding-inline-start: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-review-detail-children > .seams-review-detail {
+  position: relative;
+}
+:where(.seams-wallet-ui) .seams-review-detail-children > .seams-review-detail::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -0.75rem;
+  inset-block-start: 0.7em;
+  inline-size: 0.5rem;
+  border-block-start: 1px solid var(--seams-review-tree-line);
+  pointer-events: none;
+}
+:where(.seams-wallet-ui) .seams-review-detail-children > .seams-review-detail::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -0.75rem;
+  inset-block-start: -0.25rem;
+  inset-block-end: -0.25rem;
+  border-inline-start: 1px solid var(--seams-review-tree-line);
+  pointer-events: none;
+}
+:where(.seams-wallet-ui) .seams-review-detail-children > .seams-review-detail:last-child::after {
+  inset-block-end: auto;
+  block-size: calc(0.7em + 0.25rem);
+}
+:where(.seams-wallet-ui) .seams-review-detail pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-block: 0.25rem;
+}
+:where(.seams-wallet-ui) .seams-review-function {
+  color: var(--seams-colors-buttonBackground);
+}
+:where(.seams-wallet-ui) .seams-review-detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 0.5rem;
+  padding-block: 2px;
+}
+:where(.seams-wallet-ui) .seams-review-detail-row > pre {
+  margin: 0;
+  text-align: end;
+  font-size: inherit;
+}
+:where(.seams-wallet-ui) .seams-review-detail-row--block > pre {
+  grid-column: 1 / -1;
+  text-align: start;
+}
+:where(.seams-wallet-ui) .seams-review-detail-row--block > pre,
+:where(.seams-wallet-ui) .seams-review-raw > pre {
+  padding: 0.625rem;
+  border-radius: var(--seams-shape-box, 12px);
+  background: var(--seams-colors-surface2);
+}
+:where(.seams-wallet-ui) .seams-review-account {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: var(--seams-shape-box, 12px);
+  padding: 0.5rem 0.75rem;
+  margin-block: 0.125rem 1rem;
+  background: var(--seams-colors-surface2);
+  font-size: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-review-account > div {
+  flex: 1;
+  min-width: 0;
+}
+:where(.seams-wallet-ui) .seams-review-account small {
+  display: block;
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui) .seams-review-context:empty {
+  display: none;
+}
+:where(.seams-wallet-ui) .seams-review-warning {
+  margin-block: 0.5rem;
+  padding: 0.5rem;
+  background: var(--seams-colors-surface2);
+  border-radius: var(--seams-shape-box, 12px);
+  font-size: 0.8125rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-footer {
+  justify-content: center;
+  margin: 1rem -1.5rem 0;
+  padding: 0.9375rem;
+  border-top: 1px solid var(--seams-colors-borderPrimary);
+  font-size: 0.6875rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-footer > svg:first-child {
+  margin-inline-end: -2px;
+}
+:where(.seams-wallet-ui) .seams-receipt-footer .seams-receipt-wordmark {
+  width: 4.25rem;
+  height: auto;
+  flex: none;
+  color: var(--seams-colors-textPrimary);
+}
+:where(.seams-wallet-ui) .seams-receipt-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-heading h2 {
+  margin: 0;
+  font-size: 1.4375rem;
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+:where(.seams-wallet-ui) .seams-receipt-heading p {
+  margin: 0.375rem 0;
+  font-size: 0.8125rem;
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui) .seams-receipt-symbol {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--seams-shape-control, 10px);
+  background: var(--seams-colors-surface2);
+  color: var(--seams-colors-buttonBackground);
+}
+:where(.seams-wallet-ui) .seams-receipt-symbol svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-primary {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  min-height: 3rem;
+  background: var(--seams-colors-buttonBackground);
+  color: var(--seams-colors-textButton);
+  border: 0;
+  border-radius: var(--seams-shape-control, 12px);
+  font: inherit;
+  cursor: pointer;
+}
+:where(.seams-wallet-ui) .seams-receipt-explorer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: fit-content;
+  margin: -0.25rem auto 0.75rem;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+:where(.seams-wallet-ui) .seams-receipt-explorer:is(:hover, :focus-visible) {
+  color: var(--seams-colors-buttonBackground);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+:where(.seams-wallet-ui) .seams-receipt-explorer svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-steps {
+  display: flex;
+  gap: 0.5rem;
+  margin-block: 1.0625rem 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-step {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.6875rem;
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui) .seams-receipt-track {
+  display: block;
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 3px;
+  margin-bottom: 7px;
+  background: var(--seams-colors-borderPrimary);
+}
+:where(.seams-wallet-ui) .seams-receipt-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--seams-colors-buttonBackground);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms ease-out;
+}
+:where(.seams-wallet-ui) .seams-receipt-step[data-state='complete'] .seams-receipt-track::after {
+  transform: scaleX(1);
+}
+:where(.seams-wallet-ui) .seams-receipt-step[data-state='active'] .seams-receipt-track::after {
+  transform: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--seams-colors-buttonBackground),
+    transparent
+  );
+}
+:where(.seams-wallet-ui) .seams-transaction-toast {
+  position: relative;
+  background: var(--seams-colors-colorBackground);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.0625rem 1.125rem;
+}
+:where(.seams-wallet-ui) .seams-toast-progress {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--seams-colors-colorBackground);
+  overflow: hidden;
+}
+:where(.seams-wallet-ui) .seams-toast-progress > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--seams-colors-buttonBackground);
+  transition: width 300ms ease-out;
+}
+:where(.seams-wallet-ui) [data-completed-stages='1'] .seams-toast-progress > span {
+  width: calc(100% / 3);
+}
+:where(.seams-wallet-ui) [data-completed-stages='2'] .seams-toast-progress > span {
+  width: calc(200% / 3);
+}
+:where(.seams-wallet-ui) [data-completed-stages='3'] .seams-toast-progress > span {
+  width: 100%;
+}
+:where(.seams-wallet-ui) .seams-transaction-toast-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+:where(.seams-wallet-ui) .seams-transaction-toast-text > span {
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.6875rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-open {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  min-height: 2rem;
+  background: var(--seams-colors-surface2);
+  color: var(--seams-colors-textPrimary);
+  border: 0;
+  border-radius: var(--seams-shape-control, 8px);
+  cursor: pointer;
+}
+:where(.seams-wallet-ui[data-receipt-view='toast']) .seams-confirmation-modal--hosted {
+  inline-size: 22.5rem;
+}
+:where(.seams-wallet-ui[data-confirmation-kind='transaction'])
+  .seams-confirmation-modal
+  .modal-container-root {
+  padding: 0;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  border: 0;
+  border-radius: min(calc(var(--seams-shape-card, 16px) * 1.625), 26px);
+}
+:where(.seams-wallet-ui[data-confirmation-kind='transaction']) .seams-confirmation-modal {
+  inline-size: min(100%, 26.25rem);
+}
+:where(.seams-wallet-ui[data-receipt-view='toast'])
+  .seams-confirmation-modal
+  .modal-container-root {
+  border-radius: min(var(--seams-shape-card, 16px), 16px);
+}
+:where(.seams-wallet-ui) .seams-review-eyebrow {
+  margin: 1rem 0 0.375rem;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.015em;
+}
+:where(.seams-wallet-ui) .seams-review-token {
+  width: 2.625rem;
+  height: 2.625rem;
+  flex: none;
+  border-radius: 50%;
+}
+:where(.seams-wallet-ui) .seams-review-token-fallback {
+  display: grid;
+  place-items: center;
+  background: var(--seams-colors-surface2);
+  color: var(--seams-colors-textPrimary);
+  font-size: 1.25rem;
+}
+:where(.seams-wallet-ui) .seams-review-network-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--seams-colors-buttonBackground);
+  flex: none;
+}
+:where(.seams-wallet-ui) .seams-review-avatar {
+  display: grid;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  flex: none;
+  border-radius: 9px;
+  background: var(--seams-colors-surface3, var(--seams-colors-borderPrimary));
+  color: var(--seams-colors-buttonBackground);
+}
+:where(.seams-wallet-ui) .seams-review-content .seams-tx-confirm-content .actions {
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+}
+:where(.seams-wallet-ui) .seams-review-content .seams-tx-confirm-content .confirm {
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+:where(.seams-wallet-ui) .seams-review-content .confirm svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+:where(.seams-wallet-ui) .seams-review-toolbar button {
+  border-radius: 50%;
+}
+:where(.seams-wallet-ui) .seams-review-toolbar button:hover {
+  background: var(--seams-colors-surface2);
+}
+:where(.seams-wallet-ui) .seams-review-amount--compact {
+  padding: 1.125rem 0 0.1875rem;
+  font-size: 1.625rem;
+}
+:where(.seams-wallet-ui) .seams-review-amount--compact small {
+  font-size: 0.9375rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-destination {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--seams-colors-textSecondary);
+  font-size: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-review-copy.seams-review-copy-address {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+  padding-inline: 0;
+  justify-content: flex-end;
+  text-align: end;
+}
+:where(.seams-wallet-ui) .seams-review-full-address {
+  font: 0.75rem/1.5 ui-monospace, SFMono-Regular, monospace;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+:where(.seams-wallet-ui) .seams-review-copy.seams-review-copy-address > .copy-icon {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  margin-block-start: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--seams-colors-colorBackground);
+  box-shadow: 0 0 6px 3px var(--seams-colors-colorBackground);
+  opacity: 0;
+  pointer-events: none;
+}
+:where(.seams-wallet-ui) .seams-review-copy-address:is(:hover, :focus-visible, .copied) > .copy-icon {
+  opacity: 1;
+}
+:where(.seams-wallet-ui) .seams-review-account .seams-review-copy-address {
+  width: 100%;
+  padding-block: 0.125rem;
+  justify-content: flex-start;
+  text-align: start;
+}
+:where(.seams-wallet-ui) .seams-review-account .seams-review-copy-address > .copy-icon {
+  background: var(--seams-colors-surface2);
+  box-shadow: 0 0 6px 3px var(--seams-colors-surface2);
+}
+:where(.seams-wallet-ui) .seams-receipt-box {
+  background: var(--seams-colors-surface2);
+  padding: 0.25rem 0.875rem;
+  border-radius: var(--seams-shape-box, 12px);
+  margin-block: 0.75rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-morph-shell {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+  box-sizing: border-box;
+  background: var(--seams-colors-colorBackground);
+  border: 1px solid var(--seams-colors-borderPrimary);
+  box-shadow: 0 16px 32px -16px rgb(0 0 0 / 0.22);
+}
+:where(.seams-wallet-ui[data-confirmation-kind='transaction']) .seams-confirmation-drawer {
+  --seams-drawer__max-width: 390px;
+}
+:where(.seams-wallet-ui[data-confirmation-kind='transaction']) .seams-drawer-content {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer .seams-review-content {
+  --seams-review-inset: 0.75rem;
+  padding-inline: var(--seams-review-inset);
+}
+:where(.seams-wallet-ui) .seams-confirmation-drawer .seams-review-account {
+  padding: 0.375rem 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-drawer-origin {
+  position: absolute;
+  inset-inline-start: 1.25rem;
+  top: 0.5rem;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--seams-colors-textSecondary);
+}
+:where(.seams-wallet-ui) .seams-drawer-origin .padlock-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--seams-colors-buttonBackground);
+}
+:where(.seams-wallet-ui) .seams-drawer-controls:has(.seams-drawer-origin) .seams-drawer-handle {
+  inline-size: 48px;
+  block-size: 40px;
+}
+:where(.seams-wallet-ui) .seams-drawer-controls:has(.seams-drawer-origin) {
+  padding-top: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-drawer-controls:has(.seams-drawer-origin) .seams-drawer-close {
+  top: 0.5rem;
+}
+:where(.seams-wallet-ui) .seams-receipt-box .seams-review-technical {
+  border-top: 0;
+  margin: 0;
+}
+:where(.seams-wallet-ui) .seams-receipt-box .seams-review-fields {
+  margin-bottom: 6px;
+}
+:where(.seams-wallet-ui) .seams-receipt-box .seams-review-fields dd .seams-review-copy:not(.seams-review-copy-address) > .copy-icon {
+  opacity: 0;
+}
+:where(.seams-wallet-ui) .seams-receipt-box .seams-review-fields dd:is(:hover, :focus-within) .seams-review-copy:not(.seams-review-copy-address) > .copy-icon,
+:where(.seams-wallet-ui) .seams-receipt-box .seams-review-fields .seams-review-copy.copied > .copy-icon {
+  opacity: 1;
+}
+:where(.seams-wallet-ui) .seams-receipt-step[data-state='complete'] {
+  color: var(--seams-colors-buttonBackground);
+}
+@media (max-width: 420px) {
+  :where(.seams-wallet-ui) .seams-review-content,
+  :where(.seams-wallet-ui) .seams-transaction-receipt {
+    --seams-review-inset: 1.125rem;
+    padding-inline: 1.125rem;
+  }
+  :where(.seams-wallet-ui) .seams-receipt-footer {
+    margin-inline: -1.125rem;
+  }
+  :where(.seams-wallet-ui) .seams-review-amount {
+    font-size: 1.875rem;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :where(.seams-wallet-ui) .seams-receipt-step[data-state='active'] .seams-receipt-track::after {
+    animation: seams-receipt-sweep 1.2s ease-in-out infinite;
+  }
+  :where(.seams-wallet-ui)
+    .seams-receipt-step[data-stage='confirming'][data-state='active']
+    .seams-receipt-track::after {
+    animation-duration: 1.8s;
+  }
+  :where(.seams-wallet-ui) .seams-receipt-symbol[data-pending='true'] svg {
+    animation: seams-receipt-spin 1.2s linear infinite;
+  }
+}
+@keyframes seams-receipt-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes seams-receipt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.seams-wallet-ui) .seams-review-caret,
+  :where(.seams-wallet-ui) .seams-toast-progress > span,
+  :where(.seams-wallet-ui) .seams-receipt-track::after {
+    transition: none;
+  }
+}
+@media (pointer: coarse) {
+  :where(.seams-wallet-ui) .seams-review-copy {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
+
+/* recovery-backup-surface */
+/*
+  Wallet recovery-code backup dialog + viewer.
+  Reads theme tokens from wallet-ui.css (generated from palette.json).
+  Both the native <dialog> shell and the light-DOM surface content are styled
+  here, at document level, so strict-CSP hosts need no inline styles. Every
+  content rule is scoped under the dialog's data attribute so nothing leaks
+  into host documents.
+*/
+
+.seams-recovery-code-backup-host {
+  display: contents;
+  line-height: normal;
+}
+
+.seams-recovery-code-backup-viewer {
+  display: block;
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog] {
+  position: relative;
+  box-sizing: border-box;
+  overflow: auto;
+  /* Suppress rubber-band bounce: the card can measure fractionally taller
+     than the frame's whole-px height, leaving a sub-pixel scroll range. */
+  overscroll-behavior: none;
+  /* The UA gives <dialog> a default border; the card floats on its own
+     backdrop, and in the iframe the frame hugs the card exactly, so a border
+     reads as a detached hairline. */
+  border: none;
+  /* The dialog takes programmatic focus on open; a focus ring on the card's
+     own edge reads as a stray border. */
+  outline: none;
+  border-radius: min(var(--seams-shape-card, 16px), 2rem);
+  background: var(--seams-colors-colorBackground, oklch(0.2 0.01 240));
+  color: var(--seams-colors-textPrimary, oklch(0.97 0.002 240));
+  padding: 1.75rem 1.25rem 1.25rem;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    sans-serif;
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone'] {
+  max-height: calc(100vh - 1.5rem);
+  box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.24);
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone'][data-seams-recovery-stage='summary'],
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone'][data-seams-recovery-stage='opening'] {
+  width: min(30rem, calc(100vw - 1.5rem));
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone'][data-seams-recovery-stage='recovery_codes'] {
+  width: min(44rem, calc(100vw - 1.5rem));
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone']::backdrop {
+  background: oklch(0.2 0.01 240 / 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* Inside the wallet iframe the host sizes the frame FROM this dialog's
+   measurement, so the dialog must own the whole frame: zero UA centering
+   margins and a max-height of exactly 100vh. Any slack becomes dead space
+   around the card and clips it once the measured height feeds back into the
+   frame. The host dims the page; this surface must paint nothing outside the
+   card — no shadow, no ::backdrop tint. */
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe'] {
+  margin: 0;
+  max-height: 100vh;
+  box-shadow: none;
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe'][data-seams-recovery-stage='summary'],
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe'][data-seams-recovery-stage='opening'] {
+  width: 30rem;
+  max-width: none;
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe'][data-seams-recovery-stage='recovery_codes'] {
+  width: 35rem;
+  max-width: none;
+}
+
+@media (max-width: 29rem) {
+  dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe'][data-seams-recovery-stage='recovery_codes'] {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
+dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='wallet-iframe']::backdrop {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog[data-seams-wallet-recovery-backup-dialog][data-seams-recovery-surface='standalone'] {
+    transition: width 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .seams-recovery-code-backup-viewer[data-seams-recovery-entry='account_menu'][data-seams-recovery-stage='recovery_codes'] {
+    animation: seams-recovery-codes-content-in 160ms ease-out both;
+  }
+
+  [data-seams-wallet-recovery-backup-dialog] .recovery-summary-close {
+    transition:
+      background-color 120ms ease-out,
+      color 120ms ease-out;
+  }
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-close {
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-end: 0.75rem;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--seams-colors-textMuted, oklch(0.53 0.02 240));
+  cursor: pointer;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-close svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-close:hover {
+  background: var(--seams-colors-surface2, oklch(0.25 0.0175 240));
+  color: var(--seams-colors-textPrimary, oklch(0.97 0.002 240));
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-close:focus-visible {
+  outline: 2px solid var(--seams-colors-focus, #3b82f6);
+  outline-offset: 2px;
+}
+
+.seams-recovery-code-backup-viewer[data-seams-recovery-stage='summary'] .recovery-backup-title,
+.seams-recovery-code-backup-viewer[data-seams-recovery-stage='opening'] .recovery-backup-title {
+  padding-inline-end: 2.75rem;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-row {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--seams-colors-borderPrimary, oklch(0.35 0.018 240));
+  border-radius: 0.75rem;
+  background: var(--seams-colors-surface, oklch(0.23 0.015 240));
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-label {
+  color: var(--seams-colors-textSecondary, oklch(0.53 0.02 240));
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-value {
+  color: var(--seams-colors-textPrimary, oklch(0.97 0.002 240));
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-open {
+  width: 100%;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-ellipsis {
+  display: inline-flex;
+  width: 1.1em;
+  margin-inline-start: 0.08em;
+  text-align: start;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-seams-wallet-recovery-backup-dialog] .recovery-summary-ellipsis > span {
+    opacity: 0.28;
+    animation: seams-recovery-codes-ellipsis-dot 1.2s ease-in-out infinite;
+  }
+
+  [data-seams-wallet-recovery-backup-dialog] .recovery-summary-ellipsis > span:nth-child(2) {
+    animation-delay: 160ms;
+  }
+
+  [data-seams-wallet-recovery-backup-dialog] .recovery-summary-ellipsis > span:nth-child(3) {
+    animation-delay: 320ms;
+  }
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-live-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-summary-error {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, oklch(0.58 0.18 25), transparent 75%);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, oklch(0.58 0.18 25), transparent 93%);
+  color: oklch(0.65 0.16 25);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.3125rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-title:focus {
+  outline: none;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-description {
+  margin: 0 0 1rem;
+  color: var(--seams-colors-textSecondary, oklch(0.53 0.02 240));
+  line-height: 1.5;
+}
+
+/* auto-fit rather than a fixed two columns: on a narrow surface the grid
+   collapses to one column instead of wrapping every code to three lines. */
+[data-seams-wallet-recovery-backup-dialog] .recovery-code-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-code-item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  border-radius: var(--seams-shape-item, 8px);
+  background: var(--seams-colors-surface2, oklch(0.25 0.0175 240));
+  padding: 0.375rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.71875rem;
+  line-height: 1.4;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-code-index {
+  flex: 0 0 2ch;
+  text-align: right;
+  color: var(--seams-colors-textSecondary, oklch(0.53 0.02 240));
+  user-select: none;
+}
+
+/* user-select: all — one click grabs the whole code, matching how people
+   actually lift these into a password manager. Wraps at the hyphens. */
+[data-seams-wallet-recovery-backup-dialog] .recovery-code-value {
+  min-width: 0;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* flex-basis 0, not auto: both columns split the row evenly instead of
+   tracking their label widths. */
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-actions > .recovery-backup-button {
+  flex: 1 1 0;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button {
+  min-height: var(--seams-shape-controlHeight, 44px);
+  border-radius: var(--seams-shape-control, 10px);
+  padding: 0.625rem 0.875rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button.primary {
+  border: 1px solid transparent;
+  background: var(--seams-colors-buttonBackground, oklch(0.3 0.02 240));
+  color: var(--seams-colors-textButton, oklch(0.97 0.002 240));
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button.primary:hover {
+  background: var(--seams-colors-buttonHoverBackground, oklch(0.35 0.018 240));
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button.secondary {
+  border: 1px solid var(--seams-colors-borderPrimary, oklch(0.35 0.018 240));
+  background: transparent;
+  color: inherit;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button.secondary:hover {
+  background: var(--seams-colors-hover, oklch(0.25 0.0175 240));
+  border-color: var(--seams-colors-borderHover, oklch(0.4 0.02 240));
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-button:focus-visible {
+  outline: 2px solid var(--seams-colors-focus, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* The icon crossfades to a check in place, so it leads the label and the
+   button keeps its width through the transition. */
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-copy .copy-icon {
+  color: currentColor;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-acknowledgement {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-acknowledgement input[type='checkbox'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0.1rem 0 0;
+  flex: none;
+  accent-color: var(--seams-colors-primary, #3b82f6);
+}
+
+[data-seams-wallet-recovery-backup-dialog]
+  .recovery-backup-acknowledgement
+  input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--seams-colors-focus, #3b82f6);
+  outline-offset: 2px;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-status {
+  min-height: 1rem;
+  margin: 0 0 0.5rem;
+  color: var(--seams-colors-textSecondary, oklch(0.53 0.02 240));
+  font-size: 0.8125rem;
+}
+
+[data-seams-wallet-recovery-backup-dialog] .recovery-backup-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  background: var(--seams-colors-colorBackground, oklch(0.2 0.01 240));
+}
+
+@keyframes seams-recovery-codes-content-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes seams-recovery-codes-ellipsis-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.28;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* copy-controls */
+/*
+  Shared Preact copy-affordance icon: a copy glyph that crossfades to a check inside
+  a `.copied` ancestor. Used by the Preact export surface's copy fields and the
+  recovery-code backup dialog's Copy button, so the two copy affordances in
+  the wallet read as one control.
+
+  Rules are scoped to wallet surfaces so generic class names do not leak into
+  host documents. Surface-specific placement stays with each surface's CSS.
+
+  Context-specific bits (resting color, margins) stay with each surface.
+*/
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon svg {
+  display: block;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-check,
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 300ms ease-in-out,
+    opacity 300ms ease-in-out,
+    filter 300ms ease-in-out;
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-check {
+  transform: scale(0.25);
+  opacity: 0;
+  filter: blur(2px);
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-copy {
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copied .copy-icon {
+  color: var(--seams-colors-buttonBackground, currentColor);
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copied .copy-icon-check {
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+:is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copied .copy-icon-copy {
+  transform: scale(0.25);
+  opacity: 0;
+  filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-check,
+  :is([data-seams-wallet-recovery-backup-dialog], .seams-wallet-ui) .copy-icon-copy {
+    transition-duration: 0.01ms;
+  }
+}
+

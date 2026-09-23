@@ -715,7 +715,7 @@ export function NavbarStatic({
             onClick={homeProps.onClick}
             aria-label="Seams home"
           >
-            <SeamsWordmark className="navbar-static__brand-wordmark" height={17} />
+            <SeamsWordmark className="navbar-static__brand-wordmark" height={22} />
           </a>
         </div>
 

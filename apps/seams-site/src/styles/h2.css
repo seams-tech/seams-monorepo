@@ -543,12 +543,6 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-hero-media__product img {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-}
-
 .h2-hero-media__title {
   max-width: 648px;
   font-size: 61px;
@@ -790,12 +784,6 @@ body:has(.h2-page) {
 .h2-agent-media__rail.is-active-audit + .h2-agent-chat-pill {
   right: 44px;
   left: auto;
-}
-
-.h2-agent-chat-pill img {
-  width: 38px;
-  height: 38px;
-  border-radius: 9999px;
 }
 
 .h2-agent-chat-pill span {
@@ -1084,36 +1072,71 @@ body:has(.h2-page) {
   padding-top: 0;
 }
 
-/* inert SDK skeleton: clicks fall through to the panel link. Scaled down so
-   the band can run shorter; the negative margins reclaim the layout space the
-   scale frees (card is ~518px tall, 10% per side), since transforms don't
-   shrink the layout box */
+/* Display-only auth artwork shares the hero's paper palette. */
 .h2-heroscene__shell {
-  /* This inert skeleton never anchors a document-level SDK surface. */
-  zoom: 0.9;
   pointer-events: none;
   filter: drop-shadow(0 22px 40px rgba(15, 23, 42, 0.14));
-  transform: scale(0.8);
-  margin: -52px 0;
-  /* an explicit width (not the grid's shrink-wrap) so the card inside can
-     stretch past its ~317px intrinsic footprint */
-  width: min(440px, 100%);
+  width: min(352px, 100%);
 }
 
-/* the card's own border (--seams-colors-borderPrimary) vanishes against the tinted
-   aside; lift it to a visible-but-light warm gray. Widened past the SDK's
-   natural min(330px) footprint, which reads narrow in the hero panel. */
-.h2-heroscene__shell .seams-signup-menu-root {
-  border-color: #ddd8d1;
-  width: 100%;
+.h2-auth-mock {
+  padding: 28px;
+  border: 1px solid #ddd8d1;
+  border-radius: 28px;
+  background: #fffdf9;
+  color: #292524;
 }
 
-/* the skeleton dims its disabled controls; restore the live card's contrast */
-.h2-heroscene__shell .seams-auth-method-btn:disabled,
-.h2-heroscene__shell .seams-seg-btn:disabled,
-.h2-heroscene__shell .seams-link-device-btn:disabled,
-.h2-heroscene__shell .seams-input:disabled {
-  opacity: 1;
+.h2-auth-mock h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.h2-auth-mock p {
+  margin: 8px 0 24px;
+  color: #78716c;
+  font-size: 13px;
+}
+
+.h2-auth-mock__input,
+.h2-auth-mock__method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #ddd8d1;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.h2-auth-mock__input {
+  justify-content: flex-start;
+  margin-bottom: 14px;
+  color: #78716c;
+}
+
+.h2-auth-mock__method + .h2-auth-mock__method {
+  margin-top: 10px;
+}
+
+.h2-auth-mock__method--primary {
+  background: #292524;
+  border-color: #292524;
+  color: #fffdf9;
+}
+
+.h2-auth-mock__divider {
+  margin: 14px 0;
+  text-align: center;
+  color: #78716c;
+  font-size: 12px;
+}
+
+.h2-auth-mock p.h2-auth-mock__footer {
+  margin: 24px 0 0;
+  text-align: center;
 }
 
 /* Confirmer scene: the signing drawer docked at the band's bottom edge,
@@ -1620,18 +1643,9 @@ body:has(.h2-page) {
     padding: 36px 22px 50px;
   }
 
-  /* the SDK card caps itself at 386px; also cap it to the padded column.
-     min-width: 0 lets the grid item shrink below the card's intrinsic width */
-  .h2-heroscene__shell,
-  .h2-heroscene__shell .seams-signup-menu-root {
+  .h2-heroscene__shell {
     min-width: 0;
     max-width: min(386px, 100%);
-  }
-
-  /* stacked layout sizes itself to content; no need for the desktop shrink */
-  .h2-heroscene__shell {
-    transform: none;
-    margin: 0;
   }
 
   /* narrow columns: keep the readable drawer, drop the app backdrop */
@@ -2455,19 +2469,11 @@ body:has(.h2-page) {
 }
 
 .h2-mpc__flow {
+  --h2-dash-cycle: 10;
   fill: none;
   stroke: var(--h2-smoke);
   stroke-width: 1;
   stroke-linecap: round;
-}
-
-.h2-mpc__flow--device {
-  --h2-dash-cycle: 5;
-  stroke-dasharray: 1 4;
-}
-
-.h2-mpc__flow--infrastructure {
-  --h2-dash-cycle: 10;
   stroke-dasharray: 6 4;
 }
 
@@ -2723,39 +2729,46 @@ body:has(.h2-page) {
 
 /* ---------- split-key visual (duo card + Embedded Wallets pillar tab) ---------- */
 
-/* soft-asset language: floating share slabs with labeled white chips and one
-   green output; the stack's evergreen tones come from aqua-evergreen.jpg */
 .h2-splitkey {
   display: grid;
   grid-template-columns: auto auto;
   align-items: center;
   justify-content: center;
-  gap: 30px;
+  gap: 18px;
 }
 
 .h2-splitkey__stack {
   width: 136px;
   height: auto;
-  filter: drop-shadow(0 16px 18px rgba(40, 36, 32, 0.18));
+}
+
+.h2-splitkey__stack path {
+  stroke: var(--h2-ash);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.h2-splitkey__edge {
+  fill: var(--h2-stone);
+}
+
+.h2-splitkey__face {
+  fill: var(--h2-taupe);
+}
+
+.h2-splitkey__face--base {
+  fill: var(--h2-stone);
 }
 
 /* chips stretch over the stack's height so each one sits beside its layer */
 .h2-splitkey__chips {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   align-self: stretch;
   justify-content: space-between;
-  padding: 6px 0 14px;
-}
-
-/* stagger the chips so they float instead of forming a column */
-.h2-splitkey__chip:nth-child(1) {
-  margin-left: 16px;
-}
-
-.h2-splitkey__chip:nth-child(3) {
-  margin-left: 34px;
+  padding: 16px 0 20px;
 }
 
 .h2-splitkey__chip {
@@ -2763,64 +2776,43 @@ body:has(.h2-page) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px 8px 10px;
-  border-radius: 12px;
-  border: 1px solid #ffffff;
-  background: #ffffff;
-  box-shadow:
-    0 10px 24px -14px rgba(40, 36, 32, 0.28),
-    0 2px 6px -3px rgba(40, 36, 32, 0.12);
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
   font-size: var(--h2-text-lg);
-  font-weight: 600;
-  color: var(--h2-ink);
+  font-weight: 500;
+  color: var(--h2-graphite);
   white-space: nowrap;
 }
 
-/* hairline connectors reaching back toward the slab vertices; white like the
-   slab edges so they stand out from the taupe panel */
+/* Connectors meet the right vertex of each isometric layer. */
 .h2-splitkey__chip::before {
   content: '';
   position: absolute;
   right: 100%;
   top: 50%;
   height: 1px;
-  background: #ffffff;
-}
-
-.h2-splitkey__chip:nth-child(1)::before {
-  width: 46px;
-}
-
-.h2-splitkey__chip:nth-child(2)::before {
-  width: 30px;
-}
-
-.h2-splitkey__chip:nth-child(3)::before {
-  width: 64px;
+  width: 31px;
+  background: var(--h2-ash);
 }
 
 .h2-splitkey__ico {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: var(--h2-taupe);
+  width: 16px;
+  height: 16px;
   color: var(--h2-graphite);
 }
 
 .h2-splitkey__ico svg {
-  width: 12px;
-  height: 12px;
-}
-
-.h2-splitkey__chip--sig {
-  color: var(--h2-green);
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5;
 }
 
 .h2-splitkey__chip--sig .h2-splitkey__ico {
-  border-radius: 50%;
-  background: var(--h2-green-soft);
   color: var(--h2-green);
 }
 
@@ -3218,19 +3210,10 @@ body:has(.h2-page) {
 }
 
 .h2-security__item h3 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
   margin: 0 0 7px;
   font-size: var(--h2-text-title);
   font-weight: 600;
   color: var(--h2-ink);
-}
-
-.h2-security__item h3 svg {
-  width: 14px;
-  height: 14px;
-  color: var(--h2-graphite);
 }
 
 .h2-security__item p {

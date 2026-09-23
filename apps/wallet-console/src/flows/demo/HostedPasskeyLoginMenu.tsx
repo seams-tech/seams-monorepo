@@ -88,7 +88,7 @@ function parseHostedAuthMenuErrorEvent(event: Event): HostedAuthMenuErrorEventDe
 function handleHostedAuthMenuError(event: Event): void {
   const error = parseHostedAuthMenuErrorEvent(event);
   if (!error) return;
-  console.error(`[SeamsAuthMenu:${error.mode}]`, new Error(error.message));
+  console.error(`[HostedSeamsAuthMenu:${error.mode}]`, new Error(error.message));
   toast.error(error.message, { id: error.mode === 'register' ? 'registration' : 'login' });
 }
 
@@ -164,7 +164,7 @@ function handleHostedAuthMenuOutcome(
       toast.info('Wallet authentication cancelled', { id: 'login' });
       return;
     case 'failed':
-      console.error('[SeamsAuthMenu]', new Error(outcomeMessage(outcome)));
+      console.error('[HostedSeamsAuthMenu]', new Error(outcomeMessage(outcome)));
       toast.error(outcomeMessage(outcome), { id: 'login' });
       return;
     default:

@@ -26,7 +26,7 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
           challenge: new Uint8Array([1]),
         };
         // Test hook: force native to fail
-        (window as any).__W3A_TEST_FORCE_NATIVE_FAIL = true;
+        (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL = true;
         let bridgeCalls = 0;
         const bridgeClient = {
           request: async () => {
@@ -51,7 +51,7 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
           };
         }
         try {
-          delete (window as any).__W3A_TEST_FORCE_NATIVE_FAIL;
+          delete (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL;
         } catch {}
         if (!rejection) throw new Error('Expected rejection');
         return { ...rejection, bridgeCalls };
@@ -79,7 +79,7 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
         };
 
         // Force native to fail; observe internal counter; simulate bridge timeout
-        (window as any).__W3A_TEST_FORCE_NATIVE_FAIL = true;
+        (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL = true;
         let bridgeCalls = 0;
         const bridgeClient = {
           request: async () => {
@@ -100,12 +100,12 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
           threw = true;
         }
         // Read internal counter and clear flag
-        const count = (window as any).__W3A_TEST_NATIVE_CREATE_ATTEMPTS || 0;
+        const count = (window as any).__SEAMS_TEST_NATIVE_CREATE_ATTEMPTS || 0;
         try {
-          delete (window as any).__W3A_TEST_FORCE_NATIVE_FAIL;
+          delete (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL;
         } catch {}
         try {
-          delete (window as any).__W3A_TEST_NATIVE_CREATE_ATTEMPTS;
+          delete (window as any).__SEAMS_TEST_NATIVE_CREATE_ATTEMPTS;
         } catch {}
         return { calls: { nativeCreate: count, bridge: bridgeCalls }, threw };
       },
@@ -187,7 +187,7 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
         const rpId = window.location.hostname;
         const publicKey = { rpId, challenge: new Uint8Array([1]) };
         // Force native to fail
-        (window as any).__W3A_TEST_FORCE_NATIVE_FAIL = true;
+        (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL = true;
         // Bridge returns explicit cancel
         const bridgeClient = {
           request: async () => ({ ok: false, error: 'User cancelled' }),
@@ -204,7 +204,7 @@ test.describe('Safari WebAuthn fallbacks - cancellation and timeout behavior', (
           rejection = { name: e?.name || '', message: String(e?.message || e) };
         }
         try {
-          delete (window as any).__W3A_TEST_FORCE_NATIVE_FAIL;
+          delete (window as any).__SEAMS_TEST_FORCE_NATIVE_FAIL;
         } catch {}
         if (!rejection) throw new Error('Expected rejection');
         return rejection;

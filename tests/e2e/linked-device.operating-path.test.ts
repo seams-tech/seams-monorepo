@@ -813,7 +813,7 @@ class LinkedDeviceFailureMonitor {
     if (
       message.type() !== 'error' ||
       (!text.includes('[Device2Linking] failed') &&
-        !text.includes('[SeamsAuthMenu:login] Error') &&
+        !text.includes('[HostedSeamsAuthMenu:login] Error') &&
         !text.includes('[DemoPage][TempoSignError]') &&
         !text.includes('[DemoPage][TempoWalletSessionExpired]') &&
         !text.includes('[DemoPage][TempoPreflightFailure]') &&
@@ -864,7 +864,7 @@ async function walletFrame(page: Page): Promise<FrameLocator> {
 }
 
 async function directRegistrationWalletFrame(page: Page): Promise<FrameLocator> {
-  const iframe = page.locator('iframe[data-w3a-owner="linked-device-profile-registration"]');
+  const iframe = page.locator('iframe[data-seams-owner="linked-device-profile-registration"]');
   await iframe.waitFor({ state: 'attached', timeout: 30_000 });
   const frame = await iframe.contentFrame();
   if (!frame) throw new Error('Direct registration wallet service iframe is unavailable');
@@ -964,7 +964,7 @@ type DirectRegistrationInput = {
 };
 
 function directRegistrationRepoRoot(): string {
-  const configured = String(process.env.W3A_REPO_ROOT || '').trim();
+  const configured = String(process.env.SEAMS_REPO_ROOT || '').trim();
   if (configured) return configured;
   const cwd = process.cwd();
   return fs.existsSync(path.join(cwd, 'packages/wallet')) ? cwd : path.resolve(cwd, '..');
@@ -1071,7 +1071,7 @@ async function registerWalletWithSignerProfileInBrowser(
   input: DirectRegistrationInput,
 ): Promise<void> {
   await page.goto(`${appOrigin}/seams-v9/manifest.txt`, { waitUntil: 'load' });
-  await expect(page.locator('iframe.w3a-wallet-overlay')).toHaveCount(0);
+  await expect(page.locator('iframe.seams-wallet-overlay')).toHaveCount(0);
   const registration = page.evaluate(directRegisterWalletInBrowser, {
     ...input,
     sdkModulePath: directRegistrationSdkModulePath(),
@@ -1112,7 +1112,7 @@ async function registerOwner(
   await primary.click();
   try {
     await page
-      .locator('.w3a-profile-button-morphable')
+      .locator('.seams-profile-button-morphable')
       .waitFor({ state: 'visible', timeout: 120_000 });
   } catch (error) {
     throw new Error(`Owner registration did not complete. ${diagnostics.join('\n')}`, {
@@ -1188,7 +1188,7 @@ async function registerPasskeyOwnerForProfile(
     profile,
   );
   await openWallet(page);
-  await page.locator('.w3a-profile-button-morphable').waitFor({
+  await page.locator('.seams-profile-button-morphable').waitFor({
     state: 'visible',
     timeout: 120_000,
   });
@@ -1333,20 +1333,20 @@ const LINKED_DEVICE_PROFILE_ROWS = [
 ] as const;
 
 async function openProfileMenu(page: Page): Promise<Locator> {
-  const profile = page.locator('.w3a-profile-button-morphable');
+  const profile = page.locator('.seams-profile-button-morphable');
   await profile.waitFor({ state: 'visible', timeout: 30_000 });
   if ((await profile.getAttribute('data-state')) !== 'open') {
-    await profile.locator('.w3a-user-account-button-trigger').click();
+    await profile.locator('.seams-user-account-button-trigger').click();
   }
-  const menu = profile.locator('.w3a-profile-dropdown-morphed[data-state="open"]');
+  const menu = profile.locator('.seams-profile-dropdown-morphed[data-state="open"]');
   await expect(menu).toBeVisible({ timeout: 10_000 });
   return menu;
 }
 
 async function closeProfileMenu(page: Page): Promise<void> {
-  const profile = page.locator('.w3a-profile-button-morphable');
+  const profile = page.locator('.seams-profile-button-morphable');
   if ((await profile.getAttribute('data-state')) !== 'open') return;
-  await profile.locator('.w3a-user-account-button-trigger').click();
+  await profile.locator('.seams-user-account-button-trigger').click();
   await expect(profile).toHaveAttribute('data-state', 'closed');
 }
 
@@ -1457,7 +1457,7 @@ function assertNoUnlockOrNearFundingAfterLink(paths: readonly string[]): void {
 async function lockActiveWallet(page: Page): Promise<void> {
   const menu = await openProfileMenu(page);
   await menu.getByRole('button', { name: 'Lock Wallet', exact: true }).click();
-  await page.locator('.w3a-profile-button-morphable').waitFor({
+  await page.locator('.seams-profile-button-morphable').waitFor({
     state: 'hidden',
     timeout: 30_000,
   });
@@ -1470,7 +1470,7 @@ async function lockWallet(page: Page): Promise<void> {
   const emailOtpUnlock = wallet.getByRole('button', { name: 'Sign in with Google', exact: true });
   const lockedAuthSurface = passkeyUnlock.or(emailOtpUnlock);
   const switchToLogin = wallet.locator('button[data-auth-menu-mode="login"]');
-  const profile = page.locator('.w3a-profile-button-morphable');
+  const profile = page.locator('.seams-profile-button-morphable');
   const lockDeadline = Date.now() + 60_000;
   for (;;) {
     if (Date.now() >= lockDeadline) throw new Error('Wallet did not reach its locked auth surface');
@@ -1537,13 +1537,13 @@ async function completeVisibleEmailOtpPrompt(
   const wallet = await walletFrame(input.page);
   const otpInput = wallet
     .locator(
-      '#email-otp-confirm-code, #drawer-email-otp-confirm-code, #w3a-auth-menu-google-otp, input[aria-label="Email verification code"]',
+      '#email-otp-confirm-code, #drawer-email-otp-confirm-code, #seams-auth-menu-google-otp, input[aria-label="Email verification code"]',
     )
     .first();
   if (await otpInput.isVisible().catch(() => false)) {
     emailLinkedDeviceStage('Email OTP input is visible');
     if (!(await otpInput.isEnabled({ timeout: 2_000 }).catch(() => false))) return 'none';
-    const promptWalletIdentity = wallet.locator('.w3a-otp-account-value');
+    const promptWalletIdentity = wallet.locator('.seams-otp-account-value');
     const promptWalletId = String(
       (await promptWalletIdentity.isVisible().catch(() => false))
         ? await promptWalletIdentity.textContent().catch(() => null)
@@ -1569,7 +1569,7 @@ async function completeVisibleEmailOtpPrompt(
        button and can fire minutes later into an unrelated menu. */
     const submit = wallet
       .locator(
-        '.w3a-otp-prompt [data-auth-menu-primary], #w3a-confirm-portal button.btn-confirm, #w3a-confirm-portal button.confirm',
+        '.seams-otp-prompt [data-auth-menu-primary], #seams-confirm-portal button.btn-confirm, #seams-confirm-portal button.confirm',
       )
       .first();
     if (!(await submit.isEnabled({ timeout: 2_000 }).catch(() => false))) return 'none';
@@ -1577,10 +1577,10 @@ async function completeVisibleEmailOtpPrompt(
     emailLinkedDeviceStage('Email OTP prompt submitted');
     return 'submitted';
   }
-  const emailView = wallet.locator('.w3a-otp-prompt');
+  const emailView = wallet.locator('.seams-otp-prompt');
   const startSelector = (await emailView.isVisible().catch(() => false))
-    ? '.w3a-otp-prompt [data-auth-menu-primary]'
-    : '[data-seams-registration-activation-start="true"], #w3a-confirm-portal button.btn-confirm, #w3a-confirm-portal button.confirm';
+    ? '.seams-otp-prompt [data-auth-menu-primary]'
+    : '[data-seams-registration-activation-start="true"], #seams-confirm-portal button.btn-confirm, #seams-confirm-portal button.confirm';
   const start = wallet.locator(startSelector).first();
   if (!(await start.isVisible().catch(() => false))) return 'none';
   if (!(await start.isEnabled({ timeout: 2_000 }).catch(() => false))) return 'none';
@@ -1621,7 +1621,7 @@ async function readVisibleHostedAuthFailure(page: Page): Promise<string | null> 
     if (text) return text;
   }
   for (const frame of page.frames()) {
-    const alert = frame.locator('.w3a-method-error, .w3a-otp-error, [role="alert"]').last();
+    const alert = frame.locator('.seams-method-error, .seams-otp-error, [role="alert"]').last();
     if (!(await alert.isVisible().catch(() => false))) continue;
     const text = (await alert.textContent())?.replace(/\s+/g, ' ').trim();
     if (text) return text;
@@ -1730,7 +1730,7 @@ async function authenticateEmailOtpInHostedMenu(
     routerOrigin: input.routerOrigin,
     ...(input.challengeSubjectId ? { challengeSubjectId: input.challengeSubjectId } : {}),
   });
-  await expect(input.page.locator('iframe.w3a-wallet-overlay')).toBeHidden({
+  await expect(input.page.locator('iframe.seams-wallet-overlay')).toBeHidden({
     timeout: 30_000,
   });
 }
@@ -1920,7 +1920,7 @@ async function registerEmailOwnerForProfile(
     throw new Error('Profile Email OTP registration activated a different wallet');
   }
   await openWallet(page);
-  await page.locator('.w3a-profile-button-morphable').waitFor({
+  await page.locator('.seams-profile-button-morphable').waitFor({
     state: 'visible',
     timeout: 120_000,
   });
@@ -2026,7 +2026,7 @@ function walletSigningConfirmButton(page: Page): Locator {
   const iframe = page.locator('iframe[allow*="publickey-credentials-get"]').last();
   return iframe
     .contentFrame()
-    .locator('#w3a-confirm-portal button.btn-confirm, #w3a-confirm-portal button.confirm')
+    .locator('#seams-confirm-portal button.btn-confirm, #seams-confirm-portal button.confirm')
     .first();
 }
 
@@ -2963,7 +2963,7 @@ async function exportOwnerKey(
   } else {
     await expect(viewer.locator('.field-label', { hasText: 'Address' }).first()).toBeVisible();
   }
-  const identity = await viewer.locator('w3a-export-key-viewer').evaluate(readExportedKeyIdentity);
+  const identity = await viewer.locator('seams-export-key-viewer').evaluate(readExportedKeyIdentity);
   expect(identity.entries.length).toBeGreaterThan(0);
   expect(identity.privateKeys.length).toBeGreaterThan(0);
   for (const privateKeyValue of identity.privateKeys) {
@@ -3231,7 +3231,7 @@ function ownerCredentialSnapshot(owner: AuthenticatedOwnerSnapshot): OwnerCreden
 
 async function readActiveWalletId(page: Page): Promise<string> {
   const value = await page
-    .locator('.w3a-profile-button-morphable .w3a-user-account--account-id')
+    .locator('.seams-profile-button-morphable .seams-user-account--account-id')
     .textContent();
   const walletId = String(value || '').trim();
   if (!walletId) throw new Error('Active owner profile does not expose its wallet id');
@@ -3263,7 +3263,7 @@ async function assertRevokedOwnerCannotUnlock(page: Page): Promise<void> {
       unlockBackend: 'passkey',
     });
   }
-  await expect(page.locator('.w3a-profile-button-morphable')).toBeHidden();
+  await expect(page.locator('.seams-profile-button-morphable')).toBeHidden();
   await expect(unlock).toBeVisible();
 }
 
@@ -3335,7 +3335,7 @@ async function readLinkedDeviceInventory(
   });
   const dialog = page.getByRole('dialog', { name: 'Your devices', exact: true });
   await dialog.waitFor({ state: 'visible', timeout: 30_000 });
-  await dialog.locator('.w3a-linked-devices-modal-close').click();
+  await dialog.locator('.seams-linked-devices-modal-close').click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
   await closeProfileMenu(page);
   return parsed;
@@ -3486,39 +3486,39 @@ function isActiveLinkedDevice(device: { readonly state: string }): boolean {
 
 async function assertLinkedDeviceInventoryLoaded(page: Page): Promise<void> {
   const dialog = await openLinkedDevicesDialog(page);
-  const cards = dialog.locator('.w3a-linked-devices-modal-item');
+  const cards = dialog.locator('.seams-linked-devices-modal-item');
   await expect(cards).toHaveCount(2, { timeout: 60_000 });
   await expect(
     cards.filter({
-      has: page.locator('.w3a-linked-devices-modal-item-name', { hasText: 'Email code' }),
+      has: page.locator('.seams-linked-devices-modal-item-name', { hasText: 'Email code' }),
     }),
   ).toHaveCount(2);
   await expect(
-    dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]'),
+    dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]'),
   ).toHaveCount(1);
   await expect(
     dialog.locator(
-      '.w3a-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
+      '.seams-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
     ),
   ).toHaveCount(1);
-  await dialog.locator('.w3a-linked-devices-modal-close').click();
+  await dialog.locator('.seams-linked-devices-modal-close').click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
   await closeProfileMenu(page);
 }
 
 async function assertPasskeyInventoryLoaded(page: Page, expectedCardCount: number): Promise<void> {
   const dialog = await openLinkedDevicesDialog(page);
-  const cards = dialog.locator('.w3a-linked-devices-modal-item');
+  const cards = dialog.locator('.seams-linked-devices-modal-item');
   await expect(cards).toHaveCount(expectedCardCount, { timeout: 60_000 });
   await expect(
-    dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]'),
+    dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]'),
   ).toHaveCount(1);
   await expect(
     dialog.locator(
-      '.w3a-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
+      '.seams-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
     ),
   ).toHaveCount(expectedCardCount - 1);
-  await dialog.locator('.w3a-linked-devices-modal-close').click();
+  await dialog.locator('.seams-linked-devices-modal-close').click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
   await closeProfileMenu(page);
 }
@@ -3531,19 +3531,19 @@ async function revokeLinkedEmailDeviceFromUi(
 ): Promise<void> {
   const { page } = input;
   const dialog = await openLinkedDevicesDialog(page);
-  const cards = dialog.locator('.w3a-linked-devices-modal-item');
+  const cards = dialog.locator('.seams-linked-devices-modal-item');
   await expect(cards).toHaveCount(2, { timeout: 60_000 });
   await expect(
     cards.filter({
-      has: page.locator('.w3a-linked-devices-modal-item-name', { hasText: 'Email code' }),
+      has: page.locator('.seams-linked-devices-modal-item-name', { hasText: 'Email code' }),
     }),
   ).toHaveCount(input.targetFactor === 'email_otp' ? 2 : 1);
   await expect(
-    dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]'),
+    dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]'),
   ).toHaveCount(1);
   await expect(
     dialog.locator(
-      '.w3a-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
+      '.seams-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
     ),
   ).toHaveCount(1);
   const remove = cards.getByRole('button', { name: /^Remove Device 2\b/ });
@@ -3599,18 +3599,18 @@ async function revokeLinkedEmailDeviceFromUi(
   await expect(cards).toHaveCount(1, { timeout: 60_000 });
   await expect(
     cards.filter({
-      has: page.locator('.w3a-linked-devices-modal-item-name', { hasText: 'Email code' }),
+      has: page.locator('.seams-linked-devices-modal-item-name', { hasText: 'Email code' }),
     }),
   ).toHaveCount(1);
   await expect(
-    dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]'),
+    dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]'),
   ).toHaveCount(1);
   await expect(
     dialog.locator(
-      '.w3a-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
+      '.seams-linked-devices-modal-item[data-device-kind="linked"][data-device-state="active"]',
     ),
   ).toHaveCount(0);
-  await dialog.locator('.w3a-linked-devices-modal-close').click();
+  await dialog.locator('.seams-linked-devices-modal-close').click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
 }
 
@@ -3620,9 +3620,9 @@ async function assertSeedlessLinkedDeviceCannotRevokeCustodyOwnerFromUi(input: {
   passkeyLinkedDeviceStage('Device 2 opening linked-device inventory');
   const dialog = await openLinkedDevicesDialog(input.page);
   passkeyLinkedDeviceStage('Device 2 linked-device inventory visible');
-  const cards = dialog.locator('.w3a-linked-devices-modal-item');
+  const cards = dialog.locator('.seams-linked-devices-modal-item');
   await expect(cards).toHaveCount(2, { timeout: 60_000 });
-  const originalDevice = dialog.locator('.w3a-linked-devices-modal-item[data-device-kind="owner"]');
+  const originalDevice = dialog.locator('.seams-linked-devices-modal-item[data-device-kind="owner"]');
   await expect(originalDevice).toHaveCount(1);
   const remove = originalDevice.getByRole('button', { name: /^Remove Device \d+\b/ });
   await expect(remove).toHaveCount(1, { timeout: 30_000 });
@@ -3646,7 +3646,7 @@ async function assertSeedlessLinkedDeviceCannotRevokeCustodyOwnerFromUi(input: {
     timeout: 60_000,
   });
   await expect(cards).toHaveCount(2, { timeout: 60_000 });
-  await dialog.locator('.w3a-linked-devices-modal-close').click();
+  await dialog.locator('.seams-linked-devices-modal-close').click();
   await expect(dialog).toBeHidden({ timeout: 10_000 });
   passkeyLinkedDeviceStage('Device 2 custody-owner revocation refusal confirmed');
 }
@@ -3885,7 +3885,7 @@ async function setupEmailLinkedOwnerPair(
       { diagnostics: device2Diagnostics, label: 'device2', page: device2Page },
     ]);
     await linkedDeviceFailureMonitor.race(
-      ownerPage.locator('.w3a-profile-button-morphable .w3a-user-account-button-trigger').click(),
+      ownerPage.locator('.seams-profile-button-morphable .seams-user-account-button-trigger').click(),
     );
 
     const created = device2Page.waitForResponse(
@@ -4184,7 +4184,7 @@ async function setupEmailLinkedOwnerPair(
     expect(inventoryBeforeReload.revocationEpoch).toBe(activated.authority.revocationEpoch);
     await ownerPage.reload({ waitUntil: 'domcontentloaded' });
     await ownerPage
-      .locator('.w3a-profile-button-morphable')
+      .locator('.seams-profile-button-morphable')
       .waitFor({ state: 'visible', timeout: 120_000 });
     assertSelectedWalletAuthorityResolved(
       await readSelectedWalletAuthorityResolution(ownerPage, publicIdentity.walletId),
@@ -4206,11 +4206,11 @@ async function setupEmailLinkedOwnerPair(
     await assertSignerProfileActions(ownerPage, profile);
     await device2Page.goto(`${appOrigin}/wallet`, { waitUntil: 'domcontentloaded' });
     await device2Page
-      .locator('.w3a-profile-button-morphable')
+      .locator('.seams-profile-button-morphable')
       .waitFor({ state: 'visible', timeout: 120_000 });
     await device2Page.reload({ waitUntil: 'domcontentloaded' });
     await device2Page
-      .locator('.w3a-profile-button-morphable')
+      .locator('.seams-profile-button-morphable')
       .waitFor({ state: 'visible', timeout: 120_000 });
     await lockWallet(device2Page);
     await device2Page.reload({ waitUntil: 'domcontentloaded' });
@@ -4371,7 +4371,7 @@ async function setupLinkedOwnerPair(
       { diagnostics: device2Diagnostics, label: 'device2', page: device2Page },
     ]);
     await linkedDeviceFailureMonitor.race(
-      ownerPage.locator('.w3a-profile-button-morphable .w3a-user-account-button-trigger').click(),
+      ownerPage.locator('.seams-profile-button-morphable .seams-user-account-button-trigger').click(),
     );
 
     passkeyLinkedDeviceStage('opening Device 2 QR');
@@ -4585,7 +4585,7 @@ async function setupLinkedOwnerPair(
        before locking, then boot a fresh page into the locked state so the
        unlock surface is not racing an in-flight pre-lock restore. */
     await ownerPage
-      .locator('.w3a-profile-button-morphable')
+      .locator('.seams-profile-button-morphable')
       .waitFor({ state: 'visible', timeout: 120_000 });
     await lockWallet(ownerPage);
     await ownerPage.reload({ waitUntil: 'domcontentloaded' });
@@ -5185,7 +5185,7 @@ test('Email OTP owner links, restores, exports, signs, and revokes Device 2', as
       .locator('button[data-auth-menu-primary], button[data-auth-menu-mode]')
       .first()
       .waitFor({ state: 'visible', timeout: 120_000 });
-    await expect(pair.device2Page.locator('.w3a-profile-button-morphable')).toBeHidden();
+    await expect(pair.device2Page.locator('.seams-profile-button-morphable')).toBeHidden();
     /* The base Email OTP factor stays fully operational for the owner. */
     await linkedSigning(pair.ownerPage, pair.ownerDiagnostics, {
       context: pair.ownerContext,

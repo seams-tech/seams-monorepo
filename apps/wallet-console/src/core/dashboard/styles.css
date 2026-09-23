@@ -637,9 +637,7 @@ textarea {
   min-width: 0;
 }
 
-/* The wordmark's live text collapses away in the icon rail (the stitch mark
-   stays as the brand tile), so the row keeps its height and nothing below it
-   shifts when the sidebar closes. */
+/* The lettering collapses while the key remains in the icon rail. */
 .dashboard-sidebar__brand .seams-wordmark__text {
   display: inline-block;
   max-width: 120px;
@@ -7367,13 +7365,18 @@ select.dashboard-input {
   display: none;
 }
 
-/* Collapsed rail keeps the brand row: the wordmark text closes via max-width
-   (no display toggle, no jump) and the stitch mark stays left-anchored — the
-   default 12px padding leaves it optically centered in the 44px column, so
-   the head keeps its height and nothing shifts or zips when closing. */
 .dashboard-shell--sidebar-collapsed .dashboard-sidebar__brand .seams-wordmark__text {
   max-width: 0;
   opacity: 0;
+}
+
+.dashboard-sidebar__brand .seams-wordmark__mark {
+  max-width: 48px;
+  transition: max-width var(--dashboard-motion-sidebar) var(--dashboard-ease-layout);
+}
+
+.dashboard-shell--sidebar-collapsed .dashboard-sidebar__brand .seams-wordmark__mark {
+  max-width: 28px;
 }
 
 /* Collapsed rail: the switcher cards shrink around their left-anchored
@@ -7916,6 +7919,9 @@ select.dashboard-input {
     max-width: 120px;
     opacity: 1;
   }
+  .dashboard-mobile-navigation .dashboard-sidebar__brand .seams-wordmark__mark {
+    max-width: 48px;
+  }
   .dashboard-mobile-navigation .dashboard-sidebar-toggle {
     width: 44px;
     height: 44px;
@@ -8404,6 +8410,7 @@ select.dashboard-input {
   .dashboard-sidebar-group,
   .dashboard-sidebar__brand,
   .dashboard-sidebar__brand .seams-wordmark__text,
+  .dashboard-sidebar__brand .seams-wordmark__mark,
   .dashboard-workspace-switcher__trigger,
   .dashboard-workspace-switcher__label,
   .dashboard-workspace-switcher__caret,

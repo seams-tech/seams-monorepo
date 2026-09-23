@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { lazy, Suspense } from 'react';
 import '../app.css';
 import '@fontsource/hanken-grotesk/300.css';
 import '@fontsource/hanken-grotesk/400.css';
@@ -20,4 +20,7 @@ if (!rootEl) {
 }
 
 const root = createRoot(rootEl);
-root.render(<App />);
+const Page = window.location.pathname.replace(/\/$/, '') === '/transaction-mocks'
+  ? lazy(() => import('../components/transaction-mocks/TransactionMocksPage').then((module) => ({ default: module.TransactionMocksPage })))
+  : lazy(() => import('./App'));
+root.render(<Suspense fallback={null}><Page /></Suspense>);

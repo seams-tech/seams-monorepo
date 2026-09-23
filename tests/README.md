@@ -263,7 +263,7 @@ pnpm build:sdk
 - Registration challenge path may reuse bootstrap challenge in tests
 - Multi‑iframe overlay selection: the example app (examples/vite) mounts its own wallet iframe via `PasskeyProvider`, so tests often see two wallet iframes. Naive selection picked the hidden 0×0 iframe and caused false “overlay not visible” failures. Fix:
   - Tag test‑owned iframes by constructing routers with `testOptions: { ownerTag: 'tests' }`.
-  - Centralize selection in `captureOverlay()` (harness.ts): prefer `iframe[data-w3a-owner="tests"]`, else choose the interactive candidate (pointer‑enabled, opacity>0, not `aria-hidden`), else fall back to the newest candidate. Inline confirmer host also counts as visible.
+  - Centralize selection in `captureOverlay()` (harness.ts): prefer `iframe[data-seams-owner="tests"]`, else choose the interactive candidate (pointer‑enabled, opacity>0, not `aria-hidden`), else fall back to the newest candidate. Inline confirmer host also counts as visible.
   - Router now exposes `getIframeEl()` and `getOverlayState()` to aid diagnostics (test‑only usage).
 - Test‑only options: router/transport accept a `testOptions` bag (`routerId`, `ownerTag`, `autoMount`) to aid Playwright without affecting app API.
 - Handshake/WebAuthn bridge: replying to the requesting window with `'*'` target after origin validation removes transient `'null'` origin warnings on Safari‑like early navigation without weakening safety.
@@ -283,7 +283,7 @@ To keep iframe tests stable:
 - Strengthen lifecycle assertions around sticky flows (handoff and final hide)
 - Local‑only cancel flow should release nonce and emit structured error
 - Theme regression guardrails for confirm UI (light vs dark tokens)
-- Consider gating `data-w3a-router-id` to debug/test builds only (cosmetic)
+- Consider gating `data-seams-router-id` to debug/test builds only (cosmetic)
 - Optional: convenience `waitForOverlayShown/Hidden` helpers in harness (wrap `captureOverlay` + `waitFor`)
 - Keep the wallet stub aligned with production host: adopt ports, reply to `PM_CANCEL` with `ERROR{ code: 'cancelled' }`, emit v2 `WalletFlowEvent` payloads with explicit `interaction.overlay` so overlay assertions have signal
 

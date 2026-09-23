@@ -325,7 +325,7 @@ test.describe('confirmTxFlow – success paths', () => {
 
         // Force wallet-iframe host behavior (test-only global override).
 
-        (globalThis as any).__W3A_TEST_WALLET_IFRAME_HOST_MODE__ = true;
+        (globalThis as any).__SEAMS_TEST_WALLET_IFRAME_HOST_MODE__ = true;
 
         // Detect any attempts to mount confirmation UI during this decrypt flow.
         const confirmTags = new Set(
@@ -440,7 +440,7 @@ test.describe('confirmTxFlow – success paths', () => {
           (document as any).createElement = originalCreateElement as any;
 
           try {
-            delete (globalThis as any).__W3A_TEST_WALLET_IFRAME_HOST_MODE__;
+            delete (globalThis as any).__SEAMS_TEST_WALLET_IFRAME_HOST_MODE__;
           } catch {}
         }
       },
@@ -884,7 +884,7 @@ test.describe('confirmTxFlow – success paths', () => {
 
         const triggerEmailOtpConfirmation = () => {
           const attempt = () => {
-            const portal = document.getElementById('w3a-confirm-portal');
+            const portal = document.getElementById('seams-confirm-portal');
             const host = portal?.firstElementChild as HTMLElement | null;
             if (!host) {
               setTimeout(attempt, 20);
@@ -1012,7 +1012,7 @@ test.describe('confirmTxFlow – success paths', () => {
 
         const triggerConfirmation = () => {
           const attempt = () => {
-            const portal = document.getElementById('w3a-confirm-portal');
+            const portal = document.getElementById('seams-confirm-portal');
             const host = portal?.firstElementChild as HTMLElement | null;
             if (!host) {
               setTimeout(attempt, 20);

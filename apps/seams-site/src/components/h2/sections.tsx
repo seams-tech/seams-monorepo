@@ -6,11 +6,9 @@ import {
   Fingerprint,
   KeyRound,
   ListChecks,
-  Lock,
   ScrollText,
   Server,
   Share2,
-  ShieldCheck,
   Smartphone,
   Wallet,
 } from 'lucide-react';
@@ -396,6 +394,11 @@ function DrawCircle({ className, ...props }: DrawCircleProps): React.JSX.Element
   );
 }
 
+const pairedKeyOutlinePath =
+  'M16 0 A16 16 0 1 0 -16 0 A16 16 0 1 0 16 0 M0 16 V62 M-5 25 H5 M-4 33 H4 M0 52 H-6 M-6 48 V56';
+const pairedKeyFirstPatternPath = 'M-12.8 -9.6 C2 -5 5 5 5 15.2 M-16 0 C-4 0 -5 9 -5 15.2';
+const pairedKeySecondPatternPath = 'M12.8 -9.6 C-2 -5 -5 5 -5 15.2 M16 0 C4 0 5 9 5 15.2';
+
 /* Two-lane MPC diagram (wallet page security section): the shares converge
    through a policy gate into one signed output. */
 export function MpcSplitDiagram(): React.JSX.Element {
@@ -421,12 +424,16 @@ export function MpcSplitDiagram(): React.JSX.Element {
       />
       <DrawPath
         className="h2-mpc__share-key-outline"
-        d="M82 86 A13 13 0 0 0 56 86 A13 13 0 0 0 82 86 M82 86 H123 V82 M98 86 V80 M106 86 V82"
+        d={pairedKeyOutlinePath}
+        transform="translate(69 86) rotate(-90) scale(0.875)"
+        vectorEffect="non-scaling-stroke"
         pathLength="1"
       />
       <DrawPath
         className="h2-mpc__share-key-detail"
-        d="M58 80 Q66 80 69 86 M58 92 Q66 92 69 86"
+        d={pairedKeyFirstPatternPath}
+        transform="translate(69 86) rotate(-90) scale(0.875)"
+        vectorEffect="non-scaling-stroke"
         pathLength="1"
       />
 
@@ -444,25 +451,23 @@ export function MpcSplitDiagram(): React.JSX.Element {
       />
       <DrawPath
         className="h2-mpc__share-key-outline"
-        d="M82 86 A13 13 0 0 0 56 86 A13 13 0 0 0 82 86 M82 86 H123 V82 M98 86 V80 M106 86 V82"
-        transform="translate(0 142)"
+        d={pairedKeyOutlinePath}
+        transform="translate(69 228) rotate(-90) scale(0.875)"
+        vectorEffect="non-scaling-stroke"
         pathLength="1"
       />
       <DrawPath
         className="h2-mpc__share-key-detail"
-        d="M80 80 Q72 80 69 86 M80 92 Q72 92 69 86"
-        transform="translate(0 142)"
+        d={pairedKeySecondPatternPath}
+        transform="translate(69 228) rotate(-90) scale(0.875)"
+        vectorEffect="non-scaling-stroke"
         pathLength="1"
       />
 
-      {/* The two lanes keep distinct rhythms until their gate terminals. */}
       <DrawCircle className="h2-mpc__terminal" cx="152" cy="86" r="2.5" />
       <DrawCircle className="h2-mpc__terminal" cx="152" cy="228" r="2.5" />
-      <DrawPath className="h2-mpc__flow h2-mpc__flow--device" d="M152 86 C214 86 226 148 268 151" />
-      <DrawPath
-        className="h2-mpc__flow h2-mpc__flow--infrastructure"
-        d="M152 228 C214 228 226 166 268 159"
-      />
+      <DrawPath className="h2-mpc__flow" d="M152 86 C214 86 226 148 268 151" />
+      <DrawPath className="h2-mpc__flow" d="M152 228 C214 228 226 166 268 159" />
       <DrawCircle className="h2-mpc__terminal" cx="268" cy="151" r="2.5" />
       <DrawCircle className="h2-mpc__terminal" cx="268" cy="159" r="2.5" />
 
@@ -506,10 +511,6 @@ export function MpcSplitDiagram(): React.JSX.Element {
   );
 }
 
-/* Split-key visual (home duo card + Embedded Wallets pillar tab): a soft
-   isometric stack of the two key shares with floating labeled chips, resolving
-   into one green signature chip. Reference language: layered-asset cards in
-   the dynamic.xyz style, translated to the site's paper + evergreen palette. */
 export function SplitKeyVisual(): React.JSX.Element {
   return (
     <div
@@ -518,51 +519,16 @@ export function SplitKeyVisual(): React.JSX.Element {
       aria-label="Two key shares — one on the user's device, one on your infrastructure — combine into one signature; neither share signs alone"
     >
       <svg className="h2-splitkey__stack" viewBox="0 0 168 194" aria-hidden>
-        <defs>
-          <linearGradient id="h2sk-slab-a" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#eeebe7" />
-            <stop offset="100%" stopColor="#d3cec7" />
-          </linearGradient>
-          <linearGradient id="h2sk-slab-b" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#dfdad3" />
-            <stop offset="100%" stopColor="#b6b0a7" />
-          </linearGradient>
-          <linearGradient id="h2sk-slab-c" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#c8c2b9" />
-            <stop offset="100%" stopColor="#948d84" />
-          </linearGradient>
-        </defs>
-        {/* each slab: an offset underside that reads as the slab's edge and
-            contact shadow, under a white-outlined sage face. Drawn bottom-up,
-            and the 54u pitch is shorter than the 68u diamond, so each slab
-            overlaps and occludes the tip of the one beneath it */}
-        <path d="M84 122 L152 156 L84 190 L16 156 Z" fill="#7a736b" />
+        {/* Draw slabs bottom-up so each layer occludes the tip beneath it. */}
+        <path className="h2-splitkey__edge" d="M16 148 L84 182 L152 148 V151 L84 185 L16 151 Z" />
         <path
+          className="h2-splitkey__face h2-splitkey__face--base"
           d="M84 114 L152 148 L84 182 L16 148 Z"
-          fill="url(#h2sk-slab-c)"
-          stroke="#ffffff"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-          strokeLinejoin="round"
         />
-        <path d="M84 68 L152 102 L84 136 L16 102 Z" fill="#a29b91" />
-        <path
-          d="M84 60 L152 94 L84 128 L16 94 Z"
-          fill="url(#h2sk-slab-b)"
-          stroke="#ffffff"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-          strokeLinejoin="round"
-        />
-        <path d="M84 14 L152 48 L84 82 L16 48 Z" fill="#c0b9b1" />
-        <path
-          d="M84 6 L152 40 L84 74 L16 40 Z"
-          fill="url(#h2sk-slab-a)"
-          stroke="#ffffff"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-          strokeLinejoin="round"
-        />
+        <path className="h2-splitkey__edge" d="M16 94 L84 128 L152 94 V97 L84 131 L16 97 Z" />
+        <path className="h2-splitkey__face" d="M84 60 L152 94 L84 128 L16 94 Z" />
+        <path className="h2-splitkey__edge" d="M16 40 L84 74 L152 40 V43 L84 77 L16 43 Z" />
+        <path className="h2-splitkey__face" d="M84 6 L152 40 L84 74 L16 40 Z" />
       </svg>
       <div className="h2-splitkey__chips">
         <span className="h2-splitkey__chip">
@@ -1063,33 +1029,24 @@ export function H2Security(): React.JSX.Element {
               Custody and control, engineered in
             </h2>
             <div className="h2-security__item">
-              <h3>
-                <Lock aria-hidden />
-                Non-custodial by design
-              </h3>
+              <h3>Non-custodial by design</h3>
               <p>
                 Signing authority is split between the user&rsquo;s device and your infrastructure.
-                Neither can sign alone, and export always requires a fresh authorized flow.
+                Neither can sign alone. Exporting keys requires fresh authorization.
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>
-                <ShieldCheck aria-hidden />
-                Policy before execution
-              </h3>
+              <h3>Policy checks before execution</h3>
               <p>
-                Approvals, budgets, revocation state, and replay checks run before signatures,
-                payments, or API actions execute for people and agents alike.
+                Approvals, budgets, revocation, and replay checks run before transactions are
+                signed, payments are sent, or API calls are made.
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>
-                <ScrollText aria-hidden />
-                Evidence for every decision
-              </h3>
+              <h3>An audit trail for decisions</h3>
               <p>
-                Allowed, held, or blocked: each decision is attributed to a verified identity and
-                retained in the audit trail.
+                Review which actions were allowed, held, or blocked, with identity and policy
+                context recorded in the audit log.
               </p>
             </div>
           </div>
@@ -1100,130 +1057,137 @@ export function H2Security(): React.JSX.Element {
             >
               <div className="h2-security__grid">
                 <div className="h2-security__cell">
-                  {/* nested isometric cube: dashed hidden edges, faint-filled inner cube */}
                   <LineArt>
-                    <DrawPath
-                      className="h2-lineart__primary"
-                      d="M50 12 L80 27 L80 63 L50 78 L20 63 L20 27 L50 12"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__hidden"
-                      d="M50 12 L50 48 M50 48 L20 63 M50 48 L80 63"
-                    />
-                    <DrawPath
-                      className="h2-lineart__share"
-                      d="M50 36 L63 42.5 L63 58 L50 64.5 L37 58 L37 42.5 L50 36"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__secondary"
-                      d="M37 42.5 L50 49 L63 42.5 M50 49 L50 64.5"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__secondary"
-                      d="M20 27 L50 42 L80 27 M50 42 L50 78"
-                      pathLength="1"
-                    />
+                    <g strokeLinecap="round" strokeLinejoin="round">
+                      <DrawPath
+                        className="h2-lineart__primary"
+                        d="M50 13 L80 30 V64 L50 81 L20 64 V30 Z"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__hidden"
+                        d="M50 13 V34 M20 64 L38 53.8 M62 53.8 L80 64"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d="M20 30 L38 40.2 M62 40.2 L80 30 M50 62 V81"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__share"
+                        d="M50 34 L62 41 V55 L50 62 L38 55 V41 Z"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d="M38 41 L50 48 L62 41 M50 48 V62"
+                        pathLength="1"
+                      />
+                    </g>
                     <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="12" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="20" cy="27" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="80" cy="27" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="20" cy="63" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="80" cy="63" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="78" r="1.6" />
+                      <DrawCircle className="h2-lineart__marker" cx="50" cy="13" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="20" cy="30" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="80" cy="30" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="20" cy="64" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="80" cy="64" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="50" cy="81" r="1.4" />
                     </g>
                   </LineArt>
                   <span>Split-key custody</span>
                 </div>
                 <div className="h2-security__cell">
-                  {/* double-outline shield on a dotted axis */}
                   <LineArt>
-                    <DrawPath className="h2-lineart__guide" d="M50 4 V96" />
-                    <DrawPath
-                      className="h2-lineart__primary"
-                      d="M50 12 L81 22 V48 C81 66 68 78 50 86 C32 78 19 66 19 48 V22 L50 12"
-                      fill="var(--h2-bg)"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__hidden"
-                      d="M50 20 L74 28 V48 C74 61 64 71 50 77 C36 71 26 61 26 48 V28 L50 20"
-                    />
-                    <DrawPath
-                      className="h2-lineart__accent"
-                      d="M38 48 L47 57 L63 39"
-                      pathLength="1"
-                    />
+                    <DrawPath className="h2-lineart__guide" d="M50 7 V14 M50 84 V91" />
+                    <g strokeLinecap="round" strokeLinejoin="round">
+                      <DrawPath
+                        className="h2-lineart__primary"
+                        d="M50 14 L79 24 V46 C79 64 67 76 50 84 C33 76 21 64 21 46 V24 Z"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__hidden"
+                        d="M50 22 L72 30 V46 C72 59 63 69 50 76 C37 69 28 59 28 46 V30 Z"
+                      />
+                      <DrawPath
+                        className="h2-lineart__accent"
+                        d="M39 48 L47 56 L62 40"
+                        pathLength="1"
+                      />
+                    </g>
                     <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="12" r="1.6" />
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="86" r="1.6" />
+                      <DrawCircle className="h2-lineart__marker" cx="50" cy="14" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="50" cy="84" r="1.4" />
                     </g>
                   </LineArt>
                   <span>Policy engine</span>
                 </div>
                 <div className="h2-security__cell">
-                  {/* technical key: concentric head, construction circle + crosshair */}
                   <LineArt>
-                    <DrawPath className="h2-lineart__guide" d="M36 8 V68 M6 38 H66" />
-                    <DrawCircle className="h2-lineart__hidden" cx="36" cy="38" r="22" />
-                    <DrawCircle
-                      className="h2-lineart__primary"
-                      cx="36"
-                      cy="38"
-                      r="15"
-                      fill="var(--h2-bg)"
-                      pathLength="1"
-                    />
-                    <DrawCircle
-                      className="h2-lineart__secondary"
-                      cx="36"
-                      cy="38"
-                      r="8"
-                      pathLength="1"
-                    />
                     <DrawPath
-                      className="h2-lineart__primary"
-                      d="M47 49 L82 84 M62 64 L71 55 M71 73 L80 64"
-                      pathLength="1"
+                      className="h2-lineart__guide"
+                      d="M36 8 V15 M36 61 V68 M6 38 H13 M59 38 H66"
                     />
+                    <DrawCircle className="h2-lineart__hidden" cx="36" cy="38" r="23" />
+                    <g
+                      transform="translate(36 38) rotate(-45)"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <DrawPath
+                        className="h2-lineart__primary"
+                        d={pairedKeyOutlinePath}
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d={pairedKeyFirstPatternPath}
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d={pairedKeySecondPatternPath}
+                        pathLength="1"
+                      />
+                    </g>
                     <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="36" cy="16" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="14" cy="38" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="58" cy="38" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="36" cy="15" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="13" cy="38" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="59" cy="38" r="1.4" />
                     </g>
                   </LineArt>
                   <span>Scoped credentials</span>
                 </div>
                 <div className="h2-security__cell">
-                  {/* layered ledger: offset sheets with dashed projection guides */}
                   <LineArt>
-                    <DrawPath
-                      className="h2-lineart__secondary"
-                      d="M34 10 H78 V74 H34 V10"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__guide"
-                      d="M34 10 L24 24 M78 10 L68 24 M78 74 L68 88 M34 74 L24 88"
-                    />
-                    <DrawPath
-                      className="h2-lineart__primary"
-                      d="M24 24 H68 V88 H24 V24"
-                      fill="var(--h2-bg)"
-                      pathLength="1"
-                    />
-                    <DrawPath
-                      className="h2-lineart__secondary"
-                      d="M34 40 H60 M34 49 H60 M34 58 H60 M34 67 H50"
-                      pathLength="1"
-                    />
+                    <g strokeLinecap="round" strokeLinejoin="round">
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d="M32 24 V14 H76 V76 H68"
+                        pathLength="1"
+                      />
+                      <DrawPath className="h2-lineart__guide" d="M32 14 L24 24 M76 76 L68 86" />
+                      <DrawPath
+                        className="h2-lineart__primary"
+                        d="M24 24 H55 L68 37 V86 H24 Z"
+                        fill="var(--h2-bg)"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d="M55 24 V37 H68 M31 35 H44"
+                        pathLength="1"
+                      />
+                      <DrawPath
+                        className="h2-lineart__secondary"
+                        d="M37 45 H59 M37 55 H55 M37 65 H59 M37 75 H50"
+                        pathLength="1"
+                      />
+                    </g>
                     <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="29" cy="40" r="1.3" />
-                      <DrawCircle className="h2-lineart__marker" cx="29" cy="49" r="1.3" />
-                      <DrawCircle className="h2-lineart__marker" cx="29" cy="58" r="1.3" />
-                      <DrawCircle className="h2-lineart__marker" cx="29" cy="67" r="1.3" />
+                      <DrawCircle className="h2-lineart__marker" cx="30" cy="45" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="30" cy="55" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="30" cy="65" r="1.4" />
+                      <DrawCircle className="h2-lineart__marker" cx="30" cy="75" r="1.4" />
                     </g>
                   </LineArt>
                   <span>Audit log</span>

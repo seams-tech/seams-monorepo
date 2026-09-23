@@ -38,7 +38,6 @@ const allowedTypesTsFiles = new Set([
   'packages/wallet/src/core/signingEngine/uiConfirm/ui/lit-components/TxTree/renderers/types.ts',
   'packages/wallet/src/react/components/AccountMenuButton/types.ts',
   'packages/wallet/src/react/components/HostedSeamsAuthMenu/types.ts',
-  'packages/wallet/src/react/components/SeamsAuthMenu/types.ts',
   'packages/wallet/src/react/types.ts',
   'tests/setup/types.ts',
 ]);

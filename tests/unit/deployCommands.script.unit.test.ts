@@ -20,6 +20,7 @@ import {
 import {
   buildFrontendEnvironment,
   walletManifestMatchesPackageVersion,
+  walletSettingsApplicationIsReady,
 } from '../../scripts/deploy-surface.mjs';
 import { readBackendLane, readFrontendSite } from '../../scripts/deployment-targets.mjs';
 
@@ -1015,4 +1016,20 @@ test('frontend workflows contain one environment-bound deployment job', () => {
       expect(workflowSource).toContain('CF_PAGES_PROJECT_WALLET_MAINNET:');
     }
   }
+});
+
+test('wallet-host smoke requires the full settings application rather than iframe HTML', async () => {
+  const application = new Response(
+    '<title>Seams Wallet Settings</title><script type="module" src="/assets/main-123.js"></script>',
+  );
+  expect(await walletSettingsApplicationIsReady(application)).toBe(true);
+  expect(
+    await walletSettingsApplicationIsReady(new Response('<title>Web3Authn Wallet Service</title>')),
+  ).toBe(false);
+  expect(
+    await walletSettingsApplicationIsReady(new Response('<title>Seams Wallet Settings</title>')),
+  ).toBe(false);
+  expect(await walletSettingsApplicationIsReady(new Response('Unavailable', { status: 503 }))).toBe(
+    false,
+  );
 });

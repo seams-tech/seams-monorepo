@@ -59,7 +59,7 @@ export function ChainSigningSection(props: ChainSigningSectionProps) {
     <div className="action-section">
       <h2 className="demo-subtitle">{props.heading}</h2>
 
-      {/* segmented control matching the SeamsAuthMenu seg: track + sliding pill */}
+      {/* segmented control matching the hosted auth menu seg: track + sliding pill */}
       <div
         className="demo-chain-seg"
         role="tablist"

@@ -147,7 +147,7 @@ test.describe('UserConfirm worker router', () => {
           walletLabel: 'alice.testnet',
           signerSlot: 1,
         });
-        const confirmer = document.querySelector('w3a-tx-confirmer') as any;
+        const confirmer = document.querySelector('seams-tx-confirmer') as any;
         const mounted = confirmer
           ? {
               title: confirmer.title,
@@ -161,7 +161,7 @@ test.describe('UserConfirm worker router', () => {
         manager.closeRegistrationPreparationModal();
         return {
           mounted,
-          remainingConfirmers: document.querySelectorAll('w3a-tx-confirmer').length,
+          remainingConfirmers: document.querySelectorAll('seams-tx-confirmer').length,
         };
       },
       { paths: IMPORT_PATHS },

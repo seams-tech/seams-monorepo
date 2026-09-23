@@ -34,7 +34,7 @@ async function openDialog(
   // the test ESM route already serves; the dialog then styles itself exactly as
   // it does in the wallet iframe.
   await page.evaluate((base) => {
-    (window as unknown as { __W3A_WALLET_SDK_BASE__?: string }).__W3A_WALLET_SDK_BASE__ = base;
+    (window as unknown as { __SEAMS_WALLET_SDK_BASE__?: string }).__SEAMS_WALLET_SDK_BASE__ = base;
   }, `${SDK_ESM_BASE_PATH}/sdk/`);
   if (options.suspendAnimationFrame) {
     await page.evaluate(() => {
@@ -73,7 +73,7 @@ async function openAccountMenuRecoveryDialog(page: Page): Promise<void> {
   await page.goto('/');
   await injectImportMap(page);
   await page.evaluate((base) => {
-    (window as unknown as { __W3A_WALLET_SDK_BASE__?: string }).__W3A_WALLET_SDK_BASE__ = base;
+    (window as unknown as { __SEAMS_WALLET_SDK_BASE__?: string }).__SEAMS_WALLET_SDK_BASE__ = base;
   }, `${SDK_ESM_BASE_PATH}/sdk/`);
   await page.evaluate(
     async ({ moduleUrl, backupRequest }) => {
@@ -133,11 +133,11 @@ test('account-menu recovery codes use one Lit dialog for summary, opening, and c
   page,
 }) => {
   await openAccountMenuRecoveryDialog(page);
-  const dialog = page.locator('[data-w3a-wallet-recovery-backup-dialog]');
-  const viewer = dialog.locator('w3a-recovery-code-backup-viewer');
+  const dialog = page.locator('[data-seams-wallet-recovery-backup-dialog]');
+  const viewer = dialog.locator('seams-recovery-code-backup-viewer');
 
   await expect(dialog).toHaveCount(1);
-  await expect(dialog).toHaveAttribute('data-w3a-recovery-stage', 'summary');
+  await expect(dialog).toHaveAttribute('data-seams-recovery-stage', 'summary');
   await expect(dialog.getByRole('heading', { name: 'Wallet recovery codes' })).toBeVisible();
   await expect(dialog.getByText('Could not load')).toBeVisible();
   const summaryTitle = dialog.getByRole('heading', { name: 'Wallet recovery codes' });
@@ -147,11 +147,11 @@ test('account-menu recovery codes use one Lit dialog for summary, opening, and c
   await page.evaluate(() => {
     (
       window as typeof window & { recoveryDialogAtSummary?: HTMLDialogElement | null }
-    ).recoveryDialogAtSummary = document.querySelector('[data-w3a-wallet-recovery-backup-dialog]');
+    ).recoveryDialogAtSummary = document.querySelector('[data-seams-wallet-recovery-backup-dialog]');
   });
 
   await dialog.getByRole('button', { name: 'View recovery codes' }).click();
-  await expect(dialog).toHaveAttribute('data-w3a-recovery-stage', 'opening');
+  await expect(dialog).toHaveAttribute('data-seams-recovery-stage', 'opening');
   const openingButton = dialog.getByRole('button', { name: 'Opening recovery codes' });
   await expect(openingButton.locator('.recovery-summary-ellipsis')).toHaveAttribute(
     'aria-hidden',
@@ -159,19 +159,19 @@ test('account-menu recovery codes use one Lit dialog for summary, opening, and c
   );
   await expect(openingButton.locator('.recovery-summary-ellipsis > span')).toHaveCount(3);
 
-  await expect(dialog).toHaveAttribute('data-w3a-recovery-stage', 'recovery_codes');
+  await expect(dialog).toHaveAttribute('data-seams-recovery-stage', 'recovery_codes');
   await expect(
     dialog.getByRole('heading', { name: 'Save your wallet recovery codes' }),
   ).toBeFocused();
   await expect(dialog.getByRole('listitem')).toHaveCount(10);
-  await expect(viewer).toHaveCSS('animation-name', 'w3a-recovery-codes-content-in');
+  await expect(viewer).toHaveCSS('animation-name', 'seams-recovery-codes-content-in');
   await page.waitForTimeout(250);
   const recoveryCodesBox = await dialog.boundingBox();
   const sameDialog = await page.evaluate(() => {
     const initial = (
       window as typeof window & { recoveryDialogAtSummary?: HTMLDialogElement | null }
     ).recoveryDialogAtSummary;
-    return initial === document.querySelector('[data-w3a-wallet-recovery-backup-dialog]');
+    return initial === document.querySelector('[data-seams-wallet-recovery-backup-dialog]');
   });
 
   expect(sameDialog).toBe(true);
@@ -186,7 +186,7 @@ test('wallet recovery backup completes only through the acknowledged close contr
   page,
 }) => {
   await openDialog(page);
-  const dialog = page.locator('[data-w3a-wallet-recovery-backup-dialog]');
+  const dialog = page.locator('[data-seams-wallet-recovery-backup-dialog]');
   await expect(dialog).toBeVisible();
   await expect(
     dialog.getByRole('heading', { name: 'Save your wallet recovery codes' }),
@@ -232,7 +232,7 @@ test('wallet recovery backup starts at the top with reachable actions and is key
 test('copying the codes crossfades the copy icon to a check', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await openDialog(page);
-  const dialog = page.locator('[data-w3a-wallet-recovery-backup-dialog]');
+  const dialog = page.locator('[data-seams-wallet-recovery-backup-dialog]');
   const copyButton = dialog.getByRole('button', { name: 'Copy codes' });
   const copyIcon = copyButton.locator('.copy-icon');
   await expect(copyIcon).toHaveCount(1);

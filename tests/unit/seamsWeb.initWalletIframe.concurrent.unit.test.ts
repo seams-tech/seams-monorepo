@@ -240,7 +240,7 @@ test.describe('SeamsWeb.initWalletIframe', () => {
   });
 
   test('does not mount multiple wallet iframes on concurrent init', async ({ page }) => {
-    await page.locator('iframe.w3a-wallet-overlay').evaluateAll(removeWalletOverlayElements);
+    await page.locator('iframe.seams-wallet-overlay').evaluateAll(removeWalletOverlayElements);
 
     const result = await page.evaluate(
       async ({ walletOrigin }) => {
@@ -299,7 +299,7 @@ test.describe('SeamsWeb.initWalletIframe', () => {
         return {
           ok: out.ok,
           error: (out as any).error,
-          iframeCount: document.querySelectorAll('iframe.w3a-wallet-overlay').length,
+          iframeCount: document.querySelectorAll('iframe.seams-wallet-overlay').length,
           routerReady: await waitUntilReady(pm),
         };
       },
@@ -311,7 +311,7 @@ test.describe('SeamsWeb.initWalletIframe', () => {
   });
 
   test('does not construct app-origin workers during iframe-mode warmup', async ({ page }) => {
-    await page.locator('iframe.w3a-wallet-overlay').evaluateAll(removeWalletOverlayElements);
+    await page.locator('iframe.seams-wallet-overlay').evaluateAll(removeWalletOverlayElements);
 
     const result = await page.evaluate(
       async ({ walletOrigin }) => {
@@ -345,7 +345,7 @@ test.describe('SeamsWeb.initWalletIframe', () => {
 
           return {
             workerCreations,
-            iframeCount: document.querySelectorAll('iframe.w3a-wallet-overlay').length,
+            iframeCount: document.querySelectorAll('iframe.seams-wallet-overlay').length,
             routerReady: pm.isWalletIframeReady?.() === true,
           };
         } finally {

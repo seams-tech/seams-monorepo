@@ -18,10 +18,7 @@ import {
   listD1MigrationFiles,
   SqliteCliD1PreparedStatement,
 } from '../helpers/sqliteD1';
-import type {
-  D1DatabaseLike,
-  D1PreparedStatementLike,
-} from '../../packages/wallet-server/src/storage/tenantRoute';
+import type { D1DatabaseLike, D1PreparedStatementLike } from '@seams/wallet-server/cloud-host';
 
 class RejectingOrganizationEmailBatchDatabase implements D1DatabaseLike {
   readonly batches: string[][] = [];

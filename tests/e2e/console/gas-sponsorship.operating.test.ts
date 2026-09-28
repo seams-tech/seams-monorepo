@@ -2,7 +2,7 @@ import { expect, test } from './harness';
 
 test('NEAR gas policy preserves case-sensitive methods through edit and publication', async ({
   console,
-}) => {
+}, testInfo) => {
   await console.provisionCompletedTenant();
   const { page, api, tenant } = console;
   const name = `Case-sensitive NEAR ${tenant.orgId}`;
@@ -68,4 +68,38 @@ test('NEAR gas policy preserves case-sensitive methods through edit and publicat
       },
     },
   });
+
+  await page.goto('/dashboard/audit');
+  await page.getByLabel('Search events').fill(name);
+  const publicationRow = page
+    .getByRole('row')
+    .filter({ hasText: 'Published policy' })
+    .filter({ hasText: name });
+  await publicationRow.getByRole('button', { name: /^View/ }).click();
+  const policyLink = page.getByRole('link', { name, exact: true }).first();
+  await expect(policyLink).toHaveAttribute('href', /\/dashboard\/gas-sponsorship\?policyId=/);
+  await policyLink.click();
+  await expect(page).toHaveURL(/\/dashboard\/gas-sponsorship\?policyId=/);
+  const coverage = page.getByRole('dialog', { name: 'View gas sponsorship coverage modal' });
+  await expect(coverage).toContainText(name);
+  await expect(coverage).toContainText('guest-book.testnet');
+  await expect(coverage).toContainText('addMessage');
+  await expect(coverage).toContainText('addmessage');
+  await page.reload();
+  await expect(coverage).toContainText(name);
+  await expect(coverage).toContainText('guest-book.testnet');
+  await testInfo.attach('audit-gas-policy-coverage', {
+    body: await coverage.screenshot(),
+    contentType: 'image/png',
+  });
+  await testInfo.attach('published-runtime-snapshot', {
+    body: JSON.stringify(snapshot, null, 2),
+    contentType: 'application/json',
+  });
+  await coverage.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(coverage).toBeHidden();
+  await expect(page).toHaveURL(/\/dashboard\/gas-sponsorship$/);
+  await page.reload();
+  await expect(page.getByRole('row').filter({ hasText: name })).toBeVisible();
+  await expect(coverage).toBeHidden();
 });

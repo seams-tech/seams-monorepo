@@ -9,6 +9,46 @@ downstream effects.
 Local source inspection used commit `351e46c` on `dev`. The deployed commit was not
 determined. No application code or deployment was changed during this review.
 
+## Fix implementation — 2026-09-28
+
+The follow-up fixes are implemented locally; deployment and a live browser recheck
+are still pending.
+
+- Billing: the generated Console worker configuration now sets `CONSOLE_BASE_URL`
+  to the wallet site origin. Stripe success/cancel returns and browser-facing email
+  links use the frontend; the session issuer retains the API origin.
+- Policy versions: the Cloudflare router now implements the existing
+  `GET /console/policies/:id/versions` contract, with authenticated organization
+  scoping and a structured `policy_not_found` response for missing policies.
+- Audit: policy links use the policy kind to select the transaction or sponsorship
+  workspace. Gas sponsorship consumes `policyId` on navigation and reload, opens
+  coverage details, and clears the deep link when the dialog closes. Unknown policy
+  kinds render without an inferred workspace link.
+
+Extended the three existing billing, policy governance, and gas sponsorship E2E
+journeys without adding test cases. Assertions cover checkout return origin,
+loaded live-version details and review rules, and gas audit navigation through
+reload and close. Successful runs attach receipt, screenshot, and runtime-snapshot
+evidence to the Playwright results.
+
+Validation passed: frontend and Wallet Console server TypeScript checks, targeted
+ESLint, frontend production build, Console core import boundaries, and generated
+browser-origin/session-issuer checks for all three deployment lanes. Local config
+evidence: `output/playwright/console-fixes-2026-09-28/deployment-return-origins.json`.
+
+E2E execution is blocked before any test runs: `environment_or_infrastructure_failure`.
+The managed runner rejects an existing `seams-wallet` workerd on `localhost:4100`.
+That process was left running. The three tests pass discovery, but their new browser
+assertions have not yet been executed. Repeat once the managed runtime ports are
+available:
+
+```sh
+pnpm -C tests test:console \
+  e2e/console/billing-funding-documents.operating.test.ts \
+  e2e/console/policy-governance.operating.test.ts \
+  e2e/console/gas-sponsorship.operating.test.ts
+```
+
 ## Findings
 
 ### 1. Billing checkout returns to a different, unusable console origin

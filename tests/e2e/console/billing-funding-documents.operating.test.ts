@@ -128,7 +128,7 @@ function parseBillingInvoiceListResponse(
 
 test('billing checkout funds a zero-balance account and persists its receipt document', async ({
   console,
-}) => {
+}, testInfo) => {
   const { page, api } = console;
   await console.provisionCompletedTenant();
 
@@ -142,6 +142,7 @@ test('billing checkout funds a zero-balance account and persists its receipt doc
   expect(initialOverview.liveEnvironmentState.toUpperCase()).toBe('BLOCKED');
 
   await page.goto('/dashboard/billing/account');
+  const consoleOrigin = new URL(page.url()).origin;
   const billingPage = page.getByLabel('Billing page');
   await expect(billingPage).toBeVisible();
   const summary = page.getByRole('region', { name: 'Billing account summary metrics' });
@@ -156,6 +157,7 @@ test('billing checkout funds a zero-balance account and persists its receipt doc
   await expect(page).toHaveURL(
     /\/dashboard\/billing\/account\?checkout=success&checkout_session_id=/,
   );
+  expect(new URL(page.url()).origin).toBe(consoleOrigin);
   const checkoutSessionId = requireString(
     new URL(page.url()).searchParams.get('checkout_session_id'),
     'Checkout session id',
@@ -251,6 +253,10 @@ test('billing checkout funds a zero-balance account and persists its receipt doc
   const pdfBody = await pdfResponse.body();
   expect(pdfBody.byteLength).toBeGreaterThan(0);
   expect(pdfBody.subarray(0, 4).toString('ascii')).toBe('%PDF');
+  await testInfo.attach('purchase-receipt', {
+    body: pdfBody,
+    contentType: 'application/pdf',
+  });
 
   await page.reload();
   await expect(page.getByRole('region', { name: 'Billing document detail header' })).toContainText(

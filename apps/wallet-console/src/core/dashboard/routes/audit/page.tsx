@@ -33,6 +33,7 @@ import {
   type DashboardConsoleAuditCategory,
   type DashboardConsoleAuditEvent,
   type DashboardConsoleAuditOutcome,
+  type DashboardConsolePolicyKind,
 } from './consoleAuditApi';
 import { downloadAuditEvents } from './downloadAuditEvents';
 import { AuditActivityChart } from './AuditActivityChart';
@@ -77,6 +78,7 @@ export type AuditApprovalDirectoryEntry = {
   policyId: string | null;
   resourceId: string | null;
   policyName: string | null;
+  policyKind: DashboardConsolePolicyKind | null;
 };
 
 export type AuditApprovalIntegration = {
@@ -84,7 +86,11 @@ export type AuditApprovalIntegration = {
     projectId?: string;
     environmentId?: string;
   }) => Promise<readonly AuditApprovalDirectoryEntry[]>;
-  policyPath: (input: { policyId: string; approvalId?: string }) => string;
+  policyPath: (input: {
+    policyId: string;
+    policyKind: DashboardConsolePolicyKind;
+    approvalId?: string;
+  }) => string;
 };
 
 type AuditLogsPageProps = {
@@ -1173,15 +1179,22 @@ export function AuditLogsPage({ approvalIntegration }: AuditLogsPageProps): Reac
               const linkedPolicyLabel =
                 readFirstText(row.policyName, row.metadata?.policyName, approval?.policyName) ||
                 linkedPolicyId;
+              const linkedPolicyKind = row.policyKind ?? approval?.policyKind ?? null;
               const policyLink =
-                linkedPolicyId && approvalIntegration
-                  ? linkProps(approvalIntegration.policyPath({ policyId: linkedPolicyId }))
-                  : null;
-              const approvalLink =
-                approvalId && linkedPolicyId && approvalIntegration
+                linkedPolicyId && linkedPolicyKind && approvalIntegration
                   ? linkProps(
                       approvalIntegration.policyPath({
                         policyId: linkedPolicyId,
+                        policyKind: linkedPolicyKind,
+                      }),
+                    )
+                  : null;
+              const approvalLink =
+                approvalId && linkedPolicyId && linkedPolicyKind && approvalIntegration
+                  ? linkProps(
+                      approvalIntegration.policyPath({
+                        policyId: linkedPolicyId,
+                        policyKind: linkedPolicyKind,
                         approvalId,
                       }),
                     )

@@ -204,7 +204,7 @@ function findSnapshotAssignment(
 
 test('policy governance publishes an effective runtime snapshot and audit deep link', async ({
   console,
-}) => {
+}, testInfo) => {
   const { page, api, tenant } = console;
   await console.provisionCompletedTenant();
 
@@ -265,6 +265,7 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
     .click();
   await page.getByRole('menuitem', { name: 'Go live', exact: true }).click();
   const publishModal = page.getByRole('dialog', { name: 'Schedule live policy change modal' });
+  await expect(publishModal.getByRole('table', { name: 'Initial live rule set' })).toBeVisible();
   await publishModal.getByRole('button', { name: 'Create approval request', exact: true }).click();
   await expect(publishModal.getByRole('button', { name: 'Approve', exact: true })).toBeVisible();
   await publishModal.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -311,9 +312,15 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   expect(policyHref).toContain(`policyId=${encodeURIComponent(policyId)}`);
   await page.goto(policyHref);
   await expect(page).toHaveURL(/\/dashboard\/policy-engine\?policyId=[^&]+/);
-  await expect(page.getByRole('dialog', { name: 'Policy details modal' })).toContainText(
-    policyName,
-  );
+  const detailsModal = page.getByRole('dialog', { name: 'Policy details modal' });
+  await expect(detailsModal).toContainText(policyName);
+  await expect(
+    detailsModal.getByText(new RegExp(`^v${snapshotPolicy.version} published `)),
+  ).toBeVisible();
+  await testInfo.attach('published-policy-details', {
+    body: await detailsModal.screenshot(),
+    contentType: 'image/png',
+  });
   await page.waitForLoadState('networkidle');
   await page.goto('/dashboard/policy-engine');
   const publishedRow = page.getByRole('row').filter({ hasText: policyName });
@@ -324,9 +331,11 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   await expect(deleteModal).toBeHidden();
   await expect(publishedRow).toHaveCount(0);
   const afterDeletion = await readConsoleSuccess(
-    await api.get(`/console/runtime-snapshots/latest?environmentId=${encodeURIComponent(tenant.environmentId)}&projectId=${encodeURIComponent(tenant.projectId)}`),
-    'Runtime snapshot after deletion', parseRuntimeSnapshotResponse,
+    await api.get(
+      `/console/runtime-snapshots/latest?environmentId=${encodeURIComponent(tenant.environmentId)}&projectId=${encodeURIComponent(tenant.projectId)}`,
+    ),
+    'Runtime snapshot after deletion',
+    parseRuntimeSnapshotResponse,
   );
   expect(afterDeletion.policies.map(readSnapshotPolicyId)).not.toContain(policyId);
-
 });

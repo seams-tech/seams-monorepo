@@ -1,9 +1,10 @@
-import { expect, test } from './harness';
+import type { TestInfo } from '@playwright/test';
+import { expect, type ConsoleOperatingHarness } from './harness';
 
-test('NEAR gas policy preserves case-sensitive methods through edit and publication', async ({
-  console,
-}, testInfo) => {
-  await console.provisionCompletedTenant();
+export async function publishAndVerifyGasPolicy(
+  console: ConsoleOperatingHarness,
+  testInfo: TestInfo,
+): Promise<void> {
   const { page, api, tenant } = console;
   const name = `Case-sensitive NEAR ${tenant.orgId}`;
   const created = await api.post('/console/policies', {
@@ -102,4 +103,4 @@ test('NEAR gas policy preserves case-sensitive methods through edit and publicat
   await page.reload();
   await expect(page.getByRole('row').filter({ hasText: name })).toBeVisible();
   await expect(coverage).toBeHidden();
-});
+}

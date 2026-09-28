@@ -3,7 +3,6 @@ import {
   test as base,
   type APIRequestContext,
   type APIResponse,
-  type Locator,
   type Page,
   type Request,
   type Response,
@@ -67,11 +66,6 @@ export type ConsoleOperatingHarness = {
   readonly diagnostics: ConsoleDiagnostics;
   readonly provisionCompletedTenant: () => Promise<ConsoleTenantResources>;
   readonly readTenantResources: () => Promise<ConsoleTenantResources>;
-};
-
-export type ConsoleDestination = {
-  readonly name: string;
-  readonly pathname: string;
 };
 
 export type ConsoleFixtures = {
@@ -337,44 +331,6 @@ function resolveConsoleApiOrigin(): string {
       process.env.VITE_CONSOLE_BASE_URL,
     DEFAULT_CONSOLE_ORIGIN,
   );
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function collectDestinations(elements: HTMLElement[]): ConsoleDestination[] {
-  const destinations: ConsoleDestination[] = [];
-  const seen = new Set<string>();
-  for (const element of elements) {
-    if (element.getAttribute('aria-disabled') === 'true' || element.tabIndex === -1) continue;
-    const href = element.getAttribute('href');
-    if (!href) continue;
-    const url = new URL(href, document.baseURI);
-    if (!url.pathname.startsWith('/dashboard/') && !url.pathname.startsWith('/platform/')) {
-      continue;
-    }
-    const name = String(element.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!name) continue;
-    const destination = { name, pathname: url.pathname };
-    const key = `${destination.name}:${destination.pathname}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    destinations.push(destination);
-  }
-  return destinations;
-}
-
-export async function readEnabledConsoleDestinations(
-  navigation: Locator,
-): Promise<readonly ConsoleDestination[]> {
-  return await navigation.getByRole('link').evaluateAll(collectDestinations);
-}
-
-export function consoleDestinationUrlPattern(pathname: string): RegExp {
-  return new RegExp(`${escapeRegExp(pathname)}/?$`);
 }
 
 export class ConsoleDiagnostics {

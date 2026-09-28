@@ -1,4 +1,5 @@
-import { expect, readConsoleSuccess, test } from './harness';
+import type { TestInfo } from '@playwright/test';
+import { expect, readConsoleSuccess, type ConsoleOperatingHarness } from './harness';
 
 type BillingOverview = {
   readonly creditBalanceMinor: number;
@@ -126,11 +127,11 @@ function parseBillingInvoiceListResponse(
   return decoded;
 }
 
-test('billing checkout funds a zero-balance account and persists its receipt document', async ({
-  console,
-}, testInfo) => {
+export async function fundAccountAndVerifyReceipt(
+  console: ConsoleOperatingHarness,
+  testInfo: TestInfo,
+): Promise<void> {
   const { page, api } = console;
-  await console.provisionCompletedTenant();
 
   const initialOverviewResponse = await api.get('/console/billing/overview');
   const initialOverview = await readConsoleSuccess(
@@ -278,4 +279,4 @@ test('billing checkout funds a zero-balance account and persists its receipt doc
     parseBillingActivityResponse,
   );
   expect(finalActivityEntries).toHaveLength(1);
-});
+}

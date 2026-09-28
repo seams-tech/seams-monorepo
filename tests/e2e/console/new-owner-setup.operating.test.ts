@@ -1,12 +1,15 @@
 import { createHash } from 'node:crypto';
 import { expect, test } from './harness';
+import {
+  verifyAccountAndTeam,
+  verifyCredentialLifecycle,
+  verifyDeploymentStatus,
+} from './owner-administration.journey';
 
 const FULL_PUBLISHABLE_SECRET = /^pk_dev_[A-Za-z0-9]{32}$/;
 
 test.describe('Console operating paths', () => {
-  test('new owner setup creates a publishable key that reveals once and survives reload', async ({
-    console,
-  }, testInfo) => {
+  test('Owner sets up a working team and credential', async ({ console }, testInfo) => {
     const { page, tenant } = console;
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard\/onboarding\/?$/);
@@ -97,6 +100,10 @@ test.describe('Console operating paths', () => {
     expect(createdKey?.environmentId).toBe(resources.environment.id);
     expect(createdKey?.secretPreview.startsWith('pk_')).toBe(true);
     expect(createdKey?.secretPreview).not.toBe(revealedSecret);
+
+    await verifyAccountAndTeam(console, resources.project, testInfo);
+    await verifyDeploymentStatus(console, resources.environment.id, revealedSecret, testInfo);
+    await verifyCredentialLifecycle(console, keyName, revealedSecret, testInfo);
 
     await testInfo.attach('console-new-owner-evidence.json', {
       body: Buffer.from(

@@ -43,10 +43,7 @@ assertions have not yet been executed. Repeat once the managed runtime ports are
 available:
 
 ```sh
-pnpm -C tests test:console \
-  e2e/console/billing-funding-documents.operating.test.ts \
-  e2e/console/policy-governance.operating.test.ts \
-  e2e/console/gas-sponsorship.operating.test.ts
+pnpm -C tests test:console --grep 'Owner funds and governs a sponsored operation'
 ```
 
 ## Findings

@@ -1,4 +1,5 @@
-import { expect, readConsoleSuccess, test } from './harness';
+import type { TestInfo } from '@playwright/test';
+import { expect, readConsoleSuccess, type ConsoleOperatingHarness } from './harness';
 
 type PolicySummary = {
   readonly id: string;
@@ -202,11 +203,11 @@ function findSnapshotAssignment(
   return assignment;
 }
 
-test('policy governance publishes an effective runtime snapshot and audit deep link', async ({
-  console,
-}, testInfo) => {
+export async function publishAndVerifyTransactionPolicy(
+  console: ConsoleOperatingHarness,
+  testInfo: TestInfo,
+): Promise<void> {
   const { page, api, tenant } = console;
-  await console.provisionCompletedTenant();
 
   const policyName = `Operating policy ${tenant.orgId}`;
   await page.goto('/dashboard/policy-engine');
@@ -237,11 +238,16 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   await policyRow.getByRole('button', { name: `More actions for ${policyName}` }).click();
   await page.getByRole('menuitem', { name: 'Simulate', exact: true }).click();
   const simulateModal = page.getByRole('dialog', { name: 'Simulate policy modal' });
-  await simulateModal.getByLabel('Action').selectOption('transfer');
-  await simulateModal.getByLabel('Chain').selectOption('Ethereum');
+  await simulateModal.getByLabel('Action').selectOption('contract_call');
+  await simulateModal.getByLabel('Chain').selectOption('NEAR');
+  await simulateModal.getByLabel('Contract address').fill('guest-book.testnet');
+  await simulateModal.getByLabel('Function selector').fill('addMessage');
   await simulateModal.getByLabel('Amount (minor units)').fill('1000');
   await simulateModal.getByRole('button', { name: 'Run simulation', exact: true }).click();
   await expect(simulateModal).toContainText('Decision ALLOW');
+  await simulateModal.getByLabel('Amount (minor units)').fill('6000');
+  await simulateModal.getByRole('button', { name: 'Run simulation', exact: true }).click();
+  await expect(simulateModal).toContainText('Decision DENY');
   await simulateModal.getByRole('button', { name: 'Close', exact: true }).click();
 
   await page
@@ -252,7 +258,7 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   await page.getByRole('menuitem', { name: 'Simulate', exact: true }).click();
   const rejectedSimulation = page.getByRole('dialog', { name: 'Simulate policy modal' });
   await rejectedSimulation.getByLabel('Action').selectOption('delete_key');
-  await rejectedSimulation.getByLabel('Chain').selectOption('Ethereum');
+  await rejectedSimulation.getByLabel('Chain').selectOption('NEAR');
   await rejectedSimulation.getByLabel('Amount (minor units)').fill('1000');
   await rejectedSimulation.getByRole('button', { name: 'Run simulation', exact: true }).click();
   await expect(rejectedSimulation).toContainText('Decision DENY');
@@ -279,6 +285,26 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   const snapshotResponse = await api.get(
     `/console/runtime-snapshots/latest?environmentId=${encodeURIComponent(tenant.environmentId)}&projectId=${encodeURIComponent(tenant.projectId)}`,
   );
+  const combinedSnapshot: unknown = await snapshotResponse.json();
+  expect(combinedSnapshot).toMatchObject({
+    ok: true,
+    snapshot: {
+      payload: {
+        gasSponsorship: {
+          policies: expect.arrayContaining([
+            expect.objectContaining({
+              allowedDelegateActions: expect.arrayContaining([
+                expect.objectContaining({
+                  receiverId: 'guest-book.testnet',
+                  methods: ['addMessage', 'addmessage'],
+                }),
+              ]),
+            }),
+          ]),
+        },
+      },
+    },
+  });
   const snapshot = await readConsoleSuccess(
     snapshotResponse,
     'Latest runtime snapshot',
@@ -296,6 +322,10 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
   const snapshotAssignment = findSnapshotAssignment(snapshot.assignments, policyId);
   expect(snapshotAssignment.scopeType.toUpperCase()).toBe('ENVIRONMENT');
   expect(snapshotAssignment.scopeId).toBe(tenant.environmentId);
+  await testInfo.attach('funded-operation-governance-snapshot', {
+    body: JSON.stringify(combinedSnapshot, null, 2),
+    contentType: 'application/json',
+  });
 
   await page.goto('/dashboard/audit');
   await expect(page.getByLabel('Audit logs page')).toBeVisible();
@@ -338,4 +368,4 @@ test('policy governance publishes an effective runtime snapshot and audit deep l
     parseRuntimeSnapshotResponse,
   );
   expect(afterDeletion.policies.map(readSnapshotPolicyId)).not.toContain(policyId);
-});
+}

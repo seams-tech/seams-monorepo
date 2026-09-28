@@ -614,6 +614,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--dashboard-ink);
   /* Extra bottom padding: the head's card-to-card gap is tight (10px), the
      wordmark wants more air above the switcher stack. The 12px inline padding
      is what centres the mark in the collapsed rail's 40px column (the mark
@@ -624,6 +625,11 @@ textarea {
   padding: 6px 10px 8px;
   text-decoration: none;
   transition: padding var(--dashboard-motion-sidebar) var(--dashboard-ease-layout);
+}
+
+.dashboard-sidebar__brand:is(:hover, :focus-visible),
+.dashboard-mobile-brand:is(:hover, :focus-visible) {
+  color: var(--dashboard-ink);
 }
 
 .dashboard-sidebar__brand-row {
@@ -7824,7 +7830,7 @@ select.dashboard-input {
   .dashboard-mobile-brand {
     display: inline-flex;
     width: fit-content;
-    color: inherit;
+    color: var(--dashboard-ink);
     text-decoration: none;
   }
   .dashboard-mobile-menu-button,

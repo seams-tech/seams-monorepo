@@ -399,7 +399,7 @@ export function DashboardTopbar({
       aria-label="Workspace context"
     >
       <a className="dashboard-mobile-brand" {...homeProps} aria-label="Seams home">
-        <SeamsWordmark height={24} />
+        <SeamsWordmark height={18} />
       </a>
       <div className="dashboard-topbar__lead">
         {!isSidebarExpanded ? (

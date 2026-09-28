@@ -527,7 +527,7 @@ export function DashboardSidebar<Route extends string, GroupKey extends string>(
                 onClick={homeProps.onClick}
                 aria-label="Seams home"
               >
-                <SeamsWordmark height={24} />
+                <SeamsWordmark height={18} />
               </a>
             ) : null}
             {mobile || isSidebarExpanded ? (

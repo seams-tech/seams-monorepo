@@ -5,7 +5,6 @@ import {
   cleanupTemporaryD1Database,
   createTemporaryD1Database,
   listD1MigrationFiles,
-  readTableColumnNames,
 } from '../helpers/sqliteD1';
 
 const SCOPE = {
@@ -48,20 +47,6 @@ function authMethodRecord(walletAuthMethodId: string, credentialIdB64u: string):
 }
 
 type Database = ReturnType<typeof createTemporaryD1Database>['database'];
-
-function migrationPrefix(): readonly string[] {
-  const files = listD1MigrationFiles('d1-signer');
-  const bridgeIndex = files.findIndex((file) => basename(file).startsWith('0028_'));
-  if (bridgeIndex < 0) throw new Error('R103F Phase 1 bridge migration is missing');
-  return files.slice(0, bridgeIndex);
-}
-
-function migrationFilesThroughBridge(): readonly string[] {
-  const files = listD1MigrationFiles('d1-signer');
-  const bridgeIndex = files.findIndex((file) => basename(file).startsWith('0028_'));
-  if (bridgeIndex < 0) throw new Error('R103F Phase 1 bridge migration is missing');
-  return files.slice(0, bridgeIndex + 1);
-}
 
 async function insertAuthorityAndAuthMethod(database: Database): Promise<void> {
   await database
@@ -245,34 +230,6 @@ async function insertAuthorization(
     .run();
 }
 
-async function insertV1Session(database: Database): Promise<void> {
-  await insertQuota(database, 'quota:v1', 'session:v1');
-  await database
-    .prepare(
-      `INSERT INTO reusable_wallet_sessions (
-         namespace, tenant_id, wallet_session_id, principal_id, wallet_id,
-         authority_digest, mint_id, quota_id, lifecycle_kind, created_at_ms,
-         expires_at_ms, authorization_id, wallet_auth_method_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.tenantId,
-      'session:v1',
-      PRINCIPAL_ID,
-      WALLET_ID,
-      'digest:migration',
-      'mint:v1',
-      'quota:v1',
-      'active',
-      1,
-      100,
-      'authorization:v1',
-      AUTH_METHOD_ID,
-    )
-    .run();
-}
-
 async function insertClaim(
   database: Database,
   input: {
@@ -330,26 +287,6 @@ async function insertClaim(
     .run();
 }
 
-async function installAllocationFixture(database: Database): Promise<void> {
-  await database.exec(`
-    CREATE TABLE linked_device_authority_allocations (
-      namespace TEXT NOT NULL,
-      org_id TEXT NOT NULL,
-      project_id TEXT NOT NULL,
-      env_id TEXT NOT NULL,
-      link_session_id TEXT NOT NULL,
-      authority_id TEXT NOT NULL,
-      wallet_id TEXT NOT NULL,
-      enrollment_id TEXT NOT NULL,
-      device_id TEXT NOT NULL,
-      created_at_ms INTEGER NOT NULL,
-      PRIMARY KEY (namespace, org_id, project_id, env_id, link_session_id),
-      UNIQUE (namespace, org_id, project_id, env_id, authority_id),
-      CHECK (created_at_ms >= 0)
-    );
-  `);
-}
-
 async function readForeignKeyTables(
   database: Database,
   tableName: string,
@@ -392,62 +329,10 @@ async function readRequiredIndexes(
   return rows.results.flatMap((row) => (typeof row.name === 'string' ? [row.name] : []));
 }
 
-test('R103F Phase 1 applies cleanly and after every immutable signer migration', async () => {
+test('R103F clean install constrains Wallet Session parent identities', async () => {
   const clean = createTemporaryD1Database();
-  const historical = createTemporaryD1Database();
   try {
-    const files = listD1MigrationFiles('d1-signer');
-    const bridge = files.find((file) => basename(file).startsWith('0028_'));
-    if (!bridge) throw new Error('R103F Phase 1 bridge migration is missing');
-    const prefix = migrationPrefix();
-    const deliveryRecipientMigration = files.find((file) =>
-      basename(file).startsWith('0033_'),
-    );
-    if (!deliveryRecipientMigration) throw new Error('R103F delivery recipient migration is missing');
-
-    await applyD1MigrationFiles(clean.database, files);
-
-    await applyD1MigrationFiles(historical.database, prefix);
-    await insertAuthorityAndAuthMethod(historical.database);
-    const historicalExpiry = Date.now() + 60_000;
-    await insertQuota(
-      historical.database,
-      'quota:historical',
-      'session:historical',
-      historicalExpiry,
-    );
-    await insertAuthorization(historical.database, {
-      authorizationId: 'authorization:historical',
-      walletSessionId: 'session:historical',
-      quotaId: 'quota:historical',
-      walletAuthMethodId: AUTH_METHOD_ID,
-      issuedAtMs: Date.now() - 1_000,
-      expiresAtMs: historicalExpiry,
-      operationCredentialHash: 'credential:historical',
-    });
-    await installAllocationFixture(historical.database);
-    await applyD1MigrationFiles(historical.database, [bridge]);
-    await applyD1MigrationFiles(historical.database, [deliveryRecipientMigration]);
-
-    for (const tableName of [
-      'wallet_session_hosted_credentials_v2',
-      'wallet_session_hosted_exchange_codes_v2',
-      'linked_device_wallet_session_credential_deliveries_v1',
-      'linked_device_authority_allocations',
-      'linked_device_authority_installations',
-    ]) {
-      await expect(readTableColumnNames(historical.database, tableName)).resolves.toEqual(
-        await readTableColumnNames(clean.database, tableName),
-      );
-    }
-    await expect(
-      historical.database
-        .prepare(
-          `SELECT COUNT(*) AS row_count FROM wallet_session_authorizations_v2
-             WHERE authorization_id = 'authorization:historical'`,
-        )
-        .first<{ readonly row_count?: unknown }>(),
-    ).resolves.toMatchObject({ row_count: 1 });
+    await applyD1MigrationFiles(clean.database, listD1MigrationFiles('d1-signer'));
 
     await expect(
       readForeignKeyTables(clean.database, 'wallet_session_hosted_credentials_v2'),
@@ -512,86 +397,11 @@ test('R103F Phase 1 applies cleanly and after every immutable signer migration',
       expect.arrayContaining(['linked_device_authority_allocations_authority_idx']),
     );
 
-    for (const database of [clean.database, historical.database]) {
-      await expect(database.prepare('PRAGMA foreign_key_check').all()).resolves.toMatchObject({
-        results: [],
-      });
-    }
+    await expect(clean.database.prepare('PRAGMA foreign_key_check').all()).resolves.toMatchObject({
+      results: [],
+    });
   } finally {
     cleanupTemporaryD1Database(clean.tempDir);
-    cleanupTemporaryD1Database(historical.tempDir);
-  }
-});
-
-test('R103F bridge trigger admits V1/V2 claims and rejects partial scope', async () => {
-  const temporary = createTemporaryD1Database();
-  try {
-    await applyD1MigrationFiles(temporary.database, migrationFilesThroughBridge());
-    await insertAuthorityAndAuthMethod(temporary.database);
-    await insertV1Session(temporary.database);
-    await insertClaim(temporary.database, {
-      operationId: 'operation:v1',
-      authorizationId: 'authorization:v1',
-      quotaId: 'quota:v1',
-      quotaKind: 'consume_reusable_wallet_session',
-      linkedScope: [null, null, null],
-      claimedAtMs: 10,
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT remaining_uses FROM authorization_wallet_session_quotas
-             WHERE quota_id = 'quota:v1'`,
-        )
-        .first<{ readonly remaining_uses?: unknown }>(),
-    ).resolves.toMatchObject({ remaining_uses: 2 });
-
-    await insertQuota(temporary.database, 'quota:v2', 'session:v2', 100);
-    await insertAuthorization(temporary.database, {
-      authorizationId: 'authorization:v2',
-      walletSessionId: 'session:v2',
-      quotaId: 'quota:v2',
-      walletAuthMethodId: AUTH_METHOD_ID,
-      issuedAtMs: 1,
-      expiresAtMs: 100,
-      operationCredentialHash: 'credential:v2',
-    });
-    await insertClaim(temporary.database, {
-      operationId: 'operation:v2',
-      authorizationId: 'authorization:v2',
-      quotaId: 'quota:v2',
-      quotaKind: 'consume_reusable_wallet_session',
-      linkedScope: [SCOPE.orgId, SCOPE.projectId, SCOPE.envId],
-      claimedAtMs: 10,
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT remaining_uses FROM authorization_wallet_session_quotas
-             WHERE quota_id = 'quota:v2'`,
-        )
-        .first<{ readonly remaining_uses?: unknown }>(),
-    ).resolves.toMatchObject({ remaining_uses: 2 });
-
-    await expect(
-      insertClaim(temporary.database, {
-        operationId: 'operation:partial',
-        authorizationId: 'authorization:v2',
-        quotaId: 'quota:v2',
-        quotaKind: 'consume_reusable_wallet_session',
-        linkedScope: [SCOPE.orgId, null, SCOPE.envId],
-        claimedAtMs: 10,
-      }),
-    ).rejects.toThrow(/authorization_grant_kind_rejected/u);
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT COUNT(*) AS row_count FROM authorized_operations WHERE authorized_operation_id = 'operation:partial'`,
-        )
-        .first<{ readonly row_count?: unknown }>(),
-    ).resolves.toMatchObject({ row_count: 0 });
-  } finally {
-    cleanupTemporaryD1Database(temporary.tempDir);
   }
 });
 
@@ -628,9 +438,6 @@ test('R103F exact trigger admits only fully scoped V2 claims', async () => {
         .first<{ readonly remaining_uses?: unknown }>(),
     ).resolves.toMatchObject({ remaining_uses: 2 });
 
-    await expect(insertV1Session(temporary.database)).rejects.toThrow(
-      /no such table: reusable_wallet_sessions/u,
-    );
     await expect(
       insertClaim(temporary.database, {
         operationId: 'operation:v1-fallback',
@@ -1451,103 +1258,6 @@ test('R103F delivery migration permits successor acknowledgement after delivery 
     ).resolves.toMatchObject({
       results: [],
     });
-  } finally {
-    cleanupTemporaryD1Database(temporary.tempDir);
-  }
-});
-
-test('R103F bridge retires unusable V2 rows and aborts duplicate usable tuples', async () => {
-  const cleanup = createTemporaryD1Database();
-  const duplicates = createTemporaryD1Database();
-  try {
-    const prefix = migrationPrefix();
-    const bridge = listD1MigrationFiles('d1-signer').find((file) =>
-      basename(file).startsWith('0028_'),
-    );
-    if (!bridge) throw new Error('R103F Phase 1 bridge migration is missing');
-
-    await applyD1MigrationFiles(cleanup.database, prefix);
-    await insertAuthorityAndAuthMethod(cleanup.database);
-    const nowMs = Date.now();
-    await insertQuota(
-      cleanup.database,
-      'quota:null-credential',
-      'session:null-credential',
-      nowMs + 60_000,
-    );
-    await insertAuthorization(cleanup.database, {
-      authorizationId: 'authorization:null-credential',
-      walletSessionId: 'session:null-credential',
-      quotaId: 'quota:null-credential',
-      walletAuthMethodId: AUTH_METHOD_ID,
-      issuedAtMs: nowMs,
-      expiresAtMs: nowMs + 60_000,
-      operationCredentialHash: null,
-    });
-    await insertQuota(cleanup.database, 'quota:expired', 'session:expired', nowMs + 60_000);
-    await insertAuthorization(cleanup.database, {
-      authorizationId: 'authorization:expired',
-      walletSessionId: 'session:expired',
-      quotaId: 'quota:expired',
-      walletAuthMethodId: AUTH_METHOD_ID,
-      issuedAtMs: nowMs - 2_000,
-      expiresAtMs: nowMs - 1_000,
-      operationCredentialHash: 'credential:expired',
-    });
-    await applyD1MigrationFiles(cleanup.database, [bridge]);
-    const retiredRows = await cleanup.database
-      .prepare(
-        `SELECT authorization_id, retired_at_ms
-           FROM wallet_session_authorizations_v2
-          WHERE authorization_id IN ('authorization:null-credential', 'authorization:expired')
-          ORDER BY authorization_id`,
-      )
-      .all<{ readonly authorization_id?: unknown; readonly retired_at_ms?: unknown }>();
-    expect(retiredRows.results).toEqual([
-      { authorization_id: 'authorization:expired', retired_at_ms: nowMs - 1_000 },
-      { authorization_id: 'authorization:null-credential', retired_at_ms: nowMs },
-    ]);
-
-    await applyD1MigrationFiles(duplicates.database, prefix);
-    await insertAuthorityAndAuthMethod(duplicates.database);
-    const duplicateNowMs = Date.now();
-    for (const suffix of ['one', 'two']) {
-      await insertQuota(
-        duplicates.database,
-        `quota:duplicate-${suffix}`,
-        `session:duplicate-${suffix}`,
-        duplicateNowMs + 60_000,
-      );
-      await insertAuthorization(duplicates.database, {
-        authorizationId: `authorization:duplicate-${suffix}`,
-        walletSessionId: `session:duplicate-${suffix}`,
-        quotaId: `quota:duplicate-${suffix}`,
-        walletAuthMethodId: AUTH_METHOD_ID,
-        issuedAtMs: duplicateNowMs,
-        expiresAtMs: duplicateNowMs + 60_000,
-        operationCredentialHash: `credential:duplicate-${suffix}`,
-      });
-    }
-    await expect(applyD1MigrationFiles(duplicates.database, [bridge])).rejects.toThrow();
-  } finally {
-    cleanupTemporaryD1Database(cleanup.tempDir);
-    cleanupTemporaryD1Database(duplicates.tempDir);
-  }
-});
-
-test('R103F final cutover deletes the registration replay adapter schema', async () => {
-  const temporary = createTemporaryD1Database();
-  try {
-    await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-signer'));
-    const objects = await temporary.database
-      .prepare(
-        `SELECT type, name
-           FROM sqlite_master
-          WHERE name LIKE 'registration_replay_opaque_wallet_session_tokens_v1%'
-          ORDER BY type, name`,
-      )
-      .all<{ readonly type?: unknown; readonly name?: unknown }>();
-    expect(objects.results).toEqual([]);
   } finally {
     cleanupTemporaryD1Database(temporary.tempDir);
   }

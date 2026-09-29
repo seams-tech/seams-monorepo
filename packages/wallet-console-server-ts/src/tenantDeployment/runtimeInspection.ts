@@ -28,6 +28,29 @@ export interface TenantDeploymentRuntimeInspectorV1 {
   }): Promise<TenantDeploymentRuntimeInspectionV1>;
 }
 
+export function createD1TenantDeploymentRuntimeInspectorV1(options: {
+  readonly database: D1DatabaseLike;
+  readonly now?: () => number;
+}): TenantDeploymentRuntimeInspectorV1 {
+  const now = options.now ?? Date.now;
+  return {
+    async inspect(input) {
+      const [sourceDurableWalletCount, targetDurableWalletCount, inFlightCeremonyCount] =
+        await Promise.all([
+          input.source ? countWallets(options.database, input.source) : Promise.resolve(0),
+          countWallets(options.database, input.target),
+          countInFlightCeremonies(options.database, input.target, now()),
+        ]);
+      return {
+        acknowledgedBindingRevision: input.bindingRevision,
+        sourceDurableWalletCount,
+        targetDurableWalletCount,
+        inFlightCeremonyCount,
+      };
+    },
+  };
+}
+
 type CountRow = D1Row & { readonly count?: unknown };
 
 function json(body: unknown, status = 200): Response {
@@ -139,7 +162,7 @@ export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {
   readonly database: D1DatabaseLike;
   readonly now?: () => number;
 }): (request: Request) => Promise<Response | null> {
-  const now = options.now ?? (() => Date.now());
+  const inspector = createD1TenantDeploymentRuntimeInspectorV1(options);
   return async function handleTenantDeploymentRuntimeInspection(
     request: Request,
   ): Promise<Response | null> {
@@ -149,18 +172,10 @@ export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     const input = parseRequest(await request.json().catch(() => null));
     if (!input) return json({ ok: false, code: 'invalid_body' }, 400);
-    const [sourceDurableWalletCount, targetDurableWalletCount, inFlightCeremonyCount] =
-      await Promise.all([
-        input.source ? countWallets(options.database, input.source) : Promise.resolve(0),
-        countWallets(options.database, input.target),
-        countInFlightCeremonies(options.database, input.target, now()),
-      ]);
+    const inspection = await inspector.inspect(input);
     return json({
       kind: 'tenant_deployment_runtime_inspection_v1',
-      acknowledgedBindingRevision: input.bindingRevision,
-      sourceDurableWalletCount,
-      targetDurableWalletCount,
-      inFlightCeremonyCount,
+      ...inspection,
     });
   };
 }

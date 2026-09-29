@@ -502,6 +502,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     readiness: tenantDeploymentReadiness,
     store: tenantDeploymentStore,
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
+    browserCredential: { kind: 'create_managed_publishable_key' },
   });
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({

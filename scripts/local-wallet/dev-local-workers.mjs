@@ -257,6 +257,7 @@ function prepareD1LocalRouterConfig() {
     outputConfigPath: d1LocalWranglerConfigPath,
     localConsoleProjectId: process.env.SEAMS_LOCAL_CONSOLE_PROJECT_ID,
     localConsoleEnvironmentId: process.env.SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID,
+    localConsolePublishableKey: process.env.SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY,
   });
 }
 

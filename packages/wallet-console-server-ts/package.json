@@ -28,7 +28,7 @@
     "d1:local:dev": "pnpm run d1:local:prepare && pnpm run d1:local:serve",
     "d1:local:serve": "pnpm run d1:local:ensure-wasm && node ./scripts/d1-local-dev.mjs",
     "d1:local:migrate:console": "wrangler d1 migrations apply seams-console --local --persist-to \"${SEAMS_D1_LOCAL_PERSIST_TO:-.wrangler/state/seams-d1}\" --config \"${SEAMS_D1_LOCAL_WRANGLER_CONFIG:-wrangler.d1-local.toml}\"",
-    "d1:local:migrate:wallet": "pnpm exec seams-wallet-server-d1-migrate --config \"${SEAMS_D1_LOCAL_WRANGLER_CONFIG:-wrangler.d1-local.toml}\" --persist-to \"${SEAMS_D1_LOCAL_PERSIST_TO:-.wrangler/state/seams-d1}\"",
+    "d1:local:migrate:wallet": "node ./scripts/d1-local-migrate-wallet.mjs --config \"${SEAMS_D1_LOCAL_WRANGLER_CONFIG:-wrangler.d1-local.toml}\" --persist-to \"${SEAMS_D1_LOCAL_PERSIST_TO:-.wrangler/state/seams-d1}\"",
     "d1:local:prepare": "pnpm run d1:local:migrate:console && pnpm run d1:local:migrate:wallet && pnpm run d1:local:paths",
     "d1:local:paths": "node ./scripts/d1-local-friendly-paths.mjs",
     "d1:local:reset": "node ./scripts/d1-local-reset.mjs",

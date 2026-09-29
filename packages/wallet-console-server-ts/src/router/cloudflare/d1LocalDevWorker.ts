@@ -137,6 +137,21 @@ import { createTenantRootSecurityConsoleRouteV1 } from '../../tenantRootSecurity
 import { createCloudflareCron, type TenantRootRefreshResumptionRunner } from './cron';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams/wallet-server/cloud-host';
 import { decodeTenantRootIdentityWireV1 } from '@seams-internal/wallet-console-shared/tenant-root';
+import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
+import {
+  createD1TenantDeploymentBindingReaderV1,
+  createD1TenantDeploymentServiceV1,
+} from '../../tenantDeployment/d1';
+import { createProductionTenantDeploymentReadinessAdapterV1 } from '../../tenantDeployment/productionReadiness';
+import { createTenantDeploymentReadinessServiceV1 } from '../../tenantDeployment/readiness';
+import {
+  createGatewayTenantDeploymentRegistrationCanaryV1,
+  createTenantDeploymentProvisionerV1,
+  type TenantDeploymentProvisionerV1,
+} from '../../tenantDeployment/provisioning';
+import { createD1TenantDeploymentRuntimeInspectorV1 } from '../../tenantDeployment/runtimeInspection';
+import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
+import type { TenantDeploymentBindingReaderV1 } from '../../tenantDeployment/types';
 
 interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
@@ -148,6 +163,7 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly SEAMS_LOCAL_CONSOLE_ORG_ID: string;
   readonly SEAMS_LOCAL_CONSOLE_PROJECT_ID?: string;
   readonly SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID?: string;
+  readonly SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY?: string;
   readonly SEAMS_LOCAL_RELAYER_ACCOUNT?: string;
   readonly SEAMS_LOCAL_RELAYER_PUBLIC_KEY?: string;
   readonly SEAMS_LOCAL_RELAYER_PRIVATE_KEY?: string;
@@ -249,6 +265,7 @@ const DEFAULT_LOCAL_CONSOLE_WEBHOOK_SECRET_KEY_ID = 'local-console-webhook-k1';
 const DEFAULT_LOCAL_CONSOLE_WEBHOOK_SECRET_KEY = 'seams-local-console-webhook-key!';
 const DEFAULT_LOCAL_ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET = 'dev-router-ab-internal-service-auth';
 const DEFAULT_LOCAL_ROUTER_AB_ROUTER_URL = 'http://127.0.0.1:4100';
+const LOCAL_TENANT_DEPLOYMENT_LANE = 'local-development-testnet';
 // Local D1 handlers are rebuilt per request, so synthetic provider state must outlive one handler.
 const LOCAL_SYNTHETIC_BILLING_PROVIDERS = createDefaultBillingProviderAdapters();
 const LOCAL_ROUTER_AB_CEREMONY_JWKS_PATH = '/.well-known/router-ab-ceremony-jwks.json';
@@ -929,9 +946,43 @@ function createLocalReadyCheck(env: LocalD1DevEnv): () => Promise<void> {
   return readyCheck.check.bind(readyCheck);
 }
 
-async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandler> {
+class LocalTenantDeploymentOnboardingProvisioner implements ConsoleOnboardingEnvironmentProvisioner {
+  private provisioner: TenantDeploymentProvisionerV1 | null = null;
+
+  attach(provisioner: TenantDeploymentProvisionerV1): void {
+    this.provisioner = provisioner;
+  }
+
+  async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
+    if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
+    await this.provisioner.provision({
+      deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
+      environmentId: input.environment.id,
+    });
+  }
+}
+
+type LocalConsoleComposition = {
+  readonly handler: FetchHandler;
+  readonly tenantDeployment: {
+    readonly bindings: TenantDeploymentBindingReaderV1;
+    readonly provisioner: TenantDeploymentProvisionerV1;
+  };
+};
+
+function localConfiguredPublishableKey(env: LocalD1DevEnv): `pk_${string}` | null {
+  const value = normalizeLocalString(env.SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY);
+  if (!value) return null;
+  if (!value.startsWith('pk_') || value.length <= 3) {
+    throw new Error('SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY must be a publishable key');
+  }
+  return `pk_${value.slice(3)}`;
+}
+
+async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalConsoleComposition> {
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const billingProviders = localBillingProviderAdapters(env);
+  const onboardingDeployment = new LocalTenantDeploymentOnboardingProvisioner();
   const bundle = await createCloudflareD1ConsoleServiceBundle({
     bindings: {
       consoleDatabase: env.CONSOLE_DB,
@@ -948,6 +999,7 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
       billingEmailConsoleBaseUrl:
         String(env.CONSOLE_BASE_URL || '').trim() || 'http://localhost:4001',
       webhookSecretCipher: localConsoleWebhookSecretCipher(env),
+      onboardingEnvironmentProvisioner: onboardingDeployment,
     },
   });
   const session = localConsoleSession(env);
@@ -985,7 +1037,7 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
     ),
     audit: createConsoleTenantRootAuditWriterV1({ audit: bundle.audit, actorType: 'USER' }),
   });
-  const tenantRootCreationRoute = createTenantRootCreationConsoleRouteV1({
+  const tenantRootCreation = {
     auth,
     orgProjectEnv: bundle.orgProjectEnv,
     grants: createD1TenantRootCreationGrantServiceV1({
@@ -1002,7 +1054,8 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
       env.TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED,
       'TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED',
     ),
-  });
+  };
+  const tenantRootCreationRoute = createTenantRootCreationConsoleRouteV1(tenantRootCreation);
   const localTenantStepUpStore = createD1TenantRootStepUpStoreV1({
     database: env.CONSOLE_DB,
     namespace: localTenantStorageNamespace(env),
@@ -1010,6 +1063,14 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
   // Rotation and the ceremony that unlocks it are mounted together. The
   // refresh route refuses without fresh step-up, so mounting it alone would
   // make rotation undemonstrable locally.
+  const tenantRootState = createTenantRootSecurityStateReaderV1({
+    router: env.MPC_ROUTER,
+    internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
+    activeRoots: new D1TenantRootActiveLineageResolverV1(
+      env.CONSOLE_DB,
+      localTenantStorageNamespace(env),
+    ),
+  });
   const tenantRootCustody = new TenantRootCustodyWorkerRouteV1({
     backupIntervalMs: 60_000,
     auth,
@@ -1017,14 +1078,7 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
     stepUp: localTenantStepUpStore,
     database: env.CONSOLE_DB,
     namespace: localTenantStorageNamespace(env),
-    state: createTenantRootSecurityStateReaderV1({
-      router: env.MPC_ROUTER,
-      internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
-      activeRoots: new D1TenantRootActiveLineageResolverV1(
-        env.CONSOLE_DB,
-        localTenantStorageNamespace(env),
-      ),
-    }),
+    state: tenantRootState,
     organizationAccess: bundle.organizationAccess,
     audit: createConsoleTenantRootAuditWriterV1({ audit: bundle.audit, actorType: 'USER' }),
     internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
@@ -1091,6 +1145,45 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
         ...scope,
       }),
   });
+  const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
+    database: env.CONSOLE_DB,
+  });
+  const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
+    namespace: localTenantStorageNamespace(env),
+    deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
+    orgProjectEnv: bundle.orgProjectEnv,
+    apiKeys: bundle.apiKeys,
+    policies: bundle.policies,
+    runtimeSnapshots: bundle.runtimeSnapshots,
+    tenantRootState,
+    bindings: tenantDeploymentBindings,
+    walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({ database: env.SIGNER_DB }),
+  });
+  const configuredPublishableKey = localConfiguredPublishableKey(env);
+  const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
+    deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
+    surfaces: {
+      applicationOrigin: 'http://localhost:4001',
+      hostedWalletOrigin: 'https://localhost:4002',
+      gatewayOrigin: 'https://localhost:4101',
+      relyingPartyId: 'localhost',
+    },
+    orgProjectEnv: bundle.orgProjectEnv,
+    apiKeys: bundle.apiKeys,
+    audit: bundle.audit,
+    tenantRootCreation,
+    tenantRootState,
+    candidates: tenantDeploymentReadinessAdapter,
+    readiness: createTenantDeploymentReadinessServiceV1({
+      inspector: tenantDeploymentReadinessAdapter,
+    }),
+    store: createD1TenantDeploymentServiceV1({ database: env.CONSOLE_DB }),
+    canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
+    browserCredential: configuredPublishableKey
+      ? { kind: 'adopt_publishable_key', publishableKey: configuredPublishableKey }
+      : { kind: 'create_managed_publishable_key' },
+  });
+  onboardingDeployment.attach(tenantDeploymentProvisioner);
   const handlerWithTenantRootCreation = createLocalConsoleTenantRootHandler({
     handler,
     tenantRootRoutes: [
@@ -1134,10 +1227,16 @@ async function createLocalConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandl
     orgProjectEnv: bundle.orgProjectEnv,
     corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
   });
-  return attachConsoleRouteSurface(
-    consoleAuthHandler.fetch.bind(consoleAuthHandler),
-    resolveCompleteWalletConsoleRouteSurface(),
-  );
+  return {
+    handler: attachConsoleRouteSurface(
+      consoleAuthHandler.fetch.bind(consoleAuthHandler),
+      resolveCompleteWalletConsoleRouteSurface(),
+    ),
+    tenantDeployment: {
+      bindings: tenantDeploymentBindings,
+      provisioner: tenantDeploymentProvisioner,
+    },
+  };
 }
 
 type LocalConsoleTenantRootHandlerInput = {
@@ -1165,8 +1264,55 @@ async function handleLocalConsoleTenantRoot(
   return await input.handler(request, workerEnv, ctx);
 }
 
-function localConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandler> {
-  return createLocalConsoleHandler(env);
+async function localConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandler> {
+  return (await createLocalConsoleComposition(env)).handler;
+}
+
+async function resolveProvisionedLocalTenantDeployment(env: LocalD1DevEnv) {
+  const composition = await createLocalConsoleComposition(env);
+  let binding = await composition.tenantDeployment.bindings.resolveActiveBinding(
+    LOCAL_TENANT_DEPLOYMENT_LANE,
+  );
+  if (binding) return binding;
+  await composition.tenantDeployment.provisioner.provision({
+    deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
+    environmentId: localConsoleEnvironmentId(env),
+  });
+  binding = await composition.tenantDeployment.bindings.resolveActiveBinding(
+    LOCAL_TENANT_DEPLOYMENT_LANE,
+  );
+  if (!binding) throw new Error('local tenant deployment provisioning did not activate a binding');
+  return binding;
+}
+
+async function handleLocalTenantDeploymentProjection(
+  request: Request,
+  env: LocalD1DevEnv,
+): Promise<Response> {
+  if (request.method !== 'GET') {
+    return new Response(null, { status: 405, headers: { Allow: 'GET' } });
+  }
+  const binding = await resolveProvisionedLocalTenantDeployment(env);
+  return tenantDeploymentPublicProjectionResponseV1({
+    request,
+    binding,
+    maxAgeSeconds: 0,
+  });
+}
+
+async function resolveLocalTenantDeploymentRuntimeEnv(
+  env: LocalD1DevEnv,
+): Promise<LocalD1DevEnv | null> {
+  const bindings = createD1TenantDeploymentBindingReaderV1({ database: env.CONSOLE_DB });
+  const binding = await bindings.resolveActiveBinding(LOCAL_TENANT_DEPLOYMENT_LANE);
+  if (!binding) return null;
+  return {
+    ...env,
+    SEAMS_TENANT_STORAGE_NAMESPACE: binding.tenant.namespace,
+    SEAMS_LOCAL_CONSOLE_ORG_ID: binding.tenant.organizationId,
+    SEAMS_LOCAL_CONSOLE_PROJECT_ID: binding.tenant.projectId,
+    SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID: binding.tenant.environmentId,
+  };
 }
 
 async function createLocalRouterApiHandler(
@@ -2064,12 +2210,25 @@ async function fetch(
   if (request.method === 'GET' && url.pathname === LOCAL_ROUTER_AB_CEREMONY_JWKS_PATH) {
     return localRouterAbCeremonyJwksResponse(env);
   }
+  if (url.pathname === '/.well-known/seams-tenant-deployment.json') {
+    return await handleLocalTenantDeploymentProjection(request, env);
+  }
   if (isConsolePath(url.pathname)) {
     const handler = await localConsoleHandler(env);
     return await handler(request, env, ctx);
   }
   if (isRouterApiPath(url.pathname)) {
-    return await handleLocalRouterApiRequestV1(request, env, ctx, url.pathname);
+    const runtimeEnv = await resolveLocalTenantDeploymentRuntimeEnv(env);
+    if (!runtimeEnv && url.pathname === '/.well-known/webauthn') {
+      return await handleLocalRouterApiRequestV1(request, env, ctx, url.pathname);
+    }
+    if (!runtimeEnv) {
+      return Response.json(
+        { ok: false, code: 'tenant_deployment_unavailable' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    return await handleLocalRouterApiRequestV1(request, runtimeEnv, ctx, url.pathname);
   }
   return jsonResponse(
     {

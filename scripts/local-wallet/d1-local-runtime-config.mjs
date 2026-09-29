@@ -138,6 +138,7 @@ export function prepareRouterAbD1LocalRuntimeConfig(input) {
     requiredScope(input.localConsoleEnvironmentId, 'SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID'),
   );
   runtimeConfig = insertTomlVars(runtimeConfig, {
+    SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY: String(input.localConsolePublishableKey ?? '').trim(),
     TENANT_ROOT_RECOVERY_CERTIFICATES_JSON: tenantRootKeys.recovery.certificatesJson,
     TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID: tenantRootKeys.grantAuthority.keyId,
     TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED: tenantRootKeys.grantAuthority.signingSeedB64u,

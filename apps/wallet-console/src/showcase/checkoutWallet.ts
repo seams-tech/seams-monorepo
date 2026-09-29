@@ -41,6 +41,7 @@ sendExplorerLinksHome(document.body, explorer);
 
 let receipt: TransactionReceiptState = { kind: 'signing' };
 let view: TransactionReceiptView = 'toast';
+let shownView: TransactionReceiptView | null = null;
 let laidOut = false;
 
 function post(message: Record<string, unknown>): void {
@@ -105,7 +106,8 @@ function showReceipt(): void {
     },
     onDismiss: () => post({ type: 'checkout-finished', confirmed: true }),
   });
-  settleReceiptMotion();
+  if (view !== shownView) settleReceiptMorph();
+  shownView = view;
   // The card has already laid out at the new view's width, so its height here
   // is final and the checkout page can resize the dialog in one step.
   post({ type: 'checkout-receipt-view', view, heightCssPx: cardHeight() });
@@ -115,9 +117,9 @@ function showReceipt(): void {
 // new bounds inside this frame. That suits a fixed frame; here the checkout
 // dialog already animates the card as it moves and resizes the frame, so two
 // cards would move on different timings. Finish the surface's scripted motion
-// and leave the dialog's as the only one. CSS animations, such as the progress
-// sweep and spinner, keep running.
-function settleReceiptMotion(): void {
+// and leave the dialog's as the only one. Updates within a view keep their
+// motion, as do CSS animations such as the progress sweep and spinner.
+function settleReceiptMorph(): void {
   for (const animation of handle.element.getAnimations({ subtree: true })) {
     if (animation instanceof CSSAnimation || animation instanceof CSSTransition) continue;
     animation.finish();

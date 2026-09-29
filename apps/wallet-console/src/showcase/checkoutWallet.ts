@@ -12,6 +12,7 @@ import type {
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { checkoutAppearance } from './checkoutAppearance';
 import { playReceiptLifecycle } from './receiptLifecycle';
+import { sendExplorerLinksHome } from './sampleExplorer';
 
 /* The wallet approval that the checkout demo hands off to: the SDK's confirmer
    on sample data, inside the overlay's frame. Confirming plays the receipt as
@@ -34,6 +35,9 @@ const purchase: TxDisplayModel = {
     },
   ],
 };
+
+const explorer = 'https://sepolia.basescan.org/';
+sendExplorerLinksHome(document.body, explorer);
 
 let receipt: TransactionReceiptState = { kind: 'signing' };
 let view: TransactionReceiptView = 'toast';
@@ -63,7 +67,7 @@ function model(): ConfirmSurfaceModel {
       transaction: {
         tree: null,
         theme: 'light',
-        explorers: { near: 'https://testnet.nearblocks.io' },
+        explorers: { near: 'https://testnet.nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: 'Confirm with passkey',
         cancelText: 'Cancel',

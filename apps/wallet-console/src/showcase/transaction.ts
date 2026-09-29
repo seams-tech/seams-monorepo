@@ -13,6 +13,7 @@ import type {
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { paperIframeAppearance } from '@/context/app-themes';
 import { playReceiptLifecycle } from './receiptLifecycle';
+import { sendExplorerLinksHome } from './sampleExplorer';
 
 /* The SDK's transaction confirmer and receipt on sample data. Confirming plays
    a simulated signing and broadcast; nothing is signed or sent. */
@@ -32,7 +33,9 @@ const transfer: TxDisplayModel = {
   totals: { nativeValue: '0.025', nativeSymbol: 'ETH', estimatedFee: '0.000001', feeSymbol: 'ETH' },
 };
 
+const explorer = 'https://basescan.org/';
 const stage = document.getElementById('root') as HTMLElement;
+sendExplorerLinksHome(stage, explorer);
 let handle: ConfirmationSurfaceHandle | null = null;
 let receipt: TransactionReceiptState = { kind: 'signing' };
 let view: TransactionReceiptView = 'expanded';
@@ -58,7 +61,7 @@ function model(): ConfirmSurfaceModel {
       transaction: {
         tree: null,
         theme: 'light',
-        explorers: { near: 'https://testnet.nearblocks.io' },
+        explorers: { near: 'https://nearblocks.io', evm: explorer },
         decision: { kind: 'ready', onConfirm: confirm },
         confirmText: 'Confirm with passkey',
         cancelText: 'Cancel',

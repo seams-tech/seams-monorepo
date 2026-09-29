@@ -1,10 +1,12 @@
 /* Frames embedded in the wallet homepage's showcase. The frame is transparent
-   so the stage behind it shows through, and it leaves scrolling to the page
-   once its own content has none. */
+   so the stage behind it shows through. The SDK's wallet-ui.css stops scroll
+   chaining at the document to keep its modals from bouncing; here the wheel
+   must pass through to the homepage. */
 html,
 body {
   margin: 0;
   background: transparent;
+  overscroll-behavior: auto;
 }
 
 /* One centred column at the confirmer's width. Its long, unbroken hashes

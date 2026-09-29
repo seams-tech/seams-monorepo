@@ -97,6 +97,22 @@
   text-align: center;
 }
 
+/* A light scrim over the sample market instead of the SDK's 26% black. The
+   SDK fades its scrim in with an animation whose end value outranks any plain
+   background rule, so this replaces the animation itself. */
+dialog.seams-wallet-overlay-dialog::backdrop {
+  animation: checkout-scrim-in 180ms ease-out both !important;
+}
+
+@keyframes checkout-scrim-in {
+  from {
+    background: transparent;
+  }
+  to {
+    background: rgba(23, 23, 23, 0.06);
+  }
+}
+
 /* The review panel, portalled into the overlay's review slot. */
 dialog:not([open]) .checkout-review-slot {
   inline-size: min(460px, calc(100vw - 32px));

@@ -1,7 +1,9 @@
+/* Let the wheel pass through to the homepage, as in showcase.css. */
 html,
 body {
   margin: 0;
   background: transparent;
+  overscroll-behavior: auto;
 }
 
 /* Give the approval the review's width, so the handoff only changes the

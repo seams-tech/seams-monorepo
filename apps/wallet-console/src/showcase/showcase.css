@@ -19,7 +19,7 @@ body {
   justify-content: center;
   align-content: center;
   min-height: 100vh;
-  padding: 16px;
+  padding: 8px;
 }
 
 /* The confirmer normally floats over a host page; lift the card off the stage

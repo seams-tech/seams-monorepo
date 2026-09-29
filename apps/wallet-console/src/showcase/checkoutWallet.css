@@ -6,12 +6,16 @@ body {
   overscroll-behavior: auto;
 }
 
-/* Give the approval the review's width, so the handoff only changes the
-   dialog's height and the approval reads at about 4:3. The checkout page
-   sizes the dialog from this measurement. */
+/* The checkout page sends the widths it gives this frame and sizes the
+   frame's height from the card's. Laying the card out at those widths, rather
+   than the frame's current one, keeps it from reflowing while the dialog
+   animates between the toast and the full receipt. */
 .seams-confirmation-surface {
-  inline-size: 460px;
-  max-inline-size: 100%;
+  inline-size: var(--checkout-dialog-width, 100%);
+}
+
+.seams-confirmation-surface[data-receipt-view='toast'] {
+  inline-size: var(--checkout-toast-width, 100%);
 }
 
 /* The container takes opening focus; its controls keep their own rings. */

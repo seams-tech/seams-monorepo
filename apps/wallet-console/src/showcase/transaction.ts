@@ -12,20 +12,10 @@ import type {
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { paperIframeAppearance } from '@/context/app-themes';
+import { playReceiptLifecycle } from './receiptLifecycle';
 
 /* The SDK's transaction confirmer and receipt on sample data. Confirming plays
    a simulated signing and broadcast; nothing is signed or sent. */
-
-const hash = `0x7a4b${'0'.repeat(56)}91c2`;
-
-// Each simulated receipt state, and how long it shows before the next one.
-const lifecycle: readonly (readonly [TransactionReceiptState, number])[] = [
-  [{ kind: 'signing' }, 1100],
-  [{ kind: 'signed' }, 700],
-  [{ kind: 'broadcasting' }, 1200],
-  [{ kind: 'submitted', hash }, 1500],
-  [{ kind: 'confirmed', hash }, 0],
-];
 
 const transfer: TxDisplayModel = {
   chain: 'evm',
@@ -44,9 +34,9 @@ const transfer: TxDisplayModel = {
 
 const stage = document.getElementById('root') as HTMLElement;
 let handle: ConfirmationSurfaceHandle | null = null;
-let receipt: TransactionReceiptState = lifecycle[0][0];
+let receipt: TransactionReceiptState = { kind: 'signing' };
 let view: TransactionReceiptView = 'expanded';
-let timer = 0;
+let stopLifecycle = (): void => {};
 
 function model(): ConfirmSurfaceModel {
   return {
@@ -79,7 +69,7 @@ function model(): ConfirmSurfaceModel {
 }
 
 function review(): void {
-  window.clearTimeout(timer);
+  stopLifecycle();
   handle?.dispose();
   view = 'expanded';
   handle = mountConfirmationSurface({
@@ -91,14 +81,10 @@ function review(): void {
 }
 
 function confirm(): void {
-  play(0);
-}
-
-function play(step: number): void {
-  const [state, durationMs] = lifecycle[step];
-  receipt = state;
-  showReceipt();
-  if (durationMs > 0) timer = window.setTimeout(play, durationMs, step + 1);
+  stopLifecycle = playReceiptLifecycle((state) => {
+    receipt = state;
+    showReceipt();
+  });
 }
 
 function showReceipt(): void {

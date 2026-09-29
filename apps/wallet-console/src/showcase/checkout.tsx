@@ -52,6 +52,7 @@ function Checkout(): React.JSX.Element {
       <button
         className="checkout-buy"
         type="button"
+        disabled={quote !== null}
         onClick={() => {
           setOutcome('');
           setQuote(freshQuote());

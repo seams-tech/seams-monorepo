@@ -80,11 +80,12 @@
   transition: background-color 150ms ease;
 }
 
-.checkout-buy:hover,
-.checkout-review .checkout-confirm:hover {
+.checkout-buy:hover:not(:disabled),
+.checkout-review .checkout-confirm:hover:not(:disabled) {
   background: var(--checkout-accent-hover);
 }
 
+.checkout-buy:disabled,
 .checkout-review .checkout-confirm:disabled {
   opacity: 0.45;
   cursor: default;
@@ -113,9 +114,18 @@ dialog.seams-wallet-overlay-dialog::backdrop {
   }
 }
 
+/* The SDK's quieter card elevation (its sign-in card's) for the dialog shell,
+   which paints the card for both the review and the wallet approval. */
+dialog.seams-wallet-overlay-dialog.is-modal[data-transaction-review] {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 20px rgba(15, 23, 42, 0.1),
+    inset 0 0 0 1px var(--seams-colors-borderPrimary) !important;
+}
+
 /* The review panel, portalled into the overlay's review slot. */
 dialog:not([open]) .checkout-review-slot {
-  inline-size: min(460px, calc(100vw - 32px));
+  inline-size: min(420px, calc(100vw - 32px));
 }
 
 .seams-transaction-review-content.checkout-review {

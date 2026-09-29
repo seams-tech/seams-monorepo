@@ -66,7 +66,7 @@ export class CheckoutSession {
     }
     if (this.phase !== 'review') return;
     this.phase = 'preparing';
-    this.iframe.src = '/showcase/checkout/wallet/';
+    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/`;
   };
 
   readonly cancel = (): void => this.finish('Checkout closed. Nothing was signed or sent.');

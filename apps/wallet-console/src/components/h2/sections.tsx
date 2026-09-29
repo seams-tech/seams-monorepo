@@ -322,8 +322,9 @@ export function H2Networks(): React.JSX.Element {
 
 /* ---------- wallet UI showcase (the SDK's own surfaces on sample data) ---------- */
 
-/* Each frame is a separate page under /showcase that renders the installed
-   SDK release's wallet UI on sample data, so the page shows what ships. */
+/* Each frame is a separate page under showcase/ that renders the installed
+   SDK release's wallet UI on sample data, so the page shows what ships. The
+   pages sit under the app's base path, which is not the site root locally. */
 const showcaseRows = [
   {
     title: 'Transaction confirmer',
@@ -332,7 +333,7 @@ const showcaseRows = [
       { name: 'Plain-language review', detail: 'Amount, recipient, network, fee' },
       { name: 'Live receipt', detail: 'Signed, broadcast, confirmed' },
     ],
-    frame: '/showcase/transaction/',
+    frame: `${import.meta.env.BASE_URL}showcase/transaction/`,
     frameTitle: 'Transaction confirmer demo',
   },
   {
@@ -342,7 +343,7 @@ const showcaseRows = [
       { name: 'Custom review', detail: 'Your React, in the wallet modal' },
       { name: 'One dialog', detail: 'From your review to approval' },
     ],
-    frame: '/showcase/checkout/',
+    frame: `${import.meta.env.BASE_URL}showcase/checkout/`,
     frameTitle: 'Custom review demo',
   },
 ];

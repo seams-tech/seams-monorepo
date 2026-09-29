@@ -320,6 +320,80 @@ export function H2Networks(): React.JSX.Element {
   );
 }
 
+/* ---------- wallet UI showcase (the SDK's own surfaces on sample data) ---------- */
+
+/* Each frame is a separate page under /showcase that renders the installed
+   SDK release's wallet UI on sample data, so the page shows what ships. */
+const showcaseRows = [
+  {
+    title: 'Transaction confirmer',
+    copy: 'Every signature starts with a review your users can read: amount, recipient, network and fee, approved with their passkey. A receipt then follows the transaction until the network confirms it.',
+    notes: [
+      { name: 'Plain-language review', detail: 'Amount, recipient, network, fee' },
+      { name: 'Live receipt', detail: 'Signed, broadcast, confirmed' },
+    ],
+    frame: '/showcase/transaction/',
+    frameTitle: 'Transaction confirmer demo',
+  },
+  {
+    title: 'Your review, then the wallet',
+    copy: 'Render your own checkout inside the wallet modal. When the buyer confirms, the same dialog hands off to the wallet approval, in your brand colors.',
+    notes: [
+      { name: 'Custom review', detail: 'Your React, in the wallet modal' },
+      { name: 'One dialog', detail: 'From your review to approval' },
+    ],
+    frame: '/showcase/checkout/',
+    frameTitle: 'Custom review demo',
+  },
+];
+
+export function H2Showcase(): React.JSX.Element {
+  return (
+    <section
+      className="h2-section h2-section--flush-bottom h2-rule"
+      aria-labelledby="h2-showcase-title"
+    >
+      <div className="h2-shell">
+        <div className="h2-eco__head h2-starthead">
+          <div>
+            <h2 id="h2-showcase-title" className="h2-display h2-eco__title">
+              What your users see when they approve
+            </h2>
+            <p className="h2-eco__copy">
+              These are the wallet&rsquo;s own screens running on sample data. Click through them;
+              nothing is signed or sent.
+            </p>
+          </div>
+        </div>
+      </div>
+      {showcaseRows.map((row) => (
+        <div key={row.frame} className="h2-startrow h2-rule h2-rule--midtick">
+          <div className="h2-shell h2-startrow__grid">
+            <div className="h2-startrow__text">
+              <h3>{row.title}</h3>
+              <p>{row.copy}</p>
+              <div className="h2-startrow__notes">
+                {row.notes.map((note) => (
+                  <div key={note.name}>
+                    <strong>{note.name}</strong>
+                    <span>{note.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <iframe
+              className="h2-showcase__frame"
+              src={row.frame}
+              title={row.frameTitle}
+              loading="lazy"
+            />
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function H2Trusted(): React.JSX.Element {
   return (
     <section className="h2-section h2-rule h2-trusted" aria-labelledby="h2-trusted-title">

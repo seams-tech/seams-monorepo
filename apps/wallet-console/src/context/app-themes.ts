@@ -1,7 +1,8 @@
 import { SHAPE_PRESETS } from '@seams/wallet/react';
-import type { SeamsConfigsInput, ThemeProps, WalletShapeId } from '@seams/wallet/react';
-
-type SdkAppearance = NonNullable<SeamsConfigsInput['appearance']>;
+import type { ThemeProps, WalletShapeId } from '@seams/wallet/react';
+// The resolved appearance the presets build. seams.setAppearance accepts it, and
+// so do the wallet surfaces the homepage showcase mounts directly.
+import type { AppearanceConfig } from '@wallet-ui/core/types/seams';
 
 /* Contained drop shadows — the SDK default shadows.lg overflows the demo cell
    and clips; these keep the card lift within bounds. */
@@ -495,7 +496,7 @@ export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
 }
 
 /** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.setAppearance. */
-export function demoIframeAppearance(preset: DemoThemePreset): SdkAppearance {
+export function demoIframeAppearance(preset: DemoThemePreset): AppearanceConfig {
   return {
     theme: {
       id: preset.id,
@@ -523,6 +524,6 @@ export function paperReactTokens(): ThemeProps['tokens'] {
   };
 }
 
-export function paperIframeAppearance(): SdkAppearance {
+export function paperIframeAppearance(): AppearanceConfig {
   return demoIframeAppearance(DEMO_THEME_PRESETS[0]);
 }

@@ -3514,12 +3514,25 @@ body:has(.h2-page) {
   padding-inline-end: 56px;
 }
 
-.h2-startrow__grid > .h2-code {
+.h2-startrow__grid > .h2-code,
+.h2-startrow__grid > .h2-showcase__frame {
   align-self: stretch;
   margin-inline-start: 16px;
   /* run through the shell's inline padding so the right gap matches the
      1rem clearance on the other sides */
   margin-inline-end: -20px;
+}
+
+/* a wallet demo frame in the code card's place; the tinted stage lets the
+   white wallet cards lift off the row */
+.h2-showcase__frame {
+  display: block;
+  /* a replaced element only fills its grid cell when asked to */
+  justify-self: stretch;
+  min-height: 580px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--h2-taupe);
 }
 
 .h2-startrow__text h3 {
@@ -3871,7 +3884,8 @@ body:has(.h2-page) {
     padding-inline-end: 0;
   }
 
-  .h2-startrow__grid > .h2-code {
+  .h2-startrow__grid > .h2-code,
+  .h2-startrow__grid > .h2-showcase__frame {
     align-self: auto;
     margin-inline-start: 0;
     margin-inline-end: 0;
@@ -3879,6 +3893,13 @@ body:has(.h2-page) {
 
   .h2-starthead {
     padding-bottom: 36px;
+  }
+}
+
+/* phone widths wrap the confirmer's addresses, so its card runs taller */
+@media (max-width: 560px) {
+  .h2-showcase__frame {
+    min-height: 640px;
   }
 }
 

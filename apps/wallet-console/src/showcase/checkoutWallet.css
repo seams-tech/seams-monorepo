@@ -1,0 +1,17 @@
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overscroll-behavior: none;
+}
+
+/* Let the checkout page measure the card rather than this frame's viewport. */
+.seams-confirmation-surface {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+}
+
+/* The container takes opening focus; its controls keep their own rings. */
+.seams-confirmation-modal--hosted:focus {
+  outline: none;
+}

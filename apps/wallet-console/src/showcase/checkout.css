@@ -1,0 +1,264 @@
+/* A sample merchant: its market card and its own review panel. The wallet
+   approval that follows is styled by the SDK. */
+.showcase-stage {
+  color: #30272b;
+  font-family: system-ui, sans-serif;
+}
+
+.checkout-market {
+  display: grid;
+  gap: 14px;
+  width: min(360px, 100%);
+  padding: 22px;
+  border: 1px solid #eadfe0;
+  border-radius: 18px;
+  background: #fffaf8;
+}
+
+.checkout-lot {
+  color: #806d73;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.075em;
+}
+
+.checkout-market h1 {
+  margin: -8px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.checkout-odds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.checkout-odds span {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f6ecec;
+}
+
+.checkout-buy,
+.checkout-summary .checkout-confirm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  color: #fff;
+  background: #852f43;
+  border: 1px solid #852f43;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.checkout-buy:hover,
+.checkout-summary .checkout-confirm:hover {
+  background: #6e2537;
+}
+
+.checkout-outcome {
+  margin: 0;
+  color: #806d73;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* The review panel, portalled into the overlay's review slot. */
+dialog:not([open]) .checkout-review-slot {
+  inline-size: min(440px, calc(100vw - 32px));
+}
+
+.seams-transaction-review-content.checkout-review {
+  padding: 24px;
+  color: #30272b;
+  background: #fffaf8;
+  font-family: system-ui, sans-serif;
+}
+
+.checkout-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #80505b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.checkout-badge {
+  padding: 5px 8px;
+  border: 1px solid #e8d7d8;
+  border-radius: 999px;
+  letter-spacing: 0;
+}
+
+.checkout-review h2 {
+  margin: 16px 0 20px;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.checkout-summary {
+  display: grid;
+  gap: 18px;
+}
+
+.checkout-summary-card {
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: linear-gradient(125deg, #702737, #913b4e);
+  color: #fff8f4;
+  box-shadow: 0 6px 18px rgba(94, 28, 43, 0.12);
+}
+
+.checkout-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.checkout-summary-values {
+  align-items: end;
+  margin-top: 20px;
+}
+
+.checkout-summary-values > div:last-child {
+  text-align: right;
+}
+
+.checkout-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fff3e9;
+  color: #72293a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.checkout-summary-label {
+  display: block;
+  color: #efd1d6;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.checkout-pay,
+.checkout-positions {
+  display: block;
+  margin: 2px 0;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-pay {
+  font-size: 40px;
+}
+
+.checkout-positions {
+  font-size: 26px;
+}
+
+.checkout-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px 8px;
+  margin: 0;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.checkout-details dt {
+  color: #786970;
+}
+
+.checkout-details dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-included {
+  margin-inline-start: 5px;
+  color: #8b3e50;
+  font-size: 10px;
+}
+
+.checkout-expiry {
+  padding-top: 14px;
+  border-top: 1px solid #eadfe0;
+  color: #806d73;
+  font-size: 11px;
+}
+
+.checkout-expiry > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.checkout-expiry strong {
+  color: #823345;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-expiry progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #eddee1;
+  accent-color: #a45d6e;
+}
+
+.checkout-expiry progress::-webkit-progress-bar {
+  background: #eddee1;
+}
+
+.checkout-expiry progress::-webkit-progress-value {
+  background: #a45d6e;
+}
+
+.checkout-expiry progress::-moz-progress-bar {
+  background: #a45d6e;
+}
+
+.checkout-summary .checkout-confirm:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.checkout-summary .checkout-cancel {
+  min-height: 36px;
+  margin-top: -12px;
+  padding: 6px;
+  color: #806d73;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}

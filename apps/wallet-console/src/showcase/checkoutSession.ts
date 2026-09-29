@@ -15,7 +15,8 @@ import {
 type Phase = 'mounting' | 'review' | 'review_again' | 'preparing' | 'approval' | 'closed';
 type Size = { widthCssPx: number; heightCssPx: number };
 
-const reviewWidthCssPx = 440;
+// The wallet approval takes the same width (checkoutWallet.css).
+const reviewWidthCssPx = 460;
 
 /* Drives the SDK's production overlay through a custom review and its handoff
    to the wallet approval. The approval runs in a sample-data frame that has no

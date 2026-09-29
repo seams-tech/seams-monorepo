@@ -42,7 +42,7 @@ function Checkout(): React.JSX.Element {
       <span className="checkout-lot">LOT 542 · OTSUKA LOTEC NO.7.5</span>
       <h1 id="checkout-market-title">Will it sell above its estimate?</h1>
       <div className="checkout-odds">
-        <span>
+        <span className="checkout-yes">
           Yes <strong>52%</strong>
         </span>
         <span>
@@ -85,7 +85,7 @@ function CheckoutReview({
   return createPortal(
     <section className="seams-transaction-review-content checkout-review" ref={session.observe}>
       <div className="checkout-review-heading">
-        <span>01 / Review order</span>
+        <span className="checkout-eyebrow">Review order</span>
         <span className="checkout-badge">Sample data</span>
       </div>
       <h2>Review purchase</h2>
@@ -111,23 +111,23 @@ function PurchaseSummary({
 }): React.JSX.Element {
   const seconds = useSecondsUntil(quote.expiresAtMs);
   return (
-    <div className="checkout-summary">
+    <>
       <div className="checkout-summary-card">
         <div className="checkout-summary-row">
           <span className="checkout-side">
             Buy Yes <span aria-hidden="true">↗</span>
           </span>
-          <span className="checkout-summary-label">Prediction market</span>
+          <span className="checkout-market-name">Lot 542 · Otsuka Lotec No.7.5</span>
         </div>
         <div className="checkout-summary-row checkout-summary-values">
           <div>
             <span className="checkout-summary-label">You pay</span>
-            <strong className="checkout-pay">{quote.pay}</strong>
+            <strong className="checkout-amount">{quote.pay}</strong>
             <span className="checkout-summary-label">test units</span>
           </div>
           <div>
             <span className="checkout-summary-label">You receive</span>
-            <strong className="checkout-positions">{quote.positions}</strong>
+            <strong className="checkout-amount">{quote.positions}</strong>
             <span className="checkout-summary-label">Yes positions</span>
           </div>
         </div>
@@ -149,19 +149,21 @@ function PurchaseSummary({
         </div>
         <progress aria-label="Quote time remaining" max={quoteLifetimeSeconds} value={seconds} />
       </div>
-      <button
-        className="checkout-confirm"
-        type="button"
-        disabled={seconds === 0}
-        onClick={controls.continueToWallet}
-      >
-        <span>Confirm in wallet</span>
-        <span aria-hidden="true">→</span>
-      </button>
-      <button className="checkout-cancel" type="button" onClick={controls.cancel}>
-        Back to market
-      </button>
-    </div>
+      <div className="checkout-actions">
+        <button
+          className="checkout-confirm"
+          type="button"
+          disabled={seconds === 0}
+          onClick={controls.continueToWallet}
+        >
+          <span>Confirm in wallet</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <button className="checkout-cancel" type="button" onClick={controls.cancel}>
+          Back to market
+        </button>
+      </div>
+    </>
   );
 }
 

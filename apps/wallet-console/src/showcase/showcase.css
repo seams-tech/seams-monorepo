@@ -1,16 +1,21 @@
-/* Frames embedded in the wallet homepage's showcase rows. The frame is
-   transparent so the row's stage shows through, and centres its surface. */
+/* Frames embedded in the wallet homepage's showcase. The frame is transparent
+   so the stage behind it shows through, and it leaves scrolling to the page
+   once its own content has none. */
 html,
 body {
   margin: 0;
   background: transparent;
-  overscroll-behavior: none;
 }
 
+/* One centred column at the confirmer's width. Its long, unbroken hashes
+   would otherwise widen the surface's wrapper past the card and push the
+   card to the left edge. */
 .showcase-stage {
   box-sizing: border-box;
   display: grid;
-  place-items: center;
+  grid-template-columns: minmax(0, 420px);
+  justify-content: center;
+  align-content: center;
   min-height: 100vh;
   padding: 16px;
 }
@@ -18,7 +23,6 @@ body {
 /* The confirmer normally floats over a host page; lift the card off the stage
    without the overflow clipping its shadow. */
 .showcase-stage .seams-confirmation-modal {
-  width: min(420px, 100%);
   overflow: visible;
 }
 
@@ -31,5 +35,7 @@ body {
 
 /* A minimised receipt docks as a toast in the frame's corner. */
 .showcase-stage:has([data-receipt-view='toast']) {
-  place-items: end;
+  grid-template-columns: minmax(0, 360px);
+  justify-content: end;
+  align-content: end;
 }

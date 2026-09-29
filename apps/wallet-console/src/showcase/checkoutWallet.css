@@ -2,12 +2,13 @@ html,
 body {
   margin: 0;
   background: transparent;
-  overscroll-behavior: none;
 }
 
-/* Let the checkout page measure the card rather than this frame's viewport. */
+/* Give the approval the review's width, so the handoff only changes the
+   dialog's height and the approval reads at about 4:3. The checkout page
+   sizes the dialog from this measurement. */
 .seams-confirmation-surface {
-  inline-size: fit-content;
+  inline-size: 460px;
   max-inline-size: 100%;
 }
 

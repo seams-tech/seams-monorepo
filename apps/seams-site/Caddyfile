@@ -17,6 +17,10 @@
 	handle @app_wallet_assets {
 		respond 404
 	}
+	@console_api path /console /console/*
+	handle @console_api {
+		reverse_proxy 127.0.0.1:4100
+	}
 	@wallet_product path /wallet /wallet/
 	handle @wallet_product {
 		rewrite * /dashboard-static/

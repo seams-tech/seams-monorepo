@@ -7,11 +7,12 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(() => {
   const appRoot = fileURLToPath(new URL('.', import.meta.url));
   const appSrc = `${appRoot}src`;
+  const base = process.env.VITE_ASSET_BASE_PATH || '/';
   // The homepage showcase renders the installed SDK release's own wallet
   // surfaces, which the package does not export.
   const walletUi = `${dirname(createRequire(import.meta.url).resolve('@seams/wallet/package.json'))}/dist/esm`;
   return {
-    base: '/',
+    base,
     plugins: [react()],
     server: {
       host: 'localhost',

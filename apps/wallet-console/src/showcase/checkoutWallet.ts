@@ -4,6 +4,7 @@ import {
   mountConfirmationSurface,
   type ConfirmSurfaceModel,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/preact/mountConfirmationSurface';
+import { attachConfirmSurfaceResizeChoreographer } from '@wallet-ui/core/signingEngine/uiConfirm/ui/confirm-surface-resize';
 import { buildDisplayTreeFromModel } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-display/tree';
 import type {
   TransactionReceiptState,
@@ -88,6 +89,11 @@ const handle = mountConfirmationSurface({
 // After a review handoff the checkout dialog's shell paints the card; this
 // keeps the card inside the frame transparent so only one card shows.
 handle.element.setAttribute('data-seams-review-frame', '');
+// Content that changes height, such as opening the transaction details, asks
+// its host for room first. As the SDK's own wallet frame does, pin the card to
+// its target height so the checkout page hears one height and eases once, then
+// drive the content from the room this frame has actually been given.
+attachConfirmSurfaceResizeChoreographer(handle.element);
 
 function confirm(): void {
   playReceiptLifecycle((state) => {

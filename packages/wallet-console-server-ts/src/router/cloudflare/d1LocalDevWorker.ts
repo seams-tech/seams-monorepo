@@ -39,6 +39,8 @@ import {
   createD1LinkedDeviceSourceContributionPreparationPlannerV1,
   D1LinkedDeviceTargetCredentialProviderV1,
   D1WalletAuthMethodStore,
+  readD1LinkedDeviceEcdsaSourceV1,
+  readD1LinkedDeviceEd25519SourceV1,
   type CloudflareD1EmailOtpServerSealConfig,
   type CloudflareD1RouterApiAuthServiceOptions,
 } from '@seams/wallet-server/cloud-host';
@@ -1704,11 +1706,10 @@ async function resolveLocalDeploymentTenantRoot(
   applicationBinding: { readonly signing_root_id: string },
   signingRootVersion: string,
 ): Promise<Awaited<ReturnType<RouterAbEd25519YaoTenantRootResolverV1>>> {
-  const tenantRoot = await tenantRootCustodyLineage.resolveActiveLineage(
-    localTenantRootIdentity(env, orgId, applicationBinding, signingRootVersion),
-  );
+  const identity = localTenantRootIdentity(env, orgId, applicationBinding, signingRootVersion);
+  const tenantRoot = await tenantRootCustodyLineage.resolveActiveLineage(identity);
   if (!tenantRoot) throw new Error('Ed25519 tenant root is not active');
-  return tenantRoot;
+  return { identity, ...tenantRoot };
 }
 
 async function resolveLocalTenantRoot(
@@ -1804,6 +1805,14 @@ function localLinkedDeviceSessionComposition(
   const sourceChildReader = createD1LinkedDeviceOwnerSourceChildReaderV1({
     walletAuthMethodStore,
     walletStore,
+    readLinkedEd25519SourceV1: readD1LinkedDeviceEd25519SourceV1.bind(undefined, {
+      database: env.SIGNER_DB,
+      scope,
+    }),
+    readLinkedEcdsaSourceV1: readD1LinkedDeviceEcdsaSourceV1.bind(undefined, {
+      database: env.SIGNER_DB,
+      scope,
+    }),
   });
   const serviceFetch = createRouterAbServiceBindingFetch(env);
   const internalServiceAuthSecret = localRouterAbInternalServiceAuthSecret(env);
@@ -1843,14 +1852,17 @@ function localLinkedDeviceSessionComposition(
         reservationEndpoint: createCloudflareOrdinaryInactiveSignerMaterialReservationEndpointV1({
           fetch: serviceFetch,
           internalServiceAuthSecret,
+          tenant: scope,
         }),
         activationEndpoint: createCloudflareOrdinaryInactiveSignerMaterialActivationEndpointV1({
           fetch: serviceFetch,
           internalServiceAuthSecret,
+          tenant: scope,
         }),
         deactivationEndpoint: createCloudflareOrdinaryInactiveSignerMaterialDeactivationEndpointV1({
           fetch: serviceFetch,
           internalServiceAuthSecret,
+          tenant: scope,
         }),
       },
       sourceContributionRouter: createCloudflareLinkedDeviceEd25519SourcePreservingRouterEndpointV1(

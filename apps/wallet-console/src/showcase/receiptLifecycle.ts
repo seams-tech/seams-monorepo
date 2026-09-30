@@ -2,10 +2,11 @@ import type { TransactionReceiptState } from '@wallet-ui/core/signingEngine/uiCo
 
 const hash = `0x7a4b${'0'.repeat(56)}91c2`;
 
-// Each simulated receipt state, and how long it shows before the next one.
+// Each simulated receipt state, and how long it shows before the next one. A
+// signed transaction is broadcast at once, as the SDK does, so signing leads
+// straight to broadcasting.
 const lifecycle: readonly (readonly [TransactionReceiptState, number])[] = [
   [{ kind: 'signing' }, 1100],
-  [{ kind: 'signed' }, 900],
   [{ kind: 'broadcasting' }, 1200],
   [{ kind: 'submitted', hash }, 1500],
   [{ kind: 'confirmed', hash }, 0],

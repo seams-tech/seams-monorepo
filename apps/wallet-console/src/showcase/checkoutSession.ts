@@ -13,6 +13,7 @@ import {
   walletIframeSurfaceIdFromBoundary,
 } from '@wallet-ui/core/types/walletIframeIdentity';
 import type { TransactionReceiptView } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
+import type { Side } from './checkoutMarket';
 import { checkoutAppearance } from './checkoutAppearance';
 
 type Phase = 'mounting' | 'review' | 'review_again' | 'preparing' | 'approval' | 'closed';
@@ -46,7 +47,10 @@ export class CheckoutSession {
   // Set once the wallet shows its receipt; null while it still asks for approval.
   private receiptView: TransactionReceiptView | null = null;
 
-  constructor(private readonly onFinish: (message: string) => void) {
+  constructor(
+    private readonly side: Side,
+    private readonly onFinish: (message: string) => void,
+  ) {
     this.overlay = new OverlayController({
       ensureIframe: () => this.iframe,
       // Escape or a backdrop click; once the receipt shows, the purchase is done.
@@ -83,7 +87,7 @@ export class CheckoutSession {
     }
     if (this.phase !== 'review') return;
     this.phase = 'preparing';
-    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/`;
+    this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}`;
   };
 
   readonly cancel = (): void => this.finish('Checkout closed. Nothing was signed or sent.');

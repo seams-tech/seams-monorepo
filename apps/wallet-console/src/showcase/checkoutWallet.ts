@@ -14,11 +14,14 @@ import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/di
 import { checkoutAppearance } from './checkoutAppearance';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
+import { market, sideFrom } from './checkoutMarket';
 
 /* The wallet approval that the checkout demo hands off to: the SDK's confirmer
    on sample data, inside the overlay's frame. Confirming plays the receipt as
    a toast. The frame reports its card height and receipt view so the checkout
    page can place and size the overlay. Nothing is signed or sent. */
+
+const side = sideFrom(new URLSearchParams(location.search).get('side'));
 
 const purchase: TxDisplayModel = {
   chain: 'evm',
@@ -27,11 +30,11 @@ const purchase: TxDisplayModel = {
     {
       id: 'buy-yes',
       kind: 'generic.contractCall',
-      label: 'Buy Yes positions',
+      label: `Buy ${side} positions`,
       fields: [
-        { label: 'Market', value: 'LOT 542 · Otsuka Lotec No.7.5' },
-        { label: 'You pay', value: '0.1 test units' },
-        { label: 'Minimum positions', value: '0.191400' },
+        { label: 'Market', value: market.lot },
+        { label: 'You pay', value: `${market.pay} test units` },
+        { label: 'Minimum positions', value: market.outcomes[side].minimumPositions },
       ],
     },
   ],

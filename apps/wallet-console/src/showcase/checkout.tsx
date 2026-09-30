@@ -6,31 +6,22 @@ import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import type { TransactionReviewControls } from '@seams/wallet/react';
 import { CheckoutSession } from './checkoutSession';
+import { market, sides, type Side } from './checkoutMarket';
 
 /* A sample prediction-market checkout: the host app's own review panel hands
-   off to the SDK's wallet approval in one resizing modal. */
+   off to the SDK's wallet approval in one resizing modal. The market stays
+   live behind the receipt toast, so picking a side there shows the page is
+   still usable. */
 
 type Quote = {
-  pay: string;
-  positions: string;
-  minimumPositions: string;
-  fee: string;
+  side: Side;
   expiresAtMs: number;
 };
 
 const quoteLifetimeSeconds = 90;
 
-function freshQuote(): Quote {
-  return {
-    pay: '0.1',
-    positions: '0.19333',
-    minimumPositions: '0.191400',
-    fee: '0.001',
-    expiresAtMs: Date.now() + quoteLifetimeSeconds * 1000,
-  };
-}
-
 function Checkout(): React.JSX.Element {
+  const [side, setSide] = React.useState<Side>('Yes');
   const [quote, setQuote] = React.useState<Quote | null>(null);
   const [outcome, setOutcome] = React.useState('');
   const finish = React.useCallback((message: string) => {
@@ -39,15 +30,21 @@ function Checkout(): React.JSX.Element {
   }, []);
   return (
     <section className="checkout-market" aria-labelledby="checkout-market-title">
-      <span className="checkout-lot">LOT 542 · OTSUKA LOTEC NO.7.5</span>
-      <h1 id="checkout-market-title">Will it sell above its estimate?</h1>
-      <div className="checkout-odds">
-        <span className="checkout-yes">
-          Yes <strong>52%</strong>
-        </span>
-        <span>
-          No <strong>48%</strong>
-        </span>
+      <span className="checkout-lot">{market.lot}</span>
+      <h1 id="checkout-market-title">{market.question}</h1>
+      <div className="checkout-odds" role="radiogroup" aria-label="Outcome">
+        {sides.map((option) => (
+          <label key={option}>
+            <input
+              type="radio"
+              name="checkout-side"
+              value={option}
+              checked={side === option}
+              onChange={() => setSide(option)}
+            />
+            {option} <strong>{market.outcomes[option].odds}</strong>
+          </label>
+        ))}
       </div>
       <button
         className="checkout-buy"
@@ -55,10 +52,10 @@ function Checkout(): React.JSX.Element {
         disabled={quote !== null}
         onClick={() => {
           setOutcome('');
-          setQuote(freshQuote());
+          setQuote({ side, expiresAtMs: Date.now() + quoteLifetimeSeconds * 1000 });
         }}
       >
-        <span>Buy Yes</span>
+        <span>Buy {side}</span>
         <span aria-hidden="true">→</span>
       </button>
       <p className="checkout-outcome" role="status">
@@ -78,10 +75,10 @@ function CheckoutReview({
 }): React.JSX.Element | null {
   const [session, setSession] = React.useState<CheckoutSession | null>(null);
   React.useEffect(() => {
-    const next = new CheckoutSession(onFinish);
+    const next = new CheckoutSession(quote.side, onFinish);
     setSession(next);
     return next.dispose;
-  }, [onFinish]);
+  }, [quote.side, onFinish]);
   if (!session) return null;
   return createPortal(
     <section className="seams-transaction-review-content checkout-review" ref={session.observe}>
@@ -111,35 +108,36 @@ function PurchaseSummary({
   controls: TransactionReviewControls;
 }): React.JSX.Element {
   const seconds = useSecondsUntil(quote.expiresAtMs);
+  const outcome = market.outcomes[quote.side];
   return (
     <>
       <div className="checkout-summary-card">
         <div className="checkout-summary-row">
           <span className="checkout-side">
-            Buy Yes <span aria-hidden="true">↗</span>
+            Buy {quote.side} <span aria-hidden="true">↗</span>
           </span>
-          <span className="checkout-market-name">Lot 542 · Otsuka Lotec No.7.5</span>
+          <span className="checkout-market-name">{market.lot}</span>
         </div>
         <div className="checkout-summary-row checkout-summary-values">
           <div>
             <span className="checkout-summary-label">You pay</span>
-            <strong className="checkout-amount">{quote.pay}</strong>
+            <strong className="checkout-amount">{market.pay}</strong>
             <span className="checkout-summary-label">test units</span>
           </div>
           <div>
             <span className="checkout-summary-label">You receive</span>
-            <strong className="checkout-amount">{quote.positions}</strong>
-            <span className="checkout-summary-label">Yes positions</span>
+            <strong className="checkout-amount">{outcome.positions}</strong>
+            <span className="checkout-summary-label">{quote.side} positions</span>
           </div>
         </div>
       </div>
       <dl className="checkout-details">
         <dt>Minimum positions</dt>
-        <dd>{quote.minimumPositions}</dd>
+        <dd>{outcome.minimumPositions}</dd>
         <dt>
           Trading fee <span className="checkout-included">Included</span>
         </dt>
-        <dd>{quote.fee} test units</dd>
+        <dd>{market.fee} test units</dd>
         <dt>Network fee</dt>
         <dd>None</dd>
       </dl>

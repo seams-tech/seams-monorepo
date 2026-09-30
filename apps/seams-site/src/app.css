@@ -91,6 +91,12 @@ html {
   text-size-adjust: 100%;
 }
 
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
 html,
 body,
 #app-root {

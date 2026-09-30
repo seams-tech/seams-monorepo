@@ -3,7 +3,7 @@ import { isHttpUrl, resolveHref } from './siteRouting';
 
 type GoFn = (to: string) => void;
 
-function isModifiedClick(e: React.MouseEvent<any>): boolean {
+export function isModifiedClick(e: React.MouseEvent<any>): boolean {
   return !!(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
 }
 

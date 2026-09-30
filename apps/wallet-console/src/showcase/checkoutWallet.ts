@@ -6,11 +6,12 @@ import {
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/preact/mountConfirmationSurface';
 import { attachConfirmSurfaceResizeChoreographer } from '@wallet-ui/core/signingEngine/uiConfirm/ui/confirm-surface-resize';
 import { buildDisplayTreeFromModel } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-display/tree';
+import { enrichDisplayModelWithAbi } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-display/abi/enrichDisplayModelWithAbi';
+import { buildEvmDisplayModel } from '@wallet-ui/core/signingEngine/chains/evm/display/evmTx';
 import type {
   TransactionReceiptState,
   TransactionReceiptView,
 } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
-import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/display';
 import { checkoutAppearance } from './checkoutAppearance';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
@@ -23,22 +24,54 @@ import { market, sideFrom } from './checkoutMarket';
 
 const side = sideFrom(new URLSearchParams(location.search).get('side'));
 
-const purchase: TxDisplayModel = {
-  chain: 'evm',
-  chainId: 84532,
-  operations: [
-    {
-      id: 'buy-yes',
-      kind: 'generic.contractCall',
-      label: `Buy ${side} positions`,
-      fields: [
-        { label: 'Market', value: market.lot },
-        { label: 'You pay', value: `${market.pay} test units` },
-        { label: 'Minimum positions', value: market.outcomes[side].minimumPositions },
-      ],
-    },
+// The purchase is a call to the market contract. The wallet builds and decodes
+// it the way it does any EIP-1559 request, so the details show the
+// transaction's own fields.
+const buyPositions = {
+  type: 'function',
+  name: 'buyPositions',
+  stateMutability: 'nonpayable',
+  inputs: [
+    { name: 'outcome', type: 'uint8' },
+    { name: 'amount', type: 'uint256' },
+    { name: 'minPositions', type: 'uint256' },
   ],
+  outputs: [],
 };
+const buyPositionsSelector = '0xae8a354b';
+
+function abiWord(value: bigint): string {
+  return value.toString(16).padStart(64, '0');
+}
+
+function baseUnits(amount: string): bigint {
+  const [whole, fraction = ''] = amount.split('.');
+  return BigInt(whole + fraction.padEnd(18, '0'));
+}
+
+const purchase = enrichDisplayModelWithAbi(
+  buildEvmDisplayModel({
+    signerAccount: `0x4201${'0'.repeat(32)}891c`,
+    request: {
+      chain: 'evm',
+      kind: 'eip1559',
+      senderSignatureAlgorithm: 'secp256k1',
+      tx: {
+        chainId: 84532,
+        nonce: 7n,
+        maxPriorityFeePerGas: 1_000_000n,
+        maxFeePerGas: 1_200_000n,
+        gasLimit: 180_000n,
+        to: `0x5A1E${'0'.repeat(32)}0542`,
+        value: 0n,
+        data: `${buyPositionsSelector}${abiWord(side === 'Yes' ? 1n : 0n)}${abiWord(
+          baseUnits(market.pay),
+        )}${abiWord(baseUnits(market.outcomes[side].minimumPositions))}`,
+        abi: [buyPositions],
+      },
+    },
+  }),
+);
 
 const explorer = 'https://sepolia.basescan.org/';
 sendExplorerLinksHome(document.body, explorer);
@@ -67,7 +100,7 @@ function model(): ConfirmSurfaceModel {
         website: { kind: 'ready', text: 'shop.example.com' },
         chainDetails: { kind: 'ready', text: 'Base Sepolia' },
       },
-      body: { kind: 'text', text: 'Sample data. Nothing is signed or sent.' },
+      body: { kind: 'empty' },
       prompt: { kind: 'passkey' },
       transaction: {
         tree: null,

@@ -563,21 +563,40 @@ async function productionWorkerPortsAreFree() {
 
 async function startProductionWorkers() {
   for (let index = 1; index < strictRuntime.configs.length; index += 1) {
-    startProductionWorker(index);
+    await startProductionWorker(index);
   }
   for (let index = 1; index < strictRuntime.configs.length; index += 1) {
     await waitForUrlResponse(strictRuntime.configs[index].url, 90_000);
   }
-  startProductionWorker(0);
+  await startProductionWorker(0);
 }
 
-function startProductionWorker(index) {
+// The inspector only serves debugging, so another dev server on the preferred
+// 42xx port (wallet browser tests use 4203) must not stop the worker.
+async function inspectorPortFor(config) {
+  return (await bindableLoopbackPort(config.port + 100)) ?? (await bindableLoopbackPort(0));
+}
+
+function bindableLoopbackPort(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(null));
+    server.listen(port, '127.0.0.1', () => {
+      const bound = server.address().port;
+      server.close(() => resolve(bound));
+    });
+  });
+}
+
+async function startProductionWorker(index) {
   const config = strictRuntime.configs[index];
   const pane = workerPanes[index];
   pane.url = config.url;
   pane.status = 'starting';
+  const inspectorPort = await inspectorPortFor(config);
   appendLine(pane, `config ${relative(repoRoot, config.configPath)}`);
   appendLine(pane, `url ${config.url}`);
+  appendLine(pane, `inspector 127.0.0.1:${inspectorPort}`);
 
   const child = spawn(
     'pnpm',
@@ -590,7 +609,7 @@ function startProductionWorker(index) {
       '--port',
       String(config.port),
       '--inspector-port',
-      String(config.port + 100),
+      String(inspectorPort),
       '--persist-to',
       join(strictPersistPath, config.role),
       '--env-file',

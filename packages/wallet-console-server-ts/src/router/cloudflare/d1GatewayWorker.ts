@@ -52,7 +52,8 @@ async function fetch(
   const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     emailOtpDeliveryProvider: resolveEmailOtpDeliveryProviderFromEnv(boundEnv),
   });
-  if (!pathname.startsWith('/router-ab/ecdsa-derivation/')) return response;
+  if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')
+    return response;
   const result = new Response(response.body, response);
   result.headers.append(
     'Server-Timing',

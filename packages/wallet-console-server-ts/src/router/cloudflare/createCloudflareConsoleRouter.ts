@@ -3424,6 +3424,7 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
   const policyDeleteMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)$/);
   const policyPublishMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/publish$/);
   const policySimulateMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/simulate$/);
+  const policyVersionsMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/versions$/);
 
   try {
     if (ctx.method === 'GET' && ctx.pathname === '/console/policies') {
@@ -3441,6 +3442,18 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       });
       const assignments = await policies.listAssignments(policyCtx, request);
       return json({ ok: true, assignments }, { status: 200 });
+    }
+
+    if (ctx.method === 'GET' && policyVersionsMatch) {
+      const policyId = decodePathPart(policyVersionsMatch[1]);
+      const versions = await policies.listPolicyVersions(policyCtx, policyId);
+      if (!versions) {
+        return json(
+          { ok: false, code: 'policy_not_found', message: `Policy ${policyId} was not found` },
+          { status: 404 },
+        );
+      }
+      return json({ ok: true, versions }, { status: 200 });
     }
 
     if (ctx.method === 'POST' && ctx.pathname === '/console/policies') {

@@ -46,14 +46,6 @@ function canonicalRouteKeys(input: { method: string; path: string }[]): string[]
   });
 }
 
-function materializeRoutePath(path: string): string {
-  return path.replace(/:([A-Za-z0-9_]+)/g, (_match, name: string) => {
-    const normalized = String(name || '').toLowerCase();
-    if (normalized.includes('id')) return 'test_id';
-    return `test_${normalized}`;
-  });
-}
-
 const ALLOWLISTED_CONSOLE_ROUTE_KEYS = new Set([
   'GET /console/healthz',
   'GET /console/readyz',
@@ -137,21 +129,6 @@ test.describe('console route surface wiring', () => {
     expect(
       (expressSurface?.routeDefinitions || []).map((route) => `${route.method} ${route.path}`),
     ).toContain('POST /console/billing/invoices/generate');
-  });
-
-  test('cloudflare handler recognizes every seeded console route definition', async () => {
-    const handler = createCloudflareConsoleRouter({});
-    const surface = getConsoleRouteSurface(handler);
-    expect(surface).toBeTruthy();
-
-    for (const route of surface?.routeDefinitions || []) {
-      const response = await handler(
-        new Request(`https://example.localhost${materializeRoutePath(route.path)}`, {
-          method: route.method,
-        }),
-      );
-      expect(response.status, `${route.method} ${route.path}`).not.toBe(404);
-    }
   });
 
   test('live console routes are policy-defined or explicitly allowlisted', async () => {

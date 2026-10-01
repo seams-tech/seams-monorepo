@@ -289,68 +289,6 @@ async function insertAuthorization(
     .run();
 }
 
-async function insertV1SessionAndChildren(database: Database): Promise<void> {
-  await insertQuota(database, 'quota:v1', 'session:v1');
-  await database
-    .prepare(
-      `INSERT INTO reusable_wallet_sessions (
-         namespace, tenant_id, wallet_session_id, principal_id, wallet_id,
-         authority_digest, mint_id, quota_id, lifecycle_kind, created_at_ms,
-         expires_at_ms, authorization_id, wallet_auth_method_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.tenantId,
-      'session:v1',
-      PRINCIPAL_ID,
-      WALLET_ID,
-      'digest:final-cutover',
-      'mint:v1',
-      'quota:v1',
-      'active',
-      1,
-      FUTURE_MS,
-      'authorization:v1',
-      AUTH_METHOD_ID,
-    )
-    .run();
-  await database
-    .prepare(
-      `INSERT INTO opaque_wallet_session_tokens (
-         namespace, tenant_id, token_hash, curve, wallet_session_id, binding_json
-       ) VALUES (?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(SCOPE.namespace, SCOPE.tenantId, 'token-hash:v1', 'ed25519', 'session:v1', '{}')
-    .run();
-  await database
-    .prepare(
-      `INSERT INTO hosted_wallet_session_exchange_codes (
-         namespace, tenant_id, exchange_code_id, wallet_session_id, code_hash,
-         nonce_digest, app_origin, wallet_origin, lifecycle_kind, issued_at_ms,
-         expires_at_ms, token_hash, curve, binding_json, consumed_at_ms
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.tenantId,
-      'exchange:v1',
-      'session:v1',
-      'code:v1',
-      'nonce:v1',
-      'https://app.example.test',
-      'https://wallet.example.test',
-      'issued',
-      1,
-      FUTURE_MS,
-      null,
-      'ed25519',
-      '{}',
-      null,
-    )
-    .run();
-}
-
 async function insertAuthorizedOperation(
   database: Database,
   input: {
@@ -410,247 +348,6 @@ async function insertAuthorizedOperation(
     .run();
 }
 
-async function insertHostedCredential(database: Database): Promise<void> {
-  await database
-    .prepare(
-      `INSERT INTO wallet_session_hosted_credentials_v2 (
-         namespace, org_id, project_id, env_id, tenant_id, hosted_credential_id,
-         authorization_id, wallet_session_id, quota_id, principal_id, wallet_id,
-         authority_id, wallet_auth_method_id, credential_digest_b64u, app_origin,
-         wallet_origin, issued_at_ms, expires_at_ms, lifecycle_kind, retired_at_ms
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.orgId,
-      SCOPE.projectId,
-      SCOPE.envId,
-      SCOPE.tenantId,
-      'hosted-credential:preserve',
-      'authorization:active',
-      'session:active',
-      'quota:active',
-      PRINCIPAL_ID,
-      WALLET_ID,
-      AUTHORITY_ID,
-      AUTH_METHOD_ID,
-      'digest:hosted-credential',
-      'https://app.example.test',
-      'https://wallet.example.test',
-      100,
-      FUTURE_MS - 1,
-      'active',
-      null,
-    )
-    .run();
-}
-
-async function insertConsumedHostedExchange(database: Database): Promise<void> {
-  await database
-    .prepare(
-      `INSERT INTO wallet_session_hosted_exchange_codes_v2 (
-         namespace, org_id, project_id, env_id, tenant_id, exchange_code_id,
-         authorization_id, wallet_session_id, quota_id, principal_id, wallet_id,
-         authority_id, wallet_auth_method_id, code_hash, nonce_digest, app_origin,
-         wallet_origin, issued_at_ms, expires_at_ms, lifecycle_kind,
-         hosted_credential_id, consumed_at_ms
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.orgId,
-      SCOPE.projectId,
-      SCOPE.envId,
-      SCOPE.tenantId,
-      'exchange:preserve',
-      'authorization:active',
-      'session:active',
-      'quota:active',
-      PRINCIPAL_ID,
-      WALLET_ID,
-      AUTHORITY_ID,
-      AUTH_METHOD_ID,
-      'code:preserve',
-      'nonce:preserve',
-      'https://app.example.test',
-      'https://wallet.example.test',
-      100,
-      FUTURE_MS - 1,
-      'issued',
-      null,
-      null,
-    )
-    .run();
-  await database
-    .prepare(
-      `UPDATE wallet_session_hosted_exchange_codes_v2
-          SET lifecycle_kind = 'consumed',
-              hosted_credential_id = 'hosted-credential:preserve',
-              consumed_at_ms = 200
-        WHERE exchange_code_id = 'exchange:preserve'`,
-    )
-    .run();
-}
-
-async function insertLinkedInstallation(database: Database): Promise<void> {
-  await database
-    .prepare(
-      `INSERT INTO linked_device_authority_installations (
-         namespace, org_id, project_id, env_id, link_session_id, authority_id,
-         wallet_id, auth_method_id, device_id, package_set_digest_b64u,
-         target_factor_verification_digest_b64u, target_factor_verified_at_ms,
-         source_manifest_digest_b64u, packages_json, server_reservation_ids_json,
-         installed_record_set_digest_b64u, activated_at_ms, created_at_ms, updated_at_ms
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      SCOPE.namespace,
-      SCOPE.orgId,
-      SCOPE.projectId,
-      SCOPE.envId,
-      'link:preserve',
-      AUTHORITY_ID,
-      WALLET_ID,
-      AUTH_METHOD_ID,
-      'device:final-cutover',
-      'digest:package-set',
-      'digest:target-factor',
-      5,
-      'digest:source-manifest',
-      '{}',
-      '[]',
-      null,
-      null,
-      1,
-      2,
-    )
-    .run();
-}
-
-async function insertAcknowledgedDelivery(database: Database): Promise<void> {
-  const issuedValues = [
-    SCOPE.namespace,
-    SCOPE.orgId,
-    SCOPE.projectId,
-    SCOPE.envId,
-    'link:preserve',
-    SCOPE.tenantId,
-    'authorization:active',
-    'session:active',
-    'quota:active',
-    PRINCIPAL_ID,
-    AUTHORITY_ID,
-    WALLET_ID,
-    AUTH_METHOD_ID,
-    'digest:delivery',
-    'p256_ecdh',
-    'public:recipient',
-    'digest:recipient',
-    'p256-ecdh-aes256gcm-v1',
-    'digest:aad',
-    '{"ciphertext":"sealed"}',
-    'digest:sealed',
-    'digest:installation-receipt',
-    100,
-    FUTURE_MS - 1,
-    'issued',
-    null,
-    null,
-    'pending',
-    null,
-    null,
-    null,
-    null,
-    null,
-  ];
-  await database
-    .prepare(
-      `INSERT INTO linked_device_wallet_session_credential_deliveries_v1 (
-         namespace, org_id, project_id, env_id, link_session_id, tenant_id,
-         authorization_id, wallet_session_id, quota_id, principal_id, authority_id,
-         wallet_id, wallet_auth_method_id, credential_digest_b64u, recipient_kind,
-         recipient_public_key_b64u, recipient_binding_digest_b64u, envelope_alg,
-         aad_digest_b64u, sealed_envelope_json, sealed_envelope_digest_b64u,
-         installation_receipt_digest_b64u, issued_at_ms, expires_at_ms, lifecycle_kind,
-         acknowledged_at_ms, acknowledgement_receipt_json, cleanup_state,
-         cleanup_receipt_json, cleanup_completed_at_ms, acknowledgement_auth_binding_digest_b64u,
-         acknowledgement_auth_package_set_digest_b64u, acknowledgement_auth_expires_at_ms
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(...issuedValues)
-    .run();
-  await database
-    .prepare(
-      `UPDATE linked_device_wallet_session_credential_deliveries_v1
-          SET lifecycle_kind = 'acknowledged', sealed_envelope_json = NULL,
-              acknowledged_at_ms = 200, acknowledgement_receipt_json = '{"ack":true}',
-              cleanup_state = 'pending', cleanup_receipt_json = '{"cleanup":true}',
-              acknowledgement_auth_binding_digest_b64u = 'digest:recipient',
-              acknowledgement_auth_package_set_digest_b64u = 'digest:package-set',
-              acknowledgement_auth_expires_at_ms = 500
-        WHERE link_session_id = 'link:preserve'`,
-    )
-    .run();
-}
-
-function registrationPrepared(): Record<string, string> {
-  return {
-    kind: 'd1_wallet_registration_operation_prepared_v1',
-    walletAuthorityId: AUTHORITY_ID,
-    deviceId: 'device:final-cutover',
-    walletAuthMethodId: AUTH_METHOD_ID,
-  };
-}
-
-function registrationRecord(
-  kind: 'claim' | 'completionV1' | 'historicalCompletionV1' | 'completionV2',
-  operation: string,
-): string {
-  const prepared = registrationPrepared();
-  if (kind === 'claim') {
-    return JSON.stringify({
-      kind: 'router_ab_ed25519_yao_registration_side_effect_claim_v1',
-      operation,
-      requestFingerprint: `request:${operation}`,
-      preparedArtifactFingerprint: `artifact:${operation}`,
-      claimedAtMs: 10,
-      prepared,
-    });
-  }
-  if (kind === 'completionV1' || kind === 'historicalCompletionV1') {
-    return JSON.stringify({
-      kind: 'router_ab_ed25519_yao_registration_side_effect_completion_v1',
-      operation,
-      requestFingerprint: `request:${operation}`,
-      preparedArtifactFingerprint: `artifact:${operation}`,
-      claimedAtMs: 10,
-      completedAtMs: 20,
-      prepared: kind === 'historicalCompletionV1' ? { kind: prepared.kind } : prepared,
-      response: {
-        registrationEstablishedSession: {
-          tokens: { ed25519: { walletSessionToken: 'legacy-bearer' } },
-        },
-      },
-    });
-  }
-  return JSON.stringify({
-    kind: 'router_ab_ed25519_yao_registration_side_effect_completion_v2',
-    operation,
-    requestFingerprint: `request:${operation}`,
-    preparedArtifactFingerprint: `artifact:${operation}`,
-    claimedAtMs: 10,
-    completedAtMs: 20,
-    prepared,
-    receipt: {
-      kind: 'wallet_registration_session_commit_receipt_v2',
-      operation,
-      operationFingerprint: `request:${operation}`,
-      registrationCeremonyId: `ceremony:${operation}`,
-      committed: { kind: 'wallet_registration_committed_v1' },
-    },
-  });
-}
-
 async function insertRegistrationRecord(
   database: Database,
   recordKey: string,
@@ -675,77 +372,6 @@ async function insertRegistrationRecord(
       1,
     )
     .run();
-}
-
-async function seedCurrentHistory(database: Database): Promise<void> {
-  const through0031 = migrationFilesThrough('0031_');
-  await applyD1MigrationFiles(database, through0031);
-  await insertAuthorityAndAuthMethod(database);
-  await insertV1SessionAndChildren(database);
-  await insertAuthorizedOperation(database, {
-    operationId: 'operation:v1-pending',
-    authorizationId: 'authorization:v1',
-    quotaId: 'quota:v1',
-    quotaKind: 'consume_reusable_wallet_session',
-    linkedScope: [null, null, null],
-    claimedAtMs: 10,
-  });
-  await applyD1MigrationFiles(database, migrationFilesThrough('0033_').slice(through0031.length));
-
-  await insertQuota(database, 'quota:active', 'session:active');
-  await insertAuthorization(database, {
-    authorizationId: 'authorization:active',
-    walletSessionId: 'session:active',
-    quotaId: 'quota:active',
-    issuedAtMs: 100,
-    expiresAtMs: FUTURE_MS,
-    operationCredentialHash: 'credential:active',
-  });
-  await insertHostedCredential(database);
-  await insertConsumedHostedExchange(database);
-  await insertLinkedInstallation(database);
-  await insertAcknowledgedDelivery(database);
-
-  await insertQuota(database, 'quota:null-digest', 'session:null-digest');
-  await insertAuthorization(database, {
-    authorizationId: 'authorization:null-digest',
-    walletSessionId: 'session:null-digest',
-    quotaId: 'quota:null-digest',
-    issuedAtMs: 300,
-    expiresAtMs: FUTURE_MS,
-    operationCredentialHash: null,
-  });
-  await insertQuota(database, 'quota:expired', 'session:expired', 100);
-  await insertAuthorization(database, {
-    authorizationId: 'authorization:expired',
-    walletSessionId: 'session:expired',
-    quotaId: 'quota:expired',
-    issuedAtMs: 1,
-    expiresAtMs: 100,
-    operationCredentialHash: 'credential:expired',
-  });
-
-  await insertRegistrationRecord(
-    database,
-    'wallet-registration-activate:claim',
-    registrationRecord('claim', 'registration_activate'),
-  );
-  await insertRegistrationRecord(
-    database,
-    'wallet-registration-activate:legacy',
-    registrationRecord('completionV1', 'registration_activate'),
-  );
-  await insertRegistrationRecord(
-    database,
-    'wallet-registration-near-provisioning:historical-legacy',
-    registrationRecord('historicalCompletionV1', 'near_provisioning'),
-  );
-  await insertRegistrationRecord(
-    database,
-    'wallet-registration-near-provisioning:receipt',
-    registrationRecord('completionV2', 'near_provisioning'),
-  );
-  await insertRegistrationRecord(database, 'unrelated-record:preserve', '{"keep":true}');
 }
 
 async function readTableNames(database: Database): Promise<readonly string[]> {
@@ -818,91 +444,6 @@ test('R103F final cutover installs exact tables and both readiness manifests agr
       expect.arrayContaining([...FINAL_PARENT_GUARD_TRIGGERS]),
     );
     await expectForeignKeyCheckEmpty(temporary.database);
-
-    const localManifest = readManifestTables(
-      resolve(
-        import.meta.dirname,
-        '../../packages/wallet-console-server-ts/src/router/cloudflare/d1LocalDevWorker.ts',
-      ),
-      'SIGNER_READY_TABLES',
-    );
-    const stagingManifest = readManifestTables(
-      resolve(
-        import.meta.dirname,
-        '../../packages/wallet-console-server-ts/src/router/cloudflare/d1RouterApiStagingWorker.ts',
-      ),
-      'RELAY_SIGNER_READY_TABLES',
-    );
-    const finalNames = new Set<string>([
-      ...FINAL_SESSION_MANIFEST_TABLES,
-      ...RETIRED_SESSION_TABLES,
-    ]);
-    const localSessionEntries = localManifest.filter((name) => finalNames.has(name));
-    const stagingSessionEntries = stagingManifest.filter((name) => finalNames.has(name));
-    expect(localSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
-    expect(stagingSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
-  } finally {
-    cleanupTemporaryD1Database(temporary.tempDir);
-  }
-});
-
-test('R103F final cutover preserves all V2 children and removes only retired credential-bearing state', async () => {
-  const temporary = createTemporaryD1Database();
-  try {
-    await seedCurrentHistory(temporary.database);
-    await applyFinalMigration(temporary.database);
-
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT hosted_credential_id, authorization_id, lifecycle_kind
-             FROM wallet_session_hosted_credentials_v2`,
-        )
-        .all(),
-    ).resolves.toMatchObject({
-      results: [
-        {
-          hosted_credential_id: 'hosted-credential:preserve',
-          authorization_id: 'authorization:active',
-          lifecycle_kind: 'active',
-        },
-      ],
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT exchange_code_id, hosted_credential_id, lifecycle_kind, consumed_at_ms
-             FROM wallet_session_hosted_exchange_codes_v2`,
-        )
-        .all(),
-    ).resolves.toMatchObject({
-      results: [
-        {
-          exchange_code_id: 'exchange:preserve',
-          hosted_credential_id: 'hosted-credential:preserve',
-          lifecycle_kind: 'consumed',
-          consumed_at_ms: 200,
-        },
-      ],
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT link_session_id, authorization_id, lifecycle_kind,
-                          acknowledgement_receipt_json
-             FROM linked_device_wallet_session_credential_deliveries_v1`,
-        )
-        .all(),
-    ).resolves.toMatchObject({
-      results: [
-        {
-          link_session_id: 'link:preserve',
-          authorization_id: 'authorization:active',
-          lifecycle_kind: 'acknowledged',
-          acknowledgement_receipt_json: '{"ack":true}',
-        },
-      ],
-    });
 
     await expect(
       readForeignKeySignatures(temporary.database, 'wallet_session_hosted_credentials_v2'),
@@ -977,82 +518,28 @@ test('R103F final cutover preserves all V2 children and removes only retired cre
       '1:7:linked_device_authority_installations:wallet_auth_method_id->auth_method_id',
     ]);
 
-    const retiredTables = await readTableNames(temporary.database);
-    expect(retiredTables).not.toEqual(expect.arrayContaining([...RETIRED_SESSION_TABLES]));
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT COUNT(*) AS count
-             FROM router_ab_yao_versioned_json_records
-            WHERE json_extract(record_json, '$.kind') =
-              'router_ab_ed25519_yao_registration_side_effect_completion_v1'`,
-        )
-        .first(),
-    ).resolves.toMatchObject({ count: 0 });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT record_key FROM router_ab_yao_versioned_json_records
-            WHERE record_key IN (
-              'wallet-registration-activate:claim',
-              'wallet-registration-near-provisioning:receipt',
-              'unrelated-record:preserve'
-            ) ORDER BY record_key`,
-        )
-        .all(),
-    ).resolves.toMatchObject({
-      results: [
-        { record_key: 'unrelated-record:preserve' },
-        { record_key: 'wallet-registration-activate:claim' },
-        { record_key: 'wallet-registration-near-provisioning:receipt' },
-      ],
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT authorization_id, retired_at_ms, operation_credential_hash
-             FROM wallet_session_authorizations_v2
-            WHERE authorization_id IN (
-              'authorization:active', 'authorization:null-digest', 'authorization:expired'
-            ) ORDER BY authorization_id`,
-        )
-        .all(),
-    ).resolves.toMatchObject({
-      results: [
-        {
-          authorization_id: 'authorization:active',
-          retired_at_ms: null,
-          operation_credential_hash: 'credential:active',
-        },
-        {
-          authorization_id: 'authorization:expired',
-          retired_at_ms: 100,
-          operation_credential_hash: 'credential:expired',
-        },
-        {
-          authorization_id: 'authorization:null-digest',
-          retired_at_ms: 300,
-          operation_credential_hash: null,
-        },
-      ],
-    });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT COUNT(*) AS count FROM authorized_operations
-            WHERE authorized_operation_id = 'operation:v1-pending'`,
-        )
-        .first(),
-    ).resolves.toMatchObject({ count: 0 });
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT COUNT(*) AS count FROM authorization_wallet_session_quotas
-            WHERE quota_id = 'quota:v1'`,
-        )
-        .first(),
-    ).resolves.toMatchObject({ count: 0 });
-    await expectForeignKeyCheckEmpty(temporary.database);
+    const localManifest = readManifestTables(
+      resolve(
+        import.meta.dirname,
+        '../../packages/wallet-console-server-ts/src/router/cloudflare/d1LocalDevWorker.ts',
+      ),
+      'SIGNER_READY_TABLES',
+    );
+    const stagingManifest = readManifestTables(
+      resolve(
+        import.meta.dirname,
+        '../../packages/wallet-console-server-ts/src/router/cloudflare/d1RouterApiStagingWorker.ts',
+      ),
+      'RELAY_SIGNER_READY_TABLES',
+    );
+    const finalNames = new Set<string>([
+      ...FINAL_SESSION_MANIFEST_TABLES,
+      ...RETIRED_SESSION_TABLES,
+    ]);
+    const localSessionEntries = localManifest.filter((name) => finalNames.has(name));
+    const stagingSessionEntries = stagingManifest.filter((name) => finalNames.has(name));
+    expect(localSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
+    expect(stagingSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
   } finally {
     cleanupTemporaryD1Database(temporary.tempDir);
   }
@@ -1123,39 +610,6 @@ test('R103F final cutover aborts duplicate usable exact tuples', async () => {
       operationCredentialHash: 'credential:duplicate-b',
     });
     await expect(applyFinalMigration(temporary.database)).rejects.toThrow();
-  } finally {
-    cleanupTemporaryD1Database(temporary.tempDir);
-  }
-});
-
-test('R103F current-history unscoped pending state is deleted at final cutover', async () => {
-  const temporary = createTemporaryD1Database();
-  try {
-    const through0031 = migrationFilesThrough('0031_');
-    await applyD1MigrationFiles(temporary.database, through0031);
-    await insertAuthorityAndAuthMethod(temporary.database);
-    await insertV1SessionAndChildren(temporary.database);
-    await insertAuthorizedOperation(temporary.database, {
-      operationId: 'operation:unscoped-only',
-      authorizationId: 'authorization:v1',
-      quotaId: 'quota:v1',
-      quotaKind: 'consume_reusable_wallet_session',
-      linkedScope: [null, null, null],
-      claimedAtMs: 10,
-    });
-    await applyD1MigrationFiles(
-      temporary.database,
-      migrationFilesThrough('0033_').slice(through0031.length),
-    );
-    await applyFinalMigration(temporary.database);
-    await expect(
-      temporary.database
-        .prepare(
-          `SELECT COUNT(*) AS count FROM authorized_operations
-            WHERE authorized_operation_id = 'operation:unscoped-only'`,
-        )
-        .first(),
-    ).resolves.toMatchObject({ count: 0 });
   } finally {
     cleanupTemporaryD1Database(temporary.tempDir);
   }

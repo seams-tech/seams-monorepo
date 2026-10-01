@@ -502,6 +502,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     readiness: tenantDeploymentReadiness,
     store: tenantDeploymentStore,
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
+    browserCredential: { kind: 'create_managed_publishable_key' },
   });
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
@@ -640,8 +641,10 @@ async function fetch(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
+    timingHeaders: bindingTimingHeaders,
   });
   const tenantDeploymentResponse = await createTenantDeploymentInternalBindingHandlerV1({
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
@@ -650,7 +653,11 @@ async function fetch(
       database: env.CONSOLE_DB,
     }),
   })(request);
-  if (tenantDeploymentResponse) return tenantDeploymentResponse;
+  if (tenantDeploymentResponse) {
+    const timing = bindingTimingHeaders.get('Server-Timing');
+    if (timing) tenantDeploymentResponse.headers.append('Server-Timing', timing);
+    return tenantDeploymentResponse;
+  }
   if (request.method === 'OPTIONS') {
     const response = new Response(null, { status: 204 });
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);

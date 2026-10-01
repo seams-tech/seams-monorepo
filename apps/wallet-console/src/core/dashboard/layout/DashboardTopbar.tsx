@@ -36,6 +36,12 @@ function MoonIcon({ size, ...rest }: { size?: number } & React.SVGProps<SVGSVGEl
   );
 }
 
+import {
+  DashboardMenu,
+  DashboardMenuItem,
+  useDashboardMenu,
+  type DashboardMenuController,
+} from '../components/DashboardMenu';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import SeamsWordmark from '@core/components/SeamsWordmark';
@@ -99,10 +105,12 @@ function keepPaletteInputFocused(event: React.PointerEvent<HTMLButtonElement>): 
 /* Lightweight ⌘K palette: filters navigation destinations and jumps. */
 function TopbarCommandPalette({
   items,
+  menu,
   onNavigate,
   onClose,
 }: {
   items: TopbarSearchItem[];
+  menu: DashboardMenuController;
   onNavigate: (path: string) => void;
   onClose: () => void;
 }): React.JSX.Element {
@@ -140,19 +148,21 @@ function TopbarCommandPalette({
     activeOption?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, listboxId]);
 
+  // The chosen page blinks, then opens as the palette fades out.
   const commit = React.useCallback(
-    (item: TopbarSearchItem | undefined) => {
-      if (!item) return;
-      onClose();
-      onNavigate(item.path);
+    (index: number) => {
+      const item = matches[index];
+      const option = document.getElementById(`${listboxId}-option-${index}`);
+      if (!item || !option) return;
+      menu.commit(option, () => onNavigate(item.path));
     },
-    [onClose, onNavigate],
+    [listboxId, matches, menu, onNavigate],
   );
 
   if (typeof document === 'undefined') return <></>;
   return createPortal(
     <div
-      className="dashboard-command-palette-backdrop"
+      className={`dashboard-command-palette-backdrop${menu.closing ? ' is-closing' : ''}`}
       role="presentation"
       onPointerDown={dismissPaletteFromBackdrop.bind(null, onClose)}
     >
@@ -192,7 +202,7 @@ function TopbarCommandPalette({
                 setActiveIndex((current) => movePaletteSelection(current, -1, matches.length));
               } else if (event.key === 'Enter') {
                 event.preventDefault();
-                commit(matches[activeIndex]);
+                commit(activeIndex);
               } else if (event.key === 'Tab') {
                 event.preventDefault();
                 inputRef.current?.focus();
@@ -220,7 +230,7 @@ function TopbarCommandPalette({
                   className={`dashboard-command-palette__item${index === activeIndex ? ' is-active' : ''}`}
                   onPointerDown={keepPaletteInputFocused}
                   onMouseEnter={setActiveIndex.bind(null, index)}
-                  onClick={commit.bind(null, item)}
+                  onClick={commit.bind(null, index)}
                 >
                   <span className="dashboard-command-palette__item-main">
                     <span className="dashboard-command-palette__item-icon" aria-hidden="true">
@@ -275,51 +285,37 @@ export function DashboardTopbar({
 }: DashboardTopbarProps): React.JSX.Element {
   const topbarRef = React.useRef<HTMLElement | null>(null);
   const paletteReturnFocusRef = React.useRef<HTMLElement | null>(null);
-  const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
-  const [paletteOpen, setPaletteOpen] = React.useState(false);
+  const accountMenu = useDashboardMenu({ dismissRootRef: topbarRef });
+  const palette = useDashboardMenu({ dismiss: false });
   const accountName = accountLabel;
   const accountInitial = (accountName.trim().charAt(0) || 'A').toUpperCase();
   const searchEnabled = searchItems.length > 0 && Boolean(onNavigate);
   const openPalette = React.useCallback(() => {
     paletteReturnFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setAccountMenuOpen(false);
-    setPaletteOpen(true);
-  }, []);
-  const closePalette = React.useCallback(() => {
-    setPaletteOpen(false);
-    window.requestAnimationFrame(() => paletteReturnFocusRef.current?.focus());
-  }, []);
+    accountMenu.close();
+    palette.show();
+  }, [accountMenu, palette]);
+  /* The palette holds the shell inert until it unmounts, so focus returns once
+     its fade has finished. */
   React.useEffect(() => {
-    if (!accountMenuOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const next = event.target;
-      if (next instanceof Node && topbarRef.current?.contains(next)) return;
-      setAccountMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setAccountMenuOpen(false);
-    };
-    window.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [accountMenuOpen]);
+    if (palette.mounted) return;
+    paletteReturnFocusRef.current?.focus();
+    paletteReturnFocusRef.current = null;
+  }, [palette.mounted]);
 
   React.useEffect(() => {
     if (!searchEnabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (isMetaK(event)) {
         event.preventDefault();
-        if (paletteOpen) closePalette();
+        if (palette.open) palette.close();
         else openPalette();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [closePalette, openPalette, paletteOpen, searchEnabled]);
+  }, [openPalette, palette, searchEnabled]);
 
   /* Docs live on their own origin, so this is a plain link out rather than a
      console route. */
@@ -329,65 +325,57 @@ export function DashboardTopbar({
     </a>
   );
 
-  const accountMenu = (
+  const accountMenuElement = (
     <div className="dashboard-account-menu">
       <button
         type="button"
         className="dashboard-account-menu__trigger"
         aria-haspopup="menu"
-        aria-expanded={accountMenuOpen}
+        aria-expanded={accountMenu.open}
         aria-label={`Account menu for ${accountName}`}
-        onClick={() => setAccountMenuOpen((current) => !current)}
+        onClick={accountMenu.toggle}
       >
         <span className="dashboard-account-menu__avatar" aria-hidden="true">
           {accountInitial}
         </span>
       </button>
-      {accountMenuOpen ? (
-        <div
-          className="dashboard-context-menu dashboard-context-menu--actions dashboard-account-menu__list"
-          role="menu"
-          aria-label="Account options"
-        >
-          <p className="dashboard-account-menu__identity">{accountName}</p>
-          {dropdownOptions.accountSettings.map((option) => {
-            const icon =
-              option.icon === 'sun' ? (
-                <SunIcon size={18} strokeWidth={2} aria-hidden />
-              ) : option.icon === 'moon' ? (
-                <MoonIcon size={18} strokeWidth={2} aria-hidden />
-              ) : null;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                className={`dashboard-context-menu__item${option.disabled === true ? ' is-disabled' : ''}`}
-                role="menuitem"
-                onClick={() => {
-                  onSelectContext('accountSettings', option.value);
-                  if (option.keepMenuOpen !== true) {
-                    setAccountMenuOpen(false);
-                  }
-                }}
-              >
-                {icon ? (
-                  <span className="dashboard-context-menu__theme-action">
-                    <span>{option.label}</span>
-                    <span
-                      className="navbar-static__theme-toggle dashboard-context-menu__theme-toggle"
-                      aria-hidden="true"
-                    >
-                      {icon}
-                    </span>
+      <DashboardMenu
+        menu={accountMenu}
+        className="dashboard-context-menu dashboard-context-menu--actions dashboard-account-menu__list"
+        aria-label="Account options"
+      >
+        <p className="dashboard-account-menu__identity">{accountName}</p>
+        {dropdownOptions.accountSettings.map((option) => {
+          const icon =
+            option.icon === 'sun' ? (
+              <SunIcon size={18} strokeWidth={2} aria-hidden />
+            ) : option.icon === 'moon' ? (
+              <MoonIcon size={18} strokeWidth={2} aria-hidden />
+            ) : null;
+          return (
+            <DashboardMenuItem
+              key={option.value}
+              className={`dashboard-context-menu__item${option.disabled === true ? ' is-disabled' : ''}`}
+              keepOpen={option.keepMenuOpen === true}
+              onSelect={() => onSelectContext('accountSettings', option.value)}
+            >
+              {icon ? (
+                <span className="dashboard-context-menu__theme-action">
+                  <span>{option.label}</span>
+                  <span
+                    className="navbar-static__theme-toggle dashboard-context-menu__theme-toggle"
+                    aria-hidden="true"
+                  >
+                    {icon}
                   </span>
-                ) : (
-                  option.label
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+                </span>
+              ) : (
+                option.label
+              )}
+            </DashboardMenuItem>
+          );
+        })}
+      </DashboardMenu>
     </div>
   );
 
@@ -399,7 +387,7 @@ export function DashboardTopbar({
       aria-label="Workspace context"
     >
       <a className="dashboard-mobile-brand" {...homeProps} aria-label="Seams home">
-        <SeamsWordmark height={24} />
+        <SeamsWordmark height={18} />
       </a>
       <div className="dashboard-topbar__lead">
         {!isSidebarExpanded ? (
@@ -437,7 +425,7 @@ export function DashboardTopbar({
 
       <div className="dashboard-topbar__utilities">
         {docsLink}
-        {accountMenu}
+        {accountMenuElement}
       </div>
 
       <button
@@ -465,8 +453,13 @@ export function DashboardTopbar({
           <SidebarWorkspaceSwitcher {...workspace} />
         </div>
       ) : null}
-      {paletteOpen && searchEnabled && onNavigate ? (
-        <TopbarCommandPalette items={searchItems} onNavigate={onNavigate} onClose={closePalette} />
+      {palette.mounted && searchEnabled && onNavigate ? (
+        <TopbarCommandPalette
+          items={searchItems}
+          menu={palette}
+          onNavigate={onNavigate}
+          onClose={palette.close}
+        />
       ) : null}
     </header>
   );

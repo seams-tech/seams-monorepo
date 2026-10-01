@@ -156,7 +156,7 @@ function buildConsoleConfig(
       gatewayOrigin,
       relyingPartyId: new URL(walletOrigin).hostname,
     }),
-    CONSOLE_BASE_URL: consoleOrigin,
+    CONSOLE_BASE_URL: walletSiteOrigin,
     CONSOLE_CORS_ORIGINS: walletSiteOrigin,
     CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
     CONSOLE_STEP_UP_ORIGIN: walletSiteOrigin,

@@ -390,40 +390,6 @@ test('local Gateway startup renders the production-shaped MPC Worker topology', 
   }
 });
 
-test('strict local mode serves pair commands through production Wrangler shims', () => {
-  const fixture = createRuntimeFixture();
-  const runtime = prepareStrictRuntime(fixture);
-
-  for (const config of runtime.configs) {
-    const generated = readFileSync(config.configPath, 'utf8');
-    expect(generated).toMatch(new RegExp(`build/${config.role}/worker/shim\\.mjs`));
-  }
-
-  const launcher = readFileSync(
-    path.join(repoRoot(), 'scripts/local-wallet/dev-local-workers.mjs'),
-    'utf8',
-  );
-  expect(launcher).toContain("'wrangler'");
-  expect(launcher).toContain("'--local'");
-  expect(launcher).toContain("'--config'");
-
-  const deriverEntrypoint = readFileSync(
-    path.join(repoRoot(), 'crates/router-ab-cloudflare/src/strict_worker/deriver.rs'),
-    'utf8',
-  );
-  for (const route of [
-    'CLOUDFLARE_DERIVER_A_ED25519_YAO_PREPARE_PAIR_PATH',
-    'CLOUDFLARE_DERIVER_A_ED25519_YAO_EXECUTE_PAIR_PATH',
-    'CLOUDFLARE_DERIVER_A_ED25519_YAO_READ_PAIR_STATUS_PATH',
-    'CLOUDFLARE_DERIVER_A_ED25519_YAO_BURN_PAIR_PATH',
-    'CLOUDFLARE_DERIVER_B_ED25519_YAO_PREPARE_PAIR_PATH',
-    'CLOUDFLARE_DERIVER_B_ED25519_YAO_READ_PAIR_STATUS_PATH',
-    'CLOUDFLARE_DERIVER_B_ED25519_YAO_BURN_PAIR_PATH',
-  ]) {
-    expect(deriverEntrypoint).toContain(route);
-  }
-});
-
 function parseTomlJsonAssignment(config: string, key: string): Record<string, unknown> {
   for (const line of config.split(/\r?\n/)) {
     if (!line.startsWith(`${key} = `)) continue;

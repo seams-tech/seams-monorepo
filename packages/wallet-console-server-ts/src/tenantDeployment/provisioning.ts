@@ -65,6 +65,13 @@ export interface TenantDeploymentProvisionerV1 {
   ): Promise<TenantDeploymentProvisioningResultV1>;
 }
 
+export type TenantDeploymentBrowserCredentialProvisioningV1 =
+  | { readonly kind: 'create_managed_publishable_key' }
+  | {
+      readonly kind: 'adopt_publishable_key';
+      readonly publishableKey: `pk_${string}`;
+    };
+
 export type TenantDeploymentProvisionerOptionsV1 = {
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
@@ -77,6 +84,7 @@ export type TenantDeploymentProvisionerOptionsV1 = {
   readonly readiness: TenantDeploymentReadinessServiceV1;
   readonly store: TenantDeploymentServiceV1;
   readonly canary: TenantDeploymentRegistrationCanaryV1;
+  readonly browserCredential: TenantDeploymentBrowserCredentialProvisioningV1;
   readonly newOperationId?: () => TenantDeploymentCutoverId;
 };
 
@@ -103,6 +111,65 @@ function parsePublishableKey(value: string): `pk_${string}` {
     throw new Error('publishable credential value is invalid');
   }
   return `pk_${value.slice(3)}`;
+}
+
+type ProvisionedBrowserCredentialV1 =
+  | {
+      readonly kind: 'created';
+      readonly credentialId: `ak_${string}`;
+      readonly publishableKey: `pk_${string}`;
+    }
+  | {
+      readonly kind: 'adopted';
+      readonly credentialId: `ak_${string}`;
+      readonly publishableKey: `pk_${string}`;
+    };
+
+async function provisionBrowserCredential(input: {
+  readonly options: TenantDeploymentProvisionerOptionsV1;
+  readonly identity: TenantRootIdentityV1;
+  readonly environmentId: string;
+}): Promise<ProvisionedBrowserCredentialV1> {
+  switch (input.options.browserCredential.kind) {
+    case 'create_managed_publishable_key': {
+      const credential = await input.options.apiKeys.createApiKey(
+        { orgId: input.identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
+        {
+          kind: 'publishable_key',
+          name: `Managed deployment ${input.options.deploymentLane}`,
+          environmentId: input.environmentId,
+          allowedOrigins: [
+            input.options.surfaces.applicationOrigin,
+            input.options.surfaces.hostedWalletOrigin,
+          ],
+          rateLimitBucket: 'managed-registration',
+          quotaBucket: 'included-registration',
+        },
+      );
+      return {
+        kind: 'created',
+        credentialId: parseCredentialId(credential.apiKey.id),
+        publishableKey: parsePublishableKey(credential.secret),
+      };
+    }
+    case 'adopt_publishable_key': {
+      const authenticate = input.options.apiKeys.authenticatePublishableKey;
+      if (!authenticate) throw new Error('publishable credential authentication is unavailable');
+      const authenticated = await authenticate.call(input.options.apiKeys, {
+        secret: input.options.browserCredential.publishableKey,
+        origin: input.options.surfaces.applicationOrigin,
+        environmentId: input.environmentId,
+      });
+      if (!authenticated.ok || authenticated.apiKey.kind !== 'publishable_key') {
+        throw new Error('configured publishable credential is invalid');
+      }
+      return {
+        kind: 'adopted',
+        credentialId: parseCredentialId(authenticated.apiKey.id),
+        publishableKey: input.options.browserCredential.publishableKey,
+      };
+    }
+  }
 }
 
 function bindingMatchesRequest(input: {
@@ -289,19 +356,9 @@ export function createTenantDeploymentProvisionerV1(
       if (awaitingCredential.state.kind !== 'awaiting_browser_credential') {
         throw new Error('tenant deployment cutover did not await its browser credential');
       }
-      const credential = await options.apiKeys.createApiKey(
-        { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
-        {
-          kind: 'publishable_key',
-          name: `Managed deployment ${deploymentLane}`,
-          environmentId,
-          allowedOrigins: [options.surfaces.applicationOrigin, options.surfaces.hostedWalletOrigin],
-          rateLimitBucket: 'managed-registration',
-          quotaBucket: 'included-registration',
-        },
-      );
-      const credentialId = parseCredentialId(credential.apiKey.id);
-      const publishableKey = parsePublishableKey(credential.secret);
+      const credential = await provisionBrowserCredential({ options, identity, environmentId });
+      const credentialId = credential.credentialId;
+      const publishableKey = credential.publishableKey;
       let activated = false;
       try {
         const binding = await options.candidates.buildCandidate({
@@ -373,11 +430,13 @@ export function createTenantDeploymentProvisionerV1(
               },
             });
           }
-          await options.apiKeys.revokeApiKey(
-            { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
-            credentialId,
-            { reason: 'tenant deployment provisioning failed' },
-          );
+          if (credential.kind === 'created') {
+            await options.apiKeys.revokeApiKey(
+              { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
+              credentialId,
+              { reason: 'tenant deployment provisioning failed' },
+            );
+          }
         }
         throw error;
       }

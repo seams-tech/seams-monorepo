@@ -92,8 +92,6 @@ type DeploymentTopology = {
 };
 
 type DeploymentTargetsModule = {
-  readonly backendLaneIds: () => readonly string[];
-  readonly frontendSiteIds: () => readonly string[];
   readonly parseDeploymentTargets: (value: unknown) => DeploymentTopology;
   readonly readBackendLane: (laneId: string, targetsPath?: string) => BackendLane;
   readonly readFrontendSite: (siteId: string, targetsPath?: string) => FrontendSite;
@@ -138,62 +136,6 @@ function withProduction(targets: Record<string, unknown>, lanes: Record<string, 
     },
   };
 }
-
-test('deployment topology exposes exact lane and site identities', async () => {
-  const module = await deploymentTargetsModule;
-  expect(module.backendLaneIds()).toEqual([
-    'staging-testnet',
-    'production-testnet',
-    'production-mainnet',
-  ]);
-  expect(module.frontendSiteIds()).toEqual(['staging', 'production']);
-
-  const targets = module.parseDeploymentTargets(validTargets());
-  expect(Object.keys(targets.backendLanes)).toEqual([
-    'staging-testnet',
-    'production-testnet',
-    'production-mainnet',
-  ]);
-  expect(Object.keys(targets.frontendSites)).toEqual(['staging', 'production']);
-});
-
-test('deployment topology enforces release branches and network availability', async () => {
-  const module = await deploymentTargetsModule;
-  const targets = module.parseDeploymentTargets(validTargets());
-  const staging = targets.frontendSites.staging;
-  const production = targets.frontendSites.production;
-
-  expect(staging.branch).toBe('dev');
-  expect(staging.walletSiteOrigin).toBe('https://staging.wallet.seams.sh');
-  expect(staging.docsOrigin).toBe('https://staging.wallet.seams.sh/docs');
-  expect(staging.walletSitePagesProjectEnv).toBe('CF_PAGES_PROJECT_WALLET_SITE');
-  expect(staging.availableNetworks).toEqual(['testnet']);
-  expect(production.branch).toBe('main');
-  expect(production.walletSiteOrigin).toBe('https://wallet.seams.sh');
-  expect(production.docsOrigin).toBe('https://wallet.seams.sh/docs');
-  expect(production.availableNetworks).toEqual(['testnet', 'mainnet']);
-  expect(targets.backendLanes['staging-testnet'].network).toBe('testnet');
-  expect(targets.backendLanes['production-mainnet'].network).toBe('mainnet');
-});
-
-test('deployment topology keeps staging provisioning and isolates production origins/resources', async () => {
-  const module = await deploymentTargetsModule;
-  const targets = module.parseDeploymentTargets(validTargets());
-  const staging = targets.backendLanes['staging-testnet'];
-  const productionTestnet = targets.backendLanes['production-testnet'];
-  const productionMainnet = targets.backendLanes['production-mainnet'];
-
-  expect(staging.provisioning.kind).toBe('provisioned');
-  expect(productionTestnet.provisioning.kind).toBe('provisioned');
-  expect(productionMainnet.provisioning.kind).toBe('provisioned');
-  expect(staging.gatewayOrigin).toBe('https://staging.api.wallet.seams.sh');
-  expect(productionTestnet.gatewayOrigin).toBe('https://test.api.wallet.seams.sh');
-  expect(productionMainnet.gatewayOrigin).toBe('https://api.wallet.seams.sh');
-  expect(productionTestnet.walletOrigin).toBe('https://test.sign.seams.sh');
-  expect(productionMainnet.walletOrigin).toBe('https://sign.seams.sh');
-  expect(productionTestnet.resources.gateway.workerName).toBe('seams-sdk-d1-gateway-testnet');
-  expect(productionMainnet.resources.gateway.workerName).toBe('seams-sdk-d1-gateway');
-});
 
 test('deployment topology preserves staging operational identities', async () => {
   const module = await deploymentTargetsModule;

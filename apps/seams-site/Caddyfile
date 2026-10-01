@@ -17,6 +17,15 @@
 	handle @app_wallet_assets {
 		respond 404
 	}
+	@console_api path /console /console/*
+	handle @console_api {
+		reverse_proxy 127.0.0.1:4100
+	}
+	@wallet_product path /wallet /wallet/
+	handle @wallet_product {
+		rewrite * /dashboard-static/
+		reverse_proxy 127.0.0.1:4005
+	}
 	# R105 Phase 5: the customer Console is its own application; public
 	# /dashboard/* and /platform/* URLs are preserved through routing.
 	redir /dashboard /dashboard/ 308

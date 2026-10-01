@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@seams/wallet':
-        specifier: 0.6.2
-        version: 0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.7.3
+        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       '@seams/wallet-server':
-        specifier: 0.6.2
-        version: 0.6.2
+        specifier: 0.7.3
+        version: 0.7.3
     devDependencies:
       '@eslint/js':
         specifier: ^9.0.0
@@ -50,7 +50,7 @@ importers:
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       wrangler:
         specifier: 4.111.0
-        version: 4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        version: 4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   apps/seams-site:
     dependencies:
@@ -67,8 +67,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.6.2
-        version: 0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.7.3
+        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       '@tanstack/react-query':
         specifier: ^5.76.1
         version: 5.87.1(react@18.3.1)
@@ -131,11 +131,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.6.2
-        version: 0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.7.3
+        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       '@seams/wallet-server':
-        specifier: 0.6.2
-        version: 0.6.2
+        specifier: 0.7.3
+        version: 0.7.3
       '@tanstack/react-query':
         specifier: ^5.76.1
         version: 5.87.1(react@18.3.1)
@@ -206,7 +206,7 @@ importers:
         version: 5.8.3
       wrangler:
         specifier: 4.111.0
-        version: 4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        version: 4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   packages/console-shared-ts: {}
 
@@ -225,8 +225,8 @@ importers:
         specifier: workspace:*
         version: link:../wallet-console-shared-ts
       '@seams/wallet-server':
-        specifier: 0.6.2
-        version: 0.6.2
+        specifier: 0.7.3
+        version: 0.7.3
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
@@ -250,11 +250,14 @@ importers:
   packages/wallet-console-shared-ts:
     dependencies:
       '@seams/wallet-server':
-        specifier: 0.6.2
-        version: 0.6.2
+        specifier: 0.7.3
+        version: 0.7.3
 
   tests:
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 5.20260710.1
+        version: 5.20260710.1
       '@noble/curves':
         specifier: ^2.0.1
         version: 2.0.1
@@ -277,20 +280,26 @@ importers:
         specifier: workspace:*
         version: link:../packages/wallet-console-shared-ts
       '@seams/wallet':
-        specifier: 0.6.2
-        version: 0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.7.3
+        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       '@seams/wallet-server':
-        specifier: 0.6.2
-        version: 0.6.2
+        specifier: 0.7.3
+        version: 0.7.3
       '@simplewebauthn/server':
         specifier: ^13.2.2
         version: 13.2.2
       '@types/express':
         specifier: ^4.17.23
         version: 4.17.23
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      miniflare:
+        specifier: 4.20260710.0
+        version: 4.20260710.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem:
         specifier: ^2.38.6
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
@@ -298,8 +307,8 @@ importers:
   tests/intended-app:
     dependencies:
       '@seams/wallet':
-        specifier: 0.6.2
-        version: 0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.7.3
+        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -434,6 +443,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@5.20260710.1':
+    resolution: {integrity: sha512-4ooaY2Pb5XGwDn8Fzm6jnTAJkIX0R5LBvL9euQpp2T58sQItlAQd9yivAlkwGhpY5cM1u81/9HaXwKAjXwtyzA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -1450,12 +1462,12 @@ packages:
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
-  '@seams/wallet-server@0.6.2':
-    resolution: {integrity: sha512-GB+/8A++G+ImCzH4s2sIVipeALSyktyBhaVAZPKc4hQvcej1tU4ifj1z/BWFtwSU7dHcVqtoi1HruEwyWq3ulw==}
+  '@seams/wallet-server@0.7.3':
+    resolution: {integrity: sha512-sFepnFDpQjmOYpZZuFVtM34dQwXZR7a/Ut8A49zpZpKGsASeixE2O/BWnqiMUkKZlcXfjI6ShuD3dciMDW1fcQ==}
     hasBin: true
 
-  '@seams/wallet@0.6.2':
-    resolution: {integrity: sha512-rE8IrpppifaSlwmhM92MwjQVR2He52Cdnypr3uMqwCk8mIdX/QuQ5C1gve1i3b2gKoY6qg6Uxl4hrwrgT6LK+A==}
+  '@seams/wallet@0.7.3':
+    resolution: {integrity: sha512-ZgWyYwizIa57KWTDwh/uY8vj+Vk35teBMtWdDta99zv3XcAJFKlBM08NEjncHp0sYJUZ/9x4ociu84WHi6RVHA==}
     peerDependencies:
       jsqr: '>=1.4.0'
       qrcode: '>=1.3.0'
@@ -3070,6 +3082,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260710.1':
     optional: true
 
+  '@cloudflare/workers-types@5.20260710.1': {}
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -3854,7 +3868,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@seams/wallet-server@0.6.2':
+  '@seams/wallet-server@0.7.3':
     dependencies:
       '@simplewebauthn/server': 13.2.2
       bs58: 6.0.0
@@ -3863,7 +3877,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@seams/wallet@0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
+  '@seams/wallet@0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
     dependencies:
       '@near-js/types': 2.5.1
       '@noble/hashes': 2.0.1
@@ -3884,7 +3898,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@seams/wallet@0.6.2(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
+  '@seams/wallet@0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
     dependencies:
       '@near-js/types': 2.5.1
       '@noble/hashes': 2.0.1
@@ -5323,7 +5337,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260710.1
       '@cloudflare/workerd-windows-64': 1.20260710.1
 
-  wrangler@4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10):
+  wrangler@4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260710.1)
@@ -5334,6 +5348,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260710.1
     optionalDependencies:
+      '@cloudflare/workers-types': 5.20260710.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil

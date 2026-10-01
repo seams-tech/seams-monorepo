@@ -320,6 +320,105 @@ export function H2Networks(): React.JSX.Element {
   );
 }
 
+/* ---------- wallet UI showcase (the SDK's own surfaces on sample data) ---------- */
+
+/* Each frame is a separate page under showcase/ that renders the installed
+   SDK release's wallet UI on sample data, so the page shows what ships. The
+   pages sit under the app's base path, which is not the site root locally. */
+const showcaseViews = [
+  {
+    title: 'Transaction confirmer',
+    copy: 'Every signature starts with a review your users can read: amount, recipient, network and fee, approved with their passkey. A receipt then follows the transaction until the network confirms it.',
+    frame: `${import.meta.env.BASE_URL}showcase/transaction/`,
+    frameTitle: 'Transaction confirmer demo',
+  },
+  {
+    title: 'Your review, then the wallet',
+    copy: 'Render your own checkout inside the wallet modal. When the buyer confirms, the same dialog hands off to the wallet approval, in your brand colors.',
+    frame: `${import.meta.env.BASE_URL}showcase/checkout/`,
+    frameTitle: 'Custom review demo',
+  },
+];
+
+/* Copy and tabs on the left, like the custody section; the demo stage on the
+   right, like the hero's. The stage only changes on request: each view is a
+   live demo, and paging it away mid-click would lose the user's place. */
+export function H2Showcase(): React.JSX.Element {
+  const [view, setView] = React.useState(0);
+  const step = (delta: number) =>
+    setView((current) => (current + delta + showcaseViews.length) % showcaseViews.length);
+
+  return (
+    <section className="h2-rule h2-showcase__split" aria-labelledby="h2-showcase-title">
+      <div className="h2-showcase__main">
+        <h2 id="h2-showcase-title" className="h2-display h2-security__title">
+          What your users see when they approve
+        </h2>
+        <p className="h2-showcase__copy">
+          These are the wallet&rsquo;s own screens running on sample data. Click through them;
+          nothing is signed or sent.
+        </p>
+        {showcaseViews.map((item, i) => (
+          <button
+            key={item.frame}
+            type="button"
+            className={`h2-security__item h2-showcase__item${i === view ? ' is-active' : ''}`}
+            aria-pressed={i === view}
+            onClick={() => setView(i)}
+          >
+            <h3>{item.title}</h3>
+            <p>{item.copy}</p>
+          </button>
+        ))}
+      </div>
+      <div className="h2-showcase__stage">
+        {showcaseViews.map((item, i) => (
+          <div
+            key={item.frame}
+            className={`h2-security__view${i === view ? ' is-active' : ''}`}
+            aria-hidden={i !== view}
+          >
+            <iframe
+              className="h2-showcase__frame"
+              src={item.frame}
+              title={item.frameTitle}
+              loading="lazy"
+              tabIndex={i === view ? undefined : -1}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="h2-pager" role="group" aria-label="Wallet screens">
+        <button
+          type="button"
+          className="h2-pager__btn"
+          aria-label="Previous wallet screen"
+          onClick={() => step(-1)}
+        >
+          <ChevronLeft aria-hidden />
+        </button>
+        <span className="h2-pager__dots">
+          {showcaseViews.map((item, i) => (
+            <span
+              key={item.frame}
+              className={`h2-pager__dot${i === view ? ' is-active' : ''}`}
+              title={item.title}
+            />
+          ))}
+        </span>
+        <button
+          type="button"
+          className="h2-pager__btn"
+          aria-label="Next wallet screen"
+          onClick={() => step(1)}
+        >
+          <ChevronRight aria-hidden />
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function H2Trusted(): React.JSX.Element {
   return (
     <section className="h2-section h2-rule h2-trusted" aria-labelledby="h2-trusted-title">

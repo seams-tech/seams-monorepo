@@ -158,13 +158,30 @@ function WalletWebhooksPage(): React.JSX.Element {
   return <WebhooksPage eventCategoryOptions={walletWebhookEventCategoryOptions} />;
 }
 
+function walletAuditPolicyPath({
+  policyId,
+  policyKind,
+  approvalId,
+}: Parameters<AuditApprovalIntegration['policyPath']>[0]): string {
+  const params = new URLSearchParams({ policyId });
+  switch (policyKind) {
+    case 'GAS_SPONSORSHIP':
+      return `/dashboard/gas-sponsorship?${params.toString()}`;
+    case 'TRANSACTION':
+      if (approvalId) params.set('approvalId', approvalId);
+      return `/dashboard/policy-engine?${params.toString()}`;
+    default:
+      return assertNeverPolicyKind(policyKind);
+  }
+}
+
+function assertNeverPolicyKind(policyKind: never): never {
+  throw new Error(`Unsupported audit policy kind: ${String(policyKind)}`);
+}
+
 const walletAuditApprovalIntegration: AuditApprovalIntegration = {
   listApprovals: listDashboardApprovals,
-  policyPath: ({ policyId, approvalId }) => {
-    const params = new URLSearchParams({ policyId });
-    if (approvalId) params.set('approvalId', approvalId);
-    return `/dashboard/policy-engine?${params.toString()}`;
-  },
+  policyPath: walletAuditPolicyPath,
 };
 
 const walletOpsCockpitApprovalActions: OpsCockpitApprovalActions = {

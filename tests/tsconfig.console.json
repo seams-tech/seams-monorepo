@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.playwright.json",
+  "include": [
+    "e2e/console/**/*.ts",
+    "relayer/tenant-deployment-binding.e2e.test.ts",
+    "fixtures/tenant-deployment/**/*.ts"
+  ],
+  "exclude": ["node_modules", "playwright-report", "test-results"]
+}

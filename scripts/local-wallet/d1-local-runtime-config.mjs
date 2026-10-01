@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import dotenv from 'dotenv';
 const require = createRequire(import.meta.url);
 const walletServerRoot = path.dirname(require.resolve('@seams/wallet-server/package.json'));
 
@@ -37,6 +38,31 @@ const ROUTER_RUNTIME_ASSIGNMENTS = Object.freeze([
   'DERIVER_B_ED25519_YAO_INPUT_PUBLIC_KEY',
   'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
 ]);
+
+// Each dedicated Gateway credential, and the strict role whose secrets file
+// holds the other end of it.
+const GATEWAY_AUTH_SECRET_ROLES = Object.freeze({
+  ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: 'router',
+  ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET: 'signing-worker',
+});
+
+/**
+ * Copies the Gateway's dedicated Router and SigningWorker credentials into a
+ * prepared D1 local config. The strict runtime creates them, and it is prepared
+ * after this config because it needs the ceremony JWKS, so this is a second step.
+ */
+export function bindRouterAbD1LocalGatewayAuthSecrets(input) {
+  const outputConfigPath = path.resolve(input.outputConfigPath);
+  let runtimeConfig = readFileSync(outputConfigPath, 'utf8');
+  for (const [key, role] of Object.entries(GATEWAY_AUTH_SECRET_ROLES)) {
+    const strictConfig = input.strictConfigs.find((config) => config.role === role);
+    if (!strictConfig) throw new Error(`strict ${role} runtime config is unavailable`);
+    const secret = dotenv.parse(readFileSync(strictConfig.secretPath))[key];
+    if (!secret) throw new Error(`strict ${role} runtime secrets are missing ${key}`);
+    runtimeConfig = replaceTomlAssignment(runtimeConfig, key, secret);
+  }
+  writeFileSync(outputConfigPath, runtimeConfig, { mode: 0o600 });
+}
 
 export function prepareRouterAbD1LocalRuntimeConfig(input) {
   const repoRoot = path.resolve(input.repoRoot);
@@ -138,6 +164,7 @@ export function prepareRouterAbD1LocalRuntimeConfig(input) {
     requiredScope(input.localConsoleEnvironmentId, 'SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID'),
   );
   runtimeConfig = insertTomlVars(runtimeConfig, {
+    SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY: String(input.localConsolePublishableKey ?? '').trim(),
     TENANT_ROOT_RECOVERY_CERTIFICATES_JSON: tenantRootKeys.recovery.certificatesJson,
     TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID: tenantRootKeys.grantAuthority.keyId,
     TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED: tenantRootKeys.grantAuthority.signingSeedB64u,

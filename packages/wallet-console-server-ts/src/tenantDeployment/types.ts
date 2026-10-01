@@ -7,6 +7,7 @@ import type {
   TenantDeploymentCutoverV1,
   TenantDeploymentReadinessReceiptV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import type { NamespaceD1HomeV1 } from './namespaceHome';
 
 export type {
   ActiveTenantDeploymentBindingV1,
@@ -24,6 +25,7 @@ export type ExpectedActiveTenantDeploymentBindingV1 = {
 };
 
 export type ActivateTenantDeploymentBindingInputV1 = {
+  readonly home: NamespaceD1HomeV1;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedCutoverRecordRevision: number;
   readonly deploymentLane: string;

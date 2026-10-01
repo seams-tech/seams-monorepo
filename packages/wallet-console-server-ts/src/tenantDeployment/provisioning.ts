@@ -411,6 +411,7 @@ export function createTenantDeploymentProvisionerV1(
           expectedActiveRevision: active?.revision ?? null,
         });
         const activation = await options.store.activateBinding({
+          home: options.home,
           operationId,
           expectedCutoverRecordRevision: ready.recordRevision,
           deploymentLane,

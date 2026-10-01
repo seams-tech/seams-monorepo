@@ -4,6 +4,7 @@ import {
   type ReserveNamespaceD1HomeResultV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/namespaceHome';
 import type { TenantDeploymentProvisionerOptionsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
+import type { ActivateTenantDeploymentBindingInputV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
 
 declare const home: NamespaceD1HomeV1;
 declare const assignment: NamespaceD1HomeAssignmentV1;
@@ -38,3 +39,8 @@ declare const optionsWithoutHome: Omit<TenantDeploymentProvisionerOptionsV1, 'ho
 // @ts-expect-error Provisioning always requires a parsed home resource identity.
 const unscopedProvisioner: TenantDeploymentProvisionerOptionsV1 = optionsWithoutHome;
 void unscopedProvisioner;
+
+declare const activationWithoutHome: Omit<ActivateTenantDeploymentBindingInputV1, 'home'>;
+// @ts-expect-error Direct activation requires a parsed home even when provisioning is bypassed.
+const unscopedActivation: ActivateTenantDeploymentBindingInputV1 = activationWithoutHome;
+void unscopedActivation;

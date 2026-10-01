@@ -26,7 +26,11 @@ import {
   resolveTenantDeploymentSetupAdmissionFromServiceV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeBinding';
 import { cleanupTemporaryD1Database, createTemporaryD1Database } from '../helpers/sqliteD1';
-import { binding, developmentBindingBody } from '../helpers/tenantDeploymentFixtures';
+import {
+  binding,
+  developmentBindingBody,
+  namespaceHome,
+} from '../helpers/tenantDeploymentFixtures';
 
 test.describe('tenant deployment binding', () => {
   test('resolves the current binding from one snapshot and rejects a dangling pointer', async () => {
@@ -174,7 +178,7 @@ test.describe('tenant deployment binding', () => {
   });
 
   test('enforces credential environment prefixes and canonical origin order', async () => {
-    const wrongCredential = developmentBindingBody(1_700_000_000_000);
+    const wrongCredential = developmentBindingBody(1_700_000_000_000, 'live-demo');
     expect(
       (
         await buildTenantDeploymentBindingV1({
@@ -208,10 +212,23 @@ test.describe('tenant deployment binding', () => {
         'packages/wallet-console-server-ts/migrations/d1-console/0046_tenant_deployment_bindings.sql',
       );
       await fixture.database.exec(readFileSync(migration, 'utf8'));
+      for (const name of [
+        '0047_namespace_d1_homes.sql',
+        '0048_tenant_deployment_activation_homes.sql',
+      ]) {
+        await fixture.database.exec(
+          readFileSync(
+            path.resolve('..', 'packages/wallet-console-server-ts/migrations/d1-console', name),
+            'utf8',
+          ),
+        );
+      }
+      const home = namespaceHome('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
       const service = createD1TenantDeploymentServiceV1({
         database: fixture.database,
         now: () => new Date(1_800_000_000_000),
       });
+      await service.reserveNamespaceHome(home);
       const first = await service.putBinding(await binding(1_700_000_000_000));
       const readinessReceipt = {
         kind: 'tenant_deployment_readiness_receipt_v1' as const,
@@ -303,6 +320,7 @@ test.describe('tenant deployment binding', () => {
         }),
       ).rejects.toMatchObject({ code: 'invalid_input' });
       const input = {
+        home,
         operationId: 'tco_first' as const,
         expectedCutoverRecordRevision: readyFirst.recordRevision,
         deploymentLane: first.deploymentLane,
@@ -381,6 +399,7 @@ test.describe('tenant deployment binding', () => {
         activationSequence: activated.active.activationSequence,
       };
       const secondInput = {
+        home,
         operationId: 'tco_second' as const,
         expectedCutoverRecordRevision: 4,
         deploymentLane: second.deploymentLane,

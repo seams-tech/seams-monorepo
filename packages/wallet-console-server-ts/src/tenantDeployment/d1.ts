@@ -492,6 +492,7 @@ export function createD1TenantDeploymentServiceV1(
 
     async activateBinding(rawInput) {
       const input: ActivateTenantDeploymentBindingInputV1 = {
+        home: rawInput.home,
         operationId: parseCutoverId(rawInput.operationId, 'operationId'),
         expectedCutoverRecordRevision: positiveSafeInteger(
           rawInput.expectedCutoverRecordRevision,
@@ -511,6 +512,32 @@ export function createD1TenantDeploymentServiceV1(
         readinessReceipt: rawInput.readinessReceipt,
       };
       const timestamp = positiveSafeInteger(now().getTime(), 'current time');
+      const binding = await readBinding(database, input.deploymentLane, input.bindingRevision);
+      if (!binding) {
+        throw new TenantDeploymentStoreError(
+          'binding_not_found',
+          'tenant deployment binding was not found',
+        );
+      }
+      if (binding.tenant.namespace !== input.home.namespace) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_conflict',
+          'activation home belongs to another namespace',
+        );
+      }
+      const assignment = await readNamespaceD1Home(database, binding.tenant.namespace);
+      if (!assignment) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_unassigned',
+          'activation requires a reserved namespace home',
+        );
+      }
+      if (!assignment.home.matches(input.home)) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_conflict',
+          'activation home conflicts with the namespace reservation',
+        );
+      }
       const cutover = await readCutover(database, input.operationId);
       const before = await readActive(database, input.deploymentLane);
       if (
@@ -525,6 +552,21 @@ export function createD1TenantDeploymentServiceV1(
         before?.revision === input.bindingRevision &&
         before.activationSequence === cutover.state.activationReceipt.activationSequence
       ) {
+        const recordedHome = await queryD1One(
+          database,
+          `SELECT home_account_id, home_database_id FROM tenant_deployment_activations
+           WHERE operation_id = ?1`,
+          [input.operationId],
+        );
+        if (
+          recordedHome?.home_account_id !== input.home.accountId ||
+          recordedHome.home_database_id !== input.home.databaseId
+        ) {
+          throw new TenantDeploymentStoreError(
+            'activation_conflict',
+            'completed activation has no matching home evidence; a new activation is required',
+          );
+        }
         return activationResult(before);
       }
       if (
@@ -541,13 +583,6 @@ export function createD1TenantDeploymentServiceV1(
         );
       }
       assertReadiness(input, timestamp);
-      const binding = await readBinding(database, input.deploymentLane, input.bindingRevision);
-      if (!binding) {
-        throw new TenantDeploymentStoreError(
-          'binding_not_found',
-          'tenant deployment binding was not found',
-        );
-      }
       const activationSequence = (input.expectedActive?.activationSequence ?? 0) + 1;
       const receipt = {
         kind: 'tenant_deployment_activation_receipt_v1' as const,
@@ -570,8 +605,8 @@ export function createD1TenantDeploymentServiceV1(
              operation_id, deployment_lane, binding_revision,
              expected_previous_revision, expected_activation_sequence,
              activation_sequence, activated_at_ms, expected_cutover_record_revision,
-             ready_state_json, active_state_json, receipt_json
-           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
+             ready_state_json, active_state_json, receipt_json, home_account_id, home_database_id
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`,
           )
           .bind(
             input.operationId,
@@ -585,6 +620,8 @@ export function createD1TenantDeploymentServiceV1(
             JSON.stringify(cutover.state),
             JSON.stringify(activeState),
             JSON.stringify(receipt),
+            input.home.accountId,
+            input.home.databaseId,
           )
           .run();
       } catch {

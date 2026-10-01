@@ -80,6 +80,7 @@ function bindingHarness() {
   });
   const recorded: RouterApiUsageMeterEvent[] = [];
   const handler = createWalletConsoleOpsHandler({
+    walletProjection: { recordCreatedWallet: unexpectedWalletProjection },
     apiKeyAuth: createRouterApiKeyAuthAdapter(apiKeys),
     publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys),
     usageMeter: {
@@ -131,6 +132,7 @@ function bindingHarness() {
 
 function rejectingTenantRootHandler() {
   return createWalletConsoleOpsHandler({
+    walletProjection: { recordCreatedWallet: unexpectedWalletProjection },
     apiKeyAuth: {
       async authenticate() {
         throw new Error('must not run');
@@ -381,6 +383,7 @@ test('unknown internal operations are rejected, never forwarded', async () => {
 
 test('public Console origins cannot invoke service-binding operations', async () => {
   const handler = createWalletConsoleOpsHandler({
+    walletProjection: { recordCreatedWallet: unexpectedWalletProjection },
     apiKeyAuth: {
       async authenticate() {
         throw new Error('must not run');
@@ -764,3 +767,7 @@ test('Wallet control binding rejects routes outside its declared operation set',
     }),
   ).rejects.toThrow(/Unsupported Wallet control operation/u);
 });
+
+async function unexpectedWalletProjection(): Promise<never> {
+  throw new Error('This fixture does not exercise Wallet projection');
+}

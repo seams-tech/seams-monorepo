@@ -95,11 +95,12 @@ Worker service binding, and verifies malformed-key, origin, environment, rotatio
 and revocation behavior. It also resolves the active project environment, rejects
 an unprovisioned tenant root, and delivers the same wallet-created usage event twice:
 one Console wallet projection persists, while registration remains excluded from
-monthly active-wallet billing. Local random encryption/signing keys and unusable
-Stripe placeholders satisfy composition configuration; an external-request guard
+monthly active-wallet billing. It also replays verified registration projections
+and rejects an organization/scope mismatch. Local random encryption/signing keys
+and unusable Stripe placeholders satisfy composition configuration; an external-request guard
 requires zero Wallet-runtime or network calls. No root is provisioned and no
-signature is produced. `console-service-auth-evidence.json` records the eleven
-service responses, nine observations, migration and bundle/package hashes,
+signature is produced. `console-service-auth-evidence.json` records the fourteen
+service responses, ten observations, migration and bundle/package hashes,
 and zero external calls, without credential values. Hosted signing remains a
 separate gate requiring a real active root and Gateway composition.
 

@@ -277,6 +277,57 @@ test('production Console service bindings enforce durable credential changes and
     expect(usage?.count).toBe(0);
     observations.push({ stage: 'wallet_created_replay', projectionRows: 1, countedWallets: 0 });
 
+    const projectedWallet = {
+      orgId: context.orgId,
+      walletId: 'console-activation-wallet',
+      occurredAt: '2026-10-01T00:00:00.000Z',
+      runtimePolicyScope: {
+        orgId: context.orgId,
+        projectId,
+        envId: 'dev',
+        signingRootVersion: environments[0].signingRootVersion,
+      },
+    };
+    for (let delivery = 0; delivery < 2; delivery += 1) {
+      const response = await service.fetch(
+        'https://wallet-console.internal/internal/wallet-console/v1/wallet-projections',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(projectedWallet),
+        },
+      );
+      expect(response.status).toBe(200);
+    }
+    const mismatched = await service.fetch(
+      'https://wallet-console.internal/internal/wallet-console/v1/wallet-projections',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...projectedWallet, orgId: 'different-organization' }),
+      },
+    );
+    expect(mismatched.status).toBe(400);
+    const activated = await database
+      .prepare(
+        'SELECT COUNT(*) AS count FROM wallet_index WHERE namespace = ? AND org_id = ? AND id = ?',
+      )
+      .bind(namespace, context.orgId, projectedWallet.walletId)
+      .first<{ count: number }>();
+    expect(activated?.count).toBe(1);
+    const registrationUsage = await database
+      .prepare(
+        'SELECT COUNT(*) AS count FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ?',
+      )
+      .bind(namespace, context.orgId)
+      .first<{ count: number }>();
+    expect(registrationUsage?.count).toBe(0);
+    observations.push({
+      stage: 'verified_activation_projection_replay',
+      projectionRows: 1,
+      countedWallets: 0,
+    });
+
     const rotated = await keys.rotateApiKey(context, credential.apiKey.id, {
       reason: 'Preflight rotation',
     });

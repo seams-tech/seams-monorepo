@@ -188,6 +188,8 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK?: string;
   readonly ROUTER_AB_ECDSA_REGISTRATION_TOPOLOGY_JSON?: string;
   readonly ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET?: string;
+  readonly ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET?: string;
+  readonly ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET?: string;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
   readonly TENANT_ROOT_RECOVERY_CERTIFICATES_JSON?: string;
@@ -745,6 +747,22 @@ function localRouterAbInternalServiceAuthSecret(env: LocalD1DevEnv): string {
   return (
     normalizeLocalString(env.ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET) ||
     DEFAULT_LOCAL_ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET
+  );
+}
+
+// The Router and the SigningWorker reject the role-shared credential on
+// Gateway-origin routes, so these two have no default to fall back on.
+function localGatewayToRouterAuthSecret(env: LocalD1DevEnv): string {
+  return requireLocalEnvString(
+    env.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET,
+    'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+  );
+}
+
+function localGatewayToSigningWorkerPresignAuthSecret(env: LocalD1DevEnv): string {
+  return requireLocalEnvString(
+    env.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET,
+    'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
   );
 }
 
@@ -1397,7 +1415,7 @@ async function createLocalRouterApiHandler(
     ...(ed25519Yao.kind === 'enabled' ? { routerAbEd25519YaoProduct: ed25519Yao.runtime } : {}),
     ...(sessionCookieName ? { sessionCookieName } : {}),
     routerAbNormalSigningRouterProxy: {
-      internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
+      internalServiceAuthSecret: localGatewayToRouterAuthSecret(env),
       fetch: (request) => env.MPC_ROUTER.fetch(request),
     },
     routerAbEcdsaStrictPostRegistration: ecdsaStrictPorts.postRegistration,
@@ -1504,7 +1522,7 @@ function createLocalEcdsaPresignRuntime(env: LocalD1DevEnv): RouterAbEcdsaPresig
       signingWorkerBaseUrl: ROUTER_AB_SIGNING_WORKER_ORIGIN,
       auth: {
         kind: 'internal_service_auth_secret',
-        secret: localRouterAbInternalServiceAuthSecret(env),
+        secret: localGatewayToSigningWorkerPresignAuthSecret(env),
       },
       fetchImpl: createRouterAbServiceBindingFetch(env),
     },
@@ -1868,7 +1886,7 @@ function localLinkedDeviceSessionComposition(
       sourceContributionRouter: createCloudflareLinkedDeviceEd25519SourcePreservingRouterEndpointV1(
         {
           fetch: serviceFetch,
-          internalServiceAuthSecret,
+          internalServiceAuthSecret: localGatewayToRouterAuthSecret(env),
           resolveTenantRoot: createLocalLinkedDeviceTenantRootResolver(
             env,
             orgId,
@@ -1936,7 +1954,7 @@ async function createLocalEd25519YaoProductComposition(
     env: {
       MPC_ROUTER_URL: ROUTER_AB_MPC_ROUTER_ORIGIN,
       SIGNING_WORKER_ID: signingWorkerId,
-      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: localRouterAbInternalServiceAuthSecret(env),
+      ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: localGatewayToRouterAuthSecret(env),
       DERIVER_A_ED25519_YAO_INPUT_PUBLIC_KEY: normalizeLocalString(
         env.DERIVER_A_ED25519_YAO_INPUT_PUBLIC_KEY,
       ),

@@ -15,7 +15,10 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const walletServerRoot = dirname(require.resolve('@seams/wallet-server/package.json'));
 
-import { prepareRouterAbD1LocalRuntimeConfig } from './d1-local-runtime-config.mjs';
+import {
+  bindRouterAbD1LocalGatewayAuthSecrets,
+  prepareRouterAbD1LocalRuntimeConfig,
+} from './d1-local-runtime-config.mjs';
 import { prepareRouterAbStrictLocalRuntimeConfigs } from '@seams/wallet-server/local-runtime';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -186,6 +189,10 @@ try {
     repoRoot,
     localEnvRoot: root,
     ceremonyJwksJson: d1Runtime.ceremonyJwksJson,
+  });
+  bindRouterAbD1LocalGatewayAuthSecrets({
+    outputConfigPath: d1Runtime.outputConfigPath,
+    strictConfigs: strictRuntime.configs,
   });
   assertProductionWorkerBinariesReady();
   await stopExistingProductionWorkerProcesses();

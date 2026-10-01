@@ -61,6 +61,11 @@ export interface TenantDeploymentBindingReaderV1 {
 }
 
 export interface TenantDeploymentBindingStoreV1 extends TenantDeploymentBindingReaderV1 {
+  adoptBindingHome(
+    deploymentLane: string,
+    revision: TenantDeploymentBindingRevision,
+    home: NamespaceD1HomeV1,
+  ): Promise<TenantDeploymentBindingV1>;
   putBinding(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentBindingV1>;
   activateBinding(
     input: ActivateTenantDeploymentBindingInputV1,

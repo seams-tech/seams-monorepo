@@ -32,6 +32,7 @@ type TenantDeploymentBindingCommonV1 = {
   readonly kind: 'tenant_deployment_binding_v1';
   readonly schemaVersion: 1;
   readonly deploymentLane: string;
+  readonly home: TenantDeploymentD1ResourceV1;
   readonly tenantRoot: {
     readonly identityDigestB64u: string;
     readonly custodyLineageId: string;
@@ -47,6 +48,28 @@ type TenantDeploymentBindingCommonV1 = {
   readonly runtimePolicyDigestB64u: string;
   readonly createdAtMs: number;
 };
+
+export type TenantDeploymentD1ResourceV1 = {
+  readonly accountId: string;
+  readonly databaseId: string;
+};
+
+export function decodeTenantDeploymentD1ResourceV1(
+  value: unknown,
+): TenantDeploymentDecodeResult<TenantDeploymentD1ResourceV1> {
+  const input = record(value);
+  if (
+    !input ||
+    !exactKeys(input, ['accountId', 'databaseId']) ||
+    typeof input.accountId !== 'string' ||
+    !/^[a-f0-9]{32}$/u.test(input.accountId) ||
+    typeof input.databaseId !== 'string' ||
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u.test(input.databaseId)
+  ) {
+    return { ok: false, message: 'tenant deployment D1 resource is invalid' };
+  }
+  return { ok: true, value: { accountId: input.accountId, databaseId: input.databaseId } };
+}
 
 type TenantDeploymentTenantV1<TEnvironmentId extends string> = {
   readonly namespace: string;
@@ -214,6 +237,7 @@ const BINDING_BODY_KEYS = Object.freeze([
   'kind',
   'schemaVersion',
   'deploymentLane',
+  'home',
   'mode',
   'tenant',
   'tenantRoot',
@@ -385,6 +409,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   if (!exactKeys(input, BINDING_BODY_KEYS)) return null;
   if (input.kind !== 'tenant_deployment_binding_v1' || input.schemaVersion !== 1) return null;
   const deploymentLane = nonEmptyText(input.deploymentLane);
+  const home = decodeTenantDeploymentD1ResourceV1(input.home);
   const mode = parseMode(input.mode);
   const tenant = record(input.tenant);
   const tenantRoot = record(input.tenantRoot);
@@ -394,6 +419,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   const createdAtMs = safePositiveInteger(input.createdAtMs);
   if (
     !deploymentLane ||
+    !home.ok ||
     !mode ||
     !tenant ||
     !tenantRoot ||
@@ -486,6 +512,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
+        home: home.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -510,6 +537,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
+        home: home.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -552,11 +580,14 @@ export function encodeTenantDeploymentJsonValueV1(value: TenantDeploymentJsonVal
   return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${encodeTenantDeploymentJsonValueV1(entry)}`).join(',')}}`;
 }
 
-function bindingBodyJsonValue(body: TenantDeploymentBindingBodyV1): TenantDeploymentJsonValue {
+function bindingBodyJsonValue(
+  body: TenantDeploymentBindingBodyV1,
+): Record<string, TenantDeploymentJsonValue> {
   return {
     kind: body.kind,
     schemaVersion: body.schemaVersion,
     deploymentLane: body.deploymentLane,
+    home: body.home,
     mode: body.mode,
     tenant: body.tenant,
     tenantRoot: body.tenantRoot,
@@ -580,13 +611,47 @@ function base64Url(bytes: Uint8Array): string {
 export async function tenantDeploymentBindingRevisionV1(
   body: TenantDeploymentBindingBodyV1,
 ): Promise<TenantDeploymentBindingRevision> {
+  return bindingRevisionFromJsonValue(bindingBodyJsonValue(body));
+}
+
+async function bindingRevisionFromJsonValue(
+  body: TenantDeploymentJsonValue,
+): Promise<TenantDeploymentBindingRevision> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) throw new Error('WebCrypto subtle API is required for tenant deployment bindings');
   const digest = await subtle.digest(
     'SHA-256',
-    new TextEncoder().encode(encodeTenantDeploymentBindingBodyV1(body)),
+    new TextEncoder().encode(encodeTenantDeploymentJsonValueV1(body)),
   );
   return `tdb_${base64Url(new Uint8Array(digest))}`;
+}
+
+// Only explicit persistence adoption may convert a binding that predates resource identity.
+export async function adoptTenantDeploymentBindingHomeV1(
+  value: unknown,
+  home: TenantDeploymentD1ResourceV1,
+): Promise<TenantDeploymentDecodeResult<TenantDeploymentBindingV1>> {
+  const input = record(value);
+  const historicalKeys = BINDING_KEYS.filter(isHistoricalBindingKey);
+  if (!input || !exactKeys(input, historicalKeys)) {
+    return { ok: false, message: 'historical tenant deployment binding is invalid' };
+  }
+  const bodyInput: JsonRecord = { home };
+  for (const key of BINDING_BODY_KEYS) if (key !== 'home') bodyInput[key] = input[key];
+  const parsed = decodeTenantDeploymentBindingBodyV1(bodyInput);
+  if (!parsed.ok) return parsed;
+  const currentBody = bindingBodyJsonValue(parsed.value);
+  const historicalBody: Record<string, TenantDeploymentJsonValue> = {};
+  for (const [key, field] of Object.entries(currentBody))
+    if (key !== 'home') historicalBody[key] = field;
+  if (input.revision !== (await bindingRevisionFromJsonValue(historicalBody))) {
+    return { ok: false, message: 'historical binding revision does not match its body' };
+  }
+  return buildTenantDeploymentBindingV1(parsed.value);
+}
+
+function isHistoricalBindingKey(key: string): boolean {
+  return key !== 'home';
 }
 
 export async function buildTenantDeploymentBindingV1(

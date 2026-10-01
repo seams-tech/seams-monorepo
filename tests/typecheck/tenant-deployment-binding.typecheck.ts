@@ -24,6 +24,10 @@ const invalidDevelopment: TenantDeploymentModeV1 = {
 };
 
 declare const bodyWithoutRevision: Omit<TenantDeploymentBindingV1, 'revision'>;
+declare const bodyWithoutHome: Omit<TenantDeploymentBindingV1, 'home'>;
+// @ts-expect-error A canonical binding always identifies its D1 resource.
+const invalidHome: TenantDeploymentBindingV1 = bodyWithoutHome;
+void invalidHome;
 // @ts-expect-error A persisted binding requires its content revision.
 const invalidBinding: TenantDeploymentBindingV1 = bodyWithoutRevision;
 

@@ -50,7 +50,11 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
-        bindings: { DEPLOYMENT_LANE: 'live-demo' },
+        bindings: {
+          DEPLOYMENT_LANE: 'live-demo',
+          SEAMS_D1_HOME_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
+          SEAMS_D1_HOME_DATABASE_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
         serviceBindings: { WALLET_CONSOLE: 'console' },
       },
       {
@@ -59,7 +63,11 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
-        bindings: { DEPLOYMENT_LANE: 'another-lane' },
+        bindings: {
+          DEPLOYMENT_LANE: 'another-lane',
+          SEAMS_D1_HOME_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
+          SEAMS_D1_HOME_DATABASE_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
         serviceBindings: { WALLET_CONSOLE: 'console' },
       },
       {
@@ -70,6 +78,19 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         compatibilityFlags: ['nodejs_compat'],
         bindings: { SEAMS_TENANT_DEPLOYMENT_LANE: 'live-demo' },
         d1Databases: { CONSOLE_DB: 'isolated-console-binding-e2e' },
+      },
+      {
+        name: 'wrong-home',
+        modules: true,
+        scriptPath: path.join(output, 'consumer.js'),
+        compatibilityDate: '2026-04-17',
+        compatibilityFlags: ['nodejs_compat'],
+        bindings: {
+          DEPLOYMENT_LANE: 'live-demo',
+          SEAMS_D1_HOME_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
+          SEAMS_D1_HOME_DATABASE_ID: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        },
+        serviceBindings: { WALLET_CONSOLE: 'console' },
       },
     ],
   });
@@ -83,6 +104,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     }
     const reader = await runtime.getWorker('consumer');
     const wrongLane = await runtime.getWorker('wrong-lane');
+    const wrongHome = await runtime.getWorker('wrong-home');
     const unavailable = await request.get(String(await runtime.ready));
     expect(unavailable.status()).toBe(503);
     expect(await unavailable.json()).toEqual({ kind: 'unavailable' });
@@ -119,6 +141,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         reader.fetch('https://consumer.test/'),
         wrongLane.fetch('https://consumer.test/'),
         reader.fetch('https://consumer.test/'),
+        wrongHome.fetch('https://consumer.test/'),
       ]);
       for (const [index, response] of responses.entries()) {
         const body = await response.json();
@@ -128,7 +151,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         // Local D1 supplies no placement evidence; absence must remain observable.
         expect(timing).not.toContain('wallet_console_binding_region');
         expect(timing).not.toContain('wallet_console_binding_primary');
-        if (index === 1) {
+        if (index === 1 || index === 3) {
           expect(response.status).toBe(502);
           expect(body).toEqual({ kind: 'rejected' });
         } else {

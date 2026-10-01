@@ -1,5 +1,6 @@
 import {
   buildTenantDeploymentBindingV1,
+  encodeTenantDeploymentJsonValueV1,
   type TenantDeploymentBindingBodyV1,
   type TenantDeploymentBindingV1,
   type TenantDeploymentCutoverId,
@@ -20,6 +21,10 @@ export function developmentBindingBody(
     kind: 'tenant_deployment_binding_v1',
     schemaVersion: 1,
     deploymentLane,
+    home: {
+      accountId: '0123456789abcdef0123456789abcdef',
+      databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    },
     mode: { kind: 'development_testnet_v1', environment: 'development', network: 'testnet' },
     tenant: {
       namespace: 'wallet',
@@ -66,6 +71,18 @@ export async function bindingForLane(createdAtMs: number, deploymentLane: string
   );
   if (!result.ok) throw new Error(result.message);
   return result.value;
+}
+
+export async function historicalBindingFixture(createdAtMs: number, deploymentLane: string) {
+  // Historical wire data is constructed only at this persistence-test boundary.
+  const { home, ...body } = developmentBindingBody(createdAtMs, deploymentLane);
+  void home;
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(encodeTenantDeploymentJsonValueV1(body)),
+  );
+  const revision = `tdb_${Buffer.from(digest).toString('base64url')}` as const;
+  return { ...body, revision };
 }
 
 export function namespaceHome(namespace: string, databaseId: string): NamespaceD1HomeV1 {

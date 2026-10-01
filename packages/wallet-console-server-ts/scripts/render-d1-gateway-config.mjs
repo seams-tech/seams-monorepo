@@ -147,10 +147,7 @@ function buildConsoleConfig(
   const resources = deployment.resources;
   const consoleOrigin = consoleTarget.origin;
   const production = deployment.lane !== 'staging-testnet';
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  if (typeof accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(accountId)) {
-    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the namespace D1 home');
-  }
+  const accountId = deploymentHomeAccountId();
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
@@ -340,6 +337,14 @@ function buildConfig(
   };
 }
 
+function deploymentHomeAccountId() {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  if (typeof accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(accountId)) {
+    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the namespace D1 home');
+  }
+  return accountId;
+}
+
 function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery, docsOrigin) {
   const production = deployment.lane !== 'staging-testnet';
   const implicitNearTestFunding =
@@ -351,6 +356,8 @@ function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery,
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     ROUTER_AB_NORMAL_SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
+    SEAMS_D1_HOME_ACCOUNT_ID: deploymentHomeAccountId(),
+    SEAMS_D1_HOME_DATABASE_ID: deployment.resources.signerD1.id,
     ROUTER_AB_PREWARM_ENABLED: 'true',
     SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
     ROUTER_AB_CEREMONY_JWT_ISSUER: deployment.origins.gateway,

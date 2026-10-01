@@ -5,6 +5,7 @@ import { isD1DatabaseLike, type D1DatabaseLike } from '@seams/wallet-server/clou
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
+import { buildTenantDeploymentBindingV1 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
 import type { ActivateTenantDeploymentBindingInputV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
 import type { NamespaceD1HomeV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/namespaceHome';
 import {
@@ -115,6 +116,16 @@ test('activation enforces the reserved resource through races, retries and histo
       name: '0048_tenant_deployment_activation_homes.sql',
       sha256: createHash('sha256').update(migration).digest('hex'),
     });
+    const bindingHomeMigration = await readFile(
+      new URL('0049_tenant_deployment_binding_homes.sql', migrationDirectory),
+      'utf8',
+    );
+    for (const statement of unstable_splitSqlQuery(bindingHomeMigration))
+      await database.prepare(statement).run();
+    migrations.push({
+      name: '0049_tenant_deployment_binding_homes.sql',
+      sha256: createHash('sha256').update(bindingHomeMigration).digest('hex'),
+    });
     expect(await store.resolveActiveBinding(historical.deploymentLane)).toEqual(historical);
     expect(
       await database
@@ -155,10 +166,30 @@ test('activation enforces the reserved resource through races, retries and histo
     const wrong = await readyActivation(store, candidate, wrongHome, 'tco_wrong', null, nowMs);
     await expect(
       insertActivationRow(database, wrong, { kind: 'scoped', home: wrongHome }),
-    ).rejects.toThrow('activation home mismatch');
+    ).rejects.toThrow(/home/);
     await expect(
       insertActivationRow(database, wrong, { kind: 'scoped', home: null }),
-    ).rejects.toThrow('activation home mismatch');
+    ).rejects.toThrow(/home/);
+    const rawDifferentHome = JSON.parse(JSON.stringify(candidate));
+    delete rawDifferentHome.revision;
+    rawDifferentHome.home.databaseId = wrongHome.databaseId;
+    const different = await buildTenantDeploymentBindingV1(rawDifferentHome);
+    if (!different.ok) throw new Error(different.message);
+    const differentBinding = await store.putBinding(different.value);
+    const mismatchedCanonicalHome = await readyActivation(
+      store,
+      differentBinding,
+      home,
+      'tco_canonical_mismatch',
+      null,
+      nowMs,
+    );
+    await expect(store.activateBinding(mismatchedCanonicalHome)).rejects.toMatchObject({
+      code: 'namespace_home_conflict',
+    });
+    await expect(
+      insertActivationRow(database, mismatchedCanonicalHome, { kind: 'scoped', home }),
+    ).rejects.toThrow('activation home disagrees with the canonical binding');
     const races = await Promise.allSettled([
       store.activateBinding(correct),
       store.activateBinding(wrong),
@@ -241,6 +272,7 @@ test('activation enforces the reserved resource through races, retries and histo
           historicalRetryRequiresNewActivation: true,
           historicalBindingAdoptedByNewActivation: true,
           missingAndWrongSqlHomesRejected: true,
+          canonicalHomeSqlMismatchRejected: true,
           expiredCompletedRetrySucceeded: true,
           replaceRejected: true,
           physicalResourceVerified: false,

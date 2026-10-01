@@ -1,5 +1,6 @@
 import { d1ChangedRows, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { TenantDeploymentStoreError } from './service';
+import { decodeTenantDeploymentD1ResourceV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 
 // A home names a provider resource. Region and deployment lane are not authority identities.
 export class NamespaceD1HomeV1 {
@@ -23,16 +24,16 @@ export class NamespaceD1HomeV1 {
       throw new TenantDeploymentStoreError('invalid_input', 'namespace D1 home is invalid');
     }
     const namespace = parseNamespace(raw.namespace);
-    if (typeof raw.accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(raw.accountId)) {
-      throw new TenantDeploymentStoreError('invalid_input', 'D1 account ID is invalid');
-    }
-    if (
-      typeof raw.databaseId !== 'string' ||
-      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u.test(raw.databaseId)
-    ) {
-      throw new TenantDeploymentStoreError('invalid_input', 'D1 database ID is invalid');
-    }
-    const home = new NamespaceD1HomeV1(namespace, raw.accountId, raw.databaseId);
+    const resource = decodeTenantDeploymentD1ResourceV1({
+      accountId: raw.accountId,
+      databaseId: raw.databaseId,
+    });
+    if (!resource.ok) throw new TenantDeploymentStoreError('invalid_input', resource.message);
+    const home = new NamespaceD1HomeV1(
+      namespace,
+      resource.value.accountId,
+      resource.value.databaseId,
+    );
     Object.freeze(home);
     return home;
   }

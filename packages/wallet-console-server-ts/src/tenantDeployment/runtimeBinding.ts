@@ -3,6 +3,7 @@ import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
 import { TenantDeploymentStoreError } from './service';
 import { forwardTenantDeploymentD1Timing } from './bindingTiming';
+import { NamespaceD1HomeV1 } from './namespaceHome';
 
 export const TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1 = 'https://tenant-deployment.internal';
 export const TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1 = '/internal/tenant-deployment/v1/active';
@@ -20,6 +21,8 @@ export interface TenantDeploymentServiceBindingV1 {
 export type TenantDeploymentRuntimeEnvironmentV1 = Readonly<Record<string, unknown>> & {
   readonly WALLET_CONSOLE: TenantDeploymentServiceBindingV1;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+  readonly SEAMS_D1_HOME_DATABASE_ID: string;
 };
 
 export type BoundTenantDeploymentRuntimeEnvironmentV1<
@@ -168,6 +171,20 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
     throw new TenantDeploymentStoreError(
       'invalid_record',
       'active tenant deployment belongs to another lane',
+    );
+  }
+  const configured = NamespaceD1HomeV1.parse({
+    namespace: binding.tenant.namespace,
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
+  if (
+    binding.home.accountId !== configured.accountId ||
+    binding.home.databaseId !== configured.databaseId
+  ) {
+    throw new TenantDeploymentStoreError(
+      'namespace_home_conflict',
+      'runtime D1 resource conflicts with the active binding',
     );
   }
   return {

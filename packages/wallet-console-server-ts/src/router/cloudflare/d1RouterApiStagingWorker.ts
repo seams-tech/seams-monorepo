@@ -81,6 +81,8 @@ type CloudflareD1RouterApiStagingEnv = CloudflareD1GatewayEnv &
     readonly CONSOLE_SESSION_ISSUER: string;
     readonly CONSOLE_SESSION_AUDIENCE: string;
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+    readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+    readonly SEAMS_D1_HOME_DATABASE_ID: string;
     readonly GOOGLE_OIDC_CLIENT_ID?: string;
     readonly GITHUB_OAUTH_CLIENT_ID?: string;
     readonly GITHUB_OAUTH_CLIENT_SECRET?: string;

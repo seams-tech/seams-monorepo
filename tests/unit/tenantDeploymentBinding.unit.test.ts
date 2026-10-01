@@ -368,6 +368,8 @@ test.describe('tenant deployment binding', () => {
           {
             WALLET_CONSOLE: serviceBinding,
             SEAMS_TENANT_DEPLOYMENT_LANE: first.deploymentLane,
+            SEAMS_D1_HOME_ACCOUNT_ID: first.home.accountId,
+            SEAMS_D1_HOME_DATABASE_ID: first.home.databaseId,
           },
           first,
         ),

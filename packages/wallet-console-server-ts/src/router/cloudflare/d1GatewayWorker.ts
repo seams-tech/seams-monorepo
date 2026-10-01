@@ -18,6 +18,8 @@ import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployme
 
 type TenantDeploymentGatewayEnv = CloudflareD1GatewayEnv & {
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+  readonly SEAMS_D1_HOME_DATABASE_ID: string;
 };
 
 async function fetch(

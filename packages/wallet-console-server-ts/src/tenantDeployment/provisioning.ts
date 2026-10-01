@@ -322,7 +322,12 @@ export function createTenantDeploymentProvisionerV1(
       }
       const active = await options.store.findActiveBinding(deploymentLane);
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
-      if (activeBinding && activeBinding.tenant.namespace !== options.home.namespace) {
+      if (
+        activeBinding &&
+        (activeBinding.tenant.namespace !== options.home.namespace ||
+          activeBinding.home.accountId !== options.home.accountId ||
+          activeBinding.home.databaseId !== options.home.databaseId)
+      ) {
         throw new TenantDeploymentStoreError(
           'namespace_home_conflict',
           'active lane belongs to another namespace',
@@ -385,13 +390,18 @@ export function createTenantDeploymentProvisionerV1(
       let activated = false;
       try {
         const binding = await options.candidates.buildCandidate({
+          home: options.home,
           identity,
           activeTenantRoot: awaitingCredential.state.activeTenantRoot,
           credentialId,
           publishableKey,
           surfaces: options.surfaces,
         });
-        if (binding.tenant.namespace !== options.home.namespace) {
+        if (
+          binding.tenant.namespace !== options.home.namespace ||
+          binding.home.accountId !== options.home.accountId ||
+          binding.home.databaseId !== options.home.databaseId
+        ) {
           throw new TenantDeploymentStoreError(
             'namespace_home_conflict',
             'candidate belongs to another namespace',

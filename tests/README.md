@@ -82,6 +82,25 @@ The consumer exercises the production resolver; this test does not run a signing
 ceremony or establish regional latency. Local D1 omits region/primary metadata,
 and the test requires those fields to remain absent rather than inventing placement.
 
+The authenticated Console service preflight exercises the complete production
+Console Worker initialization with its D1 schema and the installed Wallet package's
+service client:
+
+```sh
+pnpm -C tests exec playwright test -c playwright.relayer.config.ts relayer/console-service-auth.e2e.test.ts --reporter=line
+```
+
+It issues a credential through the Console D1 service, authenticates through a real
+Worker service binding, and verifies malformed-key, origin, environment, rotation,
+and revocation behavior. It also resolves the active project environment and rejects
+an unprovisioned tenant root. Local random encryption/signing keys and unusable
+Stripe placeholders satisfy composition configuration; an external-request guard
+requires zero Wallet-runtime or network calls. No root is provisioned and no
+signature is produced. `console-service-auth-evidence.json` records the nine
+service responses, eight observations, migration and bundle/package hashes,
+and zero external calls, without credential values. Hosted signing remains a
+separate gate requiring a real active root, usage ingestion, and Gateway composition.
+
 `e2e/linked-device.operating-path.test.ts` and
 `e2e/intended-behaviours/tenant-root.rotation.contract.test.ts` encode distinct composed
 product flows. They still import pre-split Wallet internals and are not part of the

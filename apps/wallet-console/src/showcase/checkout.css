@@ -157,6 +157,12 @@ dialog:not([open]) .checkout-review-slot {
   inline-size: min(420px, calc(100vw - 32px));
 }
 
+/* The slot stops scroll chaining in the SDK; over the review the wheel must
+   reach the homepage, as in showcase.css. */
+.seams-transaction-review-slot.checkout-review-slot {
+  overscroll-behavior: auto;
+}
+
 .seams-transaction-review-content.checkout-review {
   display: grid;
   gap: 14px;

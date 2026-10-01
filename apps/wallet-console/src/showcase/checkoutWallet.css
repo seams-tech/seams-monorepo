@@ -6,6 +6,12 @@ body {
   overscroll-behavior: auto;
 }
 
+/* The SDK's modal is a scroll container that stops chaining as well, so the
+   wheel would stall over the card. */
+.seams-confirmation-modal--hosted {
+  overscroll-behavior: auto;
+}
+
 /* The checkout page sends the widths it gives this frame and sizes the
    frame's height from the card's. Laying the card out at those widths, rather
    than the frame's current one, keeps it from reflowing while the dialog

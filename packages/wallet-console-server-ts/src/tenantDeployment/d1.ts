@@ -22,6 +22,7 @@ import type {
 } from './types';
 import type { TenantDeploymentSetupAdmissionReaderV1 } from './runtimeBinding';
 import { appendTenantDeploymentD1Timing } from './bindingTiming';
+import { readNamespaceD1Home, reserveNamespaceD1Home } from './namespaceHome';
 
 export type D1TenantDeploymentServiceOptionsV1 = {
   readonly database: D1DatabaseLike;
@@ -443,6 +444,12 @@ export function createD1TenantDeploymentServiceV1(
   const reader = createD1TenantDeploymentBindingReaderV1({ database });
   return {
     ...reader,
+    findNamespaceHome(namespace) {
+      return readNamespaceD1Home(database, namespace);
+    },
+    reserveNamespaceHome(home) {
+      return reserveNamespaceD1Home(database, home, now());
+    },
     async putBinding(rawBinding) {
       const decoded = await decodeTenantDeploymentBindingV1(rawBinding);
       if (!decoded.ok) {

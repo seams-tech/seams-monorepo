@@ -1,4 +1,5 @@
 import type { TenantDeploymentBindingStoreV1 } from './types';
+import type { NamespaceD1HomeStoreV1 } from './namespaceHome';
 
 export type TenantDeploymentStoreErrorCodeV1 =
   | 'invalid_input'
@@ -45,4 +46,4 @@ export function isTenantDeploymentStoreError(error: unknown): error is TenantDep
   return error instanceof TenantDeploymentStoreError;
 }
 
-export type TenantDeploymentServiceV1 = TenantDeploymentBindingStoreV1;
+export type TenantDeploymentServiceV1 = TenantDeploymentBindingStoreV1 & NamespaceD1HomeStoreV1;

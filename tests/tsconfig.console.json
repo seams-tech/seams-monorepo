@@ -1,6 +1,5 @@
 {
   "extends": "./tsconfig.playwright.json",
-  "compilerOptions": { "types": ["node"] },
   "include": ["e2e/console/**/*.ts"],
   "exclude": ["node_modules", "playwright-report", "test-results"]
 }

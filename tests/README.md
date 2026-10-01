@@ -92,14 +92,16 @@ pnpm -C tests exec playwright test -c playwright.relayer.config.ts relayer/conso
 
 It issues a credential through the Console D1 service, authenticates through a real
 Worker service binding, and verifies malformed-key, origin, environment, rotation,
-and revocation behavior. It also resolves the active project environment and rejects
-an unprovisioned tenant root. Local random encryption/signing keys and unusable
+and revocation behavior. It also resolves the active project environment, rejects
+an unprovisioned tenant root, and delivers the same wallet-created usage event twice:
+one Console wallet projection persists, while registration remains excluded from
+monthly active-wallet billing. Local random encryption/signing keys and unusable
 Stripe placeholders satisfy composition configuration; an external-request guard
 requires zero Wallet-runtime or network calls. No root is provisioned and no
-signature is produced. `console-service-auth-evidence.json` records the nine
-service responses, eight observations, migration and bundle/package hashes,
+signature is produced. `console-service-auth-evidence.json` records the eleven
+service responses, nine observations, migration and bundle/package hashes,
 and zero external calls, without credential values. Hosted signing remains a
-separate gate requiring a real active root, usage ingestion, and Gateway composition.
+separate gate requiring a real active root and Gateway composition.
 
 `e2e/linked-device.operating-path.test.ts` and
 `e2e/intended-behaviours/tenant-root.rotation.contract.test.ts` encode distinct composed

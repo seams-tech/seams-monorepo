@@ -246,6 +246,37 @@ test('production Console service bindings enforce durable credential changes and
     expect(lineage).toBeNull();
     observations.push({ stage: 'unprovisioned_root', result: lineage });
 
+    for (let delivery = 0; delivery < 2; delivery += 1) {
+      await client.usageMeter.recordEvent({
+        orgId: context.orgId,
+        environmentId,
+        apiKeyId: credential.apiKey.id,
+        endpoint: '/wallets/register/commit',
+        walletId: 'console-preflight-wallet',
+        action: 'wallet_created',
+        succeeded: true,
+        sourceEventId: 'console-preflight-registration',
+        occurredAt: '2026-10-01T00:00:00.000Z',
+      });
+    }
+    const projection = await database
+      .prepare(
+        'SELECT id, project_id, environment_id FROM wallet_index WHERE namespace = ? AND org_id = ?',
+      )
+      .bind(namespace, context.orgId)
+      .all();
+    expect(projection.results).toEqual([
+      { id: 'console-preflight-wallet', project_id: projectId, environment_id: environmentId },
+    ]);
+    const usage = await database
+      .prepare(
+        'SELECT COUNT(*) AS count FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ?',
+      )
+      .bind(namespace, context.orgId)
+      .first<{ count: number }>();
+    expect(usage?.count).toBe(0);
+    observations.push({ stage: 'wallet_created_replay', projectionRows: 1, countedWallets: 0 });
+
     const rotated = await keys.rotateApiKey(context, credential.apiKey.id, {
       reason: 'Preflight rotation',
     });

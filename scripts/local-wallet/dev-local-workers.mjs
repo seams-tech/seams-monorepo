@@ -848,6 +848,15 @@ async function ensureGatewayHttpsProxy() {
       return;
     } catch {
       const status = await describeUrlStatus(gatewayPublicWellKnownUrl);
+      // Ask the Gateway for the same route directly: a healthy /healthz does
+      // not show whether the proxy or the Gateway is failing this one.
+      const directWellKnownUrl = `${gatewayBaseUrl}${new URL(gatewayPublicWellKnownUrl).pathname}`;
+      if (!(await urlStatusIsReady(directWellKnownUrl))) {
+        throw new Error(
+          `${directWellKnownUrl} is not healthy (${await describeUrlStatus(directWellKnownUrl)}), ` +
+            `so the Gateway itself is failing this route; its error is in the gateway log above.`,
+        );
+      }
       throw new Error(
         `${gatewayPublicWellKnownUrl} is listening but not healthy (${status}). ` +
           `${gatewayBaseUrl}/healthz is healthy, so restart the local Caddy proxy with pnpm caddy or stop the process on ${gatewayPublicPort}.`,

@@ -50,7 +50,7 @@ importers:
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       wrangler:
         specifier: 4.111.0
-        version: 4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        version: 4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   apps/seams-site:
     dependencies:
@@ -206,7 +206,7 @@ importers:
         version: 5.8.3
       wrangler:
         specifier: 4.111.0
-        version: 4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        version: 4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   packages/console-shared-ts: {}
 
@@ -255,6 +255,9 @@ importers:
 
   tests:
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 5.20260710.1
+        version: 5.20260710.1
       '@noble/curves':
         specifier: ^2.0.1
         version: 2.0.1
@@ -288,9 +291,15 @@ importers:
       '@types/express':
         specifier: ^4.17.23
         version: 4.17.23
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
       express:
         specifier: ^4.21.2
         version: 4.21.2
+      miniflare:
+        specifier: 4.20260710.0
+        version: 4.20260710.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem:
         specifier: ^2.38.6
         version: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
@@ -434,6 +443,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@5.20260710.1':
+    resolution: {integrity: sha512-4ooaY2Pb5XGwDn8Fzm6jnTAJkIX0R5LBvL9euQpp2T58sQItlAQd9yivAlkwGhpY5cM1u81/9HaXwKAjXwtyzA==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -3070,6 +3082,8 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20260710.1':
     optional: true
 
+  '@cloudflare/workers-types@5.20260710.1': {}
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -5323,7 +5337,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260710.1
       '@cloudflare/workerd-windows-64': 1.20260710.1
 
-  wrangler@4.111.0(bufferutil@4.0.9)(utf-8-validate@5.0.10):
+  wrangler@4.111.0(@cloudflare/workers-types@5.20260710.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260710.1)
@@ -5334,6 +5348,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260710.1
     optionalDependencies:
+      '@cloudflare/workers-types': 5.20260710.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil

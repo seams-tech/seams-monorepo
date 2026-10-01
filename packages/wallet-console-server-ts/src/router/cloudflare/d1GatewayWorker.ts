@@ -27,9 +27,11 @@ async function fetch(
 ): Promise<Response> {
   const startedAt = performance.now();
   const pathname = new URL(request.url).pathname;
+  const bindingTimingHeaders = new Headers();
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
+    timingHeaders: bindingTimingHeaders,
   });
   const bindingDurationMs = performance.now() - startedAt;
   if (pathname === '/.well-known/seams-tenant-deployment.json') {
@@ -55,6 +57,8 @@ async function fetch(
   if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')
     return response;
   const result = new Response(response.body, response);
+  const consoleTiming = bindingTimingHeaders.get('Server-Timing');
+  if (consoleTiming) result.headers.append('Server-Timing', consoleTiming);
   result.headers.append(
     'Server-Timing',
     `wallet_gateway_binding;dur=${bindingDurationMs.toFixed(1)}, wallet_gateway_total;dur=${(performance.now() - startedAt).toFixed(1)}`,

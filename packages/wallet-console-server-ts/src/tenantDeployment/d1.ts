@@ -21,6 +21,7 @@ import type {
   TenantDeploymentCutoverRecordV1,
 } from './types';
 import type { TenantDeploymentSetupAdmissionReaderV1 } from './runtimeBinding';
+import { appendTenantDeploymentD1Timing } from './bindingTiming';
 
 export type D1TenantDeploymentServiceOptionsV1 = {
   readonly database: D1DatabaseLike;
@@ -29,6 +30,7 @@ export type D1TenantDeploymentServiceOptionsV1 = {
 
 export type D1TenantDeploymentBindingReaderOptionsV1 = {
   readonly database: D1DatabaseLike;
+  readonly timingHeaders?: Headers;
 };
 
 function requiredText(value: unknown, label: string): string {
@@ -365,9 +367,10 @@ export function createD1TenantDeploymentBindingReaderV1(
 
     async resolveActiveBinding(rawLane) {
       const deploymentLane = requiredText(rawLane, 'deploymentLane');
-      const row = await queryD1One(
-        database,
-        `SELECT active.deployment_lane AS active_deployment_lane,
+      const startedAt = performance.now();
+      const result = await database
+        .prepare(
+          `SELECT active.deployment_lane AS active_deployment_lane,
                 active.revision AS active_revision,
                 active.previous_revision, active.activation_sequence, active.activated_at_ms,
                 binding.*
@@ -376,8 +379,23 @@ export function createD1TenantDeploymentBindingReaderV1(
              ON binding.deployment_lane = active.deployment_lane
             AND binding.revision = active.revision
           WHERE active.deployment_lane = ?1`,
-        [deploymentLane],
-      );
+        )
+        .bind(deploymentLane)
+        .all<D1Row>();
+      if (options.timingHeaders) {
+        appendTenantDeploymentD1Timing(
+          options.timingHeaders,
+          performance.now() - startedAt,
+          result.meta,
+        );
+      }
+      if (!result.success) {
+        throw new TenantDeploymentStoreError(
+          'invalid_record',
+          'active tenant deployment query failed',
+        );
+      }
+      const row = result.results?.[0] ?? null;
       if (!row) return null;
       parseActiveRow({
         deployment_lane: row.active_deployment_lane,

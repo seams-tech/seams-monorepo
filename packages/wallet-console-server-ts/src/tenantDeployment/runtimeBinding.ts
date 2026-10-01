@@ -2,6 +2,7 @@ import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-
 import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
 import { TenantDeploymentStoreError } from './service';
+import { forwardTenantDeploymentD1Timing } from './bindingTiming';
 
 export const TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1 = 'https://tenant-deployment.internal';
 export const TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1 = '/internal/tenant-deployment/v1/active';
@@ -120,9 +121,11 @@ export async function resolveTenantDeploymentSetupAdmissionFromServiceV1(input: 
 export async function resolveActiveTenantDeploymentFromServiceV1(input: {
   readonly deploymentLane: string;
   readonly service: TenantDeploymentServiceBindingV1;
+  readonly timingHeaders?: Headers;
 }): Promise<TenantDeploymentBindingV1 | null> {
   const deploymentLane = requiredDeploymentLane(input.deploymentLane);
   const response = await input.service.fetch(internalActiveBindingRequest());
+  if (input.timingHeaders) forwardTenantDeploymentD1Timing(response.headers, input.timingHeaders);
   if (response.status === 503) {
     const body: unknown = await response.json().catch(() => null);
     if (

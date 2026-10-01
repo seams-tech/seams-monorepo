@@ -37,6 +37,9 @@
     "@types/express": "^4.17.23",
     "express": "^4.21.2",
     "viem": "^2.38.6",
-    "@seams/wallet": "0.7.3"
+    "@seams/wallet": "0.7.3",
+    "@cloudflare/workers-types": "5.20260710.1",
+    "esbuild": "0.28.1",
+    "miniflare": "4.20260710.0"
   }
 }

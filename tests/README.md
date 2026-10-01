@@ -67,6 +67,21 @@ selected scope; it does not seed a replacement incident or mock observability da
 
 ## Existing Wallet composition cases
 
+The isolated Console binding E2E runs independently of the browser stack:
+
+```sh
+pnpm -C tests exec playwright test -c playwright.relayer.config.ts relayer/tenant-deployment-binding.e2e.test.ts --reporter=line
+```
+
+It uses the production Console Worker, a consumer Worker, a real local service
+binding, and fresh local D1 on an ephemeral port. It verifies unavailable bindings,
+concurrent correct/wrong-lane requests, fresh revision reads, removal, and D1
+timing propagation. The shared binding factory supplies deployment records.
+`console-binding-evidence.json` retains observations and migration/bundle hashes.
+The consumer exercises the production resolver; this test does not run a signing
+ceremony or establish regional latency. Local D1 omits region/primary metadata,
+and the test requires those fields to remain absent rather than inventing placement.
+
 `e2e/linked-device.operating-path.test.ts` and
 `e2e/intended-behaviours/tenant-root.rotation.contract.test.ts` encode distinct composed
 product flows. They still import pre-split Wallet internals and are not part of the

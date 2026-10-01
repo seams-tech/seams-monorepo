@@ -150,12 +150,16 @@ import {
   createGatewayTenantDeploymentRegistrationCanaryV1,
   createTenantDeploymentProvisionerV1,
   type TenantDeploymentProvisionerV1,
+  type TenantDeploymentProvisioningRequestV1,
 } from '../../tenantDeployment/provisioning';
 import { createD1TenantDeploymentRuntimeInspectorV1 } from '../../tenantDeployment/runtimeInspection';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
 import type { TenantDeploymentBindingReaderV1 } from '../../tenantDeployment/types';
+import { NamespaceD1HomeV1 } from '../../tenantDeployment/namespaceHome';
 
 interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
+  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+  readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly SIGNER_DB: D1DatabaseLike;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
@@ -999,6 +1003,20 @@ function localConfiguredPublishableKey(env: LocalD1DevEnv): `pk_${string}` | nul
   return `pk_${value.slice(3)}`;
 }
 
+async function provisionLocalTenantDeployment(
+  home: NamespaceD1HomeV1,
+  store: ReturnType<typeof createD1TenantDeploymentServiceV1>,
+  provisioner: TenantDeploymentProvisionerV1,
+  request: TenantDeploymentProvisioningRequestV1,
+) {
+  // The local bootstrap owns both database bindings; hosted deployments require an explicit pin.
+  const reservation = await store.reserveNamespaceHome(home);
+  if (!reservation.ok) {
+    throw new Error('local D1 resource conflicts with its reserved namespace home');
+  }
+  return provisioner.provision(request);
+}
+
 async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalConsoleComposition> {
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const billingProviders = localBillingProviderAdapters(env);
@@ -1180,7 +1198,14 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({ database: env.SIGNER_DB }),
   });
   const configuredPublishableKey = localConfiguredPublishableKey(env);
-  const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
+  const home = NamespaceD1HomeV1.parse({
+    namespace: localTenantStorageNamespace(env),
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
+  const tenantDeploymentStore = createD1TenantDeploymentServiceV1({ database: env.CONSOLE_DB });
+  const provisioner = createTenantDeploymentProvisionerV1({
+    home,
     deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
     surfaces: {
       applicationOrigin: 'http://localhost:4001',
@@ -1197,12 +1222,15 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     readiness: createTenantDeploymentReadinessServiceV1({
       inspector: tenantDeploymentReadinessAdapter,
     }),
-    store: createD1TenantDeploymentServiceV1({ database: env.CONSOLE_DB }),
+    store: tenantDeploymentStore,
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: configuredPublishableKey
       ? { kind: 'adopt_publishable_key', publishableKey: configuredPublishableKey }
       : { kind: 'create_managed_publishable_key' },
   });
+  const tenantDeploymentProvisioner: TenantDeploymentProvisionerV1 = {
+    provision: provisionLocalTenantDeployment.bind(null, home, tenantDeploymentStore, provisioner),
+  };
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const handlerWithTenantRootCreation = createLocalConsoleTenantRootHandler({
     handler,

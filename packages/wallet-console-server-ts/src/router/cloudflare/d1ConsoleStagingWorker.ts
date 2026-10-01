@@ -106,6 +106,8 @@ import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment
 import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
+import { NamespaceD1HomeV1 } from '../../tenantDeployment/namespaceHome';
+
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
@@ -117,6 +119,8 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+  readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly TENANT_DEPLOYMENT_SURFACES_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
@@ -245,6 +249,7 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'active_tenant_deployment_bindings',
   'tenant_deployment_cutovers',
   'tenant_deployment_activations',
+  'namespace_d1_homes',
 ]);
 
 async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
@@ -492,6 +497,11 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     await tenantDeploymentReadinessAdapter.inspect(active);
   };
   const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
+    home: NamespaceD1HomeV1.parse({
+      namespace,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
     deploymentLane,
     surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
     orgProjectEnv: bundle.orgProjectEnv,

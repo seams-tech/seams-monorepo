@@ -16,6 +16,8 @@ service = "seams-sdk-d1-wallet-runtime-staging"
 [vars]
 SEAMS_TENANT_STORAGE_NAMESPACE = "seams-staging"
 SEAMS_TENANT_DEPLOYMENT_LANE = "staging-testnet"
+SEAMS_D1_HOME_ACCOUNT_ID = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
+SEAMS_D1_HOME_DATABASE_ID = "REPLACE_WITH_SIGNER_D1_DATABASE_ID"
 CONSOLE_BASE_URL = "https://example.com"
 CONSOLE_STEP_UP_RP_ID = "example.com"
 CONSOLE_STEP_UP_ORIGIN = "https://example.com"

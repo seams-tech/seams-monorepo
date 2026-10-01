@@ -147,9 +147,15 @@ function buildConsoleConfig(
   const resources = deployment.resources;
   const consoleOrigin = consoleTarget.origin;
   const production = deployment.lane !== 'staging-testnet';
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  if (typeof accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(accountId)) {
+    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the namespace D1 home');
+  }
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
+    SEAMS_D1_HOME_ACCOUNT_ID: accountId,
+    SEAMS_D1_HOME_DATABASE_ID: resources.signerD1.id,
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
       applicationOrigin: walletSiteOrigin,
       hostedWalletOrigin: walletOrigin,

@@ -16,6 +16,8 @@ import type {
 } from './productionReadiness';
 import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
+import { TenantDeploymentStoreError } from './service';
+import type { NamespaceD1HomeV1 } from './namespaceHome';
 
 const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 
@@ -73,6 +75,7 @@ export type TenantDeploymentBrowserCredentialProvisioningV1 =
     };
 
 export type TenantDeploymentProvisionerOptionsV1 = {
+  readonly home: NamespaceD1HomeV1;
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
@@ -303,8 +306,28 @@ export function createTenantDeploymentProvisionerV1(
         throw new Error('tenant deployment lane does not match this runtime');
       }
       const identity = await resolveIdentity(options, environmentId);
+      // Deployment control must pin the resource before provisioning can create custody or credentials.
+      const assignment = await options.store.findNamespaceHome(options.home.namespace);
+      if (!assignment) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_unassigned',
+          'namespace D1 home must be inventoried and reserved before provisioning',
+        );
+      }
+      if (!assignment.home.matches(options.home)) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_conflict',
+          'configured D1 resource conflicts with the reserved namespace home',
+        );
+      }
       const active = await options.store.findActiveBinding(deploymentLane);
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
+      if (activeBinding && activeBinding.tenant.namespace !== options.home.namespace) {
+        throw new TenantDeploymentStoreError(
+          'namespace_home_conflict',
+          'active lane belongs to another namespace',
+        );
+      }
       if (
         active &&
         active.revision === activeBinding?.revision &&
@@ -368,6 +391,12 @@ export function createTenantDeploymentProvisionerV1(
           publishableKey,
           surfaces: options.surfaces,
         });
+        if (binding.tenant.namespace !== options.home.namespace) {
+          throw new TenantDeploymentStoreError(
+            'namespace_home_conflict',
+            'candidate belongs to another namespace',
+          );
+        }
         await options.store.putBinding(binding);
         const readinessReceipt = await options.readiness.issue({
           binding,

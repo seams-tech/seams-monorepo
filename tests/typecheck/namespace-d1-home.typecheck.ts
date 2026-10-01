@@ -3,6 +3,7 @@ import {
   type NamespaceD1HomeAssignmentV1,
   type ReserveNamespaceD1HomeResultV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/namespaceHome';
+import type { TenantDeploymentProvisionerOptionsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 
 declare const home: NamespaceD1HomeV1;
 declare const assignment: NamespaceD1HomeAssignmentV1;
@@ -32,3 +33,8 @@ void constructed;
 void spread;
 void mixed;
 void incomplete;
+
+declare const optionsWithoutHome: Omit<TenantDeploymentProvisionerOptionsV1, 'home'>;
+// @ts-expect-error Provisioning always requires a parsed home resource identity.
+const unscopedProvisioner: TenantDeploymentProvisionerOptionsV1 = optionsWithoutHome;
+void unscopedProvisioner;

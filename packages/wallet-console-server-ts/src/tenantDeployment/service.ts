@@ -4,6 +4,8 @@ import type { NamespaceD1HomeStoreV1 } from './namespaceHome';
 export type TenantDeploymentStoreErrorCodeV1 =
   | 'invalid_input'
   | 'invalid_record'
+  | 'namespace_home_unassigned'
+  | 'namespace_home_conflict'
   | 'binding_conflict'
   | 'binding_not_found'
   | 'activation_conflict'
@@ -34,6 +36,8 @@ function tenantDeploymentStoreErrorStatus(
     case 'cutover_not_found':
       return 404;
     case 'binding_conflict':
+    case 'namespace_home_unassigned':
+    case 'namespace_home_conflict':
     case 'activation_conflict':
     case 'cutover_conflict':
       return 409;

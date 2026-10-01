@@ -4,6 +4,7 @@
     "e2e/console/**/*.ts",
     "relayer/tenant-deployment-binding.e2e.test.ts",
     "relayer/namespace-d1-home.e2e.test.ts",
+    "relayer/namespace-home-provisioning.e2e.test.ts",
     "relayer/console-service-auth.e2e.test.ts",
     "fixtures/tenant-deployment/**/*.ts"
   ],

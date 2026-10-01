@@ -1,4 +1,5 @@
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
+import { isTenantDeploymentStoreError } from './service';
 
 const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
@@ -171,7 +172,9 @@ export function createTenantDeploymentAutomationRouteV1(input: {
       return json(
         {
           ok: false,
-          code: 'tenant_deployment_cutover_failed',
+          code: isTenantDeploymentStoreError(error)
+            ? error.code
+            : 'tenant_deployment_cutover_failed',
           message: error instanceof Error ? error.message : 'tenant deployment cutover failed',
         },
         409,

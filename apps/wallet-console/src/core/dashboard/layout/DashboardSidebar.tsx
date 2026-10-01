@@ -1,4 +1,5 @@
 import React from 'react';
+import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../components/DashboardMenu';
 import { dashboardCreateIntentHref } from '../utils/routeCreateIntent';
 import { PlusIcon } from '../icons/SidebarIcons';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
@@ -49,29 +50,6 @@ export type DashboardSidebarProps<Route extends string, GroupKey extends string>
   workspace?: SidebarWorkspaceProps;
   homeProps?: DashboardHomeLinkProps;
 };
-
-/* Close an open switcher popup on outside pointerdown or Escape. */
-function useDismissablePopup(
-  open: boolean,
-  setOpen: (value: boolean) => void,
-  rootRef: React.RefObject<HTMLDivElement | null>,
-): void {
-  React.useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open, rootRef, setOpen]);
-}
 
 /* The rail shows the project at rest and slides to the environment on hover,
    so the scope is one glance away without a second permanent line. */
@@ -178,16 +156,12 @@ function RailMenuRow({
 }): React.JSX.Element {
   const blocked = soon || disabled;
   return (
-    <button
-      type="button"
+    <DashboardMenuItem
       role="menuitemradio"
       aria-checked={active}
-      aria-disabled={blocked || undefined}
+      blocked={blocked}
       className={`dashboard-rail-menu__item${active ? ' is-active' : ''}${blocked ? ' is-soon' : ''}`}
-      onClick={() => {
-        if (blocked) return;
-        onSelect();
-      }}
+      onSelect={onSelect}
     >
       {avatar}
       <span className="dashboard-rail-menu__item-text">
@@ -212,7 +186,7 @@ function RailMenuRow({
           <path d="M20 6 9 17l-5-5" />
         </svg>
       ) : null}
-    </button>
+    </DashboardMenuItem>
   );
 }
 
@@ -226,10 +200,8 @@ export function SidebarWorkspaceSwitcher({
   organizationValue,
   onSelectOrganization,
 }: SidebarWorkspaceProps): React.JSX.Element {
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
-  useDismissablePopup(open, setOpen, rootRef);
-  const menuStyle = useRailMenuPosition(open, rootRef);
+  const menu = useDashboardMenu();
+  const menuStyle = useRailMenuPosition(menu.mounted, menu.rootRef);
 
   const currentProjectGroup =
     projectGroups.find((group) => group.project.value === projectValue) || projectGroups[0] || null;
@@ -258,14 +230,14 @@ export function SidebarWorkspaceSwitcher({
   );
 
   return (
-    <div ref={rootRef} className="dashboard-workspace-switcher">
+    <div ref={menu.rootRef} className="dashboard-workspace-switcher">
       <button
         type="button"
         className="dashboard-workspace-switcher__trigger"
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={menu.open}
         aria-label={`${currentLabel}, ${currentEnvironmentLabel}`}
-        onClick={() => setOpen((current) => !current)}
+        onClick={menu.toggle}
       >
         <span className="dashboard-workspace-switcher__avatar" aria-hidden="true">
           {initial}
@@ -276,100 +248,88 @@ export function SidebarWorkspaceSwitcher({
         />
         <RailCaret className="dashboard-workspace-switcher__caret" />
       </button>
-      {open ? (
-        <div
-          className="dashboard-context-menu dashboard-rail-menu"
-          style={menuStyle}
-          role="menu"
-          aria-label="Workspace"
-        >
-          {showSectionTitles ? (
-            <p className="dashboard-rail-menu__section-title">Projects</p>
-          ) : null}
-          {projectGroups.map((group) => (
-            <div
-              key={group.project.value}
-              className="dashboard-workspace-menu__project"
-              role="group"
-              aria-label={group.project.label}
-            >
-              <div className="dashboard-workspace-menu__project-heading">
-                {letterAvatar(group.project.label)}
-                <span>{group.project.label}</span>
-              </div>
-              <div className="dashboard-workspace-menu__environments">
-                {group.environments.map((environment) => {
-                  const active =
-                    group.project.value === currentProject?.value &&
-                    environment.value === environmentValue;
-                  const disabled = group.project.disabled === true || environment.disabled === true;
-                  return (
-                    <button
-                      key={environment.value}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={active}
-                      aria-disabled={disabled || undefined}
-                      className={`dashboard-workspace-menu__environment${active ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
-                      onClick={() => {
-                        if (disabled) return;
-                        setOpen(false);
-                        onSelectEnvironment(group.project.value, environment.value);
-                      }}
-                    >
-                      <span
-                        className="dashboard-workspace-menu__environment-dot"
-                        aria-hidden="true"
-                      />
-                      <span>{environment.label}</span>
-                      {active ? (
-                        <svg
-                          className="dashboard-rail-menu__check"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                      ) : null}
-                    </button>
-                  );
-                })}
-                {group.environments.length === 0 ? (
-                  <p className="dashboard-workspace-menu__empty">No environments</p>
-                ) : null}
-              </div>
+      <DashboardMenu
+        menu={menu}
+        className="dashboard-context-menu dashboard-rail-menu"
+        style={menuStyle}
+        aria-label="Workspace"
+      >
+        {showSectionTitles ? <p className="dashboard-rail-menu__section-title">Projects</p> : null}
+        {projectGroups.map((group) => (
+          <div
+            key={group.project.value}
+            className="dashboard-workspace-menu__project"
+            role="group"
+            aria-label={group.project.label}
+          >
+            <div className="dashboard-workspace-menu__project-heading">
+              {letterAvatar(group.project.label)}
+              <span>{group.project.label}</span>
             </div>
-          ))}
-          {projectGroups.length === 0 && !showOrganizations ? (
-            <p className="dashboard-rail-menu__empty">No projects yet</p>
-          ) : null}
-          {showOrganizations ? (
-            <>
-              <p className="dashboard-rail-menu__section-title">Organizations</p>
-              {organizationOptions.map((option) => (
-                <RailMenuRow
-                  key={option.value}
-                  active={option.value === currentOrganization?.value}
-                  disabled={option.disabled === true}
-                  avatar={letterAvatar(option.label)}
-                  name={option.label}
-                  onSelect={() => {
-                    setOpen(false);
-                    onSelectOrganization(option.value);
-                  }}
-                />
-              ))}
-            </>
-          ) : null}
-        </div>
-      ) : null}
+            <div className="dashboard-workspace-menu__environments">
+              {group.environments.map((environment) => {
+                const active =
+                  group.project.value === currentProject?.value &&
+                  environment.value === environmentValue;
+                const disabled = group.project.disabled === true || environment.disabled === true;
+                return (
+                  <DashboardMenuItem
+                    key={environment.value}
+                    role="menuitemradio"
+                    aria-checked={active}
+                    blocked={disabled}
+                    className={`dashboard-workspace-menu__environment${active ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
+                    onSelect={() => onSelectEnvironment(group.project.value, environment.value)}
+                  >
+                    <span
+                      className="dashboard-workspace-menu__environment-dot"
+                      aria-hidden="true"
+                    />
+                    <span>{environment.label}</span>
+                    {active ? (
+                      <svg
+                        className="dashboard-rail-menu__check"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : null}
+                  </DashboardMenuItem>
+                );
+              })}
+              {group.environments.length === 0 ? (
+                <p className="dashboard-workspace-menu__empty">No environments</p>
+              ) : null}
+            </div>
+          </div>
+        ))}
+        {projectGroups.length === 0 && !showOrganizations ? (
+          <p className="dashboard-rail-menu__empty">No projects yet</p>
+        ) : null}
+        {showOrganizations ? (
+          <>
+            <p className="dashboard-rail-menu__section-title">Organizations</p>
+            {organizationOptions.map((option) => (
+              <RailMenuRow
+                key={option.value}
+                active={option.value === currentOrganization?.value}
+                disabled={option.disabled === true}
+                avatar={letterAvatar(option.label)}
+                name={option.label}
+                onSelect={() => onSelectOrganization(option.value)}
+              />
+            ))}
+          </>
+        ) : null}
+      </DashboardMenu>
     </div>
   );
 }
@@ -383,22 +343,20 @@ function SidebarProductSwitcher({
   currentId,
   onSelect,
 }: SidebarProductProps): React.JSX.Element {
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
-  useDismissablePopup(open, setOpen, rootRef);
-  const menuStyle = useRailMenuPosition(open, rootRef);
+  const menu = useDashboardMenu();
+  const menuStyle = useRailMenuPosition(menu.mounted, menu.rootRef);
   const current = products.find((product) => product.id === currentId) || products[0];
 
   if (!current) return <></>;
 
   return (
-    <div ref={rootRef} className="dashboard-product-switcher">
+    <div ref={menu.rootRef} className="dashboard-product-switcher">
       <button
         type="button"
         className="dashboard-product-switcher__trigger"
         aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        aria-expanded={menu.open}
+        onClick={menu.toggle}
       >
         <span
           className="dashboard-product-switcher__avatar"
@@ -408,35 +366,30 @@ function SidebarProductSwitcher({
         <span className="dashboard-product-switcher__label">{current.name}</span>
         <RailCaret className="dashboard-product-switcher__caret" />
       </button>
-      {open ? (
-        <div
-          className="dashboard-context-menu dashboard-rail-menu"
-          style={menuStyle}
-          role="menu"
-          aria-label="Products"
-        >
-          {products.map((product) => (
-            <RailMenuRow
-              key={product.id}
-              active={product.id === currentId}
-              soon={!product.available}
-              avatar={
-                <span
-                  className="dashboard-rail-menu__item-avatar dashboard-rail-menu__item-avatar--image"
-                  style={{ backgroundImage: `url('${product.gradient}')` }}
-                  aria-hidden="true"
-                />
-              }
-              name={product.name}
-              description={product.description}
-              onSelect={() => {
-                setOpen(false);
-                onSelect(product.id);
-              }}
-            />
-          ))}
-        </div>
-      ) : null}
+      <DashboardMenu
+        menu={menu}
+        className="dashboard-context-menu dashboard-rail-menu"
+        style={menuStyle}
+        aria-label="Products"
+      >
+        {products.map((product) => (
+          <RailMenuRow
+            key={product.id}
+            active={product.id === currentId}
+            soon={!product.available}
+            avatar={
+              <span
+                className="dashboard-rail-menu__item-avatar dashboard-rail-menu__item-avatar--image"
+                style={{ backgroundImage: `url('${product.gradient}')` }}
+                aria-hidden="true"
+              />
+            }
+            name={product.name}
+            description={product.description}
+            onSelect={() => onSelect(product.id)}
+          />
+        ))}
+      </DashboardMenu>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../../components/DashboardMenu';
 import { PlusIcon, XIcon } from '../../icons/SidebarIcons';
 
 export interface AuditFilterOption {
@@ -24,44 +25,27 @@ function AuditFilterChip(props: {
   onChange(value: string): void;
 }): React.JSX.Element {
   const { filter, onChange } = props;
-  const [open, setOpen] = React.useState<boolean>(false);
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const menu = useDashboardMenu();
   const active = Boolean(filter.value);
   const selected = filter.options.find((option) => option.value === filter.value);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
 
   return (
     <div
       className={[
         'dashboard-audit-chip',
         active ? 'dashboard-audit-chip--active' : '',
-        open ? 'dashboard-audit-chip--open' : '',
+        menu.open ? 'dashboard-audit-chip--open' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      ref={rootRef}
+      ref={menu.rootRef}
     >
       <button
         type="button"
         className="dashboard-audit-chip__trigger"
         aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        aria-expanded={menu.open}
+        onClick={menu.toggle}
       >
         {active ? null : (
           <PlusIcon size={13} strokeWidth={2} className="dashboard-audit-chip__plus" />
@@ -88,7 +72,7 @@ function AuditFilterChip(props: {
           className="dashboard-audit-chip__clear"
           aria-label={`Clear ${filter.label.toLowerCase()} filter`}
           onClick={() => {
-            setOpen(false);
+            menu.close();
             onChange('');
           }}
         >
@@ -96,44 +80,34 @@ function AuditFilterChip(props: {
         </button>
       ) : null}
 
-      {open ? (
-        <div className="dashboard-context-menu dashboard-audit-chip__menu" role="menu">
-          <button
-            type="button"
+      <DashboardMenu menu={menu} className="dashboard-context-menu dashboard-audit-chip__menu">
+        <DashboardMenuItem
+          role="menuitemradio"
+          aria-checked={!active}
+          className={['dashboard-context-menu__item', !active ? 'is-selected' : '']
+            .filter(Boolean)
+            .join(' ')}
+          onSelect={() => onChange('')}
+        >
+          All
+        </DashboardMenuItem>
+        {filter.options.map((option) => (
+          <DashboardMenuItem
+            key={option.value}
             role="menuitemradio"
-            aria-checked={!active}
-            className={['dashboard-context-menu__item', !active ? 'is-selected' : '']
+            aria-checked={option.value === filter.value}
+            className={[
+              'dashboard-context-menu__item',
+              option.value === filter.value ? 'is-selected' : '',
+            ]
               .filter(Boolean)
               .join(' ')}
-            onClick={() => {
-              setOpen(false);
-              onChange('');
-            }}
+            onSelect={() => onChange(option.value)}
           >
-            All
-          </button>
-          {filter.options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="menuitemradio"
-              aria-checked={option.value === filter.value}
-              className={[
-                'dashboard-context-menu__item',
-                option.value === filter.value ? 'is-selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => {
-                setOpen(false);
-                onChange(option.value);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+            {option.label}
+          </DashboardMenuItem>
+        ))}
+      </DashboardMenu>
     </div>
   );
 }

@@ -1055,6 +1055,91 @@ textarea {
   color: var(--dashboard-active-ink, var(--dashboard-ink));
 }
 
+/* Shared popup menu behaviour (DashboardMenu). A chosen item blinks once,
+   highlight off then on, and keeps the highlight while the menu fades out over
+   DASHBOARD_MENU_EXIT_MS. These rules override every item family's hover,
+   focus and selected styles for the length of the blink, hence !important. */
+.dashboard-menu.is-closing,
+.dashboard-command-palette-backdrop.is-closing {
+  pointer-events: none;
+  animation: dashboard-menu-exit 160ms ease-out forwards;
+}
+
+.dashboard-menu:has([data-blink]),
+.dashboard-command-palette-backdrop:has([data-blink]),
+.dashboard-platform-billing-search-dropdown:has([data-blink]) {
+  pointer-events: none;
+}
+
+@keyframes dashboard-menu-exit {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-menu.is-closing,
+  .dashboard-command-palette-backdrop.is-closing {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.dashboard-menu__item[data-blink],
+.dashboard-command-palette__item[data-blink],
+.dashboard-platform-billing-search-option[data-blink] {
+  transition: none !important;
+}
+
+.dashboard-menu__item[data-blink='off'],
+.dashboard-command-palette__item[data-blink='off'] {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dashboard-context-menu__item[data-blink='on'] {
+  border-color: color-mix(in srgb, var(--dashboard-active-border) 82%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--dashboard-active) 78%,
+    var(--dashboard-surface) 22%
+  ) !important;
+  color: var(--dashboard-active-ink, var(--dashboard-ink));
+}
+
+.dashboard-context-menu__item--danger[data-blink='on'] {
+  color: var(--dashboard-danger);
+}
+
+.dashboard-rail-menu__item[data-blink='on'] {
+  background: var(--rail-hover, var(--dashboard-surface-soft)) !important;
+}
+
+.dashboard-workspace-menu__environment[data-blink='on'] {
+  background: var(--rail-active, var(--dashboard-active)) !important;
+  color: var(--rail-ink, var(--dashboard-ink));
+}
+
+.dashboard-platform-billing-search-option[data-blink='off'] {
+  border-color: color-mix(in srgb, var(--dashboard-border) 88%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--dashboard-surface) 88%,
+    var(--dashboard-muted) 12%
+  ) !important;
+  box-shadow: none !important;
+}
+
+.dashboard-platform-billing-search-option[data-blink='on'] {
+  border-color: var(--dashboard-active-border) !important;
+  background: color-mix(
+    in srgb,
+    var(--dashboard-active) 16%,
+    var(--dashboard-surface) 84%
+  ) !important;
+}
+
 .dashboard-context-menu--highlight .dashboard-context-menu__item.is-active {
   border-color: color-mix(in srgb, var(--dashboard-env-ink) 42%, var(--dashboard-border) 58%);
   background: color-mix(in srgb, var(--dashboard-env-bg) 78%, var(--dashboard-surface) 22%);

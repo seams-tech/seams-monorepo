@@ -64,6 +64,17 @@ type ProviderScenario =
 class Dependencies {
   readonly oidc = new GithubDeploymentOidcFixture();
   readonly unexpected: string[] = [];
+  readonly prewarmRequests: { method: string; pathname: string; authenticated: boolean }[] = [];
+
+  prewarm(request: Request): Response {
+    this.prewarmRequests.push({
+      method: request.method,
+      pathname: new URL(request.url).pathname,
+      authenticated: request.headers.get('x-router-ab-internal-service-auth') === 'fixture-prewarm',
+    });
+    return Response.json({ ok: true });
+  }
+
   outbound(request: Request): Response {
     if (request.url === 'https://token.actions.githubusercontent.com/.well-known/jwks')
       return this.oidc.jwks();
@@ -242,6 +253,7 @@ async function runChallengeCli(
 
 function writer(
   output: string,
+  deps: Dependencies,
   name: string,
   entry: string,
   database: string,
@@ -256,13 +268,15 @@ function writer(
     compatibilityFlags: ['nodejs_compat'],
     bindings: {
       CF_VERSION_METADATA: versionId === null ? null : { id: versionId },
+      ROUTER_AB_PREWARM_ENABLED: 'true',
+      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'fixture-prewarm',
       SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
       SEAMS_TENANT_DEPLOYMENT_LANE: lane,
       SEAMS_D1_HOME_ACCOUNT_ID: home.accountId,
       SEAMS_D1_HOME_DATABASE_ID: databaseId,
     },
     d1Databases: { SIGNER_DB: database },
-    serviceBindings: { WALLET_CONSOLE: 'console-good' },
+    serviceBindings: { WALLET_CONSOLE: 'console-good', MPC_ROUTER: deps.prewarm.bind(deps) },
   };
 }
 
@@ -375,21 +389,55 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       consoleWorker(output, 'console-wrong-database', 'runtime-wrong-database', deps),
       consoleWorker(output, 'console-wrong-config', 'runtime-wrong-config', deps),
       consoleWorker(output, 'console-missing-version', 'runtime-missing-version', deps),
-      writer(output, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
-      writer(output, 'gateway-changed', 'gateway', 'database-a', home.databaseId, changedVersion),
-      writer(output, 'runtime-good', 'runtime', 'database-a', home.databaseId, runtimeVersion),
-      writer(output, 'runtime-changed', 'runtime', 'database-a', home.databaseId, changedVersion),
+      writer(output, deps, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
       writer(
         output,
+        deps,
+        'gateway-changed',
+        'gateway',
+        'database-a',
+        home.databaseId,
+        changedVersion,
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-good',
+        'runtime',
+        'database-a',
+        home.databaseId,
+        runtimeVersion,
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-changed',
+        'runtime',
+        'database-a',
+        home.databaseId,
+        changedVersion,
+      ),
+      writer(
+        output,
+        deps,
         'runtime-wrong-database',
         'runtime',
         'database-b',
         home.databaseId,
         runtimeVersion,
       ),
-      writer(output, 'runtime-missing-version', 'runtime', 'database-a', home.databaseId, null),
       writer(
         output,
+        deps,
+        'runtime-missing-version',
+        'runtime',
+        'database-a',
+        home.databaseId,
+        null,
+      ),
+      writer(
+        output,
+        deps,
         'runtime-wrong-config',
         'runtime',
         'database-a',
@@ -609,6 +657,18 @@ test('Console verifies both real writer bindings against a fresh challenge and i
           rejectedWriterRequests.push({ writer: name, method: 'POST', pathname });
         }
       }
+      const admittedSchedule = await gateway.scheduled({ cron: '* * * * *' });
+      expect(admittedSchedule.outcome).toBe('ok');
+      expect(deps.prewarmRequests).toEqual([
+        { method: 'POST', pathname: '/internal/prewarm', authenticated: true },
+      ]);
+      const rejectedSchedule = await changedGateway.scheduled({ cron: '* * * * *' });
+      expect(rejectedSchedule.outcome).toBe('exception');
+      expect(deps.prewarmRequests).toHaveLength(1);
+      await writeFile(
+        testInfo.outputPath('scheduled-writer-admission.json'),
+        `${JSON.stringify({ admittedSchedule, rejectedSchedule, prewarmRequests: deps.prewarmRequests }, null, 2)}\n`,
+      );
       const signerStateAfter = await signerDatabaseDigest(databaseA);
       expect(signerStateAfter).toBe(signerStateBefore);
       await writeFile(

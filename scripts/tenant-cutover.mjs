@@ -2,7 +2,7 @@
 
 import process from 'node:process';
 import { readBackendLane } from './deployment-targets.mjs';
-import { verifyTenantHomeChallenge } from './tenant-home-challenge.mjs';
+import { verifyTenantResourceChallenge } from './tenant-resource-challenge.mjs';
 
 const OIDC_AUDIENCE = 'seams-tenant-cutover';
 
@@ -13,7 +13,7 @@ function requireValue(args, index, flag) {
 }
 
 function parseArguments(args) {
-  const operation = args[0] === 'verify-home' ? args[0] : 'provision';
+  const operation = args[0] === 'verify-resource' ? args[0] : 'provision';
   const values = {
     lane: '',
     environmentId: '',
@@ -33,10 +33,9 @@ function parseArguments(args) {
     throw new Error(`Unsupported argument: ${argument}`);
   }
   if (!values.lane) throw new Error('--lane is required');
-  if (operation === 'verify-home') {
-    if (values.environmentId)
-      throw new Error('verify-home accepts only --lane');
-    return { kind: 'verify_home', lane: values.lane };
+  if (operation === 'verify-resource') {
+    if (values.environmentId) throw new Error('verify-resource accepts only --lane');
+    return { kind: 'verify_resource', lane: values.lane };
   }
   if (!values.environmentId) throw new Error('provisioning requires --environment-id');
   return {
@@ -70,19 +69,19 @@ async function run() {
   const lane = readBackendLane(options.lane);
   if (lane.branch !== 'main') throw new Error('tenant cutover requires a production lane');
   const token = await requestGithubOidcToken();
-  if (options.kind === 'verify_home') {
-    const result = await verifyTenantHomeChallenge(lane, token);
+  if (options.kind === 'verify_resource') {
+    const result = await verifyTenantResourceChallenge(lane, token);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
-  const homeCheckpoint = await verifyTenantHomeChallenge(lane, token);
+  const resourceCheckpoint = await verifyTenantResourceChallenge(lane, token);
   const response = await fetch(`${lane.console.origin}${options.path}`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ ...options.body, homeCheckpoint }),
+    body: JSON.stringify({ ...options.body, resourceCheckpoint }),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.ok !== true) {

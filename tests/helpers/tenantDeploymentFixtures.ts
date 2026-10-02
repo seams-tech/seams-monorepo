@@ -278,8 +278,8 @@ export function operatorHomeCheckpoint(home: TenantDeploymentD1ResourceIdentityV
   let challengeId = '';
   for (const byte of bytes) challengeId += byte.toString(16).padStart(2, '0');
   return {
-    kind: 'tenant_d1_home_checkpoint_v1',
-    home,
+    kind: 'tenant_d1_resource_checkpoint_v1',
+    resource: home,
     deploymentLane: lane,
     challengeId,
     checkedAtMs: nowMs - 100,

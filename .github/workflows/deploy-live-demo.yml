@@ -38,8 +38,8 @@ jobs:
           cache: pnpm
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
-      - name: Require packaged home challenge migration
-        run: test -s node_modules/@seams/wallet-server/migrations/d1-signer/0040_namespace_home_challenges.sql
+      - name: Require packaged resource challenge migration
+        run: test -s node_modules/@seams/wallet-server/migrations/d1-signer/0042_deployment_resource_challenges.sql
 
   authorize:
     name: Authorize production live-demo deployment

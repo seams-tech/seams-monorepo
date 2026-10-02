@@ -102,7 +102,7 @@ import {
   createTenantDeploymentProvisionerV1,
 } from '../../tenantDeployment/provisioning';
 import { createTenantDeploymentAutomationRouteV1 } from '../../tenantDeployment/automationRoute';
-import { createTenantD1HomeVerifierV1 } from '../../tenantDeployment/homeChallenge';
+import { createTenantD1ResourceVerifierV1 } from '../../tenantDeployment/resourceChallenge';
 import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment/productionReadiness';
 import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
@@ -528,8 +528,8 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
     provisioner: tenantDeploymentProvisioner,
-    homeVerifier: createTenantD1HomeVerifierV1({
-      home: deploymentHome,
+    resourceVerifier: createTenantD1ResourceVerifierV1({
+      resource: deploymentHome,
       deploymentLane,
       gateway: env.WALLET_GATEWAY,
       walletRuntime: env.WALLET_RUNTIME,

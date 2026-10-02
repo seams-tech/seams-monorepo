@@ -6,10 +6,10 @@ function servingVersion(checkpoint, workerName) {
   for (const worker of checkpoint.workers) {
     if (worker.workerName !== workerName) continue;
     if (worker.versions.length !== 1 || worker.versions[0].percentage !== 100)
-      throw new Error('Runtime home verification requires one serving version per writer');
+      throw new Error('Runtime resource verification requires one serving version per writer');
     return worker.versions[0].versionId;
   }
-  throw new Error('Runtime home verification is missing a writer');
+  throw new Error('Runtime resource verification is missing a writer');
 }
 
 async function executeChallengeQuery(accountId, databaseId, apiToken, sql, params) {
@@ -35,7 +35,7 @@ async function executeChallengeQuery(accountId, databaseId, apiToken, sql, param
   }
 }
 
-export async function verifyTenantHomeChallenge(lane, oidcToken) {
+export async function verifyTenantResourceChallenge(lane, oidcToken) {
   if (lane.provisioning.kind !== 'provisioned') throw new Error('Lane is not provisioned');
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? '';
   const apiToken = process.env.CLOUDFLARE_API_TOKEN ?? '';
@@ -59,7 +59,7 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
       accountId,
       databaseId,
       apiToken,
-      'INSERT INTO namespace_home_challenges (namespace, challenge_id, account_id, database_id, proof, issued_at_ms, expires_at_ms) VALUES (?1,?2,?3,?4,?5,?6,?7)',
+      'INSERT INTO deployment_resource_challenges (namespace, challenge_id, account_id, database_id, proof, issued_at_ms, expires_at_ms) VALUES (?1,?2,?3,?4,?5,?6,?7)',
       [
         namespace,
         challengeId,
@@ -71,7 +71,7 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
       ],
     );
     const response = await fetch(
-      `${lane.console.origin}/internal/tenant-deployment/v1/verify-home`,
+      `${lane.console.origin}/internal/tenant-deployment/v1/verify-resource`,
       {
         method: 'POST',
         headers: { authorization: `Bearer ${oidcToken}`, 'content-type': 'application/json' },
@@ -82,16 +82,16 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
     );
     const body = await response.json().catch(() => null);
     if (!response.ok || body?.ok !== true) {
-      throw new Error(`Runtime home verification failed with HTTP ${response.status}`);
+      throw new Error(`Runtime resource verification failed with HTTP ${response.status}`);
     }
     const result = body.result;
     if (
-      result?.kind !== 'tenant_d1_runtime_home_checkpoint_v1' ||
+      result?.kind !== 'tenant_d1_runtime_resource_checkpoint_v1' ||
       result.challengeId !== challengeId ||
       result.deploymentLane !== lane.id ||
-      result.home?.namespace !== namespace ||
-      result.home?.accountId !== accountId ||
-      result.home?.databaseId !== databaseId ||
+      result.resource?.namespace !== namespace ||
+      result.resource?.accountId !== accountId ||
+      result.resource?.databaseId !== databaseId ||
       result.activationAuthorized !== false ||
       result.writerVersions?.gateway !== gatewayVersion ||
       result.writerVersions?.walletRuntime !== walletRuntimeVersion ||
@@ -101,17 +101,17 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
       result.expiresAtMs !== issuedAtMs + 300_000 ||
       result.expiresAtMs <= Date.now()
     ) {
-      throw new Error('Console returned an invalid runtime home checkpoint');
+      throw new Error('Console returned an invalid runtime resource checkpoint');
     }
     const providerAfter = await inspectBindings(lane, accountId, apiToken);
     if (JSON.stringify(providerBefore.workers) !== JSON.stringify(providerAfter.workers))
       throw new Error('Writer deployment changed across the runtime challenge');
     if (result.expiresAtMs <= Date.now())
-      throw new Error('Runtime home challenge expired during provider verification');
+      throw new Error('Runtime resource challenge expired during provider verification');
     return {
-      kind: 'tenant_d1_home_checkpoint_v1',
+      kind: 'tenant_d1_resource_checkpoint_v1',
       deploymentLane: lane.id,
-      home: { namespace, accountId, databaseId },
+      resource: { namespace, accountId, databaseId },
       challengeId,
       checkedAtMs: result.checkedAtMs,
       expiresAtMs: result.expiresAtMs,
@@ -128,7 +128,7 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
       accountId,
       databaseId,
       apiToken,
-      'DELETE FROM namespace_home_challenges WHERE namespace = ?1 AND challenge_id = ?2 AND proof = ?3',
+      'DELETE FROM deployment_resource_challenges WHERE namespace = ?1 AND challenge_id = ?2 AND proof = ?3',
       [namespace, challengeId, expectedProof],
     );
   }

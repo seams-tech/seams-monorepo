@@ -25,7 +25,7 @@ import {
   resolveActiveTenantDeploymentFromServiceV1,
 } from '../../tenantDeployment/runtimeBinding';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
-import { tenantD1HomeChallengeResponseV1 } from '../../tenantDeployment/homeChallenge';
+import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
 
 // The split Wallet Gateway entrypoint (R105 Phase 4). Bindings: SIGNER_DB,
 // MPC_ROUTER, SIGNING_WORKER, and the private WALLET_CONSOLE service binding.
@@ -47,7 +47,7 @@ async function handleGatewayRequest(
   ctx: CfExecutionContext,
   entry: 'ingress' | 'home',
 ): Promise<Response> {
-  const challenge = await tenantD1HomeChallengeResponseV1(
+  const challenge = await tenantD1ResourceChallengeResponseV1(
     request,
     env.SIGNER_DB,
     {

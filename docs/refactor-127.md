@@ -534,7 +534,7 @@ and [D1 binding IDs](https://developers.cloudflare.com/workers/configuration/mul
 The combined provider/runtime checkpoint uses the protected OIDC workflow:
 
 ```text
-pnpm tenant:cutover verify-home --lane production-testnet
+pnpm tenant:cutover verify-resource --lane production-testnet
 ```
 
 This operation needs Worker deployment/version read and D1 query permissions as
@@ -601,7 +601,7 @@ Wallet Server 0.7.3 handler and the canonical split Worker entrypoints; privileg
 administrative writers and previously deployed code still require inventory.
 
 Rollout prerequisites: Console migration 0050, signer migration
-`0040_namespace_home_challenges.sql`, the
+`0042_deployment_resource_challenges.sql` (after the ordered earlier migrations), the
 new private Console `WALLET_GATEWAY` service binding, the challenge endpoint and
 `CF_VERSION_METADATA` binding on both writers. The renderer supplies that metadata
 binding. The migration currently lives in `seams-wallet` source and is absent
@@ -618,7 +618,7 @@ The protected production-testnet workflow now installs exact dependencies and
 requires the packaged signer challenge migration before authorizing deployment.
 The currently pinned Wallet Server 0.7.3 fails this preflight, so it cannot begin
 this rollout. After that dependency is updated, the workflow deploys Console and
-the complete Wallet runtime, obtains fresh home verification, activates the binding
+the complete Wallet runtime, obtains fresh resource verification, activates the binding
 and runs its canary, then smokes Wallet and Console. A missing binding (503) fails
 Wallet smoke; propagation retries retain the existing three-minute budget.
 

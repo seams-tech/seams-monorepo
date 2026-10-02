@@ -14,7 +14,7 @@ import {
   resolveTenantDeploymentSetupAdmissionFromServiceV1,
 } from '../../tenantDeployment/runtimeBinding';
 import { createTenantDeploymentRuntimeInspectionHandlerV1 } from '../../tenantDeployment/runtimeInspection';
-import { tenantD1HomeChallengeResponseV1 } from '../../tenantDeployment/homeChallenge';
+import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
 
 type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
   WalletControlRuntimeBindings & {
@@ -29,7 +29,7 @@ async function fetch(
   env: CloudflareWalletRuntimeEnv,
   _ctx: CfExecutionContext,
 ): Promise<Response> {
-  const challenge = await tenantD1HomeChallengeResponseV1(
+  const challenge = await tenantD1ResourceChallengeResponseV1(
     request,
     env.SIGNER_DB,
     {

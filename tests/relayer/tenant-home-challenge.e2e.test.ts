@@ -31,9 +31,10 @@ const deployment = JSON.parse(
 const namespace: string = deployment.tenant.namespace;
 const lane = 'production-testnet';
 const home = deploymentResource(namespace, deployment.resources.signerD1.id);
+const secondResource = deploymentResource(namespace, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 const execute = promisify(execFile);
-const challengePath = '/internal/tenant-deployment/v1/home-challenge';
-const verifyUrl = 'https://console.example.test/internal/tenant-deployment/v1/verify-home';
+const challengePath = '/internal/tenant-deployment/v1/resource-challenge';
+const verifyUrl = 'https://console.example.test/internal/tenant-deployment/v1/verify-resource';
 const gatewayVersion = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const runtimeVersion = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const changedVersion = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -148,10 +149,10 @@ class ChallengeProvider {
       const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       const insert =
         typeof input.sql === 'string' &&
-        input.sql.startsWith('INSERT INTO namespace_home_challenges ');
+        input.sql.startsWith('INSERT INTO deployment_resource_challenges ');
       const remove =
         typeof input.sql === 'string' &&
-        input.sql.startsWith('DELETE FROM namespace_home_challenges ');
+        input.sql.startsWith('DELETE FROM deployment_resource_challenges ');
       if (request.url !== '/query' || request.method !== 'POST' || (!insert && !remove))
         throw new Error('Unexpected provider query');
       const result = await this.database
@@ -224,9 +225,9 @@ async function runChallengeCli(
       process.execPath,
       [
         '--import',
-        path.join(root, 'tests/fixtures/tenant-deployment/home-challenge-transport.mjs'),
+        path.join(root, 'tests/fixtures/tenant-deployment/resource-challenge-transport.mjs'),
         path.join(root, 'scripts/tenant-cutover.mjs'),
-        'verify-home',
+        'verify-resource',
         '--lane',
         lane,
       ],
@@ -280,7 +281,14 @@ function writer(
   };
 }
 
-function consoleWorker(output: string, name: string, walletRuntime: string, deps: Dependencies) {
+function consoleWorker(
+  output: string,
+  name: string,
+  walletRuntime: string,
+  deps: Dependencies,
+  resource: typeof home,
+  gateway: string,
+) {
   return {
     name,
     modules: true,
@@ -291,8 +299,8 @@ function consoleWorker(output: string, name: string, walletRuntime: string, deps
       ...consoleWorkerEnvironment({
         namespace,
         deploymentLane: lane,
-        accountId: home.accountId,
-        databaseId: home.databaseId,
+        accountId: resource.accountId,
+        databaseId: resource.databaseId,
       }),
       SEAMS_WALLET_HOME_CATALOG_JSON: JSON.stringify([
         {
@@ -309,21 +317,25 @@ function consoleWorker(output: string, name: string, walletRuntime: string, deps
       ]),
     },
     d1Databases: { CONSOLE_DB: 'console-authority' },
-    serviceBindings: { WALLET_GATEWAY: 'gateway', WALLET_RUNTIME: walletRuntime },
+    serviceBindings: { WALLET_GATEWAY: gateway, WALLET_RUNTIME: walletRuntime },
     outboundService: deps.outbound.bind(deps),
   };
 }
 
-async function insertChallenge(database: D1DatabaseLike, issuedAtMs: number) {
+async function insertChallenge(
+  database: D1DatabaseLike,
+  issuedAtMs: number,
+  resource: typeof home,
+) {
   const challengeId = randomBytes(32).toString('hex');
   const expectedProof = randomBytes(32).toString('hex');
   await database
-    .prepare('INSERT INTO namespace_home_challenges VALUES (?1,?2,?3,?4,?5,?6,?7)')
+    .prepare('INSERT INTO deployment_resource_challenges VALUES (?1,?2,?3,?4,?5,?6,?7)')
     .bind(
       namespace,
       challengeId,
-      home.accountId,
-      home.databaseId,
+      resource.accountId,
+      resource.databaseId,
       expectedProof,
       issuedAtMs,
       issuedAtMs + 300_000,
@@ -381,7 +393,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     platform: 'neutral',
     mainFields: ['module', 'main'],
     conditions: ['workerd', 'worker', 'browser'],
-    external: ['node:*'],
+    external: ['node:*', 'cloudflare:workers'],
     loader: { '.wasm': 'file' },
     alias: candidatePackageRoot ? candidatePackageAliases(candidatePackageRoot) : {},
     metafile: true,
@@ -400,10 +412,50 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     host: '127.0.0.1',
     port: 0,
     workers: [
-      consoleWorker(output, 'console-good', 'runtime-good', deps),
-      consoleWorker(output, 'console-wrong-database', 'runtime-wrong-database', deps),
-      consoleWorker(output, 'console-wrong-config', 'runtime-wrong-config', deps),
-      consoleWorker(output, 'console-missing-version', 'runtime-missing-version', deps),
+      consoleWorker(output, 'console-good', 'runtime-good', deps, home, 'gateway'),
+      consoleWorker(
+        output,
+        'console-wrong-database',
+        'runtime-wrong-database',
+        deps,
+        home,
+        'gateway',
+      ),
+      consoleWorker(output, 'console-wrong-config', 'runtime-wrong-config', deps, home, 'gateway'),
+      consoleWorker(
+        output,
+        'console-missing-version',
+        'runtime-missing-version',
+        deps,
+        home,
+        'gateway',
+      ),
+      consoleWorker(
+        output,
+        'console-second-resource',
+        'runtime-second-resource',
+        deps,
+        secondResource,
+        'gateway-second-resource',
+      ),
+      writer(
+        output,
+        deps,
+        'gateway-second-resource',
+        'gateway',
+        'database-b',
+        secondResource.databaseId,
+        changedVersion,
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-second-resource',
+        'runtime',
+        'database-b',
+        secondResource.databaseId,
+        deploymentId,
+      ),
       writer(output, deps, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
       writer(
         output,
@@ -489,7 +541,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       'migrations/d1-signer',
     );
     const challengeMigration = await readFile(
-      path.join(signerMigrations, '0040_namespace_home_challenges.sql'),
+      path.join(signerMigrations, '0042_deployment_resource_challenges.sql'),
       'utf8',
     );
     const signerMigrationHashes = [];
@@ -510,10 +562,10 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     const missingVersion = await runtime.getWorker('console-missing-version');
     const gateway = await runtime.getWorker('gateway');
     const auth = deps.oidc.authorization();
-    const challenge = await insertChallenge(databaseA, Date.now() - 100);
+    const challenge = await insertChallenge(databaseA, Date.now() - 100, home);
     expect(
       (
-        await request.post(`${await runtime.ready}internal/tenant-deployment/v1/verify-home`, {
+        await request.post(`${await runtime.ready}internal/tenant-deployment/v1/verify-resource`, {
           data: challenge,
         })
       ).status(),
@@ -554,18 +606,43 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     expect(JSON.parse(successText)).toMatchObject({
       ok: true,
       result: {
-        home: { namespace, accountId: home.accountId, databaseId: home.databaseId },
+        resource: { namespace, accountId: home.accountId, databaseId: home.databaseId },
         writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
         activationAuthorized: false,
       },
     });
-    const expired = await insertChallenge(databaseA, Date.now() - 300_001);
+    // The same tenant can prove independent physical resources without assigning a wallet.
+    const secondChallenge = await insertChallenge(databaseB, Date.now() - 100, secondResource);
+    const secondConsole = await runtime.getWorker('console-second-resource');
+    const secondResponse = await secondConsole.fetch(verifyUrl, requestInit(secondChallenge, auth));
+    expect(secondResponse.status).toBe(200);
+    const secondCheckpoint: unknown = await secondResponse.json();
+    expect(secondCheckpoint).toMatchObject({
+      ok: true,
+      result: {
+        resource: secondResource,
+        writerVersions: { gateway: changedVersion, walletRuntime: deploymentId },
+        activationAuthorized: false,
+      },
+    });
+    expect((await good.fetch(verifyUrl, requestInit(secondChallenge, auth))).status).toBe(409);
+    expect((await secondConsole.fetch(verifyUrl, requestInit(challenge, auth))).status).toBe(409);
+    for (const database of [databaseA, databaseB]) {
+      expect(
+        await database
+          .prepare(
+            "SELECT COUNT(*) AS count FROM sqlite_master WHERE name = 'namespace_home_challenges' OR name = 'namespace_home_challenges_expiry_idx'",
+          )
+          .first('count'),
+      ).toBe(0);
+    }
+    const expired = await insertChallenge(databaseA, Date.now() - 300_001, home);
     expect((await good.fetch(verifyUrl, requestInit(expired, auth))).status).toBe(409);
-    const future = await insertChallenge(databaseA, Date.now() + 60_000);
+    const future = await insertChallenge(databaseA, Date.now() + 60_000, home);
     expect((await good.fetch(verifyUrl, requestInit(future, auth))).status).toBe(409);
     // A stale snapshot contains yesterday's proof; it cannot answer a new challenge ID.
     await databaseB
-      .prepare('INSERT INTO namespace_home_challenges VALUES (?1,?2,?3,?4,?5,?6,?7)')
+      .prepare('INSERT INTO deployment_resource_challenges VALUES (?1,?2,?3,?4,?5,?6,?7)')
       .bind(
         namespace,
         challenge.challengeId,
@@ -576,9 +653,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         Date.now() + 299_000,
       )
       .run();
-    const fresh = await insertChallenge(databaseA, Date.now() - 100);
+    const fresh = await insertChallenge(databaseA, Date.now() - 100, home);
     expect((await wrongDatabase.fetch(verifyUrl, requestInit(fresh, auth))).status).toBe(409);
-    await databaseA.prepare('DELETE FROM namespace_home_challenges').run();
+    await databaseA.prepare('DELETE FROM deployment_resource_challenges').run();
     expect((await good.fetch(verifyUrl, requestInit(challenge, auth))).status).toBe(409);
     expect(
       await authority
@@ -602,7 +679,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       const completed = await runChallengeCli(providerOrigin, String(await runtime.ready));
       expect(completed.exitCode).toBe(0);
       expect(JSON.parse(completed.stdout)).toMatchObject({
-        kind: 'tenant_d1_home_checkpoint_v1',
+        kind: 'tenant_d1_resource_checkpoint_v1',
         writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
         runtimeChallengeVerified: true,
         activationAuthorized: false,
@@ -610,7 +687,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       expect(provider.reads).toBe(12);
       expect(
         await databaseA
-          .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
+          .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
       const verification = TenantHomeVerificationV1.fromOperatorCheckpoint(
@@ -804,7 +881,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       expect((await runChallengeCli(providerOrigin, String(await runtime.ready))).exitCode).toBe(1);
       expect(
         await databaseA
-          .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
+          .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
       expect(provider.inserts).toBe(2);
@@ -826,7 +903,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         expect(provider.inserts - insertsBefore, scenario).toBe(scenario === 'gradual' ? 0 : 1);
         expect(
           await databaseA
-            .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
+            .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
             .first('count'),
           scenario,
         ).toBe(0);
@@ -855,6 +932,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           }
         : { kind: 'installed_sdk_with_source_migrations' },
       signerDatabases: 2,
+      independentResourceCheckpoint: secondCheckpoint,
+      crossResourceProofsRejected: true,
+      obsoleteChallengeSchemaRemoved: true,
       challengeMigrationSha256: createHash('sha256').update(challengeMigration).digest('hex'),
       signerMigrationHashes,
       verified: JSON.parse(successText).result,
@@ -893,9 +973,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       providerResourceVerified: false,
       cloudflareUsed: false,
     };
-    const evidencePath = testInfo.outputPath('runtime-home-challenge-evidence.json');
+    const evidencePath = testInfo.outputPath('runtime-resource-challenge-evidence.json');
     await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);
-    await testInfo.attach('runtime-home-challenge', {
+    await testInfo.attach('runtime-resource-challenge', {
       path: evidencePath,
       contentType: 'application/json',
     });

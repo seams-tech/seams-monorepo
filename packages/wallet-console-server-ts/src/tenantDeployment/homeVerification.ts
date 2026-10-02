@@ -70,7 +70,7 @@ export class TenantHomeVerificationV1 {
   static fromOperatorCheckpoint(raw: unknown, nowMs: number): TenantHomeVerificationV1 {
     if (
       !record(raw) ||
-      raw.kind !== 'tenant_d1_home_checkpoint_v1' ||
+      raw.kind !== 'tenant_d1_resource_checkpoint_v1' ||
       raw.runtimeChallengeVerified !== true ||
       raw.activationAuthorized !== false ||
       typeof raw.deploymentLane !== 'string' ||
@@ -105,7 +105,7 @@ export class TenantHomeVerificationV1 {
       nowMs - before > 300_000
     )
       invalid();
-    const home = TenantDeploymentD1ResourceIdentityV1.parse(raw.home);
+    const home = TenantDeploymentD1ResourceIdentityV1.parse(raw.resource);
     const [gatewayRaw, runtimeRaw] = raw.workers;
     const gateway = parseWriter(gatewayRaw, raw.writerVersions.gateway, home.databaseId);
     const walletRuntime = parseWriter(

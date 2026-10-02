@@ -1,10 +1,13 @@
 import { TenantHomeVerificationV1 } from './homeVerification';
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
 import { isTenantDeploymentStoreError } from './service';
-import { parseTenantD1HomeChallengeRequestV1, type TenantD1HomeVerifierV1 } from './homeChallenge';
+import {
+  parseTenantD1ResourceChallengeRequestV1,
+  type TenantD1ResourceVerifierV1,
+} from './resourceChallenge';
 
 const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
-const VERIFY_HOME_PATH = '/internal/tenant-deployment/v1/verify-home';
+const VERIFY_RESOURCE_PATH = '/internal/tenant-deployment/v1/verify-resource';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_JWKS = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
 const EXPECTED_AUDIENCE = 'seams-tenant-cutover';
@@ -141,10 +144,10 @@ async function parseRequest(request: Request): Promise<{
   const body: unknown = await request.json().catch(() => null);
   if (
     !isRecord(body) ||
-    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,homeCheckpoint'
+    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,resourceCheckpoint'
   ) {
     throw new Error(
-      'cutover request must contain deploymentLane, environmentId and homeCheckpoint',
+      'cutover request must contain deploymentLane, environmentId and resourceCheckpoint',
     );
   }
   if (
@@ -161,7 +164,7 @@ async function parseRequest(request: Request): Promise<{
     authorization: {
       kind: 'activate',
       verification: TenantHomeVerificationV1.fromOperatorCheckpoint(
-        body.homeCheckpoint,
+        body.resourceCheckpoint,
         Date.now(),
       ),
     },
@@ -170,15 +173,11 @@ async function parseRequest(request: Request): Promise<{
 
 export function createTenantDeploymentAutomationRouteV1(input: {
   readonly provisioner: TenantDeploymentProvisionerV1;
-  readonly homeVerifier: TenantD1HomeVerifierV1;
+  readonly resourceVerifier: TenantD1ResourceVerifierV1;
 }): (request: Request) => Promise<Response | null> {
   return async function handleTenantDeploymentAutomation(request) {
     const url = new URL(request.url);
-    if (
-      url.pathname !== AUTOMATION_PATH &&
-      url.pathname !== VERIFY_HOME_PATH
-    )
-      return null;
+    if (url.pathname !== AUTOMATION_PATH && url.pathname !== VERIFY_RESOURCE_PATH) return null;
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     try {
       await authenticate(request);
@@ -193,11 +192,11 @@ export function createTenantDeploymentAutomationRouteV1(input: {
       );
     }
     try {
-      if (url.pathname === VERIFY_HOME_PATH) {
-        const challenge = parseTenantD1HomeChallengeRequestV1(
+      if (url.pathname === VERIFY_RESOURCE_PATH) {
+        const challenge = parseTenantD1ResourceChallengeRequestV1(
           await request.json().catch(() => null),
         );
-        return json({ ok: true, result: await input.homeVerifier.verify(challenge) });
+        return json({ ok: true, result: await input.resourceVerifier.verify(challenge) });
       }
       const result = await input.provisioner.provision(await parseRequest(request));
       return json({ ok: true, result });

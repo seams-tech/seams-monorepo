@@ -535,6 +535,7 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
           'content-type': 'application/json',
           origin: input.surfaces.hostedWalletOrigin,
           'x-seams-environment-id': input.environmentId,
+          'x-seams-wallet-protocol': '1',
         },
         body: JSON.stringify({
           wallet: { kind: 'provided', walletId: `canary-${crypto.randomUUID()}` },

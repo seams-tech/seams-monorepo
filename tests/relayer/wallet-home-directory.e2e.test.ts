@@ -8,8 +8,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   WalletHome,
+  WalletHomeCatalog,
   WalletOwnershipKey,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
+import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
   WALLET_HOME_SERVICE_BASE_PATH,
   WALLET_HOME_SERVICE_ORIGIN,
@@ -59,6 +62,19 @@ function start(directory: string): Miniflare {
     d1Persist: path.join(directory, 'd1'),
     workers: [worker(directory, 'ingress-a'), worker(directory, 'ingress-b')],
   });
+}
+
+class MiniflareWalletHomeServiceBinding {
+  constructor(private readonly runtime: Miniflare) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const service = await this.runtime.getWorker('ingress-b');
+    return service.fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: await request.text(),
+    });
+  }
 }
 
 function reservation(walletId: string, home: WalletHome, projectId = 'project') {
@@ -314,6 +330,50 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(await byCeremony.json()).toMatchObject({
       assignment: { wallet: { walletId: 'service-wallet' }, home: homes[0] },
     });
+    const serviceClient = new WalletHomeServiceClient(
+      new MiniflareWalletHomeServiceBinding(runtime),
+      parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'test',
+      },
+      WalletHomeCatalog.parse(homes),
+    );
+    const clientInput = reservation('service-client', homes[2]);
+    const clientReserved = await serviceClient.reserve({
+      allocation: 'provided',
+      wallet: clientInput.wallet,
+      ingressRegion: 'APAC',
+      registrationId: clientInput.registrationId,
+      requestDigest: clientInput.requestDigest,
+      proposedRegistrationAllocation: clientInput.registrationAllocation,
+    });
+    expect(clientReserved).toMatchObject({ ok: true, disposition: 'reserved' });
+    if (!clientReserved.ok) throw new Error('Service client did not reserve a wallet');
+    expect(clientReserved.assignment.home.matches(homes[2])).toBe(true);
+    expect((await serviceClient.find(clientInput.wallet))?.wallet.matches(clientInput.wallet)).toBe(
+      true,
+    );
+    expect(await serviceClient.find(walletKey('unknown-client-wallet'))).toBeNull();
+    await expect(
+      serviceClient.find(walletKey('service-client', 'other-project')),
+    ).rejects.toMatchObject({ code: 'scope_conflict' });
+    expect(
+      (
+        await serviceClient.findByCeremony(clientInput.registrationAllocation.ceremonyId)
+      )?.home.matches(homes[2]),
+    ).toBe(true);
+    const clientCompleted = await serviceClient.complete({
+      wallet: clientInput.wallet,
+      home: homes[2],
+      registrationId: clientInput.registrationId,
+      requestDigest: clientInput.requestDigest,
+      outcome: 'established',
+    });
+    expect(clientCompleted.state).toBe('established');
+    observations.push({ stage: 'service_client_roundtrip', assignment: clientCompleted });
     const duplicateCeremony = await call(runtime, {
       ...reservation('ceremony-collision', homes[1]),
       registrationAllocation: {
@@ -503,7 +563,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     const rows = await persisted
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
-    expect(rows.results).toHaveLength(16);
+    expect(rows.results).toHaveLength(17);
     const receipt = {
       kind: 'wallet_home_directory_e2e_v1',
       observations,

@@ -1,3 +1,4 @@
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
 import {
   handleSplitGatewayRequest,
@@ -21,7 +22,7 @@ type TenantDeploymentGatewayEnv = CloudflareD1GatewayEnv & {
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
   readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
   readonly SEAMS_D1_HOME_DATABASE_ID: string;
-  readonly CF_VERSION_METADATA: unknown;
+  readonly CF_VERSION_METADATA: { readonly id: unknown };
 };
 
 async function fetch(
@@ -44,6 +45,7 @@ async function fetch(
   const pathname = new URL(request.url).pathname;
   const bindingTimingHeaders = new Headers();
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
+    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id),
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
     timingHeaders: bindingTimingHeaders,
@@ -87,6 +89,7 @@ async function scheduled(
   _ctx: CfExecutionContext,
 ): Promise<void> {
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
+    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id),
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
   });

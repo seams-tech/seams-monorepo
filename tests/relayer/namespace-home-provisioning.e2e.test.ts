@@ -1,3 +1,4 @@
+import { operatorHomeCheckpoint } from '../helpers/tenantDeploymentFixtures';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -65,7 +66,19 @@ function requestInit(deploymentLane: string, authorization: string) {
   return {
     method: 'POST',
     headers: { authorization, 'content-type': 'application/json' },
-    body: JSON.stringify({ deploymentLane, environmentId }),
+    body: JSON.stringify({
+      deploymentLane,
+      environmentId,
+      homeCheckpoint: operatorHomeCheckpoint(
+        NamespaceD1HomeV1.parse({
+          namespace,
+          accountId,
+          databaseId: deploymentLane === 'lane-a' ? databaseA : databaseB,
+        }),
+        deploymentLane,
+        Date.now(),
+      ),
+    }),
   };
 }
 
@@ -153,7 +166,7 @@ test('authenticated provisioning checks the reserved home before custody work ac
     });
     expect(clientSelectedHome.status).toBe(409);
     expect(await clientSelectedHome.json()).toMatchObject({
-      message: 'cutover request must contain only deploymentLane and environmentId',
+      message: 'cutover request must contain deploymentLane, environmentId and homeCheckpoint',
     });
     expect(
       await database.prepare('SELECT count(*) AS total FROM namespace_d1_homes').first('total'),

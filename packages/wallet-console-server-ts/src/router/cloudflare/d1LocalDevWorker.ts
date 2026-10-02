@@ -1,3 +1,4 @@
+import { TenantHomeVerificationV1 } from '../../tenantDeployment/homeVerification';
 import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
 import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
 import { resolveRuntimeTenantRootLineage } from '@seams/wallet-server/cloud-host';
@@ -980,6 +981,7 @@ class LocalTenantDeploymentOnboardingProvisioner implements ConsoleOnboardingEnv
   async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
     if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
     await this.provisioner.provision({
+      authorization: { kind: 'reuse_active' },
       deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
       environmentId: input.environment.id,
     });
@@ -1014,7 +1016,18 @@ async function provisionLocalTenantDeployment(
   if (!reservation.ok) {
     throw new Error('local D1 resource conflicts with its reserved namespace home');
   }
-  return provisioner.provision(request);
+  return provisioner.provision({
+    deploymentLane: request.deploymentLane,
+    environmentId: request.environmentId,
+    authorization: {
+      kind: 'activate',
+      verification: TenantHomeVerificationV1.forLocalDevelopment(
+        home,
+        request.deploymentLane,
+        Date.now(),
+      ),
+    },
+  });
 }
 
 async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalConsoleComposition> {
@@ -1324,6 +1337,7 @@ async function resolveProvisionedLocalTenantDeployment(env: LocalD1DevEnv) {
   );
   if (binding) return binding;
   await composition.tenantDeployment.provisioner.provision({
+    authorization: { kind: 'reuse_active' },
     deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
     environmentId: localConsoleEnvironmentId(env),
   });

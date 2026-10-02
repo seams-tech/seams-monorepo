@@ -1,3 +1,4 @@
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
 import type { CfExecutionContext } from '@seams/wallet-server/cloud-host';
 import {
   handleSplitGatewayWalletRuntimeRequest,
@@ -20,7 +21,7 @@ type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
     readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
     readonly SEAMS_D1_HOME_DATABASE_ID: string;
-    readonly CF_VERSION_METADATA: unknown;
+    readonly CF_VERSION_METADATA: { readonly id: unknown };
   };
 
 async function fetch(
@@ -62,7 +63,10 @@ async function fetch(
       );
     }
   }
-  const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(env);
+  const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(
+    env,
+    parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA?.id),
+  );
   if (!boundEnv) {
     return Response.json(
       { ok: false, code: 'tenant_deployment_unavailable' },

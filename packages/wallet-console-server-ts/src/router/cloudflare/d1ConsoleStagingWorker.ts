@@ -202,6 +202,7 @@ class DeferredTenantDeploymentOnboardingProvisioner implements ConsoleOnboarding
   async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
     if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
     await this.provisioner.provision({
+      authorization: { kind: 'reuse_active' },
       deploymentLane: this.deploymentLane,
       environmentId: input.environment.id,
     });

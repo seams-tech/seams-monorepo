@@ -11,8 +11,10 @@ import type {
   TenantDeploymentCutoverRecordV1,
 } from './types';
 import { TenantDeploymentStoreError } from './service';
+import type { TenantHomeVerificationV1 } from './homeVerification';
 
 export type TenantDeploymentHomeAdoptionRequestV1 = {
+  readonly homeVerification: TenantHomeVerificationV1;
   readonly deploymentLane: string;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedActive: ExpectedActiveTenantDeploymentBindingV1;
@@ -106,6 +108,8 @@ export async function adoptTenantDeploymentHomeV1(
     );
   }
   const existing = await options.store.findCutover(request.operationId);
+  if (existing?.state.kind !== 'active')
+    request.homeVerification.assertFor(options.home, request.deploymentLane, Date.now());
   if (existing?.state.kind !== 'active') await assertActive(options, request.expectedActive);
   const binding = await options.store.adoptBindingHome(
     request.deploymentLane,
@@ -163,6 +167,7 @@ export async function adoptTenantDeploymentHomeV1(
       expectedActiveRevision: request.expectedActive.revision,
     });
     await options.store.activateBinding({
+      homeVerification: request.homeVerification,
       home: options.home,
       operationId: request.operationId,
       expectedCutoverRecordRevision: record.recordRevision,

@@ -54,9 +54,13 @@ async function insertActivationRow(
   let columns = '';
   let parameters = '';
   if (evidence.kind === 'scoped') {
-    columns = ', home_account_id, home_database_id';
-    parameters = ', ?12, ?13';
-    values.push(evidence.home?.accountId ?? null, evidence.home?.databaseId ?? null);
+    columns = ', home_account_id, home_database_id, home_verification_json';
+    parameters = ', ?12, ?13, ?14';
+    values.push(
+      evidence.home?.accountId ?? null,
+      evidence.home?.databaseId ?? null,
+      JSON.stringify(input.homeVerification),
+    );
   }
   return database
     .prepare(
@@ -125,6 +129,16 @@ test('activation enforces the reserved resource through races, retries and histo
     migrations.push({
       name: '0049_tenant_deployment_binding_homes.sql',
       sha256: createHash('sha256').update(bindingHomeMigration).digest('hex'),
+    });
+    const verificationMigration = await readFile(
+      new URL('0050_tenant_deployment_home_verification.sql', migrationDirectory),
+      'utf8',
+    );
+    for (const statement of unstable_splitSqlQuery(verificationMigration))
+      await database.prepare(statement).run();
+    migrations.push({
+      name: '0050_tenant_deployment_home_verification.sql',
+      sha256: createHash('sha256').update(verificationMigration).digest('hex'),
     });
     expect(await store.resolveActiveBinding(historical.deploymentLane)).toEqual(historical);
     expect(

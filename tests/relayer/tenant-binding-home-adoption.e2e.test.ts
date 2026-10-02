@@ -39,6 +39,7 @@ test('historical bindings require explicit adoption and home identity is revisio
       '0047_namespace_d1_homes.sql',
       '0048_tenant_deployment_activation_homes.sql',
       '0049_tenant_deployment_binding_homes.sql',
+      '0050_tenant_deployment_home_verification.sql',
     ]) {
       const sql = await readFile(
         new URL(

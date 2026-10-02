@@ -1,3 +1,4 @@
+import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
   buildTenantDeploymentBindingV1,
   encodeTenantDeploymentJsonValueV1,
@@ -235,6 +236,11 @@ export async function readyActivation(
     expectedActiveRevision,
   });
   return {
+    homeVerification: TenantHomeVerificationV1.forLocalDevelopment(
+      home,
+      candidate.deploymentLane,
+      nowMs,
+    ),
     home,
     operationId,
     expectedCutoverRecordRevision: ready.recordRevision,
@@ -263,4 +269,73 @@ export function activeCutoverFixture(
       activatedAtMs: nowMs,
     },
   };
+}
+
+export function operatorHomeCheckpoint(home: NamespaceD1HomeV1, lane: string, nowMs: number) {
+  const gateway = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const walletRuntime = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let challengeId = '';
+  for (const byte of bytes) challengeId += byte.toString(16).padStart(2, '0');
+  return {
+    kind: 'tenant_d1_home_checkpoint_v1',
+    home,
+    deploymentLane: lane,
+    challengeId,
+    checkedAtMs: nowMs - 100,
+    expiresAtMs: nowMs + 299_000,
+    providerCheckedBefore: new Date(nowMs - 200).toISOString(),
+    providerCheckedAfter: new Date(nowMs - 50).toISOString(),
+    writerVersions: { gateway, walletRuntime },
+    workers: [
+      {
+        workerName: 'fixture-gateway',
+        deploymentId: gateway,
+        versions: [{ versionId: gateway, percentage: 100, databaseId: home.databaseId }],
+      },
+      {
+        workerName: 'fixture-runtime',
+        deploymentId: walletRuntime,
+        versions: [{ versionId: walletRuntime, percentage: 100, databaseId: home.databaseId }],
+      },
+    ],
+    runtimeChallengeVerified: true,
+    activationAuthorized: false,
+  };
+}
+
+export async function bindingForHome(nowMs: number, lane: string, home: NamespaceD1HomeV1) {
+  const body = developmentBindingBody(nowMs, lane);
+  const result = await buildTenantDeploymentBindingV1({
+    ...body,
+    home: { accountId: home.accountId, databaseId: home.databaseId },
+    tenant: { ...body.tenant, namespace: home.namespace },
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
+}
+
+export async function productionBindingForHome(
+  nowMs: number,
+  lane: string,
+  home: NamespaceD1HomeV1,
+) {
+  const body = developmentBindingBody(nowMs, lane);
+  const result = await buildTenantDeploymentBindingV1({
+    ...body,
+    mode: { kind: 'production_mainnet_v1', environment: 'production', network: 'mainnet' },
+    home: { accountId: home.accountId, databaseId: home.databaseId },
+    tenant: {
+      ...body.tenant,
+      namespace: home.namespace,
+      environmentId: `${body.tenant.projectId}:prod`,
+    },
+    browserCredential: {
+      ...body.browserCredential,
+      credentialId: 'ak_prod_fixture',
+      publishableKey: 'pk_prod_fixture',
+    },
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
 }

@@ -1,3 +1,4 @@
+import { storedRuntimeVersionMatches, type TenantRuntimeWriterV1 } from './homeVerification';
 import {
   d1ChangedRows,
   queryD1One,
@@ -396,51 +397,10 @@ export function createD1TenantDeploymentBindingReaderV1(
     },
 
     async resolveActiveBinding(rawLane) {
-      const deploymentLane = requiredText(rawLane, 'deploymentLane');
-      const startedAt = performance.now();
-      const result = await database
-        .prepare(
-          `SELECT active.deployment_lane AS active_deployment_lane,
-                active.revision AS active_revision,
-                active.previous_revision, active.activation_sequence, active.activated_at_ms,
-                binding.*
-           FROM active_tenant_deployment_bindings AS active
-           LEFT JOIN tenant_deployment_bindings AS binding
-             ON binding.deployment_lane = active.deployment_lane
-            AND binding.revision = active.revision
-          WHERE active.deployment_lane = ?1`,
-        )
-        .bind(deploymentLane)
-        .all<D1Row>();
-      if (options.timingHeaders) {
-        appendTenantDeploymentD1Timing(
-          options.timingHeaders,
-          performance.now() - startedAt,
-          result.meta,
-        );
-      }
-      if (!result.success) {
-        throw new TenantDeploymentStoreError(
-          'invalid_record',
-          'active tenant deployment query failed',
-        );
-      }
-      const row = result.results?.[0] ?? null;
-      if (!row) return null;
-      parseActiveRow({
-        deployment_lane: row.active_deployment_lane,
-        revision: row.active_revision,
-        previous_revision: row.previous_revision,
-        activation_sequence: row.activation_sequence,
-        activated_at_ms: row.activated_at_ms,
-      });
-      if (row.revision === null) {
-        throw new TenantDeploymentStoreError(
-          'invalid_record',
-          'active tenant deployment binding does not exist',
-        );
-      }
-      return await parseBindingRow(row);
+      return await resolveActiveBindingRecord(options, rawLane, { kind: 'inspection' });
+    },
+    async resolveRuntimeBinding(rawLane, writer) {
+      return await resolveActiveBindingRecord(options, rawLane, { kind: 'writer', writer });
     },
   };
 }
@@ -527,6 +487,19 @@ export function createD1TenantDeploymentServiceV1(
           'historical binding revision disagrees with its row',
         );
       }
+      if ('home' in source) {
+        const binding = await parseBindingRow(row);
+        if (
+          binding.home.accountId !== home.accountId ||
+          binding.home.databaseId !== home.databaseId
+        ) {
+          throw new TenantDeploymentStoreError(
+            'namespace_home_conflict',
+            'Canonical binding belongs to another home',
+          );
+        }
+        return binding;
+      }
       const adopted = await adoptTenantDeploymentBindingHomeV1(source, {
         accountId: home.accountId,
         databaseId: home.databaseId,
@@ -577,6 +550,7 @@ export function createD1TenantDeploymentServiceV1(
 
     async activateBinding(rawInput) {
       const input: ActivateTenantDeploymentBindingInputV1 = {
+        homeVerification: rawInput.homeVerification,
         home: rawInput.home,
         operationId: parseCutoverId(rawInput.operationId, 'operationId'),
         expectedCutoverRecordRevision: positiveSafeInteger(
@@ -643,13 +617,14 @@ export function createD1TenantDeploymentServiceV1(
       ) {
         const recordedHome = await queryD1One(
           database,
-          `SELECT home_account_id, home_database_id FROM tenant_deployment_activations
+          `SELECT home_account_id, home_database_id, home_verification_json FROM tenant_deployment_activations
            WHERE operation_id = ?1`,
           [input.operationId],
         );
         if (
           recordedHome?.home_account_id !== input.home.accountId ||
-          recordedHome.home_database_id !== input.home.databaseId
+          recordedHome.home_database_id !== input.home.databaseId ||
+          recordedHome.home_verification_json !== JSON.stringify(input.homeVerification)
         ) {
           throw new TenantDeploymentStoreError(
             'activation_conflict',
@@ -672,6 +647,7 @@ export function createD1TenantDeploymentServiceV1(
         );
       }
       assertReadiness(input, timestamp);
+      input.homeVerification.assertFor(input.home, input.deploymentLane, timestamp);
       const activationSequence = (input.expectedActive?.activationSequence ?? 0) + 1;
       const receipt = {
         kind: 'tenant_deployment_activation_receipt_v1' as const,
@@ -694,8 +670,8 @@ export function createD1TenantDeploymentServiceV1(
              operation_id, deployment_lane, binding_revision,
              expected_previous_revision, expected_activation_sequence,
              activation_sequence, activated_at_ms, expected_cutover_record_revision,
-             ready_state_json, active_state_json, receipt_json, home_account_id, home_database_id
-           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`,
+             ready_state_json, active_state_json, receipt_json, home_account_id, home_database_id, home_verification_json
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`,
           )
           .bind(
             input.operationId,
@@ -711,6 +687,7 @@ export function createD1TenantDeploymentServiceV1(
             JSON.stringify(receipt),
             input.home.accountId,
             input.home.databaseId,
+            JSON.stringify(input.homeVerification),
           )
           .run();
       } catch {
@@ -847,4 +824,68 @@ export function createD1TenantDeploymentServiceV1(
       return stored;
     },
   };
+}
+
+async function resolveActiveBindingRecord(
+  options: D1TenantDeploymentBindingReaderOptionsV1,
+  rawLane: string,
+  access:
+    | { readonly kind: 'inspection' }
+    | { readonly kind: 'writer'; readonly writer: TenantRuntimeWriterV1 },
+): Promise<TenantDeploymentBindingV1 | null> {
+  const database = options.database;
+  const deploymentLane = requiredText(rawLane, 'deploymentLane');
+  const startedAt = performance.now();
+  const result = await database
+    .prepare(
+      `SELECT active.deployment_lane AS active_deployment_lane,
+                active.revision AS active_revision,
+                active.previous_revision, active.activation_sequence, active.activated_at_ms,
+                binding.*, activation.home_verification_json
+           FROM active_tenant_deployment_bindings AS active
+           LEFT JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane
+            AND binding.revision = active.revision
+           LEFT JOIN tenant_deployment_activations AS activation
+             ON activation.deployment_lane = active.deployment_lane
+            AND activation.activation_sequence = active.activation_sequence
+            AND activation.binding_revision = active.revision
+          WHERE active.deployment_lane = ?1`,
+    )
+    .bind(deploymentLane)
+    .all<D1Row>();
+  if (options.timingHeaders) {
+    appendTenantDeploymentD1Timing(
+      options.timingHeaders,
+      performance.now() - startedAt,
+      result.meta,
+    );
+  }
+  if (!result.success) {
+    throw new TenantDeploymentStoreError('invalid_record', 'active tenant deployment query failed');
+  }
+  const row = result.results?.[0] ?? null;
+  if (!row) return null;
+  parseActiveRow({
+    deployment_lane: row.active_deployment_lane,
+    revision: row.active_revision,
+    previous_revision: row.previous_revision,
+    activation_sequence: row.activation_sequence,
+    activated_at_ms: row.activated_at_ms,
+  });
+  if (row.revision === null) {
+    throw new TenantDeploymentStoreError(
+      'invalid_record',
+      'active tenant deployment binding does not exist',
+    );
+  }
+  if (access.kind === 'writer') {
+    if (!storedRuntimeVersionMatches(row.home_verification_json, access.writer)) {
+      throw new TenantDeploymentStoreError(
+        'activation_conflict',
+        'Runtime version is not authorized by the active home verification',
+      );
+    }
+  }
+  return await parseBindingRow(row);
 }

@@ -71,6 +71,9 @@ jobs:
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
       - name: Coordinate and verify cutover
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: >-
           pnpm tenant:cutover
           --lane production-testnet

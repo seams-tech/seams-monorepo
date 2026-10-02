@@ -14,7 +14,13 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
-import { namespaceHome } from '../helpers/tenantDeploymentFixtures';
+import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import {
+  namespaceHome,
+  bindingForHome,
+  productionBindingForHome,
+  readyActivation,
+} from '../helpers/tenantDeploymentFixtures';
 import { GithubDeploymentOidcFixture } from '../helpers/githubDeploymentOidc';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -203,6 +209,7 @@ function writer(
       SEAMS_D1_HOME_DATABASE_ID: databaseId,
     },
     d1Databases: { SIGNER_DB: database },
+    serviceBindings: { WALLET_CONSOLE: 'console-good' },
   };
 }
 
@@ -241,6 +248,10 @@ async function insertChallenge(database: D1DatabaseLike, issuedAtMs: number) {
     )
     .run();
   return { deploymentLane: lane, challengeId, expectedProof };
+}
+
+function fixedNow(timestamp: number): Date {
+  return new Date(timestamp);
 }
 
 function requestInit(data: unknown, authorization: string) {
@@ -284,6 +295,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       consoleWorker(output, 'console-wrong-config', 'runtime-wrong-config', deps),
       consoleWorker(output, 'console-missing-version', 'runtime-missing-version', deps),
       writer(output, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
+      writer(output, 'gateway-changed', 'gateway', 'database-a', home.databaseId, changedVersion),
       writer(output, 'runtime-good', 'runtime', 'database-a', home.databaseId, runtimeVersion),
       writer(
         output,
@@ -445,6 +457,89 @@ test('Console verifies both real writer bindings against a fresh challenge and i
           .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
           .first('count'),
       ).toBe(0);
+      const verification = TenantHomeVerificationV1.fromOperatorCheckpoint(
+        JSON.parse(completed.stdout),
+        Date.now(),
+      );
+      const store = createD1TenantDeploymentServiceV1({ database: authority });
+      const candidate = await store.putBinding(await bindingForHome(Date.now(), lane, home));
+      const ready = await readyActivation(
+        store,
+        candidate,
+        home,
+        'tco_verified_home',
+        null,
+        Date.now(),
+      );
+      const input = { ...ready, homeVerification: verification };
+      const activated = await store.activateBinding(input);
+      expect(await store.activateBinding(input)).toEqual(activated);
+      const expiredStore = createD1TenantDeploymentServiceV1({
+        database: authority,
+        now: fixedNow.bind(null, verification.expiresAtMs + 1),
+      });
+      expect(await expiredStore.activateBinding(input)).toEqual(activated);
+      const projection = await gateway.fetch(
+        'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
+      );
+      expect(projection.status).toBe(200);
+      const changedGateway = await runtime.getWorker('gateway-changed');
+      await expect(
+        changedGateway.fetch(
+          'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
+        ),
+      ).rejects.toThrow();
+      for (const role of ['gateway', 'walletRuntime']) {
+        const versionId = role === 'gateway' ? gatewayVersion : runtimeVersion;
+        const admitted = await good.fetch(
+          'https://tenant-deployment.internal/internal/tenant-deployment/v1/active',
+          {
+            headers: { 'x-seams-writer-role': role, 'x-seams-writer-version': versionId },
+          },
+        );
+        expect(admitted.status).toBe(200);
+      }
+      const replay = await readyActivation(
+        store,
+        candidate,
+        home,
+        'tco_replayed_home',
+        {
+          revision: candidate.revision,
+          activationSequence: 1,
+        },
+        Date.now(),
+      );
+      await expect(
+        store.activateBinding({ ...replay, homeVerification: verification }),
+      ).rejects.toMatchObject({ code: 'activation_conflict' });
+      await expect(
+        expiredStore.activateBinding({ ...replay, homeVerification: verification }),
+      ).rejects.toMatchObject({ code: 'readiness_invalid' });
+      expect((await store.findActiveBinding(lane))?.activationSequence).toBe(1);
+      const recorded = await authority
+        .prepare(
+          'SELECT home_verification_json FROM tenant_deployment_activations WHERE operation_id = ?1',
+        )
+        .bind(input.operationId)
+        .first('home_verification_json');
+      expect(typeof recorded).toBe('string');
+      await writeFile(testInfo.outputPath('activated-home-verification.json'), String(recorded));
+      const productionCandidate = await store.putBinding(
+        await productionBindingForHome(Date.now(), 'production-proof-lane', home),
+      );
+      const localAttempt = await readyActivation(
+        store,
+        productionCandidate,
+        home,
+        'tco_local_proof_for_production',
+        null,
+        Date.now(),
+      );
+      await expect(store.activateBinding(localAttempt)).rejects.toMatchObject({
+        code: 'activation_conflict',
+      });
+      expect(await store.findActiveBinding(productionCandidate.deploymentLane)).toBeNull();
       provider.failInsertResponse = true;
       expect((await runChallengeCli(providerOrigin, String(await runtime.ready))).exitCode).toBe(1);
       expect(
@@ -506,7 +601,12 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         'deleted challenge',
         'missing version metadata',
       ],
-      activationCount: 0,
+      activationCount: 1,
+      singleUseChallenge: true,
+      localProofRejectedForProductionBinding: true,
+      expiredCompletedRetrySucceeded: true,
+      changedGatewayVersionRejected: true,
+      bothWriterRolesAdmitted: true,
       operatorCli: {
         successfulChallengeCleanedUp: true,
         lostInsertResponseCleanedUp: true,

@@ -17,6 +17,7 @@ export default {
     const headers = new Headers();
     try {
       const binding = await resolveActiveTenantDeploymentFromServiceV1({
+        writer: { role: 'gateway', versionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
         deploymentLane: env.DEPLOYMENT_LANE,
         service: env.WALLET_CONSOLE,
         timingHeaders: headers,

@@ -8,6 +8,7 @@ import type {
   TenantDeploymentReadinessReceiptV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { NamespaceD1HomeV1 } from './namespaceHome';
+import type { TenantHomeVerificationV1, TenantRuntimeWriterV1 } from './homeVerification';
 import type { TenantDeploymentRuntimeScopeV1 } from './runtimeInspection';
 
 export type {
@@ -26,6 +27,7 @@ export type ExpectedActiveTenantDeploymentBindingV1 = {
 };
 
 export type ActivateTenantDeploymentBindingInputV1 = {
+  readonly homeVerification: TenantHomeVerificationV1;
   readonly home: NamespaceD1HomeV1;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedCutoverRecordRevision: number;
@@ -53,6 +55,10 @@ export type TenantDeploymentCutoverTransitionStateV1 = Exclude<
 >;
 
 export interface TenantDeploymentBindingReaderV1 {
+  resolveRuntimeBinding(
+    deploymentLane: string,
+    writer: TenantRuntimeWriterV1,
+  ): Promise<TenantDeploymentBindingV1 | null>;
   readActiveScope(deploymentLane: string): Promise<TenantDeploymentRuntimeScopeV1 | null>;
   findBinding(
     deploymentLane: string,

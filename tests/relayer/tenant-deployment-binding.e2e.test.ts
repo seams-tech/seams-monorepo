@@ -8,7 +8,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
-import { binding } from '../helpers/tenantDeploymentFixtures';
+import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import {
+  binding,
+  namespaceHome,
+  operatorHomeCheckpoint,
+  readyActivation,
+} from '../helpers/tenantDeploymentFixtures';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const migrationPath = path.join(
@@ -102,6 +108,15 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     for (const statement of unstable_splitSqlQuery(migration)) {
       await database.prepare(statement).run();
     }
+    for (const name of [
+      '0047_namespace_d1_homes.sql',
+      '0048_tenant_deployment_activation_homes.sql',
+      '0049_tenant_deployment_binding_homes.sql',
+      '0050_tenant_deployment_home_verification.sql',
+    ]) {
+      const sql = await readFile(path.join(path.dirname(migrationPath), name), 'utf8');
+      for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
+    }
     const reader = await runtime.getWorker('consumer');
     const wrongLane = await runtime.getWorker('wrong-lane');
     const wrongHome = await runtime.getWorker('wrong-home');
@@ -117,26 +132,25 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     const store = createD1TenantDeploymentServiceV1({ database });
     const first = await store.putBinding(await binding(1_700_000_000_000));
     const second = await store.putBinding(await binding(1_700_000_000_001));
-    await database
-      .prepare(
-        `INSERT INTO active_tenant_deployment_bindings
-       (deployment_lane, revision, previous_revision, activation_sequence, activated_at_ms)
-       VALUES (?1, ?2, NULL, 1, ?3)`,
-      )
-      .bind(first.deploymentLane, first.revision, 1_800_000_000_000)
-      .run();
-
+    const home = namespaceHome(first.tenant.namespace, first.home.databaseId);
+    await store.reserveNamespaceHome(home);
     for (const current of [first, second]) {
-      if (current === second) {
-        await database
-          .prepare(
-            `UPDATE active_tenant_deployment_bindings
-           SET revision = ?1, previous_revision = ?2, activation_sequence = 2
-           WHERE deployment_lane = ?3`,
-          )
-          .bind(second.revision, first.revision, first.deploymentLane)
-          .run();
-      }
+      const now = Date.now();
+      const input = await readyActivation(
+        store,
+        current,
+        home,
+        current === first ? 'tco_first' : 'tco_second',
+        current === first ? null : { revision: first.revision, activationSequence: 1 },
+        now,
+      );
+      await store.activateBinding({
+        ...input,
+        homeVerification: TenantHomeVerificationV1.fromOperatorCheckpoint(
+          operatorHomeCheckpoint(home, current.deploymentLane, now),
+          now,
+        ),
+      });
       const responses = await Promise.all([
         reader.fetch('https://consumer.test/'),
         wrongLane.fetch('https://consumer.test/'),

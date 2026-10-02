@@ -15,6 +15,7 @@ import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { GithubDeploymentOidcFixture } from '../helpers/githubDeploymentOidc';
 import {
   namespaceHome,
+  operatorHomeCheckpoint,
   seedAdoptionRoot,
   seedHistoricalActiveBinding,
 } from '../helpers/tenantDeploymentFixtures';
@@ -197,6 +198,7 @@ test('protected operator adoption refreshes readiness and retries a failed canar
     const historical = await seedHistoricalActiveBinding(database, candidate);
     await store.reserveNamespaceHome(home);
     const data = {
+      homeCheckpoint: operatorHomeCheckpoint(home, lane, Date.now()),
       deploymentLane: lane,
       operationId: 'tco_operator_adoption',
       expectedActive: { revision: historical.revision, activationSequence: 1 },
@@ -297,6 +299,39 @@ test('protected operator adoption refreshes readiness and retries a failed canar
     ).toBe(JSON.stringify(historical));
     expect(await bundle.apiKeys.listApiKeys(context)).toHaveLength(1);
     expect(dependencies.unexpectedRequests).toEqual([]);
+    const refreshed = await worker.fetch(
+      'https://console.example.test/internal/tenant-deployment/v1/cutover',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          deploymentLane: lane,
+          environmentId: environment.id,
+          homeCheckpoint: operatorHomeCheckpoint(home, lane, Date.now()),
+        }),
+      },
+    );
+    expect(refreshed.status).toBe(200);
+    expect(await refreshed.json()).toMatchObject({
+      ok: true,
+      result: {
+        disposition: 'activated',
+        bindingRevision: candidate.revision,
+        activationSequence: 3,
+      },
+    });
+    expect(await bundle.apiKeys.listApiKeys(context)).toHaveLength(1);
+    expect(
+      await database
+        .prepare('SELECT COUNT(*) AS count FROM tenant_deployment_activations')
+        .first('count'),
+    ).toBe(2);
+    const forgedLocal = await worker.fetch(adoptionUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...data, homeCheckpoint: { kind: 'local_development' } }),
+    });
+    expect(forgedLocal.status).toBe(409);
     const evidence = {
       kind: 'operator_home_adoption_e2e_v1',
       at: new Date().toISOString(),
@@ -310,8 +345,10 @@ test('protected operator adoption refreshes readiness and retries a failed canar
       canary: 'production HTTP client, injected 503 then controlled success responses',
       blockedDuringCeremony: true,
       preservedCustodyAndCredential: true,
-      activationCount: 1,
-      activationSequence: 2,
+      activationCount: 2,
+      activationSequence: 3,
+      redeployRefreshPreservesBindingAndCredential: true,
+      localProofRejectedAtOperatorBoundary: true,
       canaryCalls: dependencies.canaryCalls,
       retryAfterCanaryFailure: true,
       retryAfterLostResponse: true,

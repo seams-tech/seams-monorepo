@@ -1,3 +1,4 @@
+import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from './homeVerification';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
@@ -41,10 +42,16 @@ function requiredDeploymentLane(value: unknown): string {
   return value;
 }
 
-function internalActiveBindingRequest(): Request {
+function internalActiveBindingRequest(writer: TenantRuntimeWriterV1): Request {
   return new Request(
     `${TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1}${TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1}`,
-    { headers: { Accept: 'application/json' } },
+    {
+      headers: {
+        Accept: 'application/json',
+        'x-seams-writer-role': writer.role,
+        'x-seams-writer-version': writer.versionId,
+      },
+    },
   );
 }
 
@@ -80,7 +87,11 @@ export function createTenantDeploymentInternalBindingHandlerV1(options: {
         { headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    const binding = await options.reader.resolveActiveBinding(deploymentLane);
+    const writer = parseTenantRuntimeWriterV1(
+      request.headers.get('x-seams-writer-role'),
+      request.headers.get('x-seams-writer-version'),
+    );
+    const binding = await options.reader.resolveRuntimeBinding(deploymentLane, writer);
     if (!binding) {
       return Response.json(
         { ok: false, code: 'tenant_deployment_unavailable' },
@@ -122,12 +133,13 @@ export async function resolveTenantDeploymentSetupAdmissionFromServiceV1(input: 
 }
 
 export async function resolveActiveTenantDeploymentFromServiceV1(input: {
+  readonly writer: TenantRuntimeWriterV1;
   readonly deploymentLane: string;
   readonly service: TenantDeploymentServiceBindingV1;
   readonly timingHeaders?: Headers;
 }): Promise<TenantDeploymentBindingV1 | null> {
   const deploymentLane = requiredDeploymentLane(input.deploymentLane);
-  const response = await input.service.fetch(internalActiveBindingRequest());
+  const response = await input.service.fetch(internalActiveBindingRequest(input.writer));
   if (input.timingHeaders) forwardTenantDeploymentD1Timing(response.headers, input.timingHeaders);
   if (response.status === 503) {
     const body: unknown = await response.json().catch(() => null);
@@ -199,8 +211,12 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
 
 export async function resolveBoundTenantDeploymentRuntimeEnvironmentV1<
   TEnvironment extends TenantDeploymentRuntimeEnvironmentV1,
->(env: TEnvironment): Promise<BoundTenantDeploymentRuntimeEnvironmentV1<TEnvironment> | null> {
+>(
+  env: TEnvironment,
+  writer: TenantRuntimeWriterV1,
+): Promise<BoundTenantDeploymentRuntimeEnvironmentV1<TEnvironment> | null> {
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
+    writer,
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
   });

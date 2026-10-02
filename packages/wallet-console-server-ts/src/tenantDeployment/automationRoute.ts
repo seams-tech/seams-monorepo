@@ -1,3 +1,4 @@
+import { TenantHomeVerificationV1 } from './homeVerification';
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
 import { isTenantDeploymentStoreError } from './service';
 import type { TenantDeploymentHomeAdoptionRequestV1 } from './homeAdoption';
@@ -134,10 +135,19 @@ async function authenticate(request: Request): Promise<void> {
 async function parseRequest(request: Request): Promise<{
   readonly deploymentLane: string;
   readonly environmentId: string;
+  readonly authorization: {
+    readonly kind: 'activate';
+    readonly verification: TenantHomeVerificationV1;
+  };
 }> {
   const body: unknown = await request.json().catch(() => null);
-  if (!isRecord(body) || Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId') {
-    throw new Error('cutover request must contain only deploymentLane and environmentId');
+  if (
+    !isRecord(body) ||
+    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,homeCheckpoint'
+  ) {
+    throw new Error(
+      'cutover request must contain deploymentLane, environmentId and homeCheckpoint',
+    );
   }
   if (
     typeof body.deploymentLane !== 'string' ||
@@ -147,7 +157,17 @@ async function parseRequest(request: Request): Promise<{
   ) {
     throw new Error('cutover request is invalid');
   }
-  return { deploymentLane: body.deploymentLane, environmentId: body.environmentId };
+  return {
+    deploymentLane: body.deploymentLane,
+    environmentId: body.environmentId,
+    authorization: {
+      kind: 'activate',
+      verification: TenantHomeVerificationV1.fromOperatorCheckpoint(
+        body.homeCheckpoint,
+        Date.now(),
+      ),
+    },
+  };
 }
 
 export function createTenantDeploymentAutomationRouteV1(input: {
@@ -208,7 +228,8 @@ async function parseAdoptionRequest(
   const body: unknown = await request.json().catch(() => null);
   if (
     !isRecord(body) ||
-    Object.keys(body).sort().join(',') !== 'deploymentLane,expectedActive,operationId' ||
+    Object.keys(body).sort().join(',') !==
+      'deploymentLane,expectedActive,homeCheckpoint,operationId' ||
     typeof body.deploymentLane !== 'string' ||
     !body.deploymentLane ||
     body.deploymentLane.trim() !== body.deploymentLane ||
@@ -228,6 +249,10 @@ async function parseAdoptionRequest(
   return {
     deploymentLane: body.deploymentLane,
     operationId: `tco_${body.operationId.slice(4)}`,
+    homeVerification: TenantHomeVerificationV1.fromOperatorCheckpoint(
+      body.homeCheckpoint,
+      Date.now(),
+    ),
     expectedActive: {
       revision: `tdb_${body.expectedActive.revision.slice(4)}`,
       activationSequence: body.expectedActive.activationSequence,

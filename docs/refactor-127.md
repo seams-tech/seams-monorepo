@@ -565,26 +565,59 @@ row; expiry rejects verification but does not itself delete data. Public request
 to the writer challenge path return 404. The handler works before binding
 adoption and does not initialize homes or touch custody/session records.
 
-Rollout prerequisites: signer migration `0040_namespace_home_challenges.sql`, the
+Both provisioning and `adopt-home` now run this combined check automatically and
+submit its checkpoint to the OIDC-protected Console route. The protected workflow
+supplies its existing Cloudflare account/token secrets to the cutover step. Console
+accepts provider evidence only from that operator authority; the JSON receipt is
+not an independently signed Cloudflare attestation. Browser onboarding can reuse
+an active deployment; a new hosted activation requires operator verification.
+
+Console migration `0050_tenant_deployment_home_verification.sql` stores the parsed
+verification in the immutable activation row. A unique challenge-ID index makes
+consumption atomic with the active-pointer and cutover transition: another operation
+cannot reuse the proof. Activation checks the reserved home, lane and expiry, with
+a database-clock expiry check in the transaction. That check conservatively requires
+validity beyond the current one-second SQLite clock bucket. Completed activation
+retries return the recorded result after expiry when the original evidence and
+active pointer still match. Expiry does not invalidate an already active deployment.
+
+The Gateway sends its version identity for request and scheduled-work admission;
+Wallet Runtime does so for bound wallet requests. Console joins the activation
+evidence into the existing binding query and rejects unattested or different
+versions. This adds no signing/unlock D1 roundtrip. Deploying new Worker versions
+with unchanged wallet configuration requires a fresh activation; the operator
+provisioning path refreshes that activation while preserving the binding, custody
+and credential. Historical binding conversion remains at the adoption boundary.
+
+The local combined development Worker owns its bootstrap authority and records a
+distinct local verification. The database accepts it only for development bindings.
+The hosted operator boundary rejects local proofs, and split hosted writer admission
+requires Cloudflare evidence. Internal control/inspection bootstrap paths still
+need their separate ownership review; they precede ordinary binding admission.
+
+Rollout prerequisites: Console migration 0050, signer migration
+`0040_namespace_home_challenges.sql`, the
 new private Console `WALLET_GATEWAY` service binding, the challenge endpoint and
 `CF_VERSION_METADATA` binding on both writers. The renderer supplies that metadata
 binding. The migration currently lives in `seams-wallet` source and is absent
 from the pinned `@seams/wallet-server` 0.7.3 release. Publish/consume the exact new
 package release before the normal migration pipeline can apply it. The local
 acceptance test deliberately reads this source migration and records its hash.
-This combined observation still needs enforcement in the activation transaction
-and runtime admission. It neither changes the existing cutover path nor prevents
-a later privileged deployment change. Activation must consume trusted, fresh
-evidence for the intended operation and versions; an operator JSON receipt alone
-cannot grant that authority. A copied database receiving the fresh challenge can
-answer it, so runtime proof alone cannot establish the provider resource or
-prevent a second writer.
+The version admission check rejects a later different serving version when it
+uses these entrypoints. It cannot constrain privileged replacement code that
+ignores the checks or establish coverage of other administrative writer paths.
+A copied database receiving the fresh challenge can answer it, so runtime proof
+alone cannot establish the provider resource or prevent a second writer.
 
 The protected workflow deploys and smokes the complete production-testnet
 Wallet runtime plus the Console control plane before it invokes the cutover.
 An empty Console with no active binding remains infrastructure-ready so the
 first automated cutover can bootstrap it; an existing active binding must still
 pass semantic readiness during the Console health check.
+That existing pre-cutover smoke order still needs coordinated rollout changes:
+new versions cannot serve bound traffic until their verification is activated,
+and historical activations have no version evidence. Do not treat the credential
+wiring above as completion of the hosted rollout sequence.
 
 The workflow is:
 

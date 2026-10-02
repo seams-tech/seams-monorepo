@@ -120,13 +120,14 @@ async function run() {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
+  const homeCheckpoint = await verifyTenantHomeChallenge(lane, token);
   const response = await fetch(`${lane.console.origin}${options.path}`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify(options.body),
+    body: JSON.stringify({ ...options.body, homeCheckpoint }),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.ok !== true) {

@@ -18,6 +18,7 @@ import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
 import { TenantDeploymentStoreError } from './service';
 import type { NamespaceD1HomeV1 } from './namespaceHome';
+import type { TenantHomeVerificationV1 } from './homeVerification';
 import {
   adoptTenantDeploymentHomeV1,
   type TenantDeploymentHomeAdoptionRequestV1,
@@ -28,6 +29,9 @@ const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 export type TenantDeploymentProvisioningRequestV1 = {
   readonly deploymentLane: string;
   readonly environmentId: string;
+  readonly authorization:
+    | { readonly kind: 'reuse_active'; readonly verification?: never }
+    | { readonly kind: 'activate'; readonly verification: TenantHomeVerificationV1 };
 };
 
 export type TenantDeploymentCanaryReceiptV1 = {
@@ -348,9 +352,31 @@ export function createTenantDeploymentProvisionerV1(
         active.revision === activeBinding?.revision &&
         bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces })
       ) {
+        if (
+          request.authorization.kind === 'activate' &&
+          request.authorization.verification.authority.kind === 'cloudflare'
+        ) {
+          return await adoptTenantDeploymentHomeV1(options, {
+            deploymentLane,
+            operationId: newOperationId(),
+            expectedActive: {
+              revision: active.revision,
+              activationSequence: active.activationSequence,
+            },
+            homeVerification: request.authorization.verification,
+          });
+        }
         return reuseActiveBinding({ active, binding: activeBinding });
       }
       const operationId = newOperationId();
+      if (request.authorization.kind !== 'activate') {
+        throw new TenantDeploymentStoreError(
+          'readiness_invalid',
+          'A new deployment activation requires protected operator verification',
+        );
+      }
+      const homeVerification = request.authorization.verification;
+      homeVerification.assertFor(options.home, deploymentLane, Date.now());
       const planning = await options.store.createCutover({
         kind: 'planning',
         operationId,
@@ -431,6 +457,7 @@ export function createTenantDeploymentProvisionerV1(
           expectedActiveRevision: active?.revision ?? null,
         });
         const activation = await options.store.activateBinding({
+          homeVerification,
           home: options.home,
           operationId,
           expectedCutoverRecordRevision: ready.recordRevision,

@@ -1,3 +1,4 @@
+import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
   NamespaceD1HomeV1,
   type NamespaceD1HomeAssignmentV1,
@@ -80,3 +81,21 @@ const incompleteVersions: typeof checkpoint = {
 };
 void anonymousCheckpoint;
 void incompleteVersions;
+
+declare const verification: TenantHomeVerificationV1;
+// @ts-expect-error A spread loses the validated proof identity.
+const forgedVerification: TenantHomeVerificationV1 = { ...verification };
+declare const unverifiedActivation: Omit<
+  ActivateTenantDeploymentBindingInputV1,
+  'homeVerification'
+>;
+// @ts-expect-error Activation cannot omit physical-home verification.
+const uncheckedActivation: ActivateTenantDeploymentBindingInputV1 = unverifiedActivation;
+// @ts-expect-error Local authority cannot carry Cloudflare writer state.
+const mixedAuthority: typeof verification.authority = {
+  kind: 'local_development',
+  gateway: { workerName: 'x', deploymentId: 'x', versionId: 'x' },
+};
+void forgedVerification;
+void uncheckedActivation;
+void mixedAuthority;

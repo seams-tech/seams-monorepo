@@ -6,6 +6,10 @@ import {
 import type { TenantDeploymentProvisionerOptionsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 import type { ActivateTenantDeploymentBindingInputV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
 import type { TenantDeploymentHomeAdoptionRequestV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeAdoption';
+import type {
+  TenantD1HomeChallengeRequestV1,
+  TenantD1HomeVerifierV1,
+} from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeChallenge';
 
 declare const home: NamespaceD1HomeV1;
 declare const assignment: NamespaceD1HomeAssignmentV1;
@@ -57,3 +61,12 @@ const incompleteAdoption: TenantDeploymentHomeAdoptionRequestV1 = {
 };
 void anonymousAdoption;
 void incompleteAdoption;
+
+declare const challengeWithoutProof: Omit<TenantD1HomeChallengeRequestV1, 'expectedProof'>;
+// @ts-expect-error Knowing a challenge ID alone is insufficient for verification.
+const unprovenChallenge: TenantD1HomeChallengeRequestV1 = challengeWithoutProof;
+declare const checkpoint: Awaited<ReturnType<TenantD1HomeVerifierV1['verify']>>;
+// @ts-expect-error Runtime reachability evidence cannot authorize activation.
+const activatedCheckpoint: typeof checkpoint = { ...checkpoint, activationAuthorized: true };
+void unprovenChallenge;
+void activatedCheckpoint;

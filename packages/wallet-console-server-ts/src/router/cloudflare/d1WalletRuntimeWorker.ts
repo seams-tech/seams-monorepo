@@ -13,6 +13,7 @@ import {
   resolveTenantDeploymentSetupAdmissionFromServiceV1,
 } from '../../tenantDeployment/runtimeBinding';
 import { createTenantDeploymentRuntimeInspectionHandlerV1 } from '../../tenantDeployment/runtimeInspection';
+import { tenantD1HomeChallengeResponseV1 } from '../../tenantDeployment/homeChallenge';
 
 type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
   WalletControlRuntimeBindings & {
@@ -26,6 +27,12 @@ async function fetch(
   env: CloudflareWalletRuntimeEnv,
   _ctx: CfExecutionContext,
 ): Promise<Response> {
+  const challenge = await tenantD1HomeChallengeResponseV1(request, env.SIGNER_DB, {
+    namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
+  if (challenge) return challenge;
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,
   })(request);

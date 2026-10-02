@@ -208,6 +208,10 @@ function buildConsoleConfig(
     ],
     services: [
       {
+        binding: 'WALLET_GATEWAY',
+        service: resources.workerName,
+      },
+      {
         binding: 'WALLET_RUNTIME',
         service: walletRuntimeWorkerNameFor(resources.workerName),
       },

@@ -102,6 +102,7 @@ import {
   createTenantDeploymentProvisionerV1,
 } from '../../tenantDeployment/provisioning';
 import { createTenantDeploymentAutomationRouteV1 } from '../../tenantDeployment/automationRoute';
+import { createTenantD1HomeVerifierV1 } from '../../tenantDeployment/homeChallenge';
 import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment/productionReadiness';
 import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
@@ -112,6 +113,7 @@ interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
+  readonly WALLET_GATEWAY: WalletRuntimeServiceBinding;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
   readonly TENANT_ROOT_RECOVERY_CERTIFICATES_JSON?: string;
@@ -496,12 +498,13 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     if (!active) return;
     await tenantDeploymentReadinessAdapter.inspect(active);
   };
+  const deploymentHome = NamespaceD1HomeV1.parse({
+    namespace,
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
   const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
-    home: NamespaceD1HomeV1.parse({
-      namespace,
-      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-    }),
+    home: deploymentHome,
     deploymentLane,
     surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
     orgProjectEnv: bundle.orgProjectEnv,
@@ -518,6 +521,13 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
     provisioner: tenantDeploymentProvisioner,
+    homeVerifier: createTenantD1HomeVerifierV1({
+      home: deploymentHome,
+      deploymentLane,
+      store: tenantDeploymentStore,
+      gateway: env.WALLET_GATEWAY,
+      walletRuntime: env.WALLET_RUNTIME,
+    }),
   });
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.

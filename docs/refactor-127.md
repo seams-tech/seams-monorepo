@@ -531,6 +531,38 @@ and internal/admin routes. Those are still rollout gates. Provider API semantics
 [version resources](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/get/),
 and [D1 binding IDs](https://developers.cloudflare.com/workers/configuration/multipart-upload-metadata/#bindings).
 
+The runtime reachability checkpoint uses the protected OIDC workflow:
+
+```text
+pnpm tenant:cutover verify-home --lane production-testnet
+```
+
+This operation needs Cloudflare D1 query permission as well as the existing
+GitHub OIDC scope. It writes one random, five-minute challenge directly through
+the configured database UUID. Console reads its immutable namespace reservation,
+then asks Gateway and Wallet Runtime to read the challenge through their actual
+`SIGNER_DB` bindings. The expected proof is omitted from these private requests;
+only namespace and challenge ID are sent. Both observations must match the
+reservation, proof and validity window. The returned checkpoint excludes the
+proof and has `activationAuthorized: false`.
+
+The CLI deletes its exact challenge in `finally`, including when an INSERT
+committed but its response was lost. Process termination can leave an expired
+row; expiry rejects verification but does not itself delete data. Public requests
+to the writer challenge path return 404. The handler works before binding
+adoption and does not initialize homes or touch custody/session records.
+
+Rollout prerequisites: signer migration `0040_namespace_home_challenges.sql`, the
+new private Console `WALLET_GATEWAY` service binding, and the challenge endpoint on
+both writers. The migration currently lives in `seams-wallet` source and is absent
+from the pinned `@seams/wallet-server` 0.7.3 release. Publish/consume the exact new
+package release before the normal migration pipeline can apply it. The local
+acceptance test deliberately reads this source migration and records its hash.
+Provider/version checkpoints and runtime challenges are separate observations;
+activation must still bind them to a stable deployment generation. A copied
+database receiving the fresh challenge can answer it, so this challenge alone
+does not establish the provider resource or prevent a second writer.
+
 The protected workflow deploys and smokes the complete production-testnet
 Wallet runtime plus the Console control plane before it invokes the cutover.
 An empty Console with no active binding remains infrastructure-ready so the

@@ -10,6 +10,7 @@ import {
   resolveActiveTenantDeploymentFromServiceV1,
 } from '../../tenantDeployment/runtimeBinding';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
+import { tenantD1HomeChallengeResponseV1 } from '../../tenantDeployment/homeChallenge';
 
 // The split Wallet Gateway entrypoint (R105 Phase 4). Bindings: SIGNER_DB,
 // MPC_ROUTER, SIGNING_WORKER, and the private WALLET_CONSOLE service binding.
@@ -27,6 +28,12 @@ async function fetch(
   env: TenantDeploymentGatewayEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  const challenge = await tenantD1HomeChallengeResponseV1(request, env.SIGNER_DB, {
+    namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
+  if (challenge) return challenge;
   const startedAt = performance.now();
   const pathname = new URL(request.url).pathname;
   const bindingTimingHeaders = new Headers();

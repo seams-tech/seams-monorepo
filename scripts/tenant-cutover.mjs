@@ -2,6 +2,7 @@
 
 import process from 'node:process';
 import { readBackendLane } from './deployment-targets.mjs';
+import { verifyTenantHomeChallenge } from './tenant-home-challenge.mjs';
 
 const OIDC_AUDIENCE = 'seams-tenant-cutover';
 
@@ -12,7 +13,7 @@ function requireValue(args, index, flag) {
 }
 
 function parseArguments(args) {
-  const operation = args[0] === 'adopt-home' ? 'adopt-home' : 'provision';
+  const operation = args[0] === 'adopt-home' || args[0] === 'verify-home' ? args[0] : 'provision';
   const values = {
     lane: '',
     environmentId: '',
@@ -20,7 +21,7 @@ function parseArguments(args) {
     activationSequence: '',
     operationId: '',
   };
-  for (let index = operation === 'adopt-home' ? 1 : 0; index < args.length; index += 1) {
+  for (let index = operation === 'provision' ? 0 : 1; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--lane') {
       values.lane = requireValue(args, index, argument);
@@ -50,6 +51,11 @@ function parseArguments(args) {
     throw new Error(`Unsupported argument: ${argument}`);
   }
   if (!values.lane) throw new Error('--lane is required');
+  if (operation === 'verify-home') {
+    if (values.environmentId || values.revision || values.activationSequence || values.operationId)
+      throw new Error('verify-home accepts only --lane');
+    return { kind: 'verify_home', lane: values.lane };
+  }
   if (operation === 'adopt-home') {
     const activationSequence = Number(values.activationSequence);
     if (
@@ -63,6 +69,7 @@ function parseArguments(args) {
         'adopt-home requires --revision, --activation-sequence and a stable --operation-id; omit --environment-id',
       );
     return {
+      kind: 'cutover',
       lane: values.lane,
       path: '/internal/tenant-deployment/v1/adopt-home',
       body: {
@@ -78,6 +85,7 @@ function parseArguments(args) {
     );
   }
   return {
+    kind: 'cutover',
     lane: values.lane,
     path: '/internal/tenant-deployment/v1/cutover',
     body: { deploymentLane: values.lane, environmentId: values.environmentId },
@@ -107,6 +115,11 @@ async function run() {
   const lane = readBackendLane(options.lane);
   if (lane.branch !== 'main') throw new Error('tenant cutover requires a production lane');
   const token = await requestGithubOidcToken();
+  if (options.kind === 'verify_home') {
+    const result = await verifyTenantHomeChallenge(lane, token);
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
   const response = await fetch(`${lane.console.origin}${options.path}`, {
     method: 'POST',
     headers: {

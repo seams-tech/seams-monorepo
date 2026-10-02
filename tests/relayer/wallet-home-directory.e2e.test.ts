@@ -3,6 +3,7 @@ import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -149,6 +150,13 @@ test('wallet homes are independent within a tenant and durable across competing 
     external: ['node:*'],
     loader: { '.wasm': 'file' },
     tsconfig: path.join(repoRoot, 'packages/wallet-console-server-ts/tsconfig.json'),
+    alias: process.env.SEAMS_WALLET_SERVER_CANDIDATE
+      ? {
+          '@seams/wallet-server/cloud-host': createRequire(
+            path.resolve(process.env.SEAMS_WALLET_SERVER_CANDIDATE, 'package.json'),
+          ).resolve('@seams/wallet-server/cloud-host'),
+        }
+      : {},
   });
   const migration = await readFile(
     path.join(
@@ -610,9 +618,67 @@ test('wallet homes are independent within a tenant and durable across competing 
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
     expect(rows.results).toHaveLength(18);
+    const admissionObservations = [];
+    for (const home of homes) {
+      const setup = {
+        action: 'admit',
+        operationId: `gateway-admission-${home.region}`,
+        region: home.region,
+        localRegion: home.region,
+        origin: 'https://wallet.test',
+      };
+      expect((await call(runtime, setup, true)).status).toBe(503);
+      const competing = await Promise.all([
+        call(runtime, setup, false, 'ingress-a'),
+        call(runtime, setup, false, 'ingress-b'),
+      ]);
+      const first = await competing[0].json();
+      const second = await competing[1].json();
+      expect(first.ok).toBe(true);
+      expect(second).toEqual(first);
+      const otherHome = homes.find((candidate) => candidate.region !== home.region);
+      if (!otherHome) throw new Error('Another region is required');
+      const travelled = await (await call(runtime, { ...setup, region: otherHome.region })).json();
+      expect(travelled).toEqual(first);
+      const wrongResource = await (
+        await call(runtime, { ...setup, region: otherHome.region, localRegion: otherHome.region })
+      ).json();
+      expect(wrongResource).toMatchObject({ ok: false, code: 'registration_home_unavailable' });
+      const changedRequest = await (
+        await call(runtime, { ...setup, origin: 'https://changed.test' })
+      ).json();
+      expect(changedRequest).toMatchObject({ ok: false, code: 'request_conflict' });
+      const persistedHome = await (
+        await call(runtime, { action: 'find', wallet: walletKey(first.reservation.walletId) })
+      ).json();
+      expect(persistedHome).toMatchObject({
+        home,
+        registrationAllocation: {
+          ceremonyId: first.reservation.ceremonyId,
+          preparationId: first.reservation.preparationId,
+        },
+      });
+      admissionObservations.push({
+        home,
+        first,
+        second,
+        travelled,
+        wrongResource,
+        changedRequest,
+        persistedHome,
+      });
+    }
+    const admissionRows = await persisted
+      .prepare(
+        "SELECT * FROM wallet_homes WHERE registration_id LIKE 'gateway-admission-%' ORDER BY region",
+      )
+      .all();
+    expect(admissionRows.results).toHaveLength(3);
     const receipt = {
       kind: 'wallet_home_directory_e2e_v1',
       observations,
+      admissionObservations,
+      admissionRows: admissionRows.results,
       rows: rows.results,
       migrationSha256: createHash('sha256').update(migration).digest('hex'),
       appliedMigrations,

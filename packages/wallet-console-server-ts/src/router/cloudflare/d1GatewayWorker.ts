@@ -1,4 +1,6 @@
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
+import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
+import { regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
 import {
   handleSplitGatewayRequest,
@@ -23,6 +25,7 @@ type TenantDeploymentGatewayEnv = CloudflareD1GatewayEnv & {
   readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
   readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly CF_VERSION_METADATA: { readonly id: unknown };
+  readonly SEAMS_WALLET_HOME_CATALOG_JSON: string;
 };
 
 async function fetch(
@@ -69,6 +72,14 @@ async function fetch(
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
   const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
+    registrationSetupReservation: new ConsoleRegistrationHomeAdmission({
+      service: env.WALLET_CONSOLE,
+      writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA.id),
+      scope: binding.tenant,
+      localResource: binding.home,
+      catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+      ingressRegion: regionForRegistrationIngress(request, 'US'),
+    }),
     emailOtpDeliveryProvider: resolveEmailOtpDeliveryProviderFromEnv(boundEnv),
   });
   if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')

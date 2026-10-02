@@ -1,4 +1,5 @@
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { reserveFromGateway } from './registrationHomeAdmission';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import {
@@ -50,6 +51,20 @@ export default {
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
     const body = await request.json();
     try {
+      if (body.action === 'admit') {
+        const result = await reserveFromGateway({
+          database: env.CONSOLE_DB,
+          catalogJson,
+          region: body.region,
+          localRegion: body.localRegion,
+          operationId: body.operationId,
+          origin: body.origin,
+        });
+        if (new URL(request.url).searchParams.has('loseReply')) {
+          return Response.json({ injected: 'lost_admission_reply' }, { status: 503 });
+        }
+        return Response.json(result);
+      }
       if (body.action === 'select') {
         return Response.json({ region: regionForRegistrationIngress(request, 'WEUR') });
       }

@@ -108,6 +108,8 @@ import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provi
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
+import { isTenantDeploymentStoreError } from '../../tenantDeployment/service';
 import {
   handleWalletHomeServiceRequest,
   isWalletHomeServiceRequest,
@@ -675,7 +677,20 @@ async function fetch(
   });
   if (isWalletHomeServiceRequest(request)) {
     const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
-    const active = await tenantDeploymentReader.resolveActiveBinding(deploymentLane);
+    let active;
+    try {
+      const writer = parseTenantRuntimeWriterV1(
+        request.headers.get('x-seams-writer-role'),
+        request.headers.get('x-seams-writer-version'),
+      );
+      active = await tenantDeploymentReader.resolveRuntimeBinding(deploymentLane, writer);
+    } catch (error) {
+      if (!isTenantDeploymentStoreError(error)) throw error;
+      return Response.json(
+        { ok: false, code: 'wallet_home_writer_unauthorized' },
+        { status: 403, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
     if (!active) {
       return Response.json(
         { ok: false, code: 'tenant_deployment_unavailable' },

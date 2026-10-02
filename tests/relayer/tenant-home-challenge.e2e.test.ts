@@ -287,12 +287,27 @@ function consoleWorker(output: string, name: string, walletRuntime: string, deps
     scriptPath: path.join(output, 'console.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
-    bindings: consoleWorkerEnvironment({
-      namespace,
-      deploymentLane: lane,
-      accountId: home.accountId,
-      databaseId: home.databaseId,
-    }),
+    bindings: {
+      ...consoleWorkerEnvironment({
+        namespace,
+        deploymentLane: lane,
+        accountId: home.accountId,
+        databaseId: home.databaseId,
+      }),
+      SEAMS_WALLET_HOME_CATALOG_JSON: JSON.stringify([
+        {
+          region: 'US',
+          accountId: home.accountId,
+          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+        { region: 'WEUR', accountId: home.accountId, databaseId: home.databaseId },
+        {
+          region: 'APAC',
+          accountId: home.accountId,
+          databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        },
+      ]),
+    },
     d1Databases: { CONSOLE_DB: 'console-authority' },
     serviceBindings: { WALLET_GATEWAY: 'gateway', WALLET_RUNTIME: walletRuntime },
     outboundService: deps.outbound.bind(deps),
@@ -614,6 +629,62 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       );
       const input = { ...ready, homeVerification: verification };
       const activated = await store.activateBinding(input);
+      const placementUrl = 'https://wallet-placement.internal/internal/wallet-placement/v1';
+      const placementWallet = { ...candidate.tenant, walletId: 'writer-admission-wallet' };
+      const placementBody = {
+        allocation: 'provided',
+        wallet: placementWallet,
+        ingressRegion: 'WEUR',
+        registrationId: 'writer-admission-registration',
+        requestDigest: 'a'.repeat(64),
+        registrationAllocation: {
+          ceremonyId: 'wrc_writer-admission',
+          preparationId: 'regprep_writer-admission',
+          walletAuthorityId: 'wallet-authority:writer-admission',
+          deviceId: 'device:writer-admission',
+          walletAuthMethodId: 'wallet-auth-method:writer-admission',
+        },
+      };
+      const missingPlacementWriter = await good.fetch(`${placementUrl}/reserve`, {
+        method: 'POST',
+        body: JSON.stringify(placementBody),
+      });
+      expect(missingPlacementWriter.status).toBe(403);
+      const stalePlacementWriter = await good.fetch(`${placementUrl}/reserve`, {
+        method: 'POST',
+        headers: {
+          'x-seams-writer-role': 'gateway',
+          'x-seams-writer-version': changedVersion,
+        },
+        body: JSON.stringify(placementBody),
+      });
+      expect(stalePlacementWriter.status).toBe(403);
+      const authorizedPlacementWriter = await good.fetch(`${placementUrl}/reserve`, {
+        method: 'POST',
+        headers: {
+          'x-seams-writer-role': 'gateway',
+          'x-seams-writer-version': gatewayVersion,
+        },
+        body: JSON.stringify(placementBody),
+      });
+      expect(authorizedPlacementWriter.status).toBe(200);
+      expect(await authorizedPlacementWriter.json()).toMatchObject({
+        assignment: { wallet: placementWallet, home: { region: 'WEUR' } },
+      });
+      await writeFile(
+        testInfo.outputPath('wallet-home-writer-admission.json'),
+        `${JSON.stringify(
+          {
+            missingWriterStatus: missingPlacementWriter.status,
+            staleWriterStatus: stalePlacementWriter.status,
+            authorizedWriterStatus: authorizedPlacementWriter.status,
+            gatewayVersion,
+            changedVersion,
+          },
+          null,
+          2,
+        )}\n`,
+      );
       const afterActivation = await smokeGateway(smokeOrigin, '/');
       expect(afterActivation).toEqual([
         { name: 'Gateway projection', ok: true, status: 200, attempts: 1 },

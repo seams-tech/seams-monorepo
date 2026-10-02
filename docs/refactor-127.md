@@ -592,8 +592,13 @@ and credential. Historical binding conversion remains at the adoption boundary.
 The local combined development Worker owns its bootstrap authority and records a
 distinct local verification. The database accepts it only for development bindings.
 The hosted operator boundary rejects local proofs, and split hosted writer admission
-requires Cloudflare evidence. Internal control/inspection bootstrap paths still
-need their separate ownership review; they precede ordinary binding admission.
+requires Cloudflare evidence. Before admission, the private challenge and readiness
+inspection only read `SIGNER_DB`. The private custody-control handler forwards an
+allowlisted operation to Router/control-plane/Deriver service bindings with internal
+service authentication; it does not access `SIGNER_DB`. It must remain reachable
+for first-tenant creation and cutover preparation. This review covers the pinned
+Wallet Server 0.7.3 handler and the canonical split Worker entrypoints; privileged
+administrative writers and previously deployed code still require inventory.
 
 Rollout prerequisites: Console migration 0050, signer migration
 `0040_namespace_home_challenges.sql`, the
@@ -609,15 +614,28 @@ ignores the checks or establish coverage of other administrative writer paths.
 A copied database receiving the fresh challenge can answer it, so runtime proof
 alone cannot establish the provider resource or prevent a second writer.
 
-The protected workflow deploys and smokes the complete production-testnet
-Wallet runtime plus the Console control plane before it invokes the cutover.
-An empty Console with no active binding remains infrastructure-ready so the
-first automated cutover can bootstrap it; an existing active binding must still
-pass semantic readiness during the Console health check.
-That existing pre-cutover smoke order still needs coordinated rollout changes:
-new versions cannot serve bound traffic until their verification is activated,
-and historical activations have no version evidence. Do not treat the credential
-wiring above as completion of the hosted rollout sequence.
+The protected production-testnet workflow now installs exact dependencies and
+requires the packaged signer challenge migration before authorizing deployment.
+The currently pinned Wallet Server 0.7.3 fails this preflight, so it cannot begin
+this rollout. After that dependency is updated, the workflow deploys Console and
+the complete Wallet runtime, obtains fresh home verification, activates the binding
+and runs its canary, then smokes Wallet and Console. A missing binding (503) fails
+Wallet smoke; propagation retries retain the existing three-minute budget.
+
+The production-testnet backend workflow is reusable only. Console's standalone
+dispatch offers the other lanes. Both production-testnet deployment CLI commands
+route through the protected coordinator and require the live-demo environment ID:
+
+```sh
+pnpm wallet-system:deploy --lane production-testnet --environment-id <environment-id>
+pnpm console:deploy --lane production-testnet --environment-id <environment-id>
+```
+
+Both commands deploy Console and Wallet together. Staging and production-mainnet
+retain their existing dispatch routes; this change does not add operator activation
+authority for those lanes. New writer versions fail closed until activation;
+this sequence does not establish zero-downtime rollout. Hosted validation remains
+pending. Local evidence is in `.artifacts/r152/coordinated-rollout-20261002/`.
 
 The workflow is:
 

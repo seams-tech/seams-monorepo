@@ -56,6 +56,43 @@ class Dependencies {
   }
 }
 
+class GatewaySmokeServer {
+  constructor(readonly runtime: Miniflare) {}
+
+  async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const name = request.url === '/changed' ? 'gateway-changed' : 'gateway';
+    try {
+      const gateway = await this.runtime.getWorker(name);
+      const result = await gateway.fetch(
+        'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
+      );
+      response.writeHead(result.status);
+      response.end(await result.text());
+    } catch {
+      response.writeHead(500);
+      response.end('Worker refused admission');
+    }
+  }
+}
+
+async function smokeGateway(origin: string, route: string) {
+  const result = await execute(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      `import { isWalletSystemDeploymentReady, runReadinessChecks } from './scripts/deployment-smoke.mjs';
+const results = await runReadinessChecks(
+  [{ name: 'Gateway projection', url: process.env.SMOKE_URL, isReady: isWalletSystemDeploymentReady }],
+  { budgetMs: 0, intervalMs: 0 },
+);
+process.stdout.write(JSON.stringify(results));`,
+    ],
+    { cwd: root, env: { ...process.env, SMOKE_URL: `${origin}${route}` } },
+  );
+  return JSON.parse(result.stdout);
+}
+
 class ChallengeProvider {
   scenario: ProviderScenario = 'stable';
   challengeWritten = false;
@@ -316,6 +353,13 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       ),
     ],
   });
+  const smoke = new GatewaySmokeServer(runtime);
+  const smokeServer = createServer(smoke.handle.bind(smoke));
+  smokeServer.listen(0, '127.0.0.1');
+  await once(smokeServer, 'listening');
+  const smokeAddress = smokeServer.address();
+  if (!smokeAddress || typeof smokeAddress === 'string') throw new Error('Smoke address missing');
+  const smokeOrigin = `http://127.0.0.1:${smokeAddress.port}`;
   try {
     const authority = await runtime.getD1Database('CONSOLE_DB', 'console-good');
     const databaseA = await runtime.getD1Database('SIGNER_DB', 'gateway');
@@ -434,6 +478,10 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         .first('count'),
     ).toBe(0);
     expect(deps.unexpected).toEqual([]);
+    const beforeActivation = await smokeGateway(smokeOrigin, '/');
+    expect(beforeActivation).toEqual([
+      { name: 'Gateway projection', ok: false, status: 503, attempts: 1 },
+    ]);
     const provider = new ChallengeProvider(databaseA, deps.oidc);
     const providerServer = createServer(provider.handle.bind(provider));
     providerServer.listen(0, '127.0.0.1');
@@ -473,6 +521,18 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       );
       const input = { ...ready, homeVerification: verification };
       const activated = await store.activateBinding(input);
+      const afterActivation = await smokeGateway(smokeOrigin, '/');
+      expect(afterActivation).toEqual([
+        { name: 'Gateway projection', ok: true, status: 200, attempts: 1 },
+      ]);
+      const changedWriter = await smokeGateway(smokeOrigin, '/changed');
+      expect(changedWriter).toEqual([
+        { name: 'Gateway projection', ok: false, status: 500, attempts: 1 },
+      ]);
+      await writeFile(
+        testInfo.outputPath('activation-smoke-evidence.json'),
+        `${JSON.stringify({ beforeActivation, afterActivation, changedWriter }, null, 2)}\n`,
+      );
       expect(await store.activateBinding(input)).toEqual(activated);
       const expiredStore = createD1TenantDeploymentServiceV1({
         database: authority,
@@ -629,6 +689,8 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       contentType: 'application/json',
     });
   } finally {
+    smokeServer.close();
+    await once(smokeServer, 'close');
     await runtime.dispose();
   }
 });

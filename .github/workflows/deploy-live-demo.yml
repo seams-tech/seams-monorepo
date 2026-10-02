@@ -25,6 +25,21 @@ jobs:
     steps:
       - name: Require main branch
         run: test "$GITHUB_REF" = refs/heads/main
+      - name: Checkout workflow revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Require packaged home challenge migration
+        run: test -s node_modules/@seams/wallet-server/migrations/d1-signer/0040_namespace_home_challenges.sql
 
   authorize:
     name: Authorize production live-demo deployment
@@ -74,7 +89,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT_ID: ${{ inputs.environment_id }}
         run: >-
           pnpm tenant:cutover
           --lane production-testnet
-          --environment-id "${{ inputs.environment_id }}"
+          --environment-id "$ENVIRONMENT_ID"
+      - name: Smoke activated Wallet runtime
+        run: pnpm deploy:backend smoke --lane production-testnet --component wallet-system
+      - name: Smoke activated Console
+        run: pnpm deploy:backend smoke --lane production-testnet --component console

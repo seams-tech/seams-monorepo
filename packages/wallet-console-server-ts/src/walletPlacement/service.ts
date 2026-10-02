@@ -101,9 +101,7 @@ export async function handleWalletHomeServiceRequest(
         options.scope.namespace,
         requiredString(body.ceremonyId, 'ceremonyId'),
       );
-      return assignment &&
-        assignment.state !== 'cancelled' &&
-        inScope(assignment.wallet, options.scope)
+      return assignment && inScope(assignment.wallet, options.scope)
         ? json({ ok: true, assignment })
         : json({ ok: false, code: 'not_found' }, 404);
     }

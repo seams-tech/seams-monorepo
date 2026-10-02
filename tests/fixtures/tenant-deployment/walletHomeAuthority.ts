@@ -1,5 +1,5 @@
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import { reserveFromGateway } from './registrationHomeAdmission';
+import { reserveFromGateway, registrationLifecycleFromGateway } from './registrationHomeAdmission';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import {
@@ -51,6 +51,28 @@ export default {
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
     const body = await request.json();
     try {
+      if (body.action === 'registration-lifecycle') {
+        try {
+          const result = await registrationLifecycleFromGateway({
+            database: env.CONSOLE_DB,
+            catalogJson,
+            region: body.region,
+            localRegion: body.localRegion,
+            ceremonyId: body.ceremonyId,
+            walletId: body.walletId,
+            operation: body.operation,
+          });
+          if (!result.ok) return Response.json(result, { status: 409 });
+        } catch (error) {
+          return Response.json(
+            { ok: false, message: error instanceof Error ? error.message : String(error) },
+            { status: 409 },
+          );
+        }
+        return new URL(request.url).searchParams.has('loseReply')
+          ? Response.json({ injected: 'lost_terminal_reply' }, { status: 503 })
+          : Response.json({ ok: true });
+      }
       if (body.action === 'admit') {
         const result = await reserveFromGateway({
           database: env.CONSOLE_DB,

@@ -2,21 +2,34 @@ import {
   parseWalletRegistrationSetupReservation,
   proposeWalletRegistrationSetup,
   walletRegistrationSetupRequestDigest,
-  type WalletRegistrationSetupReservationPort,
+  type WalletRegistrationReservationAuthority,
 } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/homeVerification';
 import {
   RegistrationSetupAllocation,
   WalletHomeCatalog,
+  WalletPlacementError,
   WalletOwnershipKey,
   type WalletRegion,
+  type WalletHome,
+  type WalletHomeAssignment,
 } from './home';
 import { WalletHomeServiceClient } from './serviceClient';
 
-type SetupInput = Parameters<WalletRegistrationSetupReservationPort['reserve']>[0];
-type SetupResult = Awaited<ReturnType<WalletRegistrationSetupReservationPort['reserve']>>;
+type SetupInput = Parameters<WalletRegistrationReservationAuthority['reserve']>[0];
+type SetupResult = Awaited<ReturnType<WalletRegistrationReservationAuthority['reserve']>>;
 
-export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetupReservationPort {
+type ResolvedSetupHome =
+  | { readonly ok: true; readonly assignment: WalletHomeAssignment }
+  | { readonly ok: false; readonly code: string; readonly message: string };
+
+export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReservationAuthority {
+  private lastReservation: {
+    operationId: string;
+    digest: string;
+    result: ResolvedSetupHome;
+  } | null = null;
+
   constructor(
     private readonly options: {
       readonly service: { fetch(request: Request): Promise<Response> };
@@ -33,7 +46,16 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
     },
   ) {}
 
-  async reserve(input: SetupInput): Promise<SetupResult> {
+  private client(): WalletHomeServiceClient {
+    return new WalletHomeServiceClient(
+      this.options.service,
+      this.options.writer,
+      this.options.scope,
+      WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson)),
+    );
+  }
+
+  async resolveSetup(input: SetupInput): Promise<ResolvedSetupHome> {
     const scope = this.options.scope;
     const policy = input.runtimePolicyScope;
     if (
@@ -49,13 +71,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
         message: 'Registration scope differs from the authenticated deployment',
       };
     }
-    const catalog = WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson));
-    const client = new WalletHomeServiceClient(
-      this.options.service,
-      this.options.writer,
-      scope,
-      catalog,
-    );
+    const digest = await walletRegistrationSetupRequestDigest(scope.namespace, input);
+    if (
+      this.lastReservation?.operationId === input.request.registrationOperationId &&
+      this.lastReservation.digest === digest
+    ) {
+      return this.lastReservation.result;
+    }
+    const client = this.client();
     const proposed = proposeWalletRegistrationSetup(input);
     const wallet = WalletOwnershipKey.parse({
       namespace: scope.namespace,
@@ -71,7 +94,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
       deviceId: proposed.deviceId,
       walletAuthMethodId: proposed.walletAuthMethodId,
     });
-    const requestDigest = await walletRegistrationSetupRequestDigest(scope.namespace, input);
+    const requestDigest = digest;
     const common = {
       ingressRegion: this.options.ingressRegion,
       registrationId: input.request.registrationOperationId,
@@ -82,10 +105,29 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
       input.request.wallet?.kind === 'provided'
         ? await client.reserve({ ...common, allocation: 'provided', wallet })
         : await client.reserve({ ...common, allocation: 'server_allocated', candidate: wallet });
-    if (!result.ok)
-      return { ok: false, code: result.code, message: 'Registration reservation was rejected' };
+    const resolved: ResolvedSetupHome = result.ok
+      ? { ok: true, assignment: result.assignment }
+      : { ok: false, code: result.code, message: 'Registration reservation was rejected' };
+    this.lastReservation = {
+      operationId: input.request.registrationOperationId,
+      digest,
+      result: resolved,
+    };
+    return resolved;
+  }
+
+  isLocal(home: WalletHome): boolean {
+    return (
+      home.accountId === this.options.localResource.accountId &&
+      home.databaseId === this.options.localResource.databaseId
+    );
+  }
+
+  async reserve(input: SetupInput): Promise<SetupResult> {
+    const result = await this.resolveSetup(input);
+    if (!result.ok) return result;
     const assignment = result.assignment;
-    if (assignment.state !== 'reserved') {
+    if (assignment.state === 'cancelled') {
       return {
         ok: false,
         code: 'registration_closed',
@@ -105,6 +147,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
     const stored = assignment.registrationAllocation;
     return {
       ok: true,
+      lifecycle: assignment.state,
       reservation: parseWalletRegistrationSetupReservation({
         walletId: assignment.wallet.walletId,
         ceremonyId: stored.ceremonyId,
@@ -115,5 +158,79 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationSetup
         reservedAtMs: assignment.reservedAtMs,
       }),
     };
+  }
+  async findHome(
+    locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string },
+  ): Promise<WalletHomeAssignment | null> {
+    const client = this.client();
+    switch (locator.kind) {
+      case 'ceremony':
+        return client.findByCeremony(locator.ceremonyId);
+      case 'wallet':
+        return client.find(
+          WalletOwnershipKey.parse({ ...this.options.scope, walletId: locator.walletId }),
+        );
+    }
+  }
+
+  async admitHome(
+    input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0],
+  ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+    const client = this.client();
+    const assignment = await client.findByCeremony(input.ceremonyId);
+    if (
+      !assignment ||
+      assignment.state === 'cancelled' ||
+      assignment.wallet.walletId !== input.walletId ||
+      assignment.home.accountId !== this.options.localResource.accountId ||
+      assignment.home.databaseId !== this.options.localResource.databaseId
+    ) {
+      return {
+        ok: false,
+        code: 'wallet_home_unavailable',
+        message: 'Registration home is unavailable',
+      };
+    }
+    return { ok: true };
+  }
+
+  async complete(
+    input: Parameters<WalletRegistrationReservationAuthority['complete']>[0],
+  ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+    const client = this.client();
+    const assignment = await client.findByCeremony(input.ceremonyId);
+    if (
+      !assignment ||
+      assignment.wallet.walletId !== input.walletId ||
+      assignment.home.accountId !== this.options.localResource.accountId ||
+      assignment.home.databaseId !== this.options.localResource.databaseId
+    ) {
+      return {
+        ok: false,
+        code: 'home_conflict',
+        message: 'Registration completion does not match the local wallet home',
+      };
+    }
+    if (assignment.state === input.outcome) return { ok: true };
+    if (assignment.state !== 'reserved')
+      return {
+        ok: false,
+        code: 'registration_conflict',
+        message: 'Registration terminal outcome conflicts with its reservation',
+      };
+    try {
+      await client.complete({
+        wallet: assignment.wallet,
+        home: assignment.home,
+        registrationId: assignment.registrationId,
+        requestDigest: assignment.requestDigest,
+        outcome: input.outcome,
+      });
+    } catch (error) {
+      if (error instanceof WalletPlacementError)
+        return { ok: false, code: error.code, message: error.message };
+      throw error;
+    }
+    return { ok: true };
   }
 }

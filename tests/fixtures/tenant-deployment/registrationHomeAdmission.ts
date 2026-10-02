@@ -1,4 +1,9 @@
-import { parseWebAuthnRpId, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  parseWalletId,
+  parseWebAuthnRpId,
+  type D1DatabaseLike,
+  type WalletRegistrationReservationAuthority,
+} from '@seams/wallet-server/cloud-host';
 import { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
 import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
@@ -44,17 +49,16 @@ export async function reserveFromGateway(input: {
   operationId: string;
   origin: string;
 }) {
+  return gatewayAdmission(input).reserve(gatewaySetupInput(input));
+}
+
+export function gatewaySetupInput(input: {
+  operationId: string;
+  origin: string;
+}): Parameters<WalletRegistrationReservationAuthority['reserve']>[0] {
   const rpId = parseWebAuthnRpId('wallet.test');
   if (!rpId.ok) throw new Error(rpId.error.message);
-  const admission = new ConsoleRegistrationHomeAdmission({
-    service: new ConsoleBinding(input.database, input.catalogJson),
-    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-    scope,
-    localResource: WalletHomeCatalog.parse(JSON.parse(input.catalogJson)).select(input.localRegion),
-    catalogJson: input.catalogJson,
-    ingressRegion: input.region,
-  });
-  return admission.reserve({
+  return {
     orgId: 'owner',
     expectedOrigin: input.origin,
     runtimePolicyScope: {
@@ -84,5 +88,42 @@ export async function reserveFromGateway(input: {
         ],
       },
     },
+  };
+}
+
+type GatewayAdmissionInput = {
+  database: D1DatabaseLike;
+  catalogJson: string;
+  region: WalletRegion;
+  localRegion: WalletRegion;
+};
+
+function gatewayAdmission(input: GatewayAdmissionInput): ConsoleRegistrationHomeAdmission {
+  return new ConsoleRegistrationHomeAdmission({
+    service: new ConsoleBinding(input.database, input.catalogJson),
+    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+    scope,
+    localResource: WalletHomeCatalog.parse(JSON.parse(input.catalogJson)).select(input.localRegion),
+    catalogJson: input.catalogJson,
+    ingressRegion: input.region,
   });
+}
+
+export async function registrationLifecycleFromGateway(
+  input: GatewayAdmissionInput & {
+    ceremonyId: string;
+    walletId: string;
+    operation: { kind: 'assert' } | { kind: 'complete'; outcome: 'established' | 'cancelled' };
+  },
+): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+  const walletId = parseWalletId(input.walletId);
+  if (!walletId.ok) throw new Error(walletId.error.message);
+  const authority = gatewayAdmission(input);
+  const subject = { ceremonyId: input.ceremonyId, walletId: walletId.value };
+  switch (input.operation.kind) {
+    case 'assert':
+      return authority.admitHome(subject);
+    case 'complete':
+      return authority.complete({ ...subject, outcome: input.operation.outcome });
+  }
 }

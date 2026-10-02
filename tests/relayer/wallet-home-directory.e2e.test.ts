@@ -1,3 +1,4 @@
+import { verifyRegionalWalletDispatch } from './regional-wallet-dispatch.scenario';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -56,13 +57,57 @@ function worker(directory: string, name: string) {
   };
 }
 
+function regionalWorker(directory: string, home: WalletHome) {
+  return {
+    name: `gateway-${home.region}`,
+    modules: true,
+    scriptPath: path.join(directory, 'regional.js'),
+    compatibilityDate: '2026-04-17',
+    compatibilityFlags: ['nodejs_compat'],
+    d1Databases: { SIGNER_DB: `signer-${home.region}` },
+    bindings: { HOME_JSON: JSON.stringify(home), CATALOG_JSON: JSON.stringify(homes) },
+    serviceBindings: {
+      CONSOLE: 'ingress-a',
+      WALLET_GATEWAY_US: { name: 'gateway-US', entrypoint: 'WalletHomeGateway' },
+      WALLET_GATEWAY_WEUR: { name: 'gateway-WEUR', entrypoint: 'WalletHomeGateway' },
+      WALLET_GATEWAY_APAC: { name: 'gateway-APAC', entrypoint: 'WalletHomeGateway' },
+    },
+  };
+}
+
 function start(directory: string): Miniflare {
+  const misdirected = regionalWorker(directory, homes[0]);
+  const unavailable = regionalWorker(directory, homes[0]);
   return new Miniflare({
     host: '127.0.0.1',
     port: 0,
     d1Persist: path.join(directory, 'd1'),
-    workers: [worker(directory, 'ingress-a'), worker(directory, 'ingress-b')],
+    workers: [
+      worker(directory, 'ingress-a'),
+      worker(directory, 'ingress-b'),
+      ...homes.map(regionalWorker.bind(undefined, directory)),
+      {
+        ...misdirected,
+        name: 'gateway-misdirected',
+        serviceBindings: {
+          ...misdirected.serviceBindings,
+          WALLET_GATEWAY_WEUR: { name: 'gateway-APAC', entrypoint: 'WalletHomeGateway' },
+        },
+      },
+      {
+        ...unavailable,
+        name: 'gateway-unavailable',
+        serviceBindings: {
+          ...unavailable.serviceBindings,
+          WALLET_GATEWAY_WEUR: unavailableGateway,
+        },
+      },
+    ],
   });
+}
+
+async function unavailableGateway(): Promise<Response> {
+  throw new Error('Injected regional service outage');
 }
 
 class MiniflareWalletHomeServiceBinding {
@@ -140,14 +185,17 @@ test('wallet homes are independent within a tenant and durable across competing 
   const directory = testInfo.outputPath('authority');
   await mkdir(directory, { recursive: true });
   await build({
-    entryPoints: [path.join(repoRoot, 'tests/fixtures/tenant-deployment/walletHomeAuthority.ts')],
-    outfile: path.join(directory, 'authority.js'),
+    entryPoints: {
+      authority: path.join(repoRoot, 'tests/fixtures/tenant-deployment/walletHomeAuthority.ts'),
+      regional: path.join(repoRoot, 'tests/fixtures/tenant-deployment/regionalWalletGateway.ts'),
+    },
+    outdir: directory,
     bundle: true,
     format: 'esm',
     platform: 'neutral',
     mainFields: ['module', 'main'],
     conditions: ['workerd', 'worker', 'browser'],
-    external: ['node:*'],
+    external: ['node:*', 'cloudflare:*'],
     loader: { '.wasm': 'file' },
     tsconfig: path.join(repoRoot, 'packages/wallet-console-server-ts/tsconfig.json'),
     alias: process.env.SEAMS_WALLET_SERVER_CANDIDATE
@@ -572,7 +620,8 @@ test('wallet homes are independent within a tenant and durable across competing 
     const cancelledCeremony = await serviceCall(runtime, 'find-by-ceremony', {
       ceremonyId: 'wrc_cancelled',
     });
-    expect(cancelledCeremony.status).toBe(404);
+    expect(cancelledCeremony.status).toBe(200);
+    expect(await cancelledCeremony.json()).toMatchObject({ assignment: { state: 'cancelled' } });
     const foreignProject = reservation('lost-reply', homes[2], 'separate-project');
     const foreignProjectWithCeremony = {
       ...foreignProject,
@@ -658,6 +707,58 @@ test('wallet homes are independent within a tenant and durable across competing 
           preparationId: first.reservation.preparationId,
         },
       });
+      const lifecycle = {
+        action: 'registration-lifecycle',
+        region: home.region,
+        localRegion: home.region,
+        ceremonyId: first.reservation.ceremonyId,
+        walletId: first.reservation.walletId,
+      };
+      expect((await call(runtime, { ...lifecycle, operation: { kind: 'assert' } })).status).toBe(
+        200,
+      );
+      expect(
+        (
+          await call(runtime, {
+            ...lifecycle,
+            localRegion: otherHome.region,
+            operation: { kind: 'assert' },
+          })
+        ).status,
+      ).toBe(409);
+      expect(
+        (
+          await call(runtime, {
+            ...lifecycle,
+            walletId: 'another-wallet',
+            operation: { kind: 'complete', outcome: 'established' },
+          })
+        ).status,
+      ).toBe(409);
+      const outcome = home.region === 'APAC' ? 'cancelled' : 'established';
+      const terminal = { ...lifecycle, operation: { kind: 'complete', outcome } };
+      expect((await call(runtime, terminal, true)).status).toBe(503);
+      expect((await call(runtime, terminal)).status).toBe(200);
+      const afterTerminal = await (await call(runtime, setup)).json();
+      const lateContinuation = await call(runtime, { ...lifecycle, operation: { kind: 'assert' } });
+      if (outcome === 'cancelled') {
+        expect(afterTerminal).toMatchObject({ ok: false, code: 'registration_cancelled' });
+        expect(lateContinuation.status).toBe(409);
+      } else {
+        expect(afterTerminal).toEqual({ ...first, lifecycle: 'established' });
+        expect(lateContinuation.status).toBe(200);
+      }
+      expect(
+        (
+          await call(runtime, {
+            ...lifecycle,
+            operation: {
+              kind: 'complete',
+              outcome: outcome === 'cancelled' ? 'established' : 'cancelled',
+            },
+          })
+        ).status,
+      ).toBe(409);
       admissionObservations.push({
         home,
         first,
@@ -666,6 +767,10 @@ test('wallet homes are independent within a tenant and durable across competing 
         wrongResource,
         changedRequest,
         persistedHome,
+        terminalOutcome: outcome,
+        afterTerminal,
+        terminalLostReplyReconciled: true,
+        lateContinuationStatus: lateContinuation.status,
       });
     }
     const admissionRows = await persisted
@@ -674,7 +779,9 @@ test('wallet homes are independent within a tenant and durable across competing 
       )
       .all();
     expect(admissionRows.results).toHaveLength(3);
+    const regionalDispatch = await verifyRegionalWalletDispatch(runtime, homes);
     const receipt = {
+      regionalDispatch,
       kind: 'wallet_home_directory_e2e_v1',
       observations,
       admissionObservations,
@@ -684,6 +791,9 @@ test('wallet homes are independent within a tenant and durable across competing 
       appliedMigrations,
       workerSha256: createHash('sha256')
         .update(await readFile(path.join(directory, 'authority.js')))
+        .digest('hex'),
+      regionalWorkerSha256: createHash('sha256')
+        .update(await readFile(path.join(directory, 'regional.js')))
         .digest('hex'),
       topology: 'two Worker transports sharing persistent local D1',
       hostedRoutingVerified: false,

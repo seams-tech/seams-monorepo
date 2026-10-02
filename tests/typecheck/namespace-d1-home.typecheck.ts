@@ -5,6 +5,7 @@ import {
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/namespaceHome';
 import type { TenantDeploymentProvisionerOptionsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 import type { ActivateTenantDeploymentBindingInputV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
+import type { TenantDeploymentHomeAdoptionRequestV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeAdoption';
 
 declare const home: NamespaceD1HomeV1;
 declare const assignment: NamespaceD1HomeAssignmentV1;
@@ -44,3 +45,15 @@ declare const activationWithoutHome: Omit<ActivateTenantDeploymentBindingInputV1
 // @ts-expect-error Direct activation requires a parsed home even when provisioning is bypassed.
 const unscopedActivation: ActivateTenantDeploymentBindingInputV1 = activationWithoutHome;
 void unscopedActivation;
+
+declare const adoptionWithoutOperation: Omit<TenantDeploymentHomeAdoptionRequestV1, 'operationId'>;
+// @ts-expect-error Adoption retries require a stable operation identity.
+const anonymousAdoption: TenantDeploymentHomeAdoptionRequestV1 = adoptionWithoutOperation;
+const incompleteAdoption: TenantDeploymentHomeAdoptionRequestV1 = {
+  deploymentLane: 'lane',
+  operationId: 'tco_adoption',
+  // @ts-expect-error A revision without its activation sequence cannot guard against a stale pointer.
+  expectedActive: { revision: 'tdb_previous' },
+};
+void anonymousAdoption;
+void incompleteAdoption;

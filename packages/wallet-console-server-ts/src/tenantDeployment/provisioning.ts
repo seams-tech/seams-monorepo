@@ -18,6 +18,10 @@ import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
 import { TenantDeploymentStoreError } from './service';
 import type { NamespaceD1HomeV1 } from './namespaceHome';
+import {
+  adoptTenantDeploymentHomeV1,
+  type TenantDeploymentHomeAdoptionRequestV1,
+} from './homeAdoption';
 
 const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 
@@ -62,6 +66,9 @@ export type TenantDeploymentProvisioningResultV1 =
     };
 
 export interface TenantDeploymentProvisionerV1 {
+  adoptHome(
+    request: TenantDeploymentHomeAdoptionRequestV1,
+  ): Promise<Extract<TenantDeploymentProvisioningResultV1, { disposition: 'activated' }>>;
   provision(
     request: TenantDeploymentProvisioningRequestV1,
   ): Promise<TenantDeploymentProvisioningResultV1>;
@@ -299,6 +306,9 @@ export function createTenantDeploymentProvisionerV1(
 ): TenantDeploymentProvisionerV1 {
   const newOperationId = options.newOperationId ?? defaultOperationId;
   return {
+    async adoptHome(request) {
+      return await adoptTenantDeploymentHomeV1(options, request);
+    },
     async provision(request) {
       const deploymentLane = requiredText(request.deploymentLane, 'deploymentLane');
       const environmentId = requiredText(request.environmentId, 'environmentId');

@@ -1229,6 +1229,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       : { kind: 'create_managed_publishable_key' },
   });
   const tenantDeploymentProvisioner: TenantDeploymentProvisionerV1 = {
+    adoptHome: provisioner.adoptHome.bind(provisioner),
     provision: provisionLocalTenantDeployment.bind(null, home, tenantDeploymentStore, provisioner),
   };
   onboardingDeployment.attach(tenantDeploymentProvisioner);

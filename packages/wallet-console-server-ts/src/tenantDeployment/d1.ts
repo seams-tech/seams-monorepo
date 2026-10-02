@@ -367,6 +367,26 @@ export function createD1TenantDeploymentBindingReaderV1(
 ): TenantDeploymentBindingReaderV1 {
   const database = options.database;
   return {
+    async readActiveScope(rawLane) {
+      // Readiness needs only persisted ownership; historical records cannot authorize runtime work.
+      const row = await queryD1One(
+        database,
+        `SELECT binding.namespace, binding.org_id, binding.project_id, binding.environment_id
+           FROM active_tenant_deployment_bindings AS active
+           LEFT JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane AND binding.revision = active.revision
+          WHERE active.deployment_lane = ?1`,
+        [requiredText(rawLane, 'deploymentLane')],
+      );
+      if (!row) return null;
+      return {
+        namespace: requiredText(row.namespace, 'namespace'),
+        organizationId: requiredText(row.org_id, 'org_id'),
+        projectId: requiredText(row.project_id, 'project_id'),
+        environmentId: requiredText(row.environment_id, 'environment_id'),
+      };
+    },
+
     async findBinding(rawLane, revision) {
       return await readBinding(database, requiredText(rawLane, 'deploymentLane'), revision);
     },

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { namespaceHome } from '../helpers/tenantDeploymentFixtures';
 import { createCloudflareD1ConsoleOnlyServiceBundle } from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1ConsoleServices';
 import { createInMemoryConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv';
 import { createInMemoryConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys';
@@ -145,13 +146,7 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
       },
     },
     bindings: {
-      async findBinding() {
-        return null;
-      },
-      async findActiveBinding() {
-        return null;
-      },
-      async resolveActiveBinding() {
+      async readActiveScope() {
         return null;
       },
     },
@@ -164,6 +159,7 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
   });
 
   const binding = await adapter.buildCandidate({
+    home: namespaceHome('candidate-snapshot', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
     identity: identity.value,
     activeTenantRoot: {
       identityDigestB64u: 'root-digest',

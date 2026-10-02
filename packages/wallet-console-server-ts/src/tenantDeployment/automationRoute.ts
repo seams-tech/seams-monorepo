@@ -1,7 +1,9 @@
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
 import { isTenantDeploymentStoreError } from './service';
+import type { TenantDeploymentHomeAdoptionRequestV1 } from './homeAdoption';
 
 const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
+const ADOPTION_PATH = '/internal/tenant-deployment/v1/adopt-home';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_JWKS = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
 const EXPECTED_AUDIENCE = 'seams-tenant-cutover';
@@ -151,7 +153,7 @@ export function createTenantDeploymentAutomationRouteV1(input: {
 }): (request: Request) => Promise<Response | null> {
   return async function handleTenantDeploymentAutomation(request) {
     const url = new URL(request.url);
-    if (url.pathname !== AUTOMATION_PATH) return null;
+    if (url.pathname !== AUTOMATION_PATH && url.pathname !== ADOPTION_PATH) return null;
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     try {
       await authenticate(request);
@@ -166,7 +168,10 @@ export function createTenantDeploymentAutomationRouteV1(input: {
       );
     }
     try {
-      const result = await input.provisioner.provision(await parseRequest(request));
+      const result =
+        url.pathname === ADOPTION_PATH
+          ? await input.provisioner.adoptHome(await parseAdoptionRequest(request))
+          : await input.provisioner.provision(await parseRequest(request));
       return json({ ok: true, result });
     } catch (error) {
       return json(
@@ -180,5 +185,38 @@ export function createTenantDeploymentAutomationRouteV1(input: {
         409,
       );
     }
+  };
+}
+
+async function parseAdoptionRequest(
+  request: Request,
+): Promise<TenantDeploymentHomeAdoptionRequestV1> {
+  const body: unknown = await request.json().catch(() => null);
+  if (
+    !isRecord(body) ||
+    Object.keys(body).sort().join(',') !== 'deploymentLane,expectedActive,operationId' ||
+    typeof body.deploymentLane !== 'string' ||
+    !body.deploymentLane ||
+    body.deploymentLane.trim() !== body.deploymentLane ||
+    typeof body.operationId !== 'string' ||
+    !/^tco_[A-Za-z0-9_-]+$/u.test(body.operationId) ||
+    !isRecord(body.expectedActive) ||
+    Object.keys(body.expectedActive).sort().join(',') !== 'activationSequence,revision' ||
+    typeof body.expectedActive.revision !== 'string' ||
+    !/^tdb_[A-Za-z0-9_-]+$/u.test(body.expectedActive.revision) ||
+    typeof body.expectedActive.activationSequence !== 'number' ||
+    !Number.isSafeInteger(body.expectedActive.activationSequence) ||
+    body.expectedActive.activationSequence <= 0
+  )
+    throw new Error(
+      'home adoption requires a lane, operation ID, and exact active revision and sequence',
+    );
+  return {
+    deploymentLane: body.deploymentLane,
+    operationId: `tco_${body.operationId.slice(4)}`,
+    expectedActive: {
+      revision: `tdb_${body.expectedActive.revision.slice(4)}`,
+      activationSequence: body.expectedActive.activationSequence,
+    },
   };
 }

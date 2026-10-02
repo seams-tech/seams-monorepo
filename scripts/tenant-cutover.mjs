@@ -4,7 +4,6 @@ import process from 'node:process';
 import { readBackendLane } from './deployment-targets.mjs';
 
 const OIDC_AUDIENCE = 'seams-tenant-cutover';
-const CUTOVER_PATH = '/internal/tenant-deployment/v1/cutover';
 
 function requireValue(args, index, flag) {
   const value = String(args[index + 1] || '').trim();
@@ -13,8 +12,15 @@ function requireValue(args, index, flag) {
 }
 
 function parseArguments(args) {
-  const values = { lane: '', environmentId: '' };
-  for (let index = 0; index < args.length; index += 1) {
+  const operation = args[0] === 'adopt-home' ? 'adopt-home' : 'provision';
+  const values = {
+    lane: '',
+    environmentId: '',
+    revision: '',
+    activationSequence: '',
+    operationId: '',
+  };
+  for (let index = operation === 'adopt-home' ? 1 : 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--lane') {
       values.lane = requireValue(args, index, argument);
@@ -26,11 +32,56 @@ function parseArguments(args) {
       index += 1;
       continue;
     }
+    if (argument === '--revision') {
+      values.revision = requireValue(args, index, argument);
+      index += 1;
+      continue;
+    }
+    if (argument === '--activation-sequence') {
+      values.activationSequence = requireValue(args, index, argument);
+      index += 1;
+      continue;
+    }
+    if (argument === '--operation-id') {
+      values.operationId = requireValue(args, index, argument);
+      index += 1;
+      continue;
+    }
     throw new Error(`Unsupported argument: ${argument}`);
   }
   if (!values.lane) throw new Error('--lane is required');
-  if (!values.environmentId) throw new Error('--environment-id is required');
-  return values;
+  if (operation === 'adopt-home') {
+    const activationSequence = Number(values.activationSequence);
+    if (
+      values.environmentId ||
+      !/^tdb_[A-Za-z0-9_-]+$/u.test(values.revision) ||
+      !/^tco_[A-Za-z0-9_-]+$/u.test(values.operationId) ||
+      !Number.isSafeInteger(activationSequence) ||
+      activationSequence <= 0
+    )
+      throw new Error(
+        'adopt-home requires --revision, --activation-sequence and a stable --operation-id; omit --environment-id',
+      );
+    return {
+      lane: values.lane,
+      path: '/internal/tenant-deployment/v1/adopt-home',
+      body: {
+        deploymentLane: values.lane,
+        operationId: values.operationId,
+        expectedActive: { revision: values.revision, activationSequence },
+      },
+    };
+  }
+  if (!values.environmentId || values.revision || values.activationSequence || values.operationId) {
+    throw new Error(
+      'provisioning requires --environment-id; adoption arguments require the adopt-home command',
+    );
+  }
+  return {
+    lane: values.lane,
+    path: '/internal/tenant-deployment/v1/cutover',
+    body: { deploymentLane: values.lane, environmentId: values.environmentId },
+  };
 }
 
 async function requestGithubOidcToken() {
@@ -56,16 +107,13 @@ async function run() {
   const lane = readBackendLane(options.lane);
   if (lane.branch !== 'main') throw new Error('tenant cutover requires a production lane');
   const token = await requestGithubOidcToken();
-  const response = await fetch(`${lane.console.origin}${CUTOVER_PATH}`, {
+  const response = await fetch(`${lane.console.origin}${options.path}`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      deploymentLane: lane.id,
-      environmentId: options.environmentId,
-    }),
+    body: JSON.stringify(options.body),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.ok !== true) {

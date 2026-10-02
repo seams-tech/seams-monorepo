@@ -57,7 +57,7 @@ export type ProductionTenantDeploymentReadinessOptionsV1 = {
   readonly policies: ConsolePolicyService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
   readonly tenantRootState: TenantRootSecurityStateReaderV1;
-  readonly bindings: TenantDeploymentBindingReaderV1;
+  readonly bindings: Pick<TenantDeploymentBindingReaderV1, 'readActiveScope'>;
   readonly walletRuntime: TenantDeploymentRuntimeInspectorV1;
   readonly now?: () => number;
 };
@@ -247,14 +247,14 @@ function runtimeScope(binding: TenantDeploymentBindingV1): TenantDeploymentRunti
 }
 
 function sameEnvironment(
-  left: TenantDeploymentBindingV1,
+  left: TenantDeploymentRuntimeScopeV1,
   right: TenantDeploymentBindingV1,
 ): boolean {
   return (
-    left.tenant.namespace === right.tenant.namespace &&
-    left.tenant.organizationId === right.tenant.organizationId &&
-    left.tenant.projectId === right.tenant.projectId &&
-    left.tenant.environmentId === right.tenant.environmentId
+    left.namespace === right.tenant.namespace &&
+    left.organizationId === right.tenant.organizationId &&
+    left.projectId === right.tenant.projectId &&
+    left.environmentId === right.tenant.environmentId
   );
 }
 
@@ -344,7 +344,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
       this.options.tenantRootState.readStatus({ identity }),
       resolveCredential(this.options, identity, binding.browserCredential.credentialId),
       resolveRuntimePolicyDigest(this.options, identity, false),
-      this.options.bindings.resolveActiveBinding(binding.deploymentLane),
+      this.options.bindings.readActiveScope(binding.deploymentLane),
     ]);
     assertRootStatus(binding, root);
     const authenticatedCredential = await authenticateCredential(this.options, binding);
@@ -354,7 +354,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
     const sourceEnvironmentChanged = active !== null && !sameEnvironment(active, binding);
     const runtime = await this.options.walletRuntime.inspect({
       bindingRevision: binding.revision,
-      source: sourceEnvironmentChanged && active ? runtimeScope(active) : null,
+      source: sourceEnvironmentChanged ? active : null,
       target: runtimeScope(binding),
     });
     return {

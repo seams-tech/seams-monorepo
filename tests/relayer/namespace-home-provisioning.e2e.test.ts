@@ -3,7 +3,8 @@ import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import { createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import { GithubDeploymentOidcFixture } from '../helpers/githubDeploymentOidc';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,13 +26,11 @@ const cutoverUrl = 'https://console.example.test/internal/tenant-deployment/v1/c
 class ProvisioningDependencies {
   readonly walletRequests: string[] = [];
   readonly unexpectedRequests: string[] = [];
-  readonly keys = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  readonly oidc = new GithubDeploymentOidcFixture();
 
   outbound(request: Request): Response {
     if (request.url === 'https://token.actions.githubusercontent.com/.well-known/jwks') {
-      return Response.json({
-        keys: [{ ...this.keys.publicKey.export({ format: 'jwk' }), kid: 'fixture' }],
-      });
+      return this.oidc.jwks();
     }
     this.unexpectedRequests.push(request.url);
     return new Response('Unexpected external request', { status: 503 });
@@ -40,28 +39,6 @@ class ProvisioningDependencies {
   wallet(request: Request): Response {
     this.walletRequests.push(new URL(request.url).pathname);
     return new Response('Injected custody service interruption', { status: 503 });
-  }
-
-  authorization(): string {
-    const now = Math.floor(Date.now() / 1000);
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'fixture' })).toString(
-      'base64url',
-    );
-    const payload = Buffer.from(
-      JSON.stringify({
-        iss: 'https://token.actions.githubusercontent.com',
-        aud: 'seams-tenant-cutover',
-        sub: 'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo',
-        repository: 'seams-tech/seams-monorepo',
-        ref: 'refs/heads/main',
-        workflow_ref:
-          'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main',
-        nbf: now - 10,
-        exp: now + 300,
-      }),
-    ).toString('base64url');
-    const message = `${header}.${payload}`;
-    return `Bearer ${message}.${sign('RSA-SHA256', Buffer.from(message), this.keys.privateKey).toString('base64url')}`;
   }
 }
 
@@ -145,7 +122,7 @@ test('authenticated provisioning checks the reserved home before custody work ac
     await organizations.createProject(context, { id: projectId, name: 'Home admission' });
     const laneA = await runtime.getWorker('lane-a');
     const laneB = await runtime.getWorker('lane-b');
-    const authorization = dependencies.authorization();
+    const authorization = dependencies.oidc.authorization();
     const unauthenticated = await request.post(
       `${await runtime.ready}internal/tenant-deployment/v1/cutover`,
       {

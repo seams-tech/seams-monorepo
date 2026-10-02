@@ -460,7 +460,7 @@ pnpm tenant:cutover --lane production-testnet \
   --environment-id proj_example:dev
 ```
 
-The command accepts only the deployment lane and environment ID. The Console
+The provisioning command accepts only the deployment lane and environment ID. The Console
 resolves organization and project identity from the target environment. It
 does not accept separate organization, project, root, credential, or origin
 overrides that can form an inconsistent deployment.
@@ -470,6 +470,41 @@ The job uses the protected `production-live-demo` GitHub environment and a
 short-lived GitHub OIDC token scoped to that workflow, repository, environment,
 branch, and audience. No cutover signing secret or readiness HMAC environment
 variable exists.
+
+For historical bindings that lack a D1 home, the explicit operator command is:
+
+```text
+pnpm tenant:cutover adopt-home --lane production-testnet \
+  --revision tdb_RECORDED_PREVIOUS_REVISION --activation-sequence 1 \
+  --operation-id tco_STABLE_OPERATOR_OPERATION
+```
+
+This calls `/internal/tenant-deployment/v1/adopt-home` under the same protected
+OIDC scope. Obtain the exact revision and sequence from the active Console
+record. The namespace must already be inventoried and reserved to its current
+account/database; the request cannot supply a home override. Adoption preserves
+the original binding, root and credential, creates a deterministic replacement,
+runs production readiness, activates through the existing compare-and-swap,
+then runs the registration setup canary. Readiness reads only historical ownership
+scope from persistence; ordinary runtime readers continue to reject old bindings.
+
+Repeat the exact command after an interrupted request. Pending attempts get fresh
+readiness. An activated attempt repeats the canary and retains its activation
+sequence. Canary failure returns an error even though activation is durable;
+reuse the same operation ID to finish verification. A changed active pointer or
+reused operation naming another cutover is rejected. Successful canary attempts
+append audit events, so retries can produce multiple verification events for one
+activation.
+
+This flow is locally verified with the production Console Worker, D1 and
+readiness adapter; external custody, inventory and canary responses are controlled
+in the E2E. It is not wired into the automatic deployment job yet. Before rollout,
+verify physical Worker/database bindings and coordinate adoption with consumer
+deployment: the new ordinary decoder rejects the historical active binding, and
+the existing workflow smokes readiness before cutover. Do not run that unchanged
+deployment sequence against historical bindings. Local evidence and reproduction
+are in `.artifacts/r152/operator-home-adoption-20261002/` and
+`tests/relayer/tenant-home-adoption-operator.e2e.test.ts`.
 
 The protected workflow deploys and smokes the complete production-testnet
 Wallet runtime plus the Console control plane before it invokes the cutover.

@@ -12,6 +12,81 @@ import type {
   ActivateTenantDeploymentBindingInputV1,
   ExpectedActiveTenantDeploymentBindingV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
+import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
+import type { TenantRootIdentityV1 } from '../../packages/wallet-console-shared-ts/src/tenant-root';
+import { createD1TenantRootCreationGrantServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/d1';
+
+export async function seedAdoptionRoot(
+  database: D1DatabaseLike,
+  namespace: string,
+  identity: TenantRootIdentityV1,
+) {
+  const grants = createD1TenantRootCreationGrantServiceV1({ database, namespace });
+  const identityDigestB64u = await tenantRootIdentityDigestB64uV1(identity);
+  const now = Date.now();
+  await grants.putOrGetGrant({
+    operationId: 'adoption-fixture-root',
+    identity,
+    identityDigestB64u,
+    custodyLineageB64u: 'adoption-lineage',
+    grantNonceB64u: 'fixture-nonce',
+    grantKeyId: 'fixture-key',
+    grantB64u: 'fixture-grant',
+    grantDigestB64u: 'fixture-digest',
+    issuedAtMs: now,
+    expiresAtMs: now + 60_000,
+  });
+  await grants.markActiveFromReady({
+    operationId: 'adoption-fixture-root',
+    identity,
+    identityDigestB64u,
+    custodyLineageB64u: 'adoption-lineage',
+    ready: {
+      revision: 1,
+      rootCommitmentB64u: 'adoption-commitment',
+      journalDigestB64u: 'fixture-journal',
+      capabilityDigestB64u: 'fixture-capability',
+    },
+  });
+  return {
+    identityDigestB64u,
+    custodyLineageId: 'adoption-lineage',
+    signingRootId: identity.signingRootId,
+    signingRootVersion: identity.signingRootVersion,
+  };
+}
+
+export async function seedHistoricalActiveBinding(
+  database: D1DatabaseLike,
+  candidate: TenantDeploymentBindingV1,
+) {
+  const historical = await historicalBindingFromCandidate(candidate);
+  await database
+    .prepare(
+      `INSERT INTO tenant_deployment_bindings (deployment_lane, revision, schema_version, binding_json, namespace, org_id, project_id, environment_id, tenant_root_identity_digest_b64u, custody_lineage_id, credential_id, runtime_policy_digest_b64u, created_at_ms) VALUES (?1,?2,1,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)`,
+    )
+    .bind(
+      historical.deploymentLane,
+      historical.revision,
+      JSON.stringify(historical),
+      historical.tenant.namespace,
+      historical.tenant.organizationId,
+      historical.tenant.projectId,
+      historical.tenant.environmentId,
+      historical.tenantRoot.identityDigestB64u,
+      historical.tenantRoot.custodyLineageId,
+      historical.browserCredential.credentialId,
+      historical.runtimePolicyDigestB64u,
+      historical.createdAtMs,
+    )
+    .run();
+  await database
+    .prepare('INSERT INTO active_tenant_deployment_bindings VALUES (?1,?2,NULL,1,?3)')
+    .bind(historical.deploymentLane, historical.revision, Date.now())
+    .run();
+  return historical;
+}
 
 export function developmentBindingBody(
   createdAtMs: number,
@@ -74,8 +149,18 @@ export async function bindingForLane(createdAtMs: number, deploymentLane: string
 }
 
 export async function historicalBindingFixture(createdAtMs: number, deploymentLane: string) {
+  return historicalBindingFromBody(developmentBindingBody(createdAtMs, deploymentLane));
+}
+
+export async function historicalBindingFromCandidate(candidate: TenantDeploymentBindingV1) {
+  const { revision, ...body } = candidate;
+  void revision;
+  return historicalBindingFromBody(body);
+}
+
+async function historicalBindingFromBody(candidate: TenantDeploymentBindingBodyV1) {
   // Historical wire data is constructed only at this persistence-test boundary.
-  const { home, ...body } = developmentBindingBody(createdAtMs, deploymentLane);
+  const { home, ...body } = candidate;
   void home;
   const digest = await crypto.subtle.digest(
     'SHA-256',

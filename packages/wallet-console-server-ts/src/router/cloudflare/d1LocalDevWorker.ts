@@ -217,7 +217,6 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly CONSOLE_SESSION_COOKIE_NAME?: string;
   readonly CONSOLE_SESSION_ISSUER?: string;
   readonly CONSOLE_SESSION_AUDIENCE?: string;
-  readonly ROUTER_AB_NORMAL_SIGNING_WORKER_ID?: string;
   readonly SIGNING_WORKER_ID?: string;
   readonly DERIVER_A_ED25519_YAO_INPUT_PUBLIC_KEY?: string;
   readonly DERIVER_B_ED25519_YAO_INPUT_PUBLIC_KEY?: string;
@@ -1966,9 +1965,7 @@ async function createLocalEd25519YaoProductComposition(
   resolveActiveTenantRoot: LocalActiveTenantRootResolver,
   resolveLinkedAuthorities: () => WarmBootstrapLinkedEd25519AuthorityReaderV1 | null,
 ): Promise<LocalEd25519YaoProductCompositionState> {
-  const signingWorkerId =
-    normalizeLocalString(env.SIGNING_WORKER_ID) ||
-    normalizeLocalString(env.ROUTER_AB_NORMAL_SIGNING_WORKER_ID);
+  const signingWorkerId = normalizeLocalString(env.SIGNING_WORKER_ID);
   const capabilityScope = {
     namespace: localTenantStorageNamespace(env),
     orgId,

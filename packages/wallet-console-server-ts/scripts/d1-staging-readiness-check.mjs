@@ -66,7 +66,6 @@ const requiredVarsByProfile = Object.freeze({
   gateway: Object.freeze([
     'SEAMS_TENANT_STORAGE_NAMESPACE',
     'SEAMS_TENANT_DEPLOYMENT_LANE',
-    'ROUTER_AB_NORMAL_SIGNING_WORKER_ID',
     'SIGNING_WORKER_ID',
     'RELAYER_ACCOUNT_ID',
     'RELAYER_PUBLIC_KEY',

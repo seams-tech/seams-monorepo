@@ -362,7 +362,6 @@ function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery,
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
-    ROUTER_AB_NORMAL_SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
     SEAMS_D1_HOME_ACCOUNT_ID: deploymentHomeAccountId(),
     SEAMS_D1_HOME_DATABASE_ID: deployment.resources.signerD1.id,
     ROUTER_AB_PREWARM_ENABLED: 'true',

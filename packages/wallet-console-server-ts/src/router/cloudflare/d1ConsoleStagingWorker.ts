@@ -108,6 +108,7 @@ import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provi
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
+import { handleWalletHomeServiceRequest } from '../../walletPlacement/service';
 
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
@@ -124,6 +125,7 @@ interface CloudflareD1ConsoleStagingEnv
   readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
   readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly TENANT_DEPLOYMENT_SURFACES_JSON: string;
+  readonly SEAMS_WALLET_HOME_CATALOG_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -662,6 +664,12 @@ async function fetch(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  const walletHomeResponse = await handleWalletHomeServiceRequest(
+    request,
+    env.CONSOLE_DB,
+    env.SEAMS_WALLET_HOME_CATALOG_JSON,
+  );
+  if (walletHomeResponse) return walletHomeResponse;
   const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,

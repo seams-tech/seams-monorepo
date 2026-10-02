@@ -1,6 +1,7 @@
 import {
   RegistrationSetupAllocation,
   WalletHome,
+  WalletHomeCatalog,
   WalletOwnershipKey,
   type WalletHomeAssignment,
   type WalletHomeReservation,
@@ -8,6 +9,7 @@ import {
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 
 declare const home: WalletHome;
+declare const catalog: WalletHomeCatalog;
 declare const wallet: WalletOwnershipKey;
 declare const assignment: WalletHomeAssignment;
 declare const registrationAllocation: RegistrationSetupAllocation;
@@ -16,6 +18,8 @@ declare const registrationAllocation: RegistrationSetupAllocation;
 const rawHome: WalletHome = { region: 'US', accountId: 'account', databaseId: 'database' };
 // @ts-expect-error A spread cannot carry nominal validation into a different resource.
 const changedHome: WalletHome = { ...home, region: 'APAC' };
+// @ts-expect-error A caller cannot forge a catalog from unchecked resources.
+const rawCatalog: WalletHomeCatalog = { ...catalog };
 // @ts-expect-error Wallet ownership identity cannot be changed through a broad spread.
 const changedWallet: WalletOwnershipKey = { ...wallet, walletId: 'another-wallet' };
 // @ts-expect-error A raw allocation cannot bypass validation.
@@ -55,6 +59,7 @@ const mixedOutcome: WalletHomeReservation = {
 
 void rawHome;
 void changedHome;
+void rawCatalog;
 void changedWallet;
 void rawAllocation;
 void uncheckedWallet;

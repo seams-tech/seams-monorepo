@@ -2,6 +2,7 @@ import { d1ChangedRows, queryD1One, type D1DatabaseLike } from '@seams/wallet-se
 import {
   RegistrationSetupAllocation,
   WalletHome,
+  WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
   type WalletHomeAssignment,
@@ -111,7 +112,10 @@ function scopeBindings(wallet: WalletOwnershipKey): string[] {
 }
 
 export class D1WalletHomeDirectory {
-  constructor(private readonly database: D1DatabaseLike) {}
+  constructor(
+    private readonly database: D1DatabaseLike,
+    private readonly catalog: WalletHomeCatalog,
+  ) {}
 
   async find(wallet: WalletOwnershipKey): Promise<WalletHomeAssignment | null> {
     const row = await queryD1One(
@@ -128,6 +132,12 @@ export class D1WalletHomeDirectory {
     const nowMs = timestamp(input.nowMs);
     const wallet = reservationWallet(input);
     const proposedHome = input.proposedHome;
+    if (!this.catalog.admits(proposedHome)) {
+      throw new WalletPlacementError('invalid_input', 'Wallet home resource is not admitted');
+    }
+    if (!RegistrationSetupAllocation.isValidated(input.proposedRegistrationAllocation)) {
+      throw new WalletPlacementError('invalid_input', 'Registration allocation is not validated');
+    }
     const digest = requestDigest(input.requestDigest);
     // The absence check and insert share one SQLite statement across all ingress workers.
     const inserted = await this.database

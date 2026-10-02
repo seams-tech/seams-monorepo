@@ -109,6 +109,75 @@ export class WalletHome {
   }
 }
 
+export class WalletHomeCatalog {
+  readonly #byRegion: ReadonlyMap<WalletRegion, WalletHome>;
+
+  private constructor(homes: readonly WalletHome[]) {
+    const byRegion = new Map<WalletRegion, WalletHome>();
+    for (const home of homes) {
+      if (byRegion.has(home.region)) {
+        throw new WalletPlacementError('invalid_input', 'Wallet home region is duplicated');
+      }
+      if ([...byRegion.values()].some((existing) => existing.databaseId === home.databaseId)) {
+        throw new WalletPlacementError('invalid_input', 'Wallet home database is duplicated');
+      }
+      byRegion.set(home.region, home);
+    }
+    if (
+      byRegion.size !== 3 ||
+      !byRegion.has('US') ||
+      !byRegion.has('WEUR') ||
+      !byRegion.has('APAC')
+    ) {
+      throw new WalletPlacementError(
+        'invalid_input',
+        'US, WEUR and APAC wallet homes are required',
+      );
+    }
+    this.#byRegion = byRegion;
+    Object.freeze(this);
+  }
+
+  static parse(raw: unknown): WalletHomeCatalog {
+    if (!Array.isArray(raw) || raw.length !== 3) {
+      throw new WalletPlacementError('invalid_input', 'Three wallet home resources are required');
+    }
+    return new WalletHomeCatalog(raw.map((value) => WalletHome.parse(value)));
+  }
+
+  select(region: WalletRegion): WalletHome {
+    const home = this.#byRegion.get(region);
+    if (!home) throw new WalletPlacementError('invalid_input', 'Wallet home region is unavailable');
+    return home;
+  }
+
+  admits(home: WalletHome): boolean {
+    return this.select(home.region).matches(home);
+  }
+}
+
+export function regionForRegistrationIngress(
+  request: Request & { readonly cf?: { readonly continent?: unknown; readonly country?: unknown } },
+  unavailableLocationDefault: WalletRegion,
+): WalletRegion {
+  const continent = request.cf?.continent;
+  const country = request.cf?.country;
+  if (country === 'TR' || country === 'IL' || country === 'AE' || country === 'SA') return 'WEUR';
+  switch (continent) {
+    case 'NA':
+    case 'SA':
+      return 'US';
+    case 'EU':
+    case 'AF':
+      return 'WEUR';
+    case 'AS':
+    case 'OC':
+      return 'APAC';
+    default:
+      return unavailableLocationDefault;
+  }
+}
+
 export class RegistrationSetupAllocation {
   readonly #validated = true;
 
@@ -144,6 +213,9 @@ export class RegistrationSetupAllocation {
     );
   }
 
+  static isValidated(value: unknown): value is RegistrationSetupAllocation {
+    return value instanceof RegistrationSetupAllocation && value.#validated;
+  }
 }
 
 function allocationId(raw: unknown, pattern: RegExp): string {

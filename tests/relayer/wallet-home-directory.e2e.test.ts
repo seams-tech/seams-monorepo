@@ -10,6 +10,10 @@ import {
   WalletHome,
   WalletOwnershipKey,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import {
+  WALLET_HOME_SERVICE_BASE_PATH,
+  WALLET_HOME_SERVICE_ORIGIN,
+} from '../../packages/wallet-console-server-ts/src/walletPlacement/service';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const accountId = '0123456789abcdef0123456789abcdef';
@@ -81,6 +85,21 @@ async function call(runtime: Miniflare, body: unknown, loseReply = false, ingres
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+async function serviceCall(
+  runtime: Miniflare,
+  operation: string,
+  body: unknown,
+): Promise<Response> {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    `${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/${operation}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 test('wallet homes are independent within a tenant and durable across competing registrations, travel and restart', async ({
@@ -187,6 +206,70 @@ test('wallet homes are independent within a tenant and durable across competing 
       requestDigest: 'not-a-digest',
     });
     expect(invalidDigest.status).toBe(400);
+    const unknownResource = await call(runtime, {
+      ...reservation('unadmitted-resource', homes[1]),
+      home: WalletHome.parse({
+        region: 'WEUR',
+        accountId,
+        databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      }),
+    });
+    expect(unknownResource.status).toBe(400);
+    expect(await unknownResource.json()).toMatchObject({ code: 'invalid_input' });
+    expect(
+      (await call(runtime, { action: 'find', wallet: walletKey('unadmitted-resource') })).status,
+    ).toBe(404);
+    const ingress = await runtime.getWorker('ingress-a');
+    const baselineLocation = await ingress.fetch('https://authority.test/', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'select' }),
+    });
+    const spoofedLocation = await ingress.fetch('https://authority.test/', {
+      method: 'POST',
+      headers: { 'x-seams-home-region': 'APAC' },
+      body: JSON.stringify({ action: 'select', region: 'APAC' }),
+    });
+    expect(await spoofedLocation.json()).toEqual(await baselineLocation.json());
+
+    const serviceReservation = {
+      ...reservation('service-wallet', homes[2]),
+      ingressRegion: 'US',
+    };
+    const serviceFirst = await serviceCall(runtime, 'reserve', serviceReservation);
+    expect(serviceFirst.status).toBe(200);
+    expect(await serviceFirst.json()).toMatchObject({
+      disposition: 'reserved',
+      assignment: { home: homes[0] },
+    });
+    const serviceRetry = await serviceCall(runtime, 'reserve', {
+      ...serviceReservation,
+      ingressRegion: 'APAC',
+      home: homes[2],
+    });
+    expect(serviceRetry.status).toBe(200);
+    expect(await serviceRetry.json()).toMatchObject({
+      disposition: 'reused',
+      assignment: { home: homes[0] },
+    });
+    expect(
+      (
+        await serviceCall(runtime, 'complete', {
+          ...serviceReservation,
+          home: homes[2],
+          outcome: 'established',
+        })
+      ).status,
+    ).toBe(409);
+    const serviceCompleted = await serviceCall(runtime, 'complete', {
+      ...serviceReservation,
+      home: homes[0],
+      outcome: 'established',
+    });
+    expect(serviceCompleted.status).toBe(200);
+    expect(await serviceCompleted.json()).toMatchObject({
+      assignment: { state: 'established', home: homes[0] },
+    });
+    observations.push({ stage: 'service_admission', walletId: 'service-wallet', home: homes[0] });
 
     const allocations = [];
     for (let index = 0; index < 9; index += 1) {
@@ -336,7 +419,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     const rows = await persisted
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
-    expect(rows.results).toHaveLength(15);
+    expect(rows.results).toHaveLength(16);
     const receipt = {
       kind: 'wallet_home_directory_e2e_v1',
       observations,

@@ -1,17 +1,52 @@
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
+import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import {
   RegistrationSetupAllocation,
   WalletHome,
+  WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
+  regionForRegistrationIngress,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
+
+const catalog = WalletHomeCatalog.parse([
+  {
+    region: 'US',
+    accountId: '0123456789abcdef0123456789abcdef',
+    databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  },
+  {
+    region: 'WEUR',
+    accountId: '0123456789abcdef0123456789abcdef',
+    databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  },
+  {
+    region: 'APAC',
+    accountId: '0123456789abcdef0123456789abcdef',
+    databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  },
+]);
+const catalogJson = JSON.stringify([
+  catalog.select('US'),
+  catalog.select('WEUR'),
+  catalog.select('APAC'),
+]);
 
 export default {
   async fetch(request: Request, env: { CONSOLE_DB: D1DatabaseLike }): Promise<Response> {
-    const directory = new D1WalletHomeDirectory(env.CONSOLE_DB);
+    const serviceResponse = await handleWalletHomeServiceRequest(
+      request,
+      env.CONSOLE_DB,
+      catalogJson,
+    );
+    if (serviceResponse) return serviceResponse;
+    const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
     const body = await request.json();
     try {
+      if (body.action === 'select') {
+        return Response.json({ region: regionForRegistrationIngress(request, 'WEUR') });
+      }
       const wallet = WalletOwnershipKey.parse(body.wallet);
       if (body.action === 'find') {
         const assignment = await directory.find(wallet);
@@ -40,7 +75,9 @@ export default {
       const outcome = await directory.reserve({
         ...selection,
         proposedHome: home,
-        proposedRegistrationAllocation: RegistrationSetupAllocation.parse(body.registrationAllocation),
+        proposedRegistrationAllocation: RegistrationSetupAllocation.parse(
+          body.registrationAllocation,
+        ),
         registrationId: body.registrationId,
         requestDigest: body.requestDigest,
         nowMs: Date.now(),

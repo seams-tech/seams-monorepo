@@ -24,6 +24,7 @@ type Scenario =
   | 'deployment_changed'
   | 'weights_changed'
   | 'invalid_weights'
+  | 'invalid_json'
   | 'provider_denied';
 
 class ProviderFixture {
@@ -49,6 +50,10 @@ class ProviderFixture {
     }
     if (this.scenario === 'provider_denied') {
       response.writeHead(403).end(JSON.stringify({ errors: [{ message: secretMarker }] }));
+      return;
+    }
+    if (this.scenario === 'invalid_json') {
+      response.end(secretMarker);
       return;
     }
     const worker = match[1];
@@ -160,6 +165,7 @@ test('provider checkpoint checks both gradual-rollout writers and rejects drift 
       'deployment_changed',
       'weights_changed',
       'invalid_weights',
+      'invalid_json',
       'provider_denied',
     ];
     for (const scenario of scenarios) {

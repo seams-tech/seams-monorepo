@@ -31,7 +31,13 @@ async function providerGet(accountId, apiToken, resourcePath) {
     },
   );
   if (!response.ok) throw new Error(`Cloudflare read failed with HTTP ${response.status}`);
-  const body = record(await response.json(), 'Cloudflare response');
+  let raw;
+  try {
+    raw = await response.json();
+  } catch {
+    throw new Error('Cloudflare response is not valid JSON');
+  }
+  const body = record(raw, 'Cloudflare response');
   if (body.success !== true) throw new Error('Cloudflare read did not succeed');
   return record(body.result, 'Cloudflare result');
 }

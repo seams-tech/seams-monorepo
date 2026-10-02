@@ -20,6 +20,7 @@ CREATE TABLE wallet_homes (
   completed_at_ms INTEGER,
   PRIMARY KEY (namespace, organization_id, project_id, environment_id, wallet_id),
   UNIQUE (namespace, organization_id, project_id, environment_id, registration_id),
+  UNIQUE (namespace, ceremony_id),
   CHECK ((state = 'reserved' AND completed_at_ms IS NULL) OR
          (state IN ('established', 'cancelled') AND completed_at_ms >= reserved_at_ms AND completed_at_ms IS NOT NULL))
 );
@@ -56,9 +57,13 @@ CREATE TRIGGER wallet_homes_no_replace
 BEFORE INSERT ON wallet_homes
 WHEN EXISTS (
   SELECT 1 FROM wallet_homes
-  WHERE namespace = NEW.namespace AND organization_id = NEW.organization_id
-    AND project_id = NEW.project_id AND environment_id = NEW.environment_id
-    AND (wallet_id = NEW.wallet_id OR registration_id = NEW.registration_id)
+  WHERE namespace = NEW.namespace AND (
+    ceremony_id = NEW.ceremony_id OR (
+      organization_id = NEW.organization_id AND project_id = NEW.project_id
+      AND environment_id = NEW.environment_id
+      AND (wallet_id = NEW.wallet_id OR registration_id = NEW.registration_id)
+    )
+  )
 )
 BEGIN
   SELECT RAISE(ABORT, 'wallet home identity is immutable');

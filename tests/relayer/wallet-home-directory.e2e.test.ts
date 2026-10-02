@@ -283,6 +283,25 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(await serviceCompleted.json()).toMatchObject({
       assignment: { state: 'established', home: homes[0] },
     });
+    const byCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+      ceremonyId: 'wrc_service-wallet',
+    });
+    expect(byCeremony.status).toBe(200);
+    expect(await byCeremony.json()).toMatchObject({
+      assignment: { wallet: { walletId: 'service-wallet' }, home: homes[0] },
+    });
+    const duplicateCeremony = await call(runtime, {
+      ...reservation('ceremony-collision', homes[1]),
+      registrationAllocation: {
+        ...reservation('ceremony-collision', homes[1]).registrationAllocation,
+        ceremonyId: 'wrc_service-wallet',
+      },
+    });
+    expect(duplicateCeremony.status).toBe(409);
+    expect(await duplicateCeremony.json()).toMatchObject({ code: 'ceremony_conflict' });
+    expect(
+      (await call(runtime, { action: 'find', wallet: walletKey('ceremony-collision') })).status,
+    ).toBe(404);
     observations.push({ stage: 'service_admission', walletId: 'service-wallet', home: homes[0] });
 
     const allocations = [];
@@ -406,12 +425,32 @@ test('wallet homes are independent within a tenant and durable across competing 
       (await call(runtime, { ...cancelledInput, action: 'complete', outcome: 'established' }))
         .status,
     ).toBe(409);
-    expect(await (await call(runtime, reservation('cancelled', homes[2]))).json()).toMatchObject({
+    const cancelledRetry = await call(runtime, reservation('cancelled', homes[2]));
+    expect(cancelledRetry.status).toBe(409);
+    expect(await cancelledRetry.json()).toMatchObject({
+      code: 'registration_cancelled',
       assignment: { state: 'cancelled', home: homes[0] },
     });
-    expect(
-      await (await call(runtime, reservation('lost-reply', homes[2], 'separate-project'))).json(),
-    ).toMatchObject({ disposition: 'reserved', assignment: { home: homes[2] } });
+    const cancelledCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+      ceremonyId: 'wrc_cancelled',
+    });
+    expect(cancelledCeremony.status).toBe(404);
+    const foreignProject = reservation('lost-reply', homes[2], 'separate-project');
+    const foreignProjectWithCeremony = {
+      ...foreignProject,
+      registrationAllocation: {
+        ...foreignProject.registrationAllocation,
+        ceremonyId: 'wrc_lost-reply-foreign',
+      },
+    };
+    expect(await (await call(runtime, foreignProjectWithCeremony)).json()).toMatchObject({
+      disposition: 'reserved',
+      assignment: { home: homes[2] },
+    });
+    const foreignCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+      ceremonyId: 'wrc_lost-reply-foreign',
+    });
+    expect(foreignCeremony.status).toBe(404);
 
     const persisted = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
     for (const sql of [
@@ -420,6 +459,13 @@ test('wallet homes are independent within a tenant and durable across competing 
       "UPDATE wallet_homes SET request_digest = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', state = 'established', completed_at_ms = reserved_at_ms WHERE wallet_id = 'traveller'",
       "UPDATE wallet_homes SET ceremony_id = 'wrc_replaced' WHERE wallet_id = 'traveller'",
       "INSERT OR REPLACE INTO wallet_homes SELECT * FROM wallet_homes WHERE wallet_id = 'lost-reply'",
+      `INSERT OR REPLACE INTO wallet_homes
+       SELECT namespace, organization_id, project_id, environment_id,
+              'ceremony-replacement', 'register-ceremony-replacement', request_digest,
+              allocation, ceremony_id, preparation_id, wallet_authority_id, device_id,
+              wallet_auth_method_id, region, account_id, database_id, state,
+              reserved_at_ms, completed_at_ms
+         FROM wallet_homes WHERE wallet_id = 'service-wallet'`,
     ])
       await expect(persisted.prepare(sql).run()).rejects.toThrow(
         /wallet home (identity is immutable|transition is invalid)/,

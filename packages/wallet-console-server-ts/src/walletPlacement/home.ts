@@ -248,8 +248,18 @@ export type WalletHomeReservation =
     }
   | {
       readonly ok: false;
-      readonly code: 'wallet_conflict' | 'registration_conflict' | 'request_conflict';
+      readonly code:
+        | 'wallet_conflict'
+        | 'registration_conflict'
+        | 'request_conflict'
+        | 'registration_cancelled';
       readonly assignment: WalletHomeAssignment;
+      readonly disposition?: never;
+    }
+  | {
+      readonly ok: false;
+      readonly code: 'ceremony_conflict';
+      readonly assignment?: never;
       readonly disposition?: never;
     };
 

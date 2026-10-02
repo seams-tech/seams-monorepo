@@ -19,6 +19,15 @@ type WalletHomeServiceScope = {
   readonly environmentId: string;
 };
 
+function inScope(wallet: WalletOwnershipKey, scope: WalletHomeServiceScope): boolean {
+  return (
+    wallet.namespace === scope.namespace &&
+    wallet.organizationId === scope.organizationId &&
+    wallet.projectId === scope.projectId &&
+    wallet.environmentId === scope.environmentId
+  );
+}
+
 export function isWalletHomeServiceRequest(request: Request): boolean {
   const url = new URL(request.url);
   return (
@@ -72,6 +81,7 @@ export async function handleWalletHomeServiceRequest(
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
   ) {
@@ -86,13 +96,19 @@ export async function handleWalletHomeServiceRequest(
     const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`) {
+      const assignment = await directory.findByCeremony(
+        options.scope.namespace,
+        requiredString(body.ceremonyId, 'ceremonyId'),
+      );
+      return assignment &&
+        assignment.state !== 'cancelled' &&
+        inScope(assignment.wallet, options.scope)
+        ? json({ ok: true, assignment })
+        : json({ ok: false, code: 'not_found' }, 404);
+    }
     const wallet = WalletOwnershipKey.parse(body.wallet);
-    if (
-      wallet.namespace !== options.scope.namespace ||
-      wallet.organizationId !== options.scope.organizationId ||
-      wallet.projectId !== options.scope.projectId ||
-      wallet.environmentId !== options.scope.environmentId
-    ) {
+    if (!inScope(wallet, options.scope)) {
       throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
     }
     switch (url.pathname) {

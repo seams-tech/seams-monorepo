@@ -127,6 +127,24 @@ export class D1WalletHomeDirectory {
     return row ? assignmentFromRow(row) : null;
   }
 
+  async findByCeremony(
+    namespace: string,
+    ceremonyId: string,
+  ): Promise<WalletHomeAssignment | null> {
+    if (!namespace || namespace.trim() !== namespace) {
+      throw new WalletPlacementError('invalid_input', 'Wallet namespace is invalid');
+    }
+    if (!/^wrc_[A-Za-z0-9_-]+$/u.test(ceremonyId)) {
+      throw new WalletPlacementError('invalid_input', 'Registration ceremony identity is invalid');
+    }
+    const row = await queryD1One(
+      this.database,
+      'SELECT * FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?2',
+      [namespace, ceremonyId],
+    );
+    return row ? assignmentFromRow(row) : null;
+  }
+
   async reserve(input: WalletHomeReservationInput): Promise<WalletHomeReservation> {
     const registrationId = registrationIdentity(input.registrationId);
     const nowMs = timestamp(input.nowMs);
@@ -149,7 +167,8 @@ export class D1WalletHomeDirectory {
          ?13, ?14, ?15, ?16, ?17
        WHERE NOT EXISTS (SELECT 1 FROM wallet_homes
          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-           AND (wallet_id = ?5 OR registration_id = ?6))`,
+           AND (wallet_id = ?5 OR registration_id = ?6))
+         AND NOT EXISTS (SELECT 1 FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?13)`,
       )
       .bind(
         ...scopeBindings(wallet),
@@ -176,8 +195,14 @@ export class D1WalletHomeDirectory {
        ORDER BY CASE WHEN registration_id = ?6 THEN 0 ELSE 1 END LIMIT 1`,
       [...scopeBindings(wallet), wallet.walletId, registrationId],
     );
-    if (!row)
+    if (!row) {
+      const collision = await this.findByCeremony(
+        wallet.namespace,
+        input.proposedRegistrationAllocation.ceremonyId,
+      );
+      if (collision) return { ok: false, code: 'ceremony_conflict' };
       throw new WalletPlacementError('invalid_record', 'Wallet home reservation disappeared');
+    }
     const assignment = assignmentFromRow(row);
     if (input.allocation === 'provided' && !assignment.wallet.matches(wallet)) {
       return { ok: false, code: 'registration_conflict', assignment };
@@ -187,6 +212,9 @@ export class D1WalletHomeDirectory {
     }
     if (assignment.requestDigest !== digest || assignment.allocation !== input.allocation) {
       return { ok: false, code: 'request_conflict', assignment };
+    }
+    if (assignment.state === 'cancelled') {
+      return { ok: false, code: 'registration_cancelled', assignment };
     }
     // A retry from another region retains the first committed home.
     return {

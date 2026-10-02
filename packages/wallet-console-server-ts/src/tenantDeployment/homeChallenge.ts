@@ -195,18 +195,13 @@ export function createTenantD1HomeVerifierV1(options: {
           'D1 home challenge lane disagrees with this runtime',
         );
       const assignment = await options.store.findNamespaceHome(options.home.namespace);
-      if (!assignment)
-        throw new TenantDeploymentStoreError(
-          'namespace_home_unassigned',
-          'Namespace home must be reserved before verification',
-        );
-      if (!assignment.home.matches(options.home))
+      if (assignment && !assignment.home.matches(options.home))
         throw new TenantDeploymentStoreError(
           'namespace_home_conflict',
           'Configured home disagrees with the immutable reservation',
         );
-      const gateway = await inspectWriter(options.gateway, assignment.home, request);
-      const runtime = await inspectWriter(options.walletRuntime, assignment.home, request);
+      const gateway = await inspectWriter(options.gateway, options.home, request);
+      const runtime = await inspectWriter(options.walletRuntime, options.home, request);
       const checkedAtMs = Date.now();
       const expiresAtMs = Math.min(gateway.expiresAtMs, runtime.expiresAtMs);
       if (
@@ -218,10 +213,19 @@ export function createTenantD1HomeVerifierV1(options: {
           'readiness_invalid',
           'Writers observed different or expired challenges',
         );
+      // Only authenticated deployment control with proof from both writers can assign a home.
+      if (!assignment) {
+        const reserved = await options.store.reserveNamespaceHome(options.home);
+        if (!reserved.ok)
+          throw new TenantDeploymentStoreError(
+            'namespace_home_conflict',
+            'Another deployment assigned this namespace to a different home',
+          );
+      }
       return {
         kind: 'tenant_d1_runtime_home_checkpoint_v1',
         deploymentLane: request.deploymentLane,
-        home: assignment.home,
+        home: options.home,
         challengeId: request.challengeId,
         checkedAtMs,
         expiresAtMs,

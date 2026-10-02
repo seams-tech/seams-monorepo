@@ -503,9 +503,8 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         })
       ).status(),
     ).toBe(401);
-    const missing = await good.fetch(verifyUrl, requestInit(challenge, auth));
-    expect(await missing.json()).toMatchObject({ code: 'namespace_home_unassigned' });
-    await createD1TenantDeploymentServiceV1({ database: authority }).reserveNamespaceHome(home);
+    const assignments = createD1TenantDeploymentServiceV1({ database: authority });
+    expect(await assignments.findNamespaceHome(namespace)).toBeNull();
     const publicAttempt = await gateway.fetch(
       `https://gateway.example.test${challengePath}`,
       requestInit({ namespace, challengeId: challenge.challengeId }, ''),
@@ -529,7 +528,15 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       requestInit({ ...challenge, expectedProof: randomBytes(32).toString('hex') }, auth),
     );
     expect(await tampered.json()).toMatchObject({ code: 'namespace_home_conflict' });
-    const success = await good.fetch(verifyUrl, requestInit(challenge, auth));
+    expect(await assignments.findNamespaceHome(namespace)).toBeNull();
+    const [success, concurrent, retry] = await Promise.all([
+      good.fetch(verifyUrl, requestInit(challenge, auth)),
+      good.fetch(verifyUrl, requestInit(challenge, auth)),
+      good.fetch(verifyUrl, requestInit(challenge, auth)),
+    ]);
+    expect(concurrent.status).toBe(200);
+    expect(retry.status).toBe(200);
+    expect((await assignments.findNamespaceHome(namespace))?.home.matches(home)).toBe(true);
     const successText = await success.text();
     expect(success.status).toBe(200);
     expect(successText).not.toContain(challenge.expectedProof);
@@ -786,7 +793,6 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       verified: JSON.parse(successText).result,
       rejected: [
         'unauthenticated',
-        'missing reservation',
         'public request',
         'echo payload',
         'wrong database',
@@ -799,6 +805,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         'missing version metadata',
       ],
       activationCount: 1,
+      automaticHomeAssignment: { concurrentRequests: 3, invalidProofsLeftUnassigned: true },
       singleUseChallenge: true,
       localProofRejectedForProductionBinding: true,
       expiredCompletedRetrySucceeded: true,

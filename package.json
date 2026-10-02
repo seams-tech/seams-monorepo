@@ -17,6 +17,7 @@
     "deploy:backend": "node ./scripts/deploy-backend.mjs",
     "deploy:frontend": "node ./scripts/deploy-surface.mjs",
     "tenant:cutover": "node ./scripts/tenant-cutover.mjs",
+    "tenant:verify-d1-bindings": "node ./scripts/verify-tenant-d1-bindings.mjs",
     "router:deploy:browser-evidence": "pnpm -C tests exec playwright test -c playwright.router-ab-deployed-evidence.config.ts --reporter=line",
     "router:deploy:keygen": "node ./deployment/wallet-system/scripts/generate-deployment-keys.mjs",
     "console:deploy:env-prepare": "node ./scripts/console-deployment-environment.mjs prepare",

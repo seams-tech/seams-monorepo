@@ -8,6 +8,7 @@
     "relayer/namespace-home-activation.e2e.test.ts",
     "relayer/tenant-binding-home-adoption.e2e.test.ts",
     "relayer/tenant-home-adoption-operator.e2e.test.ts",
+    "relayer/tenant-d1-provider-bindings.e2e.test.ts",
     "relayer/console-service-auth.e2e.test.ts",
     "fixtures/tenant-deployment/**/*.ts"
   ],

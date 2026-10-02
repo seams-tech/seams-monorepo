@@ -506,6 +506,31 @@ deployment sequence against historical bindings. Local evidence and reproduction
 are in `.artifacts/r152/operator-home-adoption-20261002/` and
 `tests/relayer/tenant-home-adoption-operator.e2e.test.ts`.
 
+The read-only provider checkpoint is available separately:
+
+```text
+pnpm tenant:verify-d1-bindings --lane production-testnet \
+  --output .artifacts/d1-binding-checkpoint-UNIQUE_RUN.json
+```
+
+Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the operator environment.
+The token needs permission to read Worker deployments and versions. The command
+reads the existing lane manifest, inspects `SIGNER_DB` on every version in the
+current Gateway and Wallet Runtime deployments, and rereads both deployment
+IDs and traffic weights. Missing bindings, duplicate names, wrong databases,
+malformed weights, denied reads and changed deployments fail the checkpoint.
+Only the selected D1 binding and deployment/version IDs are retained; unrelated
+bindings and secrets are excluded. The output path must be new, and a failure
+records `status: failed`. An interrupted run retains `status: checking`.
+
+`provider_bindings_match` records provider configuration agreement at that time.
+It does not compare the Console reservation, perform the fresh D1/runtime
+challenge, authorize activation, or account for other reachable older versions
+and internal/admin routes. Those are still rollout gates. Provider API semantics:
+[current deployment ordering](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/),
+[version resources](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/get/),
+and [D1 binding IDs](https://developers.cloudflare.com/workers/configuration/multipart-upload-metadata/#bindings).
+
 The protected workflow deploys and smokes the complete production-testnet
 Wallet runtime plus the Console control plane before it invokes the cutover.
 An empty Console with no active binding remains infrastructure-ready so the

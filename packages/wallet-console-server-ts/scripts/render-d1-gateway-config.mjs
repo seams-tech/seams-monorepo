@@ -18,6 +18,7 @@ import {
   gatewayRuntimeProfileNearNetwork,
 } from './gateway-deployment-config.mjs';
 import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import { isDirectInvocation } from './d1-staging-config.mjs';
 
 const VALID_LANES = new Set(['staging-testnet', 'production-testnet', 'production-mainnet']);
 
@@ -468,4 +469,4 @@ function addOptionalStringVar(vars, name, value) {
   vars[name] = value;
 }
 
-main();
+if (isDirectInvocation(import.meta.url)) main();

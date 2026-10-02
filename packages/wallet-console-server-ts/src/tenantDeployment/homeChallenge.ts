@@ -3,7 +3,7 @@ import type {
   D1Row,
   WalletRuntimeServiceBinding,
 } from '@seams/wallet-server/cloud-host';
-import { NamespaceD1HomeV1, type NamespaceD1HomeStoreV1 } from './namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import { TenantDeploymentStoreError } from './service';
 
 const CHALLENGE_PATH = '/internal/tenant-deployment/v1/home-challenge';
@@ -19,7 +19,7 @@ export type TenantD1HomeChallengeRequestV1 = {
 
 type ChallengeObservation = {
   readonly versionId: string;
-  readonly home: NamespaceD1HomeV1;
+  readonly home: TenantDeploymentD1ResourceIdentityV1;
   readonly challengeId: string;
   readonly proof: string;
   readonly issuedAtMs: number;
@@ -30,7 +30,7 @@ export interface TenantD1HomeVerifierV1 {
   verify(request: TenantD1HomeChallengeRequestV1): Promise<{
     readonly kind: 'tenant_d1_runtime_home_checkpoint_v1';
     readonly deploymentLane: string;
-    readonly home: NamespaceD1HomeV1;
+    readonly home: TenantDeploymentD1ResourceIdentityV1;
     readonly challengeId: string;
     readonly checkedAtMs: number;
     readonly expiresAtMs: number;
@@ -89,7 +89,7 @@ function parseObservation(raw: unknown, nowMs: number): ChallengeObservation {
   }
   return {
     versionId: raw.versionId,
-    home: NamespaceD1HomeV1.parse(raw.home),
+    home: TenantDeploymentD1ResourceIdentityV1.parse(raw.home),
     challengeId: raw.challengeId,
     proof: raw.proof,
     issuedAtMs: raw.issuedAtMs,
@@ -111,7 +111,7 @@ export async function tenantD1HomeChallengeResponseV1(
   if (url.pathname !== CHALLENGE_PATH) return null;
   if (url.origin !== CHALLENGE_ORIGIN) return json({ ok: false }, 404);
   if (request.method !== 'POST') return json({ ok: false }, 405);
-  const home = NamespaceD1HomeV1.parse(rawHome);
+  const home = TenantDeploymentD1ResourceIdentityV1.parse(rawHome);
   const raw: unknown = await request.json().catch(() => null);
   if (
     !record(raw) ||
@@ -152,7 +152,7 @@ export async function tenantD1HomeChallengeResponseV1(
 
 async function inspectWriter(
   service: WalletRuntimeServiceBinding,
-  home: NamespaceD1HomeV1,
+  home: TenantDeploymentD1ResourceIdentityV1,
   request: TenantD1HomeChallengeRequestV1,
 ): Promise<ChallengeObservation> {
   const response = await service.fetch(`${CHALLENGE_ORIGIN}${CHALLENGE_PATH}`, {
@@ -173,7 +173,7 @@ async function inspectWriter(
     observation.proof !== request.expectedProof
   ) {
     throw new TenantDeploymentStoreError(
-      'namespace_home_conflict',
+      'deployment_resource_conflict',
       'D1 runtime home challenge does not match the reserved resource',
     );
   }
@@ -181,9 +181,8 @@ async function inspectWriter(
 }
 
 export function createTenantD1HomeVerifierV1(options: {
-  readonly home: NamespaceD1HomeV1;
+  readonly home: TenantDeploymentD1ResourceIdentityV1;
   readonly deploymentLane: string;
-  readonly store: NamespaceD1HomeStoreV1;
   readonly gateway: WalletRuntimeServiceBinding;
   readonly walletRuntime: WalletRuntimeServiceBinding;
 }): TenantD1HomeVerifierV1 {
@@ -193,12 +192,6 @@ export function createTenantD1HomeVerifierV1(options: {
         throw new TenantDeploymentStoreError(
           'invalid_input',
           'D1 home challenge lane disagrees with this runtime',
-        );
-      const assignment = await options.store.findNamespaceHome(options.home.namespace);
-      if (assignment && !assignment.home.matches(options.home))
-        throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'Configured home disagrees with the immutable reservation',
         );
       const gateway = await inspectWriter(options.gateway, options.home, request);
       const runtime = await inspectWriter(options.walletRuntime, options.home, request);
@@ -213,15 +206,6 @@ export function createTenantD1HomeVerifierV1(options: {
           'readiness_invalid',
           'Writers observed different or expired challenges',
         );
-      // Only authenticated deployment control with proof from both writers can assign a home.
-      if (!assignment) {
-        const reserved = await options.store.reserveNamespaceHome(options.home);
-        if (!reserved.ok)
-          throw new TenantDeploymentStoreError(
-            'namespace_home_conflict',
-            'Another deployment assigned this namespace to a different home',
-          );
-      }
       return {
         kind: 'tenant_d1_runtime_home_checkpoint_v1',
         deploymentLane: request.deploymentLane,

@@ -107,7 +107,7 @@ import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment
 import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
-import { NamespaceD1HomeV1 } from '../../tenantDeployment/namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
@@ -252,7 +252,6 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'active_tenant_deployment_bindings',
   'tenant_deployment_cutovers',
   'tenant_deployment_activations',
-  'namespace_d1_homes',
 ]);
 
 async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
@@ -499,7 +498,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     if (!active) return;
     await tenantDeploymentReadinessAdapter.inspect(active);
   };
-  const deploymentHome = NamespaceD1HomeV1.parse({
+  const deploymentHome = TenantDeploymentD1ResourceIdentityV1.parse({
     namespace,
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
@@ -525,7 +524,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     homeVerifier: createTenantD1HomeVerifierV1({
       home: deploymentHome,
       deploymentLane,
-      store: tenantDeploymentStore,
       gateway: env.WALLET_GATEWAY,
       walletRuntime: env.WALLET_RUNTIME,
     }),

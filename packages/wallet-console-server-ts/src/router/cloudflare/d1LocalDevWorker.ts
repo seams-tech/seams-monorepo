@@ -159,7 +159,7 @@ import {
 import { createD1TenantDeploymentRuntimeInspectorV1 } from '../../tenantDeployment/runtimeInspection';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
 import type { TenantDeploymentBindingReaderV1 } from '../../tenantDeployment/types';
-import { NamespaceD1HomeV1 } from '../../tenantDeployment/namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 
 interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
@@ -1009,16 +1009,10 @@ function localConfiguredPublishableKey(env: LocalD1DevEnv): `pk_${string}` | nul
 }
 
 async function provisionLocalTenantDeployment(
-  home: NamespaceD1HomeV1,
-  store: ReturnType<typeof createD1TenantDeploymentServiceV1>,
+  home: TenantDeploymentD1ResourceIdentityV1,
   provisioner: TenantDeploymentProvisionerV1,
   request: TenantDeploymentProvisioningRequestV1,
 ) {
-  // The local bootstrap owns both database bindings; hosted deployments require an explicit pin.
-  const reservation = await store.reserveNamespaceHome(home);
-  if (!reservation.ok) {
-    throw new Error('local D1 resource conflicts with its reserved namespace home');
-  }
   return provisioner.provision({
     deploymentLane: request.deploymentLane,
     environmentId: request.environmentId,
@@ -1214,7 +1208,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({ database: env.SIGNER_DB }),
   });
   const configuredPublishableKey = localConfiguredPublishableKey(env);
-  const home = NamespaceD1HomeV1.parse({
+  const home = TenantDeploymentD1ResourceIdentityV1.parse({
     namespace: localTenantStorageNamespace(env),
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
@@ -1245,8 +1239,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       : { kind: 'create_managed_publishable_key' },
   });
   const tenantDeploymentProvisioner: TenantDeploymentProvisionerV1 = {
-    adoptHome: provisioner.adoptHome.bind(provisioner),
-    provision: provisionLocalTenantDeployment.bind(null, home, tenantDeploymentStore, provisioner),
+    provision: provisionLocalTenantDeployment.bind(null, home, provisioner),
   };
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const handlerWithTenantRootCreation = createLocalConsoleTenantRootHandler({

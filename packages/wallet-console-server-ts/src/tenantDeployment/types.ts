@@ -7,7 +7,7 @@ import type {
   TenantDeploymentCutoverV1,
   TenantDeploymentReadinessReceiptV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
-import type { NamespaceD1HomeV1 } from './namespaceHome';
+import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import type { TenantHomeVerificationV1, TenantRuntimeWriterV1 } from './homeVerification';
 import type { TenantDeploymentRuntimeScopeV1 } from './runtimeInspection';
 
@@ -28,7 +28,7 @@ export type ExpectedActiveTenantDeploymentBindingV1 = {
 
 export type ActivateTenantDeploymentBindingInputV1 = {
   readonly homeVerification: TenantHomeVerificationV1;
-  readonly home: NamespaceD1HomeV1;
+  readonly home: TenantDeploymentD1ResourceIdentityV1;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedCutoverRecordRevision: number;
   readonly deploymentLane: string;
@@ -69,11 +69,6 @@ export interface TenantDeploymentBindingReaderV1 {
 }
 
 export interface TenantDeploymentBindingStoreV1 extends TenantDeploymentBindingReaderV1 {
-  adoptBindingHome(
-    deploymentLane: string,
-    revision: TenantDeploymentBindingRevision,
-    home: NamespaceD1HomeV1,
-  ): Promise<TenantDeploymentBindingV1>;
   putBinding(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentBindingV1>;
   activateBinding(
     input: ActivateTenantDeploymentBindingInputV1,

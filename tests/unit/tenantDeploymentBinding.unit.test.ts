@@ -30,7 +30,7 @@ import { cleanupTemporaryD1Database, createTemporaryD1Database } from '../helper
 import {
   binding,
   developmentBindingBody,
-  namespaceHome,
+  deploymentResource,
   operatorHomeCheckpoint,
 } from '../helpers/tenantDeploymentFixtures';
 
@@ -48,6 +48,7 @@ test.describe('tenant deployment binding', () => {
         '0048_tenant_deployment_activation_homes.sql',
         '0049_tenant_deployment_binding_homes.sql',
         '0050_tenant_deployment_home_verification.sql',
+        '0052_drop_namespace_placement.sql',
       ]) {
         await fixture.database.exec(
           readFileSync(
@@ -232,6 +233,7 @@ test.describe('tenant deployment binding', () => {
         '0048_tenant_deployment_activation_homes.sql',
         '0049_tenant_deployment_binding_homes.sql',
         '0050_tenant_deployment_home_verification.sql',
+        '0052_drop_namespace_placement.sql',
       ]) {
         await fixture.database.exec(
           readFileSync(
@@ -240,12 +242,11 @@ test.describe('tenant deployment binding', () => {
           ),
         );
       }
-      const home = namespaceHome('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+      const home = deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
       const service = createD1TenantDeploymentServiceV1({
         database: fixture.database,
         now: () => new Date(1_800_000_000_000),
       });
-      await service.reserveNamespaceHome(home);
       const first = await service.putBinding(await binding(1_700_000_000_000));
       const readinessReceipt = {
         kind: 'tenant_deployment_readiness_receipt_v1' as const,

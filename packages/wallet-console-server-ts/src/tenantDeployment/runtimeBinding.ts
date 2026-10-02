@@ -4,7 +4,7 @@ import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
 import { TenantDeploymentStoreError } from './service';
 import { forwardTenantDeploymentD1Timing } from './bindingTiming';
-import { NamespaceD1HomeV1 } from './namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 
 export const TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1 = 'https://tenant-deployment.internal';
 export const TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1 = '/internal/tenant-deployment/v1/active';
@@ -185,7 +185,7 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
       'active tenant deployment belongs to another lane',
     );
   }
-  const configured = NamespaceD1HomeV1.parse({
+  const configured = TenantDeploymentD1ResourceIdentityV1.parse({
     namespace: binding.tenant.namespace,
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
@@ -195,7 +195,7 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
     binding.home.databaseId !== configured.databaseId
   ) {
     throw new TenantDeploymentStoreError(
-      'namespace_home_conflict',
+      'deployment_resource_conflict',
       'runtime D1 resource conflicts with the active binding',
     );
   }

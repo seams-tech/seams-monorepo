@@ -626,34 +626,6 @@ async function bindingRevisionFromJsonValue(
   return `tdb_${base64Url(new Uint8Array(digest))}`;
 }
 
-// Only explicit persistence adoption may convert a binding that predates resource identity.
-export async function adoptTenantDeploymentBindingHomeV1(
-  value: unknown,
-  home: TenantDeploymentD1ResourceV1,
-): Promise<TenantDeploymentDecodeResult<TenantDeploymentBindingV1>> {
-  const input = record(value);
-  const historicalKeys = BINDING_KEYS.filter(isHistoricalBindingKey);
-  if (!input || !exactKeys(input, historicalKeys)) {
-    return { ok: false, message: 'historical tenant deployment binding is invalid' };
-  }
-  const bodyInput: JsonRecord = { home };
-  for (const key of BINDING_BODY_KEYS) if (key !== 'home') bodyInput[key] = input[key];
-  const parsed = decodeTenantDeploymentBindingBodyV1(bodyInput);
-  if (!parsed.ok) return parsed;
-  const currentBody = bindingBodyJsonValue(parsed.value);
-  const historicalBody: Record<string, TenantDeploymentJsonValue> = {};
-  for (const [key, field] of Object.entries(currentBody))
-    if (key !== 'home') historicalBody[key] = field;
-  if (input.revision !== (await bindingRevisionFromJsonValue(historicalBody))) {
-    return { ok: false, message: 'historical binding revision does not match its body' };
-  }
-  return buildTenantDeploymentBindingV1(parsed.value);
-}
-
-function isHistoricalBindingKey(key: string): boolean {
-  return key !== 'home';
-}
-
 export async function buildTenantDeploymentBindingV1(
   value: unknown,
 ): Promise<TenantDeploymentDecodeResult<TenantDeploymentBindingV1>> {

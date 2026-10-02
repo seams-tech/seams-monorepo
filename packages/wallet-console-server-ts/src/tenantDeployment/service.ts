@@ -1,11 +1,9 @@
 import type { TenantDeploymentBindingStoreV1 } from './types';
-import type { NamespaceD1HomeStoreV1 } from './namespaceHome';
 
 export type TenantDeploymentStoreErrorCodeV1 =
   | 'invalid_input'
   | 'invalid_record'
-  | 'namespace_home_unassigned'
-  | 'namespace_home_conflict'
+  | 'deployment_resource_conflict'
   | 'binding_conflict'
   | 'binding_not_found'
   | 'activation_conflict'
@@ -36,8 +34,7 @@ function tenantDeploymentStoreErrorStatus(
     case 'cutover_not_found':
       return 404;
     case 'binding_conflict':
-    case 'namespace_home_unassigned':
-    case 'namespace_home_conflict':
+    case 'deployment_resource_conflict':
     case 'activation_conflict':
     case 'cutover_conflict':
       return 409;
@@ -50,4 +47,4 @@ export function isTenantDeploymentStoreError(error: unknown): error is TenantDep
   return error instanceof TenantDeploymentStoreError;
 }
 
-export type TenantDeploymentServiceV1 = TenantDeploymentBindingStoreV1 & NamespaceD1HomeStoreV1;
+export type TenantDeploymentServiceV1 = TenantDeploymentBindingStoreV1;

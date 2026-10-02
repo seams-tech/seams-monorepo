@@ -1,4 +1,4 @@
-import { NamespaceD1HomeV1 } from './namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import { TenantDeploymentStoreError } from './service';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u;
@@ -57,7 +57,7 @@ function parseWriter(raw: unknown, versionId: unknown, databaseId: string): Writ
 export class TenantHomeVerificationV1 {
   readonly #validated = true;
   private constructor(
-    readonly home: NamespaceD1HomeV1,
+    readonly home: TenantDeploymentD1ResourceIdentityV1,
     readonly deploymentLane: string,
     readonly challengeId: string,
     readonly checkedAtMs: number,
@@ -105,7 +105,7 @@ export class TenantHomeVerificationV1 {
       nowMs - before > 300_000
     )
       invalid();
-    const home = NamespaceD1HomeV1.parse(raw.home);
+    const home = TenantDeploymentD1ResourceIdentityV1.parse(raw.home);
     const [gatewayRaw, runtimeRaw] = raw.workers;
     const gateway = parseWriter(gatewayRaw, raw.writerVersions.gateway, home.databaseId);
     const walletRuntime = parseWriter(
@@ -129,7 +129,7 @@ export class TenantHomeVerificationV1 {
   }
 
   static forLocalDevelopment(
-    home: NamespaceD1HomeV1,
+    home: TenantDeploymentD1ResourceIdentityV1,
     lane: string,
     nowMs: number,
   ): TenantHomeVerificationV1 {
@@ -146,7 +146,7 @@ export class TenantHomeVerificationV1 {
     );
   }
 
-  assertFor(home: NamespaceD1HomeV1, lane: string, nowMs: number): void {
+  assertFor(home: TenantDeploymentD1ResourceIdentityV1, lane: string, nowMs: number): void {
     if (
       !this.#validated ||
       !this.home.matches(home) ||

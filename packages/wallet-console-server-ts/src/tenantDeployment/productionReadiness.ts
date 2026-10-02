@@ -20,7 +20,7 @@ import type {
   TenantDeploymentReadinessInspectorV1,
 } from './readiness';
 import type { TenantDeploymentBindingReaderV1 } from './types';
-import type { NamespaceD1HomeV1 } from './namespaceHome';
+import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import type {
   TenantDeploymentRuntimeInspectorV1,
   TenantDeploymentRuntimeScopeV1,
@@ -37,7 +37,7 @@ export type TenantDeploymentCandidateSurfacesV1 = {
 
 export interface TenantDeploymentCandidateResolverV1 {
   buildCandidate(input: {
-    readonly home: NamespaceD1HomeV1;
+    readonly home: TenantDeploymentD1ResourceIdentityV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;
@@ -287,7 +287,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   constructor(private readonly options: ProductionTenantDeploymentReadinessOptionsV1) {}
 
   async buildCandidate(input: {
-    readonly home: NamespaceD1HomeV1;
+    readonly home: TenantDeploymentD1ResourceIdentityV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;

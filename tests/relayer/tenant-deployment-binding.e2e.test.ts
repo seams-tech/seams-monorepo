@@ -11,7 +11,7 @@ import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console
 import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
   binding,
-  namespaceHome,
+  deploymentResource,
   operatorHomeCheckpoint,
   readyActivation,
 } from '../helpers/tenantDeploymentFixtures';
@@ -113,6 +113,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       '0048_tenant_deployment_activation_homes.sql',
       '0049_tenant_deployment_binding_homes.sql',
       '0050_tenant_deployment_home_verification.sql',
+      '0052_drop_namespace_placement.sql',
     ]) {
       const sql = await readFile(path.join(path.dirname(migrationPath), name), 'utf8');
       for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
@@ -132,8 +133,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     const store = createD1TenantDeploymentServiceV1({ database });
     const first = await store.putBinding(await binding(1_700_000_000_000));
     const second = await store.putBinding(await binding(1_700_000_000_001));
-    const home = namespaceHome(first.tenant.namespace, first.home.databaseId);
-    await store.reserveNamespaceHome(home);
+    const home = deploymentResource(first.tenant.namespace, first.home.databaseId);
     for (const current of [first, second]) {
       const now = Date.now();
       const input = await readyActivation(

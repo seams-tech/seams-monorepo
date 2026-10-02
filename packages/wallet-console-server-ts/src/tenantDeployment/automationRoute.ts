@@ -1,11 +1,9 @@
 import { TenantHomeVerificationV1 } from './homeVerification';
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
 import { isTenantDeploymentStoreError } from './service';
-import type { TenantDeploymentHomeAdoptionRequestV1 } from './homeAdoption';
 import { parseTenantD1HomeChallengeRequestV1, type TenantD1HomeVerifierV1 } from './homeChallenge';
 
 const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
-const ADOPTION_PATH = '/internal/tenant-deployment/v1/adopt-home';
 const VERIFY_HOME_PATH = '/internal/tenant-deployment/v1/verify-home';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_JWKS = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
@@ -178,7 +176,6 @@ export function createTenantDeploymentAutomationRouteV1(input: {
     const url = new URL(request.url);
     if (
       url.pathname !== AUTOMATION_PATH &&
-      url.pathname !== ADOPTION_PATH &&
       url.pathname !== VERIFY_HOME_PATH
     )
       return null;
@@ -202,10 +199,7 @@ export function createTenantDeploymentAutomationRouteV1(input: {
         );
         return json({ ok: true, result: await input.homeVerifier.verify(challenge) });
       }
-      const result =
-        url.pathname === ADOPTION_PATH
-          ? await input.provisioner.adoptHome(await parseAdoptionRequest(request))
-          : await input.provisioner.provision(await parseRequest(request));
+      const result = await input.provisioner.provision(await parseRequest(request));
       return json({ ok: true, result });
     } catch (error) {
       return json(
@@ -219,43 +213,5 @@ export function createTenantDeploymentAutomationRouteV1(input: {
         409,
       );
     }
-  };
-}
-
-async function parseAdoptionRequest(
-  request: Request,
-): Promise<TenantDeploymentHomeAdoptionRequestV1> {
-  const body: unknown = await request.json().catch(() => null);
-  if (
-    !isRecord(body) ||
-    Object.keys(body).sort().join(',') !==
-      'deploymentLane,expectedActive,homeCheckpoint,operationId' ||
-    typeof body.deploymentLane !== 'string' ||
-    !body.deploymentLane ||
-    body.deploymentLane.trim() !== body.deploymentLane ||
-    typeof body.operationId !== 'string' ||
-    !/^tco_[A-Za-z0-9_-]+$/u.test(body.operationId) ||
-    !isRecord(body.expectedActive) ||
-    Object.keys(body.expectedActive).sort().join(',') !== 'activationSequence,revision' ||
-    typeof body.expectedActive.revision !== 'string' ||
-    !/^tdb_[A-Za-z0-9_-]+$/u.test(body.expectedActive.revision) ||
-    typeof body.expectedActive.activationSequence !== 'number' ||
-    !Number.isSafeInteger(body.expectedActive.activationSequence) ||
-    body.expectedActive.activationSequence <= 0
-  )
-    throw new Error(
-      'home adoption requires a lane, operation ID, and exact active revision and sequence',
-    );
-  return {
-    deploymentLane: body.deploymentLane,
-    operationId: `tco_${body.operationId.slice(4)}`,
-    homeVerification: TenantHomeVerificationV1.fromOperatorCheckpoint(
-      body.homeCheckpoint,
-      Date.now(),
-    ),
-    expectedActive: {
-      revision: `tdb_${body.expectedActive.revision.slice(4)}`,
-      activationSequence: body.expectedActive.activationSequence,
-    },
   };
 }

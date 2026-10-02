@@ -6,7 +6,6 @@ import {
   type D1Row,
 } from '@seams/wallet-server/cloud-host';
 import {
-  adoptTenantDeploymentBindingHomeV1,
   decodeTenantDeploymentBindingV1,
   decodeTenantDeploymentCutoverV1,
   type ActiveTenantDeploymentBindingV1,
@@ -24,7 +23,6 @@ import type {
 } from './types';
 import type { TenantDeploymentSetupAdmissionReaderV1 } from './runtimeBinding';
 import { appendTenantDeploymentD1Timing } from './bindingTiming';
-import { readNamespaceD1Home, reserveNamespaceD1Home } from './namespaceHome';
 
 export type D1TenantDeploymentServiceOptionsV1 = {
   readonly database: D1DatabaseLike;
@@ -433,81 +431,6 @@ export function createD1TenantDeploymentServiceV1(
   const reader = createD1TenantDeploymentBindingReaderV1({ database });
   return {
     ...reader,
-    findNamespaceHome(namespace) {
-      return readNamespaceD1Home(database, namespace);
-    },
-    reserveNamespaceHome(home) {
-      return reserveNamespaceD1Home(database, home, now());
-    },
-    async adoptBindingHome(rawLane, revision, home) {
-      const lane = requiredText(rawLane, 'deploymentLane');
-      const row = await queryD1One(
-        database,
-        'SELECT * FROM tenant_deployment_bindings WHERE deployment_lane = ?1 AND revision = ?2',
-        [lane, revision],
-      );
-      if (!row)
-        throw new TenantDeploymentStoreError(
-          'binding_not_found',
-          'historical binding was not found',
-        );
-      if (row.namespace !== home.namespace)
-        throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'historical binding belongs to another namespace',
-        );
-      const assignment = await readNamespaceD1Home(database, home.namespace);
-      if (!assignment)
-        throw new TenantDeploymentStoreError(
-          'namespace_home_unassigned',
-          'adoption requires a reserved home',
-        );
-      if (!assignment.home.matches(home))
-        throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'adoption home conflicts with the reservation',
-        );
-      let source: unknown;
-      try {
-        source = JSON.parse(requiredText(row.binding_json, 'binding_json'));
-      } catch {
-        throw new TenantDeploymentStoreError(
-          'invalid_record',
-          'historical binding JSON is invalid',
-        );
-      }
-      if (
-        typeof source !== 'object' ||
-        source === null ||
-        !('revision' in source) ||
-        source.revision !== revision
-      ) {
-        throw new TenantDeploymentStoreError(
-          'invalid_record',
-          'historical binding revision disagrees with its row',
-        );
-      }
-      if ('home' in source) {
-        const binding = await parseBindingRow(row);
-        if (
-          binding.home.accountId !== home.accountId ||
-          binding.home.databaseId !== home.databaseId
-        ) {
-          throw new TenantDeploymentStoreError(
-            'namespace_home_conflict',
-            'Canonical binding belongs to another home',
-          );
-        }
-        return binding;
-      }
-      const adopted = await adoptTenantDeploymentBindingHomeV1(source, {
-        accountId: home.accountId,
-        databaseId: home.databaseId,
-      });
-      if (!adopted.ok) throw new TenantDeploymentStoreError('invalid_record', adopted.message);
-      assertBindingRowColumns(adopted.value, row, revision);
-      return this.putBinding(adopted.value);
-    },
     async putBinding(rawBinding) {
       const decoded = await decodeTenantDeploymentBindingV1(rawBinding);
       if (!decoded.ok) {
@@ -584,21 +507,8 @@ export function createD1TenantDeploymentServiceV1(
         binding.home.databaseId !== input.home.databaseId
       ) {
         throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'activation home belongs to another namespace',
-        );
-      }
-      const assignment = await readNamespaceD1Home(database, binding.tenant.namespace);
-      if (!assignment) {
-        throw new TenantDeploymentStoreError(
-          'namespace_home_unassigned',
-          'activation requires a reserved namespace home',
-        );
-      }
-      if (!assignment.home.matches(input.home)) {
-        throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'activation home conflicts with the namespace reservation',
+          'deployment_resource_conflict',
+          'activation resource differs from the canonical binding',
         );
       }
       const cutover = await readCutover(database, input.operationId);

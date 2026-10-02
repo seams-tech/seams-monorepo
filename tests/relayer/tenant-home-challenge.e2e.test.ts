@@ -17,7 +17,7 @@ import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
 import {
-  namespaceHome,
+  deploymentResource,
   bindingForHome,
   productionBindingForHome,
   readyActivation,
@@ -30,7 +30,7 @@ const deployment = JSON.parse(
 ).production.lanes.testnet.provisioning.gatewayDeploymentConfig;
 const namespace: string = deployment.tenant.namespace;
 const lane = 'production-testnet';
-const home = namespaceHome(namespace, deployment.resources.signerD1.id);
+const home = deploymentResource(namespace, deployment.resources.signerD1.id);
 const execute = promisify(execFile);
 const challengePath = '/internal/tenant-deployment/v1/home-challenge';
 const verifyUrl = 'https://console.example.test/internal/tenant-deployment/v1/verify-home';
@@ -347,7 +347,7 @@ async function signerDatabaseDigest(database: D1DatabaseLike): Promise<string> {
   return digest.digest('hex');
 }
 
-test('Console verifies both real writer bindings against a fresh challenge and immutable reservation', async ({
+test('Console verifies both regional writer bindings against a fresh challenge', async ({
   request,
 }, testInfo) => {
   test.setTimeout(120_000);
@@ -503,8 +503,6 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         })
       ).status(),
     ).toBe(401);
-    const assignments = createD1TenantDeploymentServiceV1({ database: authority });
-    expect(await assignments.findNamespaceHome(namespace)).toBeNull();
     const publicAttempt = await gateway.fetch(
       `https://gateway.example.test${challengePath}`,
       requestInit({ namespace, challengeId: challenge.challengeId }, ''),
@@ -527,8 +525,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       verifyUrl,
       requestInit({ ...challenge, expectedProof: randomBytes(32).toString('hex') }, auth),
     );
-    expect(await tampered.json()).toMatchObject({ code: 'namespace_home_conflict' });
-    expect(await assignments.findNamespaceHome(namespace)).toBeNull();
+    expect(await tampered.json()).toMatchObject({ code: 'deployment_resource_conflict' });
     const [success, concurrent, retry] = await Promise.all([
       good.fetch(verifyUrl, requestInit(challenge, auth)),
       good.fetch(verifyUrl, requestInit(challenge, auth)),
@@ -536,7 +533,6 @@ test('Console verifies both real writer bindings against a fresh challenge and i
     ]);
     expect(concurrent.status).toBe(200);
     expect(retry.status).toBe(200);
-    expect((await assignments.findNamespaceHome(namespace))?.home.matches(home)).toBe(true);
     const successText = await success.text();
     expect(success.status).toBe(200);
     expect(successText).not.toContain(challenge.expectedProof);

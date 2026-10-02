@@ -1,0 +1,2 @@
+DROP TRIGGER tenant_deployment_activation_home_validate;
+DROP TABLE namespace_d1_homes;

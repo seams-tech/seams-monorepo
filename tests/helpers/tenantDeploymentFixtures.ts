@@ -7,7 +7,7 @@ import {
   type TenantDeploymentCutoverId,
   type TenantDeploymentCutoverV1,
 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
-import { NamespaceD1HomeV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/namespaceHome';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
 import type { TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/service';
 import type {
   ActivateTenantDeploymentBindingInputV1,
@@ -171,8 +171,8 @@ async function historicalBindingFromBody(candidate: TenantDeploymentBindingBodyV
   return { ...body, revision };
 }
 
-export function namespaceHome(namespace: string, databaseId: string): NamespaceD1HomeV1 {
-  return NamespaceD1HomeV1.parse({
+export function deploymentResource(namespace: string, databaseId: string): TenantDeploymentD1ResourceIdentityV1 {
+  return TenantDeploymentD1ResourceIdentityV1.parse({
     namespace,
     accountId: '0123456789abcdef0123456789abcdef',
     databaseId,
@@ -182,7 +182,7 @@ export function namespaceHome(namespace: string, databaseId: string): NamespaceD
 export async function readyActivation(
   store: TenantDeploymentServiceV1,
   candidate: TenantDeploymentBindingV1,
-  home: NamespaceD1HomeV1,
+  home: TenantDeploymentD1ResourceIdentityV1,
   operationId: TenantDeploymentCutoverId,
   expectedActive: ExpectedActiveTenantDeploymentBindingV1 | null,
   nowMs: number,
@@ -271,7 +271,7 @@ export function activeCutoverFixture(
   };
 }
 
-export function operatorHomeCheckpoint(home: NamespaceD1HomeV1, lane: string, nowMs: number) {
+export function operatorHomeCheckpoint(home: TenantDeploymentD1ResourceIdentityV1, lane: string, nowMs: number) {
   const gateway = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const walletRuntime = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -304,7 +304,7 @@ export function operatorHomeCheckpoint(home: NamespaceD1HomeV1, lane: string, no
   };
 }
 
-export async function bindingForHome(nowMs: number, lane: string, home: NamespaceD1HomeV1) {
+export async function bindingForHome(nowMs: number, lane: string, home: TenantDeploymentD1ResourceIdentityV1) {
   const body = developmentBindingBody(nowMs, lane);
   const result = await buildTenantDeploymentBindingV1({
     ...body,
@@ -318,7 +318,7 @@ export async function bindingForHome(nowMs: number, lane: string, home: Namespac
 export async function productionBindingForHome(
   nowMs: number,
   lane: string,
-  home: NamespaceD1HomeV1,
+  home: TenantDeploymentD1ResourceIdentityV1,
 ) {
   const body = developmentBindingBody(nowMs, lane);
   const result = await buildTenantDeploymentBindingV1({

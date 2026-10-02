@@ -13,13 +13,10 @@ function requireValue(args, index, flag) {
 }
 
 function parseArguments(args) {
-  const operation = args[0] === 'adopt-home' || args[0] === 'verify-home' ? args[0] : 'provision';
+  const operation = args[0] === 'verify-home' ? args[0] : 'provision';
   const values = {
     lane: '',
     environmentId: '',
-    revision: '',
-    activationSequence: '',
-    operationId: '',
   };
   for (let index = operation === 'provision' ? 0 : 1; index < args.length; index += 1) {
     const argument = args[index];
@@ -33,57 +30,15 @@ function parseArguments(args) {
       index += 1;
       continue;
     }
-    if (argument === '--revision') {
-      values.revision = requireValue(args, index, argument);
-      index += 1;
-      continue;
-    }
-    if (argument === '--activation-sequence') {
-      values.activationSequence = requireValue(args, index, argument);
-      index += 1;
-      continue;
-    }
-    if (argument === '--operation-id') {
-      values.operationId = requireValue(args, index, argument);
-      index += 1;
-      continue;
-    }
     throw new Error(`Unsupported argument: ${argument}`);
   }
   if (!values.lane) throw new Error('--lane is required');
   if (operation === 'verify-home') {
-    if (values.environmentId || values.revision || values.activationSequence || values.operationId)
+    if (values.environmentId)
       throw new Error('verify-home accepts only --lane');
     return { kind: 'verify_home', lane: values.lane };
   }
-  if (operation === 'adopt-home') {
-    const activationSequence = Number(values.activationSequence);
-    if (
-      values.environmentId ||
-      !/^tdb_[A-Za-z0-9_-]+$/u.test(values.revision) ||
-      !/^tco_[A-Za-z0-9_-]+$/u.test(values.operationId) ||
-      !Number.isSafeInteger(activationSequence) ||
-      activationSequence <= 0
-    )
-      throw new Error(
-        'adopt-home requires --revision, --activation-sequence and a stable --operation-id; omit --environment-id',
-      );
-    return {
-      kind: 'cutover',
-      lane: values.lane,
-      path: '/internal/tenant-deployment/v1/adopt-home',
-      body: {
-        deploymentLane: values.lane,
-        operationId: values.operationId,
-        expectedActive: { revision: values.revision, activationSequence },
-      },
-    };
-  }
-  if (!values.environmentId || values.revision || values.activationSequence || values.operationId) {
-    throw new Error(
-      'provisioning requires --environment-id; adoption arguments require the adopt-home command',
-    );
-  }
+  if (!values.environmentId) throw new Error('provisioning requires --environment-id');
   return {
     kind: 'cutover',
     lane: values.lane,

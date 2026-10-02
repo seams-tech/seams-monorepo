@@ -17,12 +17,8 @@ import type {
 import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
 import { TenantDeploymentStoreError } from './service';
-import type { NamespaceD1HomeV1 } from './namespaceHome';
+import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import type { TenantHomeVerificationV1 } from './homeVerification';
-import {
-  adoptTenantDeploymentHomeV1,
-  type TenantDeploymentHomeAdoptionRequestV1,
-} from './homeAdoption';
 
 const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 
@@ -70,9 +66,6 @@ export type TenantDeploymentProvisioningResultV1 =
     };
 
 export interface TenantDeploymentProvisionerV1 {
-  adoptHome(
-    request: TenantDeploymentHomeAdoptionRequestV1,
-  ): Promise<Extract<TenantDeploymentProvisioningResultV1, { disposition: 'activated' }>>;
   provision(
     request: TenantDeploymentProvisioningRequestV1,
   ): Promise<TenantDeploymentProvisioningResultV1>;
@@ -86,7 +79,7 @@ export type TenantDeploymentBrowserCredentialProvisioningV1 =
     };
 
 export type TenantDeploymentProvisionerOptionsV1 = {
-  readonly home: NamespaceD1HomeV1;
+  readonly home: TenantDeploymentD1ResourceIdentityV1;
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
@@ -310,9 +303,6 @@ export function createTenantDeploymentProvisionerV1(
 ): TenantDeploymentProvisionerV1 {
   const newOperationId = options.newOperationId ?? defaultOperationId;
   return {
-    async adoptHome(request) {
-      return await adoptTenantDeploymentHomeV1(options, request);
-    },
     async provision(request) {
       const deploymentLane = requiredText(request.deploymentLane, 'deploymentLane');
       const environmentId = requiredText(request.environmentId, 'environmentId');
@@ -320,20 +310,6 @@ export function createTenantDeploymentProvisionerV1(
         throw new Error('tenant deployment lane does not match this runtime');
       }
       const identity = await resolveIdentity(options, environmentId);
-      // Deployment control must pin the resource before provisioning can create custody or credentials.
-      const assignment = await options.store.findNamespaceHome(options.home.namespace);
-      if (!assignment) {
-        throw new TenantDeploymentStoreError(
-          'namespace_home_unassigned',
-          'namespace D1 home must be inventoried and reserved before provisioning',
-        );
-      }
-      if (!assignment.home.matches(options.home)) {
-        throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'configured D1 resource conflicts with the reserved namespace home',
-        );
-      }
       const active = await options.store.findActiveBinding(deploymentLane);
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
       if (
@@ -343,8 +319,8 @@ export function createTenantDeploymentProvisionerV1(
           activeBinding.home.databaseId !== options.home.databaseId)
       ) {
         throw new TenantDeploymentStoreError(
-          'namespace_home_conflict',
-          'active lane belongs to another namespace',
+          'deployment_resource_conflict',
+          'active lane uses a different deployment resource or namespace',
         );
       }
       if (
@@ -352,20 +328,6 @@ export function createTenantDeploymentProvisionerV1(
         active.revision === activeBinding?.revision &&
         bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces })
       ) {
-        if (
-          request.authorization.kind === 'activate' &&
-          request.authorization.verification.authority.kind === 'cloudflare'
-        ) {
-          return await adoptTenantDeploymentHomeV1(options, {
-            deploymentLane,
-            operationId: newOperationId(),
-            expectedActive: {
-              revision: active.revision,
-              activationSequence: active.activationSequence,
-            },
-            homeVerification: request.authorization.verification,
-          });
-        }
         return reuseActiveBinding({ active, binding: activeBinding });
       }
       const operationId = newOperationId();
@@ -439,8 +401,8 @@ export function createTenantDeploymentProvisionerV1(
           binding.home.databaseId !== options.home.databaseId
         ) {
           throw new TenantDeploymentStoreError(
-            'namespace_home_conflict',
-            'candidate belongs to another namespace',
+            'deployment_resource_conflict',
+            'candidate uses a different deployment resource or namespace',
           );
         }
         await options.store.putBinding(binding);

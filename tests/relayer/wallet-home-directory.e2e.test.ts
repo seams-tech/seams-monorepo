@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -129,9 +129,19 @@ test('wallet homes are independent within a tenant and durable across competing 
   );
   let runtime = start(directory);
   const observations = [];
+  const appliedMigrations: Array<{ name: string; sha256: string }> = [];
   try {
     const database = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
-    for (const sql of unstable_splitSqlQuery(migration)) await database.prepare(sql).run();
+    const migrationsDirectory = path.join(
+      repoRoot,
+      'packages/wallet-console-server-ts/migrations/d1-console',
+    );
+    for (const name of (await readdir(migrationsDirectory)).sort()) {
+      if (!name.endsWith('.sql')) continue;
+      const source = await readFile(path.join(migrationsDirectory, name), 'utf8');
+      for (const sql of unstable_splitSqlQuery(source)) await database.prepare(sql).run();
+      appliedMigrations.push({ name, sha256: createHash('sha256').update(source).digest('hex') });
+    }
     const missing = await request.post(String(await runtime.ready), {
       data: { action: 'find', wallet: walletKey('missing') },
     });
@@ -247,14 +257,28 @@ test('wallet homes are independent within a tenant and durable across competing 
     });
     expect(crossScope.status).toBe(403);
     expect(await crossScope.json()).toMatchObject({ code: 'scope_conflict' });
-    const pausedService = await (
-      await runtime.getWorker('ingress-b')
-    ).fetch(`${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/reserve?quiesced=1`, {
-      method: 'POST',
-      body: JSON.stringify(reservation('paused-service', homes[0])),
+    const pauseTime = Date.now();
+    await database
+      .prepare(
+        `INSERT INTO tenant_deployment_cutovers
+         (operation_id, deployment_lane, state_kind, state_json, record_revision,
+          created_at_ms, updated_at_ms) VALUES (?1, ?2, ?3, ?4, 1, ?5, ?5)`,
+      )
+      .bind('pause-wallet-registration', 'test', 'ready', '{}', pauseTime)
+      .run();
+    const pausedService = await serviceCall(runtime, 'reserve', {
+      ...reservation('paused-service', homes[0]),
+      ingressRegion: 'US',
     });
     expect(pausedService.status).toBe(503);
-    expect(await pausedService.json()).toMatchObject({ code: 'wallet_registration_paused' });
+    expect(await pausedService.json()).toMatchObject({ code: 'registration_paused' });
+    const pausedRetry = await serviceCall(runtime, 'reserve', serviceReservation);
+    expect(pausedRetry.status).toBe(503);
+    expect(await pausedRetry.json()).toMatchObject({ code: 'registration_paused' });
+    await database
+      .prepare('DELETE FROM tenant_deployment_cutovers WHERE operation_id = ?1')
+      .bind('pause-wallet-registration')
+      .run();
     const serviceRetry = await serviceCall(runtime, 'reserve', {
       ...serviceReservation,
       ingressRegion: 'APAC',
@@ -485,6 +509,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       observations,
       rows: rows.results,
       migrationSha256: createHash('sha256').update(migration).digest('hex'),
+      appliedMigrations,
       workerSha256: createHash('sha256')
         .update(await readFile(path.join(directory, 'authority.js')))
         .digest('hex'),

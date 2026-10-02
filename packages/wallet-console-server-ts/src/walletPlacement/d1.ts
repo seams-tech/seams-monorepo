@@ -147,6 +147,7 @@ export class D1WalletHomeDirectory {
 
   async reserve(input: WalletHomeReservationInput): Promise<WalletHomeReservation> {
     const registrationId = registrationIdentity(input.registrationId);
+    const deploymentLane = registrationIdentity(input.deploymentLane);
     const nowMs = timestamp(input.nowMs);
     const wallet = reservationWallet(input);
     const proposedHome = input.proposedHome;
@@ -168,7 +169,9 @@ export class D1WalletHomeDirectory {
        WHERE NOT EXISTS (SELECT 1 FROM wallet_homes
          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
            AND (wallet_id = ?5 OR registration_id = ?6))
-         AND NOT EXISTS (SELECT 1 FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?13)`,
+         AND NOT EXISTS (SELECT 1 FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?13)
+         AND NOT EXISTS (SELECT 1 FROM tenant_deployment_cutovers
+           WHERE deployment_lane = ?18 AND state_kind IN ('awaiting_browser_credential', 'ready'))`,
       )
       .bind(
         ...scopeBindings(wallet),
@@ -185,17 +188,35 @@ export class D1WalletHomeDirectory {
         input.proposedRegistrationAllocation.walletAuthorityId,
         input.proposedRegistrationAllocation.deviceId,
         input.proposedRegistrationAllocation.walletAuthMethodId,
+        deploymentLane,
       )
       .run();
     const row = await queryD1One(
       this.database,
-      `SELECT * FROM wallet_homes WHERE namespace = ?1 AND organization_id = ?2
+      `SELECT wallet_homes.*,
+              EXISTS (SELECT 1 FROM tenant_deployment_cutovers
+                WHERE deployment_lane = ?7
+                  AND state_kind IN ('awaiting_browser_credential', 'ready')) AS setup_paused
+       FROM wallet_homes WHERE namespace = ?1 AND organization_id = ?2
        AND project_id = ?3 AND environment_id = ?4
        AND (wallet_id = ?5 OR registration_id = ?6)
        ORDER BY CASE WHEN registration_id = ?6 THEN 0 ELSE 1 END LIMIT 1`,
-      [...scopeBindings(wallet), wallet.walletId, registrationId],
+      [...scopeBindings(wallet), wallet.walletId, registrationId, deploymentLane],
     );
+    if (row?.setup_paused === 1) {
+      throw new WalletPlacementError('registration_paused', 'Wallet registration is paused');
+    }
     if (!row) {
+      const paused = await queryD1One(
+        this.database,
+        `SELECT operation_id FROM tenant_deployment_cutovers
+         WHERE deployment_lane = ?1 AND state_kind IN ('awaiting_browser_credential', 'ready')
+         LIMIT 1`,
+        [deploymentLane],
+      );
+      if (paused) {
+        throw new WalletPlacementError('registration_paused', 'Wallet registration is paused');
+      }
       const collision = await this.findByCeremony(
         wallet.namespace,
         input.proposedRegistrationAllocation.ceremonyId,

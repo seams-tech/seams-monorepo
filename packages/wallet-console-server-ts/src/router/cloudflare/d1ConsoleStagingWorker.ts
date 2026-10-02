@@ -113,7 +113,6 @@ import { isTenantDeploymentStoreError } from '../../tenantDeployment/service';
 import {
   handleWalletHomeServiceRequest,
   isWalletHomeServiceRequest,
-  WALLET_HOME_SERVICE_BASE_PATH,
 } from '../../walletPlacement/service';
 
 interface CloudflareD1ConsoleStagingEnv
@@ -697,18 +696,11 @@ async function fetch(
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    const isReservation =
-      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`;
-    const setupAllowed = isReservation
-      ? !(await createD1TenantDeploymentSetupAdmissionReaderV1({
-          database: env.CONSOLE_DB,
-        }).isSetupQuiesced(deploymentLane))
-      : true;
     const response = await handleWalletHomeServiceRequest(request, {
       database: env.CONSOLE_DB,
       catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
       scope: active.tenant,
-      setupAllowed,
+      deploymentLane,
     });
     if (!response) throw new Error('Wallet home service request was not handled');
     return response;

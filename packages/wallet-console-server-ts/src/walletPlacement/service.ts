@@ -74,7 +74,7 @@ export async function handleWalletHomeServiceRequest(
     readonly database: D1DatabaseLike;
     readonly catalogJson: unknown;
     readonly scope: WalletHomeServiceScope;
-    readonly setupAllowed: boolean;
+    readonly deploymentLane: string;
   },
 ): Promise<Response | null> {
   const url = new URL(request.url);
@@ -119,9 +119,6 @@ export async function handleWalletHomeServiceRequest(
           : json({ ok: false, code: 'not_found' }, 404);
       }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`: {
-        if (!options.setupAllowed) {
-          return json({ ok: false, code: 'wallet_registration_paused' }, 503);
-        }
         let selection:
           | { readonly allocation: 'provided'; readonly wallet: WalletOwnershipKey }
           | { readonly allocation: 'server_allocated'; readonly candidate: WalletOwnershipKey };
@@ -142,6 +139,7 @@ export async function handleWalletHomeServiceRequest(
             body.registrationAllocation,
           ),
           registrationId: requiredString(body.registrationId, 'registrationId'),
+          deploymentLane: options.deploymentLane,
           requestDigest: requiredString(body.requestDigest, 'requestDigest'),
           nowMs: Date.now(),
         });
@@ -166,6 +164,7 @@ export async function handleWalletHomeServiceRequest(
       let status = 409;
       if (error.code === 'invalid_input') status = 400;
       if (error.code === 'scope_conflict') status = 403;
+      if (error.code === 'registration_paused') status = 503;
       return json({ ok: false, code: error.code }, status);
     }
     throw error;

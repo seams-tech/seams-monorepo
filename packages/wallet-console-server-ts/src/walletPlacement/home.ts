@@ -4,7 +4,12 @@ export type WalletRegion = 'US' | 'WEUR' | 'APAC';
 
 export class WalletPlacementError extends Error {
   constructor(
-    readonly code: 'invalid_input' | 'invalid_record' | 'home_conflict' | 'scope_conflict',
+    readonly code:
+      | 'invalid_input'
+      | 'invalid_record'
+      | 'home_conflict'
+      | 'scope_conflict'
+      | 'registration_paused',
     message: string,
   ) {
     super(message);
@@ -264,6 +269,7 @@ export type WalletHomeReservation =
     };
 
 export type WalletHomeReservationInput = {
+  readonly deploymentLane: string;
   readonly proposedHome: WalletHome;
   readonly registrationId: string;
   readonly requestDigest: string;

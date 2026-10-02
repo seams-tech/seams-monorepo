@@ -44,7 +44,7 @@ export default {
         projectId: 'project',
         environmentId: 'test',
       },
-      setupAllowed: !new URL(request.url).searchParams.has('quiesced'),
+      deploymentLane: 'test',
     });
     if (serviceResponse) return serviceResponse;
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
@@ -85,6 +85,7 @@ export default {
           body.registrationAllocation,
         ),
         registrationId: body.registrationId,
+        deploymentLane: 'test',
         requestDigest: body.requestDigest,
         nowMs: Date.now(),
       });

@@ -1,3 +1,7 @@
+import {
+  consoleWalletKeyString,
+  type ConsoleWalletKey,
+} from '@seams-internal/wallet-console-shared';
 import React from 'react';
 import { formatDashboardTimestamp } from '@core/dashboard/utils/timestamps';
 import {
@@ -25,9 +29,9 @@ import { listDashboardPolicies } from '../policy-engine/consolePoliciesApi';
 import {
   formatWalletBalanceMinor,
   listDashboardWallets,
-  mergeDashboardWalletsById,
+  mergeDashboardWallets,
   refreshDashboardWalletBalances,
-  replaceDashboardWalletsById,
+  replaceDashboardWallets,
   searchDashboardWallets,
   type DashboardConsoleWallet,
   type DashboardConsoleWalletListInput,
@@ -112,8 +116,8 @@ function formatStablecoinBalance(raw: string, decimals: number): string {
   return `$${formatRawAmount(raw, decimals, 2, 2)}`;
 }
 
-function walletBalancesRegionId(walletId: string): string {
-  return `wallet-chain-balances-${walletId.replace(/[^a-zA-Z0-9_-]/gu, '-')}`;
+function walletBalancesRegionId(wallet: ConsoleWalletKey): string {
+  return `wallet-chain-balances-${encodeURIComponent(consoleWalletKeyString(wallet))}`;
 }
 
 function WalletChainBalances(props: { wallet: DashboardConsoleWallet }): React.JSX.Element {
@@ -123,7 +127,7 @@ function WalletChainBalances(props: { wallet: DashboardConsoleWallet }): React.J
   return (
     <DashboardTableDetailsPanel className="dashboard-wallet-balances">
       <section
-        id={walletBalancesRegionId(wallet.id)}
+        id={walletBalancesRegionId(wallet)}
         aria-label={`Gas balances for ${wallet.address}`}
       >
         <header className="dashboard-wallet-balances__header">
@@ -196,7 +200,7 @@ export function UserWalletsListPage(): React.JSX.Element {
   const [wallets, setWallets] = React.useState<DashboardConsoleWallet[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
-  const [expandedWalletId, setExpandedWalletId] = React.useState<string>('');
+  const [expandedWalletKey, setExpandedWalletKey] = React.useState<string>('');
   const [policyFilter, setPolicyFilter] = React.useState<string>('');
   const [walletTypeFilter, setWalletTypeFilter] = React.useState<string>('');
   const [sortValue, setSortValue] = React.useState<string>(SORT_OPTIONS[0].value);
@@ -324,16 +328,16 @@ export function UserWalletsListPage(): React.JSX.Element {
                 ...walletRequest,
               }));
           if (cancelled) return;
-          allWallets = mergeDashboardWalletsById(allWallets, page.wallets);
+          allWallets = mergeDashboardWallets(allWallets, page.wallets);
           cursor = page.nextCursor;
           if (!cursor) break;
         }
         if (cancelled) return;
         setWallets(allWallets);
-        void refreshDashboardWalletBalances(allWallets.slice(0, 10).map((wallet) => wallet.id))
+        void refreshDashboardWalletBalances(allWallets.slice(0, 10))
           .then((refreshedWallets) => {
             if (cancelled || refreshedWallets.length === 0) return;
-            setWallets((current) => replaceDashboardWalletsById(current, refreshedWallets));
+            setWallets((current) => replaceDashboardWallets(current, refreshedWallets));
           })
           .catch(() => undefined);
       } catch (error: unknown) {
@@ -362,7 +366,7 @@ export function UserWalletsListPage(): React.JSX.Element {
   ]);
 
   React.useEffect(() => {
-    setExpandedWalletId('');
+    setExpandedWalletKey('');
   }, [policyFilter, sortValue, walletScope.environmentId, walletScope.projectId, walletTypeFilter]);
 
   const summaryMetrics = React.useMemo(
@@ -487,9 +491,10 @@ export function UserWalletsListPage(): React.JSX.Element {
         ) : (
           <>
             {walletsPagination.rows.map((wallet) => {
-              const expanded = expandedWalletId === wallet.id;
+              const key = consoleWalletKeyString(wallet);
+              const expanded = expandedWalletKey === key;
               return (
-                <React.Fragment key={wallet.id}>
+                <React.Fragment key={key}>
                   <DashboardTableRow
                     className={`dashboard-wallet-row${
                       expanded ? ' dashboard-wallet-row--expanded' : ''
@@ -506,12 +511,10 @@ export function UserWalletsListPage(): React.JSX.Element {
                               type="button"
                               className="dashboard-inline-link dashboard-data-table__mono dashboard-wallet-row__toggle"
                               aria-expanded={expanded}
-                              aria-controls={walletBalancesRegionId(wallet.id)}
+                              aria-controls={walletBalancesRegionId(wallet)}
                               aria-label={`Toggle chain balances for ${wallet.address}`}
                               onClick={() =>
-                                setExpandedWalletId((current) =>
-                                  current === wallet.id ? '' : wallet.id,
-                                )
+                                setExpandedWalletKey((current) => (current === key ? '' : key))
                               }
                             >
                               <span className="dashboard-wallet-row__label">{wallet.address}</span>

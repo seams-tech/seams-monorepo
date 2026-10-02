@@ -447,52 +447,6 @@ test('Wallet runtime operations reject public Gateway origins', async () => {
   expect(response).toBeNull();
 });
 
-test('Wallet runtime returns only the public identities requested by balance refresh', async () => {
-  const handler = createWalletRuntimeOpsHandler(async () => ({
-    async executeSignedDelegate() {
-      return { ok: true };
-    },
-    async getRelayerAccount() {
-      return { accountId: 'relayer.testnet', publicKey: 'ed25519:test' };
-    },
-    async getWalletIdentities(input) {
-      expect(input).toEqual({
-        orgId: 'org-wallet',
-        wallets: [{ walletId: 'wallet-1', projectId: 'project-1' }],
-      });
-      return {
-        identities: [
-          {
-            walletId: 'wallet-1',
-            nearAccountId: 'alice.testnet',
-            evmAddress: '0x1111111111111111111111111111111111111111',
-          },
-        ],
-      };
-    },
-  }));
-  const response = await handler(
-    new Request('https://wallet-runtime.internal/internal/wallet-runtime/v1/wallet-identities', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        orgId: 'org-wallet',
-        wallets: [{ walletId: 'wallet-1', projectId: 'project-1' }],
-      }),
-    }),
-  );
-  expect(response?.status).toBe(200);
-  await expect(response?.json()).resolves.toEqual({
-    identities: [
-      {
-        walletId: 'wallet-1',
-        nearAccountId: 'alice.testnet',
-        evmAddress: '0x1111111111111111111111111111111111111111',
-      },
-    ],
-  });
-});
-
 test('Wallet runtime accepts the generated signed-delegate action shape', async () => {
   let received: unknown;
   const handler = createWalletRuntimeOpsHandler(async () => ({

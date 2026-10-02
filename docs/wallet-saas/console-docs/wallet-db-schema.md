@@ -1,6 +1,6 @@
 # SaaS DB Schema Plan
 
-Date updated: July 26, 2026
+Date updated: October 2, 2026
 
 Related implementation plan:
 
@@ -52,6 +52,37 @@ Use Cloudflare D1 plus Durable Objects for local development and first staging:
   - signer rows include the narrowest required custody identity,
   - every query and mutation binds tenant scope in SQL predicates,
   - route-policy middleware validates caller scope before store calls.
+
+### Wallet projection identity
+
+Console migration `0053_wallet_projection_identity.sql` keys `wallet_index` by
+`(namespace, org_id, project_id, environment_id, id)`. Its address uniqueness and
+`wallet_balance_snapshots` foreign key use the same scope. Equal wallet IDs and
+addresses in different projects/environments remain separate rows. The migration
+preserves wallet metadata, resets the derived balance and invalidates the old
+cache; subsequent scoped refreshes repopulate it.
+
+Console `environment_id` is the environment's database ID. Signer `env_id` is its
+runtime key (`dev`, `staging`, or `prod`). The balance reader resolves this mapping
+through the exact Console namespace/organization/project before querying Runtime;
+Runtime requests and responses retain `projectId`, `envId`, and `walletId`.
+Namespace comes from the Runtime deployment; organization comes from the Console
+service request. Neither identifier is inferred from a wallet ID.
+
+`GET /console/wallets/:id` requires `projectId` and `environmentId` query fields.
+The API-key wallet lookup requires `projectId` and takes the environment from the
+credential. Balance refresh accepts
+`{ wallets: [{ id, projectId, environmentId }] }` (1–10 keys); results identify
+`refreshedWallets`, `freshWallets` and failed `wallet` entries by the same key.
+Old ID-only requests and cursors have no compatibility path. Pagination and
+frontend merge/expansion keys use the complete scoped identity.
+
+The repeatable acceptance scenario is
+`tests/relayer/wallet-identity-scope.e2e.test.ts`, run with
+`SEAMS_WALLET_SERVER_CANDIDATE` pointing at an extracted Wallet Server candidate.
+It attaches `wallet-identity-evidence.json`, containing migration and candidate
+hashes, scoped results and database readback. These are local correctness checks;
+regional dispatch and geographic latency verification remain separate R152 work.
 
 ### Enterprise isolation tier
 

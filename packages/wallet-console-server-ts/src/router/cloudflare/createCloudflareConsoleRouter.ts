@@ -52,6 +52,7 @@ import {
 import type { ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/service';
 import { isConsoleWalletError } from '@seams-internal/wallet-console-server/wallets/errors';
 import {
+  parseConsoleWalletKey,
   parseListConsoleWalletsRequest,
   parseSearchConsoleWalletsRequest,
 } from '@seams-internal/wallet-console-server/wallets/requests';
@@ -3388,7 +3389,14 @@ async function handleConsoleWallets(ctx: CloudflareConsoleContext): Promise<Resp
 
     if (ctx.method === 'GET' && walletMatch) {
       const walletId = decodePathPart(walletMatch[1]);
-      const wallet = await wallets.getWallet(walletCtx, walletId);
+      const wallet = await wallets.getWallet(
+        walletCtx,
+        parseConsoleWalletKey({
+          id: walletId,
+          projectId: query.projectId,
+          environmentId: query.environmentId,
+        }),
+      );
       if (!wallet) {
         return json(
           {

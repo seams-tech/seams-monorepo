@@ -38,6 +38,10 @@ export {
 export type { D1ConsoleWalletBalanceReaderOptions } from './balances';
 export { hasWalletBalanceRefresh, parseRefreshConsoleWalletBalancesRequest } from './balances';
 
-export { parseListConsoleWalletsRequest, parseSearchConsoleWalletsRequest } from './requests';
+export {
+  parseConsoleWalletKey,
+  parseListConsoleWalletsRequest,
+  parseSearchConsoleWalletsRequest,
+} from './requests';
 
 export { ConsoleWalletError, isConsoleWalletError } from './errors';

@@ -4,7 +4,7 @@ export type WalletRegion = 'US' | 'WEUR' | 'APAC';
 
 export class WalletPlacementError extends Error {
   constructor(
-    readonly code: 'invalid_input' | 'invalid_record' | 'home_conflict',
+    readonly code: 'invalid_input' | 'invalid_record' | 'home_conflict' | 'scope_conflict',
     message: string,
   ) {
     super(message);

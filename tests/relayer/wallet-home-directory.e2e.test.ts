@@ -241,6 +241,20 @@ test('wallet homes are independent within a tenant and durable across competing 
       disposition: 'reserved',
       assignment: { home: homes[0] },
     });
+    const crossScope = await serviceCall(runtime, 'reserve', {
+      ...serviceReservation,
+      wallet: walletKey('cross-scope', 'another-project'),
+    });
+    expect(crossScope.status).toBe(403);
+    expect(await crossScope.json()).toMatchObject({ code: 'scope_conflict' });
+    const pausedService = await (
+      await runtime.getWorker('ingress-b')
+    ).fetch(`${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/reserve?quiesced=1`, {
+      method: 'POST',
+      body: JSON.stringify(reservation('paused-service', homes[0])),
+    });
+    expect(pausedService.status).toBe(503);
+    expect(await pausedService.json()).toMatchObject({ code: 'wallet_registration_paused' });
     const serviceRetry = await serviceCall(runtime, 'reserve', {
       ...serviceReservation,
       ingressRegion: 'APAC',

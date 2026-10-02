@@ -12,6 +12,21 @@ import {
 export const WALLET_HOME_SERVICE_ORIGIN = 'https://wallet-placement.internal';
 export const WALLET_HOME_SERVICE_BASE_PATH = '/internal/wallet-placement/v1';
 
+type WalletHomeServiceScope = {
+  readonly namespace: string;
+  readonly organizationId: string;
+  readonly projectId: string;
+  readonly environmentId: string;
+};
+
+export function isWalletHomeServiceRequest(request: Request): boolean {
+  const url = new URL(request.url);
+  return (
+    url.origin === WALLET_HOME_SERVICE_ORIGIN &&
+    url.pathname.startsWith(`${WALLET_HOME_SERVICE_BASE_PATH}/`)
+  );
+}
+
 function record(raw: unknown): Record<string, unknown> {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new WalletPlacementError('invalid_input', 'Wallet home request must be an object');
@@ -46,12 +61,15 @@ function json(body: unknown, status = 200): Response {
 
 export async function handleWalletHomeServiceRequest(
   request: Request,
-  database: D1DatabaseLike,
-  catalogJson: unknown,
+  options: {
+    readonly database: D1DatabaseLike;
+    readonly catalogJson: unknown;
+    readonly scope: WalletHomeServiceScope;
+    readonly setupAllowed: boolean;
+  },
 ): Promise<Response | null> {
   const url = new URL(request.url);
-  if (url.origin !== WALLET_HOME_SERVICE_ORIGIN) return null;
-  if (!url.pathname.startsWith(`${WALLET_HOME_SERVICE_BASE_PATH}/`)) return null;
+  if (!isWalletHomeServiceRequest(request)) return null;
   if (
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
@@ -60,15 +78,23 @@ export async function handleWalletHomeServiceRequest(
     return json({ ok: false, code: 'not_found' }, 404);
   }
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
-  if (typeof catalogJson !== 'string' || catalogJson.length === 0) {
+  if (typeof options.catalogJson !== 'string' || options.catalogJson.length === 0) {
     return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
   }
 
   try {
-    const catalog = WalletHomeCatalog.parse(JSON.parse(catalogJson));
-    const directory = new D1WalletHomeDirectory(database, catalog);
+    const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
+    const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
     const wallet = WalletOwnershipKey.parse(body.wallet);
+    if (
+      wallet.namespace !== options.scope.namespace ||
+      wallet.organizationId !== options.scope.organizationId ||
+      wallet.projectId !== options.scope.projectId ||
+      wallet.environmentId !== options.scope.environmentId
+    ) {
+      throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+    }
     switch (url.pathname) {
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {
         const assignment = await directory.find(wallet);
@@ -77,6 +103,9 @@ export async function handleWalletHomeServiceRequest(
           : json({ ok: false, code: 'not_found' }, 404);
       }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`: {
+        if (!options.setupAllowed) {
+          return json({ ok: false, code: 'wallet_registration_paused' }, 503);
+        }
         let selection:
           | { readonly allocation: 'provided'; readonly wallet: WalletOwnershipKey }
           | { readonly allocation: 'server_allocated'; readonly candidate: WalletOwnershipKey };
@@ -118,7 +147,10 @@ export async function handleWalletHomeServiceRequest(
     }
   } catch (error) {
     if (error instanceof WalletPlacementError) {
-      return json({ ok: false, code: error.code }, error.code === 'invalid_input' ? 400 : 409);
+      let status = 409;
+      if (error.code === 'invalid_input') status = 400;
+      if (error.code === 'scope_conflict') status = 403;
+      return json({ ok: false, code: error.code }, status);
     }
     throw error;
   }

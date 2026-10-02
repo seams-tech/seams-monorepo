@@ -35,11 +35,17 @@ const catalogJson = JSON.stringify([
 
 export default {
   async fetch(request: Request, env: { CONSOLE_DB: D1DatabaseLike }): Promise<Response> {
-    const serviceResponse = await handleWalletHomeServiceRequest(
-      request,
-      env.CONSOLE_DB,
+    const serviceResponse = await handleWalletHomeServiceRequest(request, {
+      database: env.CONSOLE_DB,
       catalogJson,
-    );
+      scope: {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'test',
+      },
+      setupAllowed: !new URL(request.url).searchParams.has('quiesced'),
+    });
     if (serviceResponse) return serviceResponse;
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
     const body = await request.json();

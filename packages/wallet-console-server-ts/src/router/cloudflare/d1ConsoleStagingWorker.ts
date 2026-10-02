@@ -108,7 +108,11 @@ import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provi
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
-import { handleWalletHomeServiceRequest } from '../../walletPlacement/service';
+import {
+  handleWalletHomeServiceRequest,
+  isWalletHomeServiceRequest,
+  WALLET_HOME_SERVICE_BASE_PATH,
+} from '../../walletPlacement/service';
 
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
@@ -664,17 +668,36 @@ async function fetch(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
-  const walletHomeResponse = await handleWalletHomeServiceRequest(
-    request,
-    env.CONSOLE_DB,
-    env.SEAMS_WALLET_HOME_CATALOG_JSON,
-  );
-  if (walletHomeResponse) return walletHomeResponse;
   const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
     timingHeaders: bindingTimingHeaders,
   });
+  if (isWalletHomeServiceRequest(request)) {
+    const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
+    const active = await tenantDeploymentReader.resolveActiveBinding(deploymentLane);
+    if (!active) {
+      return Response.json(
+        { ok: false, code: 'tenant_deployment_unavailable' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+    const isReservation =
+      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`;
+    const setupAllowed = isReservation
+      ? !(await createD1TenantDeploymentSetupAdmissionReaderV1({
+          database: env.CONSOLE_DB,
+        }).isSetupQuiesced(deploymentLane))
+      : true;
+    const response = await handleWalletHomeServiceRequest(request, {
+      database: env.CONSOLE_DB,
+      catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+      scope: active.tenant,
+      setupAllowed,
+    });
+    if (!response) throw new Error('Wallet home service request was not handled');
+    return response;
+  }
   const tenantDeploymentResponse = await createTenantDeploymentInternalBindingHandlerV1({
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
     reader: tenantDeploymentReader,

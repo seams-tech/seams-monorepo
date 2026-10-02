@@ -637,6 +637,27 @@ authority for those lanes. New writer versions fail closed until activation;
 this sequence does not establish zero-downtime rollout. Hosted validation remains
 pending. Local evidence is in `.artifacts/r152/coordinated-rollout-20261002/`.
 
+Before upgrading the SDK pin, exercise the packed Wallet Server candidate through
+the same composed home-verification E2E. Set `SEAMS_WALLET_SERVER_CANDIDATE` to an
+absolute extracted package directory. The test resolves the candidate's public
+exports, bundles its JavaScript into the three private Workers, applies its
+packaged signer migrations and records package/manifest hashes and bundle inputs.
+It rejects accidental imports from the installed Wallet Server package. With no
+candidate selected, the development scenario retains the installed SDK plus source
+migrations and labels that combination explicitly in its evidence.
+
+```sh
+SEAMS_WALLET_SERVER_CANDIDATE=/absolute/path/to/extracted/package \
+  pnpm -C tests exec playwright test -c playwright.relayer.config.ts \
+  relayer/tenant-home-challenge.e2e.test.ts --reporter=line
+```
+
+The local Worker obtains presign configuration from the SDK's existing parser,
+with participant IDs 1 and 2. This removes its dependency on the retired `nodeRole`
+field. Candidate and installed-SDK type checks must both pass before changing the
+exact dependency pin. Package acceptance does not authorize npm publication or
+infrastructure deployment.
+
 The workflow is:
 
 1. **Inspect**

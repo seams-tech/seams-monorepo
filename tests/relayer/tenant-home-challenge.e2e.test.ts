@@ -12,6 +12,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { once } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createRequire } from 'node:module';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
@@ -37,6 +38,21 @@ const gatewayVersion = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const runtimeVersion = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const changedVersion = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const deploymentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const candidatePackageRoot = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
+
+function candidatePackageAliases(packageRoot: string): Record<string, string> {
+  const packagePath = path.resolve(packageRoot, 'package.json');
+  const definition = JSON.parse(readFileSync(packagePath, 'utf8'));
+  if (definition.name !== '@seams/wallet-server') throw new Error('Wrong candidate package');
+  const resolveCandidate = createRequire(packagePath);
+  const aliases: Record<string, string> = {};
+  for (const key of Object.keys(definition.exports)) {
+    if (key.includes('*')) continue;
+    const specifier = key === '.' ? definition.name : `${definition.name}/${key.slice(2)}`;
+    aliases[specifier] = resolveCandidate.resolve(specifier);
+  }
+  return aliases;
+}
 
 type ProviderScenario =
   | 'stable'
@@ -306,7 +322,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
   const output = testInfo.outputPath('workers');
   await mkdir(output, { recursive: true });
   const directory = path.join(root, 'packages/wallet-console-server-ts/src/router/cloudflare');
-  await build({
+  const bundle = await build({
     entryPoints: {
       console: path.join(directory, 'd1ConsoleStagingWorker.ts'),
       gateway: path.join(directory, 'd1GatewayWorker.ts'),
@@ -320,8 +336,18 @@ test('Console verifies both real writer bindings against a fresh challenge and i
     conditions: ['workerd', 'worker', 'browser'],
     external: ['node:*'],
     loader: { '.wasm': 'file' },
+    alias: candidatePackageRoot ? candidatePackageAliases(candidatePackageRoot) : {},
+    metafile: true,
     tsconfig: path.join(root, 'packages/wallet-console-server-ts/tsconfig.json'),
   });
+  if (candidatePackageRoot) {
+    for (const input of Object.keys(bundle.metafile.inputs)) {
+      expect(path.resolve(input)).not.toContain(
+        path.join(root, 'node_modules/@seams/wallet-server/'),
+      );
+    }
+  }
+  await writeFile(testInfo.outputPath('worker-build-inputs.json'), JSON.stringify(bundle.metafile));
   const deps = new Dependencies();
   const runtime = new Miniflare({
     host: '127.0.0.1',
@@ -376,16 +402,13 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       for (const sql of unstable_splitSqlQuery(await readFile(path.join(migrations, name), 'utf8')))
         await authority.prepare(sql).run();
     }
-    const challengeMigration = await readFile(
-      path.join(
-        root,
-        '../seams-wallet/packages/wallet-server/migrations/d1-signer/0040_namespace_home_challenges.sql',
-      ),
-      'utf8',
-    );
     const signerMigrations = path.join(
-      root,
-      '../seams-wallet/packages/wallet-server/migrations/d1-signer',
+      candidatePackageRoot ?? path.join(root, '../seams-wallet/packages/wallet-server'),
+      'migrations/d1-signer',
+    );
+    const challengeMigration = await readFile(
+      path.join(signerMigrations, '0040_namespace_home_challenges.sql'),
+      'utf8',
     );
     const signerMigrationHashes = [];
     for (const name of (await readdir(signerMigrations)).sort()) {
@@ -643,6 +666,17 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       kind: 'runtime_home_challenge_e2e_v1',
       checkedAt: new Date().toISOString(),
       productionWorkers: ['Console', 'Gateway', 'Wallet Runtime'],
+      walletServerArtifact: candidatePackageRoot
+        ? {
+            kind: 'packed_candidate',
+            packageJsonSha256: createHash('sha256')
+              .update(await readFile(path.join(candidatePackageRoot, 'package.json')))
+              .digest('hex'),
+            manifestSha256: createHash('sha256')
+              .update(await readFile(path.join(candidatePackageRoot, 'artifact-manifest.json')))
+              .digest('hex'),
+          }
+        : { kind: 'installed_sdk_with_source_migrations' },
       signerDatabases: 2,
       challengeMigrationSha256: createHash('sha256').update(challengeMigration).digest('hex'),
       signerMigrationHashes,

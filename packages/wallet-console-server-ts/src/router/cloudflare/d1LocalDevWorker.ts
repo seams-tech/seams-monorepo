@@ -17,7 +17,10 @@ import type {
   FetchHandler,
 } from '@seams/wallet-server/cloud-host';
 import { createSigningSessionSealOptions } from '@seams/wallet-server/cloud-host';
-import { RouterAbEcdsaPresignRuntime } from '@seams/wallet-server/cloud-host';
+import {
+  parseRouterAbEcdsaPresignRuntimeConfig,
+  RouterAbEcdsaPresignRuntime,
+} from '@seams/wallet-server/cloud-host';
 import type { SigningSessionSealRoutesOptions } from '@seams/wallet-server/cloud-host';
 import { createCloudflareRouter } from '@seams/wallet-server/cloud-host';
 import {
@@ -1552,14 +1555,10 @@ function localSigningSessionSealOptions(
 
 function createLocalEcdsaPresignRuntime(env: LocalD1DevEnv): RouterAbEcdsaPresignRuntime {
   return new RouterAbEcdsaPresignRuntime({
-    config: {
-      nodeRole: 'coordinator',
-      participantIds: {
-        clientParticipantId: 1,
-        relayerParticipantId: 2,
-        participantIds2p: [1, 2],
-      },
-    },
+    config: parseRouterAbEcdsaPresignRuntimeConfig({
+      THRESHOLD_ED25519_CLIENT_PARTICIPANT_ID: '1',
+      THRESHOLD_ED25519_RELAYER_PARTICIPANT_ID: '2',
+    }),
     signingWorkerTransport: {
       kind: 'configured',
       signingWorkerBaseUrl: ROUTER_AB_SIGNING_WORKER_ORIGIN,

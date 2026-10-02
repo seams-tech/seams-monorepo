@@ -65,15 +65,29 @@ function start(directory: string): Miniflare {
 }
 
 class MiniflareWalletHomeServiceBinding {
+  private loseNextReservationResponse = false;
+
   constructor(private readonly runtime: Miniflare) {}
+
+  injectLostReservationResponse(): void {
+    this.loseNextReservationResponse = true;
+  }
 
   async fetch(request: Request): Promise<Response> {
     const service = await this.runtime.getWorker('ingress-b');
-    return service.fetch(request.url, {
+    const response = await service.fetch(request.url, {
       method: request.method,
       headers: request.headers,
       body: await request.text(),
     });
+    if (
+      this.loseNextReservationResponse &&
+      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`
+    ) {
+      this.loseNextReservationResponse = false;
+      return Response.json({ ok: false, code: 'injected_lost_response' }, { status: 503 });
+    }
+    return response;
   }
 }
 
@@ -330,8 +344,9 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(await byCeremony.json()).toMatchObject({
       assignment: { wallet: { walletId: 'service-wallet' }, home: homes[0] },
     });
+    const clientBinding = new MiniflareWalletHomeServiceBinding(runtime);
     const serviceClient = new WalletHomeServiceClient(
-      new MiniflareWalletHomeServiceBinding(runtime),
+      clientBinding,
       parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
       {
         namespace: 'shared',
@@ -374,6 +389,37 @@ test('wallet homes are independent within a tenant and durable across competing 
     });
     expect(clientCompleted.state).toBe('established');
     observations.push({ stage: 'service_client_roundtrip', assignment: clientCompleted });
+    const firstCandidate = reservation('client-loss-a', homes[1]);
+    const nextCandidate = reservation('client-loss-b', homes[0]);
+    const lostRequest = {
+      allocation: 'server_allocated' as const,
+      candidate: firstCandidate.wallet,
+      ingressRegion: 'WEUR' as const,
+      registrationId: firstCandidate.registrationId,
+      requestDigest: firstCandidate.requestDigest,
+      proposedRegistrationAllocation: firstCandidate.registrationAllocation,
+    };
+    clientBinding.injectLostReservationResponse();
+    await expect(serviceClient.reserve(lostRequest)).rejects.toThrow(
+      'Wallet home reservation failed: HTTP 503',
+    );
+    const replayedReservation = await serviceClient.reserve({
+      ...lostRequest,
+      candidate: nextCandidate.wallet,
+      ingressRegion: 'US',
+      proposedRegistrationAllocation: nextCandidate.registrationAllocation,
+    });
+    expect(replayedReservation).toMatchObject({ ok: true, disposition: 'reused' });
+    if (!replayedReservation.ok) throw new Error('Lost response did not replay the reservation');
+    expect(replayedReservation.assignment.wallet.matches(firstCandidate.wallet)).toBe(true);
+    expect(replayedReservation.assignment.home.matches(homes[1])).toBe(true);
+    expect(replayedReservation.assignment.registrationAllocation).toEqual(
+      firstCandidate.registrationAllocation,
+    );
+    observations.push({
+      stage: 'service_client_lost_reply',
+      assignment: replayedReservation.assignment,
+    });
     const duplicateCeremony = await call(runtime, {
       ...reservation('ceremony-collision', homes[1]),
       registrationAllocation: {
@@ -563,7 +609,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     const rows = await persisted
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
-    expect(rows.results).toHaveLength(17);
+    expect(rows.results).toHaveLength(18);
     const receipt = {
       kind: 'wallet_home_directory_e2e_v1',
       observations,

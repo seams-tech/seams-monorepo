@@ -83,7 +83,7 @@ gitignored; keep the `.example` templates as the tracked source of structure. Th
 examples already point at the staging entrypoints:
 
 - `src/router/cloudflare/d1ConsoleStagingWorker.ts`
-- `src/router/cloudflare/d1RouterApiStagingWorker.ts`
+- `src/router/cloudflare/d1GatewayWorker.ts`
 
 Fill in the remote D1 database IDs, relayer public key, and Wrangler secret
 declarations, then run:

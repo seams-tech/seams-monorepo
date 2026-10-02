@@ -525,21 +525,12 @@ test('R103F final cutover installs exact tables and both readiness manifests agr
       ),
       'SIGNER_READY_TABLES',
     );
-    const stagingManifest = readManifestTables(
-      resolve(
-        import.meta.dirname,
-        '../../packages/wallet-console-server-ts/src/router/cloudflare/d1RouterApiStagingWorker.ts',
-      ),
-      'RELAY_SIGNER_READY_TABLES',
-    );
     const finalNames = new Set<string>([
       ...FINAL_SESSION_MANIFEST_TABLES,
       ...RETIRED_SESSION_TABLES,
     ]);
     const localSessionEntries = localManifest.filter((name) => finalNames.has(name));
-    const stagingSessionEntries = stagingManifest.filter((name) => finalNames.has(name));
     expect(localSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
-    expect(stagingSessionEntries).toEqual([...FINAL_SESSION_MANIFEST_TABLES]);
   } finally {
     cleanupTemporaryD1Database(temporary.tempDir);
   }

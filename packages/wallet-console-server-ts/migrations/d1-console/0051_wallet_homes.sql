@@ -7,6 +7,11 @@ CREATE TABLE wallet_homes (
   registration_id TEXT NOT NULL CHECK (length(registration_id) > 0 AND trim(registration_id) = registration_id),
   request_digest TEXT NOT NULL CHECK (length(request_digest) = 64 AND request_digest NOT GLOB '*[^a-f0-9]*'),
   allocation TEXT NOT NULL CHECK (allocation IN ('provided', 'server_allocated')),
+  ceremony_id TEXT NOT NULL CHECK (ceremony_id GLOB 'wrc_*'),
+  preparation_id TEXT NOT NULL CHECK (preparation_id GLOB 'regprep_*'),
+  wallet_authority_id TEXT NOT NULL CHECK (wallet_authority_id GLOB 'wallet-authority:*'),
+  device_id TEXT NOT NULL CHECK (device_id GLOB 'device:*'),
+  wallet_auth_method_id TEXT NOT NULL CHECK (wallet_auth_method_id GLOB 'wallet-auth-method:*'),
   region TEXT NOT NULL CHECK (region IN ('US', 'WEUR', 'APAC')),
   account_id TEXT NOT NULL CHECK (length(account_id) = 32),
   database_id TEXT NOT NULL CHECK (length(database_id) = 36),
@@ -25,6 +30,9 @@ WHEN NEW.namespace != OLD.namespace OR NEW.organization_id != OLD.organization_i
      NEW.project_id != OLD.project_id OR NEW.environment_id != OLD.environment_id OR
      NEW.wallet_id != OLD.wallet_id OR NEW.registration_id != OLD.registration_id OR
      NEW.request_digest != OLD.request_digest OR NEW.allocation != OLD.allocation OR
+     NEW.ceremony_id != OLD.ceremony_id OR NEW.preparation_id != OLD.preparation_id OR
+     NEW.wallet_authority_id != OLD.wallet_authority_id OR NEW.device_id != OLD.device_id OR
+     NEW.wallet_auth_method_id != OLD.wallet_auth_method_id OR
      NEW.region != OLD.region OR NEW.account_id != OLD.account_id OR
      NEW.database_id != OLD.database_id OR NEW.reserved_at_ms != OLD.reserved_at_ms
 BEGIN

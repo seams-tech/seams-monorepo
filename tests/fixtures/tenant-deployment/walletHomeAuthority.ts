@@ -1,6 +1,7 @@
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import {
+  RegistrationSetupAllocation,
   WalletHome,
   WalletOwnershipKey,
   WalletPlacementError,
@@ -39,6 +40,7 @@ export default {
       const outcome = await directory.reserve({
         ...selection,
         proposedHome: home,
+        proposedRegistrationAllocation: RegistrationSetupAllocation.parse(body.registrationAllocation),
         registrationId: body.registrationId,
         requestDigest: body.requestDigest,
         nowMs: Date.now(),

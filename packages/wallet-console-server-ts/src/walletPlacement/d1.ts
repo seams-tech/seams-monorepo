@@ -1,5 +1,6 @@
 import { d1ChangedRows, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import {
+  RegistrationSetupAllocation,
   WalletHome,
   WalletOwnershipKey,
   WalletPlacementError,
@@ -65,6 +66,13 @@ function assignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
     throw new WalletPlacementError('invalid_record', 'Stored wallet allocation is invalid');
   }
   const reservedAtMs = timestamp(row.reserved_at_ms);
+  const registrationAllocation = RegistrationSetupAllocation.parse({
+    ceremonyId: row.ceremony_id,
+    preparationId: row.preparation_id,
+    walletAuthorityId: row.wallet_authority_id,
+    deviceId: row.device_id,
+    walletAuthMethodId: row.wallet_auth_method_id,
+  });
   switch (row.state) {
     case 'reserved':
       if (row.completed_at_ms !== null) break;
@@ -75,6 +83,7 @@ function assignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
         registrationId,
         requestDigest: digest,
         allocation,
+        registrationAllocation,
         reservedAtMs,
       };
     case 'established':
@@ -88,6 +97,7 @@ function assignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
         registrationId,
         requestDigest: digest,
         allocation,
+        registrationAllocation,
         reservedAtMs,
         completedAtMs,
       };
@@ -123,8 +133,10 @@ export class D1WalletHomeDirectory {
     const inserted = await this.database
       .prepare(
         `INSERT INTO wallet_homes (namespace, organization_id, project_id, environment_id,
-         wallet_id, registration_id, region, account_id, database_id, state, reserved_at_ms, request_digest, allocation)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'reserved', ?10, ?11, ?12
+         wallet_id, registration_id, region, account_id, database_id, state, reserved_at_ms, request_digest, allocation,
+         ceremony_id, preparation_id, wallet_authority_id, device_id, wallet_auth_method_id)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'reserved', ?10, ?11, ?12,
+         ?13, ?14, ?15, ?16, ?17
        WHERE NOT EXISTS (SELECT 1 FROM wallet_homes
          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
            AND (wallet_id = ?5 OR registration_id = ?6))`,
@@ -139,6 +151,11 @@ export class D1WalletHomeDirectory {
         nowMs,
         digest,
         input.allocation,
+        input.proposedRegistrationAllocation.ceremonyId,
+        input.proposedRegistrationAllocation.preparationId,
+        input.proposedRegistrationAllocation.walletAuthorityId,
+        input.proposedRegistrationAllocation.deviceId,
+        input.proposedRegistrationAllocation.walletAuthMethodId,
       )
       .run();
     const row = await queryD1One(

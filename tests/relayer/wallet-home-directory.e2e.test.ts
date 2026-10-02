@@ -65,6 +65,13 @@ function reservation(walletId: string, home: WalletHome, projectId = 'project') 
     wallet: walletKey(walletId, projectId),
     home,
     registrationId: `register-${walletId}`,
+    registrationAllocation: {
+      ceremonyId: `wrc_${walletId}`,
+      preparationId: `regprep_${walletId}`,
+      walletAuthorityId: `wallet-authority:${walletId}`,
+      deviceId: `device:${walletId}`,
+      walletAuthMethodId: `wallet-auth-method:${walletId}`,
+    },
   };
 }
 
@@ -202,6 +209,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       allocatedOutcomes.push(await response.json());
     }
     const allocated = allocatedOutcomes[0].assignment;
+    expect(allocated.registrationAllocation.ceremonyId).toMatch(/^wrc_candidate-\d$/u);
     expect(allocatedOutcomes.filter((outcome) => outcome.disposition === 'reserved')).toHaveLength(
       1,
     );
@@ -249,7 +257,10 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(await retry.json()).toMatchObject({
       ok: true,
       disposition: 'reused',
-      assignment: { home: homes[1] },
+      assignment: {
+        home: homes[1],
+        registrationAllocation: interrupted.registrationAllocation,
+      },
     });
     const wrongCompletion = await call(runtime, {
       ...interrupted,
@@ -310,6 +321,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       "UPDATE wallet_homes SET region = 'US' WHERE wallet_id = 'lost-reply' AND project_id = 'project'",
       "DELETE FROM wallet_homes WHERE wallet_id = 'lost-reply'",
       "UPDATE wallet_homes SET request_digest = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', state = 'established', completed_at_ms = reserved_at_ms WHERE wallet_id = 'traveller'",
+      "UPDATE wallet_homes SET ceremony_id = 'wrc_replaced' WHERE wallet_id = 'traveller'",
       "INSERT OR REPLACE INTO wallet_homes SELECT * FROM wallet_homes WHERE wallet_id = 'lost-reply'",
     ])
       await expect(persisted.prepare(sql).run()).rejects.toThrow(

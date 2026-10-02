@@ -109,12 +109,57 @@ export class WalletHome {
   }
 }
 
+export class RegistrationSetupAllocation {
+  readonly #validated = true;
+
+  private constructor(
+    readonly ceremonyId: string,
+    readonly preparationId: string,
+    readonly walletAuthorityId: string,
+    readonly deviceId: string,
+    readonly walletAuthMethodId: string,
+  ) {
+    Object.freeze(this);
+  }
+
+  static parse(raw: unknown): RegistrationSetupAllocation {
+    if (
+      typeof raw !== 'object' ||
+      raw === null ||
+      !('ceremonyId' in raw) ||
+      !('preparationId' in raw) ||
+      !('walletAuthorityId' in raw) ||
+      !('deviceId' in raw) ||
+      !('walletAuthMethodId' in raw) ||
+      Object.keys(raw).length !== 5
+    ) {
+      throw new WalletPlacementError('invalid_input', 'Registration allocation is invalid');
+    }
+    return new RegistrationSetupAllocation(
+      allocationId(raw.ceremonyId, /^wrc_[A-Za-z0-9_-]+$/u),
+      allocationId(raw.preparationId, /^regprep_[A-Za-z0-9_-]+$/u),
+      allocationId(raw.walletAuthorityId, /^wallet-authority:[A-Za-z0-9_-]+$/u),
+      allocationId(raw.deviceId, /^device:[A-Za-z0-9_-]+$/u),
+      allocationId(raw.walletAuthMethodId, /^wallet-auth-method:[A-Za-z0-9_-]+$/u),
+    );
+  }
+
+}
+
+function allocationId(raw: unknown, pattern: RegExp): string {
+  if (typeof raw !== 'string' || !pattern.test(raw)) {
+    throw new WalletPlacementError('invalid_input', 'Registration allocation identity is invalid');
+  }
+  return raw;
+}
+
 export type WalletHomeAssignment = {
   readonly wallet: WalletOwnershipKey;
   readonly home: WalletHome;
   readonly registrationId: string;
   readonly requestDigest: string;
   readonly allocation: 'provided' | 'server_allocated';
+  readonly registrationAllocation: RegistrationSetupAllocation;
   readonly reservedAtMs: number;
 } & (
   | { readonly state: 'reserved'; readonly completedAtMs?: never }
@@ -140,6 +185,7 @@ export type WalletHomeReservationInput = {
   readonly proposedHome: WalletHome;
   readonly registrationId: string;
   readonly requestDigest: string;
+  readonly proposedRegistrationAllocation: RegistrationSetupAllocation;
   readonly nowMs: number;
 } & (
   | {

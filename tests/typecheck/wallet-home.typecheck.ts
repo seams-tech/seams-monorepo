@@ -1,4 +1,5 @@
 import {
+  RegistrationSetupAllocation,
   WalletHome,
   WalletOwnershipKey,
   type WalletHomeAssignment,
@@ -9,6 +10,7 @@ import {
 declare const home: WalletHome;
 declare const wallet: WalletOwnershipKey;
 declare const assignment: WalletHomeAssignment;
+declare const registrationAllocation: RegistrationSetupAllocation;
 
 // @ts-expect-error Resource identity must cross its parser.
 const rawHome: WalletHome = { region: 'US', accountId: 'account', databaseId: 'database' };
@@ -16,6 +18,8 @@ const rawHome: WalletHome = { region: 'US', accountId: 'account', databaseId: 'd
 const changedHome: WalletHome = { ...home, region: 'APAC' };
 // @ts-expect-error Wallet ownership identity cannot be changed through a broad spread.
 const changedWallet: WalletOwnershipKey = { ...wallet, walletId: 'another-wallet' };
+// @ts-expect-error A raw allocation cannot bypass validation.
+const rawAllocation: RegistrationSetupAllocation = { ...registrationAllocation };
 // @ts-expect-error Construction cannot bypass parsing.
 const uncheckedWallet = new WalletOwnershipKey('ns', 'org', 'project', 'env', 'wallet');
 // @ts-expect-error A pending reservation cannot have a completion timestamp.
@@ -26,6 +30,7 @@ const pendingWithCompletion: WalletHomeAssignment = {
   registrationId: 'registration',
   requestDigest: 'a'.repeat(64),
   allocation: 'provided',
+  registrationAllocation,
   reservedAtMs: 1,
   completedAtMs: 2,
 };
@@ -37,6 +42,7 @@ const incompleteEstablished: WalletHomeAssignment = {
   registrationId: 'registration',
   requestDigest: 'a'.repeat(64),
   allocation: 'provided',
+  registrationAllocation,
   reservedAtMs: 1,
 };
 const mixedOutcome: WalletHomeReservation = {
@@ -50,6 +56,7 @@ const mixedOutcome: WalletHomeReservation = {
 void rawHome;
 void changedHome;
 void changedWallet;
+void rawAllocation;
 void uncheckedWallet;
 void pendingWithCompletion;
 void incompleteEstablished;
@@ -62,6 +69,7 @@ const ambiguousAllocation: WalletHomeReservationInput = {
   wallet,
   candidate: wallet,
   proposedHome: home,
+  proposedRegistrationAllocation: registrationAllocation,
   registrationId: 'registration',
   requestDigest: 'a'.repeat(64),
   nowMs: 1,
@@ -69,6 +77,10 @@ const ambiguousAllocation: WalletHomeReservationInput = {
 declare const missingDigest: Omit<WalletHomeReservationInput, 'requestDigest'>;
 // @ts-expect-error An operation identity alone cannot bind a registration request.
 const unboundRequest: WalletHomeReservationInput = missingDigest;
+declare const missingAllocation: Omit<WalletHomeReservationInput, 'proposedRegistrationAllocation'>;
+// @ts-expect-error Initial registration cannot proceed without a durable setup allocation.
+const unallocatedRequest: WalletHomeReservationInput = missingAllocation;
 void reservationInput;
 void ambiguousAllocation;
 void unboundRequest;
+void unallocatedRequest;

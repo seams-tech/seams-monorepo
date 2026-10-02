@@ -315,6 +315,24 @@ function requestInit(data: unknown, authorization: string) {
   };
 }
 
+async function signerDatabaseDigest(database: D1DatabaseLike): Promise<string> {
+  const tables = await database
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' ORDER BY name",
+    )
+    .all<{ name: string }>();
+  const digest = createHash('sha256');
+  for (const table of tables.results ?? []) {
+    const name = table.name.replaceAll('"', '""');
+    const rows = await database.prepare(`SELECT * FROM "${name}"`).all();
+    const records: string[] = [];
+    for (const row of rows.results ?? []) records.push(JSON.stringify(row));
+    records.sort();
+    digest.update(JSON.stringify([table.name, records]));
+  }
+  return digest.digest('hex');
+}
+
 test('Console verifies both real writer bindings against a fresh challenge and immutable reservation', async ({
   request,
 }, testInfo) => {
@@ -360,6 +378,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       writer(output, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
       writer(output, 'gateway-changed', 'gateway', 'database-a', home.databaseId, changedVersion),
       writer(output, 'runtime-good', 'runtime', 'database-a', home.databaseId, runtimeVersion),
+      writer(output, 'runtime-changed', 'runtime', 'database-a', home.databaseId, changedVersion),
       writer(
         output,
         'runtime-wrong-database',
@@ -572,6 +591,30 @@ test('Console verifies both real writer bindings against a fresh challenge and i
           'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
         ),
       ).rejects.toThrow();
+      const signerStateBefore = await signerDatabaseDigest(databaseA);
+      const rejectedWriterRequests = [];
+      for (const name of ['gateway-changed', 'runtime-changed']) {
+        const staleWriter = await runtime.getWorker(name);
+        for (const pathname of [
+          '/wallets/register/setup',
+          '/wallets/fixture-wallet/auth-methods/intent',
+        ]) {
+          await expect(
+            staleWriter.fetch(`https://wallet.example.test${pathname}`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '1' },
+              body: '{',
+            }),
+          ).rejects.toThrow('Runtime version is not authorized by the active home verification');
+          rejectedWriterRequests.push({ writer: name, method: 'POST', pathname });
+        }
+      }
+      const signerStateAfter = await signerDatabaseDigest(databaseA);
+      expect(signerStateAfter).toBe(signerStateBefore);
+      await writeFile(
+        testInfo.outputPath('stale-writer-admission.json'),
+        `${JSON.stringify({ rejectedWriterRequests, signerStateBefore, signerStateAfter }, null, 2)}\n`,
+      );
       for (const role of ['gateway', 'walletRuntime']) {
         const versionId = role === 'gateway' ? gatewayVersion : runtimeVersion;
         const admitted = await good.fetch(

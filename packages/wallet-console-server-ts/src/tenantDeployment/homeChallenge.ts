@@ -9,6 +9,7 @@ import { TenantDeploymentStoreError } from './service';
 const CHALLENGE_PATH = '/internal/tenant-deployment/v1/home-challenge';
 const CHALLENGE_ORIGIN = 'https://tenant-deployment.internal';
 const HEX_32_BYTES = /^[a-f0-9]{64}$/u;
+const VERSION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u;
 
 export type TenantD1HomeChallengeRequestV1 = {
   readonly deploymentLane: string;
@@ -17,6 +18,7 @@ export type TenantD1HomeChallengeRequestV1 = {
 };
 
 type ChallengeObservation = {
+  readonly versionId: string;
   readonly home: NamespaceD1HomeV1;
   readonly challengeId: string;
   readonly proof: string;
@@ -32,7 +34,7 @@ export interface TenantD1HomeVerifierV1 {
     readonly challengeId: string;
     readonly checkedAtMs: number;
     readonly expiresAtMs: number;
-    readonly verifiedWriters: readonly ['gateway', 'wallet-runtime'];
+    readonly writerVersions: { readonly gateway: string; readonly walletRuntime: string };
     readonly activationAuthorized: false;
   }>;
 }
@@ -66,6 +68,8 @@ export function parseTenantD1HomeChallengeRequestV1(raw: unknown): TenantD1HomeC
 function parseObservation(raw: unknown, nowMs: number): ChallengeObservation {
   if (
     !record(raw) ||
+    typeof raw.versionId !== 'string' ||
+    !VERSION_ID.test(raw.versionId) ||
     !hex(raw.challengeId) ||
     !hex(raw.proof) ||
     typeof raw.issuedAtMs !== 'number' ||
@@ -84,6 +88,7 @@ function parseObservation(raw: unknown, nowMs: number): ChallengeObservation {
     );
   }
   return {
+    versionId: raw.versionId,
     home: NamespaceD1HomeV1.parse(raw.home),
     challengeId: raw.challengeId,
     proof: raw.proof,
@@ -100,6 +105,7 @@ export async function tenantD1HomeChallengeResponseV1(
   request: Request,
   database: D1DatabaseLike,
   rawHome: unknown,
+  rawVersionMetadata: unknown,
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== CHALLENGE_PATH) return null;
@@ -124,6 +130,7 @@ export async function tenantD1HomeChallengeResponseV1(
   try {
     const observation = parseObservation(
       {
+        versionId: record(rawVersionMetadata) ? rawVersionMetadata.id : null,
         home: {
           namespace: home.namespace,
           accountId: row?.account_id,
@@ -218,7 +225,7 @@ export function createTenantD1HomeVerifierV1(options: {
         challengeId: request.challengeId,
         checkedAtMs,
         expiresAtMs,
-        verifiedWriters: ['gateway', 'wallet-runtime'],
+        writerVersions: { gateway: gateway.versionId, walletRuntime: runtime.versionId },
         activationAuthorized: false,
       };
     },

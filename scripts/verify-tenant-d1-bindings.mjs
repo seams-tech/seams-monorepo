@@ -5,6 +5,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { readBackendLane } from './deployment-targets.mjs';
 import { walletRuntimeWorkerNameFor } from '../packages/wallet-console-server-ts/scripts/render-d1-gateway-config.mjs';
+import { isDirectInvocation } from '../packages/wallet-console-server-ts/scripts/d1-staging-config.mjs';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u;
 
@@ -113,7 +114,7 @@ async function readSignerBinding(accountId, apiToken, workerName, versionId) {
   return signer;
 }
 
-async function inspectBindings(lane, accountId, apiToken) {
+export async function inspectBindings(lane, accountId, apiToken) {
   if (lane.provisioning.kind !== 'provisioned') throw new Error('Lane is not provisioned');
   const deployment = lane.provisioning.gatewayDeploymentConfig;
   const databaseId = uuid(deployment.resources.signerD1.id, 'configured signer D1 ID');
@@ -201,4 +202,4 @@ function fail(error) {
   process.exitCode = 1;
 }
 
-main().catch(fail);
+if (isDirectInvocation(import.meta.url)) main().catch(fail);

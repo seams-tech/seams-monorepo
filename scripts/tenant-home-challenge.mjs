@@ -1,4 +1,16 @@
 import { randomBytes } from 'node:crypto';
+import { inspectBindings } from './verify-tenant-d1-bindings.mjs';
+import { walletRuntimeWorkerNameFor } from '../packages/wallet-console-server-ts/scripts/render-d1-gateway-config.mjs';
+
+function servingVersion(checkpoint, workerName) {
+  for (const worker of checkpoint.workers) {
+    if (worker.workerName !== workerName) continue;
+    if (worker.versions.length !== 1 || worker.versions[0].percentage !== 100)
+      throw new Error('Runtime home verification requires one serving version per writer');
+    return worker.versions[0].versionId;
+  }
+  throw new Error('Runtime home verification is missing a writer');
+}
 
 async function executeChallengeQuery(accountId, databaseId, apiToken, sql, params) {
   const response = await fetch(
@@ -32,6 +44,13 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
   const deployment = lane.provisioning.gatewayDeploymentConfig;
   const databaseId = deployment.resources.signerD1.id;
   const namespace = deployment.tenant.namespace;
+  const providerBefore = await inspectBindings(lane, accountId, apiToken);
+  const gatewayName = lane.resources.gateway.workerName;
+  const gatewayVersion = servingVersion(providerBefore, gatewayName);
+  const walletRuntimeVersion = servingVersion(
+    providerBefore,
+    walletRuntimeWorkerNameFor(gatewayName),
+  );
   const challengeId = randomBytes(32).toString('hex');
   const expectedProof = randomBytes(32).toString('hex');
   const issuedAtMs = Date.now();
@@ -74,8 +93,8 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
       result.home?.accountId !== accountId ||
       result.home?.databaseId !== databaseId ||
       result.activationAuthorized !== false ||
-      !Array.isArray(result.verifiedWriters) ||
-      result.verifiedWriters.join(',') !== 'gateway,wallet-runtime' ||
+      result.writerVersions?.gateway !== gatewayVersion ||
+      result.writerVersions?.walletRuntime !== walletRuntimeVersion ||
       !Number.isSafeInteger(result.checkedAtMs) ||
       result.checkedAtMs < issuedAtMs ||
       result.checkedAtMs > Date.now() ||
@@ -84,14 +103,23 @@ export async function verifyTenantHomeChallenge(lane, oidcToken) {
     ) {
       throw new Error('Console returned an invalid runtime home checkpoint');
     }
+    const providerAfter = await inspectBindings(lane, accountId, apiToken);
+    if (JSON.stringify(providerBefore.workers) !== JSON.stringify(providerAfter.workers))
+      throw new Error('Writer deployment changed across the runtime challenge');
+    if (result.expiresAtMs <= Date.now())
+      throw new Error('Runtime home challenge expired during provider verification');
     return {
-      kind: result.kind,
+      kind: 'tenant_d1_home_checkpoint_v1',
       deploymentLane: lane.id,
       home: { namespace, accountId, databaseId },
       challengeId,
       checkedAtMs: result.checkedAtMs,
       expiresAtMs: result.expiresAtMs,
-      verifiedWriters: ['gateway', 'wallet-runtime'],
+      providerCheckedBefore: providerBefore.checkedAt,
+      providerCheckedAfter: providerAfter.checkedAt,
+      workers: providerAfter.workers,
+      writerVersions: { gateway: gatewayVersion, walletRuntime: walletRuntimeVersion },
+      runtimeChallengeVerified: true,
       activationAuthorized: false,
     };
   } finally {

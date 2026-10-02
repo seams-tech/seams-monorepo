@@ -70,3 +70,13 @@ declare const checkpoint: Awaited<ReturnType<TenantD1HomeVerifierV1['verify']>>;
 const activatedCheckpoint: typeof checkpoint = { ...checkpoint, activationAuthorized: true };
 void unprovenChallenge;
 void activatedCheckpoint;
+declare const checkpointWithoutVersions: Omit<typeof checkpoint, 'writerVersions'>;
+// @ts-expect-error Runtime proof must identify both answering versions.
+const anonymousCheckpoint: typeof checkpoint = checkpointWithoutVersions;
+const incompleteVersions: typeof checkpoint = {
+  ...checkpoint,
+  // @ts-expect-error A spread cannot erase a required writer version.
+  writerVersions: { gateway: 'version' },
+};
+void anonymousCheckpoint;
+void incompleteVersions;

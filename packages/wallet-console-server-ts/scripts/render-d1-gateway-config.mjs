@@ -255,6 +255,7 @@ function buildWalletRuntimeConfig(
   return {
     name: walletRuntimeWorkerNameFor(resources.workerName),
     main: path.join(packageRoot, 'src/router/cloudflare/d1WalletRuntimeWorker.ts'),
+    version_metadata: { binding: 'CF_VERSION_METADATA' },
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,
@@ -298,6 +299,7 @@ function buildConfig(
   return {
     name: resources.workerName,
     main: path.join(packageRoot, 'src/router/cloudflare/d1GatewayWorker.ts'),
+    version_metadata: { binding: 'CF_VERSION_METADATA' },
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     placement: { region: resources.placementRegion },

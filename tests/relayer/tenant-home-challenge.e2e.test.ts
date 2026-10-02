@@ -27,6 +27,17 @@ const home = namespaceHome(namespace, deployment.resources.signerD1.id);
 const execute = promisify(execFile);
 const challengePath = '/internal/tenant-deployment/v1/home-challenge';
 const verifyUrl = 'https://console.example.test/internal/tenant-deployment/v1/verify-home';
+const gatewayVersion = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const runtimeVersion = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const changedVersion = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const deploymentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+type ProviderScenario =
+  | 'stable'
+  | 'changed_deployment'
+  | 'changed_version'
+  | 'wrong_version'
+  | 'gradual';
 
 class Dependencies {
   readonly oidc = new GithubDeploymentOidcFixture();
@@ -40,6 +51,9 @@ class Dependencies {
 }
 
 class ChallengeProvider {
+  scenario: ProviderScenario = 'stable';
+  challengeWritten = false;
+  reads = 0;
   failInsertResponse = false;
   inserts = 0;
   deletes = 0;
@@ -53,6 +67,10 @@ class ChallengeProvider {
     try {
       if (request.url?.startsWith('/oidc')) {
         response.end(JSON.stringify({ value: this.oidc.authorization().slice(7) }));
+        return;
+      }
+      if (request.method === 'GET') {
+        this.readProvider(request, response);
         return;
       }
       const chunks = [];
@@ -70,7 +88,10 @@ class ChallengeProvider {
         .prepare(input.sql)
         .bind(...input.params)
         .all();
-      if (insert) this.inserts += 1;
+      if (insert) {
+        this.inserts += 1;
+        this.challengeWritten = true;
+      }
       if (remove) this.deletes += 1;
       if (insert && this.failInsertResponse) {
         response.writeHead(503).end('Injected lost INSERT response');
@@ -81,6 +102,46 @@ class ChallengeProvider {
       this.failures.push('provider fixture failure');
       response.writeHead(500).end();
     }
+  }
+
+  readProvider(request: IncomingMessage, response: ServerResponse): void {
+    const match = request.url?.match(
+      /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet)\/(deployments|versions\/[a-f0-9-]+)$/u,
+    );
+    if (!match) throw new Error('Unexpected provider read');
+    this.reads += 1;
+    const changed = this.challengeWritten && this.scenario === 'changed_version';
+    let versionId = match[2] === 'gateway' ? gatewayVersion : runtimeVersion;
+    if (changed || this.scenario === 'wrong_version') versionId = changedVersion;
+    if (match[3] === 'deployments') {
+      const versions =
+        this.scenario === 'gradual'
+          ? [
+              { version_id: versionId, percentage: 75 },
+              { version_id: changedVersion, percentage: 25 },
+            ]
+          : [{ version_id: versionId, percentage: 100 }];
+      const id =
+        this.challengeWritten && this.scenario === 'changed_deployment'
+          ? changedVersion
+          : deploymentId;
+      response.end(
+        JSON.stringify({
+          success: true,
+          result: { deployments: [{ id, strategy: 'percentage', versions }] },
+        }),
+      );
+      return;
+    }
+    response.end(
+      JSON.stringify({
+        success: true,
+        result: {
+          id: match[3].slice('versions/'.length),
+          resources: { bindings: [{ name: 'SIGNER_DB', type: 'd1', id: home.databaseId }] },
+        },
+      }),
+    );
   }
 }
 
@@ -120,7 +181,14 @@ async function runChallengeCli(
   }
 }
 
-function writer(output: string, name: string, entry: string, database: string, databaseId: string) {
+function writer(
+  output: string,
+  name: string,
+  entry: string,
+  database: string,
+  databaseId: string,
+  versionId: string | null,
+) {
   return {
     name,
     modules: true,
@@ -128,6 +196,7 @@ function writer(output: string, name: string, entry: string, database: string, d
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
     bindings: {
+      CF_VERSION_METADATA: versionId === null ? null : { id: versionId },
       SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
       SEAMS_TENANT_DEPLOYMENT_LANE: lane,
       SEAMS_D1_HOME_ACCOUNT_ID: home.accountId,
@@ -213,15 +282,25 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       consoleWorker(output, 'console-good', 'runtime-good', deps),
       consoleWorker(output, 'console-wrong-database', 'runtime-wrong-database', deps),
       consoleWorker(output, 'console-wrong-config', 'runtime-wrong-config', deps),
-      writer(output, 'gateway', 'gateway', 'database-a', home.databaseId),
-      writer(output, 'runtime-good', 'runtime', 'database-a', home.databaseId),
-      writer(output, 'runtime-wrong-database', 'runtime', 'database-b', home.databaseId),
+      consoleWorker(output, 'console-missing-version', 'runtime-missing-version', deps),
+      writer(output, 'gateway', 'gateway', 'database-a', home.databaseId, gatewayVersion),
+      writer(output, 'runtime-good', 'runtime', 'database-a', home.databaseId, runtimeVersion),
+      writer(
+        output,
+        'runtime-wrong-database',
+        'runtime',
+        'database-b',
+        home.databaseId,
+        runtimeVersion,
+      ),
+      writer(output, 'runtime-missing-version', 'runtime', 'database-a', home.databaseId, null),
       writer(
         output,
         'runtime-wrong-config',
         'runtime',
         'database-a',
         'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        runtimeVersion,
       ),
     ],
   });
@@ -267,6 +346,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
     const good = await runtime.getWorker('console-good');
     const wrongDatabase = await runtime.getWorker('console-wrong-database');
     const wrongConfig = await runtime.getWorker('console-wrong-config');
+    const missingVersion = await runtime.getWorker('console-missing-version');
     const gateway = await runtime.getWorker('gateway');
     const auth = deps.oidc.authorization();
     const challenge = await insertChallenge(databaseA, Date.now() - 100);
@@ -297,6 +377,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
     expect(wrong.status).toBe(409);
     const configuredWrong = await wrongConfig.fetch(verifyUrl, requestInit(challenge, auth));
     expect(configuredWrong.status).toBe(409);
+    expect((await missingVersion.fetch(verifyUrl, requestInit(challenge, auth))).status).toBe(409);
     const tampered = await good.fetch(
       verifyUrl,
       requestInit({ ...challenge, expectedProof: randomBytes(32).toString('hex') }, auth),
@@ -310,7 +391,7 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       ok: true,
       result: {
         home: { namespace, accountId: home.accountId, databaseId: home.databaseId },
-        verifiedWriters: ['gateway', 'wallet-runtime'],
+        writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
         activationAuthorized: false,
       },
     });
@@ -353,9 +434,12 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       const completed = await runChallengeCli(providerOrigin, String(await runtime.ready));
       expect(completed.exitCode).toBe(0);
       expect(JSON.parse(completed.stdout)).toMatchObject({
-        kind: 'tenant_d1_runtime_home_checkpoint_v1',
+        kind: 'tenant_d1_home_checkpoint_v1',
+        writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
+        runtimeChallengeVerified: true,
         activationAuthorized: false,
       });
+      expect(provider.reads).toBe(12);
       expect(
         await databaseA
           .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
@@ -370,7 +454,32 @@ test('Console verifies both real writer bindings against a fresh challenge and i
       ).toBe(0);
       expect(provider.inserts).toBe(2);
       expect(provider.deletes).toBe(2);
+      provider.failInsertResponse = false;
+      const scenarios: ProviderScenario[] = [
+        'wrong_version',
+        'changed_deployment',
+        'changed_version',
+        'gradual',
+      ];
+      for (const scenario of scenarios) {
+        provider.scenario = scenario;
+        provider.challengeWritten = false;
+        const insertsBefore = provider.inserts;
+        const rejected = await runChallengeCli(providerOrigin, String(await runtime.ready));
+        expect(rejected.exitCode, scenario).toBe(1);
+        expect(rejected.stdout, scenario).toBe('');
+        expect(provider.inserts - insertsBefore, scenario).toBe(scenario === 'gradual' ? 0 : 1);
+        expect(
+          await databaseA
+            .prepare('SELECT COUNT(*) AS count FROM namespace_home_challenges')
+            .first('count'),
+          scenario,
+        ).toBe(0);
+      }
+      expect(provider.inserts).toBe(5);
+      expect(provider.deletes).toBe(5);
       expect(provider.failures).toEqual([]);
+      await writeFile(testInfo.outputPath('combined-home-checkpoint.json'), completed.stdout);
     } finally {
       providerServer.close();
       await once(providerServer, 'close');
@@ -395,11 +504,18 @@ test('Console verifies both real writer bindings against a fresh challenge and i
         'future',
         'stale database copy',
         'deleted challenge',
+        'missing version metadata',
       ],
       activationCount: 0,
       operatorCli: {
         successfulChallengeCleanedUp: true,
         lostInsertResponseCleanedUp: true,
+        versionScenariosRejected: [
+          'wrong_version',
+          'changed_deployment',
+          'changed_version',
+          'gradual',
+        ],
         inserts: provider.inserts,
         deletes: provider.deletes,
       },

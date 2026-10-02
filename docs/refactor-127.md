@@ -531,20 +531,33 @@ and internal/admin routes. Those are still rollout gates. Provider API semantics
 [version resources](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/get/),
 and [D1 binding IDs](https://developers.cloudflare.com/workers/configuration/multipart-upload-metadata/#bindings).
 
-The runtime reachability checkpoint uses the protected OIDC workflow:
+The combined provider/runtime checkpoint uses the protected OIDC workflow:
 
 ```text
 pnpm tenant:cutover verify-home --lane production-testnet
 ```
 
-This operation needs Cloudflare D1 query permission as well as the existing
-GitHub OIDC scope. It writes one random, five-minute challenge directly through
+This operation needs Worker deployment/version read and D1 query permissions as
+well as the existing GitHub OIDC scope. It first verifies the actual provider
+bindings, requiring one serving version at 100% for each writer. It then writes
+one random, five-minute challenge directly through
 the configured database UUID. Console reads its immutable namespace reservation,
 then asks Gateway and Wallet Runtime to read the challenge through their actual
 `SIGNER_DB` bindings. The expected proof is omitted from these private requests;
 only namespace and challenge ID are sent. Both observations must match the
-reservation, proof and validity window. The returned checkpoint excludes the
-proof and has `activationAuthorized: false`.
+reservation, proof and validity window. Each writer reports its own Cloudflare
+version metadata ID, which must match the provider's serving version. Missing
+version metadata fails verification. After the runtime reads, the CLI repeats
+provider verification and rejects changes to deployments, versions or weights.
+The challenge must still be fresh when this final check completes. A successful
+single-version run performs twelve provider GETs, one challenge INSERT and one
+DELETE. The returned `tenant_d1_home_checkpoint_v1` includes both provider check
+times, serving deployments and the answering versions, excludes the proof and
+retains `activationAuthorized: false`.
+
+The standalone read-only provider command supports gradual rollouts. The combined
+command rejects them before writing a challenge because one request cannot
+establish runtime coverage of every serving version.
 
 The CLI deletes its exact challenge in `finally`, including when an INSERT
 committed but its response was lost. Process termination can leave an expired
@@ -553,15 +566,19 @@ to the writer challenge path return 404. The handler works before binding
 adoption and does not initialize homes or touch custody/session records.
 
 Rollout prerequisites: signer migration `0040_namespace_home_challenges.sql`, the
-new private Console `WALLET_GATEWAY` service binding, and the challenge endpoint on
-both writers. The migration currently lives in `seams-wallet` source and is absent
+new private Console `WALLET_GATEWAY` service binding, the challenge endpoint and
+`CF_VERSION_METADATA` binding on both writers. The renderer supplies that metadata
+binding. The migration currently lives in `seams-wallet` source and is absent
 from the pinned `@seams/wallet-server` 0.7.3 release. Publish/consume the exact new
 package release before the normal migration pipeline can apply it. The local
 acceptance test deliberately reads this source migration and records its hash.
-Provider/version checkpoints and runtime challenges are separate observations;
-activation must still bind them to a stable deployment generation. A copied
-database receiving the fresh challenge can answer it, so this challenge alone
-does not establish the provider resource or prevent a second writer.
+This combined observation still needs enforcement in the activation transaction
+and runtime admission. It neither changes the existing cutover path nor prevents
+a later privileged deployment change. Activation must consume trusted, fresh
+evidence for the intended operation and versions; an operator JSON receipt alone
+cannot grant that authority. A copied database receiving the fresh challenge can
+answer it, so runtime proof alone cannot establish the provider resource or
+prevent a second writer.
 
 The protected workflow deploys and smokes the complete production-testnet
 Wallet runtime plus the Console control plane before it invokes the cutover.

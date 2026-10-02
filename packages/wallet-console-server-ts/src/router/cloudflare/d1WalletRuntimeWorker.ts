@@ -20,6 +20,7 @@ type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
     readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
     readonly SEAMS_D1_HOME_DATABASE_ID: string;
+    readonly CF_VERSION_METADATA: unknown;
   };
 
 async function fetch(
@@ -27,11 +28,16 @@ async function fetch(
   env: CloudflareWalletRuntimeEnv,
   _ctx: CfExecutionContext,
 ): Promise<Response> {
-  const challenge = await tenantD1HomeChallengeResponseV1(request, env.SIGNER_DB, {
-    namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
-    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-  });
+  const challenge = await tenantD1HomeChallengeResponseV1(
+    request,
+    env.SIGNER_DB,
+    {
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    },
+    env.CF_VERSION_METADATA,
+  );
   if (challenge) return challenge;
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,

@@ -9,6 +9,8 @@ function fixtureFetch(input, init) {
   if (url.origin === provider.origin && url.pathname === '/oidc') return nativeFetch(url, init);
   if (url.origin === 'https://api.cloudflare.com' && url.pathname.endsWith('/query'))
     return nativeFetch(new URL('/query', provider), init);
+  if (url.origin === 'https://api.cloudflare.com' && url.pathname.includes('/workers/scripts/'))
+    return nativeFetch(new URL(url.pathname, provider), init);
   if (url.pathname === '/internal/tenant-deployment/v1/verify-home')
     return nativeFetch(new URL(url.pathname, consoleOrigin), init);
   throw new Error('Unexpected challenge CLI network request');

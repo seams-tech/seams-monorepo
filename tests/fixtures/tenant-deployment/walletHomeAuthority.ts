@@ -23,15 +23,24 @@ export default {
             wallet,
             home,
             registrationId: body.registrationId,
+            requestDigest: body.requestDigest,
             outcome: body.outcome,
             nowMs: Date.now(),
           }),
         );
       }
+      const selection =
+        body.allocation === 'provided'
+          ? { allocation: 'provided' as const, wallet }
+          : { allocation: 'server_allocated' as const, candidate: wallet };
+      if (body.allocation !== 'provided' && body.allocation !== 'server_allocated') {
+        return Response.json({ code: 'invalid_input' }, { status: 400 });
+      }
       const outcome = await directory.reserve({
-        wallet,
+        ...selection,
         proposedHome: home,
         registrationId: body.registrationId,
+        requestDigest: body.requestDigest,
         nowMs: Date.now(),
       });
       if (new URL(request.url).searchParams.has('loseReply')) {

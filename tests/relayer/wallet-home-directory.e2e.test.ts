@@ -60,6 +60,8 @@ function start(directory: string): Miniflare {
 function reservation(walletId: string, home: WalletHome, projectId = 'project') {
   return {
     action: 'reserve',
+    allocation: 'provided',
+    requestDigest: 'a'.repeat(64),
     wallet: walletKey(walletId, projectId),
     home,
     registrationId: `register-${walletId}`,
@@ -164,16 +166,101 @@ test('wallet homes are independent within a tenant and durable across competing 
       (await call(runtime, { action: 'find', wallet: walletKey('another-wallet') })).status,
     ).toBe(404);
 
+    const changedRequest = await call(runtime, {
+      ...reservation('traveller', homes[1]),
+      requestDigest: 'b'.repeat(64),
+    });
+    expect(changedRequest.status).toBe(409);
+    expect(await changedRequest.json()).toMatchObject({
+      code: 'request_conflict',
+      assignment: assigned,
+    });
+    const invalidDigest = await call(runtime, {
+      ...reservation('invalid-digest', homes[1]),
+      requestDigest: 'not-a-digest',
+    });
+    expect(invalidDigest.status).toBe(400);
+
+    const allocations = [];
+    for (let index = 0; index < 9; index += 1) {
+      allocations.push(
+        call(
+          runtime,
+          {
+            ...reservation(`candidate-${index}`, homes[index % 3]),
+            allocation: 'server_allocated',
+            registrationId: 'one-server-registration',
+          },
+          false,
+          index % 2 ? 'ingress-a' : 'ingress-b',
+        ),
+      );
+    }
+    const allocatedOutcomes = [];
+    for (const response of await Promise.all(allocations)) {
+      expect(response.status).toBe(200);
+      allocatedOutcomes.push(await response.json());
+    }
+    const allocated = allocatedOutcomes[0].assignment;
+    expect(allocatedOutcomes.filter((outcome) => outcome.disposition === 'reserved')).toHaveLength(
+      1,
+    );
+    for (const outcome of allocatedOutcomes) expect(outcome.assignment).toEqual(allocated);
+    observations.push({ stage: 'server_allocation_race', outcomes: allocatedOutcomes });
+    const changedAllocation = await call(runtime, {
+      ...reservation(allocated.wallet.walletId, homes[0]),
+      registrationId: 'one-server-registration',
+    });
+    expect(changedAllocation.status).toBe(409);
+    expect(await changedAllocation.json()).toMatchObject({ code: 'request_conflict' });
+    const generatedCollision = await call(runtime, {
+      ...reservation('traveller', homes[0]),
+      allocation: 'server_allocated',
+      registrationId: 'allocation-after-collision',
+    });
+    expect(generatedCollision.status).toBe(409);
+    expect(await generatedCollision.json()).toMatchObject({ code: 'wallet_conflict' });
+    const generatedRetry = await call(
+      runtime,
+      {
+        ...reservation('collision-replacement', homes[0]),
+        allocation: 'server_allocated',
+        registrationId: 'allocation-after-collision',
+      },
+      true,
+    );
+    expect(generatedRetry.status).toBe(503);
+
     const interrupted = reservation('lost-reply', homes[1]);
     expect((await call(runtime, interrupted, true)).status).toBe(503);
     await runtime.dispose();
     runtime = start(directory);
+    const generatedAfterRestart = await call(runtime, {
+      ...reservation('discarded-new-candidate', homes[2]),
+      allocation: 'server_allocated',
+      registrationId: 'allocation-after-collision',
+    });
+    expect(await generatedAfterRestart.json()).toMatchObject({
+      ok: true,
+      disposition: 'reused',
+      assignment: { wallet: { walletId: 'collision-replacement' }, home: homes[0] },
+    });
     const retry = await call(runtime, reservation('lost-reply', homes[2]));
     expect(await retry.json()).toMatchObject({
       ok: true,
       disposition: 'reused',
       assignment: { home: homes[1] },
     });
+    const wrongCompletion = await call(runtime, {
+      ...interrupted,
+      action: 'complete',
+      outcome: 'established',
+      requestDigest: 'c'.repeat(64),
+    });
+    expect(wrongCompletion.status).toBe(409);
+    expect(
+      await (await call(runtime, { action: 'find', wallet: interrupted.wallet })).json(),
+    ).toMatchObject({ state: 'reserved' });
     const completed = await call(runtime, {
       ...interrupted,
       action: 'complete',
@@ -222,6 +309,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     for (const sql of [
       "UPDATE wallet_homes SET region = 'US' WHERE wallet_id = 'lost-reply' AND project_id = 'project'",
       "DELETE FROM wallet_homes WHERE wallet_id = 'lost-reply'",
+      "UPDATE wallet_homes SET request_digest = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', state = 'established', completed_at_ms = reserved_at_ms WHERE wallet_id = 'traveller'",
       "INSERT OR REPLACE INTO wallet_homes SELECT * FROM wallet_homes WHERE wallet_id = 'lost-reply'",
     ])
       await expect(persisted.prepare(sql).run()).rejects.toThrow(
@@ -230,10 +318,13 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(
       await (await call(runtime, { action: 'find', wallet: interrupted.wallet })).json(),
     ).toEqual(established);
+    expect(
+      await (await call(runtime, { action: 'find', wallet: walletKey('traveller') })).json(),
+    ).toEqual(assigned);
     const rows = await persisted
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
-    expect(rows.results).toHaveLength(13);
+    expect(rows.results).toHaveLength(15);
     const receipt = {
       kind: 'wallet_home_directory_e2e_v1',
       observations,

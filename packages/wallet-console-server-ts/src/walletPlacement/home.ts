@@ -113,6 +113,8 @@ export type WalletHomeAssignment = {
   readonly wallet: WalletOwnershipKey;
   readonly home: WalletHome;
   readonly registrationId: string;
+  readonly requestDigest: string;
+  readonly allocation: 'provided' | 'server_allocated';
   readonly reservedAtMs: number;
 } & (
   | { readonly state: 'reserved'; readonly completedAtMs?: never }
@@ -129,7 +131,25 @@ export type WalletHomeReservation =
     }
   | {
       readonly ok: false;
-      readonly code: 'wallet_conflict' | 'registration_conflict';
+      readonly code: 'wallet_conflict' | 'registration_conflict' | 'request_conflict';
       readonly assignment: WalletHomeAssignment;
       readonly disposition?: never;
     };
+
+export type WalletHomeReservationInput = {
+  readonly proposedHome: WalletHome;
+  readonly registrationId: string;
+  readonly requestDigest: string;
+  readonly nowMs: number;
+} & (
+  | {
+      readonly allocation: 'provided';
+      readonly wallet: WalletOwnershipKey;
+      readonly candidate?: never;
+    }
+  | {
+      readonly allocation: 'server_allocated';
+      readonly candidate: WalletOwnershipKey;
+      readonly wallet?: never;
+    }
+);

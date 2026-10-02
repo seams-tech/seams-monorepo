@@ -5,6 +5,8 @@ CREATE TABLE wallet_homes (
   environment_id TEXT NOT NULL CHECK (length(environment_id) > 0 AND trim(environment_id) = environment_id),
   wallet_id TEXT NOT NULL CHECK (length(wallet_id) > 0 AND trim(wallet_id) = wallet_id),
   registration_id TEXT NOT NULL CHECK (length(registration_id) > 0 AND trim(registration_id) = registration_id),
+  request_digest TEXT NOT NULL CHECK (length(request_digest) = 64 AND request_digest NOT GLOB '*[^a-f0-9]*'),
+  allocation TEXT NOT NULL CHECK (allocation IN ('provided', 'server_allocated')),
   region TEXT NOT NULL CHECK (region IN ('US', 'WEUR', 'APAC')),
   account_id TEXT NOT NULL CHECK (length(account_id) = 32),
   database_id TEXT NOT NULL CHECK (length(database_id) = 36),
@@ -22,6 +24,7 @@ BEFORE UPDATE ON wallet_homes
 WHEN NEW.namespace != OLD.namespace OR NEW.organization_id != OLD.organization_id OR
      NEW.project_id != OLD.project_id OR NEW.environment_id != OLD.environment_id OR
      NEW.wallet_id != OLD.wallet_id OR NEW.registration_id != OLD.registration_id OR
+     NEW.request_digest != OLD.request_digest OR NEW.allocation != OLD.allocation OR
      NEW.region != OLD.region OR NEW.account_id != OLD.account_id OR
      NEW.database_id != OLD.database_id OR NEW.reserved_at_ms != OLD.reserved_at_ms
 BEGIN

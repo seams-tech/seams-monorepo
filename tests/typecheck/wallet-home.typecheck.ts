@@ -3,6 +3,7 @@ import {
   WalletOwnershipKey,
   type WalletHomeAssignment,
   type WalletHomeReservation,
+  type WalletHomeReservationInput,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 
 declare const home: WalletHome;
@@ -23,6 +24,8 @@ const pendingWithCompletion: WalletHomeAssignment = {
   wallet,
   home,
   registrationId: 'registration',
+  requestDigest: 'a'.repeat(64),
+  allocation: 'provided',
   reservedAtMs: 1,
   completedAtMs: 2,
 };
@@ -32,6 +35,8 @@ const incompleteEstablished: WalletHomeAssignment = {
   wallet,
   home,
   registrationId: 'registration',
+  requestDigest: 'a'.repeat(64),
+  allocation: 'provided',
   reservedAtMs: 1,
 };
 const mixedOutcome: WalletHomeReservation = {
@@ -49,3 +54,21 @@ void uncheckedWallet;
 void pendingWithCompletion;
 void incompleteEstablished;
 void mixedOutcome;
+
+declare const reservationInput: WalletHomeReservationInput;
+// @ts-expect-error Allocation branches cannot contain both provided and candidate identities.
+const ambiguousAllocation: WalletHomeReservationInput = {
+  allocation: 'provided',
+  wallet,
+  candidate: wallet,
+  proposedHome: home,
+  registrationId: 'registration',
+  requestDigest: 'a'.repeat(64),
+  nowMs: 1,
+};
+declare const missingDigest: Omit<WalletHomeReservationInput, 'requestDigest'>;
+// @ts-expect-error An operation identity alone cannot bind a registration request.
+const unboundRequest: WalletHomeReservationInput = missingDigest;
+void reservationInput;
+void ambiguousAllocation;
+void unboundRequest;

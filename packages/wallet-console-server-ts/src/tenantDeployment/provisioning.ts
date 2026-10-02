@@ -1,4 +1,5 @@
 import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/service';
+import { base64UrlEncode } from '@seams/wallet-server/cloud-host';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
 import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
@@ -497,9 +498,10 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
           'content-type': 'application/json',
           origin: input.surfaces.hostedWalletOrigin,
           'x-seams-environment-id': input.environmentId,
-          'x-seams-wallet-protocol': '1',
+          'x-seams-wallet-protocol': '2',
         },
         body: JSON.stringify({
+          registrationOperationId: `wreg_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`,
           wallet: { kind: 'provided', walletId: `canary-${crypto.randomUUID()}` },
           signerSelection: {
             kind: 'signer_set',

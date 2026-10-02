@@ -724,7 +724,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           await expect(
             staleWriter.fetch(`https://wallet.example.test${pathname}`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '1' },
+              headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '2' },
               body: '{',
             }),
           ).rejects.toThrow('Runtime version is not authorized by the active home verification');

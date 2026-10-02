@@ -47,12 +47,22 @@ function json(body: unknown, status = 200): Response {
 export async function handleWalletHomeServiceRequest(
   request: Request,
   database: D1DatabaseLike,
-  catalogJson: string,
+  catalogJson: unknown,
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.origin !== WALLET_HOME_SERVICE_ORIGIN) return null;
   if (!url.pathname.startsWith(`${WALLET_HOME_SERVICE_BASE_PATH}/`)) return null;
+  if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
+  ) {
+    return json({ ok: false, code: 'not_found' }, 404);
+  }
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
+  if (typeof catalogJson !== 'string' || catalogJson.length === 0) {
+    return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
+  }
 
   try {
     const catalog = WalletHomeCatalog.parse(JSON.parse(catalogJson));

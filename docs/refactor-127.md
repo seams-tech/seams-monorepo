@@ -1730,3 +1730,12 @@ Regional E2E, focused lint and public bloat checks passed. Private receipt:
 SHA-256 `05438478f525d73d86435b7c67405daff993ebb813410741b7676bf1c0ba4460`.
 Approval source facts and target preparation remain controlled; regional protocol
 execution and final installation remain open. No deployment or release.
+
+### October 3: regional approval source metadata
+
+The regional link scenario now reads approval source facts through production D1
+readers. Missing signer material rejects approval without a transcript; inserting
+it at WEUR allows approval, registration and replay. Removed the hard-coded
+approval manifest/digest fixture. Regional E2E and focused lint passed; evidence is
+`.artifacts/r152/approval-source-20261003/`. Target planning, initial claim context
+and protocol material remain controlled; full regional installation remains open.

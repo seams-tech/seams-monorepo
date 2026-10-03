@@ -1,3 +1,4 @@
+import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
 import { verifyRegionalTargetPreparation } from './regional-target-preparation.scenario.mjs';
 import assert from 'node:assert/strict';
 import { RegionalDeviceProofFixture } from '../helpers/regional-device-proof.fixtures.mjs';
@@ -8,9 +9,11 @@ import {
 
 export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScope }) {
   for (const [region, bridge] of bridges) {
-    bridge.linkApproval = new RegionalLinkApprovalFixture(api, bridge);
+    const database = await runtime.getD1Database('SIGNER_DB', region);
+    bridge.linkSource = new RegionalTargetSourceFixture(api, bridge, database, signerScope);
+    bridge.linkApproval = new RegionalLinkApprovalFixture(api, bridge, bridge.linkSource);
     bridge.linkRoutes = api.createD1LinkedDeviceRouteServiceV1({
-      database: await runtime.getD1Database('SIGNER_DB', region),
+      database,
       scope: signerScope,
       bootstrap: bridge.publisher.linkedDeviceBootstrap(),
       proofNonces: bridge.publisher.linkedDeviceProofNonces(),
@@ -47,6 +50,16 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const approval = weur.linkApproval.approval(claimed.record.claimTranscript.value, payload);
     const rejected = await ownerPost(us, bridges.get('US'), `${path}/approval`, approval);
     assert.equal(rejected.status, 403);
+    const unavailable = await ownerPost(apac, weur, `${path}/approval`, approval);
+    assert.equal(unavailable.status, 401, await unavailable.clone().text());
+    assert.match((await unavailable.json()).message, /owner source key manifest is unavailable/u);
+    const pending = await weur.linkRoutes.sessionService.getSessionV1({
+      linkSessionId: payload.linkSessionId,
+      nowMs: Date.now(),
+    });
+    assert.equal(pending.state.state, 'claimed');
+    assert.equal(pending.approvalTranscript, undefined);
+    await weur.linkSource.walletStore.putSigner(weur.ownerSigner);
     const approved = await ownerPost(apac, weur, `${path}/approval`, approval);
     assert.equal(approved.status, 200, await approved.clone().text());
     assert.equal(approved.headers.get('x-test-region'), 'WEUR');
@@ -140,6 +153,8 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      productionApprovalSourceFacts: true,
+      missingSourceSignerRejectsApproval: true,
       preparation,
       approvalPersistedOnlyAtHome: true,
       approvalReplayAcrossRegions: true,
@@ -153,7 +168,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
       createRetryReturnsCurrentHomeState: true,
       cleanupRetryCannotResurrect: true,
       scope:
-        'Real signed device requests, production owner claim/approval rules, regional HTTP dispatch and D1 approval persistence/delivery. Owner HTTP authentication and source metadata are controlled; provisioning, committed package delivery and authority installation remain open.',
+        'Real signed device requests, production owner claim/approval rules, regional HTTP dispatch and D1 approval persistence/delivery. Owner HTTP authentication and approval source metadata use production D1 readers. Owner signer material is synthetic; provisioning, committed package delivery and authority installation remain open.',
     };
   } finally {
     for (const bridge of bridges.values()) bridge.linkRoutes = null;

@@ -31,9 +31,8 @@ export class RegionalLinkOwnerAuthorizationFixture {
 }
 
 export class RegionalLinkApprovalFixture {
-  constructor(api, bridge) {
+  constructor(api, bridge, source) {
     this.api = api;
-    this.bridge = bridge;
     this.owner = buildRegionalLinkOwnerFixture(api, bridge);
     this.authenticateOwner = api.createDeviceLinkingOwnerRequestAuthenticatorV1({
       authorizationSessions: {
@@ -45,21 +44,11 @@ export class RegionalLinkApprovalFixture {
       },
     });
     const provider = api.createD1LinkedDeviceOwnerAuthorizationProviderV1({
-      walletRegistration: {},
-      metadata: { readVerifiedOwnerSourceFactsV1: this.readSourceFacts.bind(this) },
+      walletRegistration: source,
+      metadata: source.metadata,
       targetPlanner: { preparationTtlMs: 30_000, targetPasskeyRpId: 'wallet.test' },
     });
     this.ownerAuthorization = provider.ownerAuthorization;
-  }
-
-  readSourceFacts() {
-    return Promise.resolve({
-      signerManifest: this.api.buildExactAdministeredSignerManifestV1([
-        this.bridge.ownerAuthority.signerActivations.ed25519.signer,
-      ]),
-      keyManifestDigestsB64u: { ed25519: this.owner.keyManifestDigestB64u },
-      sourceAuthorityDigestB64u: this.bridge.ownerAuthority.authorityDigestB64u,
-    });
   }
 
   approval(claim, payload) {

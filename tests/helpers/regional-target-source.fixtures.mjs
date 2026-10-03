@@ -35,13 +35,13 @@ export class RegionalTargetSourceFixture {
       readLinkedEd25519SourceV1: this.readOwnerInstallation.bind(this),
       readLinkedEcdsaSourceV1: this.readOwnerInstallation.bind(this),
     });
-    const metadata = api.createD1LinkedDeviceOwnerAuthorizationMetadataSourceV1({
+    this.metadata = api.createD1LinkedDeviceOwnerAuthorizationMetadataSourceV1({
       sessionStore: new api.D1LinkedDeviceSessionStoreV1({ database, scope }),
       readVerifiedSourceV1: this.readVerifiedSourceV1.bind(this),
       readOwnerSourceChildV1: children.readOwnerSourceChildV1,
     });
     const provider = api.createD1LinkedDeviceOwnerAuthorizationProviderV1({
-      metadata,
+      metadata: this.metadata,
       walletRegistration: this,
       targetPlanner: { targetPasskeyRpId: 'wallet.test' },
     });

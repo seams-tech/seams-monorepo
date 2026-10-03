@@ -265,7 +265,6 @@ const bundle = await build({
       export { buildOrdinaryEd25519ReservationPreparationFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ordinarySignerMaterialReservation.fixtures.ts'))};
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetCredentialRegistrationV1, parseLinkedDeviceTargetCredentialRegistrationV1, buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
-      export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};
       export { handleRuntimeIdentityHomeRequest } from './packages/wallet-console-server-ts/src/serviceBinding/runtimeIdentityHome';
       export { RegionalWalletIdentities } from './packages/wallet-console-server-ts/src/serviceBinding/regionalWalletIdentities';
       export { createRouterApiRouteDefinitions } from ${JSON.stringify(resolve(candidate, 'src/router/framework/routeDefinitions.ts'))};

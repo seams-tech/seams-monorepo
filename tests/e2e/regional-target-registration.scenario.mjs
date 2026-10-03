@@ -1,7 +1,6 @@
 import { verifyRegionalSourceOwner } from './regional-source-owner.scenario.mjs';
 import assert from 'node:assert/strict';
 import { browserTargetRegistration } from '../helpers/regional-browser-registration.fixtures.mjs';
-import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
 
 export async function verifyRegionalBrowserRegistration({
   api,
@@ -74,7 +73,8 @@ export async function verifyRegionalBrowserRegistration({
     .bind(preparation.linkSessionId)
     .first();
   assert.equal(row.state, 'prepared');
-  const available = new RegionalTargetSourceFixture(api, weur, database, signerScope);
+  const available = weur.linkSource;
+  const sourceReadsBefore = available.reads;
   weur.linkRoutes.targetCredential = new api.D1LinkedDeviceTargetCredentialProviderV1({
     database,
     scope: signerScope,
@@ -83,12 +83,6 @@ export async function verifyRegionalBrowserRegistration({
     sourceContributionPreparationPlanner: available,
     verifiedLinkBuilder: { source: available },
   });
-  const missingSigner = await submitCredential(http, registration);
-  assert.equal(missingSigner.status, 400, await missingSigner.clone().text());
-  assert.match((await missingSigner.json()).message, /signer identity is unavailable/u);
-  assert.equal(available.plans, 0);
-  assert.equal(await reservationCount(database, preparation.linkSessionId), 0);
-  await available.walletStore.putSigner(weur.ownerSigner);
   const committed = await submitCredential(http, registration);
   assert.equal(committed.status, 200, await committed.clone().text());
   const committedBody = await committed.json();
@@ -104,7 +98,7 @@ export async function verifyRegionalBrowserRegistration({
   assert.equal(replayedOutcome, 'replayed');
   assert.deepEqual(replayedCredential, committedCredential);
   assert.deepEqual(replayedBody.session, committedBody.session);
-  assert.equal(available.reads, 3);
+  assert.equal(available.reads, sourceReadsBefore + 2);
   assert.equal(available.plans, 1);
   assert.equal(
     await database
@@ -143,7 +137,6 @@ export async function verifyRegionalBrowserRegistration({
     freshProofRetryReachesSourceAgain: true,
     productionSourceReaderUsesHomeD1: true,
     productionSourceContributionPlanner: true,
-    missingSourceSignerRejectsBeforePlanning: true,
     successfulCredentialPersistedOnlyAtHome: true,
     credentialRetryReplaysWithoutReplanning: true,
     scope:

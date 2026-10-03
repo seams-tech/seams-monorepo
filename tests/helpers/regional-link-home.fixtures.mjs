@@ -63,7 +63,7 @@ export class RegionalLinkApprovalFixture {
     return {
       kind: 'authorized',
       owner: this.owner,
-      body: await input.request.json(),
+      body: input.method === 'GET' ? null : await input.request.json(),
       binding: {
         kind: 'linked_device_owner_request_binding_v1',
         method: input.method,

@@ -1686,3 +1686,17 @@ Regional E2E, focused lint and public bloat checks passed. Evidence:
 still controlled fixtures. Real contribution execution, package delivery and final
 installation remain R152 work; relocation fencing is R153's responsibility.
 No deployment or release occurred.
+
+### October 3: linked-device home-handler owner binding
+
+Extended regional registration acceptance through source-preparation HTTP reads
+from US, WEUR and APAC. The Gateway already rejected a different wallet's session;
+the direct handler lacked that check. The public SDK now binds authenticated
+owners to the durable claimed wallet in the shared owner-session helper, before
+contribution preparation/execution and export-root access. Direct denial uses the
+existing 401 `unauthorized` response; Gateway scope rejection remains 403.
+
+The new scenario controls owner authentication to exercise downstream enforcement,
+verifies unchanged durable session state, and records evidence under
+`.artifacts/r152/source-owner-20261003/`. Contribution execution, package delivery
+and final installation remain open. No deployment or release occurred.

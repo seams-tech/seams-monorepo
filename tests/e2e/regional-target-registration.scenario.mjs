@@ -1,3 +1,4 @@
+import { verifyRegionalSourceOwner } from './regional-source-owner.scenario.mjs';
 import assert from 'node:assert/strict';
 import { browserTargetRegistration } from '../helpers/regional-browser-registration.fixtures.mjs';
 import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
@@ -124,7 +125,14 @@ export async function verifyRegionalBrowserRegistration({
       0,
     );
   }
+  const sourceOwner = await verifyRegionalSourceOwner({
+    api,
+    runtime,
+    bridges,
+    linkSessionId: preparation.linkSessionId,
+  });
   return {
+    sourceOwner,
     browser: 'Chromium virtual authenticator',
     realRegistrationVerified: true,
     alteredChallengeRejected: true,

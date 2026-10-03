@@ -149,7 +149,7 @@ export async function verifyRegionalTargetPreparation({
     identicalReplay: true,
     changedRecipientConflicts: true,
     scope:
-      'Regional preparation HTTP route with real device signatures and production Console key/origin/environment authentication using in-memory key storage. D1 provider and home dispatch are real; planner is controlled. WebAuthn registration, source contribution and installation remain open.',
+      'Regional preparation HTTP route with real device signatures and production Console key/origin/environment authentication using in-memory key storage. D1 provider and home dispatch are real; target preparation planner is controlled. Browser registration and production source preparation run in the nested scenario. Contribution execution and installation remain open.',
   };
 }
 function fulfilled(result) {

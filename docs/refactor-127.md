@@ -1584,3 +1584,13 @@ Evidence: `.artifacts/r152/target-webauthn-20261003/`. Successful credential per
 still requires coherent source-authority and source-contribution planner composition;
 source contribution, package delivery and final installation remain open. This is
 local browser/Worker/D1 composition, with no deployment or release.
+
+### October 3: regional target credential commit
+
+The browser-backed regional scenario now verifies successful target registration
+through APAC into WEUR, the `awaiting_source_contribution` transition, absence of
+US/APAC target rows, and exact retry without another source read or plan. Owner
+session/method/authority reads use D1. Signer protocol material and contribution
+planning remain controlled; actual owner protocol resolution, contribution and
+final installation remain open. Evidence: `.artifacts/r152/target-commit-20261003/`.
+No deployment or release occurred; 0.8.0 remains held.

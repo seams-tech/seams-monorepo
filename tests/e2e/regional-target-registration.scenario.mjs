@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { browserTargetRegistration } from '../helpers/regional-browser-registration.fixtures.mjs';
+import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
 
 export async function verifyRegionalBrowserRegistration({
   api,
@@ -72,6 +73,51 @@ export async function verifyRegionalBrowserRegistration({
     .bind(preparation.linkSessionId)
     .first();
   assert.equal(row.state, 'prepared');
+  const available = new RegionalTargetSourceFixture(api, weur, database, signerScope);
+  weur.linkRoutes.targetCredential = new api.D1LinkedDeviceTargetCredentialProviderV1({
+    database,
+    scope: signerScope,
+    planner: {},
+    verifier,
+    sourceContributionPreparationPlanner: available,
+    verifiedLinkBuilder: { source: available },
+  });
+  const committed = await submitCredential(http, registration);
+  assert.equal(committed.status, 200, await committed.clone().text());
+  const committedBody = await committed.json();
+  const retry = await submitCredential(http, registration);
+  assert.equal(retry.status, 200, await retry.clone().text());
+  const replayedBody = await retry.json();
+  assert.equal(committedBody.outcome, 'applied');
+  assert.equal(replayedBody.outcome, 'replayed');
+  assert.equal(committedBody.session.state.state, 'awaiting_source_contribution');
+  const { outcome: committedOutcome, ...committedCredential } = committedBody.targetCredential;
+  const { outcome: replayedOutcome, ...replayedCredential } = replayedBody.targetCredential;
+  assert.equal(committedOutcome, 'applied');
+  assert.equal(replayedOutcome, 'replayed');
+  assert.deepEqual(replayedCredential, committedCredential);
+  assert.deepEqual(replayedBody.session, committedBody.session);
+  assert.equal(available.reads, 1);
+  assert.equal(available.plans, 1);
+  assert.equal(
+    await database
+      .prepare('SELECT state FROM linked_device_target_credentials WHERE link_session_id = ?')
+      .bind(preparation.linkSessionId)
+      .first('state'),
+    'registered',
+  );
+  for (const region of ['US', 'APAC']) {
+    const remote = await runtime.getD1Database('SIGNER_DB', region);
+    assert.equal(
+      await remote
+        .prepare(
+          'SELECT count(*) AS count FROM linked_device_target_credentials WHERE link_session_id = ?',
+        )
+        .bind(preparation.linkSessionId)
+        .first('count'),
+      0,
+    );
+  }
   return {
     browser: 'Chromium virtual authenticator',
     realRegistrationVerified: true,
@@ -81,8 +127,10 @@ export async function verifyRegionalBrowserRegistration({
     sourceFailureDoesNotRegisterCredential: true,
     failedRegistrationReleasesReservation: true,
     freshProofRetryReachesSourceAgain: true,
+    successfulCredentialPersistedOnlyAtHome: true,
+    credentialRetryReplaysWithoutReplanning: true,
     scope:
-      'Real browser WebAuthn response and target verifier, signed credential HTTP at WEUR. Source lookup deliberately fails after factor verification; successful credential persistence, source contribution and final installation remain open.',
+      'Real browser WebAuthn, signed credential HTTP and durable registration at WEUR. Source session, method and authority are read from D1; signer protocol material and contribution planning remain controlled fixtures. Real owner protocol resolution, source contribution and final installation remain open.',
   };
 }
 class UnavailableSourceFixture {

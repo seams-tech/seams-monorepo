@@ -242,8 +242,11 @@ const bundle = await build({
       export { capabilityPolicyPort } from ${JSON.stringify(resolve(candidate, 'src/authorization/capabilityPolicy.ts'))};
       export { parseSessionOrigin } from ${JSON.stringify(resolve(candidate, 'src/authorization/domain.ts'))};
       export { CloudflareD1AuthorizationStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/authorization/d1AuthorizationStore.ts'))};
-      export { prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
+      export { D1WalletAuthorityStore, prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
       export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
+      export { routerAbMpcMaterialActivationRefFromWire } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbNormalSigningIdentity.ts'))};
+      export { buildOrdinaryEd25519ReservationPreparationFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ordinarySignerMaterialReservation.fixtures.ts'))};
+      export { parseLinkedDeviceOrdinaryMaterialSourceContributionPreparationTupleV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/sourceContribution.ts'))};
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetCredentialRegistrationV1, parseLinkedDeviceTargetCredentialRegistrationV1, buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};

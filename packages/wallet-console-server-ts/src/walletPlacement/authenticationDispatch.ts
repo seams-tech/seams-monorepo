@@ -19,6 +19,17 @@ export async function authenticationHome(
   const path = new URL(request.url).pathname;
   if (request.method !== 'POST' || !isAuthenticationRoute(path)) return { kind: 'absent' };
   const body: unknown = await request.clone().json().catch(invalidJson);
+  if (path === '/auth/google/verify') {
+    if (!body || typeof body !== 'object' || Array.isArray(body))
+      return rejected(400, 'invalid_body');
+    if (
+      !('account_mode' in body) ||
+      (body.account_mode !== 'login' && body.account_mode !== 'register')
+    )
+      return rejected(400, 'invalid_body');
+    if (!('wallet_id' in body)) return { kind: 'absent' };
+    if (body.account_mode !== 'login') return rejected(400, 'invalid_body');
+  }
   let locator: AuthenticationLocator;
   try {
     locator = authenticationLocator(path, body);
@@ -50,6 +61,9 @@ function authenticationLocator(path: string, body: unknown): AuthenticationLocat
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Invalid body');
   let wallet: unknown;
   switch (path) {
+    case '/auth/google/verify':
+      wallet = 'wallet_id' in body ? body.wallet_id : null;
+      break;
     case '/auth/passkey/verify':
       return challengeLocator(body);
     case '/auth/passkey/options':
@@ -91,6 +105,7 @@ function challengeLocator(body: object): AuthenticationLocator {
 
 function isAuthenticationRoute(path: string): boolean {
   return (
+    path === '/auth/google/verify' ||
     path === '/auth/passkey/options' ||
     path === '/auth/passkey/verify' ||
     path === '/wallet/unlock/challenge' ||

@@ -1,3 +1,4 @@
+import { verifyRegionalGoogleLogin } from './regional-google-login.scenario.mjs';
 import { verifyRegionalAuthenticationRouting } from './regional-authentication-routing.scenario.mjs';
 import { verifyRegionalLifecycleRouting } from './regional-lifecycle-routing.scenario.mjs';
 import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
@@ -88,6 +89,7 @@ class GatewayBridge {
         { status: 422 },
       );
     }
+    if (pathname === '/auth/google/verify') return this.google.handle(request);
     if (
       pathname.startsWith('/auth/') ||
       pathname.startsWith('/wallet/unlock/') ||
@@ -154,6 +156,13 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
+      export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
+      export { prepareD1TenantStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1TenantStore.ts'))};
+      export { D1IdentityStore } from ${JSON.stringify(resolve(candidate, 'src/core/d1IdentityStore.ts'))};
+      export { CloudflareD1EmailOtpEnrollmentStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpEnrollmentStore.ts'))};
+      export { CloudflareD1GoogleEmailOtpRegistrationAttemptStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationAttemptStore.ts'))};
+      export { CloudflareD1GoogleEmailOtpSessionResolver } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpSessionResolver.ts'))};
       export { handleAuth } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/auth.ts'))};
       export { handleWalletUnlockChallengeRoute } from ${JSON.stringify(resolve(candidate, 'src/router/domains/walletUnlock/walletUnlockRouteHandlers.ts'))};
       export { prepareD1WebAuthnCredentialBindingPutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/WebAuthnCredentialBindingStore.ts'))};
@@ -429,6 +438,13 @@ try {
     authorityDatabase,
     signerScope,
   });
+  const googleLogin = await verifyRegionalGoogleLogin({
+    api,
+    runtime,
+    bridges,
+    signerScope,
+    consoleBridge,
+  });
   for (const [region, bridge] of bridges) {
     const ingress = await runtime.getWorker(region === 'US' ? 'APAC' : 'US');
     const token = bridge.issued.operationCredential.token;
@@ -561,6 +577,7 @@ try {
     yaoEntryRouting,
     lifecycleRouting,
     authenticationRouting,
+    googleLogin,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

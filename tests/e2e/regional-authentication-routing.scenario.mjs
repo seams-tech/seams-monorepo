@@ -15,6 +15,22 @@ class PasskeyHome {
   }
   async handle(request) {
     const path = new URL(request.url).pathname;
+    if (path === '/sync-account/options') {
+      return this.api.handleSyncAccount({
+        method: 'POST',
+        pathname: path,
+        request,
+        service: { webAuthn: this.service },
+      });
+    }
+    if (path === '/sync-account/verify') {
+      const body = await request.json();
+      const challenge = await this.store.consumeSyncChallenge(body.challengeId);
+      return Response.json(
+        { region: this.region, consumed: Boolean(challenge) },
+        { status: challenge ? 200 : 401 },
+      );
+    }
     if (path.startsWith('/auth/') && path !== '/auth/passkey/verify') {
       const response = await this.api.handleAuth({
         method: 'POST',
@@ -84,17 +100,18 @@ export async function verifyRegionalAuthenticationRouting({
     const ingress = await runtime.getWorker(region === 'US' ? 'APAC' : 'US');
     const traveler = await runtime.getWorker(region === 'WEUR' ? 'APAC' : 'WEUR');
     const foreign = bridges.get(region === 'US' ? 'WEUR' : 'US');
-    for (const family of ['auth', 'unlock']) {
-      const optionsPath = family === 'auth' ? '/auth/passkey/options' : '/wallet/unlock/challenge';
-      const verifyPath = family === 'auth' ? '/auth/passkey/verify' : '/wallet/unlock/verify';
-      const options =
-        family === 'auth'
-          ? { user_id: bridge.issued.session.walletId, rp_id: bridge.authMethod.rpId }
-          : {
-              unlockBackend: 'passkey',
-              userId: bridge.issued.session.walletId,
-              rpId: bridge.authMethod.rpId,
-            };
+    for (const family of ['auth', 'unlock', 'sync']) {
+      const optionsPath = {
+        auth: '/auth/passkey/options',
+        unlock: '/wallet/unlock/challenge',
+        sync: '/sync-account/options',
+      }[family];
+      const verifyPath = {
+        auth: '/auth/passkey/verify',
+        unlock: '/wallet/unlock/verify',
+        sync: '/sync-account/verify',
+      }[family];
+      const options = challengeOptions(family, bridge);
       const response = await ingress.fetch(`https://wallet.test${optionsPath}`, post(options));
       assert.equal(response.status, 200);
       const challenge = await response.json();
@@ -104,7 +121,7 @@ export async function verifyRegionalAuthenticationRouting({
         .all();
       assert.ok(!JSON.stringify(routes.results).includes(challenge.challengeB64u));
       const verify =
-        family === 'auth'
+        family !== 'unlock'
           ? { challengeId: challenge.challengeId }
           : { unlockBackend: 'passkey', challengeId: challenge.challengeId };
       const conflict = await traveler.fetch(
@@ -137,6 +154,12 @@ export async function verifyRegionalAuthenticationRouting({
       for (const attempt of attempts) assert.equal((await attempt.json()).region, region);
       observations.push({ region, family, challengeId: challenge.challengeId });
     }
+    const discovery = await ingress.fetch(
+      'https://wallet.test/sync-account/options',
+      post({ rp_id: bridge.authMethod.rpId }),
+    );
+    assert.equal(discovery.status, 503);
+    assert.equal((await discovery.json()).code, 'wallet_discovery_unavailable');
     for (const path of ['/auth/passkey/options/', '/auth//passkey/options']) {
       const alias = await ingress.fetch(
         `https://wallet.test${path}`,
@@ -160,7 +183,9 @@ export async function verifyRegionalAuthenticationRouting({
     const database = await runtime.getD1Database('SIGNER_DB', region);
     assert.equal(
       await database
-        .prepare("SELECT COUNT(*) AS count FROM webauthn_challenges WHERE challenge_kind = 'login'")
+        .prepare(
+          "SELECT COUNT(*) AS count FROM webauthn_challenges WHERE challenge_kind IN ('login', 'sync')",
+        )
         .first('count'),
       0,
     );
@@ -185,4 +210,21 @@ function post(body, token = null) {
   const headers = { 'content-type': 'application/json' };
   if (token) headers.authorization = `Bearer ${token}`;
   return { method: 'POST', headers, body: JSON.stringify(body) };
+}
+
+function challengeOptions(family, bridge) {
+  switch (family) {
+    case 'auth':
+      return { user_id: bridge.issued.session.walletId, rp_id: bridge.authMethod.rpId };
+    case 'sync':
+      return { account_id: bridge.issued.session.walletId, rp_id: bridge.authMethod.rpId };
+    case 'unlock':
+      return {
+        unlockBackend: 'passkey',
+        userId: bridge.issued.session.walletId,
+        rpId: bridge.authMethod.rpId,
+      };
+    default:
+      throw new Error('Unexpected authentication family');
+  }
 }

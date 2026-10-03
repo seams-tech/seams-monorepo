@@ -1437,3 +1437,13 @@ The matched public candidate also passed all 13 isolated passkey registration
 contracts via `pnpm --dir tests test:intended:representative`. Logs and JSON artifacts
 are retained beside the regional claim receipt. These local lifecycle contracts
 supplement the regional composition; hosted acceptance remains outstanding.
+
+### R152 terminal claims and account sync — October 3
+
+Migration 0065 prevents cancellation after passkey ownership is claimed. The service
+returns a home conflict while retaining the claim/home for reconciliation; claim
+and cancellation races cannot both succeed. Known-wallet account sync now publishes
+and resolves home-bound challenges. Wallet-less hosted sync returns explicit 503
+until discovery is implemented. Nine terminal ordering/race cases, regional sync
+travel/conflict/outage checks and persistent-directory E2E passed. Evidence:
+`.artifacts/r152/passkey-terminal-sync-20261003/`. No deployment or release occurred.

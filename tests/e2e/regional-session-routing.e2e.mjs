@@ -98,6 +98,7 @@ class GatewayBridge {
     }
     if (pathname === '/auth/google/verify') return this.google.handle(request);
     if (
+      pathname.startsWith('/sync-account/') ||
       pathname.startsWith('/auth/') ||
       pathname.startsWith('/wallet/unlock/') ||
       pathname.startsWith('/wallet/email-otp/')
@@ -173,6 +174,7 @@ const bundle = await build({
       export { CloudflareD1EmailOtpEnrollmentStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpEnrollmentStore.ts'))};
       export { CloudflareD1GoogleEmailOtpRegistrationAttemptStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationAttemptStore.ts'))};
       export { CloudflareD1GoogleEmailOtpSessionResolver } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpSessionResolver.ts'))};
+      export { handleSyncAccount } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/syncAccount.ts'))};
       export { handleAuth } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/auth.ts'))};
       export { handleWalletUnlockChallengeRoute } from ${JSON.stringify(resolve(candidate, 'src/router/domains/walletUnlock/walletUnlockRouteHandlers.ts'))};
       export { prepareD1WebAuthnCredentialBindingPutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/WebAuthnCredentialBindingStore.ts'))};
@@ -475,6 +477,8 @@ try {
     bridges,
     consoleBridge,
     signerScope,
+    directory,
+    catalog,
   });
   const rateLimits = await verifyRegionalRateLimits({
     api,

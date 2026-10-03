@@ -261,7 +261,11 @@ export class D1WalletHomeDirectory {
         `UPDATE wallet_homes SET state = ?10, completed_at_ms = ?11
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
          AND wallet_id = ?5 AND registration_id = ?6 AND region = ?7 AND account_id = ?8
-         AND database_id = ?9 AND state = 'reserved' AND reserved_at_ms <= ?11 AND request_digest = ?12`,
+         AND database_id = ?9 AND state = 'reserved' AND reserved_at_ms <= ?11 AND request_digest = ?12
+         AND (?10 != 'cancelled' OR NOT EXISTS (
+           SELECT 1 FROM wallet_passkey_claims claim
+           WHERE claim.namespace = ?1 AND claim.organization_id = ?2 AND claim.project_id = ?3
+             AND claim.environment_id = ?4 AND claim.wallet_id = ?5))`,
       )
       .bind(
         ...scopeBindings(input.wallet),

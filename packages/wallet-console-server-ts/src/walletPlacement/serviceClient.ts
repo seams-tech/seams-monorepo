@@ -1,3 +1,9 @@
+import {
+  parseLinkedDeviceSessionRecordV1,
+  type LinkedDeviceBootstrapStore,
+  type LinkedDeviceBootstrapResult,
+  type LinkedDeviceSessionRecordV1,
+} from '@seams/wallet-server/cloud-host';
 import type { LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import type { SyncChallengeFailure } from '@seams/wallet-server/cloud-host';
 import {
@@ -241,6 +247,55 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  linkedDeviceBootstrap(): LinkedDeviceBootstrapStore {
+    return {
+      read: this.readDeviceBootstrap.bind(this),
+      create: this.writeDeviceBootstrap.bind(this, 'create'),
+      claim: this.writeDeviceBootstrap.bind(this, 'claim'),
+      finish: this.writeDeviceBootstrap.bind(this, 'finish'),
+    };
+  }
+  private readDeviceBootstrap(linkSessionId: Parameters<LinkedDeviceBootstrapStore['read']>[0]) {
+    return this.deviceBootstrapCommand({ operation: 'read', linkSessionId });
+  }
+  private writeDeviceBootstrap(
+    operation: 'create' | 'claim' | 'finish',
+    record: LinkedDeviceSessionRecordV1,
+  ) {
+    return this.deviceBootstrapCommand({ operation, linkSessionId: record.linkSessionId, record });
+  }
+  private async deviceBootstrapCommand(
+    input:
+      | { operation: 'read'; linkSessionId: string }
+      | {
+          operation: 'create' | 'claim' | 'finish';
+          linkSessionId: string;
+          record: LinkedDeviceSessionRecordV1;
+        },
+  ): Promise<LinkedDeviceBootstrapResult> {
+    try {
+      const response = await this.post('device-bootstrap', input);
+      if (response.status === 409) return { ok: false, code: 'home_conflict' };
+      const body = response.body;
+      if (
+        response.status !== 200 ||
+        !body ||
+        typeof body !== 'object' ||
+        !('ok' in body) ||
+        body.ok !== true ||
+        !('record' in body)
+      )
+        return { ok: false, code: 'home_unavailable' };
+      if (body.record === null) return { ok: true, record: null };
+      const record = parseLinkedDeviceSessionRecordV1(body.record);
+      if (record.linkSessionId !== input.linkSessionId)
+        return { ok: false, code: 'home_unavailable' };
+      return { ok: true, record };
+    } catch {
+      return { ok: false, code: 'home_unavailable' };
+    }
   }
 
   linkedDeviceProofNonces(): LinkedDeviceRequestProofNonceStoreV1 {

@@ -124,6 +124,7 @@ async function handleGatewayRequest(
     emailOtpRateLimitCounter: authority.identityStore().rateLimitCounter(),
     credentialClaims: authority.identityStore(),
     syncChallenges: authority.identityStore().syncChallenges(),
+    linkedDeviceBootstrap: authority.identityStore().linkedDeviceBootstrap(),
     linkedDeviceProofNonces: authority.identityStore().linkedDeviceProofNonces(),
     googleRegistrationAttempts: authority.registrationOffers(),
     recoveryRouting: authority,

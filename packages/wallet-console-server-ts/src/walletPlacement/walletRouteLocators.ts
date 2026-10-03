@@ -101,6 +101,7 @@ export class D1WalletRoutes {
     locators: readonly WalletRouteLocator[],
     writer: TenantRuntimeWriterV1,
   ): Promise<boolean> {
+    if (locators.some(isLinkedDeviceLocator)) return false;
     const bindings = [
       wallet.namespace,
       wallet.organizationId,
@@ -149,4 +150,8 @@ export class D1WalletRoutes {
       .first<number>('matched');
     return count === locators.length;
   }
+}
+
+function isLinkedDeviceLocator(locator: WalletRouteLocator): boolean {
+  return locator.kind === 'linked_device';
 }

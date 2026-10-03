@@ -1501,3 +1501,22 @@ outage, lost replies, cancellation retention, project isolation and traveling ro
 Evidence: `.artifacts/r152/link-home-20261003/`; checksum and limitations are in the
 public R152 results document. Shared unclaimed QR coordination and crash-safe local
 installation remain open. Release 0.8.0 remains held.
+
+### October 3: shared linked-device bootstrap and home import
+
+Migration 0069 adds shared QR bootstrap state. Its claim transaction publishes the
+linked-device route and winning claim together, replacing the preceding separate
+publication step. Generic route publication now rejects linked-device locators.
+The matched SDK candidate needs signer migration 0044: a durable import receipt
+commits with the home session and claim transcript and survives session cleanup.
+Include both tables in scoped operational reset inventories; shared terminal
+snapshots and import receipts must not be removed by ordinary expiry cleanup.
+
+Local three-home composition covers shared creation/polling, competing owners,
+claim/cancel races, transactional rollback, lost replies, failed import recovery,
+foreign-home rejection and cleanup without resurrection. Evidence is recorded in
+`.artifacts/r152/bootstrap-20261003/` and the public R152 results document. Owner
+permission and subsequent device actions remain controlled in this composition;
+complete approval/delivery/authority installation, terminal reservation
+reconciliation, internal/deferred routing and hosted latency remain open. Release
+0.8.0 remains held. No infrastructure was deployed.

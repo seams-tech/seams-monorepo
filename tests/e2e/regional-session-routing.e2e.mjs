@@ -56,7 +56,7 @@ class ConsoleBridge {
   database = null;
   available = true;
   dropNextNonceReply = false;
-  dropNextLifecycleReply = false;
+  dropNextBootstrapClaimReply = false;
   async fetch(request) {
     if (!this.available) return new Response(null, { status: 503 });
     const writer = api.parseTenantRuntimeWriterV1(
@@ -67,6 +67,10 @@ class ConsoleBridge {
         databaseId: request.headers.get('x-seams-writer-database'),
       },
     );
+    const dropBootstrapReply =
+      this.dropNextBootstrapClaimReply &&
+      new URL(request.url).pathname.endsWith('/device-bootstrap') &&
+      (await request.clone().json()).operation === 'claim';
     const response = await api.handleWalletHomeServiceRequest(request, {
       database: this.database,
       catalogJson,
@@ -79,8 +83,8 @@ class ConsoleBridge {
       this.dropNextNonceReply = false;
       return new Response(null, { status: 503 });
     }
-    if (this.dropNextLifecycleReply && new URL(request.url).pathname.endsWith('/publish-routes')) {
-      this.dropNextLifecycleReply = false;
+    if (dropBootstrapReply) {
+      this.dropNextBootstrapClaimReply = false;
       return new Response(null, { status: 503 });
     }
     return response;

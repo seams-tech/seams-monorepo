@@ -1,3 +1,4 @@
+import { handleLinkedDeviceBootstrap } from './linkedDeviceBootstrap';
 import { D1LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import { handleSyncChallengeCommand } from './syncChallenges';
 import { claimPasskeyCredential } from './passkeyClaims';
@@ -92,6 +93,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
@@ -122,6 +124,8 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap`)
+      return handleLinkedDeviceBootstrap(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce`) {
       const nonces = new D1LinkedDeviceRequestProofNonceStoreV1({
         database: options.database,

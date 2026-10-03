@@ -382,17 +382,21 @@ class RegionalRealScenario {
     const stores = [];
     for (const [region, gateway] of this.gateways) {
       const { results: methods } = await gateway.database
-        .prepare(`
+        .prepare(
+          `
           SELECT kind, status, wallet_authority_id FROM wallet_auth_methods
           WHERE wallet_id = ? ORDER BY kind
-        `)
+        `,
+        )
         .bind(placement.wallet_id)
         .all();
       const { results: authorities } = await gateway.database
-        .prepare(`
+        .prepare(
+          `
           SELECT authority_id, provenance_kind, lifecycle_state FROM wallet_authorities
           WHERE wallet_id = ?
-        `)
+        `,
+        )
         .bind(placement.wallet_id)
         .all();
       if (region === home) {
@@ -421,7 +425,9 @@ class RegionalRealScenario {
       'Method installation must commit at home',
     );
     assert.ok(
-      gateway.requests.some(isSuccessfulForward.bind(undefined, '/wallet/email-otp/dev/otp-outbox')),
+      gateway.requests.some(
+        isSuccessfulForward.bind(undefined, '/wallet/email-otp/dev/otp-outbox'),
+      ),
       'Development OTP reads must reach the home that issued the challenge',
     );
     if (emailState === 'revoked') {
@@ -433,7 +439,107 @@ class RegionalRealScenario {
     };
     await writeFile(
       resolve(this.output, `method-${emailState}-evidence.json`),
-      JSON.stringify({ home, ingress, placement, stores, replay, requests: gateway.requests }, null, 2),
+      JSON.stringify(
+        { home, ingress, placement, stores, replay, requests: gateway.requests },
+        null,
+        2,
+      ),
+    );
+  }
+
+  async verifyGoogleRecovery(home, ingress) {
+    const { results: placements } = await this.consoleService.database
+      .prepare('SELECT wallet_id, region, state FROM wallet_homes')
+      .all();
+    assert.equal(placements.length, 1);
+    const placement = placements[0];
+    assert.equal(placement.region, home);
+    assert.equal(placement.state, 'established');
+    const stores = [];
+    for (const [region, gateway] of this.gateways) {
+      const { results: methods } = await gateway.database
+        .prepare(
+          `
+          SELECT method.kind, method.status, authority.provenance_kind, authority.lifecycle_state
+          FROM wallet_auth_methods method JOIN wallet_authorities authority
+            ON method.namespace = authority.namespace AND method.org_id = authority.org_id
+            AND method.project_id = authority.project_id AND method.env_id = authority.env_id
+            AND method.wallet_authority_id = authority.authority_id
+          WHERE method.wallet_id = ? ORDER BY method.kind
+        `,
+        )
+        .bind(placement.wallet_id)
+        .all();
+      assert.deepEqual(
+        methods,
+        region === home
+          ? [
+              {
+                kind: 'email_otp',
+                status: 'active',
+                provenance_kind: 'wallet_recovery',
+                lifecycle_state: 'active',
+              },
+              {
+                kind: 'passkey',
+                status: 'active',
+                provenance_kind: 'wallet_registration',
+                lifecycle_state: 'active',
+              },
+            ]
+          : [],
+      );
+      const tables = {};
+      for (const table of ['wallets', 'wallet_signers', 'wallet_authorities']) {
+        const row = await gateway.database
+          .prepare(`SELECT count(*) AS count FROM ${table} WHERE wallet_id = ?`)
+          .bind(placement.wallet_id)
+          .first();
+        tables[table] = row.count;
+      }
+      assert.deepEqual(
+        tables,
+        region === home
+          ? { wallets: 1, wallet_signers: 3, wallet_authorities: 2 }
+          : { wallets: 0, wallet_signers: 0, wallet_authorities: 0 },
+      );
+      const identities = await gateway.database
+        .prepare('SELECT count(*) AS count FROM identity_links')
+        .first();
+      assert.equal(identities.count, 0);
+      stores.push({ region, methods, tables, identities: identities.count });
+    }
+    const sharedIdentity = await this.consoleService.database
+      .prepare('SELECT count(*) AS count FROM identity_links WHERE user_id = ?')
+      .bind(placement.wallet_id)
+      .first();
+    assert.equal(sharedIdentity.count, 1, 'Recovered Google identity must have one shared locator');
+    const gateway = this.gateways.get(ingress);
+    for (const path of [
+      '/wallets/recovery/prepare',
+      '/wallets/recovery/google/verify',
+      '/wallets/recovery/email-otp/verify',
+      '/wallets/recovery/email-otp/release',
+      '/wallets/recovery/google-email-otp/finalize',
+    ]) {
+      assert.ok(gateway.requests.some(isSuccessfulForward.bind(undefined, path)), path);
+    }
+    const consumedCode = await gateway.verifyRecoveryCodeSpent();
+    await writeFile(
+      resolve(this.output, 'recovery-evidence.json'),
+      JSON.stringify(
+        {
+          home,
+          ingress,
+          placement,
+          stores,
+          sharedIdentities: sharedIdentity.count,
+          consumedCode,
+          requests: gateway.requests,
+        },
+        null,
+        2,
+      ),
     );
   }
 

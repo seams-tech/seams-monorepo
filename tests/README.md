@@ -178,3 +178,12 @@ The receipts retain attempt/loss counts without recording those payloads.
 Google proof verification uses the configured intended-test
 token; OTP delivery uses the development D1 outbox. Refresh an expired token from
 the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
+
+The `recovers with Google Email OTP` matrix starts with passkey wallets and
+recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
+APAC→WEUR). It verifies an additive Email OTP authority, NEAR and concurrent
+Tempo/Arc signing after refresh, the shared Google identity locator, home-only
+custody records and consumed-code rejection. Each case saves
+`google-recovery-<home>/recovery-evidence.json`. The harness's direct budget
+queries use the same regional transport as browser requests. Google tokens and
+OTP delivery use the same configuration as the method lifecycle matrix.

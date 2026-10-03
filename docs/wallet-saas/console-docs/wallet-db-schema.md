@@ -1,6 +1,6 @@
 # SaaS DB Schema Plan
 
-Date updated: October 2, 2026
+Date updated: October 3, 2026
 
 Related implementation plan:
 
@@ -83,6 +83,32 @@ The repeatable acceptance scenario is
 It attaches `wallet-identity-evidence.json`, containing migration and candidate
 hashes, scoped results and database readback. These are local correctness checks;
 regional dispatch and geographic latency verification remain separate R152 work.
+
+### Wallet placement authority
+
+`wallet_homes` retains the wallet's full scope and immutable founding-registration
+allocation. Migration `0070_wallet_relocations.sql` adds a required
+`ownership_generation` and `placement_state` (`active` or `paused`). Registration
+completion remains a separate lifecycle transition.
+
+`wallet_relocations` journals each admitted move under the wallet scope and move
+ID. It binds a canonical request digest, initiating authority, source/destination
+resources, consecutive generations, admission time, role receipt digests and
+progress. One pending move and a five-minute admission interval apply across the
+wallet. Exact retries reuse that journal; selecting the active current home causes
+no transfer. The initiating authority may belong to a linked owner device and is
+distinct from the founding allocation.
+
+Admission pauses the directory atomically. Ordinary home/session/lifecycle
+resolution and home-owned locator publication respect this pause. Conditional
+progress requires source-fence and destination-verification receipts before the
+atomic home/generation switch. Identity, recorded receipts and move history remain
+immutable. An interrupted move stays at its durable phase for reconciliation.
+
+This storage primitive is currently internal to implementation; no owner move
+endpoint is enabled. Actual owner authentication, per-writer fencing, transfer,
+receipt production and cleanup must be connected before relocation is executable.
+The directory E2E's synthetic receipts validate journal behavior only.
 
 ### Enterprise isolation tier
 

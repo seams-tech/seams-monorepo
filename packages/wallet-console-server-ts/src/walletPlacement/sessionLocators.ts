@@ -118,7 +118,7 @@ export class D1WalletSessionLocators {
       SELECT namespace, organization_id, project_id, environment_id, ?5, ?6, wallet_id, ?8
       FROM wallet_homes WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
         AND environment_id = ?4 AND wallet_id = ?7 AND account_id = ?9 AND database_id = ?10
-        AND state IN ('reserved', 'established')
+        AND state IN ('reserved', 'established') AND placement_state = 'active'
         AND NOT EXISTS (SELECT 1 FROM wallet_session_locators
           WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
             AND kind = ?5 AND digest = ?6)

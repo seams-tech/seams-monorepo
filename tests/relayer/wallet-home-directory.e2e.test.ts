@@ -669,6 +669,10 @@ test('wallet homes are independent within a tenant and durable across competing 
       "UPDATE wallet_homes SET ceremony_id = 'wrc_replaced' WHERE wallet_id = 'traveller'",
       "INSERT OR REPLACE INTO wallet_homes SELECT * FROM wallet_homes WHERE wallet_id = 'lost-reply'",
       `INSERT OR REPLACE INTO wallet_homes
+       (namespace, organization_id, project_id, environment_id, wallet_id, registration_id,
+        request_digest, allocation, ceremony_id, preparation_id, wallet_authority_id,
+        device_id, wallet_auth_method_id, region, account_id, database_id, state,
+        reserved_at_ms, completed_at_ms)
        SELECT namespace, organization_id, project_id, environment_id,
               'ceremony-replacement', 'register-ceremony-replacement', request_digest,
               allocation, ceremony_id, preparation_id, wallet_authority_id, device_id,
@@ -677,7 +681,7 @@ test('wallet homes are independent within a tenant and durable across competing 
          FROM wallet_homes WHERE wallet_id = 'service-wallet'`,
     ])
       await expect(persisted.prepare(sql).run()).rejects.toThrow(
-        /wallet home (identity is immutable|transition is invalid)/,
+        /wallet (home identity is immutable|identity is immutable|placement transition requires its relocation|registration transition is invalid)/,
       );
     expect(
       await (await call(runtime, { action: 'find', wallet: interrupted.wallet })).json(),

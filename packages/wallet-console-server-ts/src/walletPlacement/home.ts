@@ -6,6 +6,13 @@ import {
 
 export type WalletRegion = 'US' | 'WEUR' | 'APAC';
 
+export function parseWalletOwnershipGeneration(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 1) {
+    throw new WalletPlacementError('invalid_record', 'Wallet ownership generation is invalid');
+  }
+  return raw;
+}
+
 export class WalletPlacementError extends Error {
   constructor(
     readonly code:
@@ -13,7 +20,8 @@ export class WalletPlacementError extends Error {
       | 'invalid_record'
       | 'home_conflict'
       | 'scope_conflict'
-      | 'registration_paused',
+      | 'registration_paused'
+      | 'wallet_relocation_in_progress',
     message: string,
   ) {
     super(message);
@@ -253,6 +261,7 @@ function allocationId(raw: unknown, pattern: RegExp): string {
 export type WalletHomeAssignment = {
   readonly wallet: WalletOwnershipKey;
   readonly home: WalletHome;
+  readonly ownershipGeneration: number;
   readonly registrationId: string;
   readonly requestDigest: string;
   readonly allocation: 'provided' | 'server_allocated';

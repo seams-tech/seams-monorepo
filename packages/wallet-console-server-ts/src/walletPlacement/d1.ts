@@ -5,6 +5,7 @@ import {
   WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
+  parseWalletOwnershipGeneration,
   type WalletHomeAssignment,
   type WalletHomeReservation,
   type WalletHomeReservationInput,
@@ -45,6 +46,16 @@ function timestamp(raw: unknown): number {
 }
 
 export function walletHomeAssignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
+  if (row.placement_state === 'paused') {
+    throw new WalletPlacementError(
+      'wallet_relocation_in_progress',
+      'Wallet relocation is in progress',
+    );
+  }
+  if (row.placement_state !== 'active') {
+    throw new WalletPlacementError('invalid_record', 'Wallet placement state is invalid');
+  }
+  const ownershipGeneration = parseWalletOwnershipGeneration(row.ownership_generation);
   const wallet = WalletOwnershipKey.parse({
     namespace: row.namespace,
     organizationId: row.organization_id,
@@ -81,6 +92,7 @@ export function walletHomeAssignmentFromRow(row: Record<string, unknown>): Walle
         state: 'reserved',
         wallet,
         home,
+        ownershipGeneration,
         registrationId,
         requestDigest: digest,
         allocation,
@@ -95,6 +107,7 @@ export function walletHomeAssignmentFromRow(row: Record<string, unknown>): Walle
         state: row.state,
         wallet,
         home,
+        ownershipGeneration,
         registrationId,
         requestDigest: digest,
         allocation,

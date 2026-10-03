@@ -33,6 +33,7 @@ import {
   WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
+  parseWalletOwnershipGeneration,
   type WalletHomeAssignment,
   type WalletHomeReservation,
   type WalletRegion,
@@ -152,24 +153,37 @@ function assignmentFromResponse(
   }
   const allocation: WalletHomeAssignment['allocation'] = value.allocation;
   const reservedAtMs = timestamp(value.reservedAtMs);
-  const common = {
-    wallet,
-    home,
-    registrationId,
-    requestDigest,
-    allocation,
-    registrationAllocation,
-    reservedAtMs,
-  };
+  const ownershipGeneration = parseWalletOwnershipGeneration(value.ownershipGeneration);
   switch (value.state) {
     case 'reserved':
       if ('completedAtMs' in value) break;
-      return { ...common, state: 'reserved' };
+      return {
+        state: 'reserved',
+        wallet,
+        home,
+        ownershipGeneration,
+        registrationId,
+        requestDigest,
+        allocation,
+        registrationAllocation,
+        reservedAtMs,
+      };
     case 'established':
     case 'cancelled': {
       const completedAtMs = timestamp(value.completedAtMs);
       if (completedAtMs < reservedAtMs) break;
-      return { ...common, state: value.state, completedAtMs };
+      return {
+        state: value.state,
+        wallet,
+        home,
+        ownershipGeneration,
+        registrationId,
+        requestDigest,
+        allocation,
+        registrationAllocation,
+        reservedAtMs,
+        completedAtMs,
+      };
     }
   }
   throw new WalletPlacementError('invalid_record', 'Wallet home service lifecycle is invalid');

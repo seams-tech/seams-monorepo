@@ -38,7 +38,8 @@ export async function handleLinkedDeviceBootstrap(
         USING(namespace, organization_id, project_id, environment_id, wallet_id)
         WHERE route.namespace = ?1 AND route.organization_id = ?2 AND route.project_id = ?3
           AND route.environment_id = ?4 AND route.value = ?5 AND route.kind = 'linked_device'
-          AND home.account_id = ?6 AND home.database_id = ?7 AND home.state IN ('reserved', 'established')`,
+          AND home.account_id = ?6 AND home.database_id = ?7 AND home.state IN ('reserved', 'established')
+          AND home.placement_state = 'active'`,
         )
         .bind(...keys, writer.resource.accountId, writer.resource.databaseId)
         .first();
@@ -84,7 +85,8 @@ export async function handleLinkedDeviceBootstrap(
       .prepare(
         `SELECT 1 FROM wallet_homes
       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-        AND wallet_id = ?5 AND account_id = ?6 AND database_id = ?7 AND state IN ('reserved', 'established')`,
+        AND wallet_id = ?5 AND account_id = ?6 AND database_id = ?7 AND state IN ('reserved', 'established')
+        AND placement_state = 'active'`,
       )
       .bind(...keys.slice(0, 4), walletId, writer.resource.accountId, writer.resource.databaseId)
       .first();
@@ -100,6 +102,7 @@ export async function handleLinkedDeviceBootstrap(
         WHERE boot.namespace = ?1 AND boot.organization_id = ?2 AND boot.project_id = ?3 AND boot.environment_id = ?4 AND boot.link_session_id = ?5
           AND boot.state = 'displaying_qr' AND boot.qr_json = ?6 AND boot.expires_at_ms > ?7
           AND home.wallet_id = ?8 AND home.account_id = ?9 AND home.database_id = ?10 AND home.state IN ('reserved', 'established')
+          AND home.placement_state = 'active'
           AND NOT EXISTS (SELECT 1 FROM wallet_routes route WHERE route.namespace = ?1 AND route.organization_id = ?2 AND route.project_id = ?3 AND route.environment_id = ?4 AND route.kind = 'linked_device' AND route.value = ?5 AND route.wallet_id != ?8)
         ON CONFLICT DO NOTHING`,
         )
@@ -111,7 +114,8 @@ export async function handleLinkedDeviceBootstrap(
         AND EXISTS (SELECT 1 FROM wallet_routes route JOIN wallet_homes home USING(namespace, organization_id, project_id, environment_id, wallet_id)
           WHERE route.namespace = ?1 AND route.organization_id = ?2 AND route.project_id = ?3 AND route.environment_id = ?4
             AND route.kind = 'linked_device' AND route.value = ?5 AND route.wallet_id = ?9
-            AND home.account_id = ?10 AND home.database_id = ?11 AND home.state IN ('reserved', 'established'))`,
+            AND home.account_id = ?10 AND home.database_id = ?11 AND home.state IN ('reserved', 'established')
+            AND home.placement_state = 'active')`,
         )
         .bind(
           ...keys,

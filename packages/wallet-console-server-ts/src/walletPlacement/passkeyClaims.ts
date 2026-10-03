@@ -29,7 +29,7 @@ export async function claimPasskeyCredential(input: {
     FROM wallet_homes
     WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
       AND environment_id = ?4 AND wallet_id = ?7 AND account_id = ?8
-      AND database_id = ?9 AND state IN ('reserved', 'established')
+      AND database_id = ?9 AND state IN ('reserved', 'established') AND placement_state = 'active'
     ON CONFLICT DO NOTHING`,
     )
     .bind(...values)
@@ -44,7 +44,7 @@ export async function claimPasskeyCredential(input: {
     WHERE claim.namespace = ?1 AND claim.organization_id = ?2 AND claim.project_id = ?3
       AND claim.environment_id = ?4 AND claim.rp_id = ?5 AND claim.credential_id = ?6
       AND claim.wallet_id = ?7 AND home.account_id = ?8 AND home.database_id = ?9
-      AND home.state IN ('reserved', 'established')`,
+      AND home.state IN ('reserved', 'established') AND home.placement_state = 'active'`,
     )
     .bind(...values)
     .first<number>('claimed');

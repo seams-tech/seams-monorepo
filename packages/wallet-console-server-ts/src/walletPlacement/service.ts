@@ -280,7 +280,9 @@ export async function handleWalletHomeServiceRequest(
       let status = 409;
       if (error.code === 'invalid_input') status = 400;
       if (error.code === 'scope_conflict') status = 403;
-      if (error.code === 'registration_paused') status = 503;
+      if (error.code === 'registration_paused' || error.code === 'wallet_relocation_in_progress') {
+        status = 503;
+      }
       return json({ ok: false, code: error.code }, status);
     }
     throw error;

@@ -122,6 +122,7 @@ export class D1WalletRoutes {
       WHERE home.namespace = ?1 AND home.organization_id = ?2 AND home.project_id = ?3
         AND home.environment_id = ?4 AND home.wallet_id = ?6
         AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')
+        AND home.placement_state = 'active'
         AND NOT EXISTS (SELECT 1 FROM json_each(?5) AS candidate JOIN wallet_routes AS claimed
           ON claimed.kind = json_extract(candidate.value, '$.kind') AND claimed.value = json_extract(candidate.value, '$.value')
           WHERE claimed.namespace = ?1 AND claimed.organization_id = ?2 AND claimed.project_id = ?3
@@ -144,7 +145,8 @@ export class D1WalletRoutes {
         AND home.environment_id = route.environment_id AND home.wallet_id = route.wallet_id
       WHERE route.namespace = ?1 AND route.organization_id = ?2 AND route.project_id = ?3
         AND route.environment_id = ?4 AND route.wallet_id = ?6
-        AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')`,
+        AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')
+        AND home.placement_state = 'active'`,
       )
       .bind(...bindings)
       .first<number>('matched');

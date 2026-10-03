@@ -243,6 +243,9 @@ const bundle = await build({
       export { prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
       export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
+      export { buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
+      export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};
+      export { createD1LinkedDeviceOwnerAuthorizationProviderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceOwnerAuthorizationProvider.ts'))};
       export { buildFullOwnerPermissionsV1, buildFullOwnerDelegatedWalletAuthorityV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/authorization/delegatedAuthority.ts'))};
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
       export { D1WalletHomeDirectory } from './packages/wallet-console-server-ts/src/walletPlacement/d1';
@@ -424,6 +427,7 @@ try {
     bridge.issued = issued;
     bridge.publisher = publisher;
     bridge.authMethod = fixture.authMethod;
+    bridge.ownerAuthority = fixture.authority;
     const linked = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-linked-${region}`,
       permissions: api.buildFullOwnerPermissionsV1(),

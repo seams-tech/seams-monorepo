@@ -1531,3 +1531,17 @@ returns conflict without resurrection. The signed HTTP scenario reproduced stale
 now execute through real regional HTTP handlers with real Ed25519 request proofs.
 Owner claim authorization and later installation stages remain controlled/open.
 Evidence: `.artifacts/r152/link-http-20261003/`; full R152 and 0.8.0 remain pending.
+
+### October 3: regional approval persistence and polling
+
+The regional HTTP E2E now exercises production owner claim/approval rules, home-only
+approval persistence, exact replay, changed-transcript conflict, cross-wallet
+rejection, signed approval polling and terminal cancellation. Source metadata and
+owner HTTP authentication remain controlled. Invalid signatures cannot read approval
+or consume a valid request's nonce. No production fix was required by these checks.
+
+Evidence: `.artifacts/r152/link-approval-20261003/`. This covers the approval
+transcript; committed signer-package delivery and authority installation still need
+coverage through `targetCredential`, `sourceContributionRouter` and
+`installationReceipt`. Hosted acceptance, internal/deferred routing and terminal
+reservation reconciliation remain open; release 0.8.0 is still held.

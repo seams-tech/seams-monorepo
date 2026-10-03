@@ -1558,3 +1558,16 @@ winner; recipient changes remain conflicts. Evidence and logs are retained under
 This checks provider persistence after regional HTTP approval. Preparation endpoint
 authentication, real WebAuthn registration, source contribution and final authority
 installation still need verification. No deployment or release was performed.
+
+### October 3: target-preparation HTTP authentication
+
+Regional target preparation now has composed HTTP coverage using real Ed25519
+request proofs and production Console publishable-key authentication with in-memory
+key storage. APAC dispatch reaches WEUR; missing/invalid keys, missing/blocked origins
+and mismatched environments are rejected. Authenticated replay returns the durable
+preparation and a changed recipient conflicts. The harness uses `regional:dev` and
+explicit routes for test Origin hosts required by Miniflare's local proxy.
+
+Evidence: `.artifacts/r152/target-http-20261003/`. Actual target WebAuthn registration,
+source contribution and authority installation remain open. No deployment or release
+was performed; 0.8.0 remains held.

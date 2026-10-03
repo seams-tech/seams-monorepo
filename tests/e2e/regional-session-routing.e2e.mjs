@@ -117,6 +117,8 @@ class GatewayBridge {
         pathname,
         request,
         service: { deviceLinking: this.linkRoutes },
+        routeDefinitions: api.createRouterApiRouteDefinitions(),
+        opts: { publishableKeyAuth: this.targetPublishableKeyAuth },
       });
       response.headers.set('x-test-region', this.region);
       return response;
@@ -245,6 +247,10 @@ const bundle = await build({
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};
+      export { createRouterApiRouteDefinitions } from ${JSON.stringify(resolve(candidate, 'src/router/framework/routeDefinitions.ts'))};
+      export { createInMemoryConsoleApiKeyService } from './packages/console-server-ts/src/apiKeys/service';
+      export { createRouterApiPublishableKeyAuthAdapter } from './packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
+      export { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from './packages/wallet-console-shared-ts/src/apiKeyScopes';
       export { D1LinkedDeviceTargetCredentialProviderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceTargetCredentialProvider.ts'))};
       export { computeLinkedDevicePasskeyTargetConfigurationDigestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/digests.ts'))};
       export { createD1LinkedDeviceOwnerAuthorizationProviderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceOwnerAuthorizationProvider.ts'))};
@@ -273,7 +279,7 @@ const scope = {
   namespace: 'session-routing',
   organizationId: 'owner',
   projectId: 'project',
-  environmentId: 'test',
+  environmentId: 'regional:dev',
 };
 const signerScope = {
   namespace: scope.namespace,
@@ -288,6 +294,7 @@ for (const region of ['US', 'WEUR', 'APAC']) {
   bridges.set(region, bridge);
   workers.push({
     name: region,
+    routes: region === 'APAC' ? ['wallet.test/*', 'untrusted.test/*'] : [],
     modules: true,
     script: `import { WorkerEntrypoint } from 'cloudflare:workers';
     export class WalletHomeGateway extends WorkerEntrypoint { fetch(request) { return this.env.HOME.fetch(request); } }

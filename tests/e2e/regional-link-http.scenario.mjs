@@ -90,6 +90,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     }
     const preparation = await verifyRegionalTargetPreparation({
       api,
+      deviceFixture: fixture,
       runtime,
       bridges,
       signerScope,

@@ -6,6 +6,7 @@ import {
 
 export async function verifyRegionalTargetPreparation({
   api,
+  deviceFixture,
   runtime,
   bridges,
   signerScope,
@@ -42,6 +43,82 @@ export async function verifyRegionalTargetPreparation({
     deliveryRecipientPublicKey65B64u: deliveryRecipient(),
   });
   assert.equal(changed.kind, 'conflict');
+  const apiKeys = api.createInMemoryConsoleApiKeyService({
+    scopeValidation: api.WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
+  });
+  const credential = await apiKeys.createApiKey(
+    { orgId: signerScope.orgId, actorUserId: 'regional-target-test' },
+    {
+      kind: 'publishable_key',
+      name: 'Regional target preparation',
+      environmentId: signerScope.envId,
+      allowedOrigins: ['https://wallet.test'],
+      rateLimitBucket: 'default',
+      quotaBucket: 'default',
+    },
+  );
+  for (const [region, bridge] of bridges) {
+    bridge.targetPublishableKeyAuth = api.createRouterApiPublishableKeyAuthAdapter(apiKeys);
+    bridge.linkRoutes.targetCredential =
+      region === 'WEUR'
+        ? provider
+        : new api.D1LinkedDeviceTargetCredentialProviderV1({
+            database: await runtime.getD1Database('SIGNER_DB', region),
+            scope: signerScope,
+            planner,
+            verifier: {},
+            sourceContributionPreparationPlanner: {},
+            verifiedLinkBuilder: {},
+          });
+  }
+  const ingress = await runtime.getWorker('APAC');
+  const validHeaders = {
+    authorization: `Bearer ${credential.secret}`,
+    origin: 'https://wallet.test',
+    'x-seams-environment-id': signerScope.envId,
+  };
+  const httpInput = {
+    api,
+    deviceFixture,
+    ingress,
+    session,
+    recipient: input.deliveryRecipientPublicKey65B64u,
+  };
+  const missingKey = await requestPreparation(httpInput, {
+    origin: validHeaders.origin,
+    'x-seams-environment-id': signerScope.envId,
+  });
+  assert.equal(missingKey.status, 401, await missingKey.clone().text());
+  const invalidKey = await requestPreparation(httpInput, {
+    ...validHeaders,
+    authorization: 'Bearer pk_invalid',
+  });
+  assert.equal(invalidKey.status, 401);
+  const missingOrigin = await requestPreparation(httpInput, {
+    authorization: validHeaders.authorization,
+    'x-seams-environment-id': signerScope.envId,
+  });
+  assert.equal(missingOrigin.status, 403);
+  const wrongOrigin = await requestPreparation(httpInput, {
+    ...validHeaders,
+    origin: 'https://untrusted.test',
+  });
+  assert.equal(wrongOrigin.status, 403);
+  const wrongEnvironment = await requestPreparation(httpInput, {
+    ...validHeaders,
+    'x-seams-environment-id': 'another-environment',
+  });
+  assert.equal(wrongEnvironment.status, 403);
+  const accepted = await requestPreparation(httpInput, validHeaders);
+  assert.equal(accepted.status, 200, await accepted.clone().text());
+  assert.equal(accepted.headers.get('x-test-region'), 'WEUR');
+  assert.deepEqual(await accepted.json(), JSON.parse(JSON.stringify(attempts[0].value)));
+  const changedHttp = await requestPreparation(
+    { ...httpInput, recipient: deliveryRecipient() },
+    validHeaders,
+  );
+  assert.equal(changedHttp.status, 409);
+  assert.equal(planner.created, 2);
   for (const region of bridges.keys()) {
     const database = await runtime.getD1Database('SIGNER_DB', region);
     const count = await database
@@ -53,12 +130,15 @@ export async function verifyRegionalTargetPreparation({
     assert.equal(count, region === 'WEUR' ? 1 : 0);
   }
   return {
+    preparationHttpAtHome: true,
+    publishableKeyOriginAndEnvironmentEnforced: true,
+    preparationHttpRecipientConflict: true,
     concurrentPreparations: 2,
     durablePreparations: 1,
     identicalReplay: true,
     changedRecipientConflicts: true,
     scope:
-      'Production D1 target credential provider after regional HTTP approval; planner is controlled to force concurrent fresh challenges. Target preparation HTTP authentication, WebAuthn registration, source contribution and installation remain open.',
+      'Regional preparation HTTP route with real device signatures and production Console key/origin/environment authentication using in-memory key storage. D1 provider and home dispatch are real; planner is controlled. WebAuthn registration, source contribution and installation remain open.',
   };
 }
 function fulfilled(result) {
@@ -66,4 +146,24 @@ function fulfilled(result) {
 }
 function describeAttempt(result) {
   return result.status === 'rejected' ? String(result.reason) : result.value.kind;
+}
+
+async function requestPreparation(input, headers) {
+  const request = await input.deviceFixture.signedRequest(
+    input.api,
+    input.session.qrPayload,
+    'POST',
+    `/wallet/device-linking/v1/sessions/${encodeURIComponent(input.session.linkSessionId)}/target-preparation`,
+    {
+      kind: 'linked_device_target_preparation_request_v1',
+      linkSessionId: input.session.linkSessionId,
+      deliveryRecipientPublicKey65B64u: input.recipient,
+    },
+  );
+  for (const [name, value] of Object.entries(headers)) request.headers.set(name, value);
+  return input.ingress.fetch(request.url, {
+    method: request.method,
+    headers: Object.fromEntries(request.headers),
+    body: await request.arrayBuffer(),
+  });
 }

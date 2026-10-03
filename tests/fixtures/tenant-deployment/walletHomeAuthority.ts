@@ -1,3 +1,4 @@
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { reserveFromGateway, registrationLifecycleFromGateway } from './registrationHomeAdmission';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
@@ -37,6 +38,12 @@ const catalogJson = JSON.stringify([
 export default {
   async fetch(request: Request, env: { CONSOLE_DB: D1DatabaseLike }): Promise<Response> {
     const serviceResponse = await handleWalletHomeServiceRequest(request, {
+      writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+        accountId:
+          request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
+        databaseId:
+          request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      }),
       database: env.CONSOLE_DB,
       catalogJson,
       admittedResources: catalog.deploymentResources(),

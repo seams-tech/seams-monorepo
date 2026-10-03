@@ -1,3 +1,5 @@
+import type { WalletSessionLocatorPublication } from '@seams/wallet-server/cloud-host';
+import type { SessionLocator } from './sessionLocators';
 import {
   parseWalletRegistrationSetupReservation,
   proposeWalletRegistrationSetup,
@@ -53,6 +55,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       this.options.scope,
       WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson)),
     );
+  }
+
+  async publish(input: WalletSessionLocatorPublication): Promise<void> {
+    await this.client().publish(input);
+  }
+
+  async findSession(locator: SessionLocator): Promise<WalletHomeAssignment | null> {
+    return this.client().findSession(locator);
   }
 
   async resolveSetup(input: SetupInput): Promise<ResolvedSetupHome> {

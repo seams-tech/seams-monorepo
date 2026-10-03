@@ -27,6 +27,12 @@ class ConsoleBinding {
 
   async fetch(request: Request): Promise<Response> {
     const response = await handleWalletHomeServiceRequest(request, {
+      writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+        accountId:
+          request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
+        databaseId:
+          request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      }),
       database: this.database,
       catalogJson: this.catalogJson,
       admittedResources: WalletHomeCatalog.parse(

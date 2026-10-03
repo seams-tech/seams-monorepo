@@ -1,4 +1,7 @@
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
+import { digestOpaqueValue } from '@seams/wallet-server/cloud-host';
+import { SessionLocator } from './sessionLocators';
+import type { WalletHomeAssignment } from './home';
 import type { WalletHome } from './home';
 import { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 
@@ -86,6 +89,8 @@ export async function dispatchKnownWalletHome(
   transport: WalletRegionalDispatch,
 ): Promise<Response | null> {
   if (request.method === 'OPTIONS') return null;
+  const session = await sessionHome(request, authority);
+  if (session.kind === 'rejected') return session.response;
   const pathname = new URL(request.url).pathname;
   let locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string };
   if (
@@ -111,7 +116,10 @@ export async function dispatchKnownWalletHome(
       /^\/wallets\/([^/]+)\/(custody\/credentials(?:\/label)?|custody\/envelope\/ownership|recovery\/status|signers\/.+|auth-methods\/.+|near\/implicit-account\/fund)$/u.exec(
         pathname,
       );
-    if (!path) return null;
+    if (!path) {
+      if (session.kind === 'absent' || authority.isLocal(session.assignment.home)) return null;
+      return transport.forward(session.assignment.home, request);
+    }
     let walletId: string;
     try {
       walletId = decodeURIComponent(path[1]);
@@ -124,6 +132,68 @@ export async function dispatchKnownWalletHome(
   if (!assignment || assignment.state === 'cancelled') {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 404 });
   }
+  if (session.kind === 'resolved' && !session.assignment.wallet.matches(assignment.wallet)) {
+    return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
+  }
   if (authority.isLocal(assignment.home)) return null;
   return transport.forward(assignment.home, request);
+}
+
+type SessionHomeResolution =
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'resolved'; readonly assignment: WalletHomeAssignment }
+  | { readonly kind: 'rejected'; readonly response: Response };
+
+async function sessionHome(
+  request: Request,
+  authority: ConsoleRegistrationHomeAdmission,
+): Promise<SessionHomeResolution> {
+  const pathname = new URL(request.url).pathname;
+  let locator: SessionLocator;
+  if (request.method === 'POST' && pathname === '/wallet/session/exchange/redeem') {
+    const body: unknown = await request
+      .clone()
+      .json()
+      .catch(() => null);
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      !('exchangeCode' in body) ||
+      typeof body.exchangeCode !== 'string' ||
+      !/^[A-Za-z0-9_-]{43}$/u.test(body.exchangeCode)
+    ) {
+      return rejectedSessionHome(400, 'invalid_body');
+    }
+    locator = SessionLocator.parse({
+      kind: 'exchange',
+      digest: await digestOpaqueValue(body.exchangeCode),
+    });
+  } else {
+    const token = request.headers.get('authorization')?.match(/^Bearer\s+(\S+)$/iu)?.[1];
+    if (!token || (!token.startsWith('wst_') && !token.startsWith('wsh_')))
+      return { kind: 'absent' };
+    if (!/^ws[th]_[A-Za-z0-9_-]{43}$/u.test(token)) return rejectedSessionHome(401, 'unauthorized');
+    locator = SessionLocator.parse({ kind: 'credential', digest: await digestOpaqueValue(token) });
+  }
+  try {
+    const assignment = await authority.findSession(locator);
+    if (!assignment || assignment.state === 'cancelled')
+      return rejectedSessionHome(401, 'unauthorized');
+    return { kind: 'resolved', assignment };
+  } catch {
+    return rejectedSessionHome(503, 'wallet_home_unavailable');
+  }
+}
+
+function rejectedSessionHome(status: number, code: string): SessionHomeResolution {
+  return {
+    kind: 'rejected',
+    response: Response.json(
+      { ok: false, authenticated: false, code },
+      {
+        status,
+        headers: { 'Cache-Control': 'no-store' },
+      },
+    ),
+  };
 }

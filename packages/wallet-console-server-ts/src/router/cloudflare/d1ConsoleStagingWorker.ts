@@ -710,8 +710,9 @@ async function fetch(
   if (isWalletHomeServiceRequest(request)) {
     const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
     let active;
+    let writer;
     try {
-      const writer = parseTenantRuntimeWriterV1(
+      writer = parseTenantRuntimeWriterV1(
         request.headers.get('x-seams-writer-role'),
         request.headers.get('x-seams-writer-version'),
         {
@@ -734,6 +735,7 @@ async function fetch(
       );
     }
     const response = await handleWalletHomeServiceRequest(request, {
+      writer,
       database: env.CONSOLE_DB,
       catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
       admittedResources: active.resources,

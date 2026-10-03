@@ -44,7 +44,7 @@ function timestamp(raw: unknown): number {
   return raw;
 }
 
-function assignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
+export function walletHomeAssignmentFromRow(row: Record<string, unknown>): WalletHomeAssignment {
   const wallet = WalletOwnershipKey.parse({
     namespace: row.namespace,
     organizationId: row.organization_id,
@@ -124,7 +124,7 @@ export class D1WalletHomeDirectory {
        AND project_id = ?3 AND environment_id = ?4 AND wallet_id = ?5`,
       [...scopeBindings(wallet), wallet.walletId],
     );
-    return row ? assignmentFromRow(row) : null;
+    return row ? walletHomeAssignmentFromRow(row) : null;
   }
 
   async findByCeremony(
@@ -142,7 +142,7 @@ export class D1WalletHomeDirectory {
       'SELECT * FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?2',
       [namespace, ceremonyId],
     );
-    return row ? assignmentFromRow(row) : null;
+    return row ? walletHomeAssignmentFromRow(row) : null;
   }
 
   async reserve(input: WalletHomeReservationInput): Promise<WalletHomeReservation> {
@@ -224,7 +224,7 @@ export class D1WalletHomeDirectory {
       if (collision) return { ok: false, code: 'ceremony_conflict' };
       throw new WalletPlacementError('invalid_record', 'Wallet home reservation disappeared');
     }
-    const assignment = assignmentFromRow(row);
+    const assignment = walletHomeAssignmentFromRow(row);
     if (input.allocation === 'provided' && !assignment.wallet.matches(wallet)) {
       return { ok: false, code: 'registration_conflict', assignment };
     }

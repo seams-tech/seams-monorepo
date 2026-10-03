@@ -1,3 +1,8 @@
+import type {
+  WalletSessionLocatorPublication,
+  WalletSessionRoutingPublisher,
+} from '@seams/wallet-server/cloud-host';
+import { SessionLocator } from './sessionLocators';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import {
   RegistrationSetupAllocation,
@@ -183,7 +188,7 @@ function reservationFromResponse(
   throw new WalletPlacementError('invalid_record', 'Wallet reservation response is invalid');
 }
 
-export class WalletHomeServiceClient {
+export class WalletHomeServiceClient implements WalletSessionRoutingPublisher {
   constructor(
     private readonly service: WalletHomeServiceBinding,
     private readonly writer: TenantRuntimeWriterV1,
@@ -213,6 +218,41 @@ export class WalletHomeServiceClient {
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  async publish(input: WalletSessionLocatorPublication): Promise<void> {
+    let response;
+    if (input.kind === 'exchanged_credential') {
+      response = await this.post('publish-exchanged-session', {
+        digest: input.digest,
+        exchangeDigest: input.exchangeDigest,
+      });
+    } else {
+      response = await this.post('publish-session', {
+        wallet: WalletOwnershipKey.parse({ ...this.scope, walletId: input.walletId }),
+        locator: SessionLocator.parse({ kind: input.kind, digest: input.digest }),
+        expiresAtMs: input.expiresAtMs,
+      });
+    }
+    if (response.status !== 200 || record(response.body).ok !== true) {
+      throw new Error(`Session routing publication failed: HTTP ${response.status}`);
+    }
+  }
+
+  async findSession(locator: SessionLocator): Promise<WalletHomeAssignment | null> {
+    const response = await this.post('find-session', { locator });
+    const body = record(response.body);
+    if (response.status === 404 && body.ok === false && body.code === 'not_found') return null;
+    if (response.status !== 200 || body.ok !== true)
+      throw new Error(`Session home lookup failed: HTTP ${response.status}`);
+    const confirmed = SessionLocator.parse(body.locator);
+    if (!confirmed.matches(locator)) {
+      throw new WalletPlacementError(
+        'invalid_record',
+        'Session home lookup returned another locator',
+      );
+    }
+    return assignmentFromResponse(body.assignment, this.scope, this.catalog);
   }
 
   async find(wallet: WalletOwnershipKey): Promise<WalletHomeAssignment | null> {

@@ -1,3 +1,5 @@
+import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
+import { SessionLocator, D1WalletSessionLocators } from './sessionLocators';
 import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
@@ -73,6 +75,7 @@ export async function handleWalletHomeServiceRequest(
   request: Request,
   options: {
     readonly database: D1DatabaseLike;
+    readonly writer: TenantRuntimeWriterV1;
     readonly catalogJson: unknown;
     readonly admittedResources: TenantDeploymentD1ResourcesV1;
     readonly scope: WalletHomeServiceScope;
@@ -82,6 +85,9 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-session` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
@@ -101,6 +107,20 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    const sessions = new D1WalletSessionLocators(options.database, options.scope, directory);
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-session`) {
+      const locator = SessionLocator.parse(body.locator);
+      const assignment = await sessions.find(locator);
+      return assignment
+        ? json({ ok: true, locator, assignment })
+        : json({ ok: false, code: 'not_found' }, 404);
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session`) {
+      const exchange = SessionLocator.exchange(body.exchangeDigest);
+      const credential = SessionLocator.credential(body.digest);
+      await sessions.publishExchangedCredential({ exchange, credential, writer: options.writer });
+      return json({ ok: true });
+    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`) {
       const assignment = await directory.findByCeremony(
         options.scope.namespace,
@@ -113,6 +133,17 @@ export async function handleWalletHomeServiceRequest(
     const wallet = WalletOwnershipKey.parse(body.wallet);
     if (!inScope(wallet, options.scope)) {
       throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session`) {
+      if (typeof body.expiresAtMs !== 'number')
+        throw new WalletPlacementError('invalid_input', 'Session expiry is required');
+      await sessions.publish({
+        locator: SessionLocator.parse(body.locator),
+        wallet,
+        expiresAtMs: body.expiresAtMs,
+        writer: options.writer,
+      });
+      return json({ ok: true });
     }
     switch (url.pathname) {
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {

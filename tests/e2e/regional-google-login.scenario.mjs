@@ -585,7 +585,96 @@ async function verifySharedRegistrationOffers({
     false,
   );
   await assert.rejects(us.put(selected));
+  const terminalInput = {
+    wallet,
+    home: reserved.assignment.home,
+    registrationId: reserved.assignment.registrationId,
+    requestDigest: reserved.assignment.requestDigest,
+    outcome: 'cancelled',
+  };
+  await assert.rejects(bridges.get('US').publisher.complete(terminalInput));
+  assert.equal((await directory.find(wallet)).state, 'reserved');
+  await assert.rejects(
+    bridges.get('APAC').publisher.complete({ ...terminalInput, outcome: 'established' }),
+  );
+  assert.equal(
+    (await bridges.get('US').publisher.complete({ ...terminalInput, outcome: 'established' }))
+      .state,
+    'established',
+  );
+  const cancelResponse = await (
+    await runtime.getWorker('US')
+  ).fetch(
+    'https://wallet.test/auth/google/verify',
+    post({
+      account_mode: 'register',
+      id_token: proofs.token('cancelled-owner'),
+      project_environment_id: signerScope.envId,
+    }),
+  );
+  assert.equal(cancelResponse.status, 200);
+  const cancelOffer = (await cancelResponse.json()).result;
+  const cancelCandidate = cancelOffer.offer.candidates[0];
+  assert.equal(
+    (
+      await us.claimCandidate({
+        attemptId: cancelOffer.registrationAttemptId,
+        candidateId: cancelCandidate.candidateId,
+        walletId: cancelCandidate.walletId,
+        intentDigest: 'cancelled-intent',
+      })
+    ).ok,
+    true,
+  );
+  const cancelledWallet = api.WalletOwnershipKey.parse({
+    namespace: signerScope.namespace,
+    organizationId: signerScope.orgId,
+    projectId: signerScope.projectId,
+    environmentId: signerScope.envId,
+    walletId: cancelCandidate.walletId,
+  });
+  const cancelReservation = await directory.reserve({
+    allocation: 'provided',
+    wallet: cancelledWallet,
+    proposedHome: catalog.select('US'),
+    registrationId: 'cancelled-offer-registration',
+    deploymentLane: 'test',
+    requestDigest: 'c'.repeat(64),
+    nowMs: Date.now(),
+    proposedRegistrationAllocation: api.RegistrationSetupAllocation.parse({
+      ceremonyId: `wrc_${'c'.repeat(43)}`,
+      preparationId: 'regprep_cancelled',
+      walletAuthorityId: 'wallet-authority:cancelled',
+      deviceId: 'device:cancelled',
+      walletAuthMethodId: 'wallet-auth-method:cancelled',
+    }),
+  });
+  assert.equal(cancelReservation.ok, true);
+  const cancelled = await bridges.get('US').publisher.complete({
+    wallet: cancelledWallet,
+    home: cancelReservation.assignment.home,
+    registrationId: cancelReservation.assignment.registrationId,
+    requestDigest: cancelReservation.assignment.requestDigest,
+    outcome: 'cancelled',
+  });
+  assert.equal(cancelled.state, 'cancelled');
+  assert.equal(await us.read(cancelOffer.registrationAttemptId), null);
+  assert.equal(
+    await us.hasLiveStartedWalletAttempt({ walletId: cancelCandidate.walletId, nowMs: Date.now() }),
+    false,
+  );
+  await assert.rejects(
+    us.completeCommitted({
+      attemptId: cancelOffer.registrationAttemptId,
+      walletId: cancelCandidate.walletId,
+      intentDigest: 'cancelled-intent',
+    }),
+  );
+  assert.equal((await directory.find(cancelledWallet)).state, 'cancelled');
   return {
+    cancelledHomeAtomicallyReleasesPendingOffer: true,
+    completedOfferPreventsHomeCancellation: true,
+    terminalHomeRequiresAssignedWriter: true,
     expiredClaimSurvivesCleanupForCommittedRetry: true,
     claimedWalletRemainsUnavailableForReallocation: true,
     unrestrictedOfferDeleteIsUnavailable: true,

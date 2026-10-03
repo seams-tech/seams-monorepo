@@ -388,7 +388,7 @@ test('wallet homes are independent within a tenant and durable across competing 
           outcome: 'established',
         })
       ).status,
-    ).toBe(409);
+    ).toBe(403);
     const serviceCompleted = await serviceCall(runtime, 'complete', {
       ...serviceReservation,
       home: homes[0],
@@ -444,7 +444,21 @@ test('wallet homes are independent within a tenant and durable across competing 
         await serviceClient.findByCeremony(clientInput.registrationAllocation.ceremonyId)
       )?.home.matches(homes[2]),
     ).toBe(true);
-    const clientCompleted = await serviceClient.complete({
+    const homeClient = new WalletHomeServiceClient(
+      clientBinding,
+      parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+        accountId: homes[2].accountId,
+        databaseId: homes[2].databaseId,
+      }),
+      {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'test',
+      },
+      WalletHomeCatalog.parse(homes),
+    );
+    const clientCompleted = await homeClient.complete({
       wallet: clientInput.wallet,
       home: homes[2],
       registrationId: clientInput.registrationId,

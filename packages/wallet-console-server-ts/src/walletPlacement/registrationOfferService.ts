@@ -1,8 +1,8 @@
+import { ScopedWalletAuthorityDatabase } from './scopedAuthorityDatabase';
 import {
   CloudflareD1GoogleEmailOtpRegistrationAttemptStore,
   parseGoogleEmailOtpRegistrationAttemptRecord,
   parseGoogleEmailOtpRegistrationOfferCandidates,
-  prepareD1TenantStatement,
   requireRuntimePolicyScope,
   type D1DatabaseLike,
   type GoogleEmailOtpRegistrationAttemptStore,
@@ -26,26 +26,6 @@ type Scope = Pick<
   'namespace' | 'organizationId' | 'projectId' | 'environmentId'
 >;
 
-class ScopedOfferDatabase {
-  constructor(
-    private readonly database: D1DatabaseLike,
-    private readonly scope: Scope,
-  ) {}
-  prepare(sql: string, values: readonly unknown[]) {
-    return prepareD1TenantStatement(
-      this.database,
-      {
-        namespace: this.scope.namespace,
-        orgId: this.scope.organizationId,
-        projectId: this.scope.projectId,
-        envId: this.scope.environmentId,
-      },
-      sql,
-      values,
-    );
-  }
-}
-
 export async function handleRegistrationOfferCommand(
   raw: unknown,
   database: D1DatabaseLike,
@@ -55,7 +35,7 @@ export async function handleRegistrationOfferCommand(
 ): Promise<Response> {
   if (!raw || typeof raw !== 'object' || !('operation' in raw) || !('input' in raw))
     throw invalidOffer();
-  const scoped = new ScopedOfferDatabase(database, scope);
+  const scoped = new ScopedWalletAuthorityDatabase(database, scope);
   const store = new CloudflareD1GoogleEmailOtpRegistrationAttemptStore({
     prepare: scoped.prepare.bind(scoped),
     orgId: scope.organizationId,

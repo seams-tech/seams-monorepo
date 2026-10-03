@@ -1,3 +1,4 @@
+import { verifyRegionalRateLimits } from './regional-rate-limits.scenario.mjs';
 import { verifyRegionalSharedIdentity } from './regional-shared-identity.scenario.mjs';
 import { verifyRegionalGoogleLogin } from './regional-google-login.scenario.mjs';
 import { verifyRegionalAuthenticationRouting } from './regional-authentication-routing.scenario.mjs';
@@ -161,7 +162,7 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
-      export { createD1IdentityStore, createD1GoogleRegistrationAttempts } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
+      export { createD1IdentityStore, createD1GoogleRegistrationAttempts, createD1EmailOtpRateLimits } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
       export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
       export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
       export { prepareD1TenantStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1TenantStore.ts'))};
@@ -467,6 +468,13 @@ try {
     consoleBridge,
     authorityDatabase,
   });
+  const rateLimits = await verifyRegionalRateLimits({
+    api,
+    bridges,
+    isolatedIdentity,
+    consoleBridge,
+    runtime,
+  });
   const googleLogin = await verifyRegionalGoogleLogin({
     api,
     directory,
@@ -610,6 +618,7 @@ try {
     authenticationRouting,
     googleLogin,
     sharedIdentity,
+    rateLimits,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

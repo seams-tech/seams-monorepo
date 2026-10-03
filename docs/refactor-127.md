@@ -1409,3 +1409,15 @@ to unclaimed rows. Expired pending claims remain visible to wallet allocation.
 The composed scenario rejects the removed command, preserves the record and then
 completes through its original intent/home writer. Full terminal home/custody
 reconciliation remains open. No deployment or release occurred.
+
+### R152 terminal cleanup and shared limits — October 3
+
+Console migrations 0062 and 0063 enforce terminal offer cleanup and store shared
+Email OTP counters. Only the assigned writer can finish a home; active Google
+offers prevent cancellation. Four policy scopes each admitted three of six
+concurrent regional requests, with project isolation and outage rejection verified.
+Persistent home-directory E2E also passed. Evidence is retained under
+`.artifacts/r152/shared-limits-20261003/`. Deploy these migrations with the matched
+SDK/Console candidate after the remaining release gates pass. Full custody replay,
+passkey uniqueness, linked devices and hosted verification remain open.
+No deployment, reset or release occurred.

@@ -1,3 +1,4 @@
+import { consumeSharedRateLimit } from './rateLimitService';
 import { handleRegistrationOfferCommand } from './registrationOfferService';
 import { handleIdentityCommand } from './identityService';
 import { D1WalletRoutes, WalletRouteLocator } from './walletRouteLocators';
@@ -88,6 +89,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
@@ -114,6 +116,8 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit`)
+      return await consumeSharedRateLimit(body, options.database, options.scope);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer`) {
       return await handleRegistrationOfferCommand(
         body,
@@ -214,9 +218,19 @@ export async function handleWalletHomeServiceRequest(
         return json(outcome, outcome.ok ? 200 : 409);
       }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/complete`: {
+        const home = WalletHome.parse(body.home);
+        if (
+          home.accountId !== options.writer.resource.accountId ||
+          home.databaseId !== options.writer.resource.databaseId
+        ) {
+          throw new WalletPlacementError(
+            'scope_conflict',
+            'Only the assigned home writer can complete registration',
+          );
+        }
         const assignment = await directory.complete({
           wallet,
-          home: WalletHome.parse(body.home),
+          home,
           registrationId: requiredString(body.registrationId, 'registrationId'),
           requestDigest: requiredString(body.requestDigest, 'requestDigest'),
           outcome: completionOutcome(body.outcome),

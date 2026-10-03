@@ -121,6 +121,7 @@ async function handleGatewayRequest(
   const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     sessionRouting: authority,
     identityStore: authority.identityStore(),
+    emailOtpRateLimitCounter: authority.identityStore().rateLimitCounter(),
     googleRegistrationAttempts: authority.registrationOffers(),
     recoveryRouting: authority,
     lifecycleRouting: authority,

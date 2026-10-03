@@ -1,3 +1,4 @@
+import { handleIdentityCommand } from './identityService';
 import { D1WalletRoutes, WalletRouteLocator } from './walletRouteLocators';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { SessionLocator, D1WalletSessionLocators } from './sessionLocators';
@@ -86,6 +87,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-session` &&
@@ -110,6 +112,9 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/identity`) {
+      return await handleIdentityCommand(body, options.database, options.scope);
+    }
     const sessions = new D1WalletSessionLocators(options.database, options.scope, directory);
     const routes = new D1WalletRoutes(options.database, options.scope);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-route`) {

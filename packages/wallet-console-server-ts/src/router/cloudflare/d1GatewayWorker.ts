@@ -115,6 +115,7 @@ async function handleGatewayRequest(
   }
   const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     sessionRouting: authority,
+    identityStore: authority.identityStore(),
     recoveryRouting: authority,
     lifecycleRouting: authority,
     registrationAuthority: authority,

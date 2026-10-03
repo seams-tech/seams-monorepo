@@ -1333,3 +1333,16 @@ selection. Missing enrollment fails without registration; session conflicts and
 outages are rejected. Google token verification and enrollment ciphertext are
 controlled fixtures. Shared provider/credential uniqueness, discovery, linking,
 internal/deferred enforcement, terminal cleanup and hosted acceptance remain open.
+
+### R152 shared identity checkpoint — October 3
+
+Hosted Gateway identity operations now use the authenticated Console service and
+its shared `identity_links` table (migration 0059). The existing public D1 identity
+store supplies claim/move/unlink behavior. Scope comes from admitted writer context.
+Three-region composition verifies competing claims, common reads, project isolation,
+move restrictions and fail-closed outages; Google selected-wallet resolution uses
+the shared store. Receipt: `.artifacts/r152/shared-identity-20261003/regional-session-routing-evidence.json`.
+Apply migration 0059 before deploying this candidate. No deployment occurred.
+Provider discovery forwarding, shared offers/limits/credential uniqueness,
+linked-device coordination, internal/deferred routing and hosted acceptance remain
+open; release 0.8.0 stays held.

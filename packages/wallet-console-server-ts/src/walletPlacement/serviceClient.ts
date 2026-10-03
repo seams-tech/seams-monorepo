@@ -1,3 +1,5 @@
+import type { IdentityCommand } from './identityService';
+import type { IdentityStore } from '@seams/wallet-server/cloud-host';
 import type { WalletLifecycleRoutingPublisher } from '@seams/wallet-server/cloud-host';
 import type {
   WalletRecoveryRoutingPublication,
@@ -198,7 +200,8 @@ export class WalletHomeServiceClient
   implements
     WalletSessionRoutingPublisher,
     WalletRecoveryRoutingPublisher,
-    WalletLifecycleRoutingPublisher
+    WalletLifecycleRoutingPublisher,
+    IdentityStore
 {
   constructor(
     private readonly service: WalletHomeServiceBinding,
@@ -229,6 +232,58 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  async getUserIdBySubject(subject: string): Promise<string | null> {
+    const body = await this.identityCommand({ operation: 'find', subject });
+    if (body.ok !== true) throw new Error('Shared identity lookup failed');
+    return body.userId === null ? null : requiredString(body.userId);
+  }
+
+  async listSubjectsByUserId(userId: string): Promise<string[]> {
+    const body = await this.identityCommand({ operation: 'list', userId });
+    if (body.ok !== true || !Array.isArray(body.subjects))
+      throw new Error('Shared identity list failed');
+    return body.subjects.map(requiredString);
+  }
+
+  async linkSubjectToUserId(input: Parameters<IdentityStore['linkSubjectToUserId']>[0]) {
+    const body = await this.identityCommand({
+      operation: 'link',
+      userId: input.userId,
+      subject: input.subject,
+      allowMoveIfSoleIdentity: input.allowMoveIfSoleIdentity ?? false,
+    });
+    return identityMutationResult(body);
+  }
+
+  async unlinkSubjectFromUserId(input: Parameters<IdentityStore['unlinkSubjectFromUserId']>[0]) {
+    return identityMutationResult(
+      await this.identityCommand({
+        operation: 'unlink',
+        userId: input.userId,
+        subject: input.subject,
+      }),
+    );
+  }
+
+  async deleteSubjectLinkForDevCleanup(
+    input: Parameters<IdentityStore['deleteSubjectLinkForDevCleanup']>[0],
+  ) {
+    return identityMutationResult(
+      await this.identityCommand({
+        operation: 'delete',
+        userId: input.userId,
+        subject: input.subject,
+      }),
+    );
+  }
+
+  private async identityCommand(command: IdentityCommand): Promise<Record<string, unknown>> {
+    const response = await this.post('identity', command);
+    if (response.status !== 200)
+      throw new Error(`Shared identity request failed: HTTP ${response.status}`);
+    return record(response.body);
   }
 
   async publishRecovery(
@@ -443,4 +498,17 @@ export class WalletHomeServiceClient
 
 function assertNeverRecoveryPublication(value: never): never {
   throw new Error(`Unexpected recovery routing publication: ${String(value)}`);
+}
+
+function identityMutationResult(
+  body: Record<string, unknown>,
+): Awaited<ReturnType<IdentityStore['linkSubjectToUserId']>> {
+  if (body.ok === true) {
+    if ('movedFromUserId' in body)
+      return { ok: true, movedFromUserId: requiredString(body.movedFromUserId) };
+    return { ok: true };
+  }
+  if (body.ok === false)
+    return { ok: false, code: requiredString(body.code), message: requiredString(body.message) };
+  throw new Error('Shared identity mutation response is invalid');
 }

@@ -60,6 +60,10 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     );
   }
 
+  identityStore(): WalletHomeServiceClient {
+    return this.client();
+  }
+
   async publishLifecycle(
     input: Parameters<WalletLifecycleRoutingPublisher['publishLifecycle']>[0],
   ) {

@@ -1,3 +1,4 @@
+import { verifyRegionalSharedIdentity } from './regional-shared-identity.scenario.mjs';
 import { verifyRegionalGoogleLogin } from './regional-google-login.scenario.mjs';
 import { verifyRegionalAuthenticationRouting } from './regional-authentication-routing.scenario.mjs';
 import { verifyRegionalLifecycleRouting } from './regional-lifecycle-routing.scenario.mjs';
@@ -42,6 +43,9 @@ async function nativeRequest(request) {
 }
 
 class ConsoleBridge {
+  constructor(tenantScope) {
+    this.tenantScope = tenantScope;
+  }
   database = null;
   available = true;
   async fetch(request) {
@@ -58,7 +62,7 @@ class ConsoleBridge {
       database: this.database,
       catalogJson,
       admittedResources: catalog.deploymentResources(),
-      scope,
+      scope: this.tenantScope,
       deploymentLane: 'test',
       writer,
     });
@@ -156,6 +160,7 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { createD1IdentityStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
       export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
       export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
       export { prepareD1TenantStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1TenantStore.ts'))};
@@ -245,7 +250,7 @@ for (const region of ['US', 'WEUR', 'APAC']) {
     compatibilityDate: '2026-06-12',
   });
 }
-const consoleBridge = new ConsoleBridge();
+const consoleBridge = new ConsoleBridge(scope);
 workers.push({
   name: 'console',
   modules: true,
@@ -438,6 +443,27 @@ try {
     authorityDatabase,
     signerScope,
   });
+  const isolatedScope = { ...scope, projectId: 'isolated-project' };
+  const isolatedBridge = new ConsoleBridge(isolatedScope);
+  isolatedBridge.database = authorityDatabase;
+  const isolatedWriter = api.parseTenantRuntimeWriterV1(
+    'gateway',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    { accountId, databaseId: catalog.select('US').databaseId },
+  );
+  const isolatedIdentity = new api.WalletHomeServiceClient(
+    isolatedBridge,
+    isolatedWriter,
+    isolatedScope,
+    catalog,
+  );
+  const sharedIdentity = await verifyRegionalSharedIdentity({
+    isolatedIdentity,
+    runtime,
+    bridges,
+    consoleBridge,
+    authorityDatabase,
+  });
   const googleLogin = await verifyRegionalGoogleLogin({
     api,
     runtime,
@@ -578,6 +604,7 @@ try {
     lifecycleRouting,
     authenticationRouting,
     googleLogin,
+    sharedIdentity,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

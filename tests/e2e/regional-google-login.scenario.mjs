@@ -55,7 +55,7 @@ export async function verifyRegionalGoogleLogin({
     const scoped = new ScopedDatabase(api, database, signerScope);
     const prepare = scoped.prepare.bind(scoped);
     const enrollments = new api.CloudflareD1EmailOtpEnrollmentStore({ prepare });
-    const identities = new api.D1IdentityStore({ database, ...signerScope, ensureSchema: false });
+    const identities = api.createD1IdentityStore({ identityStore: bridge.publisher });
     const scope = {
       orgId: signerScope.orgId,
       projectId: signerScope.projectId,

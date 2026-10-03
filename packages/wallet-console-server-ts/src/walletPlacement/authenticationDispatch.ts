@@ -102,6 +102,7 @@ function authenticationLocator(path: string, body: unknown): AuthenticationLocat
       break;
     case '/wallet/email-otp/challenge':
     case '/wallet/email-otp/factor-release':
+    case '/wallet/email-otp/dev/otp-outbox':
       wallet = 'walletId' in body ? body.walletId : null;
       break;
     default:
@@ -132,7 +133,8 @@ function isAuthenticationRoute(path: string): boolean {
     path === '/wallet/unlock/challenge' ||
     path === '/wallet/unlock/verify' ||
     path === '/wallet/email-otp/challenge' ||
-    path === '/wallet/email-otp/factor-release'
+    path === '/wallet/email-otp/factor-release' ||
+    path === '/wallet/email-otp/dev/otp-outbox'
   );
 }
 

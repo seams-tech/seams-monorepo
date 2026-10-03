@@ -163,12 +163,13 @@ the same reservation. It then drops one successful activation reply (requiring i
 two successful final acknowledgement replies after cleanup commits, requires the
 exact acknowledgement to replay with fresh device proofs, and verifies signing
 and home-only installation/cleanup afterward. Each of those three lost activation
-or acknowledgement replies now follows a Gateway/Console process and D1-runtime
-restart. New processes reopen the same databases before the lost reply reaches the
-client. Test observations and fault counters survive in the driver; production
-handlers reload from D1. The Router replay is proved before activation, with no
+or acknowledgement replies now follows a restart of Gateway/Console, its D1 runtime
+and all five role Workers. New processes reopen the same databases before the
+lost reply reaches the client. Test observations and fault counters survive in
+the driver; production handlers reload from D1. The Router replay is proved before activation, with no
 further source-material execution after any restart. Per-home `restart-evidence.json`
-records each commit point, status and process replacement. It also checks shared Console
+records each commit point, status, Gateway process replacement and role supervisor
+generation with old/new worker PIDs. It also checks shared Console
 bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
@@ -177,8 +178,9 @@ The `three real wallets` case registers US, WEUR and APAC owners concurrently in
 Console/signer stores, then routes them through foreign ingress for locked-page
 reload, passkey unlock, Ed25519/ECDSA key export, fresh-browser passkey recovery
 and NEAR/Tempo signing. Each recovery commits at home, stops the Gateway/Console
-process and its D1 runtime, and reopens the same four databases in a new process
-before losing its finalization reply. It then resets the client runtime. The durable journal must survive that reset,
+process and its D1 runtime, restarts all five role Workers, and reopens the same
+four Gateway databases in a new process before losing its finalization reply.
+It then resets the client runtime. The durable journal must survive that reset,
 replay the same operation and target, and clear after the successful reply.
 Each consumed code is then submitted with a new reservation and must be rejected
 as already used, including the browser's error message. Select it with
@@ -189,9 +191,9 @@ request paths/statuses, including the successful finalization and replay at each
 home. Key-export material is not included in this receipt. Set
 `SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
 per-owner journal and lifecycle assertions alongside it.
-After all three Gateway/Console restarts, every recovered wallet unlocks and signs
-NEAR/Tempo again. `mixed-homes/restart-evidence.json` records the three linked process
-replacements and their foreign-ingress routes. Router roles remain running.
+After all three Gateway/Console and role restarts, every recovered wallet unlocks
+and signs NEAR/Tempo again. `mixed-homes/restart-evidence.json` records the three linked process
+replacements, role supervisor generations and foreign-ingress routes.
 
 The `adds, uses and revokes` matrix exercises an added Email OTP method through
 foreign ingress for every home (US→WEUR, WEUR→APAC, APAC→US). It verifies
@@ -209,7 +211,8 @@ the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
 The `interrupted Google Email OTP` matrix starts with passkey wallets and
 recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
 APAC→WEUR). After finalization commits, it stops the Gateway/Console child process
-and its D1 runtime, then starts a fresh process over the same four databases.
+and its D1 runtime, restarts all five role Workers, then starts a fresh process
+over the same four Gateway databases.
 It loses the committed finalization reply, resets the client runtime, and checks
 exact replay plus pending-journal retention and removal. It then
 verifies an additive Email OTP authority, NEAR/Tempo signing, the shared Google
@@ -219,8 +222,13 @@ queries use the same regional transport as browser requests. Google tokens and
 OTP delivery use the same configuration as the method lifecycle matrix.
 Each `restart-evidence.json` records distinct process IDs and successful old-process
 exit. Only test observations and fault counters cross the restart; Gateway and Console objects
-are rebuilt from persisted D1 state. Router roles remain running. The orderly
-restart follows commit; crash recovery during a transaction is a separate case.
+are rebuilt from persisted D1 state. The role supervisor handles `SIGUSR2` by
+restarting its five owned Worker process groups over their existing D1/DO storage.
+It atomically publishes `.runtime/role-workers.ready` with a new generation and
+worker PIDs after readiness checks pass. The driver verifies these receipts; no
+identity initialization, migration or tenant provisioning runs during restart.
+These controlled restarts follow commit; crash recovery during a transaction is
+a separate case.
 Temporary databases are removed when the scenario closes.
 After the consumed-code UI check, the recovered method unlocks again and signs
 NEAR plus concurrent Tempo/Arc, retaining the budget-exhaustion assertion.

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { restartLocalRoleWorkers } from './restart-local-role-workers.mjs';
 
 export async function createRestartingRegionalGateway(options) {
   const directory = await mkdtemp(join(options.localRoot, 'regional-d1-'));
@@ -18,6 +19,7 @@ export async function createRestartingRegionalGateway(options) {
 class RestartingRegionalGateway {
   ready = Promise.resolve();
   restarts = [];
+  closing = false;
 
   constructor(options, directory) {
     this.options = options;
@@ -34,6 +36,9 @@ class RestartingRegionalGateway {
 
   async call(message) {
     await this.ready;
+    if (this.closing && message.kind === 'request') {
+      return { kind: 'aborted', reason: 'aborted' };
+    }
     return this.process.call(message);
   }
 
@@ -49,6 +54,7 @@ class RestartingRegionalGateway {
       request: serializeRequest(route.request()),
     });
     if (result.kind === 'aborted') {
+      if (this.closing) return route.abort(result.reason);
       const point = committedLinkReply(route.request());
       this.ready = this.restart(region, point);
       await this.ready;
@@ -103,6 +109,7 @@ class RestartingRegionalGateway {
     await previous.drain();
     const observations = await previous.call({ kind: 'observations' });
     await previous.stop();
+    const roleRestart = await restartLocalRoleWorkers(this.options.localRoot);
     await this.start('reopen');
     assert.notEqual(this.process.child.pid, previous.child.pid);
     await this.process.call({ kind: 'restore-observations', observations });
@@ -114,6 +121,7 @@ class RestartingRegionalGateway {
       databaseMode: 'reopen',
       point: point.kind,
       afterCommitStatus: point.status,
+      roleRestart,
     });
   }
 
@@ -154,7 +162,7 @@ class RestartingRegionalGateway {
           routes,
           restarts: this.restarts,
           scope:
-            'Gateway/Console Node process and its D1 workerd stop after each recorded commit, before the masked response reaches the client. A fresh process reopens the same four databases. Only test observations and fault counters are restored in memory; Router roles remain running. These are orderly restarts after commit.',
+            'Gateway/Console and all five local role Workers restart after each recorded commit, before the masked response reaches the client. Gateway databases and role D1/DO state are reopened in place. Only test observations and fault counters are restored in memory. These are controlled process replacements after commit.',
         },
         null,
         2,
@@ -163,6 +171,7 @@ class RestartingRegionalGateway {
   }
 
   async close() {
+    this.closing = true;
     await this.ready.catch(ignoreFailure);
     if (this.process) await this.process.stop();
     await rm(this.directory, { recursive: true, force: true });

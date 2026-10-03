@@ -16,7 +16,13 @@ type Scope = Pick<
 export class WalletRouteLocator {
   readonly #validated = true;
   private constructor(
-    readonly kind: 'code' | 'operation' | 'yao_recovery' | 'yao_export' | 'passkey_challenge',
+    readonly kind:
+      | 'code'
+      | 'operation'
+      | 'yao_recovery'
+      | 'yao_export'
+      | 'passkey_challenge'
+      | 'linked_device',
     readonly value: string,
   ) {
     Object.freeze(this);
@@ -39,6 +45,7 @@ export class WalletRouteLocator {
       throw new WalletPlacementError('invalid_input', 'Wallet route locator is invalid');
     try {
       switch (raw.kind) {
+        case 'linked_device':
         case 'passkey_challenge':
         case 'yao_recovery':
         case 'yao_export': {

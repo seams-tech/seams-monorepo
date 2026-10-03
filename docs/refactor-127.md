@@ -1490,3 +1490,14 @@ records its SHA-256. Include this table in scoped operational reset inventories.
 
 QR session creation/polling and owner-home handoff remain unimplemented. This checkpoint
 closes replay-authority work only. Release 0.8.0 remains held.
+
+### October 3: linked-session home binding
+
+Migration 0068 extends immutable lifecycle routes with `linked_device`. The SDK
+publishes after owner authorization and before the regional claim CAS; Gateway
+continuations resolve this binding, including nested Email OTP and source execution.
+Three-region composition covers competing owners, denied authorization, publication
+outage, lost replies, cancellation retention, project isolation and traveling routes.
+Evidence: `.artifacts/r152/link-home-20261003/`; checksum and limitations are in the
+public R152 results document. Shared unclaimed QR coordination and crash-safe local
+installation remain open. Release 0.8.0 remains held.

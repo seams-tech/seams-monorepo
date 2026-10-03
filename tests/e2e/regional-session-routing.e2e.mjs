@@ -1,3 +1,4 @@
+import { verifyRegionalLinkHomes } from './regional-link-home.scenario.mjs';
 import { verifyRegionalDeviceProofs } from './regional-device-proof.scenario.mjs';
 import { verifyRegionalPasskeyClaims } from './regional-passkey-claims.scenario.mjs';
 import { verifyRegionalRateLimits } from './regional-rate-limits.scenario.mjs';
@@ -55,6 +56,7 @@ class ConsoleBridge {
   database = null;
   available = true;
   dropNextNonceReply = false;
+  dropNextLifecycleReply = false;
   async fetch(request) {
     if (!this.available) return new Response(null, { status: 503 });
     const writer = api.parseTenantRuntimeWriterV1(
@@ -75,6 +77,10 @@ class ConsoleBridge {
     });
     if (this.dropNextNonceReply && new URL(request.url).pathname.endsWith('/device-proof-nonce')) {
       this.dropNextNonceReply = false;
+      return new Response(null, { status: 503 });
+    }
+    if (this.dropNextLifecycleReply && new URL(request.url).pathname.endsWith('/publish-routes')) {
+      this.dropNextLifecycleReply = false;
       return new Response(null, { status: 503 });
     }
     return response;
@@ -100,7 +106,10 @@ class GatewayBridge {
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
-    if (pathname.startsWith('/router-ab/ed25519/yao/')) {
+    if (
+      pathname.startsWith('/wallet/device-linking/v1/sessions/') ||
+      pathname.startsWith('/router-ab/ed25519/yao/')
+    ) {
       return Response.json(
         { region: this.region, code: 'fixture_protocol_execution_disabled' },
         { status: 422 },
@@ -184,6 +193,9 @@ const bundle = await build({
       export { CloudflareD1EmailOtpEnrollmentStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpEnrollmentStore.ts'))};
       export { CloudflareD1GoogleEmailOtpRegistrationAttemptStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationAttemptStore.ts'))};
       export { CloudflareD1GoogleEmailOtpSessionResolver } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpSessionResolver.ts'))};
+      export { D1LinkedDeviceSessionStoreV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceSessionStore.ts'))};
+      export { LinkedDeviceSessionServiceV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/linkedDeviceSession.ts'))};
+      export { WalletRouteLocator } from './packages/wallet-console-server-ts/src/walletPlacement/walletRouteLocators';
       export { createD1LinkedDeviceRouteServiceV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceRouteService.ts'))};
       export { computeLinkedDevicePublicKeyDigestV1, encodeLinkedDeviceRequestProofV1, parseLinkedDeviceRequestProofV1, LINKED_DEVICE_REQUEST_PROOF_HEADER_V1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
       export { handleDeviceLinking } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/deviceLinking.ts'))};
@@ -466,6 +478,14 @@ try {
     isolatedScope,
     catalog,
   );
+  const linkHomes = await verifyRegionalLinkHomes({
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    signerScope,
+    isolatedIdentity,
+  });
   const deviceProofs = await verifyRegionalDeviceProofs({
     api,
     runtime,
@@ -655,6 +675,7 @@ try {
     revokedDiscovery,
     kind: 'regional_session_routing_e2e_v1',
     deviceProofs,
+    linkHomes,
     recovery,
     yaoEntryRouting,
     lifecycleRouting,

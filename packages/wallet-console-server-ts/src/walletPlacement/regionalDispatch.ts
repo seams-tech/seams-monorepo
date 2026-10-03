@@ -115,7 +115,22 @@ export async function dispatchKnownWalletHome(
     | { kind: 'ceremony'; ceremonyId: string }
     | { kind: 'wallet'; walletId: string }
     | { kind: 'lifecycle'; route: WalletRouteLocator };
-  if (isYaoContinuation(pathname)) {
+  const deviceSession = /^\/wallet\/device-linking\/v1\/sessions\/([^/]+)(?:\/[^/]+)*$/u.exec(
+    pathname,
+  );
+  if (deviceSession) {
+    try {
+      locator = {
+        kind: 'lifecycle',
+        route: WalletRouteLocator.parse({
+          kind: 'linked_device',
+          value: decodeURIComponent(deviceSession[1]),
+        }),
+      };
+    } catch {
+      return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
+    }
+  } else if (isYaoContinuation(pathname)) {
     if (request.method !== 'POST') return null;
     const body: unknown = await request.clone().json().catch(invalidJsonBody);
     try {
@@ -174,6 +189,10 @@ export async function dispatchKnownWalletHome(
         : await authority.findHome(locator);
   } catch {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 503 });
+  }
+  if (!assignment && locator.kind === 'lifecycle' && locator.route.kind === 'linked_device') {
+    if (session.kind === 'absent' || authority.isLocal(session.assignment.home)) return null;
+    return transport.forward(session.assignment.home, request);
   }
   if (!assignment || assignment.state === 'cancelled') {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 404 });

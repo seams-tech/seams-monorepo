@@ -118,3 +118,27 @@ wire, cryptographic, type-level, and persistence invariants that browser flows c
 observe. Remove tests that only restate fixtures, inspect source text, or depend on
 retired paths. E2E tests should exercise a meaningful user journey and save a
 verifiable, repeatable artifact.
+
+### Real regional Wallet composition
+
+Run from the private repository against a built public Wallet candidate:
+
+```sh
+SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server \
+SEAMS_INTENDED_SKIP_BUILD=1 \
+node tests/scripts/run-regional-real.mjs
+```
+
+Omit `SEAMS_INTENDED_SKIP_BUILD` to build the public services. The public checkout's
+`.env.local` supplies its existing intended-test settings. The wrapper allocates
+and removes an isolated local role-state directory. Ports 4100–4106 and 4201–4202
+must be available. This exercises real browser registration, linked-device
+installation and NEAR/Tempo signing with three isolated signer D1 databases and
+production Console placement. The three Gateways share one local Router role
+stack. It does not measure geographic latency or independently placed Router roles.
+
+`SEAMS_TEST_ARTIFACT_DIR` selects the evidence directory (default
+`.artifacts/r152/regional-real-20261004`); `regional-real-evidence.json` retains
+home/foreign table counts and request paths/statuses without payloads or credentials.
+Use a fresh directory to preserve a previous run. The public intended harness also
+supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.

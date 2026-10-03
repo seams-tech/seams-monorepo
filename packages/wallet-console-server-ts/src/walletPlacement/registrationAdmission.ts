@@ -46,6 +46,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
         readonly projectId: string;
         readonly environmentId: string;
       };
+      readonly environmentKey: string;
       readonly localResource: { readonly accountId: string; readonly databaseId: string };
       readonly catalogJson: string;
       readonly ingressRegion: WalletRegion;
@@ -99,7 +100,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       input.orgId !== scope.organizationId ||
       policy.orgId !== scope.organizationId ||
       policy.projectId !== scope.projectId ||
-      policy.envId !== scope.environmentId
+      policy.envId !== this.options.environmentKey
     ) {
       return {
         ok: false,

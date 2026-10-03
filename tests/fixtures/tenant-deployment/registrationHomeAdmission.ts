@@ -118,6 +118,7 @@ function gatewayAdmission(input: GatewayAdmissionInput): ConsoleRegistrationHome
       databaseId: localResource.databaseId,
     }),
     scope,
+    environmentKey: 'test',
     localResource,
     catalogJson: input.catalogJson,
     ingressRegion: input.region,

@@ -393,6 +393,7 @@ try {
       sessionRouting: publisher,
     });
     bridge.authority = new api.ConsoleRegistrationHomeAdmission({
+      environmentKey: scope.environmentId,
       service: consoleService,
       writer,
       scope,

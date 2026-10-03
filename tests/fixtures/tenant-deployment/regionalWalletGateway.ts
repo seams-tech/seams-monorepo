@@ -40,6 +40,7 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
       environmentId: 'test',
     },
     localResource: home,
+    environmentKey: 'test',
     catalogJson: env.CATALOG_JSON,
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });

@@ -95,6 +95,7 @@ async function handleGatewayRequest(
       databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
     }),
     scope: binding.tenant,
+    environmentKey: binding.mode.environment === 'development' ? 'dev' : 'prod',
     localResource: {
       accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
       databaseId: env.SEAMS_D1_HOME_DATABASE_ID,

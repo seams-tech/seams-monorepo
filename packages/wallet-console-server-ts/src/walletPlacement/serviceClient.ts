@@ -1,3 +1,4 @@
+import type { RegistrationOfferCommand } from './registrationOfferService';
 import type { IdentityCommand } from './identityService';
 import type { IdentityStore } from '@seams/wallet-server/cloud-host';
 import type { WalletLifecycleRoutingPublisher } from '@seams/wallet-server/cloud-host';
@@ -232,6 +233,13 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  async registrationOffer(command: RegistrationOfferCommand): Promise<Record<string, unknown>> {
+    const response = await this.post('registration-offer', command);
+    if (response.status !== 200)
+      throw new Error(`Shared registration offer request failed: HTTP ${response.status}`);
+    return record(response.body);
   }
 
   async getUserIdBySubject(subject: string): Promise<string | null> {

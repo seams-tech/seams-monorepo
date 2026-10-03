@@ -39,7 +39,7 @@ class GoogleLoginHome {
       accountMode: parsed.request.accountMode,
       loginWalletId: parsed.request.loginWalletId,
       runtimePolicyScope: this.scope,
-      restartRegistrationOffer: false,
+      restartRegistrationOffer: parsed.request.restartRegistrationOffer,
     });
     return Response.json({ region: this.region, result }, { status: result.ok ? 200 : 400 });
   }
@@ -78,10 +78,12 @@ async function runGoogleLoginScenario(
       identityStore: identities,
       linkIdentity: identities.linkSubjectToUserId.bind(identities),
       emailOtpRateLimits: new NoRegistrationRateLimit(),
-      registrationAttempts: new api.CloudflareD1GoogleEmailOtpRegistrationAttemptStore({
+      registrationAttempts: api.createD1GoogleRegistrationAttempts(
+        {
+          googleRegistrationAttempts: bridge.authority.registrationOffers(),
+        },
         prepare,
-        orgId: signerScope.orgId,
-      }),
+      ),
       production: true,
     });
     for (const suffix of ['', '-other']) {
@@ -115,6 +117,13 @@ async function runGoogleLoginScenario(
     bridge.googleEnrollments = enrollments;
     bridge.googleIdentities = identities;
   }
+  const offers = await verifySharedRegistrationOffers({
+    runtime,
+    bridges,
+    proofs,
+    signerScope,
+    consoleBridge,
+  });
   const missingHomeSubject = 'wallet:google:missing-home';
   const identityAuthority = bridges.get('US').googleIdentities;
   assert.equal(
@@ -253,6 +262,7 @@ async function runGoogleLoginScenario(
   }
   return {
     observations,
+    offers,
     selectedWalletDoesNotFallBackToAnotherWallet: true,
     verifiedProviderDiscoveryReachesHome: true,
     invalidProofRejectedBeforeIdentityLookup: true,
@@ -275,4 +285,114 @@ function tamperedToken(token) {
   const claims = JSON.parse(Buffer.from(body, 'base64url').toString());
   claims.sub = 'forged-provider';
   return `${header}.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.${signature}`;
+}
+
+async function verifySharedRegistrationOffers({
+  runtime,
+  bridges,
+  proofs,
+  signerScope,
+  consoleBridge,
+}) {
+  const request = {
+    account_mode: 'register',
+    id_token: proofs.token('new-wallet-owner'),
+    project_environment_id: signerScope.envId,
+  };
+  const pending = [];
+  for (const region of bridges.keys()) {
+    const worker = await runtime.getWorker(region);
+    pending.push(worker.fetch('https://wallet.test/auth/google/verify', post(request)));
+  }
+  const results = [];
+  for (const response of await Promise.all(pending)) {
+    assert.equal(response.status, 200);
+    const { result } = await response.json();
+    assert.equal(result.mode, 'register_started');
+    results.push(result);
+  }
+  const first = results[0];
+  for (const result of results) {
+    assert.equal(result.registrationAttemptId, first.registrationAttemptId);
+    assert.deepEqual(result.offer, first.offer);
+    assert.equal(result.walletId, first.walletId);
+  }
+  for (const [region, bridge] of bridges) {
+    const retry = await (
+      await runtime.getWorker(region)
+    ).fetch('https://wallet.test/auth/google/verify', post(request));
+    assert.equal((await retry.json()).result.registrationAttemptId, first.registrationAttemptId);
+    const store = bridge.authority.registrationOffers();
+    assert.equal((await store.read(first.registrationAttemptId)).walletId, first.walletId);
+    assert.equal(
+      await store.hasLiveStartedWalletAttempt({ walletId: first.walletId, nowMs: Date.now() }),
+      true,
+    );
+    assert.equal(
+      await (await runtime.getD1Database('SIGNER_DB', region))
+        .prepare('SELECT COUNT(*) AS count FROM email_otp_registration_attempts')
+        .first('count'),
+      0,
+    );
+  }
+  const us = bridges.get('US').authority.registrationOffers();
+  const record = await us.read(first.registrationAttemptId);
+  await assert.rejects(
+    us.findStarted({
+      providerSubject: record.providerSubject,
+      email: record.email,
+      orgId: signerScope.orgId,
+      ownerProofBindingDigest: record.ownerProofBindingDigest,
+      runtimePolicyScope: {
+        orgId: signerScope.orgId,
+        projectId: 'other-project',
+        envId: signerScope.envId,
+        signingRootVersion: '1',
+      },
+    }),
+  );
+  consoleBridge.available = false;
+  try {
+    await assert.rejects(us.read(first.registrationAttemptId));
+    await assert.rejects(
+      us.findStarted({
+        providerSubject: record.providerSubject,
+        email: record.email,
+        orgId: signerScope.orgId,
+        ownerProofBindingDigest: record.ownerProofBindingDigest,
+        runtimePolicyScope: record.runtimePolicyScope,
+      }),
+    );
+  } finally {
+    consoleBridge.available = true;
+  }
+  const restart = await (
+    await runtime.getWorker('APAC')
+  ).fetch(
+    'https://wallet.test/auth/google/verify',
+    post({ ...request, restart_registration_offer: true }),
+  );
+  assert.equal(restart.status, 200);
+  const replacement = (await restart.json()).result;
+  assert.notEqual(replacement.registrationAttemptId, first.registrationAttemptId);
+  assert.equal((await us.read(first.registrationAttemptId)).state, 'abandoned');
+  await assert.rejects(us.put(record));
+  assert.equal((await us.read(first.registrationAttemptId)).state, 'abandoned');
+  const resumed = await (
+    await runtime.getWorker('WEUR')
+  ).fetch('https://wallet.test/auth/google/verify', post(request));
+  assert.equal(
+    (await resumed.json()).result.registrationAttemptId,
+    replacement.registrationAttemptId,
+  );
+  return {
+    concurrentRegionalOffersHaveOneWinner: true,
+    allRegionsReuseCandidatesAndIdentity: true,
+    explicitRestartReplacesSharedOffer: true,
+    staleWritesCannotResurrectAbandonedOffers: true,
+    scopeMismatchAndOutagesFailClosed: true,
+    regionalOfferStoresRemainEmpty: true,
+    scope:
+      'Concurrent creation and sequential restart through production resolver, Console service and D1. Candidate selection and registration completion races remain separate acceptance gates.',
+  };
 }

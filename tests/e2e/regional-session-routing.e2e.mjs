@@ -161,7 +161,7 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
-      export { createD1IdentityStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
+      export { createD1IdentityStore, createD1GoogleRegistrationAttempts } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
       export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
       export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
       export { prepareD1TenantStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1TenantStore.ts'))};

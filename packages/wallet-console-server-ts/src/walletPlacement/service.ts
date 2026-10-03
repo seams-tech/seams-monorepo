@@ -1,3 +1,4 @@
+import { handleRegistrationOfferCommand } from './registrationOfferService';
 import { handleIdentityCommand } from './identityService';
 import { D1WalletRoutes, WalletRouteLocator } from './walletRouteLocators';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
@@ -87,6 +88,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
@@ -112,6 +114,9 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer`) {
+      return await handleRegistrationOfferCommand(body, options.database, options.scope);
+    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/identity`) {
       return await handleIdentityCommand(body, options.database, options.scope);
     }

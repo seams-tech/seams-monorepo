@@ -1,3 +1,4 @@
+import { RegistrationOfferClient } from './registrationOfferClient';
 import type { WalletLifecycleRoutingPublisher } from '@seams/wallet-server/cloud-host';
 import type { WalletRecoveryRoutingPublication } from '@seams/wallet-server/cloud-host';
 import type { WalletRouteLocator } from './walletRouteLocators';
@@ -58,6 +59,10 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       this.options.scope,
       WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson)),
     );
+  }
+
+  registrationOffers(): RegistrationOfferClient {
+    return new RegistrationOfferClient(this.client());
   }
 
   identityStore(): WalletHomeServiceClient {

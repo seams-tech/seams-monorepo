@@ -1356,3 +1356,16 @@ routing. The regional composition uses real RSA verification with fixture JWKS;
 shared identity and home lookups use production Console/D1 services. New-account
 registration offers, credential uniqueness, rate limits, linking and remaining
 internal enforcement are still open. No deployment or release occurred.
+
+### R152 shared Google registration offers — October 3
+
+Gateway registration-attempt operations now use Console `/registration-offer` and
+migration 0060. Apply the migration before deploying this candidate. Scope comes
+from admitted writer context; supplied runtime scope must match it. Concurrent
+regional creation returns one offer; retries and sequential restarts share state.
+Pending-only updates reject stale writes after abandonment and do not recreate
+missing records. Regional offer tables remain unused in composition. Receipt:
+`.artifacts/r152/shared-offers-20261003/regional-session-routing-evidence.json`.
+Candidate-selection, concurrent restart/completion, expiry/reservation cleanup,
+shared limits/credential uniqueness and hosted acceptance remain open. No deployment
+or release occurred.

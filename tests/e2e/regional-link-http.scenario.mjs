@@ -1,3 +1,4 @@
+import { PausedReservationDatabase } from '../helpers/regional-reservation-race.fixtures.mjs';
 import { PausedTargetPreparationFixture, deliveryRecipient } from '../helpers/regional-target-preparation.fixtures.mjs';
 import { PausedExportRootWrites } from '../helpers/regional-export-root-race.fixtures.mjs';
 import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
@@ -26,6 +27,8 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
   const apac = await runtime.getWorker('APAC');
   const weur = bridges.get('WEUR');
   const delayedPlanner = new PausedTargetPreparationFixture(weur.linkSource.targetPlanner);
+  const reservationRace = new PausedReservationDatabase(await runtime.getD1Database('SIGNER_DB', 'WEUR'));
+  let delayedPreparation = Promise.resolve();
   try {
     const create = await fixture.createRequest(api, 'http-home-retry');
     const { payload } = await create.clone().json();
@@ -112,7 +115,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
       sourceContributionPreparationPlanner: {},
       verifiedLinkBuilder: {},
     });
-    const delayedPreparation = delayedProvider.getTargetPreparationV1({
+    delayedPreparation = delayedProvider.getTargetPreparationV1({
       session: await weur.linkRoutes.sessionService.getSessionV1({
         linkSessionId: payload.linkSessionId,
         nowMs: Date.now(),
@@ -125,6 +128,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     });
     await delayedPlanner.waitForPreparation();
     const preparation = await verifyRegionalTargetPreparation({
+      reservationRace,
       api,
       deviceFixture: fixture,
       runtime,
@@ -171,6 +175,10 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     assert.equal(recipientAfterCancel.status, 409, await recipientAfterCancel.clone().text());
     assert.equal(packageAfterCancel.status, 409, await packageAfterCancel.clone().text());
     weur.linkRoutes.ed25519ExportRoot = relay.port;
+    const registrationAfterCancel = await reservationRace.finish();
+    assert.equal(reservationRace.insertedRows, 0);
+    assert.equal(registrationAfterCancel.outcome, 'invalid_input');
+    assert.match(registrationAfterCancel.message, /no longer accepts target credential registration/u);
     delayedPlanner.released.resolve();
     const preparationAfterCancel = await delayedPreparation;
     assert.equal(preparationAfterCancel.kind, 'conflict');
@@ -252,6 +260,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      admittedRegistrationCannotReserveAfterCancellation: true,
       delayedPlannerCannotResurrectCancelledPreparation: true,
       admittedRelayWritesCannotResurrectCancelledTransfer: true,
       terminalExportRootRequestsRejected: true,
@@ -276,7 +285,9 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
         'Real signed device requests, production owner claim/approval rules, regional HTTP dispatch and D1 approval persistence/delivery. Owner HTTP authentication and approval source metadata use production D1 readers. Owner signer material is synthetic; provisioning, committed package delivery and authority installation remain open.',
     };
   } finally {
+    reservationRace.released.resolve();
     delayedPlanner.released.resolve();
+    await Promise.allSettled([delayedPreparation, reservationRace.result]);
     for (const bridge of bridges.values()) bridge.linkRoutes = null;
   }
 }

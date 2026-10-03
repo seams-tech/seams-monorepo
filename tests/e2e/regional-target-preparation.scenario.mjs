@@ -6,6 +6,7 @@ import {
 } from '../helpers/regional-target-preparation.fixtures.mjs';
 
 export async function verifyRegionalTargetPreparation({
+  reservationRace,
   api,
   deviceFixture,
   runtime,
@@ -133,6 +134,7 @@ export async function verifyRegionalTargetPreparation({
     assert.equal(count, region === 'WEUR' ? 1 : 0);
   }
   const registration = await verifyRegionalBrowserRegistration({
+    reservationRace,
     api,
     runtime,
     bridges,

@@ -1810,3 +1810,17 @@ credential rows after cancellation. The delayed call enters the production provi
 directly; the surrounding lifecycle and cancellation use regional HTTP. See the
 public R152 results for reproduction and checksums. Commit-reservation and Email
 OTP-grant races remain separate verification tasks.
+
+
+### October 3: target-commit acquisition versus cancellation
+
+The regional scenario now pauses a production credential registration immediately
+before its reservation INSERT, completes cancellation, then resumes it. The initial
+controlled run inserted one row after cleanup: a production regression. The fixed
+INSERT checks the current session state atomically, and missing reservation readback
+terminates acquisition through the existing recoverable registration result. The
+E2E now measures zero inserted rows. Browser registration and surrounding regional
+HTTP are real; the delayed call enters the production provider directly through a
+D1 write barrier. Harness cleanup now drains paused tasks before disposing Miniflare,
+so a test failure cannot be obscured by a poisoned-stub teardown error. Public R152
+results retain before/after evidence. Email OTP grant races remain open.

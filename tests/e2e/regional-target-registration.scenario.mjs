@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { browserTargetRegistration } from '../helpers/regional-browser-registration.fixtures.mjs';
 
 export async function verifyRegionalBrowserRegistration({
+  reservationRace,
   api,
   runtime,
   bridges,
@@ -75,6 +76,27 @@ export async function verifyRegionalBrowserRegistration({
     .first();
   assert.equal(row.state, 'prepared');
   const available = weur.linkSource;
+  const delayedProvider = new api.D1LinkedDeviceTargetCredentialProviderV1({
+    database: reservationRace,
+    scope: signerScope,
+    planner: {},
+    verifier,
+    sourceContributionPreparationPlanner: available,
+    verifiedLinkBuilder: { source: available },
+  });
+  const session = await weur.linkRoutes.sessionService.getSessionV1({
+    linkSessionId: preparation.linkSessionId,
+    nowMs: Date.now(),
+  });
+  await reservationRace.start(delayedProvider, {
+    registration,
+    preparation,
+    session,
+    approval: session.approvalTranscript.value,
+    expectedOrigin: 'https://wallet.test',
+    requestedAtMs: Date.now(),
+  });
+
   const sourceReadsBefore = available.reads;
   weur.linkRoutes.targetCredential = new api.D1LinkedDeviceTargetCredentialProviderV1({
     database,

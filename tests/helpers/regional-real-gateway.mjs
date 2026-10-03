@@ -37,6 +37,7 @@ export async function createRegionalRealGateway({
       resolveDir: root,
       loader: 'ts',
       contents: `
+        export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
         export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
@@ -85,11 +86,15 @@ export async function createRegionalRealGateway({
       { region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
     ]);
     const consoleService = new RealHomeConsole(api, consoleDatabase, scope, catalog);
+    const router = new LocalRoleTransport('http://127.0.0.1:4102');
+    const routerFault = new api.LocalIntendedLinkExecuteFaultControllerV1(
+      router.fetch.bind(router),
+    );
     const environment = {
       ...variables,
       ...secrets,
       WALLET_CONSOLE: api.createStaticWalletConsoleBindingV1(config),
-      MPC_ROUTER: new LocalRoleTransport('http://127.0.0.1:4102'),
+      MPC_ROUTER: routerFault,
       SIGNING_WORKER: new LocalRoleTransport('http://127.0.0.1:4105'),
     };
     const signerWasm = await WebAssembly.compile(
@@ -117,7 +122,7 @@ export async function createRegionalRealGateway({
       gateways.set(region, gateway);
       bindings[`WALLET_GATEWAY_${region}`] = { fetch: gateway.home.bind(gateway) };
     }
-    return new RegionalRealScenario(runtime, gateways, output, consoleService);
+    return new RegionalRealScenario(runtime, gateways, output, consoleService, routerFault);
   } catch (error) {
     await runtime.dispose();
     throw error;
@@ -272,7 +277,8 @@ class RealRegionalGateway {
 }
 
 class RegionalRealScenario {
-  constructor(runtime, gateways, output, consoleService) {
+  constructor(runtime, gateways, output, consoleService, routerFault) {
+    this.routerFault = routerFault;
     this.consoleService = consoleService;
     this.runtime = runtime;
     this.gateways = gateways;
@@ -321,6 +327,8 @@ class RegionalRealScenario {
       1,
       'One foreign ingress must handle acknowledgement',
     );
+    const routerReplay = this.routerFault.outcome();
+    assert.deepEqual(routerReplay, { kind: 'proved', proof: 'replay_answered_same_reservation' });
     const shared = await verifySharedLinkState(this.consoleService, this.gateways, home);
     await writeFile(
       resolve(this.output, 'regional-real-evidence.json'),
@@ -330,6 +338,7 @@ class RegionalRealScenario {
             'Real browser registration, linked-device installation and signing; three isolated signer databases; one shared local Router role stack.',
           home,
           shared,
+          routerReplay,
           evidence,
         },
         null,

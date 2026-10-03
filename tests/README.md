@@ -142,8 +142,8 @@ stack. It does not measure geographic latency or independently placed Router rol
 `regional-real-evidence.json` with
 home/foreign table counts, transient cleanup, retained receipts and request
 paths/statuses without payloads or credentials. The matrix covers US→WEUR,
-WEUR→APAC and APAC→US (wallet home → linked-device ingress). Each case drops
-one successful activation reply (requiring identical activation replay), then
+WEUR→APAC and APAC→US (wallet home → linked-device ingress). Each case first loses a real Router execution response and requires replay of
+the same reservation. It then drops one successful activation reply (requiring identical activation replay), then
 two successful final acknowledgement replies after cleanup commits, requires the
 exact acknowledgement to replay with fresh device proofs, and verifies signing
 and home-only installation/cleanup afterward. It also checks shared Console

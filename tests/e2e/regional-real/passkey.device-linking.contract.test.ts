@@ -16,7 +16,7 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'APAC' },
   { home: 'APAC', ingress: 'US' },
 ]) {
-  test(`real ${home} registration and ${ingress} linked signing stay at the wallet home`, async ({
+  test(`real ${home} registration and ${ingress} linked signing survive two lost cleanup replies`, async ({
     harness,
     context,
     browser,
@@ -24,6 +24,7 @@ for (const { home, ingress } of [
     const scenario = await createRegionalRealGateway({
       root,
       candidate,
+      lostAcknowledgements: 2,
       localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
       output: path.resolve(
         root,

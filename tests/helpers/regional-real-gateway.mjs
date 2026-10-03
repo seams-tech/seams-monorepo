@@ -9,7 +9,13 @@ import { unstable_splitSqlQuery } from 'wrangler';
 
 const regions = ['US', 'WEUR', 'APAC'];
 
-export async function createRegionalRealGateway({ root, candidate, localRoot, output }) {
+export async function createRegionalRealGateway({
+  root,
+  candidate,
+  localRoot,
+  output,
+  lostAcknowledgements,
+}) {
   await mkdir(output, { recursive: true });
   const publicRoot = resolve(candidate, '../..');
   await mkdir(resolve(output, 'runtime'), { recursive: true });
@@ -94,6 +100,7 @@ export async function createRegionalRealGateway({ root, candidate, localRoot, ou
       const database = await runtime.getD1Database(region);
       await migrate(database, resolve(candidate, 'migrations/d1-signer'));
       const gateway = new RealRegionalGateway({
+        acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
         environmentKey: config.deployment.environmentKey,
         api,
         region,
@@ -183,6 +190,10 @@ class RealRegionalGateway {
       }),
       'ingress',
     );
+    if (this.acknowledgementFault.shouldDrop(request, response)) {
+      await route.abort('connectionreset');
+      return;
+    }
     await route.fulfill({
       status: response.status,
       headers: Object.fromEntries(response.headers),
@@ -287,8 +298,14 @@ class RegionalRealScenario {
         else assert.equal(row.count, expected, `${region}/${table}`);
       }
       const cleanup = await verifySignerCleanup(gateway.database, region, home);
-      evidence.push({ region, tables, cleanup, requests: gateway.requests });
+      const acknowledgement = gateway.acknowledgementFault.verify();
+      evidence.push({ region, tables, cleanup, acknowledgement, requests: gateway.requests });
     }
+    assert.equal(
+      evidence.filter(hasAcknowledgement).length,
+      1,
+      'One foreign ingress must handle acknowledgement',
+    );
     await writeFile(
       resolve(this.output, 'regional-real-evidence.json'),
       JSON.stringify(
@@ -356,4 +373,48 @@ async function verifySignerCleanup(database, region, home) {
     assert.equal(delivery.acknowledgement_retained, 1);
   }
   return { transient, deliveries };
+}
+
+function hasAcknowledgement(entry) {
+  return entry.acknowledgement.attempts > 0;
+}
+
+class AcknowledgementReplyLoss {
+  attempts = 0;
+  firstBody = null;
+  proofs = new Set();
+
+  constructor(lostReplies) {
+    assert.ok(lostReplies === 0 || lostReplies === 2);
+    this.lostReplies = lostReplies;
+  }
+
+  shouldDrop(request, response) {
+    const body = request.postData() ?? '';
+    if (
+      request.method() !== 'POST' ||
+      !new URL(request.url()).pathname.endsWith('/receipt') ||
+      !body.includes('"local_authority_activation_final_ack_v1"')
+    )
+      return false;
+    assert.equal(response.status, 204, 'Acknowledgement must commit before its reply is lost');
+    if (this.firstBody === null) this.firstBody = body;
+    else assert.equal(body, this.firstBody, 'Replay must retain the exact acknowledgement');
+    const proof = request.headers()['x-seams-linked-device-proof-v1'];
+    assert.ok(proof, 'Acknowledgement requires a device proof');
+    assert.ok(!this.proofs.has(proof), 'Each replay requires a fresh device proof');
+    this.proofs.add(proof);
+    this.attempts += 1;
+    return this.attempts <= this.lostReplies;
+  }
+
+  verify() {
+    if (this.attempts > 0) assert.equal(this.attempts, this.lostReplies + 1);
+    return {
+      attempts: this.attempts,
+      lostReplies: this.attempts > 0 ? this.lostReplies : 0,
+      successfulStatuses: Array(this.attempts).fill(204),
+      distinctProofs: this.proofs.size,
+    };
+  }
 }

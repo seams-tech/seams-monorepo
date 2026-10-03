@@ -35,6 +35,15 @@ export class RegionalLinkApprovalFixture {
     this.api = api;
     this.bridge = bridge;
     this.owner = buildRegionalLinkOwnerFixture(api, bridge);
+    this.authenticateOwner = api.createDeviceLinkingOwnerRequestAuthenticatorV1({
+      authorizationSessions: {
+        tenantId: bridge.tenantId,
+        readWalletSessionAuthorizationV2ByOperationCredential:
+          api.readActiveWalletSessionCredential.bind(null, bridge.service),
+        readExhaustedWalletSessionAuthorizationV2CandidateByOperationCredential:
+          api.readExhaustedWalletSessionCredential.bind(null, bridge.service),
+      },
+    });
     const provider = api.createD1LinkedDeviceOwnerAuthorizationProviderV1({
       walletRegistration: {},
       metadata: { readVerifiedOwnerSourceFactsV1: this.readSourceFacts.bind(this) },
@@ -51,27 +60,6 @@ export class RegionalLinkApprovalFixture {
       keyManifestDigestsB64u: { ed25519: this.owner.keyManifestDigestB64u },
       sourceAuthorityDigestB64u: this.bridge.ownerAuthority.authorityDigestB64u,
     });
-  }
-
-  async authenticateOwner(input) {
-    if (
-      input.request.headers.get('authorization') !==
-      `Bearer ${this.bridge.issued.operationCredential.token}`
-    ) {
-      return { kind: 'denied', code: 'unauthorized', message: 'Owner fixture token differs' };
-    }
-    return {
-      kind: 'authorized',
-      owner: this.owner,
-      body: input.method === 'GET' ? null : await input.request.json(),
-      binding: {
-        kind: 'linked_device_owner_request_binding_v1',
-        method: input.method,
-        pathname: input.pathname,
-        bodyDigestB64u: input.bodyDigestB64u,
-        expiresAtMs: this.owner.expiresAtMs,
-      },
-    };
   }
 
   approval(claim, payload) {

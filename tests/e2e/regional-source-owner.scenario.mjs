@@ -23,7 +23,7 @@ export async function verifyRegionalSourceOwner({ api, runtime, bridges, linkSes
         JSON.parse(JSON.stringify(session.sourceContributionPreparation)),
       );
     }
-    // Exercise route ownership after authentication has accepted a different wallet.
+    // Authenticate the foreign wallet against its real home before testing the local route guard.
     service.authenticateOwnerRequestV1 = foreign.linkApproval.authenticateOwner.bind(
       foreign.linkApproval,
     );
@@ -66,8 +66,9 @@ export async function verifyRegionalSourceOwner({ api, runtime, bridges, linkSes
     preparationMatchesPersistedValue: true,
     foreignAuthenticatedWalletRejectedBeforeProtocol: true,
     sessionUnchanged: true,
+    productionOwnerAuthentication: true,
     scope:
-      'Production home dispatch and owner-session route authorization; owner authentication is controlled. Contribution execution and installation remain open.',
+      'Production home dispatch and owner-session route authorization; owner authentication uses production D1 session readers. Contribution execution and installation remain open.',
   };
 }
 

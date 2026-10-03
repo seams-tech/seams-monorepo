@@ -274,6 +274,8 @@ const bundle = await build({
       export { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from './packages/wallet-console-shared-ts/src/apiKeyScopes';
       export { D1LinkedDeviceTargetCredentialProviderV1, LinkedDeviceWebAuthnRegistrationVerifierV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceTargetCredentialProvider.ts'))};
       export { computeLinkedDeviceTargetPreparationDigestV1, computeLinkedDevicePasskeyTargetConfigurationDigestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/digests.ts'))};
+      export { createDeviceLinkingOwnerRequestAuthenticatorV1 } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/deviceLinkingOwnerAuthorization.ts'))};
+      export { readActiveWalletSessionCredential, readExhaustedWalletSessionCredential } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/walletSessionCredentialReaders.ts'))};
       export { createD1LinkedDeviceOwnerAuthorizationProviderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceOwnerAuthorizationProvider.ts'))};
       export { buildFullOwnerPermissionsV1, buildFullOwnerDelegatedWalletAuthorityV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/authorization/delegatedAuthority.ts'))};
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';

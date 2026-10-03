@@ -1715,3 +1715,18 @@ hashes. This closes local protocol execution and retry verification. Complete
 regional installation through production Console authentication, final-state and
 cleanup isolation across homes, and hosted verification remain open. The stale
 private pre-split linked-device suite was not used as an acceptance gate.
+
+### October 3: regional owner authentication uses production D1 readers
+
+The regional linked-device scenario now uses the production owner bearer
+authenticator and active/exhausted session readers. The token-comparison fixture
+was deleted. Approval and source-preparation reads validate durable session,
+authority, method and capability state. A foreign wallet authenticated against its
+own real home is still rejected by the downstream claimed-wallet guard; Gateway
+scope rejection also passes across all three ingress regions.
+
+Regional E2E, focused lint and public bloat checks passed. Private receipt:
+`.artifacts/r152/owner-auth-20261003/regional-session-routing-evidence.json`;
+SHA-256 `05438478f525d73d86435b7c67405daff993ebb813410741b7676bf1c0ba4460`.
+Approval source facts and target preparation remain controlled; regional protocol
+execution and final installation remain open. No deployment or release.

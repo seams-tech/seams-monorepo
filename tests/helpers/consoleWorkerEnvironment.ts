@@ -10,8 +10,6 @@ export function consoleWorkerEnvironment(input: {
     SEAMS_WALLET_HOME_CATALOG_JSON: fixtureHomeCatalog(input.accountId, input.databaseId),
     SEAMS_TENANT_STORAGE_NAMESPACE: input.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: input.deploymentLane,
-    SEAMS_D1_HOME_ACCOUNT_ID: input.accountId,
-    SEAMS_D1_HOME_DATABASE_ID: input.databaseId,
     CONSOLE_BASE_URL: 'https://console.example.test',
     CONSOLE_EMAIL_RUNTIME_PROFILE: 'DEVELOPMENT',
     CONSOLE_EMAIL_PROVIDER: 'CAPTURE',

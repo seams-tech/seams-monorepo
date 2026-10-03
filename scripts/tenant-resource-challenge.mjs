@@ -75,7 +75,12 @@ export async function verifyTenantResourceChallenge(lane, oidcToken) {
       {
         method: 'POST',
         headers: { authorization: `Bearer ${oidcToken}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ deploymentLane: lane.id, challengeId, expectedProof }),
+        body: JSON.stringify({
+          deploymentLane: lane.id,
+          resource: { namespace, accountId, databaseId },
+          challengeId,
+          expectedProof,
+        }),
         redirect: 'error',
         signal: AbortSignal.timeout(45_000),
       },

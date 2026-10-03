@@ -134,7 +134,7 @@ export async function inspectBindings(lane, accountId, apiToken) {
       );
       if (boundDatabaseId !== databaseId)
         throw new Error(
-          `${worker.workerName} version ${version.versionId} SIGNER_DB disagrees with the configured home`,
+          `${worker.workerName} version ${version.versionId} SIGNER_DB disagrees with the configured resource`,
         );
       versions.push({
         versionId: version.versionId,
@@ -156,7 +156,7 @@ export async function inspectBindings(lane, accountId, apiToken) {
     kind: 'tenant_d1_provider_binding_checkpoint_v1',
     status: 'provider_bindings_match',
     deploymentLane: lane.id,
-    home: { namespace: deployment.tenant.namespace, accountId, databaseId },
+    resource: { namespace: deployment.tenant.namespace, accountId, databaseId },
     checkedAt: new Date().toISOString(),
     workers: checked,
     runtimeChallengeVerified: false,

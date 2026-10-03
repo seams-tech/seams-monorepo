@@ -148,12 +148,9 @@ function buildConsoleConfig(
   const resources = deployment.resources;
   const consoleOrigin = consoleTarget.origin;
   const production = deployment.lane !== 'staging-testnet';
-  const accountId = deploymentHomeAccountId();
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
-    SEAMS_D1_HOME_ACCOUNT_ID: accountId,
-    SEAMS_D1_HOME_DATABASE_ID: resources.signerD1.id,
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
       applicationOrigin: walletSiteOrigin,
       hostedWalletOrigin: walletOrigin,
@@ -207,10 +204,6 @@ function buildConsoleConfig(
       },
     ],
     services: [
-      {
-        binding: 'WALLET_GATEWAY',
-        service: resources.workerName,
-      },
       {
         binding: 'WALLET_RUNTIME',
         service: walletRuntimeWorkerNameFor(resources.workerName),
@@ -344,10 +337,10 @@ function buildConfig(
   };
 }
 
-function deploymentHomeAccountId() {
+function deploymentResourceAccountId() {
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   if (typeof accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(accountId)) {
-    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the namespace D1 home');
+    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the deployment D1 resource');
   }
   return accountId;
 }
@@ -362,7 +355,7 @@ function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery,
   const vars = {
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
-    SEAMS_D1_HOME_ACCOUNT_ID: deploymentHomeAccountId(),
+    SEAMS_D1_HOME_ACCOUNT_ID: deploymentResourceAccountId(),
     SEAMS_D1_HOME_DATABASE_ID: deployment.resources.signerD1.id,
     ROUTER_AB_PREWARM_ENABLED: 'true',
     SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,

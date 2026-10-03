@@ -126,7 +126,9 @@ interface CloudflareD1ConsoleStagingEnv
   readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_APAC: WalletRuntimeServiceBinding;
-  readonly WALLET_GATEWAY: WalletRuntimeServiceBinding;
+  readonly WALLET_GATEWAY_US: WalletRuntimeServiceBinding;
+  readonly WALLET_GATEWAY_WEUR: WalletRuntimeServiceBinding;
+  readonly WALLET_GATEWAY_APAC: WalletRuntimeServiceBinding;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
   readonly TENANT_ROOT_RECOVERY_CERTIFICATES_JSON?: string;
@@ -134,8 +136,6 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
-  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
-  readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly TENANT_DEPLOYMENT_SURFACES_JSON: string;
   readonly SEAMS_WALLET_HOME_CATALOG_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
@@ -538,11 +538,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     if (!active) return;
     await tenantDeploymentReadinessAdapter.inspect(active);
   };
-  const deploymentHome = TenantDeploymentD1ResourceIdentityV1.parse({
-    namespace,
-    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-  });
   const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
     namespace,
     resources: walletHomeCatalog.deploymentResources(),
@@ -563,10 +558,14 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
     provisioner: tenantDeploymentProvisioner,
     resourceVerifier: createTenantD1ResourceVerifierV1({
-      resource: deploymentHome,
+      namespace,
+      catalog: walletHomeCatalog,
       deploymentLane,
-      gateway: env.WALLET_GATEWAY,
-      walletRuntime: env.WALLET_RUNTIME,
+      writers: {
+        US: { gateway: env.WALLET_GATEWAY_US, walletRuntime: env.WALLET_RUNTIME_US },
+        WEUR: { gateway: env.WALLET_GATEWAY_WEUR, walletRuntime: env.WALLET_RUNTIME_WEUR },
+        APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
+      },
     }),
   });
   // Private service-binding target: the declared Wallet Console

@@ -43,6 +43,16 @@ declare const checkpoint: Awaited<ReturnType<TenantD1ResourceVerifierV1['verify'
 // @ts-expect-error Runtime reachability evidence cannot authorize activation.
 const activatedCheckpoint: typeof checkpoint = { ...checkpoint, activationAuthorized: true };
 void unprovenChallenge;
+declare const challengeWithoutResource: Omit<TenantD1ResourceChallengeRequestV1, 'resource'>;
+// @ts-expect-error Every challenge names its validated physical resource.
+const unboundChallenge: TenantD1ResourceChallengeRequestV1 = challengeWithoutResource;
+const rawResourceChallenge: TenantD1ResourceChallengeRequestV1 = {
+  ...unprovenChallenge,
+  // @ts-expect-error A resource spread cannot preserve validated identity.
+  resource: { ...home },
+};
+void unboundChallenge;
+void rawResourceChallenge;
 void activatedCheckpoint;
 declare const checkpointWithoutVersions: Omit<typeof checkpoint, 'writerVersions'>;
 // @ts-expect-error Runtime proof must identify both answering versions.

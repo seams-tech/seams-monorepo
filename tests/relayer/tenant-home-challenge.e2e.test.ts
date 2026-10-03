@@ -36,8 +36,9 @@ const namespace: string = deployment.tenant.namespace;
 const lane = 'production-testnet';
 const home = deploymentResource(namespace, deployment.resources.signerD1.id);
 const secondResource = deploymentResource(namespace, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+const thirdResource = deploymentResource(namespace, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 const catalog = WalletHomeCatalog.parse([
-  { region: 'US', accountId: home.accountId, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+  { region: 'US', accountId: secondResource.accountId, databaseId: secondResource.databaseId },
   { region: 'WEUR', accountId: home.accountId, databaseId: home.databaseId },
   { region: 'APAC', accountId: home.accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
 ]);
@@ -305,7 +306,15 @@ function consoleWorker(
       ]),
     },
     d1Databases: { CONSOLE_DB: 'console-authority' },
-    serviceBindings: { WALLET_GATEWAY: gateway, WALLET_RUNTIME: walletRuntime },
+    serviceBindings: {
+      WALLET_RUNTIME: walletRuntime,
+      WALLET_GATEWAY_US: 'gateway-second-resource',
+      WALLET_RUNTIME_US: 'runtime-second-resource',
+      WALLET_GATEWAY_WEUR: gateway,
+      WALLET_RUNTIME_WEUR: walletRuntime,
+      WALLET_GATEWAY_APAC: 'gateway-third-resource',
+      WALLET_RUNTIME_APAC: 'runtime-third-resource',
+    },
     outboundService: deps.outbound.bind(deps),
   };
 }
@@ -329,7 +338,7 @@ async function insertChallenge(
       issuedAtMs + 300_000,
     )
     .run();
-  return { deploymentLane: lane, challengeId, expectedProof };
+  return { deploymentLane: lane, resource, challengeId, expectedProof };
 }
 
 function fixedNow(timestamp: number): Date {
@@ -435,13 +444,23 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         home,
         'gateway',
       ),
-      consoleWorker(
+      writer(
         output,
-        'console-second-resource',
-        'runtime-second-resource',
         deps,
-        secondResource,
-        'gateway-second-resource',
+        'gateway-third-resource',
+        'gateway',
+        'database-c',
+        thirdResource.databaseId,
+        'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-third-resource',
+        'runtime',
+        'database-c',
+        thirdResource.databaseId,
+        'ffffffff-ffff-4fff-8fff-ffffffffffff',
       ),
       writer(
         output,
@@ -529,10 +548,12 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     const authority = await runtime.getD1Database('CONSOLE_DB', 'console-good');
     const databaseA = await runtime.getD1Database('SIGNER_DB', 'gateway');
     const databaseB = await runtime.getD1Database('SIGNER_DB', 'runtime-wrong-database');
+    const databaseC = await runtime.getD1Database('SIGNER_DB', 'runtime-third-resource');
     if (
       !isD1DatabaseLike(authority) ||
       !isD1DatabaseLike(databaseA) ||
-      !isD1DatabaseLike(databaseB)
+      !isD1DatabaseLike(databaseB) ||
+      !isD1DatabaseLike(databaseC)
     )
       throw new Error('D1 unavailable');
     const migrations = path.join(root, 'packages/wallet-console-server-ts/migrations/d1-console');
@@ -553,7 +574,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     for (const name of (await readdir(signerMigrations)).sort()) {
       if (!name.endsWith('.sql')) continue;
       const migration = await readFile(path.join(signerMigrations, name), 'utf8');
-      for (const database of [databaseA, databaseB]) {
+      for (const database of [databaseA, databaseB, databaseC]) {
         for (const sql of unstable_splitSqlQuery(migration)) await database.prepare(sql).run();
       }
       signerMigrationHashes.push({
@@ -618,8 +639,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     });
     // The same tenant can prove independent physical resources without assigning a wallet.
     const secondChallenge = await insertChallenge(databaseB, Date.now() - 100, secondResource);
-    const secondConsole = await runtime.getWorker('console-second-resource');
-    const secondResponse = await secondConsole.fetch(verifyUrl, requestInit(secondChallenge, auth));
+    const secondResponse = await good.fetch(verifyUrl, requestInit(secondChallenge, auth));
     expect(secondResponse.status).toBe(200);
     const secondCheckpoint: unknown = await secondResponse.json();
     expect(secondCheckpoint).toMatchObject({
@@ -630,9 +650,39 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         activationAuthorized: false,
       },
     });
-    expect((await good.fetch(verifyUrl, requestInit(secondChallenge, auth))).status).toBe(409);
-    expect((await secondConsole.fetch(verifyUrl, requestInit(challenge, auth))).status).toBe(409);
-    for (const database of [databaseA, databaseB]) {
+    const thirdChallenge = await insertChallenge(databaseC, Date.now() - 100, thirdResource);
+    const thirdResponse = await good.fetch(verifyUrl, requestInit(thirdChallenge, auth));
+    expect(thirdResponse.status).toBe(200);
+    const thirdCheckpoint: unknown = await thirdResponse.json();
+    expect(thirdCheckpoint).toMatchObject({
+      ok: true,
+      result: {
+        resource: thirdResource,
+        writerVersions: {
+          gateway: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+          walletRuntime: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        },
+      },
+    });
+    expect(
+      (await good.fetch(verifyUrl, requestInit({ ...secondChallenge, resource: home }, auth)))
+        .status,
+    ).toBe(409);
+    expect(
+      (await good.fetch(verifyUrl, requestInit({ ...challenge, resource: secondResource }, auth)))
+        .status,
+    ).toBe(409);
+    const unknownResource = deploymentResource(namespace, '99999999-9999-4999-8999-999999999999');
+    expect(
+      (await good.fetch(verifyUrl, requestInit({ ...challenge, resource: unknownResource }, auth)))
+        .status,
+    ).toBe(409);
+    const foreignResource = deploymentResource('another-namespace', home.databaseId);
+    expect(
+      (await good.fetch(verifyUrl, requestInit({ ...challenge, resource: foreignResource }, auth)))
+        .status,
+    ).toBe(409);
+    for (const database of [databaseA, databaseB, databaseC]) {
       expect(
         await database
           .prepare(
@@ -977,7 +1027,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       await once(providerServer, 'close');
     }
     const evidence = {
-      kind: 'runtime_home_challenge_e2e_v1',
+      kind: 'regional_resource_challenge_e2e_v1',
       checkedAt: new Date().toISOString(),
       productionWorkers: ['Console', 'Gateway', 'Wallet Runtime'],
       walletServerArtifact: candidatePackageRoot
@@ -991,8 +1041,12 @@ test('Console verifies both regional writer bindings against a fresh challenge',
               .digest('hex'),
           }
         : { kind: 'installed_sdk_with_source_migrations' },
-      signerDatabases: 2,
+      signerDatabases: 3,
       independentResourceCheckpoint: secondCheckpoint,
+      thirdResourceCheckpoint: thirdCheckpoint,
+      singleConsoleVerifiedAllRegions: true,
+      unlistedResourceRejected: true,
+      foreignNamespaceRejected: true,
       crossResourceProofsRejected: true,
       obsoleteChallengeSchemaRemoved: true,
       unverifiedCatalogCannotReserveWallet: true,

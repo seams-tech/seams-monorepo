@@ -5,6 +5,7 @@ import type {
 } from '@seams/wallet-server/cloud-host';
 import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import { TenantDeploymentStoreError } from './service';
+import type { WalletHomeCatalog, WalletRegion } from '../walletPlacement/home';
 
 const CHALLENGE_PATH = '/internal/tenant-deployment/v1/resource-challenge';
 const CHALLENGE_ORIGIN = 'https://tenant-deployment.internal';
@@ -13,6 +14,7 @@ const VERSION_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12
 
 export type TenantD1ResourceChallengeRequestV1 = {
   readonly deploymentLane: string;
+  readonly resource: TenantDeploymentD1ResourceIdentityV1;
   readonly challengeId: string;
   readonly expectedProof: string;
 };
@@ -52,7 +54,7 @@ export function parseTenantD1ResourceChallengeRequestV1(
 ): TenantD1ResourceChallengeRequestV1 {
   if (
     !record(raw) ||
-    Object.keys(raw).sort().join(',') !== 'challengeId,deploymentLane,expectedProof' ||
+    Object.keys(raw).sort().join(',') !== 'challengeId,deploymentLane,expectedProof,resource' ||
     typeof raw.deploymentLane !== 'string' ||
     !raw.deploymentLane ||
     raw.deploymentLane.trim() !== raw.deploymentLane ||
@@ -65,6 +67,7 @@ export function parseTenantD1ResourceChallengeRequestV1(
     );
   return {
     deploymentLane: raw.deploymentLane,
+    resource: TenantDeploymentD1ResourceIdentityV1.parse(raw.resource),
     challengeId: raw.challengeId,
     expectedProof: raw.expectedProof,
   };
@@ -185,21 +188,48 @@ async function inspectWriter(
   return observation;
 }
 
+function regionForResource(
+  catalog: WalletHomeCatalog,
+  resource: TenantDeploymentD1ResourceIdentityV1,
+): WalletRegion {
+  for (const region of ['US', 'WEUR', 'APAC'] as const) {
+    const home = catalog.select(region);
+    if (home.accountId === resource.accountId && home.databaseId === resource.databaseId)
+      return region;
+  }
+  throw new TenantDeploymentStoreError(
+    'deployment_resource_conflict',
+    'D1 resource is absent from the deployment catalog',
+  );
+}
+
 export function createTenantD1ResourceVerifierV1(options: {
-  readonly resource: TenantDeploymentD1ResourceIdentityV1;
+  readonly namespace: string;
+  readonly catalog: WalletHomeCatalog;
   readonly deploymentLane: string;
-  readonly gateway: WalletRuntimeServiceBinding;
-  readonly walletRuntime: WalletRuntimeServiceBinding;
+  readonly writers: Readonly<
+    Record<
+      WalletRegion,
+      {
+        readonly gateway: WalletRuntimeServiceBinding;
+        readonly walletRuntime: WalletRuntimeServiceBinding;
+      }
+    >
+  >;
 }): TenantD1ResourceVerifierV1 {
   return {
     async verify(request) {
-      if (request.deploymentLane !== options.deploymentLane)
+      if (
+        request.deploymentLane !== options.deploymentLane ||
+        request.resource.namespace !== options.namespace
+      )
         throw new TenantDeploymentStoreError(
           'invalid_input',
-          'D1 resource challenge lane disagrees with this runtime',
+          'D1 resource challenge scope disagrees with this runtime',
         );
-      const gateway = await inspectWriter(options.gateway, options.resource, request);
-      const runtime = await inspectWriter(options.walletRuntime, options.resource, request);
+      const writers = options.writers[regionForResource(options.catalog, request.resource)];
+      const gateway = await inspectWriter(writers.gateway, request.resource, request);
+      const runtime = await inspectWriter(writers.walletRuntime, request.resource, request);
       const checkedAtMs = Date.now();
       const expiresAtMs = Math.min(gateway.expiresAtMs, runtime.expiresAtMs);
       if (
@@ -214,7 +244,7 @@ export function createTenantD1ResourceVerifierV1(options: {
       return {
         kind: 'tenant_d1_runtime_resource_checkpoint_v1',
         deploymentLane: request.deploymentLane,
-        resource: options.resource,
+        resource: request.resource,
         challengeId: request.challengeId,
         checkedAtMs,
         expiresAtMs,

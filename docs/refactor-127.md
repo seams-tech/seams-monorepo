@@ -1056,3 +1056,18 @@ under `.artifacts/r152/regional-readiness-20261003/`; the public R152 results do
 records its SHA-256 and fixture limits. No hosted measurement or deployment occurred.
 The regional renderer and complete-set operator proof collector remain required
 before deployment; 0.8.0 remains held.
+
+### October 3: explicit regional challenge resources
+
+Protected resource verification now requires `{ deploymentLane, resource,
+challengeId, expectedProof }`. Console validates namespace/catalog membership and
+uses the resource's fixed regional Gateway/Runtime pair. Its singular Gateway
+challenge binding and `SEAMS_D1_HOME_*` settings are retired; operator requests and
+provider receipts identify the physical `resource` explicitly.
+
+One Console verifies three local signer D1s and six writer versions in the expanded
+challenge E2E. Cross-resource, unlisted and foreign-namespace requests fail. Three
+focused E2Es passed in 21.6s, with receipt/logs under
+`.artifacts/r152/regional-resource-challenges-20261003/`. Canonical regional targets,
+rendered service bindings and complete-set operator collection remain unfinished;
+no hosted deployment or release occurred.

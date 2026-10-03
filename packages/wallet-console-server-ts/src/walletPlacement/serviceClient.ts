@@ -1,4 +1,9 @@
 import type {
+  WalletRecoveryRoutingPublication,
+  WalletRecoveryRoutingPublisher,
+} from '@seams/wallet-server/cloud-host';
+import { RecoveryLocator } from './recoveryLocators';
+import type {
   WalletSessionLocatorPublication,
   WalletSessionRoutingPublisher,
 } from '@seams/wallet-server/cloud-host';
@@ -188,7 +193,9 @@ function reservationFromResponse(
   throw new WalletPlacementError('invalid_record', 'Wallet reservation response is invalid');
 }
 
-export class WalletHomeServiceClient implements WalletSessionRoutingPublisher {
+export class WalletHomeServiceClient
+  implements WalletSessionRoutingPublisher, WalletRecoveryRoutingPublisher
+{
   constructor(
     private readonly service: WalletHomeServiceBinding,
     private readonly writer: TenantRuntimeWriterV1,
@@ -218,6 +225,45 @@ export class WalletHomeServiceClient implements WalletSessionRoutingPublisher {
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  async publishRecovery(
+    input: WalletRecoveryRoutingPublication,
+  ): ReturnType<WalletRecoveryRoutingPublisher['publishRecovery']> {
+    const locators: RecoveryLocator[] = [];
+    switch (input.kind) {
+      case 'codes':
+        for (const value of input.locators)
+          locators.push(RecoveryLocator.parse({ kind: 'code', value }));
+        break;
+      case 'operation':
+        locators.push(RecoveryLocator.parse({ kind: 'operation', value: input.operationId }));
+        break;
+      default:
+        return assertNeverRecoveryPublication(input);
+    }
+    if (locators.length === 0) return { ok: true };
+    const response = await this.post('publish-recovery', {
+      wallet: WalletOwnershipKey.parse({ ...this.scope, walletId: input.walletId }),
+      locators,
+    });
+    const body = record(response.body);
+    if (response.status === 409 && body.ok === false && body.code === 'locator_conflict')
+      return { ok: false, code: 'locator_conflict' };
+    if (response.status !== 200 || body.ok !== true)
+      throw new Error(`Recovery routing publication failed: HTTP ${response.status}`);
+    return { ok: true };
+  }
+
+  async findRecovery(locator: RecoveryLocator): Promise<WalletHomeAssignment | null> {
+    const response = await this.post('find-recovery', { locator });
+    const body = record(response.body);
+    if (response.status === 404 && body.ok === false && body.code === 'not_found') return null;
+    if (response.status !== 200 || body.ok !== true)
+      throw new Error(`Recovery home lookup failed: HTTP ${response.status}`);
+    if (!RecoveryLocator.parse(body.locator).matches(locator))
+      throw new WalletPlacementError('invalid_record', 'Recovery lookup returned another locator');
+    return assignmentFromResponse(body.assignment, this.scope, this.catalog);
   }
 
   async publish(input: WalletSessionLocatorPublication): Promise<void> {
@@ -373,4 +419,8 @@ export class WalletHomeServiceClient implements WalletSessionRoutingPublisher {
     }
     return assignment;
   }
+}
+
+function assertNeverRecoveryPublication(value: never): never {
+  throw new Error(`Unexpected recovery routing publication: ${String(value)}`);
 }

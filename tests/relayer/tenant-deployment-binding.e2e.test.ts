@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -54,6 +55,13 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     external: ['node:*'],
     loader: { '.wasm': 'file' },
     tsconfig: path.join(repoRoot, 'packages/wallet-console-server-ts/tsconfig.json'),
+    alias: process.env.SEAMS_WALLET_SERVER_CANDIDATE
+      ? {
+          '@seams/wallet-server/cloud-host': createRequire(
+            path.resolve(process.env.SEAMS_WALLET_SERVER_CANDIDATE, 'package.json'),
+          ).resolve('@seams/wallet-server/cloud-host'),
+        }
+      : {},
   });
   const runtime = new Miniflare({
     host: '127.0.0.1',

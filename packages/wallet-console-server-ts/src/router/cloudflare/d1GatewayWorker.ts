@@ -115,6 +115,7 @@ async function handleGatewayRequest(
   }
   const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     sessionRouting: authority,
+    recoveryRouting: authority,
     registrationAuthority: authority,
     registrationSetupDispatcher:
       pathname === '/wallets/register/setup'

@@ -1,3 +1,4 @@
+import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -78,6 +79,7 @@ class GatewayBridge {
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith('/wallets/recovery/')) return this.recovery.handle(request);
     if (pathname === '/wallet/session/exchange/redeem') {
       const body = await request.json();
       const result = await this.service.redeemHostedWalletSeamsSessionExchange({
@@ -137,6 +139,18 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { buildWalletRecoveryEnvelopeSetRecord, parseWalletRecoveryEnvelopeSetRecord, buildWalletRecoveryManifestKekWrap, buildWalletCustodySeedRecoveryEntry } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/walletRecoveryEnvelopeSet.ts'))};
+      export { buildWalletRecoveryBackupAcknowledgementV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/backupAcknowledgement.ts'))};
+      export { buildPasskeyCustodyEnvelopeRecord, buildMethodBoundEnvelopeOwnership, buildEmailOtpEnvelopeFactor, buildActiveEnvelopeLifecycle } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/passkey-custody/custodyEnvelope.ts'))};
+      export { parsePasskeyCustodySecretBinding } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/passkey-custody/custodySecretBinding.ts'))};
+      export { parseEnvelopeNonceB64u, parseEnvelopeCiphertextB64u, parseEnvelopeRevision } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/passkey-custody/primitives.ts'))};
+      export { parsePasskeyEnvelopeId } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/domainIds.ts'))};
+      export { EMAIL_OTP_RECOVERY_KEY_COUNT } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/emailOtpRecoveryKey.ts'))};
+      export { CloudflareD1WalletCustodyCommitStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/passkeyCustody/d1WalletCustodyCommitStore.ts'))};
+      export { EMAIL_OTP_RECOVERY_KEY_BYTE_LENGTH } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/emailOtpRecoveryKey.ts'))};
+      export { deriveRecoveryCodeLocatorV1FromBytes } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/recoveryCodeLocator.ts'))};
+      export { deriveWalletRecoveryKeyIdFromBytes } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/recoveryKeyId.ts'))};
+      export { base64UrlDecode, base64UrlEncode } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/encoders.ts'))};
       export { AuthorizationService, digestOpaqueValue } from ${JSON.stringify(resolve(candidate, 'src/authorization/service.ts'))};
       export { capabilityPolicyPort } from ${JSON.stringify(resolve(candidate, 'src/authorization/capabilityPolicy.ts'))};
       export { parseSessionOrigin } from ${JSON.stringify(resolve(candidate, 'src/authorization/domain.ts'))};
@@ -368,6 +382,14 @@ try {
 
     observations.push({ region, walletId: wallet.walletId });
   }
+  const recovery = await verifyRegionalRecoveryRouting({
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    authorityDatabase,
+    signerScope,
+  });
   for (const [region, bridge] of bridges) {
     const ingress = await runtime.getWorker(region === 'US' ? 'APAC' : 'US');
     const token = bridge.issued.operationCredential.token;
@@ -496,6 +518,7 @@ try {
     assert.ok(!serialized.includes(bridge.issued.operationCredential.token));
   const evidence = {
     kind: 'regional_session_routing_e2e_v1',
+    recovery,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

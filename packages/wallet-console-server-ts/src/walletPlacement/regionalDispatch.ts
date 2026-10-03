@@ -1,3 +1,4 @@
+import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
 import { digestOpaqueValue } from '@seams/wallet-server/cloud-host';
 import { SessionLocator } from './sessionLocators';
@@ -91,6 +92,19 @@ export async function dispatchKnownWalletHome(
   if (request.method === 'OPTIONS') return null;
   const session = await sessionHome(request, authority);
   if (session.kind === 'rejected') return session.response;
+  const recovery = await recoveryHome(request, authority);
+  if (recovery.kind === 'rejected') return recovery.response;
+  if (recovery.kind === 'resolved') {
+    if (
+      session.kind === 'resolved' &&
+      !session.assignment.wallet.matches(recovery.assignment.wallet)
+    ) {
+      return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
+    }
+    return authority.isLocal(recovery.assignment.home)
+      ? null
+      : transport.forward(recovery.assignment.home, request);
+  }
   const pathname = new URL(request.url).pathname;
   let locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string };
   if (isRegistrationContinuation(pathname)) {

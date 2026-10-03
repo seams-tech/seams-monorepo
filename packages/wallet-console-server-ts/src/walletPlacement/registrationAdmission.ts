@@ -1,3 +1,5 @@
+import type { WalletRecoveryRoutingPublication } from '@seams/wallet-server/cloud-host';
+import type { RecoveryLocator } from './recoveryLocators';
 import type { WalletSessionLocatorPublication } from '@seams/wallet-server/cloud-host';
 import type { SessionLocator } from './sessionLocators';
 import {
@@ -55,6 +57,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       this.options.scope,
       WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson)),
     );
+  }
+
+  async publishRecovery(input: WalletRecoveryRoutingPublication) {
+    return this.client().publishRecovery(input);
+  }
+
+  async findRecovery(locator: RecoveryLocator): Promise<WalletHomeAssignment | null> {
+    return this.client().findRecovery(locator);
   }
 
   async publish(input: WalletSessionLocatorPublication): Promise<void> {

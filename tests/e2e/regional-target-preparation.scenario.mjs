@@ -1,3 +1,4 @@
+import { verifyRegionalBrowserRegistration } from './regional-target-registration.scenario.mjs';
 import assert from 'node:assert/strict';
 import {
   ConcurrentTargetPreparationFixture,
@@ -129,7 +130,17 @@ export async function verifyRegionalTargetPreparation({
       .first('count');
     assert.equal(count, region === 'WEUR' ? 1 : 0);
   }
+  const registration = await verifyRegionalBrowserRegistration({
+    api,
+    runtime,
+    bridges,
+    deviceFixture,
+    preparation: attempts[0].value,
+    headers: validHeaders,
+    signerScope,
+  });
   return {
+    registration,
     preparationHttpAtHome: true,
     publishableKeyOriginAndEnvironmentEnforced: true,
     preparationHttpRecipientConflict: true,

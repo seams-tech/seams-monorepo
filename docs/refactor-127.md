@@ -1571,3 +1571,16 @@ explicit routes for test Origin hosts required by Miniflare's local proxy.
 Evidence: `.artifacts/r152/target-http-20261003/`. Actual target WebAuthn registration,
 source contribution and authority installation remain open. No deployment or release
 was performed; 0.8.0 remains held.
+
+### October 3: browser target registration verification
+
+Chromium's virtual authenticator now produces the target registration in the regional
+E2E. Production verification accepts it; altered challenges and changed configuration
+are rejected. Signed credential HTTP forwards APAC to WEUR. A deliberate source-lookup
+failure after verification keeps the target prepared, releases the commit reservation,
+and permits a fresh-proof retry; invalid challenges never reach source lookup.
+
+Evidence: `.artifacts/r152/target-webauthn-20261003/`. Successful credential persistence
+still requires coherent source-authority and source-contribution planner composition;
+source contribution, package delivery and final installation remain open. This is
+local browser/Worker/D1 composition, with no deployment or release.

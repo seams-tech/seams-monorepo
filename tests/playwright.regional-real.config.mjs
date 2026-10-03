@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const walletRoot = path.resolve(candidate, '../..');
+process.env.SEAMS_REPO_ROOT = walletRoot;
 const environment = dotenv.parse(readFileSync(path.join(walletRoot, '.env.local')));
 for (const [name, value] of Object.entries(environment)) process.env[name] ??= value;
 process.env.SEAMS_INTENDED_APP_URL = 'http://localhost:4201';

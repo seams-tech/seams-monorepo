@@ -154,8 +154,14 @@ supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
 The `three real wallets` case registers US, WEUR and APAC owners in the same
 Console/signer stores, then routes them through foreign ingress for locked-page
 reload, passkey unlock, Ed25519/ECDSA key export, fresh-browser passkey recovery
-and NEAR/Tempo signing. Each consumed code is then submitted with a new reservation
-and must be rejected as already used. Select it with
+and NEAR/Tempo signing. Recovery commits at home, loses its finalization reply,
+then resets the client runtime. The durable journal must survive that reset,
+replay the same operation and target, and clear after the successful reply.
+Each consumed code is then submitted with a new reservation and must be rejected
+as already used, including the browser's error message. Select it with
 `--grep 'three real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
 exact tenant scope, established home assignments, per-wallet store counts and
-request paths/statuses. Key-export material is not included in this receipt.
+request paths/statuses, including the successful finalization and replay at each
+home. Key-export material is not included in this receipt. Set
+`SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
+per-owner journal and lifecycle assertions alongside it.

@@ -51,7 +51,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets retain distinct homes through travel, unlock, export and passkey recovery', async ({
+test('three real wallets retain distinct homes through travel and interrupted passkey recovery', async ({
   browser,
   request,
 }, testInfo) => {
@@ -78,7 +78,7 @@ test('three real wallets retain distinct homes through travel, unlock, export an
       const harness = new IntendedBehaviourHarness({
         context,
         page,
-        request,
+        request: scenario.requestsFor(travel, request),
         flow: 'passkey.registration',
         networkMode: 'managed_local',
       });
@@ -97,14 +97,14 @@ test('three real wallets retain distinct homes through travel, unlock, export an
       await owner.harness.exportEcdsaKey();
       await owner.harness.signNearTransaction('post_unlock');
       await owner.harness.signTempoTransaction('post_unlock');
-      await owner.harness.recoverPasskeyWalletFromFreshBrowser();
-      await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
-      await owner.harness.signNearTransaction('post_unlock');
-      await owner.harness.signTempoTransaction('post_unlock');
       const walletId = await owner.page
         .getByTestId('intended-e2e-page')
         .getAttribute('data-login-wallet-id');
       if (!walletId) throw new Error('Registered owner must retain its wallet identity');
+      await owner.harness.recoverPasskeyWalletAfterLostFinalizationResponse(
+        scenario.finalizationCommitter(owner.travel),
+      );
+      await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
       wallets.push({ home: owner.home, travel: owner.travel, walletId });
     }
     await scenario.verifyMixedHomes(wallets);

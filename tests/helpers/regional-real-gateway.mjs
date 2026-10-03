@@ -178,6 +178,7 @@ class RealHomeConsole {
 
 class RealRegionalGateway {
   recoveryPrepare = null;
+  recoveryFinalizationStatuses = [];
   pending = [];
   requests = [];
 
@@ -210,6 +211,9 @@ class RealRegionalGateway {
         body: request.postData(),
       };
     }
+    if (new URL(request.url()).pathname === '/wallets/recovery/finalize') {
+      this.recoveryFinalizationStatuses.push(response.status);
+    }
     if (
       (await this.activationFault.shouldDrop(request, response)) ||
       this.acknowledgementFault.shouldDrop(request, response)
@@ -222,6 +226,33 @@ class RealRegionalGateway {
       headers: Object.fromEntries(response.headers),
       body: Buffer.from(await response.arrayBuffer()),
     });
+  }
+
+  async commitRecoveryFinalization(route) {
+    const request = route.request();
+    assert.equal(new URL(request.url()).pathname, '/wallets/recovery/finalize');
+    const response = await this.handle(
+      new Request(request.url(), {
+        method: request.method(),
+        headers: request.headers(),
+        body: request.postDataBuffer(),
+      }),
+      'ingress',
+    );
+    this.recoveryFinalizationStatuses.push(response.status);
+    return response.status;
+  }
+
+  async post(url, options) {
+    const response = await this.handle(
+      new Request(url, {
+        method: 'POST',
+        headers: options.headers,
+        body: typeof options.data === 'string' ? options.data : JSON.stringify(options.data),
+      }),
+      'ingress',
+    );
+    return new GatewayApiResponse(response);
   }
 
   async verifyRecoveryCodeSpent() {
@@ -316,6 +347,16 @@ class RegionalRealScenario {
     this.runtime = runtime;
     this.gateways = gateways;
     this.output = output;
+  }
+
+  requestsFor(region, readinessRequests) {
+    const gateway = this.gateways.get(region);
+    return { get: readinessRequests.get.bind(readinessRequests), post: gateway.post.bind(gateway) };
+  }
+
+  finalizationCommitter(region) {
+    const gateway = this.gateways.get(region);
+    return gateway.commitRecoveryFinalization.bind(gateway);
   }
 
   async routeContext(context, region) {
@@ -456,7 +497,17 @@ class RegionalRealScenario {
         );
       }
       const consumedCode = await gateway.verifyRecoveryCodeSpent();
-      traffic.push({ region, consumedCode, requests: gateway.requests });
+      assert.deepEqual(
+        gateway.recoveryFinalizationStatuses,
+        [200, 200],
+        'One commit and one durable replay',
+      );
+      traffic.push({
+        region,
+        consumedCode,
+        finalizationStatuses: gateway.recoveryFinalizationStatuses,
+        requests: gateway.requests,
+      });
     }
     await writeFile(
       resolve(this.output, 'mixed-home-evidence.json'),
@@ -464,7 +515,7 @@ class RegionalRealScenario {
         {
           scope,
           description:
-            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export, fresh-browser passkey recovery and signing through foreign ingress after all registrations; one shared local Router stack.',
+            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export, fresh-browser passkey recovery with lost finalization response and client runtime reset, and signing through foreign ingress after all registrations; one shared local Router stack.',
           wallets: evidence,
           traffic,
         },
@@ -674,4 +725,22 @@ function matchesWallet(walletId, placement) {
 
 function isSuccessfulForward(path, request) {
   return request.path === path && request.forwarded === true && request.status === 200;
+}
+
+class GatewayApiResponse {
+  constructor(response) {
+    this.response = response;
+  }
+  status() {
+    return this.response.status;
+  }
+  ok() {
+    return this.response.ok;
+  }
+  text() {
+    return this.response.text();
+  }
+  json() {
+    return this.response.json();
+  }
 }

@@ -1796,3 +1796,17 @@ as a production regression. The server now makes insertion conditional on curren
 session state within the same D1 statement, with no additional roundtrip.
 The scenario checks both delayed writes conflict and the relay row remains absent.
 Public R152 results retain the before/after evidence and real-protocol validation.
+
+
+### October 3: delayed target preparation versus cancellation
+
+The composed regional E2E now pauses a production target planner before persistence,
+allows a second preparation to win and complete browser registration/relay delivery,
+then cancels at WEUR before releasing the delayed plan. The initial run recreated
+the preparation row and returned success: a production regression. The fixed D1
+insert requires the current session to await its target factor, and the provider
+returns a conflict if cleanup won. The regional E2E now passes with zero target
+credential rows after cancellation. The delayed call enters the production provider
+directly; the surrounding lifecycle and cancellation use regional HTTP. See the
+public R152 results for reproduction and checksums. Commit-reservation and Email
+OTP-grant races remain separate verification tasks.

@@ -1,3 +1,4 @@
+import { PausedTargetPreparationFixture, deliveryRecipient } from '../helpers/regional-target-preparation.fixtures.mjs';
 import { PausedExportRootWrites } from '../helpers/regional-export-root-race.fixtures.mjs';
 import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
 import { verifyRegionalTargetPreparation } from './regional-target-preparation.scenario.mjs';
@@ -24,6 +25,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
   const us = await runtime.getWorker('US');
   const apac = await runtime.getWorker('APAC');
   const weur = bridges.get('WEUR');
+  const delayedPlanner = new PausedTargetPreparationFixture(weur.linkSource.targetPlanner);
   try {
     const create = await fixture.createRequest(api, 'http-home-retry');
     const { payload } = await create.clone().json();
@@ -102,6 +104,26 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
         .first('count');
       assert.equal(count, region === 'WEUR' ? 1 : 0);
     }
+    const delayedProvider = new api.D1LinkedDeviceTargetCredentialProviderV1({
+      database: await runtime.getD1Database('SIGNER_DB', 'WEUR'),
+      scope: signerScope,
+      planner: delayedPlanner,
+      verifier: {},
+      sourceContributionPreparationPlanner: {},
+      verifiedLinkBuilder: {},
+    });
+    const delayedPreparation = delayedProvider.getTargetPreparationV1({
+      session: await weur.linkRoutes.sessionService.getSessionV1({
+        linkSessionId: payload.linkSessionId,
+        nowMs: Date.now(),
+      }),
+      approval,
+      access: 'create_or_replay',
+      expectedOrigin: 'https://wallet.test',
+      deliveryRecipientPublicKey65B64u: deliveryRecipient(),
+      requestedAtMs: Date.now(),
+    });
+    await delayedPlanner.waitForPreparation();
     const preparation = await verifyRegionalTargetPreparation({
       api,
       deviceFixture: fixture,
@@ -149,6 +171,14 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     assert.equal(recipientAfterCancel.status, 409, await recipientAfterCancel.clone().text());
     assert.equal(packageAfterCancel.status, 409, await packageAfterCancel.clone().text());
     weur.linkRoutes.ed25519ExportRoot = relay.port;
+    delayedPlanner.released.resolve();
+    const preparationAfterCancel = await delayedPreparation;
+    assert.equal(preparationAfterCancel.kind, 'conflict');
+    const homeDatabase = await runtime.getD1Database('SIGNER_DB', 'WEUR');
+    assert.equal(await homeDatabase.prepare(
+      'SELECT count(*) AS count FROM linked_device_target_credentials WHERE link_session_id = ?',
+    ).bind(payload.linkSessionId).first('count'), 0);
+
 
     for (const ingress of [us, apac]) {
       const recipient = await ingress.fetch(`https://wallet.test${path}/ed25519-export-root-recipient`, {
@@ -222,6 +252,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      delayedPlannerCannotResurrectCancelledPreparation: true,
       admittedRelayWritesCannotResurrectCancelledTransfer: true,
       terminalExportRootRequestsRejected: true,
       authenticatedClaimHttpAtHome: true,
@@ -245,6 +276,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
         'Real signed device requests, production owner claim/approval rules, regional HTTP dispatch and D1 approval persistence/delivery. Owner HTTP authentication and approval source metadata use production D1 readers. Owner signer material is synthetic; provisioning, committed package delivery and authority installation remain open.',
     };
   } finally {
+    delayedPlanner.released.resolve();
     for (const bridge of bridges.values()) bridge.linkRoutes = null;
   }
 }

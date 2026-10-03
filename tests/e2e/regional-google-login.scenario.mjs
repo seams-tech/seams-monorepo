@@ -388,6 +388,15 @@ async function verifySharedRegistrationOffers({
     replacement.registrationAttemptId,
   );
   const initialSelection = await us.read(replacement.registrationAttemptId);
+  assert.equal(
+    (
+      await us.complete({
+        attemptId: replacement.registrationAttemptId,
+        walletId: replacement.walletId,
+      })
+    ).ok,
+    false,
+  );
   const claims = [];
   const competing = replacement.offer.candidates.slice(1, 3);
   for (const [index, region] of ['US', 'WEUR'].entries()) {
@@ -457,7 +466,75 @@ async function verifySharedRegistrationOffers({
     ).ok,
     false,
   );
+  const completion = { attemptId: replacement.registrationAttemptId, walletId: winner.walletId };
+  const sharedIdentities = bridges.get('US').googleIdentities;
+  const identitySubject = `wallet:${selected.providerSubject}`;
+  const previousOwner = 'previous-owner-wallet';
+  assert.equal(
+    (
+      await sharedIdentities.linkSubjectToUserId({
+        userId: previousOwner,
+        subject: identitySubject,
+      })
+    ).ok,
+    true,
+  );
+  assert.equal(
+    (
+      await sharedIdentities.linkSubjectToUserId({
+        userId: previousOwner,
+        subject: 'wallet:google:other-factor',
+      })
+    ).ok,
+    true,
+  );
+  assert.equal((await us.complete(completion)).ok, false);
+  assert.equal((await us.read(completion.attemptId)).state, 'started');
+  assert.equal(await sharedIdentities.getUserIdBySubject(identitySubject), previousOwner);
+  assert.equal(
+    (
+      await sharedIdentities.unlinkSubjectFromUserId({
+        userId: previousOwner,
+        subject: 'wallet:google:other-factor',
+      })
+    ).ok,
+    true,
+  );
+  await consoleBridge.database.exec(
+    "CREATE TRIGGER fixture_reject_offer_completion BEFORE UPDATE ON email_otp_registration_attempts WHEN NEW.state = 'active' BEGIN SELECT RAISE(ABORT, 'injected completion failure'); END",
+  );
+  try {
+    await assert.rejects(us.complete(completion));
+    assert.equal((await us.read(completion.attemptId)).state, 'started');
+    assert.equal(await sharedIdentities.getUserIdBySubject(identitySubject), previousOwner);
+  } finally {
+    await consoleBridge.database.exec('DROP TRIGGER fixture_reject_offer_completion');
+  }
+  const completed = await Promise.all([
+    bridges
+      .get('US')
+      .google.resolver.completeRegistrationAttempt({
+        registrationAttemptId: completion.attemptId,
+        walletId: completion.walletId,
+      }),
+    apac.complete(completion),
+  ]);
+  assert.ok(completed.every(isSuccessfulClaim));
+  assert.equal((await us.read(completion.attemptId)).state, 'active');
+  assert.equal(await sharedIdentities.getUserIdBySubject(identitySubject), winner.walletId);
+  await us.cleanupExpired(Date.now() + 60 * 60_000);
+  assert.equal((await apac.complete(completion)).ok, true);
+  assert.equal(
+    (await apac.complete({ attemptId: completion.attemptId, walletId: previousOwner })).ok,
+    false,
+  );
+  await assert.rejects(us.put(selected));
   return {
+    completionPublishesIdentityAndOfferAtomically: true,
+    completionFailureRollsBackIdentityMove: true,
+    completionRetrySurvivesOfferExpiryCleanup: true,
+    multiIdentityMoveRemainsRejected: true,
+    unclaimedOfferCannotComplete: true,
     candidateClaimsHaveOneWinner: true,
     identicalIntentRetrySucceeds: true,
     candidateRetargetingAndIntentSubstitutionRejected: true,
@@ -469,7 +546,7 @@ async function verifySharedRegistrationOffers({
     scopeMismatchAndOutagesFailClosed: true,
     regionalOfferStoresRemainEmpty: true,
     scope:
-      'Concurrent offer creation through production resolver/Console/D1, plus competing candidate claims through the shared store. End-to-end registration completion and expiry/reservation reconciliation remain separate acceptance gates.',
+      'Concurrent offer creation through production resolver/Console/D1, plus competing candidate claims through the shared store. Completion runs through the production resolver/shared transaction with injected D1 failure. The regional custody commit and expiry/home-reservation reconciliation remain separate acceptance gates.',
   };
 }
 

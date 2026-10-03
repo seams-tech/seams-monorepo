@@ -55,6 +55,7 @@ export async function handleRegistrationOfferCommand(
   const store = new CloudflareD1GoogleEmailOtpRegistrationAttemptStore({
     prepare: scoped.prepare.bind(scoped),
     orgId: scope.organizationId,
+    batch: database.batch.bind(database),
   });
   switch (raw.operation) {
     case 'read':
@@ -70,6 +71,15 @@ export async function handleRegistrationOfferCommand(
       scopedPolicy(record.runtimePolicyScope, scope);
       await store.put(record);
       break;
+    }
+    case 'complete': {
+      const input = object(raw.input);
+      return Response.json({
+        value: await store.complete({
+          attemptId: requiredString(input.attemptId),
+          walletId: requiredString(input.walletId),
+        }),
+      });
     }
     case 'claimCandidate': {
       const input = object(raw.input);

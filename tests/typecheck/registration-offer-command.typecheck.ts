@@ -8,9 +8,14 @@ const mixed: RegistrationOfferCommand = { ...create, operation: 'read' };
 // @ts-expect-error Mutation requires its validated record.
 const missing: RegistrationOfferCommand = { operation: 'put' };
 void [incomplete, mixed, missing];
-const unboundClaim: RegistrationOfferCommand = {
-  operation: 'claimCandidate',
-  // @ts-expect-error Candidate selection requires the verified intent digest.
-  input: { attemptId: 'attempt', candidateId: 'candidate', walletId: 'wallet' },
+type ClaimInput = Extract<RegistrationOfferCommand, { operation: 'claimCandidate' }>['input'];
+// @ts-expect-error Candidate selection requires the verified intent digest.
+const unboundClaim: ClaimInput = {
+  attemptId: 'attempt',
+  candidateId: 'candidate',
+  walletId: 'wallet',
 };
-void unboundClaim;
+type CompletionInput = Extract<RegistrationOfferCommand, { operation: 'complete' }>['input'];
+// @ts-expect-error Completion must identify the claimed wallet as well as its offer.
+const incompleteCompletion: CompletionInput = { attemptId: 'attempt' };
+void [unboundClaim, incompleteCompletion];

@@ -1380,3 +1380,15 @@ claims only after proof, runtime-scope and duplicate-method validation. The regi
 composition verifies claim contention, not complete custody registration. Identity
 publication/offer completion races, expiry and home reconciliation remain open.
 No deployment or release occurred.
+
+### R152 atomic registration completion — October 3
+
+Console offer completion now batches the identity link and offer activation in its
+own D1 authority, followed by an acknowledgement lookup. Failed activation rolls
+back identity publication. The public resolver uses the same store command in
+hosted and standalone composition; sequential linking/finalization was removed.
+Completed offers survive pending-offer expiry cleanup for retry. Regional custody
+commit remains a separate database boundary requiring reconciliation with shared
+completion, expiry and wallet-home reservation. Receipt:
+`.artifacts/r152/registration-completion-20261003/regional-session-routing-evidence.json`.
+No deployment, reset or release occurred.

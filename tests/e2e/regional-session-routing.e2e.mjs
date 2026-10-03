@@ -1,3 +1,4 @@
+import { verifyRegionalAuthenticationRouting } from './regional-authentication-routing.scenario.mjs';
 import { verifyRegionalLifecycleRouting } from './regional-lifecycle-routing.scenario.mjs';
 import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
 import { verifyRegionalYaoEntryRouting } from './regional-yao-entry-routing.scenario.mjs';
@@ -87,6 +88,12 @@ class GatewayBridge {
         { status: 422 },
       );
     }
+    if (
+      pathname.startsWith('/auth/') ||
+      pathname.startsWith('/wallet/unlock/') ||
+      pathname.startsWith('/wallet/email-otp/')
+    )
+      return this.passkey.handle(request);
     if (pathname.startsWith('/wallets/recovery/')) return this.recovery.handle(request);
     if (pathname === '/wallet/session/exchange/redeem') {
       const body = await request.json();
@@ -147,6 +154,12 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { handleAuth } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/auth.ts'))};
+      export { handleWalletUnlockChallengeRoute } from ${JSON.stringify(resolve(candidate, 'src/router/domains/walletUnlock/walletUnlockRouteHandlers.ts'))};
+      export { prepareD1WebAuthnCredentialBindingPutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/WebAuthnCredentialBindingStore.ts'))};
+      export { D1WalletAuthMethodStore } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
+      export { CloudflareD1WebAuthnStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnStore.ts'))};
+      export { CloudflareD1WebAuthnAuthService } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnAuthService.ts'))};
       export { publishWalletLifecycleHome } from ${JSON.stringify(resolve(candidate, 'src/authorization/lifecycleRouting.ts'))};
       export { buildWalletRecoveryEnvelopeSetRecord, parseWalletRecoveryEnvelopeSetRecord, buildWalletRecoveryManifestKekWrap, buildWalletCustodySeedRecoveryEntry } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/walletRecoveryEnvelopeSet.ts'))};
       export { buildWalletRecoveryBackupAcknowledgementV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/backupAcknowledgement.ts'))};
@@ -344,6 +357,7 @@ try {
     bridge.tenantId = issued.session.tenantId;
     bridge.issued = issued;
     bridge.publisher = publisher;
+    bridge.authMethod = fixture.authMethod;
     const linked = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-linked-${region}`,
       permissions: api.buildFullOwnerPermissionsV1(),
@@ -398,6 +412,14 @@ try {
     bridges,
     consoleBridge,
     authorityDatabase,
+  });
+  const authenticationRouting = await verifyRegionalAuthenticationRouting({
+    authorityDatabase,
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    signerScope,
   });
   const recovery = await verifyRegionalRecoveryRouting({
     api,
@@ -538,6 +560,7 @@ try {
     recovery,
     yaoEntryRouting,
     lifecycleRouting,
+    authenticationRouting,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

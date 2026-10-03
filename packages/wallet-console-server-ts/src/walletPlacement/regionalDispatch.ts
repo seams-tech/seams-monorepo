@@ -1,3 +1,4 @@
+import { authenticationHome } from './authenticationDispatch';
 import { WalletRouteLocator } from './walletRouteLocators';
 import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
@@ -93,18 +94,20 @@ export async function dispatchKnownWalletHome(
   if (request.method === 'OPTIONS') return null;
   const session = await sessionHome(request, authority);
   if (session.kind === 'rejected') return session.response;
-  const recovery = await recoveryHome(request, authority);
-  if (recovery.kind === 'rejected') return recovery.response;
-  if (recovery.kind === 'resolved') {
+  const authentication = await authenticationHome(request, authority);
+  const scopedHome =
+    authentication.kind === 'absent' ? await recoveryHome(request, authority) : authentication;
+  if (scopedHome.kind === 'rejected') return scopedHome.response;
+  if (scopedHome.kind === 'resolved') {
     if (
       session.kind === 'resolved' &&
-      !session.assignment.wallet.matches(recovery.assignment.wallet)
+      !session.assignment.wallet.matches(scopedHome.assignment.wallet)
     ) {
       return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
     }
-    return authority.isLocal(recovery.assignment.home)
+    return authority.isLocal(scopedHome.assignment.home)
       ? null
-      : transport.forward(recovery.assignment.home, request);
+      : transport.forward(scopedHome.assignment.home, request);
   }
   const pathname = new URL(request.url).pathname;
   let locator:

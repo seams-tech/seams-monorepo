@@ -15,14 +15,18 @@ import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
-import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   deploymentResource,
-  bindingForHome,
-  productionBindingForHome,
+  bindingForResourceSet,
+  regionalResourceProof,
+  productionBindingForResource,
   readyActivation,
 } from '../helpers/tenantDeploymentFixtures';
 import { GithubDeploymentOidcFixture } from '../helpers/githubDeploymentOidc';
+
+import { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import type { TenantDeploymentResourceVerificationsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const deployment = JSON.parse(
@@ -32,6 +36,11 @@ const namespace: string = deployment.tenant.namespace;
 const lane = 'production-testnet';
 const home = deploymentResource(namespace, deployment.resources.signerD1.id);
 const secondResource = deploymentResource(namespace, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+const catalog = WalletHomeCatalog.parse([
+  { region: 'US', accountId: home.accountId, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+  { region: 'WEUR', accountId: home.accountId, databaseId: home.databaseId },
+  { region: 'APAC', accountId: home.accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+]);
 const execute = promisify(execFile);
 const challengePath = '/internal/tenant-deployment/v1/resource-challenge';
 const verifyUrl = 'https://console.example.test/internal/tenant-deployment/v1/verify-resource';
@@ -288,6 +297,7 @@ function consoleWorker(
   deps: Dependencies,
   resource: typeof home,
   gateway: string,
+  configuredCatalog: WalletHomeCatalog = catalog,
 ) {
   return {
     name,
@@ -303,17 +313,9 @@ function consoleWorker(
         databaseId: resource.databaseId,
       }),
       SEAMS_WALLET_HOME_CATALOG_JSON: JSON.stringify([
-        {
-          region: 'US',
-          accountId: home.accountId,
-          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        },
-        { region: 'WEUR', accountId: home.accountId, databaseId: home.databaseId },
-        {
-          region: 'APAC',
-          accountId: home.accountId,
-          databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-        },
+        configuredCatalog.select('US'),
+        configuredCatalog.select('WEUR'),
+        configuredCatalog.select('APAC'),
       ]),
     },
     d1Databases: { CONSOLE_DB: 'console-authority' },
@@ -413,6 +415,23 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     port: 0,
     workers: [
       consoleWorker(output, 'console-good', 'runtime-good', deps, home, 'gateway'),
+      consoleWorker(
+        output,
+        'console-unverified-catalog',
+        'runtime-good',
+        deps,
+        home,
+        'gateway',
+        WalletHomeCatalog.parse([
+          catalog.select('US'),
+          catalog.select('WEUR'),
+          {
+            region: 'APAC',
+            accountId: home.accountId,
+            databaseId: '99999999-9999-4999-8999-999999999999',
+          },
+        ]),
+      ),
       consoleWorker(
         output,
         'console-wrong-database',
@@ -690,12 +709,19 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
-      const verification = TenantHomeVerificationV1.fromOperatorCheckpoint(
+      const verification = TenantResourceVerificationV1.fromOperatorCheckpoint(
         JSON.parse(completed.stdout),
         Date.now(),
       );
       const store = createD1TenantDeploymentServiceV1({ database: authority });
-      const candidate = await store.putBinding(await bindingForHome(Date.now(), lane, home));
+      const candidate = await store.putBinding(
+        await bindingForResourceSet(
+          Date.now(),
+          lane,
+          home.namespace,
+          catalog.deploymentResources(),
+        ),
+      );
       const ready = await readyActivation(
         store,
         candidate,
@@ -704,7 +730,25 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         null,
         Date.now(),
       );
-      const input = { ...ready, homeVerification: verification };
+      // The CLI exercises the WEUR proof; the remaining provider proofs are controlled fixtures.
+      const resourceVerifications: TenantDeploymentResourceVerificationsV1 = [
+        verification,
+        regionalResourceProof(
+          candidate,
+          catalog.select('US').databaseId,
+          '11111111-1111-4111-8111-111111111111',
+          '22222222-2222-4222-8222-222222222222',
+          Date.now(),
+        ),
+        regionalResourceProof(
+          candidate,
+          catalog.select('APAC').databaseId,
+          '33333333-3333-4333-8333-333333333333',
+          '44444444-4444-4444-8444-444444444444',
+          Date.now(),
+        ),
+      ];
+      const input = { ...ready, resourceVerifications };
       const activated = await store.activateBinding(input);
       const placementUrl = 'https://wallet-placement.internal/internal/wallet-placement/v1';
       const placementWallet = { ...candidate.tenant, walletId: 'writer-admission-wallet' };
@@ -732,15 +776,40 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         headers: {
           'x-seams-writer-role': 'gateway',
           'x-seams-writer-version': changedVersion,
+          'x-seams-writer-account': home.accountId,
+          'x-seams-writer-database': home.databaseId,
         },
         body: JSON.stringify(placementBody),
       });
       expect(stalePlacementWriter.status).toBe(403);
+      const unverifiedCatalog = await runtime.getWorker('console-unverified-catalog');
+      const refusedAssignment = await unverifiedCatalog.fetch(`${placementUrl}/reserve`, {
+        method: 'POST',
+        headers: {
+          'x-seams-writer-role': 'gateway',
+          'x-seams-writer-version': gatewayVersion,
+          'x-seams-writer-account': home.accountId,
+          'x-seams-writer-database': home.databaseId,
+        },
+        body: JSON.stringify(placementBody),
+      });
+      expect(refusedAssignment.status).toBe(503);
+      expect(await refusedAssignment.json()).toMatchObject({
+        code: 'wallet_home_resources_unverified',
+      });
+      expect(
+        await authority
+          .prepare('SELECT count(*) AS count FROM wallet_homes WHERE wallet_id = ?1')
+          .bind(placementWallet.walletId)
+          .first('count'),
+      ).toBe(0);
       const authorizedPlacementWriter = await good.fetch(`${placementUrl}/reserve`, {
         method: 'POST',
         headers: {
           'x-seams-writer-role': 'gateway',
           'x-seams-writer-version': gatewayVersion,
+          'x-seams-writer-account': home.accountId,
+          'x-seams-writer-database': home.databaseId,
         },
         body: JSON.stringify(placementBody),
       });
@@ -804,7 +873,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
               headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '2' },
               body: '{',
             }),
-          ).rejects.toThrow('Runtime version is not authorized by the active home verification');
+          ).rejects.toThrow('active tenant deployment lookup failed with HTTP 403');
           rejectedWriterRequests.push({ writer: name, method: 'POST', pathname });
         }
       }
@@ -831,7 +900,12 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         const admitted = await good.fetch(
           'https://tenant-deployment.internal/internal/tenant-deployment/v1/active',
           {
-            headers: { 'x-seams-writer-role': role, 'x-seams-writer-version': versionId },
+            headers: {
+              'x-seams-writer-role': role,
+              'x-seams-writer-version': versionId,
+              'x-seams-writer-account': home.accountId,
+              'x-seams-writer-database': home.databaseId,
+            },
           },
         );
         expect(admitted.status).toBe(200);
@@ -848,22 +922,22 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         Date.now(),
       );
       await expect(
-        store.activateBinding({ ...replay, homeVerification: verification }),
+        store.activateBinding({ ...replay, resourceVerifications }),
       ).rejects.toMatchObject({ code: 'activation_conflict' });
       await expect(
-        expiredStore.activateBinding({ ...replay, homeVerification: verification }),
+        expiredStore.activateBinding({ ...replay, resourceVerifications }),
       ).rejects.toMatchObject({ code: 'readiness_invalid' });
       expect((await store.findActiveBinding(lane))?.activationSequence).toBe(1);
       const recorded = await authority
         .prepare(
-          'SELECT home_verification_json FROM tenant_deployment_activations WHERE operation_id = ?1',
+          'SELECT resource_verifications_json FROM tenant_deployment_activations WHERE operation_id = ?1',
         )
         .bind(input.operationId)
-        .first('home_verification_json');
+        .first('resource_verifications_json');
       expect(typeof recorded).toBe('string');
       await writeFile(testInfo.outputPath('activated-home-verification.json'), String(recorded));
       const productionCandidate = await store.putBinding(
-        await productionBindingForHome(Date.now(), 'production-proof-lane', home),
+        await productionBindingForResource(Date.now(), 'production-proof-lane', home),
       );
       const localAttempt = await readyActivation(
         store,
@@ -935,6 +1009,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       independentResourceCheckpoint: secondCheckpoint,
       crossResourceProofsRejected: true,
       obsoleteChallengeSchemaRemoved: true,
+      unverifiedCatalogCannotReserveWallet: true,
       challengeMigrationSha256: createHash('sha256').update(challengeMigration).digest('hex'),
       signerMigrationHashes,
       verified: JSON.parse(successText).result,

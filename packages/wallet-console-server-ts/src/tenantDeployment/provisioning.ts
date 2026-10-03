@@ -18,8 +18,11 @@ import type {
 import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
 import { TenantDeploymentStoreError } from './service';
-import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
-import type { TenantHomeVerificationV1 } from './homeVerification';
+import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import {
+  assertDeploymentResourcesVerified,
+  type TenantDeploymentResourceVerificationsV1,
+} from './resourceVerification';
 
 const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 
@@ -27,8 +30,11 @@ export type TenantDeploymentProvisioningRequestV1 = {
   readonly deploymentLane: string;
   readonly environmentId: string;
   readonly authorization:
-    | { readonly kind: 'reuse_active'; readonly verification?: never }
-    | { readonly kind: 'activate'; readonly verification: TenantHomeVerificationV1 };
+    | { readonly kind: 'reuse_active'; readonly verifications?: never }
+    | {
+        readonly kind: 'activate';
+        readonly verifications: TenantDeploymentResourceVerificationsV1;
+      };
 };
 
 export type TenantDeploymentCanaryReceiptV1 = {
@@ -80,7 +86,8 @@ export type TenantDeploymentBrowserCredentialProvisioningV1 =
     };
 
 export type TenantDeploymentProvisionerOptionsV1 = {
-  readonly home: TenantDeploymentD1ResourceIdentityV1;
+  readonly namespace: string;
+  readonly resources: TenantDeploymentD1ResourcesV1;
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
@@ -315,9 +322,8 @@ export function createTenantDeploymentProvisionerV1(
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
       if (
         activeBinding &&
-        (activeBinding.tenant.namespace !== options.home.namespace ||
-          activeBinding.home.accountId !== options.home.accountId ||
-          activeBinding.home.databaseId !== options.home.databaseId)
+        (activeBinding.tenant.namespace !== options.namespace ||
+          JSON.stringify(activeBinding.resources) !== JSON.stringify(options.resources))
       ) {
         throw new TenantDeploymentStoreError(
           'deployment_resource_conflict',
@@ -338,8 +344,14 @@ export function createTenantDeploymentProvisionerV1(
           'A new deployment activation requires protected operator verification',
         );
       }
-      const homeVerification = request.authorization.verification;
-      homeVerification.assertFor(options.home, deploymentLane, Date.now());
+      const resourceVerifications = request.authorization.verifications;
+      assertDeploymentResourcesVerified(
+        options.resources,
+        options.namespace,
+        deploymentLane,
+        resourceVerifications,
+        Date.now(),
+      );
       const planning = await options.store.createCutover({
         kind: 'planning',
         operationId,
@@ -389,7 +401,8 @@ export function createTenantDeploymentProvisionerV1(
       let activated = false;
       try {
         const binding = await options.candidates.buildCandidate({
-          home: options.home,
+          namespace: options.namespace,
+          resources: options.resources,
           identity,
           activeTenantRoot: awaitingCredential.state.activeTenantRoot,
           credentialId,
@@ -397,9 +410,8 @@ export function createTenantDeploymentProvisionerV1(
           surfaces: options.surfaces,
         });
         if (
-          binding.tenant.namespace !== options.home.namespace ||
-          binding.home.accountId !== options.home.accountId ||
-          binding.home.databaseId !== options.home.databaseId
+          binding.tenant.namespace !== options.namespace ||
+          JSON.stringify(binding.resources) !== JSON.stringify(options.resources)
         ) {
           throw new TenantDeploymentStoreError(
             'deployment_resource_conflict',
@@ -420,8 +432,7 @@ export function createTenantDeploymentProvisionerV1(
           expectedActiveRevision: active?.revision ?? null,
         });
         const activation = await options.store.activateBinding({
-          homeVerification,
-          home: options.home,
+          resourceVerifications,
           operationId,
           expectedCutoverRecordRevision: ready.recordRevision,
           deploymentLane,

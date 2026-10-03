@@ -7,8 +7,10 @@ import type {
   TenantDeploymentCutoverV1,
   TenantDeploymentReadinessReceiptV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
-import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
-import type { TenantHomeVerificationV1, TenantRuntimeWriterV1 } from './homeVerification';
+import type {
+  TenantDeploymentResourceVerificationsV1,
+  TenantRuntimeWriterV1,
+} from './resourceVerification';
 import type { TenantDeploymentRuntimeScopeV1 } from './runtimeInspection';
 
 export type {
@@ -27,8 +29,7 @@ export type ExpectedActiveTenantDeploymentBindingV1 = {
 };
 
 export type ActivateTenantDeploymentBindingInputV1 = {
-  readonly homeVerification: TenantHomeVerificationV1;
-  readonly home: TenantDeploymentD1ResourceIdentityV1;
+  readonly resourceVerifications: TenantDeploymentResourceVerificationsV1;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedCutoverRecordRevision: number;
   readonly deploymentLane: string;

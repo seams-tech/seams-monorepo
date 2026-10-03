@@ -5,7 +5,7 @@ import {
   type WalletRegistrationReservationAuthority,
 } from '@seams/wallet-server/cloud-host';
 import { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
-import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   WalletHomeCatalog,
   type WalletRegion,
@@ -29,6 +29,9 @@ class ConsoleBinding {
     const response = await handleWalletHomeServiceRequest(request, {
       database: this.database,
       catalogJson: this.catalogJson,
+      admittedResources: WalletHomeCatalog.parse(
+        JSON.parse(this.catalogJson),
+      ).deploymentResources(),
       scope,
       deploymentLane: 'test',
     });
@@ -99,11 +102,17 @@ type GatewayAdmissionInput = {
 };
 
 function gatewayAdmission(input: GatewayAdmissionInput): ConsoleRegistrationHomeAdmission {
+  const localResource = WalletHomeCatalog.parse(JSON.parse(input.catalogJson)).select(
+    input.localRegion,
+  );
   return new ConsoleRegistrationHomeAdmission({
     service: new ConsoleBinding(input.database, input.catalogJson),
-    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+      accountId: localResource.accountId,
+      databaseId: localResource.databaseId,
+    }),
     scope,
-    localResource: WalletHomeCatalog.parse(JSON.parse(input.catalogJson)).select(input.localRegion),
+    localResource,
     catalogJson: input.catalogJson,
     ingressRegion: input.region,
   });

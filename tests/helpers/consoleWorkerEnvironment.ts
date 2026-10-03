@@ -7,6 +7,7 @@ export function consoleWorkerEnvironment(input: {
   readonly databaseId: string;
 }): Record<string, string> {
   return {
+    SEAMS_WALLET_HOME_CATALOG_JSON: fixtureHomeCatalog(input.accountId, input.databaseId),
     SEAMS_TENANT_STORAGE_NAMESPACE: input.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: input.deploymentLane,
     SEAMS_D1_HOME_ACCOUNT_ID: input.accountId,
@@ -32,4 +33,20 @@ export function consoleWorkerEnvironment(input: {
     STRIPE_API_SK: 'sk_test_local_unusable',
     STRIPE_WEBHOOK_SECRET: 'whsec_local_unusable',
   };
+}
+
+function fixtureHomeCatalog(accountId: string, databaseId: string): string {
+  const alternatives = [];
+  for (const candidate of [
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  ]) {
+    if (candidate !== databaseId) alternatives.push(candidate);
+  }
+  return JSON.stringify([
+    { region: 'US', accountId, databaseId },
+    { region: 'WEUR', accountId, databaseId: alternatives[0] },
+    { region: 'APAC', accountId, databaseId: alternatives[1] },
+  ]);
 }

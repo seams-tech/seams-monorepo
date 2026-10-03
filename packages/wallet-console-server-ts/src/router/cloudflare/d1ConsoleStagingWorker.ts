@@ -1,3 +1,4 @@
+import { WalletHomeCatalog } from '../../walletPlacement/home';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
 import { withCors } from '@seams/wallet-server/cloud-host';
@@ -108,7 +109,7 @@ import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provi
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
-import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { isTenantDeploymentStoreError } from '../../tenantDeployment/service';
 import {
   handleWalletHomeServiceRequest,
@@ -511,7 +512,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
   const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
-    home: deploymentHome,
+    namespace,
+    resources: WalletHomeCatalog.parse(
+      JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON),
+    ).deploymentResources(),
     deploymentLane,
     surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
     orgProjectEnv: bundle.orgProjectEnv,
@@ -681,6 +685,10 @@ async function fetch(
       const writer = parseTenantRuntimeWriterV1(
         request.headers.get('x-seams-writer-role'),
         request.headers.get('x-seams-writer-version'),
+        {
+          accountId: request.headers.get('x-seams-writer-account'),
+          databaseId: request.headers.get('x-seams-writer-database'),
+        },
       );
       active = await tenantDeploymentReader.resolveRuntimeBinding(deploymentLane, writer);
     } catch (error) {
@@ -699,6 +707,7 @@ async function fetch(
     const response = await handleWalletHomeServiceRequest(request, {
       database: env.CONSOLE_DB,
       catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+      admittedResources: active.resources,
       scope: active.tenant,
       deploymentLane,
     });

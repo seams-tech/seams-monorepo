@@ -1,4 +1,4 @@
-import { TenantHomeVerificationV1 } from '../../tenantDeployment/homeVerification';
+import { TenantResourceVerificationV1 } from '../../tenantDeployment/resourceVerification';
 import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
 import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
 import { resolveRuntimeTenantRootLineage } from '@seams/wallet-server/cloud-host';
@@ -1017,11 +1017,9 @@ async function provisionLocalTenantDeployment(
     environmentId: request.environmentId,
     authorization: {
       kind: 'activate',
-      verification: TenantHomeVerificationV1.forLocalDevelopment(
-        home,
-        request.deploymentLane,
-        Date.now(),
-      ),
+      verifications: [
+        TenantResourceVerificationV1.forLocalDevelopment(home, request.deploymentLane, Date.now()),
+      ],
     },
   });
 }
@@ -1214,7 +1212,8 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   });
   const tenantDeploymentStore = createD1TenantDeploymentServiceV1({ database: env.CONSOLE_DB });
   const provisioner = createTenantDeploymentProvisionerV1({
-    home,
+    namespace: home.namespace,
+    resources: [{ accountId: home.accountId, databaseId: home.databaseId }],
     deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
     surfaces: {
       applicationOrigin: 'http://localhost:4001',

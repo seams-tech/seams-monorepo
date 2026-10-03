@@ -1,4 +1,7 @@
-import { TenantHomeVerificationV1 } from './homeVerification';
+import {
+  parseDeploymentResourceVerifications,
+  type TenantDeploymentResourceVerificationsV1,
+} from './resourceVerification';
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
 import { isTenantDeploymentStoreError } from './service';
 import {
@@ -138,16 +141,16 @@ async function parseRequest(request: Request): Promise<{
   readonly environmentId: string;
   readonly authorization: {
     readonly kind: 'activate';
-    readonly verification: TenantHomeVerificationV1;
+    readonly verifications: TenantDeploymentResourceVerificationsV1;
   };
 }> {
   const body: unknown = await request.json().catch(() => null);
   if (
     !isRecord(body) ||
-    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,resourceCheckpoint'
+    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,resourceCheckpoints'
   ) {
     throw new Error(
-      'cutover request must contain deploymentLane, environmentId and resourceCheckpoint',
+      'cutover request must contain deploymentLane, environmentId and resourceCheckpoints',
     );
   }
   if (
@@ -163,10 +166,7 @@ async function parseRequest(request: Request): Promise<{
     environmentId: body.environmentId,
     authorization: {
       kind: 'activate',
-      verification: TenantHomeVerificationV1.fromOperatorCheckpoint(
-        body.resourceCheckpoint,
-        Date.now(),
-      ),
+      verifications: parseDeploymentResourceVerifications(body.resourceCheckpoints, Date.now()),
     },
   };
 }

@@ -14,7 +14,7 @@ import {
   WalletOwnershipKey,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
-import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   WALLET_HOME_SERVICE_BASE_PATH,
   WALLET_HOME_SERVICE_ORIGIN,
@@ -403,7 +403,10 @@ test('wallet homes are independent within a tenant and durable across competing 
     const clientBinding = new MiniflareWalletHomeServiceBinding(runtime);
     const serviceClient = new WalletHomeServiceClient(
       clientBinding,
-      parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+        accountId: homes[0].accountId,
+        databaseId: homes[0].databaseId,
+      }),
       {
         namespace: 'shared',
         organizationId: 'owner',

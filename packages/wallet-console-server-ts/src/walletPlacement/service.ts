@@ -1,3 +1,4 @@
+import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import {
@@ -73,6 +74,7 @@ export async function handleWalletHomeServiceRequest(
   options: {
     readonly database: D1DatabaseLike;
     readonly catalogJson: unknown;
+    readonly admittedResources: TenantDeploymentD1ResourcesV1;
     readonly scope: WalletHomeServiceScope;
     readonly deploymentLane: string;
   },
@@ -94,6 +96,9 @@ export async function handleWalletHomeServiceRequest(
 
   try {
     const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
+    if (!catalog.matchesResources(options.admittedResources)) {
+      return json({ ok: false, code: 'wallet_home_resources_unverified' }, 503);
+    }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`) {

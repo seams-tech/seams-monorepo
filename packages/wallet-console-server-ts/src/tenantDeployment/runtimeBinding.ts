@@ -1,4 +1,4 @@
-import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from './homeVerification';
+import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from './resourceVerification';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
@@ -50,6 +50,8 @@ function internalActiveBindingRequest(writer: TenantRuntimeWriterV1): Request {
         Accept: 'application/json',
         'x-seams-writer-role': writer.role,
         'x-seams-writer-version': writer.versionId,
+        'x-seams-writer-account': writer.resource.accountId,
+        'x-seams-writer-database': writer.resource.databaseId,
       },
     },
   );
@@ -87,11 +89,32 @@ export function createTenantDeploymentInternalBindingHandlerV1(options: {
         { headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    const writer = parseTenantRuntimeWriterV1(
-      request.headers.get('x-seams-writer-role'),
-      request.headers.get('x-seams-writer-version'),
-    );
-    const binding = await options.reader.resolveRuntimeBinding(deploymentLane, writer);
+    let binding: TenantDeploymentBindingV1 | null;
+    try {
+      const writer = parseTenantRuntimeWriterV1(
+        request.headers.get('x-seams-writer-role'),
+        request.headers.get('x-seams-writer-version'),
+        {
+          accountId: request.headers.get('x-seams-writer-account'),
+          databaseId: request.headers.get('x-seams-writer-database'),
+        },
+      );
+      binding = await options.reader.resolveRuntimeBinding(deploymentLane, writer);
+    } catch (error) {
+      if (
+        error instanceof TenantDeploymentStoreError &&
+        (error.code === 'activation_conflict' || error.code === 'readiness_invalid')
+      ) {
+        return Response.json(
+          { ok: false, code: 'tenant_deployment_writer_unauthorized' },
+          {
+            status: 403,
+            headers: { 'Cache-Control': 'no-store' },
+          },
+        );
+      }
+      throw error;
+    }
     if (!binding) {
       return Response.json(
         { ok: false, code: 'tenant_deployment_unavailable' },
@@ -190,10 +213,17 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
-  if (
-    binding.home.accountId !== configured.accountId ||
-    binding.home.databaseId !== configured.databaseId
-  ) {
+  let admitted = false;
+  for (const resource of binding.resources) {
+    if (
+      resource.accountId === configured.accountId &&
+      resource.databaseId === configured.databaseId
+    ) {
+      admitted = true;
+      break;
+    }
+  }
+  if (!admitted) {
     throw new TenantDeploymentStoreError(
       'deployment_resource_conflict',
       'runtime D1 resource conflicts with the active binding',

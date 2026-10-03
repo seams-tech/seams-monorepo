@@ -81,7 +81,7 @@ async function run() {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ ...options.body, resourceCheckpoint }),
+    body: JSON.stringify({ ...options.body, resourceCheckpoints: [resourceCheckpoint] }),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.ok !== true) {

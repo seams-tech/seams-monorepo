@@ -1000,3 +1000,23 @@ R127 is complete when:
   readers, fallbacks, fixtures, and documentation are deleted;
 - the production-testnet incident is preserved as an end-to-end regression
   test.
+
+### October 3: resource-set activation contract
+
+The current candidate replaces binding `home` with canonical `resources` and
+accepts `resourceCheckpoints` at the protected cutover boundary. Each physical
+resource needs its own fresh Gateway/Wallet Runtime proof. Writer admission now
+matches role, version, account and database; a configured regional catalog must
+match the active set before Console can reserve wallet homes.
+
+Console migration 0054 retires active deployment pointers and unfinished cutovers
+so the new contract requires fresh activation. It preserves activation history
+and consumed challenge IDs, removes singular resource columns, and atomically
+consumes every challenge in an activation. This migration has only been exercised
+locally; no hosted state has been reset.
+
+The regional renderer, complete-set operator challenge collection, regional
+readiness inspection, and admission renewal for changed serving versions remain
+unfinished. The current one-resource operator collector cannot activate the
+three-resource hosted catalog. Deployment and release remain held until these
+paths are replaced and the composed hosted flow is verified.

@@ -12,7 +12,7 @@ import {
   WalletHome,
   regionForRegistrationIngress,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
-import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { gatewaySetupInput } from './registrationHomeAdmission';
 
 type Env = RegionalGatewayBindings & {
@@ -29,7 +29,10 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
   const home = WalletHome.parse(JSON.parse(env.HOME_JSON));
   const authority = new ConsoleRegistrationHomeAdmission({
     service: env.CONSOLE,
-    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+      accountId: home.accountId,
+      databaseId: home.databaseId,
+    }),
     scope: {
       namespace: 'shared',
       organizationId: 'owner',

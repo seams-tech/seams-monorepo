@@ -39,6 +39,7 @@ export default {
     const serviceResponse = await handleWalletHomeServiceRequest(request, {
       database: env.CONSOLE_DB,
       catalogJson,
+      admittedResources: catalog.deploymentResources(),
       scope: {
         namespace: 'shared',
         organizationId: 'owner',
@@ -56,6 +57,7 @@ export default {
           const result = await registrationLifecycleFromGateway({
             database: env.CONSOLE_DB,
             catalogJson,
+            admittedResources: catalog.deploymentResources(),
             region: body.region,
             localRegion: body.localRegion,
             ceremonyId: body.ceremonyId,
@@ -77,6 +79,7 @@ export default {
         const result = await reserveFromGateway({
           database: env.CONSOLE_DB,
           catalogJson,
+          admittedResources: catalog.deploymentResources(),
           region: body.region,
           localRegion: body.localRegion,
           operationId: body.operationId,

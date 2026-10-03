@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { deploymentResource } from '../helpers/tenantDeploymentFixtures';
 import { createCloudflareD1ConsoleOnlyServiceBundle } from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1ConsoleServices';
 import { createInMemoryConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv';
 import { createInMemoryConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys';
@@ -159,7 +158,13 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
   });
 
   const binding = await adapter.buildCandidate({
-    home: deploymentResource('candidate-snapshot', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+    namespace: 'candidate-snapshot',
+    resources: [
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      },
+    ],
     identity: identity.value,
     activeTenantRoot: {
       identityDigestB64u: 'root-digest',

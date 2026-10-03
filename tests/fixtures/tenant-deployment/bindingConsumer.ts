@@ -10,6 +10,8 @@ export default {
     env: {
       WALLET_CONSOLE: TenantDeploymentServiceBindingV1;
       DEPLOYMENT_LANE: string;
+      WRITER_VERSION: string;
+      WRITER_ROLE: 'gateway' | 'walletRuntime';
       SEAMS_D1_HOME_ACCOUNT_ID: string;
       SEAMS_D1_HOME_DATABASE_ID: string;
     },
@@ -17,7 +19,14 @@ export default {
     const headers = new Headers();
     try {
       const binding = await resolveActiveTenantDeploymentFromServiceV1({
-        writer: { role: 'gateway', versionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+        writer: {
+          role: env.WRITER_ROLE,
+          versionId: env.WRITER_VERSION,
+          resource: {
+            accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+            databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+          },
+        },
         deploymentLane: env.DEPLOYMENT_LANE,
         service: env.WALLET_CONSOLE,
         timingHeaders: headers,

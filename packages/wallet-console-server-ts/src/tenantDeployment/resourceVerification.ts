@@ -1,3 +1,8 @@
+import {
+  decodeTenantDeploymentD1ResourceV1,
+  type TenantDeploymentD1ResourceV1,
+  type TenantDeploymentD1ResourcesV1,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
 import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 import { TenantDeploymentStoreError } from './service';
 
@@ -25,7 +30,7 @@ function record(value: unknown): value is Record<string, unknown> {
 function invalid(): never {
   throw new TenantDeploymentStoreError(
     'readiness_invalid',
-    'Home verification is invalid or expired',
+    'Resource verification is invalid or expired',
   );
 }
 
@@ -54,10 +59,10 @@ function parseWriter(raw: unknown, versionId: unknown, databaseId: string): Writ
 }
 
 // Only the authenticated operator boundary accepts a provider checkpoint.
-export class TenantHomeVerificationV1 {
+export class TenantResourceVerificationV1 {
   readonly #validated = true;
   private constructor(
-    readonly home: TenantDeploymentD1ResourceIdentityV1,
+    readonly resource: TenantDeploymentD1ResourceIdentityV1,
     readonly deploymentLane: string,
     readonly challengeId: string,
     readonly checkedAtMs: number,
@@ -67,7 +72,7 @@ export class TenantHomeVerificationV1 {
     Object.freeze(this);
   }
 
-  static fromOperatorCheckpoint(raw: unknown, nowMs: number): TenantHomeVerificationV1 {
+  static fromOperatorCheckpoint(raw: unknown, nowMs: number): TenantResourceVerificationV1 {
     if (
       !record(raw) ||
       raw.kind !== 'tenant_d1_resource_checkpoint_v1' ||
@@ -105,21 +110,21 @@ export class TenantHomeVerificationV1 {
       nowMs - before > 300_000
     )
       invalid();
-    const home = TenantDeploymentD1ResourceIdentityV1.parse(raw.resource);
+    const resource = TenantDeploymentD1ResourceIdentityV1.parse(raw.resource);
     const [gatewayRaw, runtimeRaw] = raw.workers;
-    const gateway = parseWriter(gatewayRaw, raw.writerVersions.gateway, home.databaseId);
+    const gateway = parseWriter(gatewayRaw, raw.writerVersions.gateway, resource.databaseId);
     const walletRuntime = parseWriter(
       runtimeRaw,
       raw.writerVersions.walletRuntime,
-      home.databaseId,
+      resource.databaseId,
     );
     if (
       gateway.workerName === walletRuntime.workerName ||
       gateway.versionId === walletRuntime.versionId
     )
       invalid();
-    return new TenantHomeVerificationV1(
-      home,
+    return new TenantResourceVerificationV1(
+      resource,
       raw.deploymentLane,
       raw.challengeId,
       raw.checkedAtMs,
@@ -129,15 +134,15 @@ export class TenantHomeVerificationV1 {
   }
 
   static forLocalDevelopment(
-    home: TenantDeploymentD1ResourceIdentityV1,
+    resource: TenantDeploymentD1ResourceIdentityV1,
     lane: string,
     nowMs: number,
-  ): TenantHomeVerificationV1 {
+  ): TenantResourceVerificationV1 {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
     let challengeId = '';
     for (const byte of bytes) challengeId += byte.toString(16).padStart(2, '0');
-    return new TenantHomeVerificationV1(
-      home,
+    return new TenantResourceVerificationV1(
+      resource,
       lane,
       challengeId,
       nowMs,
@@ -146,10 +151,10 @@ export class TenantHomeVerificationV1 {
     );
   }
 
-  assertFor(home: TenantDeploymentD1ResourceIdentityV1, lane: string, nowMs: number): void {
+  assertFor(resource: TenantDeploymentD1ResourceIdentityV1, lane: string, nowMs: number): void {
     if (
       !this.#validated ||
-      !this.home.matches(home) ||
+      !this.resource.matches(resource) ||
       this.deploymentLane !== lane ||
       this.checkedAtMs > nowMs ||
       this.expiresAtMs <= nowMs
@@ -161,11 +166,13 @@ export class TenantHomeVerificationV1 {
 export type TenantRuntimeWriterV1 = {
   readonly role: 'gateway' | 'walletRuntime';
   readonly versionId: string;
+  readonly resource: TenantDeploymentD1ResourceV1;
 };
 
 export function parseTenantRuntimeWriterV1(
   role: unknown,
   versionId: unknown,
+  rawResource: unknown,
 ): TenantRuntimeWriterV1 {
   if (
     (role !== 'gateway' && role !== 'walletRuntime') ||
@@ -173,7 +180,9 @@ export function parseTenantRuntimeWriterV1(
     !UUID.test(versionId)
   )
     invalid();
-  return { role, versionId };
+  const resource = decodeTenantDeploymentD1ResourceV1(rawResource);
+  if (!resource.ok) invalid();
+  return { role, versionId, resource: resource.value };
 }
 
 export function storedRuntimeVersionMatches(
@@ -182,7 +191,80 @@ export function storedRuntimeVersionMatches(
 ): boolean {
   if (typeof rawJson !== 'string') return false;
   const raw: unknown = JSON.parse(rawJson);
-  if (!record(raw) || !record(raw.authority) || raw.authority.kind !== 'cloudflare') return false;
-  const deployment = raw.authority[writer.role];
-  return record(deployment) && deployment.versionId === writer.versionId;
+  if (!Array.isArray(raw)) return false;
+  for (const proof of raw) {
+    if (!record(proof) || !record(proof.authority) || proof.authority.kind !== 'cloudflare')
+      continue;
+    const deployment = proof.authority[writer.role];
+    if (
+      record(deployment) &&
+      deployment.versionId === writer.versionId &&
+      record(proof.resource) &&
+      proof.resource.accountId === writer.resource.accountId &&
+      proof.resource.databaseId === writer.resource.databaseId
+    )
+      return true;
+  }
+  return false;
+}
+
+export type TenantDeploymentResourceVerificationsV1 = readonly [
+  TenantResourceVerificationV1,
+  ...TenantResourceVerificationV1[],
+];
+
+export function assertDeploymentResourcesVerified(
+  resources: TenantDeploymentD1ResourcesV1,
+  namespace: string,
+  lane: string,
+  verifications: TenantDeploymentResourceVerificationsV1,
+  nowMs: number,
+): void {
+  if (resources.length !== verifications.length) invalid();
+  const workerNames = new Set<string>();
+  const versionIds = new Set<string>();
+  for (const resource of resources) {
+    const proof = verifications.find(matchesResource.bind(null, resource));
+    if (!proof) invalid();
+    proof.assertFor(
+      TenantDeploymentD1ResourceIdentityV1.parse({ namespace, ...resource }),
+      lane,
+      nowMs,
+    );
+    if (proof.authority.kind === 'cloudflare') {
+      for (const writer of [proof.authority.gateway, proof.authority.walletRuntime]) {
+        if (workerNames.has(writer.workerName) || versionIds.has(writer.versionId)) invalid();
+        workerNames.add(writer.workerName);
+        versionIds.add(writer.versionId);
+      }
+    } else if (resources.length !== 1) {
+      invalid();
+    }
+  }
+}
+
+function matchesResource(
+  resource: TenantDeploymentD1ResourcesV1[number],
+  proof: TenantResourceVerificationV1,
+): boolean {
+  return (
+    resource.accountId === proof.resource.accountId &&
+    resource.databaseId === proof.resource.databaseId
+  );
+}
+
+export function parseDeploymentResourceVerifications(
+  raw: unknown,
+  nowMs: number,
+): TenantDeploymentResourceVerificationsV1 {
+  if (!Array.isArray(raw) || raw.length === 0) invalid();
+  const [first, ...rest] = raw;
+  return [
+    TenantResourceVerificationV1.fromOperatorCheckpoint(first, nowMs),
+    ...rest.map(parseResourceCheckpoint.bind(null, nowMs)),
+  ];
+}
+
+function parseResourceCheckpoint(nowMs: number, raw: unknown): TenantResourceVerificationV1 {
+  return TenantResourceVerificationV1.fromOperatorCheckpoint(raw, nowMs);
 }

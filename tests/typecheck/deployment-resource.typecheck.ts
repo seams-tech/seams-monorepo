@@ -1,4 +1,4 @@
-import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
 import type { TenantDeploymentProvisionerOptionsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 import type { ActivateTenantDeploymentBindingInputV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
@@ -23,12 +23,15 @@ void literal;
 void constructed;
 void spread;
 
-declare const optionsWithoutHome: Omit<TenantDeploymentProvisionerOptionsV1, 'home'>;
+declare const optionsWithoutHome: Omit<TenantDeploymentProvisionerOptionsV1, 'resources'>;
 // @ts-expect-error Provisioning always requires a parsed home resource identity.
 const unscopedProvisioner: TenantDeploymentProvisionerOptionsV1 = optionsWithoutHome;
 void unscopedProvisioner;
 
-declare const activationWithoutHome: Omit<ActivateTenantDeploymentBindingInputV1, 'home'>;
+declare const activationWithoutHome: Omit<
+  ActivateTenantDeploymentBindingInputV1,
+  'resourceVerifications'
+>;
 // @ts-expect-error Direct activation requires a parsed home even when provisioning is bypassed.
 const unscopedActivation: ActivateTenantDeploymentBindingInputV1 = activationWithoutHome;
 void unscopedActivation;
@@ -52,12 +55,12 @@ const incompleteVersions: typeof checkpoint = {
 void anonymousCheckpoint;
 void incompleteVersions;
 
-declare const verification: TenantHomeVerificationV1;
+declare const verification: TenantResourceVerificationV1;
 // @ts-expect-error A spread loses the validated proof identity.
-const forgedVerification: TenantHomeVerificationV1 = { ...verification };
+const forgedVerification: TenantResourceVerificationV1 = { ...verification };
 declare const unverifiedActivation: Omit<
   ActivateTenantDeploymentBindingInputV1,
-  'homeVerification'
+  'resourceVerifications'
 >;
 // @ts-expect-error Activation cannot omit physical-home verification.
 const uncheckedActivation: ActivateTenantDeploymentBindingInputV1 = unverifiedActivation;
@@ -69,3 +72,19 @@ const mixedAuthority: typeof verification.authority = {
 void forgedVerification;
 void uncheckedActivation;
 void mixedAuthority;
+
+import type { TenantDeploymentD1ResourcesV1 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
+import type {
+  TenantDeploymentResourceVerificationsV1,
+  TenantRuntimeWriterV1,
+} from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+// @ts-expect-error Deployment admission requires at least one physical resource.
+const emptyResources: TenantDeploymentD1ResourcesV1 = [];
+// @ts-expect-error Activation cannot omit all resource proofs.
+const emptyProofs: TenantDeploymentResourceVerificationsV1 = [];
+declare const writerWithoutResource: Omit<TenantRuntimeWriterV1, 'resource'>;
+// @ts-expect-error An admitted version must identify its verified physical database.
+const unboundWriter: TenantRuntimeWriterV1 = writerWithoutResource;
+void emptyResources;
+void emptyProofs;
+void unboundWriter;

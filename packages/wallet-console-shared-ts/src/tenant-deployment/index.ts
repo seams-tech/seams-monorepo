@@ -32,7 +32,7 @@ type TenantDeploymentBindingCommonV1 = {
   readonly kind: 'tenant_deployment_binding_v1';
   readonly schemaVersion: 1;
   readonly deploymentLane: string;
-  readonly home: TenantDeploymentD1ResourceV1;
+  readonly resources: TenantDeploymentD1ResourcesV1;
   readonly tenantRoot: {
     readonly identityDigestB64u: string;
     readonly custodyLineageId: string;
@@ -69,6 +69,43 @@ export function decodeTenantDeploymentD1ResourceV1(
     return { ok: false, message: 'tenant deployment D1 resource is invalid' };
   }
   return { ok: true, value: { accountId: input.accountId, databaseId: input.databaseId } };
+}
+
+export type TenantDeploymentD1ResourcesV1 = readonly [
+  TenantDeploymentD1ResourceV1,
+  ...TenantDeploymentD1ResourceV1[],
+];
+
+export function decodeTenantDeploymentD1ResourcesV1(
+  value: unknown,
+): TenantDeploymentDecodeResult<TenantDeploymentD1ResourcesV1> {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { ok: false, message: 'deployment resources must be a nonempty set' };
+  }
+  const resources: TenantDeploymentD1ResourceV1[] = [];
+  const identities = new Set<string>();
+  for (const raw of value) {
+    const decoded = decodeTenantDeploymentD1ResourceV1(raw);
+    if (!decoded.ok) return decoded;
+    const key = `${decoded.value.accountId}/${decoded.value.databaseId}`;
+    if (identities.has(key)) return { ok: false, message: 'deployment resource is duplicated' };
+    identities.add(key);
+    resources.push(Object.freeze(decoded.value));
+  }
+  resources.sort(compareResources);
+  const [first, ...rest] = resources;
+  if (!first) return { ok: false, message: 'deployment resources must be a nonempty set' };
+  return { ok: true, value: Object.freeze([first, ...rest]) };
+}
+
+function compareResources(
+  left: TenantDeploymentD1ResourceV1,
+  right: TenantDeploymentD1ResourceV1,
+): number {
+  return compareCodeUnits(
+    `${left.accountId}/${left.databaseId}`,
+    `${right.accountId}/${right.databaseId}`,
+  );
 }
 
 type TenantDeploymentTenantV1<TEnvironmentId extends string> = {
@@ -237,7 +274,7 @@ const BINDING_BODY_KEYS = Object.freeze([
   'kind',
   'schemaVersion',
   'deploymentLane',
-  'home',
+  'resources',
   'mode',
   'tenant',
   'tenantRoot',
@@ -409,7 +446,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   if (!exactKeys(input, BINDING_BODY_KEYS)) return null;
   if (input.kind !== 'tenant_deployment_binding_v1' || input.schemaVersion !== 1) return null;
   const deploymentLane = nonEmptyText(input.deploymentLane);
-  const home = decodeTenantDeploymentD1ResourceV1(input.home);
+  const resources = decodeTenantDeploymentD1ResourcesV1(input.resources);
   const mode = parseMode(input.mode);
   const tenant = record(input.tenant);
   const tenantRoot = record(input.tenantRoot);
@@ -419,7 +456,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   const createdAtMs = safePositiveInteger(input.createdAtMs);
   if (
     !deploymentLane ||
-    !home.ok ||
+    !resources.ok ||
     !mode ||
     !tenant ||
     !tenantRoot ||
@@ -512,7 +549,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
-        home: home.value,
+        resources: resources.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -537,7 +574,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
-        home: home.value,
+        resources: resources.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -587,7 +624,7 @@ function bindingBodyJsonValue(
     kind: body.kind,
     schemaVersion: body.schemaVersion,
     deploymentLane: body.deploymentLane,
-    home: body.home,
+    resources: body.resources,
     mode: body.mode,
     tenant: body.tenant,
     tenantRoot: body.tenantRoot,

@@ -1,4 +1,4 @@
-import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   buildTenantDeploymentBindingV1,
   encodeTenantDeploymentJsonValueV1,
@@ -97,10 +97,12 @@ export function developmentBindingBody(
     kind: 'tenant_deployment_binding_v1',
     schemaVersion: 1,
     deploymentLane,
-    home: {
-      accountId: '0123456789abcdef0123456789abcdef',
-      databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    },
+    resources: [
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      },
+    ],
     mode: { kind: 'development_testnet_v1', environment: 'development', network: 'testnet' },
     tenant: {
       namespace: 'wallet',
@@ -161,8 +163,8 @@ export async function historicalBindingFromCandidate(candidate: TenantDeployment
 
 async function historicalBindingFromBody(candidate: TenantDeploymentBindingBodyV1) {
   // Historical wire data is constructed only at this persistence-test boundary.
-  const { home, ...body } = candidate;
-  void home;
+  const { resources, ...body } = candidate;
+  void resources;
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(encodeTenantDeploymentJsonValueV1(body)),
@@ -171,7 +173,10 @@ async function historicalBindingFromBody(candidate: TenantDeploymentBindingBodyV
   return { ...body, revision };
 }
 
-export function deploymentResource(namespace: string, databaseId: string): TenantDeploymentD1ResourceIdentityV1 {
+export function deploymentResource(
+  namespace: string,
+  databaseId: string,
+): TenantDeploymentD1ResourceIdentityV1 {
   return TenantDeploymentD1ResourceIdentityV1.parse({
     namespace,
     accountId: '0123456789abcdef0123456789abcdef',
@@ -236,12 +241,9 @@ export async function readyActivation(
     expectedActiveRevision,
   });
   return {
-    homeVerification: TenantHomeVerificationV1.forLocalDevelopment(
-      home,
-      candidate.deploymentLane,
-      nowMs,
-    ),
-    home,
+    resourceVerifications: [
+      TenantResourceVerificationV1.forLocalDevelopment(home, candidate.deploymentLane, nowMs),
+    ],
     operationId,
     expectedCutoverRecordRevision: ready.recordRevision,
     deploymentLane: candidate.deploymentLane,
@@ -271,7 +273,11 @@ export function activeCutoverFixture(
   };
 }
 
-export function operatorHomeCheckpoint(home: TenantDeploymentD1ResourceIdentityV1, lane: string, nowMs: number) {
+export function operatorResourceCheckpoint(
+  home: TenantDeploymentD1ResourceIdentityV1,
+  lane: string,
+  nowMs: number,
+) {
   const gateway = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const walletRuntime = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -304,18 +310,22 @@ export function operatorHomeCheckpoint(home: TenantDeploymentD1ResourceIdentityV
   };
 }
 
-export async function bindingForHome(nowMs: number, lane: string, home: TenantDeploymentD1ResourceIdentityV1) {
+export async function bindingForResource(
+  nowMs: number,
+  lane: string,
+  home: TenantDeploymentD1ResourceIdentityV1,
+) {
   const body = developmentBindingBody(nowMs, lane);
   const result = await buildTenantDeploymentBindingV1({
     ...body,
-    home: { accountId: home.accountId, databaseId: home.databaseId },
+    resources: [{ accountId: home.accountId, databaseId: home.databaseId }],
     tenant: { ...body.tenant, namespace: home.namespace },
   });
   if (!result.ok) throw new Error(result.message);
   return result.value;
 }
 
-export async function productionBindingForHome(
+export async function productionBindingForResource(
   nowMs: number,
   lane: string,
   home: TenantDeploymentD1ResourceIdentityV1,
@@ -324,7 +334,7 @@ export async function productionBindingForHome(
   const result = await buildTenantDeploymentBindingV1({
     ...body,
     mode: { kind: 'production_mainnet_v1', environment: 'production', network: 'mainnet' },
-    home: { accountId: home.accountId, databaseId: home.databaseId },
+    resources: [{ accountId: home.accountId, databaseId: home.databaseId }],
     tenant: {
       ...body.tenant,
       namespace: home.namespace,
@@ -335,6 +345,75 @@ export async function productionBindingForHome(
       credentialId: 'ak_prod_fixture',
       publishableKey: 'pk_prod_fixture',
     },
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
+}
+
+export async function regionalBinding(createdAtMs: number, deploymentLane: string) {
+  const body = developmentBindingBody(createdAtMs, deploymentLane);
+  const result = await buildTenantDeploymentBindingV1({
+    ...body,
+    resources: [
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      },
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      },
+    ],
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
+}
+
+export function regionalResourceProof(
+  candidate: TenantDeploymentBindingV1,
+  databaseId: string,
+  gatewayVersion: string,
+  runtimeVersion: string,
+  nowMs: number,
+) {
+  const resource = deploymentResource(candidate.tenant.namespace, databaseId);
+  const checkpoint = operatorResourceCheckpoint(resource, candidate.deploymentLane, nowMs);
+  return TenantResourceVerificationV1.fromOperatorCheckpoint(
+    {
+      ...checkpoint,
+      writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
+      workers: [
+        {
+          workerName: `gateway-${databaseId}`,
+          deploymentId: gatewayVersion,
+          versions: [{ versionId: gatewayVersion, percentage: 100, databaseId }],
+        },
+        {
+          workerName: `runtime-${databaseId}`,
+          deploymentId: runtimeVersion,
+          versions: [{ versionId: runtimeVersion, percentage: 100, databaseId }],
+        },
+      ],
+    },
+    nowMs,
+  );
+}
+
+export async function bindingForResourceSet(
+  nowMs: number,
+  lane: string,
+  namespace: string,
+  resources: import('../../packages/wallet-console-shared-ts/src/tenant-deployment').TenantDeploymentD1ResourcesV1,
+) {
+  const body = developmentBindingBody(nowMs, lane);
+  const result = await buildTenantDeploymentBindingV1({
+    ...body,
+    resources,
+    tenant: { ...body.tenant, namespace },
   });
   if (!result.ok) throw new Error(result.message);
   return result.value;

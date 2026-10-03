@@ -1,4 +1,4 @@
-import { TenantHomeVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/homeVerification';
+import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -31,7 +31,7 @@ import {
   binding,
   developmentBindingBody,
   deploymentResource,
-  operatorHomeCheckpoint,
+  operatorResourceCheckpoint,
 } from '../helpers/tenantDeploymentFixtures';
 
 test.describe('tenant deployment binding', () => {
@@ -49,6 +49,7 @@ test.describe('tenant deployment binding', () => {
         '0049_tenant_deployment_binding_homes.sql',
         '0050_tenant_deployment_home_verification.sql',
         '0052_drop_namespace_placement.sql',
+        '0054_deployment_resource_sets.sql',
       ]) {
         await fixture.database.exec(
           readFileSync(
@@ -234,6 +235,7 @@ test.describe('tenant deployment binding', () => {
         '0049_tenant_deployment_binding_homes.sql',
         '0050_tenant_deployment_home_verification.sql',
         '0052_drop_namespace_placement.sql',
+        '0054_deployment_resource_sets.sql',
       ]) {
         await fixture.database.exec(
           readFileSync(
@@ -338,11 +340,12 @@ test.describe('tenant deployment binding', () => {
         }),
       ).rejects.toMatchObject({ code: 'invalid_input' });
       const input = {
-        homeVerification: TenantHomeVerificationV1.fromOperatorCheckpoint(
-          operatorHomeCheckpoint(home, first.deploymentLane, 1_800_000_000_000),
-          1_800_000_000_000,
-        ),
-        home,
+        resourceVerifications: [
+          TenantResourceVerificationV1.fromOperatorCheckpoint(
+            operatorResourceCheckpoint(home, first.deploymentLane, 1_800_000_000_000),
+            1_800_000_000_000,
+          ),
+        ] as const,
         operationId: 'tco_first' as const,
         expectedCutoverRecordRevision: readyFirst.recordRevision,
         deploymentLane: first.deploymentLane,
@@ -375,7 +378,11 @@ test.describe('tenant deployment binding', () => {
       };
       expect(
         await resolveActiveTenantDeploymentFromServiceV1({
-          writer: { role: 'gateway', versionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+          writer: {
+            role: 'gateway',
+            versionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            resource: first.resources[0],
+          },
           deploymentLane: first.deploymentLane,
           service: serviceBinding,
         }),
@@ -391,8 +398,8 @@ test.describe('tenant deployment binding', () => {
           {
             WALLET_CONSOLE: serviceBinding,
             SEAMS_TENANT_DEPLOYMENT_LANE: first.deploymentLane,
-            SEAMS_D1_HOME_ACCOUNT_ID: first.home.accountId,
-            SEAMS_D1_HOME_DATABASE_ID: first.home.databaseId,
+            SEAMS_D1_HOME_ACCOUNT_ID: first.resources[0].accountId,
+            SEAMS_D1_HOME_DATABASE_ID: first.resources[0].databaseId,
           },
           first,
         ),
@@ -424,11 +431,12 @@ test.describe('tenant deployment binding', () => {
         activationSequence: activated.active.activationSequence,
       };
       const secondInput = {
-        homeVerification: TenantHomeVerificationV1.fromOperatorCheckpoint(
-          operatorHomeCheckpoint(home, second.deploymentLane, 1_800_000_000_000),
-          1_800_000_000_000,
-        ),
-        home,
+        resourceVerifications: [
+          TenantResourceVerificationV1.fromOperatorCheckpoint(
+            operatorResourceCheckpoint(home, second.deploymentLane, 1_800_000_000_000),
+            1_800_000_000_000,
+          ),
+        ] as const,
         operationId: 'tco_second' as const,
         expectedCutoverRecordRevision: 4,
         deploymentLane: second.deploymentLane,

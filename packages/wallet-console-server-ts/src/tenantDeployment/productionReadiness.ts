@@ -20,7 +20,7 @@ import type {
   TenantDeploymentReadinessInspectorV1,
 } from './readiness';
 import type { TenantDeploymentBindingReaderV1 } from './types';
-import type { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
+import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type {
   TenantDeploymentRuntimeInspectorV1,
   TenantDeploymentRuntimeScopeV1,
@@ -37,7 +37,8 @@ export type TenantDeploymentCandidateSurfacesV1 = {
 
 export interface TenantDeploymentCandidateResolverV1 {
   buildCandidate(input: {
-    readonly home: TenantDeploymentD1ResourceIdentityV1;
+    readonly namespace: string;
+    readonly resources: TenantDeploymentD1ResourcesV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;
@@ -287,15 +288,16 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   constructor(private readonly options: ProductionTenantDeploymentReadinessOptionsV1) {}
 
   async buildCandidate(input: {
-    readonly home: TenantDeploymentD1ResourceIdentityV1;
+    readonly namespace: string;
+    readonly resources: TenantDeploymentD1ResourcesV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;
     readonly publishableKey: string;
     readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   }): Promise<TenantDeploymentBindingV1> {
-    if (input.home.namespace !== this.options.namespace)
-      throw new Error('candidate home belongs to another namespace');
+    if (input.namespace !== this.options.namespace)
+      throw new Error('candidate resources belong to another namespace');
     const environment = await resolveEnvironment(this.options, input.identity);
     const credential = await resolveCredential(this.options, input.identity, input.credentialId);
     const runtimePolicyDigestB64u = await resolveRuntimePolicyDigest(
@@ -307,7 +309,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
       kind: 'tenant_deployment_binding_v1',
       schemaVersion: 1,
       deploymentLane: this.options.deploymentLane,
-      home: { accountId: input.home.accountId, databaseId: input.home.databaseId },
+      resources: input.resources,
       mode: modeForEnvironment(environment),
       tenant: {
         namespace: this.options.namespace,

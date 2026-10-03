@@ -1,4 +1,8 @@
-import { decodeTenantDeploymentD1ResourceV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import {
+  decodeTenantDeploymentD1ResourceV1,
+  decodeTenantDeploymentD1ResourcesV1,
+  type TenantDeploymentD1ResourcesV1,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
 
 export type WalletRegion = 'US' | 'WEUR' | 'APAC';
 
@@ -116,6 +120,7 @@ export class WalletHome {
 
 export class WalletHomeCatalog {
   readonly #byRegion: ReadonlyMap<WalletRegion, WalletHome>;
+  readonly #resources: TenantDeploymentD1ResourcesV1;
 
   private constructor(homes: readonly WalletHome[]) {
     const byRegion = new Map<WalletRegion, WalletHome>();
@@ -139,6 +144,13 @@ export class WalletHomeCatalog {
         'US, WEUR and APAC wallet homes are required',
       );
     }
+    const resources = [];
+    for (const home of homes) {
+      resources.push({ accountId: home.accountId, databaseId: home.databaseId });
+    }
+    const decoded = decodeTenantDeploymentD1ResourcesV1(resources);
+    if (!decoded.ok) throw new WalletPlacementError('invalid_input', decoded.message);
+    this.#resources = decoded.value;
     this.#byRegion = byRegion;
     Object.freeze(this);
   }
@@ -148,6 +160,14 @@ export class WalletHomeCatalog {
       throw new WalletPlacementError('invalid_input', 'Three wallet home resources are required');
     }
     return new WalletHomeCatalog(raw.map((value) => WalletHome.parse(value)));
+  }
+
+  deploymentResources(): TenantDeploymentD1ResourcesV1 {
+    return this.#resources;
+  }
+
+  matchesResources(resources: TenantDeploymentD1ResourcesV1): boolean {
+    return JSON.stringify(this.deploymentResources()) === JSON.stringify(resources);
   }
 
   select(region: WalletRegion): WalletHome {

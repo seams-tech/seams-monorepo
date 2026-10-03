@@ -1,4 +1,8 @@
-import { storedRuntimeVersionMatches, type TenantRuntimeWriterV1 } from './homeVerification';
+import {
+  assertDeploymentResourcesVerified,
+  storedRuntimeVersionMatches,
+  type TenantRuntimeWriterV1,
+} from './resourceVerification';
 import {
   d1ChangedRows,
   queryD1One,
@@ -473,8 +477,7 @@ export function createD1TenantDeploymentServiceV1(
 
     async activateBinding(rawInput) {
       const input: ActivateTenantDeploymentBindingInputV1 = {
-        homeVerification: rawInput.homeVerification,
-        home: rawInput.home,
+        resourceVerifications: rawInput.resourceVerifications,
         operationId: parseCutoverId(rawInput.operationId, 'operationId'),
         expectedCutoverRecordRevision: positiveSafeInteger(
           rawInput.expectedCutoverRecordRevision,
@@ -501,16 +504,6 @@ export function createD1TenantDeploymentServiceV1(
           'tenant deployment binding was not found',
         );
       }
-      if (
-        binding.tenant.namespace !== input.home.namespace ||
-        binding.home.accountId !== input.home.accountId ||
-        binding.home.databaseId !== input.home.databaseId
-      ) {
-        throw new TenantDeploymentStoreError(
-          'deployment_resource_conflict',
-          'activation resource differs from the canonical binding',
-        );
-      }
       const cutover = await readCutover(database, input.operationId);
       const before = await readActive(database, input.deploymentLane);
       if (
@@ -525,20 +518,19 @@ export function createD1TenantDeploymentServiceV1(
         before?.revision === input.bindingRevision &&
         before.activationSequence === cutover.state.activationReceipt.activationSequence
       ) {
-        const recordedHome = await queryD1One(
+        const recordedProofs = await queryD1One(
           database,
-          `SELECT home_account_id, home_database_id, home_verification_json FROM tenant_deployment_activations
+          `SELECT resource_verifications_json FROM tenant_deployment_activations
            WHERE operation_id = ?1`,
           [input.operationId],
         );
         if (
-          recordedHome?.home_account_id !== input.home.accountId ||
-          recordedHome.home_database_id !== input.home.databaseId ||
-          recordedHome.home_verification_json !== JSON.stringify(input.homeVerification)
+          recordedProofs?.resource_verifications_json !==
+          JSON.stringify(input.resourceVerifications)
         ) {
           throw new TenantDeploymentStoreError(
             'activation_conflict',
-            'completed activation has no matching home evidence; a new activation is required',
+            'completed activation has no matching resource evidence; a new activation is required',
           );
         }
         return activationResult(before);
@@ -557,7 +549,13 @@ export function createD1TenantDeploymentServiceV1(
         );
       }
       assertReadiness(input, timestamp);
-      input.homeVerification.assertFor(input.home, input.deploymentLane, timestamp);
+      assertDeploymentResourcesVerified(
+        binding.resources,
+        binding.tenant.namespace,
+        input.deploymentLane,
+        input.resourceVerifications,
+        timestamp,
+      );
       const activationSequence = (input.expectedActive?.activationSequence ?? 0) + 1;
       const receipt = {
         kind: 'tenant_deployment_activation_receipt_v1' as const,
@@ -580,8 +578,8 @@ export function createD1TenantDeploymentServiceV1(
              operation_id, deployment_lane, binding_revision,
              expected_previous_revision, expected_activation_sequence,
              activation_sequence, activated_at_ms, expected_cutover_record_revision,
-             ready_state_json, active_state_json, receipt_json, home_account_id, home_database_id, home_verification_json
-           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)`,
+             ready_state_json, active_state_json, receipt_json, resource_verifications_json
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
           )
           .bind(
             input.operationId,
@@ -595,9 +593,7 @@ export function createD1TenantDeploymentServiceV1(
             JSON.stringify(cutover.state),
             JSON.stringify(activeState),
             JSON.stringify(receipt),
-            input.home.accountId,
-            input.home.databaseId,
-            JSON.stringify(input.homeVerification),
+            JSON.stringify(input.resourceVerifications),
           )
           .run();
       } catch {
@@ -751,7 +747,7 @@ async function resolveActiveBindingRecord(
       `SELECT active.deployment_lane AS active_deployment_lane,
                 active.revision AS active_revision,
                 active.previous_revision, active.activation_sequence, active.activated_at_ms,
-                binding.*, activation.home_verification_json
+                binding.*, activation.resource_verifications_json
            FROM active_tenant_deployment_bindings AS active
            LEFT JOIN tenant_deployment_bindings AS binding
              ON binding.deployment_lane = active.deployment_lane
@@ -790,10 +786,10 @@ async function resolveActiveBindingRecord(
     );
   }
   if (access.kind === 'writer') {
-    if (!storedRuntimeVersionMatches(row.home_verification_json, access.writer)) {
+    if (!storedRuntimeVersionMatches(row.resource_verifications_json, access.writer)) {
       throw new TenantDeploymentStoreError(
         'activation_conflict',
-        'Runtime version is not authorized by the active home verification',
+        'Runtime version is not authorized by the active resource verification',
       );
     }
   }

@@ -1,4 +1,4 @@
-import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import type { CfExecutionContext } from '@seams/wallet-server/cloud-host';
 import {
   handleSplitGatewayWalletRuntimeRequest,
@@ -65,7 +65,10 @@ async function fetch(
   }
   const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(
     env,
-    parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA?.id),
+    parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA?.id, {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
   );
   if (!boundEnv) {
     return Response.json(

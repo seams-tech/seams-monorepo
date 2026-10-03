@@ -1,4 +1,4 @@
-import type { TenantRuntimeWriterV1 } from '../tenantDeployment/homeVerification';
+import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import {
   RegistrationSetupAllocation,
   WalletHome,
@@ -200,6 +200,8 @@ export class WalletHomeServiceClient {
           'Content-Type': 'application/json',
           'x-seams-writer-role': this.writer.role,
           'x-seams-writer-version': this.writer.versionId,
+          'x-seams-writer-account': this.writer.resource.accountId,
+          'x-seams-writer-database': this.writer.resource.databaseId,
         },
         body: JSON.stringify(body),
       }),

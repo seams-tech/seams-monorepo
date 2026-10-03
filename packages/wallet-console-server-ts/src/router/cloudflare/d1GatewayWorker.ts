@@ -6,7 +6,7 @@ import {
   WalletRegionalDispatch,
   type RegionalGatewayBindings,
 } from '../../walletPlacement/regionalDispatch';
-import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/homeVerification';
+import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
 import { regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
@@ -62,7 +62,10 @@ async function handleGatewayRequest(
   const pathname = new URL(request.url).pathname;
   const bindingTimingHeaders = new Headers();
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id),
+    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
     timingHeaders: bindingTimingHeaders,
@@ -87,9 +90,15 @@ async function handleGatewayRequest(
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
   const authority = new ConsoleRegistrationHomeAdmission({
     service: env.WALLET_CONSOLE,
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA.id),
+    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA.id, {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
     scope: binding.tenant,
-    localResource: binding.home,
+    localResource: {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    },
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
@@ -139,7 +148,10 @@ async function scheduled(
   _ctx: CfExecutionContext,
 ): Promise<void> {
   const binding = await resolveActiveTenantDeploymentFromServiceV1({
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id),
+    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
   });

@@ -4,7 +4,7 @@ import {
   walletRegistrationSetupRequestDigest,
   type WalletRegistrationReservationAuthority,
 } from '@seams/wallet-server/cloud-host';
-import type { TenantRuntimeWriterV1 } from '../tenantDeployment/homeVerification';
+import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import {
   RegistrationSetupAllocation,
   WalletHomeCatalog,

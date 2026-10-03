@@ -286,6 +286,7 @@ class RegionalRealScenario {
   }
 
   async routeContext(context, region) {
+    await context.unroute('http://127.0.0.1:4100/**');
     await context.route(
       'http://127.0.0.1:4100/**',
       this.gateways.get(region).intercept.bind(this.gateways.get(region)),
@@ -340,6 +341,62 @@ class RegionalRealScenario {
           shared,
           routerReplay,
           evidence,
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
+  async verifyMixedHomes(wallets) {
+    assert.equal(wallets.length, 3);
+    assert.equal(new Set(wallets.map(walletIdentity)).size, 3);
+    const { database, scope, catalog } = this.consoleService;
+    const { results: placements } = await database
+      .prepare(
+        `
+      SELECT wallet_id, region, account_id, database_id, state
+      FROM wallet_homes WHERE namespace = ? AND organization_id = ?
+        AND project_id = ? AND environment_id = ?
+    `,
+      )
+      .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId)
+      .all();
+    assert.equal(placements.length, 3, 'All three placements must share the exact tenant scope');
+    const evidence = [];
+    for (const wallet of wallets) {
+      const placement = placements.find(matchesWallet.bind(undefined, wallet.walletId));
+      assert.ok(placement);
+      assert.equal(placement.region, wallet.home);
+      assert.equal(placement.state, 'established');
+      const home = catalog.select(wallet.home);
+      assert.equal(placement.account_id, home.accountId);
+      assert.equal(placement.database_id, home.databaseId);
+      const stores = [];
+      for (const [region, gateway] of this.gateways) {
+        const tables = {};
+        for (const table of ['wallets', 'wallet_signers', 'wallet_authorities']) {
+          const row = await gateway.database
+            .prepare(`SELECT count(*) AS count FROM ${table} WHERE wallet_id = ?`)
+            .bind(wallet.walletId)
+            .first();
+          tables[table] = row.count;
+          if (region !== wallet.home) assert.equal(row.count, 0, `${region}/${table}`);
+          else if (table === 'wallet_signers') assert.ok(row.count > 0);
+          else assert.equal(row.count, 1, `${region}/${table}`);
+        }
+        stores.push({ region, tables });
+      }
+      evidence.push({ ...wallet, stores });
+    }
+    await writeFile(
+      resolve(this.output, 'mixed-home-evidence.json'),
+      JSON.stringify(
+        {
+          scope,
+          description:
+            'Three real wallets concurrently retained in one tenant namespace; both-family signing through foreign ingress after all registrations; one shared local Router stack.',
+          wallets: evidence,
         },
         null,
         2,
@@ -535,4 +592,12 @@ async function verifySharedLinkState(consoleService, gateways, home) {
     linkedRouteHome: home,
     retainedAcknowledgementProofs: acknowledgedProofs,
   };
+}
+
+function walletIdentity(wallet) {
+  return wallet.walletId;
+}
+
+function matchesWallet(walletId, placement) {
+  return placement.wallet_id === walletId;
 }

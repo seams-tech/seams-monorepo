@@ -7,7 +7,7 @@ const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = path.resolve(candidate, '../..');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const { intendedTest: test } = await import(
+const { intendedTest: test, IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 
@@ -50,6 +50,66 @@ for (const { home, ingress } of [
     }
   });
 }
+
+test('three real wallets share a namespace and retain distinct homes during travel', async ({
+  browser,
+  request,
+}, testInfo) => {
+  const scenario = await createRegionalRealGateway({
+    root,
+    candidate,
+    lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+    output: path.resolve(
+      root,
+      process.env.SEAMS_TEST_ARTIFACT_DIR ?? '.artifacts/r152/regional-real',
+      'mixed-homes',
+    ),
+  });
+  const owners = [];
+  try {
+    for (const { home, travel } of [
+      { home: 'US', travel: 'APAC' },
+      { home: 'WEUR', travel: 'US' },
+      { home: 'APAC', travel: 'WEUR' },
+    ]) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const harness = new IntendedBehaviourHarness({
+        context,
+        page,
+        request,
+        flow: 'passkey.registration',
+        networkMode: 'managed_local',
+      });
+      owners.push({ home, travel, context, harness, page });
+      await harness.initialize();
+      await scenario.routeContext(context, home);
+      await harness.registerPasskeyWallet();
+      await harness.awaitNearReady();
+    }
+    const wallets = [];
+    for (const owner of owners) {
+      await scenario.routeContext(owner.context, owner.travel);
+      await owner.harness.signNearTransaction('post_registration');
+      await owner.harness.signTempoTransaction('post_registration');
+      const walletId = await owner.page
+        .getByTestId('intended-e2e-page')
+        .getAttribute('data-login-wallet-id');
+      if (!walletId) throw new Error('Registered owner must retain its wallet identity');
+      wallets.push({ home: owner.home, travel: owner.travel, walletId });
+    }
+    await scenario.verifyMixedHomes(wallets);
+    for (const owner of owners) {
+      await owner.harness.attachTrace(testInfo, `${owner.home}-owner-trace.json`);
+      owner.harness.assertNoLifecycleViolations();
+      owner.harness.assertNoWrongAuthPath();
+    }
+  } finally {
+    for (const owner of owners) await owner.context.close();
+    await scenario.close();
+  }
+});
 
 function isNewContext(previous: BrowserContext[], context: BrowserContext) {
   return !previous.includes(context);

@@ -45,6 +45,7 @@ export class RegionalTargetSourceFixture {
       walletRegistration: this,
       targetPlanner: { targetPasskeyRpId: 'wallet.test' },
     });
+    this.targetPlanner = provider.targetPlanner;
     this.planner = new api.D1LinkedDeviceSourceContributionPreparationPlannerV1({
       resolveOwnerSourceChildV1: provider.ownerSourceResolver.resolveOwnerSourceChildV1,
       deriverAInputPublicKeyB64u: Buffer.alloc(32, 52).toString('base64url'),

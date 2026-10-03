@@ -14,7 +14,9 @@ export async function verifyRegionalTargetPreparation({
   session,
   approval,
 }) {
-  const planner = new ConcurrentTargetPreparationFixture(api);
+  const planner = new ConcurrentTargetPreparationFixture(
+    bridges.get('WEUR').linkSource.targetPlanner,
+  );
   const provider = new api.D1LinkedDeviceTargetCredentialProviderV1({
     database: await runtime.getD1Database('SIGNER_DB', 'WEUR'),
     scope: signerScope,
@@ -142,6 +144,7 @@ export async function verifyRegionalTargetPreparation({
   return {
     registration,
     preparationHttpAtHome: true,
+    productionTargetPreparationPlanner: true,
     publishableKeyOriginAndEnvironmentEnforced: true,
     preparationHttpRecipientConflict: true,
     concurrentPreparations: 2,
@@ -149,7 +152,7 @@ export async function verifyRegionalTargetPreparation({
     identicalReplay: true,
     changedRecipientConflicts: true,
     scope:
-      'Regional preparation HTTP route with real device signatures and production Console key/origin/environment authentication using in-memory key storage. D1 provider and home dispatch are real; target preparation planner is controlled. Browser registration and production source preparation run in the nested scenario. Contribution execution and installation remain open.',
+      'Regional preparation HTTP route with real device signatures and production Console key/origin/environment authentication using in-memory key storage. D1 provider, target preparation planner and home dispatch use production code; only concurrent entry is synchronized by the fixture. Browser registration and production source preparation run in the nested scenario. Contribution execution and installation remain open.',
   };
 }
 function fulfilled(result) {

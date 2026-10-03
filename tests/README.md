@@ -162,7 +162,13 @@ WEUR→APAC and APAC→US (wallet home → linked-device ingress). Each case fir
 the same reservation. It then drops one successful activation reply (requiring identical activation replay), then
 two successful final acknowledgement replies after cleanup commits, requires the
 exact acknowledgement to replay with fresh device proofs, and verifies signing
-and home-only installation/cleanup afterward. It also checks shared Console
+and home-only installation/cleanup afterward. Each of those three lost activation
+or acknowledgement replies now follows a Gateway/Console process and D1-runtime
+restart. New processes reopen the same databases before the lost reply reaches the
+client. Test observations and fault counters survive in the driver; production
+handlers reload from D1. The Router replay is proved before activation, with no
+further source-material execution after any restart. Per-home `restart-evidence.json`
+records each commit point, status and process replacement. It also checks shared Console
 bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
@@ -212,7 +218,7 @@ identity locator, home-only custody records and consumed-code rejection. Each ca
 queries use the same regional transport as browser requests. Google tokens and
 OTP delivery use the same configuration as the method lifecycle matrix.
 Each `restart-evidence.json` records distinct process IDs and successful old-process
-exit. Only test request observations cross the restart; Gateway and Console objects
+exit. Only test observations and fault counters cross the restart; Gateway and Console objects
 are rebuilt from persisted D1 state. Router roles remain running. The orderly
 restart follows commit; crash recovery during a transaction is a separate case.
 Temporary databases are removed when the scenario closes.

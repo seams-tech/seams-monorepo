@@ -551,7 +551,7 @@ class RegionalRealScenario {
     );
   }
 
-  async verifyHome(home) {
+  async verifyHome(home, routerReplays) {
     const evidence = [];
     for (const [region, gateway] of this.gateways) {
       const tables = {};
@@ -586,8 +586,15 @@ class RegionalRealScenario {
       1,
       'One foreign ingress must handle acknowledgement',
     );
-    const routerReplay = this.routerFault.outcome();
+    const [routerReplay, ...afterRestart] = routerReplays;
     assert.deepEqual(routerReplay, { kind: 'proved', proof: 'replay_answered_same_reservation' });
+    for (const outcome of afterRestart) {
+      assert.deepEqual(
+        outcome,
+        { kind: 'violated', violation: 'router_execute_not_observed' },
+        'Activation and acknowledgement replay must not execute Router material again',
+      );
+    }
     const shared = await verifySharedLinkState(this.consoleService, this.gateways, home);
     await writeFile(
       resolve(this.output, 'regional-real-evidence.json'),
@@ -598,6 +605,7 @@ class RegionalRealScenario {
           home,
           shared,
           routerReplay,
+          routerReplayAfterRestarts: afterRestart,
           evidence,
         },
         null,

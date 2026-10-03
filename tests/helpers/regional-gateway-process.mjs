@@ -1,6 +1,7 @@
 import { createRegionalRealGateway } from './regional-real-gateway.mjs';
 
 let scenario;
+let routerReplayHistory = [];
 process.on('message', dispatch);
 
 async function dispatch(message) {
@@ -32,14 +33,29 @@ async function execute(message) {
     case 'verify-mixed-homes':
       await scenario.verifyMixedHomes(message.wallets, message.registrations);
       return null;
+    case 'verify-linked-home':
+      await scenario.verifyHome(message.home, [
+        ...routerReplayHistory,
+        scenario.routerFault.outcome(),
+      ]);
+      return null;
     case 'observations':
-      return [...scenario.gateways].map(recoveryObservations);
+      return {
+        gateways: [...scenario.gateways].map(gatewayObservations),
+        routerReplays: [...routerReplayHistory, scenario.routerFault.outcome()],
+      };
     case 'restore-observations':
-      for (const observation of message.observations) {
+      routerReplayHistory = message.observations.routerReplays;
+      for (const observation of message.observations.gateways) {
         const gateway = scenario.gateways.get(observation.region);
         gateway.requests = observation.requests;
         gateway.recoveryPrepare = observation.recoveryPrepare;
         gateway.recoveryFinalizationStatuses = observation.recoveryFinalizationStatuses;
+        gateway.activationFault.attempts = observation.activation.attempts;
+        gateway.activationFault.first = observation.activation.first;
+        gateway.acknowledgementFault.attempts = observation.acknowledgement.attempts;
+        gateway.acknowledgementFault.firstBody = observation.acknowledgement.firstBody;
+        gateway.acknowledgementFault.proofs = observation.acknowledgement.proofs;
       }
       return null;
     case 'close':
@@ -50,13 +66,22 @@ async function execute(message) {
   }
 }
 
-// Only test observations cross the restart. Production objects are rebuilt from D1.
-function recoveryObservations([region, gateway]) {
+// Only test observations and fault counters cross the restart. Production objects reload from D1.
+function gatewayObservations([region, gateway]) {
   return {
     region,
     requests: gateway.requests,
     recoveryPrepare: gateway.recoveryPrepare,
     recoveryFinalizationStatuses: gateway.recoveryFinalizationStatuses,
+    activation: {
+      attempts: gateway.activationFault.attempts,
+      first: gateway.activationFault.first,
+    },
+    acknowledgement: {
+      attempts: gateway.acknowledgementFault.attempts,
+      firstBody: gateway.acknowledgementFault.firstBody,
+      proofs: gateway.acknowledgementFault.proofs,
+    },
   };
 }
 

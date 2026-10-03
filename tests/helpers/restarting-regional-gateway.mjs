@@ -48,8 +48,14 @@ class RestartingRegionalGateway {
       region,
       request: serializeRequest(route.request()),
     });
-    if (result.kind === 'aborted') await route.abort(result.reason);
-    else await route.fulfill(result.response);
+    if (result.kind === 'aborted') {
+      const point = committedLinkReply(route.request());
+      this.ready = this.restart(region, point);
+      await this.ready;
+      await route.abort(result.reason);
+    } else {
+      await route.fulfill(result.response);
+    }
   }
 
   requestsFor(region, readinessRequests) {
@@ -87,12 +93,12 @@ class RestartingRegionalGateway {
       request: serializeRequest(route.request()),
     });
     assert.equal(status, 200, 'Restart must follow a committed recovery');
-    this.ready = this.restart(region);
+    this.ready = this.restart(region, { kind: 'recovery_finalization', status });
     await this.ready;
     return status;
   }
 
-  async restart(region) {
+  async restart(region, point) {
     const previous = this.process;
     await previous.drain();
     const observations = await previous.call({ kind: 'observations' });
@@ -106,13 +112,25 @@ class RestartingRegionalGateway {
       newPid: this.process.child.pid,
       oldProcessExit: previous.exitCode,
       databaseMode: 'reopen',
-      afterCommitStatus: 200,
+      point: point.kind,
+      afterCommitStatus: point.status,
     });
   }
 
   async verifyGoogleRecovery(home, ingress) {
     await this.call({ kind: 'verify-google-recovery', home, ingress });
-    await this.writeRestartEvidence([{ home, ingress }]);
+    await this.writeRestartEvidence([
+      { home, ingress, point: 'recovery_finalization', status: 200 },
+    ]);
+  }
+
+  async verifyHome(home, ingress) {
+    await this.call({ kind: 'verify-linked-home', home });
+    await this.writeRestartEvidence([
+      { home, ingress, point: 'linked_activation', status: 200 },
+      { home, ingress, point: 'linked_final_acknowledgement', status: 204 },
+      { home, ingress, point: 'linked_final_acknowledgement', status: 204 },
+    ]);
   }
 
   async verifyMixedHomes(wallets, registrations) {
@@ -125,6 +143,8 @@ class RestartingRegionalGateway {
     for (const [index, route] of routes.entries()) {
       const restart = this.restarts[index];
       assert.equal(restart.ingress, route.ingress);
+      assert.equal(restart.point, route.point);
+      assert.equal(restart.afterCommitStatus, route.status);
       if (index > 0) assert.equal(restart.oldPid, this.restarts[index - 1].newPid);
     }
     await writeFile(
@@ -134,7 +154,7 @@ class RestartingRegionalGateway {
           routes,
           restarts: this.restarts,
           scope:
-            'Gateway/Console Node process and its D1 workerd stop after committed recovery, before the masked response reaches the client. A fresh process reopens the same four databases. Only test observations are restored in memory; Router roles remain running. This is an orderly restart after commit.',
+            'Gateway/Console Node process and its D1 workerd stop after each recorded commit, before the masked response reaches the client. A fresh process reopens the same four databases. Only test observations and fault counters are restored in memory; Router roles remain running. These are orderly restarts after commit.',
         },
         null,
         2,
@@ -253,7 +273,21 @@ function pendingPromise(pending) {
 }
 
 function recoveryRoute(wallet) {
-  return { home: wallet.home, ingress: wallet.travel };
+  return { home: wallet.home, ingress: wallet.travel, point: 'recovery_finalization', status: 200 };
+}
+
+function committedLinkReply(request) {
+  assert.equal(request.method(), 'POST');
+  assert.ok(new URL(request.url()).pathname.endsWith('/receipt'));
+  const receipt = JSON.parse(request.postData());
+  switch (receipt.kind) {
+    case 'local_authority_installation_receipt_v1':
+      return { kind: 'linked_activation', status: 200 };
+    case 'local_authority_activation_final_ack_v1':
+      return { kind: 'linked_final_acknowledgement', status: 204 };
+    default:
+      throw new Error('Unexpected committed reply loss in restart scenario');
+  }
 }
 
 function ignoreFailure() {}

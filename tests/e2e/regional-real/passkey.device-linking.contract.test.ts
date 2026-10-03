@@ -1,7 +1,6 @@
 import type { BrowserContext } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createRegionalRealGateway } from '../../helpers/regional-real-gateway.mjs';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
@@ -17,12 +16,12 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'APAC' },
   { home: 'APAC', ingress: 'US' },
 ]) {
-  test(`real ${home} registration and ${ingress} linked signing survive lost execution, activation and cleanup replies`, async ({
+  test(`real ${home} registration and ${ingress} linked signing survive lost execution, activation and cleanup replies with Gateway restarts`, async ({
     harness,
     context,
     browser,
   }) => {
-    const scenario = await createRegionalRealGateway({
+    const scenario = await createRestartingRegionalGateway({
       root,
       candidate,
       lostAcknowledgements: 2,
@@ -45,7 +44,7 @@ for (const { home, ingress } of [
       await harness.linkDeviceWithPasskey(device);
       await device.signNearTransaction('post_device_link');
       await device.signTempoTransaction('post_device_link');
-      await scenario.verifyHome(home);
+      await scenario.verifyHome(home, ingress);
     } finally {
       await scenario.close();
     }

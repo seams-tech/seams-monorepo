@@ -1,3 +1,4 @@
+import { D1LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import { handleSyncChallengeCommand } from './syncChallenges';
 import { claimPasskeyCredential } from './passkeyClaims';
 import { consumeSharedRateLimit } from './rateLimitService';
@@ -91,6 +92,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit` &&
@@ -120,6 +122,18 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce`) {
+      const nonces = new D1LinkedDeviceRequestProofNonceStoreV1({
+        database: options.database,
+        scope: {
+          namespace: options.scope.namespace,
+          orgId: options.scope.organizationId,
+          projectId: options.scope.projectId,
+          envId: options.scope.environmentId,
+        },
+      });
+      return json(await nonces.consumeRequestProofNonceV1(body));
+    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge`)
       return handleSyncChallengeCommand(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit`)

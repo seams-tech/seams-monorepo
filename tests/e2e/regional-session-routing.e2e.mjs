@@ -1,3 +1,4 @@
+import { verifyRegionalDeviceProofs } from './regional-device-proof.scenario.mjs';
 import { verifyRegionalPasskeyClaims } from './regional-passkey-claims.scenario.mjs';
 import { verifyRegionalRateLimits } from './regional-rate-limits.scenario.mjs';
 import { verifyRegionalSharedIdentity } from './regional-shared-identity.scenario.mjs';
@@ -53,6 +54,7 @@ class ConsoleBridge {
   }
   database = null;
   available = true;
+  dropNextNonceReply = false;
   async fetch(request) {
     if (!this.available) return new Response(null, { status: 503 });
     const writer = api.parseTenantRuntimeWriterV1(
@@ -63,7 +65,7 @@ class ConsoleBridge {
         databaseId: request.headers.get('x-seams-writer-database'),
       },
     );
-    return api.handleWalletHomeServiceRequest(request, {
+    const response = await api.handleWalletHomeServiceRequest(request, {
       database: this.database,
       catalogJson,
       admittedResources: catalog.deploymentResources(),
@@ -71,6 +73,11 @@ class ConsoleBridge {
       deploymentLane: 'test',
       writer,
     });
+    if (this.dropNextNonceReply && new URL(request.url).pathname.endsWith('/device-proof-nonce')) {
+      this.dropNextNonceReply = false;
+      return new Response(null, { status: 503 });
+    }
+    return response;
   }
 }
 class GatewayBridge {
@@ -177,6 +184,10 @@ const bundle = await build({
       export { CloudflareD1EmailOtpEnrollmentStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpEnrollmentStore.ts'))};
       export { CloudflareD1GoogleEmailOtpRegistrationAttemptStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationAttemptStore.ts'))};
       export { CloudflareD1GoogleEmailOtpSessionResolver } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpSessionResolver.ts'))};
+      export { createD1LinkedDeviceRouteServiceV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceRouteService.ts'))};
+      export { computeLinkedDevicePublicKeyDigestV1, encodeLinkedDeviceRequestProofV1, parseLinkedDeviceRequestProofV1, LINKED_DEVICE_REQUEST_PROOF_HEADER_V1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
+      export { handleDeviceLinking } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/deviceLinking.ts'))};
+      export { parseQrLinkedDeviceSessionPayloadV5 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { handleSyncAccount } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/syncAccount.ts'))};
       export { handleAuth } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/auth.ts'))};
       export { handleWalletUnlockChallengeRoute } from ${JSON.stringify(resolve(candidate, 'src/router/domains/walletUnlock/walletUnlockRouteHandlers.ts'))};
@@ -205,7 +216,7 @@ const bundle = await build({
       export { prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
       export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
-      export { buildFullOwnerPermissionsV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/authorization/delegatedAuthority.ts'))};
+      export { buildFullOwnerPermissionsV1, buildFullOwnerDelegatedWalletAuthorityV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/authorization/delegatedAuthority.ts'))};
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
       export { D1WalletHomeDirectory } from './packages/wallet-console-server-ts/src/walletPlacement/d1';
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
@@ -455,6 +466,15 @@ try {
     isolatedScope,
     catalog,
   );
+  const deviceProofs = await verifyRegionalDeviceProofs({
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    isolatedIdentity,
+    signerScope,
+    authorityDatabase,
+  });
   const authenticationRouting = await verifyRegionalAuthenticationRouting({
     isolatedIdentity,
     authorityDatabase,
@@ -634,6 +654,7 @@ try {
   const evidence = {
     revokedDiscovery,
     kind: 'regional_session_routing_e2e_v1',
+    deviceProofs,
     recovery,
     yaoEntryRouting,
     lifecycleRouting,

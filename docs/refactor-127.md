@@ -1476,3 +1476,17 @@ This is local service composition. Expected origin and signer-manifest lookup ar
 fixture inputs; full browser discovery/session bootstrap and live timing remain
 open. Linked-device pre-wallet coordination, durable terminal reconciliation and
 internal/deferred enforcement still block release 0.8.0.
+
+### October 3: shared linked-device request proofs
+
+Console migration 0067 adds tenant-scoped linked-device request-proof nonces. Hosted
+Gateway composition supplies the shared port to the SDK verifier; standalone SDK
+composition retains local persistence. Three-region composition verifies real signed
+proof contention, replay, lost acknowledgement, invalid signature, expiry, project
+isolation and outage recovery. The create route returns 503 while Console authority
+is unavailable; hosted regional nonce tables remain empty. Evidence and validation
+logs: `.artifacts/r152/device-proof-nonces-20261003/`; the public R152 results document
+records its SHA-256. Include this table in scoped operational reset inventories.
+
+QR session creation/polling and owner-home handoff remain unimplemented. This checkpoint
+closes replay-authority work only. Release 0.8.0 remains held.

@@ -1,3 +1,4 @@
+import type { LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import type { SyncChallengeFailure } from '@seams/wallet-server/cloud-host';
 import {
   parseWebAuthnSyncChallengeRecord,
@@ -240,6 +241,31 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  linkedDeviceProofNonces(): LinkedDeviceRequestProofNonceStoreV1 {
+    return { consumeRequestProofNonceV1: this.consumeDeviceProofNonce.bind(this) };
+  }
+
+  private async consumeDeviceProofNonce(
+    input: Parameters<LinkedDeviceRequestProofNonceStoreV1['consumeRequestProofNonceV1']>[0],
+  ): ReturnType<LinkedDeviceRequestProofNonceStoreV1['consumeRequestProofNonceV1']> {
+    try {
+      const response = await this.post('device-proof-nonce', input);
+      if (response.status !== 200) return { outcome: 'unavailable' };
+      const body = response.body;
+      if (
+        body &&
+        typeof body === 'object' &&
+        'outcome' in body &&
+        (body.outcome === 'consumed' || body.outcome === 'already_used')
+      ) {
+        return { outcome: body.outcome };
+      }
+    } catch {
+      return { outcome: 'unavailable' };
+    }
+    return { outcome: 'unavailable' };
   }
 
   syncChallenges(): WebAuthnSyncChallengeStore {

@@ -1,3 +1,4 @@
+import type { PasskeyCredentialClaims } from '@seams/wallet-server/cloud-host';
 import type { EmailOtpRateLimitCounter } from '@seams/wallet-server/cloud-host';
 import type { RegistrationOfferCommand } from './registrationOfferService';
 import type { IdentityCommand } from './identityService';
@@ -234,6 +235,19 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  async claim(input: Parameters<PasskeyCredentialClaims['claim']>[0]): Promise<boolean> {
+    const response = await this.post('claim-passkey', {
+      wallet: WalletOwnershipKey.parse({ ...this.scope, walletId: input.walletId }),
+      rpId: input.rpId,
+      credentialIdB64u: input.credentialIdB64u,
+    });
+    const body = record(response.body);
+    if (response.status === 409 && body.code === 'credential_conflict') return false;
+    if (response.status !== 200 || body.ok !== true)
+      throw new Error(`Passkey ownership unavailable: HTTP ${response.status}`);
+    return true;
   }
 
   rateLimitCounter(): EmailOtpRateLimitCounter {

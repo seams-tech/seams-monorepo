@@ -1,3 +1,4 @@
+import { verifyRegionalPasskeyClaims } from './regional-passkey-claims.scenario.mjs';
 import { verifyRegionalRateLimits } from './regional-rate-limits.scenario.mjs';
 import { verifyRegionalSharedIdentity } from './regional-shared-identity.scenario.mjs';
 import { verifyRegionalGoogleLogin } from './regional-google-login.scenario.mjs';
@@ -468,6 +469,13 @@ try {
     consoleBridge,
     authorityDatabase,
   });
+  const passkeyClaims = await verifyRegionalPasskeyClaims({
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    signerScope,
+  });
   const rateLimits = await verifyRegionalRateLimits({
     api,
     bridges,
@@ -619,6 +627,7 @@ try {
     googleLogin,
     sharedIdentity,
     rateLimits,
+    passkeyClaims,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

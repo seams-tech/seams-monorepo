@@ -1421,3 +1421,14 @@ Persistent home-directory E2E also passed. Evidence is retained under
 SDK/Console candidate after the remaining release gates pass. Full custody replay,
 passkey uniqueness, linked devices and hosted verification remain open.
 No deployment, reset or release occurred.
+
+### R152 shared passkey reservation — October 3
+
+Console migration 0064 reserves scoped RP/credential ownership for a wallet, gated
+by its assigned writer. The matched SDK candidate calls it before registration,
+add-method, recovery and linked-device binding writes. Regional composition proved
+one owner under contention, retained claims after interrupted writes, safe retry,
+foreign-writer rejection and outage rejection. Claims do not authenticate users.
+Credential discovery publication, terminal reconciliation and full hosted lifecycle
+acceptance remain open. Receipt: `.artifacts/r152/passkey-claims-20261003/`.
+No deployment or release occurred.

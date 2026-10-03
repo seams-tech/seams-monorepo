@@ -122,6 +122,7 @@ async function handleGatewayRequest(
     sessionRouting: authority,
     identityStore: authority.identityStore(),
     emailOtpRateLimitCounter: authority.identityStore().rateLimitCounter(),
+    credentialClaims: authority.identityStore(),
     googleRegistrationAttempts: authority.registrationOffers(),
     recoveryRouting: authority,
     lifecycleRouting: authority,

@@ -1,3 +1,4 @@
+import { claimPasskeyCredential } from './passkeyClaims';
 import { consumeSharedRateLimit } from './rateLimitService';
 import { handleRegistrationOfferCommand } from './registrationOfferService';
 import { handleIdentityCommand } from './identityService';
@@ -89,6 +90,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
@@ -164,6 +166,16 @@ export async function handleWalletHomeServiceRequest(
     const wallet = WalletOwnershipKey.parse(body.wallet);
     if (!inScope(wallet, options.scope)) {
       throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey`) {
+      const claimed = await claimPasskeyCredential({
+        database: options.database,
+        wallet,
+        writer: options.writer,
+        rpId: requiredString(body.rpId, 'rpId'),
+        credentialIdB64u: requiredString(body.credentialIdB64u, 'credentialIdB64u'),
+      });
+      return claimed ? json({ ok: true }) : json({ ok: false, code: 'credential_conflict' }, 409);
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes`) {
       if (!Array.isArray(body.locators) || body.locators.length < 1)

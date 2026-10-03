@@ -1763,3 +1763,13 @@ or dispatching the Router. The exhaustive shared state predicate preserves activ
 and in-progress retry behavior. Regional cancellation checks and the real local
 lost-execution/activation-response contract pass. Complete installation across
 regional databases remains open; see the results document for evidence.
+
+
+### October 3: regional export-root delivery and replay
+
+The composed regional linking E2E now verifies production recipient/package relay
+HTTP through US/APAC to WEUR, exact retry replay, changed-key/package conflicts,
+signed delivery and home-only D1 persistence. Regional E2E and focused lint pass;
+the public R152 results document records the repeatable receipt and checksum.
+Ciphertext is an opaque fixture. Cryptographic installation, terminal relay and
+preparation-binding audit, and cleanup remain open.

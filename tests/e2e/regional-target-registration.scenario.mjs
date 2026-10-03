@@ -1,3 +1,4 @@
+import { verifyRegionalExportRootRelay } from './regional-export-root.scenario.mjs';
 import { verifyRegionalSourceOwner } from './regional-source-owner.scenario.mjs';
 import assert from 'node:assert/strict';
 import { browserTargetRegistration } from '../helpers/regional-browser-registration.fixtures.mjs';
@@ -125,7 +126,11 @@ export async function verifyRegionalBrowserRegistration({
     bridges,
     linkSessionId: preparation.linkSessionId,
   });
+  const exportRootRelay = await verifyRegionalExportRootRelay({
+    api, runtime, bridges, deviceFixture, preparation, headers,
+  });
   return {
+    exportRootRelay,
     sourceOwner,
     browser: 'Chromium virtual authenticator',
     realRegistrationVerified: true,

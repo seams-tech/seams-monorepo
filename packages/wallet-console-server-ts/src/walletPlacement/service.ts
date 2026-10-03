@@ -1,4 +1,4 @@
-import { D1WalletRecoveryRoutes, RecoveryLocator } from './recoveryLocators';
+import { D1WalletRoutes, WalletRouteLocator } from './walletRouteLocators';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { SessionLocator, D1WalletSessionLocators } from './sessionLocators';
 import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
@@ -86,8 +86,8 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-recovery` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-recovery` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
@@ -111,10 +111,10 @@ export async function handleWalletHomeServiceRequest(
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
     const sessions = new D1WalletSessionLocators(options.database, options.scope, directory);
-    const recovery = new D1WalletRecoveryRoutes(options.database, options.scope);
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-recovery`) {
-      const locator = RecoveryLocator.parse(body.locator);
-      const assignment = await recovery.find(locator);
+    const routes = new D1WalletRoutes(options.database, options.scope);
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-route`) {
+      const locator = WalletRouteLocator.parse(body.locator);
+      const assignment = await routes.find(locator);
       return assignment
         ? json({ ok: true, locator, assignment })
         : json({ ok: false, code: 'not_found' }, 404);
@@ -145,11 +145,11 @@ export async function handleWalletHomeServiceRequest(
     if (!inScope(wallet, options.scope)) {
       throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
     }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-recovery`) {
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes`) {
       if (!Array.isArray(body.locators) || body.locators.length < 1)
-        throw new WalletPlacementError('invalid_input', 'Recovery locators are required');
-      const locators = body.locators.map(RecoveryLocator.parse);
-      const published = await recovery.publish(wallet, locators, options.writer);
+        throw new WalletPlacementError('invalid_input', 'Wallet route locators are required');
+      const locators = body.locators.map(WalletRouteLocator.parse);
+      const published = await routes.publish(wallet, locators, options.writer);
       return published ? json({ ok: true }) : json({ ok: false, code: 'locator_conflict' }, 409);
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session`) {

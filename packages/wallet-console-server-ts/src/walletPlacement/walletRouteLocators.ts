@@ -1,4 +1,5 @@
 import {
+  WalletLifecycleLocator,
   parseRecoveryCodeLocatorV1,
   parseWalletRecoveryOperationId,
   type D1DatabaseLike,
@@ -12,22 +13,22 @@ type Scope = Pick<
   'namespace' | 'organizationId' | 'projectId' | 'environmentId'
 >;
 
-export class RecoveryLocator {
+export class WalletRouteLocator {
   readonly #validated = true;
   private constructor(
-    readonly kind: 'code' | 'operation',
+    readonly kind: 'code' | 'operation' | 'yao_recovery' | 'yao_export',
     readonly value: string,
   ) {
     Object.freeze(this);
   }
 
-  matches(other: RecoveryLocator): boolean {
+  matches(other: WalletRouteLocator): boolean {
     return (
       this.#validated && other.#validated && this.kind === other.kind && this.value === other.value
     );
   }
 
-  static parse(raw: unknown): RecoveryLocator {
+  static parse(raw: unknown): WalletRouteLocator {
     if (
       !raw ||
       typeof raw !== 'object' ||
@@ -35,34 +36,39 @@ export class RecoveryLocator {
       !('value' in raw) ||
       Object.keys(raw).length !== 2
     )
-      throw new WalletPlacementError('invalid_input', 'Recovery locator is invalid');
+      throw new WalletPlacementError('invalid_input', 'Wallet route locator is invalid');
     try {
       switch (raw.kind) {
+        case 'yao_recovery':
+        case 'yao_export': {
+          const locator = WalletLifecycleLocator.parse(raw);
+          return new WalletRouteLocator(locator.kind, locator.value);
+        }
         case 'code':
-          return new RecoveryLocator('code', parseRecoveryCodeLocatorV1(raw.value));
+          return new WalletRouteLocator('code', parseRecoveryCodeLocatorV1(raw.value));
         case 'operation': {
           const parsed = parseWalletRecoveryOperationId(raw.value);
           if (!parsed.ok) throw new Error(parsed.error.message);
-          return new RecoveryLocator('operation', parsed.value);
+          return new WalletRouteLocator('operation', parsed.value);
         }
       }
     } catch {
-      throw new WalletPlacementError('invalid_input', 'Recovery locator is invalid');
+      throw new WalletPlacementError('invalid_input', 'Wallet route locator is invalid');
     }
-    throw new WalletPlacementError('invalid_input', 'Recovery locator kind is invalid');
+    throw new WalletPlacementError('invalid_input', 'Wallet route locator kind is invalid');
   }
 }
 
-export class D1WalletRecoveryRoutes {
+export class D1WalletRoutes {
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly scope: Scope,
   ) {}
 
-  async find(locator: RecoveryLocator): Promise<WalletHomeAssignment | null> {
+  async find(locator: WalletRouteLocator): Promise<WalletHomeAssignment | null> {
     const row = await this.database
       .prepare(
-        `SELECT home.* FROM wallet_recovery_routes AS route
+        `SELECT home.* FROM wallet_routes AS route
       JOIN wallet_homes AS home ON home.namespace = route.namespace
         AND home.organization_id = route.organization_id AND home.project_id = route.project_id
         AND home.environment_id = route.environment_id AND home.wallet_id = route.wallet_id
@@ -84,7 +90,7 @@ export class D1WalletRecoveryRoutes {
 
   async publish(
     wallet: WalletOwnershipKey,
-    locators: readonly RecoveryLocator[],
+    locators: readonly WalletRouteLocator[],
     writer: TenantRuntimeWriterV1,
   ): Promise<boolean> {
     const bindings = [
@@ -99,7 +105,7 @@ export class D1WalletRecoveryRoutes {
     ];
     await this.database
       .prepare(
-        `INSERT INTO wallet_recovery_routes
+        `INSERT INTO wallet_routes
       (namespace, organization_id, project_id, environment_id, kind, value, wallet_id)
       SELECT home.namespace, home.organization_id, home.project_id, home.environment_id,
         json_extract(item.value, '$.kind'), json_extract(item.value, '$.value'), home.wallet_id
@@ -107,11 +113,11 @@ export class D1WalletRecoveryRoutes {
       WHERE home.namespace = ?1 AND home.organization_id = ?2 AND home.project_id = ?3
         AND home.environment_id = ?4 AND home.wallet_id = ?6
         AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')
-        AND NOT EXISTS (SELECT 1 FROM json_each(?5) AS candidate JOIN wallet_recovery_routes AS claimed
+        AND NOT EXISTS (SELECT 1 FROM json_each(?5) AS candidate JOIN wallet_routes AS claimed
           ON claimed.kind = json_extract(candidate.value, '$.kind') AND claimed.value = json_extract(candidate.value, '$.value')
           WHERE claimed.namespace = ?1 AND claimed.organization_id = ?2 AND claimed.project_id = ?3
             AND claimed.environment_id = ?4 AND claimed.wallet_id != ?6)
-        AND NOT EXISTS (SELECT 1 FROM wallet_recovery_routes AS route
+        AND NOT EXISTS (SELECT 1 FROM wallet_routes AS route
           WHERE route.namespace = ?1 AND route.organization_id = ?2 AND route.project_id = ?3
             AND route.environment_id = ?4 AND route.kind = json_extract(item.value, '$.kind')
             AND route.value = json_extract(item.value, '$.value'))
@@ -122,7 +128,7 @@ export class D1WalletRecoveryRoutes {
     const count = await this.database
       .prepare(
         `SELECT COUNT(*) AS matched
-      FROM json_each(?5) AS item JOIN wallet_recovery_routes AS route
+      FROM json_each(?5) AS item JOIN wallet_routes AS route
         ON route.kind = json_extract(item.value, '$.kind') AND route.value = json_extract(item.value, '$.value')
       JOIN wallet_homes AS home ON home.namespace = route.namespace
         AND home.organization_id = route.organization_id AND home.project_id = route.project_id

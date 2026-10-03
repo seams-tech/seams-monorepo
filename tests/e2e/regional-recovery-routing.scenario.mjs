@@ -190,13 +190,13 @@ export async function verifyRegionalRecoveryRouting({
   );
   assert.equal(
     await authorityDatabase
-      .prepare('SELECT COUNT(*) AS count FROM wallet_recovery_routes WHERE value = ?1')
+      .prepare('SELECT COUNT(*) AS count FROM wallet_routes WHERE value = ?1')
       .bind(freshDigest)
       .first('count'),
     0,
   );
   const beforeOutage = await authorityDatabase
-    .prepare('SELECT COUNT(*) AS count FROM wallet_recovery_routes')
+    .prepare('SELECT COUNT(*) AS count FROM wallet_routes')
     .first('count');
   consoleBridge.available = false;
   await assert.rejects(
@@ -215,7 +215,7 @@ export async function verifyRegionalRecoveryRouting({
   consoleBridge.available = true;
   assert.equal(
     await authorityDatabase
-      .prepare('SELECT COUNT(*) AS count FROM wallet_recovery_routes')
+      .prepare('SELECT COUNT(*) AS count FROM wallet_routes')
       .first('count'),
     beforeOutage,
   );
@@ -230,7 +230,7 @@ export async function verifyRegionalRecoveryRouting({
   assert.equal(unknown.status, 401);
   assert.deepEqual(await unknown.json(), rejectedCodeBody());
   const rows = await authorityDatabase
-    .prepare('SELECT kind, value, wallet_id FROM wallet_recovery_routes')
+    .prepare('SELECT kind, value, wallet_id FROM wallet_routes')
     .all();
   for (const bridge of bridges.values())
     assert.ok(!JSON.stringify(rows.results).includes(bridge.recoveryCode));

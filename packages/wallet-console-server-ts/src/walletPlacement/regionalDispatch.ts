@@ -1,3 +1,4 @@
+import { WalletRouteLocator } from './walletRouteLocators';
 import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
 import { digestOpaqueValue, parseWalletId } from '@seams/wallet-server/cloud-host';
@@ -106,8 +107,29 @@ export async function dispatchKnownWalletHome(
       : transport.forward(recovery.assignment.home, request);
   }
   const pathname = new URL(request.url).pathname;
-  let locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string };
-  if (isYaoWalletEntry(pathname)) {
+  let locator:
+    | { kind: 'ceremony'; ceremonyId: string }
+    | { kind: 'wallet'; walletId: string }
+    | { kind: 'lifecycle'; route: WalletRouteLocator };
+  if (isYaoContinuation(pathname)) {
+    if (request.method !== 'POST') return null;
+    const body: unknown = await request.clone().json().catch(invalidJsonBody);
+    try {
+      const isExport = pathname === '/router-ab/ed25519/yao/export/execute';
+      const keys = isExport
+        ? ['protocol', 'binding', 'ceremony', 'lifecycle', 'lifecycle_id']
+        : ['binding', 'lifecycle', 'lifecycle_id'];
+      locator = {
+        kind: 'lifecycle',
+        route: WalletRouteLocator.parse({
+          kind: isExport ? 'yao_export' : 'yao_recovery',
+          value: requestField(body, keys),
+        }),
+      };
+    } catch {
+      return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
+    }
+  } else if (isYaoWalletEntry(pathname)) {
     if (request.method !== 'POST') return null;
     const body: unknown = await request.clone().json().catch(invalidJsonBody);
     const walletId = yaoEntryWalletId(pathname, body);
@@ -142,7 +164,10 @@ export async function dispatchKnownWalletHome(
   }
   let assignment: WalletHomeAssignment | null;
   try {
-    assignment = await authority.findHome(locator);
+    assignment =
+      locator.kind === 'lifecycle'
+        ? await authority.findRoute(locator.route)
+        : await authority.findHome(locator);
   } catch {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 503 });
   }
@@ -156,6 +181,14 @@ export async function dispatchKnownWalletHome(
   return transport.forward(assignment.home, request);
 }
 
+function isYaoContinuation(pathname: string): boolean {
+  return (
+    pathname === '/router-ab/ed25519/yao/recovery/execute' ||
+    pathname === '/router-ab/ed25519/yao/recovery/activate' ||
+    pathname === '/router-ab/ed25519/yao/export/execute'
+  );
+}
+
 function isYaoWalletEntry(pathname: string): boolean {
   return (
     pathname === '/router-ab/ed25519/yao/recovery/bootstrap' ||
@@ -166,7 +199,6 @@ function isYaoWalletEntry(pathname: string): boolean {
 }
 
 function yaoEntryWalletId(pathname: string, body: unknown): ReturnType<typeof parseWalletId> {
-  let value = body;
   // Only extract routing identity here. The home handler validates the full protocol and proof.
   let keys: readonly string[];
   switch (pathname) {
@@ -185,11 +217,16 @@ function yaoEntryWalletId(pathname: string, body: unknown): ReturnType<typeof pa
     default:
       return parseWalletId(null);
   }
+  return parseWalletId(requestField(body, keys));
+}
+
+function requestField(body: unknown, keys: readonly string[]): unknown {
+  let value = body;
   for (const key of keys) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return parseWalletId(null);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     value = Reflect.get(value, key);
   }
-  return parseWalletId(value);
+  return value;
 }
 
 type SessionHomeResolution =

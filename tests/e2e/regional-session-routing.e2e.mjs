@@ -1,3 +1,4 @@
+import { verifyRegionalLifecycleRouting } from './regional-lifecycle-routing.scenario.mjs';
 import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
 import { verifyRegionalYaoEntryRouting } from './regional-yao-entry-routing.scenario.mjs';
 import assert from 'node:assert/strict';
@@ -146,6 +147,7 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { publishWalletLifecycleHome } from ${JSON.stringify(resolve(candidate, 'src/authorization/lifecycleRouting.ts'))};
       export { buildWalletRecoveryEnvelopeSetRecord, parseWalletRecoveryEnvelopeSetRecord, buildWalletRecoveryManifestKekWrap, buildWalletCustodySeedRecoveryEntry } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/walletRecoveryEnvelopeSet.ts'))};
       export { buildWalletRecoveryBackupAcknowledgementV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/backupAcknowledgement.ts'))};
       export { buildPasskeyCustodyEnvelopeRecord, buildMethodBoundEnvelopeOwnership, buildEmailOtpEnvelopeFactor, buildActiveEnvelopeLifecycle } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/passkey-custody/custodyEnvelope.ts'))};
@@ -390,6 +392,13 @@ try {
     observations.push({ region, walletId: wallet.walletId });
   }
   const yaoEntryRouting = await verifyRegionalYaoEntryRouting({ runtime, bridges, consoleBridge });
+  const lifecycleRouting = await verifyRegionalLifecycleRouting({
+    api,
+    runtime,
+    bridges,
+    consoleBridge,
+    authorityDatabase,
+  });
   const recovery = await verifyRegionalRecoveryRouting({
     api,
     runtime,
@@ -528,6 +537,7 @@ try {
     kind: 'regional_session_routing_e2e_v1',
     recovery,
     yaoEntryRouting,
+    lifecycleRouting,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

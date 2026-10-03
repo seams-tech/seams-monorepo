@@ -4,7 +4,7 @@ import {
   parseWalletId,
 } from '@seams/wallet-server/cloud-host';
 import type { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
-import { RecoveryLocator } from './recoveryLocators';
+import { WalletRouteLocator } from './walletRouteLocators';
 import type { WalletHomeAssignment } from './home';
 
 type RecoveryHomeResolution =
@@ -32,14 +32,14 @@ export async function recoveryHome(
       return rejectedRecovery(503, 'wallet_home_unavailable');
     }
   }
-  let locator: RecoveryLocator;
+  let locator: WalletRouteLocator;
   if (path === '/wallets/recovery/prepare') {
     if (!('recoveryCodeB64u' in body) || typeof body.recoveryCodeB64u !== 'string')
       return rejectedRecovery(400, 'invalid_request');
     let bytes: Uint8Array | null = null;
     try {
       bytes = base64UrlDecode(body.recoveryCodeB64u);
-      locator = RecoveryLocator.parse({
+      locator = WalletRouteLocator.parse({
         kind: 'code',
         value: await deriveRecoveryCodeLocatorV1FromBytes(bytes),
       });
@@ -51,13 +51,13 @@ export async function recoveryHome(
   } else {
     if (!('recoveryOperationId' in body)) return rejectedRecovery(400, 'invalid_request');
     try {
-      locator = RecoveryLocator.parse({ kind: 'operation', value: body.recoveryOperationId });
+      locator = WalletRouteLocator.parse({ kind: 'operation', value: body.recoveryOperationId });
     } catch {
       return rejectedRecovery(400, 'invalid_request');
     }
   }
   try {
-    const assignment = await authority.findRecovery(locator);
+    const assignment = await authority.findRoute(locator);
     if (!assignment || assignment.state === 'cancelled') return refusedRecoveryCode();
     if ('walletId' in body && body.walletId !== assignment.wallet.walletId)
       return refusedRecoveryCode();

@@ -37,6 +37,7 @@ export async function createRegionalRealGateway({
       resolveDir: root,
       loader: 'ts',
       contents: `
+        export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
         export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
@@ -101,6 +102,7 @@ export async function createRegionalRealGateway({
       await migrate(database, resolve(candidate, 'migrations/d1-signer'));
       const gateway = new RealRegionalGateway({
         acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
+        activationFault: new ActivationReplyLoss(),
         environmentKey: config.deployment.environmentKey,
         api,
         region,
@@ -115,7 +117,7 @@ export async function createRegionalRealGateway({
       gateways.set(region, gateway);
       bindings[`WALLET_GATEWAY_${region}`] = { fetch: gateway.home.bind(gateway) };
     }
-    return new RegionalRealScenario(runtime, gateways, output);
+    return new RegionalRealScenario(runtime, gateways, output, consoleService);
   } catch (error) {
     await runtime.dispose();
     throw error;
@@ -190,7 +192,10 @@ class RealRegionalGateway {
       }),
       'ingress',
     );
-    if (this.acknowledgementFault.shouldDrop(request, response)) {
+    if (
+      (await this.activationFault.shouldDrop(request, response)) ||
+      this.acknowledgementFault.shouldDrop(request, response)
+    ) {
       await route.abort('connectionreset');
       return;
     }
@@ -267,7 +272,8 @@ class RealRegionalGateway {
 }
 
 class RegionalRealScenario {
-  constructor(runtime, gateways, output) {
+  constructor(runtime, gateways, output, consoleService) {
+    this.consoleService = consoleService;
     this.runtime = runtime;
     this.gateways = gateways;
     this.output = output;
@@ -299,13 +305,23 @@ class RegionalRealScenario {
       }
       const cleanup = await verifySignerCleanup(gateway.database, region, home);
       const acknowledgement = gateway.acknowledgementFault.verify();
-      evidence.push({ region, tables, cleanup, acknowledgement, requests: gateway.requests });
+      const activation = gateway.activationFault.verify();
+      if (acknowledgement.attempts > 0 || activation.attempts > 0) assert.notEqual(region, home);
+      evidence.push({
+        region,
+        tables,
+        cleanup,
+        activation,
+        acknowledgement,
+        requests: gateway.requests,
+      });
     }
     assert.equal(
       evidence.filter(hasAcknowledgement).length,
       1,
       'One foreign ingress must handle acknowledgement',
     );
+    const shared = await verifySharedLinkState(this.consoleService, this.gateways, home);
     await writeFile(
       resolve(this.output, 'regional-real-evidence.json'),
       JSON.stringify(
@@ -313,6 +329,7 @@ class RegionalRealScenario {
           scope:
             'Real browser registration, linked-device installation and signing; three isolated signer databases; one shared local Router role stack.',
           home,
+          shared,
           evidence,
         },
         null,
@@ -341,6 +358,7 @@ async function migrate(database, directory) {
 async function verifySignerCleanup(database, region, home) {
   const transient = {};
   for (const table of [
+    'linked_device_request_proof_nonces',
     'linked_device_sessions',
     'linked_device_session_transcripts',
     'linked_device_target_credentials',
@@ -417,4 +435,95 @@ class AcknowledgementReplyLoss {
       distinctProofs: this.proofs.size,
     };
   }
+}
+
+class ActivationReplyLoss {
+  attempts = 0;
+  first = null;
+
+  async shouldDrop(request, response) {
+    const body = request.postData() ?? '';
+    if (
+      request.method() !== 'POST' ||
+      !new URL(request.url()).pathname.endsWith('/receipt') ||
+      !body.includes('"local_authority_installation_receipt_v1"')
+    )
+      return false;
+    assert.equal(response.status, 200);
+    const activation = await response.clone().json();
+    assert.equal(activation.kind, 'active');
+    this.attempts += 1;
+    if (this.first === null) {
+      this.first = { body, activation };
+      return true;
+    }
+    assert.equal(body, this.first.body, 'Activation retry must retain its installation receipt');
+    assert.deepEqual(
+      activation,
+      this.first.activation,
+      'Activation must replay the same authority and session',
+    );
+    return false;
+  }
+
+  verify() {
+    if (this.attempts > 0) assert.equal(this.attempts, 2);
+    return { attempts: this.attempts, lostReplies: this.attempts > 0 ? 1 : 0 };
+  }
+}
+
+async function verifySharedLinkState(consoleService, gateways, home) {
+  const { database, scope, api } = consoleService;
+  const { results: bootstrap } = await database
+    .prepare(
+      `
+    SELECT boot.state, route.wallet_id, home.region
+    FROM linked_device_bootstrap boot
+    JOIN wallet_routes route ON route.namespace = boot.namespace
+      AND route.organization_id = boot.organization_id AND route.project_id = boot.project_id
+      AND route.environment_id = boot.environment_id AND route.kind = 'linked_device'
+      AND route.value = boot.link_session_id
+    JOIN wallet_homes home ON home.namespace = route.namespace
+      AND home.organization_id = route.organization_id AND home.project_id = route.project_id
+      AND home.environment_id = route.environment_id AND home.wallet_id = route.wallet_id
+  `,
+    )
+    .all();
+  assert.equal(bootstrap.length, 1);
+  assert.equal(bootstrap[0].state, 'claimed');
+  assert.equal(bootstrap[0].region, home);
+  let acknowledgedProofs = 0;
+  for (const gateway of gateways.values()) {
+    for (const encoded of gateway.acknowledgementFault.proofs) {
+      const proof = api.parseLinkedDeviceRequestProofV1(
+        JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')),
+      );
+      const row = await database
+        .prepare(
+          `
+        SELECT expires_at_ms, consumed_at_ms FROM linked_device_request_proof_nonces
+        WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ?
+          AND link_session_id = ? AND request_nonce_b64u = ?
+      `,
+        )
+        .bind(
+          scope.namespace,
+          scope.organizationId,
+          scope.projectId,
+          scope.environmentId,
+          proof.linkSessionId,
+          proof.requestNonceB64u,
+        )
+        .first();
+      assert.ok(row, 'Each final acknowledgement proof must be retained in shared Console');
+      assert.ok(row.expires_at_ms > row.consumed_at_ms);
+      acknowledgedProofs += 1;
+    }
+  }
+  assert.equal(acknowledgedProofs, 3);
+  return {
+    claimedBootstrap: 1,
+    linkedRouteHome: home,
+    retainedAcknowledgementProofs: acknowledgedProofs,
+  };
 }

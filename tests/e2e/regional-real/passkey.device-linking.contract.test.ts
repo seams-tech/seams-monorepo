@@ -16,7 +16,7 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'APAC' },
   { home: 'APAC', ingress: 'US' },
 ]) {
-  test(`real ${home} registration and ${ingress} linked signing survive two lost cleanup replies`, async ({
+  test(`real ${home} registration and ${ingress} linked signing survive lost activation and cleanup replies`, async ({
     harness,
     context,
     browser,

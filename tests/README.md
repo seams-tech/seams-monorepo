@@ -143,8 +143,10 @@ stack. It does not measure geographic latency or independently placed Router rol
 home/foreign table counts, transient cleanup, retained receipts and request
 paths/statuses without payloads or credentials. The matrix covers US→WEUR,
 WEUR→APAC and APAC→US (wallet home → linked-device ingress). Each case drops
+one successful activation reply (requiring identical activation replay), then
 two successful final acknowledgement replies after cleanup commits, requires the
 exact acknowledgement to replay with fresh device proofs, and verifies signing
-and home-only installation/cleanup afterward.
+and home-only installation/cleanup afterward. It also checks shared Console
+bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.

@@ -2,6 +2,7 @@ import type { BrowserContext } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRegionalRealGateway } from '../../helpers/regional-real-gateway.mjs';
+import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
@@ -51,11 +52,11 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets register concurrently and retain distinct homes through travel and interrupted recovery', async ({
+test('three real wallets register concurrently and retain distinct homes through travel, interrupted recovery and Gateway restarts', async ({
   browser,
   request,
 }, testInfo) => {
-  const scenario = await createRegionalRealGateway({
+  const scenario = await createRestartingRegionalGateway({
     root,
     candidate,
     lostAcknowledgements: 0,
@@ -105,6 +106,11 @@ test('three real wallets register concurrently and retain distinct homes through
       );
       await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
       wallets.push({ home: owner.home, travel: owner.travel, walletId });
+    }
+    for (const owner of owners) {
+      await owner.harness.unlockPasskeyWallet();
+      await owner.harness.signNearTransaction('post_unlock');
+      await owner.harness.signTempoTransaction('post_unlock');
     }
     await scenario.verifyMixedHomes(wallets, registrations);
     for (const owner of owners) {

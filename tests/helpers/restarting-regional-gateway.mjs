@@ -111,14 +111,27 @@ class RestartingRegionalGateway {
   }
 
   async verifyGoogleRecovery(home, ingress) {
-    await this.call({ kind: 'verify', home, ingress });
-    assert.equal(this.restarts.length, 1);
+    await this.call({ kind: 'verify-google-recovery', home, ingress });
+    await this.writeRestartEvidence([{ home, ingress }]);
+  }
+
+  async verifyMixedHomes(wallets, registrations) {
+    await this.call({ kind: 'verify-mixed-homes', wallets, registrations });
+    await this.writeRestartEvidence(wallets.map(recoveryRoute));
+  }
+
+  async writeRestartEvidence(routes) {
+    assert.equal(this.restarts.length, routes.length);
+    for (const [index, route] of routes.entries()) {
+      const restart = this.restarts[index];
+      assert.equal(restart.ingress, route.ingress);
+      if (index > 0) assert.equal(restart.oldPid, this.restarts[index - 1].newPid);
+    }
     await writeFile(
       join(this.options.output, 'restart-evidence.json'),
       JSON.stringify(
         {
-          home,
-          ingress,
+          routes,
           restarts: this.restarts,
           scope:
             'Gateway/Console Node process and its D1 workerd stop after committed recovery, before the masked response reaches the client. A fresh process reopens the same four databases. Only test observations are restored in memory; Router roles remain running. This is an orderly restart after commit.',
@@ -237,6 +250,10 @@ function serializeRequest(request) {
 
 function pendingPromise(pending) {
   return pending.promise;
+}
+
+function recoveryRoute(wallet) {
+  return { home: wallet.home, ingress: wallet.travel };
 }
 
 function ignoreFailure() {}

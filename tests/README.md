@@ -170,8 +170,9 @@ supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
 The `three real wallets` case registers US, WEUR and APAC owners concurrently in the same
 Console/signer stores, then routes them through foreign ingress for locked-page
 reload, passkey unlock, Ed25519/ECDSA key export, fresh-browser passkey recovery
-and NEAR/Tempo signing. Recovery commits at home, loses its finalization reply,
-then resets the client runtime. The durable journal must survive that reset,
+and NEAR/Tempo signing. Each recovery commits at home, stops the Gateway/Console
+process and its D1 runtime, and reopens the same four databases in a new process
+before losing its finalization reply. It then resets the client runtime. The durable journal must survive that reset,
 replay the same operation and target, and clear after the successful reply.
 Each consumed code is then submitted with a new reservation and must be rejected
 as already used, including the browser's error message. Select it with
@@ -182,6 +183,9 @@ request paths/statuses, including the successful finalization and replay at each
 home. Key-export material is not included in this receipt. Set
 `SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
 per-owner journal and lifecycle assertions alongside it.
+After all three Gateway/Console restarts, every recovered wallet unlocks and signs
+NEAR/Tempo again. `mixed-homes/restart-evidence.json` records the three linked process
+replacements and their foreign-ingress routes. Router roles remain running.
 
 The `adds, uses and revokes` matrix exercises an added Email OTP method through
 foreign ingress for every home (US→WEUR, WEUR→APAC, APAC→US). It verifies

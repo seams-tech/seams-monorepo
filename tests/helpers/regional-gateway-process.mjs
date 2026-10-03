@@ -26,8 +26,11 @@ async function execute(message) {
       return scenario.gateways
         .get(message.region)
         .commitRecoveryFinalization(new BrowserRoute(message.request));
-    case 'verify':
+    case 'verify-google-recovery':
       await scenario.verifyGoogleRecovery(message.home, message.ingress);
+      return null;
+    case 'verify-mixed-homes':
+      await scenario.verifyMixedHomes(message.wallets, message.registrations);
       return null;
     case 'observations':
       return [...scenario.gateways].map(recoveryObservations);

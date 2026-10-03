@@ -1,3 +1,4 @@
+import { buildRegionalOwnerSigner } from '../helpers/regional-owner-signer.fixtures.mjs';
 import { verifyRegionalLinkHttp } from './regional-link-http.scenario.mjs';
 import { verifyRegionalLinkHomes } from './regional-link-home.scenario.mjs';
 import { verifyRegionalDeviceProofs } from './regional-device-proof.scenario.mjs';
@@ -244,6 +245,10 @@ const bundle = await build({
       export { CloudflareD1AuthorizationStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/authorization/d1AuthorizationStore.ts'))};
       export { D1WalletAuthorityStore, prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
       export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
+      export { D1WalletStore, parseWalletEd25519SignerRecord } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletStore.ts'))};
+      export { buildYaoEd25519WalletSignerRecord } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/ed25519Yao/d1Ed25519YaoWalletSigner.ts'))};
+      export { createD1LinkedDeviceVerifiedLinkSourceReaderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceVerifiedLinkSourceReader.ts'))};
+      export { buildMpcMaterialActivationRefFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ecdsaMaterialRef.fixtures.ts'))};
       export { routerAbMpcMaterialActivationRefFromWire } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbNormalSigningIdentity.ts'))};
       export { buildOrdinaryEd25519ReservationPreparationFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ordinarySignerMaterialReservation.fixtures.ts'))};
       export { parseLinkedDeviceOrdinaryMaterialSourceContributionPreparationTupleV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/sourceContribution.ts'))};
@@ -374,8 +379,12 @@ try {
     bridge.bindings = regionalBindings;
     bridge.service = service;
     const now = Date.now();
+    const ownerSigner = buildRegionalOwnerSigner(api, signerScope, `wallet:${region}`);
+    bridge.ownerSigner = ownerSigner.record;
     const fixture = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-session-${region}`,
+      materialActivation: ownerSigner.materialActivation,
+      ed25519Signer: ownerSigner.identity,
       identity: {
         walletId: `wallet:${region}`,
         credentialIdB64u: Buffer.from(`passkey-${region}`).toString('base64url'),

@@ -1594,3 +1594,15 @@ session/method/authority reads use D1. Signer protocol material and contribution
 planning remain controlled; actual owner protocol resolution, contribution and
 final installation remain open. Evidence: `.artifacts/r152/target-commit-20261003/`.
 No deployment or release occurred; 0.8.0 remains held.
+
+### October 3: production linked-device source reads
+
+Regional credential registration now composes the production source reader with
+D1 session, method, authority and signer stores. A missing signer fails before
+planning and releases its reservation; a matching parser-validated synthetic signer
+allows registration and exact retry without another source read. The handwritten
+source verification fixture was removed. Regional E2E, focused lint and public bloat
+checks passed. Evidence: `.artifacts/r152/source-read-20261003/`.
+
+Source cryptographic material and contribution planning remain controlled. Real
+custody/source contribution, package delivery and activation remain open; 0.8.0 is held.

@@ -82,6 +82,12 @@ export async function verifyRegionalBrowserRegistration({
     sourceContributionPreparationPlanner: available,
     verifiedLinkBuilder: { source: available },
   });
+  const missingSigner = await submitCredential(http, registration);
+  assert.equal(missingSigner.status, 400, await missingSigner.clone().text());
+  assert.match((await missingSigner.json()).message, /signer identity is unavailable/u);
+  assert.equal(available.plans, 0);
+  assert.equal(await reservationCount(database, preparation.linkSessionId), 0);
+  await available.walletStore.putSigner(weur.ownerSigner);
   const committed = await submitCredential(http, registration);
   assert.equal(committed.status, 200, await committed.clone().text());
   const committedBody = await committed.json();
@@ -97,7 +103,7 @@ export async function verifyRegionalBrowserRegistration({
   assert.equal(replayedOutcome, 'replayed');
   assert.deepEqual(replayedCredential, committedCredential);
   assert.deepEqual(replayedBody.session, committedBody.session);
-  assert.equal(available.reads, 1);
+  assert.equal(available.reads, 2);
   assert.equal(available.plans, 1);
   assert.equal(
     await database
@@ -127,10 +133,12 @@ export async function verifyRegionalBrowserRegistration({
     sourceFailureDoesNotRegisterCredential: true,
     failedRegistrationReleasesReservation: true,
     freshProofRetryReachesSourceAgain: true,
+    productionSourceReaderUsesHomeD1: true,
+    missingSourceSignerRejectsBeforePlanning: true,
     successfulCredentialPersistedOnlyAtHome: true,
     credentialRetryReplaysWithoutReplanning: true,
     scope:
-      'Real browser WebAuthn, signed credential HTTP and durable registration at WEUR. Source session, method and authority are read from D1; signer protocol material and contribution planning remain controlled fixtures. Real owner protocol resolution, source contribution and final installation remain open.',
+      'Real browser WebAuthn, signed credential HTTP and durable registration at WEUR. Production source reader resolves session, method, authority and signer from D1. Signer protocol material is synthetic and contribution planning remains controlled. Real owner ceremony, source contribution and final installation remain open.',
   };
 }
 class UnavailableSourceFixture {

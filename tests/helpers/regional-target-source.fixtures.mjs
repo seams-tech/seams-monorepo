@@ -1,7 +1,4 @@
-import assert from 'node:assert/strict';
-
-// The session, method and authority are read from D1. Protocol material remains
-// controlled until this scenario includes a real owner custody ceremony.
+// Production source reads use D1; contribution planning remains controlled.
 export class RegionalTargetSourceFixture {
   reads = 0;
   plans = 0;
@@ -9,48 +6,31 @@ export class RegionalTargetSourceFixture {
   constructor(api, bridge, database, scope) {
     this.api = api;
     this.bridge = bridge;
-    this.authorities = new api.D1WalletAuthorityStore({ database, scope });
-    this.methods = new api.D1WalletAuthMethodStore({
+    this.walletStore = new api.D1WalletStore({
       database,
       namespace: scope.namespace,
       orgId: scope.orgId,
       projectId: scope.projectId,
       envId: scope.envId,
     });
+    this.source = api.createD1LinkedDeviceVerifiedLinkSourceReaderV1({
+      authorizationService: bridge.service,
+      tenantId: bridge.tenantId,
+      authorityStore: new api.D1WalletAuthorityStore({ database, scope }),
+      authMethodStore: new api.D1WalletAuthMethodStore({
+        database,
+        namespace: scope.namespace,
+        orgId: scope.orgId,
+        projectId: scope.projectId,
+        envId: scope.envId,
+      }),
+      walletStore: this.walletStore,
+    });
   }
 
-  async readVerifiedSourceV1(request) {
+  readVerifiedSourceV1(request) {
     this.reads++;
-    const issued = await this.bridge.service.readWalletSessionAuthorizationV2ByIdentity({
-      tenantId: this.bridge.tenantId,
-      walletId: request.walletId,
-      walletSessionId: request.walletSessionId,
-      authorizationId: request.authorizationId,
-      nowMs: request.requestedAtMs,
-    });
-    assert.ok(issued);
-    const authority = await this.authorities.readById(issued.session.authorityId);
-    const authMethod = await this.methods.readByIdV2({
-      walletAuthMethodId: issued.session.walletAuthMethodId,
-    });
-    assert.equal(authority.state, 'active');
-    assert.equal(authMethod.status, 'active');
-    assert.equal(authMethod.walletAuthorityId, authority.authorityId);
-    assert.equal(authority.walletId, request.walletId);
-    assert.equal(authority.authorityDigestB64u, issued.session.authorityDigestB64u);
-    return {
-      authority,
-      authMethod,
-      signerManifest: this.api.buildExactAdministeredSignerManifestV1([
-        authority.signerActivations.ed25519.signer,
-      ]),
-      keyManifestDigestB64u: Buffer.alloc(32, 41).toString('base64url'),
-      principalId: issued.session.principalId,
-      expiresAtMs: issued.session.expiresAtMs,
-      authorityDigestB64u: authority.authorityDigestB64u,
-      verifiedRevocationEpoch: authority.revocationEpoch,
-      verifiedAtMs: request.requestedAtMs,
-    };
+    return this.source.readVerifiedSourceV1(request);
   }
 
   planSourceContributionPreparationV1(input) {

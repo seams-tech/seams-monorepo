@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { createRegionalRealGateway } from '../../helpers/regional-real-gateway.mjs';
+import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
@@ -15,12 +15,12 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'US' },
   { home: 'APAC', ingress: 'WEUR' },
 ]) {
-  test(`a ${home} passkey wallet survives interrupted Google Email OTP recovery through ${ingress}`, async ({
+  test(`a ${home} passkey wallet survives interrupted Google Email OTP recovery and Gateway restart through ${ingress}`, async ({
     context,
     page,
     request,
   }, testInfo) => {
-    const scenario = await createRegionalRealGateway({
+    const scenario = await createRestartingRegionalGateway({
       root,
       candidate,
       lostAcknowledgements: 0,

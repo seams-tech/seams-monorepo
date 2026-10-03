@@ -16,6 +16,7 @@ export async function createRegionalRealGateway({
   localRoot,
   output,
   lostAcknowledgements,
+  databaseState,
 }) {
   await mkdir(output, { recursive: true });
   const publicRoot = resolve(candidate, '../..');
@@ -56,13 +57,16 @@ export async function createRegionalRealGateway({
     script: 'export default { fetch() { return new Response(null, {status: 404}); } };',
     d1Databases: { CONSOLE_DB: 'console', US: 'us', WEUR: 'weur', APAC: 'apac' },
     compatibilityDate: '2026-06-12',
+    d1Persist: databaseState?.directory,
   });
   try {
     const consoleDatabase = await runtime.getD1Database('CONSOLE_DB');
-    await migrate(
-      consoleDatabase,
-      resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
-    );
+    if (databaseState?.mode !== 'reopen') {
+      await migrate(
+        consoleDatabase,
+        resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
+      );
+    }
     const secrets = dotenv.parse(
       await readFile(resolve(localRoot, '.runtime/wallet-gateway/.dev.vars.wallet-gateway')),
     );
@@ -105,7 +109,9 @@ export async function createRegionalRealGateway({
     const bindings = {};
     for (const region of regions) {
       const database = await runtime.getD1Database(region);
-      await migrate(database, resolve(candidate, 'migrations/d1-signer'));
+      if (databaseState?.mode !== 'reopen') {
+        await migrate(database, resolve(candidate, 'migrations/d1-signer'));
+      }
       const gateway = new RealRegionalGateway({
         acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
         activationFault: new ActivationReplyLoss(),

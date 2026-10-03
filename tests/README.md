@@ -198,12 +198,19 @@ the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
 
 The `interrupted Google Email OTP` matrix starts with passkey wallets and
 recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
-APAC→WEUR). It loses the committed finalization reply, resets the client runtime,
-and checks exact replay plus pending-journal retention and removal. It then
+APAC→WEUR). After finalization commits, it stops the Gateway/Console child process
+and its D1 runtime, then starts a fresh process over the same four databases.
+It loses the committed finalization reply, resets the client runtime, and checks
+exact replay plus pending-journal retention and removal. It then
 verifies an additive Email OTP authority, NEAR/Tempo signing, the shared Google
 identity locator, home-only custody records and consumed-code rejection. Each case saves
 `google-recovery-<home>/recovery-evidence.json`. The harness's direct budget
 queries use the same regional transport as browser requests. Google tokens and
 OTP delivery use the same configuration as the method lifecycle matrix.
+Each `restart-evidence.json` records distinct process IDs and successful old-process
+exit. Only test request observations cross the restart; Gateway and Console objects
+are rebuilt from persisted D1 state. Router roles remain running. The orderly
+restart follows commit; crash recovery during a transaction is a separate case.
+Temporary databases are removed when the scenario closes.
 After the consumed-code UI check, the recovered method unlocks again and signs
 NEAR plus concurrent Tempo/Arc, retaining the budget-exhaustion assertion.

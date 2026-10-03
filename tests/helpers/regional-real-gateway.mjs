@@ -273,20 +273,21 @@ class RegionalRealScenario {
     const evidence = [];
     for (const [region, gateway] of this.gateways) {
       const tables = {};
-      for (const table of [
-        'wallets',
-        'wallet_signers',
-        'wallet_authorities',
-        'linked_device_authority_installations',
+      for (const [table, expected] of [
+        ['wallets', 1],
+        ['wallet_signers', 3],
+        ['wallet_authorities', 2],
+        ['linked_device_authority_installations', 1],
       ]) {
         const row = await gateway.database
           .prepare(`SELECT count(*) AS count FROM ${table}`)
           .first();
         tables[table] = row.count;
         if (region !== home) assert.equal(row.count, 0, `${region}/${table}`);
-        else assert.ok(row.count > 0, `${region}/${table}`);
+        else assert.equal(row.count, expected, `${region}/${table}`);
       }
-      evidence.push({ region, tables, requests: gateway.requests });
+      const cleanup = await verifySignerCleanup(gateway.database, region, home);
+      evidence.push({ region, tables, cleanup, requests: gateway.requests });
     }
     await writeFile(
       resolve(this.output, 'regional-real-evidence.json'),
@@ -318,4 +319,41 @@ async function migrate(database, directory) {
       await database.prepare(sql).run();
     }
   }
+}
+
+async function verifySignerCleanup(database, region, home) {
+  const transient = {};
+  for (const table of [
+    'linked_device_sessions',
+    'linked_device_session_transcripts',
+    'linked_device_target_credentials',
+    'linked_device_target_commit_reservations',
+    'linked_device_email_otp_grants',
+    'linked_device_ed25519_export_root_transfers',
+    'linked_device_authority_allocations',
+  ]) {
+    const row = await database.prepare(`SELECT count(*) AS count FROM ${table}`).first();
+    transient[table] = row.count;
+    assert.equal(row.count, 0, `${region}/${table}`);
+  }
+  const { results: deliveries } = await database
+    .prepare(
+      `
+    SELECT lifecycle_kind, cleanup_state,
+           sealed_envelope_json IS NULL AS envelope_removed,
+           cleanup_receipt_json IS NOT NULL AS receipt_retained,
+           acknowledgement_receipt_json IS NOT NULL AS acknowledgement_retained
+    FROM linked_device_wallet_session_credential_deliveries_v1
+  `,
+    )
+    .all();
+  assert.equal(deliveries.length, region === home ? 1 : 0, `${region}/deliveries`);
+  for (const delivery of deliveries) {
+    assert.equal(delivery.lifecycle_kind, 'cleanup_complete');
+    assert.equal(delivery.cleanup_state, 'complete');
+    assert.equal(delivery.envelope_removed, 1);
+    assert.equal(delivery.receipt_retained, 1);
+    assert.equal(delivery.acknowledgement_retained, 1);
+  }
+  return { transient, deliveries };
 }

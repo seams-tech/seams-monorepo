@@ -138,7 +138,10 @@ production Console placement. The three Gateways share one local Router role
 stack. It does not measure geographic latency or independently placed Router roles.
 
 `SEAMS_TEST_ARTIFACT_DIR` selects the evidence directory (default
-`.artifacts/r152/regional-real-20261004`); `regional-real-evidence.json` retains
-home/foreign table counts and request paths/statuses without payloads or credentials.
+`.artifacts/r152/regional-real`); each home subdirectory retains
+`regional-real-evidence.json` with
+home/foreign table counts, transient cleanup, retained receipts and request
+paths/statuses without payloads or credentials. The matrix covers US→WEUR,
+WEUR→APAC and APAC→US (wallet home → linked-device ingress).
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.

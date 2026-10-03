@@ -157,10 +157,10 @@ export async function dispatchKnownWalletHome(
     } catch {
       return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
     }
-  } else if (isYaoWalletEntry(pathname)) {
+  } else if (isWalletLifecycleEntry(pathname)) {
     if (request.method !== 'POST') return null;
     const body: unknown = await request.clone().json().catch(invalidJsonBody);
-    const walletId = yaoEntryWalletId(pathname, body);
+    const walletId = lifecycleEntryWalletId(pathname, body);
     if (!walletId.ok) {
       return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
     }
@@ -221,19 +221,27 @@ function isYaoContinuation(pathname: string): boolean {
   );
 }
 
-function isYaoWalletEntry(pathname: string): boolean {
+function isWalletLifecycleEntry(pathname: string): boolean {
   return (
     pathname === '/router-ab/ed25519/yao/recovery/bootstrap' ||
     pathname === '/router-ab/ed25519/yao/recovery/admit' ||
     pathname === '/router-ab/ed25519/yao/recovery/status' ||
-    pathname === '/router-ab/ed25519/yao/export/admit'
+    pathname === '/router-ab/ed25519/yao/export/admit' ||
+    pathname === '/router-ab/ecdsa-derivation/operation-step-up' ||
+    pathname === '/router-ab/ecdsa-derivation/export'
   );
 }
 
-function yaoEntryWalletId(pathname: string, body: unknown): ReturnType<typeof parseWalletId> {
+function lifecycleEntryWalletId(pathname: string, body: unknown): ReturnType<typeof parseWalletId> {
   // Only extract routing identity here. The home handler validates the full protocol and proof.
   let keys: readonly string[];
   switch (pathname) {
+    case '/router-ab/ecdsa-derivation/operation-step-up':
+      keys = ['operation', 'wallet_id'];
+      break;
+    case '/router-ab/ecdsa-derivation/export':
+      keys = ['request', 'lifecycle', 'account_id'];
+      break;
     case '/router-ab/ed25519/yao/recovery/bootstrap':
       keys = ['walletId'];
       break;

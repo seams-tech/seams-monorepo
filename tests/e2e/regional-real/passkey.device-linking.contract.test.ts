@@ -51,7 +51,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets retain distinct homes through travel and passkey unlock', async ({
+test('three real wallets retain distinct homes through travel, passkey unlock and key export', async ({
   browser,
   request,
 }, testInfo) => {
@@ -93,6 +93,8 @@ test('three real wallets retain distinct homes through travel and passkey unlock
       await scenario.routeContext(owner.context, owner.travel);
       await owner.harness.assertLockedPageReloadStaysLocked();
       await owner.harness.unlockPasskeyWallet();
+      await owner.harness.exportEd25519Key();
+      await owner.harness.exportEcdsaKey();
       await owner.harness.signNearTransaction('post_unlock');
       await owner.harness.signTempoTransaction('post_unlock');
       const walletId = await owner.page

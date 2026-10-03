@@ -153,6 +153,7 @@ supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
 
 The `three real wallets` case registers US, WEUR and APAC owners in the same
 Console/signer stores, then routes them through foreign ingress for locked-page
-reload, passkey unlock and NEAR/Tempo signing. Select it with
+reload, passkey unlock, Ed25519/ECDSA key export and NEAR/Tempo signing. Select it with
 `--grep 'three real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
-exact tenant scope, established home assignments and per-wallet store counts.
+exact tenant scope, established home assignments, per-wallet store counts and
+request paths/statuses. Key-export material is not included in this receipt.

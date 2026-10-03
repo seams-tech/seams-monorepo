@@ -389,14 +389,23 @@ class RegionalRealScenario {
       }
       evidence.push({ ...wallet, stores });
     }
+    const traffic = [];
+    for (const [region, gateway] of this.gateways) {
+      assert.ok(
+        gateway.requests.some(isForwardedYaoExport),
+        `${region} must forward real export execution`,
+      );
+      traffic.push({ region, requests: gateway.requests });
+    }
     await writeFile(
       resolve(this.output, 'mixed-home-evidence.json'),
       JSON.stringify(
         {
           scope,
           description:
-            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock and both-family signing through foreign ingress after all registrations; one shared local Router stack.',
+            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export and signing through foreign ingress after all registrations; one shared local Router stack.',
           wallets: evidence,
+          traffic,
         },
         null,
         2,
@@ -600,4 +609,12 @@ function walletIdentity(wallet) {
 
 function matchesWallet(walletId, placement) {
   return placement.wallet_id === walletId;
+}
+
+function isForwardedYaoExport(request) {
+  return (
+    request.path === '/router-ab/ed25519/yao/export/execute' &&
+    request.forwarded === true &&
+    request.status === 200
+  );
 }

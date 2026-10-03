@@ -1,3 +1,4 @@
+import { verifyRegionalRuntimeIdentities } from './regional-runtime-identities.scenario.mjs';
 import { buildRegionalOwnerSigner } from '../helpers/regional-owner-signer.fixtures.mjs';
 import { verifyRegionalLinkHttp } from './regional-link-http.scenario.mjs';
 import { verifyRegionalLinkHomes } from './regional-link-home.scenario.mjs';
@@ -103,6 +104,12 @@ class GatewayBridge {
     return this.handle(request, 'home');
   }
   async handle(request, entry) {
+    if (
+      this.runtimeIdentities &&
+      new URL(request.url).origin === 'https://wallet-runtime.internal'
+    ) {
+      return this.runtimeIdentities.handle(request);
+    }
     request = await nativeRequest(request);
     const response = await api.dispatchKnownWalletHome(
       request,
@@ -255,6 +262,7 @@ const bundle = await build({
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetCredentialRegistrationV1, parseLinkedDeviceTargetCredentialRegistrationV1, buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};
+      export { RegionalWalletIdentities } from './packages/wallet-console-server-ts/src/serviceBinding/regionalWalletIdentities';
       export { createRouterApiRouteDefinitions } from ${JSON.stringify(resolve(candidate, 'src/router/framework/routeDefinitions.ts'))};
       export { createInMemoryConsoleApiKeyService } from './packages/console-server-ts/src/apiKeys/service';
       export { createRouterApiPublishableKeyAuthAdapter } from './packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
@@ -535,6 +543,13 @@ try {
     signerScope,
     authorityDatabase,
   });
+  const runtimeIdentities = await verifyRegionalRuntimeIdentities({
+    api,
+    runtime,
+    bridges,
+    directory,
+    scope,
+  });
   const linkHttp = await verifyRegionalLinkHttp({ api, runtime, bridges, signerScope });
   const authenticationRouting = await verifyRegionalAuthenticationRouting({
     isolatedIdentity,
@@ -718,6 +733,7 @@ try {
     deviceProofs,
     linkHomes,
     linkHttp,
+    runtimeIdentities,
     recovery,
     yaoEntryRouting,
     lifecycleRouting,

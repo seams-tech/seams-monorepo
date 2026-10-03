@@ -1620,3 +1620,21 @@ fencing, opaque record selectors/credential reconciliation, DO/Container materia
 and complete linked-device activation remain gates. Shared routes must retain enough
 identity to locate link import tombstones after local session cleanup. Concurrent
 R153 implementation files were left untouched.
+
+### October 3: Console mixed-home wallet identity reads
+
+Console's hosted wallet balance reader now resolves every wallet through the shared
+home directory before issuing identity reads. It groups selectors by US/WEUR/APAC,
+sends one request per home, deduplicates selectors within that request, and returns
+results in caller order. Missing/non-established homes and regional HTTP failures
+reject the read; unrequested or duplicate response identities are rejected. The
+existing Runtime contract still omits wallets without both chain identities.
+
+The regional E2E uses the production directory, regional resolver and HTTP client
+across three Worker transports. It checks mixed homes, duplicate inputs, missing
+homes, a failed region, foreign/duplicate response identities and incomplete wallets.
+Regional response payloads are controlled fixtures. This closes Console caller
+routing; direct Runtime entry enforcement, relocation races/write fencing and
+signed-delegate ownership remain separate gates. No hosted deployment occurred.
+
+Evidence: `.artifacts/r152/runtime-identities-20261003/`. R153 placement edits were preserved.

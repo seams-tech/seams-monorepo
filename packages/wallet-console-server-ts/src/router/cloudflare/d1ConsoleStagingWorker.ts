@@ -1,3 +1,6 @@
+import { createWalletRuntimeOpsClient } from '../../serviceBinding/walletRuntimeOpsClient';
+import { RegionalWalletIdentities } from '../../serviceBinding/regionalWalletIdentities';
+import { D1WalletHomeDirectory } from '../../walletPlacement/d1';
 import { WalletHomeCatalog, type WalletHome } from '../../walletPlacement/home';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
@@ -11,7 +14,6 @@ import { attachConsoleRouteSurface } from '@seams-internal/console-server/router
 import { resolveCompleteWalletConsoleRouteSurface } from '../walletConsoleRouteDefinitions';
 import { HostedConsoleAuthHandler } from '../hostedConsoleAuth';
 import { createWalletConsoleOpsHandler } from '../../serviceBinding/walletConsoleOpsHandler';
-import { createWalletRuntimeOpsClient } from '../../serviceBinding/walletRuntimeOpsClient';
 import type { WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import {
   createWalletControlClientBindings,
@@ -286,6 +288,12 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
   const onboardingDeployment = new DeferredTenantDeploymentOnboardingProvisioner(deploymentLane);
+  const walletHomeCatalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+  const regionalIdentities = new RegionalWalletIdentities(
+    namespace,
+    new D1WalletHomeDirectory(env.CONSOLE_DB, walletHomeCatalog),
+    { US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR, APAC: env.WALLET_RUNTIME_APAC },
+  );
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
   const emailDispatch = resolveCloudflareConsoleEmailDispatchCronOptions({
@@ -320,7 +328,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
       sponsorshipPricing: resolveSponsoredExecutionPricingFromEnv(env),
       webhookSecretCipher: createConsoleWebhookSecretCipherFromEnv(env),
       walletBalanceReader: {
-        resolveWalletIdentities: walletRuntime.getWalletIdentities,
+        resolveWalletIdentities: regionalIdentities.read.bind(regionalIdentities),
       },
       onboardingEnvironmentProvisioner: onboardingDeployment,
     },
@@ -501,7 +509,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
   });
-  const walletHomeCatalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
   const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace,
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),

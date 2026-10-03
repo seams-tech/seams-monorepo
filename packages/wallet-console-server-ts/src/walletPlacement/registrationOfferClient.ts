@@ -11,6 +11,25 @@ type Input<Method extends keyof GoogleEmailOtpRegistrationAttemptStore> = Parame
 export class RegistrationOfferClient implements GoogleEmailOtpRegistrationAttemptStore {
   constructor(private readonly service: WalletHomeServiceClient) {}
 
+  async claimCandidate(
+    input: Input<'claimCandidate'>,
+  ): ReturnType<GoogleEmailOtpRegistrationAttemptStore['claimCandidate']> {
+    const response = await this.service.registrationOffer({ operation: 'claimCandidate', input });
+    const result = response.value;
+    if (!result || typeof result !== 'object' || !('ok' in result)) throw invalidResponse();
+    if (result.ok === true) return { ok: true };
+    if (
+      result.ok === false &&
+      'code' in result &&
+      result.code === 'registration_candidate_unavailable' &&
+      'message' in result &&
+      typeof result.message === 'string'
+    ) {
+      return { ok: false, code: result.code, message: result.message };
+    }
+    throw invalidResponse();
+  }
+
   async create(input: Input<'create'>) {
     return pending(await this.service.registrationOffer({ operation: 'create', input }));
   }

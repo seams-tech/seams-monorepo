@@ -118,6 +118,7 @@ async function runGoogleLoginScenario(
     bridge.googleIdentities = identities;
   }
   const offers = await verifySharedRegistrationOffers({
+    api,
     runtime,
     bridges,
     proofs,
@@ -288,6 +289,7 @@ function tamperedToken(token) {
 }
 
 async function verifySharedRegistrationOffers({
+  api,
   runtime,
   bridges,
   proofs,
@@ -385,7 +387,81 @@ async function verifySharedRegistrationOffers({
     (await resumed.json()).result.registrationAttemptId,
     replacement.registrationAttemptId,
   );
+  const initialSelection = await us.read(replacement.registrationAttemptId);
+  const claims = [];
+  const competing = replacement.offer.candidates.slice(1, 3);
+  for (const [index, region] of ['US', 'WEUR'].entries()) {
+    const candidate = competing[index];
+    claims.push(
+      bridges
+        .get(region)
+        .authority.registrationOffers()
+        .claimCandidate({
+          attemptId: replacement.registrationAttemptId,
+          candidateId: candidate.candidateId,
+          walletId: candidate.walletId,
+          intentDigest: `verified-intent-${region}`,
+        }),
+    );
+  }
+  const decisions = await Promise.all(claims);
+  assert.equal(decisions.filter(isSuccessfulClaim).length, 1);
+  const winnerIndex = decisions[0].ok ? 0 : 1;
+  const winner = competing[winnerIndex];
+  const intentDigest = `verified-intent-${winnerIndex === 0 ? 'US' : 'WEUR'}`;
+  const apac = bridges.get('APAC').authority.registrationOffers();
+  assert.equal(
+    (
+      await apac.claimCandidate({
+        attemptId: replacement.registrationAttemptId,
+        candidateId: winner.candidateId,
+        walletId: winner.walletId,
+        intentDigest,
+      })
+    ).ok,
+    true,
+  );
+  assert.equal(
+    (
+      await apac.claimCandidate({
+        attemptId: replacement.registrationAttemptId,
+        candidateId: winner.candidateId,
+        walletId: winner.walletId,
+        intentDigest: 'different-intent',
+      })
+    ).ok,
+    false,
+  );
+  await assert.rejects(us.put(initialSelection));
+  const selected = await apac.read(replacement.registrationAttemptId);
+  assert.equal(selected.walletId, winner.walletId);
+  assert.equal(selected.selectedCandidateId, winner.candidateId);
+  await assert.rejects(
+    apac.put(
+      api.abandonedGoogleEmailOtpRegistrationAttemptRecord({
+        record: selected,
+        failureCode: 'offer_restarted_by_user',
+        updatedAtMs: Date.now(),
+      }),
+    ),
+  );
+  assert.equal((await us.read(replacement.registrationAttemptId)).walletId, winner.walletId);
+  assert.equal(
+    (
+      await us.claimCandidate({
+        attemptId: first.registrationAttemptId,
+        candidateId: first.offer.selectedCandidateId,
+        walletId: first.walletId,
+        intentDigest: 'late-abandoned-intent',
+      })
+    ).ok,
+    false,
+  );
   return {
+    candidateClaimsHaveOneWinner: true,
+    identicalIntentRetrySucceeds: true,
+    candidateRetargetingAndIntentSubstitutionRejected: true,
+    claimedOffersCannotBeRestarted: true,
     concurrentRegionalOffersHaveOneWinner: true,
     allRegionsReuseCandidatesAndIdentity: true,
     explicitRestartReplacesSharedOffer: true,
@@ -393,6 +469,10 @@ async function verifySharedRegistrationOffers({
     scopeMismatchAndOutagesFailClosed: true,
     regionalOfferStoresRemainEmpty: true,
     scope:
-      'Concurrent creation and sequential restart through production resolver, Console service and D1. Candidate selection and registration completion races remain separate acceptance gates.',
+      'Concurrent offer creation through production resolver/Console/D1, plus competing candidate claims through the shared store. End-to-end registration completion and expiry/reservation reconciliation remain separate acceptance gates.',
   };
+}
+
+function isSuccessfulClaim(result) {
+  return result.ok;
 }

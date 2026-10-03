@@ -71,6 +71,17 @@ export async function handleRegistrationOfferCommand(
       await store.put(record);
       break;
     }
+    case 'claimCandidate': {
+      const input = object(raw.input);
+      return Response.json({
+        value: await store.claimCandidate({
+          attemptId: requiredString(input.attemptId),
+          candidateId: requiredString(input.candidateId),
+          walletId: requiredString(input.walletId),
+          intentDigest: requiredString(input.intentDigest),
+        }),
+      });
+    }
     case 'create':
       return Response.json({ value: await store.create(createInput(raw.input, scope)) });
     case 'findStarted':

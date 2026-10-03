@@ -1369,3 +1369,14 @@ missing records. Regional offer tables remain unused in composition. Receipt:
 Candidate-selection, concurrent restart/completion, expiry/reservation cleanup,
 shared limits/credential uniqueness and hosted acceptance remain open. No deployment
 or release occurred.
+
+### R152 immutable Google candidate claims — October 3
+
+Console migration 0061 (signer equivalent 0043) adds the registration-intent digest
+claim. Candidate selection is an atomic operation exposed through the authenticated
+offer service. Competing candidates/intents, stale selection writes and restart of
+a claimed offer are rejected; identical retries succeed. The SDK authority path
+claims only after proof, runtime-scope and duplicate-method validation. The regional
+composition verifies claim contention, not complete custody registration. Identity
+publication/offer completion races, expiry and home reconciliation remain open.
+No deployment or release occurred.

@@ -121,6 +121,22 @@ verifiable, repeatable artifact.
 
 ### Real regional Wallet composition
 
+The lower-level regional HTTP/D1 composition also verifies expired device links:
+
+```sh
+SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server \
+SEAMS_TEST_ARTIFACT_DIR=.artifacts/r152/link-expiry \
+node tests/e2e/regional-session-routing.e2e.mjs
+```
+
+Its `regional-session-routing-evidence.json` includes `linkHttp.expiry`: six
+unclaimed/prepared sessions across all three homes, real elapsed QR expiry,
+foreign-ingress polling and replay, approval rejection, home-only terminal cleanup,
+and rejected recreation after terminal-row removal. The same requests verify
+expired shared proof nonce pruning while retaining fresh replay guards. Preparation
+uses synthetic owner signer material. Terminal-row removal is injected directly;
+this does not exercise a scheduled pruning job or server-process restart.
+
 Run from the private repository against a built public Wallet candidate:
 
 ```sh

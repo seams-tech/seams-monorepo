@@ -1238,3 +1238,17 @@ public `refactor-152-results.md` recovery checkpoint for commands and limitation
 Evidence: `.artifacts/r152/recovery-routing-20261003/`; receipt SHA-256
 `e0049be9472103d6b256fb1e62b8c1cd3ca2bae470ec5a5402346172c716c104`.
 No hosted deployment or publication; 0.8.0 stays held.
+
+### October 3: direct Yao wallet-identity entry routing
+
+The Gateway resolves recovery bootstrap/admission/status and export admission
+through the existing scoped wallet directory before constructing local services.
+Their request wallet and any Wallet Session must agree. Twelve route/home cases
+passed through regional Worker transports and Console D1; malformed/unknown IDs,
+conflicting sessions and directory outages fail closed. Terminal protocol execution
+is controlled; this is routing evidence only. The public R152 results doc records
+the repeat command and receipt hash under `yao-entry-routing-20261003`.
+
+Opaque lifecycle continuations and wallet-less linked-device QR coordination remain
+open, along with shared identity, internal/deferred enforcement, terminal cleanup
+and hosted acceptance. No deployment or 0.8.0 publication occurred.

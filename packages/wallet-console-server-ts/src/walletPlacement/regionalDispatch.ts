@@ -1,6 +1,6 @@
 import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
-import { digestOpaqueValue } from '@seams/wallet-server/cloud-host';
+import { digestOpaqueValue, parseWalletId } from '@seams/wallet-server/cloud-host';
 import { SessionLocator } from './sessionLocators';
 import type { WalletHomeAssignment } from './home';
 import type { WalletHome } from './home';
@@ -107,7 +107,15 @@ export async function dispatchKnownWalletHome(
   }
   const pathname = new URL(request.url).pathname;
   let locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string };
-  if (isRegistrationContinuation(pathname)) {
+  if (isYaoWalletEntry(pathname)) {
+    if (request.method !== 'POST') return null;
+    const body: unknown = await request.clone().json().catch(invalidJsonBody);
+    const walletId = yaoEntryWalletId(pathname, body);
+    if (!walletId.ok) {
+      return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
+    }
+    locator = { kind: 'wallet', walletId: walletId.value };
+  } else if (isRegistrationContinuation(pathname)) {
     if (request.method !== 'POST') return null;
     const body: unknown = await request.clone().json().catch(invalidJsonBody);
     const ceremonyId = registrationCeremonyId(pathname, body);
@@ -146,6 +154,42 @@ export async function dispatchKnownWalletHome(
   }
   if (authority.isLocal(assignment.home)) return null;
   return transport.forward(assignment.home, request);
+}
+
+function isYaoWalletEntry(pathname: string): boolean {
+  return (
+    pathname === '/router-ab/ed25519/yao/recovery/bootstrap' ||
+    pathname === '/router-ab/ed25519/yao/recovery/admit' ||
+    pathname === '/router-ab/ed25519/yao/recovery/status' ||
+    pathname === '/router-ab/ed25519/yao/export/admit'
+  );
+}
+
+function yaoEntryWalletId(pathname: string, body: unknown): ReturnType<typeof parseWalletId> {
+  let value = body;
+  // Only extract routing identity here. The home handler validates the full protocol and proof.
+  let keys: readonly string[];
+  switch (pathname) {
+    case '/router-ab/ed25519/yao/recovery/bootstrap':
+      keys = ['walletId'];
+      break;
+    case '/router-ab/ed25519/yao/recovery/status':
+      keys = ['admission', 'application_binding', 'wallet_id'];
+      break;
+    case '/router-ab/ed25519/yao/export/admit':
+      keys = ['protocol', 'application_binding', 'wallet_id'];
+      break;
+    case '/router-ab/ed25519/yao/recovery/admit':
+      keys = ['application_binding', 'wallet_id'];
+      break;
+    default:
+      return parseWalletId(null);
+  }
+  for (const key of keys) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return parseWalletId(null);
+    value = Reflect.get(value, key);
+  }
+  return parseWalletId(value);
 }
 
 type SessionHomeResolution =

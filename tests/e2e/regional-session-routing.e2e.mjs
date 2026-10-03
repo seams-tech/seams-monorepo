@@ -1,4 +1,5 @@
 import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
+import { verifyRegionalYaoEntryRouting } from './regional-yao-entry-routing.scenario.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -79,6 +80,12 @@ class GatewayBridge {
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith('/router-ab/ed25519/yao/')) {
+      return Response.json(
+        { region: this.region, code: 'fixture_protocol_execution_disabled' },
+        { status: 422 },
+      );
+    }
     if (pathname.startsWith('/wallets/recovery/')) return this.recovery.handle(request);
     if (pathname === '/wallet/session/exchange/redeem') {
       const body = await request.json();
@@ -382,6 +389,7 @@ try {
 
     observations.push({ region, walletId: wallet.walletId });
   }
+  const yaoEntryRouting = await verifyRegionalYaoEntryRouting({ runtime, bridges, consoleBridge });
   const recovery = await verifyRegionalRecoveryRouting({
     api,
     runtime,
@@ -519,6 +527,7 @@ try {
   const evidence = {
     kind: 'regional_session_routing_e2e_v1',
     recovery,
+    yaoEntryRouting,
     recordedAt: new Date().toISOString(),
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
     observations,

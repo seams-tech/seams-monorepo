@@ -172,6 +172,9 @@ addition, duplicate-add refusal, lock/reload, Email OTP unlock and NEAR/Tempo
 signing, revocation, local refusal of the revoked method, and continued passkey
 signing. `methods-<home>/method-active-evidence.json` and
 `method-revoked-evidence.json` record home-only methods and authority state plus
-forwarding metadata. Google proof verification uses the configured intended-test
+forwarding metadata. The first successful finalization and revocation replies are
+lost after commit; each must replay the same request/proof and committed result.
+The receipts retain attempt/loss counts without recording those payloads.
+Google proof verification uses the configured intended-test
 token; OTP delivery uses the development D1 outbox. Refresh an expired token from
 the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.

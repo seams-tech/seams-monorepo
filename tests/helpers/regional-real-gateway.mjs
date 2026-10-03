@@ -177,6 +177,8 @@ class RealHomeConsole {
 }
 
 class RealRegionalGateway {
+  methodFinalizeFault = new CommittedMethodReplyLoss(/\/auth-methods\/finalize$/u);
+  methodRevokeFault = new CommittedMethodReplyLoss(/\/auth-methods\/[^/]+\/revoke$/u);
   recoveryPrepare = null;
   recoveryFinalizationStatuses = [];
   pending = [];
@@ -215,6 +217,8 @@ class RealRegionalGateway {
       this.recoveryFinalizationStatuses.push(response.status);
     }
     if (
+      (await this.methodFinalizeFault.shouldDrop(request, response)) ||
+      (await this.methodRevokeFault.shouldDrop(request, response)) ||
       (await this.activationFault.shouldDrop(request, response)) ||
       this.acknowledgementFault.shouldDrop(request, response)
     ) {
@@ -423,9 +427,13 @@ class RegionalRealScenario {
     if (emailState === 'revoked') {
       assert.ok(gateway.requests.some(isForwardedRevocation.bind(undefined, methodPath)));
     }
+    const replay = {
+      finalization: gateway.methodFinalizeFault.verify(2),
+      revocation: gateway.methodRevokeFault.verify(emailState === 'revoked' ? 2 : 0),
+    };
     await writeFile(
       resolve(this.output, `method-${emailState}-evidence.json`),
-      JSON.stringify({ home, ingress, placement, stores, requests: gateway.requests }, null, 2),
+      JSON.stringify({ home, ingress, placement, stores, replay, requests: gateway.requests }, null, 2),
     );
   }
 
@@ -717,6 +725,37 @@ class ActivationReplyLoss {
 
   verify() {
     if (this.attempts > 0) assert.equal(this.attempts, 2);
+    return { attempts: this.attempts, lostReplies: this.attempts > 0 ? 1 : 0 };
+  }
+}
+
+class CommittedMethodReplyLoss {
+  attempts = 0;
+  first = null;
+
+  constructor(pathPattern) {
+    this.pathPattern = pathPattern;
+  }
+
+  async shouldDrop(request, response) {
+    if (request.method() !== 'POST' || !this.pathPattern.test(new URL(request.url()).pathname)) {
+      return false;
+    }
+    assert.equal(response.status, 200, 'Method mutation must commit before losing its reply');
+    const body = request.postData();
+    const result = await response.clone().json();
+    this.attempts += 1;
+    if (this.first === null) {
+      this.first = { body, result };
+      return true;
+    }
+    assert.equal(body, this.first.body, 'Method mutation must retry the same request and proof');
+    assert.deepEqual(result, this.first.result, 'Method mutation must replay its committed result');
+    return false;
+  }
+
+  verify(expectedAttempts) {
+    assert.equal(this.attempts, expectedAttempts);
     return { attempts: this.attempts, lostReplies: this.attempts > 0 ? 1 : 0 };
   }
 }

@@ -15,7 +15,7 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'APAC' },
   { home: 'APAC', ingress: 'US' },
 ]) {
-  test(`a ${home} wallet adds, uses and revokes an Email OTP method through ${ingress}`, async ({
+  test(`a ${home} wallet adds, uses and revokes an Email OTP method through ${ingress} despite lost commit replies`, async ({
     harness,
     context,
   }) => {

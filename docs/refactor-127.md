@@ -1176,3 +1176,21 @@ Repeatable evidence and commands are recorded in the public
 `docs/refactor-152-results.md`, “opaque session and exchange routing evidence”.
 Local receipt: `.artifacts/r152/session-routing-20261003/regional-session-routing-evidence.json`,
 SHA-256 `4046e52174715aff31d8ac19545db4adc4f7d4bbff32c518326c96fe2d36398f`.
+
+### October 3: direct registration continuation placement
+
+Gateway resolves both direct Yao registration routes by their existing ceremony
+locator before regional service construction. Initial registration credentials
+and later Wallet Sessions reach the ceremony's reserved/established home; a
+session for another wallet is rejected. Malformed/unknown/cancelled ceremonies
+fail closed, and directory outages return `wallet_home_unavailable` with 503.
+Protocol proof validation remains in the home handler. No new index or wire field.
+
+The local directory E2E passed (9.4s), with 12 simulated continuation effects in
+exactly their assigned regional D1s. The session composition also passed, including
+six cross-wallet ceremony rejections. Type checks and lint passed. Receipt hashes,
+repeat commands and test limits are in the public `refactor-152-results.md` direct
+registration checkpoint; evidence is retained in
+`.artifacts/r152/direct-registration-routing-20261003/`.
+Direct recovery/export and remaining shared/internal/deferred routes are still open.
+Release 0.8.0 remains held; no hosted deployment or latency measurement occurred.

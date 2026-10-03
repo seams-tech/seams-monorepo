@@ -83,6 +83,20 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
       .run();
     return Response.json({ ok: true, reservation, region: home.region, authenticatedAtHome: true });
   }
+  const pathname = new URL(request.url).pathname;
+  if (pathname.startsWith('/router-ab/ed25519/yao/registration/')) {
+    const ceremonyId = directRegistrationCeremony(pathname, body);
+    if (!ceremonyId) return new Response(null, { status: 400 });
+    const assignment = await authority.findHome({ kind: 'ceremony', ceremonyId });
+    if (!assignment || !authority.isLocal(assignment.home))
+      return new Response(null, { status: 409 });
+    await env.SIGNER_DB.prepare(
+      'INSERT INTO continuation_effects (ceremony_id, operation, region) VALUES (?1, ?2, ?3)',
+    )
+      .bind(ceremonyId, pathname, home.region)
+      .run();
+    return Response.json({ ok: true, region: home.region, walletId: assignment.wallet.walletId });
+  }
   if (!('registrationCeremonyId' in body) || typeof body.registrationCeremonyId !== 'string')
     return new Response(null, { status: 400 });
   const assignment = await authority.findHome({
@@ -117,3 +131,25 @@ export default {
     return handle(request, env, 'ingress');
   },
 };
+
+function directRegistrationCeremony(pathname: string, body: object): string | null {
+  if (pathname.endsWith('/admit')) {
+    if (
+      'scope' in body &&
+      body.scope &&
+      typeof body.scope === 'object' &&
+      'lifecycle_id' in body.scope
+    )
+      return typeof body.scope.lifecycle_id === 'string' ? body.scope.lifecycle_id : null;
+  } else if (
+    'binding' in body &&
+    body.binding &&
+    typeof body.binding === 'object' &&
+    'lifecycle' in body.binding
+  ) {
+    const lifecycle = body.binding.lifecycle;
+    if (lifecycle && typeof lifecycle === 'object' && 'lifecycle_id' in lifecycle)
+      return typeof lifecycle.lifecycle_id === 'string' ? lifecycle.lifecycle_id : null;
+  }
+  return null;
+}

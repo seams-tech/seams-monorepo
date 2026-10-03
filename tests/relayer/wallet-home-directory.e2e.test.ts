@@ -88,6 +88,11 @@ function start(directory: string): Miniflare {
       ...homes.map(regionalWorker.bind(undefined, directory)),
       {
         ...misdirected,
+        name: 'gateway-directory-unavailable',
+        serviceBindings: { ...misdirected.serviceBindings, CONSOLE: unavailableGateway },
+      },
+      {
+        ...misdirected,
         name: 'gateway-misdirected',
         serviceBindings: {
           ...misdirected.serviceBindings,

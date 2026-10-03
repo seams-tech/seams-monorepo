@@ -93,24 +93,14 @@ export async function dispatchKnownWalletHome(
   if (session.kind === 'rejected') return session.response;
   const pathname = new URL(request.url).pathname;
   let locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string };
-  if (
-    /^\/wallets\/register\/(respond|activate|near-admission|near-provisioning)$/u.test(pathname)
-  ) {
+  if (isRegistrationContinuation(pathname)) {
     if (request.method !== 'POST') return null;
-    const body: unknown = await request
-      .clone()
-      .json()
-      .catch(() => null);
-    if (
-      !body ||
-      typeof body !== 'object' ||
-      !('registrationCeremonyId' in body) ||
-      typeof body.registrationCeremonyId !== 'string' ||
-      !/^wrc_[A-Za-z0-9_-]{43}$/u.test(body.registrationCeremonyId)
-    ) {
+    const body: unknown = await request.clone().json().catch(invalidJsonBody);
+    const ceremonyId = registrationCeremonyId(pathname, body);
+    if (ceremonyId === null) {
       return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
     }
-    locator = { kind: 'ceremony', ceremonyId: body.registrationCeremonyId };
+    locator = { kind: 'ceremony', ceremonyId };
   } else {
     const path =
       /^\/wallets\/([^/]+)\/(custody\/credentials(?:\/label)?|custody\/envelope\/ownership|recovery\/status|signers\/.+|auth-methods\/.+|near\/implicit-account\/fund)$/u.exec(
@@ -128,7 +118,12 @@ export async function dispatchKnownWalletHome(
     }
     locator = { kind: 'wallet', walletId };
   }
-  const assignment = await authority.findHome(locator);
+  let assignment: WalletHomeAssignment | null;
+  try {
+    assignment = await authority.findHome(locator);
+  } catch {
+    return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 503 });
+  }
   if (!assignment || assignment.state === 'cancelled') {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 404 });
   }
@@ -196,4 +191,45 @@ function rejectedSessionHome(status: number, code: string): SessionHomeResolutio
       },
     ),
   };
+}
+
+function isRegistrationContinuation(pathname: string): boolean {
+  return (
+    /^\/wallets\/register\/(respond|activate|near-admission|near-provisioning)$/u.test(pathname) ||
+    pathname === '/router-ab/ed25519/yao/registration/admit' ||
+    pathname === '/router-ab/ed25519/yao/registration/execute'
+  );
+}
+
+function registrationCeremonyId(pathname: string, body: unknown): string | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  let candidate: unknown;
+  switch (pathname) {
+    case '/router-ab/ed25519/yao/registration/admit': {
+      if (!('scope' in body) || !body.scope || typeof body.scope !== 'object') return null;
+      if (!('lifecycle_id' in body.scope)) return null;
+      candidate = body.scope.lifecycle_id;
+      break;
+    }
+    case '/router-ab/ed25519/yao/registration/execute': {
+      if (!('binding' in body) || !body.binding || typeof body.binding !== 'object') return null;
+      if (!('lifecycle' in body.binding)) return null;
+      const lifecycle = body.binding.lifecycle;
+      if (!lifecycle || typeof lifecycle !== 'object' || !('lifecycle_id' in lifecycle))
+        return null;
+      candidate = lifecycle.lifecycle_id;
+      break;
+    }
+    default:
+      if (!('registrationCeremonyId' in body)) return null;
+      candidate = body.registrationCeremonyId;
+  }
+  // This selects the home only; the receiving handler verifies the complete request and proof.
+  return typeof candidate === 'string' && /^wrc_[A-Za-z0-9_-]{43}$/u.test(candidate)
+    ? candidate
+    : null;
+}
+
+function invalidJsonBody(): null {
+  return null;
 }

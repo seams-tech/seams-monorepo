@@ -117,7 +117,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = resolve(candidate, '../..');
-const output = resolve(root, '.artifacts/r152/session-routing-20261003');
+const output = resolve(
+  root,
+  process.env.SEAMS_TEST_ARTIFACT_DIR ?? '.artifacts/r152/session-routing-20261003',
+);
 await mkdir(output, { recursive: true });
 const bundle = await build({
   bundle: true,
@@ -265,6 +268,7 @@ try {
       expiresAtMs: now + 3_600_000,
     });
     const wallet = api.WalletOwnershipKey.parse({ ...scope, walletId: fixture.authority.walletId });
+    bridge.ceremonyId = `wrc_${region.charAt(0).repeat(43)}`;
     const reservation = await directory.reserve({
       allocation: 'provided',
       wallet,
@@ -273,7 +277,7 @@ try {
       deploymentLane: 'test',
       requestDigest: 'a'.repeat(64),
       proposedRegistrationAllocation: api.RegistrationSetupAllocation.parse({
-        ceremonyId: `wrc_${region}`,
+        ceremonyId: bridge.ceremonyId,
         preparationId: `regprep_${region}`,
         walletAuthorityId: `wallet-authority:${region}`,
         deviceId: `device:${region}`,
@@ -379,6 +383,18 @@ try {
       requestOptions({ token, body: {} }),
     );
     assert.equal(mismatch.status, 403);
+    const otherCeremony = bridges.get(region === 'US' ? 'WEUR' : 'US').ceremonyId;
+    for (const continuation of [
+      { operation: 'admit', body: { scope: { lifecycle_id: otherCeremony } } },
+      { operation: 'execute', body: { binding: { lifecycle: { lifecycle_id: otherCeremony } } } },
+    ]) {
+      const rejected = await ingress.fetch(
+        `https://wallet.test/router-ab/ed25519/yao/registration/${continuation.operation}`,
+        requestOptions({ token, body: continuation.body }),
+      );
+      assert.equal(rejected.status, 403);
+      assert.equal((await rejected.json()).code, 'wallet_session_scope_mismatch');
+    }
     const exchangeCountBefore = await (await runtime.getD1Database('SIGNER_DB', region))
       .prepare('SELECT COUNT(*) AS count FROM wallet_session_hosted_exchange_codes_v2')
       .first('count');
@@ -488,6 +504,7 @@ try {
     concurrentExchangeHasOneWinner: true,
     wrongHomePublicationRejected: true,
     walletTokenDisagreementRejected: true,
+    directRegistrationSessionDisagreementRejected: true,
     failedPublicationPreventsExchangeCommit: true,
     retiredPrimaryAndChildRejected: true,
     linkedDeviceCredentialUsesSameHomeAndSurvivesOtherDeviceRetirement: true,

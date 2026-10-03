@@ -1700,3 +1700,18 @@ The new scenario controls owner authentication to exercise downstream enforcemen
 verifies unchanged durable session state, and records evidence under
 `.artifacts/r152/source-owner-20261003/`. Contribution execution, package delivery
 and final installation remain open. No deployment or release occurred.
+
+### October 3: real Wallet linked-device protocol verification
+
+The public Wallet contracts passed on real local MPC Workers and fresh D1:
+three-device linking with NEAR/Tempo signing and both exports; and lost execution/
+activation replies with exact replay, revocation and continued owner signing.
+Five retained device traces report zero lifecycle violations. Whole-run times after
+building were 43.0 and 34.5 seconds; these are not operation latency measurements.
+
+Evidence lives in the public repository at
+`.artifacts/r152/linked-protocol-20261003/evidence.json`, with source/build/log/trace
+hashes. This closes local protocol execution and retry verification. Complete
+regional installation through production Console authentication, final-state and
+cleanup isolation across homes, and hosted verification remain open. The stale
+private pre-split linked-device suite was not used as an acceptance gate.

@@ -300,7 +300,7 @@ class RealRegionalGateway {
       request,
       authority,
       transport,
-      undefined,
+      this.environment.GOOGLE_OIDC_CLIENT_ID,
     );
     if (forwarded) {
       this.requests.push({
@@ -364,6 +364,68 @@ class RegionalRealScenario {
     await context.route(
       'http://127.0.0.1:4100/**',
       this.gateways.get(region).intercept.bind(this.gateways.get(region)),
+    );
+  }
+
+  async verifyMethodLifecycle(home, ingress, emailState) {
+    const { results: placements } = await this.consoleService.database
+      .prepare('SELECT wallet_id, region, state FROM wallet_homes')
+      .all();
+    assert.equal(placements.length, 1);
+    const placement = placements[0];
+    assert.equal(placement.region, home);
+    assert.equal(placement.state, 'established');
+    const stores = [];
+    for (const [region, gateway] of this.gateways) {
+      const { results: methods } = await gateway.database
+        .prepare(`
+          SELECT kind, status, wallet_authority_id FROM wallet_auth_methods
+          WHERE wallet_id = ? ORDER BY kind
+        `)
+        .bind(placement.wallet_id)
+        .all();
+      const { results: authorities } = await gateway.database
+        .prepare(`
+          SELECT authority_id, provenance_kind, lifecycle_state FROM wallet_authorities
+          WHERE wallet_id = ?
+        `)
+        .bind(placement.wallet_id)
+        .all();
+      if (region === home) {
+        assert.equal(authorities.length, 1);
+        const authority = authorities[0];
+        assert.equal(authority.provenance_kind, 'wallet_registration');
+        assert.equal(authority.lifecycle_state, 'active');
+        assert.deepEqual(methods, [
+          { kind: 'email_otp', status: emailState, wallet_authority_id: authority.authority_id },
+          { kind: 'passkey', status: 'active', wallet_authority_id: authority.authority_id },
+        ]);
+      } else {
+        assert.deepEqual(methods, []);
+        assert.deepEqual(authorities, []);
+      }
+      const identities = await gateway.database
+        .prepare('SELECT count(*) AS count FROM identity_links')
+        .first();
+      assert.equal(identities.count, 0, 'Identity locators belong to Console');
+      stores.push({ region, methods, authorities, identities: identities.count });
+    }
+    const gateway = this.gateways.get(ingress);
+    const methodPath = `/wallets/${placement.wallet_id}/auth-methods/`;
+    assert.ok(
+      gateway.requests.some(isSuccessfulForward.bind(undefined, `${methodPath}finalize`)),
+      'Method installation must commit at home',
+    );
+    assert.ok(
+      gateway.requests.some(isSuccessfulForward.bind(undefined, '/wallet/email-otp/dev/otp-outbox')),
+      'Development OTP reads must reach the home that issued the challenge',
+    );
+    if (emailState === 'revoked') {
+      assert.ok(gateway.requests.some(isForwardedRevocation.bind(undefined, methodPath)));
+    }
+    await writeFile(
+      resolve(this.output, `method-${emailState}-evidence.json`),
+      JSON.stringify({ home, ingress, placement, stores, requests: gateway.requests }, null, 2),
     );
   }
 
@@ -725,6 +787,15 @@ function matchesWallet(walletId, placement) {
 
 function isSuccessfulForward(path, request) {
   return request.path === path && request.forwarded === true && request.status === 200;
+}
+
+function isForwardedRevocation(methodPath, request) {
+  return (
+    request.path.startsWith(methodPath) &&
+    request.path.endsWith('/revoke') &&
+    request.forwarded === true &&
+    request.status === 200
+  );
 }
 
 class GatewayApiResponse {

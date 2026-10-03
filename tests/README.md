@@ -165,3 +165,13 @@ request paths/statuses, including the successful finalization and replay at each
 home. Key-export material is not included in this receipt. Set
 `SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
 per-owner journal and lifecycle assertions alongside it.
+
+The `adds, uses and revokes` matrix exercises an added Email OTP method through
+foreign ingress for every home (US→WEUR, WEUR→APAC, APAC→US). It verifies
+addition, duplicate-add refusal, lock/reload, Email OTP unlock and NEAR/Tempo
+signing, revocation, local refusal of the revoked method, and continued passkey
+signing. `methods-<home>/method-active-evidence.json` and
+`method-revoked-evidence.json` record home-only methods and authority state plus
+forwarding metadata. Google proof verification uses the configured intended-test
+token; OTP delivery uses the development D1 outbox. Refresh an expired token from
+the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.

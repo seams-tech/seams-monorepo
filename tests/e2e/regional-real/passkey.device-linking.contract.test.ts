@@ -51,7 +51,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets retain distinct homes through travel, passkey unlock and key export', async ({
+test('three real wallets retain distinct homes through travel, unlock, export and passkey recovery', async ({
   browser,
   request,
 }, testInfo) => {
@@ -95,6 +95,10 @@ test('three real wallets retain distinct homes through travel, passkey unlock an
       await owner.harness.unlockPasskeyWallet();
       await owner.harness.exportEd25519Key();
       await owner.harness.exportEcdsaKey();
+      await owner.harness.signNearTransaction('post_unlock');
+      await owner.harness.signTempoTransaction('post_unlock');
+      await owner.harness.recoverPasskeyWalletFromFreshBrowser();
+      await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
       await owner.harness.signNearTransaction('post_unlock');
       await owner.harness.signTempoTransaction('post_unlock');
       const walletId = await owner.page

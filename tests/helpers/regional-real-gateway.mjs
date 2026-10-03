@@ -383,18 +383,45 @@ class RegionalRealScenario {
           tables[table] = row.count;
           if (region !== wallet.home) assert.equal(row.count, 0, `${region}/${table}`);
           else if (table === 'wallet_signers') assert.ok(row.count > 0);
+          else if (table === 'wallet_authorities') assert.equal(row.count, 2, `${region}/${table}`);
           else assert.equal(row.count, 1, `${region}/${table}`);
         }
-        stores.push({ region, tables });
+        const { results: authorities } = await gateway.database
+          .prepare(
+            `
+          SELECT provenance_kind, lifecycle_state FROM wallet_authorities WHERE wallet_id = ?
+          ORDER BY provenance_kind
+        `,
+          )
+          .bind(wallet.walletId)
+          .all();
+        assert.deepEqual(
+          authorities,
+          region === wallet.home
+            ? [
+                { provenance_kind: 'wallet_recovery', lifecycle_state: 'active' },
+                { provenance_kind: 'wallet_registration', lifecycle_state: 'active' },
+              ]
+            : [],
+        );
+        stores.push({ region, tables, authorities });
       }
       evidence.push({ ...wallet, stores });
     }
     const traffic = [];
     for (const [region, gateway] of this.gateways) {
-      assert.ok(
-        gateway.requests.some(isForwardedYaoExport),
-        `${region} must forward real export execution`,
-      );
+      for (const path of [
+        '/router-ab/ed25519/yao/export/execute',
+        '/router-ab/ecdsa-derivation/operation-step-up',
+        '/router-ab/ecdsa-derivation/export',
+        '/wallets/recovery/prepare',
+        '/wallets/recovery/finalize',
+      ]) {
+        assert.ok(
+          gateway.requests.some(isSuccessfulForward.bind(undefined, path)),
+          `${region} must forward ${path}`,
+        );
+      }
       traffic.push({ region, requests: gateway.requests });
     }
     await writeFile(
@@ -403,7 +430,7 @@ class RegionalRealScenario {
         {
           scope,
           description:
-            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export and signing through foreign ingress after all registrations; one shared local Router stack.',
+            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export, fresh-browser passkey recovery and signing through foreign ingress after all registrations; one shared local Router stack.',
           wallets: evidence,
           traffic,
         },
@@ -611,10 +638,6 @@ function matchesWallet(walletId, placement) {
   return placement.wallet_id === walletId;
 }
 
-function isForwardedYaoExport(request) {
-  return (
-    request.path === '/router-ab/ed25519/yao/export/execute' &&
-    request.forwarded === true &&
-    request.status === 200
-  );
+function isSuccessfulForward(path, request) {
+  return request.path === path && request.forwarded === true && request.status === 200;
 }

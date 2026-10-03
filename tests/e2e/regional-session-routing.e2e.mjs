@@ -201,7 +201,7 @@ const bundle = await build({
   format: 'esm',
   platform: 'node',
   write: false,
-  external: ['*.wasm', 'cloudflare:workers'],
+  external: ['*.wasm', 'cloudflare:workers', 'bs58'],
   tsconfig: resolve(root, 'packages/wallet-console-server-ts/tsconfig.json'),
   alias: {
     '@shared': resolve(publicRoot, 'packages/shared-ts/src'),
@@ -257,11 +257,12 @@ const bundle = await build({
       export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
       export { D1WalletStore, parseWalletEd25519SignerRecord } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletStore.ts'))};
       export { buildYaoEd25519WalletSignerRecord } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/ed25519Yao/d1Ed25519YaoWalletSigner.ts'))};
+      export { createD1LinkedDeviceOwnerSourceChildReaderV1, createD1LinkedDeviceOwnerAuthorizationMetadataSourceV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceOwnerAuthorizationProvider.ts'))};
+      export { D1LinkedDeviceSourceContributionPreparationPlannerV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceSourceContributionPreparationPlanner.ts'))};
+      export { resolveActiveOwnerWalletExecutionLane } from ${JSON.stringify(resolve(candidate, 'src/core/signingLanes/WalletExecutionLaneProjection.ts'))};
       export { createD1LinkedDeviceVerifiedLinkSourceReaderV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceVerifiedLinkSourceReader.ts'))};
       export { buildMpcMaterialActivationRefFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ecdsaMaterialRef.fixtures.ts'))};
-      export { routerAbMpcMaterialActivationRefFromWire } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbNormalSigningIdentity.ts'))};
       export { buildOrdinaryEd25519ReservationPreparationFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/ordinarySignerMaterialReservation.fixtures.ts'))};
-      export { parseLinkedDeviceOrdinaryMaterialSourceContributionPreparationTupleV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/sourceContribution.ts'))};
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetCredentialRegistrationV1, parseLinkedDeviceTargetCredentialRegistrationV1, buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};

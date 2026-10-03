@@ -1672,3 +1672,17 @@ E2E, focused types, lint and public bloat checks passed. Evidence:
 `.artifacts/r152/deferred-routing-20261003/`. Deferred effect commits and captured
 background Deriver B execution still require relocation fencing; protocol execution
 and linked-device activation remain open. R153 edits were preserved.
+
+### October 3: production linked-device source preparation
+
+The regional E2E replaces its handwritten contribution planner with production
+D1 source-child/owner metadata resolution, owner-lane projection and contribution
+preparation. Browser registration through APAC commits at WEUR and retries replay
+without replanning; missing source material rejects and remote homes stay empty.
+Fixed the E2E bundle's `bs58` module interop failure by using its native Node import.
+
+Regional E2E, focused lint and public bloat checks passed. Evidence:
+`.artifacts/r152/source-plan-20261003/`. Owner material and target preparation are
+still controlled fixtures. Real contribution execution, package delivery and final
+installation remain R152 work; relocation fencing is R153's responsibility.
+No deployment or release occurred.

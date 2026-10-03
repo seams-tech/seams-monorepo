@@ -103,7 +103,7 @@ export async function verifyRegionalBrowserRegistration({
   assert.equal(replayedOutcome, 'replayed');
   assert.deepEqual(replayedCredential, committedCredential);
   assert.deepEqual(replayedBody.session, committedBody.session);
-  assert.equal(available.reads, 2);
+  assert.equal(available.reads, 3);
   assert.equal(available.plans, 1);
   assert.equal(
     await database
@@ -134,11 +134,12 @@ export async function verifyRegionalBrowserRegistration({
     failedRegistrationReleasesReservation: true,
     freshProofRetryReachesSourceAgain: true,
     productionSourceReaderUsesHomeD1: true,
+    productionSourceContributionPlanner: true,
     missingSourceSignerRejectsBeforePlanning: true,
     successfulCredentialPersistedOnlyAtHome: true,
     credentialRetryReplaysWithoutReplanning: true,
     scope:
-      'Real browser WebAuthn, signed credential HTTP and durable registration at WEUR. Production source reader resolves session, method, authority and signer from D1. Signer protocol material is synthetic and contribution planning remains controlled. Real owner ceremony, source contribution and final installation remain open.',
+      'Real browser WebAuthn, signed credential HTTP and durable registration at WEUR. Production source reader resolves session, method, authority and signer from D1. Owner source-child resolution, lane projection and contribution preparation use production code. Owner protocol material is synthetic; real owner ceremony, contribution execution and final installation remain open.',
   };
 }
 class UnavailableSourceFixture {

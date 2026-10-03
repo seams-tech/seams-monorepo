@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -176,6 +177,7 @@ class RealHomeConsole {
 }
 
 class RealRegionalGateway {
+  recoveryPrepare = null;
   pending = [];
   requests = [];
 
@@ -198,6 +200,17 @@ class RealRegionalGateway {
       'ingress',
     );
     if (
+      new URL(request.url()).pathname === '/wallets/recovery/prepare' &&
+      response.status === 200
+    ) {
+      assert.equal(this.recoveryPrepare, null, 'Each ingress should prepare one owner recovery');
+      this.recoveryPrepare = {
+        url: request.url(),
+        headers: request.headers(),
+        body: request.postData(),
+      };
+    }
+    if (
       (await this.activationFault.shouldDrop(request, response)) ||
       this.acknowledgementFault.shouldDrop(request, response)
     ) {
@@ -209,6 +222,26 @@ class RealRegionalGateway {
       headers: Object.fromEntries(response.headers),
       body: Buffer.from(await response.arrayBuffer()),
     });
+  }
+
+  async verifyRecoveryCodeSpent() {
+    const prepared = this.recoveryPrepare;
+    this.recoveryPrepare = null;
+    assert.ok(prepared, 'Expected a successful recovery preparation through this ingress');
+    const body = JSON.parse(prepared.body);
+    body.reservationId = `wallet-recovery-reservation-${randomUUID().replaceAll('-', '')}`;
+    const response = await this.handle(
+      new Request(prepared.url, {
+        method: 'POST',
+        headers: prepared.headers,
+        body: JSON.stringify(body),
+      }),
+      'ingress',
+    );
+    const result = await response.json();
+    assert.equal(response.status, 401);
+    assert.equal(result.code, 'recovery_code_used');
+    return { status: response.status, code: result.code };
   }
 
   waitUntil(promise) {
@@ -422,7 +455,8 @@ class RegionalRealScenario {
           `${region} must forward ${path}`,
         );
       }
-      traffic.push({ region, requests: gateway.requests });
+      const consumedCode = await gateway.verifyRecoveryCodeSpent();
+      traffic.push({ region, consumedCode, requests: gateway.requests });
     }
     await writeFile(
       resolve(this.output, 'mixed-home-evidence.json'),

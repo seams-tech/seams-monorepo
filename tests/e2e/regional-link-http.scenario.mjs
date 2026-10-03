@@ -1,3 +1,4 @@
+import { PausedExportRootWrites } from '../helpers/regional-export-root-race.fixtures.mjs';
 import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.fixtures.mjs';
 import { verifyRegionalTargetPreparation } from './regional-target-preparation.scenario.mjs';
 import assert from 'node:assert/strict';
@@ -113,19 +114,42 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
         nowMs: Date.now(),
       }),
     });
-    const cancel = await send(
-      apac,
-      await fixture.signedRequest(api, payload, 'POST', `${path}/cancel`, {
-        kind: 'linked_device_session_cancel_claimed_request_v1',
-        linkSessionId: payload.linkSessionId,
-        enrollmentId: claim.enrollmentId,
-        deviceId: claim.deviceId,
-        reason: 'user_cancelled',
-        requestedAtMs: Date.now(),
-      }),
-    );
-    assert.equal(cancel.status, 200, await cancel.clone().text());
-    assert.equal((await cancel.json()).session.state.state, 'cancelled');
+    const relay = new PausedExportRootWrites(weur.linkRoutes.ed25519ExportRoot);
+    const transfer = await relay.readTransferV1(payload.linkSessionId);
+    assert.equal(transfer.state, 'sealed');
+    weur.linkRoutes.ed25519ExportRoot = relay;
+    const delayedRecipient = send(us, await fixture.signedRequest(
+      api, payload, 'POST', `${path}/ed25519-export-root-recipient`, transfer.recipient,
+    ));
+    const delayedPackage = ownerPost(apac, weur, `${path}/ed25519-export-root`, {
+      kind: 'linked_device_ed25519_export_root_submission_v1',
+      linkSessionId: payload.linkSessionId,
+      package: transfer.package,
+    });
+    try {
+      await relay.waitForWrites();
+      const cancel = await send(
+        apac,
+        await fixture.signedRequest(api, payload, 'POST', `${path}/cancel`, {
+          kind: 'linked_device_session_cancel_claimed_request_v1',
+          linkSessionId: payload.linkSessionId,
+          enrollmentId: claim.enrollmentId,
+          deviceId: claim.deviceId,
+          reason: 'user_cancelled',
+          requestedAtMs: Date.now(),
+        }),
+      );
+      assert.equal(cancel.status, 200, await cancel.clone().text());
+      assert.equal((await cancel.json()).session.state.state, 'cancelled');
+    } finally {
+      relay.released.resolve();
+    }
+    const recipientAfterCancel = await delayedRecipient;
+    const packageAfterCancel = await delayedPackage;
+    assert.equal(recipientAfterCancel.status, 409, await recipientAfterCancel.clone().text());
+    assert.equal(packageAfterCancel.status, 409, await packageAfterCancel.clone().text());
+    weur.linkRoutes.ed25519ExportRoot = relay.port;
+
     for (const ingress of [us, apac]) {
       const recipient = await ingress.fetch(`https://wallet.test${path}/ed25519-export-root-recipient`, {
         method: 'GET',
@@ -198,6 +222,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      admittedRelayWritesCannotResurrectCancelledTransfer: true,
       terminalExportRootRequestsRejected: true,
       authenticatedClaimHttpAtHome: true,
       claimHttpReplayAcrossRegions: true,

@@ -1784,3 +1784,15 @@ preparation binding fields before the first write and all four terminal relay
 operations through US/APAC. Valid delivery/replay remains covered. The real local
 lost-reply linking, signing and revocation contract also passes; see public R152
 results for artifacts. Full regional cryptographic installation remains open.
+
+
+### October 3: admitted relay writes racing cancellation
+
+Added a bounded barrier around the production relay port to pause recipient and
+package requests after their HTTP authentication/admission. Cancellation completes
+through APAC at WEUR before releasing the writes. The initial E2E reproduced a
+recipient insert returning 200 and recreating its deleted row. This is classified
+as a production regression. The server now makes insertion conditional on current
+session state within the same D1 statement, with no additional roundtrip.
+The scenario checks both delayed writes conflict and the relay row remains absent.
+Public R152 results retain the before/after evidence and real-protocol validation.

@@ -2,7 +2,10 @@ import { verifyRegionalPasskeyClaims } from './regional-passkey-claims.scenario.
 import { verifyRegionalRateLimits } from './regional-rate-limits.scenario.mjs';
 import { verifyRegionalSharedIdentity } from './regional-shared-identity.scenario.mjs';
 import { verifyRegionalGoogleLogin } from './regional-google-login.scenario.mjs';
-import { verifyRegionalAuthenticationRouting } from './regional-authentication-routing.scenario.mjs';
+import {
+  verifyRegionalAuthenticationRouting,
+  verifyRevokedDiscovery,
+} from './regional-authentication-routing.scenario.mjs';
 import { verifyRegionalLifecycleRouting } from './regional-lifecycle-routing.scenario.mjs';
 import { verifyRegionalRecoveryRouting } from './regional-recovery-routing.scenario.mjs';
 import { verifyRegionalYaoEntryRouting } from './regional-yao-entry-routing.scenario.mjs';
@@ -178,8 +181,9 @@ const bundle = await build({
       export { handleAuth } from ${JSON.stringify(resolve(candidate, 'src/router/transport/fetch/routes/auth.ts'))};
       export { handleWalletUnlockChallengeRoute } from ${JSON.stringify(resolve(candidate, 'src/router/domains/walletUnlock/walletUnlockRouteHandlers.ts'))};
       export { prepareD1WebAuthnCredentialBindingPutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/WebAuthnCredentialBindingStore.ts'))};
+      export { buildWalletAuthMethodRecordV2 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/walletAuthMethodRecord.ts'))};
       export { D1WalletAuthMethodStore } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
-      export { CloudflareD1WebAuthnStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnStore.ts'))};
+      export { CloudflareD1WebAuthnStore, prepareD1WebAuthnAuthenticatorPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnStore.ts'))};
       export { CloudflareD1WebAuthnAuthService } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnAuthService.ts'))};
       export { publishWalletLifecycleHome } from ${JSON.stringify(resolve(candidate, 'src/authorization/lifecycleRouting.ts'))};
       export { buildWalletRecoveryEnvelopeSetRecord, parseWalletRecoveryEnvelopeSetRecord, buildWalletRecoveryManifestKekWrap, buildWalletCustodySeedRecoveryEntry } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/wallet-recovery/walletRecoveryEnvelopeSet.ts'))};
@@ -626,7 +630,9 @@ try {
   const serialized = JSON.stringify(rows.results);
   for (const bridge of bridges.values())
     assert.ok(!serialized.includes(bridge.issued.operationCredential.token));
+  const revokedDiscovery = await verifyRevokedDiscovery({ api, runtime, bridges, signerScope });
   const evidence = {
+    revokedDiscovery,
     kind: 'regional_session_routing_e2e_v1',
     recovery,
     yaoEntryRouting,

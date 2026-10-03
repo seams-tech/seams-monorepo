@@ -1,15 +1,13 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import assert from 'node:assert/strict';
 import {
-  buildPasskeyCredentialBindingFixture,
+  buildDiscoveryCredentialBindingFixture,
+  RegionalPasskeyAuthenticator,
+  DiscoveryManifestFixture,
+  buildRevokedPasskeyMethodFixture,
   buildWalletlessSyncChallengeFixture,
 } from '../helpers/regional-authentication.fixtures.mjs';
 
-class UnusedManifestSource {
-  getEd25519KeyManifestBySlot() {
-    throw new Error('Challenge creation must not read the signer manifest');
-  }
-}
 class PasskeyHome {
   constructor(api, region, store, service) {
     this.api = api;
@@ -29,13 +27,13 @@ class PasskeyHome {
     }
     if (path === '/sync-account/verify') {
       const body = await request.json();
-      const challenge = await this.store.consumeSyncChallenge(
-        body.challengeId,
-        body.webauthn_authentication.rawId,
-      );
+      const result = await this.service.verifyWebAuthnSyncAccount({
+        ...body,
+        expected_origin: 'https://management.example.test',
+      });
       return Response.json(
-        { region: this.region, consumed: Boolean(challenge.ok && challenge.record) },
-        { status: challenge.ok && challenge.record ? 200 : 401 },
+        { region: this.region, ...result },
+        { status: result.ok && result.verified ? 200 : 401 },
       );
     }
     if (path.startsWith('/auth/') && path !== '/auth/passkey/verify') {
@@ -84,11 +82,24 @@ export async function verifyRegionalAuthenticationRouting({
   const observations = [];
   for (const [region, bridge] of bridges) {
     const database = await runtime.getD1Database('SIGNER_DB', region);
+    bridge.authenticator = new RegionalPasskeyAuthenticator(bridge.authMethod);
+    bridge.authMethod = bridge.authenticator.activeMethod(api);
     await database.batch([
+      api.prepareD1WalletAuthMethodV2PutStatement({
+        database,
+        scope: signerScope,
+        record: bridge.authMethod,
+      }),
+      api.prepareD1WebAuthnAuthenticatorPutStatement({
+        database,
+        scope: signerScope,
+        userId: bridge.authMethod.walletId,
+        record: bridge.authenticator.record(Date.now()),
+      }),
       api.prepareD1WebAuthnCredentialBindingPutStatement({
         database,
         scope: signerScope,
-        record: buildPasskeyCredentialBindingFixture(bridge.authMethod, Date.now()),
+        record: buildDiscoveryCredentialBindingFixture(bridge.authMethod, Date.now()),
       }),
     ]);
     assert.equal(
@@ -111,7 +122,7 @@ export async function verifyRegionalAuthenticationRouting({
         ...signerScope,
         ensureSchema: false,
       }),
-      walletManifestSource: new UnusedManifestSource(),
+      walletManifestSource: new DiscoveryManifestFixture(),
       lifecycleRouting: bridge.publisher,
     });
     bridge.passkey = new PasskeyHome(api, region, store, service);
@@ -133,7 +144,7 @@ export async function verifyRegionalAuthenticationRouting({
       }[family];
       const options = challengeOptions(family, bridge);
       const response = await ingress.fetch(`https://wallet.test${optionsPath}`, post(options));
-      assert.equal(response.status, 200);
+      assert.equal(response.status, 200, `${region}/${family}: ${await response.clone().text()}`);
       const challenge = await response.json();
       assert.deepEqual(challenge.credentialIds, [bridge.authMethod.credentialIdB64u]);
       const routes = await authorityDatabase
@@ -142,7 +153,7 @@ export async function verifyRegionalAuthenticationRouting({
       assert.ok(!JSON.stringify(routes.results).includes(challenge.challengeB64u));
       const verify =
         family === 'sync'
-          ? syncProof(challenge.challengeId, bridge.authMethod.credentialIdB64u)
+          ? bridge.authenticator.assertion(challenge)
           : family !== 'unlock'
             ? { challengeId: challenge.challengeId }
             : { unlockBackend: 'passkey', challengeId: challenge.challengeId };
@@ -169,14 +180,18 @@ export async function verifyRegionalAuthenticationRouting({
         consoleBridge.available = true;
       }
       const attempts = await Promise.all([
-        traveler.fetch(`https://wallet.test${verifyPath}`, post(verify)),
-        ingress.fetch(`https://wallet.test${verifyPath}`, post(verify)),
+        verifyThroughWorker(traveler, verifyPath, verify),
+        verifyThroughWorker(ingress, verifyPath, verify),
       ]);
       assert.deepEqual(attempts.map(responseStatus).sort(), [200, 401]);
       for (const attempt of attempts) {
-        const result = await attempt.json();
+        const result = attempt.body;
         if (result.region) assert.equal(result.region, region);
-        else assert.equal(result.code, 'challenge_expired_or_invalid');
+        if (family === 'sync' && attempt.status === 200) {
+          assert.equal(result.verified, true);
+          assert.equal(result.walletId, bridge.authMethod.walletId);
+        }
+        if (!result.region) assert.equal(result.code, 'challenge_expired_or_invalid');
       }
       observations.push({ region, family, challengeId: challenge.challengeId });
     }
@@ -187,10 +202,7 @@ export async function verifyRegionalAuthenticationRouting({
     assert.equal(discovery.status, 200);
     const discoveredChallenge = await discovery.json();
     assert.equal(discoveredChallenge.credentialIds, undefined);
-    const discoveryProof = syncProof(
-      discoveredChallenge.challengeId,
-      bridge.authMethod.credentialIdB64u,
-    );
+    const discoveryProof = bridge.authenticator.assertion(discoveredChallenge);
     const foreignConsume = await foreign.publisher.syncChallenges().consume({
       challengeId: discoveredChallenge.challengeId,
       credentialIdB64u: bridge.authMethod.credentialIdB64u,
@@ -201,7 +213,11 @@ export async function verifyRegionalAuthenticationRouting({
       post(discoveryProof),
     );
     assert.equal(resolved.status, 200);
-    assert.equal((await resolved.json()).region, region);
+    const discovered = await resolved.json();
+    assert.equal(discovered.region, region);
+    assert.equal(discovered.verified, true);
+    assert.equal(discovered.walletId, bridge.authMethod.walletId);
+    assert.equal(discovered.credentialPublicKeyB64u, bridge.authenticator.publicKey);
     const replay = await ingress.fetch(
       'https://wallet.test/sync-account/verify',
       post(discoveryProof),
@@ -233,6 +249,53 @@ export async function verifyRegionalAuthenticationRouting({
     });
     assert.equal(verifiedPending.verified, false);
     assert.equal(verifiedPending.code, 'unknown_credential');
+    for (const attack of ['signature', 'origin', 'challenge']) {
+      const attackOptions = await ingress.fetch(
+        'https://wallet.test/sync-account/options',
+        post({ rp_id: bridge.authMethod.rpId }),
+      );
+      assert.equal(attackOptions.status, 200);
+      const attackChallenge = await attackOptions.json();
+      const assertion = bridge.authenticator.assertion(
+        attackChallenge,
+        attack === 'origin' ? 'https://attacker.example.test' : undefined,
+      );
+      if (attack === 'signature') {
+        const signature = Buffer.from(
+          assertion.webauthn_authentication.response.signature,
+          'base64url',
+        );
+        signature[signature.length - 1] ^= 1;
+        assertion.webauthn_authentication.response.signature = signature.toString('base64url');
+      }
+      if (attack === 'challenge') {
+        const other = bridge.authenticator.assertion({
+          challengeId: attackChallenge.challengeId,
+          challengeB64u: Buffer.alloc(32, 99).toString('base64url'),
+        });
+        assertion.webauthn_authentication = other.webauthn_authentication;
+      }
+      const rejected = await traveler.fetch(
+        'https://wallet.test/sync-account/verify',
+        post(assertion),
+      );
+      assert.equal(rejected.status, 401);
+      const failure = await rejected.json();
+      assert.equal(failure.verified, false);
+      assert.equal(failure.walletId, undefined);
+      const expectedCode = {
+        signature: 'not_verified',
+        origin: 'invalid_origin',
+        challenge: 'invalid_assertion',
+      };
+      assert.equal(failure.code, expectedCode[attack]);
+      const retry = await ingress.fetch(
+        'https://wallet.test/sync-account/verify',
+        post(bridge.authenticator.assertion(attackChallenge)),
+      );
+      assert.equal(retry.status, 401);
+      observations.push({ region, family: 'discovery-rejection', attack, code: failure.code });
+    }
     const expiring = buildWalletlessSyncChallengeFixture(
       {
         challengeId: Buffer.alloc(16, region.charCodeAt(0)).toString('base64url'),
@@ -297,6 +360,9 @@ export async function verifyRegionalAuthenticationRouting({
     challengeCreationUsesHomeBindings: true,
     travelingVerificationConsumesAtHomeOnce: true,
     walletlessDiscoveryRoutesToCredentialHome: true,
+    syncUsesRealWebAuthnSignatureVerification: true,
+    forgedSignatureOriginAndChallengeRejected: true,
+    failedProofConsumesChallenge: true,
     foreignWriterCannotConsumeDiscovery: true,
     consumedDiscoveryCannotBeRecreated: true,
     uncommittedClaimCannotAuthenticate: true,
@@ -309,7 +375,7 @@ export async function verifyRegionalAuthenticationRouting({
     noncanonicalAuthPathsRejected: true,
     challengeBytesAbsentFromDirectory: true,
     scope:
-      'Production passkey challenge creation handlers/service, publication/index and D1 single-use consumption through regional Worker transports. WebAuthn signature verification and Email OTP execution are controlled; no full unlock ceremony or hosted latency claim.',
+      'Production passkey challenge creation handlers/service, publication/index and D1 single-use consumption through regional Worker transports. Sync uses real ES256 WebAuthn verification with stored authenticators and active methods; expected origin is supplied by the test adapter; signer manifest lookup is a fixture. Login/unlock signature verification and Email OTP execution remain controlled. No browser discovery/bootstrap or hosted latency claim.',
   };
 }
 function responseStatus(response) {
@@ -348,4 +414,46 @@ function syncProof(challengeId, credentialId) {
       response: { clientDataJSON: 'e30', authenticatorData: 'AA', signature: 'AA' },
     },
   };
+}
+
+export async function verifyRevokedDiscovery({ api, runtime, bridges, signerScope }) {
+  const observations = [];
+  for (const [region, bridge] of bridges) {
+    const ingress = await runtime.getWorker(region === 'US' ? 'APAC' : 'US');
+    const options = await ingress.fetch(
+      'https://wallet.test/sync-account/options',
+      post({ rp_id: bridge.authMethod.rpId }),
+    );
+    assert.equal(options.status, 200);
+    const challenge = await options.json();
+    const database = await runtime.getD1Database('SIGNER_DB', region);
+    await database.batch([
+      api.prepareD1WalletAuthMethodV2PutStatement({
+        database,
+        scope: signerScope,
+        record: buildRevokedPasskeyMethodFixture(api, bridge.authMethod, Date.now()),
+      }),
+    ]);
+    const claim = await bridge.publisher.findSyncHome({
+      challengeId: challenge.challengeId,
+      credentialIdB64u: bridge.authMethod.credentialIdB64u,
+    });
+    assert.equal(claim.wallet.walletId, bridge.authMethod.walletId);
+    const response = await ingress.fetch(
+      'https://wallet.test/sync-account/verify',
+      post(bridge.authenticator.assertion(challenge)),
+    );
+    assert.equal(response.status, 401);
+    const result = await response.json();
+    assert.equal(result.verified, false);
+    assert.equal(result.code, 'unknown_credential');
+    assert.equal(result.walletId, undefined);
+    observations.push({ region, retainedClaimResolved: true, revokedMethodRejected: true });
+  }
+  return observations;
+}
+
+async function verifyThroughWorker(worker, path, proof) {
+  const response = await worker.fetch(`https://wallet.test${path}`, post(proof));
+  return { status: response.status, body: await response.json() };
 }

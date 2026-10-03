@@ -1462,3 +1462,17 @@ uncommitted-binding rejection. The local unlock/export/signing browser contract
 passed. Evidence: `.artifacts/r152/passkey-discovery-20261003/`. Full hosted proof
 verification and remaining R152 lifecycle gates remain open; no release or deployment
 occurred. Include this table in scoped resets and expired-row cleanup.
+
+### October 3: regional discovery proof acceptance
+
+The R152 composition now verifies real ES256 sync assertions against shared
+single-use challenges and regional authenticators. It covers known-wallet and
+wallet-less travel, concurrent consumption, forged signatures, wrong signed origins,
+wrong challenges, and revocation after challenge issuance while the shared claim
+remains. Evidence is in `.artifacts/r152/discovery-signature-20261003/` and the
+public `docs/refactor-152-results.md` records its checksum and limitations.
+
+This is local service composition. Expected origin and signer-manifest lookup are
+fixture inputs; full browser discovery/session bootstrap and live timing remain
+open. Linked-device pre-wallet coordination, durable terminal reconciliation and
+internal/deferred enforcement still block release 0.8.0.

@@ -1824,3 +1824,16 @@ HTTP are real; the delayed call enters the production provider directly through 
 D1 write barrier. Harness cleanup now drains paused tasks before disposing Miniflare,
 so a test failure cannot be obscured by a poisoned-stub teardown error. Public R152
 results retain before/after evidence. Email OTP grant races remain open.
+
+
+### October 3: Email OTP grant cancellation and consumption
+
+Added a regional new-enrollment grant scenario using production claim/approval,
+target planning, grant creation, D1 storage and signed verification/cancellation
+HTTP. OTP verification and challenge delivery are controlled fixtures. A grant
+is consumed once and a second consumption fails. A paused subsequent grant write
+initially returned success after cancellation: a production regression. Issuance
+now checks current session state atomically and both enrollment branches propagate
+refusal, preventing token delivery after the rejected write. The regional scenario
+passes with zero remaining grants in all regions. Full Email OTP installation and
+actual email delivery remain outside this checkpoint; see public R152 results.

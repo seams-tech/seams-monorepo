@@ -1,3 +1,4 @@
+import { verifyRegionalEmailGrant } from './regional-email-grant.scenario.mjs';
 import { PausedReservationDatabase } from '../helpers/regional-reservation-race.fixtures.mjs';
 import { PausedTargetPreparationFixture, deliveryRecipient } from '../helpers/regional-target-preparation.fixtures.mjs';
 import { PausedExportRootWrites } from '../helpers/regional-export-root-race.fixtures.mjs';
@@ -259,7 +260,9 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     assert.equal(deleted.status, 409);
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
+    const emailGrant = await verifyRegionalEmailGrant({ api, runtime, bridges, signerScope });
     return {
+      emailGrant,
       admittedRegistrationCannotReserveAfterCancellation: true,
       delayedPlannerCannotResurrectCancelledPreparation: true,
       admittedRelayWritesCannotResurrectCancelledTransfer: true,

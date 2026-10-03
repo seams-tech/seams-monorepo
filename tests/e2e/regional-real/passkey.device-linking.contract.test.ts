@@ -51,7 +51,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets retain distinct homes through travel and interrupted passkey recovery', async ({
+test('three real wallets register concurrently and retain distinct homes through travel and interrupted recovery', async ({
   browser,
   request,
 }, testInfo) => {
@@ -85,9 +85,8 @@ test('three real wallets retain distinct homes through travel and interrupted pa
       owners.push({ home, travel, context, harness, page });
       await harness.initialize();
       await scenario.routeContext(context, home);
-      await harness.registerPasskeyWallet();
-      await harness.awaitNearReady();
     }
+    const registrations = await Promise.all(owners.map(registerOwner));
     const wallets = [];
     for (const owner of owners) {
       await scenario.routeContext(owner.context, owner.travel);
@@ -107,7 +106,7 @@ test('three real wallets retain distinct homes through travel and interrupted pa
       await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
       wallets.push({ home: owner.home, travel: owner.travel, walletId });
     }
-    await scenario.verifyMixedHomes(wallets);
+    await scenario.verifyMixedHomes(wallets, registrations);
     for (const owner of owners) {
       await owner.harness.attachTrace(testInfo, `${owner.home}-owner-trace.json`);
       owner.harness.assertNoLifecycleViolations();
@@ -121,4 +120,18 @@ test('three real wallets retain distinct homes through travel and interrupted pa
 
 function isNewContext(previous: BrowserContext[], context: BrowserContext) {
   return !previous.includes(context);
+}
+
+async function registerOwner(owner: {
+  home: string;
+  harness: {
+    registerPasskeyWallet(): Promise<void>;
+    awaitNearReady(): Promise<void>;
+  };
+}) {
+  const startedAtMs = Date.now();
+  await owner.harness.registerPasskeyWallet();
+  const completedAtMs = Date.now();
+  await owner.harness.awaitNearReady();
+  return { home: owner.home, startedAtMs, completedAtMs };
 }

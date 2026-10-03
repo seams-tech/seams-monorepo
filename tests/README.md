@@ -151,7 +151,7 @@ bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
 
-The `three real wallets` case registers US, WEUR and APAC owners in the same
+The `three real wallets` case registers US, WEUR and APAC owners concurrently in the same
 Console/signer stores, then routes them through foreign ingress for locked-page
 reload, passkey unlock, Ed25519/ECDSA key export, fresh-browser passkey recovery
 and NEAR/Tempo signing. Recovery commits at home, loses its finalization reply,
@@ -160,7 +160,8 @@ replay the same operation and target, and clear after the successful reply.
 Each consumed code is then submitted with a new reservation and must be rejected
 as already used, including the browser's error message. Select it with
 `--grep 'three real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
-exact tenant scope, established home assignments, per-wallet store counts and
+exact tenant scope, registration start/completion times with verified overlap,
+established home assignments, per-wallet store counts and
 request paths/statuses, including the successful finalization and replay at each
 home. Key-export material is not included in this receipt. Set
 `SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
@@ -179,11 +180,14 @@ Google proof verification uses the configured intended-test
 token; OTP delivery uses the development D1 outbox. Refresh an expired token from
 the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
 
-The `recovers with Google Email OTP` matrix starts with passkey wallets and
+The `interrupted Google Email OTP` matrix starts with passkey wallets and
 recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
-APAC→WEUR). It verifies an additive Email OTP authority, NEAR and concurrent
-Tempo/Arc signing after refresh, the shared Google identity locator, home-only
-custody records and consumed-code rejection. Each case saves
+APAC→WEUR). It loses the committed finalization reply, resets the client runtime,
+and checks exact replay plus pending-journal retention and removal. It then
+verifies an additive Email OTP authority, NEAR/Tempo signing, the shared Google
+identity locator, home-only custody records and consumed-code rejection. Each case saves
 `google-recovery-<home>/recovery-evidence.json`. The harness's direct budget
 queries use the same regional transport as browser requests. Google tokens and
 OTP delivery use the same configuration as the method lifecycle matrix.
+After the consumed-code UI check, the recovered method unlocks again and signs
+NEAR plus concurrent Tempo/Arc, retaining the budget-exhaustion assertion.

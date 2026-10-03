@@ -15,7 +15,7 @@ for (const { home, ingress } of [
   { home: 'WEUR', ingress: 'US' },
   { home: 'APAC', ingress: 'WEUR' },
 ]) {
-  test(`a ${home} passkey wallet recovers with Google Email OTP through ${ingress}`, async ({
+  test(`a ${home} passkey wallet survives interrupted Google Email OTP recovery through ${ingress}`, async ({
     context,
     page,
     request,
@@ -45,9 +45,11 @@ for (const { home, ingress } of [
       await harness.awaitNearReady();
       await harness.signTempoTransaction('post_registration');
       await scenario.routeContext(context, ingress);
-      await harness.recoverGoogleEmailOtpWalletFromFreshBrowser();
+      await harness.recoverGoogleEmailOtpWalletAfterLostFinalizationResponse(
+        scenario.finalizationCommitter(ingress),
+      );
       await harness.assertRecoveryAuthorityIsAdditive('google_email_otp');
-      await harness.refreshPagePreservingWalletStorage();
+      await harness.unlockWithAddedEmailOtp();
       await harness.signNearTransaction('post_unlock');
       await harness.signTempoAndArcEvmConcurrently('post_unlock');
       await scenario.verifyGoogleRecovery(home, ingress);

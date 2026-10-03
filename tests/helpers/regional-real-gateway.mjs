@@ -213,7 +213,7 @@ class RealRegionalGateway {
         body: request.postData(),
       };
     }
-    if (new URL(request.url()).pathname === '/wallets/recovery/finalize') {
+    if (isRecoveryFinalizationPath(new URL(request.url()).pathname)) {
       this.recoveryFinalizationStatuses.push(response.status);
     }
     if (
@@ -234,7 +234,7 @@ class RealRegionalGateway {
 
   async commitRecoveryFinalization(route) {
     const request = route.request();
-    assert.equal(new URL(request.url()).pathname, '/wallets/recovery/finalize');
+    assert.ok(isRecoveryFinalizationPath(new URL(request.url()).pathname));
     const response = await this.handle(
       new Request(request.url(), {
         method: request.method(),
@@ -515,6 +515,7 @@ class RegionalRealScenario {
       .first();
     assert.equal(sharedIdentity.count, 1, 'Recovered Google identity must have one shared locator');
     const gateway = this.gateways.get(ingress);
+    assert.deepEqual(gateway.recoveryFinalizationStatuses, [200, 200]);
     for (const path of [
       '/wallets/recovery/prepare',
       '/wallets/recovery/google/verify',
@@ -534,6 +535,7 @@ class RegionalRealScenario {
           placement,
           stores,
           sharedIdentities: sharedIdentity.count,
+          finalizationStatuses: gateway.recoveryFinalizationStatuses,
           consumedCode,
           requests: gateway.requests,
         },
@@ -598,7 +600,12 @@ class RegionalRealScenario {
     );
   }
 
-  async verifyMixedHomes(wallets) {
+  async verifyMixedHomes(wallets, registrations) {
+    assert.equal(registrations.length, 3);
+    assert.deepEqual(registrations.map(registrationHome).sort(), [...regions].sort());
+    const latestStart = Math.max(...registrations.map(registrationStart));
+    const earliestCompletion = Math.min(...registrations.map(registrationCompletion));
+    assert.ok(latestStart < earliestCompletion, 'All three registration calls must overlap');
     assert.equal(wallets.length, 3);
     assert.equal(new Set(wallets.map(walletIdentity)).size, 3);
     const { database, scope, catalog } = this.consoleService;
@@ -691,7 +698,8 @@ class RegionalRealScenario {
         {
           scope,
           description:
-            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock, both-family key export, fresh-browser passkey recovery with lost finalization response and client runtime reset, and signing through foreign ingress after all registrations; one shared local Router stack.',
+            'Three real wallets registered concurrently in one tenant namespace; locked page reload, passkey unlock, both-family key export, fresh-browser passkey recovery with lost finalization response and client runtime reset, and signing through foreign ingress after all registrations; one shared local Router stack.',
+          registrations,
           wallets: evidence,
           traffic,
         },
@@ -926,12 +934,30 @@ function walletIdentity(wallet) {
   return wallet.walletId;
 }
 
+function registrationHome(registration) {
+  return registration.home;
+}
+
+function registrationStart(registration) {
+  return registration.startedAtMs;
+}
+
+function registrationCompletion(registration) {
+  return registration.completedAtMs;
+}
+
 function matchesWallet(walletId, placement) {
   return placement.wallet_id === walletId;
 }
 
 function isSuccessfulForward(path, request) {
   return request.path === path && request.forwarded === true && request.status === 200;
+}
+
+function isRecoveryFinalizationPath(path) {
+  return (
+    path === '/wallets/recovery/finalize' || path === '/wallets/recovery/google-email-otp/finalize'
+  );
 }
 
 function isForwardedRevocation(methodPath, request) {

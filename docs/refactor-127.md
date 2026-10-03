@@ -1545,3 +1545,16 @@ transcript; committed signer-package delivery and authority installation still n
 coverage through `targetCredential`, `sourceContributionRouter` and
 `installationReceipt`. Hosted acceptance, internal/deferred routing and terminal
 reservation reconciliation remain open; release 0.8.0 is still held.
+
+### October 3: target-preparation race
+
+Extended the approved regional scenario with concurrent calls to the production D1
+target credential provider at WEUR. A controlled planner generates two independent
+canonical challenges. This exposed an SDK race: the losing insert compared its fresh
+digest to the stored winner and threw. The SDK now validates/replays the durable
+winner; recipient changes remain conflicts. Evidence and logs are retained under
+`.artifacts/r152/target-preparation-20261003/`.
+
+This checks provider persistence after regional HTTP approval. Preparation endpoint
+authentication, real WebAuthn registration, source contribution and final authority
+installation still need verification. No deployment or release was performed.

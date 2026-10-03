@@ -1,3 +1,4 @@
+import { verifyRegionalTargetPreparation } from './regional-target-preparation.scenario.mjs';
 import assert from 'node:assert/strict';
 import { RegionalDeviceProofFixture } from '../helpers/regional-device-proof.fixtures.mjs';
 import {
@@ -87,6 +88,17 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
         .first('count');
       assert.equal(count, region === 'WEUR' ? 1 : 0);
     }
+    const preparation = await verifyRegionalTargetPreparation({
+      api,
+      runtime,
+      bridges,
+      signerScope,
+      approval,
+      session: await weur.linkRoutes.sessionService.getSessionV1({
+        linkSessionId: payload.linkSessionId,
+        nowMs: Date.now(),
+      }),
+    });
     const cancel = await send(
       apac,
       await fixture.signedRequest(api, payload, 'POST', `${path}/cancel`, {
@@ -113,6 +125,9 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const database = await runtime.getD1Database('SIGNER_DB', 'WEUR');
     await database.batch([
       database
+        .prepare('DELETE FROM linked_device_target_credentials WHERE link_session_id = ?')
+        .bind(payload.linkSessionId),
+      database
         .prepare('DELETE FROM linked_device_session_transcripts WHERE link_session_id = ?')
         .bind(payload.linkSessionId),
       database
@@ -124,6 +139,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      preparation,
       approvalPersistedOnlyAtHome: true,
       approvalReplayAcrossRegions: true,
       changedApprovalRejected: true,

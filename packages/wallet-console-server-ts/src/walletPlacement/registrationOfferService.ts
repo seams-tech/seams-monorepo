@@ -64,9 +64,6 @@ export async function handleRegistrationOfferCommand(
   switch (raw.operation) {
     case 'read':
       return Response.json({ value: await store.read(requiredString(raw.input)) });
-    case 'delete':
-      await store.delete(requiredString(raw.input));
-      break;
     case 'cleanupExpired':
       return Response.json({ value: await store.cleanupExpired(requiredTime(raw.input)) });
     case 'put': {

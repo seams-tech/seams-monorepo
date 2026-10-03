@@ -1401,3 +1401,11 @@ Expired claims survive pending cleanup; normal expired completion remains reject
 The regional composition simulates the interruption with a retained claim and real
 home reservation. Full custody crash/replay and terminal claim/home cleanup remain
 open. No deployment or release occurred.
+
+### R152 claimed-offer cleanup audit — October 3
+
+Removed unrestricted shared-offer deletion and confined malformed-record deletion
+to unclaimed rows. Expired pending claims remain visible to wallet allocation.
+The composed scenario rejects the removed command, preserves the record and then
+completes through its original intent/home writer. Full terminal home/custody
+reconciliation remains open. No deployment or release occurred.

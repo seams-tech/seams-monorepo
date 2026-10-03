@@ -29,3 +29,7 @@ const missingCommittedIntent: CommittedCompletionInput = {
   walletId: 'wallet',
 };
 void missingCommittedIntent;
+
+// @ts-expect-error Shared offer authority has no unrestricted deletion command.
+const deleteOffer: RegistrationOfferCommand = { operation: 'delete', input: 'attempt' };
+void deleteOffer;

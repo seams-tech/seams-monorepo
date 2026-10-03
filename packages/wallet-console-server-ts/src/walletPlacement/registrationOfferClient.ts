@@ -59,9 +59,6 @@ export class RegistrationOfferClient implements GoogleEmailOtpRegistrationAttemp
   async put(input: Input<'put'>): Promise<void> {
     acknowledge(await this.service.registrationOffer({ operation: 'put', input }));
   }
-  async delete(input: string): Promise<void> {
-    acknowledge(await this.service.registrationOffer({ operation: 'delete', input }));
-  }
   async abandonStartedExceptBinding(input: Input<'abandonStartedExceptBinding'>): Promise<void> {
     acknowledge(
       await this.service.registrationOffer({ operation: 'abandonStartedExceptBinding', input }),

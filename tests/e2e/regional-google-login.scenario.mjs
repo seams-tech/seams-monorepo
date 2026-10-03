@@ -526,6 +526,16 @@ async function verifySharedRegistrationOffers({
   assert.equal((await us.complete(completion)).ok, false);
   await us.cleanupExpired(Date.now() + 60 * 60_000);
   assert.equal((await us.read(completion.attemptId)).state, 'started');
+  assert.equal(
+    await us.hasLiveStartedWalletAttempt({ walletId: completion.walletId, nowMs: Date.now() }),
+    true,
+  );
+  await assert.rejects(
+    bridges
+      .get('US')
+      .publisher.registrationOffer({ operation: 'delete', input: completion.attemptId }),
+  );
+  assert.equal((await us.read(completion.attemptId)).walletId, completion.walletId);
   const committed = { ...completion, intentDigest };
   await assert.rejects(us.completeCommitted(committed));
   const wallet = api.WalletOwnershipKey.parse({
@@ -577,6 +587,8 @@ async function verifySharedRegistrationOffers({
   await assert.rejects(us.put(selected));
   return {
     expiredClaimSurvivesCleanupForCommittedRetry: true,
+    claimedWalletRemainsUnavailableForReallocation: true,
+    unrestrictedOfferDeleteIsUnavailable: true,
     committedRetryRequiresHomeAndOriginalIntent: true,
     completionPublishesIdentityAndOfferAtomically: true,
     completionFailureRollsBackIdentityMove: true,

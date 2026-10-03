@@ -44,7 +44,7 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
   const transport = new WalletRegionalDispatch(env, entry);
-  const forwarded = await dispatchKnownWalletHome(request, authority, transport);
+  const forwarded = await dispatchKnownWalletHome(request, authority, transport, undefined);
   if (forwarded) return forwarded;
   const body: unknown = await request.json();
   if (!body || typeof body !== 'object' || Array.isArray(body))

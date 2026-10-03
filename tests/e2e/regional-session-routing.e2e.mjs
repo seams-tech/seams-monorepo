@@ -84,6 +84,7 @@ class GatewayBridge {
       request,
       this.authority,
       new api.WalletRegionalDispatch(this.bindings, entry),
+      'regional-google-test',
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
@@ -164,6 +165,7 @@ const bundle = await build({
       export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
       export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
       export { prepareD1TenantStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1TenantStore.ts'))};
+      export { verifyGoogleOidcToken } from '@seams/wallet-server/cloud-host';
       export { D1IdentityStore } from ${JSON.stringify(resolve(candidate, 'src/core/d1IdentityStore.ts'))};
       export { CloudflareD1EmailOtpEnrollmentStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpEnrollmentStore.ts'))};
       export { CloudflareD1GoogleEmailOtpRegistrationAttemptStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1GoogleEmailOtpRegistrationAttemptStore.ts'))};

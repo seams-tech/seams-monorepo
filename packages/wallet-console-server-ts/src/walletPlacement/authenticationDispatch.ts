@@ -1,4 +1,8 @@
-import { parseWalletId } from '@seams/wallet-server/cloud-host';
+import {
+  parseGoogleLoginVerifyRequest,
+  verifyGoogleOidcToken,
+  parseWalletId,
+} from '@seams/wallet-server/cloud-host';
 import type { WalletHomeAssignment } from './home';
 import type { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 import { WalletRouteLocator } from './walletRouteLocators';
@@ -15,6 +19,7 @@ type AuthenticationLocator =
 export async function authenticationHome(
   request: Request,
   authority: ConsoleRegistrationHomeAdmission,
+  googleClientId: string | undefined,
 ): Promise<AuthenticationHome> {
   const path = new URL(request.url).pathname;
   if (request.method !== 'POST' || !isAuthenticationRoute(path)) return { kind: 'absent' };
@@ -27,7 +32,7 @@ export async function authenticationHome(
       (body.account_mode !== 'login' && body.account_mode !== 'register')
     )
       return rejected(400, 'invalid_body');
-    if (!('wallet_id' in body)) return { kind: 'absent' };
+    if (!('wallet_id' in body)) return googleDiscoveryHome(body, authority, googleClientId);
     if (body.account_mode !== 'login') return rejected(400, 'invalid_body');
   }
   let locator: AuthenticationLocator;
@@ -126,4 +131,30 @@ function rejected(status: number, code: string): AuthenticationHome {
       { status, headers: { 'Cache-Control': 'no-store' } },
     ),
   };
+}
+
+async function googleDiscoveryHome(
+  body: object,
+  authority: ConsoleRegistrationHomeAdmission,
+  googleClientId: string | undefined,
+): Promise<AuthenticationHome> {
+  const parsed = parseGoogleLoginVerifyRequest(body);
+  if (!parsed.ok) return rejected(parsed.status, 'invalid_body');
+  if (parsed.request.accountMode !== 'login') return { kind: 'absent' };
+  const proof = await verifyGoogleOidcToken(googleClientId, parsed.request.idToken);
+  if (!proof.ok) return rejected(proof.code === 'internal' ? 503 : 400, proof.code);
+  try {
+    const walletId = await authority
+      .identityStore()
+      .getUserIdBySubject(`wallet:google:${proof.sub}`);
+    if (walletId === null) return { kind: 'absent' };
+    const wallet = parseWalletId(walletId);
+    if (!wallet.ok) return rejected(503, 'wallet_home_unavailable');
+    const assignment = await authority.findHome({ kind: 'wallet', walletId: wallet.value });
+    if (!assignment || assignment.state === 'cancelled')
+      return rejected(404, 'wallet_home_unavailable');
+    return { kind: 'resolved', assignment };
+  } catch {
+    return rejected(503, 'wallet_home_unavailable');
+  }
 }

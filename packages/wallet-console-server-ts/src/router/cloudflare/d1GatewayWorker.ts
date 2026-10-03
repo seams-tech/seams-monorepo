@@ -103,7 +103,12 @@ async function handleGatewayRequest(
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
   const transport = new WalletRegionalDispatch(env, entry);
-  const forwarded = await dispatchKnownWalletHome(request, authority, transport);
+  const forwarded = await dispatchKnownWalletHome(
+    request,
+    authority,
+    transport,
+    boundEnv.GOOGLE_OIDC_CLIENT_ID,
+  );
   if (forwarded) {
     const response = new Response(forwarded.body, forwarded);
     withCors(

@@ -90,11 +90,12 @@ export async function dispatchKnownWalletHome(
   request: Request,
   authority: ConsoleRegistrationHomeAdmission,
   transport: WalletRegionalDispatch,
+  googleClientId: string | undefined,
 ): Promise<Response | null> {
   if (request.method === 'OPTIONS') return null;
   const session = await sessionHome(request, authority);
   if (session.kind === 'rejected') return session.response;
-  const authentication = await authenticationHome(request, authority);
+  const authentication = await authenticationHome(request, authority, googleClientId);
   const scopedHome =
     authentication.kind === 'absent' ? await recoveryHome(request, authority) : authentication;
   if (scopedHome.kind === 'rejected') return scopedHome.response;

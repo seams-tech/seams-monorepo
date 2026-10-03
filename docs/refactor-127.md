@@ -1346,3 +1346,13 @@ Apply migration 0059 before deploying this candidate. No deployment occurred.
 Provider discovery forwarding, shared offers/limits/credential uniqueness,
 linked-device coordination, internal/deferred routing and hosted acceptance remain
 open; release 0.8.0 stays held.
+
+### R152 verified Google discovery — October 3
+
+Login without `wallet_id` now verifies the Google token before reading the shared
+provider mapping and dispatching to its wallet home. Both endpoints use the same
+production proof verifier, with no generic identity-link side effect during
+routing. The regional composition uses real RSA verification with fixture JWKS;
+shared identity and home lookups use production Console/D1 services. New-account
+registration offers, credential uniqueness, rate limits, linking and remaining
+internal enforcement are still open. No deployment or release occurred.

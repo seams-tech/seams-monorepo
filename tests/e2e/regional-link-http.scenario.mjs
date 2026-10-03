@@ -132,6 +132,24 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     );
     assert.equal(terminalDelivery.status, 409);
     assert.equal((await terminalDelivery.json()).outcome, 'invalid_state');
+    for (const ingress of [us, apac]) {
+      const latePreparation = await ingress.fetch(
+        `https://wallet.test${path}/source-contribution-preparation`,
+        {
+          headers: { authorization: `Bearer ${weur.issued.operationCredential.token}` },
+        },
+      );
+      assert.equal(latePreparation.status, 409, await latePreparation.clone().text());
+      assert.equal((await latePreparation.json()).outcome, 'invalid_state');
+      const lateExecution = await ownerPost(
+        ingress,
+        weur,
+        `${path}/source-contribution/execute`,
+        {},
+      );
+      assert.equal(lateExecution.status, 409, await lateExecution.clone().text());
+      assert.equal((await lateExecution.json()).outcome, 'invalid_state');
+    }
     const retry = await send(us, await fixture.createReplayRequest(api, payload));
     assert.equal(retry.status, 200);
     assert.equal((await retry.json()).session.state.state, 'cancelled');
@@ -164,6 +182,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
       signedApprovalDelivery: true,
       invalidProofCannotReadApprovalOrConsumeNonce: true,
       cancelledApprovalNotDelivered: true,
+      cancelledSourcePreparationAndExecutionRejected: true,
       crossWalletApprovalRejected: true,
       sharedHttpCreateAndPoll: true,
       signedTravelPollAndCancel: true,

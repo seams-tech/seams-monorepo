@@ -1432,3 +1432,8 @@ foreign-writer rejection and outage rejection. Claims do not authenticate users.
 Credential discovery publication, terminal reconciliation and full hosted lifecycle
 acceptance remain open. Receipt: `.artifacts/r152/passkey-claims-20261003/`.
 No deployment or release occurred.
+
+The matched public candidate also passed all 13 isolated passkey registration
+contracts via `pnpm --dir tests test:intended:representative`. Logs and JSON artifacts
+are retained beside the regional claim receipt. These local lifecycle contracts
+supplement the regional composition; hosted acceptance remains outstanding.

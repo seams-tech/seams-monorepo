@@ -6,7 +6,7 @@ const ED25519_PUBLIC_KEY_PATTERN = /^ed25519:[1-9A-HJ-NP-Za-km-z]+$/;
 const ED25519_VERIFYING_KEY_PATTERN = /^[0-9a-f]{64}$/;
 const UNSIGNED_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 
-export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 4;
+export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 5;
 export const DEFAULT_NEAR_INITIAL_BALANCE_YOCTO = '30000000000000000000000';
 export const DEFAULT_RELAY_SESSION_AUDIENCE = 'seams-wallet-session';
 export const DEFAULT_SESSION_COOKIE_NAME = 'seams-jwt';
@@ -263,15 +263,77 @@ function knownNearNetworkForRpcUrl(rpcUrl) {
   return null;
 }
 
+export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC']);
+
 function parseResources(value) {
   const resources = requireObject(value, 'resources');
-  requireExactKeys(resources, ['workerName', 'placementRegion', 'consoleD1', 'signerD1'], 'resources');
-  return {
-    workerName: requirePattern(resources.workerName, RESOURCE_NAME_PATTERN, 'resources.workerName'),
-    placementRegion: requireString(resources.placementRegion, 'resources.placementRegion'),
-    consoleD1: parseD1Resource(resources.consoleD1, 'resources.consoleD1'),
-    signerD1: parseD1Resource(resources.signerD1, 'resources.signerD1'),
-  };
+  requireExactKeys(resources, ['workerName', 'ingressRegion', 'consoleD1', 'regions'], 'resources');
+  const rawRegions = requireObject(resources.regions, 'resources.regions');
+  requireExactKeys(rawRegions, WALLET_REGIONS, 'resources.regions');
+  const regions = {};
+  const names = new Set();
+  const consoleD1 = parseD1Resource(resources.consoleD1, 'resources.consoleD1');
+  const ids = new Set([consoleD1.id]);
+  for (const region of WALLET_REGIONS) {
+    const label = `resources.regions.${region}`;
+    const raw = requireObject(rawRegions[region], label);
+    requireExactKeys(raw, ['workerName', 'placementRegion', 'signerD1'], label);
+    const allocation = requireObject(raw.signerD1, `${label}.signerD1`);
+    const kind = allocation.kind;
+    if (kind !== 'allocated' && kind !== 'pending')
+      throw new Error(`${label}.signerD1.kind must be allocated or pending`);
+    requireExactKeys(
+      allocation,
+      kind === 'allocated' ? ['kind', 'name', 'id'] : ['kind', 'name'],
+      `${label}.signerD1`,
+    );
+    const name = requirePattern(allocation.name, RESOURCE_NAME_PATTERN, `${label}.signerD1.name`);
+    const workerName = requirePattern(raw.workerName, RESOURCE_NAME_PATTERN, `${label}.workerName`);
+    if (!workerName.includes('gateway'))
+      throw new Error(`${label}.workerName must contain gateway`);
+    if (names.has(name) || names.has(workerName))
+      throw new Error('Regional resource names must be distinct');
+    names.add(name);
+    names.add(workerName);
+    let signerD1;
+    if (kind === 'allocated') {
+      const id = requireNonZeroHexPattern(
+        allocation.id,
+        D1_DATABASE_ID_PATTERN,
+        `${label}.signerD1.id`,
+      );
+      if (ids.has(id))
+        throw new Error('Console and regional signer D1 identities must be distinct');
+      ids.add(id);
+      signerD1 = { kind, name, id };
+    } else {
+      signerD1 = { kind, name };
+    }
+    regions[region] = {
+      workerName,
+      placementRegion: requireString(raw.placementRegion, `${label}.placementRegion`),
+      signerD1,
+    };
+  }
+  const ingressRegion = requireString(resources.ingressRegion, 'resources.ingressRegion');
+  if (!WALLET_REGIONS.includes(ingressRegion)) throw new Error('Unknown ingress region');
+  const workerName = requirePattern(
+    resources.workerName,
+    RESOURCE_NAME_PATTERN,
+    'resources.workerName',
+  );
+  if (regions[ingressRegion].workerName !== workerName)
+    throw new Error('Ingress worker must match its regional Gateway');
+  return { workerName, ingressRegion, consoleD1, regions };
+}
+
+export function requireAllocatedWalletRegions(deployment) {
+  for (const region of WALLET_REGIONS) {
+    if (deployment.resources.regions[region].signerD1.kind !== 'allocated') {
+      throw new Error(`${deployment.lane}: ${region} signer D1 allocation is pending`);
+    }
+  }
+  return deployment.resources.regions;
 }
 
 function parseD1Resource(value, path) {

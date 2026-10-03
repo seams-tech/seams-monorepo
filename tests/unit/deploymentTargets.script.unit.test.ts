@@ -13,7 +13,6 @@ type BackendResources = {
   readonly gateway: {
     readonly workerName: string;
     readonly consoleD1Name: string;
-    readonly signerD1Name: string;
   };
   readonly router: Readonly<Record<string, unknown>>;
   readonly deriverA: Readonly<Record<string, unknown>>;
@@ -25,7 +24,16 @@ type BackendResources = {
 type GatewayDeploymentConfig = {
   readonly resources: {
     readonly consoleD1: { readonly id: string };
-    readonly signerD1: { readonly id: string };
+    readonly regions: Readonly<
+      Record<
+        'US' | 'WEUR' | 'APAC',
+        {
+          readonly signerD1:
+            | { readonly kind: 'allocated'; readonly id: string }
+            | { readonly kind: 'pending'; readonly id?: never };
+        }
+      >
+    >;
   };
   readonly tenant: { readonly namespace: string };
   readonly origins: {
@@ -143,10 +151,10 @@ test('deployment topology preserves staging operational identities', async () =>
   if (lane.provisioning.kind !== 'provisioned') throw new Error('staging must be provisioned');
 
   expect(lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id).toBe(
-    '572d1147-bc66-4f0a-9030-8c1cdd8752e7',
+    'f77260ef-0f8a-4063-9cab-ab648536f473',
   );
-  expect(lane.provisioning.gatewayDeploymentConfig.resources.signerD1.id).toBe(
-    'c68fdf27-ced3-464a-ad40-c3acf8727f8e',
+  expect(lane.provisioning.gatewayDeploymentConfig.resources.regions.APAC.signerD1.id).toBe(
+    'c1c85721-6a76-4b60-8f08-5a574f97cb8f',
   );
   expect(lane.provisioning.gatewayDeploymentConfig.tenant.namespace).toBe('seams-staging');
   expect(lane.provisioning.gatewayDeploymentConfig.session.issuer).toBe('seams-gateway-staging');

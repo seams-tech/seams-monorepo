@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { inspectBindings } from './verify-tenant-d1-bindings.mjs';
-import { walletRuntimeWorkerNameFor } from '../packages/wallet-console-server-ts/scripts/render-d1-gateway-config.mjs';
+import { requireAllocatedWalletRegions } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 
 function servingVersion(checkpoint, workerName) {
   for (const worker of checkpoint.workers) {
@@ -35,22 +35,52 @@ async function executeChallengeQuery(accountId, databaseId, apiToken, sql, param
   }
 }
 
-export async function verifyTenantResourceChallenge(lane, oidcToken) {
+export async function verifyTenantResourceChallenges(lane, oidcToken) {
   if (lane.provisioning.kind !== 'provisioned') throw new Error('Lane is not provisioned');
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID ?? '';
   const apiToken = process.env.CLOUDFLARE_API_TOKEN ?? '';
   if (!/^[a-f0-9]{32}$/u.test(accountId) || !apiToken.trim())
     throw new Error('Cloudflare account and API token are required for the database challenge');
-  const deployment = lane.provisioning.gatewayDeploymentConfig;
-  const databaseId = deployment.resources.signerD1.id;
-  const namespace = deployment.tenant.namespace;
+  requireAllocatedWalletRegions(lane.provisioning.gatewayDeploymentConfig);
   const providerBefore = await inspectBindings(lane, accountId, apiToken);
-  const gatewayName = lane.resources.gateway.workerName;
-  const gatewayVersion = servingVersion(providerBefore, gatewayName);
-  const walletRuntimeVersion = servingVersion(
-    providerBefore,
-    walletRuntimeWorkerNameFor(gatewayName),
-  );
+  const runtimeCheckpoints = [];
+  for (const checkpoint of providerBefore.checkpoints) {
+    runtimeCheckpoints.push(await verifyResource(lane, oidcToken, accountId, apiToken, checkpoint));
+  }
+  const providerAfter = await inspectBindings(lane, accountId, apiToken);
+  const checkpoints = [];
+  for (let index = 0; index < runtimeCheckpoints.length; index += 1) {
+    const before = providerBefore.checkpoints[index];
+    const after = providerAfter.checkpoints[index];
+    if (JSON.stringify(before.workers) !== JSON.stringify(after.workers)) {
+      throw new Error('Writer deployment changed across the regional runtime challenges');
+    }
+    const checkpoint = runtimeCheckpoints[index];
+    if (checkpoint.expiresAtMs <= Date.now())
+      throw new Error('Runtime resource challenge expired during complete-set verification');
+    checkpoints.push({
+      kind: 'tenant_d1_resource_checkpoint_v1',
+      deploymentLane: lane.id,
+      resource: before.resource,
+      challengeId: checkpoint.challengeId,
+      checkedAtMs: checkpoint.checkedAtMs,
+      expiresAtMs: checkpoint.expiresAtMs,
+      providerCheckedBefore: before.checkedAt,
+      providerCheckedAfter: after.checkedAt,
+      workers: after.workers,
+      writerVersions: checkpoint.writerVersions,
+      runtimeChallengeVerified: true,
+      activationAuthorized: false,
+    });
+  }
+  return checkpoints;
+}
+
+async function verifyResource(lane, oidcToken, accountId, apiToken, providerBefore) {
+  const { namespace, databaseId } = providerBefore.resource;
+  const [gateway, walletRuntime] = providerBefore.workers;
+  const gatewayVersion = servingVersion(providerBefore, gateway.workerName);
+  const walletRuntimeVersion = servingVersion(providerBefore, walletRuntime.workerName);
   const challengeId = randomBytes(32).toString('hex');
   const expectedProof = randomBytes(32).toString('hex');
   const issuedAtMs = Date.now();
@@ -108,25 +138,7 @@ export async function verifyTenantResourceChallenge(lane, oidcToken) {
     ) {
       throw new Error('Console returned an invalid runtime resource checkpoint');
     }
-    const providerAfter = await inspectBindings(lane, accountId, apiToken);
-    if (JSON.stringify(providerBefore.workers) !== JSON.stringify(providerAfter.workers))
-      throw new Error('Writer deployment changed across the runtime challenge');
-    if (result.expiresAtMs <= Date.now())
-      throw new Error('Runtime resource challenge expired during provider verification');
-    return {
-      kind: 'tenant_d1_resource_checkpoint_v1',
-      deploymentLane: lane.id,
-      resource: { namespace, accountId, databaseId },
-      challengeId,
-      checkedAtMs: result.checkedAtMs,
-      expiresAtMs: result.expiresAtMs,
-      providerCheckedBefore: providerBefore.checkedAt,
-      providerCheckedAfter: providerAfter.checkedAt,
-      workers: providerAfter.workers,
-      writerVersions: { gateway: gatewayVersion, walletRuntime: walletRuntimeVersion },
-      runtimeChallengeVerified: true,
-      activationAuthorized: false,
-    };
+    return result;
   } finally {
     // Also clean up when an INSERT committed but its response was lost.
     await executeChallengeQuery(

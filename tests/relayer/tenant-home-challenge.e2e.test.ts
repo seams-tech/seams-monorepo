@@ -19,7 +19,6 @@ import { TenantResourceVerificationV1 } from '../../packages/wallet-console-serv
 import {
   deploymentResource,
   bindingForResourceSet,
-  regionalResourceProof,
   productionBindingForResource,
   readyActivation,
 } from '../helpers/tenantDeploymentFixtures';
@@ -34,7 +33,7 @@ const deployment = JSON.parse(
 ).production.lanes.testnet.provisioning.gatewayDeploymentConfig;
 const namespace: string = deployment.tenant.namespace;
 const lane = 'production-testnet';
-const home = deploymentResource(namespace, deployment.resources.signerD1.id);
+const home = deploymentResource(namespace, 'ffffffff-ffff-4fff-8fff-ffffffffffff');
 const secondResource = deploymentResource(namespace, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 const thirdResource = deploymentResource(namespace, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 const catalog = WalletHomeCatalog.parse([
@@ -121,12 +120,12 @@ class ChallengeProvider {
   scenario: ProviderScenario = 'stable';
   challengeWritten = false;
   reads = 0;
-  failInsertResponse = false;
+  failInsertDatabaseId: string | null = null;
   inserts = 0;
   deletes = 0;
   readonly failures: string[] = [];
   constructor(
-    readonly database: D1DatabaseLike,
+    readonly databases: ReadonlyMap<string, D1DatabaseLike>,
     readonly oidc: GithubDeploymentOidcFixture,
   ) {}
 
@@ -149,9 +148,11 @@ class ChallengeProvider {
       const remove =
         typeof input.sql === 'string' &&
         input.sql.startsWith('DELETE FROM deployment_resource_challenges ');
-      if (request.url !== '/query' || request.method !== 'POST' || (!insert && !remove))
+      const databaseId = request.url?.match(/\/d1\/database\/([a-f0-9-]+)\/query$/u)?.[1];
+      const database = databaseId ? this.databases.get(databaseId) : undefined;
+      if (!database || request.method !== 'POST' || (!insert && !remove))
         throw new Error('Unexpected provider query');
-      const result = await this.database
+      const result = await database
         .prepare(input.sql)
         .bind(...input.params)
         .all();
@@ -160,7 +161,7 @@ class ChallengeProvider {
         this.challengeWritten = true;
       }
       if (remove) this.deletes += 1;
-      if (insert && this.failInsertResponse) {
+      if (insert && databaseId === this.failInsertDatabaseId) {
         response.writeHead(503).end('Injected lost INSERT response');
         return;
       }
@@ -173,14 +174,26 @@ class ChallengeProvider {
 
   readProvider(request: IncomingMessage, response: ServerResponse): void {
     const match = request.url?.match(
-      /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet)\/(deployments|versions\/[a-f0-9-]+)$/u,
+      /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet(-us|-weur)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
     );
     if (!match) throw new Error('Unexpected provider read');
     this.reads += 1;
     const changed = this.challengeWritten && this.scenario === 'changed_version';
-    let versionId = match[2] === 'gateway' ? gatewayVersion : runtimeVersion;
-    if (changed || this.scenario === 'wrong_version') versionId = changedVersion;
-    if (match[3] === 'deployments') {
+    const gateway = match[2] === 'gateway';
+    let versionId = gateway ? gatewayVersion : runtimeVersion;
+    let databaseId = home.databaseId;
+    if (match[3] === '-us') {
+      versionId = gateway ? changedVersion : deploymentId;
+      databaseId = secondResource.databaseId;
+    } else if (match[3] !== '-weur') {
+      versionId = gateway
+        ? 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+        : 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+      databaseId = thirdResource.databaseId;
+    }
+    if (changed || this.scenario === 'wrong_version')
+      versionId = '99999999-9999-4999-8999-999999999999';
+    if (match[4] === 'deployments') {
       const versions =
         this.scenario === 'gradual'
           ? [
@@ -204,8 +217,8 @@ class ChallengeProvider {
       JSON.stringify({
         success: true,
         result: {
-          id: match[3].slice('versions/'.length),
-          resources: { bindings: [{ name: 'SIGNER_DB', type: 'd1', id: home.databaseId }] },
+          id: match[4].slice('versions/'.length),
+          resources: { bindings: [{ name: 'SIGNER_DB', type: 'd1', id: databaseId }] },
         },
       }),
     );
@@ -215,7 +228,7 @@ class ChallengeProvider {
 async function runChallengeCli(
   providerOrigin: string,
   consoleOrigin: string,
-): Promise<{ exitCode: number; stdout: string }> {
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   try {
     const result = await execute(
       process.execPath,
@@ -240,10 +253,14 @@ async function runChallengeCli(
         },
       },
     );
-    return { exitCode: 0, stdout: result.stdout };
+    return { exitCode: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
     if (error instanceof Error && 'code' in error && typeof error.code === 'number')
-      return { exitCode: error.code, stdout: '' };
+      return {
+        exitCode: error.code,
+        stdout: '',
+        stderr: 'stderr' in error ? String(error.stderr) : error.message,
+      };
     throw error;
   }
 }
@@ -710,7 +727,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       .run();
     const fresh = await insertChallenge(databaseA, Date.now() - 100, home);
     expect((await wrongDatabase.fetch(verifyUrl, requestInit(fresh, auth))).status).toBe(409);
-    await databaseA.prepare('DELETE FROM deployment_resource_challenges').run();
+    for (const database of [databaseA, databaseB, databaseC]) {
+      await database.prepare('DELETE FROM deployment_resource_challenges').run();
+    }
     expect((await good.fetch(verifyUrl, requestInit(challenge, auth))).status).toBe(409);
     expect(
       await authority
@@ -722,7 +741,14 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     expect(beforeActivation).toEqual([
       { name: 'Gateway projection', ok: false, status: 503, attempts: 1 },
     ]);
-    const provider = new ChallengeProvider(databaseA, deps.oidc);
+    const provider = new ChallengeProvider(
+      new Map([
+        [home.databaseId, databaseA],
+        [secondResource.databaseId, databaseB],
+        [thirdResource.databaseId, databaseC],
+      ]),
+      deps.oidc,
+    );
     const providerServer = createServer(provider.handle.bind(provider));
     providerServer.listen(0, '127.0.0.1');
     await once(providerServer, 'listening');
@@ -732,21 +758,23 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     const providerOrigin = `http://127.0.0.1:${address.port}`;
     try {
       const completed = await runChallengeCli(providerOrigin, String(await runtime.ready));
-      expect(completed.exitCode).toBe(0);
-      expect(JSON.parse(completed.stdout)).toMatchObject({
+      expect(completed.exitCode, completed.stderr).toBe(0);
+      const checkpoints = JSON.parse(completed.stdout);
+      expect(checkpoints).toHaveLength(3);
+      expect(checkpoints[1]).toMatchObject({
         kind: 'tenant_d1_resource_checkpoint_v1',
         writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
         runtimeChallengeVerified: true,
         activationAuthorized: false,
       });
-      expect(provider.reads).toBe(12);
+      expect(provider.reads).toBe(48);
       expect(
         await databaseA
           .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
       const verification = TenantResourceVerificationV1.fromOperatorCheckpoint(
-        JSON.parse(completed.stdout),
+        checkpoints[1],
         Date.now(),
       );
       const store = createD1TenantDeploymentServiceV1({ database: authority });
@@ -766,23 +794,10 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         null,
         Date.now(),
       );
-      // The CLI exercises the WEUR proof; the remaining provider proofs are controlled fixtures.
       const resourceVerifications: TenantDeploymentResourceVerificationsV1 = [
         verification,
-        regionalResourceProof(
-          candidate,
-          catalog.select('US').databaseId,
-          '11111111-1111-4111-8111-111111111111',
-          '22222222-2222-4222-8222-222222222222',
-          Date.now(),
-        ),
-        regionalResourceProof(
-          candidate,
-          catalog.select('APAC').databaseId,
-          '33333333-3333-4333-8333-333333333333',
-          '44444444-4444-4444-8444-444444444444',
-          Date.now(),
-        ),
+        TenantResourceVerificationV1.fromOperatorCheckpoint(checkpoints[0], Date.now()),
+        TenantResourceVerificationV1.fromOperatorCheckpoint(checkpoints[2], Date.now()),
       ];
       const input = { ...ready, resourceVerifications };
       const activated = await store.activateBinding(input);
@@ -987,16 +1002,23 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         code: 'activation_conflict',
       });
       expect(await store.findActiveBinding(productionCandidate.deploymentLane)).toBeNull();
-      provider.failInsertResponse = true;
+      provider.failInsertDatabaseId = thirdResource.databaseId;
       expect((await runChallengeCli(providerOrigin, String(await runtime.ready))).exitCode).toBe(1);
       expect(
         await databaseA
           .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
-      expect(provider.inserts).toBe(2);
-      expect(provider.deletes).toBe(2);
-      provider.failInsertResponse = false;
+      expect(provider.inserts).toBe(6);
+      expect(provider.deletes).toBe(6);
+      for (const database of provider.databases.values()) {
+        expect(
+          await database
+            .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
+            .first('count'),
+        ).toBe(0);
+      }
+      provider.failInsertDatabaseId = null;
       const scenarios: ProviderScenario[] = [
         'wrong_version',
         'changed_deployment',
@@ -1010,7 +1032,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         const rejected = await runChallengeCli(providerOrigin, String(await runtime.ready));
         expect(rejected.exitCode, scenario).toBe(1);
         expect(rejected.stdout, scenario).toBe('');
-        expect(provider.inserts - insertsBefore, scenario).toBe(scenario === 'gradual' ? 0 : 1);
+        expect(provider.inserts - insertsBefore, scenario).toBe(
+          scenario === 'gradual' ? 0 : scenario === 'wrong_version' ? 1 : 3,
+        );
         expect(
           await databaseA
             .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
@@ -1018,8 +1042,15 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           scenario,
         ).toBe(0);
       }
-      expect(provider.inserts).toBe(5);
-      expect(provider.deletes).toBe(5);
+      expect(provider.inserts).toBe(13);
+      expect(provider.deletes).toBe(13);
+      for (const database of provider.databases.values()) {
+        expect(
+          await database
+            .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
+            .first('count'),
+        ).toBe(0);
+      }
       expect(provider.failures).toEqual([]);
       await writeFile(testInfo.outputPath('combined-home-checkpoint.json'), completed.stdout);
     } finally {

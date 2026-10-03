@@ -1,3 +1,4 @@
+import './allocated-regional-targets.mjs';
 const nativeFetch = globalThis.fetch;
 const fixtureOrigin = new URL(process.env.TENANT_PROVIDER_FIXTURE_ORIGIN);
 if (fixtureOrigin.hostname !== '127.0.0.1')

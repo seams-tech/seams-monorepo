@@ -600,7 +600,6 @@ function assertGatewayDeploymentConfigMatchesLane(lane) {
   if (
     config.resources.workerName !== resources.gateway.workerName ||
     config.resources.consoleD1.name !== resources.gateway.consoleD1Name ||
-    config.resources.signerD1.name !== resources.gateway.signerD1Name ||
     config.serviceNames.mpcRouter !== resources.router.workerName ||
     config.serviceNames.deriverA !== resources.deriverA.workerName ||
     config.serviceNames.deriverB !== resources.deriverB.workerName ||
@@ -676,11 +675,10 @@ function parseResources(value, pathName) {
 
 function parseGatewayResource(value, pathName) {
   const resource = requireObject(value, pathName);
-  requireExactKeys(resource, ['workerName', 'consoleD1Name', 'signerD1Name'], pathName);
+  requireExactKeys(resource, ['workerName', 'consoleD1Name'], pathName);
   return Object.freeze({
     workerName: requireResourceName(resource.workerName, pathName + '.workerName'),
     consoleD1Name: requireResourceName(resource.consoleD1Name, pathName + '.consoleD1Name'),
-    signerD1Name: requireResourceName(resource.signerD1Name, pathName + '.signerD1Name'),
   });
 }
 
@@ -813,7 +811,6 @@ function assertUniqueResourceNames(lanes) {
     names.push(
       lane.resources.gateway.workerName,
       lane.resources.gateway.consoleD1Name,
-      lane.resources.gateway.signerD1Name,
       lane.resources.router.workerName,
       lane.resources.deriverA.workerName,
       lane.resources.deriverB.workerName,
@@ -821,7 +818,27 @@ function assertUniqueResourceNames(lanes) {
       lane.resources.tenantRootControlPlane.workerName,
     );
   }
+  for (const lane of lanes) {
+    if (lane.provisioning.kind !== 'provisioned') continue;
+    for (const resource of Object.values(
+      lane.provisioning.gatewayDeploymentConfig.resources.regions,
+    )) {
+      if (resource.workerName !== lane.resources.gateway.workerName)
+        names.push(resource.workerName);
+      names.push(resource.workerName.replace('gateway', 'wallet-runtime'), resource.signerD1.name);
+    }
+  }
   assertUnique(names, 'backend resource names');
+}
+
+function regionalDatabaseIds(lane) {
+  const ids = [];
+  for (const resource of Object.values(
+    lane.provisioning.gatewayDeploymentConfig.resources.regions,
+  )) {
+    if (resource.signerD1.kind === 'allocated') ids.push(resource.signerD1.id);
+  }
+  return ids;
 }
 
 function assertUniqueProvisionedIdentities(lanes) {
@@ -830,10 +847,7 @@ function assertUniqueProvisionedIdentities(lanes) {
     provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id),
     'console D1 identities',
   );
-  assertUnique(
-    provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.resources.signerD1.id),
-    'signer D1 identities',
-  );
+  assertUnique(provisioned.flatMap(regionalDatabaseIds), 'signer D1 identities');
   assertUnique(
     provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.tenant.namespace),
     'tenant namespaces',

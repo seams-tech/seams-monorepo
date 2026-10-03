@@ -1,3 +1,4 @@
+import './allocated-regional-targets.mjs';
 const nativeFetch = globalThis.fetch;
 const provider = new URL(process.env.TENANT_CHALLENGE_PROVIDER);
 const consoleOrigin = new URL(process.env.TENANT_CHALLENGE_CONSOLE);
@@ -8,7 +9,7 @@ function fixtureFetch(input, init) {
   const url = new URL(input);
   if (url.origin === provider.origin && url.pathname === '/oidc') return nativeFetch(url, init);
   if (url.origin === 'https://api.cloudflare.com' && url.pathname.endsWith('/query'))
-    return nativeFetch(new URL('/query', provider), init);
+    return nativeFetch(new URL(url.pathname, provider), init);
   if (url.origin === 'https://api.cloudflare.com' && url.pathname.includes('/workers/scripts/'))
     return nativeFetch(new URL(url.pathname, provider), init);
   if (url.pathname === '/internal/tenant-deployment/v1/verify-resource')

@@ -7,6 +7,11 @@ import { readBackendLane } from './deployment-targets.mjs';
 import { walletRuntimeWorkerNameFor } from '../packages/wallet-console-server-ts/scripts/render-d1-gateway-config.mjs';
 import { isDirectInvocation } from '../packages/wallet-console-server-ts/scripts/d1-staging-config.mjs';
 
+import {
+  WALLET_REGIONS,
+  requireAllocatedWalletRegions,
+} from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
+
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u;
 
 function record(value, label) {
@@ -116,9 +121,43 @@ async function readSignerBinding(accountId, apiToken, workerName, versionId) {
 
 export async function inspectBindings(lane, accountId, apiToken) {
   if (lane.provisioning.kind !== 'provisioned') throw new Error('Lane is not provisioned');
+  const regions = requireAllocatedWalletRegions(lane.provisioning.gatewayDeploymentConfig);
+  const checkpoints = [];
+  for (const region of WALLET_REGIONS) {
+    checkpoints.push(await inspectResourceBindings(lane, regions[region], accountId, apiToken));
+  }
+  // Recheck early regions after the last region, so drift anywhere invalidates the set.
+  for (const checkpoint of checkpoints) {
+    for (const worker of checkpoint.workers) {
+      const current = await readDeployment(accountId, apiToken, worker.workerName);
+      if (
+        current.deploymentId !== worker.deploymentId ||
+        JSON.stringify(current.versions) !== JSON.stringify(worker.versions.map(servingVersion))
+      ) {
+        throw new Error(`${worker.workerName} deployment changed during complete-set verification`);
+      }
+    }
+    checkpoint.checkedAt = new Date().toISOString();
+  }
+  return {
+    kind: 'tenant_d1_provider_binding_set_v1',
+    status: 'provider_bindings_match',
+    deploymentLane: lane.id,
+    checkpoints,
+    runtimeChallengeVerified: false,
+    activationAuthorized: false,
+  };
+}
+
+function servingVersion(version) {
+  return { versionId: version.versionId, percentage: version.percentage };
+}
+
+async function inspectResourceBindings(lane, resource, accountId, apiToken) {
+  if (lane.provisioning.kind !== 'provisioned') throw new Error('Lane is not provisioned');
   const deployment = lane.provisioning.gatewayDeploymentConfig;
-  const databaseId = uuid(deployment.resources.signerD1.id, 'configured signer D1 ID');
-  const gateway = lane.resources.gateway.workerName;
+  const databaseId = uuid(resource.signerD1.id, 'configured signer D1 ID');
+  const gateway = resource.workerName;
   const workers = [gateway, walletRuntimeWorkerNameFor(gateway)];
   const before = [];
   for (const worker of workers) before.push(await readDeployment(accountId, apiToken, worker));
@@ -189,7 +228,7 @@ async function main() {
   } catch (error) {
     writeFileSync(
       output,
-      `${JSON.stringify({ kind: 'tenant_d1_provider_binding_checkpoint_v1', status: 'failed', deploymentLane: lane.id, checkedAt: new Date().toISOString(), message: error instanceof Error ? error.message : 'Provider verification failed', runtimeChallengeVerified: false, activationAuthorized: false }, null, 2)}\n`,
+      `${JSON.stringify({ kind: 'tenant_d1_provider_binding_set_v1', status: 'failed', deploymentLane: lane.id, checkedAt: new Date().toISOString(), message: error instanceof Error ? error.message : 'Provider verification failed', runtimeChallengeVerified: false, activationAuthorized: false }, null, 2)}\n`,
     );
     throw error;
   }

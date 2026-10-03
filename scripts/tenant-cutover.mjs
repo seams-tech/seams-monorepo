@@ -2,7 +2,7 @@
 
 import process from 'node:process';
 import { readBackendLane } from './deployment-targets.mjs';
-import { verifyTenantResourceChallenge } from './tenant-resource-challenge.mjs';
+import { verifyTenantResourceChallenges } from './tenant-resource-challenge.mjs';
 
 const OIDC_AUDIENCE = 'seams-tenant-cutover';
 
@@ -70,18 +70,18 @@ async function run() {
   if (lane.branch !== 'main') throw new Error('tenant cutover requires a production lane');
   const token = await requestGithubOidcToken();
   if (options.kind === 'verify_resource') {
-    const result = await verifyTenantResourceChallenge(lane, token);
+    const result = await verifyTenantResourceChallenges(lane, token);
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
-  const resourceCheckpoint = await verifyTenantResourceChallenge(lane, token);
+  const resourceCheckpoints = await verifyTenantResourceChallenges(lane, token);
   const response = await fetch(`${lane.console.origin}${options.path}`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ ...options.body, resourceCheckpoints: [resourceCheckpoint] }),
+    body: JSON.stringify({ ...options.body, resourceCheckpoints }),
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.ok !== true) {

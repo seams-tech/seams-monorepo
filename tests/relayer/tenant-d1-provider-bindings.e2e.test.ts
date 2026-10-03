@@ -32,7 +32,11 @@ class ProviderFixture {
   readonly reads: string[] = [];
   readonly deployments = new Map<string, number>();
 
-  constructor(readonly databaseId: string) {}
+  databaseId(worker: string): string {
+    if (worker.endsWith('-us')) return 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    if (worker.endsWith('-weur')) return 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+    return 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  }
 
   respond(request: IncomingMessage, response: ServerResponse): void {
     if (request.method !== 'GET' || request.headers.authorization !== `Bearer ${secretMarker}`) {
@@ -42,7 +46,7 @@ class ProviderFixture {
     const pathname = request.url ?? '';
     this.reads.push(pathname);
     const match = pathname.match(
-      /^\/client\/v4\/accounts\/0123456789abcdef0123456789abcdef\/workers\/scripts\/(seams-sdk-d1-(?:gateway|wallet-runtime)-testnet)\/(deployments|versions\/[a-f0-9-]+)$/u,
+      /^\/client\/v4\/accounts\/0123456789abcdef0123456789abcdef\/workers\/scripts\/(seams-sdk-d1-(?:gateway|wallet-runtime)-testnet(?:-us|-weur)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
     );
     if (!match) {
       response.writeHead(404).end();
@@ -88,7 +92,10 @@ class ProviderFixture {
       const binding = {
         type: 'd1',
         name: 'SIGNER_DB',
-        id: minorityRuntime && this.scenario === 'wrong_database' ? versionA : this.databaseId,
+        id:
+          minorityRuntime && this.scenario === 'wrong_database'
+            ? versionA
+            : this.databaseId(worker),
       };
       const bindings: unknown[] = [
         { type: 'secret_text', name: 'PRIVATE_SECRET', text: secretMarker },
@@ -139,14 +146,7 @@ async function runCli(origin: string, output: string): Promise<number> {
 test('provider checkpoint checks both gradual-rollout writers and rejects drift without leaking provider secrets', async ({
   request,
 }, testInfo) => {
-  const targets = JSON.parse(
-    await readFile(path.join(root, 'deployment/wallet-system/targets.json'), 'utf8'),
-  );
-  // Use the deployment command's real target resource, with only the provider HTTP boundary controlled.
-  const databaseId =
-    targets.production.lanes.testnet.provisioning.gatewayDeploymentConfig.resources.signerD1.id;
-  if (typeof databaseId !== 'string') throw new Error('Configured signer D1 is missing');
-  const fixture = new ProviderFixture(databaseId);
+  const fixture = new ProviderFixture();
   const server = createServer(fixture.respond.bind(fixture));
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -182,18 +182,24 @@ test('provider checkpoint checks both gradual-rollout writers and rejects drift 
       if (scenario === 'matching') {
         expect(exitCode).toBe(0);
         expect(result.status).toBe('provider_bindings_match');
-        expect(result.workers).toHaveLength(2);
-        for (const worker of result.workers) {
-          expect(worker.versions).toHaveLength(2);
-          expect(
-            worker.versions.map((version: { databaseId: string }) => version.databaseId),
-          ).toEqual([fixture.databaseId, fixture.databaseId]);
+        expect(result.checkpoints).toHaveLength(3);
+        for (const checkpoint of result.checkpoints) {
+          expect(checkpoint.workers).toHaveLength(2);
+          for (const worker of checkpoint.workers) {
+            expect(worker.versions).toHaveLength(2);
+            expect(
+              worker.versions.map((version: { databaseId: string }) => version.databaseId),
+            ).toEqual([
+              fixture.databaseId(worker.workerName),
+              fixture.databaseId(worker.workerName),
+            ]);
+          }
         }
-        expect(fixture.reads).toHaveLength(8);
+        expect(fixture.reads).toHaveLength(30);
         // A rerun cannot silently retain or replace a previous successful checkpoint.
         expect(await runCli(origin, output)).toBe(1);
         expect(await readFile(output, 'utf8')).toBe(raw);
-        expect(fixture.reads).toHaveLength(8);
+        expect(fixture.reads).toHaveLength(30);
       } else {
         expect(exitCode).toBe(1);
         expect(result.status).toBe('failed');

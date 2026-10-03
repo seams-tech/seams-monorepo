@@ -21,8 +21,7 @@
         },
         "resources": {
           "gateway": {
-            "workerName": "seams-sdk-d1-gateway-staging",
-            "signerD1Name": "seams-signer-staging-nrt"
+            "workerName": "seams-sdk-d1-gateway-staging"
           },
           "router": {
             "workerName": "router-ab-mpc-router-staging",
@@ -80,7 +79,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 4,
+            "schemaVersion": 5,
             "lane": "staging-testnet",
             "runtimeProfile": {
               "kind": "testnet_live_demo",
@@ -94,14 +93,37 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway-staging",
-              "placementRegion": "aws:ap-east-1",
+              "ingressRegion": "APAC",
               "consoleD1": {
                 "name": "seams-console-staging-nrt",
                 "id": "f77260ef-0f8a-4063-9cab-ab648536f473"
               },
-              "signerD1": {
-                "name": "seams-signer-staging-nrt",
-                "id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f"
+              "regions": {
+                "US": {
+                  "workerName": "seams-sdk-d1-gateway-staging-us",
+                  "placementRegion": "aws:us-east-1",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-staging-nrt-us"
+                  }
+                },
+                "WEUR": {
+                  "workerName": "seams-sdk-d1-gateway-staging-weur",
+                  "placementRegion": "aws:eu-west-2",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-staging-nrt-weur"
+                  }
+                },
+                "APAC": {
+                  "workerName": "seams-sdk-d1-gateway-staging",
+                  "placementRegion": "aws:ap-east-1",
+                  "signerD1": {
+                    "kind": "allocated",
+                    "name": "seams-signer-staging-nrt",
+                    "id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f"
+                  }
+                }
               }
             },
             "tenant": {
@@ -238,8 +260,7 @@
         },
         "resources": {
           "gateway": {
-            "workerName": "seams-sdk-d1-gateway-testnet",
-            "signerD1Name": "seams-signer-testnet"
+            "workerName": "seams-sdk-d1-gateway-testnet"
           },
           "router": {
             "workerName": "router-ab-mpc-router-testnet",
@@ -302,7 +323,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 4,
+            "schemaVersion": 5,
             "lane": "production-testnet",
             "runtimeProfile": {
               "kind": "testnet_live_demo",
@@ -316,14 +337,37 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway-testnet",
-              "placementRegion": "aws:ap-southeast-1",
+              "ingressRegion": "APAC",
               "consoleD1": {
                 "name": "seams-console-testnet",
                 "id": "204147dd-23a6-43b7-9f40-d4f96eb986f2"
               },
-              "signerD1": {
-                "name": "seams-signer-testnet",
-                "id": "dea0a6fe-4a0e-4893-8308-e8a06e12ee88"
+              "regions": {
+                "US": {
+                  "workerName": "seams-sdk-d1-gateway-testnet-us",
+                  "placementRegion": "aws:us-east-1",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-testnet-us"
+                  }
+                },
+                "WEUR": {
+                  "workerName": "seams-sdk-d1-gateway-testnet-weur",
+                  "placementRegion": "aws:eu-west-2",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-testnet-weur"
+                  }
+                },
+                "APAC": {
+                  "workerName": "seams-sdk-d1-gateway-testnet",
+                  "placementRegion": "aws:ap-southeast-1",
+                  "signerD1": {
+                    "kind": "allocated",
+                    "name": "seams-signer-testnet",
+                    "id": "dea0a6fe-4a0e-4893-8308-e8a06e12ee88"
+                  }
+                }
               }
             },
             "tenant": {
@@ -446,8 +490,7 @@
         },
         "resources": {
           "gateway": {
-            "workerName": "seams-sdk-d1-gateway",
-            "signerD1Name": "seams-signer"
+            "workerName": "seams-sdk-d1-gateway"
           },
           "router": {
             "workerName": "router-ab-mpc-router",
@@ -500,7 +543,7 @@
         "provisioning": {
           "kind": "provisioned",
           "gatewayDeploymentConfig": {
-            "schemaVersion": 4,
+            "schemaVersion": 5,
             "lane": "production-mainnet",
             "runtimeProfile": {
               "kind": "mainnet_service",
@@ -513,14 +556,37 @@
             },
             "resources": {
               "workerName": "seams-sdk-d1-gateway",
-              "placementRegion": "aws:ap-east-1",
+              "ingressRegion": "APAC",
               "consoleD1": {
                 "name": "seams-console",
                 "id": "b928549b-8cd8-41db-9e66-36e95afbe295"
               },
-              "signerD1": {
-                "name": "seams-signer",
-                "id": "4ff8a7fc-2bde-49b4-9284-8aff748df284"
+              "regions": {
+                "US": {
+                  "workerName": "seams-sdk-d1-gateway-us",
+                  "placementRegion": "aws:us-east-1",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-us"
+                  }
+                },
+                "WEUR": {
+                  "workerName": "seams-sdk-d1-gateway-weur",
+                  "placementRegion": "aws:eu-west-2",
+                  "signerD1": {
+                    "kind": "pending",
+                    "name": "seams-signer-weur"
+                  }
+                },
+                "APAC": {
+                  "workerName": "seams-sdk-d1-gateway",
+                  "placementRegion": "aws:ap-east-1",
+                  "signerD1": {
+                    "kind": "allocated",
+                    "name": "seams-signer",
+                    "id": "4ff8a7fc-2bde-49b4-9284-8aff748df284"
+                  }
+                }
               }
             },
             "tenant": {

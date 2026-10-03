@@ -36,6 +36,11 @@ export async function verifyRegionalPasskeyClaims({
   }
   const results = await Promise.allSettled(contenders);
   assert.equal(results.filter(fulfilled).length, 1);
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      assert.match(result.reason.message, /Passkey credential belongs to another wallet or home/);
+    }
+  }
   let committed = 0;
   for (const store of stores.values()) {
     if (await store.readBindingByCredentialId(credentialId)) committed += 1;

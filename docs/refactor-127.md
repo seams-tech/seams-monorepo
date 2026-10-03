@@ -1739,3 +1739,17 @@ it at WEUR allows approval, registration and replay. Removed the hard-coded
 approval manifest/digest fixture. Regional E2E and focused lint passed; evidence is
 `.artifacts/r152/approval-source-20261003/`. Target planning, initial claim context
 and protocol material remain controlled; full regional installation remains open.
+
+### October 3: production target planner and authenticated claim HTTP
+
+Deleted the handwritten target preparation fixture. The existing production
+planner now generates challenges, target method IDs, export-root preparation and
+recipient requirements; the fixture only synchronizes concurrent entry. Two plans
+converge on one durable preparation, changed recipients conflict, and browser
+registration succeeds. The initial claim now travels through authenticated HTTP
+from APAC to WEUR and replays identically through US, replacing the direct service
+call with a manufactured owner context in this composed scenario.
+
+Regional E2Es, focused lint and public bloat checks passed. Real owner protocol
+material and complete regional installation remain open; see
+the public R152 results document for receipts and reproduction.

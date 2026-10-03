@@ -2,10 +2,7 @@ import { RegionalTargetSourceFixture } from '../helpers/regional-target-source.f
 import { verifyRegionalTargetPreparation } from './regional-target-preparation.scenario.mjs';
 import assert from 'node:assert/strict';
 import { RegionalDeviceProofFixture } from '../helpers/regional-device-proof.fixtures.mjs';
-import {
-  buildRegionalLinkOwnerFixture,
-  RegionalLinkApprovalFixture,
-} from '../helpers/regional-link-home.fixtures.mjs';
+import { RegionalLinkApprovalFixture } from '../helpers/regional-link-home.fixtures.mjs';
 
 export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScope }) {
   for (const [region, bridge] of bridges) {
@@ -37,17 +34,20 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     );
     assert.equal(unclaimed.status, 200);
     assert.equal((await unclaimed.json()).session.state.state, 'displaying_qr');
-    const claimed = await weur.linkRoutes.sessionService.claimSessionV1({
-      payload,
-      nowMs: Date.now(),
-      owner: buildRegionalLinkOwnerFixture(api, weur),
-    });
-    assert.equal(claimed.outcome, 'applied');
+    const claimRequest = { kind: 'linked_device_session_claim_request_v1', payload };
+    const claimed = await ownerPost(apac, weur, `${path}/claim`, claimRequest);
+    assert.equal(claimed.status, 200, await claimed.clone().text());
+    assert.equal(claimed.headers.get('x-test-region'), 'WEUR');
+    const claim = await claimed.json();
+    assert.equal(claim.walletId, weur.issued.session.walletId);
+    const claimRetry = await ownerPost(us, weur, `${path}/claim`, claimRequest);
+    assert.equal(claimRetry.status, 200, await claimRetry.clone().text());
+    assert.deepEqual(await claimRetry.json(), claim);
     const poll = await send(apac, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(poll.status, 200);
     assert.equal(poll.headers.get('x-test-region'), 'WEUR');
     assert.equal((await poll.json()).session.state.state, 'claimed');
-    const approval = weur.linkApproval.approval(claimed.record.claimTranscript.value, payload);
+    const approval = weur.linkApproval.approval(claim, payload);
     const rejected = await ownerPost(us, bridges.get('US'), `${path}/approval`, approval);
     assert.equal(rejected.status, 403);
     const unavailable = await ownerPost(apac, weur, `${path}/approval`, approval);
@@ -118,8 +118,8 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
       await fixture.signedRequest(api, payload, 'POST', `${path}/cancel`, {
         kind: 'linked_device_session_cancel_claimed_request_v1',
         linkSessionId: payload.linkSessionId,
-        enrollmentId: claimed.record.claimTranscript.value.enrollmentId,
-        deviceId: claimed.record.claimTranscript.value.deviceId,
+        enrollmentId: claim.enrollmentId,
+        deviceId: claim.deviceId,
         reason: 'user_cancelled',
         requestedAtMs: Date.now(),
       }),
@@ -153,6 +153,8 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      authenticatedClaimHttpAtHome: true,
+      claimHttpReplayAcrossRegions: true,
       productionApprovalSourceFacts: true,
       missingSourceSignerRejectsApproval: true,
       preparation,

@@ -1,3 +1,4 @@
+import { verifyRegionalDeferredRegistration } from './regional-deferred-registration.scenario.mjs';
 import { verifyRegionalRuntimeIdentities } from './regional-runtime-identities.scenario.mjs';
 import { buildRegionalOwnerSigner } from '../helpers/regional-owner-signer.fixtures.mjs';
 import { verifyRegionalLinkHttp } from './regional-link-http.scenario.mjs';
@@ -133,7 +134,9 @@ class GatewayBridge {
     }
     if (
       pathname.startsWith('/wallet/device-linking/v1/sessions/') ||
-      pathname.startsWith('/router-ab/ed25519/yao/')
+      pathname.startsWith('/router-ab/ed25519/yao/') ||
+      pathname === '/wallets/register/near-admission' ||
+      pathname === '/wallets/register/near-provisioning'
     ) {
       return Response.json(
         { region: this.region, code: 'fixture_protocol_execution_disabled' },
@@ -551,6 +554,11 @@ try {
     signerScope,
     authorityDatabase,
   });
+  const deferredRegistration = await verifyRegionalDeferredRegistration({
+    runtime,
+    bridges,
+    consoleBridge,
+  });
   const runtimeIdentities = await verifyRegionalRuntimeIdentities({
     api,
     runtime,
@@ -743,6 +751,7 @@ try {
     linkHomes,
     linkHttp,
     runtimeIdentities,
+    deferredRegistration,
     recovery,
     yaoEntryRouting,
     lifecycleRouting,

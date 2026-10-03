@@ -1659,3 +1659,16 @@ and control operations, in-flight relocation fencing, deferred work and full lin
 device installation remain open. No deployment or release occurred.
 
 Evidence: `.artifacts/r152/runtime-home-20261003/`.
+
+### October 3: deferred continuation and Runtime audit
+
+Both deferred NEAR continuation routes now have three-home routing coverage (18
+home/ingress/operation combinations), stable retry and conflict/outage rejection.
+The private Runtime's unreachable registration-setup gate was removed. Signed
+delegate execution, relayer identity and tenant-root control were confirmed to be
+tenant-owned operations; wallet identity reads retain their new home guard.
+
+E2E, focused types, lint and public bloat checks passed. Evidence:
+`.artifacts/r152/deferred-routing-20261003/`. Deferred effect commits and captured
+background Deriver B execution still require relocation fencing; protocol execution
+and linked-device activation remain open. R153 edits were preserved.

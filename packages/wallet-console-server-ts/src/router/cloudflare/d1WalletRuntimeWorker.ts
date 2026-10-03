@@ -14,10 +14,7 @@ import {
   type WalletControlRuntimeBindings,
 } from '@seams/wallet-server/cloud-host';
 import { resolveEmailOtpDeliveryProviderFromEnv } from '../../email/otp/emailOtpProviders';
-import {
-  resolveBoundTenantDeploymentRuntimeEnvironmentV1,
-  resolveTenantDeploymentSetupAdmissionFromServiceV1,
-} from '../../tenantDeployment/runtimeBinding';
+import { resolveBoundTenantDeploymentRuntimeEnvironmentV1 } from '../../tenantDeployment/runtimeBinding';
 import { createTenantDeploymentRuntimeInspectionHandlerV1 } from '../../tenantDeployment/runtimeInspection';
 import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
@@ -59,22 +56,6 @@ async function fetch(
   const controlResponse = await handleWalletControlRequest(request, env);
   if (controlResponse) return controlResponse;
   const url = new URL(request.url);
-  if (request.method === 'POST' && url.pathname === '/wallets/register/setup') {
-    const allowed = await resolveTenantDeploymentSetupAdmissionFromServiceV1({
-      deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
-      service: env.WALLET_CONSOLE,
-    });
-    if (!allowed) {
-      return Response.json(
-        {
-          ok: false,
-          code: 'tenant_deployment_cutover_in_progress',
-          message: 'New wallet registration is temporarily paused for a tenant deployment cutover',
-        },
-        { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' } },
-      );
-    }
-  }
   const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(
     env,
     parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA?.id, {

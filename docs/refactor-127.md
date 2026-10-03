@@ -1606,3 +1606,17 @@ checks passed. Evidence: `.artifacts/r152/source-read-20261003/`.
 
 Source cryptographic material and contribution planning remain controlled. Real
 custody/source contribution, package delivery and activation remain open; 0.8.0 is held.
+
+### October 3: R153 ownership handoff baseline
+
+Public `docs/refactor-152-state-ownership.md` freezes schema inventory revision 1:
+56 signer tables and 84 shared Console tables, with complete signer-table accounting
+and explicit blocked selectors. Both effective schemas apply cleanly to fresh SQLite.
+Evidence: `.artifacts/r152/ownership-freeze-20261003/schema-baseline.json`.
+
+This is not a relocation-ready copy contract. Audit found that Wallet Runtime's
+mixed-wallet identity reads still use local D1 without home dispatch. Deferred write
+fencing, opaque record selectors/credential reconciliation, DO/Container material
+and complete linked-device activation remain gates. Shared routes must retain enough
+identity to locate link import tombstones after local session cleanup. Concurrent
+R153 implementation files were left untouched.

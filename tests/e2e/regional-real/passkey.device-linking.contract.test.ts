@@ -51,7 +51,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets share a namespace and retain distinct homes during travel', async ({
+test('three real wallets retain distinct homes through travel and passkey unlock', async ({
   browser,
   request,
 }, testInfo) => {
@@ -91,8 +91,10 @@ test('three real wallets share a namespace and retain distinct homes during trav
     const wallets = [];
     for (const owner of owners) {
       await scenario.routeContext(owner.context, owner.travel);
-      await owner.harness.signNearTransaction('post_registration');
-      await owner.harness.signTempoTransaction('post_registration');
+      await owner.harness.assertLockedPageReloadStaysLocked();
+      await owner.harness.unlockPasskeyWallet();
+      await owner.harness.signNearTransaction('post_unlock');
+      await owner.harness.signTempoTransaction('post_unlock');
       const walletId = await owner.page
         .getByTestId('intended-e2e-page')
         .getAttribute('data-login-wallet-id');

@@ -150,3 +150,9 @@ and home-only installation/cleanup afterward. It also checks shared Console
 bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
+
+The `three real wallets` case registers US, WEUR and APAC owners in the same
+Console/signer stores, then routes them through foreign ingress for locked-page
+reload, passkey unlock and NEAR/Tempo signing. Select it with
+`--grep 'three real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
+exact tenant scope, established home assignments and per-wallet store counts.

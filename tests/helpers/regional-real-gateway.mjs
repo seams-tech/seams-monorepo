@@ -395,7 +395,7 @@ class RegionalRealScenario {
         {
           scope,
           description:
-            'Three real wallets concurrently retained in one tenant namespace; both-family signing through foreign ingress after all registrations; one shared local Router stack.',
+            'Three real wallets concurrently retained in one tenant namespace; locked page reload, passkey unlock and both-family signing through foreign ingress after all registrations; one shared local Router stack.',
           wallets: evidence,
         },
         null,

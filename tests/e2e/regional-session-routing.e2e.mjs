@@ -1,3 +1,4 @@
+import { verifyRegionalLinkHttp } from './regional-link-http.scenario.mjs';
 import { verifyRegionalLinkHomes } from './regional-link-home.scenario.mjs';
 import { verifyRegionalDeviceProofs } from './regional-device-proof.scenario.mjs';
 import { verifyRegionalPasskeyClaims } from './regional-passkey-claims.scenario.mjs';
@@ -110,6 +111,16 @@ class GatewayBridge {
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
+    if (this.linkRoutes && pathname.startsWith('/wallet/device-linking/')) {
+      const response = await api.handleDeviceLinking({
+        method: request.method,
+        pathname,
+        request,
+        service: { deviceLinking: this.linkRoutes },
+      });
+      response.headers.set('x-test-region', this.region);
+      return response;
+    }
     if (
       pathname.startsWith('/wallet/device-linking/v1/sessions/') ||
       pathname.startsWith('/router-ab/ed25519/yao/')
@@ -499,6 +510,7 @@ try {
     signerScope,
     authorityDatabase,
   });
+  const linkHttp = await verifyRegionalLinkHttp({ api, runtime, bridges, signerScope });
   const authenticationRouting = await verifyRegionalAuthenticationRouting({
     isolatedIdentity,
     authorityDatabase,
@@ -680,6 +692,7 @@ try {
     kind: 'regional_session_routing_e2e_v1',
     deviceProofs,
     linkHomes,
+    linkHttp,
     recovery,
     yaoEntryRouting,
     lifecycleRouting,

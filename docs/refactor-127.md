@@ -1520,3 +1520,14 @@ permission and subsequent device actions remain controlled in this composition;
 complete approval/delivery/authority installation, terminal reservation
 reconciliation, internal/deferred routing and hosted latency remain open. Release
 0.8.0 remains held. No infrastructure was deployed.
+
+### October 3: creation retries follow the claimed home
+
+Regional dispatch now resolves the QR session ID on linked-device creation POSTs.
+After claim, a retry reaches the wallet home. The SDK returns current local state
+rather than the frozen bootstrap claim; cancellation remains visible and cleanup
+returns conflict without resurrection. The signed HTTP scenario reproduced stale
+`claimed` state after cancellation before this fix. Creation/polling/cancellation
+now execute through real regional HTTP handlers with real Ed25519 request proofs.
+Owner claim authorization and later installation stages remain controlled/open.
+Evidence: `.artifacts/r152/link-http-20261003/`; full R152 and 0.8.0 remain pending.

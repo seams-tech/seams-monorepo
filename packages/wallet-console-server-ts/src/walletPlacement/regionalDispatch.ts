@@ -118,13 +118,22 @@ export async function dispatchKnownWalletHome(
   const deviceSession = /^\/wallet\/device-linking\/v1\/sessions\/([^/]+)(?:\/[^/]+)*$/u.exec(
     pathname,
   );
-  if (deviceSession) {
+  const createsDeviceSession =
+    pathname === '/wallet/device-linking/v1/sessions' && request.method === 'POST';
+  if (deviceSession || createsDeviceSession) {
     try {
+      let linkSessionId: unknown;
+      if (deviceSession) {
+        linkSessionId = decodeURIComponent(deviceSession[1]);
+      } else {
+        const body: unknown = await request.clone().json();
+        linkSessionId = requestField(body, ['payload', 'linkSessionId']);
+      }
       locator = {
         kind: 'lifecycle',
         route: WalletRouteLocator.parse({
           kind: 'linked_device',
-          value: decodeURIComponent(deviceSession[1]),
+          value: linkSessionId,
         }),
       };
     } catch {

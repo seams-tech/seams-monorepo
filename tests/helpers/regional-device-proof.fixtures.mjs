@@ -19,22 +19,45 @@ export class RegionalDeviceProofFixture {
       expiresAtMs: input.proof.expiresAtMs,
       targetFactor: { kind: 'passkey_prf' },
     });
-    const body = JSON.stringify({ kind: 'linked_device_session_create_request_v1', payload });
-    input.proof.bodyDigestB64u = createHash('sha256').update(body).digest('base64url');
-    input.proof.signatureB64u = sign(
+    return this.createReplayRequest(api, payload);
+  }
+
+  createReplayRequest(api, payload) {
+    return this.signedRequest(api, payload, 'POST', '/wallet/device-linking/v1/sessions', {
+      kind: 'linked_device_session_create_request_v1',
+      payload,
+    });
+  }
+
+  async signedRequest(api, payload, method, pathname, body) {
+    const encodedBody = method === 'GET' ? '' : JSON.stringify(body);
+    const now = Date.now();
+    const proof = {
+      kind: 'linked_device_request_proof_v1',
+      linkSessionId: payload.linkSessionId,
+      devicePublicKeyDigestB64u: await api.computeLinkedDevicePublicKeyDigestV1(this.publicKey),
+      requestNonceB64u: randomBytes(32).toString('base64url'),
+      method,
+      canonicalPath: pathname,
+      bodyDigestB64u: createHash('sha256').update(encodedBody).digest('base64url'),
+      issuedAtMs: now,
+      expiresAtMs: now + 30_000,
+      signatureB64u: Buffer.alloc(64).toString('base64url'),
+    };
+    proof.signatureB64u = sign(
       null,
-      api.encodeLinkedDeviceRequestProofV1(input.proof),
+      api.encodeLinkedDeviceRequestProofV1(proof),
       this.keys.privateKey,
     ).toString('base64url');
-    return new Request(`https://wallet.test${input.proof.canonicalPath}`, {
-      method: 'POST',
+    return new Request(`https://wallet.test${pathname}`, {
+      method,
       headers: {
         'content-type': 'application/json',
-        [api.LINKED_DEVICE_REQUEST_PROOF_HEADER_V1]: Buffer.from(
-          JSON.stringify(input.proof),
-        ).toString('base64url'),
+        [api.LINKED_DEVICE_REQUEST_PROOF_HEADER_V1]: Buffer.from(JSON.stringify(proof)).toString(
+          'base64url',
+        ),
       },
-      body,
+      ...(method === 'GET' ? {} : { body: encodedBody }),
     });
   }
 

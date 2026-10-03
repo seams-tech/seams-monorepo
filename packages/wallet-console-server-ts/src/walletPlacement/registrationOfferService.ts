@@ -7,7 +7,9 @@ import {
   type D1DatabaseLike,
   type GoogleEmailOtpRegistrationAttemptStore,
 } from '@seams/wallet-server/cloud-host';
-import { WalletPlacementError, type WalletOwnershipKey } from './home';
+import { WalletPlacementError, WalletOwnershipKey } from './home';
+import type { D1WalletHomeDirectory } from './d1';
+import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 
 type Input<Method extends keyof GoogleEmailOtpRegistrationAttemptStore> = Parameters<
   GoogleEmailOtpRegistrationAttemptStore[Method]
@@ -48,6 +50,8 @@ export async function handleRegistrationOfferCommand(
   raw: unknown,
   database: D1DatabaseLike,
   scope: Scope,
+  directory: D1WalletHomeDirectory,
+  writer: TenantRuntimeWriterV1,
 ): Promise<Response> {
   if (!raw || typeof raw !== 'object' || !('operation' in raw) || !('input' in raw))
     throw invalidOffer();
@@ -71,6 +75,29 @@ export async function handleRegistrationOfferCommand(
       scopedPolicy(record.runtimePolicyScope, scope);
       await store.put(record);
       break;
+    }
+    case 'completeCommitted': {
+      const input = object(raw.input);
+      const walletId = requiredString(input.walletId);
+      const assignment = await directory.find(WalletOwnershipKey.parse({ ...scope, walletId }));
+      if (
+        !assignment ||
+        assignment.state === 'cancelled' ||
+        assignment.home.accountId !== writer.resource.accountId ||
+        assignment.home.databaseId !== writer.resource.databaseId
+      ) {
+        throw new WalletPlacementError(
+          'scope_conflict',
+          'Committed registration must complete at its wallet home',
+        );
+      }
+      return Response.json({
+        value: await store.completeCommitted({
+          attemptId: requiredString(input.attemptId),
+          walletId,
+          intentDigest: requiredString(input.intentDigest),
+        }),
+      });
     }
     case 'complete': {
       const input = object(raw.input);

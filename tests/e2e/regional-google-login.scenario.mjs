@@ -56,7 +56,7 @@ export async function verifyRegionalGoogleLogin(input) {
 }
 
 async function runGoogleLoginScenario(
-  { api, runtime, bridges, signerScope, consoleBridge },
+  { api, runtime, bridges, signerScope, consoleBridge, directory, catalog },
   proofs,
 ) {
   const accounts = new Map();
@@ -119,6 +119,8 @@ async function runGoogleLoginScenario(
   }
   const offers = await verifySharedRegistrationOffers({
     api,
+    directory,
+    catalog,
     runtime,
     bridges,
     proofs,
@@ -290,6 +292,8 @@ function tamperedToken(token) {
 
 async function verifySharedRegistrationOffers({
   api,
+  directory,
+  catalog,
   runtime,
   bridges,
   proofs,
@@ -510,14 +514,56 @@ async function verifySharedRegistrationOffers({
   } finally {
     await consoleBridge.database.exec('DROP TRIGGER fixture_reject_offer_completion');
   }
+  await consoleBridge.database
+    .prepare(
+      `UPDATE email_otp_registration_attempts
+    SET expires_at_ms = created_at_ms + 1,
+      record_json = json_set(record_json, '$.expiresAtMs', created_at_ms + 1)
+    WHERE attempt_id = ?`,
+    )
+    .bind(completion.attemptId)
+    .run();
+  assert.equal((await us.complete(completion)).ok, false);
+  await us.cleanupExpired(Date.now() + 60 * 60_000);
+  assert.equal((await us.read(completion.attemptId)).state, 'started');
+  const committed = { ...completion, intentDigest };
+  await assert.rejects(us.completeCommitted(committed));
+  const wallet = api.WalletOwnershipKey.parse({
+    namespace: signerScope.namespace,
+    organizationId: signerScope.orgId,
+    projectId: signerScope.projectId,
+    environmentId: signerScope.envId,
+    walletId: completion.walletId,
+  });
+  const reserved = await directory.reserve({
+    allocation: 'provided',
+    wallet,
+    proposedHome: catalog.select('US'),
+    registrationId: 'interrupted-offer-registration',
+    deploymentLane: 'test',
+    requestDigest: 'b'.repeat(64),
+    nowMs: Date.now(),
+    proposedRegistrationAllocation: api.RegistrationSetupAllocation.parse({
+      ceremonyId: `wrc_${'i'.repeat(43)}`,
+      preparationId: 'regprep_interrupted',
+      walletAuthorityId: 'wallet-authority:interrupted',
+      deviceId: 'device:interrupted',
+      walletAuthMethodId: 'wallet-auth-method:interrupted',
+    }),
+  });
+  assert.equal(reserved.ok, true);
+  await assert.rejects(apac.completeCommitted(committed));
+  assert.equal(
+    (await us.completeCommitted({ ...committed, intentDigest: 'wrong-intent' })).ok,
+    false,
+  );
   const completed = await Promise.all([
-    bridges
-      .get('US')
-      .google.resolver.completeRegistrationAttempt({
-        registrationAttemptId: completion.attemptId,
-        walletId: completion.walletId,
-      }),
-    apac.complete(completion),
+    bridges.get('US').google.resolver.completeCommittedRegistrationAttempt({
+      registrationAttemptId: completion.attemptId,
+      walletId: completion.walletId,
+      intentDigest,
+    }),
+    us.completeCommitted(committed),
   ]);
   assert.ok(completed.every(isSuccessfulClaim));
   assert.equal((await us.read(completion.attemptId)).state, 'active');
@@ -530,6 +576,8 @@ async function verifySharedRegistrationOffers({
   );
   await assert.rejects(us.put(selected));
   return {
+    expiredClaimSurvivesCleanupForCommittedRetry: true,
+    committedRetryRequiresHomeAndOriginalIntent: true,
     completionPublishesIdentityAndOfferAtomically: true,
     completionFailureRollsBackIdentityMove: true,
     completionRetrySurvivesOfferExpiryCleanup: true,
@@ -546,7 +594,7 @@ async function verifySharedRegistrationOffers({
     scopeMismatchAndOutagesFailClosed: true,
     regionalOfferStoresRemainEmpty: true,
     scope:
-      'Concurrent offer creation through production resolver/Console/D1, plus competing candidate claims through the shared store. Completion runs through the production resolver/shared transaction with injected D1 failure. The regional custody commit and expiry/home-reservation reconciliation remain separate acceptance gates.',
+      'Concurrent offer creation through production resolver/Console/D1, plus competing candidate claims through the shared store. Completion runs through the production resolver/shared transaction with injected D1 failure. Expired-claim completion uses a real directory reservation and admitted home writer; the regional custody commit/crash replay and terminal reservation cleanup remain separate acceptance gates.',
   };
 }
 

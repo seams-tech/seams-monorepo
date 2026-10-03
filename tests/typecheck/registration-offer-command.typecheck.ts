@@ -19,3 +19,13 @@ type CompletionInput = Extract<RegistrationOfferCommand, { operation: 'complete'
 // @ts-expect-error Completion must identify the claimed wallet as well as its offer.
 const incompleteCompletion: CompletionInput = { attemptId: 'attempt' };
 void [unboundClaim, incompleteCompletion];
+type CommittedCompletionInput = Extract<
+  RegistrationOfferCommand,
+  { operation: 'completeCommitted' }
+>['input'];
+// @ts-expect-error Committed recovery must bind the original verified intent.
+const missingCommittedIntent: CommittedCompletionInput = {
+  attemptId: 'attempt',
+  walletId: 'wallet',
+};
+void missingCommittedIntent;

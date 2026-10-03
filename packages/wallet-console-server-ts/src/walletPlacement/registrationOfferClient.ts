@@ -15,19 +15,15 @@ export class RegistrationOfferClient implements GoogleEmailOtpRegistrationAttemp
     input: Input<'complete'>,
   ): ReturnType<GoogleEmailOtpRegistrationAttemptStore['complete']> {
     const response = await this.service.registrationOffer({ operation: 'complete', input });
-    const result = response.value;
-    if (!result || typeof result !== 'object' || !('ok' in result)) throw invalidResponse();
-    if (result.ok === true) return { ok: true };
-    if (
-      result.ok === false &&
-      'code' in result &&
-      result.code === 'registration_incomplete' &&
-      'message' in result &&
-      typeof result.message === 'string'
-    ) {
-      return { ok: false, code: result.code, message: result.message };
-    }
-    throw invalidResponse();
+    return completionResult(response);
+  }
+
+  async completeCommitted(
+    input: Input<'completeCommitted'>,
+  ): ReturnType<GoogleEmailOtpRegistrationAttemptStore['completeCommitted']> {
+    return completionResult(
+      await this.service.registrationOffer({ operation: 'completeCommitted', input }),
+    );
   }
 
   async claimCandidate(
@@ -106,4 +102,22 @@ function acknowledge(response: Record<string, unknown>): void {
 }
 function invalidResponse(): Error {
   return new Error('Invalid shared registration offer response');
+}
+
+function completionResult(
+  response: Record<string, unknown>,
+): Awaited<ReturnType<GoogleEmailOtpRegistrationAttemptStore['complete']>> {
+  const result = response.value;
+  if (!result || typeof result !== 'object' || !('ok' in result)) throw invalidResponse();
+  if (result.ok === true) return { ok: true };
+  if (
+    result.ok === false &&
+    'code' in result &&
+    result.code === 'registration_incomplete' &&
+    'message' in result &&
+    typeof result.message === 'string'
+  ) {
+    return { ok: false, code: result.code, message: result.message };
+  }
+  throw invalidResponse();
 }

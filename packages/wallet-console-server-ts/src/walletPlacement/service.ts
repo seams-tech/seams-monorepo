@@ -115,7 +115,13 @@ export async function handleWalletHomeServiceRequest(
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer`) {
-      return await handleRegistrationOfferCommand(body, options.database, options.scope);
+      return await handleRegistrationOfferCommand(
+        body,
+        options.database,
+        options.scope,
+        directory,
+        options.writer,
+      );
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/identity`) {
       return await handleIdentityCommand(body, options.database, options.scope);

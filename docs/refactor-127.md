@@ -1392,3 +1392,12 @@ commit remains a separate database boundary requiring reconciliation with shared
 completion, expiry and wallet-home reservation. Receipt:
 `.artifacts/r152/registration-completion-20261003/regional-session-routing-evidence.json`.
 No deployment, reset or release occurred.
+
+### R152 completion after offer expiry — October 3
+
+Post-wallet-commit completion carries the original intent digest. Console verifies
+the claim and requires the authenticated writer to match the assigned wallet home.
+Expired claims survive pending cleanup; normal expired completion remains rejected.
+The regional composition simulates the interruption with a retained claim and real
+home reservation. Full custody crash/replay and terminal claim/home cleanup remain
+open. No deployment or release occurred.

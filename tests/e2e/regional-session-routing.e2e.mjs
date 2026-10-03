@@ -469,6 +469,8 @@ try {
   });
   const googleLogin = await verifyRegionalGoogleLogin({
     api,
+    directory,
+    catalog,
     runtime,
     bridges,
     signerScope,

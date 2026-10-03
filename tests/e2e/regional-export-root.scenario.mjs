@@ -27,6 +27,22 @@ export async function verifyRegionalExportRootRelay(input) {
   const us = await runtime.getWorker('US');
   const apac = await runtime.getWorker('APAC');
   assert.equal((await deviceRequest(input, us, packagePath, 'GET', null)).status, 204);
+  for (const [field, value] of [
+    ['walletId', bridges.get('US').issued.session.walletId],
+    ['deviceId', `${recipient.deviceId}-other`],
+    ['enrollmentId', `${recipient.enrollmentId}-other`],
+    ['walletKeyId', `${recipient.walletKeyId}-other`],
+    ['targetFactor', { kind: 'email_otp' }],
+    ['revocationEpoch', recipient.revocationEpoch + 1],
+    ['applicationBindingDigestB64u', Buffer.alloc(32, 91).toString('base64url')],
+    ['registeredPublicKeyB64u', Buffer.alloc(32, 92).toString('base64url')],
+  ]) {
+    const alteredBinding = JSON.parse(JSON.stringify(recipient));
+    alteredBinding[field] = value;
+    const rejectedBinding = await deviceRequest(input, apac, recipientPath, 'POST', alteredBinding);
+    assert.equal(rejectedBinding.status, 400, `${field}: ${await rejectedBinding.clone().text()}`);
+    assert.match((await rejectedBinding.json()).message, /does not match target preparation/u);
+  }
   for (const [ingress, outcome] of [[apac, 'applied'], [us, 'replayed']]) {
     const response = await deviceRequest(input, ingress, recipientPath, 'POST', recipient);
     await expectWrite(response, outcome);
@@ -74,6 +90,7 @@ export async function verifyRegionalExportRootRelay(input) {
     assert.equal(count, region === 'WEUR' ? 1 : 0);
   }
   return {
+    preparationBindingMismatchRejectedBeforeFirstWrite: true,
     home: 'WEUR',
     recipientAndPackagePersistedOnlyAtHome: true,
     crossIngressRetriesReplay: true,

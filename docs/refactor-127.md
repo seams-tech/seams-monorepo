@@ -1773,3 +1773,14 @@ signed delivery and home-only D1 persistence. Regional E2E and focused lint pass
 the public R152 results document records the repeatable receipt and checksum.
 Ciphertext is an opaque fixture. Cryptographic installation, terminal relay and
 preparation-binding audit, and cleanup remain open.
+
+
+### October 3: export-root relay guards
+
+Regional E2E reproduced terminal polling returning 204 and signed recipient
+registration accepting another wallet's identity. Both are classified as production
+regressions and fixed in Wallet Server. The E2E now rejects all eight changed
+preparation binding fields before the first write and all four terminal relay
+operations through US/APAC. Valid delivery/replay remains covered. The real local
+lost-reply linking, signing and revocation contract also passes; see public R152
+results for artifacts. Full regional cryptographic installation remains open.

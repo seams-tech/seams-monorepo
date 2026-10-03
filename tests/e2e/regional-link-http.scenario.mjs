@@ -126,6 +126,30 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     );
     assert.equal(cancel.status, 200, await cancel.clone().text());
     assert.equal((await cancel.json()).session.state.state, 'cancelled');
+    for (const ingress of [us, apac]) {
+      const recipient = await ingress.fetch(`https://wallet.test${path}/ed25519-export-root-recipient`, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${weur.issued.operationCredential.token}` },
+      });
+      assert.equal(recipient.status, 409, await recipient.clone().text());
+      assert.equal((await recipient.json()).outcome, 'invalid_state');
+      for (const method of ['GET', 'POST']) {
+        const suffix = method === 'GET' ? 'ed25519-export-root' : 'ed25519-export-root-recipient';
+        const request = await fixture.signedRequest(
+          api,
+          payload,
+          method,
+          `${path}/${suffix}`,
+          method === 'GET' ? null : {},
+        );
+        const packageResponse = await send(ingress, request);
+        assert.equal(packageResponse.status, 409, await packageResponse.clone().text());
+        assert.equal((await packageResponse.json()).outcome, 'invalid_state');
+      }
+      const submit = await ownerPost(ingress, weur, `${path}/ed25519-export-root`, {});
+      assert.equal(submit.status, 409, await submit.clone().text());
+      assert.equal((await submit.json()).outcome, 'invalid_state');
+    }
     const terminalDelivery = await send(
       us,
       await fixture.signedRequest(api, payload, 'GET', `${path}/approval`, null),
@@ -155,6 +179,9 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     assert.equal((await retry.json()).session.state.state, 'cancelled');
     assert.equal(retry.headers.get('x-test-region'), 'WEUR');
     const database = await runtime.getD1Database('SIGNER_DB', 'WEUR');
+    assert.equal(await database.prepare(
+      'SELECT count(*) AS count FROM linked_device_ed25519_export_root_transfers WHERE link_session_id = ?',
+    ).bind(payload.linkSessionId).first('count'), 0);
     await database.batch([
       database
         .prepare('DELETE FROM linked_device_target_credentials WHERE link_session_id = ?')
@@ -171,6 +198,7 @@ export async function verifyRegionalLinkHttp({ api, runtime, bridges, signerScop
     const missing = await send(us, await fixture.signedRequest(api, payload, 'GET', path, null));
     assert.equal(missing.status, 404);
     return {
+      terminalExportRootRequestsRejected: true,
       authenticatedClaimHttpAtHome: true,
       claimHttpReplayAcrossRegions: true,
       productionApprovalSourceFacts: true,

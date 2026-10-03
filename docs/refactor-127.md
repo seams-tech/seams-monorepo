@@ -1039,3 +1039,20 @@ The canary authenticates a real persisted key against a controlled HTTP fixture;
 provider/Router evidence is controlled and no hosted latency claim follows.
 Regional rendering, all-backend proof collection and regional readiness remain
 unfinished. Deployment and the 0.8.0 release remain held.
+
+### October 3: regional readiness composition
+
+Hosted Console readiness uses the catalog's three resources through required
+`WALLET_RUNTIME_US`, `WALLET_RUNTIME_WEUR` and `WALLET_RUNTIME_APAC` bindings.
+Every response must identify its expected physical resource. Readiness requires
+exact candidate-set coverage, totals wallet/ceremony counts across regions, and
+fails when any regional inspection fails. `WALLET_RUNTIME` still serves existing
+control/shared operations while their remaining routing work is pending.
+
+Three focused E2Es passed in 45.5s, including three real local Runtime Workers and
+separate signer D1s. An APAC ceremony/outage blocks renewal; wrong-resource and
+incomplete-coverage checks reject invalid readiness. Receipt and logs are retained
+under `.artifacts/r152/regional-readiness-20261003/`; the public R152 results document
+records its SHA-256 and fixture limits. No hosted measurement or deployment occurred.
+The regional renderer and complete-set operator proof collector remain required
+before deployment; 0.8.0 remains held.

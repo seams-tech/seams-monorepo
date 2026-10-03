@@ -339,6 +339,11 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   }
 
   async inspect(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentReadinessEvidenceV1> {
+    if (
+      JSON.stringify(this.options.walletRuntime.resources) !== JSON.stringify(binding.resources)
+    ) {
+      throw new Error('Readiness runtimes do not cover the deployment resource set');
+    }
     const identity = identityFromBinding(binding);
     const environment = await resolveEnvironment(this.options, identity);
     const mode = modeForEnvironment(environment);

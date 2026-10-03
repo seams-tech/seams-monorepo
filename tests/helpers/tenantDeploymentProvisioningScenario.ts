@@ -16,7 +16,7 @@ import {
   createGatewayTenantDeploymentRegistrationCanaryV1,
   createTenantDeploymentProvisionerV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
-import { createD1TenantDeploymentRuntimeInspectorV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
+import type { TenantDeploymentRuntimeInspectorV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import { regionalBinding, seedAdoptionRoot } from './tenantDeploymentFixtures';
 
 class RootRouter {
@@ -47,7 +47,7 @@ class RejectInteractiveAuth {
 
 export async function provisioningScenario(
   database: D1DatabaseLike,
-  signerDatabase: D1DatabaseLike,
+  walletRuntime: TenantDeploymentRuntimeInspectorV1,
   gatewayOrigin: string,
 ) {
   const namespace = 'wallet';
@@ -93,7 +93,7 @@ export async function provisioningScenario(
     runtimeSnapshots: await createD1ConsoleRuntimeSnapshotService({ database, namespace }),
     tenantRootState,
     bindings: store,
-    walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({ database: signerDatabase }),
+    walletRuntime,
   });
   const reference = await regionalBinding(Date.now(), deploymentLane);
   const provisioner = createTenantDeploymentProvisionerV1({
@@ -125,7 +125,16 @@ export async function provisioningScenario(
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
   });
-  return { provisioner, store, apiKeys, router, reference, context, environmentId: environment.id };
+  return {
+    provisioner,
+    store,
+    apiKeys,
+    router,
+    adapter,
+    reference,
+    context,
+    environmentId: environment.id,
+  };
 }
 
 function isDevelopmentEnvironment(environment: { key: string }): boolean {

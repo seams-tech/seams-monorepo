@@ -1,6 +1,11 @@
 import type { D1DatabaseLike, D1Row } from '@seams/wallet-server/cloud-host';
 import type { WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
-import type { TenantDeploymentBindingRevision } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import {
+  decodeTenantDeploymentD1ResourcesV1,
+  type TenantDeploymentD1ResourcesV1,
+  type TenantDeploymentBindingRevision,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
+import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 
 const WALLET_RUNTIME_INTERNAL_ORIGIN = 'https://wallet-runtime.internal';
 export const TENANT_DEPLOYMENT_RUNTIME_INSPECTION_PATH_V1 =
@@ -21,6 +26,7 @@ export type TenantDeploymentRuntimeInspectionV1 = {
 };
 
 export interface TenantDeploymentRuntimeInspectorV1 {
+  readonly resources: TenantDeploymentD1ResourcesV1;
   inspect(input: {
     readonly bindingRevision: TenantDeploymentBindingRevision;
     readonly source: TenantDeploymentRuntimeScopeV1 | null;
@@ -30,11 +36,14 @@ export interface TenantDeploymentRuntimeInspectorV1 {
 
 export function createD1TenantDeploymentRuntimeInspectorV1(options: {
   readonly database: D1DatabaseLike;
+  readonly resource: TenantDeploymentD1ResourceIdentityV1;
   readonly now?: () => number;
 }): TenantDeploymentRuntimeInspectorV1 {
   const now = options.now ?? Date.now;
   return {
+    resources: [{ accountId: options.resource.accountId, databaseId: options.resource.databaseId }],
     async inspect(input) {
+      assertNamespace(options.resource, input);
       const [sourceDurableWalletCount, targetDurableWalletCount, inFlightCeremonyCount] =
         await Promise.all([
           input.source ? countWallets(options.database, input.source) : Promise.resolve(0),
@@ -46,6 +55,62 @@ export function createD1TenantDeploymentRuntimeInspectorV1(options: {
         sourceDurableWalletCount,
         targetDurableWalletCount,
         inFlightCeremonyCount,
+      };
+    },
+  };
+}
+
+function assertNamespace(
+  resource: TenantDeploymentD1ResourceIdentityV1,
+  input: Parameters<TenantDeploymentRuntimeInspectorV1['inspect']>[0],
+): void {
+  if (
+    input.target.namespace !== resource.namespace ||
+    (input.source !== null && input.source.namespace !== resource.namespace)
+  ) {
+    throw new Error('Readiness scope belongs to another namespace');
+  }
+}
+
+export function combineTenantDeploymentRuntimeInspectorsV1(
+  inspectors: readonly [
+    TenantDeploymentRuntimeInspectorV1,
+    ...TenantDeploymentRuntimeInspectorV1[],
+  ],
+): TenantDeploymentRuntimeInspectorV1 {
+  const runtimes = [...inspectors];
+  const rawResources = [];
+  for (const inspector of runtimes) rawResources.push(...inspector.resources);
+  const resources = decodeTenantDeploymentD1ResourcesV1(rawResources);
+  if (!resources.ok) throw new Error(resources.message);
+  return {
+    resources: resources.value,
+    async inspect(input) {
+      const pending = [];
+      for (const inspector of runtimes) pending.push(inspector.inspect(input));
+      const inspections = await Promise.all(pending);
+      let sourceDurableWalletCount = 0;
+      let targetDurableWalletCount = 0;
+      let inFlightCeremonyCount = 0;
+      for (const inspection of inspections) {
+        if (inspection.acknowledgedBindingRevision !== input.bindingRevision) {
+          throw new Error('Regional runtime acknowledged another deployment binding');
+        }
+        sourceDurableWalletCount += inspection.sourceDurableWalletCount;
+        targetDurableWalletCount += inspection.targetDurableWalletCount;
+        inFlightCeremonyCount += inspection.inFlightCeremonyCount;
+      }
+      return {
+        acknowledgedBindingRevision: input.bindingRevision,
+        sourceDurableWalletCount: parseCount(
+          sourceDurableWalletCount,
+          'regional source wallet count',
+        ),
+        targetDurableWalletCount: parseCount(
+          targetDurableWalletCount,
+          'regional target wallet count',
+        ),
+        inFlightCeremonyCount: parseCount(inFlightCeremonyCount, 'regional ceremony count'),
       };
     },
   };
@@ -119,11 +184,10 @@ function parseRequest(value: unknown): {
 }
 
 function parseCount(value: unknown, label: string): number {
-  const count = Number(value);
-  if (!Number.isSafeInteger(count) || count < 0) {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new Error(`Wallet runtime returned invalid ${label}`);
   }
-  return count;
+  return value;
 }
 
 async function countWallets(
@@ -160,6 +224,7 @@ async function countInFlightCeremonies(
 
 export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {
   readonly database: D1DatabaseLike;
+  readonly resource: TenantDeploymentD1ResourceIdentityV1;
   readonly now?: () => number;
 }): (request: Request) => Promise<Response | null> {
   const inspector = createD1TenantDeploymentRuntimeInspectorV1(options);
@@ -172,9 +237,16 @@ export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     const input = parseRequest(await request.json().catch(() => null));
     if (!input) return json({ ok: false, code: 'invalid_body' }, 400);
+    if (
+      input.target.namespace !== options.resource.namespace ||
+      (input.source !== null && input.source.namespace !== options.resource.namespace)
+    ) {
+      return json({ ok: false, code: 'namespace_mismatch' }, 409);
+    }
     const inspection = await inspector.inspect(input);
     return json({
       kind: 'tenant_deployment_runtime_inspection_v1',
+      resource: options.resource,
       ...inspection,
     });
   };
@@ -182,9 +254,12 @@ export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {
 
 export function createTenantDeploymentRuntimeInspectionClientV1(
   binding: WalletRuntimeServiceBinding,
+  resource: TenantDeploymentD1ResourceIdentityV1,
 ): TenantDeploymentRuntimeInspectorV1 {
   return {
+    resources: [{ accountId: resource.accountId, databaseId: resource.databaseId }],
     async inspect(input) {
+      assertNamespace(resource, input);
       const response = await binding.fetch(
         `${WALLET_RUNTIME_INTERNAL_ORIGIN}${TENANT_DEPLOYMENT_RUNTIME_INSPECTION_PATH_V1}`,
         {
@@ -196,6 +271,7 @@ export function createTenantDeploymentRuntimeInspectionClientV1(
             source: input.source,
             target: input.target,
           }),
+          signal: AbortSignal.timeout(15_000),
         },
       );
       const body = record(await response.json().catch(() => null));
@@ -205,7 +281,8 @@ export function createTenantDeploymentRuntimeInspectionClientV1(
       const revision = requiredText(body.acknowledgedBindingRevision);
       if (
         body.kind !== 'tenant_deployment_runtime_inspection_v1' ||
-        revision !== input.bindingRevision
+        revision !== input.bindingRevision ||
+        !resource.matches(TenantDeploymentD1ResourceIdentityV1.parse(body.resource))
       ) {
         throw new Error('Wallet runtime returned an invalid readiness inspection');
       }

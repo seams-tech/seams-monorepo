@@ -15,6 +15,7 @@ import {
 } from '../../tenantDeployment/runtimeBinding';
 import { createTenantDeploymentRuntimeInspectionHandlerV1 } from '../../tenantDeployment/runtimeInspection';
 import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 
 type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
   WalletControlRuntimeBindings & {
@@ -42,6 +43,11 @@ async function fetch(
   if (challenge) return challenge;
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,
+    resource: TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
   })(request);
   if (inspectionResponse) return inspectionResponse;
   const controlResponse = await handleWalletControlRequest(request, env);

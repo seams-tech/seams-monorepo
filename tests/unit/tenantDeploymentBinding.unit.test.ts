@@ -147,14 +147,18 @@ test.describe('tenant deployment binding', () => {
       `);
       const handler = createTenantDeploymentRuntimeInspectionHandlerV1({
         database: fixture.database,
+        resource: deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
         now: () => 1000,
       });
-      const client = createTenantDeploymentRuntimeInspectionClientV1({
-        async fetch(request: Request | string, init?: RequestInit) {
-          const result = await handler(new Request(request, init));
-          return result ?? new Response('Not found', { status: 404 });
+      const client = createTenantDeploymentRuntimeInspectionClientV1(
+        {
+          async fetch(request: Request | string, init?: RequestInit) {
+            const result = await handler(new Request(request, init));
+            return result ?? new Response('Not found', { status: 404 });
+          },
         },
-      });
+        deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+      );
       await expect(
         client.inspect({
           bindingRevision: 'tdb_candidate',

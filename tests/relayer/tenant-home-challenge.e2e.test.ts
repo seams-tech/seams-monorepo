@@ -12,7 +12,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { once } from 'node:events';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { createRequire } from 'node:module';
+import { candidatePackageAliases } from '../helpers/walletServerCandidate';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
@@ -49,20 +49,6 @@ const runtimeVersion = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const changedVersion = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const deploymentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const candidatePackageRoot = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
-
-function candidatePackageAliases(packageRoot: string): Record<string, string> {
-  const packagePath = path.resolve(packageRoot, 'package.json');
-  const definition = JSON.parse(readFileSync(packagePath, 'utf8'));
-  if (definition.name !== '@seams/wallet-server') throw new Error('Wrong candidate package');
-  const resolveCandidate = createRequire(packagePath);
-  const aliases: Record<string, string> = {};
-  for (const key of Object.keys(definition.exports)) {
-    if (key.includes('*')) continue;
-    const specifier = key === '.' ? definition.name : `${definition.name}/${key.slice(2)}`;
-    aliases[specifier] = resolveCandidate.resolve(specifier);
-  }
-  return aliases;
-}
 
 type ProviderScenario =
   | 'stable'

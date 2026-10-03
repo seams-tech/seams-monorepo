@@ -150,6 +150,12 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
       },
     },
     walletRuntime: {
+      resources: [
+        {
+          accountId: '0123456789abcdef0123456789abcdef',
+          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+      ],
       async inspect() {
         throw new Error('candidate creation must not inspect the Wallet runtime');
       },

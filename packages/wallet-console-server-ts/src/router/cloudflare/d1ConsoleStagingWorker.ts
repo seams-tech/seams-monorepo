@@ -1,4 +1,4 @@
-import { WalletHomeCatalog } from '../../walletPlacement/home';
+import { WalletHomeCatalog, type WalletHome } from '../../walletPlacement/home';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
 import { withCors } from '@seams/wallet-server/cloud-host';
@@ -95,7 +95,10 @@ import {
   createD1TenantDeploymentSetupAdmissionReaderV1,
 } from '../../tenantDeployment/d1';
 import { createTenantDeploymentInternalBindingHandlerV1 } from '../../tenantDeployment/runtimeBinding';
-import { createTenantDeploymentRuntimeInspectionClientV1 } from '../../tenantDeployment/runtimeInspection';
+import {
+  combineTenantDeploymentRuntimeInspectorsV1,
+  createTenantDeploymentRuntimeInspectionClientV1,
+} from '../../tenantDeployment/runtimeInspection';
 import { createProductionTenantDeploymentReadinessAdapterV1 } from '../../tenantDeployment/productionReadiness';
 import { createTenantDeploymentReadinessServiceV1 } from '../../tenantDeployment/readiness';
 import {
@@ -120,6 +123,9 @@ interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
+  readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
+  readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
+  readonly WALLET_RUNTIME_APAC: WalletRuntimeServiceBinding;
   readonly WALLET_GATEWAY: WalletRuntimeServiceBinding;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
@@ -156,6 +162,19 @@ interface CloudflareD1ConsoleStagingEnv
   readonly SPONSORED_EVM_EXECUTORS_JSON?: string;
   readonly SPONSORED_EXECUTION_REAL_PRICING_JSON?: string;
   readonly SPONSORED_EXECUTION_STATIC_PRICING_JSON?: string;
+}
+
+function regionalReadinessInspector(
+  namespace: string,
+  home: WalletHome,
+  runtime: WalletRuntimeServiceBinding,
+) {
+  const resource = TenantDeploymentD1ResourceIdentityV1.parse({
+    namespace,
+    accountId: home.accountId,
+    databaseId: home.databaseId,
+  });
+  return createTenantDeploymentRuntimeInspectionClientV1(runtime, resource);
 }
 
 function readTenantDeploymentSurfaceText(
@@ -482,6 +501,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
   });
+  const walletHomeCatalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
   const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace,
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
@@ -491,7 +511,19 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     runtimeSnapshots: bundle.runtimeSnapshots,
     tenantRootState,
     bindings: tenantDeploymentBindings,
-    walletRuntime: createTenantDeploymentRuntimeInspectionClientV1(env.WALLET_RUNTIME),
+    walletRuntime: combineTenantDeploymentRuntimeInspectorsV1([
+      regionalReadinessInspector(namespace, walletHomeCatalog.select('US'), env.WALLET_RUNTIME_US),
+      regionalReadinessInspector(
+        namespace,
+        walletHomeCatalog.select('WEUR'),
+        env.WALLET_RUNTIME_WEUR,
+      ),
+      regionalReadinessInspector(
+        namespace,
+        walletHomeCatalog.select('APAC'),
+        env.WALLET_RUNTIME_APAC,
+      ),
+    ]),
   });
   const tenantDeploymentReadiness = createTenantDeploymentReadinessServiceV1({
     inspector: tenantDeploymentReadinessAdapter,
@@ -513,9 +545,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   });
   const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
     namespace,
-    resources: WalletHomeCatalog.parse(
-      JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON),
-    ).deploymentResources(),
+    resources: walletHomeCatalog.deploymentResources(),
     deploymentLane,
     surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
     orgProjectEnv: bundle.orgProjectEnv,

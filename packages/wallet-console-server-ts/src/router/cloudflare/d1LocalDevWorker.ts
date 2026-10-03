@@ -1193,6 +1193,11 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
   });
+  const home = TenantDeploymentD1ResourceIdentityV1.parse({
+    namespace: localTenantStorageNamespace(env),
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
   const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace: localTenantStorageNamespace(env),
     deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
@@ -1202,14 +1207,12 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     runtimeSnapshots: bundle.runtimeSnapshots,
     tenantRootState,
     bindings: tenantDeploymentBindings,
-    walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({ database: env.SIGNER_DB }),
+    walletRuntime: createD1TenantDeploymentRuntimeInspectorV1({
+      database: env.SIGNER_DB,
+      resource: home,
+    }),
   });
   const configuredPublishableKey = localConfiguredPublishableKey(env);
-  const home = TenantDeploymentD1ResourceIdentityV1.parse({
-    namespace: localTenantStorageNamespace(env),
-    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-  });
   const tenantDeploymentStore = createD1TenantDeploymentServiceV1({ database: env.CONSOLE_DB });
   const provisioner = createTenantDeploymentProvisionerV1({
     namespace: home.namespace,

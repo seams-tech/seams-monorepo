@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { createHash } from 'node:crypto';
@@ -12,8 +11,14 @@ import type { ConsoleApiKeyService } from '../../packages/console-server-ts/src/
 import type { TenantDeploymentBindingV1 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
 import type { TenantDeploymentResourceVerificationsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import type { TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/service';
-import { regionalResourceProof } from '../helpers/tenantDeploymentFixtures';
+import {
+  regionalResourceProof,
+  bindingForResource,
+  deploymentResource,
+} from '../helpers/tenantDeploymentFixtures';
+import type { TenantDeploymentRuntimeScopeV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import { provisioningScenario } from '../helpers/tenantDeploymentProvisioningScenario';
+import { regionalReadinessScenario } from '../helpers/regionalReadinessScenario';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -104,14 +109,49 @@ async function migrate(database: D1DatabaseLike, directory: string) {
   }
 }
 
+async function seedOccupancy(
+  database: D1DatabaseLike,
+  scope: TenantDeploymentRuntimeScopeV1,
+  count: number,
+) {
+  for (let index = 0; index < count; index += 1) {
+    await database
+      .prepare(
+        `INSERT INTO wallets
+      (namespace, org_id, project_id, env_id, wallet_id, record_json, created_at_ms, updated_at_ms)
+      VALUES (?1,?2,?3,?4,?5,json_object('version','wallet_v1','walletId',?5),0,0)`,
+      )
+      .bind(
+        scope.namespace,
+        scope.organizationId,
+        scope.projectId,
+        scope.environmentId,
+        `occupancy-${index}`,
+      )
+      .run();
+  }
+}
+
+async function seedCeremony(
+  database: D1DatabaseLike,
+  scope: TenantDeploymentRuntimeScopeV1,
+  expiresAtMs: number,
+) {
+  await database
+    .prepare(
+      `INSERT INTO registration_ceremony_records
+    (namespace, org_id, project_id, env_id, record_scope, record_id, version, record_json, expires_at_ms)
+    VALUES (?1,?2,?3,?4,'readiness-fixture','occupancy',1,'{}',?5)`,
+    )
+    .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId, expiresAtMs)
+    .run();
+}
+
 test('regional deployment renewal preserves the browser key and retires previous writer versions', async () => {
   const testInfo = test.info();
   test.setTimeout(120_000);
-  const runtime = new Miniflare({
-    modules: true,
-    script: 'export default { fetch() { return new Response("fixture"); } };',
-    d1Databases: { CONSOLE_DB: 'renewal-console', SIGNER_DB: 'renewal-signer' },
-  });
+  const regional = await regionalReadinessScenario(testInfo.outputPath('workers'));
+  const { runtime } = regional;
   const endpoint = new CanaryEndpoint();
   const server = createServer(endpoint.handle.bind(endpoint));
   server.listen(0, '127.0.0.1');
@@ -119,28 +159,37 @@ test('regional deployment renewal preserves the browser key and retires previous
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Canary server address missing');
   try {
-    const database = await runtime.getD1Database('CONSOLE_DB');
-    const signerDatabase = await runtime.getD1Database('SIGNER_DB');
-    if (!isD1DatabaseLike(database) || !isD1DatabaseLike(signerDatabase))
+    const database = await runtime.getD1Database('CONSOLE_DB', 'console');
+    const usDatabase = await runtime.getD1Database('SIGNER_DB', 'runtime-us');
+    const weurDatabase = await runtime.getD1Database('SIGNER_DB', 'runtime-weur');
+    const apacDatabase = await runtime.getD1Database('SIGNER_DB', 'runtime-apac');
+    if (
+      !isD1DatabaseLike(database) ||
+      !isD1DatabaseLike(usDatabase) ||
+      !isD1DatabaseLike(weurDatabase) ||
+      !isD1DatabaseLike(apacDatabase)
+    )
       throw new Error('D1 unavailable');
     await migrate(
       database,
       path.join(repoRoot, 'packages/wallet-console-server-ts/migrations/d1-console'),
     );
-    await migrate(
-      signerDatabase,
-      path.join(
-        process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
-          path.join(repoRoot, '../seams-wallet/packages/wallet-server'),
-        'migrations/d1-signer',
-      ),
-    );
+    for (const signerDatabase of [usDatabase, weurDatabase, apacDatabase])
+      await migrate(
+        signerDatabase,
+        path.join(
+          process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
+            path.join(repoRoot, '../seams-wallet/packages/wallet-server'),
+          'migrations/d1-signer',
+        ),
+      );
     const scenario = await provisioningScenario(
       database,
-      signerDatabase,
+      regional.inspector,
       `http://127.0.0.1:${address.port}`,
     );
-    const { provisioner, store, reference, apiKeys, router, context, environmentId } = scenario;
+    const { provisioner, store, reference, apiKeys, router, adapter, context, environmentId } =
+      scenario;
     endpoint.apiKeys = apiKeys;
     endpoint.environmentId = environmentId;
     const initialProofs = proofs(reference);
@@ -173,6 +222,65 @@ test('regional deployment renewal preserves the browser key and retires previous
     expect(reused.disposition).toBe('reused');
     expect(reused.activationSequence).toBe(initial.activationSequence);
     const nextProofs = proofs(reference);
+    const target = {
+      namespace: initialBinding.tenant.namespace,
+      organizationId: initialBinding.tenant.organizationId,
+      projectId: initialBinding.tenant.projectId,
+      environmentId,
+    };
+    const source = {
+      namespace: target.namespace,
+      organizationId: target.organizationId,
+      projectId: 'project_source',
+      environmentId: 'project_source:dev',
+    };
+    const inspectionRequest = { bindingRevision: initialBinding.revision, source, target };
+    let walletCount = 1;
+    for (const signerDatabase of [usDatabase, weurDatabase, apacDatabase]) {
+      await seedOccupancy(signerDatabase, target, walletCount);
+      await seedOccupancy(signerDatabase, source, 1);
+      walletCount += 1;
+    }
+    await seedCeremony(weurDatabase, target, Date.now() - 1000);
+    await seedCeremony(apacDatabase, target, Date.now() + 300_000);
+    const regionalCounts = await regional.inspector.inspect(inspectionRequest);
+    expect(regionalCounts).toMatchObject({
+      sourceDurableWalletCount: 3,
+      targetDurableWalletCount: 6,
+      inFlightCeremonyCount: 1,
+    });
+    await expect(regional.wrongResourceInspector.inspect(inspectionRequest)).rejects.toThrow(
+      'invalid readiness inspection',
+    );
+    await expect(
+      adapter.inspect(
+        await bindingForResource(
+          Date.now(),
+          reference.deploymentLane,
+          deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+        ),
+      ),
+    ).rejects.toThrow('do not cover the deployment resource set');
+    await expect(
+      provisioner.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: nextProofs },
+      }),
+    ).rejects.toMatchObject({ code: 'readiness_invalid' });
+    await apacDatabase.prepare('DELETE FROM registration_ceremony_records').run();
+    regional.apacTransport.available = false;
+    await expect(
+      provisioner.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: nextProofs },
+      }),
+    ).rejects.toThrow('HTTP 503');
+    expect((await store.findActiveBinding(reference.deploymentLane))?.revision).toBe(
+      initial.bindingRevision,
+    );
+    regional.apacTransport.available = true;
     await expect(
       provisioner.provision({
         deploymentLane: reference.deploymentLane,
@@ -229,7 +337,7 @@ test('regional deployment renewal preserves the browser key and retires previous
         "SELECT COUNT(*) AS count FROM tenant_deployment_cutovers WHERE json_extract(state_json, '$.kind') = 'failed'",
       )
       .first('count');
-    expect(failed).toBe(3);
+    expect(failed).toBe(5);
     expect(endpoint.accepted).toBe(1);
     const evidence = {
       kind: 'regional_deployment_renewal_evidence_v1',
@@ -242,6 +350,11 @@ test('regional deployment renewal preserves the browser key and retires previous
       browserCredentialPreserved: true,
       committedActivationPreservedAfterLostReply: true,
       incompleteProofSetRejected: true,
+      regionalCounts,
+      crossResourceReadinessRejected: true,
+      incompleteReadinessCoverageRejected: true,
+      apacCeremonyBlockedRenewal: true,
+      unavailableApacBlockedRenewal: true,
       failedRootAndCredentialAttemptsReleased: failed,
       authenticatedCanaries: endpoint.accepted,
       limits: [

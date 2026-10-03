@@ -3,7 +3,11 @@ import { base64UrlEncode } from '@seams/wallet-server/cloud-host';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
 import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
-import type { TenantDeploymentCutoverId } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import type {
+  TenantDeploymentCutoverId,
+  TenantDeploymentCutoverPhaseV1,
+  TenantDeploymentCutoverV1,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
 import {
   ensureTenantRootActiveV1,
   type TenantRootCreationConsoleRouteDependenciesV1,
@@ -114,6 +118,28 @@ function defaultOperationId(): TenantDeploymentCutoverId {
   return `tco_${crypto.randomUUID().replace(/-/gu, '')}`;
 }
 
+function failedCutoverPhase(
+  state: Exclude<TenantDeploymentCutoverV1, { kind: 'active' | 'failed' }>,
+  credential: ProvisionedBrowserCredentialV1 | null,
+): TenantDeploymentCutoverPhaseV1 {
+  switch (state.kind) {
+    case 'planning':
+      return 'planning';
+    case 'awaiting_tenant_root':
+      return 'tenant_root';
+    case 'awaiting_browser_credential':
+      return credential === null ? 'browser_credential' : 'readiness';
+    case 'ready':
+      return 'activation';
+    default:
+      return assertNeverCutover(state);
+  }
+}
+
+function assertNeverCutover(state: never): never {
+  throw new Error(`Unexpected deployment cutover state: ${state}`);
+}
+
 function parseCredentialId(value: string): `ak_${string}` {
   if (!value.startsWith('ak_') || value.length <= 3) {
     throw new Error('publishable credential ID is invalid');
@@ -142,10 +168,11 @@ type ProvisionedBrowserCredentialV1 =
 
 async function provisionBrowserCredential(input: {
   readonly options: TenantDeploymentProvisionerOptionsV1;
+  readonly credential: TenantDeploymentBrowserCredentialProvisioningV1;
   readonly identity: TenantRootIdentityV1;
   readonly environmentId: string;
 }): Promise<ProvisionedBrowserCredentialV1> {
-  switch (input.options.browserCredential.kind) {
+  switch (input.credential.kind) {
     case 'create_managed_publishable_key': {
       const credential = await input.options.apiKeys.createApiKey(
         { orgId: input.identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
@@ -171,7 +198,7 @@ async function provisionBrowserCredential(input: {
       const authenticate = input.options.apiKeys.authenticatePublishableKey;
       if (!authenticate) throw new Error('publishable credential authentication is unavailable');
       const authenticated = await authenticate.call(input.options.apiKeys, {
-        secret: input.options.browserCredential.publishableKey,
+        secret: input.credential.publishableKey,
         origin: input.options.surfaces.applicationOrigin,
         environmentId: input.environmentId,
       });
@@ -181,7 +208,7 @@ async function provisionBrowserCredential(input: {
       return {
         kind: 'adopted',
         credentialId: parseCredentialId(authenticated.apiKey.id),
-        publishableKey: input.options.browserCredential.publishableKey,
+        publishableKey: input.credential.publishableKey,
       };
     }
   }
@@ -330,11 +357,11 @@ export function createTenantDeploymentProvisionerV1(
           'active lane uses a different deployment resource or namespace',
         );
       }
-      if (
+      const matchesActive =
         active &&
         active.revision === activeBinding?.revision &&
-        bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces })
-      ) {
+        bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces });
+      if (matchesActive && request.authorization.kind === 'reuse_active') {
         return reuseActiveBinding({ active, binding: activeBinding });
       }
       const operationId = newOperationId();
@@ -378,28 +405,40 @@ export function createTenantDeploymentProvisionerV1(
       if (awaitingRoot.state.kind !== 'awaiting_tenant_root') {
         throw new Error('tenant deployment cutover did not await its tenant root');
       }
-      const root = await ensureActiveTenantRoot({ options, operationId, identity });
-      const awaitingCredential = await options.store.transitionCutover(awaitingRoot, {
-        kind: 'awaiting_browser_credential',
-        operationId,
-        deploymentLane,
-        targetIdentity: awaitingRoot.state.targetIdentity,
-        activeTenantRoot: {
-          identityDigestB64u: root.identityDigestB64u,
-          custodyLineageId: root.custodyLineageB64u,
-          signingRootId: identity.signingRootId,
-          signingRootVersion: identity.signingRootVersion,
-        },
-        expectedActiveRevision: active?.revision ?? null,
-      });
-      if (awaitingCredential.state.kind !== 'awaiting_browser_credential') {
-        throw new Error('tenant deployment cutover did not await its browser credential');
-      }
-      const credential = await provisionBrowserCredential({ options, identity, environmentId });
-      const credentialId = credential.credentialId;
-      const publishableKey = credential.publishableKey;
+      let credential: ProvisionedBrowserCredentialV1 | null = null;
       let activated = false;
       try {
+        const root = await ensureActiveTenantRoot({ options, operationId, identity });
+        const awaitingCredential = await options.store.transitionCutover(awaitingRoot, {
+          kind: 'awaiting_browser_credential',
+          operationId,
+          deploymentLane,
+          targetIdentity: awaitingRoot.state.targetIdentity,
+          activeTenantRoot: {
+            identityDigestB64u: root.identityDigestB64u,
+            custodyLineageId: root.custodyLineageB64u,
+            signingRootId: identity.signingRootId,
+            signingRootVersion: identity.signingRootVersion,
+          },
+          expectedActiveRevision: active?.revision ?? null,
+        });
+        if (awaitingCredential.state.kind !== 'awaiting_browser_credential') {
+          throw new Error('tenant deployment cutover did not await its browser credential');
+        }
+        credential = await provisionBrowserCredential({
+          options,
+          identity,
+          environmentId,
+          credential:
+            matchesActive && options.browserCredential.kind === 'create_managed_publishable_key'
+              ? {
+                  kind: 'adopt_publishable_key',
+                  publishableKey: activeBinding.browserCredential.publishableKey,
+                }
+              : options.browserCredential,
+        });
+        const credentialId = credential.credentialId;
+        const publishableKey = credential.publishableKey;
         const binding = await options.candidates.buildCandidate({
           namespace: options.namespace,
           resources: options.resources,
@@ -469,22 +508,24 @@ export function createTenantDeploymentProvisionerV1(
       } catch (error) {
         if (!activated) {
           const current = await options.store.findCutover(operationId);
-          if (current && current.state.kind !== 'active' && current.state.kind !== 'failed') {
+          // A lost activation reply can leave the durable cutover active.
+          if (current?.state.kind === 'active') throw error;
+          if (current && current.state.kind !== 'failed') {
             await options.store.transitionCutover(current, {
               kind: 'failed',
               operationId,
               deploymentLane,
-              failedPhase: 'readiness',
+              failedPhase: failedCutoverPhase(current.state, credential),
               failure: {
                 code: 'automated_provisioning_failed',
                 message: error instanceof Error ? error.message : 'automated provisioning failed',
               },
             });
           }
-          if (credential.kind === 'created') {
+          if (credential?.kind === 'created') {
             await options.apiKeys.revokeApiKey(
               { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
-              credentialId,
+              credential.credentialId,
               { reason: 'tenant deployment provisioning failed' },
             );
           }

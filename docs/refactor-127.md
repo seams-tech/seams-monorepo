@@ -1020,3 +1020,22 @@ readiness inspection, and admission renewal for changed serving versions remain
 unfinished. The current one-resource operator collector cannot activate the
 three-resource hosted catalog. Deployment and release remain held until these
 paths are replaced and the composed hosted flow is verified.
+
+### October 3: deployment writer renewal
+
+Explicit protected activation now renews writer admission even when the tenant and
+public URLs are unchanged. The provisioner validates the entire resource-proof set
+and adopts the existing managed browser credential. Reuse-only onboarding remains
+a read-only lookup. Root/credential failures release unfinished cutovers; cleanup
+preserves an active credential when the activation committed before its reply was
+lost. The new `tenant-deployment-renewal.e2e.test.ts` exercises six-writer replacement,
+partial proofs, outage/retry, revoked credentials and lost-reply recovery against
+real local D1 persistence.
+
+The final renewal E2E passed in 8.7s; its retained receipt is
+`.artifacts/r152/deployment-renewal-20261003/deployment-renewal-evidence.json`
+(SHA-256 `d8b232d65474ddeed1431fd2340453b0ca60494ad99f64b09dd4f98d42f1139b`).
+The canary authenticates a real persisted key against a controlled HTTP fixture;
+provider/Router evidence is controlled and no hosted latency claim follows.
+Regional rendering, all-backend proof collection and regional readiness remain
+unfinished. Deployment and the 0.8.0 release remain held.

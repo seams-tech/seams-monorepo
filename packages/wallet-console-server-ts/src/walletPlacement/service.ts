@@ -1,3 +1,4 @@
+import { handleSyncChallengeCommand } from './syncChallenges';
 import { claimPasskeyCredential } from './passkeyClaims';
 import { consumeSharedRateLimit } from './rateLimitService';
 import { handleRegistrationOfferCommand } from './registrationOfferService';
@@ -90,6 +91,7 @@ export async function handleWalletHomeServiceRequest(
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
@@ -118,6 +120,8 @@ export async function handleWalletHomeServiceRequest(
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge`)
+      return handleSyncChallengeCommand(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit`)
       return await consumeSharedRateLimit(body, options.database, options.scope);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer`) {

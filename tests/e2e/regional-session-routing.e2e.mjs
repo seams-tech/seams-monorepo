@@ -319,7 +319,10 @@ try {
     const now = Date.now();
     const fixture = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-session-${region}`,
-      identity: { walletId: `wallet:${region}` },
+      identity: {
+        walletId: `wallet:${region}`,
+        credentialIdB64u: Buffer.from(`passkey-${region}`).toString('base64url'),
+      },
       permissions: api.buildFullOwnerPermissionsV1(),
       provenance: 'wallet_registration',
       expiresAtMs: now + 3_600_000,
@@ -434,7 +437,22 @@ try {
     consoleBridge,
     authorityDatabase,
   });
+  const isolatedScope = { ...scope, projectId: 'isolated-project' };
+  const isolatedBridge = new ConsoleBridge(isolatedScope);
+  isolatedBridge.database = authorityDatabase;
+  const isolatedWriter = api.parseTenantRuntimeWriterV1(
+    'gateway',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    { accountId, databaseId: catalog.select('US').databaseId },
+  );
+  const isolatedIdentity = new api.WalletHomeServiceClient(
+    isolatedBridge,
+    isolatedWriter,
+    isolatedScope,
+    catalog,
+  );
   const authenticationRouting = await verifyRegionalAuthenticationRouting({
+    isolatedIdentity,
     authorityDatabase,
     api,
     runtime,
@@ -450,20 +468,6 @@ try {
     authorityDatabase,
     signerScope,
   });
-  const isolatedScope = { ...scope, projectId: 'isolated-project' };
-  const isolatedBridge = new ConsoleBridge(isolatedScope);
-  isolatedBridge.database = authorityDatabase;
-  const isolatedWriter = api.parseTenantRuntimeWriterV1(
-    'gateway',
-    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    { accountId, databaseId: catalog.select('US').databaseId },
-  );
-  const isolatedIdentity = new api.WalletHomeServiceClient(
-    isolatedBridge,
-    isolatedWriter,
-    isolatedScope,
-    catalog,
-  );
   const sharedIdentity = await verifyRegionalSharedIdentity({
     isolatedIdentity,
     runtime,

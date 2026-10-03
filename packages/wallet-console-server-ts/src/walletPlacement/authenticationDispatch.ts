@@ -2,6 +2,7 @@ import {
   parseGoogleLoginVerifyRequest,
   verifyGoogleOidcToken,
   parseWalletId,
+  webAuthnCredentialIdB64uFromCredential,
 } from '@seams/wallet-server/cloud-host';
 import type { WalletHomeAssignment } from './home';
 import type { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
@@ -31,8 +32,9 @@ export async function authenticationHome(
     !Array.isArray(body) &&
     !('account_id' in body)
   ) {
-    return rejected(503, 'wallet_discovery_unavailable');
+    return { kind: 'absent' };
   }
+  if (path === '/sync-account/verify') return syncDiscoveryHome(body, authority);
   if (path === '/auth/google/verify') {
     if (!body || typeof body !== 'object' || Array.isArray(body))
       return rejected(400, 'invalid_body');
@@ -78,7 +80,6 @@ function authenticationLocator(path: string, body: unknown): AuthenticationLocat
     case '/auth/google/verify':
       wallet = 'wallet_id' in body ? body.wallet_id : null;
       break;
-    case '/sync-account/verify':
     case '/auth/passkey/verify':
       return challengeLocator(body);
     case '/sync-account/options':
@@ -168,6 +169,39 @@ async function googleDiscoveryHome(
     const assignment = await authority.findHome({ kind: 'wallet', walletId: wallet.value });
     if (!assignment || assignment.state === 'cancelled')
       return rejected(404, 'wallet_home_unavailable');
+    return { kind: 'resolved', assignment };
+  } catch {
+    return rejected(503, 'wallet_home_unavailable');
+  }
+}
+
+async function syncDiscoveryHome(
+  body: unknown,
+  authority: ConsoleRegistrationHomeAdmission,
+): Promise<AuthenticationHome> {
+  if (
+    !body ||
+    typeof body !== 'object' ||
+    !('challengeId' in body) ||
+    !('webauthn_authentication' in body)
+  )
+    return rejected(400, 'invalid_body');
+  const credential = webAuthnCredentialIdB64uFromCredential(body.webauthn_authentication);
+  if (!credential.ok) return rejected(400, 'invalid_body');
+  let locator: WalletRouteLocator;
+  try {
+    locator = WalletRouteLocator.parse({ kind: 'passkey_challenge', value: body.challengeId });
+  } catch {
+    return rejected(400, 'invalid_body');
+  }
+  try {
+    const assignment = await authority.identityStore().findSyncHome({
+      challengeId: locator.value,
+      credentialIdB64u: credential.credentialIdB64u,
+    });
+    if (!assignment) return rejected(401, 'challenge_expired_or_invalid');
+    if ('walletId' in body && body.walletId !== assignment.wallet.walletId)
+      return rejected(403, 'wallet_scope_mismatch');
     return { kind: 'resolved', assignment };
   } catch {
     return rejected(503, 'wallet_home_unavailable');

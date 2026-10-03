@@ -37,3 +37,14 @@ export function buildGoogleEnrollmentFixture(api, walletId, providerSubject, ema
   if (!record) throw new Error('Invalid Google enrollment fixture');
   return record;
 }
+
+export function buildWalletlessSyncChallengeFixture(challenge, rpId) {
+  return {
+    version: 'webauthn_sync_challenge_v1',
+    challengeId: challenge.challengeId,
+    rpId,
+    challengeB64u: challenge.challengeB64u,
+    createdAtMs: Date.now(),
+    expiresAtMs: challenge.expiresAtMs,
+  };
+}

@@ -1,3 +1,8 @@
+import type { SyncChallengeFailure } from '@seams/wallet-server/cloud-host';
+import {
+  parseWebAuthnSyncChallengeRecord,
+  type WebAuthnSyncChallengeStore,
+} from '@seams/wallet-server/cloud-host';
 import type { PasskeyCredentialClaims } from '@seams/wallet-server/cloud-host';
 import type { EmailOtpRateLimitCounter } from '@seams/wallet-server/cloud-host';
 import type { RegistrationOfferCommand } from './registrationOfferService';
@@ -235,6 +240,67 @@ export class WalletHomeServiceClient
       throw new WalletPlacementError('invalid_record', 'Wallet home service response is not JSON');
     }
     return { status: response.status, body: responseBody };
+  }
+
+  syncChallenges(): WebAuthnSyncChallengeStore {
+    return {
+      create: this.createSyncChallenge.bind(this),
+      consume: this.consumeSyncChallenge.bind(this),
+    };
+  }
+
+  private async createSyncChallenge(
+    input: Parameters<WebAuthnSyncChallengeStore['create']>[0],
+  ): ReturnType<WebAuthnSyncChallengeStore['create']> {
+    const result = await this.syncChallengeCommand({ operation: 'create', record: input });
+    return result.ok ? { ok: true } : result;
+  }
+
+  private async consumeSyncChallenge(
+    input: Parameters<WebAuthnSyncChallengeStore['consume']>[0],
+  ): ReturnType<WebAuthnSyncChallengeStore['consume']> {
+    const result = await this.syncChallengeCommand({ operation: 'consume', ...input });
+    if (!result.ok) return result;
+    if (result.body.record === null) return { ok: true, record: null };
+    const challenge = parseWebAuthnSyncChallengeRecord(result.body.record);
+    if (!challenge || challenge.challengeId !== input.challengeId)
+      return {
+        ok: false,
+        code: 'wallet_home_unavailable',
+        message: 'Invalid shared sync challenge response',
+      };
+    return { ok: true, record: challenge };
+  }
+
+  async findSyncHome(input: Parameters<WebAuthnSyncChallengeStore['consume']>[0]) {
+    const result = await this.syncChallengeCommand({ operation: 'find', ...input });
+    if (!result.ok) throw new Error(result.message);
+    return result.body.assignment === null
+      ? null
+      : assignmentFromResponse(result.body.assignment, this.scope, this.catalog);
+  }
+
+  private async syncChallengeCommand(
+    input: Record<string, unknown>,
+  ): Promise<{ readonly ok: true; readonly body: Record<string, unknown> } | SyncChallengeFailure> {
+    try {
+      const response = await this.post('sync-challenge', input);
+      const body = record(response.body);
+      if (response.status === 200 && body.ok === true) return { ok: true, body };
+      if (response.status === 409)
+        return {
+          ok: false,
+          code: 'wallet_home_conflict',
+          message: 'Sync challenge conflicts with shared authority',
+        };
+    } catch {
+      // A transport or malformed-response failure cannot fall back to a local challenge.
+    }
+    return {
+      ok: false,
+      code: 'wallet_home_unavailable',
+      message: 'Shared sync challenge authority is unavailable',
+    };
   }
 
   async claim(input: Parameters<PasskeyCredentialClaims['claim']>[0]): Promise<boolean> {

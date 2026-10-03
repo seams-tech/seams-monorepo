@@ -1447,3 +1447,18 @@ and resolves home-bound challenges. Wallet-less hosted sync returns explicit 503
 until discovery is implemented. Nine terminal ordering/race cases, regional sync
 travel/conflict/outage checks and persistent-directory E2E passed. Evidence:
 `.artifacts/r152/passkey-terminal-sync-20261003/`. No deployment or release occurred.
+
+### R152 shared discovery challenges — October 3
+
+Console migration 0066 adds shared sync challenges and consumption tombstones.
+Gateway discovery resolves RP/credential claims to a home; consumption is restricted
+to that home's admitted writer. The SDK home verifier still requires committed
+binding, active method and WebAuthn proof. The temporary wallet-less unavailable
+branch and hosted local sync challenge writes are removed. Typed errors preserve
+503 handling across separately bundled SDK entry points.
+
+Regional composition passed travel, replay, expiry, project isolation, outages and
+uncommitted-binding rejection. The local unlock/export/signing browser contract
+passed. Evidence: `.artifacts/r152/passkey-discovery-20261003/`. Full hosted proof
+verification and remaining R152 lifecycle gates remain open; no release or deployment
+occurred. Include this table in scoped resets and expired-row cleanup.

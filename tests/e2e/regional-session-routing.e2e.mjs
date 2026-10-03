@@ -262,6 +262,7 @@ const bundle = await build({
       export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(publicRoot, 'tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
       export { buildLinkedDeviceTargetCredentialRegistrationV1, parseLinkedDeviceTargetCredentialRegistrationV1, buildLinkedDeviceTargetPreparationV1, buildLinkedDeviceApprovalV1, buildWalletSessionLinkedDeviceOwnerAuthorizationV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/parsers.ts'))};
       export { buildExactAdministeredSignerManifestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/device-linking/delegatedActivationPlan.ts'))};
+      export { handleRuntimeIdentityHomeRequest } from './packages/wallet-console-server-ts/src/serviceBinding/runtimeIdentityHome';
       export { RegionalWalletIdentities } from './packages/wallet-console-server-ts/src/serviceBinding/regionalWalletIdentities';
       export { createRouterApiRouteDefinitions } from ${JSON.stringify(resolve(candidate, 'src/router/framework/routeDefinitions.ts'))};
       export { createInMemoryConsoleApiKeyService } from './packages/console-server-ts/src/apiKeys/service';
@@ -362,6 +363,13 @@ try {
       { accountId, databaseId: catalog.select(region).databaseId },
     );
     const publisher = new api.WalletHomeServiceClient(consoleService, writer, scope, catalog);
+    bridge.runtimeHomeDirectory = new api.WalletHomeServiceClient(
+      consoleService,
+      api.parseTenantRuntimeWriterV1('walletRuntime', writer.versionId, writer.resource),
+      scope,
+      catalog,
+    );
+    bridge.localResource = catalog.select(region);
     const store = new api.CloudflareD1AuthorizationStore({
       database,
       namespace: scope.namespace,
@@ -549,6 +557,7 @@ try {
     bridges,
     directory,
     scope,
+    consoleBridge,
   });
   const linkHttp = await verifyRegionalLinkHttp({ api, runtime, bridges, signerScope });
   const authenticationRouting = await verifyRegionalAuthenticationRouting({

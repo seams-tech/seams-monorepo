@@ -105,6 +105,22 @@ progress requires source-fence and destination-verification receipts before the
 atomic home/generation switch. Identity, recorded receipts and move history remain
 immutable. An interrupted move stays at its durable phase for reconciliation.
 
+Migration `0071_wallet_relocation_execution.sql` adds durable stage attempts,
+revision-based claims, retry deadlines and explicit blocked recovery. Each stage
+allows six attempts; transient failures back off by 1, 2, 4, 8 and 16 seconds.
+Conflicts block immediately. Restart and status reads preserve the budget; an
+internal recovery action advances the recorded recovery run. A claimed running
+attempt is resumed by its identity rather than expiring into a second writer.
+Phase transitions require that current attempt. Completion requires destination
+activation and source cleanup receipts bound to the same manifest as the source
+fence and destination verification, with ordered timestamps. A timestamp alone
+cannot complete a move. Exact admission replay precedes new catalog validation.
+
+The migration requires an empty relocation journal under the planned disposable
+wallet reset; it does not infer missing evidence for old journal rows. Retirement
+and completion evidence remain immutable. Receipt parsing validates structure and
+bindings; production issuer authentication is still required in orchestration.
+
 This storage primitive is currently internal to implementation; no owner move
 endpoint is enabled. Actual owner authentication, per-writer fencing, transfer,
 receipt production and cleanup must be connected before relocation is executable.

@@ -4,6 +4,7 @@ import {
   WalletPlacementError,
   parseWalletOwnershipGeneration,
 } from './home';
+import { relocationExecutionFromRow, type WalletRelocationExecution } from './relocationExecution';
 
 export const WALLET_RELOCATION_COOLDOWN_MS = 5 * 60_000;
 
@@ -126,7 +127,11 @@ function byteHex(byte: number): string {
   return byte.toString(16).padStart(2, '0');
 }
 
-type ReceiptKind = 'source_fence' | 'destination_verification';
+type ReceiptKind =
+  | 'source_fence'
+  | 'destination_verification'
+  | 'destination_activation'
+  | 'source_cleanup';
 
 export class WalletRelocationReceipt<Kind extends ReceiptKind = ReceiptKind> {
   readonly #validated = true;
@@ -139,13 +144,14 @@ export class WalletRelocationReceipt<Kind extends ReceiptKind = ReceiptKind> {
     readonly generation: number,
     readonly recordedAtMs: number,
     readonly participants: RelocationParticipants,
+    readonly manifestDigest: string,
   ) {
     Object.freeze(this);
   }
 
   static parse<Kind extends ReceiptKind>(raw: unknown, kind: Kind): WalletRelocationReceipt<Kind> {
     const value = relocationRecord(raw);
-    if (Object.keys(value).length !== 7 || value.kind !== kind) {
+    if (Object.keys(value).length !== 8 || value.kind !== kind) {
       throw new WalletPlacementError('invalid_record', 'Wallet relocation receipt is invalid');
     }
     return new WalletRelocationReceipt(
@@ -156,13 +162,19 @@ export class WalletRelocationReceipt<Kind extends ReceiptKind = ReceiptKind> {
       parseWalletOwnershipGeneration(value.generation),
       relocationTimestamp(value.recordedAtMs),
       participantDigests(value.participants),
+      relocationDigest(value.manifestDigest),
     );
   }
 
   matches(move: WalletRelocation): boolean {
-    const home = this.kind === 'source_fence' ? move.source : move.destination;
+    const home =
+      this.kind === 'source_fence' || this.kind === 'source_cleanup'
+        ? move.source
+        : move.destination;
     const generation =
-      this.kind === 'source_fence' ? move.sourceGeneration : move.destinationGeneration;
+      this.kind === 'source_fence' || this.kind === 'source_cleanup'
+        ? move.sourceGeneration
+        : move.destinationGeneration;
     return (
       this.#validated &&
       this.wallet.matches(move.wallet) &&
@@ -177,6 +189,9 @@ export class WalletRelocationReceipt<Kind extends ReceiptKind = ReceiptKind> {
 export type WalletRelocationProgress =
   | {
       readonly state: 'freezing';
+      readonly execution: WalletRelocationExecution;
+      readonly destinationActivation?: never;
+      readonly sourceCleanup?: never;
       readonly sourceFence?: never;
       readonly destinationVerification?: never;
       readonly cutoverAtMs?: never;
@@ -184,6 +199,9 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'copying';
+      readonly execution: WalletRelocationExecution;
+      readonly destinationActivation?: never;
+      readonly sourceCleanup?: never;
       readonly sourceFence: WalletRelocationReceipt<'source_fence'>;
       readonly destinationVerification?: never;
       readonly cutoverAtMs?: never;
@@ -191,6 +209,9 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'verified';
+      readonly execution: WalletRelocationExecution;
+      readonly destinationActivation?: never;
+      readonly sourceCleanup?: never;
       readonly sourceFence: WalletRelocationReceipt<'source_fence'>;
       readonly destinationVerification: WalletRelocationReceipt<'destination_verification'>;
       readonly cutoverAtMs?: never;
@@ -198,6 +219,9 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'cutover';
+      readonly execution: WalletRelocationExecution;
+      readonly destinationActivation?: never;
+      readonly sourceCleanup?: never;
       readonly sourceFence: WalletRelocationReceipt<'source_fence'>;
       readonly destinationVerification: WalletRelocationReceipt<'destination_verification'>;
       readonly cutoverAtMs: number;
@@ -205,6 +229,9 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'completed';
+      readonly execution?: never;
+      readonly destinationActivation: WalletRelocationReceipt<'destination_activation'>;
+      readonly sourceCleanup: WalletRelocationReceipt<'source_cleanup'>;
       readonly sourceFence: WalletRelocationReceipt<'source_fence'>;
       readonly destinationVerification: WalletRelocationReceipt<'destination_verification'>;
       readonly cutoverAtMs: number;
@@ -283,7 +310,8 @@ export class WalletRelocation {
         progress.state === 'cutover' ||
         progress.state === 'completed') &&
         (!progress.destinationVerification.matches(move) ||
-          progress.destinationVerification.recordedAtMs < progress.sourceFence.recordedAtMs))
+          progress.destinationVerification.recordedAtMs < progress.sourceFence.recordedAtMs ||
+          progress.destinationVerification.manifestDigest !== progress.sourceFence.manifestDigest))
     ) {
       throw new WalletPlacementError(
         'invalid_record',
@@ -295,6 +323,21 @@ export class WalletRelocation {
       progress.cutoverAtMs < progress.destinationVerification.recordedAtMs
     ) {
       throw new WalletPlacementError('invalid_record', 'Wallet relocation cutover time is invalid');
+    }
+    if (
+      progress.state === 'completed' &&
+      (!progress.destinationActivation.matches(move) ||
+        !progress.sourceCleanup.matches(move) ||
+        progress.destinationActivation.manifestDigest !== progress.sourceFence.manifestDigest ||
+        progress.sourceCleanup.manifestDigest !== progress.sourceFence.manifestDigest ||
+        progress.destinationActivation.recordedAtMs < progress.cutoverAtMs ||
+        progress.sourceCleanup.recordedAtMs < progress.destinationActivation.recordedAtMs ||
+        progress.completedAtMs < progress.sourceCleanup.recordedAtMs)
+    ) {
+      throw new WalletPlacementError(
+        'invalid_record',
+        'Wallet relocation completion evidence is invalid',
+      );
     }
     return move;
   }
@@ -315,6 +358,12 @@ function receiptFromJson<Kind extends ReceiptKind>(
 }
 
 function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress {
+  if (
+    row.state !== 'completed' &&
+    (row.destination_activation_json !== null || row.source_cleanup_json !== null)
+  ) {
+    throw new WalletPlacementError('invalid_record', 'Pending relocation has completion evidence');
+  }
   switch (row.state) {
     case 'freezing':
       if (
@@ -324,7 +373,7 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
         row.completed_at_ms !== null
       )
         break;
-      return { state: 'freezing' };
+      return { state: 'freezing', execution: relocationExecutionFromRow(row) };
     case 'copying':
       if (
         row.destination_verification_json !== null ||
@@ -334,12 +383,14 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
         break;
       return {
         state: 'copying',
+        execution: relocationExecutionFromRow(row),
         sourceFence: receiptFromJson(row.source_fence_json, 'source_fence'),
       };
     case 'verified':
       if (row.cutover_at_ms !== null || row.completed_at_ms !== null) break;
       return {
         state: 'verified',
+        execution: relocationExecutionFromRow(row),
         sourceFence: receiptFromJson(row.source_fence_json, 'source_fence'),
         destinationVerification: receiptFromJson(
           row.destination_verification_json,
@@ -350,6 +401,7 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
       if (row.completed_at_ms !== null) break;
       return {
         state: 'cutover',
+        execution: relocationExecutionFromRow(row),
         sourceFence: receiptFromJson(row.source_fence_json, 'source_fence'),
         destinationVerification: receiptFromJson(
           row.destination_verification_json,
@@ -358,11 +410,25 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
         cutoverAtMs: relocationTimestamp(row.cutover_at_ms),
       };
     case 'completed': {
+      if (
+        row.execution_state !== null ||
+        row.execution_attempt !== 0 ||
+        row.execution_attempt_id !== null ||
+        row.execution_started_at_ms !== null ||
+        row.execution_error !== null ||
+        row.execution_retry_at_ms !== null
+      )
+        break;
       const cutoverAtMs = relocationTimestamp(row.cutover_at_ms);
       const completedAtMs = relocationTimestamp(row.completed_at_ms);
       if (completedAtMs < cutoverAtMs) break;
       return {
         state: 'completed',
+        destinationActivation: receiptFromJson(
+          row.destination_activation_json,
+          'destination_activation',
+        ),
+        sourceCleanup: receiptFromJson(row.source_cleanup_json, 'source_cleanup'),
         sourceFence: receiptFromJson(row.source_fence_json, 'source_fence'),
         destinationVerification: receiptFromJson(
           row.destination_verification_json,

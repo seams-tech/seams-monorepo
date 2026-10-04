@@ -11,6 +11,12 @@ import {
   WalletRelocationRequest,
   relocationTimestamp,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
+import {
+  WalletRelocationAttempt,
+  relocationAttemptId,
+  relocationFailure,
+  relocationPhase,
+} from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
 import { D1WalletRelocations } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 
 function testCommand(raw: unknown): Record<string, unknown> {
@@ -71,23 +77,57 @@ export default {
         case 'status':
           result = await moves.find(moveRequest);
           break;
+        case 'claim':
+          result = await moves.claimAttempt(
+            moveRequest,
+            relocationPhase(body.phase),
+            relocationAttemptId(body.attemptId),
+            relocationTimestamp(body.nowMs),
+          );
+          break;
+        case 'fail':
+          result = await moves.failAttempt(
+            moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
+            relocationFailure(body.code),
+            relocationTimestamp(body.nowMs),
+          );
+          break;
+        case 'resume':
+          result = await moves.resumeAttempt(
+            moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
+          );
+          break;
         case 'fence':
           result = await moves.recordSourceFence(
             moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
             WalletRelocationReceipt.parse(body.receipt, 'source_fence'),
           );
           break;
         case 'verify':
           result = await moves.recordDestinationVerification(
             moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
             WalletRelocationReceipt.parse(body.receipt, 'destination_verification'),
           );
           break;
         case 'switch':
-          result = await moves.switchOwnership(moveRequest, relocationTimestamp(body.nowMs));
+          result = await moves.switchOwnership(
+            moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
+            relocationTimestamp(body.nowMs),
+          );
           break;
         case 'complete':
-          result = await moves.complete(moveRequest, relocationTimestamp(body.nowMs));
+          result = await moves.complete(
+            moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
+            WalletRelocationReceipt.parse(body.activation, 'destination_activation'),
+            WalletRelocationReceipt.parse(body.cleanup, 'source_cleanup'),
+            relocationTimestamp(body.nowMs),
+          );
           break;
         default:
           return Response.json({ code: 'unknown_test_operation' }, { status: 400 });

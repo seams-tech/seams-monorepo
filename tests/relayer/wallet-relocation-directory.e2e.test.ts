@@ -14,9 +14,19 @@ import {
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import {
   WALLET_RELOCATION_COOLDOWN_MS,
-  WalletRelocationReceipt,
   WalletRelocationRequest,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
+
+import {
+  WalletRelocationAttempt,
+  type WalletRelocationPhase,
+} from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
+import {
+  relocationSourceFence,
+  relocationDestinationVerification,
+  relocationDestinationActivation,
+  relocationSourceCleanup,
+} from '../fixtures/tenant-deployment/walletRelocationReceipts';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const accountId = '0123456789abcdef0123456789abcdef';
@@ -63,55 +73,44 @@ function relocation(
   });
 }
 
-function fence(
-  request: WalletRelocationRequest,
-  recordedAtMs = admittedAtMs + 100,
-): WalletRelocationReceipt<'source_fence'> {
-  return WalletRelocationReceipt.parse(
-    {
-      kind: 'source_fence',
-      wallet: request.wallet,
-      moveId: request.moveId,
-      home: source,
-      generation: request.expectedGeneration,
-      recordedAtMs,
-      participants: {
-        gateway: 'a'.repeat(64),
-        walletRuntime: 'b'.repeat(64),
-        router: 'c'.repeat(64),
-        deriverA: 'd'.repeat(64),
-        deriverB: 'e'.repeat(64),
-        signingWorker: 'f'.repeat(64),
-        presignSessions: '0'.repeat(64),
-      },
-    },
-    'source_fence',
-  );
+const manifest = '9'.repeat(64);
+
+function fence(request: WalletRelocationRequest, recordedAtMs = admittedAtMs + 100) {
+  return relocationSourceFence(request, source, recordedAtMs, manifest);
 }
 
-function verification(
+function verification(request: WalletRelocationRequest) {
+  return relocationDestinationVerification(request, admittedAtMs + 200, manifest);
+}
+
+function attemptIdentity(): string {
+  return `wattempt_${randomBytes(32).toString('base64url')}`;
+}
+
+async function claim(
+  runtime: Miniflare,
   request: WalletRelocationRequest,
-): WalletRelocationReceipt<'destination_verification'> {
-  return WalletRelocationReceipt.parse(
-    {
-      kind: 'destination_verification',
-      wallet: request.wallet,
-      moveId: request.moveId,
-      home: request.destination,
-      generation: request.expectedGeneration + 1,
-      recordedAtMs: admittedAtMs + 200,
-      participants: {
-        gateway: 'a'.repeat(64),
-        walletRuntime: 'b'.repeat(64),
-        router: 'c'.repeat(64),
-        deriverA: 'd'.repeat(64),
-        deriverB: 'e'.repeat(64),
-        signingWorker: 'f'.repeat(64),
-        presignSessions: '0'.repeat(64),
-      },
-    },
-    'destination_verification',
+  phase: WalletRelocationPhase,
+  nowMs = admittedAtMs,
+): Promise<WalletRelocationAttempt> {
+  const response = await responseBody(
+    await call(runtime, { action: 'claim', request, phase, attemptId: attemptIdentity(), nowMs }),
   );
+  expect(response.ok).toBe(true);
+  return attemptFromResponse(response);
+}
+
+function attemptFromResponse(response: Record<string, unknown>): WalletRelocationAttempt {
+  const move = objectValue(response.move);
+  const progress = objectValue(move.progress);
+  const execution = objectValue(progress.execution);
+  return WalletRelocationAttempt.parse(execution.attempt);
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Expected record');
+  return value as Record<string, unknown>;
 }
 
 function start(directory: string): Miniflare {
@@ -281,12 +280,41 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(
       await (await call(runtime, { action: 'home', wallet: wallet('unrelated') })).json(),
     ).toEqual(unrelated);
+    const claimedId = attemptIdentity();
+    const claimRace = await Promise.all([
+      call(
+        runtime,
+        { action: 'claim', request, phase: 'freezing', attemptId: claimedId, nowMs: admittedAtMs },
+        'ingress-a',
+        true,
+      ),
+      call(
+        runtime,
+        { action: 'claim', request, phase: 'freezing', attemptId: claimedId, nowMs: admittedAtMs },
+        'ingress-b',
+      ),
+    ]);
+    expect(claimRace[0].status).toBe(503);
+    const freezeAttempt = attemptFromResponse(await responseBody(claimRace[1]));
+    expect(freezeAttempt.number).toBe(1);
     expect(
-      await (await call(runtime, { action: 'switch', request, nowMs: admittedAtMs + 300 })).json(),
+      await (
+        await call(runtime, {
+          action: 'switch',
+          request,
+          attempt: freezeAttempt,
+          nowMs: admittedAtMs + 300,
+        })
+      ).json(),
     ).toEqual({ ok: false, code: 'phase_conflict' });
     expect(
       await (
-        await call(runtime, { action: 'verify', request, receipt: verification(request) })
+        await call(runtime, {
+          action: 'verify',
+          request,
+          attempt: freezeAttempt,
+          receipt: verification(request),
+        })
       ).json(),
     ).toEqual({ ok: false, code: 'phase_conflict' });
     await expect(
@@ -296,35 +324,55 @@ test('relocation directory serializes competing moves and survives lost replies 
     ).rejects.toThrow();
     const sourceFence = fence(request);
     expect(
-      await (await call(runtime, { action: 'fence', request, receipt: sourceFence })).json(),
+      await (
+        await call(runtime, {
+          action: 'fence',
+          request,
+          attempt: freezeAttempt,
+          receipt: sourceFence,
+        })
+      ).json(),
     ).toMatchObject({ ok: true, move: { progress: { state: 'copying' } } });
     expect(
       await (
         await call(runtime, {
           action: 'fence',
           request,
+          attempt: freezeAttempt,
           receipt: fence(request, admittedAtMs + 101),
         })
       ).json(),
     ).toEqual({ ok: false, code: 'receipt_conflict' });
+    const copyAttempt = await claim(runtime, request, 'copying', admittedAtMs + 100);
     expect(
       await (
-        await call(runtime, { action: 'verify', request, receipt: verification(request) })
+        await call(runtime, {
+          action: 'verify',
+          request,
+          attempt: copyAttempt,
+          receipt: verification(request),
+        })
       ).json(),
     ).toMatchObject({ ok: true, move: { progress: { state: 'verified' } } });
     observations.push(await (await call(runtime, { action: 'status', request })).json());
 
     await runtime.dispose();
     runtime = start(directory);
+    const switchAttempt = await claim(runtime, request, 'verified', admittedAtMs + 200);
     const lostSwitch = await call(
       runtime,
-      { action: 'switch', request, nowMs: admittedAtMs + 300 },
+      { action: 'switch', request, attempt: switchAttempt, nowMs: admittedAtMs + 300 },
       'ingress-b',
       true,
     );
     expect(lostSwitch.status).toBe(503);
     const switched = await (
-      await call(runtime, { action: 'switch', request, nowMs: admittedAtMs + 400 })
+      await call(runtime, {
+        action: 'switch',
+        request,
+        attempt: switchAttempt,
+        nowMs: admittedAtMs + 400,
+      })
     ).json();
     expect(switched).toMatchObject({
       ok: true,
@@ -335,8 +383,61 @@ test('relocation directory serializes competing moves and survives lost replies 
       await call(runtime, { action: 'home', wallet: request.wallet })
     ).json();
     expect(newAssignment).toEqual({ ...original, home: destination, ownershipGeneration: 2 });
+    const completionAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    const cutoverDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
+    await expect(
+      cutoverDatabase
+        .prepare(
+          `UPDATE wallet_relocations SET state = 'completed', completed_at_ms = ?,
+       execution_state = NULL, execution_revision = execution_revision + 1,
+       execution_attempt = 0, execution_attempt_id = NULL, execution_started_at_ms = NULL
+       WHERE wallet_id = 'traveller'`,
+        )
+        .bind(admittedAtMs + 500)
+        .run(),
+    ).rejects.toThrow();
+    const activation = relocationDestinationActivation(request, admittedAtMs + 410, manifest);
+    const cleanup = relocationSourceCleanup(request, source, admittedAtMs + 450, manifest);
+    expect(
+      await (
+        await call(runtime, {
+          action: 'complete',
+          request,
+          attempt: completionAttempt,
+          activation,
+          cleanup: relocationSourceCleanup(request, source, admittedAtMs + 450, '8'.repeat(64)),
+          nowMs: admittedAtMs + 500,
+        })
+      ).json(),
+    ).toEqual({ ok: false, code: 'receipt_conflict' });
+    expect(
+      (
+        await call(
+          runtime,
+          {
+            action: 'complete',
+            request,
+            attempt: completionAttempt,
+            activation,
+            cleanup,
+            nowMs: admittedAtMs + 500,
+          },
+          'ingress-a',
+          true,
+        )
+      ).status,
+    ).toBe(503);
+    await runtime.dispose();
+    runtime = start(directory);
     const completed = await responseBody(
-      await call(runtime, { action: 'complete', request, nowMs: admittedAtMs + 500 }),
+      await call(runtime, {
+        action: 'complete',
+        request,
+        attempt: completionAttempt,
+        activation,
+        cleanup,
+        nowMs: admittedAtMs + 500,
+      }),
     );
     expect(completed).toMatchObject({ ok: true, move: { progress: { state: 'completed' } } });
     expect(
@@ -382,6 +483,104 @@ test('relocation directory serializes competing moves and survives lost replies 
         destinationGeneration: 3,
       },
     });
+    let retryNow = admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS;
+    let lastAttempt = await claim(runtime, returnMove, 'freezing', retryNow);
+    const firstAttempt = lastAttempt;
+    expect(
+      await (
+        await call(runtime, {
+          action: 'claim',
+          request: returnMove,
+          phase: 'freezing',
+          attemptId: attemptIdentity(),
+          nowMs: retryNow,
+        })
+      ).json(),
+    ).toEqual({ ok: false, code: 'attempt_conflict' });
+    for (let number = 1; number <= 6; number += 1) {
+      expect(lastAttempt.number).toBe(number);
+      const failed = await responseBody(
+        await call(runtime, {
+          action: 'fail',
+          request: returnMove,
+          attempt: lastAttempt,
+          code: 'transport_unavailable',
+          nowMs: retryNow,
+        }),
+      );
+      expect(failed).toMatchObject({
+        ok: true,
+        move: { progress: { execution: { state: number === 6 ? 'blocked' : 'retry_wait' } } },
+      });
+      observations.push(failed);
+      if (number === 3) {
+        await runtime.dispose();
+        runtime = start(directory);
+      }
+      if (number < 6) {
+        const retryAtMs = retryNow + 1000 * 2 ** (number - 1);
+        expect(
+          await (
+            await call(runtime, {
+              action: 'claim',
+              request: returnMove,
+              phase: 'freezing',
+              attemptId: attemptIdentity(),
+              nowMs: retryAtMs - 1,
+            })
+          ).json(),
+        ).toEqual({ ok: false, code: 'retry_wait', retryAtMs });
+        retryNow = retryAtMs;
+        lastAttempt = await claim(runtime, returnMove, 'freezing', retryNow);
+      }
+    }
+    expect(
+      await (
+        await call(runtime, {
+          action: 'claim',
+          request: returnMove,
+          phase: 'freezing',
+          attemptId: attemptIdentity(),
+          nowMs: retryNow,
+        })
+      ).json(),
+    ).toEqual({ ok: false, code: 'execution_blocked' });
+    expect(
+      await (
+        await call(runtime, {
+          action: 'fail',
+          request: returnMove,
+          attempt: firstAttempt,
+          code: 'transport_unavailable',
+          nowMs: retryNow,
+        })
+      ).json(),
+    ).toEqual({ ok: false, code: 'attempt_conflict' });
+    expect(
+      await (
+        await call(runtime, { action: 'resume', request: returnMove, attempt: lastAttempt })
+      ).json(),
+    ).toMatchObject({ ok: true, move: { progress: { execution: { state: 'ready', run: 2 } } } });
+    const recovered = await claim(runtime, returnMove, 'freezing', retryNow);
+    expect(recovered.number).toBe(1);
+    expect(recovered.run).toBe(2);
+    expect(
+      await (
+        await call(runtime, {
+          action: 'fail',
+          request: returnMove,
+          attempt: recovered,
+          code: 'content_conflict',
+          nowMs: retryNow,
+        })
+      ).json(),
+    ).toMatchObject({
+      ok: true,
+      move: { progress: { execution: { state: 'blocked', code: 'content_conflict' } } },
+    });
+    observations.push(
+      await (await call(runtime, { action: 'status', request: returnMove })).json(),
+    );
     const reopened = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
     await expect(
       reopened.prepare("DELETE FROM wallet_relocations WHERE wallet_id = 'traveller'").run(),

@@ -6,12 +6,45 @@ import {
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import type { WalletRelocationAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import type {
+  WalletRelocationAttempt,
+  WalletRelocationExecution,
+} from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
 
 declare const request: WalletRelocationRequest;
 declare const move: WalletRelocation;
 declare const sourceFence: WalletRelocationReceipt<'source_fence'>;
 declare const destinationVerification: WalletRelocationReceipt<'destination_verification'>;
 declare const assignment: WalletHomeAssignment & { readonly state: 'established' };
+declare const attempt: WalletRelocationAttempt;
+declare const activation: WalletRelocationReceipt<'destination_activation'>;
+
+// @ts-expect-error A spread cannot forge a validated execution attempt.
+const forgedAttempt: WalletRelocationAttempt = { ...attempt, number: 1 };
+// @ts-expect-error A blocked attempt cannot carry an automatic retry deadline.
+const blockedRetry: WalletRelocationExecution = {
+  state: 'blocked',
+  attempt,
+  code: 'content_conflict',
+  retryAtMs: 1,
+};
+// @ts-expect-error Only transient failures permit automatic retry.
+const retryConflict: WalletRelocationExecution = {
+  state: 'retry_wait',
+  attempt,
+  code: 'content_conflict',
+  retryAtMs: 1,
+};
+// @ts-expect-error Cleanup evidence cannot be replaced by activation evidence.
+const swappedCleanup: WalletRelocationReceipt<'source_cleanup'> = activation;
+// @ts-expect-error Completion requires activation and cleanup evidence.
+const missingCompletion: WalletRelocationProgress = {
+  state: 'completed',
+  sourceFence,
+  destinationVerification,
+  cutoverAtMs: 1,
+  completedAtMs: 2,
+};
 
 // @ts-expect-error A spread loses the validated request identity.
 const changedRequest: WalletRelocationRequest = { ...request, expectedGeneration: 2 };
@@ -55,3 +88,8 @@ void mixedProgress;
 void prematureCutover;
 void mixedAdmission;
 void missingGeneration;
+void forgedAttempt;
+void blockedRetry;
+void retryConflict;
+void swappedCleanup;
+void missingCompletion;

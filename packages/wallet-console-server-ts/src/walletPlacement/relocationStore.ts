@@ -14,6 +14,18 @@ import {
   relocationTimestamp,
 } from './relocation';
 
+import {
+  WalletRelocationAttempt,
+  relocationAttemptId,
+  relocationRetryDelay,
+  type WalletRelocationFailure,
+  type WalletRelocationPhase,
+} from './relocationExecution';
+
+const NEXT_EXECUTION_SQL = `execution_revision = execution_revision + 1,
+  execution_attempt = 0, execution_attempt_id = NULL, execution_started_at_ms = NULL,
+  execution_error = NULL, execution_retry_at_ms = NULL`;
+
 export type WalletRelocationAdmission =
   | {
       readonly ok: true;
@@ -43,8 +55,16 @@ export type WalletRelocationTransition =
   | { readonly ok: true; readonly move: WalletRelocation }
   | {
       readonly ok: false;
-      readonly code: 'not_found' | 'request_conflict' | 'phase_conflict' | 'receipt_conflict';
-    };
+      readonly code:
+        | 'not_found'
+        | 'request_conflict'
+        | 'phase_conflict'
+        | 'receipt_conflict'
+        | 'attempt_conflict'
+        | 'execution_blocked';
+      readonly retryAtMs?: never;
+    }
+  | { readonly ok: false; readonly code: 'retry_wait'; readonly retryAtMs: number };
 
 function walletBindings(wallet: WalletOwnershipKey): string[] {
   return [
@@ -62,6 +82,13 @@ function moveBindings(request: WalletRelocationRequest): string[] {
 
 function sameReceipt(left: WalletRelocationReceipt, right: WalletRelocationReceipt): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function runningAttemptMatches(move: WalletRelocation, attempt: WalletRelocationAttempt): boolean {
+  if (move.progress.state === 'completed') return false;
+  return (
+    move.progress.execution.state === 'running' && move.progress.execution.attempt.matches(attempt)
+  );
 }
 
 // Trusted move orchestration supplies owner authorization and role receipts before these transitions.
@@ -83,18 +110,18 @@ export class D1WalletRelocations {
 
   async admit(request: WalletRelocationRequest, nowMs: number): Promise<WalletRelocationAdmission> {
     const admittedAtMs = relocationTimestamp(nowMs);
-    if (!this.catalog.admits(request.destination)) {
-      throw new WalletPlacementError(
-        'invalid_input',
-        'Wallet relocation destination is not admitted',
-      );
-    }
     const digest = await request.digest();
     const existing = await this.find(request);
     if (existing) {
       return existing.matchesRequest(request, digest)
         ? { ok: true, disposition: 'reused', move: existing }
         : { ok: false, code: 'request_conflict' };
+    }
+    if (!this.catalog.admits(request.destination)) {
+      throw new WalletPlacementError(
+        'invalid_input',
+        'Wallet relocation destination is not admitted',
+      );
     }
     const homeRow = await this.readHome(request.wallet);
     const rejection = await this.admissionRejection(homeRow, request, admittedAtMs);
@@ -172,6 +199,7 @@ export class D1WalletRelocations {
 
   async recordSourceFence(
     request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
     receipt: WalletRelocationReceipt<'source_fence'>,
   ): Promise<WalletRelocationTransition> {
     const current = await this.readMatching(request);
@@ -182,13 +210,17 @@ export class D1WalletRelocations {
         ? current
         : { ok: false, code: 'receipt_conflict' };
     }
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
     await this.database
       .prepare(
-        `UPDATE wallet_relocations SET state = 'copying', source_fence_json = ?7
+        `UPDATE wallet_relocations SET state = 'copying', source_fence_json = ?7,
+         execution_state = 'ready', ${NEXT_EXECUTION_SQL}
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'freezing'`,
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'freezing'
+         AND execution_state = 'running' AND execution_revision = ?8 AND execution_attempt_id = ?9`,
       )
-      .bind(...moveBindings(request), JSON.stringify(receipt))
+      .bind(...moveBindings(request), JSON.stringify(receipt), attempt.revision, attempt.id)
       .run();
     const committed = await this.readMatching(request);
     if (!committed.ok) return committed;
@@ -200,6 +232,7 @@ export class D1WalletRelocations {
 
   async recordDestinationVerification(
     request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
     receipt: WalletRelocationReceipt<'destination_verification'>,
   ): Promise<WalletRelocationTransition> {
     const current = await this.readMatching(request);
@@ -208,7 +241,8 @@ export class D1WalletRelocations {
     if (progress.state === 'freezing') return { ok: false, code: 'phase_conflict' };
     if (
       !receipt.matches(current.move) ||
-      receipt.recordedAtMs < progress.sourceFence.recordedAtMs
+      receipt.recordedAtMs < progress.sourceFence.recordedAtMs ||
+      receipt.manifestDigest !== progress.sourceFence.manifestDigest
     ) {
       return { ok: false, code: 'receipt_conflict' };
     }
@@ -217,13 +251,17 @@ export class D1WalletRelocations {
         ? current
         : { ok: false, code: 'receipt_conflict' };
     }
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
     await this.database
       .prepare(
-        `UPDATE wallet_relocations SET state = 'verified', destination_verification_json = ?7
+        `UPDATE wallet_relocations SET state = 'verified', destination_verification_json = ?7,
+         execution_state = 'ready', ${NEXT_EXECUTION_SQL}
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'copying'`,
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'copying'
+         AND execution_state = 'running' AND execution_revision = ?8 AND execution_attempt_id = ?9`,
       )
-      .bind(...moveBindings(request), JSON.stringify(receipt))
+      .bind(...moveBindings(request), JSON.stringify(receipt), attempt.revision, attempt.id)
       .run();
     const committed = await this.readMatching(request);
     if (!committed.ok) return committed;
@@ -238,6 +276,7 @@ export class D1WalletRelocations {
 
   async switchOwnership(
     request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
     nowMs: number,
   ): Promise<WalletRelocationTransition> {
     const cutoverAtMs = relocationTimestamp(nowMs);
@@ -261,13 +300,17 @@ export class D1WalletRelocations {
         throw new Error(`Unexpected relocation progress: ${String(unexpected)}`);
       }
     }
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
     await this.database
       .prepare(
-        `UPDATE wallet_relocations SET state = 'cutover', cutover_at_ms = ?7
+        `UPDATE wallet_relocations SET state = 'cutover', cutover_at_ms = ?7,
+         execution_state = 'ready', ${NEXT_EXECUTION_SQL}
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'verified'`,
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'verified'
+         AND execution_state = 'running' AND execution_revision = ?8 AND execution_attempt_id = ?9`,
       )
-      .bind(...moveBindings(request), cutoverAtMs)
+      .bind(...moveBindings(request), cutoverAtMs, attempt.revision, attempt.id)
       .run();
     const committed = await this.readMatching(request);
     if (!committed.ok) return committed;
@@ -279,31 +322,211 @@ export class D1WalletRelocations {
 
   async complete(
     request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
+    activation: WalletRelocationReceipt<'destination_activation'>,
+    cleanup: WalletRelocationReceipt<'source_cleanup'>,
     nowMs: number,
   ): Promise<WalletRelocationTransition> {
     const completedAtMs = relocationTimestamp(nowMs);
     const current = await this.readMatching(request);
     if (!current.ok) return current;
-    if (current.move.progress.state === 'completed') return current;
-    if (
-      current.move.progress.state !== 'cutover' ||
-      completedAtMs < current.move.progress.cutoverAtMs
-    ) {
-      return { ok: false, code: 'phase_conflict' };
+    const progress = current.move.progress;
+    if (progress.state === 'completed') {
+      return sameReceipt(progress.destinationActivation, activation) &&
+        sameReceipt(progress.sourceCleanup, cleanup)
+        ? current
+        : { ok: false, code: 'receipt_conflict' };
     }
+    if (progress.state !== 'cutover') return { ok: false, code: 'phase_conflict' };
+    if (
+      !activation.matches(current.move) ||
+      !cleanup.matches(current.move) ||
+      activation.manifestDigest !== progress.sourceFence.manifestDigest ||
+      cleanup.manifestDigest !== progress.sourceFence.manifestDigest ||
+      activation.recordedAtMs < progress.cutoverAtMs ||
+      cleanup.recordedAtMs < activation.recordedAtMs ||
+      completedAtMs < cleanup.recordedAtMs
+    )
+      return { ok: false, code: 'receipt_conflict' };
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
     await this.database
       .prepare(
-        `UPDATE wallet_relocations SET state = 'completed', completed_at_ms = ?7
+        `UPDATE wallet_relocations SET state = 'completed', completed_at_ms = ?7,
+       destination_activation_json = ?8, source_cleanup_json = ?9,
+       execution_state = NULL, ${NEXT_EXECUTION_SQL}
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'cutover'`,
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'cutover'
+         AND execution_state = 'running' AND execution_revision = ?10 AND execution_attempt_id = ?11`,
       )
-      .bind(...moveBindings(request), completedAtMs)
+      .bind(
+        ...moveBindings(request),
+        completedAtMs,
+        JSON.stringify(activation),
+        JSON.stringify(cleanup),
+        attempt.revision,
+        attempt.id,
+      )
       .run();
     const committed = await this.readMatching(request);
     if (!committed.ok) return committed;
-    return committed.move.progress.state === 'completed'
+    if (committed.move.progress.state !== 'completed')
+      return { ok: false, code: 'attempt_conflict' };
+    return sameReceipt(committed.move.progress.destinationActivation, activation) &&
+      sameReceipt(committed.move.progress.sourceCleanup, cleanup)
       ? committed
-      : { ok: false, code: 'phase_conflict' };
+      : { ok: false, code: 'receipt_conflict' };
+  }
+
+  async claimAttempt(
+    request: WalletRelocationRequest,
+    phase: WalletRelocationPhase,
+    attemptId: string,
+    nowMs: number,
+  ): Promise<WalletRelocationTransition> {
+    const id = relocationAttemptId(attemptId);
+    const startedAtMs = relocationTimestamp(nowMs);
+    const current = await this.readMatching(request);
+    if (!current.ok) return current;
+    const progress = current.move.progress;
+    if (
+      progress.state === 'completed' ||
+      progress.state !== phase ||
+      startedAtMs < current.move.admittedAtMs
+    )
+      return { ok: false, code: 'phase_conflict' };
+    const execution = progress.execution;
+    switch (execution.state) {
+      case 'running':
+        return execution.attempt.id === id ? current : { ok: false, code: 'attempt_conflict' };
+      case 'blocked':
+        return { ok: false, code: 'execution_blocked' };
+      case 'retry_wait':
+        if (execution.attempt.id === id) return { ok: false, code: 'attempt_conflict' };
+        if (startedAtMs < execution.retryAtMs)
+          return { ok: false, code: 'retry_wait', retryAtMs: execution.retryAtMs };
+        break;
+      case 'ready':
+        break;
+      default: {
+        const unexpected: never = execution;
+        throw new Error(`Unexpected relocation execution: ${String(unexpected)}`);
+      }
+    }
+    const revision = execution.state === 'ready' ? execution.revision : execution.attempt.revision;
+    await this.database
+      .prepare(
+        `UPDATE wallet_relocations SET execution_state = 'running', execution_revision = execution_revision + 1,
+       execution_attempt = execution_attempt + 1, execution_attempt_id = ?8, execution_started_at_ms = ?9,
+       execution_error = NULL, execution_retry_at_ms = NULL
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+         AND wallet_id = ?5 AND move_id = ?6 AND state = ?7 AND execution_revision = ?10
+         AND execution_state IN ('ready', 'retry_wait')`,
+      )
+      .bind(...moveBindings(request), phase, id, startedAtMs, revision)
+      .run();
+    const committed = await this.readMatching(request);
+    if (!committed.ok) return committed;
+    const result = committed.move.progress;
+    return result.state === phase &&
+      result.execution.state === 'running' &&
+      result.execution.attempt.id === id
+      ? committed
+      : { ok: false, code: 'attempt_conflict' };
+  }
+
+  async failAttempt(
+    request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
+    code: WalletRelocationFailure,
+    nowMs: number,
+  ): Promise<WalletRelocationTransition> {
+    const failedAtMs = relocationTimestamp(nowMs);
+    const current = await this.readMatching(request);
+    if (!current.ok) return current;
+    const progress = current.move.progress;
+    if (progress.state === 'completed' || failedAtMs < attempt.startedAtMs)
+      return { ok: false, code: 'attempt_conflict' };
+    const execution = progress.execution;
+    if (execution.state === 'retry_wait' || execution.state === 'blocked') {
+      return execution.attempt.matches(attempt) && execution.code === code
+        ? current
+        : { ok: false, code: 'attempt_conflict' };
+    }
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
+    const delay = relocationRetryDelay(attempt.number, code);
+    const state = delay === null ? 'blocked' : 'retry_wait';
+    const retryAtMs = delay === null ? null : relocationTimestamp(failedAtMs + delay);
+    await this.database
+      .prepare(
+        `UPDATE wallet_relocations SET execution_state = ?7, execution_error = ?8, execution_retry_at_ms = ?9
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+         AND wallet_id = ?5 AND move_id = ?6 AND state = ?10 AND execution_state = 'running'
+         AND execution_revision = ?11 AND execution_attempt_id = ?12`,
+      )
+      .bind(
+        ...moveBindings(request),
+        state,
+        code,
+        retryAtMs,
+        attempt.phase,
+        attempt.revision,
+        attempt.id,
+      )
+      .run();
+    const committed = await this.readMatching(request);
+    if (!committed.ok) return committed;
+    const result = committed.move.progress;
+    if (result.state === 'completed') return { ok: false, code: 'attempt_conflict' };
+    const outcome = result.execution;
+    return (outcome.state === 'retry_wait' || outcome.state === 'blocked') &&
+      outcome.attempt.matches(attempt) &&
+      outcome.code === code
+      ? committed
+      : { ok: false, code: 'attempt_conflict' };
+  }
+
+  // The authenticated recovery coordinator invokes this only after repairing a blocked stage.
+  async resumeAttempt(
+    request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
+  ): Promise<WalletRelocationTransition> {
+    if (!attempt.wallet.matches(request.wallet) || attempt.moveId !== request.moveId)
+      return { ok: false, code: 'attempt_conflict' };
+    const current = await this.readMatching(request);
+    if (!current.ok) return current;
+    const progress = current.move.progress;
+    if (progress.state === 'completed' || progress.state !== attempt.phase)
+      return { ok: false, code: 'attempt_conflict' };
+    const execution = progress.execution;
+    if (
+      execution.state === 'ready' &&
+      execution.revision === attempt.revision + 1 &&
+      execution.run === attempt.run + 1
+    )
+      return current;
+    if (execution.state !== 'blocked' || !execution.attempt.matches(attempt))
+      return { ok: false, code: 'attempt_conflict' };
+    await this.database
+      .prepare(
+        `UPDATE wallet_relocations SET execution_state = 'ready', execution_run = execution_run + 1,
+       ${NEXT_EXECUTION_SQL}
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+         AND wallet_id = ?5 AND move_id = ?6 AND state = ?7 AND execution_state = 'blocked'
+         AND execution_revision = ?8 AND execution_attempt_id = ?9`,
+      )
+      .bind(...moveBindings(request), attempt.phase, attempt.revision, attempt.id)
+      .run();
+    const committed = await this.readMatching(request);
+    if (!committed.ok) return committed;
+    const result = committed.move.progress;
+    return result.state === attempt.phase &&
+      result.execution.state === 'ready' &&
+      result.execution.revision === attempt.revision + 1 &&
+      result.execution.run === attempt.run + 1
+      ? committed
+      : { ok: false, code: 'attempt_conflict' };
   }
 
   private async readMatching(

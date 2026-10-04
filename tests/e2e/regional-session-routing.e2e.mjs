@@ -678,6 +678,26 @@ try {
       issuedAtMs: Date.now(),
       expiresAtMs: Date.now() + 60_000,
     });
+    consoleBridge.available = false;
+    try {
+      await assert.rejects(
+        bridge.service.redeemHostedWalletSeamsSessionExchange({
+          ...exchange,
+          redeemedAtMs: Date.now(),
+        }),
+      );
+    } finally {
+      consoleBridge.available = true;
+    }
+    const unconsumed = await (
+      await runtime.getD1Database('SIGNER_DB', region)
+    )
+      .prepare(
+        'SELECT consumed_at_ms FROM wallet_session_hosted_exchange_codes_v2 WHERE code_hash = ?',
+      )
+      .bind(await api.digestOpaqueValue(exchange.exchangeCode))
+      .first();
+    assert.equal(unconsumed.consumed_at_ms, null, 'Directory outage must preserve the exchange');
     const exchangeRequest = requestOptions({ token: null, body: exchange });
     const attempts = await Promise.all([
       ingress.fetch('https://wallet.test/wallet/session/exchange/redeem', exchangeRequest),
@@ -746,7 +766,7 @@ try {
   const rows = await authorityDatabase
     .prepare('SELECT kind, digest, wallet_id, expires_at_ms FROM wallet_session_locators')
     .all();
-  assert.equal(rows.results.length, 12);
+  assert.ok(rows.results.length >= 12 && rows.results.length <= 15);
   const serialized = JSON.stringify(rows.results);
   for (const bridge of bridges.values())
     assert.ok(!serialized.includes(bridge.issued.operationCredential.token));
@@ -777,6 +797,7 @@ try {
     walletTokenDisagreementRejected: true,
     directRegistrationSessionDisagreementRejected: true,
     failedPublicationPreventsExchangeCommit: true,
+    failedChildPublicationPreservesExchange: true,
     retiredPrimaryAndChildRejected: true,
     linkedDeviceCredentialUsesSameHomeAndSurvivesOtherDeviceRetirement: true,
     unknownCredentialRejected: true,

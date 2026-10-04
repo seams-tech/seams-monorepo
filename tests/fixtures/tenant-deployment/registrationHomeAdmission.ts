@@ -39,6 +39,7 @@ class ConsoleBinding {
         JSON.parse(this.catalogJson),
       ).deploymentResources(),
       scope,
+      environmentKey: 'test',
       deploymentLane: 'test',
     });
     if (!response) throw new Error('Unexpected placement service route');

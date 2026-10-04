@@ -747,6 +747,7 @@ async function fetch(
       catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
       admittedResources: active.resources,
       scope: active.tenant,
+      environmentKey: active.mode.environment === 'development' ? 'dev' : 'prod',
       deploymentLane,
     });
     if (!response) throw new Error('Wallet home service request was not handled');

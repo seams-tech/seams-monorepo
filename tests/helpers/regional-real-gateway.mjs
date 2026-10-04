@@ -90,7 +90,13 @@ export async function createRegionalRealGateway({
       { region: 'WEUR', accountId, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
       { region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
     ]);
-    const consoleService = new RealHomeConsole(api, consoleDatabase, scope, catalog);
+    const consoleService = new RealHomeConsole(
+      api,
+      consoleDatabase,
+      scope,
+      catalog,
+      config.deployment.environmentKey,
+    );
     const router = new LocalRoleTransport('http://127.0.0.1:4102');
     const routerFault = new api.LocalIntendedLinkExecuteFaultControllerV1(
       router.fetch.bind(router),
@@ -150,7 +156,8 @@ class LocalRoleTransport {
 }
 
 class RealHomeConsole {
-  constructor(api, database, scope, catalog) {
+  constructor(api, database, scope, catalog, environmentKey) {
+    this.environmentKey = environmentKey;
     this.api = api;
     this.database = database;
     this.scope = scope;
@@ -174,6 +181,7 @@ class RealHomeConsole {
     return this.api.handleWalletHomeServiceRequest(request, {
       database: this.database,
       scope: this.scope,
+      environmentKey: this.environmentKey,
       catalogJson: this.catalogJson,
       admittedResources: this.catalog.deploymentResources(),
       deploymentLane: 'test',
@@ -453,7 +461,8 @@ class RegionalRealScenario {
     );
   }
 
-  async verifyGoogleRecovery(home, ingress) {
+  async verifyGoogleRecovery(home, ingress, foundingMethod) {
+    assert.ok(foundingMethod === 'passkey' || foundingMethod === 'email_otp');
     const { results: placements } = await this.consoleService.database
       .prepare('SELECT wallet_id, region, state FROM wallet_homes')
       .all();
@@ -461,6 +470,13 @@ class RegionalRealScenario {
     const placement = placements[0];
     assert.equal(placement.region, home);
     assert.equal(placement.state, 'established');
+    const { results: registrationOffers } = await this.consoleService.database
+      .prepare('SELECT wallet_id, state FROM email_otp_registration_attempts')
+      .all();
+    assert.deepEqual(
+      registrationOffers,
+      foundingMethod === 'email_otp' ? [{ wallet_id: placement.wallet_id, state: 'active' }] : [],
+    );
     const stores = [];
     for (const [region, gateway] of this.gateways) {
       const { results: methods } = await gateway.database
@@ -471,7 +487,7 @@ class RegionalRealScenario {
             ON method.namespace = authority.namespace AND method.org_id = authority.org_id
             AND method.project_id = authority.project_id AND method.env_id = authority.env_id
             AND method.wallet_authority_id = authority.authority_id
-          WHERE method.wallet_id = ? ORDER BY method.kind
+          WHERE method.wallet_id = ? ORDER BY method.kind, authority.provenance_kind
         `,
         )
         .bind(placement.wallet_id)
@@ -487,7 +503,7 @@ class RegionalRealScenario {
                 lifecycle_state: 'active',
               },
               {
-                kind: 'passkey',
+                kind: foundingMethod,
                 status: 'active',
                 provenance_kind: 'wallet_registration',
                 lifecycle_state: 'active',
@@ -538,6 +554,8 @@ class RegionalRealScenario {
         {
           home,
           ingress,
+          foundingMethod,
+          registrationOffers,
           placement,
           stores,
           sharedIdentities: sharedIdentity.count,

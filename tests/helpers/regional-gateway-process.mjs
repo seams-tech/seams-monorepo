@@ -28,7 +28,7 @@ async function execute(message) {
         .get(message.region)
         .commitRecoveryFinalization(new BrowserRoute(message.request));
     case 'verify-google-recovery':
-      await scenario.verifyGoogleRecovery(message.home, message.ingress);
+      await scenario.verifyGoogleRecovery(message.home, message.ingress, message.foundingMethod);
       return null;
     case 'verify-mixed-homes':
       await scenario.verifyMixedHomes(message.wallets, message.registrations);

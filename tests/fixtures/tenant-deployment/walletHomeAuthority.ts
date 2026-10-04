@@ -53,6 +53,7 @@ export default {
         projectId: 'project',
         environmentId: 'test',
       },
+      environmentKey: 'test',
       deploymentLane: 'test',
     });
     if (serviceResponse) return serviceResponse;

@@ -125,8 +125,8 @@ class RestartingRegionalGateway {
     });
   }
 
-  async verifyGoogleRecovery(home, ingress) {
-    await this.call({ kind: 'verify-google-recovery', home, ingress });
+  async verifyGoogleRecovery(home, ingress, foundingMethod) {
+    await this.call({ kind: 'verify-google-recovery', home, ingress, foundingMethod });
     await this.writeRestartEvidence([
       { home, ingress, point: 'recovery_finalization', status: 200 },
     ]);

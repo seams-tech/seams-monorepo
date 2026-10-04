@@ -80,6 +80,7 @@ class ConsoleBridge {
       catalogJson,
       admittedResources: catalog.deploymentResources(),
       scope: this.tenantScope,
+      environmentKey: this.tenantScope.environmentId,
       deploymentLane: 'test',
       writer,
     });

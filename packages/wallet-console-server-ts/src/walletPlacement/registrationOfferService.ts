@@ -24,7 +24,7 @@ export type RegistrationOfferCommand = {
 type Scope = Pick<
   WalletOwnershipKey,
   'namespace' | 'organizationId' | 'projectId' | 'environmentId'
->;
+> & { readonly environmentKey: string };
 
 export async function handleRegistrationOfferCommand(
   raw: unknown,
@@ -56,7 +56,15 @@ export async function handleRegistrationOfferCommand(
     case 'completeCommitted': {
       const input = object(raw.input);
       const walletId = requiredString(input.walletId);
-      const assignment = await directory.find(WalletOwnershipKey.parse({ ...scope, walletId }));
+      const assignment = await directory.find(
+        WalletOwnershipKey.parse({
+          namespace: scope.namespace,
+          organizationId: scope.organizationId,
+          projectId: scope.projectId,
+          environmentId: scope.environmentId,
+          walletId,
+        }),
+      );
       if (
         !assignment ||
         assignment.state === 'cancelled' ||
@@ -170,7 +178,7 @@ function scopedPolicy(raw: unknown, scope: Scope) {
   if (
     policy.orgId !== scope.organizationId ||
     policy.projectId !== scope.projectId ||
-    policy.envId !== scope.environmentId
+    policy.envId !== scope.environmentKey
   )
     throw invalidOffer();
   return policy;

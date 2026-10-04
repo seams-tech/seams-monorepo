@@ -87,6 +87,7 @@ export async function handleWalletHomeServiceRequest(
     readonly catalogJson: unknown;
     readonly admittedResources: TenantDeploymentD1ResourcesV1;
     readonly scope: WalletHomeServiceScope;
+    readonly environmentKey: string;
     readonly deploymentLane: string;
   },
 ): Promise<Response | null> {
@@ -146,7 +147,7 @@ export async function handleWalletHomeServiceRequest(
       return await handleRegistrationOfferCommand(
         body,
         options.database,
-        options.scope,
+        { ...options.scope, environmentKey: options.environmentKey },
         directory,
         options.writer,
       );

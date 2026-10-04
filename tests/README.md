@@ -208,8 +208,8 @@ Google proof verification uses the configured intended-test
 token; OTP delivery uses the development D1 outbox. Refresh an expired token from
 the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
 
-The `interrupted Google Email OTP` matrix starts with passkey wallets and
-recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
+The `interrupted Google Email OTP` matrix starts with passkey-founded and
+Email OTP-founded wallets, then recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
 APAC→WEUR). After finalization commits, it stops the Gateway/Console child process
 and its D1 runtime, restarts all five role Workers, then starts a fresh process
 over the same four Gateway databases.
@@ -217,7 +217,10 @@ It loses the committed finalization reply, resets the client runtime, and checks
 exact replay plus pending-journal retention and removal. It then
 verifies an additive Email OTP authority, NEAR/Tempo signing, the shared Google
 identity locator, home-only custody records and consumed-code rejection. Each case saves
-`google-recovery-<home>/recovery-evidence.json`. The harness's direct budget
+`google-recovery-<founding-method>-<home>/recovery-evidence.json`. The receipt
+records the founding method and checks its retained registration authority, the
+added recovery authority, and the shared active registration offer for Email OTP
+founders. Select only those cases with `--grep 'email_otp-founded'`. The harness's direct budget
 queries use the same regional transport as browser requests. Google tokens and
 OTP delivery use the same configuration as the method lifecycle matrix.
 Each `restart-evidence.json` records distinct process IDs and successful old-process

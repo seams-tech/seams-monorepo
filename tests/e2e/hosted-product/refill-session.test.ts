@@ -70,6 +70,10 @@ test('retired refill session is rejected after unlock while new session signs', 
     expect(response.status()).toBe(401);
     expect(body.code).toBe('wallet_session_invalid');
     await harness.signTempoTransaction('post_unlock');
+    await writeFile(
+      path.join(output, 'replacement-session-signing.json'),
+      JSON.stringify({ retiredSessionRejected: true, replacementSignatureVerified: true }, null, 2),
+    );
   } finally {
     context.off('request', record);
     await harness.attachTrace(testInfo);

@@ -12,6 +12,7 @@ import {
   GATEWAY_RUNTIME_PROFILE_KINDS,
   gatewayRuntimeProfileNearNetwork,
   parseGatewayDeploymentConfig as parseStrictGatewayDeploymentConfig,
+  requireAllocatedWalletRegions,
 } from '../../../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 import {
   gatewaySecretNames,
@@ -498,7 +499,11 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const checkedInRuntimeProfile = checkedInGatewayConfig?.runtimeProfile;
   const checkedInOrigins = checkedInGatewayConfig?.origins;
   const checkedInTenant = checkedInGatewayConfig?.tenant;
-  const checkedInResources = checkedInGatewayConfig?.resources;
+  if (!checkedInGatewayConfig) {
+    throw new Error(`Provision regional Gateway resources for ${lane.id} before generating deployment keys`);
+  }
+  requireAllocatedWalletRegions(checkedInGatewayConfig);
+  const checkedInResources = checkedInGatewayConfig.resources;
   const checkedInRouter = checkedInGatewayConfig?.routerAb;
   const gatewayEnvironment = `${environmentPrefix}-gateway`;
   const deriverAEnvironment = `${environmentPrefix}-deriver-a`;
@@ -573,24 +578,6 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
-  const consoleDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_CONSOLE_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.consoleD1.id ||
-    manual(`${identityPrefix}-console-d1-database-id`);
-  const signerDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_SIGNER_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.signerD1.id ||
-    manual(`${identityPrefix}-signer-d1-database-id`);
   const deriverAPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
@@ -625,16 +612,11 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     projectId,
     environmentId,
     tenantNamespace,
-    gatewayWorkerName: checkedInResources?.workerName || lane.resources.gateway.workerName,
-    gatewayPlacementRegion: checkedInResources?.placementRegion,
+    gatewayResources: checkedInResources,
     mpcRouterWorkerName: lane.resources.router.workerName,
     deriverAWorkerName: lane.resources.deriverA.workerName,
     deriverBWorkerName: lane.resources.deriverB.workerName,
     signingWorkerName: lane.resources.signingWorker.workerName,
-    consoleDatabaseName: checkedInResources?.consoleD1.name || lane.resources.gateway.consoleD1Name,
-    consoleDatabaseId,
-    signerDatabaseName: checkedInResources?.signerD1.name || lane.resources.gateway.signerD1Name,
-    signerDatabaseId,
     deriverAPrivateDatabaseId,
     deriverBPrivateDatabaseId,
     signingWorkerPrivateDatabaseId,
@@ -1050,18 +1032,7 @@ function buildGatewayDeploymentConfig(input) {
     schemaVersion: GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION,
     lane: input.laneId,
     runtimeProfile: configuration.runtimeProfile,
-    resources: {
-      workerName: configuration.gatewayWorkerName,
-      placementRegion: configuration.gatewayPlacementRegion,
-      consoleD1: {
-        name: configuration.consoleDatabaseName,
-        id: configuration.consoleDatabaseId,
-      },
-      signerD1: {
-        name: configuration.signerDatabaseName,
-        id: configuration.signerDatabaseId,
-      },
-    },
+    resources: configuration.gatewayResources,
     tenant: {
       namespace: configuration.tenantNamespace,
       orgId: configuration.orgId,
@@ -1636,13 +1607,6 @@ function loadValuesFile(valuesFilePath) {
 
 async function discoverCloudflareValues(lane, environmentPrefix, suppliedValues, progressLogger) {
   const accountId = discoverCloudflareAccountId(environmentPrefix, suppliedValues, progressLogger);
-  ensureD1Database({
-    environmentPrefix,
-    suppliedValues,
-    progressLogger,
-    variableName: 'GATEWAY_SIGNER_D1_DATABASE_ID',
-    databaseName: lane.resources.gateway.signerD1Name,
-  });
   ensureD1Database({
     environmentPrefix,
     suppliedValues,

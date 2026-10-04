@@ -42,6 +42,7 @@ export async function createRegionalRealGateway({
         export { encodeRouterAbEd25519YaoProductRegistrationStateV1, parseRouterAbEd25519YaoProductRegistrationStateJsonV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPersistence.ts'))};
         export { parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPartitionedStateStore.ts'))};
         export { parseRouterAbEd25519YaoRecoveryAdmissionRequestV1, parseRouterAbEd25519YaoRegistrationAdmissionRequestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbEd25519Yao.ts'))};
+        export { CloudflareD1AuthorizationStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/authorization/d1AuthorizationStore.ts'))};
         export { parseEmailOtpRegistrationVerificationReceiptV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
         export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
@@ -559,7 +560,8 @@ class RegionalRealScenario {
       );
       const yaoOwnership = await verifyYaoOwnership(gateway, placement.wallet_id, region === home);
       const operationOwnership = await verifyOperationOwnership(
-        gateway.database,
+        gateway,
+        gateway.scope,
         placement.wallet_id,
         region === home,
       );
@@ -1257,11 +1259,23 @@ function verifyYaoRootIsolation(api, rows) {
   return 2;
 }
 
-async function verifyOperationOwnership(database, walletId, isHome) {
+async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
+  const { database, api } = gateway;
+  const store = new api.CloudflareD1AuthorizationStore({
+    database,
+    namespace: scope.namespace,
+    walletSignerScope: {
+      namespace: scope.namespace,
+      orgId: scope.organizationId,
+      projectId: scope.projectId,
+      envId: scope.environmentId,
+    },
+  });
   const { results: operations } = await database
     .prepare(
       `
     SELECT operation.authorization_source_kind, operation.linked_wallet_id,
+      operation.tenant_id, operation.authorized_operation_id,
       session.wallet_id AS session_wallet_id, evidence.wallet_id AS evidence_wallet_id,
       audit.authorized_operation_id AS audit_operation_id
     FROM authorized_operations operation
@@ -1293,8 +1307,20 @@ async function verifyOperationOwnership(database, walletId, isHome) {
     assert.equal(owner, walletId, 'Operation must retain an exact wallet owner after recovery');
     if (operation.linked_wallet_id !== null) assert.equal(operation.linked_wallet_id, walletId);
     assert.ok(operation.audit_operation_id, 'Operation must retain its audit record');
+    const committed = await store.readAuthorizedOperationById({
+      tenantId: operation.tenant_id,
+      authorizedOperationId: operation.authorized_operation_id,
+    });
+    assert.ok(committed);
+    await store.readPinnedOwnerWalletScope({ operation: committed, walletId });
+    await assert.rejects(
+      store.readPinnedOwnerWalletScope({ operation: committed, walletId: randomUUID() }),
+      /scope is unavailable|step-up operation is not claimed/,
+      'A committed operation must reject a different wallet owner',
+    );
     counts[operation.authorization_source_kind] =
       (counts[operation.authorization_source_kind] ?? 0) + 1;
   }
+  if (isHome) assert.ok(counts.verified_step_up > 0, 'Exports must exercise step-up ownership');
   return counts;
 }

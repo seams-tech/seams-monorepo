@@ -54,6 +54,8 @@ for (const foundingMethod of ['passkey', 'email_otp'] as const) {
         await harness.unlockWithAddedEmailOtp();
         await harness.signNearTransaction('post_unlock');
         await harness.signTempoAndArcEvmConcurrently('post_unlock');
+        await harness.exportEd25519Key();
+        await harness.exportEcdsaKey();
         await scenario.verifyGoogleRecovery(home, ingress, foundingMethod);
         harness.assertNoLifecycleViolations();
         harness.assertNoWrongAuthPath();

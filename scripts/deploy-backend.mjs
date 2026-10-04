@@ -1304,6 +1304,7 @@ function deriveX25519PublicKey(privateKeyHex) {
 
 function deploySigningWorker(lane) {
   const resource = lane.resources.signingWorker;
+  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET');
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   putWorkerSecret(resource, 'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY');
   putWorkerSecret(resource, 'SIGNING_WORKER_PRIVATE_D1_KEK');
@@ -1437,6 +1438,7 @@ function deployTenantRootControlPlane(lane) {
 
 function deployMpcRouter(lane) {
   const resource = lane.resources.router;
+  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET');
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   const args = workerDeployArguments(resource);
   args.push(

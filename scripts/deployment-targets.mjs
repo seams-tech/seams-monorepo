@@ -54,6 +54,8 @@ const DEPLOYMENT_RESOURCE_NAMES = Object.freeze([
 ]);
 const GATEWAY_BASE_SECRET_NAMES = Object.freeze([
   'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
+  'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+  'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
   'LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET',
   'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK',
 ]);
@@ -332,6 +334,7 @@ export function componentSecretNames(lane, component) {
       return consoleSecretNames(lane);
     case 'signing-worker':
       return [
+        'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY',
         'SIGNING_WORKER_PRIVATE_D1_KEK',
@@ -357,7 +360,10 @@ export function componentSecretNames(lane, component) {
         'DERIVER_B_TENANT_ROOT_CREATION_SIGNING_KEY',
       ];
     case 'router':
-      return ['ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET'];
+      return [
+        'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
+        'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+      ];
     case 'tenant-root-control-plane':
       // Production internal-service authentication is provisioned on the Worker.
       return [

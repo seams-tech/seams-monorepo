@@ -634,6 +634,8 @@ function buildTargetConfiguration(targetName, suppliedValues) {
 function buildGeneratedSecrets(environmentPrefix) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
+    gatewayToRouterAuth: randomBase64Url(32),
+    gatewayToSigningWorkerPresignAuth: randomBase64Url(32),
     relaySessionHmac: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
@@ -988,6 +990,9 @@ function buildGatewayEnvironment(input) {
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
     RELAY_SESSION_HMAC_SECRET: input.generatedSecrets.relaySessionHmac,
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: input.generatedSecrets.internalServiceAuth,
+    ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+    ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET:
+      input.generatedSecrets.gatewayToSigningWorkerPresignAuth,
     ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK: input.generatedSecrets.ceremonyPrivateJwk,
     RELAYER_PRIVATE_KEY: manual(`${input.environmentPrefix}-near-relayer-private-key`),
     SPONSORED_EVM_EXECUTORS_JSON: manual(`${input.environmentPrefix}-sponsored-evm-executors-json`),
@@ -1155,11 +1160,14 @@ function buildMpcRouterEnvironment(input) {
         ROUTER_AB_PROJECT_POLICY_BOOTSTRAP_JSON: JSON.stringify(input.projectPolicy),
       },
       optionalVariables: {},
-      secrets: buildWorkerDeploymentSecrets(
-        input.environmentPrefix,
-        environmentName,
-        input.generatedSecrets.internalServiceAuth,
-      ),
+      secrets: {
+        ...buildWorkerDeploymentSecrets(
+          input.environmentPrefix,
+          environmentName,
+          input.generatedSecrets.internalServiceAuth,
+        ),
+        ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+      },
     },
   ];
 }
@@ -1392,6 +1400,8 @@ function buildSigningWorkerEnvironment(input) {
     environmentName,
     input.generatedSecrets.internalServiceAuth,
   );
+  secrets.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET =
+    input.generatedSecrets.gatewayToSigningWorkerPresignAuth;
   secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY =
     input.deployment.secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY;
   secrets.SIGNING_WORKER_PRIVATE_D1_KEK = input.deployment.secrets.SIGNING_WORKER_PRIVATE_D1_KEK;
@@ -2121,6 +2131,18 @@ function validateSharedInternalServiceAuth(outputDocument) {
   );
   if (new Set(values).size !== 1) {
     throw new Error('Router A/B and Gateway internal service authentication must match');
+  }
+  const gateway = outputDocument.environments[`${outputDocument.environmentPrefix}-gateway`].secrets;
+  const router = outputDocument.environments[`${outputDocument.environmentPrefix}-mpc-router`].secrets;
+  const signingWorker = outputDocument.environments[`${outputDocument.environmentPrefix}-signing-worker`].secrets;
+  const routerAuth = gateway.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
+  const presignAuth = gateway.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET;
+  if (
+    routerAuth !== router.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET ||
+    presignAuth !== signingWorker.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET ||
+    new Set([values[0], routerAuth, presignAuth]).size !== 3
+  ) {
+    throw new Error('Dedicated Gateway credentials must match their receiving role and remain distinct');
   }
 }
 

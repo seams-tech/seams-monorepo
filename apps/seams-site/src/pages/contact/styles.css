@@ -108,7 +108,7 @@ body:has(.contact-page) {
   background: var(--contact-bg);
   color: var(--contact-ink);
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.4;
   transition:
     border-color 120ms ease,
@@ -169,9 +169,16 @@ body:has(.contact-page) {
     border-color 150ms ease;
 }
 
-.contact-form__submit:hover {
+.contact-form__submit:active {
   background: #262626;
   border-color: #262626;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .contact-form__submit:hover {
+    background: #262626;
+    border-color: #262626;
+  }
 }
 
 .contact-form__submit:focus-visible {
@@ -204,10 +211,5 @@ body:has(.contact-page) {
 
   .contact-form__row--two {
     grid-template-columns: 1fr;
-  }
-
-  .contact-form input,
-  .contact-form textarea {
-    font-size: 16px;
   }
 }

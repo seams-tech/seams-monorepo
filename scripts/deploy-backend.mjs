@@ -682,7 +682,12 @@ export function assertExpectedDurableObjectBindings(lane, component, section) {
   // Only the owning Router may declare the class migration. Wrangler declares
   // [[migrations]] once at the top level and named environments inherit it, so
   // this is a "must not" for non-owners rather than a "must" for the Router.
-  if (expected.scriptName && /^new_sqlite_classes\s*=/mu.test(section)) {
+  if (
+    expected.scriptName &&
+    /^(?:new_sqlite_classes|new_classes)\s*=\s*\[[^\]]*"RouterAbTenantRootCreationDurableObject"/mu.test(
+      section,
+    )
+  ) {
     throw new Error(
       `${lane.id}/${component} must not declare a Durable Object migration it does not own`,
     );

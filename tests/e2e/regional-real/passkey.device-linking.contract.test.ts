@@ -1,5 +1,6 @@
 import type { BrowserContext } from '@playwright/test';
 import path from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
 
@@ -10,6 +11,21 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const { intendedTest: test, IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
+const { GatewayRequestEvidence } = await import(
+  pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/gateway-request-evidence.ts'))
+    .href
+);
+
+async function measureLifecycleCalls(
+  evidence: InstanceType<typeof GatewayRequestEvidence>,
+  home: string,
+  operation: string,
+  action: () => Promise<unknown>,
+) {
+  const started = performance.now();
+  await action();
+  return { home, operation, ...(await evidence.window(started, performance.now())) };
+}
 
 for (const { home, ingress } of [
   { home: 'US', ingress: 'WEUR' },
@@ -67,6 +83,7 @@ test('three real wallets register concurrently and retain distinct homes through
     ),
   });
   const owners = [];
+  const measurements = [];
   try {
     for (const { home, travel } of [
       { home: 'US', travel: 'APAC' },
@@ -89,20 +106,59 @@ test('three real wallets register concurrently and retain distinct homes through
     const registrations = await Promise.all(owners.map(registerOwner));
     const wallets = [];
     for (const owner of owners) {
+      const evidence = new GatewayRequestEvidence();
+      evidence.start(owner.context);
       await scenario.routeContext(owner.context, owner.travel);
       await owner.harness.assertLockedPageReloadStaysLocked();
-      await owner.harness.unlockPasskeyWallet();
-      await owner.harness.exportEd25519Key();
-      await owner.harness.exportEcdsaKey();
+      measurements.push(
+        await measureLifecycleCalls(
+          evidence,
+          owner.home,
+          'unlock',
+          owner.harness.unlockPasskeyWallet.bind(owner.harness),
+        ),
+      );
+      measurements.push(
+        await measureLifecycleCalls(
+          evidence,
+          owner.home,
+          'export_ed25519',
+          owner.harness.exportEd25519Key.bind(owner.harness),
+        ),
+      );
+      measurements.push(
+        await measureLifecycleCalls(
+          evidence,
+          owner.home,
+          'export_ecdsa',
+          owner.harness.exportEcdsaKey.bind(owner.harness),
+        ),
+      );
       await owner.harness.signNearTransaction('post_unlock');
-      await owner.harness.signTempoTransaction('post_unlock');
+      measurements.push(
+        await measureLifecycleCalls(
+          evidence,
+          owner.home,
+          'sign_tempo',
+          owner.harness.signTempoTransaction.bind(owner.harness, 'post_unlock'),
+        ),
+      );
       const walletId = await owner.page
         .getByTestId('intended-e2e-page')
         .getAttribute('data-login-wallet-id');
       if (!walletId) throw new Error('Registered owner must retain its wallet identity');
-      await owner.harness.recoverPasskeyWalletAfterLostFinalizationResponse(
-        scenario.finalizationCommitter(owner.travel),
+      measurements.push(
+        await measureLifecycleCalls(
+          evidence,
+          owner.home,
+          'recovery_with_lost_reply',
+          owner.harness.recoverPasskeyWalletAfterLostFinalizationResponse.bind(
+            owner.harness,
+            scenario.finalizationCommitter(owner.travel),
+          ),
+        ),
       );
+      evidence.stop(owner.context);
       await owner.harness.assertRecoveryAuthorityIsAdditive('passkey');
       wallets.push({ home: owner.home, travel: owner.travel, walletId });
     }
@@ -118,6 +174,23 @@ test('three real wallets register concurrently and retain distinct homes through
       owner.harness.assertNoWrongAuthPath();
     }
   } finally {
+    const output = path.resolve(
+      root,
+      process.env.SEAMS_TEST_ARTIFACT_DIR ?? '.artifacts/r152/regional-real',
+    );
+    await mkdir(output, { recursive: true });
+    await writeFile(
+      path.join(output, 'lifecycle-d1-calls.json'),
+      JSON.stringify(
+        {
+          scope:
+            'Browser Gateway POSTs; home handleSplitGatewayRequest SIGNER_DB calls only. Console, role-private storage and fixture API requests excluded. Local emulator timings are not regional network measurements.',
+          measurements,
+        },
+        null,
+        2,
+      ),
+    );
     for (const owner of owners) await owner.context.close();
     await scenario.close();
   }

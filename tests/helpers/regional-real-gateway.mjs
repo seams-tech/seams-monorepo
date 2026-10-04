@@ -39,6 +39,7 @@ export async function createRegionalRealGateway({
       resolveDir: root,
       loader: 'ts',
       contents: `
+        export { TracedD1Database } from ${JSON.stringify(resolve(publicRoot, 'tests/r150-hosted/gateway/d1Trace.ts'))};
         export { encodeRouterAbEd25519YaoProductRegistrationStateV1, parseRouterAbEd25519YaoProductRegistrationStateJsonV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPersistence.ts'))};
         export { parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPartitionedStateStore.ts'))};
         export { parseRouterAbEd25519YaoRecoveryAdmissionRequestV1, parseRouterAbEd25519YaoRegistrationAdmissionRequestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbEd25519Yao.ts'))};
@@ -335,28 +336,31 @@ class RealRegionalGateway {
       return forwarded;
     }
     const identityStore = authority.identityStore();
-    const response = await this.api.handleSplitGatewayRequest(
-      request,
-      { ...this.environment, SIGNER_DB: this.database },
-      this,
-      {
-        signerWasm: this.signerWasm,
-        sessionRouting: authority,
-        lifecycleRouting: authority,
-        recoveryRouting: authority,
-        registrationAuthority: authority,
-        registrationSetupDispatcher:
-          new URL(request.url).pathname === '/wallets/register/setup'
-            ? new this.api.ConsoleRegistrationSetupDispatcher(authority, transport, request.clone())
-            : undefined,
-        identityStore,
-        credentialClaims: identityStore,
-        emailOtpRateLimitCounter: identityStore.rateLimitCounter(),
-        syncChallenges: identityStore.syncChallenges(),
-        linkedDeviceBootstrap: identityStore.linkedDeviceBootstrap(),
-        linkedDeviceProofNonces: identityStore.linkedDeviceProofNonces(),
-        googleRegistrationAttempts: authority.registrationOffers(),
-      },
+    const database = new this.api.TracedD1Database(this.database);
+    const response = database.response(
+      await this.api.handleSplitGatewayRequest(
+        request,
+        { ...this.environment, SIGNER_DB: database },
+        this,
+        {
+          signerWasm: this.signerWasm,
+          sessionRouting: authority,
+          lifecycleRouting: authority,
+          recoveryRouting: authority,
+          registrationAuthority: authority,
+          registrationSetupDispatcher:
+            new URL(request.url).pathname === '/wallets/register/setup'
+              ? new this.api.ConsoleRegistrationSetupDispatcher(authority, transport, request.clone())
+              : undefined,
+          identityStore,
+          credentialClaims: identityStore,
+          emailOtpRateLimitCounter: identityStore.rateLimitCounter(),
+          syncChallenges: identityStore.syncChallenges(),
+          linkedDeviceBootstrap: identityStore.linkedDeviceBootstrap(),
+          linkedDeviceProofNonces: identityStore.linkedDeviceProofNonces(),
+          googleRegistrationAttempts: authority.registrationOffers(),
+        },
+      ),
     );
     if (response.status >= 500) {
       let code = 'non_json_error';

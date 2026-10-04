@@ -529,7 +529,24 @@ class RegionalRealScenario {
         .prepare('SELECT count(*) AS count FROM identity_links')
         .first();
       assert.equal(identities.count, 0);
-      stores.push({ region, methods, tables, identities: identities.count });
+      const ceremonyOwnership = await verifyCeremonyOwnership(
+        gateway.database,
+        placement.wallet_id,
+        region === home,
+      );
+      const operationOwnership = await verifyOperationOwnership(
+        gateway.database,
+        placement.wallet_id,
+        region === home,
+      );
+      stores.push({
+        region,
+        methods,
+        tables,
+        identities: identities.count,
+        ceremonyOwnership,
+        operationOwnership,
+      });
     }
     const sharedIdentity = await this.consoleService.database
       .prepare('SELECT count(*) AS count FROM identity_links WHERE user_id = ?')
@@ -1017,4 +1034,80 @@ class GatewayApiResponse {
   json() {
     return this.response.json();
   }
+}
+
+async function verifyCeremonyOwnership(database, walletId, isHome) {
+  const { results: records } = await database
+    .prepare('SELECT record_scope, record_id, record_json FROM registration_ceremony_records')
+    .all();
+  if (!isHome) assert.equal(records.length, 0, 'Remote home must contain no ceremony state');
+  else assert.ok(records.length > 0, 'Lifecycle must retain registration ownership evidence');
+  const counts = {};
+  for (const row of records) {
+    assert.ok(row.record_id.startsWith('gateway-registration:'));
+    const record = JSON.parse(row.record_json);
+    let owner;
+    switch (row.record_scope) {
+      case 'setup-ceremony':
+      case 'ceremony':
+      case 'add-signer-intent':
+      case 'add-auth-method-intent':
+      case 'add-signer':
+      case 'add-auth-method':
+        owner = record.intent.walletId;
+        break;
+      case 'add-signer-finalize-replay':
+      case 'add-signer-finalize-claim':
+      case 'add-auth-method-finalize-replay':
+        owner = record.response.walletId;
+        break;
+      default:
+        assert.fail(`Unaccounted ceremony scope: ${row.record_scope}`);
+    }
+    assert.equal(owner, walletId, `Wrong ceremony owner in ${row.record_scope}`);
+    counts[row.record_scope] = (counts[row.record_scope] ?? 0) + 1;
+  }
+  return counts;
+}
+
+async function verifyOperationOwnership(database, walletId, isHome) {
+  const { results: operations } = await database
+    .prepare(
+      `
+    SELECT operation.authorization_source_kind, operation.linked_wallet_id,
+      session.wallet_id AS session_wallet_id, evidence.wallet_id AS evidence_wallet_id,
+      audit.authorized_operation_id AS audit_operation_id
+    FROM authorized_operations operation
+    LEFT JOIN wallet_session_authorizations_v2 session
+      ON operation.authorization_source_kind = 'authorization_grant'
+      AND session.namespace = operation.namespace AND session.tenant_id = operation.tenant_id
+      AND session.authorization_id = operation.authorization_id
+    LEFT JOIN verified_wallet_operation_evidence_sets evidence
+      ON operation.authorization_source_kind = 'verified_step_up'
+      AND evidence.namespace = operation.namespace AND evidence.tenant_id = operation.tenant_id
+      AND evidence.evidence_set_digest = operation.evidence_set_digest
+    LEFT JOIN authorized_operation_audit_events audit
+      ON audit.namespace = operation.namespace AND audit.tenant_id = operation.tenant_id
+      AND audit.authorized_operation_id = operation.authorized_operation_id
+  `,
+    )
+    .all();
+  const counts = {};
+  assert.equal(
+    operations.length > 0,
+    isHome,
+    'Signing operations must exist only at the wallet home',
+  );
+  for (const operation of operations) {
+    const owner =
+      operation.authorization_source_kind === 'authorization_grant'
+        ? operation.session_wallet_id
+        : operation.evidence_wallet_id;
+    assert.equal(owner, walletId, 'Operation must retain an exact wallet owner after recovery');
+    if (operation.linked_wallet_id !== null) assert.equal(operation.linked_wallet_id, walletId);
+    assert.ok(operation.audit_operation_id, 'Operation must retain its audit record');
+    counts[operation.authorization_source_kind] =
+      (counts[operation.authorization_source_kind] ?? 0) + 1;
+  }
+  return counts;
 }

@@ -103,16 +103,18 @@
                   "workerName": "seams-sdk-d1-gateway-staging-us",
                   "placementRegion": "aws:us-east-1",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-staging-nrt-us"
+                    "kind": "allocated",
+                    "name": "seams-signer-staging-nrt-us",
+                    "id": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe"
                   }
                 },
                 "WEUR": {
                   "workerName": "seams-sdk-d1-gateway-staging-weur",
                   "placementRegion": "aws:eu-west-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-staging-nrt-weur"
+                    "kind": "allocated",
+                    "name": "seams-signer-staging-nrt-weur",
+                    "id": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037"
                   }
                 },
                 "APAC": {

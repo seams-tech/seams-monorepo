@@ -130,7 +130,9 @@ async function registerRegionalWallet(client: RegionalClient): Promise<void> {
 
 for (const home of ['weur', 'apac'] as const) {
   test(`${home} home: hosted concurrent regional registration and same-wallet travel`,
-    verifyRegionalTravel.bind(undefined, home));
+    async ({ browser, request }, testInfo) => {
+      await verifyRegionalTravel(home, { browser, request }, testInfo);
+    });
 }
 
 async function verifyRegionalTravel(

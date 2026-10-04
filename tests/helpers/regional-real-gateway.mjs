@@ -39,6 +39,7 @@ export async function createRegionalRealGateway({
       resolveDir: root,
       loader: 'ts',
       contents: `
+        export { parseEmailOtpRegistrationVerificationReceiptV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
         export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
         export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
@@ -533,6 +534,12 @@ class RegionalRealScenario {
         gateway.database,
         placement.wallet_id,
         region === home,
+        gateway.api,
+      );
+      const emailOtpOwnership = await verifyEmailOtpOwnership(
+        gateway.database,
+        placement.wallet_id,
+        region === home,
       );
       const operationOwnership = await verifyOperationOwnership(
         gateway.database,
@@ -545,6 +552,7 @@ class RegionalRealScenario {
         tables,
         identities: identities.count,
         ceremonyOwnership,
+        emailOtpOwnership,
         operationOwnership,
       });
     }
@@ -1036,7 +1044,7 @@ class GatewayApiResponse {
   }
 }
 
-async function verifyCeremonyOwnership(database, walletId, isHome) {
+async function verifyCeremonyOwnership(database, walletId, isHome, api) {
   const { results: records } = await database
     .prepare('SELECT record_scope, record_id, record_json FROM registration_ceremony_records')
     .all();
@@ -1044,10 +1052,24 @@ async function verifyCeremonyOwnership(database, walletId, isHome) {
   else assert.ok(records.length > 0, 'Lifecycle must retain registration ownership evidence');
   const counts = {};
   for (const row of records) {
-    assert.ok(row.record_id.startsWith('gateway-registration:'));
+    if (row.record_scope !== 'email-otp-registration-verification-v1') {
+      assert.ok(row.record_id.startsWith('gateway-registration:'));
+    }
     const record = JSON.parse(row.record_json);
     let owner;
     switch (row.record_scope) {
+      case 'email-otp-registration-verification-v1': {
+        const receipt = api.parseEmailOtpRegistrationVerificationReceiptV1(record);
+        assert.ok(receipt, 'Verification receipt must satisfy its production parser');
+        assert.equal(row.record_id, receipt.verified.challengeId);
+        owner = receipt.verified.walletId;
+        const consumed = await database
+          .prepare('SELECT count(*) AS count FROM email_otp_challenges WHERE challenge_id = ?')
+          .bind(row.record_id)
+          .first();
+        assert.equal(consumed.count, 0, 'Receipt must survive challenge consumption');
+        break;
+      }
       case 'setup-ceremony':
       case 'ceremony':
       case 'add-signer-intent':
@@ -1067,6 +1089,27 @@ async function verifyCeremonyOwnership(database, walletId, isHome) {
     assert.equal(owner, walletId, `Wrong ceremony owner in ${row.record_scope}`);
     counts[row.record_scope] = (counts[row.record_scope] ?? 0) + 1;
   }
+  return counts;
+}
+
+async function verifyEmailOtpOwnership(database, walletId, isHome) {
+  const counts = {};
+  for (const table of [
+    'email_otp_challenges',
+    'email_otp_grants',
+    'email_otp_unlock_challenges',
+    'email_otp_auth_states',
+    'email_otp_wallet_enrollments',
+  ]) {
+    const { results } = await database.prepare(`SELECT wallet_id, record_json FROM ${table}`).all();
+    if (!isHome) assert.equal(results.length, 0, `Remote home contains ${table}`);
+    for (const row of results) {
+      assert.equal(row.wallet_id, walletId, `Wrong wallet in ${table}`);
+      assert.equal(JSON.parse(row.record_json).walletId, row.wallet_id);
+    }
+    counts[table] = results.length;
+  }
+  if (isHome) assert.equal(counts.email_otp_wallet_enrollments, 1);
   return counts;
 }
 

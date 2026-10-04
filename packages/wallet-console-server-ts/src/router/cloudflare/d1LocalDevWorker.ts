@@ -709,7 +709,6 @@ const SIGNER_READY_TABLES = Object.freeze([
   'linked_device_wallet_session_credential_deliveries_v1',
   'verified_wallet_operation_evidence_sets',
   'verified_owner_proof_consumptions',
-  'near_public_keys',
   'email_otp_challenges',
   'email_otp_grants',
   'email_otp_wallet_enrollments',

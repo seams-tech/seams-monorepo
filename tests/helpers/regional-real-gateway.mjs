@@ -565,6 +565,7 @@ class RegionalRealScenario {
         placement.wallet_id,
         region === home,
       );
+      if (region === home) assert.ok(operationOwnership.verified_step_up > 0);
       stores.push({
         region,
         methods,
@@ -615,6 +616,11 @@ class RegionalRealScenario {
   }
 
   async verifyHome(home, routerReplays) {
+    const placement = await this.consoleService.database
+      .prepare('SELECT wallet_id FROM wallet_homes WHERE region = ?')
+      .bind(home)
+      .first();
+    assert.ok(placement);
     const evidence = [];
     for (const [region, gateway] of this.gateways) {
       const tables = {};
@@ -631,6 +637,13 @@ class RegionalRealScenario {
         if (region !== home) assert.equal(row.count, 0, `${region}/${table}`);
         else assert.equal(row.count, expected, `${region}/${table}`);
       }
+      const operationOwnership = await verifyOperationOwnership(
+        gateway,
+        gateway.scope,
+        placement.wallet_id,
+        region === home,
+      );
+      if (region === home) assert.ok(operationOwnership.linked > 0);
       const cleanup = await verifySignerCleanup(gateway.database, region, home);
       const acknowledgement = gateway.acknowledgementFault.verify();
       const activation = gateway.activationFault.verify();
@@ -638,6 +651,7 @@ class RegionalRealScenario {
       evidence.push({
         region,
         tables,
+        operationOwnership,
         cleanup,
         activation,
         acknowledgement,
@@ -1274,7 +1288,8 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
   const { results: operations } = await database
     .prepare(
       `
-    SELECT operation.authorization_source_kind, operation.linked_wallet_id,
+    SELECT operation.authorization_source_kind, authority.provenance_kind,
+      authority.wallet_id AS authority_wallet_id,
       operation.tenant_id, operation.authorized_operation_id,
       session.wallet_id AS session_wallet_id, evidence.wallet_id AS evidence_wallet_id,
       audit.authorized_operation_id AS audit_operation_id
@@ -1283,6 +1298,14 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
       ON operation.authorization_source_kind = 'authorization_grant'
       AND session.namespace = operation.namespace AND session.tenant_id = operation.tenant_id
       AND session.authorization_id = operation.authorization_id
+      AND session.org_id = operation.owner_scope_org_id
+      AND session.project_id = operation.owner_scope_project_id
+      AND session.env_id = operation.owner_scope_env_id
+    LEFT JOIN wallet_authorities authority
+      ON authority.namespace = session.namespace AND authority.org_id = session.org_id
+      AND authority.project_id = session.project_id AND authority.env_id = session.env_id
+      AND authority.authority_id = session.authority_id
+      AND authority.wallet_id = session.wallet_id
     LEFT JOIN verified_wallet_operation_evidence_sets evidence
       ON operation.authorization_source_kind = 'verified_step_up'
       AND evidence.namespace = operation.namespace AND evidence.tenant_id = operation.tenant_id
@@ -1305,7 +1328,10 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
         ? operation.session_wallet_id
         : operation.evidence_wallet_id;
     assert.equal(owner, walletId, 'Operation must retain an exact wallet owner after recovery');
-    if (operation.linked_wallet_id !== null) assert.equal(operation.linked_wallet_id, walletId);
+    if (operation.authorization_source_kind === 'authorization_grant') {
+      assert.equal(operation.authority_wallet_id, walletId);
+      if (operation.provenance_kind === 'device_link') counts.linked = (counts.linked ?? 0) + 1;
+    }
     assert.ok(operation.audit_operation_id, 'Operation must retain its audit record');
     const committed = await store.readAuthorizedOperationById({
       tenantId: operation.tenant_id,
@@ -1321,6 +1347,5 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
     counts[operation.authorization_source_kind] =
       (counts[operation.authorization_source_kind] ?? 0) + 1;
   }
-  if (isHome) assert.ok(counts.verified_step_up > 0, 'Exports must exercise step-up ownership');
   return counts;
 }

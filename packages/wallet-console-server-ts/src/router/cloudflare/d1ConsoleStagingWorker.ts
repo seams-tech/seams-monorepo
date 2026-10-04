@@ -563,6 +563,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   });
   onboardingDeployment.attach(tenantDeploymentProvisioner);
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
+    deploymentLane,
     provisioner: tenantDeploymentProvisioner,
     resourceVerifier: createTenantD1ResourceVerifierV1({
       namespace,

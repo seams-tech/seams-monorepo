@@ -273,6 +273,7 @@ function writer(
   database: string,
   databaseId: string,
   versionId: string | null,
+  deploymentLane = lane,
 ) {
   return {
     name,
@@ -285,7 +286,7 @@ function writer(
       ROUTER_AB_PREWARM_ENABLED: 'true',
       ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'fixture-prewarm',
       SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
-      SEAMS_TENANT_DEPLOYMENT_LANE: lane,
+      SEAMS_TENANT_DEPLOYMENT_LANE: deploymentLane,
       SEAMS_D1_HOME_ACCOUNT_ID: home.accountId,
       SEAMS_D1_HOME_DATABASE_ID: databaseId,
     },
@@ -302,6 +303,7 @@ function consoleWorker(
   resource: typeof home,
   gateway: string,
   configuredCatalog: WalletHomeCatalog = catalog,
+  deploymentLane = lane,
 ) {
   return {
     name,
@@ -312,7 +314,7 @@ function consoleWorker(
     bindings: {
       ...consoleWorkerEnvironment({
         namespace,
-        deploymentLane: lane,
+        deploymentLane,
         accountId: resource.accountId,
         databaseId: resource.databaseId,
       }),
@@ -427,6 +429,36 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     port: 0,
     workers: [
       consoleWorker(output, 'console-good', 'runtime-good', deps, home, 'gateway'),
+      consoleWorker(
+        output,
+        'console-staging',
+        'runtime-staging',
+        deps,
+        home,
+        'gateway-staging',
+        catalog,
+        'staging-testnet',
+      ),
+      writer(
+        output,
+        deps,
+        'gateway-staging',
+        'gateway',
+        'database-a',
+        home.databaseId,
+        gatewayVersion,
+        'staging-testnet',
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-staging',
+        'runtime',
+        'database-a',
+        home.databaseId,
+        runtimeVersion,
+        'staging-testnet',
+      ),
       consoleWorker(
         output,
         'console-unverified-catalog',
@@ -606,6 +638,20 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     const gateway = await runtime.getWorker('gateway');
     const auth = deps.oidc.authorization();
     const challenge = await insertChallenge(databaseA, Date.now() - 100, home);
+    const stagingConsole = await runtime.getWorker('console-staging');
+    const stagingAuth = deps.oidc.authorization('staging-testnet');
+    const stagingChallenge = { ...challenge, deploymentLane: 'staging-testnet' };
+    expect(
+      (await stagingConsole.fetch(verifyUrl, requestInit(stagingChallenge, stagingAuth))).status,
+    ).toBe(200);
+    expect(
+      (await stagingConsole.fetch(verifyUrl, requestInit(stagingChallenge, auth))).status,
+    ).toBe(401);
+    expect((await good.fetch(verifyUrl, requestInit(challenge, stagingAuth))).status).toBe(401);
+    expect(
+      (await stagingConsole.fetch(verifyUrl, requestInit(challenge, stagingAuth))).status,
+    ).toBe(409);
+
     expect(
       (
         await request.post(`${await runtime.ready}internal/tenant-deployment/v1/verify-resource`, {
@@ -1058,6 +1104,8 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       await once(providerServer, 'close');
     }
     const evidence = {
+      stagingResourceVerified: true,
+      crossLaneOidcRejected: true,
       kind: 'regional_resource_challenge_e2e_v1',
       checkedAt: new Date().toISOString(),
       productionWorkers: ['Console', 'Gateway', 'Wallet Runtime'],

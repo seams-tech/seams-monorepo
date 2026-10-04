@@ -2,6 +2,14 @@ name: Deploy / staging-testnet / backend
 
 on:
   workflow_dispatch:
+    inputs:
+      activation_only:
+        description: Activate an already deployed staging candidate without rebuilding
+        type: boolean
+        default: false
+      environment_id:
+        description: Existing Console environment ID required for activation
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +24,7 @@ env:
 
 jobs:
   build:
+    if: ${{ !inputs.activation_only }}
     name: Build / staging-testnet / backend
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -456,3 +465,30 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BACKEND_BUILD_ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
         run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$BACKEND_BUILD_ARTIFACT_ID"
+
+  activate:
+    if: ${{ inputs.activation_only }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging-gateway
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require dev branch
+        run: test "$GITHUB_REF" = refs/heads/dev
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify regional resources and activate tenant
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT_ID: ${{ inputs.environment_id }}
+        run: pnpm tenant:cutover --lane staging-testnet --environment-id "$ENVIRONMENT_ID"
+      - name: Verify readiness
+        run: pnpm deploy:backend smoke --lane staging-testnet --component wallet-system

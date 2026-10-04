@@ -9,7 +9,8 @@ export class GithubDeploymentOidcFixture {
     });
   }
 
-  authorization(): string {
+  authorization(lane: 'production-testnet' | 'staging-testnet' = 'production-testnet'): string {
+    const staging = lane === 'staging-testnet';
     const now = Math.floor(Date.now() / 1000);
     const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'fixture' })).toString(
       'base64url',
@@ -18,11 +19,12 @@ export class GithubDeploymentOidcFixture {
       JSON.stringify({
         iss: 'https://token.actions.githubusercontent.com',
         aud: 'seams-tenant-cutover',
-        sub: 'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo',
+        sub: `repo:seams-tech@282445520/seams-monorepo@1366871528:environment:${staging ? 'staging-gateway' : 'production-live-demo'}`,
         repository: 'seams-tech/seams-monorepo',
-        ref: 'refs/heads/main',
-        workflow_ref:
-          'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main',
+        ref: staging ? 'refs/heads/dev' : 'refs/heads/main',
+        workflow_ref: staging
+          ? 'seams-tech/seams-monorepo/.github/workflows/deploy-staging-backend.yml@refs/heads/dev'
+          : 'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main',
         nbf: now - 10,
         exp: now + 300,
       }),

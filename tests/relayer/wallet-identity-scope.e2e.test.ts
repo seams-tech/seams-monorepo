@@ -148,7 +148,8 @@ async function seedSignerIdentities(
   }
 }
 
-test('Console preserves full wallet scope through Runtime, pagination and cached balance refresh', async ({}, testInfo) => {
+test('Console preserves full wallet scope through Runtime, pagination and cached balance refresh', async () => {
+  const testInfo = test.info();
   test.skip(!candidate, 'Requires a packed Wallet Server candidate; see the R152 release review');
   test.setTimeout(120_000);
   if (!candidate) throw new Error('Candidate is required');

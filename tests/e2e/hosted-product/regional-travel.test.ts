@@ -115,15 +115,18 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
     const primary = clients[0];
     for (const region of ['weur', 'apac', 'enam', 'weur'] as const) {
       primary.probe.region = region;
+      await primary.harness.unlockPasskeyWallet();
       for (let index = 0; index < 3; index += 1) {
         const start = performance.now();
         const firstRecord = primary.probe.records.length;
-        await primary.harness.signTempoTransaction('post_registration');
+        await primary.harness.signTempoTransaction('post_unlock');
         samples.push({ region, index, elapsedMs: performance.now() - start,
           requests: primary.probe.records.slice(firstRecord) });
       }
     }
-    await primary.harness.signTempoAndArcEvmConcurrently('post_registration');
+    await primary.harness.unlockPasskeyWallet();
+    await primary.harness.signNearTransaction('post_unlock');
+    await primary.harness.signTempoAndArcEvmConcurrently('post_unlock');
   } finally {
     const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product');
     await mkdir(output, { recursive: true });

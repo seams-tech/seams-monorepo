@@ -1,4 +1,4 @@
-import type { BrowserContext, Route } from '@playwright/test';
+import type { APIRequestContext, Browser, BrowserContext, Route, TestInfo } from '@playwright/test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -37,6 +37,7 @@ type RequestTiming = {
   regionalCompletedMs: number;
   localRoundtripMs: number;
   gatewayRay: string | null;
+  failureCode: string | null;
 };
 
 type RegionalClient = {
@@ -109,6 +110,7 @@ class RegionalGatewayProbe {
       regionalCompletedMs: result.completedMs,
       localRoundtripMs: performance.now() - started,
       gatewayRay: result.headers['cf-ray'] ?? null,
+      failureCode: responseFailureCode(result.status, result.bodyBase64),
     });
     await route.fulfill({
       status: result.status,
@@ -126,11 +128,21 @@ async function registerRegionalWallet(client: RegionalClient): Promise<void> {
   client.registration = { started, completed: performance.now(), walletId: client.harness.walletId };
 }
 
-test('hosted concurrent regional registration and same-wallet travel', async ({ browser, request }, testInfo) => {
+for (const home of ['weur', 'apac'] as const) {
+  test(`${home} home: hosted concurrent regional registration and same-wallet travel`,
+    verifyRegionalTravel.bind(undefined, home));
+}
+
+async function verifyRegionalTravel(
+  home: Region,
+  { browser, request }: { browser: Browser; request: APIRequestContext },
+  testInfo: TestInfo,
+): Promise<void> {
   test.skip(!process.env.SEAMS_HOSTED_PROBE, 'A deployed regional probe is required');
   test.setTimeout(600_000);
   const config = JSON.parse(await readFile(process.env.SEAMS_HOSTED_PROBE!, 'utf8'));
   const clients: RegionalClient[] = [];
+  const unlocks: { region: Region; elapsedMs: number; requests: RequestTiming[] }[] = [];
   const samples: { region: Region; index: number; elapsedMs: number; requests: RequestTiming[] }[] = [];
   try {
     for (const region of regions) {
@@ -146,11 +158,16 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
       clients.push({ region, context, probe, harness, registration: null });
     }
     await Promise.all(clients.map(registerRegionalWallet));
-    const primary = clients.find(isEuropeanClient);
-    if (!primary) throw new Error('WEUR client is missing');
-    for (const region of ['weur', 'apac', 'enam', 'weur'] as const) {
+    const primary = clients.find(clientHasRegion.bind(undefined, home));
+    if (!primary) throw new Error(`${home} client is missing`);
+    const sequence: Region[] = [home, home === 'weur' ? 'apac' : 'weur', 'enam', home];
+    for (const region of sequence) {
       await primary.probe.selectRegion(region);
+      const unlockStart = performance.now();
+      const unlockFirstRecord = primary.probe.records.length;
       await primary.harness.unlockPasskeyWallet();
+      unlocks.push({ region, elapsedMs: performance.now() - unlockStart,
+        requests: primary.probe.records.slice(unlockFirstRecord) });
       for (let index = 0; index < 3; index += 1) {
         const start = performance.now();
         const firstRecord = primary.probe.records.length;
@@ -165,9 +182,11 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
   } finally {
     const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product');
     await mkdir(output, { recursive: true });
-    await writeFile(path.join(output, 'regional-travel.json'), JSON.stringify({
+    await writeFile(path.join(output, `regional-travel-${home}.json`), JSON.stringify({
       scope: 'One local browser; Gateway traffic forwarded through physically regional Containers. Regional request timing excludes the local-to-probe hop; browser elapsed includes it.',
+      home,
       registrations: clients.map(regionalRegistrationEvidence),
+      unlocks,
       samples,
     }, null, 2), { mode: 0o600 });
     for (const client of clients) {
@@ -175,12 +194,29 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
       await client.context.close();
     }
   }
-});
+}
 
 function regionalRegistrationEvidence(client: RegionalClient) {
   return { region: client.region, registration: client.registration, requests: client.probe.records };
 }
 
-function isEuropeanClient(client: RegionalClient): boolean {
-  return client.region === 'weur';
+function clientHasRegion(region: Region, client: RegionalClient): boolean {
+  return client.region === region;
+}
+
+function responseFailureCode(status: number, bodyBase64: string): string | null {
+  if (status < 400) return null;
+  try {
+    const body: unknown = JSON.parse(Buffer.from(bodyBase64, 'base64').toString('utf8'));
+    if (!body || typeof body !== 'object') return null;
+    if ('code' in body && typeof body.code === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.code)) {
+      return body.code;
+    }
+    if ('error' in body && typeof body.error === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.error)) {
+      return body.error;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

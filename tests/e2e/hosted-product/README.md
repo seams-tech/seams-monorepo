@@ -27,3 +27,13 @@ node "$SEAMS_WALLET_SERVER_CANDIDATE/../../node_modules/@playwright/test/cli.js"
 including unfinished/background requests. Missing D1 telemetry remains null; HTTP
 request counts are not D1-call counts. The Playwright lifecycle attachment retains
 detailed diagnostic evidence. The run creates a disposable staging wallet.
+
+The regional travel test requires `SEAMS_HOSTED_PROBE`, pointing to a protected
+JSON file containing `workerUrl` and `accessToken` for the temporary probe Worker.
+Its Containers forward only the staging Gateway origin. The test registers three
+wallets concurrently from the three physical probe regions, then signs with the
+same WEUR-created wallet through WEUR, APAC, US and WEUR again. It also exercises
+concurrent Tempo and Arc signing. `regional-travel.json` distinguishes regional
+request duration from local-browser duration, which includes the extra proxy hop.
+Container identity is retained with each request; no request credentials or bodies
+are written into the evidence. Stop all three Containers after the run.

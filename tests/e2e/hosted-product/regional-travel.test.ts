@@ -1,3 +1,4 @@
+import type { BrowserContext, Route } from '@playwright/test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -16,10 +17,40 @@ const { IntendedBehaviourHarness } = await import(
 type Region = 'weur' | 'enam' | 'apac';
 const regions: Region[] = ['weur', 'enam', 'apac'];
 
+type ProbeIdentity = {
+  bootId: string;
+  source: string;
+  applicationId: string;
+  instanceId: string;
+  location: string;
+  region: string;
+  country: string;
+};
+
+type RequestTiming = {
+  region: Region;
+  identity: ProbeIdentity;
+  path: string;
+  method: string;
+  status: number;
+  regionalHeadersMs: number;
+  regionalCompletedMs: number;
+  localRoundtripMs: number;
+  gatewayRay: string | null;
+};
+
+type RegionalClient = {
+  region: Region;
+  context: BrowserContext;
+  probe: RegionalGatewayProbe;
+  harness: InstanceType<typeof IntendedBehaviourHarness>;
+  registration: { started: number; completed: number; walletId: string } | null;
+};
+
 class RegionalGatewayProbe {
   region: Region;
-  readonly records: object[] = [];
-  private readonly identities = new Map<Region, { bootId: string; location: string; region: string }>();
+  readonly records: RequestTiming[] = [];
+  private readonly identities = new Map<Region, ProbeIdentity>();
 
   constructor(
     region: Region,
@@ -30,21 +61,24 @@ class RegionalGatewayProbe {
   }
 
   async initialize(): Promise<void> {
-    for (const region of regions) {
-      const response = await fetch(`${this.url}/${region}/identity`, {
-        headers: { authorization: `Bearer ${this.token}` },
-        signal: AbortSignal.timeout(200_000),
-      });
-      if (!response.ok) throw new Error(`Probe ${region} identity: HTTP ${response.status}`);
-      const identity = await response.json();
-      if (!identity.bootId || !identity.location || !identity.region) {
-        throw new Error(`Probe ${region} omitted its physical identity`);
-      }
-      this.identities.set(region, identity);
-    }
+    await this.selectRegion(this.region);
   }
 
-  async forward(route): Promise<void> {
+  async selectRegion(region: Region): Promise<void> {
+    const response = await fetch(`${this.url}/${region}/identity`, {
+      headers: { authorization: `Bearer ${this.token}` },
+      signal: AbortSignal.timeout(200_000),
+    });
+    if (!response.ok) throw new Error(`Probe ${region} identity: HTTP ${response.status}`);
+    const identity = await response.json();
+    if (!identity.bootId || !identity.location || identity.region !== region.toUpperCase()) {
+      throw new Error(`Probe ${region} omitted or mismatched its physical identity`);
+    }
+    this.identities.set(region, identity);
+    this.region = region;
+  }
+
+  async forward(route: Route): Promise<void> {
     const request = route.request();
     const region = this.region;
     const identity = this.identities.get(region);
@@ -84,7 +118,7 @@ class RegionalGatewayProbe {
   }
 }
 
-async function registerRegionalWallet(client): Promise<void> {
+async function registerRegionalWallet(client: RegionalClient): Promise<void> {
   await client.harness.initialize();
   const started = performance.now();
   await client.harness.registerPasskeyWallet();
@@ -96,8 +130,8 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
   test.skip(!process.env.SEAMS_HOSTED_PROBE, 'A deployed regional probe is required');
   test.setTimeout(600_000);
   const config = JSON.parse(await readFile(process.env.SEAMS_HOSTED_PROBE!, 'utf8'));
-  const clients = [];
-  const samples = [];
+  const clients: RegionalClient[] = [];
+  const samples: { region: Region; index: number; elapsedMs: number; requests: RequestTiming[] }[] = [];
   try {
     for (const region of regions) {
       const context = await browser.newContext();
@@ -112,9 +146,10 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
       clients.push({ region, context, probe, harness, registration: null });
     }
     await Promise.all(clients.map(registerRegionalWallet));
-    const primary = clients[0];
+    const primary = clients.find(isEuropeanClient);
+    if (!primary) throw new Error('WEUR client is missing');
     for (const region of ['weur', 'apac', 'enam', 'weur'] as const) {
-      primary.probe.region = region;
+      await primary.probe.selectRegion(region);
       await primary.harness.unlockPasskeyWallet();
       for (let index = 0; index < 3; index += 1) {
         const start = performance.now();
@@ -142,6 +177,10 @@ test('hosted concurrent regional registration and same-wallet travel', async ({ 
   }
 });
 
-function regionalRegistrationEvidence(client) {
+function regionalRegistrationEvidence(client: RegionalClient) {
   return { region: client.region, registration: client.registration, requests: client.probe.records };
+}
+
+function isEuropeanClient(client: RegionalClient): boolean {
+  return client.region === 'weur';
 }

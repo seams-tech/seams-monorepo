@@ -263,7 +263,6 @@ test('required secrets are derived from enabled capabilities', async () => {
   const targets = module.parseDeploymentTargets(validTargets());
   const staging = targets.backendLanes['staging-testnet'];
   expect(module.componentSecretNames(staging, 'gateway')).toEqual([
-    'ACCOUNT_ID_DERIVATION_SECRET',
     'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
     'LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET',
     'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK',

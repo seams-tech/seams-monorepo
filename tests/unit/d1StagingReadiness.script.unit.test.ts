@@ -167,6 +167,5 @@ test('D1 staging readiness check rejects the local development Worker config', a
 
   expectErrorContaining(result, 'staging must not use the local D1 development Worker entrypoint');
   expectErrorContaining(result, 'SPONSORED_EVM_EXECUTORS_JSON must not be configured');
-  expectErrorContaining(result, 'ACCOUNT_ID_DERIVATION_SECRET must not be configured');
   expectErrorContaining(result, 'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK must be declared');
 });

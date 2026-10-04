@@ -653,7 +653,6 @@ function buildGeneratedSecrets(environmentPrefix) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
     relaySessionHmac: randomBase64Url(32),
-    accountIdDerivation: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
       rootSecretB64u: randomBase64Url(32),
@@ -1006,7 +1005,6 @@ function buildGatewayEnvironment(input) {
     CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-worker-api-token`),
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
     RELAY_SESSION_HMAC_SECRET: input.generatedSecrets.relaySessionHmac,
-    ACCOUNT_ID_DERIVATION_SECRET: input.generatedSecrets.accountIdDerivation,
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: input.generatedSecrets.internalServiceAuth,
     ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK: input.generatedSecrets.ceremonyPrivateJwk,
     RELAYER_PRIVATE_KEY: manual(`${input.environmentPrefix}-near-relayer-private-key`),

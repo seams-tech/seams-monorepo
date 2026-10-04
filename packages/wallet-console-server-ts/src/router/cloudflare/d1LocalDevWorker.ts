@@ -228,7 +228,6 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly DERIVER_B_PEER_VERIFYING_KEY_HEX?: string;
   readonly SIGNING_WORKER_SERVER_OUTPUT_HPKE_KEY_EPOCH?: string;
   readonly SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY?: string;
-  readonly ACCOUNT_ID_DERIVATION_SECRET?: string;
   readonly SIGNING_SESSION_SEAL_ROOT_SECRET_B64U?: string;
   readonly SIGNING_SESSION_SEAL_CURRENT_KEY_VERSION?: string;
   readonly SIGNING_SESSION_SEAL_ACCEPTED_WARM_KEY_VERSIONS?: string;
@@ -1591,7 +1590,6 @@ function localD1RouterApiAuthServiceOptions(
     implicitNearAccountTestFundingEnabled: env.ENABLE_IMPLICIT_NEAR_ACCOUNT_TEST_FUNDING,
     googleOidcClientId: localGoogleOidcClientId(env),
     githubOAuth: localGithubOAuthConfig(env),
-    accountIdDerivationSecret: env.ACCOUNT_ID_DERIVATION_SECRET,
     emailOtpServerSeal: localEmailOtpServerSealConfig(env),
     emailOtpDeliveryMode: env.EMAIL_OTP_DELIVERY_MODE || 'dev_d1_outbox',
     emailOtpRuntimeProfile: env.EMAIL_OTP_RUNTIME_PROFILE,

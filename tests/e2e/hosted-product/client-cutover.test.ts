@@ -2,9 +2,11 @@ import { installCandidateAssets } from './candidate-assets';
 import type { Route } from '@playwright/test';
 import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
@@ -72,7 +74,23 @@ test('published client is rejected by hosted Gateway and reload completes candid
   page,
   request,
 }, testInfo) => {
-  const installed = path.resolve('node_modules/@seams/wallet');
+  const run = promisify(execFile);
+  const packageDirectory = testInfo.outputPath('published-client');
+  await mkdir(packageDirectory, { recursive: true });
+  await run('npm', [
+    'pack',
+    '@seams/wallet@0.7.3',
+    '--ignore-scripts',
+    '--pack-destination',
+    packageDirectory,
+  ]);
+  await run('tar', [
+    '-xzf',
+    path.join(packageDirectory, 'seams-wallet-0.7.3.tgz'),
+    '-C',
+    packageDirectory,
+  ]);
+  const installed = path.join(packageDirectory, 'package');
   const definition = JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8'));
   expect(definition.version).toBe('0.7.3');
   const entry = path.join(installed, 'dist/esm/core/rpcClients/relayer/walletRegistration.js');

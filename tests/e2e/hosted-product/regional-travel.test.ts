@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import type { APIRequestContext, Browser, BrowserContext, Route, TestInfo } from '@playwright/test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -51,6 +52,7 @@ type RegionalClient = {
 class RegionalGatewayProbe {
   region: Region;
   readonly records: RequestTiming[] = [];
+  readonly identityReads: { region: Region; status: number }[] = [];
   private readonly identities = new Map<Region, ProbeIdentity>();
 
   constructor(
@@ -66,11 +68,18 @@ class RegionalGatewayProbe {
   }
 
   async selectRegion(region: Region): Promise<void> {
-    const response = await fetch(`${this.url}/${region}/identity`, {
-      headers: { authorization: `Bearer ${this.token}` },
-      signal: AbortSignal.timeout(200_000),
-    });
-    if (!response.ok) throw new Error(`Probe ${region} identity: HTTP ${response.status}`);
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      response = await fetch(`${this.url}/${region}/identity`, {
+        headers: { authorization: `Bearer ${this.token}` },
+        signal: AbortSignal.timeout(200_000),
+      });
+      this.identityReads.push({ region, status: response.status });
+      if (response.ok || response.status < 500) break;
+      await response.body?.cancel();
+      await delay((attempt + 1) * 1_000);
+    }
+    if (!response?.ok) throw new Error(`Probe ${region} identity: HTTP ${response?.status}`);
     const identity = await response.json();
     if (!identity.bootId || !identity.location || identity.region !== region.toUpperCase()) {
       throw new Error(`Probe ${region} omitted or mismatched its physical identity`);
@@ -199,7 +208,8 @@ async function verifyRegionalTravel(
 }
 
 function regionalRegistrationEvidence(client: RegionalClient) {
-  return { region: client.region, registration: client.registration, requests: client.probe.records };
+  return { region: client.region, registration: client.registration,
+    identityReads: client.probe.identityReads, requests: client.probe.records };
 }
 
 function clientHasRegion(region: Region, client: RegionalClient): boolean {

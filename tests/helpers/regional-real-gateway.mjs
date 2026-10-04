@@ -39,6 +39,9 @@ export async function createRegionalRealGateway({
       resolveDir: root,
       loader: 'ts',
       contents: `
+        export { encodeRouterAbEd25519YaoProductRegistrationStateV1, parseRouterAbEd25519YaoProductRegistrationStateJsonV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPersistence.ts'))};
+        export { parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPartitionedStateStore.ts'))};
+        export { parseRouterAbEd25519YaoRecoveryAdmissionRequestV1, parseRouterAbEd25519YaoRegistrationAdmissionRequestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbEd25519Yao.ts'))};
         export { parseEmailOtpRegistrationVerificationReceiptV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
         export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
@@ -354,6 +357,19 @@ class RealRegionalGateway {
         googleRegistrationAttempts: authority.registrationOffers(),
       },
     );
+    if (response.status >= 500) {
+      let code = 'non_json_error';
+      try {
+        const body = await response.clone().json();
+        code = typeof body?.code === 'string' ? body.code : 'missing_error_code';
+      } catch {}
+      console.error('regional-home-error', {
+        region: this.region,
+        path: new URL(request.url).pathname,
+        status: response.status,
+        code,
+      });
+    }
     this.requests.push({ path: new URL(request.url).pathname, status: response.status, entry });
     return response;
   }
@@ -541,6 +557,7 @@ class RegionalRealScenario {
         placement.wallet_id,
         region === home,
       );
+      const yaoOwnership = await verifyYaoOwnership(gateway, placement.wallet_id, region === home);
       const operationOwnership = await verifyOperationOwnership(
         gateway.database,
         placement.wallet_id,
@@ -553,6 +570,7 @@ class RegionalRealScenario {
         identities: identities.count,
         ceremonyOwnership,
         emailOtpOwnership,
+        yaoOwnership,
         operationOwnership,
       });
     }
@@ -1111,6 +1129,132 @@ async function verifyEmailOtpOwnership(database, walletId, isHome) {
   }
   if (isHome) assert.equal(counts.email_otp_wallet_enrollments, 1);
   return counts;
+}
+
+async function verifyYaoOwnership(gateway, walletId, isHome) {
+  const { results } = await gateway.database
+    .prepare(
+      "SELECT record_key, record_json FROM router_ab_yao_versioned_json_records WHERE substr(record_key, 1, length('router-ab-yao:')) = 'router-ab-yao:'",
+    )
+    .all();
+  if (!isHome) assert.equal(results.length, 0, 'Remote home contains Yao lifecycle state');
+  const counts = {
+    records: results.length,
+    capabilities: 0,
+    recoverySessions: 0,
+    exportNonces: 0,
+    uncertainExports: 0,
+    registrationStates: 0,
+    registrationClaims: 0,
+    registrationAuthorities: 0,
+    recoveryStates: 0,
+    exportStates: 0,
+  };
+  for (const row of results) {
+    const record = gateway.api.parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1(
+      JSON.parse(row.record_json),
+    );
+    assert.ok(record, 'Yao record must satisfy its production codec');
+    const state = record.value;
+    switch (record.kind) {
+      case 'router_ab_ed25519_yao_product_registration_shared_record_v1':
+        assert.equal(row.record_key, 'router-ab-yao:router-ab-ed25519-yao:shared');
+        for (const capability of state.recoveryCapabilities.values()) {
+          assert.equal(capability.identity.applicationBinding.wallet_id, walletId);
+          assert.equal(capability.identity.activationBinding.lifecycle.account_id, walletId);
+          counts.capabilities += 1;
+        }
+        for (const [identity, capabilityKey] of state.recoveryIdentityCapabilities) {
+          assert.equal(JSON.parse(identity).accountId, walletId);
+          assert.ok(state.recoveryCapabilities.has(capabilityKey));
+        }
+        for (const requestJson of state.recoverySessions.values()) {
+          const request = gateway.api.parseRouterAbEd25519YaoRecoveryAdmissionRequestV1(
+            JSON.parse(requestJson),
+          );
+          assert.ok(request.ok, 'Recovery replay key must decode as its admission request');
+          assert.equal(request.value.scope.account_id, walletId);
+          counts.recoverySessions += 1;
+        }
+        for (const owner of state.exportAuthorizationNonceOwners.values()) {
+          assert.equal(owner, walletId);
+          counts.exportNonces += 1;
+        }
+        for (const owner of state.exportAuthorizationUncertainOwners.values()) {
+          assert.equal(owner, walletId);
+          counts.uncertainExports += 1;
+        }
+        break;
+      case 'router_ab_ed25519_yao_product_registration_ceremony_record_v1':
+        assert.equal(row.record_key, `router-ab-yao:${record.lifecycleId}`);
+        for (const entry of state.registration.states.values()) {
+          assert.equal(entry.admissionRequest.scope.account_id, walletId);
+          counts.registrationStates += 1;
+        }
+        for (const claim of state.registration.admissionClaims.values()) {
+          const request = gateway.api.parseRouterAbEd25519YaoRegistrationAdmissionRequestV1(
+            JSON.parse(claim.admissionFingerprint),
+          );
+          assert.ok(request.ok, 'Pending admission fingerprint must retain its request');
+          assert.equal(request.value.scope.account_id, walletId);
+          counts.registrationClaims += 1;
+        }
+        for (const authority of state.authorization.authorities) {
+          assert.equal(authority.admissionRequest.scope.account_id, walletId);
+          counts.registrationAuthorities += 1;
+        }
+        for (const entry of state.recovery.recoveries.values()) {
+          assert.equal(entry.context.admissionRequest.scope.account_id, walletId);
+          counts.recoveryStates += 1;
+        }
+        for (const entry of state.export.exports.values()) {
+          assert.equal(entry.request.scope.account_id, walletId);
+          counts.exportStates += 1;
+        }
+        break;
+      default:
+        assert.fail(`Unaccounted Yao partition: ${record.kind}`);
+    }
+  }
+  if (isHome) {
+    assert.ok(counts.registrationStates > 0, 'Expected retained Yao registration state');
+    counts.rejectedRootContaminationCases = verifyYaoRootIsolation(gateway.api, results);
+  }
+  return counts;
+}
+
+function verifyYaoRootIsolation(api, rows) {
+  let root;
+  let ceremonyRecord;
+  let sharedRecord;
+  for (const row of rows) {
+    const raw = JSON.parse(row.record_json);
+    if (raw.recordKind === 'router_ab_ed25519_yao_product_registration_shared_record_v1') {
+      sharedRecord = raw;
+      continue;
+    }
+    const state = api.parseRouterAbEd25519YaoProductRegistrationStateJsonV1(raw.state);
+    assert.ok(state);
+    if (state.registration.dispatchRoots.size > 0) {
+      root = state.registration.dispatchRoots.values().next().value;
+      ceremonyRecord = raw;
+    }
+  }
+  assert.ok(root, 'The admitted tenant-root context must remain persisted');
+  assert.ok(ceremonyRecord);
+  assert.ok(sharedRecord);
+  for (const raw of [ceremonyRecord, sharedRecord]) {
+    const state = api.parseRouterAbEd25519YaoProductRegistrationStateJsonV1(raw.state);
+    assert.ok(state);
+    state.registration.dispatchRoots.set('unrelated-lifecycle', root);
+    raw.state = api.encodeRouterAbEd25519YaoProductRegistrationStateV1(state);
+    assert.equal(
+      api.parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1(raw),
+      null,
+      'A partition must reject misplaced dispatch-root context',
+    );
+  }
+  return 2;
 }
 
 async function verifyOperationOwnership(database, walletId, isHome) {

@@ -334,6 +334,7 @@ export function componentSecretNames(lane, component) {
       return consoleSecretNames(lane);
     case 'signing-worker':
       return [
+        'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET',
         'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY',
@@ -361,6 +362,7 @@ export function componentSecretNames(lane, component) {
       ];
     case 'router':
       return [
+        'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET',
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
       ];

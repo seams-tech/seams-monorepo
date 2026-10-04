@@ -500,7 +500,9 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const checkedInOrigins = checkedInGatewayConfig?.origins;
   const checkedInTenant = checkedInGatewayConfig?.tenant;
   if (!checkedInGatewayConfig) {
-    throw new Error(`Provision regional Gateway resources for ${lane.id} before generating deployment keys`);
+    throw new Error(
+      `Provision regional Gateway resources for ${lane.id} before generating deployment keys`,
+    );
   }
   requireAllocatedWalletRegions(checkedInGatewayConfig);
   const checkedInResources = checkedInGatewayConfig.resources;
@@ -634,6 +636,7 @@ function buildTargetConfiguration(targetName, suppliedValues) {
 function buildGeneratedSecrets(environmentPrefix) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
+    routerToSigningWorkerEcdsaAuth: randomBase64Url(32),
     gatewayToRouterAuth: randomBase64Url(32),
     gatewayToSigningWorkerPresignAuth: randomBase64Url(32),
     relaySessionHmac: randomBase64Url(32),
@@ -1166,6 +1169,8 @@ function buildMpcRouterEnvironment(input) {
           environmentName,
           input.generatedSecrets.internalServiceAuth,
         ),
+        ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET:
+          input.generatedSecrets.routerToSigningWorkerEcdsaAuth,
         ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
       },
     },
@@ -1400,6 +1405,8 @@ function buildSigningWorkerEnvironment(input) {
     environmentName,
     input.generatedSecrets.internalServiceAuth,
   );
+  secrets.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET =
+    input.generatedSecrets.routerToSigningWorkerEcdsaAuth;
   secrets.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET =
     input.generatedSecrets.gatewayToSigningWorkerPresignAuth;
   secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY =
@@ -2132,17 +2139,29 @@ function validateSharedInternalServiceAuth(outputDocument) {
   if (new Set(values).size !== 1) {
     throw new Error('Router A/B and Gateway internal service authentication must match');
   }
-  const gateway = outputDocument.environments[`${outputDocument.environmentPrefix}-gateway`].secrets;
-  const router = outputDocument.environments[`${outputDocument.environmentPrefix}-mpc-router`].secrets;
-  const signingWorker = outputDocument.environments[`${outputDocument.environmentPrefix}-signing-worker`].secrets;
+  const gateway =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-gateway`].secrets;
+  const router =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-mpc-router`].secrets;
+  const signingWorker =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-signing-worker`].secrets;
   const routerAuth = gateway.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
   const presignAuth = gateway.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET;
   if (
     routerAuth !== router.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET ||
     presignAuth !== signingWorker.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET ||
-    new Set([values[0], routerAuth, presignAuth]).size !== 3
+    router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET !==
+      signingWorker.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET ||
+    new Set([
+      values[0],
+      routerAuth,
+      presignAuth,
+      router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET,
+    ]).size !== 4
   ) {
-    throw new Error('Dedicated Gateway credentials must match their receiving role and remain distinct');
+    throw new Error(
+      'Dedicated Gateway credentials must match their receiving role and remain distinct',
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-import type { Route } from '@playwright/test';
+import type { Route, BrowserContext } from '@playwright/test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -18,6 +18,21 @@ const { GatewayRequestEvidence } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/gateway-request-evidence.ts'))
     .href
 );
+
+const { LostLinkedAcknowledgement } = await import(
+  pathToFileURL(
+    path.join(publicRoot, 'tests/e2e/intended-behaviours/linked-device-acknowledgement-fault.ts'),
+  ).href
+);
+
+function isNewContext(previous: readonly BrowserContext[], context: BrowserContext): boolean {
+  return !previous.includes(context);
+}
+
+async function installCandidateAssets(context: BrowserContext): Promise<void> {
+  await context.route(`${process.env.SEAMS_INTENDED_APP_URL}/**`, candidateAsset);
+  await context.route(`${process.env.SEAMS_INTENDED_WALLET_ORIGIN}/**`, candidateAsset);
+}
 
 async function candidateAsset(route: Route): Promise<void> {
   const pathname = new URL(route.request().url()).pathname;
@@ -58,9 +73,9 @@ test('hosted registration, lock, unlock, export and verified ECDSA signing', asy
   context,
   page,
   request,
+  browser,
 }, testInfo) => {
-  await context.route(`${process.env.SEAMS_INTENDED_APP_URL}/**`, candidateAsset);
-  await context.route(`${process.env.SEAMS_INTENDED_WALLET_ORIGIN}/**`, candidateAsset);
+  await installCandidateAssets(context);
   const harness = new IntendedBehaviourHarness({
     context,
     page,
@@ -88,9 +103,40 @@ test('hosted registration, lock, unlock, export and verified ECDSA signing', asy
     start = performance.now();
     await harness.signTempoTransaction('post_unlock');
     stages.push({ operation: 'signing', elapsedMs: performance.now() - start });
+    const previousContexts = browser.contexts();
+    const device = await harness.openLinkedDevice(browser, installCandidateAssets);
+    const opened = browser.contexts().filter(isNewContext.bind(undefined, previousContexts));
+    expect(opened).toHaveLength(1);
+    const deviceContext = opened[0];
+    evidence.start(deviceContext);
+    const lostAcknowledgement = new LostLinkedAcknowledgement(deviceContext, 2);
+    await lostAcknowledgement.arm();
+    const lostActivation = await device.loseLinkedActivationResponseOnce();
+    start = performance.now();
+    try {
+      await harness.linkDeviceWithPasskey(device);
+    } finally {
+      await lostAcknowledgement.release();
+      await lostActivation.release();
+    }
+    lostActivation.assertReplayed();
+    await lostAcknowledgement.verify(testInfo);
+    stages.push({ operation: 'link_with_lost_replies', elapsedMs: performance.now() - start });
+    start = performance.now();
+    await device.signNearTransaction('post_device_link');
+    await device.signTempoTransaction('post_device_link');
+    await harness.revokeLinkedDeviceWithOwnerPasskey();
+    await device.assertRevokedDeviceCannotSign();
+    await harness.signTempoTransaction('post_unlock');
+    stages.push({
+      operation: 'linked_signing_and_revocation_verified',
+      elapsedMs: performance.now() - start,
+    });
+    device.assertNoWrongAuthPath();
+    evidence.stop(deviceContext);
     harness.assertNoLifecycleViolations();
     harness.assertNoWrongAuthPath();
-    expect(stages).toHaveLength(4);
+    expect(stages).toHaveLength(6);
   } finally {
     const output = path.resolve(
       process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product',
@@ -112,5 +158,6 @@ test('hosted registration, lock, unlock, export and verified ECDSA signing', asy
     );
     await harness.attachTrace(testInfo);
     evidence.stop(context);
+    await harness.closeLinkedDevice(testInfo);
   }
 });

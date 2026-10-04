@@ -13,7 +13,7 @@ process.env.SEAMS_INTENDED_WALLET_ORIGIN = projection.hostedWalletOrigin;
 process.env.SEAMS_INTENDED_ROUTER_URL = projection.gatewayOrigin;
 process.env.SEAMS_INTENDED_PROJECT_ENVIRONMENT_ID = projection.environmentId;
 process.env.SEAMS_INTENDED_PUBLISHABLE_KEY = projection.publishableKey;
-process.env.SEAMS_INTENDED_PASSKEY_ECDSA_TARGET_PROFILE = 'tempo';
+process.env.SEAMS_INTENDED_PASSKEY_ECDSA_TARGET_PROFILE = 'tempo_arc';
 
 export default {
   tsconfig: path.join(publicRoot, 'tests/tsconfig.wallet-intended.json'),

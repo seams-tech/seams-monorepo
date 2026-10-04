@@ -3,10 +3,11 @@
 This test serves the candidate browser bundle under the active staging application's
 and wallet iframe's origins. Gateway, Console, custody and chain requests use the
 real network. It verifies registration, lock/reload, unlock, key export and an ECDSA
-signature. It then links Device 2 with one lost activation response and two lost
+signature. It cancels an unclaimed link, verifies unchanged inventory, then links Device 2 with one lost activation response and two lost
 cleanup acknowledgements, verifies both signer families, revokes Device 2 and
 verifies that only the owner can continue signing. Local browser assets do not
-prove a frontend deployment has completed.
+prove a frontend deployment has completed. A second case verifies that an unlock
+request containing an unprovisioned target produces a visible retryable failure.
 
 Use an already built public Wallet checkout and an activated staging tenant. From
 the private repository:

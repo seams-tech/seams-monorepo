@@ -109,6 +109,7 @@ test('hosted registration, lock, unlock, export and verified ECDSA signing', asy
     expect(opened).toHaveLength(1);
     const deviceContext = opened[0];
     evidence.start(deviceContext);
+    await harness.cancelUnclaimedDeviceLink(device);
     const lostAcknowledgement = new LostLinkedAcknowledgement(deviceContext, 2);
     await lostAcknowledgement.arm();
     const lostActivation = await device.loseLinkedActivationResponseOnce();
@@ -159,5 +160,53 @@ test('hosted registration, lock, unlock, export and verified ECDSA signing', asy
     await harness.attachTrace(testInfo);
     evidence.stop(context);
     await harness.closeLinkedDevice(testInfo);
+  }
+});
+
+test('hosted unlock rejects incomplete target inventory with visible retryable failure', async ({
+  context,
+  page,
+  request,
+}, testInfo) => {
+  await installCandidateAssets(context);
+  const previousProfile = process.env.SEAMS_INTENDED_PASSKEY_ECDSA_TARGET_PROFILE;
+  process.env.SEAMS_INTENDED_PASSKEY_ECDSA_TARGET_PROFILE = 'tempo';
+  const harness = new IntendedBehaviourHarness({
+    context,
+    page,
+    request,
+    flow: 'passkey.registration',
+    networkMode: 'hosted_product',
+  });
+  process.env.SEAMS_INTENDED_PASSKEY_ECDSA_TARGET_PROFILE = previousProfile;
+  try {
+    await harness.initialize();
+    await harness.registerPasskeyWallet();
+    await harness.awaitNearReady();
+    await harness.assertLockedPageReloadStaysLocked();
+    await expect(harness.unlockPasskeyWallet()).rejects.toThrow(
+      /Wallet auth menu failed: Something went wrong\./,
+    );
+    const frame = page.locator('iframe[allow*="publickey-credentials-get"]').last().contentFrame();
+    await expect(frame.locator('.seams-auth-footer[data-state="notice"] .seams-auth-footer-text')).toBeVisible();
+    const evidence = {
+      registeredTargets: ['tempo:42431'],
+      missingTarget: 'evm:5042002',
+      visibleMessage: 'Something went wrong.',
+      outcome: 'unlock rejected with retryable UI failure',
+    };
+    const output = path.resolve(
+      process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product',
+    );
+    await mkdir(output, { recursive: true });
+    await writeFile(path.join(output, 'missing-target-unlock.json'), JSON.stringify(evidence, null, 2), {
+      mode: 0o600,
+    });
+    await testInfo.attach('missing-target-unlock.json', {
+      contentType: 'application/json',
+      body: JSON.stringify(evidence),
+    });
+  } finally {
+    await harness.attachTrace(testInfo);
   }
 });

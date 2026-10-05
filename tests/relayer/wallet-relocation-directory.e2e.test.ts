@@ -172,6 +172,23 @@ async function moveStatus(runtime: Miniflare, key: WalletOwnershipKey, moveId: s
   );
 }
 
+async function replayMove(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  requestDigest: string,
+  key = request.wallet,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-replay',
+    {
+      method: 'POST',
+      headers: { 'x-test-catalog-json': '{malformed' },
+      body: JSON.stringify({ wallet: key, moveId: request.moveId, requestDigest }),
+    },
+  );
+}
+
 async function relocationCommand(
   runtime: Miniflare,
   key: WalletOwnershipKey,
@@ -649,6 +666,13 @@ test('relocation directory serializes competing moves and survives lost replies 
     const unrelatedMoveRead = await moveStatus(runtime, wallet('unrelated'), request.moveId);
     expect(unrelatedMoveRead.status).toBe(404);
     expect(await responseBody(unrelatedMoveRead)).toEqual({ state: 'unavailable', code: 'not_found' });
+    expect(await responseBody(await replayMove(runtime, request, await request.digest()))).toEqual(freezingStatus);
+    const conflictingReplay = await replayMove(runtime, request, '0'.repeat(64));
+    expect(conflictingReplay.status).toBe(409);
+    expect(await responseBody(conflictingReplay)).toEqual({ ok: false, code: 'request_conflict' });
+    expect((await replayMove(runtime, request, await request.digest(), foreignWallet)).status).toBe(403);
+    expect((await replayMove(runtime, request, await request.digest(), wallet('unrelated'))).status).toBe(404);
+    expect((await replayMove(runtime, request, 'invalid')).status).toBe(400);
     observations.push(freezingStatus);
     expect(
       await (
@@ -1268,6 +1292,8 @@ test('relocation directory serializes competing moves and survives lost replies 
       )
       .all();
     expect(await responseBody(await moveStatus(runtime, request.wallet, request.moveId))).toEqual(completedStatus);
+    expect(await responseBody(await replayMove(runtime, request, await request.digest()))).toEqual(completedStatus);
+    observations.push({ exactReplayAfterRestartIgnoresCatalogAndPreservesHistoricalMove: true });
     observations.push({ historicalMoveReadableDuringReturnAndAfterRestart: true });
     observations.push(completed, returning, history.results);
     await writeFile(

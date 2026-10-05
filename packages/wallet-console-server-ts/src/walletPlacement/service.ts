@@ -115,6 +115,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
@@ -125,12 +126,29 @@ export async function handleWalletHomeServiceRequest(
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
   try {
     const body = record(await request.json().catch(() => null));
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status`) {
-      const locator = WalletRelocationLocator.parse(body);
+    if (
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay`
+    ) {
+      const replay = url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay`;
+      if (
+        replay &&
+        (Object.keys(body).length !== 3 ||
+          typeof body.requestDigest !== 'string' ||
+          !/^[a-f0-9]{64}$/u.test(body.requestDigest))
+      ) {
+        throw new WalletPlacementError('invalid_input', 'Relocation replay digest is invalid');
+      }
+      const locator = WalletRelocationLocator.parse(
+        replay ? { wallet: body.wallet, moveId: body.moveId } : body,
+      );
       if (!inScope(locator.wallet, options.scope)) {
         throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
       }
       const move = await readWalletRelocation(options.database, locator);
+      if (move && replay && move.requestDigest !== body.requestDigest) {
+        return json({ ok: false, code: 'request_conflict' }, 409);
+      }
       return move
         ? json(walletRelocationStatusView(move))
         : json({ state: 'unavailable', code: 'not_found' }, 404);

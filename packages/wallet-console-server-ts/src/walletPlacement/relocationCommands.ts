@@ -31,6 +31,7 @@ type CommandEvidence =
       readonly kind: 'activate';
       readonly receipt: WalletRelocationReceipt<'destination_verification'>;
       readonly physicalResource: string;
+      readonly manifest: WalletAuthorizationManifest;
     }
   | {
       readonly kind: 'cleanup';
@@ -178,10 +179,15 @@ export class WalletD1RelocationCommand {
         if (!isPhysicalResource(resources.prepared_resource)) {
           return { ok: false, code: 'participant_conflict' };
         }
+        if (typeof resources.authorization_manifest_json !== 'string')
+          return { ok: false, code: 'source_manifest_unavailable' };
         operation = {
           kind: 'activate',
           receipt: progress.destinationVerification,
           physicalResource: resources.prepared_resource,
+          manifest: WalletAuthorizationManifest.parse(
+            JSON.parse(resources.authorization_manifest_json),
+          ),
         };
         home = move.destination;
         generation = move.destinationGeneration;

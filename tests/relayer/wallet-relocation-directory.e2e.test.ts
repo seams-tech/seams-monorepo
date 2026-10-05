@@ -1138,6 +1138,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         operation: {
           kind: 'activate',
           physicalResource: `${destination.databaseId}/walletRuntime/2`,
+          manifest: JSON.parse(authorizationManifest.encoded()),
           receipt: { kind: 'destination_verification', manifestDigest: manifest },
         },
       },

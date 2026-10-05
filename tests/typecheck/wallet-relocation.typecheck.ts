@@ -55,6 +55,13 @@ const prematureCleanupCommand: WalletD1RelocationCommand['operation'] = {
 };
 // @ts-expect-error Destination activation requires verification evidence.
 const missingCommandEvidence: WalletD1RelocationCommand['operation'] = { kind: 'activate' };
+// @ts-expect-error Activation must bind the locally verified authorization manifest.
+const missingActivationManifest: WalletD1RelocationCommand['operation'] = {
+  kind: 'activate',
+  receipt: destinationVerification,
+  physicalResource: 'destination',
+};
+void missingActivationManifest;
 // @ts-expect-error Source export requires the sealed source-fence receipt.
 const unsealedExport: WalletD1RelocationCommand['operation'] = { kind: 'export' };
 declare const authorizationManifest: WalletAuthorizationManifest;

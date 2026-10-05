@@ -167,7 +167,7 @@ export async function verifyAuthorizationRegionalTransfer(
 }
 
 class RegionalLifecycleParticipant {
-  pendingReason: 'ceremonies_unsettled' | 'session_operations_unsettled' = 'ceremonies_unsettled';
+  pendingReason: 'ceremonies_unsettled' | 'operations_unsettled' = 'ceremonies_unsettled';
   corruptReceipt = false;
   pending = true;
   constructor(
@@ -252,7 +252,7 @@ export async function verifyAuthorizationRegionalLifecycle(
   if (operation !== 'activate')
     expect(await adapter[operation](wallet, attempt, writer)).toEqual({ state: 'pending' });
   if (operation === 'freeze') {
-    participant.pendingReason = 'session_operations_unsettled';
+    participant.pendingReason = 'operations_unsettled';
     expect(await adapter.freeze(wallet, attempt, writer)).toEqual({ state: 'pending' });
   }
   participant.pending = false;

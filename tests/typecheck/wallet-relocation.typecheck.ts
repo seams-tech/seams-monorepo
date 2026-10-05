@@ -290,3 +290,15 @@ declare const registrationExecution: WalletExecutionAuthority<'registration'>;
 // @ts-expect-error Registration admission cannot authorize ordinary execution.
 const registrationAsOrdinary: WalletExecutionAuthority = registrationExecution;
 void registrationAsOrdinary;
+
+type FreezeEffect = Awaited<ReturnType<WalletRelocationEffects['freeze']>>;
+declare const frozenSource: Extract<FreezeEffect, { state: 'frozen' }>;
+// @ts-expect-error A draining source cannot provide a sealed snapshot receipt.
+const drainingWithReceipt: FreezeEffect = { state: 'pending', receipt: frozenSource.receipt };
+// @ts-expect-error A frozen source requires its complete snapshot receipt.
+const frozenWithoutReceipt: FreezeEffect = { state: 'frozen' };
+// @ts-expect-error Spreading a frozen result cannot retain its receipt while pending.
+const drainingFromFrozen: FreezeEffect = { ...frozenSource, state: 'pending' };
+void drainingWithReceipt;
+void frozenWithoutReceipt;
+void drainingFromFrozen;

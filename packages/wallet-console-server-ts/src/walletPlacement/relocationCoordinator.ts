@@ -15,6 +15,15 @@ type EffectResult<Kind extends WalletRelocationReceipt['kind']> =
   | { readonly ok: true; readonly receipt: WalletRelocationReceipt<Kind>; readonly code?: never }
   | { readonly ok: false; readonly code: WalletRelocationFailure; readonly receipt?: never };
 
+type FreezeEffectResult =
+  | { readonly state: 'pending'; readonly receipt?: never; readonly code?: never }
+  | {
+      readonly state: 'frozen';
+      readonly receipt: WalletRelocationReceipt<'source_fence'>;
+      readonly code?: never;
+    }
+  | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly receipt?: never };
+
 type TransferEffectResult =
   | { readonly state: 'pending'; readonly receipt?: never; readonly code?: never }
   | {
@@ -27,7 +36,7 @@ type TransferEffectResult =
 // Transport adapters authenticate every participant and aggregate their exact receipts.
 // A successful effect must remain repeatable after its caller loses the response.
 export interface WalletRelocationEffects {
-  freeze(context: EffectContext): Promise<EffectResult<'source_fence'>>;
+  freeze(context: EffectContext): Promise<FreezeEffectResult>;
   transfer(
     context: EffectContext,
     sourceFence: WalletRelocationReceipt<'source_fence'>,
@@ -81,7 +90,18 @@ export class WalletRelocationCoordinator {
     switch (progress.state) {
       case 'freezing': {
         const result = await this.effects.freeze(context);
-        if (!result.ok) return this.fail(context, result.code);
+        switch (result.state) {
+          case 'pending':
+            return claimed;
+          case 'failed':
+            return this.fail(context, result.code);
+          case 'frozen':
+            break;
+          default: {
+            const unexpected: never = result;
+            throw new Error(`Unexpected freeze result: ${String(unexpected)}`);
+          }
+        }
         transition = await this.journal.recordSourceFence(request, context.attempt, result.receipt);
         break;
       }

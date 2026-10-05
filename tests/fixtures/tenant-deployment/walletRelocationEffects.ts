@@ -9,8 +9,13 @@ export class RelocationFixtureEffects implements WalletRelocationEffects {
     private readonly failure: unknown,
   ) {}
 
-  async freeze() {
-    return this.result('source_fence');
+  async freeze(): ReturnType<WalletRelocationEffects['freeze']> {
+    if (this.failure !== null) return { state: 'failed', code: relocationFailure(this.failure) };
+    if (this.receipt === null) return { state: 'pending' };
+    return {
+      state: 'frozen',
+      receipt: WalletRelocationReceipt.parse(this.receipt, 'source_fence'),
+    };
   }
   async transfer(): ReturnType<WalletRelocationEffects['transfer']> {
     if (this.failure !== null) return { state: 'failed', code: relocationFailure(this.failure) };

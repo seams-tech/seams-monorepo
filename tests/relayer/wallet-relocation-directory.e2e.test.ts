@@ -1658,6 +1658,30 @@ test('relocation directory serializes competing moves and survives lost replies 
         )
       ).ok,
     ).toBe(true);
+    const pendingFreeze = await responseBody(
+      await call(runtime, {
+        action: 'advance',
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        receipt: null,
+        nowMs: admittedAtMs + 50,
+      }),
+    );
+    const freezingProgress = objectValue(objectValue(pendingFreeze.move).progress);
+    expect(freezingProgress.state).toBe('freezing');
+    expect(objectValue(freezingProgress.execution).state).toBe('running');
+    runtime = await restart(runtime, directory);
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'advance',
+          request: coordinated,
+          attemptId: attemptIdentity(),
+          receipt: null,
+          nowMs: admittedAtMs + 100,
+        }),
+      ),
+    ).toEqual(pendingFreeze);
     const lostFence = await call(
       runtime,
       {
@@ -1823,6 +1847,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       coordinator: {
         lostFenceReplyResumesNextPhaseAfterRestart: true,
+        pendingDrainPreservesRunningAttemptAcrossRestart: true,
         pendingChunksPreserveRunningAttemptAcrossRestart: true,
         activationPersistsBeforeCleanup: true,
         cleanupFailureLeavesDestinationActive: true,

@@ -1,3 +1,5 @@
+import { WalletRelocationCoordinator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
+import { RelocationFixtureEffects } from './walletRelocationEffects';
 import {
   relocationPreparationParticipants,
   relocationFixtureClock,
@@ -162,6 +164,13 @@ export default {
           );
           break;
         }
+        case 'advance':
+          result = await new WalletRelocationCoordinator(
+            moves,
+            new RelocationFixtureEffects(body.receipt, body.failure ?? null),
+            relocationFixtureClock.bind(null, relocationTimestamp(body.nowMs)),
+          ).advance(moveRequest, relocationAttemptId(body.attemptId));
+          break;
         case 'status':
           result = await moves.find(moveRequest);
           break;

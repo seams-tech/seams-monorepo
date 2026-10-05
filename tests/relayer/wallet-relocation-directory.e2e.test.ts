@@ -141,6 +141,11 @@ function start(directory: string): Miniflare {
   });
 }
 
+async function restart(runtime: Miniflare, directory: string): Promise<Miniflare> {
+  await runtime.dispose();
+  return start(directory);
+}
+
 async function call(runtime: Miniflare, body: unknown, ingress = 'ingress-a', loseReply = false) {
   const service = await runtime.getWorker(ingress);
   return service.fetch(`https://authority.test/${loseReply ? '?loseReply=1' : ''}`, {
@@ -1429,6 +1434,174 @@ test('relocation directory serializes competing moves and survives lost replies 
     );
     observations.push({ exactReplayAfterRestartIgnoresCatalogAndPreservesHistoricalMove: true });
     observations.push({ historicalMoveReadableDuringReturnAndAfterRestart: true });
+    await establish(runtime, "coordinator");
+    const coordinated = relocation("coordinator", destination);
+    expect(
+      (
+        await responseBody(
+          await call(runtime, {
+            action: "admit",
+            request: coordinated,
+            nowMs: admittedAtMs,
+          }),
+        )
+      ).ok,
+    ).toBe(true);
+    const lostFence = await call(
+      runtime,
+      {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        receipt: fence(coordinated),
+        nowMs: admittedAtMs + 110,
+      },
+      "ingress-a",
+      true,
+    );
+    expect(lostFence.status).toBe(503);
+    runtime = await restart(runtime, directory);
+    const copiedByCoordinator = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        receipt: verification(coordinated),
+        nowMs: admittedAtMs + 210,
+      }),
+    );
+    expect(
+      objectValue(objectValue(copiedByCoordinator.move).progress).state,
+    ).toBe("verified");
+    const switchedByCoordinator = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        nowMs: admittedAtMs + 300,
+      }),
+    );
+    expect(
+      objectValue(objectValue(switchedByCoordinator.move).progress).state,
+    ).toBe("cutover");
+    const activatedByCoordinator = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        receipt: relocationDestinationActivation(
+          coordinated,
+          admittedAtMs + 400,
+          manifest,
+        ),
+        nowMs: admittedAtMs + 410,
+      }),
+    );
+    expect(
+      objectValue(
+        objectValue(objectValue(activatedByCoordinator.move).progress).activation,
+      ).state,
+    ).toBe("activated");
+    runtime = await restart(runtime, directory);
+    const coordinatorCleanupFailure = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        failure: "transport_unavailable",
+        nowMs: admittedAtMs + 500,
+      }),
+    );
+    const failedProgress = objectValue(
+      objectValue(coordinatorCleanupFailure.move).progress,
+    );
+    expect(objectValue(failedProgress.execution).state).toBe("retry_wait");
+    expect(objectValue(failedProgress.activation).state).toBe("activated");
+    const activeDuringCleanup = await responseBody(
+      await placementStatus(runtime, coordinated.wallet),
+    );
+    expect(
+      objectValue(objectValue(activeDuringCleanup.move).progress).availability,
+    ).toBe("active");
+    const tooEarly = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        nowMs: admittedAtMs + 600,
+      }),
+    );
+    expect(tooEarly.code).toBe("retry_wait");
+    const coordinatorCompleted = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: coordinated,
+        attemptId: attemptIdentity(),
+        receipt: relocationSourceCleanup(
+          coordinated,
+          source,
+          admittedAtMs + 1600,
+          manifest,
+        ),
+        nowMs: admittedAtMs + 1610,
+      }),
+    );
+    expect(
+      objectValue(objectValue(coordinatorCompleted.move).progress).state,
+    ).toBe("completed");
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: "advance",
+          request: coordinated,
+          attemptId: attemptIdentity(),
+          nowMs: admittedAtMs + 1700,
+        }),
+      ),
+    ).toEqual(coordinatorCompleted);
+    await establish(runtime, "coordinator-conflict");
+    const conflicted = relocation("coordinator-conflict", destination);
+    await call(runtime, {
+      action: "admit",
+      request: conflicted,
+      nowMs: admittedAtMs,
+    });
+    await call(runtime, {
+      action: "advance",
+      request: conflicted,
+      attemptId: attemptIdentity(),
+      receipt: fence(conflicted),
+      nowMs: admittedAtMs + 110,
+    });
+    const blockedByCoordinator = await responseBody(
+      await call(runtime, {
+        action: "advance",
+        request: conflicted,
+        attemptId: attemptIdentity(),
+        receipt: relocationDestinationVerification(
+          conflicted,
+          admittedAtMs + 200,
+          "8".repeat(64),
+        ),
+        nowMs: admittedAtMs + 210,
+      }),
+    );
+    const blockedExecution = objectValue(
+      objectValue(objectValue(blockedByCoordinator.move).progress).execution,
+    );
+    expect(blockedExecution.state).toBe("blocked");
+    expect(blockedExecution.code).toBe("receipt_conflict");
+    observations.push({
+      coordinator: {
+        lostFenceReplyResumesNextPhaseAfterRestart: true,
+        activationPersistsBeforeCleanup: true,
+        cleanupFailureLeavesDestinationActive: true,
+        retryDelayEnforced: true,
+        completionReplaySkipsEffects: true,
+        conflictingReceiptBlocksExecution: true,
+        completed: coordinatorCompleted,
+      },
+    });
     observations.push(completed, returning, history.results);
     await writeFile(
       testInfo.outputPath('wallet-relocation-directory-evidence.json'),

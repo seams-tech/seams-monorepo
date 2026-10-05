@@ -109,7 +109,11 @@ export class WalletAuthorizationRelocation {
         walletId: wallet.walletId,
         attempt,
       });
-      if (response.kind === 'authorization_pending' && response.reason === 'ceremonies_unsettled')
+      if (
+        response.kind === 'authorization_pending' &&
+        (response.reason === 'ceremonies_unsettled' ||
+          response.reason === 'session_operations_unsettled')
+      )
         return { state: 'pending' };
       if (response.kind !== 'authorization_frozen')
         throw new AuthorizationRelocationFailure('receipt_conflict');

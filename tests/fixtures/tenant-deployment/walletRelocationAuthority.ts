@@ -41,10 +41,14 @@ export default {
     const home = catalog.select('WEUR');
     const serviceResponse = await handleWalletHomeServiceRequest(request, {
       database: env.CONSOLE_DB,
-      writer: parseTenantRuntimeWriterV1('gateway', home.databaseId, {
-        accountId: home.accountId,
-        databaseId: home.databaseId,
-      }),
+      writer: parseTenantRuntimeWriterV1(
+        request.headers.get('x-seams-writer-role') ?? 'gateway',
+        home.databaseId,
+        {
+          accountId: request.headers.get('x-seams-writer-account') ?? home.accountId,
+          databaseId: request.headers.get('x-seams-writer-database') ?? home.databaseId,
+        },
+      ),
       catalogJson: env.CATALOG_JSON,
       admittedResources: catalog.deploymentResources(),
       scope: {

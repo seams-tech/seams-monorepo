@@ -12,6 +12,8 @@ import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-conso
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import { readWalletPlacementStatus } from './relocationStatus';
+import { WalletD1RelocationCommand, parseWalletRelocationCommandKind } from './relocationCommands';
+import { WalletRelocationAttempt } from './relocationExecution';
 import {
   RegistrationSetupAllocation,
   WalletHome,
@@ -109,6 +111,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
@@ -221,6 +224,17 @@ export async function handleWalletHomeServiceRequest(
       return json({ ok: true });
     }
     switch (url.pathname) {
+      case `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command`: {
+        const outcome = await WalletD1RelocationCommand.authorize(
+          options.database,
+          wallet,
+          options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseWalletRelocationCommandKind(body.kind),
+        );
+        if (!outcome.ok) return json(outcome, 409);
+        return json({ ok: true, command: outcome.command, digest: await outcome.command.digest() });
+      }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`:
         return json(await readWalletPlacementStatus(options.database, wallet));
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {

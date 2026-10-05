@@ -158,6 +158,30 @@ async function placementStatus(runtime: Miniflare, key: WalletOwnershipKey) {
   );
 }
 
+async function relocationCommand(
+  runtime: Miniflare,
+  key: WalletOwnershipKey,
+  attempt: WalletRelocationAttempt,
+  kind: 'freeze' | 'verify' | 'activate' | 'cleanup',
+  home = source,
+  role = 'gateway',
+) {
+  const service = await runtime.getWorker('ingress-b');
+  const response = await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-command',
+    {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': role,
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: key, attempt, kind }),
+    },
+  );
+  return responseBody(response);
+}
+
 async function establish(runtime: Miniflare, walletId: string): Promise<Record<string, unknown>> {
   const allocation = RegistrationSetupAllocation.parse({
     ceremonyId: `wrc_${walletId}`,
@@ -385,6 +409,36 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(claimRace[0].status).toBe(503);
     const freezeAttempt = attemptFromResponse(await responseBody(claimRace[1]));
     expect(freezeAttempt.number).toBe(1);
+    const freezeCommand = await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze');
+    expect(freezeCommand).toMatchObject({
+      ok: true,
+      command: {
+        wallet: request.wallet,
+        moveId: request.moveId,
+        participant: 'gateway',
+        home: source,
+        generation: 1,
+        operation: { kind: 'freeze' },
+      },
+    });
+    expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze')).toEqual(
+      freezeCommand,
+    );
+    expect(
+      await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze', destination),
+    ).toEqual({
+      ok: false,
+      code: 'participant_conflict',
+    });
+    expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'cleanup')).toEqual({
+      ok: false,
+      code: 'phase_conflict',
+    });
+    expect(await relocationCommand(runtime, wallet('unrelated'), freezeAttempt, 'freeze')).toEqual({
+      ok: false,
+      code: 'attempt_conflict',
+    });
+    observations.push(freezeCommand);
     const freezingStatus = await responseBody(await placementStatus(runtime, request.wallet));
     expect(freezingStatus).toMatchObject({
       state: 'moving',
@@ -447,6 +501,22 @@ test('relocation directory serializes competing moves and survives lost replies 
       ).json(),
     ).toEqual({ ok: false, code: 'receipt_conflict' });
     const copyAttempt = await claim(runtime, request, 'copying', admittedAtMs + 100);
+    const verificationCommand = await relocationCommand(
+      runtime,
+      request.wallet,
+      copyAttempt,
+      'verify',
+      destination,
+    );
+    expect(verificationCommand).toMatchObject({
+      ok: true,
+      command: {
+        home: destination,
+        generation: 2,
+        operation: { kind: 'verify', receipt: { kind: 'source_fence', manifestDigest: manifest } },
+      },
+    });
+    observations.push(verificationCommand);
     expect(
       await (
         await call(runtime, {
@@ -504,6 +574,35 @@ test('relocation directory serializes competing moves and survives lost replies 
       code: 'wallet_relocation_in_progress',
     });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze')).toEqual({
+      ok: false,
+      code: 'attempt_conflict',
+    });
+    expect(await relocationCommand(runtime, request.wallet, activationAttempt, 'cleanup')).toEqual({
+      ok: false,
+      code: 'phase_conflict',
+    });
+    const activationCommand = await relocationCommand(
+      runtime,
+      request.wallet,
+      activationAttempt,
+      'activate',
+      destination,
+      'walletRuntime',
+    );
+    expect(activationCommand).toMatchObject({
+      ok: true,
+      command: {
+        participant: 'walletRuntime',
+        home: destination,
+        generation: 2,
+        operation: {
+          kind: 'activate',
+          receipt: { kind: 'destination_verification', manifestDigest: manifest },
+        },
+      },
+    });
+    observations.push(activationCommand);
     const cutoverDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
     expect(
       await cutoverDatabase
@@ -614,6 +713,30 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(activated);
+    expect(
+      await relocationCommand(runtime, request.wallet, activationAttempt, 'activate', destination),
+    ).toEqual({
+      ok: false,
+      code: 'phase_conflict',
+    });
+    const cleanupCommand = await relocationCommand(
+      runtime,
+      request.wallet,
+      activationAttempt,
+      'cleanup',
+    );
+    expect(cleanupCommand).toMatchObject({
+      ok: true,
+      command: {
+        home: source,
+        generation: 1,
+        operation: {
+          kind: 'cleanup',
+          receipt: { kind: 'destination_activation', manifestDigest: manifest },
+        },
+      },
+    });
+    observations.push(cleanupCommand);
     const newAssignment = await responseBody(
       await call(runtime, { action: 'home', wallet: request.wallet }),
     );
@@ -669,6 +792,10 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(cleanupFailure);
+    expect(await relocationCommand(runtime, request.wallet, activationAttempt, 'cleanup')).toEqual({
+      ok: false,
+      code: 'attempt_conflict',
+    });
     const cleanupStatus = await responseBody(await placementStatus(runtime, request.wallet));
     expect(cleanupStatus).toMatchObject({
       state: 'moving',
@@ -707,6 +834,9 @@ test('relocation directory serializes competing moves and survives lost replies 
       ),
     ).toEqual(cleanupFailure);
     const completionAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 1430);
+    expect(await relocationCommand(runtime, request.wallet, completionAttempt, 'cleanup')).toEqual(
+      cleanupCommand,
+    );
     expect(completionAttempt.number).toBe(2);
     expect(completionAttempt.run).toBe(activationAttempt.run);
     expect(

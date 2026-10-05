@@ -7,6 +7,7 @@ import {
 import type { WalletRelocationAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import type { WalletPlacementStatus } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStatus';
+import type { WalletD1RelocationCommand } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCommands';
 import type {
   WalletRelocationAttempt,
   WalletRelocationExecution,
@@ -19,6 +20,20 @@ declare const destinationVerification: WalletRelocationReceipt<'destination_veri
 declare const assignment: WalletHomeAssignment & { readonly state: 'established' };
 declare const attempt: WalletRelocationAttempt;
 declare const activation: WalletRelocationReceipt<'destination_activation'>;
+
+declare const command: WalletD1RelocationCommand;
+// @ts-expect-error A spread cannot forge command authorization from a journal read.
+const forgedCommand: WalletD1RelocationCommand = { ...command };
+// @ts-expect-error Cleanup requires destination activation evidence.
+const prematureCleanupCommand: WalletD1RelocationCommand['operation'] = {
+  kind: 'cleanup',
+  receipt: sourceFence,
+};
+// @ts-expect-error Destination activation requires verification evidence.
+const missingCommandEvidence: WalletD1RelocationCommand['operation'] = { kind: 'activate' };
+void forgedCommand;
+void prematureCleanupCommand;
+void missingCommandEvidence;
 
 // @ts-expect-error A moving wallet requires its journal, including activation and retry state.
 const missingMoveStatus: WalletPlacementStatus = { state: 'moving' };

@@ -1,3 +1,4 @@
+import { verifyAuthorizationRegionalTransfer } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
@@ -967,6 +968,9 @@ test('relocation directory serializes competing moves and survives lost replies 
       authorizationImport,
       authorizationManifestImmutable: true,
     });
+    observations.push(await verifyAuthorizationRegionalTransfer(
+      database, request.wallet, copyAttempt, source, destination,
+    ));
     const verificationCommand = await relocationCommand(
       runtime,
       request.wallet,

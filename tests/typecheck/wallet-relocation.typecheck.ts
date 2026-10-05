@@ -249,3 +249,20 @@ const destinationAsSource: WalletD1RelocationCommand['operation'] = {
 void unpinnedVerification;
 void unpinnedActivation;
 void destinationAsSource;
+
+import type { WalletAuthorizationTransfer } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationTransfer';
+type AuthorizationTransferResult = Awaited<ReturnType<WalletAuthorizationTransfer['advance']>>;
+// @ts-expect-error A component verification cannot also request another chunk.
+const invalidTransferResult: AuthorizationTransferResult = {
+  state: 'verified',
+  digestHex: 'a'.repeat(64),
+  nextIndex: 1,
+};
+declare const transferResult: AuthorizationTransferResult;
+// @ts-expect-error A spread cannot add failure state to a successful transfer.
+const invalidTransferSpread: AuthorizationTransferResult = {
+  ...transferResult,
+  code: 'transport_unavailable',
+};
+void invalidTransferResult;
+void invalidTransferSpread;

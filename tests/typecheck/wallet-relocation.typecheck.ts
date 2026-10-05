@@ -1,3 +1,4 @@
+import type { WalletPlacementView } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationView';
 import {
   WalletRelocation,
   WalletRelocationReceipt,
@@ -154,3 +155,39 @@ void blockedRetry;
 void retryConflict;
 void swappedCleanup;
 void missingCompletion;
+
+type MovingView = WalletPlacementView & { readonly state: 'moving' };
+declare const movingView: MovingView;
+// @ts-expect-error A paused phase cannot claim the destination is active.
+const prematureActiveView: MovingView['move']['progress'] = {
+  state: 'copying',
+  availability: 'active',
+  execution: { state: 'running' },
+};
+// @ts-expect-error Cleanup cannot claim the wallet is paused.
+const pausedCleanupView: MovingView['move']['progress'] = {
+  state: 'cleanup',
+  availability: 'paused',
+  execution: { state: 'ready' },
+};
+// @ts-expect-error A retry requires its original retry deadline.
+const missingViewDeadline: MovingView['move']['progress']['execution'] = {
+  state: 'retry_wait',
+  code: 'transport_unavailable',
+};
+// @ts-expect-error Progress observations carry no participant authority.
+const viewAsAuthority: WalletD1RelocationCommand = movingView;
+void prematureActiveView;
+void pausedCleanupView;
+void missingViewDeadline;
+void viewAsAuthority;
+
+declare const pausedProgressView: MovingView['move']['progress'] & {
+  readonly availability: 'paused';
+};
+// @ts-expect-error A broad spread cannot carry paused availability into cleanup.
+const mixedProgressView: MovingView['move']['progress'] = {
+  ...pausedProgressView,
+  state: 'cleanup',
+};
+void mixedProgressView;

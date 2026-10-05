@@ -399,7 +399,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     const original = await establish(runtime, 'traveller');
     expect(await responseBody(await placementStatus(runtime, wallet('traveller')))).toEqual({
       state: 'settled',
-      home: source,
+      region: source.region,
       generation: 1,
       nextMoveAtMs: 0,
     });
@@ -596,19 +596,22 @@ test('relocation directory serializes competing moves and survives lost replies 
     });
     observations.push(freezeCommand);
     const freezingStatus = await responseBody(await placementStatus(runtime, request.wallet));
-    expect(freezingStatus).toMatchObject({
-      state: 'moving',
-      move: {
-        moveId: request.moveId,
-        progress: {
-          state: 'freezing',
-          execution: { state: 'running', attempt: freezeAttempt },
-        },
-      },
-    });
     expect(await responseBody(await placementStatus(runtime, request.wallet))).toEqual(
       freezingStatus,
     );
+    expect(freezingStatus).toEqual({
+      state: 'moving',
+      move: {
+        moveId: request.moveId,
+        sourceRegion: source.region,
+        destinationRegion: destination.region,
+        sourceGeneration: 1,
+        destinationGeneration: 2,
+        admittedAtMs,
+        nextMoveAtMs: admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS,
+        progress: { state: 'freezing', availability: 'paused', execution: { state: 'running' } },
+      },
+    });
     observations.push(freezingStatus);
     expect(
       await (
@@ -720,8 +723,8 @@ test('relocation directory serializes competing moves and survives lost replies 
       move: {
         moveId: request.moveId,
         progress: {
-          state: 'cutover',
-          activation: { state: 'awaiting_activation' },
+          state: 'activating',
+          availability: 'paused',
         },
       },
     });
@@ -958,8 +961,8 @@ test('relocation directory serializes competing moves and survives lost replies 
       move: {
         moveId: request.moveId,
         progress: {
-          state: 'cutover',
-          activation: { state: 'activated' },
+          state: 'cleanup',
+          availability: 'active',
           execution: { state: 'retry_wait', retryAtMs: admittedAtMs + 1430 },
         },
       },
@@ -1047,7 +1050,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(completed).toMatchObject({ ok: true, move: { progress: { state: 'completed' } } });
     expect(await responseBody(await placementStatus(runtime, request.wallet))).toEqual({
       state: 'settled',
-      home: destination,
+      region: destination.region,
       generation: 2,
       nextMoveAtMs: admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS,
     });
@@ -1126,7 +1129,10 @@ test('relocation directory serializes competing moves and survives lost replies 
       observations.push(failed);
       expect(await responseBody(await placementStatus(runtime, returnMove.wallet))).toMatchObject({
         state: 'moving',
-        move: objectValue(failed.move),
+        move: {
+          moveId: returnMove.moveId,
+          progress: { execution: { state: number === 6 ? 'blocked' : 'retry_wait' } },
+        },
       });
       if (number === 3) {
         await runtime.dispose();

@@ -12,6 +12,7 @@ import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-conso
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import { readWalletPlacementStatus } from './relocationStatus';
+import { walletPlacementView } from './relocationView';
 import { WalletD1RelocationCommand, parseWalletRelocationCommandKind } from './relocationCommands';
 import { WalletRelocationAttempt } from './relocationExecution';
 import {
@@ -236,7 +237,7 @@ export async function handleWalletHomeServiceRequest(
         return json({ ok: true, command: outcome.command, digest: await outcome.command.digest() });
       }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`:
-        return json(await readWalletPlacementStatus(options.database, wallet));
+        return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {
         const assignment = await directory.find(wallet);
         return assignment

@@ -325,7 +325,13 @@ for (const region of ['US', 'WEUR', 'APAC', 'OC']) {
   workers.push({
     name: `home-${region}`,
     modules: true,
-    script: 'export default { fetch(request, env) { return env.TARGET.fetch(request); } };',
+    script: `export default {
+      fetch(request, env) {
+        const headers = new Headers(request.headers);
+        headers.set('x-seams-wallet-forwarded', '1');
+        return env.TARGET.fetch(new Request(request, { headers }));
+      }
+    };`,
     serviceBindings: { TARGET: region },
     compatibilityDate: '2026-06-12',
   });

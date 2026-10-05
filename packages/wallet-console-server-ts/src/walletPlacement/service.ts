@@ -1,3 +1,4 @@
+import { WalletExecutionAuthority } from './executionAuthority';
 import {
   WalletAuthorizationManifest,
   recordWalletAuthorizationManifest,
@@ -118,6 +119,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/execution-authority` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
@@ -222,6 +224,19 @@ export async function handleWalletHomeServiceRequest(
     const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
     if (!catalog.matchesResources(options.admittedResources)) {
       return json({ ok: false, code: 'wallet_home_resources_unverified' }, 503);
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/execution-authority`) {
+      if (Object.keys(body).length !== 1)
+        throw new WalletPlacementError('invalid_input', 'Execution authority fields are invalid');
+      const wallet = WalletOwnershipKey.parse(body.wallet);
+      if (!inScope(wallet, options.scope))
+        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      const admitted = await WalletExecutionAuthority.admit(
+        options.database,
+        wallet,
+        options.writer,
+      );
+      return json(admitted, admitted.ok ? 200 : 409);
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request`) {
       if (Object.keys(body).length !== 5) {

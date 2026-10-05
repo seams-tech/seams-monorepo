@@ -276,3 +276,12 @@ const pendingWithReceipt: TransferEffect = { state: 'pending', receipt: verified
 const verifiedWithoutReceipt: TransferEffect = { state: 'verified' };
 void pendingWithReceipt;
 void verifiedWithoutReceipt;
+
+import { WalletExecutionAuthority } from '../../packages/wallet-console-server-ts/src/walletPlacement/executionAuthority';
+declare const executionAuthority: WalletExecutionAuthority;
+// @ts-expect-error A copied observation cannot forge execution admission.
+const forgedExecutionAuthority: WalletExecutionAuthority = { ...executionAuthority };
+// @ts-expect-error Construction must use the Console admission boundary.
+const directExecutionAuthority = new WalletExecutionAuthority();
+void forgedExecutionAuthority;
+void directExecutionAuthority;

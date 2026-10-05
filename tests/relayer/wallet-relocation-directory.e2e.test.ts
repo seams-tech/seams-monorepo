@@ -266,6 +266,23 @@ async function relocationCommand(
   return responseBody(response);
 }
 
+async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/execution-authority',
+    {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': 'gateway',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'gateway'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: key }),
+    },
+  ));
+}
+
 async function establish(runtime: Miniflare, walletId: string): Promise<Record<string, unknown>> {
   const allocation = RegistrationSetupAllocation.parse({
     ceremonyId: `wrc_${walletId}`,
@@ -478,6 +495,13 @@ test('relocation directory serializes competing moves and survives lost replies 
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
     const original = await establish(runtime, 'traveller');
+    expect(await executionAuthority(runtime, wallet('traveller'), source)).toMatchObject({
+      ok: true, authority: { wallet: wallet('traveller'), home: source, generation: 1, participant: 'gateway' },
+    });
+    expect(await executionAuthority(runtime, wallet('traveller'), destination)).toEqual({
+      ok: false, code: 'writer_home_mismatch',
+    });
+
     expect(await responseBody(await placementStatus(runtime, wallet('traveller')))).toEqual({
       state: 'settled',
       region: source.region,
@@ -811,6 +835,12 @@ test('relocation directory serializes competing moves and survives lost replies 
         .prepare("UPDATE wallet_homes SET region = 'APAC' WHERE wallet_id = 'traveller'")
         .run(),
     ).rejects.toThrow();
+    expect(await executionAuthority(runtime, request.wallet, source)).toEqual({
+      ok: false, code: 'wallet_paused',
+    });
+    expect(await executionAuthority(runtime, request.wallet, destination)).toEqual({
+      ok: false, code: 'wallet_paused',
+    });
     const authorizationManifest = relocationAuthorizationManifest();
     expect(
       (
@@ -1076,6 +1106,10 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(cutoverStatus);
+    expect(await executionAuthority(runtime, request.wallet, destination)).toEqual({
+      ok: false, code: 'wallet_paused',
+    });
+
     expect(await (await call(runtime, { action: 'home', wallet: request.wallet })).json()).toEqual({
       code: 'wallet_relocation_in_progress',
     });
@@ -1225,6 +1259,14 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(activated);
+    expect(await executionAuthority(runtime, request.wallet, destination)).toMatchObject({
+      ok: true, authority: { wallet: request.wallet, home: destination, generation: 2, participant: 'gateway' },
+    });
+    expect(await executionAuthority(runtime, request.wallet, source)).toEqual({
+      ok: false, code: 'writer_home_mismatch',
+    });
+    observations.push({ executionAuthorityRequiresActiveLocalGeneration: true });
+
     expect(
       await relocationCommand(runtime, request.wallet, activationAttempt, 'activate', destination),
     ).toEqual({

@@ -54,6 +54,9 @@ const prematureCleanupCommand: WalletD1RelocationCommand['operation'] = {
 };
 // @ts-expect-error Destination activation requires verification evidence.
 const missingCommandEvidence: WalletD1RelocationCommand['operation'] = { kind: 'activate' };
+// @ts-expect-error Source export requires the sealed source-fence receipt.
+const unsealedExport: WalletD1RelocationCommand['operation'] = { kind: 'export' };
+void unsealedExport;
 void forgedCommand;
 void prematureCleanupCommand;
 void missingCommandEvidence;

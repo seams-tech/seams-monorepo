@@ -217,7 +217,7 @@ async function relocationCommand(
   runtime: Miniflare,
   key: WalletOwnershipKey,
   attempt: WalletRelocationAttempt,
-  kind: 'freeze' | 'verify' | 'activate' | 'cleanup',
+  kind: 'freeze' | 'export' | 'verify' | 'activate' | 'cleanup',
   home = source,
   role = 'gateway',
   versionId = relocationWriterVersion(home.databaseId, role),
@@ -807,7 +807,55 @@ test('relocation directory serializes competing moves and survives lost replies 
         })
       ).json(),
     ).toEqual({ ok: false, code: 'receipt_conflict' });
-    const copyAttempt = await claim(runtime, request, 'copying', admittedAtMs + 100);
+    expect(
+      await relocationCommand(runtime, request.wallet, freezeAttempt, "export"),
+    ).toEqual({
+      ok: false,
+      code: "attempt_conflict",
+    });
+    const copyAttempt = await claim(
+      runtime,
+      request,
+      "copying",
+      admittedAtMs + 100,
+    );
+    const exportCommand = await relocationCommand(
+      runtime,
+      request.wallet,
+      copyAttempt,
+      "export",
+    );
+    expect(exportCommand).toMatchObject({
+      ok: true,
+      command: {
+        home: source,
+        generation: 1,
+        requestDigest: await request.digest(),
+        operation: {
+          kind: "export",
+          receipt: { kind: "source_fence", manifestDigest: manifest },
+        },
+      },
+    });
+    expect(
+      await relocationCommand(runtime, request.wallet, copyAttempt, "export"),
+    ).toEqual(exportCommand);
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        copyAttempt,
+        "export",
+        destination,
+      ),
+    ).toEqual({
+      ok: false,
+      code: "participant_conflict",
+    });
+    observations.push({
+      sourceExportCommand: exportCommand,
+      destinationCannotAuthorizeSourceExport: true,
+    });
     const verificationCommand = await relocationCommand(
       runtime,
       request.wallet,

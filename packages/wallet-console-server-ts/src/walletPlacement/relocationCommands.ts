@@ -11,6 +11,11 @@ import { readWalletPlacementStatus } from './relocationStatus';
 type CommandEvidence =
   | { readonly kind: 'freeze'; readonly receipt?: never; readonly physicalResource?: never }
   | {
+      readonly kind: 'export';
+      readonly receipt: WalletRelocationReceipt<'source_fence'>;
+      readonly physicalResource?: never;
+    }
+  | {
       readonly kind: 'verify';
       readonly receipt: WalletRelocationReceipt<'source_fence'>;
       readonly physicalResource: string;
@@ -123,6 +128,12 @@ export class WalletD1RelocationCommand {
         home = move.source;
         generation = move.sourceGeneration;
         break;
+      case 'export':
+        if (progress.state !== 'copying') return { ok: false, code: 'phase_conflict' };
+        operation = { kind: 'export', receipt: progress.sourceFence };
+        home = move.source;
+        generation = move.sourceGeneration;
+        break;
       case 'verify':
         if (progress.state !== 'copying') return { ok: false, code: 'phase_conflict' };
         if (!isPhysicalResource(resources.prepared_resource)) {
@@ -205,6 +216,7 @@ function hexByte(value: number): string {
 export function parseWalletRelocationCommandKind(raw: unknown): CommandEvidence['kind'] {
   switch (raw) {
     case 'freeze':
+    case 'export':
     case 'verify':
     case 'activate':
     case 'cleanup':

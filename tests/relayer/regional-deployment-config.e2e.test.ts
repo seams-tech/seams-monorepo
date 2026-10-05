@@ -63,7 +63,6 @@ test('regional rollout renders one shared Console and four isolated writer pairs
     gatewayBindings.push({
       binding: `WALLET_GATEWAY_${resource.region}`,
       service: `seams-sdk-d1-gateway-testnet${resource.suffix}`,
-      entrypoint: 'WalletHomeGateway',
     });
     runtimeBindings.push({
       binding: `WALLET_RUNTIME_${resource.region}`,

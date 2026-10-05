@@ -99,13 +99,7 @@ class GatewayBridge {
   constructor(region) {
     this.region = region;
   }
-  ingress(request) {
-    return this.handle(request, 'ingress');
-  }
-  home(request) {
-    return this.handle(request, 'home');
-  }
-  async handle(request, entry) {
+  async handle(request) {
     if (
       this.runtimeIdentities &&
       new URL(request.url).origin === 'https://wallet-runtime.internal'
@@ -116,7 +110,7 @@ class GatewayBridge {
     const response = await api.dispatchKnownWalletHome(
       request,
       this.authority,
-      new api.WalletRegionalDispatch(this.bindings, entry),
+      new api.WalletRegionalDispatch(this.bindings),
       'regional-google-test',
     );
     if (response) return response;
@@ -323,10 +317,8 @@ for (const region of ['US', 'WEUR', 'APAC', 'OC']) {
     name: region,
     routes: region === 'APAC' ? ['wallet.test/*', 'untrusted.test/*'] : [],
     modules: true,
-    script: `import { WorkerEntrypoint } from 'cloudflare:workers';
-    export class WalletHomeGateway extends WorkerEntrypoint { fetch(request) { return this.env.HOME.fetch(request); } }
-    export default { fetch(request, env) { return env.INGRESS.fetch(request); } };`,
-    serviceBindings: { INGRESS: bridge.ingress.bind(bridge), HOME: bridge.home.bind(bridge) },
+    script: 'export default { fetch(request, env) { return env.HANDLER.fetch(request); } };',
+    serviceBindings: { HANDLER: bridge.handle.bind(bridge) },
     d1Databases: { SIGNER_DB: region },
     compatibilityDate: '2026-06-12',
   });
@@ -334,7 +326,7 @@ for (const region of ['US', 'WEUR', 'APAC', 'OC']) {
     name: `home-${region}`,
     modules: true,
     script: 'export default { fetch(request, env) { return env.TARGET.fetch(request); } };',
-    serviceBindings: { TARGET: { name: region, entrypoint: 'WalletHomeGateway' } },
+    serviceBindings: { TARGET: region },
     compatibilityDate: '2026-06-12',
   });
 }

@@ -1,5 +1,4 @@
 /// <reference types="@cloudflare/workers-types" />
-import { WorkerEntrypoint } from 'cloudflare:workers';
 import { parseWalletId, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
 import {
@@ -22,7 +21,7 @@ type Env = RegionalGatewayBindings & {
   CATALOG_JSON: string;
 };
 
-async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Promise<Response> {
+async function handle(request: Request, env: Env): Promise<Response> {
   // Authentication is a controlled fixture; reservation, dispatch and D1 are production implementations.
   if (request.headers.get('Authorization') !== 'Bearer test-application')
     return new Response(null, { status: 401 });
@@ -44,7 +43,7 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
     catalogJson: env.CATALOG_JSON,
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
-  const transport = new WalletRegionalDispatch(env, entry);
+  const transport = new WalletRegionalDispatch(env);
   const forwarded = await dispatchKnownWalletHome(request, authority, transport, undefined);
   if (forwarded) return forwarded;
   const body: unknown = await request.json();
@@ -121,15 +120,9 @@ async function handle(request: Request, env: Env, entry: 'ingress' | 'home'): Pr
   return Response.json({ ok: true, region: home.region, walletId: assignment.wallet.walletId });
 }
 
-export class WalletHomeGateway extends WorkerEntrypoint<Env> {
-  override fetch(request: Request): Promise<Response> {
-    return handle(request, this.env, 'home');
-  }
-}
-
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
-    return handle(request, env, 'ingress');
+    return handle(request, env);
   },
 };
 

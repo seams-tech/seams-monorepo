@@ -392,7 +392,6 @@ function regionalGatewayBindings(deployment) {
     bindings.push({
       binding: `WALLET_GATEWAY_${region}`,
       service: deployment.resources.regions[region].workerName,
-      entrypoint: 'WalletHomeGateway',
     });
   }
   return bindings;

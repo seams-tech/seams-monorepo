@@ -28,7 +28,6 @@ export async function verifyRegionalWalletDispatch(
       headers: {
         Authorization: 'Bearer test-application',
         'x-seams-wallet-home': 'https://untrusted.invalid',
-        'x-seams-wallet-forwarded': 'yes',
       },
       body: JSON.stringify({ operationId: `regional-dispatch-${home.region}` }),
       cf,
@@ -38,6 +37,20 @@ export async function verifyRegionalWalletDispatch(
       headers: {},
     });
     expect(unauthorized.status).toBe(401);
+    const exhausted = await ingress.fetch('https://wallet.test/wallets/register/setup', {
+      ...request,
+      headers: { ...request.headers, 'x-seams-wallet-forwarded': '1' },
+    });
+    expect(exhausted.status).toBe(409);
+    expect(await exhausted.json()).toMatchObject({ code: 'wallet_home_mismatch' });
+    const exhaustedUnauthorized = await ingress.fetch(
+      'https://wallet.test/wallets/register/setup',
+      {
+        ...request,
+        headers: { 'x-seams-wallet-forwarded': '1' },
+      },
+    );
+    expect(exhaustedUnauthorized.status).toBe(401);
     const discarded = await ingress.fetch('https://wallet.test/wallets/register/setup', request);
     expect(discarded.status).toBe(200);
     const first = await discarded.json();

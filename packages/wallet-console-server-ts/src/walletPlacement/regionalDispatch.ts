@@ -18,19 +18,18 @@ export type RegionalGatewayBindings = {
 };
 
 export class WalletRegionalDispatch {
-  constructor(
-    private readonly bindings: RegionalGatewayBindings,
-    private readonly entry: 'ingress' | 'home',
-  ) {}
+  constructor(private readonly bindings: RegionalGatewayBindings) {}
 
   async forward(home: WalletHome, original: Request): Promise<Response> {
-    if (this.entry === 'home') {
+    // This marker can only restrict forwarding. It grants no authority: the
+    // destination still resolves the wallet home and authenticates the request.
+    if (original.headers.has('x-seams-wallet-forwarded')) {
       return Response.json({ ok: false, code: 'wallet_home_mismatch' }, { status: 409 });
     }
     const headers = new Headers(original.headers);
     headers.delete('x-seams-wallet-home');
     headers.delete('x-seams-wallet-region');
-    headers.delete('x-seams-wallet-forwarded');
+    headers.set('x-seams-wallet-forwarded', '1');
     const request = new Request(original, { headers, redirect: 'manual' });
     try {
       const target = this.target(home);

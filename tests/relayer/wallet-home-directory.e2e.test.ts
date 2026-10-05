@@ -73,10 +73,10 @@ function regionalWorker(directory: string, home: WalletHome) {
     bindings: { HOME_JSON: JSON.stringify(home), CATALOG_JSON: JSON.stringify(homes) },
     serviceBindings: {
       CONSOLE: 'ingress-a',
-      WALLET_GATEWAY_US: { name: 'gateway-US', entrypoint: 'WalletHomeGateway' },
-      WALLET_GATEWAY_WEUR: { name: 'gateway-WEUR', entrypoint: 'WalletHomeGateway' },
-      WALLET_GATEWAY_APAC: { name: 'gateway-APAC', entrypoint: 'WalletHomeGateway' },
-      WALLET_GATEWAY_OC: { name: 'gateway-OC', entrypoint: 'WalletHomeGateway' },
+      WALLET_GATEWAY_US: 'gateway-US',
+      WALLET_GATEWAY_WEUR: 'gateway-WEUR',
+      WALLET_GATEWAY_APAC: 'gateway-APAC',
+      WALLET_GATEWAY_OC: 'gateway-OC',
     },
   };
 }
@@ -102,7 +102,7 @@ function start(directory: string): Miniflare {
         name: 'gateway-misdirected',
         serviceBindings: {
           ...misdirected.serviceBindings,
-          WALLET_GATEWAY_WEUR: { name: 'gateway-APAC', entrypoint: 'WalletHomeGateway' },
+          WALLET_GATEWAY_WEUR: 'gateway-APAC',
         },
       },
       {

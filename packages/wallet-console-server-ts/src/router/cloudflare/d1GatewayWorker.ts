@@ -1,5 +1,4 @@
 /// <reference types="@cloudflare/workers-types" />
-import { WorkerEntrypoint } from 'cloudflare:workers';
 import {
   dispatchKnownWalletHome,
   ConsoleRegistrationSetupDispatcher,
@@ -45,7 +44,6 @@ async function handleGatewayRequest(
   request: Request,
   env: TenantDeploymentGatewayEnv,
   ctx: CfExecutionContext,
-  entry: 'ingress' | 'home',
 ): Promise<Response> {
   const challenge = await tenantD1ResourceChallengeResponseV1(
     request,
@@ -103,7 +101,7 @@ async function handleGatewayRequest(
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
-  const transport = new WalletRegionalDispatch(env, entry);
+  const transport = new WalletRegionalDispatch(env);
   const forwarded = await dispatchKnownWalletHome(
     request,
     authority,
@@ -181,13 +179,7 @@ async function fetch(
   env: TenantDeploymentGatewayEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
-  return handleGatewayRequest(request, env, ctx, 'ingress');
-}
-
-export class WalletHomeGateway extends WorkerEntrypoint<TenantDeploymentGatewayEnv> {
-  override fetch(request: Request): Promise<Response> {
-    return handleGatewayRequest(request, this.env, this.ctx, 'home');
-  }
+  return handleGatewayRequest(request, env, ctx);
 }
 
 export default { fetch, scheduled };

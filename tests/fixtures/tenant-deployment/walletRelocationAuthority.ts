@@ -1,3 +1,7 @@
+import {
+  relocationPreparationParticipants,
+  relocationFixtureClock,
+} from './walletRelocationPreparation';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import {
@@ -153,7 +157,8 @@ export default {
               ),
             ],
             'test',
-            nowMs,
+            relocationPreparationParticipants(preparationAtMs, body.failedParticipant),
+            relocationFixtureClock.bind(null, nowMs),
           );
           break;
         }

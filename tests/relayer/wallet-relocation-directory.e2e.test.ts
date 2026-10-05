@@ -532,6 +532,23 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
     observations.push({ failedResourcePreparationLeftSourceActive: true });
 
+    // The last role refuses after the other six prepare. The source stays usable.
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request,
+          nowMs: admittedAtMs,
+          failedParticipant: 'presignSessions',
+        }),
+      ),
+    ).toEqual({ code: 'invalid_record' });
+    expect(
+      await responseBody(await call(runtime, { action: 'home', wallet: request.wallet })),
+    ).toEqual(original);
+    expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
+    observations.push({ lastParticipantPreparationFailureLeftSourceActive: true });
+
     const races = await Promise.all([
       call(runtime, { action: 'admit', request, nowMs: admittedAtMs }, 'ingress-a', true),
       call(runtime, { action: 'admit', request, nowMs: admittedAtMs }, 'ingress-b'),
@@ -544,6 +561,32 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(
       await (await call(runtime, { action: 'admit', request, nowMs: admittedAtMs + 1 })).json(),
     ).toMatchObject({ ok: true, disposition: 'reused' });
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request,
+          nowMs: admittedAtMs + 300_001,
+          failedParticipant: 'gateway',
+          preparationAtMs: admittedAtMs,
+        }),
+      ),
+    ).toMatchObject({ ok: true, disposition: 'reused' });
+    const pinnedPreparation = await database
+      .prepare("SELECT preparation_json FROM wallet_relocations WHERE wallet_id = 'traveller'")
+      .first<string>('preparation_json');
+    expect(pinnedPreparation).not.toBeNull();
+    const preparationEvidence = JSON.parse(pinnedPreparation!);
+    expect(preparationEvidence.requestDigest).toBe(await request.digest());
+    expect(preparationEvidence.receipts).toHaveLength(7);
+    await expect(
+      database
+        .prepare(
+          "UPDATE wallet_relocations SET preparation_json = NULL WHERE wallet_id = 'traveller'",
+        )
+        .run(),
+    ).rejects.toThrow();
+    observations.push({ pinnedPreparation: preparationEvidence, replaySkippedPreparation: true });
     const pinnedResources = await database
       .prepare(
         "SELECT resource_verifications_json FROM wallet_relocations WHERE wallet_id = 'traveller'",

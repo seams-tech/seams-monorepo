@@ -1,4 +1,4 @@
-import { executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
+import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
@@ -837,6 +837,9 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await executionAuthority(runtime, request.wallet, destination)).toEqual({
       ok: false, code: 'wallet_paused',
     });
+    expect(await establishedRuntimeAdmission(runtime, request.wallet, source, [source, destination, thirdHome, apacHome])).toMatchObject({
+      ok: false, code: 'wallet_paused',
+    });
     const authorizationManifest = relocationAuthorizationManifest();
     expect(
       (
@@ -1261,7 +1264,13 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await executionAuthority(runtime, request.wallet, source)).toEqual({
       ok: false, code: 'writer_home_mismatch',
     });
-    observations.push({ executionAuthorityRequiresActiveLocalGeneration: true });
+    expect(await establishedRuntimeAdmission(runtime, request.wallet, destination, [source, destination, thirdHome, apacHome])).toEqual({
+      ok: true, ownershipGeneration: 2, purpose: 'ordinary',
+    });
+    expect(await establishedRuntimeAdmission(runtime, request.wallet, source, [source, destination, thirdHome, apacHome])).toMatchObject({
+      ok: false, code: 'writer_home_mismatch',
+    });
+    observations.push({ executionAuthorityRequiresActiveLocalGeneration: true, establishedRuntimeFollowsActivatedGeneration: true });
 
     expect(
       await relocationCommand(runtime, request.wallet, activationAttempt, 'activate', destination),

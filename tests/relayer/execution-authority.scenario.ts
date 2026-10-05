@@ -93,12 +93,11 @@ export async function executionAdmissionClient(
   return (await executionClient(runtime, wallet, home, homes, mode)).executionAuthority(wallet);
 }
 
-async function registrationRuntimeAdmission(
+async function registrationRuntimeAuthority(
   runtime: Miniflare,
   wallet: WalletOwnershipKey,
   home: WalletHome,
   homes: readonly WalletHome[],
-  ceremonyId: string,
   mode: ReplyMode,
 ) {
   const worker = await runtime.getWorker('ingress-b');
@@ -122,7 +121,41 @@ async function registrationRuntimeAdmission(
     catalogJson: JSON.stringify(homes),
     ingressRegion: home.region,
   });
-  return admission.admitHome({ walletId: walletId.value, ceremonyId });
+  return { admission, walletId: walletId.value };
+}
+
+async function registrationRuntimeAdmission(
+  runtime: Miniflare,
+  wallet: WalletOwnershipKey,
+  home: WalletHome,
+  homes: readonly WalletHome[],
+  ceremonyId: string,
+  mode: ReplyMode,
+) {
+  const { admission, walletId } = await registrationRuntimeAuthority(
+    runtime,
+    wallet,
+    home,
+    homes,
+    mode,
+  );
+  return admission.admitHome({ walletId, ceremonyId });
+}
+
+export async function establishedRuntimeAdmission(
+  runtime: Miniflare,
+  wallet: WalletOwnershipKey,
+  home: WalletHome,
+  homes: readonly WalletHome[],
+) {
+  const { admission, walletId } = await registrationRuntimeAuthority(
+    runtime,
+    wallet,
+    home,
+    homes,
+    'honest',
+  );
+  return admission.admitEstablishedHome({ walletId });
 }
 
 export async function verifyRegistrationExecutionAdmission(
@@ -171,6 +204,10 @@ export async function verifyRegistrationExecutionAdmission(
     ),
   ).rejects.toThrow();
 
+  expect(await establishedRuntimeAdmission(runtime, wallet, source, homes)).toMatchObject({
+    ok: false,
+    code: 'wallet_unavailable',
+  });
   expect(await client.executionAuthority(wallet)).toEqual({
     ok: false,
     code: 'wallet_unavailable',
@@ -254,5 +291,13 @@ export async function verifyExecutionAdmissionResponses(
     ),
   ).toEqual({ ok: true, ownershipGeneration: 1, purpose: 'ordinary' });
 
-  return { executionClientRejectsConflictingConsoleResponses: true };
+  expect(await establishedRuntimeAdmission(runtime, wallet, home, homes)).toEqual({
+    ok: true,
+    ownershipGeneration: 1,
+    purpose: 'ordinary',
+  });
+  return {
+    executionClientRejectsConflictingConsoleResponses: true,
+    establishedRuntimeRequiresOrdinaryAuthority: true,
+  };
 }

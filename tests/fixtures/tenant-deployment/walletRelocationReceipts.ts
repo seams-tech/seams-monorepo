@@ -1,3 +1,4 @@
+import { WalletAuthorizationManifest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
 import { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import {
   WalletRelocationReceipt,
@@ -98,4 +99,15 @@ export function relocationSourceCleanup(
     recordedAtMs,
     manifestDigest,
   );
+}
+
+export function relocationAuthorizationManifest(digestHex = '6'.repeat(64)) {
+  return WalletAuthorizationManifest.parse({
+    schemaJson: JSON.stringify([
+      { table: 'wallet_authorities', columns: ['authority_id'], keyColumns: ['authority_id'] },
+    ]),
+    chunkCount: 2,
+    recordCount: 1,
+    digestHex,
+  });
 }

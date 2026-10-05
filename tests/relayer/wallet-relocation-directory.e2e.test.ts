@@ -23,6 +23,7 @@ import {
   type WalletRelocationPhase,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
 import {
+  relocationAuthorizationManifest,
   relocationSourceFence,
   relocationDestinationVerification,
   relocationDestinationActivation,
@@ -213,11 +214,34 @@ async function replayMove(
   );
 }
 
+async function publishAuthorizationManifest(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt,
+  manifest: ReturnType<typeof relocationAuthorizationManifest>,
+  home = source,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-authorization-manifest',
+    {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': 'gateway',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'gateway'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, manifest }),
+    },
+  );
+}
+
 async function relocationCommand(
   runtime: Miniflare,
   key: WalletOwnershipKey,
   attempt: WalletRelocationAttempt,
-  kind: 'freeze' | 'export' | 'verify' | 'activate' | 'cleanup',
+  kind: 'freeze' | 'export' | 'import_authorization' | 'verify' | 'activate' | 'cleanup',
   home = source,
   role = 'gateway',
   versionId = relocationWriterVersion(home.databaseId, role),
@@ -786,6 +810,40 @@ test('relocation directory serializes competing moves and survives lost replies 
         .prepare("UPDATE wallet_homes SET region = 'APAC' WHERE wallet_id = 'traveller'")
         .run(),
     ).rejects.toThrow();
+    const authorizationManifest = relocationAuthorizationManifest();
+    expect(
+      (
+        await publishAuthorizationManifest(
+          runtime,
+          request,
+          freezeAttempt,
+          authorizationManifest,
+          destination,
+        )
+      ).status,
+    ).toBe(409);
+    const pinnedAuthorization = await responseBody(
+      await publishAuthorizationManifest(runtime, request, freezeAttempt, authorizationManifest),
+    );
+    expect(pinnedAuthorization).toEqual({
+      ok: true,
+      manifest: JSON.parse(authorizationManifest.encoded()),
+    });
+    expect(
+      await responseBody(
+        await publishAuthorizationManifest(runtime, request, freezeAttempt, authorizationManifest),
+      ),
+    ).toEqual(pinnedAuthorization);
+    expect(
+      (
+        await publishAuthorizationManifest(
+          runtime,
+          request,
+          freezeAttempt,
+          relocationAuthorizationManifest('7'.repeat(64)),
+        )
+      ).status,
+    ).toBe(409);
     const sourceFence = fence(request);
     expect(
       await (
@@ -855,6 +913,59 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       sourceExportCommand: exportCommand,
       destinationCannotAuthorizeSourceExport: true,
+    });
+    const authorizationImport = await relocationCommand(
+      runtime,
+      request.wallet,
+      copyAttempt,
+      'import_authorization',
+      destination,
+    );
+    expect(authorizationImport).toMatchObject({
+      ok: true,
+      command: {
+        home: destination,
+        generation: 2,
+        operation: {
+          kind: 'import_authorization',
+          manifest: JSON.parse(authorizationManifest.encoded()),
+          physicalResource: `${destination.databaseId}/gateway/2`,
+        },
+      },
+    });
+    expect(
+      await relocationCommand(runtime, request.wallet, copyAttempt, 'import_authorization'),
+    ).toEqual({ ok: false, code: 'participant_conflict' });
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        copyAttempt,
+        'import_authorization',
+        destination,
+        'walletRuntime',
+      ),
+    ).toEqual({ ok: false, code: 'participant_conflict' });
+    await expect(
+      database
+        .prepare(
+          "UPDATE wallet_relocations SET authorization_manifest_json = NULL WHERE wallet_id = 'traveller'",
+        )
+        .run(),
+    ).rejects.toThrow();
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        copyAttempt,
+        'import_authorization',
+        destination,
+      ),
+    ).toEqual(authorizationImport);
+    observations.push({
+      pinnedAuthorization,
+      authorizationImport,
+      authorizationManifestImmutable: true,
     });
     const verificationCommand = await relocationCommand(
       runtime,

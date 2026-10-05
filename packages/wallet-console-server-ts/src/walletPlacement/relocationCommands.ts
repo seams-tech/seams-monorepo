@@ -1,3 +1,4 @@
+import { WalletAuthorizationManifest } from './authorizationManifest';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import {
   storedRuntimeVersionMatches,
@@ -9,6 +10,12 @@ import { WalletRelocationAttempt } from './relocationExecution';
 import { readWalletPlacementStatus } from './relocationStatus';
 
 type CommandEvidence =
+  | {
+      readonly kind: 'import_authorization';
+      readonly receipt: WalletRelocationReceipt<'source_fence'>;
+      readonly physicalResource: string;
+      readonly manifest: WalletAuthorizationManifest;
+    }
   | { readonly kind: 'freeze'; readonly receipt?: never; readonly physicalResource?: never }
   | {
       readonly kind: 'export';
@@ -95,7 +102,7 @@ export class WalletD1RelocationCommand {
     }
     const resources = await queryD1One(
       database,
-      `SELECT resource_verifications_json,
+      `SELECT resource_verifications_json, authorization_manifest_json,
          (SELECT CASE WHEN COUNT(*) = 1 THEN MIN(json_extract(value, '$.physicalResource')) END
           FROM json_each(wallet_relocations.preparation_json, '$.receipts')
           WHERE json_extract(value, '$.participant') = ?7
@@ -133,6 +140,23 @@ export class WalletD1RelocationCommand {
         operation = { kind: 'export', receipt: progress.sourceFence };
         home = move.source;
         generation = move.sourceGeneration;
+        break;
+      case 'import_authorization':
+        if (progress.state !== 'copying') return { ok: false, code: 'phase_conflict' };
+        if (writer.role !== 'gateway' || !isPhysicalResource(resources.prepared_resource))
+          return { ok: false, code: 'participant_conflict' };
+        if (typeof resources.authorization_manifest_json !== 'string')
+          return { ok: false, code: 'source_manifest_unavailable' };
+        operation = {
+          kind: 'import_authorization',
+          receipt: progress.sourceFence,
+          physicalResource: resources.prepared_resource,
+          manifest: WalletAuthorizationManifest.parse(
+            JSON.parse(resources.authorization_manifest_json),
+          ),
+        };
+        home = move.destination;
+        generation = move.destinationGeneration;
         break;
       case 'verify':
         if (progress.state !== 'copying') return { ok: false, code: 'phase_conflict' };
@@ -205,7 +229,8 @@ type CommandAuthorization =
         | 'move_not_pending'
         | 'attempt_conflict'
         | 'phase_conflict'
-        | 'participant_conflict';
+        | 'participant_conflict'
+        | 'source_manifest_unavailable';
       readonly command?: never;
     };
 
@@ -217,6 +242,7 @@ export function parseWalletRelocationCommandKind(raw: unknown): CommandEvidence[
   switch (raw) {
     case 'freeze':
     case 'export':
+    case 'import_authorization':
     case 'verify':
     case 'activate':
     case 'cleanup':

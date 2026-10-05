@@ -1,3 +1,7 @@
+import {
+  WalletAuthorizationManifest,
+  recordWalletAuthorizationManifest,
+} from './authorizationManifest';
 import { walletPlacementReadHome } from './placementRouting';
 import { handleLinkedDeviceBootstrap } from './linkedDeviceBootstrap';
 import { D1LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
@@ -120,6 +124,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
@@ -159,7 +164,8 @@ export async function handleWalletHomeServiceRequest(
     if (
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` ||
-      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command`
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`
     ) {
       const wallet = WalletOwnershipKey.parse(body.wallet);
       if (!inScope(wallet, options.scope)) {
@@ -176,6 +182,29 @@ export async function handleWalletHomeServiceRequest(
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
         return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`) {
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError(
+            'invalid_input',
+            'Authorization capture fields are invalid',
+          );
+        const attempt = WalletRelocationAttempt.parse(body.attempt);
+        const authorized = await WalletD1RelocationCommand.authorize(
+          options.database,
+          wallet,
+          options.writer,
+          attempt,
+          'freeze',
+        );
+        if (!authorized.ok) return json(authorized, 409);
+        const manifest = await recordWalletAuthorizationManifest(
+          options.database,
+          authorized.command,
+          attempt,
+          WalletAuthorizationManifest.parse(body.manifest),
+        );
+        return json({ ok: true, manifest });
       }
       const outcome = await WalletD1RelocationCommand.authorize(
         options.database,

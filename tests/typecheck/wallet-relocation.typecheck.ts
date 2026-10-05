@@ -1,3 +1,4 @@
+import type { WalletAuthorizationManifest } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
 import { WalletRelocationPreparation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
 import type { WalletPlacementView } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationView';
 import {
@@ -56,6 +57,17 @@ const prematureCleanupCommand: WalletD1RelocationCommand['operation'] = {
 const missingCommandEvidence: WalletD1RelocationCommand['operation'] = { kind: 'activate' };
 // @ts-expect-error Source export requires the sealed source-fence receipt.
 const unsealedExport: WalletD1RelocationCommand['operation'] = { kind: 'export' };
+declare const authorizationManifest: WalletAuthorizationManifest;
+// @ts-expect-error A spread cannot construct a validated source manifest.
+const forgedAuthorizationManifest: WalletAuthorizationManifest = { ...authorizationManifest };
+// @ts-expect-error Authorization import requires the pinned manifest.
+const unpinnedImport: WalletD1RelocationCommand['operation'] = {
+  kind: 'import_authorization',
+  receipt: sourceFence,
+  physicalResource: 'destination',
+};
+void forgedAuthorizationManifest;
+void unpinnedImport;
 void unsealedExport;
 void forgedCommand;
 void prematureCleanupCommand;

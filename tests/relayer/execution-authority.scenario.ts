@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 import type { Miniflare } from 'miniflare';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
+  RegistrationSetupAllocation,
   WalletHomeCatalog,
   type WalletHome,
   type WalletOwnershipKey,
@@ -9,7 +10,13 @@ import {
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
 import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRelocationResources';
 
-type ReplyMode = 'honest' | 'wrong_wallet' | 'wrong_writer' | 'invalid_generation' | 'wrong_status';
+type ReplyMode =
+  | 'honest'
+  | 'wrong_wallet'
+  | 'wrong_writer'
+  | 'invalid_generation'
+  | 'wrong_status'
+  | 'wrong_registration';
 
 class ExecutionConsole {
   constructor(
@@ -18,10 +25,12 @@ class ExecutionConsole {
   ) {}
 
   async fetch(request: Request): Promise<Response> {
+    const sent = await request.json();
+    if (this.mode === 'wrong_registration') sent.requestDigest = 'b'.repeat(64);
     const response = await this.worker.fetch(request.url, {
       method: request.method,
       headers: Object.fromEntries(request.headers),
-      body: await request.text(),
+      body: JSON.stringify(sent),
     });
     const body = await response.json();
     if (body.ok === true) {
@@ -37,6 +46,7 @@ class ExecutionConsole {
           break;
         case 'honest':
         case 'wrong_status':
+        case 'wrong_registration':
           break;
       }
     }
@@ -44,7 +54,7 @@ class ExecutionConsole {
   }
 }
 
-export async function executionAdmissionClient(
+async function executionClient(
   runtime: Miniflare,
   wallet: WalletOwnershipKey,
   home: WalletHome,
@@ -68,7 +78,81 @@ export async function executionAdmissionClient(
     },
     WalletHomeCatalog.parse(homes),
   );
-  return client.executionAuthority(wallet);
+  return client;
+}
+
+export async function executionAdmissionClient(
+  runtime: Miniflare,
+  wallet: WalletOwnershipKey,
+  home: WalletHome,
+  homes: readonly WalletHome[],
+  mode: ReplyMode,
+) {
+  return (await executionClient(runtime, wallet, home, homes, mode)).executionAuthority(wallet);
+}
+
+export async function verifyRegistrationExecutionAdmission(
+  runtime: Miniflare,
+  wallet: WalletOwnershipKey,
+  source: WalletHome,
+  destination: WalletHome,
+  homes: readonly WalletHome[],
+) {
+  const client = await executionClient(runtime, wallet, source, homes, 'honest');
+  const reserved = await client.reserve({
+    allocation: 'provided',
+    wallet,
+    ingressRegion: source.region,
+    registrationId: 'registration-execution',
+    requestDigest: 'a'.repeat(64),
+    proposedRegistrationAllocation: RegistrationSetupAllocation.parse({
+      ceremonyId: 'wrc_execution',
+      preparationId: 'regprep_execution',
+      walletAuthorityId: 'wallet-authority:execution',
+      deviceId: 'device:execution',
+      walletAuthMethodId: 'wallet-auth-method:execution',
+    }),
+  });
+  if (!reserved.ok || reserved.assignment.state !== 'reserved')
+    throw new Error('Registration reservation was not created');
+  const assignment = reserved.assignment;
+  expect(await client.executionAuthority(wallet)).toEqual({
+    ok: false,
+    code: 'wallet_unavailable',
+  });
+  const admitted = await client.registrationExecutionAuthority(assignment);
+  expect(admitted).toMatchObject({
+    ok: true,
+    authority: { purpose: 'registration', generation: 1, home: source },
+  });
+  expect(await client.registrationExecutionAuthority(assignment)).toEqual(admitted);
+  const conflicting = await executionClient(runtime, wallet, source, homes, 'wrong_registration');
+  expect(await conflicting.registrationExecutionAuthority(assignment)).toEqual({
+    ok: false,
+    code: 'wallet_unavailable',
+  });
+
+  const other = await executionClient(runtime, wallet, destination, homes, 'honest');
+  expect(await other.registrationExecutionAuthority(assignment)).toEqual({
+    ok: false,
+    code: 'writer_home_mismatch',
+  });
+  await client.complete({
+    wallet,
+    home: assignment.home,
+    registrationId: assignment.registrationId,
+    requestDigest: assignment.requestDigest,
+    outcome: 'cancelled',
+  });
+  expect(await client.registrationExecutionAuthority(assignment)).toEqual({
+    ok: false,
+    code: 'wallet_unavailable',
+  });
+  return {
+    registrationExecutionRequiresLiveReservation: true,
+    ordinaryExecutionRejectsReservedWallet: true,
+    cancelledReservationCannotExecute: true,
+  };
 }
 
 export async function verifyExecutionAdmissionResponses(

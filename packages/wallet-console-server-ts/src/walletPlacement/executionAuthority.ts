@@ -5,11 +5,17 @@ import {
   WalletOwnershipKey,
   WalletPlacementError,
   parseWalletOwnershipGeneration,
+  type WalletHomeAssignment,
 } from './home';
 import { readWalletPlacementStatus } from './relocationStatus';
 
-type ExecutionAdmission =
-  | { readonly ok: true; readonly authority: WalletExecutionAuthority; readonly code?: never }
+type ExecutionPurpose = 'ordinary' | 'registration';
+type ExecutionAdmission<Purpose extends ExecutionPurpose = 'ordinary'> =
+  | {
+      readonly ok: true;
+      readonly authority: WalletExecutionAuthority<Purpose>;
+      readonly code?: never;
+    }
   | {
       readonly ok: false;
       readonly code: 'wallet_unavailable' | 'wallet_paused' | 'writer_home_mismatch';
@@ -19,10 +25,11 @@ type ExecutionAdmission =
 // The authenticated Console boundary supplies the verified runtime writer.
 // This observation pins dispatch identity. Local fences still serialize effects
 // with relocation; a previously issued authority cannot reopen a frozen source.
-export class WalletExecutionAuthority {
+export class WalletExecutionAuthority<Purpose extends ExecutionPurpose = 'ordinary'> {
   readonly #validated = true;
 
   private constructor(
+    readonly purpose: Purpose,
     readonly wallet: WalletOwnershipKey,
     readonly home: WalletHome,
     readonly generation: number,
@@ -68,6 +75,7 @@ export class WalletExecutionAuthority {
     return {
       ok: true,
       authority: new WalletExecutionAuthority(
+        'ordinary',
         wallet,
         home,
         generation,
@@ -77,11 +85,34 @@ export class WalletExecutionAuthority {
     };
   }
 
-  static fromResponse(
+  static admitRegistration(
+    assignment: Extract<WalletHomeAssignment, { state: 'reserved' }>,
+    writer: TenantRuntimeWriterV1,
+  ): ExecutionAdmission<'registration'> {
+    if (
+      assignment.home.accountId !== writer.resource.accountId ||
+      assignment.home.databaseId !== writer.resource.databaseId
+    )
+      return { ok: false, code: 'writer_home_mismatch' };
+    return {
+      ok: true,
+      authority: new WalletExecutionAuthority(
+        'registration',
+        assignment.wallet,
+        assignment.home,
+        assignment.ownershipGeneration,
+        writer.role,
+        writer.versionId,
+      ),
+    };
+  }
+
+  static fromResponse<Purpose extends ExecutionPurpose>(
     raw: unknown,
+    purpose: Purpose,
     wallet: WalletOwnershipKey,
     writer: TenantRuntimeWriterV1,
-  ): ExecutionAdmission {
+  ): ExecutionAdmission<Purpose> {
     if (!isPlainObject(raw) || Object.keys(raw).length !== 2)
       throw new WalletPlacementError('invalid_record', 'Execution admission response is invalid');
     if (raw.ok === false) {
@@ -97,13 +128,14 @@ export class WalletExecutionAuthority {
           );
       }
     }
-    if (raw.ok !== true || !isPlainObject(raw.authority) || Object.keys(raw.authority).length !== 5)
+    if (raw.ok !== true || !isPlainObject(raw.authority) || Object.keys(raw.authority).length !== 6)
       throw new WalletPlacementError('invalid_record', 'Execution authority response is invalid');
     const value = raw.authority;
     const returnedWallet = WalletOwnershipKey.parse(value.wallet);
     const home = WalletHome.parse(value.home);
     const generation = parseWalletOwnershipGeneration(value.generation);
     if (
+      value.purpose !== purpose ||
       !returnedWallet.matches(wallet) ||
       value.participant !== writer.role ||
       value.versionId !== writer.versionId ||
@@ -114,6 +146,7 @@ export class WalletExecutionAuthority {
     return {
       ok: true,
       authority: new WalletExecutionAuthority(
+        purpose,
         returnedWallet,
         home,
         generation,

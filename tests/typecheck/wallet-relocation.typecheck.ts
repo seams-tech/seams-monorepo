@@ -285,3 +285,8 @@ const forgedExecutionAuthority: WalletExecutionAuthority = { ...executionAuthori
 const directExecutionAuthority = new WalletExecutionAuthority();
 void forgedExecutionAuthority;
 void directExecutionAuthority;
+
+declare const registrationExecution: WalletExecutionAuthority<'registration'>;
+// @ts-expect-error Registration admission cannot authorize ordinary execution.
+const registrationAsOrdinary: WalletExecutionAuthority = registrationExecution;
+void registrationAsOrdinary;

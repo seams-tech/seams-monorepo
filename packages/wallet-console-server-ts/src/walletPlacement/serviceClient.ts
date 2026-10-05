@@ -595,12 +595,48 @@ export class WalletHomeServiceClient
     return assignmentFromResponse(body.assignment, this.scope, this.catalog);
   }
 
+  async registrationExecutionAuthority(
+    assignment: Extract<WalletHomeAssignment, { state: 'reserved' }>,
+  ) {
+    requireScope(assignment.wallet, this.scope);
+    const response = await this.post('registration-execution-authority', {
+      wallet: assignment.wallet,
+      registrationId: assignment.registrationId,
+      requestDigest: assignment.requestDigest,
+    });
+    if (response.status !== 200 && response.status !== 409)
+      throw new Error(`Registration execution admission failed: HTTP ${response.status}`);
+    const admitted = WalletExecutionAuthority.fromResponse(
+      response.body,
+      'registration',
+      assignment.wallet,
+      this.writer,
+    );
+    if ((response.status === 200) !== admitted.ok)
+      throw new WalletPlacementError('invalid_record', 'Registration execution status conflicts');
+    if (
+      admitted.ok &&
+      (!admitted.authority.home.matches(assignment.home) ||
+        !admitted.authority.matches(assignment.wallet, assignment.ownershipGeneration))
+    )
+      throw new WalletPlacementError(
+        'invalid_record',
+        'Registration execution reservation conflicts',
+      );
+    return admitted;
+  }
+
   async executionAuthority(wallet: WalletOwnershipKey) {
     requireScope(wallet, this.scope);
     const response = await this.post('execution-authority', { wallet });
     if (response.status !== 200 && response.status !== 409)
       throw new Error(`Wallet execution admission failed: HTTP ${response.status}`);
-    const admitted = WalletExecutionAuthority.fromResponse(response.body, wallet, this.writer);
+    const admitted = WalletExecutionAuthority.fromResponse(
+      response.body,
+      'ordinary',
+      wallet,
+      this.writer,
+    );
     if ((response.status === 200) !== admitted.ok)
       throw new WalletPlacementError('invalid_record', 'Execution admission status conflicts');
     if (admitted.ok && !this.catalog.admits(admitted.authority.home))

@@ -120,6 +120,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/execution-authority` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
@@ -276,6 +277,33 @@ export async function handleWalletHomeServiceRequest(
       });
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority`) {
+      if (
+        Object.keys(body).length !== 3 ||
+        typeof body.registrationId !== 'string' ||
+        body.registrationId.length === 0 ||
+        typeof body.requestDigest !== 'string' ||
+        !/^[a-f0-9]{64}$/u.test(body.requestDigest)
+      )
+        throw new WalletPlacementError(
+          'invalid_input',
+          'Registration execution fields are invalid',
+        );
+      const wallet = WalletOwnershipKey.parse(body.wallet);
+      if (!inScope(wallet, options.scope))
+        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      const assignment = await directory.find(wallet);
+      if (
+        !assignment ||
+        assignment.state !== 'reserved' ||
+        assignment.registrationId !== body.registrationId ||
+        assignment.requestDigest !== body.requestDigest
+      )
+        return json({ ok: false, code: 'wallet_unavailable' }, 409);
+      const admitted = WalletExecutionAuthority.admitRegistration(assignment, options.writer);
+      return json(admitted, admitted.ok ? 200 : 409);
+    }
+
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap`)
       return handleLinkedDeviceBootstrap(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce`) {

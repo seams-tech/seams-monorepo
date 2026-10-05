@@ -1,4 +1,4 @@
-import { executionAdmissionClient, verifyExecutionAdmissionResponses } from './execution-authority.scenario';
+import { executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
@@ -482,6 +482,10 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
+    observations.push(await verifyRegistrationExecutionAdmission(
+      runtime, wallet('registration-execution'), source, destination,
+      [source, destination, thirdHome, apacHome],
+    ));
     const original = await establish(runtime, 'traveller');
     observations.push(await verifyExecutionAdmissionResponses(
       runtime, wallet('traveller'), source, [source, destination, thirdHome, apacHome],

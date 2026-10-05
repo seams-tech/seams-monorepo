@@ -6,6 +6,7 @@ import {
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import type { WalletRelocationAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import type { WalletPlacementStatus } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStatus';
 import type {
   WalletRelocationAttempt,
   WalletRelocationExecution,
@@ -18,6 +19,21 @@ declare const destinationVerification: WalletRelocationReceipt<'destination_veri
 declare const assignment: WalletHomeAssignment & { readonly state: 'established' };
 declare const attempt: WalletRelocationAttempt;
 declare const activation: WalletRelocationReceipt<'destination_activation'>;
+
+// @ts-expect-error A moving wallet requires its journal, including activation and retry state.
+const missingMoveStatus: WalletPlacementStatus = { state: 'moving' };
+declare const settledStatus: WalletPlacementStatus & { readonly state: 'settled' };
+// @ts-expect-error A broad spread cannot combine settled placement and pending relocation.
+const mixedPlacementStatus: WalletPlacementStatus = { ...settledStatus, state: 'moving', move };
+// @ts-expect-error An unavailable wallet cannot present an active home.
+const unavailableHome: WalletPlacementStatus = {
+  state: 'unavailable',
+  code: 'not_found',
+  home: assignment.home,
+};
+void missingMoveStatus;
+void mixedPlacementStatus;
+void unavailableHome;
 
 type CutoverActivation = (WalletRelocationProgress & { readonly state: 'cutover' })['activation'];
 

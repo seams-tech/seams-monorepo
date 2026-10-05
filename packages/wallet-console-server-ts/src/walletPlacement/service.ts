@@ -11,6 +11,7 @@ import { SessionLocator, D1WalletSessionLocators } from './sessionLocators';
 import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
+import { readWalletPlacementStatus } from './relocationStatus';
 import {
   RegistrationSetupAllocation,
   WalletHome,
@@ -107,6 +108,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
@@ -219,6 +221,8 @@ export async function handleWalletHomeServiceRequest(
       return json({ ok: true });
     }
     switch (url.pathname) {
+      case `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`:
+        return json(await readWalletPlacementStatus(options.database, wallet));
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {
         const assignment = await directory.find(wallet);
         return assignment

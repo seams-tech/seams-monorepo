@@ -24,6 +24,7 @@ import {
   WalletRouteLocator,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/walletRouteLocators';
 import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 
 function testCommand(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw))
@@ -36,8 +37,27 @@ export default {
     request: Request,
     env: { CONSOLE_DB: D1DatabaseLike; CATALOG_JSON: string },
   ): Promise<Response> {
-    const body = testCommand(await request.json());
     const catalog = WalletHomeCatalog.parse(JSON.parse(env.CATALOG_JSON));
+    const home = catalog.select('WEUR');
+    const serviceResponse = await handleWalletHomeServiceRequest(request, {
+      database: env.CONSOLE_DB,
+      writer: parseTenantRuntimeWriterV1('gateway', home.databaseId, {
+        accountId: home.accountId,
+        databaseId: home.databaseId,
+      }),
+      catalogJson: env.CATALOG_JSON,
+      admittedResources: catalog.deploymentResources(),
+      scope: {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'test',
+      },
+      environmentKey: 'test',
+      deploymentLane: 'test',
+    });
+    if (serviceResponse) return serviceResponse;
+    const body = testCommand(await request.json());
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
     const moves = new D1WalletRelocations(env.CONSOLE_DB, catalog);
     try {

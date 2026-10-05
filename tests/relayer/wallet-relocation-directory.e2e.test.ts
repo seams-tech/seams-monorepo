@@ -147,6 +147,17 @@ async function call(runtime: Miniflare, body: unknown, ingress = 'ingress-a', lo
   });
 }
 
+async function placementStatus(runtime: Miniflare, key: WalletOwnershipKey) {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/placement-status',
+    {
+      method: 'POST',
+      body: JSON.stringify({ wallet: key }),
+    },
+  );
+}
+
 async function establish(runtime: Miniflare, walletId: string): Promise<Record<string, unknown>> {
   const allocation = RegistrationSetupAllocation.parse({
     ceremonyId: `wrc_${walletId}`,
@@ -276,6 +287,24 @@ test('relocation directory serializes competing moves and survives lost replies 
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
     const original = await establish(runtime, 'traveller');
+    expect(await responseBody(await placementStatus(runtime, wallet('traveller')))).toEqual({
+      state: 'settled',
+      home: source,
+      generation: 1,
+      nextMoveAtMs: 0,
+    });
+    expect(await responseBody(await placementStatus(runtime, wallet('missing')))).toEqual({
+      state: 'unavailable',
+      code: 'not_found',
+    });
+    const foreignWallet = WalletOwnershipKey.parse({
+      namespace: 'shared',
+      organizationId: 'another-owner',
+      projectId: 'project',
+      environmentId: 'test',
+      walletId: 'traveller',
+    });
+    expect((await placementStatus(runtime, foreignWallet)).status).toBe(403);
     const unrelated = await establish(runtime, 'unrelated');
     const request = relocation(
       'traveller',
@@ -356,6 +385,21 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(claimRace[0].status).toBe(503);
     const freezeAttempt = attemptFromResponse(await responseBody(claimRace[1]));
     expect(freezeAttempt.number).toBe(1);
+    const freezingStatus = await responseBody(await placementStatus(runtime, request.wallet));
+    expect(freezingStatus).toMatchObject({
+      state: 'moving',
+      move: {
+        moveId: request.moveId,
+        progress: {
+          state: 'freezing',
+          execution: { state: 'running', attempt: freezeAttempt },
+        },
+      },
+    });
+    expect(await responseBody(await placementStatus(runtime, request.wallet))).toEqual(
+      freezingStatus,
+    );
+    observations.push(freezingStatus);
     expect(
       await (
         await call(runtime, {
@@ -444,6 +488,18 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(switched);
+    const cutoverStatus = await responseBody(await placementStatus(runtime, request.wallet));
+    expect(cutoverStatus).toMatchObject({
+      state: 'moving',
+      move: {
+        moveId: request.moveId,
+        progress: {
+          state: 'cutover',
+          activation: { state: 'awaiting_activation' },
+        },
+      },
+    });
+    observations.push(cutoverStatus);
     expect(await (await call(runtime, { action: 'home', wallet: request.wallet })).json()).toEqual({
       code: 'wallet_relocation_in_progress',
     });
@@ -613,6 +669,19 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(cleanupFailure);
+    const cleanupStatus = await responseBody(await placementStatus(runtime, request.wallet));
+    expect(cleanupStatus).toMatchObject({
+      state: 'moving',
+      move: {
+        moveId: request.moveId,
+        progress: {
+          state: 'cutover',
+          activation: { state: 'activated' },
+          execution: { state: 'retry_wait', retryAtMs: admittedAtMs + 1430 },
+        },
+      },
+    });
+    observations.push(cleanupStatus);
     await runtime.dispose();
     runtime = start(directory);
     expect(
@@ -690,6 +759,12 @@ test('relocation directory serializes competing moves and survives lost replies 
       }),
     );
     expect(completed).toMatchObject({ ok: true, move: { progress: { state: 'completed' } } });
+    expect(await responseBody(await placementStatus(runtime, request.wallet))).toEqual({
+      state: 'settled',
+      home: destination,
+      generation: 2,
+      nextMoveAtMs: admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS,
+    });
     expect(
       await (await call(runtime, { action: 'admit', request, nowMs: admittedAtMs + 600 })).json(),
     ).toMatchObject({ ok: true, disposition: 'reused', move: completed.move });
@@ -763,6 +838,10 @@ test('relocation directory serializes competing moves and survives lost replies 
         move: { progress: { execution: { state: number === 6 ? 'blocked' : 'retry_wait' } } },
       });
       observations.push(failed);
+      expect(await responseBody(await placementStatus(runtime, returnMove.wallet))).toMatchObject({
+        state: 'moving',
+        move: objectValue(failed.move),
+      });
       if (number === 3) {
         await runtime.dispose();
         runtime = start(directory);

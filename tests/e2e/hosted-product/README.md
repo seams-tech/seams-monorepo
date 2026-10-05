@@ -39,14 +39,17 @@ Container identity is retained with each request; no request credentials or bodi
 are written into the evidence. Stop all three Containers after the run.
 
 `mpc-signing-latency.test.ts` measures the native browser path without a regional
-probe. It verifies nine Tempo signatures across three unlocks, then concurrent
-Tempo and Arc signatures. Set `SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1` to capture
+probe. The `back_to_back` case verifies nine Tempo signatures across three unlocks.
+The `prefilled` case verifies one warm-up signature per unlock, waits for at least
+three presignatures, then measures two signatures. It records those prefill waits
+separately and rejects any measured sample that waits for refill. Both cases also
+verify concurrent Tempo and Arc signatures. Set `SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1` to capture
 the SDK's stage timings. Set `SEAMS_INTENDED_PERSIST_TRACE=1` and
-`SEAMS_INTENDED_TRACE_DIR` to retain the lifecycle trace beside `mpc-signing.json`.
+`SEAMS_INTENDED_TRACE_DIR` to retain the lifecycle trace beside the timing artifacts.
 
 The primary timer covers the public SDK call, including automated confirmation,
 through the assembled signature. Independent signature verification follows it.
 The test does not time broadcast or blockchain confirmation. Stage timings can
 overlap. Report samples with `refill_wait` separately from samples with ready
-material. The artifact also retains allowlisted Gateway timing and placement
+material. Each `mpc-signing-<workload>.json` artifact retains allowlisted Gateway timing and placement
 headers, request activity, and browser automation overhead.

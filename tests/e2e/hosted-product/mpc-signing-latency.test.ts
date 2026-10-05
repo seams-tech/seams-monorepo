@@ -51,90 +51,131 @@ class GatewayTimingHeaders {
   }
 }
 
-test('hosted full MPC signing latency with verified signatures and concurrent signing', async ({
-  context,
-  page,
-  request,
-}, testInfo) => {
-  test.setTimeout(300_000);
-  await installCandidateAssets(context);
-  const harness = new IntendedBehaviourHarness({
+for (const workload of ['back_to_back', 'prefilled'] as const) {
+  test(`hosted full MPC signing latency: ${workload}`, async ({
     context,
     page,
     request,
-    flow: 'passkey.registration',
-    networkMode: 'hosted_product',
-  });
-  const gateway = new GatewayRequestEvidence();
-  const timing = new SigningTimingEvidence();
-  const gatewayOrigin = process.env.SEAMS_INTENDED_ROUTER_URL;
-  if (!gatewayOrigin) throw new Error('SEAMS_INTENDED_ROUTER_URL is required');
-  const headers = new GatewayTimingHeaders(new URL(gatewayOrigin).origin);
-  const recordHeaders = headers.record.bind(headers);
-  const recordTiming = timing.record.bind(timing);
-  context.on('response', recordHeaders);
-  page.on('console', recordTiming);
-  gateway.start(context);
-  const samples = [];
-  let concurrent = null;
-  try {
-    await harness.initialize();
-    await harness.registerPasskeyWallet();
-    await harness.awaitNearReady();
-    for (let batch = 0; batch < 3; batch += 1) {
-      await harness.unlockPasskeyWallet();
-      for (let index = 0; index < 3; index += 1) {
-        const startedAt = performance.now();
-        await harness.signTempoTransaction('post_unlock');
-        const endedAt = performance.now();
-        samples.push({
-          batch,
-          index,
-          verified: true,
-          client: timing.window(startedAt, endedAt),
-          automation: harness.signingActionTimingEvidence(),
-          gateway: await gateway.window(startedAt, endedAt),
-          headers: await headers.window(startedAt, endedAt),
-        });
+  }, testInfo) => {
+    test.setTimeout(300_000);
+    await installCandidateAssets(context);
+    const harness = new IntendedBehaviourHarness({
+      context,
+      page,
+      request,
+      flow: 'passkey.registration',
+      networkMode: 'hosted_product',
+    });
+    const gateway = new GatewayRequestEvidence();
+    const timing = new SigningTimingEvidence();
+    const gatewayOrigin = process.env.SEAMS_INTENDED_ROUTER_URL;
+    if (!gatewayOrigin) throw new Error('SEAMS_INTENDED_ROUTER_URL is required');
+    const headers = new GatewayTimingHeaders(new URL(gatewayOrigin).origin);
+    const recordHeaders = headers.record.bind(headers);
+    const recordTiming = timing.record.bind(timing);
+    context.on('response', recordHeaders);
+    page.on('console', recordTiming);
+    gateway.start(context);
+    const samples = [];
+    const prefillWaits = [];
+    const batches = 3;
+    const signaturesPerBatch = workload === 'prefilled' ? 2 : 3;
+    let concurrent = null;
+    try {
+      await harness.initialize();
+      await harness.registerPasskeyWallet();
+      await harness.awaitNearReady();
+      for (let batch = 0; batch < batches; batch += 1) {
+        const unlockStartedAt = performance.now();
+        await harness.unlockPasskeyWallet();
+        if (workload === 'prefilled') {
+          // Unlock prepares one item. One verified warm-up signature starts
+          // the normal maintenance target before the ready-material samples.
+          await harness.signTempoTransaction('post_unlock');
+          const waitStartedAt = performance.now();
+          await expect
+            .poll(countReadyPools.bind(null, timing.refillResults, unlockStartedAt), {
+              timeout: 60_000,
+            })
+            .toBeGreaterThanOrEqual(1);
+          prefillWaits.push({ batch, elapsedMs: performance.now() - waitStartedAt });
+        }
+        for (let index = 0; index < signaturesPerBatch; index += 1) {
+          const startedAt = performance.now();
+          await harness.signTempoTransaction('post_unlock');
+          const endedAt = performance.now();
+          const client = timing.window(startedAt, endedAt);
+          if (workload === 'prefilled') {
+            expect(client.stages.some(isRefillWait)).toBe(false);
+          }
+          samples.push({
+            batch,
+            index,
+            verified: true,
+            client,
+            automation: harness.signingActionTimingEvidence(),
+            gateway: await gateway.window(startedAt, endedAt),
+            headers: await headers.window(startedAt, endedAt),
+          });
+        }
       }
+      await harness.unlockPasskeyWallet();
+      // The shared concurrency scenario requires exactly two uses left.
+      await harness.signNearTransaction('post_unlock');
+      const startedAt = performance.now();
+      await harness.signTempoAndArcEvmConcurrently('post_unlock');
+      const endedAt = performance.now();
+      concurrent = {
+        verified: true,
+        client: timing.concurrentWindow(startedAt, endedAt),
+        gateway: await gateway.window(startedAt, endedAt),
+        headers: await headers.window(startedAt, endedAt),
+      };
+      harness.assertNoLifecycleViolations();
+      harness.assertNoWrongAuthPath();
+      expect(samples).toHaveLength(batches * signaturesPerBatch);
+    } finally {
+      const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/mpc-signing');
+      await mkdir(output, { recursive: true });
+      await writeFile(
+        path.join(output, `mpc-signing-${workload}.json`),
+        JSON.stringify(
+          {
+            scope:
+              'Native local browser to hosted Gateway, Console and custody. Full public SDK call includes automated confirmation and ends with a signed transaction. Signatures are independently verified; no broadcast or blockchain confirmation is timed.',
+            walletId: harness.walletId,
+            gatewayOrigin,
+            workload,
+            prefillWaits,
+            samples,
+            concurrent,
+          },
+          null,
+          2,
+        ),
+        { mode: 0o600 },
+      );
+      await harness.attachTrace(testInfo);
+      gateway.stop(context);
+      context.off('response', recordHeaders);
+      page.off('console', recordTiming);
     }
-    await harness.unlockPasskeyWallet();
-    // The shared concurrency scenario requires exactly two uses left.
-    await harness.signNearTransaction('post_unlock');
-    const startedAt = performance.now();
-    await harness.signTempoAndArcEvmConcurrently('post_unlock');
-    const endedAt = performance.now();
-    concurrent = {
-      verified: true,
-      client: timing.concurrentWindow(startedAt, endedAt),
-      gateway: await gateway.window(startedAt, endedAt),
-      headers: await headers.window(startedAt, endedAt),
-    };
-    harness.assertNoLifecycleViolations();
-    harness.assertNoWrongAuthPath();
-    expect(samples).toHaveLength(9);
-  } finally {
-    const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/mpc-signing');
-    await mkdir(output, { recursive: true });
-    await writeFile(
-      path.join(output, 'mpc-signing.json'),
-      JSON.stringify(
-        {
-          scope:
-            'Native local browser to hosted Gateway, Console and custody. Full public SDK call includes automated confirmation and ends with a signed transaction. Signatures are independently verified; no broadcast or blockchain confirmation is timed.',
-          walletId: harness.walletId,
-          gatewayOrigin,
-          samples,
-          concurrent,
-        },
-        null,
-        2,
-      ),
-      { mode: 0o600 },
-    );
-    await harness.attachTrace(testInfo);
-    gateway.stop(context);
-    context.off('response', recordHeaders);
-    page.off('console', recordTiming);
+  });
+}
+
+function countReadyPools(
+  events: readonly { receivedAtMs: number; outcome: string; depth: number }[],
+  startedAt: number,
+): number {
+  let count = 0;
+  for (const event of events) {
+    if (event.receivedAtMs >= startedAt && event.outcome === 'available' && event.depth >= 3) {
+      count += 1;
+    }
   }
-});
+  return count;
+}
+
+function isRefillWait(event: { stage: string }): boolean {
+  return event.stage === 'refill_wait' || event.stage === 'foreground_refill';
+}

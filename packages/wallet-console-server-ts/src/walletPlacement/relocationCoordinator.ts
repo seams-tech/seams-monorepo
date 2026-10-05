@@ -15,6 +15,15 @@ type EffectResult<Kind extends WalletRelocationReceipt['kind']> =
   | { readonly ok: true; readonly receipt: WalletRelocationReceipt<Kind>; readonly code?: never }
   | { readonly ok: false; readonly code: WalletRelocationFailure; readonly receipt?: never };
 
+type TransferEffectResult =
+  | { readonly state: 'pending'; readonly receipt?: never; readonly code?: never }
+  | {
+      readonly state: 'verified';
+      readonly receipt: WalletRelocationReceipt<'destination_verification'>;
+      readonly code?: never;
+    }
+  | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly receipt?: never };
+
 // Transport adapters authenticate every participant and aggregate their exact receipts.
 // A successful effect must remain repeatable after its caller loses the response.
 export interface WalletRelocationEffects {
@@ -22,7 +31,7 @@ export interface WalletRelocationEffects {
   transfer(
     context: EffectContext,
     sourceFence: WalletRelocationReceipt<'source_fence'>,
-  ): Promise<EffectResult<'destination_verification'>>;
+  ): Promise<TransferEffectResult>;
   activate(
     context: EffectContext,
     verification: WalletRelocationReceipt<'destination_verification'>,
@@ -78,7 +87,18 @@ export class WalletRelocationCoordinator {
       }
       case 'copying': {
         const result = await this.effects.transfer(context, progress.sourceFence);
-        if (!result.ok) return this.fail(context, result.code);
+        switch (result.state) {
+          case 'pending':
+            return claimed;
+          case 'failed':
+            return this.fail(context, result.code);
+          case 'verified':
+            break;
+          default: {
+            const unexpected: never = result;
+            throw new Error(`Unexpected transfer result: ${String(unexpected)}`);
+          }
+        }
         transition = await this.journal.recordDestinationVerification(
           request,
           context.attempt,

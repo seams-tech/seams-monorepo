@@ -1625,6 +1625,24 @@ test('relocation directory serializes competing moves and survives lost replies 
     );
     expect(lostFence.status).toBe(503);
     runtime = await restart(runtime, directory);
+    const pendingCopy = await responseBody(await call(runtime, {
+      action: 'advance',
+      request: coordinated,
+      attemptId: attemptIdentity(),
+      receipt: null,
+      nowMs: admittedAtMs + 150,
+    }));
+    const pendingProgress = objectValue(objectValue(pendingCopy.move).progress);
+    expect(pendingProgress.state).toBe('copying');
+    expect(objectValue(pendingProgress.execution).state).toBe('running');
+    runtime = await restart(runtime, directory);
+    expect(await responseBody(await call(runtime, {
+      action: 'advance',
+      request: coordinated,
+      attemptId: attemptIdentity(),
+      receipt: null,
+      nowMs: admittedAtMs + 180,
+    }))).toEqual(pendingCopy);
     const copiedByCoordinator = await responseBody(
       await call(runtime, {
         action: "advance",
@@ -1758,6 +1776,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       coordinator: {
         lostFenceReplyResumesNextPhaseAfterRestart: true,
+        pendingChunksPreserveRunningAttemptAcrossRestart: true,
         activationPersistsBeforeCleanup: true,
         cleanupFailureLeavesDestinationActive: true,
         retryDelayEnforced: true,

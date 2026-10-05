@@ -12,8 +12,13 @@ export class RelocationFixtureEffects implements WalletRelocationEffects {
   async freeze() {
     return this.result('source_fence');
   }
-  async transfer() {
-    return this.result('destination_verification');
+  async transfer(): ReturnType<WalletRelocationEffects['transfer']> {
+    if (this.failure !== null) return { state: 'failed', code: relocationFailure(this.failure) };
+    if (this.receipt === null) return { state: 'pending' };
+    return {
+      state: 'verified',
+      receipt: WalletRelocationReceipt.parse(this.receipt, 'destination_verification'),
+    };
   }
   async activate() {
     return this.result('destination_activation');

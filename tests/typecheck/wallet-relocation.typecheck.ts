@@ -266,3 +266,13 @@ const invalidTransferSpread: AuthorizationTransferResult = {
 };
 void invalidTransferResult;
 void invalidTransferSpread;
+
+import type { WalletRelocationEffects } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
+type TransferEffect = Awaited<ReturnType<WalletRelocationEffects['transfer']>>;
+declare const verifiedTransfer: Extract<TransferEffect, { state: 'verified' }>;
+// @ts-expect-error A pending transfer cannot provide activation evidence.
+const pendingWithReceipt: TransferEffect = { state: 'pending', receipt: verifiedTransfer.receipt };
+// @ts-expect-error Verification requires the complete destination receipt.
+const verifiedWithoutReceipt: TransferEffect = { state: 'verified' };
+void pendingWithReceipt;
+void verifiedWithoutReceipt;

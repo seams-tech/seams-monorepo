@@ -8,6 +8,8 @@ import type { WalletRelocationAdmission } from '../../packages/wallet-console-se
 import type { WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import type { WalletPlacementStatus } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStatus';
 import type { WalletD1RelocationCommand } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCommands';
+import type { D1WalletRelocations } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
+import type { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import type {
   WalletRelocationAttempt,
   WalletRelocationExecution,
@@ -20,6 +22,12 @@ declare const destinationVerification: WalletRelocationReceipt<'destination_veri
 declare const assignment: WalletHomeAssignment & { readonly state: 'established' };
 declare const attempt: WalletRelocationAttempt;
 declare const activation: WalletRelocationReceipt<'destination_activation'>;
+declare const relocations: D1WalletRelocations;
+declare const resourceProof: TenantResourceVerificationV1;
+// @ts-expect-error Admission requires verified resources and a deployment lane.
+void relocations.admit(request, 1);
+// @ts-expect-error A spread cannot replace an authenticated resource proof.
+void relocations.admit(request, [{ ...resourceProof }], 'test', 1);
 
 declare const command: WalletD1RelocationCommand;
 // @ts-expect-error A spread cannot forge command authorization from a journal read.

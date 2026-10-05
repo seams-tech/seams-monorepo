@@ -27,6 +27,7 @@ import {
   relocationDestinationActivation,
   relocationSourceCleanup,
 } from '../fixtures/tenant-deployment/walletRelocationReceipts';
+import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRelocationResources';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const accountId = '0123456789abcdef0123456789abcdef';
@@ -165,6 +166,7 @@ async function relocationCommand(
   kind: 'freeze' | 'verify' | 'activate' | 'cleanup',
   home = source,
   role = 'gateway',
+  versionId = relocationWriterVersion(home.databaseId, role),
 ) {
   const service = await runtime.getWorker('ingress-b');
   const response = await service.fetch(
@@ -173,6 +175,7 @@ async function relocationCommand(
       method: 'POST',
       headers: {
         'x-seams-writer-role': role,
+        'x-seams-writer-version': versionId,
         'x-seams-writer-account': home.accountId,
         'x-seams-writer-database': home.databaseId,
       },
@@ -219,6 +222,56 @@ async function readOwnershipLocators(database: D1Database) {
     database.prepare('SELECT * FROM wallet_routes ORDER BY value'),
   ]);
   return { sessions: sessions.results, passkeys: passkeys.results, routes: routes.results };
+}
+
+async function finishPriorMove(runtime: Miniflare, request: WalletRelocationRequest) {
+  const freeze = await claim(runtime, request, 'freezing', admittedAtMs);
+  expect(
+    await responseBody(
+      await call(runtime, { action: 'fence', request, attempt: freeze, receipt: fence(request) }),
+    ),
+  ).toMatchObject({ ok: true });
+  const copy = await claim(runtime, request, 'copying', admittedAtMs + 100);
+  expect(
+    await responseBody(
+      await call(runtime, {
+        action: 'verify',
+        request,
+        attempt: copy,
+        receipt: verification(request),
+      }),
+    ),
+  ).toMatchObject({ ok: true });
+  const switchAttempt = await claim(runtime, request, 'verified', admittedAtMs + 200);
+  expect(
+    await responseBody(
+      await call(runtime, {
+        action: 'switch',
+        request,
+        attempt: switchAttempt,
+        nowMs: admittedAtMs + 300,
+      }),
+    ),
+  ).toMatchObject({ ok: true });
+  const activate = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+  const activation = relocationDestinationActivation(request, admittedAtMs + 410, manifest);
+  expect(
+    await responseBody(
+      await call(runtime, { action: 'activate', request, attempt: activate, activation }),
+    ),
+  ).toMatchObject({ ok: true });
+  const cleanup = relocationSourceCleanup(request, source, admittedAtMs + 420, manifest);
+  expect(
+    await responseBody(
+      await call(runtime, {
+        action: 'complete',
+        request,
+        attempt: activate,
+        cleanup,
+        nowMs: admittedAtMs + 430,
+      }),
+    ),
+  ).toMatchObject({ ok: true });
 }
 
 test('relocation directory serializes competing moves and survives lost replies and restart', async ({
@@ -287,13 +340,34 @@ test('relocation directory serializes competing moves and survives lost replies 
         ]);
         const locatorsBefore = await readOwnershipLocators(database);
         const pending = relocation('pre-upgrade', apacHome);
-        const admitted = await call(runtime, {
-          action: 'admit',
-          request: pending,
-          nowMs: admittedAtMs,
-        });
-        expect(admitted.status).toBe(200);
-        const beforeUpgrade = await responseBody(admitted);
+        // Seed the prior persistence contract, independently of today's admission API.
+        await database
+          .prepare(
+            `INSERT INTO wallet_relocations (
+          namespace, organization_id, project_id, environment_id, wallet_id,
+          move_id, request_digest, authority_id, source_region, source_account_id, source_database_id,
+          destination_region, destination_account_id, destination_database_id,
+          source_generation, destination_generation, state, admitted_at_ms)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 2, 'freezing', ?)`,
+          )
+          .bind(
+            ...identity,
+            owner.walletId,
+            pending.moveId,
+            await pending.digest(),
+            pending.authorityId,
+            source.region,
+            source.accountId,
+            source.databaseId,
+            apacHome.region,
+            apacHome.accountId,
+            apacHome.databaseId,
+            admittedAtMs,
+          )
+          .run();
+        const beforeUpgrade = {
+          move: await responseBody(await call(runtime, { action: 'status', request: pending })),
+        };
         await database.batch(unstable_splitSqlQuery(sql).map(database.prepare.bind(database)));
         const afterUpgrade = await call(runtime, { action: 'status', request: pending });
         expect(await responseBody(afterUpgrade)).toEqual(beforeUpgrade.move);
@@ -304,6 +378,18 @@ test('relocation directory serializes competing moves and survives lost replies 
           move: beforeUpgrade,
           preservedOwnershipLocators: locatorsBefore,
         });
+      } else if (name === '0075_wallet_relocation_resources.sql') {
+        await expect(
+          database.batch(unstable_splitSqlQuery(sql).map(database.prepare.bind(database))),
+        ).rejects.toThrow();
+        const prior = await database
+          .prepare("SELECT move_id FROM wallet_relocations WHERE wallet_id = 'pre-upgrade'")
+          .first<string>('move_id');
+        if (!prior) throw new Error('Prior migration fixture is missing');
+        const pending = relocation('pre-upgrade', apacHome, 1, prior);
+        await finishPriorMove(runtime, pending);
+        await database.batch(unstable_splitSqlQuery(sql).map(database.prepare.bind(database)));
+        observations.push({ resourceUpgradeRejectedPendingMove: true });
       } else {
         for (const statement of unstable_splitSqlQuery(sql))
           await database.prepare(statement).run();
@@ -356,6 +442,32 @@ test('relocation directory serializes competing moves and survives lost replies 
       ).json(),
     ).toMatchObject({ ok: true, disposition: 'unchanged', assignment: original });
 
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request,
+          nowMs: admittedAtMs,
+          preparedDestination: thirdHome,
+        }),
+      ),
+    ).toEqual({ code: 'readiness_invalid' });
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request,
+          nowMs: admittedAtMs,
+          preparationAtMs: admittedAtMs - 300_000,
+        }),
+      ),
+    ).toEqual({ code: 'readiness_invalid' });
+    expect(
+      await responseBody(await call(runtime, { action: 'home', wallet: request.wallet })),
+    ).toEqual(original);
+    expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
+    observations.push({ failedResourcePreparationLeftSourceActive: true });
+
     const races = await Promise.all([
       call(runtime, { action: 'admit', request, nowMs: admittedAtMs }, 'ingress-a', true),
       call(runtime, { action: 'admit', request, nowMs: admittedAtMs }, 'ingress-b'),
@@ -368,6 +480,36 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(
       await (await call(runtime, { action: 'admit', request, nowMs: admittedAtMs + 1 })).json(),
     ).toMatchObject({ ok: true, disposition: 'reused' });
+    const pinnedResources = await database
+      .prepare(
+        "SELECT resource_verifications_json FROM wallet_relocations WHERE wallet_id = 'traveller'",
+      )
+      .first<string>('resource_verifications_json');
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request,
+          nowMs: admittedAtMs + 300_000,
+          preparationAtMs: admittedAtMs,
+          preparedDestination: thirdHome,
+        }),
+      ),
+    ).toMatchObject({ ok: true, disposition: 'reused' });
+    expect(
+      await database
+        .prepare(
+          "SELECT resource_verifications_json FROM wallet_relocations WHERE wallet_id = 'traveller'",
+        )
+        .first<string>('resource_verifications_json'),
+    ).toBe(pinnedResources);
+    await expect(
+      database
+        .prepare(
+          "UPDATE wallet_relocations SET resource_verifications_json = NULL WHERE wallet_id = 'traveller'",
+        )
+        .run(),
+    ).rejects.toThrow();
     expect(
       await (
         await call(runtime, {
@@ -410,6 +552,20 @@ test('relocation directory serializes competing moves and survives lost replies 
     const freezeAttempt = attemptFromResponse(await responseBody(claimRace[1]));
     expect(freezeAttempt.number).toBe(1);
     const freezeCommand = await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze');
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        freezeAttempt,
+        'freeze',
+        source,
+        'gateway',
+        thirdHome.databaseId,
+      ),
+    ).toEqual({
+      ok: false,
+      code: 'participant_conflict',
+    });
     expect(freezeCommand).toMatchObject({
       ok: true,
       command: {

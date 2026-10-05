@@ -25,6 +25,12 @@ import {
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/walletRouteLocators';
 import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
+import { readWalletPlacementStatus } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationStatus';
+import {
+  relocationResourceVerification,
+  relocationWriterVersion,
+} from './walletRelocationResources';
+import { isTenantDeploymentStoreError } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/service';
 
 function testCommand(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw))
@@ -39,11 +45,14 @@ export default {
   ): Promise<Response> {
     const catalog = WalletHomeCatalog.parse(JSON.parse(env.CATALOG_JSON));
     const home = catalog.select('WEUR');
+    const writerRole = request.headers.get('x-seams-writer-role') ?? 'gateway';
+    const writerDatabaseId = request.headers.get('x-seams-writer-database') ?? home.databaseId;
     const serviceResponse = await handleWalletHomeServiceRequest(request, {
       database: env.CONSOLE_DB,
       writer: parseTenantRuntimeWriterV1(
-        request.headers.get('x-seams-writer-role') ?? 'gateway',
-        home.databaseId,
+        writerRole,
+        request.headers.get('x-seams-writer-version') ??
+          relocationWriterVersion(writerDatabaseId, writerRole),
         {
           accountId: request.headers.get('x-seams-writer-account') ?? home.accountId,
           databaseId: request.headers.get('x-seams-writer-database') ?? home.databaseId,
@@ -118,9 +127,36 @@ export default {
       const moveRequest = WalletRelocationRequest.parse(body.request);
       let result: unknown;
       switch (body.action) {
-        case 'admit':
-          result = await moves.admit(moveRequest, relocationTimestamp(body.nowMs));
+        case 'admit': {
+          const placement = await readWalletPlacementStatus(env.CONSOLE_DB, moveRequest.wallet);
+          let sourceHome = catalog.select('WEUR');
+          if (placement.state === 'settled') sourceHome = placement.home;
+          if (placement.state === 'moving') sourceHome = placement.move.source;
+          const nowMs = relocationTimestamp(body.nowMs);
+          const preparationAtMs = relocationTimestamp(body.preparationAtMs ?? nowMs);
+          const preparedDestination =
+            body.preparedDestination === undefined
+              ? moveRequest.destination
+              : WalletHome.parse(body.preparedDestination);
+          result = await moves.admit(
+            moveRequest,
+            [
+              relocationResourceVerification(
+                sourceHome,
+                moveRequest.wallet.namespace,
+                preparationAtMs,
+              ),
+              relocationResourceVerification(
+                preparedDestination,
+                moveRequest.wallet.namespace,
+                preparationAtMs,
+              ),
+            ],
+            'test',
+            nowMs,
+          );
           break;
+        }
         case 'status':
           result = await moves.find(moveRequest);
           break;
@@ -190,6 +226,8 @@ export default {
       }
       return Response.json(result);
     } catch (error) {
+      if (isTenantDeploymentStoreError(error))
+        return Response.json({ code: error.code }, { status: 409 });
       if (error instanceof WalletPlacementError)
         return Response.json({ code: error.code }, { status: 409 });
       throw error;

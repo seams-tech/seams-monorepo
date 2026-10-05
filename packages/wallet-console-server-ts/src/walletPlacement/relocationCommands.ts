@@ -1,5 +1,8 @@
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
+import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  storedRuntimeVersionMatches,
+  type TenantRuntimeWriterV1,
+} from '../tenantDeployment/resourceVerification';
 import { WalletHome, WalletOwnershipKey, WalletPlacementError } from './home';
 import type { WalletRelocationReceipt } from './relocation';
 import { WalletRelocationAttempt } from './relocationExecution';
@@ -26,6 +29,7 @@ export class WalletD1RelocationCommand {
     readonly wallet: WalletOwnershipKey,
     readonly moveId: string,
     readonly participant: TenantRuntimeWriterV1['role'],
+    readonly versionId: string,
     readonly home: WalletHome,
     readonly generation: number,
     readonly operation: CommandEvidence,
@@ -44,6 +48,7 @@ export class WalletD1RelocationCommand {
         this.wallet,
         this.moveId,
         this.participant,
+        this.versionId,
         this.home,
         this.generation,
         this.operation,
@@ -118,12 +123,30 @@ export class WalletD1RelocationCommand {
     ) {
       return { ok: false, code: 'participant_conflict' };
     }
+    const resources = await queryD1One(
+      database,
+      `SELECT resource_verifications_json FROM wallet_relocations
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
+      [
+        wallet.namespace,
+        wallet.organizationId,
+        wallet.projectId,
+        wallet.environmentId,
+        wallet.walletId,
+        move.moveId,
+      ],
+    );
+    if (!resources || !storedRuntimeVersionMatches(resources.resource_verifications_json, writer)) {
+      return { ok: false, code: 'participant_conflict' };
+    }
     return {
       ok: true,
       command: new WalletD1RelocationCommand(
         wallet,
         move.moveId,
         writer.role,
+        writer.versionId,
         home,
         generation,
         operation,

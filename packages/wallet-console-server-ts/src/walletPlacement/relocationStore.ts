@@ -1,6 +1,10 @@
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { walletHomeAssignmentFromRow } from './d1';
 import {
+  assertDeploymentResourcesVerified,
+  type TenantDeploymentResourceVerificationsV1,
+} from '../tenantDeployment/resourceVerification';
+import {
   WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
@@ -108,7 +112,12 @@ export class D1WalletRelocations {
     return row ? WalletRelocation.fromRow(row) : null;
   }
 
-  async admit(request: WalletRelocationRequest, nowMs: number): Promise<WalletRelocationAdmission> {
+  async admit(
+    request: WalletRelocationRequest,
+    resourceVerifications: TenantDeploymentResourceVerificationsV1,
+    deploymentLane: string,
+    nowMs: number,
+  ): Promise<WalletRelocationAdmission> {
     const admittedAtMs = relocationTimestamp(nowMs);
     const digest = await request.digest();
     const existing = await this.find(request);
@@ -142,6 +151,16 @@ export class D1WalletRelocations {
     if (assignment.home.matches(request.destination)) {
       return { ok: true, disposition: 'unchanged', assignment };
     }
+    assertDeploymentResourcesVerified(
+      [
+        { accountId: assignment.home.accountId, databaseId: assignment.home.databaseId },
+        { accountId: request.destination.accountId, databaseId: request.destination.databaseId },
+      ],
+      request.wallet.namespace,
+      deploymentLane,
+      resourceVerifications,
+      admittedAtMs,
+    );
     if (!Number.isSafeInteger(request.expectedGeneration + 1)) {
       throw new WalletPlacementError('invalid_record', 'Wallet ownership generation is exhausted');
     }
@@ -152,10 +171,10 @@ export class D1WalletRelocations {
         `INSERT INTO wallet_relocations (namespace, organization_id, project_id, environment_id,
          wallet_id, move_id, request_digest, authority_id, source_region, source_account_id,
          source_database_id, destination_region, destination_account_id, destination_database_id,
-         source_generation, destination_generation, state, admitted_at_ms)
+         source_generation, destination_generation, state, admitted_at_ms, resource_verifications_json)
        SELECT home.namespace, home.organization_id, home.project_id, home.environment_id,
          home.wallet_id, ?6, ?7, ?8, home.region, home.account_id, home.database_id,
-         ?9, ?10, ?11, home.ownership_generation, home.ownership_generation + 1, 'freezing', ?12
+         ?9, ?10, ?11, home.ownership_generation, home.ownership_generation + 1, 'freezing', ?12, ?15
        FROM wallet_homes home WHERE home.namespace = ?1 AND home.organization_id = ?2
          AND home.project_id = ?3 AND home.environment_id = ?4 AND home.wallet_id = ?5
          AND home.state = 'established' AND home.placement_state = 'active'
@@ -176,6 +195,7 @@ export class D1WalletRelocations {
         admittedAtMs,
         request.expectedGeneration,
         WALLET_RELOCATION_COOLDOWN_MS,
+        JSON.stringify(resourceVerifications),
       )
       .first<string>('move_id');
     const committed = await this.find(request);

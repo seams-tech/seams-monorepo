@@ -125,11 +125,17 @@ export default {
             relocationTimestamp(body.nowMs),
           );
           break;
+        case 'activate':
+          result = await moves.recordDestinationActivation(
+            moveRequest,
+            WalletRelocationAttempt.parse(body.attempt),
+            WalletRelocationReceipt.parse(body.activation, 'destination_activation'),
+          );
+          break;
         case 'complete':
           result = await moves.complete(
             moveRequest,
             WalletRelocationAttempt.parse(body.attempt),
-            WalletRelocationReceipt.parse(body.activation, 'destination_activation'),
             WalletRelocationReceipt.parse(body.cleanup, 'source_cleanup'),
             relocationTimestamp(body.nowMs),
           );

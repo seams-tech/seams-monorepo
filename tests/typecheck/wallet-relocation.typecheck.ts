@@ -19,6 +19,28 @@ declare const assignment: WalletHomeAssignment & { readonly state: 'established'
 declare const attempt: WalletRelocationAttempt;
 declare const activation: WalletRelocationReceipt<'destination_activation'>;
 
+type CutoverActivation = (WalletRelocationProgress & { readonly state: 'cutover' })['activation'];
+
+// @ts-expect-error Activation requires its durable receipt.
+const missingActivationReceipt: CutoverActivation = { state: 'activated' };
+// @ts-expect-error Awaiting activation cannot carry an activation receipt.
+const prematureActivationReceipt: CutoverActivation = {
+  state: 'awaiting_activation',
+  receipt: activation,
+};
+const wrongActivationReceipt: CutoverActivation = {
+  state: 'activated',
+  // @ts-expect-error Verification cannot authorize destination execution.
+  receipt: destinationVerification,
+};
+declare const cutover: WalletRelocationProgress & { readonly state: 'cutover' };
+// @ts-expect-error A broad spread cannot mix cutover activation with an earlier phase.
+const mixedActivationPhase: WalletRelocationProgress = { ...cutover, state: 'verified' };
+void missingActivationReceipt;
+void prematureActivationReceipt;
+void wrongActivationReceipt;
+void mixedActivationPhase;
+
 // @ts-expect-error A spread cannot forge a validated execution attempt.
 const forgedAttempt: WalletRelocationAttempt = { ...attempt, number: 1 };
 // @ts-expect-error A blocked attempt cannot carry an automatic retry deadline.

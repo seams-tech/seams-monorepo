@@ -177,6 +177,14 @@ async function responseBody(response: {
   return value as Record<string, unknown>;
 }
 
+async function readOwnershipLocators(database: D1Database) {
+  return database.batch([
+    database.prepare('SELECT * FROM wallet_session_locators ORDER BY digest'),
+    database.prepare('SELECT * FROM wallet_passkey_claims ORDER BY credential_id'),
+    database.prepare('SELECT * FROM wallet_routes ORDER BY value'),
+  ]);
+}
+
 test('relocation directory serializes competing moves and survives lost replies and restart', async ({
   request: http,
 }, testInfo) => {
@@ -220,6 +228,18 @@ test('relocation directory serializes competing moves and survives lost replies 
       const sql = await readFile(path.join(migrationDirectory, name), 'utf8');
       if (name === '0072_wallet_oceania.sql') {
         await establish(runtime, 'pre-upgrade');
+        const owner = wallet('pre-upgrade');
+        const identity = [owner.namespace, owner.organizationId, owner.projectId, owner.environmentId];
+        await database.batch([
+          database.prepare(`INSERT INTO wallet_session_locators
+            VALUES (?, ?, ?, ?, 'credential', ?, ?, ?)`)
+            .bind(...identity, 'a'.repeat(43), owner.walletId, admittedAtMs + 60_000),
+          database.prepare('INSERT INTO wallet_passkey_claims VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(...identity, 'wallet.test', 'pre-upgrade-passkey', owner.walletId),
+          database.prepare(`INSERT INTO wallet_routes VALUES (?, ?, ?, ?, 'linked_device', ?, ?)`)
+            .bind(...identity, 'pre-upgrade-installation', owner.walletId),
+        ]);
+        const locatorsBefore = await readOwnershipLocators(database);
         const pending = relocation('pre-upgrade', apacHome);
         const admitted = await call(runtime, {
           action: 'admit',
@@ -232,7 +252,12 @@ test('relocation directory serializes competing moves and survives lost replies 
         const afterUpgrade = await call(runtime, { action: 'status', request: pending });
         expect(await responseBody(afterUpgrade)).toEqual(beforeUpgrade.move);
         expect((await database.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
-        observations.push({ migrationPreservedPendingRelocation: true, move: beforeUpgrade });
+        expect(await readOwnershipLocators(database)).toEqual(locatorsBefore);
+        observations.push({
+          migrationPreservedPendingRelocation: true,
+          move: beforeUpgrade,
+          preservedOwnershipLocators: locatorsBefore,
+        });
       } else {
         for (const statement of unstable_splitSqlQuery(sql))
           await database.prepare(statement).run();
@@ -399,14 +424,20 @@ test('relocation directory serializes competing moves and survives lost replies 
     ).json();
     expect(switched).toMatchObject({
       ok: true,
-      move: { progress: { state: 'cutover', cutoverAtMs: admittedAtMs + 300 } },
+      move: {
+        progress: {
+          state: 'cutover',
+          activation: { state: 'awaiting_activation' },
+          cutoverAtMs: admittedAtMs + 300,
+        },
+      },
     });
     observations.push(switched);
     const newAssignment = await (
       await call(runtime, { action: 'home', wallet: request.wallet })
     ).json();
     expect(newAssignment).toEqual({ ...original, home: destination, ownershipGeneration: 2 });
-    const completionAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
     const cutoverDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
     await expect(
       cutoverDatabase
@@ -420,14 +451,146 @@ test('relocation directory serializes competing moves and survives lost replies 
         .run(),
     ).rejects.toThrow();
     const activation = relocationDestinationActivation(request, admittedAtMs + 410, manifest);
-    const cleanup = relocationSourceCleanup(request, source, admittedAtMs + 450, manifest);
+    const cleanup = relocationSourceCleanup(request, source, admittedAtMs + 1500, manifest);
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'complete',
+          request,
+          attempt: activationAttempt,
+          cleanup,
+          nowMs: admittedAtMs + 1600,
+        }),
+      ),
+    ).toEqual({ ok: false, code: 'phase_conflict' });
+    await expect(
+      cutoverDatabase
+        .prepare(
+          `UPDATE wallet_relocations SET state = 'completed', completed_at_ms = ?,
+       destination_activation_json = ?, source_cleanup_json = ?, execution_state = NULL,
+       execution_revision = execution_revision + 1, execution_attempt = 0,
+       execution_attempt_id = NULL, execution_started_at_ms = NULL WHERE wallet_id = 'traveller'`,
+        )
+        .bind(admittedAtMs + 1600, JSON.stringify(activation), JSON.stringify(cleanup))
+        .run(),
+    ).rejects.toThrow();
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'activate',
+          request,
+          attempt: activationAttempt,
+          activation: relocationDestinationActivation(request, admittedAtMs + 410, '8'.repeat(64)),
+        }),
+      ),
+    ).toEqual({ ok: false, code: 'receipt_conflict' });
+    const lostActivation = await call(
+      runtime,
+      {
+        action: 'activate',
+        request,
+        attempt: activationAttempt,
+        activation,
+      },
+      'ingress-a',
+      true,
+    );
+    expect(lostActivation.status).toBe(503);
+    await runtime.dispose();
+    runtime = start(directory);
+    const activated = await responseBody(
+      await call(runtime, {
+        action: 'activate',
+        request,
+        attempt: activationAttempt,
+        activation,
+      }),
+    );
+    expect(activated).toMatchObject({
+      ok: true,
+      move: {
+        progress: {
+          state: 'cutover',
+          activation: { state: 'activated', receipt: activation },
+          execution: { state: 'running', attempt: activationAttempt },
+        },
+      },
+    });
+    observations.push(activated);
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'activate',
+          request,
+          attempt: activationAttempt,
+          activation: relocationDestinationActivation(request, admittedAtMs + 411, manifest),
+        }),
+      ),
+    ).toEqual({ ok: false, code: 'receipt_conflict' });
+    const cleanupFailure = await responseBody(
+      await call(runtime, {
+        action: 'fail',
+        request,
+        attempt: activationAttempt,
+        code: 'transport_unavailable',
+        nowMs: admittedAtMs + 430,
+      }),
+    );
+    expect(cleanupFailure).toMatchObject({
+      ok: true,
+      move: {
+        progress: {
+          state: 'cutover',
+          activation: { state: 'activated', receipt: activation },
+          execution: { state: 'retry_wait', retryAtMs: admittedAtMs + 1430 },
+        },
+      },
+    });
+    observations.push(cleanupFailure);
+    await runtime.dispose();
+    runtime = start(directory);
+    expect(
+      await responseBody(await call(runtime, { action: 'home', wallet: request.wallet })),
+    ).toEqual(newAssignment);
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'admit',
+          request: relocation('traveller', source, 2),
+          nowMs: admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS,
+        }),
+      ),
+    ).toEqual({ ok: false, code: 'move_in_progress' });
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'activate',
+          request,
+          attempt: activationAttempt,
+          activation,
+        }),
+      ),
+    ).toEqual(cleanupFailure);
+    const completionAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 1430);
+    expect(completionAttempt.number).toBe(2);
+    expect(completionAttempt.run).toBe(activationAttempt.run);
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'complete',
+          request,
+          attempt: activationAttempt,
+          cleanup,
+          nowMs: admittedAtMs + 1600,
+        }),
+      ),
+    ).toEqual({ ok: false, code: 'attempt_conflict' });
     expect(
       await (
         await call(runtime, {
           action: 'complete',
           request,
           attempt: completionAttempt,
-          activation,
           cleanup: relocationSourceCleanup(request, source, admittedAtMs + 450, '8'.repeat(64)),
           nowMs: admittedAtMs + 500,
         })
@@ -441,9 +604,8 @@ test('relocation directory serializes competing moves and survives lost replies 
             action: 'complete',
             request,
             attempt: completionAttempt,
-            activation,
             cleanup,
-            nowMs: admittedAtMs + 500,
+            nowMs: admittedAtMs + 1600,
           },
           'ingress-a',
           true,
@@ -457,9 +619,8 @@ test('relocation directory serializes competing moves and survives lost replies 
         action: 'complete',
         request,
         attempt: completionAttempt,
-        activation,
         cleanup,
-        nowMs: admittedAtMs + 500,
+        nowMs: admittedAtMs + 1600,
       }),
     );
     expect(completed).toMatchObject({ ok: true, move: { progress: { state: 'completed' } } });

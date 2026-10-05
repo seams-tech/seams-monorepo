@@ -320,10 +320,61 @@ export class D1WalletRelocations {
       : { ok: false, code: 'phase_conflict' };
   }
 
-  async complete(
+  async recordDestinationActivation(
     request: WalletRelocationRequest,
     attempt: WalletRelocationAttempt,
     activation: WalletRelocationReceipt<'destination_activation'>,
+  ): Promise<WalletRelocationTransition> {
+    const current = await this.readMatching(request);
+    if (!current.ok) return current;
+    const progress = current.move.progress;
+    if (progress.state === 'completed') {
+      return sameReceipt(progress.destinationActivation, activation)
+        ? current
+        : { ok: false, code: 'receipt_conflict' };
+    }
+    if (progress.state !== 'cutover') return { ok: false, code: 'phase_conflict' };
+    if (progress.activation.state === 'activated') {
+      return sameReceipt(progress.activation.receipt, activation)
+        ? current
+        : { ok: false, code: 'receipt_conflict' };
+    }
+    if (
+      !activation.matches(current.move) ||
+      activation.manifestDigest !== progress.sourceFence.manifestDigest ||
+      activation.recordedAtMs < progress.cutoverAtMs
+    )
+      return { ok: false, code: 'receipt_conflict' };
+    if (!runningAttemptMatches(current.move, attempt))
+      return { ok: false, code: 'attempt_conflict' };
+    await this.database
+      .prepare(
+        `UPDATE wallet_relocations SET destination_activation_json = ?7
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'cutover'
+         AND destination_activation_json IS NULL AND execution_state = 'running'
+         AND execution_revision = ?8 AND execution_attempt_id = ?9`,
+      )
+      .bind(...moveBindings(request), JSON.stringify(activation), attempt.revision, attempt.id)
+      .run();
+    const committed = await this.readMatching(request);
+    if (!committed.ok) return committed;
+    const updated = committed.move.progress;
+    if (updated.state === 'completed') {
+      return sameReceipt(updated.destinationActivation, activation)
+        ? committed
+        : { ok: false, code: 'receipt_conflict' };
+    }
+    if (updated.state !== 'cutover' || updated.activation.state !== 'activated')
+      return { ok: false, code: 'attempt_conflict' };
+    return sameReceipt(updated.activation.receipt, activation)
+      ? committed
+      : { ok: false, code: 'receipt_conflict' };
+  }
+
+  async complete(
+    request: WalletRelocationRequest,
+    attempt: WalletRelocationAttempt,
     cleanup: WalletRelocationReceipt<'source_cleanup'>,
     nowMs: number,
   ): Promise<WalletRelocationTransition> {
@@ -332,19 +383,16 @@ export class D1WalletRelocations {
     if (!current.ok) return current;
     const progress = current.move.progress;
     if (progress.state === 'completed') {
-      return sameReceipt(progress.destinationActivation, activation) &&
-        sameReceipt(progress.sourceCleanup, cleanup)
+      return sameReceipt(progress.sourceCleanup, cleanup)
         ? current
         : { ok: false, code: 'receipt_conflict' };
     }
-    if (progress.state !== 'cutover') return { ok: false, code: 'phase_conflict' };
+    if (progress.state !== 'cutover' || progress.activation.state !== 'activated')
+      return { ok: false, code: 'phase_conflict' };
     if (
-      !activation.matches(current.move) ||
       !cleanup.matches(current.move) ||
-      activation.manifestDigest !== progress.sourceFence.manifestDigest ||
       cleanup.manifestDigest !== progress.sourceFence.manifestDigest ||
-      activation.recordedAtMs < progress.cutoverAtMs ||
-      cleanup.recordedAtMs < activation.recordedAtMs ||
+      cleanup.recordedAtMs < progress.activation.receipt.recordedAtMs ||
       completedAtMs < cleanup.recordedAtMs
     )
       return { ok: false, code: 'receipt_conflict' };
@@ -353,16 +401,16 @@ export class D1WalletRelocations {
     await this.database
       .prepare(
         `UPDATE wallet_relocations SET state = 'completed', completed_at_ms = ?7,
-       destination_activation_json = ?8, source_cleanup_json = ?9,
+       source_cleanup_json = ?8,
        execution_state = NULL, ${NEXT_EXECUTION_SQL}
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
          AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'cutover'
-         AND execution_state = 'running' AND execution_revision = ?10 AND execution_attempt_id = ?11`,
+         AND destination_activation_json IS NOT NULL
+         AND execution_state = 'running' AND execution_revision = ?9 AND execution_attempt_id = ?10`,
       )
       .bind(
         ...moveBindings(request),
         completedAtMs,
-        JSON.stringify(activation),
         JSON.stringify(cleanup),
         attempt.revision,
         attempt.id,
@@ -372,8 +420,7 @@ export class D1WalletRelocations {
     if (!committed.ok) return committed;
     if (committed.move.progress.state !== 'completed')
       return { ok: false, code: 'attempt_conflict' };
-    return sameReceipt(committed.move.progress.destinationActivation, activation) &&
-      sameReceipt(committed.move.progress.sourceCleanup, cleanup)
+    return sameReceipt(committed.move.progress.sourceCleanup, cleanup)
       ? committed
       : { ok: false, code: 'receipt_conflict' };
   }

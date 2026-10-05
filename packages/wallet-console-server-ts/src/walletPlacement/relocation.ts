@@ -186,9 +186,17 @@ export class WalletRelocationReceipt<Kind extends ReceiptKind = ReceiptKind> {
   }
 }
 
+type WalletRelocationActivation =
+  | { readonly state: 'awaiting_activation'; readonly receipt?: never }
+  | {
+      readonly state: 'activated';
+      readonly receipt: WalletRelocationReceipt<'destination_activation'>;
+    };
+
 export type WalletRelocationProgress =
   | {
       readonly state: 'freezing';
+      readonly activation?: never;
       readonly execution: WalletRelocationExecution;
       readonly destinationActivation?: never;
       readonly sourceCleanup?: never;
@@ -199,6 +207,7 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'copying';
+      readonly activation?: never;
       readonly execution: WalletRelocationExecution;
       readonly destinationActivation?: never;
       readonly sourceCleanup?: never;
@@ -209,6 +218,7 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'verified';
+      readonly activation?: never;
       readonly execution: WalletRelocationExecution;
       readonly destinationActivation?: never;
       readonly sourceCleanup?: never;
@@ -219,6 +229,7 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'cutover';
+      readonly activation: WalletRelocationActivation;
       readonly execution: WalletRelocationExecution;
       readonly destinationActivation?: never;
       readonly sourceCleanup?: never;
@@ -229,6 +240,7 @@ export type WalletRelocationProgress =
     }
   | {
       readonly state: 'completed';
+      readonly activation?: never;
       readonly execution?: never;
       readonly destinationActivation: WalletRelocationReceipt<'destination_activation'>;
       readonly sourceCleanup: WalletRelocationReceipt<'source_cleanup'>;
@@ -324,13 +336,15 @@ export class WalletRelocation {
     ) {
       throw new WalletPlacementError('invalid_record', 'Wallet relocation cutover time is invalid');
     }
+    if (progress.state === 'completed') {
+      validateActivation(progress.destinationActivation, move, progress);
+    } else if (progress.state === 'cutover' && progress.activation.state === 'activated') {
+      validateActivation(progress.activation.receipt, move, progress);
+    }
     if (
       progress.state === 'completed' &&
-      (!progress.destinationActivation.matches(move) ||
-        !progress.sourceCleanup.matches(move) ||
-        progress.destinationActivation.manifestDigest !== progress.sourceFence.manifestDigest ||
+      (!progress.sourceCleanup.matches(move) ||
         progress.sourceCleanup.manifestDigest !== progress.sourceFence.manifestDigest ||
-        progress.destinationActivation.recordedAtMs < progress.cutoverAtMs ||
         progress.sourceCleanup.recordedAtMs < progress.destinationActivation.recordedAtMs ||
         progress.completedAtMs < progress.sourceCleanup.recordedAtMs)
     ) {
@@ -347,6 +361,26 @@ export class WalletRelocation {
   }
 }
 
+function validateActivation(
+  receipt: WalletRelocationReceipt<'destination_activation'>,
+  move: WalletRelocation,
+  progress: {
+    readonly sourceFence: WalletRelocationReceipt<'source_fence'>;
+    readonly cutoverAtMs: number;
+  },
+): void {
+  if (
+    !receipt.matches(move) ||
+    receipt.manifestDigest !== progress.sourceFence.manifestDigest ||
+    receipt.recordedAtMs < progress.cutoverAtMs
+  ) {
+    throw new WalletPlacementError(
+      'invalid_record',
+      'Wallet relocation activation evidence is invalid',
+    );
+  }
+}
+
 function receiptFromJson<Kind extends ReceiptKind>(
   raw: unknown,
   kind: Kind,
@@ -359,8 +393,10 @@ function receiptFromJson<Kind extends ReceiptKind>(
 
 function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress {
   if (
-    row.state !== 'completed' &&
-    (row.destination_activation_json !== null || row.source_cleanup_json !== null)
+    (row.state !== 'completed' && row.source_cleanup_json !== null) ||
+    (row.state !== 'completed' &&
+      row.state !== 'cutover' &&
+      row.destination_activation_json !== null)
   ) {
     throw new WalletPlacementError('invalid_record', 'Pending relocation has completion evidence');
   }
@@ -401,6 +437,7 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
       if (row.completed_at_ms !== null) break;
       return {
         state: 'cutover',
+        activation: activationFromRow(row),
         execution: relocationExecutionFromRow(row),
         sourceFence: receiptFromJson(row.source_fence_json, 'source_fence'),
         destinationVerification: receiptFromJson(
@@ -440,4 +477,12 @@ function progressFromRow(row: Record<string, unknown>): WalletRelocationProgress
     }
   }
   throw new WalletPlacementError('invalid_record', 'Stored wallet relocation progress is invalid');
+}
+
+function activationFromRow(row: Record<string, unknown>): WalletRelocationActivation {
+  if (row.destination_activation_json === null) return { state: 'awaiting_activation' };
+  return {
+    state: 'activated',
+    receipt: receiptFromJson(row.destination_activation_json, 'destination_activation'),
+  };
 }

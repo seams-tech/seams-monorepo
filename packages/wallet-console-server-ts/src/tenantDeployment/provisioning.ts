@@ -347,10 +347,13 @@ export function createTenantDeploymentProvisionerV1(
       const identity = await resolveIdentity(options, environmentId);
       const active = await options.store.findActiveBinding(deploymentLane);
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
+      const resourcesMatch =
+        JSON.stringify(activeBinding?.resources) === JSON.stringify(options.resources);
       if (
         activeBinding &&
         (activeBinding.tenant.namespace !== options.namespace ||
-          JSON.stringify(activeBinding.resources) !== JSON.stringify(options.resources))
+          !preservesDeploymentResources(activeBinding.resources, options.resources) ||
+          (request.authorization.kind === 'reuse_active' && !resourcesMatch))
       ) {
         throw new TenantDeploymentStoreError(
           'deployment_resource_conflict',
@@ -534,6 +537,20 @@ export function createTenantDeploymentProvisionerV1(
       }
     },
   };
+}
+
+function preservesDeploymentResources(
+  current: TenantDeploymentD1ResourcesV1,
+  target: TenantDeploymentD1ResourcesV1,
+): boolean {
+  const targetIdentities = new Set<string>();
+  for (const resource of target) {
+    targetIdentities.add(`${resource.accountId}/${resource.databaseId}`);
+  }
+  for (const resource of current) {
+    if (!targetIdentities.has(`${resource.accountId}/${resource.databaseId}`)) return false;
+  }
+  return true;
 }
 
 export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {

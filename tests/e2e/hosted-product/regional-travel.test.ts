@@ -15,8 +15,7 @@ const { IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 
-type Region = 'weur' | 'enam' | 'apac';
-const regions: Region[] = ['weur', 'enam', 'apac'];
+type Region = 'weur' | 'enam' | 'apac' | 'oc';
 
 type ProbeIdentity = {
   bootId: string;
@@ -137,7 +136,7 @@ async function registerRegionalWallet(client: RegionalClient): Promise<void> {
   client.registration = { started, completed: performance.now(), walletId: client.harness.walletId };
 }
 
-for (const home of ['weur', 'apac'] as const) {
+for (const home of ['weur', 'apac', 'oc'] as const) {
   test(`${home} home: hosted concurrent regional registration and same-wallet travel`,
     async ({ browser, request }, testInfo) => {
       await verifyRegionalTravel(home, { browser, request }, testInfo);
@@ -156,6 +155,7 @@ async function verifyRegionalTravel(
   const unlocks: { region: Region; elapsedMs: number; requests: RequestTiming[] }[] = [];
   const samples: { region: Region; index: number; elapsedMs: number; requests: RequestTiming[] }[] = [];
   try {
+    const regions: Region[] = home === 'oc' ? ['oc', 'apac', 'weur', 'enam'] : ['weur', 'enam', 'apac'];
     for (const region of regions) {
       const context = await browser.newContext();
       await installCandidateAssets(context);
@@ -171,7 +171,9 @@ async function verifyRegionalTravel(
     await Promise.all(clients.map(registerRegionalWallet));
     const primary = clients.find(clientHasRegion.bind(undefined, home));
     if (!primary) throw new Error(`${home} client is missing`);
-    const sequence: Region[] = [home, home === 'weur' ? 'apac' : 'weur', 'enam', home];
+    const sequence: Region[] = home === 'oc'
+      ? ['oc', 'apac', 'weur', 'enam', 'oc']
+      : [home, home === 'weur' ? 'apac' : 'weur', 'enam', home];
     for (const region of sequence) {
       await primary.probe.selectRegion(region);
       const unlockStart = performance.now();

@@ -11,6 +11,7 @@ import type { ConsoleApiKeyService } from '../../packages/console-server-ts/src/
 import type { TenantDeploymentBindingV1 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
 import type { TenantDeploymentResourceVerificationsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import type { TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/service';
+import { createTenantDeploymentProvisionerV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 import {
   regionalResourceProof,
   bindingForResource,
@@ -317,6 +318,43 @@ test('regional deployment renewal preserves the browser key and retires previous
     const retired = await checkWriters(store, initialProofs, null);
     expect(await apiKeys.listApiKeys(context)).toHaveLength(1);
 
+    const [existingResource] = reference.resources;
+    const removal = createTenantDeploymentProvisionerV1({
+      ...scenario.provisionerOptions,
+      resources: [existingResource],
+    });
+    await expect(
+      removal.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: nextProofs },
+      }),
+    ).rejects.toMatchObject({ code: 'deployment_resource_conflict' });
+    const addition = createTenantDeploymentProvisionerV1({
+      ...scenario.provisionerOptions,
+      resources: [
+        ...reference.resources,
+        {
+          accountId: existingResource.accountId,
+          databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        },
+      ],
+    });
+    await expect(
+      addition.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'reuse_active' },
+      }),
+    ).rejects.toMatchObject({ code: 'deployment_resource_conflict' });
+    await expect(
+      addition.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: nextProofs },
+      }),
+    ).rejects.toMatchObject({ code: 'readiness_invalid' });
+
     // A real persisted credential failure must release the lane for another attempt.
     await apiKeys.revokeApiKey(context, initial.credentialId, { reason: 'fixture invalidation' });
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -350,6 +388,9 @@ test('regional deployment renewal preserves the browser key and retires previous
       browserCredentialPreserved: true,
       committedActivationPreservedAfterLostReply: true,
       incompleteProofSetRejected: true,
+      resourceRemovalRejected: true,
+      unverifiedResourceAdditionRejected: true,
+      resourceAdditionCannotReuseActivation: true,
       regionalCounts,
       crossResourceReadinessRejected: true,
       incompleteReadinessCoverageRejected: true,

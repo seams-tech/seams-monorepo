@@ -15,6 +15,7 @@ import { createTenantDeploymentReadinessServiceV1 } from '../../packages/wallet-
 import {
   createGatewayTenantDeploymentRegistrationCanaryV1,
   createTenantDeploymentProvisionerV1,
+  type TenantDeploymentProvisionerOptionsV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/provisioning';
 import type { TenantDeploymentRuntimeInspectorV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import { regionalBinding, seedAdoptionRoot } from './tenantDeploymentFixtures';
@@ -96,7 +97,7 @@ export async function provisioningScenario(
     walletRuntime,
   });
   const reference = await regionalBinding(Date.now(), deploymentLane);
-  const provisioner = createTenantDeploymentProvisionerV1({
+  const provisionerOptions: TenantDeploymentProvisionerOptionsV1 = {
     namespace,
     resources: reference.resources,
     deploymentLane,
@@ -124,9 +125,11 @@ export async function provisioningScenario(
     store,
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
-  });
+  };
+  const provisioner = createTenantDeploymentProvisionerV1(provisionerOptions);
   return {
     provisioner,
+    provisionerOptions,
     store,
     apiKeys,
     router,

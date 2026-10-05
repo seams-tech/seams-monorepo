@@ -252,12 +252,17 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
         message: 'Wallet ownership changed before registration execution',
       };
     }
-    return { ok: true };
+    const result = {
+      ok: true as const,
+      ownershipGeneration: admitted.authority.generation,
+      purpose: admitted.authority.purpose,
+    };
+    return result;
   }
 
   async complete(
     input: Parameters<WalletRegistrationReservationAuthority['complete']>[0],
-  ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+  ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['complete']>>> {
     const client = this.client();
     const assignment = await client.findByCeremony(input.ceremonyId);
     if (

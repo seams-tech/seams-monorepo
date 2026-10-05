@@ -159,7 +159,7 @@ export async function verifyRegistrationExecutionAdmission(
       assignment.registrationAllocation.ceremonyId,
       'honest',
     ),
-  ).toEqual({ ok: true });
+  ).toEqual({ ok: true, ownershipGeneration: 1, purpose: 'registration' });
   await expect(
     registrationRuntimeAdmission(
       runtime,
@@ -252,7 +252,7 @@ export async function verifyExecutionAdmissionResponses(
       assignment.registrationAllocation.ceremonyId,
       'honest',
     ),
-  ).toEqual({ ok: true });
+  ).toEqual({ ok: true, ownershipGeneration: 1, purpose: 'ordinary' });
 
   return { executionClientRejectsConflictingConsoleResponses: true };
 }

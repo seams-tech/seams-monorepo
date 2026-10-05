@@ -148,13 +148,14 @@ async function call(runtime: Miniflare, body: unknown, ingress = 'ingress-a', lo
   });
 }
 
-async function placementStatus(runtime: Miniflare, key: WalletOwnershipKey) {
+async function placementStatus(runtime: Miniflare, key: WalletOwnershipKey, catalogJson?: string) {
   const service = await runtime.getWorker('ingress-b');
   return service.fetch(
     'https://wallet-placement.internal/internal/wallet-placement/v1/placement-status',
     {
       method: 'POST',
       body: JSON.stringify({ wallet: key }),
+      headers: catalogJson === undefined ? {} : { 'x-test-catalog-json': catalogJson },
     },
   );
 }
@@ -612,6 +613,11 @@ test('relocation directory serializes competing moves and survives lost replies 
         progress: { state: 'freezing', availability: 'paused', execution: { state: 'running' } },
       },
     });
+    for (const catalogJson of ['', '{malformed', JSON.stringify([thirdHome])]) {
+      expect(await responseBody(await placementStatus(runtime, request.wallet, catalogJson))).toEqual(freezingStatus);
+    }
+    expect((await placementStatus(runtime, foreignWallet, '')).status).toBe(403);
+    observations.push({ statusIndependentOfCatalog: true, statusStillChecksTenantScope: true });
     observations.push(freezingStatus);
     expect(
       await (
@@ -967,6 +973,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         },
       },
     });
+    expect(await responseBody(await placementStatus(runtime, request.wallet, ''))).toEqual(cleanupStatus);
     observations.push(cleanupStatus);
     await runtime.dispose();
     runtime = start(directory);

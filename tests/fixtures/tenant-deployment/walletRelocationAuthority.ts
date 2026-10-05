@@ -58,7 +58,7 @@ export default {
           databaseId: request.headers.get('x-seams-writer-database') ?? home.databaseId,
         },
       ),
-      catalogJson: env.CATALOG_JSON,
+      catalogJson: request.headers.get('x-test-catalog-json') ?? env.CATALOG_JSON,
       admittedResources: catalog.deploymentResources(),
       scope: {
         namespace: 'shared',

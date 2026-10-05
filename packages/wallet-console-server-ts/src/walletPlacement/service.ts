@@ -120,17 +120,23 @@ export async function handleWalletHomeServiceRequest(
     return json({ ok: false, code: 'not_found' }, 404);
   }
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
-  if (typeof options.catalogJson !== 'string' || options.catalogJson.length === 0) {
-    return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
-  }
-
   try {
+    const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
+      const wallet = WalletOwnershipKey.parse(body.wallet);
+      if (!inScope(wallet, options.scope)) {
+        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      }
+      return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+    }
+    if (typeof options.catalogJson !== 'string' || options.catalogJson.length === 0) {
+      return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
+    }
     const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
     if (!catalog.matchesResources(options.admittedResources)) {
       return json({ ok: false, code: 'wallet_home_resources_unverified' }, 503);
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
-    const body = record(await request.json().catch(() => null));
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap`)
       return handleLinkedDeviceBootstrap(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce`) {
@@ -236,8 +242,6 @@ export async function handleWalletHomeServiceRequest(
         if (!outcome.ok) return json(outcome, 409);
         return json({ ok: true, command: outcome.command, digest: await outcome.command.digest() });
       }
-      case `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`:
-        return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {
         const assignment = await directory.find(wallet);
         return assignment

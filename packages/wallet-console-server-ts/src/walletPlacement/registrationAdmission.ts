@@ -216,9 +216,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     }
   }
 
-  async admitHome(
-    input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0],
-  ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+  async admitHome(input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0]) {
     const client = this.client();
     const assignment = await client.findByCeremony(input.ceremonyId);
     if (
@@ -229,7 +227,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       assignment.home.databaseId !== this.options.localResource.databaseId
     ) {
       return {
-        ok: false,
+        ok: false as const,
         code: 'wallet_home_unavailable',
         message: 'Registration home is unavailable',
       };
@@ -240,14 +238,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
         : await client.executionAuthority(assignment.wallet);
     if (!admitted.ok) {
       return {
-        ok: false,
+        ok: false as const,
         code: admitted.code,
         message: 'Registration execution is not admitted at this home',
       };
     }
     if (!admitted.authority.matches(assignment.wallet, assignment.ownershipGeneration)) {
       return {
-        ok: false,
+        ok: false as const,
         code: 'home_conflict',
         message: 'Wallet ownership changed before registration execution',
       };

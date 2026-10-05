@@ -180,6 +180,7 @@ async function relocationCommand(
   home = source,
   role = 'gateway',
   versionId = relocationWriterVersion(home.databaseId, role),
+  catalogJson?: string,
 ) {
   const service = await runtime.getWorker('ingress-b');
   const response = await service.fetch(
@@ -191,6 +192,7 @@ async function relocationCommand(
         'x-seams-writer-version': versionId,
         'x-seams-writer-account': home.accountId,
         'x-seams-writer-database': home.databaseId,
+        ...(catalogJson === undefined ? {} : { 'x-test-catalog-json': catalogJson }),
       },
       body: JSON.stringify({ wallet: key, attempt, kind }),
     },
@@ -579,6 +581,17 @@ test('relocation directory serializes competing moves and survives lost replies 
       ok: false,
       code: 'participant_conflict',
     });
+    for (const catalogJson of ['', '{malformed', JSON.stringify([thirdHome])]) {
+      expect(await relocationCommand(
+        runtime, request.wallet, freezeAttempt, 'freeze', source, 'gateway',
+        relocationWriterVersion(source.databaseId, 'gateway'), catalogJson,
+      )).toEqual(freezeCommand);
+      expect(await relocationCommand(
+        runtime, request.wallet, freezeAttempt, 'freeze', source, 'gateway',
+        thirdHome.databaseId, catalogJson,
+      )).toEqual({ ok: false, code: 'participant_conflict' });
+    }
+    observations.push({ commandRetriesUsePinnedResourcesWithoutCurrentCatalog: true });
     expect(freezeCommand).toMatchObject({
       ok: true,
       command: {

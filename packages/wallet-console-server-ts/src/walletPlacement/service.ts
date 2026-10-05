@@ -135,12 +135,26 @@ export async function handleWalletHomeServiceRequest(
         ? json(walletRelocationStatusView(move))
         : json({ state: 'unavailable', code: 'not_found' }, 404);
     }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
+    if (
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command`
+    ) {
       const wallet = WalletOwnershipKey.parse(body.wallet);
       if (!inScope(wallet, options.scope)) {
         throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
       }
-      return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
+        return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      }
+      const outcome = await WalletD1RelocationCommand.authorize(
+        options.database,
+        wallet,
+        options.writer,
+        WalletRelocationAttempt.parse(body.attempt),
+        parseWalletRelocationCommandKind(body.kind),
+      );
+      if (!outcome.ok) return json(outcome, 409);
+      return json({ ok: true, command: outcome.command, digest: await outcome.command.digest() });
     }
     if (typeof options.catalogJson !== 'string' || options.catalogJson.length === 0) {
       return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
@@ -244,17 +258,6 @@ export async function handleWalletHomeServiceRequest(
       return json({ ok: true });
     }
     switch (url.pathname) {
-      case `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command`: {
-        const outcome = await WalletD1RelocationCommand.authorize(
-          options.database,
-          wallet,
-          options.writer,
-          WalletRelocationAttempt.parse(body.attempt),
-          parseWalletRelocationCommandKind(body.kind),
-        );
-        if (!outcome.ok) return json(outcome, 409);
-        return json({ ok: true, command: outcome.command, digest: await outcome.command.digest() });
-      }
       case `${WALLET_HOME_SERVICE_BASE_PATH}/find`: {
         const assignment = await directory.find(wallet);
         return assignment

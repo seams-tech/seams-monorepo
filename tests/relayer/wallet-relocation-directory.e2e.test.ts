@@ -444,12 +444,42 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(switched);
-    const newAssignment = await (
-      await call(runtime, { action: 'home', wallet: request.wallet })
-    ).json();
-    expect(newAssignment).toEqual({ ...original, home: destination, ownershipGeneration: 2 });
+    expect(await (await call(runtime, { action: 'home', wallet: request.wallet })).json()).toEqual({
+      code: 'wallet_relocation_in_progress',
+    });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
     const cutoverDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
+    expect(
+      await cutoverDatabase
+        .prepare(
+          "SELECT region, ownership_generation, placement_state FROM wallet_homes WHERE wallet_id = 'traveller'",
+        )
+        .first(),
+    ).toEqual({ region: destination.region, ownership_generation: 2, placement_state: 'paused' });
+    await expect(
+      cutoverDatabase
+        .prepare("UPDATE wallet_homes SET placement_state = 'active' WHERE wallet_id = 'traveller'")
+        .run(),
+    ).rejects.toThrow();
+    const destinationPublication = {
+      action: 'publish-route',
+      wallet: request.wallet,
+      home: destination,
+      locator: { kind: 'passkey_challenge', value: randomBytes(16).toString('base64url') },
+    };
+    expect(await responseBody(await call(runtime, destinationPublication))).toEqual({
+      published: false,
+    });
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'publish-route',
+          wallet: wallet('unrelated'),
+          home: source,
+          locator: { kind: 'passkey_challenge', value: randomBytes(16).toString('base64url') },
+        }),
+      ),
+    ).toEqual({ published: true });
     await expect(
       cutoverDatabase
         .prepare(
@@ -528,6 +558,31 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(activated);
+    const newAssignment = await responseBody(
+      await call(runtime, { action: 'home', wallet: request.wallet }),
+    );
+    expect(newAssignment).toEqual({ ...original, home: destination, ownershipGeneration: 2 });
+    expect(await responseBody(await call(runtime, destinationPublication))).toEqual({
+      published: true,
+    });
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: 'publish-route',
+          wallet: request.wallet,
+          home: source,
+          locator: { kind: 'passkey_challenge', value: randomBytes(16).toString('base64url') },
+        }),
+      ),
+    ).toEqual({ published: false });
+    observations.push({
+      activationGate: {
+        pausedAtDestinationBeforeActivation: true,
+        destinationPublicationAfterActivation: true,
+        retiredSourcePublicationRejected: true,
+        unrelatedWalletUnaffected: true,
+      },
+    });
     expect(
       await responseBody(
         await call(runtime, {

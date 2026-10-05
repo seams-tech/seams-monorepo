@@ -2,6 +2,7 @@ import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
 import {
   RegistrationSetupAllocation,
+  WalletHome,
   WalletHomeCatalog,
   WalletOwnershipKey,
   WalletPlacementError,
@@ -18,6 +19,11 @@ import {
   relocationPhase,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
 import { D1WalletRelocations } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
+import {
+  D1WalletRoutes,
+  WalletRouteLocator,
+} from '../../../packages/wallet-console-server-ts/src/walletPlacement/walletRouteLocators';
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 
 function testCommand(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw))
@@ -72,6 +78,18 @@ export default {
       }
       if (body.action === 'home') {
         return Response.json(await directory.find(WalletOwnershipKey.parse(body.wallet)));
+      }
+      if (body.action === 'publish-route') {
+        const wallet = WalletOwnershipKey.parse(body.wallet);
+        const home = WalletHome.parse(body.home);
+        const routes = new D1WalletRoutes(env.CONSOLE_DB, wallet);
+        const writer = parseTenantRuntimeWriterV1('gateway', home.databaseId, {
+          accountId: home.accountId,
+          databaseId: home.databaseId,
+        });
+        return Response.json({
+          published: await routes.publish(wallet, [WalletRouteLocator.parse(body.locator)], writer),
+        });
       }
       const moveRequest = WalletRelocationRequest.parse(body.request);
       let result: unknown;

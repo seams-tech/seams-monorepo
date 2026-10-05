@@ -28,8 +28,10 @@ export class RelocationFixtureEffects implements WalletRelocationEffects {
   async activate() {
     return this.result('destination_activation');
   }
-  async cleanup() {
-    return this.result('source_cleanup');
+  async cleanup(): ReturnType<WalletRelocationEffects['cleanup']> {
+    if (this.failure !== null) return { state: 'failed', code: relocationFailure(this.failure) };
+    if (this.receipt === null) return { state: 'pending' };
+    return { state: 'cleaned', receipt: WalletRelocationReceipt.parse(this.receipt, 'source_cleanup') };
   }
 
   private result<Kind extends WalletRelocationReceipt['kind']>(kind: Kind) {

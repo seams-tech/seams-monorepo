@@ -1,5 +1,5 @@
 import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
-import { verifyAuthorizationRegionalTransfer } from './authorization-transfer.scenario';
+import { verifyAuthorizationRegionalTransfer, verifyAuthorizationRegionalLifecycle } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
@@ -841,6 +841,9 @@ test('relocation directory serializes competing moves and survives lost replies 
       ok: false, code: 'wallet_paused',
     });
     const authorizationManifest = relocationAuthorizationManifest();
+    observations.push(await verifyAuthorizationRegionalLifecycle(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), request.wallet, freezeAttempt, source, 'freeze', authorizationManifest,
+    ));
     expect(
       (
         await publishAuthorizationManifest(
@@ -1144,6 +1147,9 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(activationCommand);
+    observations.push(await verifyAuthorizationRegionalLifecycle(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), request.wallet, activationAttempt, destination, 'activate', authorizationManifest,
+    ));
     const cutoverDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
     expect(
       await cutoverDatabase
@@ -1298,6 +1304,9 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     observations.push(cleanupCommand);
+    observations.push(await verifyAuthorizationRegionalLifecycle(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), request.wallet, activationAttempt, source, 'cleanup', authorizationManifest,
+    ));
     const newAssignment = await responseBody(
       await call(runtime, { action: 'home', wallet: request.wallet }),
     );
@@ -1758,6 +1767,18 @@ test('relocation directory serializes competing moves and survives lost replies 
       ).state,
     ).toBe("activated");
     runtime = await restart(runtime, directory);
+    const pendingCleanup = await responseBody(await call(runtime, {
+      action: 'advance', request: coordinated, attemptId: attemptIdentity(), receipt: null,
+      nowMs: admittedAtMs + 450,
+    }));
+    const pendingCleanupProgress = objectValue(objectValue(pendingCleanup.move).progress);
+    expect(objectValue(pendingCleanupProgress.activation).state).toBe('activated');
+    expect(objectValue(pendingCleanupProgress.execution).state).toBe('running');
+    runtime = await restart(runtime, directory);
+    expect(await responseBody(await call(runtime, {
+      action: 'advance', request: coordinated, attemptId: attemptIdentity(), receipt: null,
+      nowMs: admittedAtMs + 460,
+    }))).toEqual(pendingCleanup);
     const coordinatorCleanupFailure = await responseBody(
       await call(runtime, {
         action: "advance",

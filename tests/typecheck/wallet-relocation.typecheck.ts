@@ -263,8 +263,8 @@ void unpinnedVerification;
 void unpinnedActivation;
 void destinationAsSource;
 
-import type { WalletAuthorizationTransfer } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationTransfer';
-type AuthorizationTransferResult = Awaited<ReturnType<WalletAuthorizationTransfer['advance']>>;
+import type { WalletAuthorizationRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationRelocation';
+type AuthorizationTransferResult = Awaited<ReturnType<WalletAuthorizationRelocation['transfer']>>;
 // @ts-expect-error A component verification cannot also request another chunk.
 const invalidTransferResult: AuthorizationTransferResult = {
   state: 'verified',
@@ -315,3 +315,12 @@ const drainingFromFrozen: FreezeEffect = { ...frozenSource, state: 'pending' };
 void drainingWithReceipt;
 void frozenWithoutReceipt;
 void drainingFromFrozen;
+
+type CleanupEffect = Awaited<ReturnType<WalletRelocationEffects['cleanup']>>;
+declare const cleanedSource: Extract<CleanupEffect, { state: 'cleaned' }>;
+// @ts-expect-error Pending deletion cannot claim a completed cleanup receipt.
+const pendingCleanupWithReceipt: CleanupEffect = { ...cleanedSource, state: 'pending' };
+// @ts-expect-error Completed cleanup requires its receipt.
+const cleanupWithoutReceipt: CleanupEffect = { state: 'cleaned' };
+void pendingCleanupWithReceipt;
+void cleanupWithoutReceipt;

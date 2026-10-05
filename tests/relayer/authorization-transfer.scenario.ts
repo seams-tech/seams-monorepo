@@ -1,7 +1,8 @@
+import type { WalletAuthorizationManifest } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
 import { expect } from '@playwright/test';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { WalletAuthorizationTransfer } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationTransfer';
+import { WalletAuthorizationRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationRelocation';
 import type {
   WalletHome,
   WalletOwnershipKey,
@@ -124,31 +125,31 @@ export async function verifyAuthorizationRegionalTransfer(
     WALLET_GATEWAY_APAC: new UnusedRegionalParticipant(),
     WALLET_GATEWAY_OC: receiver,
   });
-  const first = new WalletAuthorizationTransfer(database, transport);
-  expect(await first.advance(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
+  const first = new WalletAuthorizationRelocation(database, transport);
+  expect(await first.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'failed',
     code: 'transport_unavailable',
   });
   expect(receiver.nextIndex).toBe(1);
-  const restarted = new WalletAuthorizationTransfer(database, transport);
+  const restarted = new WalletAuthorizationRelocation(database, transport);
   receiver.corruptReceipt = true;
-  expect(await restarted.advance(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
+  expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'failed',
     code: 'receipt_conflict',
   });
   expect(sender.exported).toEqual([0]);
   receiver.corruptReceipt = false;
-  expect(await restarted.advance(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
+  expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'advanced',
     nextIndex: 2,
   });
   expect(sender.exported).toEqual([0, 1]);
-  expect(await restarted.advance(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
+  expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'verified',
     digestHex: '6'.repeat(64),
   });
   expect(
-    await new WalletAuthorizationTransfer(database, transport).advance(
+    await new WalletAuthorizationRelocation(database, transport).transfer(
       wallet,
       attempt,
       sourceWriter,
@@ -162,5 +163,122 @@ export async function verifyAuthorizationRegionalTransfer(
     lostAcknowledgementResumedAtNextChunk: true,
     corruptReceiptRejected: true,
     verifiedRetrySkippedSourceExport: true,
+  };
+}
+
+class RegionalLifecycleParticipant {
+  corruptReceipt = false;
+  pending = true;
+  constructor(
+    private readonly command: WalletD1RelocationCommand,
+    private readonly manifest: WalletAuthorizationManifest,
+  ) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const operation = this.command.operation.kind;
+    expect(new URL(request.url).pathname.endsWith(`/${operation}`)).toBe(true);
+    const commandDigest = this.corruptReceipt ? '0'.repeat(64) : await this.command.digest();
+    switch (operation) {
+      case 'freeze':
+        return Response.json(
+          this.pending
+            ? { kind: 'authorization_pending', commandDigest, reason: 'ceremonies_unsettled' }
+            : {
+                kind: 'authorization_frozen',
+                commandDigest,
+                manifest: this.manifest,
+                retiredAtMs: 100,
+                frozenAtMs: 101,
+              },
+        );
+      case 'activate':
+        return Response.json({
+          kind: 'authorization_activated',
+          commandDigest,
+          digestHex: this.manifest.digestHex,
+          activatedAtMs: 102,
+        });
+      case 'cleanup':
+        return Response.json({
+          kind: 'authorization_cleanup',
+          commandDigest,
+          progress: this.pending ? { state: 'cleaning' } : { state: 'cleaned', completedAtMs: 103 },
+        });
+      default:
+        throw new Error('Unexpected lifecycle command');
+    }
+  }
+}
+
+export async function verifyAuthorizationRegionalLifecycle(
+  database: D1DatabaseLike,
+  wallet: WalletOwnershipKey,
+  attempt: WalletRelocationAttempt,
+  home: WalletHome,
+  operation: 'freeze' | 'activate' | 'cleanup',
+  manifest: WalletAuthorizationManifest,
+) {
+  const writer = parseTenantRuntimeWriterV1(
+    'gateway',
+    relocationWriterVersion(home.databaseId, 'gateway'),
+    {
+      accountId: home.accountId,
+      databaseId: home.databaseId,
+    },
+  );
+  const authorized = await WalletD1RelocationCommand.authorize(
+    database,
+    wallet,
+    writer,
+    attempt,
+    operation,
+  );
+  if (!authorized.ok) throw new Error('Missing lifecycle command');
+  const participant = new RegionalLifecycleParticipant(authorized.command, manifest);
+  const transport = new WalletRegionalDispatch({
+    WALLET_GATEWAY_US: new UnusedRegionalParticipant(),
+    WALLET_GATEWAY_WEUR: home.region === 'WEUR' ? participant : new UnusedRegionalParticipant(),
+    WALLET_GATEWAY_APAC: new UnusedRegionalParticipant(),
+    WALLET_GATEWAY_OC: home.region === 'OC' ? participant : new UnusedRegionalParticipant(),
+  });
+  const adapter = new WalletAuthorizationRelocation(database, transport);
+  participant.corruptReceipt = true;
+  expect(await adapter[operation](wallet, attempt, writer)).toEqual({
+    state: 'failed',
+    code: 'receipt_conflict',
+  });
+  participant.corruptReceipt = false;
+  if (operation !== 'activate')
+    expect(await adapter[operation](wallet, attempt, writer)).toEqual({ state: 'pending' });
+  participant.pending = false;
+  const result = await adapter[operation](wallet, attempt, writer);
+  switch (operation) {
+    case 'freeze':
+      expect(result).toEqual({ state: 'frozen', manifest, retiredAtMs: 100, frozenAtMs: 101 });
+      break;
+    case 'activate':
+      expect(result).toEqual({
+        state: 'activated',
+        digestHex: manifest.digestHex,
+        activatedAtMs: 102,
+      });
+      break;
+    case 'cleanup':
+      expect(result).toEqual({ state: 'cleaned', completedAtMs: 103 });
+      break;
+  }
+  expect(
+    await new WalletAuthorizationRelocation(database, transport)[operation](
+      wallet,
+      attempt,
+      writer,
+    ),
+  ).toEqual(result);
+  return {
+    regionalLifecycle: operation,
+    actualConsoleCommand: true,
+    simulatedParticipant: true,
+    corruptReceiptRejected: true,
+    restartReplay: true,
   };
 }

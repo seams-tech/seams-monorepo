@@ -33,6 +33,15 @@ type TransferEffectResult =
     }
   | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly receipt?: never };
 
+type CleanupEffectResult =
+  | { readonly state: 'pending'; readonly receipt?: never; readonly code?: never }
+  | {
+      readonly state: 'cleaned';
+      readonly receipt: WalletRelocationReceipt<'source_cleanup'>;
+      readonly code?: never;
+    }
+  | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly receipt?: never };
+
 // Transport adapters authenticate every participant and aggregate their exact receipts.
 // A successful effect must remain repeatable after its caller loses the response.
 export interface WalletRelocationEffects {
@@ -48,7 +57,7 @@ export interface WalletRelocationEffects {
   cleanup(
     context: EffectContext,
     activation: WalletRelocationReceipt<'destination_activation'>,
-  ): Promise<EffectResult<'source_cleanup'>>;
+  ): Promise<CleanupEffectResult>;
 }
 
 // Each call advances one durable step. Activation returns before cleanup starts.
@@ -139,7 +148,18 @@ export class WalletRelocationCoordinator {
           );
         } else {
           const result = await this.effects.cleanup(context, progress.activation.receipt);
-          if (!result.ok) return this.fail(context, result.code);
+          switch (result.state) {
+            case 'pending':
+              return claimed;
+            case 'failed':
+              return this.fail(context, result.code);
+            case 'cleaned':
+              break;
+            default: {
+              const unexpected: never = result;
+              throw new Error(`Unexpected cleanup result: ${String(unexpected)}`);
+            }
+          }
           transition = await this.journal.complete(
             request,
             context.attempt,

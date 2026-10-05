@@ -172,6 +172,24 @@ async function moveStatus(runtime: Miniflare, key: WalletOwnershipKey, moveId: s
   );
 }
 
+async function resolveRelocationRequest(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  writerHome = source,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-request',
+    {
+      method: 'POST',
+      headers: { 'x-seams-writer-database': writerHome.databaseId },
+      body: JSON.stringify({ wallet: request.wallet, moveId: request.moveId,
+        destinationRegion: request.destination.region, expectedGeneration: request.expectedGeneration,
+        authorityId: request.authorityId }),
+    },
+  );
+}
+
 async function replayMove(
   runtime: Miniflare,
   request: WalletRelocationRequest,
@@ -455,6 +473,20 @@ test('relocation directory serializes competing moves and survives lost replies 
       undefined,
       'wallet-authority:linked-owner',
     );
+    const resolved = await responseBody(await resolveRelocationRequest(runtime, request));
+    expect(resolved).toEqual({ kind: 'resolved', requestDigest: await request.digest(),
+      sourceGeneration: 1, destinationRegion: destination.region });
+    expect(await responseBody(await resolveRelocationRequest(runtime, request))).toEqual(resolved);
+    expect((await resolveRelocationRequest(runtime, request, destination)).status).toBe(403);
+    expect((await resolveRelocationRequest(runtime, relocation('traveller', destination, 2))).status).toBe(409);
+    const unchanged = await responseBody(await resolveRelocationRequest(runtime, relocation('traveller', source)));
+    expect(unchanged).toMatchObject({ kind: 'unchanged', placement: { state: 'settled', generation: 1, nextMoveAtMs: 0 } });
+    expect(await responseBody(await placementStatus(runtime, request.wallet))).toEqual({
+      state: 'settled', region: source.region, generation: 1, nextMoveAtMs: 0,
+    });
+    expect(await database.prepare("SELECT COUNT(*) AS count FROM wallet_relocations WHERE wallet_id = 'traveller'").first<number>('count')).toBe(0);
+    observations.push({ requestResolutionPinsCatalogDigestWithoutPausingOrCooldown: true });
+
     expect(
       await (
         await call(runtime, {

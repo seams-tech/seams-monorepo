@@ -13,7 +13,7 @@ import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import { readWalletPlacementStatus } from './relocationStatus';
 import { walletPlacementView, walletRelocationStatusView } from './relocationView';
-import { WalletRelocationLocator } from './relocation';
+import { WalletRelocationLocator, WalletRelocationRequest } from './relocation';
 import { readWalletRelocation } from './relocationStore';
 import { WalletD1RelocationCommand, parseWalletRelocationCommandKind } from './relocationCommands';
 import { WalletRelocationAttempt } from './relocationExecution';
@@ -116,6 +116,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
@@ -180,6 +181,43 @@ export async function handleWalletHomeServiceRequest(
     const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
     if (!catalog.matchesResources(options.admittedResources)) {
       return json({ ok: false, code: 'wallet_home_resources_unverified' }, 503);
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request`) {
+      if (Object.keys(body).length !== 5) {
+        throw new WalletPlacementError('invalid_input', 'Relocation request fields are invalid');
+      }
+      const intent = WalletRelocationRequest.parse({
+        wallet: body.wallet,
+        moveId: body.moveId,
+        destination: catalog.select(selectedRegion(body.destinationRegion)),
+        expectedGeneration: body.expectedGeneration,
+        authorityId: body.authorityId,
+      });
+      if (!inScope(intent.wallet, options.scope)) {
+        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      }
+      const placement = await readWalletPlacementStatus(options.database, intent.wallet);
+      if (placement.state === 'unavailable') return json(walletPlacementView(placement), 404);
+      if (placement.state === 'moving')
+        return json({ ok: false, code: 'wallet_relocation_in_progress' }, 409);
+      if (
+        options.writer.role !== 'gateway' ||
+        options.writer.resource.accountId !== placement.home.accountId ||
+        options.writer.resource.databaseId !== placement.home.databaseId
+      )
+        return json({ ok: false, code: 'wallet_home_writer_unauthorized' }, 403);
+      if (placement.generation !== intent.expectedGeneration)
+        return json({ ok: false, code: 'generation_conflict' }, 409);
+      if (placement.home.matches(intent.destination))
+        return json({ kind: 'unchanged', placement: walletPlacementView(placement) });
+      if (placement.nextMoveAtMs > Date.now())
+        return json({ ok: false, code: 'cooldown', retryAtMs: placement.nextMoveAtMs }, 409);
+      return json({
+        kind: 'resolved',
+        requestDigest: await intent.digest(),
+        sourceGeneration: placement.generation,
+        destinationRegion: intent.destination.region,
+      });
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap`)

@@ -1,3 +1,4 @@
+import { executionAdmissionClient, verifyExecutionAdmissionResponses } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
@@ -267,20 +268,7 @@ async function relocationCommand(
 }
 
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
-  const service = await runtime.getWorker('ingress-b');
-  return responseBody(await service.fetch(
-    'https://wallet-placement.internal/internal/wallet-placement/v1/execution-authority',
-    {
-      method: 'POST',
-      headers: {
-        'x-seams-writer-role': 'gateway',
-        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'gateway'),
-        'x-seams-writer-account': home.accountId,
-        'x-seams-writer-database': home.databaseId,
-      },
-      body: JSON.stringify({ wallet: key }),
-    },
-  ));
+  return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
 
 async function establish(runtime: Miniflare, walletId: string): Promise<Record<string, unknown>> {
@@ -495,6 +483,10 @@ test('relocation directory serializes competing moves and survives lost replies 
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
     const original = await establish(runtime, 'traveller');
+    observations.push(await verifyExecutionAdmissionResponses(
+      runtime, wallet('traveller'), source, [source, destination, thirdHome, apacHome],
+    ));
+
     expect(await executionAuthority(runtime, wallet('traveller'), source)).toMatchObject({
       ok: true, authority: { wallet: wallet('traveller'), home: source, generation: 1, participant: 'gateway' },
     });

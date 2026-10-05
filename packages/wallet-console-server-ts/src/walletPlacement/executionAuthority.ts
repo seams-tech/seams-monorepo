@@ -1,6 +1,11 @@
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
-import { WalletHome, WalletOwnershipKey } from './home';
+import {
+  WalletHome,
+  WalletOwnershipKey,
+  WalletPlacementError,
+  parseWalletOwnershipGeneration,
+} from './home';
 import { readWalletPlacementStatus } from './relocationStatus';
 
 type ExecutionAdmission =
@@ -64,6 +69,52 @@ export class WalletExecutionAuthority {
       ok: true,
       authority: new WalletExecutionAuthority(
         wallet,
+        home,
+        generation,
+        writer.role,
+        writer.versionId,
+      ),
+    };
+  }
+
+  static fromResponse(
+    raw: unknown,
+    wallet: WalletOwnershipKey,
+    writer: TenantRuntimeWriterV1,
+  ): ExecutionAdmission {
+    if (!isPlainObject(raw) || Object.keys(raw).length !== 2)
+      throw new WalletPlacementError('invalid_record', 'Execution admission response is invalid');
+    if (raw.ok === false) {
+      switch (raw.code) {
+        case 'wallet_unavailable':
+        case 'wallet_paused':
+        case 'writer_home_mismatch':
+          return { ok: false, code: raw.code };
+        default:
+          throw new WalletPlacementError(
+            'invalid_record',
+            'Execution admission failure is invalid',
+          );
+      }
+    }
+    if (raw.ok !== true || !isPlainObject(raw.authority) || Object.keys(raw.authority).length !== 5)
+      throw new WalletPlacementError('invalid_record', 'Execution authority response is invalid');
+    const value = raw.authority;
+    const returnedWallet = WalletOwnershipKey.parse(value.wallet);
+    const home = WalletHome.parse(value.home);
+    const generation = parseWalletOwnershipGeneration(value.generation);
+    if (
+      !returnedWallet.matches(wallet) ||
+      value.participant !== writer.role ||
+      value.versionId !== writer.versionId ||
+      home.accountId !== writer.resource.accountId ||
+      home.databaseId !== writer.resource.databaseId
+    )
+      throw new WalletPlacementError('invalid_record', 'Execution authority identity conflicts');
+    return {
+      ok: true,
+      authority: new WalletExecutionAuthority(
+        returnedWallet,
         home,
         generation,
         writer.role,

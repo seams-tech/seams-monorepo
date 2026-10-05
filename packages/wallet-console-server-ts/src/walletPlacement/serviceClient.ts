@@ -1,3 +1,4 @@
+import { WalletExecutionAuthority } from './executionAuthority';
 import { WalletPlacementConsoleBinding } from './consoleBinding';
 import {
   parseLinkedDeviceSessionRecordV1,
@@ -237,7 +238,7 @@ export class WalletHomeServiceClient
 
   constructor(
     service: WalletHomeServiceBinding,
-    writer: TenantRuntimeWriterV1,
+    private readonly writer: TenantRuntimeWriterV1,
     private readonly scope: WalletHomeScope,
     private readonly catalog: WalletHomeCatalog,
   ) {
@@ -592,6 +593,19 @@ export class WalletHomeServiceClient
       );
     }
     return assignmentFromResponse(body.assignment, this.scope, this.catalog);
+  }
+
+  async executionAuthority(wallet: WalletOwnershipKey) {
+    requireScope(wallet, this.scope);
+    const response = await this.post('execution-authority', { wallet });
+    if (response.status !== 200 && response.status !== 409)
+      throw new Error(`Wallet execution admission failed: HTTP ${response.status}`);
+    const admitted = WalletExecutionAuthority.fromResponse(response.body, wallet, this.writer);
+    if ((response.status === 200) !== admitted.ok)
+      throw new WalletPlacementError('invalid_record', 'Execution admission status conflicts');
+    if (admitted.ok && !this.catalog.admits(admitted.authority.home))
+      throw new WalletPlacementError('invalid_record', 'Execution home is not admitted');
+    return admitted;
   }
 
   async placementReadHome(wallet: WalletOwnershipKey): Promise<WalletHome | null> {

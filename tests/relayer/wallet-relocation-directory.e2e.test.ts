@@ -700,6 +700,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       command: {
         wallet: request.wallet,
         moveId: request.moveId,
+        requestDigest: await request.digest(),
         participant: 'gateway',
         home: source,
         generation: 1,

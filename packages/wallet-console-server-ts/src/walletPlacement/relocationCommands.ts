@@ -34,6 +34,7 @@ export class WalletD1RelocationCommand {
   private constructor(
     readonly wallet: WalletOwnershipKey,
     readonly moveId: string,
+    readonly requestDigest: string,
     readonly participant: TenantRuntimeWriterV1['role'],
     readonly versionId: string,
     readonly home: WalletHome,
@@ -53,6 +54,7 @@ export class WalletD1RelocationCommand {
         'seams/wallet-d1-relocation-command/v1',
         this.wallet,
         this.moveId,
+        this.requestDigest,
         this.participant,
         this.versionId,
         this.home,
@@ -173,6 +175,7 @@ export class WalletD1RelocationCommand {
       command: new WalletD1RelocationCommand(
         wallet,
         move.moveId,
+        move.requestDigest,
         writer.role,
         writer.versionId,
         home,

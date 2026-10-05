@@ -1,3 +1,4 @@
+import { WalletPlacementConsoleBinding } from './consoleBinding';
 import {
   parseLinkedDeviceSessionRecordV1,
   type LinkedDeviceBootstrapStore,
@@ -232,12 +233,16 @@ export class WalletHomeServiceClient
     WalletLifecycleRoutingPublisher,
     IdentityStore
 {
+  private readonly service: WalletPlacementConsoleBinding;
+
   constructor(
-    private readonly service: WalletHomeServiceBinding,
-    private readonly writer: TenantRuntimeWriterV1,
+    service: WalletHomeServiceBinding,
+    writer: TenantRuntimeWriterV1,
     private readonly scope: WalletHomeScope,
     private readonly catalog: WalletHomeCatalog,
-  ) {}
+  ) {
+    this.service = new WalletPlacementConsoleBinding(service, writer);
+  }
 
   private async post(path: string, body: unknown): Promise<{ status: number; body: unknown }> {
     const response = await this.service.fetch(
@@ -246,10 +251,6 @@ export class WalletHomeServiceClient
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          'x-seams-writer-role': this.writer.role,
-          'x-seams-writer-version': this.writer.versionId,
-          'x-seams-writer-account': this.writer.resource.accountId,
-          'x-seams-writer-database': this.writer.resource.databaseId,
         },
         body: JSON.stringify(body),
       }),

@@ -1602,6 +1602,38 @@ test('relocation directory serializes competing moves and survives lost replies 
         completed: coordinatorCompleted,
       },
     });
+    const missingWriter = await call(runtime, {
+      action: "bound-placement",
+      request: coordinated,
+      withoutBinding: true,
+    });
+    expect(missingWriter.status).toBe(409);
+    const boundPlacement = await responseBody(
+      await call(runtime, {
+        action: "bound-placement",
+        request: coordinated,
+      }),
+    );
+    expect(boundPlacement).toEqual(
+      await responseBody(await placementStatus(runtime, coordinated.wallet)),
+    );
+    expect(
+      await responseBody(
+        await call(runtime, {
+          action: "bound-placement",
+          request: coordinated,
+          spoofWriter: true,
+        }),
+      ),
+    ).toEqual(boundPlacement);
+    observations.push({
+      placementBinding: {
+        missingWriterRejected: true,
+        verifiedLocalWriterReachesDirectory: true,
+        callerWriterHeadersReplaced: true,
+        placement: boundPlacement,
+      },
+    });
     observations.push(completed, returning, history.results);
     await writeFile(
       testInfo.outputPath('wallet-relocation-directory-evidence.json'),

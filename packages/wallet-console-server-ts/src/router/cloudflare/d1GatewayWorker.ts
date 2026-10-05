@@ -5,6 +5,7 @@ import {
   WalletRegionalDispatch,
   type RegionalGatewayBindings,
 } from '../../walletPlacement/regionalDispatch';
+import { WalletPlacementConsoleBinding } from '../../walletPlacement/consoleBinding';
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
 import { resolveGatewayDeployment } from '../../walletPlacement/gatewaySession';
@@ -60,13 +61,14 @@ async function handleGatewayRequest(
   const startedAt = performance.now();
   const pathname = new URL(request.url).pathname;
   const bindingTimingHeaders = new Headers();
+  const writer = parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
   const deployment = await resolveGatewayDeployment({
     request,
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
-      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-    }),
+    writer,
     deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
     service: env.WALLET_CONSOLE,
     timingHeaders: bindingTimingHeaders,
@@ -91,13 +93,13 @@ async function handleGatewayRequest(
       maxAgeSeconds: 30,
     });
   }
-  const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
+  const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(
+    { ...env, WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer) },
+    binding,
+  );
   const authority = new ConsoleRegistrationHomeAdmission({
     service: env.WALLET_CONSOLE,
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA.id, {
-      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-    }),
+    writer,
     scope: binding.tenant,
     environmentKey: binding.mode.environment === 'development' ? 'dev' : 'prod',
     localResource: {

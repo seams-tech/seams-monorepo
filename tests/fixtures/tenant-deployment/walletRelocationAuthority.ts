@@ -1,3 +1,5 @@
+import { StrictPlacementDirectory } from './walletPlacementDirectory';
+import { WalletPlacementConsoleBinding } from '../../../packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
 import { WalletRelocationCoordinator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
 import { RelocationFixtureEffects } from './walletRelocationEffects';
 import {
@@ -163,6 +165,35 @@ export default {
             relocationFixtureClock.bind(null, nowMs),
           );
           break;
+        }
+        case 'bound-placement': {
+          const service = new StrictPlacementDirectory(env.CONSOLE_DB, catalog);
+          const localWriter = parseTenantRuntimeWriterV1(
+            'gateway',
+            relocationWriterVersion(home.databaseId, 'gateway'),
+            {
+              accountId: home.accountId,
+              databaseId: home.databaseId,
+            },
+          );
+          const input = new Request(
+            'https://wallet-placement.internal/internal/wallet-placement/v1/placement-status',
+            {
+              method: 'POST',
+              headers:
+                body.spoofWriter === true
+                  ? {
+                      'x-seams-writer-role': 'invalid-caller-role',
+                      'x-seams-writer-version': 'invalid-caller-version',
+                      'x-seams-writer-account': 'invalid-caller-account',
+                      'x-seams-writer-database': 'invalid-caller-database',
+                    }
+                  : {},
+              body: JSON.stringify({ wallet: moveRequest.wallet }),
+            },
+          );
+          if (body.withoutBinding === true) return await service.fetch(input);
+          return await new WalletPlacementConsoleBinding(service, localWriter).fetch(input);
         }
         case 'advance':
           result = await new WalletRelocationCoordinator(

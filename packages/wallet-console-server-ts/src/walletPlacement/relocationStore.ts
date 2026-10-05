@@ -13,6 +13,7 @@ import {
 import {
   WALLET_RELOCATION_COOLDOWN_MS,
   WalletRelocation,
+  WalletRelocationLocator,
   WalletRelocationReceipt,
   WalletRelocationRequest,
   relocationTimestamp,
@@ -80,7 +81,7 @@ function walletBindings(wallet: WalletOwnershipKey): string[] {
   ];
 }
 
-function moveBindings(request: WalletRelocationRequest): string[] {
+function moveBindings(request: WalletRelocationRequest | WalletRelocationLocator): string[] {
   return [...walletBindings(request.wallet), request.moveId];
 }
 
@@ -95,6 +96,19 @@ function runningAttemptMatches(move: WalletRelocation, attempt: WalletRelocation
   );
 }
 
+export async function readWalletRelocation(
+  database: D1DatabaseLike,
+  request: WalletRelocationRequest | WalletRelocationLocator,
+): Promise<WalletRelocation | null> {
+  const row = await queryD1One(
+    database,
+    `SELECT * FROM wallet_relocations WHERE namespace = ?1 AND organization_id = ?2
+       AND project_id = ?3 AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
+    moveBindings(request),
+  );
+  return row ? WalletRelocation.fromRow(row) : null;
+}
+
 // Trusted move orchestration supplies owner authorization and role receipts before these transitions.
 export class D1WalletRelocations {
   constructor(
@@ -103,13 +117,7 @@ export class D1WalletRelocations {
   ) {}
 
   async find(request: WalletRelocationRequest): Promise<WalletRelocation | null> {
-    const row = await queryD1One(
-      this.database,
-      `SELECT * FROM wallet_relocations WHERE namespace = ?1 AND organization_id = ?2
-       AND project_id = ?3 AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
-      moveBindings(request),
-    );
-    return row ? WalletRelocation.fromRow(row) : null;
+    return readWalletRelocation(this.database, request);
   }
 
   async admit(

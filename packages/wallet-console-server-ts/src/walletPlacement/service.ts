@@ -12,7 +12,9 @@ import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-conso
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import { readWalletPlacementStatus } from './relocationStatus';
-import { walletPlacementView } from './relocationView';
+import { walletPlacementView, walletRelocationStatusView } from './relocationView';
+import { WalletRelocationLocator } from './relocation';
+import { readWalletRelocation } from './relocationStore';
 import { WalletD1RelocationCommand, parseWalletRelocationCommandKind } from './relocationCommands';
 import { WalletRelocationAttempt } from './relocationExecution';
 import {
@@ -112,6 +114,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
@@ -122,6 +125,16 @@ export async function handleWalletHomeServiceRequest(
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
   try {
     const body = record(await request.json().catch(() => null));
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status`) {
+      const locator = WalletRelocationLocator.parse(body);
+      if (!inScope(locator.wallet, options.scope)) {
+        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      }
+      const move = await readWalletRelocation(options.database, locator);
+      return move
+        ? json(walletRelocationStatusView(move))
+        : json({ state: 'unavailable', code: 'not_found' }, 404);
+    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
       const wallet = WalletOwnershipKey.parse(body.wallet);
       if (!inScope(wallet, options.scope)) {

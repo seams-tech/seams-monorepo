@@ -160,6 +160,18 @@ async function placementStatus(runtime: Miniflare, key: WalletOwnershipKey, cata
   );
 }
 
+async function moveStatus(runtime: Miniflare, key: WalletOwnershipKey, moveId: string) {
+  const service = await runtime.getWorker('ingress-b');
+  return service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-status',
+    {
+      method: 'POST',
+      headers: { 'x-test-catalog-json': '{malformed' },
+      body: JSON.stringify({ wallet: key, moveId }),
+    },
+  );
+}
+
 async function relocationCommand(
   runtime: Miniflare,
   key: WalletOwnershipKey,
@@ -618,6 +630,12 @@ test('relocation directory serializes competing moves and survives lost replies 
     }
     expect((await placementStatus(runtime, foreignWallet, '')).status).toBe(403);
     observations.push({ statusIndependentOfCatalog: true, statusStillChecksTenantScope: true });
+    expect(await responseBody(await moveStatus(runtime, request.wallet, request.moveId))).toEqual(freezingStatus);
+    expect((await moveStatus(runtime, foreignWallet, request.moveId)).status).toBe(403);
+    expect((await moveStatus(runtime, request.wallet, 'invalid')).status).toBe(400);
+    const unrelatedMoveRead = await moveStatus(runtime, wallet('unrelated'), request.moveId);
+    expect(unrelatedMoveRead.status).toBe(404);
+    expect(await responseBody(unrelatedMoveRead)).toEqual({ state: 'unavailable', code: 'not_found' });
     observations.push(freezingStatus);
     expect(
       await (
@@ -1073,6 +1091,18 @@ test('relocation directory serializes competing moves and survives lost replies 
         })
       ).json(),
     ).toMatchObject({ ok: true, disposition: 'unchanged', assignment: newAssignment });
+    const completedStatus = await responseBody(await moveStatus(runtime, request.wallet, request.moveId));
+    expect(completedStatus).toEqual({
+      state: 'completed',
+      moveId: request.moveId,
+      sourceRegion: source.region,
+      destinationRegion: destination.region,
+      sourceGeneration: 1,
+      destinationGeneration: 2,
+      admittedAtMs,
+      completedAtMs: objectValue(objectValue(completed.move).progress).completedAtMs,
+    });
+    observations.push(completedStatus);
     const returnMove = relocation('traveller', source, 2);
     expect(
       await (
@@ -1104,6 +1134,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         destinationGeneration: 3,
       },
     });
+    expect(await responseBody(await moveStatus(runtime, request.wallet, request.moveId))).toEqual(completedStatus);
     let retryNow = admittedAtMs + WALLET_RELOCATION_COOLDOWN_MS;
     let lastAttempt = await claim(runtime, returnMove, 'freezing', retryNow);
     const firstAttempt = lastAttempt;
@@ -1223,6 +1254,8 @@ test('relocation directory serializes competing moves and survives lost replies 
         'SELECT move_id, state, source_generation, destination_generation, admitted_at_ms FROM wallet_relocations ORDER BY admitted_at_ms',
       )
       .all();
+    expect(await responseBody(await moveStatus(runtime, request.wallet, request.moveId))).toEqual(completedStatus);
+    observations.push({ historicalMoveReadableDuringReturnAndAfterRestart: true });
     observations.push(completed, returning, history.results);
     await writeFile(
       testInfo.outputPath('wallet-relocation-directory-evidence.json'),

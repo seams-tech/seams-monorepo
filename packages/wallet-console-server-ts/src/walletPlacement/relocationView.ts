@@ -1,6 +1,6 @@
 import type { WalletRegion } from './home';
 import type { WalletRelocationExecution, WalletRelocationFailure } from './relocationExecution';
-import { WALLET_RELOCATION_COOLDOWN_MS } from './relocation';
+import { WALLET_RELOCATION_COOLDOWN_MS, type WalletRelocation } from './relocation';
 import type { WalletPlacementStatus } from './relocationStatus';
 
 type ExecutionView =
@@ -64,6 +64,10 @@ export type WalletPlacementView =
     };
 
 // Project only owner-visible state. Participant receipts and physical resources stay internal.
+export function walletPlacementView(
+  status: WalletPlacementStatus & { readonly state: 'moving' },
+): WalletPlacementView & { readonly state: 'moving' };
+export function walletPlacementView(status: WalletPlacementStatus): WalletPlacementView;
 export function walletPlacementView(status: WalletPlacementStatus): WalletPlacementView {
   switch (status.state) {
     case 'settled':
@@ -126,6 +130,37 @@ export function walletPlacementView(status: WalletPlacementStatus): WalletPlacem
     default:
       return assertNever(status);
   }
+}
+
+export type WalletRelocationStatusView =
+  | (WalletPlacementView & { readonly state: 'moving' })
+  | {
+      readonly state: 'completed';
+      readonly moveId: string;
+      readonly sourceRegion: WalletRegion;
+      readonly destinationRegion: WalletRegion;
+      readonly sourceGeneration: number;
+      readonly destinationGeneration: number;
+      readonly admittedAtMs: number;
+      readonly completedAtMs: number;
+      readonly move?: never;
+      readonly code?: never;
+    };
+
+export function walletRelocationStatusView(move: WalletRelocation): WalletRelocationStatusView {
+  if (move.progress.state !== 'completed') {
+    return walletPlacementView({ state: 'moving', move });
+  }
+  return {
+    state: 'completed',
+    moveId: move.moveId,
+    sourceRegion: move.source.region,
+    destinationRegion: move.destination.region,
+    sourceGeneration: move.sourceGeneration,
+    destinationGeneration: move.destinationGeneration,
+    admittedAtMs: move.admittedAtMs,
+    completedAtMs: move.progress.completedAtMs,
+  };
 }
 
 function executionView(execution: WalletRelocationExecution): ExecutionView {

@@ -3,6 +3,7 @@ import {
   WalletRelocation,
   WalletRelocationReceipt,
   WalletRelocationRequest,
+  WalletRelocationLocator,
   type WalletRelocationProgress,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import type { WalletRelocationAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
@@ -191,3 +192,13 @@ const mixedProgressView: MovingView['move']['progress'] = {
   state: 'cleanup',
 };
 void mixedProgressView;
+
+declare const locator: WalletRelocationLocator;
+// @ts-expect-error A broad spread cannot forge a validated move locator.
+const forgedLocator: WalletRelocationLocator = { ...locator };
+// @ts-expect-error A move locator grants no command authority.
+const locatorAsAuthority: WalletD1RelocationCommand = locator;
+// @ts-expect-error A locator cannot admit a new relocation.
+void relocations.admit(locator, [resourceProof], 'test', 1);
+void forgedLocator;
+void locatorAsAuthority;

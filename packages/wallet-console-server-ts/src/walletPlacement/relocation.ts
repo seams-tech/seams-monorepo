@@ -65,6 +65,31 @@ function participantDigests(raw: unknown): RelocationParticipants {
   });
 }
 
+// A locator identifies a journal record. It grants no execution or owner authority.
+export class WalletRelocationLocator {
+  private constructor(
+    readonly wallet: WalletOwnershipKey,
+    private readonly validatedMoveId: string,
+  ) {
+    Object.freeze(this);
+  }
+
+  get moveId(): string {
+    return this.validatedMoveId;
+  }
+
+  static parse(raw: unknown): WalletRelocationLocator {
+    const value = relocationRecord(raw);
+    if (Object.keys(value).length !== 2) {
+      throw new WalletPlacementError('invalid_input', 'Wallet relocation locator is invalid');
+    }
+    return new WalletRelocationLocator(
+      WalletOwnershipKey.parse(value.wallet),
+      relocationId(value.moveId),
+    );
+  }
+}
+
 export class WalletRelocationRequest {
   readonly #validated = true;
 

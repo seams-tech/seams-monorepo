@@ -76,6 +76,6 @@ export async function verifyRegionalRateLimits({
     projectScopesIndependent: true,
     outagesHaveNoRegionalFallback: true,
     scope:
-      'Production Email OTP policy/key generation and shared D1 counter through three admitted regional clients. Writer admission is fixture-controlled; hosted HTTP retry headers are outside this scenario.',
+      'Production Email OTP policy/key generation and shared D1 counter through four admitted regional clients. Writer admission is fixture-controlled; hosted HTTP retry headers are outside this scenario.',
   };
 }

@@ -9,7 +9,7 @@ export async function verifyRegionalRuntimeIdentities({
   consoleBridge,
 }) {
   const bindings = {};
-  for (const region of ['US', 'WEUR', 'APAC']) {
+  for (const region of bridges.keys()) {
     const fixture = new RuntimeIdentityFixture(api, region, scope, bridges.get(region));
     bridges.get(region).runtimeIdentities = fixture;
     bindings[region] = new RuntimeBinding(await runtime.getWorker(region));
@@ -17,11 +17,11 @@ export async function verifyRegionalRuntimeIdentities({
   const resolver = new api.RegionalWalletIdentities(scope.namespace, directory, bindings);
   const request = {
     orgId: scope.organizationId,
-    wallets: ['APAC', 'US', 'WEUR', 'APAC'].map(selector.bind(undefined, scope)),
+    wallets: ['APAC', 'US', 'OC', 'WEUR', 'APAC'].map(selector.bind(undefined, scope)),
   };
   const result = await resolver.read(request);
   assert.deepEqual(result.identities.map(walletId), request.wallets.map(walletId));
-  for (const region of ['US', 'WEUR', 'APAC']) {
+  for (const region of bridges.keys()) {
     assert.deepEqual(bridges.get(region).runtimeIdentities.requests, [
       { orgId: scope.organizationId, wallets: [selector(scope, region)] },
     ]);
@@ -75,6 +75,7 @@ export async function verifyRegionalRuntimeIdentities({
   assert.deepEqual(incomplete.identities.map(walletId), [
     'wallet:APAC',
     'wallet:US',
+    'wallet:OC',
     'wallet:APAC',
   ]);
   for (const bridge of bridges.values()) bridge.runtimeIdentities = null;
@@ -89,7 +90,7 @@ export async function verifyRegionalRuntimeIdentities({
     unexpectedAndDuplicateResponsesRejected: true,
     incompleteWalletContractPreserved: true,
     scope:
-      'Production Console directory, regional resolver and HTTP client through three Worker transports; regional identity payloads are controlled fixtures. Production Runtime identity home guard rejects wrong-home and cross-tenant batches before reading. Identity payloads remain controlled; relocation fencing and other Runtime operations remain open.',
+      'Production Console directory, regional resolver and HTTP client through four Worker transports; regional identity payloads are controlled fixtures. Production Runtime identity home guard rejects wrong-home and cross-tenant batches before reading. Identity payloads remain controlled; relocation fencing and other Runtime operations remain open.',
   };
 }
 

@@ -39,6 +39,7 @@ function fixtureHomeCatalog(accountId: string, databaseId: string): string {
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   ]) {
     if (candidate !== databaseId) alternatives.push(candidate);
   }
@@ -46,5 +47,6 @@ function fixtureHomeCatalog(accountId: string, databaseId: string): string {
     { region: 'US', accountId, databaseId },
     { region: 'WEUR', accountId, databaseId: alternatives[0] },
     { region: 'APAC', accountId, databaseId: alternatives[1] },
+    { region: 'OC', accountId, databaseId: alternatives[2] },
   ]);
 }

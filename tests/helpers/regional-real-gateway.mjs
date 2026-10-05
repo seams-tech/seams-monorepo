@@ -8,7 +8,7 @@ import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 
-const regions = ['US', 'WEUR', 'APAC'];
+const regions = ['US', 'WEUR', 'APAC', 'OC'];
 
 export async function createRegionalRealGateway({
   root,
@@ -61,7 +61,7 @@ export async function createRegionalRealGateway({
   const runtime = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response(null, {status: 404}); } };',
-    d1Databases: { CONSOLE_DB: 'console', US: 'us', WEUR: 'weur', APAC: 'apac' },
+    d1Databases: { CONSOLE_DB: 'console', US: 'us', WEUR: 'weur', APAC: 'apac', OC: 'oc' },
     compatibilityDate: '2026-06-12',
     d1Persist: databaseState?.directory,
   });
@@ -95,6 +95,7 @@ export async function createRegionalRealGateway({
       { region: 'US', accountId, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
       { region: 'WEUR', accountId, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
       { region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+      { region: 'OC', accountId, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
     ]);
     const consoleService = new RealHomeConsole(
       api,
@@ -350,7 +351,11 @@ class RealRegionalGateway {
           registrationAuthority: authority,
           registrationSetupDispatcher:
             new URL(request.url).pathname === '/wallets/register/setup'
-              ? new this.api.ConsoleRegistrationSetupDispatcher(authority, transport, request.clone())
+              ? new this.api.ConsoleRegistrationSetupDispatcher(
+                  authority,
+                  transport,
+                  request.clone(),
+                )
               : undefined,
           identityStore,
           credentialClaims: identityStore,
@@ -682,7 +687,7 @@ class RegionalRealScenario {
       JSON.stringify(
         {
           scope:
-            'Real browser registration, linked-device installation and signing; three isolated signer databases; one shared local Router role stack.',
+            'Real browser registration, linked-device installation and signing; four isolated signer databases; one shared local Router role stack.',
           home,
           shared,
           routerReplay,
@@ -696,13 +701,13 @@ class RegionalRealScenario {
   }
 
   async verifyMixedHomes(wallets, registrations) {
-    assert.equal(registrations.length, 3);
+    assert.equal(registrations.length, regions.length);
     assert.deepEqual(registrations.map(registrationHome).sort(), [...regions].sort());
     const latestStart = Math.max(...registrations.map(registrationStart));
     const earliestCompletion = Math.min(...registrations.map(registrationCompletion));
-    assert.ok(latestStart < earliestCompletion, 'All three registration calls must overlap');
-    assert.equal(wallets.length, 3);
-    assert.equal(new Set(wallets.map(walletIdentity)).size, 3);
+    assert.ok(latestStart < earliestCompletion, 'All regional registration calls must overlap');
+    assert.equal(wallets.length, regions.length);
+    assert.equal(new Set(wallets.map(walletIdentity)).size, regions.length);
     const { database, scope, catalog } = this.consoleService;
     const { results: placements } = await database
       .prepare(
@@ -714,7 +719,11 @@ class RegionalRealScenario {
       )
       .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId)
       .all();
-    assert.equal(placements.length, 3, 'All three placements must share the exact tenant scope');
+    assert.equal(
+      placements.length,
+      regions.length,
+      'All placements must share the exact tenant scope',
+    );
     const evidence = [];
     for (const wallet of wallets) {
       const placement = placements.find(matchesWallet.bind(undefined, wallet.walletId));
@@ -1017,7 +1026,7 @@ async function verifySharedLinkState(consoleService, gateways, home) {
       acknowledgedProofs += 1;
     }
   }
-  assert.equal(acknowledgedProofs, 3);
+  assert.equal(acknowledgedProofs, regions.length);
   return {
     claimedBootstrap: 1,
     linkedRouteHome: home,

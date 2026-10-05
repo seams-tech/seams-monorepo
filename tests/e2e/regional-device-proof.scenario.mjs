@@ -28,7 +28,7 @@ export async function verifyRegionalDeviceProofs({
   const proof = await fixture.create(api, 'concurrent');
   const attempts = await Promise.all(services.map(verifyProof.bind(null, proof)));
   assert.equal(attempts.filter(isAuthorized).length, 1, JSON.stringify(attempts));
-  assert.equal(attempts.filter(isReplayed).length, 2);
+  assert.equal(attempts.filter(isReplayed).length, services.length - 1);
   for (const service of services)
     assert.equal((await service.verifyPublicSessionProofV1(proof)).code, 'replayed');
 
@@ -91,7 +91,7 @@ export async function verifyRegionalDeviceProofs({
   return {
     contenders: attempts.length,
     authorized: 1,
-    replays: 2,
+    replays: services.length - 1,
     subsequentReplaysRejected: true,
     invalidSignatureDoesNotConsume: true,
     outageFailsClosedWithoutLocalFallback: true,

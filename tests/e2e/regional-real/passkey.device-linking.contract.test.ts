@@ -31,6 +31,7 @@ for (const { home, ingress } of [
   { home: 'US', ingress: 'WEUR' },
   { home: 'WEUR', ingress: 'APAC' },
   { home: 'APAC', ingress: 'US' },
+  { home: 'OC', ingress: 'APAC' },
 ]) {
   test(`real ${home} registration and ${ingress} linked signing survive lost execution, activation and cleanup replies with Gateway restarts`, async ({
     harness,
@@ -67,7 +68,7 @@ for (const { home, ingress } of [
   });
 }
 
-test('three real wallets register concurrently and retain distinct homes through travel, interrupted recovery and Gateway restarts', async ({
+test('four real wallets register concurrently and retain distinct homes through travel, interrupted recovery and Gateway restarts', async ({
   browser,
   request,
 }, testInfo) => {
@@ -89,6 +90,7 @@ test('three real wallets register concurrently and retain distinct homes through
       { home: 'US', travel: 'APAC' },
       { home: 'WEUR', travel: 'US' },
       { home: 'APAC', travel: 'WEUR' },
+      { home: 'OC', travel: 'APAC' },
     ]) {
       const context = await browser.newContext();
       const page = await context.newPage();

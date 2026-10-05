@@ -4,7 +4,7 @@ import {
   type TenantDeploymentD1ResourcesV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 
-export type WalletRegion = 'US' | 'WEUR' | 'APAC';
+export type WalletRegion = 'US' | 'WEUR' | 'APAC' | 'OC';
 
 export function parseWalletOwnershipGeneration(raw: unknown): number {
   if (typeof raw !== 'number' || !Number.isSafeInteger(raw) || raw < 1) {
@@ -103,7 +103,7 @@ export class WalletHome {
       !('accountId' in raw) ||
       !('databaseId' in raw) ||
       Object.keys(raw).length !== 3 ||
-      (raw.region !== 'US' && raw.region !== 'WEUR' && raw.region !== 'APAC')
+      (raw.region !== 'US' && raw.region !== 'WEUR' && raw.region !== 'APAC' && raw.region !== 'OC')
     ) {
       throw new WalletPlacementError('invalid_input', 'Wallet home is invalid');
     }
@@ -142,14 +142,15 @@ export class WalletHomeCatalog {
       byRegion.set(home.region, home);
     }
     if (
-      byRegion.size !== 3 ||
+      byRegion.size !== 4 ||
       !byRegion.has('US') ||
       !byRegion.has('WEUR') ||
-      !byRegion.has('APAC')
+      !byRegion.has('APAC') ||
+      !byRegion.has('OC')
     ) {
       throw new WalletPlacementError(
         'invalid_input',
-        'US, WEUR and APAC wallet homes are required',
+        'US, WEUR, APAC and OC wallet homes are required',
       );
     }
     const resources = [];
@@ -164,8 +165,8 @@ export class WalletHomeCatalog {
   }
 
   static parse(raw: unknown): WalletHomeCatalog {
-    if (!Array.isArray(raw) || raw.length !== 3) {
-      throw new WalletPlacementError('invalid_input', 'Three wallet home resources are required');
+    if (!Array.isArray(raw) || raw.length !== 4) {
+      throw new WalletPlacementError('invalid_input', 'Four wallet home resources are required');
     }
     return new WalletHomeCatalog(raw.map((value) => WalletHome.parse(value)));
   }
@@ -204,8 +205,9 @@ export function regionForRegistrationIngress(
     case 'AF':
       return 'WEUR';
     case 'AS':
-    case 'OC':
       return 'APAC';
+    case 'OC':
+      return 'OC';
     default:
       return unavailableLocationDefault;
   }

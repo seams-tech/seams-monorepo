@@ -263,7 +263,7 @@ function knownNearNetworkForRpcUrl(rpcUrl) {
   return null;
 }
 
-export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC']);
+export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC', 'OC']);
 
 function parseResources(value) {
   const resources = requireObject(value, 'resources');

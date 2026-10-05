@@ -22,7 +22,7 @@ export async function verifyRegionalWalletDispatch(
   }
   for (const home of homes) {
     const ingress = await runtime.getWorker(home.region === 'US' ? 'gateway-APAC' : 'gateway-US');
-    const cf = { continent: home.region === 'US' ? 'NA' : home.region === 'WEUR' ? 'EU' : 'AS' };
+    const cf = registrationLocation(home);
     const request = {
       method: 'POST',
       headers: {
@@ -203,4 +203,17 @@ function registrationContinuations(ceremonyId: string) {
 
 function isWeurObservation(observation: { home: WalletHome }): boolean {
   return observation.home.region === 'WEUR';
+}
+
+function registrationLocation(home: WalletHome): { continent: string; country: string } {
+  switch (home.region) {
+    case 'US':
+      return { continent: 'NA', country: 'US' };
+    case 'WEUR':
+      return { continent: 'EU', country: 'GB' };
+    case 'APAC':
+      return { continent: 'AS', country: 'SG' };
+    case 'OC':
+      return { continent: 'OC', country: 'AU' };
+  }
 }

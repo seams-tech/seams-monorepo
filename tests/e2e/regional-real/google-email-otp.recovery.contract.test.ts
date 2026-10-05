@@ -15,6 +15,7 @@ for (const foundingMethod of ['passkey', 'email_otp'] as const) {
     { home: 'US', ingress: 'APAC' },
     { home: 'WEUR', ingress: 'US' },
     { home: 'APAC', ingress: 'WEUR' },
+    { home: 'OC', ingress: 'APAC' },
   ]) {
     test(`a ${home} ${foundingMethod}-founded wallet survives interrupted Google Email OTP recovery and Gateway restart through ${ingress}`, async ({
       context,

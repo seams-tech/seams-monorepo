@@ -13,6 +13,7 @@ const databases = {
   US: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   WEUR: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
   APAC: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  OC: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
 };
 for (const [region, resource] of Object.entries(regions)) {
   resource.signerD1 = { kind: 'allocated', name: resource.signerD1.name, id: databases[region] };

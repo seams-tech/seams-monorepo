@@ -36,7 +36,12 @@ export default {
     const moves = new D1WalletRelocations(env.CONSOLE_DB, catalog);
     try {
       if (body.action === 'establish') {
-        if (body.region !== 'US' && body.region !== 'WEUR' && body.region !== 'APAC') {
+        if (
+          body.region !== 'US' &&
+          body.region !== 'WEUR' &&
+          body.region !== 'APAC' &&
+          body.region !== 'OC'
+        ) {
           throw new Error('Invalid test home');
         }
         if (typeof body.registrationId !== 'string' || typeof body.requestDigest !== 'string') {

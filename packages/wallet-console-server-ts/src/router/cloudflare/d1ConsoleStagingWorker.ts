@@ -128,9 +128,11 @@ interface CloudflareD1ConsoleStagingEnv
   readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_APAC: WalletRuntimeServiceBinding;
+  readonly WALLET_RUNTIME_OC: WalletRuntimeServiceBinding;
   readonly WALLET_GATEWAY_US: WalletRuntimeServiceBinding;
   readonly WALLET_GATEWAY_WEUR: WalletRuntimeServiceBinding;
   readonly WALLET_GATEWAY_APAC: WalletRuntimeServiceBinding;
+  readonly WALLET_GATEWAY_OC: WalletRuntimeServiceBinding;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
   readonly TENANT_ROOT_RECOVERY_CERTIFICATES_JSON?: string;
@@ -292,7 +294,12 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   const regionalIdentities = new RegionalWalletIdentities(
     namespace,
     new D1WalletHomeDirectory(env.CONSOLE_DB, walletHomeCatalog),
-    { US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR, APAC: env.WALLET_RUNTIME_APAC },
+    {
+      US: env.WALLET_RUNTIME_US,
+      WEUR: env.WALLET_RUNTIME_WEUR,
+      APAC: env.WALLET_RUNTIME_APAC,
+      OC: env.WALLET_RUNTIME_OC,
+    },
   );
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
@@ -530,6 +537,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
         walletHomeCatalog.select('APAC'),
         env.WALLET_RUNTIME_APAC,
       ),
+      regionalReadinessInspector(namespace, walletHomeCatalog.select('OC'), env.WALLET_RUNTIME_OC),
     ]),
   });
   const tenantDeploymentReadiness = createTenantDeploymentReadinessServiceV1({
@@ -573,6 +581,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
         US: { gateway: env.WALLET_GATEWAY_US, walletRuntime: env.WALLET_RUNTIME_US },
         WEUR: { gateway: env.WALLET_GATEWAY_WEUR, walletRuntime: env.WALLET_RUNTIME_WEUR },
         APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
+        OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
       },
     }),
   });

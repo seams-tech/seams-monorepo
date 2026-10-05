@@ -36,14 +36,19 @@ const source = WalletHome.parse({
   databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
 });
 const destination = WalletHome.parse({
-  region: 'APAC',
+  region: 'OC',
   accountId,
-  databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
 });
 const thirdHome = WalletHome.parse({
   region: 'US',
   accountId,
   databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+});
+const apacHome = WalletHome.parse({
+  region: 'APAC',
+  accountId,
+  databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
 });
 const admittedAtMs = 1_791_000_000_000;
 
@@ -121,7 +126,7 @@ function start(directory: string): Miniflare {
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
     d1Databases: { CONSOLE_DB: 'wallet-directory' },
-    bindings: { CATALOG_JSON: JSON.stringify([source, destination, thirdHome]) },
+    bindings: { CATALOG_JSON: JSON.stringify([source, destination, thirdHome, apacHome]) },
   };
   return new Miniflare({
     host: '127.0.0.1',
@@ -213,7 +218,25 @@ test('relocation directory serializes competing moves and survives lost replies 
     for (const name of (await readdir(migrationDirectory)).sort()) {
       if (!name.endsWith('.sql')) continue;
       const sql = await readFile(path.join(migrationDirectory, name), 'utf8');
-      for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
+      if (name === '0072_wallet_oceania.sql') {
+        await establish(runtime, 'pre-upgrade');
+        const pending = relocation('pre-upgrade', apacHome);
+        const admitted = await call(runtime, {
+          action: 'admit',
+          request: pending,
+          nowMs: admittedAtMs,
+        });
+        expect(admitted.status).toBe(200);
+        const beforeUpgrade = await responseBody(admitted);
+        await database.batch(unstable_splitSqlQuery(sql).map(database.prepare.bind(database)));
+        const afterUpgrade = await call(runtime, { action: 'status', request: pending });
+        expect(await responseBody(afterUpgrade)).toEqual(beforeUpgrade.move);
+        expect((await database.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
+        observations.push({ migrationPreservedPendingRelocation: true, move: beforeUpgrade });
+      } else {
+        for (const statement of unstable_splitSqlQuery(sql))
+          await database.prepare(statement).run();
+      }
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
     const original = await establish(runtime, 'traveller');
@@ -587,7 +610,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     ).rejects.toThrow();
     expect(
       await reopened
-        .prepare('SELECT COUNT(*) AS count FROM wallet_relocations')
+        .prepare("SELECT COUNT(*) AS count FROM wallet_relocations WHERE wallet_id = 'traveller'")
         .first<number>('count'),
     ).toBe(2);
     const history = await reopened

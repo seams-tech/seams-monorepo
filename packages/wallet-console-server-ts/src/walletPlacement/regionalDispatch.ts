@@ -14,6 +14,7 @@ export type RegionalGatewayBindings = {
   readonly WALLET_GATEWAY_US: RegionalGateway;
   readonly WALLET_GATEWAY_WEUR: RegionalGateway;
   readonly WALLET_GATEWAY_APAC: RegionalGateway;
+  readonly WALLET_GATEWAY_OC: RegionalGateway;
 };
 
 export class WalletRegionalDispatch {
@@ -57,6 +58,8 @@ export class WalletRegionalDispatch {
         return this.bindings.WALLET_GATEWAY_WEUR;
       case 'APAC':
         return this.bindings.WALLET_GATEWAY_APAC;
+      case 'OC':
+        return this.bindings.WALLET_GATEWAY_OC;
     }
   }
 }

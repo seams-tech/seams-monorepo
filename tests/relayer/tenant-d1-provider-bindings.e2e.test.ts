@@ -35,6 +35,7 @@ class ProviderFixture {
   databaseId(worker: string): string {
     if (worker.endsWith('-us')) return 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
     if (worker.endsWith('-weur')) return 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+    if (worker.endsWith('-oc')) return 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
     return 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
   }
 
@@ -46,7 +47,7 @@ class ProviderFixture {
     const pathname = request.url ?? '';
     this.reads.push(pathname);
     const match = pathname.match(
-      /^\/client\/v4\/accounts\/0123456789abcdef0123456789abcdef\/workers\/scripts\/(seams-sdk-d1-(?:gateway|wallet-runtime)-testnet(?:-us|-weur)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
+      /^\/client\/v4\/accounts\/0123456789abcdef0123456789abcdef\/workers\/scripts\/(seams-sdk-d1-(?:gateway|wallet-runtime)-testnet(?:-us|-weur|-oc)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
     );
     if (!match) {
       response.writeHead(404).end();
@@ -182,7 +183,7 @@ test('provider checkpoint checks both gradual-rollout writers and rejects drift 
       if (scenario === 'matching') {
         expect(exitCode).toBe(0);
         expect(result.status).toBe('provider_bindings_match');
-        expect(result.checkpoints).toHaveLength(3);
+        expect(result.checkpoints).toHaveLength(4);
         for (const checkpoint of result.checkpoints) {
           expect(checkpoint.workers).toHaveLength(2);
           for (const worker of checkpoint.workers) {
@@ -195,11 +196,11 @@ test('provider checkpoint checks both gradual-rollout writers and rejects drift 
             ]);
           }
         }
-        expect(fixture.reads).toHaveLength(30);
+        expect(fixture.reads).toHaveLength(40);
         // A rerun cannot silently retain or replace a previous successful checkpoint.
         expect(await runCli(origin, output)).toBe(1);
         expect(await readFile(output, 'utf8')).toBe(raw);
-        expect(fixture.reads).toHaveLength(30);
+        expect(fixture.reads).toHaveLength(40);
       } else {
         expect(exitCode).toBe(1);
         expect(result.status).toBe('failed');

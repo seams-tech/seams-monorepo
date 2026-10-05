@@ -36,10 +36,12 @@ const lane = 'production-testnet';
 const home = deploymentResource(namespace, 'ffffffff-ffff-4fff-8fff-ffffffffffff');
 const secondResource = deploymentResource(namespace, 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 const thirdResource = deploymentResource(namespace, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+const oceaniaResource = deploymentResource(namespace, 'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 const catalog = WalletHomeCatalog.parse([
   { region: 'US', accountId: secondResource.accountId, databaseId: secondResource.databaseId },
   { region: 'WEUR', accountId: home.accountId, databaseId: home.databaseId },
   { region: 'APAC', accountId: home.accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+  { region: 'OC', accountId: oceaniaResource.accountId, databaseId: oceaniaResource.databaseId },
 ]);
 const execute = promisify(execFile);
 const challengePath = '/internal/tenant-deployment/v1/resource-challenge';
@@ -174,7 +176,7 @@ class ChallengeProvider {
 
   readProvider(request: IncomingMessage, response: ServerResponse): void {
     const match = request.url?.match(
-      /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet(-us|-weur)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
+      /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet(-us|-weur|-oc)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
     );
     if (!match) throw new Error('Unexpected provider read');
     this.reads += 1;
@@ -185,6 +187,11 @@ class ChallengeProvider {
     if (match[3] === '-us') {
       versionId = gateway ? changedVersion : deploymentId;
       databaseId = secondResource.databaseId;
+    } else if (match[3] === '-oc') {
+      versionId = gateway
+        ? 'abababab-abab-4bab-8bab-abababababab'
+        : 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd';
+      databaseId = oceaniaResource.databaseId;
     } else if (match[3] !== '-weur') {
       versionId = gateway
         ? 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
@@ -322,6 +329,7 @@ function consoleWorker(
         configuredCatalog.select('US'),
         configuredCatalog.select('WEUR'),
         configuredCatalog.select('APAC'),
+        configuredCatalog.select('OC'),
       ]),
     },
     d1Databases: { CONSOLE_DB: 'console-authority' },
@@ -333,6 +341,8 @@ function consoleWorker(
       WALLET_RUNTIME_WEUR: walletRuntime,
       WALLET_GATEWAY_APAC: 'gateway-third-resource',
       WALLET_RUNTIME_APAC: 'runtime-third-resource',
+      WALLET_GATEWAY_OC: 'gateway-oceania-resource',
+      WALLET_RUNTIME_OC: 'runtime-oceania-resource',
     },
     outboundService: deps.outbound.bind(deps),
   };
@@ -474,6 +484,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
             accountId: home.accountId,
             databaseId: '99999999-9999-4999-8999-999999999999',
           },
+          catalog.select('OC'),
         ]),
       ),
       consoleWorker(
@@ -501,6 +512,24 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         'database-c',
         thirdResource.databaseId,
         'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      ),
+      writer(
+        output,
+        deps,
+        'gateway-oceania-resource',
+        'gateway',
+        'database-oc',
+        oceaniaResource.databaseId,
+        'abababab-abab-4bab-8bab-abababababab',
+      ),
+      writer(
+        output,
+        deps,
+        'runtime-oceania-resource',
+        'runtime',
+        'database-oc',
+        oceaniaResource.databaseId,
+        'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd',
       ),
       writer(
         output,
@@ -598,11 +627,13 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     const databaseA = await runtime.getD1Database('SIGNER_DB', 'gateway');
     const databaseB = await runtime.getD1Database('SIGNER_DB', 'runtime-wrong-database');
     const databaseC = await runtime.getD1Database('SIGNER_DB', 'runtime-third-resource');
+    const oceaniaDatabase = await runtime.getD1Database('SIGNER_DB', 'runtime-oceania-resource');
     if (
       !isD1DatabaseLike(authority) ||
       !isD1DatabaseLike(databaseA) ||
       !isD1DatabaseLike(databaseB) ||
-      !isD1DatabaseLike(databaseC)
+      !isD1DatabaseLike(databaseC) ||
+      !isD1DatabaseLike(oceaniaDatabase)
     )
       throw new Error('D1 unavailable');
     const migrations = path.join(root, 'packages/wallet-console-server-ts/migrations/d1-console');
@@ -623,7 +654,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     for (const name of (await readdir(signerMigrations)).sort()) {
       if (!name.endsWith('.sql')) continue;
       const migration = await readFile(path.join(signerMigrations, name), 'utf8');
-      for (const database of [databaseA, databaseB, databaseC]) {
+      for (const database of [databaseA, databaseB, databaseC, oceaniaDatabase]) {
         for (const sql of unstable_splitSqlQuery(migration)) await database.prepare(sql).run();
       }
       signerMigrationHashes.push({
@@ -792,6 +823,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         [home.databaseId, databaseA],
         [secondResource.databaseId, databaseB],
         [thirdResource.databaseId, databaseC],
+        [oceaniaResource.databaseId, oceaniaDatabase],
       ]),
       deps.oidc,
     );
@@ -806,14 +838,14 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       const completed = await runChallengeCli(providerOrigin, String(await runtime.ready));
       expect(completed.exitCode, completed.stderr).toBe(0);
       const checkpoints = JSON.parse(completed.stdout);
-      expect(checkpoints).toHaveLength(3);
+      expect(checkpoints).toHaveLength(4);
       expect(checkpoints[1]).toMatchObject({
         kind: 'tenant_d1_resource_checkpoint_v1',
         writerVersions: { gateway: gatewayVersion, walletRuntime: runtimeVersion },
         runtimeChallengeVerified: true,
         activationAuthorized: false,
       });
-      expect(provider.reads).toBe(48);
+      expect(provider.reads).toBe(64);
       expect(
         await databaseA
           .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
@@ -844,6 +876,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         verification,
         TenantResourceVerificationV1.fromOperatorCheckpoint(checkpoints[0], Date.now()),
         TenantResourceVerificationV1.fromOperatorCheckpoint(checkpoints[2], Date.now()),
+        TenantResourceVerificationV1.fromOperatorCheckpoint(checkpoints[3], Date.now()),
       ];
       const input = { ...ready, resourceVerifications };
       const activated = await store.activateBinding(input);
@@ -1055,8 +1088,8 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
           .first('count'),
       ).toBe(0);
-      expect(provider.inserts).toBe(6);
-      expect(provider.deletes).toBe(6);
+      expect(provider.inserts).toBe(7);
+      expect(provider.deletes).toBe(7);
       for (const database of provider.databases.values()) {
         expect(
           await database
@@ -1079,7 +1112,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         expect(rejected.exitCode, scenario).toBe(1);
         expect(rejected.stdout, scenario).toBe('');
         expect(provider.inserts - insertsBefore, scenario).toBe(
-          scenario === 'gradual' ? 0 : scenario === 'wrong_version' ? 1 : 3,
+          scenario === 'gradual' ? 0 : scenario === 'wrong_version' ? 1 : 4,
         );
         expect(
           await databaseA
@@ -1088,8 +1121,8 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           scenario,
         ).toBe(0);
       }
-      expect(provider.inserts).toBe(13);
-      expect(provider.deletes).toBe(13);
+      expect(provider.inserts).toBe(16);
+      expect(provider.deletes).toBe(16);
       for (const database of provider.databases.values()) {
         expect(
           await database
@@ -1120,7 +1153,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
               .digest('hex'),
           }
         : { kind: 'installed_sdk_with_source_migrations' },
-      signerDatabases: 3,
+      signerDatabases: 4,
       independentResourceCheckpoint: secondCheckpoint,
       thirdResourceCheckpoint: thirdCheckpoint,
       singleConsoleVerifiedAllRegions: true,

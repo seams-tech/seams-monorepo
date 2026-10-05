@@ -34,6 +34,11 @@ const homes = [
     accountId,
     databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   }),
+  WalletHome.parse({
+    region: 'OC',
+    accountId,
+    databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  }),
 ];
 
 function walletKey(walletId: string, projectId = 'project'): WalletOwnershipKey {
@@ -71,6 +76,7 @@ function regionalWorker(directory: string, home: WalletHome) {
       WALLET_GATEWAY_US: { name: 'gateway-US', entrypoint: 'WalletHomeGateway' },
       WALLET_GATEWAY_WEUR: { name: 'gateway-WEUR', entrypoint: 'WalletHomeGateway' },
       WALLET_GATEWAY_APAC: { name: 'gateway-APAC', entrypoint: 'WalletHomeGateway' },
+      WALLET_GATEWAY_OC: { name: 'gateway-OC', entrypoint: 'WalletHomeGateway' },
     },
   };
 }
@@ -261,7 +267,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       attempts.push(
         call(
           runtime,
-          reservation('traveller', homes[index % 3]),
+          reservation('traveller', homes[index % homes.length]),
           false,
           index % 2 ? 'ingress-a' : 'ingress-b',
         ),
@@ -518,7 +524,7 @@ test('wallet homes are independent within a tenant and durable across competing 
         call(
           runtime,
           {
-            ...reservation(`candidate-${index}`, homes[index % 3]),
+            ...reservation(`candidate-${index}`, homes[index % homes.length]),
             allocation: 'server_allocated',
             registrationId: 'one-server-registration',
           },
@@ -804,7 +810,7 @@ test('wallet homes are independent within a tenant and durable across competing 
         "SELECT * FROM wallet_homes WHERE registration_id LIKE 'gateway-admission-%' ORDER BY region",
       )
       .all();
-    expect(admissionRows.results).toHaveLength(3);
+    expect(admissionRows.results).toHaveLength(homes.length);
     const regionalDispatch = await verifyRegionalWalletDispatch(runtime, homes);
     const receipt = {
       regionalDispatch,

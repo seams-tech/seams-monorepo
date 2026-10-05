@@ -141,7 +141,7 @@ export async function verifyRegionalSharedIdentity({
     soleIdentityMoveAndUnlinkRulesPreserved: true,
     outagesDoNotFallBackToRegionalStores: true,
     scope:
-      'Production Console service and D1 identity store through three admitted regional clients. Writer admission is controlled by the composition fixture; registration offers and provider discovery forwarding are outside this scenario.',
+      'Production Console service and D1 identity store through four admitted regional clients. Writer admission is controlled by the composition fixture; registration offers and provider discovery forwarding are outside this scenario.',
   };
 }
 function won(result) {

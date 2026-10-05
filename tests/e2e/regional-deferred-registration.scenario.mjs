@@ -4,7 +4,7 @@ export async function verifyRegionalDeferredRegistration({ runtime, bridges, con
   const observations = [];
   for (const [home, bridge] of bridges) {
     const other = bridges.get(home === 'US' ? 'WEUR' : 'US');
-    for (const ingress of ['US', 'WEUR', 'APAC']) {
+    for (const ingress of bridges.keys()) {
       const worker = await runtime.getWorker(ingress);
       for (const operation of ['near-admission', 'near-provisioning']) {
         const url = `https://wallet.test/wallets/register/${operation}`;
@@ -56,7 +56,7 @@ export async function verifyRegionalDeferredRegistration({ runtime, bridges, con
     conflictingWalletSessionRejected: true,
     missingMalformedAndUnavailableHomesRejected: true,
     scope:
-      'Production regional dispatch and Console ceremony directory over three Workers; deferred protocol execution is disabled. This verifies continuation home selection, not provisioning effects or relocation write fencing.',
+      'Production regional dispatch and Console ceremony directory over four Workers; deferred protocol execution is disabled. This verifies continuation home selection. Provisioning effects and relocation write fencing require separate verification.',
   };
 }
 

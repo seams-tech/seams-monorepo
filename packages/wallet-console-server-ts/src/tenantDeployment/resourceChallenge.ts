@@ -192,7 +192,7 @@ function regionForResource(
   catalog: WalletHomeCatalog,
   resource: TenantDeploymentD1ResourceIdentityV1,
 ): WalletRegion {
-  for (const region of ['US', 'WEUR', 'APAC'] as const) {
+  for (const region of ['US', 'WEUR', 'APAC', 'OC'] as const) {
     const home = catalog.select(region);
     if (home.accountId === resource.accountId && home.databaseId === resource.databaseId)
       return region;

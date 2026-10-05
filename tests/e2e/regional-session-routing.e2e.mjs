@@ -299,8 +299,9 @@ const catalog = api.WalletHomeCatalog.parse([
   { region: 'US', accountId, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
   { region: 'WEUR', accountId, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
   { region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+  { region: 'OC', accountId, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
 ]);
-const catalogJson = JSON.stringify(['US', 'WEUR', 'APAC'].map(selectHome));
+const catalogJson = JSON.stringify(['US', 'WEUR', 'APAC', 'OC'].map(selectHome));
 const scope = {
   namespace: 'session-routing',
   organizationId: 'owner',
@@ -315,7 +316,7 @@ const signerScope = {
 };
 const bridges = new Map();
 const workers = [];
-for (const region of ['US', 'WEUR', 'APAC']) {
+for (const region of ['US', 'WEUR', 'APAC', 'OC']) {
   const bridge = new GatewayBridge(region);
   bridges.set(region, bridge);
   workers.push({
@@ -766,7 +767,7 @@ try {
   const rows = await authorityDatabase
     .prepare('SELECT kind, digest, wallet_id, expires_at_ms FROM wallet_session_locators')
     .all();
-  assert.ok(rows.results.length >= 12 && rows.results.length <= 15);
+  assert.ok(rows.results.length >= bridges.size * 4 && rows.results.length <= bridges.size * 5);
   const serialized = JSON.stringify(rows.results);
   for (const bridge of bridges.values())
     assert.ok(!serialized.includes(bridge.issued.operationCredential.token));
@@ -804,7 +805,7 @@ try {
     directoryOutageReturns503: true,
     plaintextAbsentFromDirectory: true,
     scope:
-      'Local Worker transports, production routing/authorization services and four D1 databases; tenant writer admission is controlled. No browser, signing execution, hosted provider, or geographic latency measurement.',
+      'Local Worker transports, production routing/authorization services, four regional D1 databases and shared Console D1; tenant writer admission is controlled. No browser, signing execution, hosted provider, or geographic latency measurement.',
   };
   await writeFile(
     resolve(output, 'regional-session-routing-evidence.json'),

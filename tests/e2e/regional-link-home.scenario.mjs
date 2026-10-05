@@ -134,7 +134,7 @@ export async function verifyRegionalLinkHomes({
     await home.service.createUnclaimedSessionV1({ payload, nowMs: Date.now() });
   const attempts = await Promise.all(homes.map(claimForPayload.bind(null, payload)));
   assert.equal(attempts.filter(applied).length, 1, JSON.stringify(attempts));
-  assert.equal(attempts.filter(homeConflict).length, 2, JSON.stringify(attempts));
+  assert.equal(attempts.filter(homeConflict).length, homes.length - 1, JSON.stringify(attempts));
   let persistedClaims = 0;
   for (const home of homes) {
     persistedClaims += await localCount(home, payload.linkSessionId);

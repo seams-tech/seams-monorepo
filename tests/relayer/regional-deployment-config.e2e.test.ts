@@ -33,6 +33,12 @@ const resources = [
     placement: 'aws:ap-southeast-1',
     suffix: '',
   },
+  {
+    region: 'OC',
+    databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    placement: 'aws:ap-southeast-2',
+    suffix: '-oc',
+  },
 ];
 
 function runRenderer(worker: string, region: string, output: string, allocated: boolean) {
@@ -45,7 +51,7 @@ function runRenderer(worker: string, region: string, output: string, allocated: 
   });
 }
 
-test('regional rollout renders one shared Console and three isolated writer pairs, refusing missing allocations', async ({
+test('regional rollout renders one shared Console and four isolated writer pairs, refusing missing allocations', async ({
   request: _request,
 }, testInfo) => {
   const configs = [];
@@ -65,7 +71,7 @@ test('regional rollout renders one shared Console and three isolated writer pair
     });
   }
   for (const worker of ['gateway', 'wallet-runtime', 'console']) {
-    const regions = worker === 'console' ? [''] : ['US', 'WEUR', 'APAC'];
+    const regions = worker === 'console' ? [''] : ['US', 'WEUR', 'APAC', 'OC'];
     for (const region of regions) {
       const output = testInfo.outputPath(`${worker}-${region || 'shared'}.json`);
       await expect(runRenderer(worker, region, output, false)).rejects.toThrow(
@@ -113,7 +119,7 @@ test('regional rollout renders one shared Console and three isolated writer pair
       {
         checkedAt: new Date().toISOString(),
         remoteCloudflareUsed: false,
-        allocationSource: 'child-process fixture; canonical US/WEUR allocations remain pending',
+        allocationSource: 'child-process fixture; canonical US/WEUR/OC allocations remain pending',
         configs,
       },
       null,

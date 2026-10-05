@@ -6,6 +6,7 @@ import {
   type WalletHomeAssignment,
   type WalletHomeReservation,
   type WalletHomeReservationInput,
+  type WalletRegion,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 
 declare const home: WalletHome;
@@ -17,7 +18,7 @@ declare const registrationAllocation: RegistrationSetupAllocation;
 // @ts-expect-error Resource identity must cross its parser.
 const rawHome: WalletHome = { region: 'US', accountId: 'account', databaseId: 'database' };
 // @ts-expect-error A spread cannot carry nominal validation into a different resource.
-const changedHome: WalletHome = { ...home, region: 'APAC' };
+const changedHome: WalletHome = { ...home, region: 'OC' };
 // @ts-expect-error A caller cannot forge a catalog from unchecked resources.
 const rawCatalog: WalletHomeCatalog = { ...catalog };
 // @ts-expect-error Wallet ownership identity cannot be changed through a broad spread.
@@ -91,3 +92,9 @@ void reservationInput;
 void ambiguousAllocation;
 void unboundRequest;
 void unallocatedRequest;
+
+const oceania: WalletRegion = 'OC';
+// @ts-expect-error A city name is not a wallet region.
+const city: WalletRegion = 'Sydney';
+void oceania;
+void city;

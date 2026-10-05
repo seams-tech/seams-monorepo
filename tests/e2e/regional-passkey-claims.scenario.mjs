@@ -110,7 +110,7 @@ export async function verifyRegionalPasskeyClaims({
     foreignWriterRejected: true,
     outageRejectsBeforeRegionalWrite: true,
     scope:
-      'Production credential-binding promotion through three admitted home writers and shared D1 authority. Complete registration, recovery and linked-device ceremonies remain separate acceptance gates.',
+      'Production credential-binding promotion through four admitted home writers and shared D1 authority. Complete registration, recovery and linked-device ceremonies remain separate acceptance gates.',
   };
 }
 

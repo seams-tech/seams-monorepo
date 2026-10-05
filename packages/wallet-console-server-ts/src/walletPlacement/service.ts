@@ -55,7 +55,7 @@ function record(raw: unknown): Record<string, unknown> {
 }
 
 function selectedRegion(raw: unknown): WalletRegion {
-  if (raw !== 'US' && raw !== 'WEUR' && raw !== 'APAC') {
+  if (raw !== 'US' && raw !== 'WEUR' && raw !== 'APAC' && raw !== 'OC') {
     throw new WalletPlacementError('invalid_input', 'Wallet home region is invalid');
   }
   return raw;

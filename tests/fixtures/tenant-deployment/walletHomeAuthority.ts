@@ -28,11 +28,17 @@ const catalog = WalletHomeCatalog.parse([
     accountId: '0123456789abcdef0123456789abcdef',
     databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   },
+  {
+    region: 'OC',
+    accountId: '0123456789abcdef0123456789abcdef',
+    databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+  },
 ]);
 const catalogJson = JSON.stringify([
   catalog.select('US'),
   catalog.select('WEUR'),
   catalog.select('APAC'),
+  catalog.select('OC'),
 ]);
 
 export default {

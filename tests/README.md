@@ -129,8 +129,8 @@ SEAMS_TEST_ARTIFACT_DIR=.artifacts/r152/link-expiry \
 node tests/e2e/regional-session-routing.e2e.mjs
 ```
 
-Its `regional-session-routing-evidence.json` includes `linkHttp.expiry`: six
-unclaimed/prepared sessions across all three homes, real elapsed QR expiry,
+Its `regional-session-routing-evidence.json` includes `linkHttp.expiry`: eight
+unclaimed/prepared sessions across all four homes, real elapsed QR expiry,
 foreign-ingress polling and replay, approval rejection, home-only terminal cleanup,
 and rejected recreation after terminal-row removal. The same requests verify
 expired shared proof nonce pruning while retaining fresh replay guards. Preparation
@@ -149,8 +149,8 @@ Omit `SEAMS_INTENDED_SKIP_BUILD` to build the public services. The public checko
 `.env.local` supplies its existing intended-test settings. The wrapper allocates
 and removes an isolated local role-state directory. Ports 4100–4106 and 4201–4202
 must be available. This exercises real browser registration, linked-device
-installation and NEAR/Tempo signing with three isolated signer D1 databases and
-production Console placement. The three Gateways share one local Router role
+installation and NEAR/Tempo signing with four isolated signer D1 databases and
+production Console placement. The four Gateways share one local Router role
 stack. It does not measure geographic latency or independently placed Router roles.
 
 `SEAMS_TEST_ARTIFACT_DIR` selects the evidence directory (default
@@ -158,7 +158,7 @@ stack. It does not measure geographic latency or independently placed Router rol
 `regional-real-evidence.json` with
 home/foreign table counts, transient cleanup, retained receipts and request
 paths/statuses without payloads or credentials. The matrix covers US→WEUR,
-WEUR→APAC and APAC→US (wallet home → linked-device ingress). Each case first loses a real Router execution response and requires replay of
+WEUR→APAC, APAC→US and OC→APAC (wallet home → linked-device ingress). Each case first loses a real Router execution response and requires replay of
 the same reservation. It then drops one successful activation reply (requiring identical activation replay), then
 two successful final acknowledgement replies after cleanup commits, requires the
 exact acknowledgement to replay with fresh device proofs, and verifies signing
@@ -174,29 +174,29 @@ bootstrap routing and final-proof retention, with empty signer nonce tables.
 Use a fresh directory to preserve a previous run. The public intended harness also
 supports `SEAMS_INTENDED_PERSIST_TRACE=1` with `SEAMS_INTENDED_TRACE_DIR`.
 
-The `three real wallets` case registers US, WEUR and APAC owners concurrently in the same
+The `four real wallets` case registers US, WEUR, APAC and OC owners concurrently in the same
 Console/signer stores, then routes them through foreign ingress for locked-page
 reload, passkey unlock, Ed25519/ECDSA key export, fresh-browser passkey recovery
 and NEAR/Tempo signing. Each recovery commits at home, stops the Gateway/Console
 process and its D1 runtime, restarts all five role Workers, and reopens the same
-four Gateway databases in a new process before losing its finalization reply.
+five D1 databases in a new process before losing its finalization reply.
 It then resets the client runtime. The durable journal must survive that reset,
 replay the same operation and target, and clear after the successful reply.
 Each consumed code is then submitted with a new reservation and must be rejected
 as already used, including the browser's error message. Select it with
-`--grep 'three real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
+`--grep 'four real wallets'`. Its `mixed-homes/mixed-home-evidence.json` records
 exact tenant scope, registration start/completion times with verified overlap,
 established home assignments, per-wallet store counts and
 request paths/statuses, including the successful finalization and replay at each
 home. Key-export material is not included in this receipt. Set
 `SEAMS_INTENDED_PERSIST_TRACE=1` and `SEAMS_INTENDED_TRACE_DIR` to retain the
 per-owner journal and lifecycle assertions alongside it.
-After all three Gateway/Console and role restarts, every recovered wallet unlocks
-and signs NEAR/Tempo again. `mixed-homes/restart-evidence.json` records the three linked process
+After all four Gateway/Console and role restarts, every recovered wallet unlocks
+and signs NEAR/Tempo again. `mixed-homes/restart-evidence.json` records the four linked process
 replacements, role supervisor generations and foreign-ingress routes.
 
 The `adds, uses and revokes` matrix exercises an added Email OTP method through
-foreign ingress for every home (US→WEUR, WEUR→APAC, APAC→US). It verifies
+foreign ingress for every home (US→WEUR, WEUR→APAC, APAC→US, OC→APAC). It verifies
 addition, duplicate-add refusal, lock/reload, Email OTP unlock and NEAR/Tempo
 signing, revocation, local refusal of the revoked method, and continued passkey
 signing. `methods-<home>/method-active-evidence.json` and
@@ -210,9 +210,9 @@ the public checkout with `node tests/scripts/ensure-intended-google-token.mjs`.
 
 The `interrupted Google Email OTP` matrix starts with passkey-founded and
 Email OTP-founded wallets, then recovers each in a fresh browser through foreign ingress (US→APAC, WEUR→US,
-APAC→WEUR). After finalization commits, it stops the Gateway/Console child process
+APAC→WEUR, OC→APAC). After finalization commits, it stops the Gateway/Console child process
 and its D1 runtime, restarts all five role Workers, then starts a fresh process
-over the same four Gateway databases.
+over the same five D1 databases.
 It loses the committed finalization reply, resets the client runtime, and checks
 exact replay plus pending-journal retention and removal. It then
 verifies an additive Email OTP authority, NEAR/Tempo signing, the shared Google

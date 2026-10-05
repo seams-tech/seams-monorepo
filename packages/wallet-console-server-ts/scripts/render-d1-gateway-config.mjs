@@ -116,7 +116,9 @@ function parseArguments(args) {
     throw new Error('--worker must be gateway, console, or wallet-runtime');
   }
   if (worker === 'console' ? region !== '' : !WALLET_REGIONS.includes(region)) {
-    throw new Error('Gateway/Runtime require --region US, WEUR, or APAC; Console has no region');
+    throw new Error(
+      'Gateway/Runtime require --region US, WEUR, APAC, or OC; Console has no region',
+    );
   }
   return { lane, output, worker, region };
 }

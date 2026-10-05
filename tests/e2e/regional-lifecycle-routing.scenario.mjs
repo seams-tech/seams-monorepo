@@ -138,7 +138,7 @@ export async function verifyRegionalLifecycleRouting({
       "SELECT kind, value, wallet_id FROM wallet_routes WHERE kind IN ('yao_recovery', 'yao_export')",
     )
     .all();
-  assert.equal(rows.results.length, 8);
+  assert.equal(rows.results.length, bridges.size * 2 + 2);
   await assert.rejects(
     authorityDatabase
       .prepare("UPDATE wallet_routes SET wallet_id = ? WHERE kind = 'yao_recovery' AND value = ?")
@@ -155,7 +155,7 @@ export async function verifyRegionalLifecycleRouting({
     kindsHaveIndependentIdentity: true,
     oldTableRemoved: true,
     scope:
-      'Production publication helper, Console service/index and Gateway dispatch across three regional Worker transports. Admission authorization and terminal Yao execution are controlled; no cryptographic execution or hosted latency claim.',
+      'Production publication helper, Console service/index and Gateway dispatch across four regional Worker transports. Admission authorization and terminal Yao execution are controlled; no cryptographic execution or hosted latency claim.',
   };
 }
 

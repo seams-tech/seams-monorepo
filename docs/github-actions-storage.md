@@ -1,5 +1,30 @@
 # GitHub Actions storage and deployment recovery
 
+## OC allocation and possible account change (2026-10-05)
+
+The development catalog now requires US, WEUR, APAC and OC wallet homes. All three
+deployment lanes have a pending OC signer database in
+`deployment/wallet-system/targets.json`. Deployment rendering rejects pending
+allocations. This prevents deployment with an incomplete regional resource set.
+
+OC Gateway and Wallet Runtime Workers target Sydney using
+`placement.region = "aws:ap-southeast-2"`. Allocate the OC signer database with
+the D1 `oc` location hint after the Cloudflare account is selected. D1 and Durable
+Object hints are best effort; verify actual placement before recording latency.
+Containers have limited OC capacity. An OC-only allowed-region list requires
+dedicated capacity; otherwise Cloudflare requires another allowed region.
+See [D1 location](https://developers.cloudflare.com/d1/configuration/data-location/),
+[Worker placement](https://developers.cloudflare.com/workers/configuration/placement/)
+and [Container placement](https://developers.cloudflare.com/containers/concepts/placement/).
+
+No resources were provisioned for this change. If the account changes, create
+fresh D1 databases, Workers, DO namespaces and Container applications there.
+Replace account and resource identities through the existing deployment targets
+and environment workflow. Regenerate the deployment manifests and credentials
+for that account before verifying bindings. Existing database IDs and manifests
+remain tied to the current account. Keep current deployments intact until the
+replacement deployment passes acceptance.
+
 ## Findings on 2026-09-19
 
 The mainnet build in run `35437596819` failed during artifact upload with

@@ -7,6 +7,7 @@ import {
 } from '../../walletPlacement/regionalDispatch';
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
+import { resolveGatewayDeployment } from '../../walletPlacement/gatewaySession';
 import { regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
 import {
@@ -59,7 +60,9 @@ async function handleGatewayRequest(
   const startedAt = performance.now();
   const pathname = new URL(request.url).pathname;
   const bindingTimingHeaders = new Headers();
-  const binding = await resolveActiveTenantDeploymentFromServiceV1({
+  const deployment = await resolveGatewayDeployment({
+    request,
+    catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
       accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
       databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
@@ -68,6 +71,15 @@ async function handleGatewayRequest(
     service: env.WALLET_CONSOLE,
     timingHeaders: bindingTimingHeaders,
   });
+  if (deployment.kind === 'rejected') {
+    withCors(
+      deployment.response.headers,
+      { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) },
+      request,
+    );
+    return deployment.response;
+  }
+  const { binding, session } = deployment;
   const bindingDurationMs = performance.now() - startedAt;
   if (pathname === '/.well-known/seams-tenant-deployment.json') {
     if (request.method !== 'GET') {
@@ -78,12 +90,6 @@ async function handleGatewayRequest(
       binding,
       maxAgeSeconds: 30,
     });
-  }
-  if (!binding) {
-    return Response.json(
-      { ok: false, code: 'tenant_deployment_unavailable' },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } },
-    );
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
   const authority = new ConsoleRegistrationHomeAdmission({
@@ -107,6 +113,7 @@ async function handleGatewayRequest(
     authority,
     transport,
     boundEnv.GOOGLE_OIDC_CLIENT_ID,
+    session,
   );
   if (forwarded) {
     const response = new Response(forwarded.body, forwarded);

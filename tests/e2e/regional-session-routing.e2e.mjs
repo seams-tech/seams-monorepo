@@ -112,6 +112,7 @@ class GatewayBridge {
       this.authority,
       new api.WalletRegionalDispatch(this.bindings),
       'regional-google-test',
+      await api.resolveSessionHome(request, this.authority),
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
@@ -280,7 +281,7 @@ const bundle = await build({
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
       export { WalletHomeServiceClient } from './packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
       export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
-      export { WalletRegionalDispatch, dispatchKnownWalletHome } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+      export { WalletRegionalDispatch, dispatchKnownWalletHome, resolveSessionHome } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
       export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
     `,
   },

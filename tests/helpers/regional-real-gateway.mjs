@@ -51,7 +51,7 @@ export async function createRegionalRealGateway({
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
-        export { dispatchKnownWalletHome, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+        export { dispatchKnownWalletHome, resolveSessionHome, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
         export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       `,
@@ -326,6 +326,7 @@ class RealRegionalGateway {
       authority,
       transport,
       this.environment.GOOGLE_OIDC_CLIENT_ID,
+      await this.api.resolveSessionHome(request, authority),
     );
     if (forwarded) {
       this.requests.push({

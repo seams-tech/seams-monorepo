@@ -5,6 +5,7 @@ import {
   ConsoleRegistrationSetupDispatcher,
   WalletRegionalDispatch,
   dispatchKnownWalletHome,
+  resolveSessionHome,
   type RegionalGatewayBindings,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import {
@@ -44,7 +45,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
   const transport = new WalletRegionalDispatch(env);
-  const forwarded = await dispatchKnownWalletHome(request, authority, transport, undefined);
+  const forwarded = await dispatchKnownWalletHome(
+    request,
+    authority,
+    transport,
+    undefined,
+    await resolveSessionHome(request, authority),
+  );
   if (forwarded) return forwarded;
   const body: unknown = await request.json();
   if (!body || typeof body !== 'object' || Array.isArray(body))

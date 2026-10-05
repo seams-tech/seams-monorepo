@@ -1,3 +1,7 @@
+import {
+  gatewaySessionCatalog,
+  verifyGatewaySessionLookup,
+} from './gateway-session-lookup.scenario';
 import { createRequire } from 'node:module';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
@@ -11,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import type { TenantDeploymentResourceVerificationsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
-  regionalBinding,
+  fourRegionBinding,
   regionalResourceProof,
   deploymentResource,
   readyActivation,
@@ -63,10 +67,27 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         }
       : {},
   });
+  const gatewayCatalog = gatewaySessionCatalog(
+    await fourRegionBinding(1_700_000_000_000, 'live-demo'),
+  );
   const runtime = new Miniflare({
     host: '127.0.0.1',
     port: 0,
     workers: [
+      regionalConsumer(
+        output,
+        'oc',
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        '77777777-7777-4777-8777-777777777777',
+        'gateway',
+      ),
+      regionalConsumer(
+        output,
+        'runtime-oc',
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        '88888888-8888-4888-8888-888888888888',
+        'walletRuntime',
+      ),
       regionalConsumer(
         output,
         'runtime-us',
@@ -138,7 +159,10 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         scriptPath: path.join(output, 'console.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
-        bindings: { SEAMS_TENANT_DEPLOYMENT_LANE: 'live-demo' },
+        bindings: {
+          SEAMS_TENANT_DEPLOYMENT_LANE: 'live-demo',
+          SEAMS_WALLET_HOME_CATALOG_JSON: gatewayCatalog,
+        },
         d1Databases: { CONSOLE_DB: 'isolated-console-binding-e2e' },
       },
       {
@@ -159,6 +183,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     ],
   });
   const observations = [];
+  let gatewaySessionLookup;
   try {
     const database = await runtime.getD1Database('CONSOLE_DB', 'console');
     if (!isD1DatabaseLike(database)) throw new Error('Local Console D1 binding is unavailable');
@@ -172,6 +197,14 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       '0049_tenant_deployment_binding_homes.sql',
       '0050_tenant_deployment_home_verification.sql',
       '0052_drop_namespace_placement.sql',
+    ]) {
+      const sql = await readFile(path.join(path.dirname(migrationPath), name), 'utf8');
+      for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
+    }
+    for (const name of [
+      '0051_wallet_homes.sql',
+      '0055_wallet_session_locators.sql',
+      '0070_wallet_relocations.sql',
     ]) {
       const sql = await readFile(path.join(path.dirname(migrationPath), name), 'utf8');
       for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
@@ -229,8 +262,8 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     });
 
     const store = createD1TenantDeploymentServiceV1({ database });
-    const first = await store.putBinding(await regionalBinding(1_700_000_000_000, 'live-demo'));
-    const second = await store.putBinding(await regionalBinding(1_700_000_000_001, 'live-demo'));
+    const first = await store.putBinding(await fourRegionBinding(1_700_000_000_000, 'live-demo'));
+    const second = await store.putBinding(await fourRegionBinding(1_700_000_000_001, 'live-demo'));
     const home = deploymentResource(first.tenant.namespace, first.resources[0].databaseId);
     let previousProofs: TenantDeploymentResourceVerificationsV1 | null = null;
     for (const current of [first, second]) {
@@ -265,6 +298,13 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
           'ffffffff-ffff-4fff-8fff-ffffffffffff',
           now,
         ),
+        regionalResourceProof(
+          current,
+          current.resources[3].databaseId,
+          '77777777-7777-4777-8777-777777777777',
+          '88888888-8888-4888-8888-888888888888',
+          now,
+        ),
       ];
       await expect(
         store.activateBinding({ ...input, resourceVerifications: [proofs[0]] }),
@@ -285,7 +325,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       await expect(
         store.activateBinding({
           ...input,
-          resourceVerifications: [proofs[0], reusedWriter, proofs[2]],
+          resourceVerifications: [proofs[0], reusedWriter, proofs[2], proofs[3]],
         }),
       ).rejects.toMatchObject({ code: 'readiness_invalid' });
       expect((await store.findActiveBinding('live-demo'))?.revision ?? null).toBe(
@@ -300,7 +340,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
           store,
           current,
           input,
-          [proofs[0], reusedWriter, proofs[2]],
+          [proofs[0], reusedWriter, proofs[2], proofs[3]],
           now,
         ),
       ).rejects.toThrow('deployment writer version is duplicated');
@@ -308,7 +348,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         await expect(
           store.activateBinding({
             ...input,
-            resourceVerifications: [previousProofs[0], proofs[1], proofs[2]],
+            resourceVerifications: [previousProofs[0], proofs[1], proofs[2], proofs[3]],
           }),
         ).rejects.toMatchObject({ code: 'activation_conflict' });
         expect(
@@ -329,6 +369,8 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       const runtimeApac = await runtime.getWorker('runtime-apac');
       const weur = await runtime.getWorker('weur');
       const apac = await runtime.getWorker('apac');
+      const oc = await runtime.getWorker('oc');
+      const runtimeOc = await runtime.getWorker('runtime-oc');
       const responses = await Promise.all([
         reader.fetch('https://consumer.test/'),
         wrongLane.fetch('https://consumer.test/'),
@@ -339,6 +381,8 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         runtimeUs.fetch('https://consumer.test/'),
         runtimeWeur.fetch('https://consumer.test/'),
         runtimeApac.fetch('https://consumer.test/'),
+        oc.fetch('https://consumer.test/'),
+        runtimeOc.fetch('https://consumer.test/'),
       ]);
       for (const [index, response] of responses.entries()) {
         const body = await response.json();
@@ -363,6 +407,8 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
         });
       }
     }
+    const consoleWorker = await runtime.getWorker('console');
+    gatewaySessionLookup = await verifyGatewaySessionLookup(database, consoleWorker, second);
     await database.prepare('DELETE FROM active_tenant_deployment_bindings').run();
     const removed = await reader.fetch('https://consumer.test/');
     expect(removed.status).toBe(503);
@@ -374,6 +420,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
 
     const evidence = {
       kind: 'console_binding_service_e2e_v1',
+      gatewaySessionLookup,
       at: new Date().toISOString(),
       topology: 'consumer Worker → production Console Worker → local D1',
       migrationSha256: createHash('sha256').update(migration).digest('hex'),
@@ -384,8 +431,8 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       migrationPreservesHistoryAndConsumedProofs: true,
       migrationRetiresActivePointersAndPendingCutovers: true,
       regionalLatencyMeasured: false,
-      verifiedResources: 3,
-      admittedWriters: 6,
+      verifiedResources: 4,
+      admittedWriters: 8,
       partialAndDuplicateProofsRejected: true,
       wrongResourceWithAdmittedVersionRejected: true,
       lostActivationReplyReplay: true,

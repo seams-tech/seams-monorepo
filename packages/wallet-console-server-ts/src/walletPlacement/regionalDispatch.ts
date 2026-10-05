@@ -93,9 +93,9 @@ export async function dispatchKnownWalletHome(
   authority: ConsoleRegistrationHomeAdmission,
   transport: WalletRegionalDispatch,
   googleClientId: string | undefined,
+  session: SessionHomeResolution,
 ): Promise<Response | null> {
   if (request.method === 'OPTIONS') return null;
-  const session = await sessionHome(request, authority);
   if (session.kind === 'rejected') return session.response;
   const authentication = await authenticationHome(request, authority, googleClientId);
   const scopedHome =
@@ -271,15 +271,18 @@ function requestField(body: unknown, keys: readonly string[]): unknown {
   return value;
 }
 
-type SessionHomeResolution =
+export type SessionHomeResolution =
   | { readonly kind: 'absent' }
   | { readonly kind: 'resolved'; readonly assignment: WalletHomeAssignment }
   | { readonly kind: 'rejected'; readonly response: Response };
 
-async function sessionHome(
-  request: Request,
-  authority: ConsoleRegistrationHomeAdmission,
-): Promise<SessionHomeResolution> {
+type RequestSessionLocator =
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'locator'; readonly locator: SessionLocator }
+  | { readonly kind: 'rejected'; readonly response: Response };
+
+export async function readRequestSessionLocator(request: Request): Promise<RequestSessionLocator> {
+  if (request.method === 'OPTIONS') return { kind: 'absent' };
   const pathname = new URL(request.url).pathname;
   let locator: SessionLocator;
   if (request.method === 'POST' && pathname === '/wallet/session/exchange/redeem') {
@@ -307,8 +310,17 @@ async function sessionHome(
     if (!/^ws[th]_[A-Za-z0-9_-]{43}$/u.test(token)) return rejectedSessionHome(401, 'unauthorized');
     locator = SessionLocator.parse({ kind: 'credential', digest: await digestOpaqueValue(token) });
   }
+  return { kind: 'locator', locator };
+}
+
+export async function resolveSessionHome(
+  request: Request,
+  authority: ConsoleRegistrationHomeAdmission,
+): Promise<SessionHomeResolution> {
+  const parsed = await readRequestSessionLocator(request);
+  if (parsed.kind !== 'locator') return parsed;
   try {
-    const assignment = await authority.findSession(locator);
+    const assignment = await authority.findSession(parsed.locator);
     if (!assignment || assignment.state === 'cancelled')
       return rejectedSessionHome(401, 'unauthorized');
     return { kind: 'resolved', assignment };
@@ -317,7 +329,10 @@ async function sessionHome(
   }
 }
 
-function rejectedSessionHome(status: number, code: string): SessionHomeResolution {
+function rejectedSessionHome(
+  status: number,
+  code: string,
+): Extract<SessionHomeResolution, { kind: 'rejected' }> {
   return {
     kind: 'rejected',
     response: Response.json(

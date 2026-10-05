@@ -1,3 +1,4 @@
+import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacement/gatewaySession';
 import { createWalletRuntimeOpsClient } from '../../serviceBinding/walletRuntimeOpsClient';
 import { RegionalWalletIdentities } from '../../serviceBinding/regionalWalletIdentities';
 import { D1WalletHomeDirectory } from '../../walletPlacement/d1';
@@ -750,6 +751,17 @@ async function fetch(
         { ok: false, code: 'tenant_deployment_unavailable' },
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       );
+    }
+    if (new URL(request.url).pathname === GATEWAY_SESSION_PATH) {
+      const response = await gatewaySessionResponse(
+        request,
+        active,
+        env.CONSOLE_DB,
+        env.SEAMS_WALLET_HOME_CATALOG_JSON,
+      );
+      const timing = bindingTimingHeaders.get('Server-Timing');
+      if (timing) response.headers.append('Server-Timing', timing);
+      return response;
     }
     const response = await handleWalletHomeServiceRequest(request, {
       writer,

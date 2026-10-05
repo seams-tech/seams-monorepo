@@ -125,7 +125,7 @@ function requireScope(wallet: WalletOwnershipKey, scope: WalletHomeScope): void 
   }
 }
 
-function assignmentFromResponse(
+export function assignmentFromResponse(
   raw: unknown,
   scope: WalletHomeScope,
   catalog: WalletHomeCatalog,

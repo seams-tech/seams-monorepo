@@ -418,3 +418,19 @@ export async function bindingForResourceSet(
   if (!result.ok) throw new Error(result.message);
   return result.value;
 }
+
+export async function fourRegionBinding(createdAtMs: number, deploymentLane: string) {
+  const existing = await regionalBinding(createdAtMs, deploymentLane);
+  const result = await buildTenantDeploymentBindingV1({
+    ...developmentBindingBody(createdAtMs, deploymentLane),
+    resources: [
+      ...existing.resources,
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      },
+    ],
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.value;
+}

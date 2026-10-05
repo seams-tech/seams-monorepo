@@ -1,3 +1,5 @@
+import { parseWalletId } from '@seams/wallet-server/cloud-host';
+import { ConsoleRegistrationHomeAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
 import { expect } from '@playwright/test';
 import type { Miniflare } from 'miniflare';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
@@ -33,7 +35,7 @@ class ExecutionConsole {
       body: JSON.stringify(sent),
     });
     const body = await response.json();
-    if (body.ok === true) {
+    if (body.ok === true && body.authority) {
       switch (this.mode) {
         case 'wrong_wallet':
           body.authority.wallet.walletId = 'unrelated';
@@ -91,6 +93,38 @@ export async function executionAdmissionClient(
   return (await executionClient(runtime, wallet, home, homes, mode)).executionAuthority(wallet);
 }
 
+async function registrationRuntimeAdmission(
+  runtime: Miniflare,
+  wallet: WalletOwnershipKey,
+  home: WalletHome,
+  homes: readonly WalletHome[],
+  ceremonyId: string,
+  mode: ReplyMode,
+) {
+  const worker = await runtime.getWorker('ingress-b');
+  const walletId = parseWalletId(wallet.walletId);
+  if (!walletId.ok) throw new Error('Invalid fixture wallet identity');
+  const admission = new ConsoleRegistrationHomeAdmission({
+    service: new ExecutionConsole(worker, mode),
+    writer: parseTenantRuntimeWriterV1(
+      'gateway',
+      relocationWriterVersion(home.databaseId, 'gateway'),
+      { accountId: home.accountId, databaseId: home.databaseId },
+    ),
+    scope: {
+      namespace: wallet.namespace,
+      organizationId: wallet.organizationId,
+      projectId: wallet.projectId,
+      environmentId: wallet.environmentId,
+    },
+    environmentKey: 'test',
+    localResource: { accountId: home.accountId, databaseId: home.databaseId },
+    catalogJson: JSON.stringify(homes),
+    ingressRegion: home.region,
+  });
+  return admission.admitHome({ walletId: walletId.value, ceremonyId });
+}
+
 export async function verifyRegistrationExecutionAdmission(
   runtime: Miniflare,
   wallet: WalletOwnershipKey,
@@ -116,6 +150,27 @@ export async function verifyRegistrationExecutionAdmission(
   if (!reserved.ok || reserved.assignment.state !== 'reserved')
     throw new Error('Registration reservation was not created');
   const assignment = reserved.assignment;
+  expect(
+    await registrationRuntimeAdmission(
+      runtime,
+      wallet,
+      source,
+      homes,
+      assignment.registrationAllocation.ceremonyId,
+      'honest',
+    ),
+  ).toEqual({ ok: true });
+  await expect(
+    registrationRuntimeAdmission(
+      runtime,
+      wallet,
+      source,
+      homes,
+      assignment.registrationAllocation.ceremonyId,
+      'invalid_generation',
+    ),
+  ).rejects.toThrow();
+
   expect(await client.executionAuthority(wallet)).toEqual({
     ok: false,
     code: 'wallet_unavailable',
@@ -148,7 +203,18 @@ export async function verifyRegistrationExecutionAdmission(
     ok: false,
     code: 'wallet_unavailable',
   });
+  expect(
+    await registrationRuntimeAdmission(
+      runtime,
+      wallet,
+      source,
+      homes,
+      assignment.registrationAllocation.ceremonyId,
+      'honest',
+    ),
+  ).toMatchObject({ ok: false, code: 'wallet_home_unavailable' });
   return {
+    runtimeRegistrationChecksExecutionAdmission: true,
     registrationExecutionRequiresLiveReservation: true,
     ordinaryExecutionRejectsReservedWallet: true,
     cancelledReservationCannotExecute: true,
@@ -173,5 +239,20 @@ export async function verifyExecutionAdmissionResponses(
   if (!admitted.ok) throw new Error('Execution was not admitted');
   expect(admitted.authority.matches(wallet, 1)).toBe(true);
   expect(admitted.authority.matches(wallet, 2)).toBe(false);
+  const client = await executionClient(runtime, wallet, home, homes, 'honest');
+  const assignment = await client.find(wallet);
+  if (!assignment || assignment.state !== 'established')
+    throw new Error('Missing established wallet');
+  expect(
+    await registrationRuntimeAdmission(
+      runtime,
+      wallet,
+      home,
+      homes,
+      assignment.registrationAllocation.ceremonyId,
+      'honest',
+    ),
+  ).toEqual({ ok: true });
+
   return { executionClientRejectsConflictingConsoleResponses: true };
 }

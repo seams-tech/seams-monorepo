@@ -234,6 +234,24 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
         message: 'Registration home is unavailable',
       };
     }
+    const admitted =
+      assignment.state === 'reserved'
+        ? await client.registrationExecutionAuthority(assignment)
+        : await client.executionAuthority(assignment.wallet);
+    if (!admitted.ok) {
+      return {
+        ok: false,
+        code: admitted.code,
+        message: 'Registration execution is not admitted at this home',
+      };
+    }
+    if (!admitted.authority.matches(assignment.wallet, assignment.ownershipGeneration)) {
+      return {
+        ok: false,
+        code: 'home_conflict',
+        message: 'Wallet ownership changed before registration execution',
+      };
+    }
     return { ok: true };
   }
 

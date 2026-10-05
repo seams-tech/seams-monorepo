@@ -814,9 +814,45 @@ test('relocation directory serializes competing moves and survives lost replies 
       command: {
         home: destination,
         generation: 2,
-        operation: { kind: 'verify', receipt: { kind: 'source_fence', manifestDigest: manifest } },
+        operation: {
+          kind: 'verify',
+          physicalResource: `${destination.databaseId}/gateway/2`,
+          receipt: { kind: 'source_fence', manifestDigest: manifest },
+        },
       },
     });
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        copyAttempt,
+        'verify',
+        destination,
+        'gateway',
+        relocationWriterVersion(destination.databaseId, 'gateway'),
+        '{malformed',
+      ),
+    ).toEqual(verificationCommand);
+    expect(
+      await relocationCommand(
+        runtime,
+        request.wallet,
+        copyAttempt,
+        'verify',
+        destination,
+        'walletRuntime',
+      ),
+    ).toMatchObject({
+      ok: true,
+      command: {
+        participant: 'walletRuntime',
+        operation: {
+          kind: 'verify',
+          physicalResource: `${destination.databaseId}/walletRuntime/2`,
+        },
+      },
+    });
+    observations.push({ destinationCommandsUsePreparedParticipantResources: true });
     observations.push(verificationCommand);
     expect(
       await (
@@ -899,6 +935,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         generation: 2,
         operation: {
           kind: 'activate',
+          physicalResource: `${destination.databaseId}/walletRuntime/2`,
           receipt: { kind: 'destination_verification', manifestDigest: manifest },
         },
       },

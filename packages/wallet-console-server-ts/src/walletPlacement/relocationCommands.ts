@@ -9,15 +9,21 @@ import { WalletRelocationAttempt } from './relocationExecution';
 import { readWalletPlacementStatus } from './relocationStatus';
 
 type CommandEvidence =
-  | { readonly kind: 'freeze'; readonly receipt?: never }
-  | { readonly kind: 'verify'; readonly receipt: WalletRelocationReceipt<'source_fence'> }
+  | { readonly kind: 'freeze'; readonly receipt?: never; readonly physicalResource?: never }
+  | {
+      readonly kind: 'verify';
+      readonly receipt: WalletRelocationReceipt<'source_fence'>;
+      readonly physicalResource: string;
+    }
   | {
       readonly kind: 'activate';
       readonly receipt: WalletRelocationReceipt<'destination_verification'>;
+      readonly physicalResource: string;
     }
   | {
       readonly kind: 'cleanup';
       readonly receipt: WalletRelocationReceipt<'destination_activation'>;
+      readonly physicalResource?: never;
     };
 
 // These commands control the participant's move protocol. They never authorize signing.
@@ -80,6 +86,31 @@ export class WalletD1RelocationCommand {
     ) {
       return { ok: false, code: 'attempt_conflict' };
     }
+    const resources = await queryD1One(
+      database,
+      `SELECT resource_verifications_json,
+         (SELECT CASE WHEN COUNT(*) = 1 THEN MIN(json_extract(value, '$.physicalResource')) END
+          FROM json_each(wallet_relocations.preparation_json, '$.receipts')
+          WHERE json_extract(value, '$.participant') = ?7
+            AND json_extract(wallet_relocations.preparation_json, '$.requestDigest') = request_digest
+            AND json_extract(wallet_relocations.preparation_json, '$.destinationGeneration') = destination_generation
+         ) AS prepared_resource
+       FROM wallet_relocations
+       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
+      [
+        wallet.namespace,
+        wallet.organizationId,
+        wallet.projectId,
+        wallet.environmentId,
+        wallet.walletId,
+        move.moveId,
+        writer.role,
+      ],
+    );
+    if (!resources || !storedRuntimeVersionMatches(resources.resource_verifications_json, writer)) {
+      return { ok: false, code: 'participant_conflict' };
+    }
     let operation: CommandEvidence;
     let home: WalletHome;
     let generation: number;
@@ -92,7 +123,14 @@ export class WalletD1RelocationCommand {
         break;
       case 'verify':
         if (progress.state !== 'copying') return { ok: false, code: 'phase_conflict' };
-        operation = { kind: 'verify', receipt: progress.sourceFence };
+        if (!isPhysicalResource(resources.prepared_resource)) {
+          return { ok: false, code: 'participant_conflict' };
+        }
+        operation = {
+          kind: 'verify',
+          receipt: progress.sourceFence,
+          physicalResource: resources.prepared_resource,
+        };
         home = move.destination;
         generation = move.destinationGeneration;
         break;
@@ -100,7 +138,14 @@ export class WalletD1RelocationCommand {
         if (progress.state !== 'cutover' || progress.activation.state !== 'awaiting_activation') {
           return { ok: false, code: 'phase_conflict' };
         }
-        operation = { kind: 'activate', receipt: progress.destinationVerification };
+        if (!isPhysicalResource(resources.prepared_resource)) {
+          return { ok: false, code: 'participant_conflict' };
+        }
+        operation = {
+          kind: 'activate',
+          receipt: progress.destinationVerification,
+          physicalResource: resources.prepared_resource,
+        };
         home = move.destination;
         generation = move.destinationGeneration;
         break;
@@ -121,23 +166,6 @@ export class WalletD1RelocationCommand {
       writer.resource.accountId !== home.accountId ||
       writer.resource.databaseId !== home.databaseId
     ) {
-      return { ok: false, code: 'participant_conflict' };
-    }
-    const resources = await queryD1One(
-      database,
-      `SELECT resource_verifications_json FROM wallet_relocations
-       WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-         AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
-      [
-        wallet.namespace,
-        wallet.organizationId,
-        wallet.projectId,
-        wallet.environmentId,
-        wallet.walletId,
-        move.moveId,
-      ],
-    );
-    if (!resources || !storedRuntimeVersionMatches(resources.resource_verifications_json, writer)) {
       return { ok: false, code: 'participant_conflict' };
     }
     return {
@@ -181,4 +209,8 @@ export function parseWalletRelocationCommandKind(raw: unknown): CommandEvidence[
     default:
       throw new WalletPlacementError('invalid_input', 'Relocation command kind is invalid');
   }
+}
+
+function isPhysicalResource(raw: unknown): raw is string {
+  return typeof raw === 'string' && raw.length > 0 && raw.length <= 512 && raw.trim() === raw;
 }

@@ -215,3 +215,22 @@ const locatorAsAuthority: WalletD1RelocationCommand = locator;
 void relocations.admit(locator, [resourceProof], 'test', participants, clock);
 void forgedLocator;
 void locatorAsAuthority;
+
+// @ts-expect-error Destination verification must name its prepared physical resource.
+const unpinnedVerification: WalletD1RelocationCommand['operation'] = {
+  kind: 'verify',
+  receipt: sourceFence,
+};
+// @ts-expect-error Destination activation must name its prepared physical resource.
+const unpinnedActivation: WalletD1RelocationCommand['operation'] = {
+  kind: 'activate',
+  receipt: destinationVerification,
+};
+// @ts-expect-error Source freeze cannot select a destination physical resource.
+const destinationAsSource: WalletD1RelocationCommand['operation'] = {
+  kind: 'freeze',
+  physicalResource: 'destination',
+};
+void unpinnedVerification;
+void unpinnedActivation;
+void destinationAsSource;

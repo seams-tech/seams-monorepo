@@ -1,3 +1,4 @@
+import { walletPlacementReadHome } from './placementRouting';
 import { handleLinkedDeviceBootstrap } from './linkedDeviceBootstrap';
 import { D1LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import { handleSyncChallengeCommand } from './syncChallenges';
@@ -114,6 +115,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
@@ -156,11 +158,21 @@ export async function handleWalletHomeServiceRequest(
     }
     if (
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command`
     ) {
       const wallet = WalletOwnershipKey.parse(body.wallet);
       if (!inScope(wallet, options.scope)) {
         throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route`) {
+        if (Object.keys(body).length !== 1) {
+          throw new WalletPlacementError('invalid_input', 'Placement route fields are invalid');
+        }
+        const home = walletPlacementReadHome(
+          await readWalletPlacementStatus(options.database, wallet),
+        );
+        return json({ wallet, home });
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
         return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));

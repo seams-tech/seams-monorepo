@@ -196,6 +196,12 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
       }),
     };
   }
+  async placementReadHome(walletId: string): Promise<WalletHome | null> {
+    return this.client().placementReadHome(
+      WalletOwnershipKey.parse({ ...this.options.scope, walletId }),
+    );
+  }
+
   async findHome(
     locator: { kind: 'ceremony'; ceremonyId: string } | { kind: 'wallet'; walletId: string },
   ): Promise<WalletHomeAssignment | null> {

@@ -593,6 +593,19 @@ export class WalletHomeServiceClient
     return assignmentFromResponse(body.assignment, this.scope, this.catalog);
   }
 
+  async placementReadHome(wallet: WalletOwnershipKey): Promise<WalletHome | null> {
+    requireScope(wallet, this.scope);
+    const response = await this.post('placement-route', { wallet });
+    if (response.status !== 200) {
+      throw new WalletPlacementError('invalid_record', 'Placement routing is unavailable');
+    }
+    const body = record(response.body);
+    if (Object.keys(body).length !== 2 || !WalletOwnershipKey.parse(body.wallet).matches(wallet)) {
+      throw new WalletPlacementError('invalid_record', 'Placement route returned another wallet');
+    }
+    return body.home === null ? null : WalletHome.parse(body.home);
+  }
+
   async find(wallet: WalletOwnershipKey): Promise<WalletHomeAssignment | null> {
     requireScope(wallet, this.scope);
     const response = await this.post('find', { wallet });

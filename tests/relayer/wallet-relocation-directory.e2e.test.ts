@@ -1,3 +1,4 @@
+import { verifyRelocationReadRouting } from './relocation-routing.scenario';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -587,6 +588,11 @@ test('relocation directory serializes competing moves and survives lost replies 
         .run(),
     ).rejects.toThrow();
     observations.push({ pinnedPreparation: preparationEvidence, replaySkippedPreparation: true });
+    observations.push(
+      await verifyRelocationReadRouting(runtime, request, source, [
+        source, destination, thirdHome, apacHome,
+      ]),
+    );
     const pinnedResources = await database
       .prepare(
         "SELECT resource_verifications_json FROM wallet_relocations WHERE wallet_id = 'traveller'",
@@ -941,6 +947,11 @@ test('relocation directory serializes competing moves and survives lost replies 
         .bind(admittedAtMs + 500)
         .run(),
     ).rejects.toThrow();
+    observations.push(
+      await verifyRelocationReadRouting(runtime, request, source, [
+        source, destination, thirdHome, apacHome,
+      ]),
+    );
     const activation = relocationDestinationActivation(request, admittedAtMs + 410, manifest);
     const cleanup = relocationSourceCleanup(request, source, admittedAtMs + 1500, manifest);
     expect(
@@ -1105,6 +1116,12 @@ test('relocation directory serializes competing moves and survives lost replies 
     });
     expect(await responseBody(await placementStatus(runtime, request.wallet, ''))).toEqual(cleanupStatus);
     observations.push(cleanupStatus);
+    observations.push(
+      await verifyRelocationReadRouting(runtime, request, destination, [
+        source, destination, thirdHome, apacHome,
+      ]),
+    );
+
     await runtime.dispose();
     runtime = start(directory);
     expect(
@@ -1368,6 +1385,11 @@ test('relocation directory serializes competing moves and survives lost replies 
       .all();
     expect(await responseBody(await moveStatus(runtime, request.wallet, request.moveId))).toEqual(completedStatus);
     expect(await responseBody(await replayMove(runtime, request, await request.digest()))).toEqual(completedStatus);
+    observations.push(
+      await verifyRelocationReadRouting(runtime, request, destination, [
+        source, destination, thirdHome, apacHome,
+      ]),
+    );
     observations.push({ exactReplayAfterRestartIgnoresCatalogAndPreservesHistoricalMove: true });
     observations.push({ historicalMoveReadableDuringReturnAndAfterRestart: true });
     observations.push(completed, returning, history.results);

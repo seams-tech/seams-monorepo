@@ -1,3 +1,4 @@
+import { isWalletPlacementRequest, walletPlacementRequestWalletId } from './placementRouting';
 import { authenticationHome } from './authenticationDispatch';
 import { WalletRouteLocator } from './walletRouteLocators';
 import { recoveryHome } from './recoveryDispatch';
@@ -97,6 +98,22 @@ export async function dispatchKnownWalletHome(
 ): Promise<Response | null> {
   if (request.method === 'OPTIONS') return null;
   if (session.kind === 'rejected') return session.response;
+  if (isWalletPlacementRequest(request)) {
+    let walletId: string;
+    try {
+      walletId = await walletPlacementRequestWalletId(request);
+    } catch {
+      return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
+    }
+    try {
+      const home = await authority.placementReadHome(walletId);
+      if (!home) return Response.json({ ok: false, code: 'unauthorized' }, { status: 401 });
+      return authority.isLocal(home) ? null : transport.forward(home, request);
+    } catch {
+      return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 503 });
+    }
+  }
+
   const authentication = await authenticationHome(request, authority, googleClientId);
   const scopedHome =
     authentication.kind === 'absent' ? await recoveryHome(request, authority) : authentication;
@@ -283,6 +300,10 @@ type RequestSessionLocator =
 
 export async function readRequestSessionLocator(request: Request): Promise<RequestSessionLocator> {
   if (request.method === 'OPTIONS') return { kind: 'absent' };
+  // Move-only credentials deliberately outlive signing sessions. Authentication
+  // belongs to the relocation handler at the journal-selected home.
+  if (isWalletPlacementRequest(request)) return { kind: 'absent' };
+
   const pathname = new URL(request.url).pathname;
   let locator: SessionLocator;
   if (request.method === 'POST' && pathname === '/wallet/session/exchange/redeem') {

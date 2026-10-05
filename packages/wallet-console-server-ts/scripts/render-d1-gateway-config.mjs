@@ -208,6 +208,9 @@ function buildConsoleConfig(
   return {
     name: consoleWorkerNameFor(resources.workerName),
     main: path.join(packageRoot, 'src/router/cloudflare/d1ConsoleStagingWorker.ts'),
+    ...(consoleTarget.placementRegion
+      ? { placement: { region: consoleTarget.placementRegion } }
+      : {}),
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,

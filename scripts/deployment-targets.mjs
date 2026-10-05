@@ -131,11 +131,17 @@ function parseConsoleTargets(value) {
 function parseConsoleTarget(value, laneId) {
   const targetPath = DEFAULT_CONSOLE_TARGETS_PATH + '.lanes.' + laneId;
   const target = requireObject(value, targetPath);
-  requireExactKeys(
-    target,
-    ['environment', 'origin', 'siteOrigin', 'workerName', 'database', 'emailDelivery', 'billing'],
-    targetPath,
-  );
+  const keys = [
+    'environment',
+    'origin',
+    'siteOrigin',
+    'workerName',
+    'database',
+    'emailDelivery',
+    'billing',
+  ];
+  if (Object.hasOwn(target, 'placementRegion')) keys.push('placementRegion');
+  requireExactKeys(target, keys, targetPath);
   const database = requireObject(target.database, targetPath + '.database');
   requireExactKeys(database, ['name', 'id'], targetPath + '.database');
   const billing = requireObject(target.billing, targetPath + '.billing');
@@ -149,6 +155,15 @@ function parseConsoleTarget(value, laneId) {
     origin: requireHttpsOrigin(target.origin, targetPath + '.origin'),
     siteOrigin: requireHttpsOrigin(target.siteOrigin, targetPath + '.siteOrigin'),
     workerName: requireResourceName(target.workerName, targetPath + '.workerName'),
+    ...(Object.hasOwn(target, 'placementRegion')
+      ? {
+          placementRegion: requirePattern(
+            target.placementRegion,
+            /^(?:aws|gcp|azure):[a-z0-9-]+$/u,
+            targetPath + '.placementRegion',
+          ),
+        }
+      : {}),
     database: Object.freeze({
       name: requireResourceName(database.name, targetPath + '.database.name'),
       id: requirePattern(

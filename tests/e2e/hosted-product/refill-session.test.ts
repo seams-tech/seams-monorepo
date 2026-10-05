@@ -16,10 +16,20 @@ const { IntendedBehaviourHarness } = await import(
 
 class RefillRequestCapture {
   request: Request | null = null;
+  readonly signingRequests = new Map<string, Request>();
 
   record(request: Request): void {
+    const pathname = new URL(request.url()).pathname;
+    if (
+      request.method() === 'POST' &&
+      (pathname === '/router-ab/ecdsa-derivation/sign/prepare' ||
+        pathname === '/router-ab/ecdsa-derivation/sign') &&
+      !this.signingRequests.has(pathname)
+    ) {
+      this.signingRequests.set(pathname, request);
+    }
     if (this.request) return;
-    if (new URL(request.url()).pathname.endsWith('/presignature-pool/fill/step')) {
+    if (pathname.endsWith('/presignature-pool/fill/step')) {
       this.request = request;
     }
   }
@@ -29,7 +39,7 @@ class RefillRequestCapture {
   }
 }
 
-test('retired refill session is rejected after unlock while new session signs', async ({
+test('retired session cannot refill, prepare or finalize while its replacement signs', async ({
   context,
   page,
   request,
@@ -49,6 +59,9 @@ test('retired refill session is rejected after unlock while new session signs', 
     await harness.initialize();
     await harness.registerPasskeyWallet();
     await harness.awaitNearReady();
+    await harness.unlockPasskeyWallet();
+    await harness.signTempoTransaction('post_unlock');
+    expect(capture.signingRequests.size).toBe(2);
     await expect.poll(capture.observed.bind(capture), { timeout: 30_000 }).toBe(true);
     const oldRequest = capture.request;
     if (!oldRequest) throw new Error('No refill request captured');
@@ -69,10 +82,37 @@ test('retired refill session is rejected after unlock while new session signs', 
     );
     expect(response.status()).toBe(401);
     expect(body.code).toBe('wallet_session_invalid');
+    const rejectedSigningRequests = [];
+    for (const [pathname, signingRequest] of capture.signingRequests) {
+      const replay = await request.post(signingRequest.url(), {
+        headers: await signingRequest.allHeaders(),
+        data: signingRequest.postDataBuffer(),
+      });
+      const replayBody = await replay.json();
+      rejectedSigningRequests.push({
+        path: pathname,
+        status: replay.status(),
+        code: replayBody.code,
+      });
+      await writeFile(
+        path.join(output, 'retired-signing-requests.json'),
+        JSON.stringify(rejectedSigningRequests, null, 2),
+      );
+      expect(replay.status()).toBe(401);
+      expect(replayBody.code).toBe('wallet_session_invalid');
+    }
     await harness.signTempoTransaction('post_unlock');
     await writeFile(
       path.join(output, 'replacement-session-signing.json'),
-      JSON.stringify({ retiredSessionRejected: true, replacementSignatureVerified: true }, null, 2),
+      JSON.stringify(
+        {
+          retiredSessionRejected: true,
+          rejectedSigningRequests,
+          replacementSignatureVerified: true,
+        },
+        null,
+        2,
+      ),
     );
   } finally {
     context.off('request', record);

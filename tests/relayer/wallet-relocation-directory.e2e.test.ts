@@ -1293,6 +1293,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         operation: {
           kind: 'cleanup',
           receipt: { kind: 'destination_activation', manifestDigest: manifest },
+          manifest: JSON.parse(authorizationManifest.encoded()),
         },
       },
     });

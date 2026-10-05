@@ -36,6 +36,7 @@ type CommandEvidence =
   | {
       readonly kind: 'cleanup';
       readonly receipt: WalletRelocationReceipt<'destination_activation'>;
+      readonly manifest: WalletAuthorizationManifest;
       readonly physicalResource?: never;
     };
 
@@ -196,7 +197,15 @@ export class WalletD1RelocationCommand {
         if (progress.state !== 'cutover' || progress.activation.state !== 'activated') {
           return { ok: false, code: 'phase_conflict' };
         }
-        operation = { kind: 'cleanup', receipt: progress.activation.receipt };
+        if (typeof resources.authorization_manifest_json !== 'string')
+          return { ok: false, code: 'source_manifest_unavailable' };
+        operation = {
+          kind: 'cleanup',
+          receipt: progress.activation.receipt,
+          manifest: WalletAuthorizationManifest.parse(
+            JSON.parse(resources.authorization_manifest_json),
+          ),
+        };
         home = move.source;
         generation = move.sourceGeneration;
         break;

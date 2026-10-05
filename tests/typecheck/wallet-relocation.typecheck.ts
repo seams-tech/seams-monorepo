@@ -62,6 +62,12 @@ const missingActivationManifest: WalletD1RelocationCommand['operation'] = {
   physicalResource: 'destination',
 };
 void missingActivationManifest;
+// @ts-expect-error Cleanup must bind the source snapshot as well as destination activation.
+const missingCleanupManifest: WalletD1RelocationCommand['operation'] = {
+  kind: 'cleanup',
+  receipt: activation,
+};
+void missingCleanupManifest;
 // @ts-expect-error Source export requires the sealed source-fence receipt.
 const unsealedExport: WalletD1RelocationCommand['operation'] = { kind: 'export' };
 declare const authorizationManifest: WalletAuthorizationManifest;

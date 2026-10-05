@@ -2,6 +2,20 @@
 
 PRAGMA defer_foreign_keys = ON;
 
+-- Empty the referencing tables before replacing their parent. D1's deferred
+-- foreign-key counter cannot resolve a dropped parent through its replacement.
+CREATE TABLE wallet_session_locators_oceania_backup AS SELECT * FROM wallet_session_locators;
+
+CREATE TABLE wallet_passkey_claims_oceania_backup AS SELECT * FROM wallet_passkey_claims;
+
+CREATE TABLE wallet_routes_oceania_backup AS SELECT * FROM wallet_routes;
+
+DELETE FROM wallet_session_locators;
+
+DELETE FROM wallet_passkey_claims;
+
+DELETE FROM wallet_routes;
+
 DROP TRIGGER wallet_home_cancel_releases_pending_offers;
 
 DROP TRIGGER wallet_home_cancel_requires_no_passkey_claim;
@@ -110,7 +124,7 @@ CREATE TABLE wallet_relocations_oceania (
   )), execution_retry_at_ms INTEGER,
   PRIMARY KEY (namespace, organization_id, project_id, environment_id, wallet_id, move_id),
   FOREIGN KEY (namespace, organization_id, project_id, environment_id, wallet_id)
-    REFERENCES wallet_homes (namespace, organization_id, project_id, environment_id, wallet_id),
+    REFERENCES wallet_homes_oceania (namespace, organization_id, project_id, environment_id, wallet_id),
   CHECK (source_region != destination_region AND source_database_id != destination_database_id),
   CHECK (
     (state = 'freezing' AND source_fence_json IS NULL AND destination_verification_json IS NULL AND cutover_at_ms IS NULL AND completed_at_ms IS NULL) OR
@@ -130,6 +144,18 @@ DROP TABLE wallet_homes;
 ALTER TABLE wallet_homes_oceania RENAME TO wallet_homes;
 
 ALTER TABLE wallet_relocations_oceania RENAME TO wallet_relocations;
+
+INSERT INTO wallet_session_locators SELECT * FROM wallet_session_locators_oceania_backup;
+
+INSERT INTO wallet_passkey_claims SELECT * FROM wallet_passkey_claims_oceania_backup;
+
+INSERT INTO wallet_routes SELECT * FROM wallet_routes_oceania_backup;
+
+DROP TABLE wallet_session_locators_oceania_backup;
+
+DROP TABLE wallet_passkey_claims_oceania_backup;
+
+DROP TABLE wallet_routes_oceania_backup;
 
 CREATE UNIQUE INDEX wallet_relocations_one_pending
   ON wallet_relocations (namespace, organization_id, project_id, environment_id, wallet_id)

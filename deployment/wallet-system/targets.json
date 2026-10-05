@@ -134,8 +134,9 @@
                   "workerName": "seams-sdk-d1-gateway-staging-oc",
                   "placementRegion": "aws:ap-southeast-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-staging-nrt-oc"
+                    "kind": "allocated",
+                    "name": "seams-signer-staging-nrt-oc",
+                    "id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e"
                   }
                 }
               }

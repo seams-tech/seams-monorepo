@@ -178,11 +178,12 @@ async function responseBody(response: {
 }
 
 async function readOwnershipLocators(database: D1Database) {
-  return database.batch([
+  const [sessions, passkeys, routes] = await database.batch([
     database.prepare('SELECT * FROM wallet_session_locators ORDER BY digest'),
     database.prepare('SELECT * FROM wallet_passkey_claims ORDER BY credential_id'),
     database.prepare('SELECT * FROM wallet_routes ORDER BY value'),
   ]);
+  return { sessions: sessions.results, passkeys: passkeys.results, routes: routes.results };
 }
 
 test('relocation directory serializes competing moves and survives lost replies and restart', async ({
@@ -229,14 +230,24 @@ test('relocation directory serializes competing moves and survives lost replies 
       if (name === '0072_wallet_oceania.sql') {
         await establish(runtime, 'pre-upgrade');
         const owner = wallet('pre-upgrade');
-        const identity = [owner.namespace, owner.organizationId, owner.projectId, owner.environmentId];
+        const identity = [
+          owner.namespace,
+          owner.organizationId,
+          owner.projectId,
+          owner.environmentId,
+        ];
         await database.batch([
-          database.prepare(`INSERT INTO wallet_session_locators
-            VALUES (?, ?, ?, ?, 'credential', ?, ?, ?)`)
+          database
+            .prepare(
+              `INSERT INTO wallet_session_locators
+            VALUES (?, ?, ?, ?, 'credential', ?, ?, ?)`,
+            )
             .bind(...identity, 'a'.repeat(43), owner.walletId, admittedAtMs + 60_000),
-          database.prepare('INSERT INTO wallet_passkey_claims VALUES (?, ?, ?, ?, ?, ?, ?)')
+          database
+            .prepare('INSERT INTO wallet_passkey_claims VALUES (?, ?, ?, ?, ?, ?, ?)')
             .bind(...identity, 'wallet.test', 'pre-upgrade-passkey', owner.walletId),
-          database.prepare(`INSERT INTO wallet_routes VALUES (?, ?, ?, ?, 'linked_device', ?, ?)`)
+          database
+            .prepare(`INSERT INTO wallet_routes VALUES (?, ?, ?, ?, 'linked_device', ?, ?)`)
             .bind(...identity, 'pre-upgrade-installation', owner.walletId),
         ]);
         const locatorsBefore = await readOwnershipLocators(database);

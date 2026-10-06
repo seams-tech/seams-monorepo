@@ -31,6 +31,7 @@ const bundle = await build({
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
+    export { withCors } from './packages/wallet-server/src/router/framework/http';
     export { AuthorizationService } from './packages/wallet-server/src/authorization/service';
     export { capabilityPolicyPort } from './packages/wallet-server/src/authorization/capabilityPolicy';
     export { parseSessionOrigin } from './packages/wallet-server/src/authorization/domain';
@@ -279,6 +280,12 @@ try {
     400,
   );
   assert.equal(consoleService.calls, 1);
+  const corsHeaders = new Headers({ 'X-Seams-Wallet-Region': 'US' });
+  api.withCors(corsHeaders, { corsOrigins: ['https://app.test'] }, new Request(request, {
+    method: 'OPTIONS', headers: { Origin: 'https://app.test' },
+  }));
+  assert.ok(corsHeaders.get('Access-Control-Allow-Headers').includes('X-Seams-Wallet-Region'));
+  assert.ok(corsHeaders.get('Access-Control-Expose-Headers').includes('X-Seams-Wallet-Region'));
   const evidence = {
     kind: 'local_session_routing_evidence_v1',
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
@@ -295,6 +302,7 @@ try {
     destinationHandlesForwardedCredentialLocally: true,
     missingHintedCredentialRequiresExplicitDiscovery: true,
     arbitraryRoutingTargetRejected: true,
+    browserRoutingMetadataAllowedAndExposed: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(`Local session routing passed: ${resolve(output, 'evidence.json')}`);

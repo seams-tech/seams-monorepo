@@ -13,7 +13,7 @@ import { WalletPlacementConsoleBinding } from '../../walletPlacement/consoleBind
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
 import { resolveGatewayDeployment } from '../../walletPlacement/gatewaySession';
-import { regionForRegistrationIngress } from '../../walletPlacement/home';
+import { WalletHomeCatalog, regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
 import {
   handleSplitGatewayRequest,
@@ -152,7 +152,7 @@ async function handleGatewayRequest(
     );
     return response;
   }
-  const response = await handleSplitGatewayRequest(request, boundEnv, ctx, {
+  const handled = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     sessionRouting: authority,
     identityStore: authority.identityStore(),
     emailOtpRateLimitCounter: authority.identityStore().rateLimitCounter(),
@@ -179,6 +179,16 @@ async function handleGatewayRequest(
         : undefined,
     emailOtpDeliveryProvider: resolveEmailOtpDeliveryProviderFromEnv(boundEnv),
   });
+  const response = new Response(handled.body, handled);
+  const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+  for (const region of ['US', 'WEUR', 'APAC', 'OC'] as const) {
+    const home = catalog.select(region);
+    if (authority.isLocal(home)) {
+      response.headers.set('X-Seams-Wallet-Region', region);
+      break;
+    }
+  }
+  withCors(response.headers, { corsOrigins: readEnvironmentCsv(boundEnv.RELAY_CORS_ORIGINS) }, request);
   if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')
     return response;
   const result = new Response(response.body, response);

@@ -113,6 +113,21 @@ for (const curve of ['ecdsa', 'ed25519']) {
   });
 }
 
+class OwnerLaneRequestCapture {
+  request: BrowserRequest | null = null;
+
+  observe(request: BrowserRequest): void {
+    if (
+      this.request === null &&
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/wallet/execution-lane/owner' &&
+      request.postDataJSON()?.curve === 'ed25519'
+    ) {
+      this.request = request;
+    }
+  }
+}
+
 async function verifySharedBudgetAndStepUp(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
@@ -131,6 +146,8 @@ async function verifySharedBudgetAndStepUp(
     flow: 'passkey.registration',
     networkMode: 'managed_local',
   });
+  const ownerLane = new OwnerLaneRequestCapture();
+  const observe = ownerLane.observe.bind(ownerLane);
   try {
     await harness.initialize();
     await scenario.routeContext(context, 'US');
@@ -139,8 +156,24 @@ async function verifySharedBudgetAndStepUp(
     await harness.unlockPasskeyWallet();
     scenario.beginConsoleOutage();
     await scenario.routeContext(context, 'WEUR');
+    context.on('request', observe);
     await harness.signNearTransaction('post_unlock');
     await harness.signTempoAndArcEvmConcurrently('post_unlock');
+    const preflight = ownerLane.request;
+    assert.ok(preflight, 'Expected the NEAR owner-lane request before budget exhaustion');
+    const body = preflight.postDataBuffer();
+    assert.ok(body);
+    const exhaustedRead = await scenario.gateways.get('WEUR').handle(new Request(preflight.url(), {
+      method: 'POST', headers: await preflight.allHeaders(), body,
+    }), 'ingress');
+    assert.equal(exhaustedRead.status, 200, 'Exhaustion must preserve authenticated lane metadata reads');
+    const projection = await exhaustedRead.json();
+    assert.equal(projection.ok, true);
+    assert.equal(projection.projection.kind, 'active_owner_wallet_execution_lane_projection_v1');
+    await writeFile(path.resolve(root, '.artifacts/r155b/console-outage/shared-budget-step-up/exhausted-preflight.json'), JSON.stringify({
+      curve: 'ed25519', status: exhaustedRead.status, ingress: 'WEUR', home: 'US',
+      precedingReusableSignatures: 3,
+    }, null, 2));
     await scenario.routeContext(context, 'APAC');
     await harness.signNearTransaction('step_up_required');
     await scenario.routeContext(context, 'OC');
@@ -148,6 +181,7 @@ async function verifySharedBudgetAndStepUp(
     await scenario.verifyStepUpConsoleOutage();
     harness.assertNoLifecycleViolations();
   } finally {
+    context.off('request', observe);
     await harness.attachTrace(testInfo);
     await scenario.close();
   }

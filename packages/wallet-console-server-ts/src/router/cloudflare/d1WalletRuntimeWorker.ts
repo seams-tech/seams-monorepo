@@ -1,3 +1,4 @@
+import { handleRuntimeRelocationPreparation } from '../../walletPlacement/runtimePreparation';
 import { handleRuntimeIdentityHomeRequest } from '../../serviceBinding/runtimeIdentityHome';
 import { WalletHomeCatalog } from '../../walletPlacement/home';
 import { WalletHomeServiceClient } from '../../walletPlacement/serviceClient';
@@ -22,6 +23,7 @@ import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/dep
 type CloudflareWalletRuntimeEnv = CloudflareD1GatewayEnv &
   WalletControlRuntimeBindings & {
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+    readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
     readonly SEAMS_WALLET_HOME_CATALOG_JSON: string;
     readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
     readonly SEAMS_D1_HOME_DATABASE_ID: string;
@@ -53,6 +55,15 @@ async function fetch(
     }),
   })(request);
   if (inspectionResponse) return inspectionResponse;
+  if (request.url === 'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/prepare') {
+    return await handleRuntimeRelocationPreparation(request, env.SIGNER_DB,
+      env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA.id, {
+        accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+        databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+      }),
+    ) ?? new Response('Not found', { status: 404 });
+  }
   const controlResponse = await handleWalletControlRequest(request, env);
   if (controlResponse) return controlResponse;
   const url = new URL(request.url);

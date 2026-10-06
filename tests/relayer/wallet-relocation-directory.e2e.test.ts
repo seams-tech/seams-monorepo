@@ -1,3 +1,4 @@
+import { verifyRuntimePreparation } from './runtime-preparation.scenario';
 import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer, verifyAuthorizationRegionalLifecycle } from './authorization-transfer.scenario';
 import { verifyRelocationReadRouting } from './relocation-routing.scenario';
@@ -645,6 +646,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       undefined,
       'wallet-authority:linked-owner',
     );
+    observations.push(await verifyRuntimePreparation(database, request));
     const resolved = await responseBody(await resolveRelocationRequest(runtime, request));
     expect(resolved).toEqual({ kind: 'resolved', requestDigest: await request.digest(),
       sourceGeneration: 1, destinationRegion: destination.region });
@@ -713,7 +715,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // A preparation failure must leave the source active.
-    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
+    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'walletRuntime', 'runtime_version_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -1274,7 +1276,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         participant: 'walletRuntime',
         operation: {
           kind: 'verify',
-          physicalResource: `${destination.databaseId}/walletRuntime/2`,
+          physicalResource: destination.databaseId,
         },
       },
     });
@@ -1394,7 +1396,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         generation: 2,
         operation: {
           kind: 'activate',
-          physicalResource: `${destination.databaseId}/walletRuntime/2`,
+          physicalResource: destination.databaseId,
           manifest: JSON.parse(authorizationManifest.encoded()),
           receipt: { kind: 'destination_verification', manifestDigest: manifest },
         },

@@ -1,3 +1,7 @@
+import { RuntimeRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/runtimePreparation';
+import { WalletRelocationRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
+import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import { relocationWriterVersion } from './walletRelocationResources';
 import { PresignRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/presignPreparation';
 import { DeriverRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/deriverPreparation';
 import { GatewayRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/gatewayPreparation';
@@ -12,28 +16,18 @@ import { WalletRelocationPreparation } from '../../../packages/wallet-console-se
 type Participants = Parameters<typeof WalletRelocationPreparation.prepare>[1];
 type Command = Parameters<Participants['gateway']['prepare']>[0];
 
-// This fixture exercises admission composition; it does not prepare real regional stores.
-class PreparedParticipant {
-  constructor(
-    private readonly nowMs: number,
-    private readonly failedParticipant: unknown,
-  ) {}
+// This fixture exercises admission composition; public storage E2Es own the role stores.
+class RuntimePreparationBinding {
+  constructor(private readonly writer: TenantRuntimeWriterV1, private readonly failedParticipant: unknown) {}
 
-  async prepare(command: Command): Promise<unknown> {
-    if (command.participant === this.failedParticipant) {
-      return { kind: 'unavailable' };
-    }
-    return {
-      kind: 'prepared',
-      admission: 'closed',
-      participant: command.participant,
-      requestDigest: command.requestDigest,
-      destinationGeneration: command.destinationGeneration,
-      physicalResource: `${command.request.destination.databaseId}/${command.participant}/${command.destinationGeneration}`,
-      evidenceDigest: command.requestDigest,
-      preparedAtMs: this.nowMs,
-      expiresAtMs: this.nowMs + 300_000,
-    };
+  async fetch(input: Request): Promise<Response> {
+    if (this.failedParticipant === 'walletRuntime') return new Response(null, { status: 409 });
+    const request = WalletRelocationRequest.parse(await input.json());
+    return Response.json({ kind: 'runtime_prepared', requestDigest: await request.digest(), writer: {
+      role: this.writer.role,
+      resource: this.writer.resource,
+      versionId: this.failedParticipant === 'runtime_version_conflict' ? 'wrong-version' : this.writer.versionId,
+    } });
   }
 }
 
@@ -180,14 +174,18 @@ export function relocationPreparationParticipants(
   nowMs: number,
   failedParticipant: unknown,
 ): Participants {
-  const participant = new PreparedParticipant(nowMs, failedParticipant);
+  const writer = parseTenantRuntimeWriterV1('walletRuntime',
+    relocationWriterVersion(request.destination.databaseId, 'walletRuntime'),
+    { accountId: request.destination.accountId, databaseId: request.destination.databaseId },
+  );
   const gateway = new GatewayPreparationBinding(failedParticipant);
   return {
     gateway: new GatewayRelocationPreparation(source, request.destination, new WalletRegionalDispatch({
       WALLET_GATEWAY_US: gateway, WALLET_GATEWAY_WEUR: gateway,
       WALLET_GATEWAY_APAC: gateway, WALLET_GATEWAY_OC: gateway,
     }), relocationFixtureClock.bind(null, nowMs)),
-    walletRuntime: participant,
+    walletRuntime: new RuntimeRelocationPreparation(writer,
+      new RuntimePreparationBinding(writer, failedParticipant), relocationFixtureClock.bind(null, nowMs)),
     router: new RouterRelocationPreparation(
       request.destination,
       new PreparationRuntime(failedParticipant),

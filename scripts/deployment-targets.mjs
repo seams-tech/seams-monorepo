@@ -842,6 +842,7 @@ function assertUniqueResourceNames(lanes) {
   }
   for (const lane of lanes) {
     if (lane.provisioning.kind !== 'provisioned') continue;
+    names.push(lane.provisioning.gatewayDeploymentConfig.resources.emailOtpRateLimitD1.name);
     for (const resource of Object.values(
       lane.provisioning.gatewayDeploymentConfig.resources.regions,
     )) {
@@ -855,6 +856,8 @@ function assertUniqueResourceNames(lanes) {
 
 function regionalDatabaseIds(lane) {
   const ids = [];
+  const counter = lane.provisioning.gatewayDeploymentConfig.resources.emailOtpRateLimitD1;
+  if (counter.kind === 'allocated') ids.push(counter.id);
   for (const resource of Object.values(
     lane.provisioning.gatewayDeploymentConfig.resources.regions,
   )) {

@@ -267,27 +267,36 @@ export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC', 'OC']);
 
 function parseResources(value) {
   const resources = requireObject(value, 'resources');
-  requireExactKeys(resources, ['workerName', 'ingressRegion', 'consoleD1', 'regions'], 'resources');
+  requireExactKeys(
+    resources,
+    ['workerName', 'ingressRegion', 'consoleD1', 'emailOtpRateLimitD1', 'regions'],
+    'resources',
+  );
   const rawRegions = requireObject(resources.regions, 'resources.regions');
   requireExactKeys(rawRegions, WALLET_REGIONS, 'resources.regions');
   const regions = {};
   const names = new Set();
   const consoleD1 = parseD1Resource(resources.consoleD1, 'resources.consoleD1');
+  const emailOtpRateLimitD1 = parseD1Allocation(
+    resources.emailOtpRateLimitD1,
+    'resources.emailOtpRateLimitD1',
+  );
   const ids = new Set([consoleD1.id]);
+  names.add(consoleD1.name);
+  if (emailOtpRateLimitD1.name === consoleD1.name)
+    throw new Error('OTP counters must use a distinct database');
+  names.add(emailOtpRateLimitD1.name);
+  if (emailOtpRateLimitD1.kind === 'allocated') {
+    if (ids.has(emailOtpRateLimitD1.id))
+      throw new Error('OTP counters must use a distinct database');
+    ids.add(emailOtpRateLimitD1.id);
+  }
   for (const region of WALLET_REGIONS) {
     const label = `resources.regions.${region}`;
     const raw = requireObject(rawRegions[region], label);
     requireExactKeys(raw, ['workerName', 'placementRegion', 'signerD1'], label);
-    const allocation = requireObject(raw.signerD1, `${label}.signerD1`);
-    const kind = allocation.kind;
-    if (kind !== 'allocated' && kind !== 'pending')
-      throw new Error(`${label}.signerD1.kind must be allocated or pending`);
-    requireExactKeys(
-      allocation,
-      kind === 'allocated' ? ['kind', 'name', 'id'] : ['kind', 'name'],
-      `${label}.signerD1`,
-    );
-    const name = requirePattern(allocation.name, RESOURCE_NAME_PATTERN, `${label}.signerD1.name`);
+    const signerD1 = parseD1Allocation(raw.signerD1, `${label}.signerD1`);
+    const { name } = signerD1;
     const workerName = requirePattern(raw.workerName, RESOURCE_NAME_PATTERN, `${label}.workerName`);
     if (!workerName.includes('gateway'))
       throw new Error(`${label}.workerName must contain gateway`);
@@ -295,19 +304,10 @@ function parseResources(value) {
       throw new Error('Regional resource names must be distinct');
     names.add(name);
     names.add(workerName);
-    let signerD1;
-    if (kind === 'allocated') {
-      const id = requireNonZeroHexPattern(
-        allocation.id,
-        D1_DATABASE_ID_PATTERN,
-        `${label}.signerD1.id`,
-      );
-      if (ids.has(id))
-        throw new Error('Console and regional signer D1 identities must be distinct');
-      ids.add(id);
-      signerD1 = { kind, name, id };
-    } else {
-      signerD1 = { kind, name };
+    if (signerD1.kind === 'allocated') {
+      if (ids.has(signerD1.id))
+        throw new Error('Console, OTP counter, and regional signer D1 identities must be distinct');
+      ids.add(signerD1.id);
     }
     regions[region] = {
       workerName,
@@ -324,7 +324,7 @@ function parseResources(value) {
   );
   if (regions[ingressRegion].workerName !== workerName)
     throw new Error('Ingress worker must match its regional Gateway');
-  return { workerName, ingressRegion, consoleD1, regions };
+  return { workerName, ingressRegion, consoleD1, emailOtpRateLimitD1, regions };
 }
 
 export function requireAllocatedWalletRegions(deployment) {
@@ -334,6 +334,25 @@ export function requireAllocatedWalletRegions(deployment) {
     }
   }
   return deployment.resources.regions;
+}
+
+function parseD1Allocation(value, label) {
+  const allocation = requireObject(value, label);
+  const kind = allocation.kind;
+  if (kind !== 'allocated' && kind !== 'pending')
+    throw new Error(`${label}.kind must be allocated or pending`);
+  requireExactKeys(
+    allocation,
+    kind === 'allocated' ? ['kind', 'name', 'id'] : ['kind', 'name'],
+    label,
+  );
+  const name = requirePattern(allocation.name, RESOURCE_NAME_PATTERN, `${label}.name`);
+  if (kind === 'pending') return { kind, name };
+  return {
+    kind,
+    name,
+    id: requireNonZeroHexPattern(allocation.id, D1_DATABASE_ID_PATTERN, `${label}.id`),
+  };
 }
 
 function parseD1Resource(value, path) {

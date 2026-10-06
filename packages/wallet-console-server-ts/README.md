@@ -277,6 +277,14 @@ Regional Gateways require `EMAIL_OTP_RATE_LIMIT_DB`. All regions in one environm
 must bind the same dedicated D1 database. Apply `migrations/d1-email-otp-rate-limit`
 to that database. Keep Console and signer records in their existing databases.
 The staging example and readiness check include the required binding.
+The canonical deployment target stores this allocation in
+`gatewayDeploymentConfig.resources.emailOtpRateLimitD1`. Its `kind` is `pending`
+until provisioning supplies an `allocated` database ID. Gateway manifest rendering
+rejects pending allocations. The renderer gives all regional Gateways the same
+counter binding and keeps it out of Console and Wallet Runtime manifests.
+The existing wallet-system migration command applies the counter schema once,
+using the ingress Gateway manifest. It then remains the shared counter authority
+for every regional Gateway.
 
 The Gateway scopes counter keys with its admitted deployment tenant. The existing
 atomic D1 counter enforces the global limits. Counter storage failures reject the

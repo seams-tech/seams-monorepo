@@ -19,6 +19,14 @@ for (const [region, resource] of Object.entries(regions)) {
   resource.signerD1 = { kind: 'allocated', name: resource.signerD1.name, id: databases[region] };
 }
 
+const counter =
+  targets.production.lanes.testnet.provisioning.gatewayDeploymentConfig.resources
+    .emailOtpRateLimitD1;
+if (process.env.SEAMS_TEST_PENDING_OTP_COUNTER !== '1') {
+  counter.kind = 'allocated';
+  counter.id = '99999999-9999-4999-8999-999999999999';
+}
+
 function fixtureReadFileSync(filename, options) {
   if (String(filename) !== targetsPath) return nativeReadFileSync(filename, options);
   const serialized = JSON.stringify(targets);

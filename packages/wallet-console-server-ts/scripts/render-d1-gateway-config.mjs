@@ -318,6 +318,10 @@ function buildConfig(
   docsOrigin,
   packageRoot,
 ) {
+  const counterDatabase = deployment.resources.emailOtpRateLimitD1;
+  if (counterDatabase.kind !== 'allocated') {
+    throw new Error(`${deployment.lane}: shared Email OTP counter D1 allocation is pending`);
+  }
   const resources = deployment.resources.regions[region];
   const vars = buildWorkerVars(
     deployment,
@@ -345,13 +349,17 @@ function buildConfig(
           ]
         : [],
     d1_databases: [
-      // R105 Phase 4 cutover: the Gateway holds no Console database binding.
-      // Console data crosses the private WALLET_CONSOLE service binding only.
       {
         binding: 'SIGNER_DB',
         database_name: resources.signerD1.name,
         database_id: resources.signerD1.id,
         migrations_dir: walletServerMigrationsDirectory(packageRoot),
+      },
+      {
+        binding: 'EMAIL_OTP_RATE_LIMIT_DB',
+        database_name: counterDatabase.name,
+        database_id: counterDatabase.id,
+        migrations_dir: path.join(packageRoot, 'migrations/d1-email-otp-rate-limit'),
       },
     ],
     services: [

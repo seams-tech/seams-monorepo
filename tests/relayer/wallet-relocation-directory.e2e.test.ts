@@ -712,8 +712,8 @@ test('relocation directory serializes competing moves and survives lost replies 
     }
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
-    // Failure at the Router boundary or the last role must leave the source active.
-    for (const failedParticipant of ['router', 'router_conflicting_chunk', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
+    // A preparation failure must leave the source active.
+    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -1184,7 +1184,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         operation: {
           kind: 'import_authorization',
           manifest: JSON.parse(authorizationManifest.encoded()),
-          physicalResource: `${destination.databaseId}/gateway/2`,
+          physicalResource: destination.databaseId,
         },
       },
     });
@@ -1239,7 +1239,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         generation: 2,
         operation: {
           kind: 'verify',
-          physicalResource: `${destination.databaseId}/gateway/2`,
+          physicalResource: destination.databaseId,
           receipt: { kind: 'source_fence', manifestDigest: manifest },
         },
       },

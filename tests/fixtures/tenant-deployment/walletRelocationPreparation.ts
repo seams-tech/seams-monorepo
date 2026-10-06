@@ -1,3 +1,5 @@
+import { GatewayRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/gatewayPreparation';
+import type { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import { SigningWorkerRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/signingWorkerPreparation';
 import { RouterRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/routerPreparation';
@@ -77,14 +79,36 @@ class SigningPreparationRuntime {
   }
 }
 
+class GatewayPreparationBinding {
+  constructor(private readonly failedParticipant: unknown) {}
+
+  async fetch(input: Request): Promise<Response> {
+    if (input.url.endsWith('/schema')) {
+      return Response.json({ kind: 'authorization_schema', schemaDigestHex: 'a'.repeat(64) });
+    }
+    if (this.failedParticipant === 'gateway') return new Response(null, { status: 503 });
+    const body: unknown = await input.json();
+    if (!isPlainObject(body)) return new Response(null, { status: 400 });
+    return Response.json({
+      kind: 'authorization_reserved', source: body.source,
+      schemaDigestHex: this.failedParticipant === 'gateway_schema_conflict' ? 'b'.repeat(64) : body.schemaDigestHex,
+    });
+  }
+}
+
 export function relocationPreparationParticipants(
   request: Command['request'],
+  source: WalletHome,
   nowMs: number,
   failedParticipant: unknown,
 ): Participants {
   const participant = new PreparedParticipant(nowMs, failedParticipant);
+  const gateway = new GatewayPreparationBinding(failedParticipant);
   return {
-    gateway: participant,
+    gateway: new GatewayRelocationPreparation(source, request.destination, new WalletRegionalDispatch({
+      WALLET_GATEWAY_US: gateway, WALLET_GATEWAY_WEUR: gateway,
+      WALLET_GATEWAY_APAC: gateway, WALLET_GATEWAY_OC: gateway,
+    }), relocationFixtureClock.bind(null, nowMs)),
     walletRuntime: participant,
     router: new RouterRelocationPreparation(
       request.destination,

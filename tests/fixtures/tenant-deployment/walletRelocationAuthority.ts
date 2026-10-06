@@ -162,7 +162,7 @@ export default {
               ),
             ],
             'test',
-            relocationPreparationParticipants(moveRequest, preparationAtMs, body.failedParticipant),
+            relocationPreparationParticipants(moveRequest, sourceHome, preparationAtMs, body.failedParticipant),
             relocationFixtureOwnerApproval(moveRequest, nowMs, body.ownerApproval),
             relocationFixtureClock.bind(null, nowMs),
           );

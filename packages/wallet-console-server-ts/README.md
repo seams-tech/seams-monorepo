@@ -320,3 +320,11 @@ Console requests stayed at zero. All authorization records remained in the US ho
 External email delivery is simulated; regional OTP verification and MPC signing
 execute production code. This is local acceptance, with no hosted latency claim.
 See [sanitized evidence](docs/evidence/r155b-direct-otp-counters-20261007.json).
+
+The 2026-10-07 candidate now freezes the rebuilt wallet server, migrations, SDK,
+and custody artifacts. Gateway, Runtime, and Console passed Wrangler dry-run
+builds against that frozen server. Bundle input records contain no published
+wallet-server imports. The inventory contains 5,821 hashed files.
+See [candidate identity and limitations](docs/evidence/r155b-verified-candidate-20261007.json).
+Database allocation, coordinated staging deployment, and hosted comparison remain
+open. These build results do not establish a latency gain.

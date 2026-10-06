@@ -1,0 +1,61 @@
+{
+  "kind": "r155b_verified_candidate_v1",
+  "publicRevision": "785aeb32e2e2a3df3540059a62849df7d43a2bdc",
+  "privateRevision": "90dd0f51199718722f36ddec178179fc10e17233",
+  "sourceAudit": {
+    "revision": "785aeb32e2e2a3df3540059a62849df7d43a2bdc",
+    "checkedFiles": 2635,
+    "mismatches": []
+  },
+  "directory": "/Users/pta/Dev/rust/seams-wallet/.artifacts/r155b-verified-candidate-20261007",
+  "inventorySha256": "433cd89351376cc5071a3b5d776074fc946caa31fcbc32482ee2086a8b551b5d",
+  "fileCount": 5821,
+  "privateBundles": {
+    "gateway": {
+      "files": {
+        "10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+        "4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+        "75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3",
+        "d1GatewayWorker.js": "011e33480c873141a30bb262b0df551447affc1d2312915e7764a9c388c8db83",
+        "d1GatewayWorker.js.map": "5a80509fe6c9f0b7b9d955b6089d3fa20e60835ca11669aea808e00b5e1e6751"
+      },
+      "inputCount": 1273,
+      "publishedServerInputs": [],
+      "dryRun": "passed"
+    },
+    "console": {
+      "files": {
+        "10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+        "4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+        "75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3",
+        "d1ConsoleStagingWorker.js": "ea8c870320a4961c46954685487c02427c22e080edc3d0d0c729ce9cd9178967",
+        "d1ConsoleStagingWorker.js.map": "2821073f24dd59f42bb0a6ce06e3d558405c46987ed8a8f619bd62bc5bf60207"
+      },
+      "inputCount": 1217,
+      "publishedServerInputs": [],
+      "dryRun": "passed"
+    },
+    "wallet-runtime": {
+      "files": {
+        "10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+        "4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+        "75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3",
+        "d1WalletRuntimeWorker.js": "fb4ec5a2c406f6378ced254c997a2b0d7b42cf2103b70a21f3880787d6736ed1",
+        "d1WalletRuntimeWorker.js.map": "e43dee3dbc42b328f6e72b86775e9a9eb37faec87193e5f5afe8be5285d65d79"
+      },
+      "inputCount": 1267,
+      "publishedServerInputs": [],
+      "dryRun": "passed"
+    }
+  },
+  "limitations": [
+    "Build-only evidence. No live deployment or hosted latency comparison.",
+    "SDK reuses existing client WASM, as recorded in the original freeze.",
+    "OTP counter database allocation remains pending."
+  ],
+  "remaining": [
+    "Allocated OTP database configuration",
+    "Coordinated staging deployment",
+    "Hosted comparison"
+  ]
+}

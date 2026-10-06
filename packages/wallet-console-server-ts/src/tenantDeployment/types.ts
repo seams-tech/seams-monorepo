@@ -1,3 +1,4 @@
+import type { RegionalDeploymentAdmission } from './regionalAdmission';
 import type {
   ActiveTenantDeploymentBindingV1,
   TenantDeploymentActivationReceiptV1,
@@ -70,6 +71,7 @@ export interface TenantDeploymentBindingReaderV1 {
 }
 
 export interface TenantDeploymentBindingStoreV1 extends TenantDeploymentBindingReaderV1 {
+  readActiveRegionalAdmission(deploymentLane: string): Promise<RegionalDeploymentAdmission | null>;
   putBinding(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentBindingV1>;
   activateBinding(
     input: ActivateTenantDeploymentBindingInputV1,

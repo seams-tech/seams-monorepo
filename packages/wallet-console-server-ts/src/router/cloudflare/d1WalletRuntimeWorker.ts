@@ -1,3 +1,4 @@
+import { handleRegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmissionTransport';
 import { handleRuntimeRelocationPreparation } from '../../walletPlacement/runtimePreparation';
 import { handleRuntimeIdentityHomeRequest } from '../../serviceBinding/runtimeIdentityHome';
 import { WalletHomeCatalog } from '../../walletPlacement/home';
@@ -35,6 +36,15 @@ async function fetch(
   env: CloudflareWalletRuntimeEnv,
   _ctx: CfExecutionContext,
 ): Promise<Response> {
+  const deploymentAdmission = await handleRegionalDeploymentAdmission(
+    request, env.SIGNER_DB,
+    TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID, databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
+    env.CF_VERSION_METADATA?.id,
+  );
+  if (deploymentAdmission) return deploymentAdmission;
   const challenge = await tenantD1ResourceChallengeResponseV1(
     request,
     env.SIGNER_DB,

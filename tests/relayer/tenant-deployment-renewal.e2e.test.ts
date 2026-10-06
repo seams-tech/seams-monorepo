@@ -1,3 +1,6 @@
+import { handleRegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmissionTransport';
+import { DeploymentFencedDatabase } from '../../packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';
+import { RegionalDeploymentTestInstaller } from '../helpers/regionalDeploymentInstaller';
 import { expect, test } from '@playwright/test';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
@@ -184,10 +187,12 @@ test('regional deployment renewal preserves the browser key and retires previous
           'migrations/d1-signer',
         ),
       );
+    const localAdmission = new RegionalDeploymentTestInstaller({ US: usDatabase, WEUR: weurDatabase, APAC: apacDatabase });
     const scenario = await provisioningScenario(
       database,
       regional.inspector,
       `http://127.0.0.1:${address.port}`,
+      localAdmission,
     );
     const { provisioner, store, reference, apiKeys, router, adapter, context, environmentId } =
       scenario;
@@ -215,6 +220,31 @@ test('regional deployment renewal preserves the browser key and retires previous
     const initialBinding = await store.resolveActiveBinding(reference.deploymentLane);
     if (!initialBinding) throw new Error('Missing active binding');
     await checkWriters(store, initialProofs, initial.bindingRevision);
+    const initialUsProof = initialProofs[0];
+    if (initialUsProof.authority.kind !== 'cloudflare') throw new Error('Missing initial writer');
+    const oldWriter = {
+      role: 'gateway' as const,
+      versionId: initialUsProof.authority.gateway.versionId,
+      resource: initialUsProof.resource,
+    };
+    const controlBody = JSON.stringify({ action: 'activate', binding: initialBinding,
+      activationSequence: initial.activationSequence, resourceVerificationsJson: JSON.stringify(initialProofs) });
+    const controlRequest = new Request('https://wallet-runtime.internal/internal/tenant-deployment/v1/regional-admission', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: controlBody,
+    });
+    expect((await handleRegionalDeploymentAdmission(controlRequest.clone(), usDatabase,
+      initialUsProof.resource, initialUsProof.authority.walletRuntime.versionId))?.status).toBe(200);
+    expect((await handleRegionalDeploymentAdmission(controlRequest.clone(), usDatabase,
+      initialUsProof.resource, crypto.randomUUID()))?.status).toBe(403);
+    expect((await handleRegionalDeploymentAdmission(new Request(
+      'https://public.example/internal/tenant-deployment/v1/regional-admission', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: controlBody,
+      }), usDatabase, initialUsProof.resource, initialUsProof.authority.walletRuntime.versionId))?.status).toBe(404);
+    const oldDatabase = new DeploymentFencedDatabase(usDatabase, initialBinding, oldWriter);
+    await usDatabase.prepare('CREATE TABLE deployment_write_probe (value TEXT NOT NULL)').run();
+    await oldDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('before-cutover').run();
+    const delayedWrite = oldDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('after-cutover');
+
     const reused = await provisioner.provision({
       deploymentLane: reference.deploymentLane,
       environmentId,
@@ -302,18 +332,51 @@ test('regional deployment renewal preserves the browser key and retires previous
     );
     await checkWriters(store, initialProofs, initial.bindingRevision);
     router.available = true;
-    const renewed = await provisioner.provision({
+    localAdmission.failActivationRegion = 'WEUR';
+    await expect(provisioner.provision({
       deploymentLane: reference.deploymentLane,
       environmentId,
       authorization: { kind: 'activate', verifications: nextProofs },
+    })).rejects.toThrow('Injected regional activation outage');
+    await expect(delayedWrite.run()).rejects.toThrow('regional_deployment_writer_retired');
+    expect(await usDatabase.prepare('SELECT COUNT(*) AS count FROM deployment_write_probe').first('count')).toBe(1);
+    await expect(localAdmission.stores.US.resolveRuntimeBinding(reference.deploymentLane, oldWriter))
+      .rejects.toMatchObject({ code: 'activation_conflict' });
+    const preparedRows = await weurDatabase.prepare('SELECT state FROM regional_deployment_admissions').all();
+    expect(preparedRows.results).toEqual([{ state: 'prepared' }]);
+    localAdmission.failActivationRegion = null;
+    const renewed = await provisioner.provision({
+      deploymentLane: reference.deploymentLane,
+      environmentId,
+      authorization: { kind: 'reuse_active' },
     });
-    expect(renewed.disposition).toBe('activated');
+    expect(renewed.disposition).toBe('reused');
     expect(renewed.activationSequence).toBe(initial.activationSequence + 1);
     expect(renewed.bindingRevision).not.toBe(initial.bindingRevision);
     expect(renewed.credentialId).toBe(initial.credentialId);
     expect((await store.resolveActiveBinding(reference.deploymentLane))?.browserCredential).toEqual(
       initialBinding.browserCredential,
     );
+    const currentAdmission = await store.readActiveRegionalAdmission(reference.deploymentLane);
+    if (!currentAdmission) throw new Error('Missing regional admission');
+    const nextUsProof = nextProofs[0];
+    if (nextUsProof.authority.kind !== 'cloudflare') throw new Error('Missing next writer');
+    const currentWriter = {
+      role: 'gateway' as const,
+      versionId: nextUsProof.authority.gateway.versionId,
+      resource: nextUsProof.resource,
+    };
+    const currentDatabase = new DeploymentFencedDatabase(usDatabase, currentAdmission.binding, currentWriter);
+    expect((await localAdmission.stores.US.resolveRuntimeBinding(reference.deploymentLane, currentWriter))?.revision)
+      .toBe(renewed.bindingRevision);
+    await currentDatabase.batch([
+      currentDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('current-writer'),
+      currentDatabase.prepare('SELECT value FROM deployment_write_probe'),
+    ]);
+    const staleAdmission = { binding: initialBinding, activationSequence: initial.activationSequence,
+      resourceVerificationsJson: JSON.stringify(initialProofs) };
+    await expect(localAdmission.prepare(staleAdmission)).rejects.toMatchObject({ code: 'activation_conflict' });
+    await expect(localAdmission.activate(staleAdmission)).rejects.toMatchObject({ code: 'activation_conflict' });
     const admitted = await checkWriters(store, nextProofs, renewed.bindingRevision);
     const retired = await checkWriters(store, initialProofs, null);
     expect(await apiKeys.listApiKeys(context)).toHaveLength(1);
@@ -376,7 +439,7 @@ test('regional deployment renewal preserves the browser key and retires previous
       )
       .first('count');
     expect(failed).toBe(5);
-    expect(endpoint.accepted).toBe(1);
+    expect(endpoint.accepted).toBe(0);
     const evidence = {
       kind: 'regional_deployment_renewal_evidence_v1',
       initialRevision: initial.bindingRevision,
@@ -387,6 +450,11 @@ test('regional deployment renewal preserves the browser key and retires previous
       credentialCount: 1,
       browserCredentialPreserved: true,
       committedActivationPreservedAfterLostReply: true,
+      partialRegionalActivationRecovered: true,
+      privateControlRetryVerified: true,
+      wrongWriterAndPublicControlRequestsRejected: true,
+      delayedRetiredWriterWriteRejected: true,
+      regionalGuardLeavesNoRows: await usDatabase.prepare('SELECT COUNT(*) AS count FROM regional_deployment_write_checks').first('count') === 0,
       incompleteProofSetRejected: true,
       resourceRemovalRejected: true,
       unverifiedResourceAdditionRejected: true,

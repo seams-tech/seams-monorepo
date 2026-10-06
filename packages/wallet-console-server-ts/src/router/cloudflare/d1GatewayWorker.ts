@@ -1,3 +1,7 @@
+import { TenantDeploymentStoreError } from '../../tenantDeployment/service';
+import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
+import { DeploymentFencedDatabase } from '../../tenantDeployment/fencedDatabase';
+import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 /// <reference types="@cloudflare/workers-types" />
 import {
   dispatchKnownWalletHome,
@@ -23,7 +27,7 @@ import {
 import { resolveEmailOtpDeliveryProviderFromEnv } from '../../email/otp/emailOtpProviders';
 import {
   bindTenantDeploymentToRuntimeEnvironmentV1,
-  resolveActiveTenantDeploymentFromServiceV1,
+  resolveBoundTenantDeploymentRuntimeEnvironmentV1,
 } from '../../tenantDeployment/runtimeBinding';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
 import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
@@ -36,6 +40,7 @@ import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/reso
 type TenantDeploymentGatewayEnv = CloudflareD1GatewayEnv &
   RegionalGatewayBindings & {
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+    readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
     readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
     readonly SEAMS_D1_HOME_DATABASE_ID: string;
     readonly CF_VERSION_METADATA: { readonly id: unknown };
@@ -65,7 +70,20 @@ async function handleGatewayRequest(
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
+  const local = new D1RegionalDeploymentAdmission(env.SIGNER_DB,
+    TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }));
+  const localBinding = await local.resolveRuntimeBinding(env.SEAMS_TENANT_DEPLOYMENT_LANE, writer);
+  if (!localBinding) {
+    const unavailable = Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, { status: 503 });
+    withCors(unavailable.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    return unavailable;
+  }
   const deployment = await resolveGatewayDeployment({
+    binding: localBinding,
     request,
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     writer,
@@ -94,7 +112,8 @@ async function handleGatewayRequest(
     });
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(
-    { ...env, WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer) },
+    { ...env, SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+      WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer) },
     binding,
   );
   const authority = new ConsoleRegistrationHomeAdmission({
@@ -170,16 +189,12 @@ async function scheduled(
   env: TenantDeploymentGatewayEnv,
   _ctx: CfExecutionContext,
 ): Promise<void> {
-  const binding = await resolveActiveTenantDeploymentFromServiceV1({
-    writer: parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
-      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
-      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-    }),
-    deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
-    service: env.WALLET_CONSOLE,
+  const writer = parseTenantRuntimeWriterV1('gateway', env.CF_VERSION_METADATA?.id, {
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
-  if (!binding) throw new Error('active tenant deployment binding is required');
-  const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(env, binding);
+  const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(env, writer);
+  if (!boundEnv) throw new Error('Active regional deployment admission is required');
   await runRouterAbPrewarmScheduledV1(event, boundEnv);
 }
 
@@ -188,7 +203,17 @@ async function fetch(
   env: TenantDeploymentGatewayEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
-  return handleGatewayRequest(request, env, ctx);
+  try {
+    return await handleGatewayRequest(request, env, ctx);
+  } catch (error) {
+    if (!(error instanceof TenantDeploymentStoreError)) throw error;
+    const response = Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, {
+      status: error.code === 'activation_conflict' ? 403 : 503,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+    withCors(response.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    return response;
+  }
 }
 
 export default { fetch, scheduled };

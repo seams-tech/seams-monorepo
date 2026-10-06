@@ -95,6 +95,7 @@ export async function verifyGatewaySessionLookup(
   const observed = new ObservedConsole(service);
   const timingHeaders = new Headers();
   const input = {
+    binding,
     request: new Request('https://gateway.test/router-ab/ecdsa-derivation/sign/prepare', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

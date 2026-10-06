@@ -1,3 +1,4 @@
+import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
 import { TenantResourceVerificationV1 } from '../../tenantDeployment/resourceVerification';
 import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
 import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
@@ -1232,6 +1233,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       inspector: tenantDeploymentReadinessAdapter,
     }),
     store: tenantDeploymentStore,
+    regionalAdmission: new D1RegionalDeploymentAdmission(env.SIGNER_DB, home),
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: configuredPublishableKey
       ? { kind: 'adopt_publishable_key', publishableKey: configuredPublishableKey }

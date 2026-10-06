@@ -1,3 +1,4 @@
+import type { RegionalDeploymentInstaller } from './regionalAdmission';
 import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/service';
 import { base64UrlEncode } from '@seams/wallet-server/cloud-host';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
@@ -102,6 +103,7 @@ export type TenantDeploymentProvisionerOptionsV1 = {
   readonly candidates: TenantDeploymentCandidateResolverV1;
   readonly readiness: TenantDeploymentReadinessServiceV1;
   readonly store: TenantDeploymentServiceV1;
+  readonly regionalAdmission: RegionalDeploymentInstaller;
   readonly canary: TenantDeploymentRegistrationCanaryV1;
   readonly browserCredential: TenantDeploymentBrowserCredentialProvisioningV1;
   readonly newOperationId?: () => TenantDeploymentCutoverId;
@@ -365,6 +367,12 @@ export function createTenantDeploymentProvisionerV1(
         active.revision === activeBinding?.revision &&
         bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces });
       if (matchesActive && request.authorization.kind === 'reuse_active') {
+        const regional = await options.store.readActiveRegionalAdmission(deploymentLane);
+        if (!regional || regional.binding.revision !== active.revision ||
+            regional.activationSequence !== active.activationSequence) {
+          throw new TenantDeploymentStoreError('activation_conflict', 'Active regional admission differs');
+        }
+        await options.regionalAdmission.activate(regional);
         return reuseActiveBinding({ active, binding: activeBinding });
       }
       const operationId = newOperationId();
@@ -473,6 +481,12 @@ export function createTenantDeploymentProvisionerV1(
           readinessReceipt,
           expectedActiveRevision: active?.revision ?? null,
         });
+        const regionalAdmission = {
+          binding,
+          activationSequence: (active?.activationSequence ?? 0) + 1,
+          resourceVerificationsJson: JSON.stringify(resourceVerifications),
+        };
+        await options.regionalAdmission.prepare(regionalAdmission);
         const activation = await options.store.activateBinding({
           resourceVerifications,
           operationId,
@@ -485,6 +499,7 @@ export function createTenantDeploymentProvisionerV1(
           readinessReceipt,
         });
         activated = true;
+        await options.regionalAdmission.activate(regionalAdmission);
         const canaryReceipt = await options.canary.run({
           bindingRevision: binding.revision,
           environmentId,

@@ -1,3 +1,4 @@
+import { RegionalDeploymentServiceInstaller } from '../../tenantDeployment/regionalAdmissionTransport';
 import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacement/gatewaySession';
 import { createWalletRuntimeOpsClient } from '../../serviceBinding/walletRuntimeOpsClient';
 import { RegionalWalletIdentities } from '../../serviceBinding/regionalWalletIdentities';
@@ -567,6 +568,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     candidates: tenantDeploymentReadinessAdapter,
     readiness: tenantDeploymentReadiness,
     store: tenantDeploymentStore,
+    regionalAdmission: new RegionalDeploymentServiceInstaller(walletHomeCatalog, {
+      US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR,
+      APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC,
+    }),
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
   });

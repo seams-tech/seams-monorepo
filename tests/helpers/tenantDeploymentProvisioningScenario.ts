@@ -1,3 +1,4 @@
+import type { RegionalDeploymentInstaller } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
 import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
@@ -50,6 +51,7 @@ export async function provisioningScenario(
   database: D1DatabaseLike,
   walletRuntime: TenantDeploymentRuntimeInspectorV1,
   gatewayOrigin: string,
+  regionalAdmission: RegionalDeploymentInstaller,
 ) {
   const namespace = 'wallet';
   const deploymentLane = 'renewal';
@@ -123,6 +125,7 @@ export async function provisioningScenario(
     candidates: adapter,
     readiness: createTenantDeploymentReadinessServiceV1({ inspector: adapter }),
     store,
+    regionalAdmission,
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
   };

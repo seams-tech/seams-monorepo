@@ -1,3 +1,6 @@
+import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { D1RegionalDeploymentAdmission } from './regionalAdmission';
+import { DeploymentFencedDatabase } from './fencedDatabase';
 import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from './resourceVerification';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
@@ -240,15 +243,24 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
 }
 
 export async function resolveBoundTenantDeploymentRuntimeEnvironmentV1<
-  TEnvironment extends TenantDeploymentRuntimeEnvironmentV1,
+  TEnvironment extends TenantDeploymentRuntimeEnvironmentV1 & {
+    readonly SIGNER_DB: D1DatabaseLike;
+    readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
+  },
 >(
   env: TEnvironment,
   writer: TenantRuntimeWriterV1,
 ): Promise<BoundTenantDeploymentRuntimeEnvironmentV1<TEnvironment> | null> {
-  const binding = await resolveActiveTenantDeploymentFromServiceV1({
-    writer,
-    deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
-    service: env.WALLET_CONSOLE,
-  });
-  return binding ? bindTenantDeploymentToRuntimeEnvironmentV1(env, binding) : null;
+  const local = new D1RegionalDeploymentAdmission(env.SIGNER_DB,
+    TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }));
+  const binding = await local.resolveRuntimeBinding(env.SEAMS_TENANT_DEPLOYMENT_LANE, writer);
+  if (!binding) return null;
+  return {
+    ...bindTenantDeploymentToRuntimeEnvironmentV1(env, binding),
+    SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+  };
 }

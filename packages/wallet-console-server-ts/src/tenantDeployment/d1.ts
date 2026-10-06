@@ -435,6 +435,25 @@ export function createD1TenantDeploymentServiceV1(
   const reader = createD1TenantDeploymentBindingReaderV1({ database });
   return {
     ...reader,
+    async readActiveRegionalAdmission(rawLane) {
+      const lane = requiredText(rawLane, 'deploymentLane');
+      const row = await queryD1One(database,
+        `SELECT binding.binding_json, active.activation_sequence, activation.resource_verifications_json
+           FROM active_tenant_deployment_bindings AS active
+           JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane AND binding.revision = active.revision
+           JOIN tenant_deployment_activations AS activation
+             ON activation.deployment_lane = active.deployment_lane
+            AND activation.activation_sequence = active.activation_sequence
+            AND activation.binding_revision = active.revision
+          WHERE active.deployment_lane = ?1`, [lane]);
+      if (!row) return null;
+      return {
+        binding: await parseBindingJson(row.binding_json),
+        activationSequence: positiveSafeInteger(row.activation_sequence, 'activation_sequence'),
+        resourceVerificationsJson: requiredText(row.resource_verifications_json, 'resource_verifications_json'),
+      };
+    },
     async putBinding(rawBinding) {
       const decoded = await decodeTenantDeploymentBindingV1(rawBinding);
       if (!decoded.ok) {

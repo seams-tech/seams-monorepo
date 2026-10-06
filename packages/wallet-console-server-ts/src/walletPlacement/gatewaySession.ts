@@ -3,7 +3,6 @@ import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-
 import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import {
-  resolveActiveTenantDeploymentFromServiceV1,
   type TenantDeploymentServiceBindingV1,
 } from '../tenantDeployment/runtimeBinding';
 import { forwardTenantDeploymentD1Timing } from '../tenantDeployment/bindingTiming';
@@ -66,6 +65,7 @@ function rejected(
 
 export async function resolveGatewayDeployment(input: {
   readonly request: Request;
+  readonly binding: TenantDeploymentBindingV1;
   readonly writer: TenantRuntimeWriterV1;
   readonly deploymentLane: string;
   readonly service: TenantDeploymentServiceBindingV1;
@@ -75,10 +75,7 @@ export async function resolveGatewayDeployment(input: {
   const session = await readRequestSessionLocator(input.request);
   if (session.kind === 'rejected') return session;
   if (session.kind === 'absent') {
-    const binding = await resolveActiveTenantDeploymentFromServiceV1(input);
-    return binding
-      ? { kind: 'ready', binding, session }
-      : rejected(503, 'tenant_deployment_unavailable');
+    return { kind: 'ready', binding: input.binding, session };
   }
   try {
     const response = await input.service.fetch(
@@ -109,6 +106,7 @@ export async function resolveGatewayDeployment(input: {
     if (
       !binding.ok ||
       binding.value.deploymentLane !== input.deploymentLane ||
+      binding.value.revision !== input.binding.revision ||
       !session.locator.matches(SessionLocator.parse(body.locator))
     )
       return rejected(503, 'wallet_home_unavailable');

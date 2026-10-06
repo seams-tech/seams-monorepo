@@ -318,10 +318,10 @@ async function deriverSourceCommand(
 
 async function ed25519JournalRequest(
   runtime: Miniflare, request: WalletRelocationRequest, attempt: WalletRelocationAttempt,
-  endpoint: 'receipt' | 'transfer', value: unknown, home = source,
+  endpoint: 'receipt' | 'transfer' | 'activation', value: unknown, home = source,
 ) {
   const service = await runtime.getWorker('ingress-b');
-  const body = endpoint === 'receipt'
+  const body = endpoint !== 'transfer'
     ? { wallet: request.wallet, attempt, receipt: value }
     : { wallet: request.wallet, attempt, request: value };
   return responseBody(await service.fetch(
@@ -1475,6 +1475,20 @@ test('relocation directory serializes competing moves and survives lost replies 
       code: 'wallet_relocation_in_progress',
     });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'activate' }, destination))
+      .toEqual({ ok: true, command: { command: 'activate', receipt: ed25519Receipt } });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'activate' }))
+      .toEqual({ ok: false, code: 'participant_conflict' });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'activation', ed25519Receipt, destination))
+      .toEqual({ ok: true, receipt: ed25519Receipt });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'activation', ed25519Receipt, destination))
+      .toEqual({ ok: true, receipt: ed25519Receipt });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'activation',
+      ed25519SnapshotFixture(request, admittedAtMs, 'f'.repeat(64)), destination))
+      .toEqual({ ok: false, code: 'receipt_conflict' });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' }))
+      .toEqual({ ok: false, code: 'phase_conflict' });
+
     for (const role of ['deriverA', 'deriverB'] as const) {
       const receipt = await deriverSnapshotFixture(request, role, 'e'.repeat(64));
       const activation = { source: receipt, destination_object: receipt.source_object };
@@ -1690,6 +1704,13 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual(routerCleanup);
     expect(await routerCleanupCommand(runtime, request, activationAttempt, destination)).toEqual({ ok: false, code: 'participant_conflict' });
     observations.push({ routerCleanupUsesDurableActivationAfterRestart: true });
+    const ed25519Cleanup = await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' });
+    expect(ed25519Cleanup).toEqual({ ok: true, command: { command: 'cleanup', activation: ed25519Receipt } });
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' })).toEqual(ed25519Cleanup);
+    expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' }, destination))
+      .toEqual({ ok: false, code: 'participant_conflict' });
+    observations.push({ ed25519ActivationPersistsBeforeCleanup: true, ed25519CleanupUsesDurableActivationAfterRestart: true });
+
     for (const role of ['deriverA', 'deriverB'] as const) {
       const receipt = await deriverSnapshotFixture(request, role, 'e'.repeat(64));
       const activation = { source: receipt, destination_object: receipt.source_object };

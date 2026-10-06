@@ -358,3 +358,8 @@ acceptEd25519Transfer({ operation: 'export' });
 acceptEd25519Transfer({ operation: 'verify', segmentIndex: 0 });
 // @ts-expect-error A spread must not carry export state into verification.
 acceptEd25519Transfer({ ...deriverExport, operation: 'verify' });
+
+acceptEd25519Transfer({ operation: 'activate' });
+acceptEd25519Transfer({ operation: 'cleanup' });
+// @ts-expect-error Cleanup cannot carry an export cursor.
+acceptEd25519Transfer({ ...deriverExport, operation: 'cleanup' });

@@ -173,7 +173,12 @@ test('hosted first preparation: immediate registration and consecutive signing',
   });
   const timing = new SigningTimingEvidence();
   const gateway = new GatewayRequestEvidence();
+  const gatewayOrigin = process.env.SEAMS_INTENDED_ROUTER_URL;
+  if (!gatewayOrigin) throw new Error('SEAMS_INTENDED_ROUTER_URL is required');
+  const headers = new GatewayTimingHeaders(new URL(gatewayOrigin).origin);
+  const recordHeaders = headers.record.bind(headers);
   const recordTiming = timing.record.bind(timing);
+  context.on('response', recordHeaders);
   page.on('console', recordTiming);
   gateway.start(context);
   const samples = [];
@@ -204,9 +209,11 @@ test('hosted first preparation: immediate registration and consecutive signing',
       scope: 'Fresh registration, then three verified signatures without a readiness wait or broadcast.',
       registrationMs, samples, refillResults: timing.refillResults,
       gateway: await gateway.window(registrationStarted, performance.now()),
+      headers: await headers.window(registrationStarted, performance.now()),
     }, null, 2), { mode: 0o600 });
     await harness.attachTrace(testInfo);
     gateway.stop(context);
+    context.off('response', recordHeaders);
     page.off('console', recordTiming);
   }
 });

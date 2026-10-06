@@ -270,7 +270,7 @@ function passingManifests(dir: string): PassingEvidenceManifests {
         },
         gatewayWorker: {
           d1Databases: [
-            { binding: 'CONSOLE_DB', databaseId: 'd1-console-id' },
+            { binding: 'EMAIL_OTP_RATE_LIMIT_DB', databaseId: 'd1-counter-id' },
             { binding: 'SIGNER_DB', databaseId: 'd1-signer-id' },
           ],
           durableObjects: [],
@@ -280,6 +280,7 @@ function passingManifests(dir: string): PassingEvidenceManifests {
       commands: [
         { id: 'console_d1_info', command: 'resource console d1 info' },
         { id: 'signer_d1_info', command: 'resource signer d1 info' },
+        { id: 'email_otp_rate_limit_d1_info', command: 'resource counter d1 info' },
         { id: 'console_worker_deployment_status', command: 'resource console deployments status' },
         {
           id: 'router_api_worker_deployment_status',
@@ -298,6 +299,12 @@ function passingManifests(dir: string): PassingEvidenceManifests {
           status: 0,
           command: 'resource signer d1 info',
           json: { uuid: 'd1-signer-id' },
+        },
+        {
+          id: 'email_otp_rate_limit_d1_info',
+          status: 0,
+          command: 'resource counter d1 info',
+          json: { uuid: 'd1-counter-id' },
         },
         {
           id: 'console_worker_deployment_status',
@@ -327,6 +334,9 @@ function passingManifests(dir: string): PassingEvidenceManifests {
         { target: 'signer', action: 'list_before', command: 'migration signer list before' },
         { target: 'signer', action: 'apply', command: 'migration signer apply' },
         { target: 'signer', action: 'list_after', command: 'migration signer list after' },
+        { target: 'email_otp_rate_limit', action: 'list_before', command: 'migration counters list before' },
+        { target: 'email_otp_rate_limit', action: 'apply', command: 'migration counters apply' },
+        { target: 'email_otp_rate_limit', action: 'list_after', command: 'migration counters list after' },
       ],
       executed: [
         {
@@ -355,6 +365,9 @@ function passingManifests(dir: string): PassingEvidenceManifests {
           status: 0,
           command: 'migration signer list after',
         },
+        { target: 'email_otp_rate_limit', action: 'list_before', status: 0, command: 'migration counters list before' },
+        { target: 'email_otp_rate_limit', action: 'apply', status: 0, command: 'migration counters apply' },
+        { target: 'email_otp_rate_limit', action: 'list_after', status: 0, command: 'migration counters list after' },
       ],
     }),
     bookmarkBeforeFixtureImport: writeManifest(dir, 'bookmark-before-fixture-import', {
@@ -795,7 +808,7 @@ const evidenceMutationCases: readonly EvidenceMutationCase[] = [
       /checks\.console_d1_info\.json database id other-console-d1-id must match CONSOLE_DB d1-console-id/,
   },
   {
-    name: 'D1 staging evidence verifier rejects Gateway config pointed at a different console D1',
+    name: 'D1 staging evidence verifier rejects Gateway access to Console D1',
     mutate: (m) =>
       patchResourceWorker(m.resources, 'gatewayWorker', {
         d1Databases: [
@@ -804,7 +817,7 @@ const evidenceMutationCases: readonly EvidenceMutationCase[] = [
         ],
       }),
     expectedError:
-      /gatewayWorker CONSOLE_DB databaseId other-console-d1-id must match consoleWorker CONSOLE_DB d1-console-id/,
+      /gatewayWorker\.d1Databases includes unexpected binding CONSOLE_DB/,
   },
   {
     name: 'D1 staging evidence verifier rejects incomplete migration evidence',

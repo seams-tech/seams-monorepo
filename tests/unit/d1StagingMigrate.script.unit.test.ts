@@ -74,11 +74,11 @@ test('D1 staging migration plan records migration hashes and noninteractive appl
   const module = await migrationModule;
   const plan = module.buildD1StagingMigrationPlan(migrationInput);
 
-  expect(plan.targets).toHaveLength(2);
+  expect(plan.targets).toHaveLength(3);
   expect(plan.targets[0].migrationsDir).toBe('migrations/d1-console');
   expect(plan.targets[0].files.length).toBeGreaterThan(0);
   expect(plan.targets[0].files[0].sha256).toMatch(/^[a-f0-9]{64}$/);
-  expect(plan.commands).toHaveLength(6);
+  expect(plan.commands).toHaveLength(9);
   expect(plan.commands[0]).toMatchObject({
     target: 'console',
     action: 'list_before',
@@ -104,7 +104,7 @@ test('D1 staging migration dry-run writes a manifest without executing commands'
   });
 
   expect(result.manifest.executed).toEqual([]);
-  expect(readD1StagingJsonFile(manifestPath).commands).toHaveLength(6);
+  expect(readD1StagingJsonFile(manifestPath).commands).toHaveLength(9);
 });
 
 test('D1 staging migration remote mode records list and apply command evidence', async () => {
@@ -117,7 +117,7 @@ test('D1 staging migration remote mode records list and apply command evidence',
     commandRunner: d1StagingOkCommandRunner,
   });
 
-  expect(result.manifest.executed).toHaveLength(6);
+  expect(result.manifest.executed).toHaveLength(9);
   expect(result.manifest.executed[1]).toMatchObject({
     target: 'console',
     action: 'apply',

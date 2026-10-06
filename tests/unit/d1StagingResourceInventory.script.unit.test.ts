@@ -113,6 +113,12 @@ test('D1 staging resource inventory records config-derived resource IDs', async 
       migrationsDir:
         'node_modules/@seams/wallet-server/migrations/d1-signer',
     },
+    {
+      binding: 'EMAIL_OTP_RATE_LIMIT_DB',
+      databaseName: 'seams-email-otp-rate-limit-staging',
+      databaseId: '33333333-3333-4333-8333-333333333333',
+      migrationsDir: 'migrations/d1-email-otp-rate-limit',
+    },
   ]);
   expect(plan.resources.gatewayWorker.durableObjects).toEqual([]);
   expect(plan.resources.gatewayWorker.durableObjectMigrations).toEqual([]);
@@ -127,7 +133,7 @@ test('D1 staging resource inventory dry-run writes a manifest without remote com
   });
 
   expect(result.manifest.checks).toEqual([]);
-  expect(readD1StagingJsonFile(manifestPath).commands).toHaveLength(4);
+  expect(readD1StagingJsonFile(manifestPath).commands).toHaveLength(5);
 });
 
 test('D1 staging resource inventory remote mode records D1 and Worker JSON metadata', async () => {
@@ -140,7 +146,7 @@ test('D1 staging resource inventory remote mode records D1 and Worker JSON metad
     commandRunner: resourceCommandRunner,
   });
 
-  expect(result.manifest.checks).toHaveLength(4);
+  expect(result.manifest.checks).toHaveLength(5);
   expect(result.manifest.checks[0]).toMatchObject({
     id: 'console_d1_info',
     target: 'console_d1',

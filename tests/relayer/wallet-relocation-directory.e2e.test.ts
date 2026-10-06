@@ -713,7 +713,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // A preparation failure must leave the source active.
-    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
+    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -732,6 +732,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       lastParticipantPreparationFailureLeftSourceActive: true,
       routerPreparationUnavailableOrConflictingLeavesSourceActive: true,
+      deriverContextOrReservationFailureLeavesSourceActive: true,
       incompleteOrConflictingCurvePreparationLeavesSourceActive: true,
     });
 

@@ -1,3 +1,4 @@
+import { DeriverRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/deriverPreparation';
 import { GatewayRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/gatewayPreparation';
 import type { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
@@ -79,6 +80,42 @@ class SigningPreparationRuntime {
   }
 }
 
+class DeriverPreparationRuntime {
+  constructor(
+    private readonly side: 'source' | 'destination',
+    private readonly failedParticipant: unknown,
+  ) {}
+
+  async fetch(input: Request): Promise<Response> {
+    const body: unknown = await input.json();
+    if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
+    if (input.url.endsWith('-context')) {
+      if (this.side !== 'source') return new Response(null, { status: 409 });
+      if (this.failedParticipant === 'deriver_context_unavailable') return new Response(null, { status: 503 });
+      return Response.json({ kind: 'deriver_cipher_context', digest_hex: 'c'.repeat(64) });
+    }
+    if (this.side !== 'destination') return new Response(null, { status: 409 });
+    let role = 'deriver-a';
+    if (input.url.endsWith('/deriver-b-prepare')) role = 'deriver-b';
+    else if (!input.url.endsWith('/deriver-a-prepare')) return new Response(null, { status: 404 });
+    if ((role === 'deriver-a' && this.failedParticipant === 'deriverA') ||
+        (role === 'deriver-b' && this.failedParticipant === 'deriverB')) {
+      return new Response(null, { status: 409 });
+    }
+    if (body.cipher_context_digest_hex !== 'c'.repeat(64)) return new Response(null, { status: 409 });
+    const encoded = new TextEncoder().encode(`seams/${role}/wallet-do/v1${JSON.stringify(body.owner)}`);
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoded));
+    let hex = '';
+    for (const byte of digest) hex += byte.toString(16).padStart(2, '0');
+    if (this.failedParticipant === 'deriver_context_conflict') body.cipher_context_digest_hex = 'd'.repeat(64);
+    return Response.json({
+      kind: 'prepared',
+      request: body,
+      destination_object: `${role}-wallet-${this.failedParticipant === 'deriver_object_conflict' ? '0'.repeat(64) : hex}`,
+    });
+  }
+}
+
 class GatewayPreparationBinding {
   constructor(private readonly failedParticipant: unknown) {}
 
@@ -115,8 +152,18 @@ export function relocationPreparationParticipants(
       new PreparationRuntime(request, failedParticipant),
       relocationFixtureClock.bind(null, nowMs),
     ),
-    deriverA: participant,
-    deriverB: participant,
+    deriverA: new DeriverRelocationPreparation(
+      'deriverA', request.destination,
+      new DeriverPreparationRuntime('source', failedParticipant),
+      new DeriverPreparationRuntime('destination', failedParticipant),
+      relocationFixtureClock.bind(null, nowMs),
+    ),
+    deriverB: new DeriverRelocationPreparation(
+      'deriverB', request.destination,
+      new DeriverPreparationRuntime('source', failedParticipant),
+      new DeriverPreparationRuntime('destination', failedParticipant),
+      relocationFixtureClock.bind(null, nowMs),
+    ),
     signingWorker: new SigningWorkerRelocationPreparation(
       request.destination,
       new SigningPreparationRuntime(failedParticipant),

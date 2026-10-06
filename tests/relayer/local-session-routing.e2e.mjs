@@ -32,6 +32,9 @@ const bundle = await build({
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
     export { withCors } from './packages/wallet-server/src/router/framework/http';
+    export { projectActiveWalletSession } from './packages/wallet-server/src/authorization/domain';
+    export { toStoredExactWalletSessionAuthorizationRowV6, parseStoredExactWalletSessionAuthorizationRowV6 } from './packages/wallet/src/core/indexedDB/seamsWalletDB/walletSessionAuthorizationStore';
+    export { buildWalletSessionAuthorizationHeaders } from './packages/wallet/src/core/rpcClients/relayer/relayerHttp';
     export { AuthorizationService } from './packages/wallet-server/src/authorization/service';
     export { capabilityPolicyPort } from './packages/wallet-server/src/authorization/capabilityPolicy';
     export { parseSessionOrigin } from './packages/wallet-server/src/authorization/domain';
@@ -59,6 +62,13 @@ class UnavailableConsole {
     return new Response(null, { status: 503 });
   }
 }
+class RegionalSessionPublication {
+  home() {
+    return { kind: 'regional', region: 'US' };
+  }
+  async publish() {}
+}
+
 class RegionalDestination {
   calls = 0;
   constructor(routing) {
@@ -113,6 +123,7 @@ try {
     walletSignerScope: scope,
   });
   const service = new api.AuthorizationService({
+    sessionRouting: new RegionalSessionPublication(),
     policy: api.capabilityPolicyPort,
     sessions: store,
     grants: store,
@@ -133,6 +144,14 @@ try {
     expiresAtMs: fixture.issuedSession.session.expiresAtMs,
   });
   assert.equal(issued.kind, 'issued');
+  assert.deepEqual(issued.operationCredential.home, { kind: 'regional', region: 'US' });
+  const stored = api.toStoredExactWalletSessionAuthorizationRowV6(
+    api.projectActiveWalletSession(issued), issued.operationCredential,
+  );
+  const restored = api.parseStoredExactWalletSessionAuthorizationRowV6(JSON.parse(JSON.stringify(stored)));
+  assert.ok(restored);
+  assert.deepEqual(restored.operationCredential.home, issued.operationCredential.home);
+  assert.equal(api.buildWalletSessionAuthorizationHeaders(restored.operationCredential)['X-Seams-Wallet-Region'], 'US');
   const consoleService = new UnavailableConsole();
   const routing = {
     database,
@@ -189,6 +208,7 @@ try {
     redeemedAtMs: nowMs + 1,
   });
   assert.equal(hosted.kind, 'redeemed');
+  assert.deepEqual(hosted.operationCredential.home, issued.operationCredential.home);
   assert.equal(
     (
       await api.findLocalSessionWallet(
@@ -303,6 +323,8 @@ try {
     missingHintedCredentialRequiresExplicitDiscovery: true,
     arbitraryRoutingTargetRejected: true,
     browserRoutingMetadataAllowedAndExposed: true,
+    issuedAndHostedCredentialsRetainRegionalHome: true,
+    restoredSdkCredentialEmitsRegionalHint: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(`Local session routing passed: ${resolve(output, 'evidence.json')}`);

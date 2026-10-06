@@ -84,6 +84,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     return this.client().findRoute(locator);
   }
 
+  home() {
+    const catalog = WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson));
+    for (const region of ['US', 'WEUR', 'APAC', 'OC'] as const) {
+      if (this.isLocal(catalog.select(region))) return { kind: 'regional' as const, region };
+    }
+    throw new Error('Local wallet home is absent from the admitted catalog');
+  }
+
   async publish(input: WalletSessionLocatorPublication): Promise<void> {
     await this.client().publish(input);
   }

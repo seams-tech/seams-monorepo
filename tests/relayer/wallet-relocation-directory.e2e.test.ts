@@ -2340,6 +2340,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         cleanupRequiresExactParticipantReceipts: true,
         cleanupReplaysWithoutDestinationCalls: true,
         productionAdvanceEndpointCompletesCleanup: true,
+        scheduledResumptionCompletesAdmittedMove: true,
         advanceRejectsCrossTenantScope: true,
         lostActivationReplySkipsRecordedParticipant: true,
         verifiedReceiptReplaysWithoutRegionalCalls: true,

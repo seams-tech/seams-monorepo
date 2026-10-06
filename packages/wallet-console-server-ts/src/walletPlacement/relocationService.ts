@@ -1,7 +1,7 @@
-import { isPlainObject, queryD1All, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { base64UrlEncode, isPlainObject, queryD1All, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { parseTenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletHomeCatalog, WalletPlacementError, type WalletHome, type WalletOwnershipKey } from './home';
-import { WalletRelocationLocator, WalletRelocationRequest, type WalletRelocation } from './relocation';
+import { WalletRelocationLocator, WalletRelocationRequest, WalletRelocation } from './relocation';
 import { relocationAttemptId } from './relocationExecution';
 import { D1WalletRelocations, readWalletRelocation } from './relocationStore';
 import { WalletRelocationCoordinator } from './relocationCoordinator';
@@ -19,15 +19,16 @@ import { walletRelocationStatusView } from './relocationView';
 export const WALLET_RELOCATION_ADVANCE_URL = 'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-advance';
 type Scope = Pick<WalletOwnershipKey, 'namespace' | 'organizationId' | 'projectId' | 'environmentId'>;
 
-// The Console host authenticates the service binding and resolves its tenant scope.
-// This endpoint can advance only a move already admitted with fresh owner approval.
-export async function handleWalletRelocationAdvance(request: Request, options: {
+type ExecutionOptions = {
   readonly database: D1DatabaseLike;
   readonly catalog: WalletHomeCatalog;
-  readonly scope: Scope;
   readonly bindings: WalletRelocationBindings;
   readonly clock: () => number;
-}): Promise<Response> {
+};
+
+// The Console host authenticates the service binding and resolves its tenant scope.
+// This endpoint can advance only a move already admitted with fresh owner approval.
+export async function handleWalletRelocationAdvance(request: Request, options: ExecutionOptions & { readonly scope: Scope }): Promise<Response> {
   if (request.url !== WALLET_RELOCATION_ADVANCE_URL) return json({ ok: false, code: 'not_found' }, 404);
   if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
   let locator: WalletRelocationLocator;
@@ -48,6 +49,10 @@ export async function handleWalletRelocationAdvance(request: Request, options: {
     return json({ ok: false, code: 'scope_conflict' }, 403);
   const move = await readWalletRelocation(options.database, locator);
   if (!move) return json({ ok: false, code: 'not_found' }, 404);
+  return advanceMove(move, attemptId, options);
+}
+
+async function advanceMove(move: WalletRelocation, attemptId: string, options: ExecutionOptions): Promise<Response> {
   if (move.progress.state === 'completed') return json(walletRelocationStatusView(move));
   const intent = WalletRelocationRequest.parse({ wallet: move.wallet, moveId: move.moveId,
     destination: move.destination, expectedGeneration: move.sourceGeneration, authorityId: move.authorityId });
@@ -72,6 +77,38 @@ export async function handleWalletRelocationAdvance(request: Request, options: {
   const result = await coordinator.advance(intent, attemptId);
   if (!result.ok) return json(result, 409);
   return json(walletRelocationStatusView(result.move));
+}
+
+// The existing Console cron retries admitted work without browser polling.
+// One tick visits at most four moves and performs one coordinator step per move.
+export async function resumeWalletRelocations(options: ExecutionOptions & { readonly namespace: string }): Promise<void> {
+  const nowMs = options.clock();
+  const rows = await queryD1All(options.database, `SELECT move.* FROM wallet_relocations AS move
+    LEFT JOIN wallet_relocation_dispatch AS dispatch
+      USING (namespace, organization_id, project_id, environment_id, wallet_id, move_id)
+    WHERE namespace = ?1 AND state != 'completed' AND (
+      execution_state IN ('ready', 'running') OR
+      (execution_state = 'retry_wait' AND execution_retry_at_ms <= ?2))
+    ORDER BY COALESCE(dispatch.dispatched_at_ms, 0), admitted_at_ms, move_id LIMIT 4`, [options.namespace, nowMs]);
+  for (const row of rows) {
+    try {
+      const move = WalletRelocation.fromRow(row);
+      const attemptId = `wattempt_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`;
+      // Rotate unfinished moves fairly across the bounded cron batch. This does
+      // not claim execution or reset any attempt/retry budget in the journal.
+      const wallet = move.wallet;
+      await options.database.prepare(`INSERT INTO wallet_relocation_dispatch
+        (namespace, organization_id, project_id, environment_id, wallet_id, move_id, dispatched_at_ms)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        ON CONFLICT DO UPDATE SET dispatched_at_ms = MAX(dispatched_at_ms, excluded.dispatched_at_ms)`)
+        .bind(wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
+          wallet.walletId, move.moveId, nowMs).run();
+      const result = await advanceMove(move, attemptId, options);
+      if (result.status >= 500) console.error('Wallet relocation resumption unavailable', { moveId: move.moveId, status: result.status });
+    } catch (error) {
+      console.error('Wallet relocation resumption failed', { moveId: row.move_id, error });
+    }
+  }
 }
 
 async function storedWriters(database: D1DatabaseLike, move: WalletRelocation, home: WalletHome) {

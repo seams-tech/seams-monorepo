@@ -1,5 +1,5 @@
 import type { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
-import { handleWalletRelocationAdvance, WALLET_RELOCATION_ADVANCE_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationService';
+import { handleWalletRelocationAdvance, resumeWalletRelocations, WALLET_RELOCATION_ADVANCE_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationService';
 import { expect } from '@playwright/test';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { WalletRelocationCleanup } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCleanup';
@@ -107,6 +107,9 @@ export async function verifyCleanupAssembly(database: D1DatabaseLike, request: W
     scope: { namespace: 'another-namespace', organizationId: scope.organizationId, projectId: scope.projectId, environmentId: scope.environmentId },
   });
   expect(denied.status).toBe(403);
+  await resumeWalletRelocations({ database, catalog, bindings, clock, namespace: scope.namespace });
+  const resumedMove = await readWalletRelocation(database, request);
+  expect(resumedMove?.progress.state).toBe('completed');
   const advanced = await handleWalletRelocationAdvance(new Request(WALLET_RELOCATION_ADVANCE_URL, { method: 'POST', body }), options);
   expect(advanced.status).toBe(200);
   const completed = await advanced.json();

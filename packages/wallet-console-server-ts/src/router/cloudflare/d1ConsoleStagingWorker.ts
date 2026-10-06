@@ -1,4 +1,4 @@
-import { handleWalletRelocationAdvance, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
+import { handleWalletRelocationAdvance, resumeWalletRelocations, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
 import { WalletRegionalDispatch } from '../../walletPlacement/regionalDispatch';
 import { RegionalDeploymentServiceInstaller } from '../../tenantDeployment/regionalAdmissionTransport';
 import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacement/gatewaySession';
@@ -944,6 +944,17 @@ async function scheduled(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<void> {
+  ctx.waitUntil(resumeWalletRelocations({
+    database: env.CONSOLE_DB,
+    catalog: WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON)),
+    namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
+    bindings: {
+      gateways: new WalletRegionalDispatch(env),
+      runtimes: { US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR,
+        APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC },
+    },
+    clock: Date.now,
+  }));
   const handler = consoleScheduledHandler(env);
   await handler(event, env, ctx);
 }

@@ -101,7 +101,7 @@ function routerFrozen(raw: Record<string, unknown>): boolean {
 }
 
 function ecdsaFrozen(raw: Record<string, unknown>): boolean {
-  if (raw.state === 'invalidating' && Object.keys(raw).length === 1) return false;
+  if ((raw.state === 'invalidating' || raw.state === 'sealing') && Object.keys(raw).length === 1) return false;
   if (raw.state === 'frozen' && Object.keys(raw).length === 2 && isPlainObject(raw.receipt)) return true;
   if (raw.state === 'draining' && Object.keys(raw).length === 3 &&
       count(raw.pending_effects) && count(raw.pending_linked_sessions)) return false;

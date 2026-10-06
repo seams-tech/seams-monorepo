@@ -41,7 +41,7 @@ class NativeFreezeParticipant {
           : { state: 'frozen', receipt: await routerSnapshotFixture(this.request, '2'.repeat(64)) });
       case 'ed25519-settle': return Response.json({ state: 'settled', command: ed25519.source });
       case 'ecdsa-freeze':
-        return Response.json(this.pending ? { state: 'invalidating' }
+        return Response.json(this.pending ? { state: 'sealing' }
           : { state: 'frozen', receipt: ecdsaSnapshotFixture(this.request, this.admittedAtMs, '3'.repeat(64)) });
       case 'deriver-a-fence':
       case 'deriver-b-fence': {

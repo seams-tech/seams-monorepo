@@ -1427,15 +1427,19 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
 }
 
 function gatewayRequests(gateway) {
-  return gateway.requests;
+  return gateway.requests.map(requestWithRegion.bind(null, gateway.region));
 }
 
 function isSuccessfulPrepare(signingPath, request) {
-  return request.path === `${signingPath}/prepare` && request.status === 200;
+  return !request.forwarded && request.path === `${signingPath}/prepare` && request.status === 200;
 }
 function isSuccessfulFinalize(signingPath, request) {
-  return request.path === signingPath && request.status === 200;
+  return !request.forwarded && request.path === signingPath && request.status === 200;
 }
 function isSuccessfulRefill(request) {
   return request.path === '/router-ab/ecdsa-derivation/presignature-pool/fill/step' && request.status === 200;
+}
+
+function requestWithRegion(region, request) {
+  return { ...request, region };
 }

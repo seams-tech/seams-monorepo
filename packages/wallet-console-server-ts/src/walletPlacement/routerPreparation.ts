@@ -1,4 +1,4 @@
-import { isPlainObject, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, sha256Bytes, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import { WalletPlacementError, type WalletHome } from './home';
 import { relocationTimestamp } from './relocation';
 import { preparationEvidenceDigest, type WalletRelocationParticipants } from './relocationPreparation';
@@ -40,14 +40,17 @@ export class RouterRelocationPreparation {
     ));
     if (response.status !== 200) return { kind: 'unavailable' };
     const raw: unknown = await response.json();
+    const objectInput = new TextEncoder().encode(
+      `seams/router/wallet-do/v2${JSON.stringify([request.owner, command.destinationGeneration])}`,
+    );
+    const objectDigest = Array.from(await sha256Bytes(objectInput), hexByte).join('');
+    const destinationObject = `router-wallet-${objectDigest}`;
     if (
       !isPlainObject(raw) ||
       Object.keys(raw).length !== 4 ||
       raw.kind !== 'prepared' ||
       raw.chunk_bytes !== 4096 ||
-      typeof raw.destination_object !== 'string' ||
-      raw.destination_object.length === 0 ||
-      raw.destination_object.length > 512 ||
+      raw.destination_object !== destinationObject ||
       !isPlainObject(raw.request) ||
       Object.keys(raw.request).length !== 5 ||
       raw.request.move_id !== request.move_id ||
@@ -75,4 +78,8 @@ export class RouterRelocationPreparation {
       expiresAtMs: preparedAtMs + 300_000,
     };
   }
+}
+
+function hexByte(value: number): string {
+  return value.toString(16).padStart(2, '0');
 }

@@ -713,7 +713,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // A preparation failure must leave the source active.
-    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
+    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -733,6 +733,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       lastParticipantPreparationFailureLeftSourceActive: true,
       routerPreparationUnavailableOrConflictingLeavesSourceActive: true,
       deriverContextOrReservationFailureLeavesSourceActive: true,
+      wrongRouterOrSigningWalletObjectLeavesSourceActive: true,
       incompleteOrConflictingCurvePreparationLeavesSourceActive: true,
     });
 
@@ -1345,8 +1346,19 @@ test('relocation directory serializes competing moves and survives lost replies 
     } } });
     expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate')).toEqual(routerActivation);
     expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate', source)).toEqual({ ok: false, code: 'participant_conflict' });
-    const routerActivationProof = { source: objectValue(routerActivation.command).receipt,
-      destination_object: `${destination.databaseId}/router/2` };
+    const routerObjectDigest = createHash('sha256')
+      .update('seams/router/wallet-do/v2')
+      .update(JSON.stringify([{
+        org_id: request.wallet.organizationId,
+        project_id: request.wallet.projectId,
+        env_id: request.wallet.environmentId,
+        wallet_id: request.wallet.walletId,
+      }, request.expectedGeneration + 1]))
+      .digest('hex');
+    const routerActivationProof = {
+      source: objectValue(routerActivation.command).receipt,
+      destination_object: `router-wallet-${routerObjectDigest}`,
+    };
     const recordedRouterActivation = await routerActivationReceipt(runtime, request, activationAttempt, routerActivationProof);
     expect(recordedRouterActivation).toEqual({ ok: true, receipt: routerActivationProof });
     expect(await routerActivationReceipt(runtime, request, activationAttempt, routerActivationProof)).toEqual(recordedRouterActivation);

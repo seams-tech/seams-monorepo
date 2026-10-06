@@ -38,7 +38,6 @@ class PreparedParticipant {
 
 class PreparationRuntime {
   constructor(
-    private readonly request: Command['request'],
     private readonly failedParticipant: unknown,
   ) {}
 
@@ -47,13 +46,16 @@ class PreparationRuntime {
     if (input.url !== 'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/router-transfer' || input.method !== 'POST')
       return new Response(null, { status: 404 });
     const raw = await input.json();
-    if (!raw || typeof raw !== 'object' || !('request' in raw))
+    if (!isPlainObject(raw) || !isPlainObject(raw.request))
       return new Response(null, { status: 400 });
+    const digest = await fixtureObjectDigest('seams/router/wallet-do/v2', [
+      raw.request.owner, raw.request.destination_generation,
+    ]);
     return Response.json({
       kind: 'prepared',
       request: raw.request,
       chunk_bytes: this.failedParticipant === 'router_conflicting_chunk' ? 2048 : 4096,
-      destination_object: `${this.request.destination.databaseId}/router/${this.request.expectedGeneration + 1}`,
+      destination_object: `router-wallet-${this.failedParticipant === 'router_object_conflict' ? '0'.repeat(64) : digest}`,
     });
   }
 }
@@ -64,7 +66,12 @@ class SigningPreparationRuntime {
   async fetch(input: Request): Promise<Response> {
     const body: unknown = await input.json();
     if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
-    const destinationObject = `signing-worker-wallet-${'a'.repeat(64)}`;
+    let scope = body.scope;
+    if (isPlainObject(body.source)) scope = body.source.scope;
+    const digest = await fixtureObjectDigest('seams/signing-worker/wallet-do/v1', scope);
+    const destinationObject = `signing-worker-wallet-${
+      this.failedParticipant === 'signing_worker_wrong_wallet' ? '0'.repeat(64) : digest
+    }`;
     if (input.url.endsWith('/ed25519-snapshot')) {
       return Response.json({ state: 'prepared', source: body.source, destination_object: destinationObject });
     }
@@ -149,7 +156,7 @@ export function relocationPreparationParticipants(
     walletRuntime: participant,
     router: new RouterRelocationPreparation(
       request.destination,
-      new PreparationRuntime(request, failedParticipant),
+      new PreparationRuntime(failedParticipant),
       relocationFixtureClock.bind(null, nowMs),
     ),
     deriverA: new DeriverRelocationPreparation(
@@ -228,4 +235,12 @@ export function relocationFixtureOwnerApproval(
     WALLET_GATEWAY_APAC: gateway,
     WALLET_GATEWAY_OC: gateway,
   }));
+}
+
+async function fixtureObjectDigest(domain: string, identity: unknown): Promise<string> {
+  const encoded = new TextEncoder().encode(`${domain}${JSON.stringify(identity)}`);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoded));
+  let hex = '';
+  for (const byte of digest) hex += byte.toString(16).padStart(2, '0');
+  return hex;
 }

@@ -1,4 +1,4 @@
-import { isPlainObject, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, sha256Bytes, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import { WalletPlacementError, type WalletHome } from './home';
 import { relocationTimestamp } from './relocation';
 import { preparationEvidenceDigest, type WalletRelocationParticipants } from './relocationPreparation';
@@ -50,6 +50,9 @@ export class SigningWorkerRelocationPreparation {
       move_id: command.request.moveId,
       source_generation: command.request.expectedGeneration,
     };
+    const objectInput = new TextEncoder().encode(`seams/signing-worker/wallet-do/v1${JSON.stringify(scope)}`);
+    const objectDigest = Array.from(await sha256Bytes(objectInput), hexByte).join('');
+    const destinationObject = `signing-worker-wallet-${objectDigest}`;
     const preparedAtMs = relocationTimestamp(this.clock());
     const ed25519 = await prepareRole(this.runtime, {
       operation: 'ed25519-snapshot',
@@ -59,7 +62,7 @@ export class SigningWorkerRelocationPreparation {
       !isPlainObject(ed25519) ||
       Object.keys(ed25519).length !== 3 ||
       ed25519.state !== 'prepared' ||
-      !isObjectName(ed25519.destination_object) ||
+      ed25519.destination_object !== destinationObject ||
       !isPlainObject(ed25519.source) ||
       Object.keys(ed25519.source).length !== 2 ||
       !matchesScope(ed25519.source.scope, scope) ||
@@ -103,8 +106,8 @@ async function prepareRole(runtime: WalletRuntimeServiceBinding, command: Runtim
   return response.json();
 }
 
-function isObjectName(value: unknown): value is string {
-  return typeof value === 'string' && /^signing-worker-wallet-[a-f0-9]{64}$/u.test(value);
+function hexByte(value: number): string {
+  return value.toString(16).padStart(2, '0');
 }
 
 function matchesMove(raw: unknown, expected: Move): boolean {

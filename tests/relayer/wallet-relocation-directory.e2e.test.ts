@@ -1,4 +1,4 @@
-import { deriverSnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
+import { deriverSnapshotFixture, ed25519SnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { verifyRuntimePreparation } from './runtime-preparation.scenario';
 import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer, verifyAuthorizationRegionalLifecycle } from './authorization-transfer.scenario';
@@ -312,6 +312,25 @@ async function deriverSourceCommand(
         'x-seams-writer-database': home.databaseId,
       },
       body: JSON.stringify({ wallet: request.wallet, attempt, role, cipherContextDigest }),
+    },
+  ));
+}
+
+async function ed25519JournalRequest(
+  runtime: Miniflare, request: WalletRelocationRequest, attempt: WalletRelocationAttempt,
+  endpoint: 'receipt' | 'transfer', value: unknown, home = source,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  const body = endpoint === 'receipt'
+    ? { wallet: request.wallet, attempt, receipt: value }
+    : { wallet: request.wallet, attempt, request: value };
+  return responseBody(await service.fetch(
+    `https://wallet-placement.internal/internal/wallet-placement/v1/relocation-ed25519-${endpoint}`, {
+      method: 'POST', headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId, 'x-seams-writer-database': home.databaseId,
+      }, body: JSON.stringify(body),
     },
   ));
 }
@@ -969,6 +988,19 @@ test('relocation directory serializes competing moves and survives lost replies 
         .toEqual({ ok: false, code: 'phase_conflict' });
     }
     observations.push({ deriverSnapshotsPersistExactSourceReceipts: true });
+    const ed25519Receipt = ed25519SnapshotFixture(request, admittedAtMs, 'e'.repeat(64));
+    expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt', ed25519Receipt))
+      .toEqual({ ok: true, receipt: ed25519Receipt });
+    expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt', ed25519Receipt))
+      .toEqual({ ok: true, receipt: ed25519Receipt });
+    expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt',
+      ed25519SnapshotFixture(request, admittedAtMs, 'f'.repeat(64))))
+      .toEqual({ ok: false, code: 'receipt_conflict' });
+    expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt', ed25519Receipt, destination))
+      .toEqual({ ok: false, code: 'participant_conflict' });
+    expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'transfer', { operation: 'export', segmentIndex: 0 }))
+      .toEqual({ ok: false, code: 'phase_conflict' });
+
     const routerReceipt = await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64));
     expect(routerReceipt).toMatchObject({ ok: true, receipt: { record_count: 1 } });
     expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64))).toEqual(routerReceipt);
@@ -1192,6 +1224,20 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
     }
     observations.push({ deriverTransferUsesPinnedReceiptsAndRegionalWriters: true });
+    expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 1 }))
+      .toEqual({ ok: true, command: { command: 'export', receipt: ed25519Receipt, segment_index: 1 } });
+    expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 2 }))
+      .toEqual({ ok: false, code: 'invalid_cursor' });
+    expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 0 }, destination))
+      .toEqual({ ok: false, code: 'participant_conflict' });
+    for (const operation of ['import', 'status', 'verify'] as const) {
+      expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation }, destination))
+        .toEqual({ ok: true, command: { command: operation, receipt: ed25519Receipt } });
+      expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation }))
+        .toEqual({ ok: false, code: 'participant_conflict' });
+    }
+    observations.push({ ed25519SnapshotReceiptPersistsBeforeTransfer: true, ed25519TransferRequiresCorrectRegionalWriter: true });
+
     const routerExport = await routerExportCommand(runtime, request, copyAttempt, 0);
     expect(routerExport).toMatchObject({ ok: true, command: {
       kind: 'export', record_index: 0, segment_index: 0, chunk_bytes: 4096,

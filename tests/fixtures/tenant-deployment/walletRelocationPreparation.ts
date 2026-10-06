@@ -281,3 +281,14 @@ export async function deriverSnapshotFixture(request: WalletRelocationRequest, r
     record_count: 1, segment_count: 2, digest_hex: digest,
   };
 }
+
+export function ed25519SnapshotFixture(request: WalletRelocationRequest, invalidatedAtMs: number, digest: string) {
+  return {
+    source: {
+      scope: { org_id: request.wallet.organizationId, project_id: request.wallet.projectId,
+        project_environment_id: request.wallet.environmentId, wallet_id: request.wallet.walletId },
+      request: { move_id: request.moveId, source_generation: request.expectedGeneration, invalidated_at_ms: invalidatedAtMs },
+    },
+    record_count: 1, segment_count: 2, digest_hex: digest,
+  };
+}

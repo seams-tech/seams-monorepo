@@ -1,3 +1,4 @@
+import type { Ed25519TransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
 import type { DeriverTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
 import type { WalletRelocationBindings } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
 import type { WalletAuthorizationManifest } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
@@ -347,3 +348,13 @@ acceptDeriverTransfer({ operation: 'verify', segmentIndex: 0 });
 declare const deriverExport: { readonly operation: 'export'; readonly segmentIndex: number };
 // @ts-expect-error A broad spread cannot retain a cursor when changing operations.
 acceptDeriverTransfer({ ...deriverExport, operation: 'status' });
+
+declare function acceptEd25519Transfer(request: Ed25519TransferRequest): void;
+acceptEd25519Transfer({ operation: 'export', segmentIndex: 0 });
+acceptEd25519Transfer({ operation: 'verify' });
+// @ts-expect-error Export requires its cursor.
+acceptEd25519Transfer({ operation: 'export' });
+// @ts-expect-error Verification has no cursor.
+acceptEd25519Transfer({ operation: 'verify', segmentIndex: 0 });
+// @ts-expect-error A spread must not carry export state into verification.
+acceptEd25519Transfer({ ...deriverExport, operation: 'verify' });

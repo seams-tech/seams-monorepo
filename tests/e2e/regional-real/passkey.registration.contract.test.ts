@@ -37,12 +37,33 @@ for (const curve of ['ecdsa', 'ed25519']) {
       await harness.registerPasskeyWallet();
       await harness.awaitNearReady();
       scenario.beginConsoleOutage();
+      let signingPhase: 'post_registration' | 'post_unlock' = 'post_registration';
+      let unlockDirectoryRequests: string[] = [];
       for (const ingress of ['WEUR', 'APAC', 'OC']) {
         await scenario.routeContext(context, ingress);
-        if (curve === 'ecdsa') await harness.signTempoTransaction('post_registration');
+        if (ingress === 'APAC') {
+          assert.equal(scenario.consoleService.requests.length, 0);
+          scenario.consoleService.available = true;
+          await harness.unlockPasskeyWallet();
+          unlockDirectoryRequests = scenario.consoleService.requests.splice(0);
+          scenario.consoleService.available = false;
+          signingPhase = 'post_unlock';
+        }
+        if (curve === 'ecdsa') await harness.signTempoTransaction(signingPhase);
         else await harness.signNearTransactionAfterRefresh();
       }
       await scenario.verifyConsoleOutage(curve);
+      await writeFile(path.join(scenario.output, 'fresh-unlock.json'), JSON.stringify({
+        curve,
+        home: 'US',
+        unlockIngress: 'APAC',
+        freshUnlockAfterRuntimeReset: true,
+        signaturesBeforeUnlock: 1,
+        signaturesAfterUnlock: 2,
+        consoleRequests: scenario.consoleService.requests.length,
+        unlockDirectoryRequests,
+        scope: 'Browser registration, runtime reset and passkey unlock with directory coordination available. Console is unavailable for signing before and after unlock through foreign ingress. Excludes relocation and Console-independent unlock.',
+      }, null, 2));
     } finally {
       await scenario.close();
     }

@@ -51,7 +51,9 @@ export async function createRegionalRealGateway({
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
-        export { dispatchKnownWalletHome, resolveSessionHome, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+        export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+        export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
+        export { fourRegionBinding } from './tests/helpers/tenantDeploymentFixtures';
         export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
         export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       `,
@@ -104,6 +106,7 @@ export async function createRegionalRealGateway({
       catalog,
       config.deployment.environmentKey,
     );
+    consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
     const router = new LocalRoleTransport('http://127.0.0.1:4102');
     const routerFault = new api.LocalIntendedLinkExecuteFaultControllerV1(
       router.fetch.bind(router),
@@ -111,7 +114,7 @@ export async function createRegionalRealGateway({
     const environment = {
       ...variables,
       ...secrets,
-      WALLET_CONSOLE: api.createStaticWalletConsoleBindingV1(config),
+      WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
       MPC_ROUTER: routerFault,
       SIGNING_WORKER: new LocalRoleTransport('http://127.0.0.1:4105'),
     };
@@ -162,7 +165,22 @@ class LocalRoleTransport {
   }
 }
 
+class ObservableConsoleTransport {
+  constructor(delegate, control) {
+    this.delegate = delegate;
+    this.control = control;
+  }
+  fetch(input, init) {
+    const request = new Request(input, init);
+    this.control.requests.push(new URL(request.url).pathname);
+    if (!this.control.available) return Promise.resolve(new Response(null, { status: 503 }));
+    return this.delegate.fetch(request);
+  }
+}
+
 class RealHomeConsole {
+  available = true;
+  requests = [];
   constructor(api, database, scope, catalog, environmentKey) {
     this.environmentKey = environmentKey;
     this.api = api;
@@ -177,6 +195,11 @@ class RealHomeConsole {
   }
 
   fetch(request) {
+    this.requests.push(new URL(request.url).pathname);
+    if (!this.available) return Promise.resolve(new Response(null, { status: 503 }));
+    if (new URL(request.url).pathname === this.api.GATEWAY_SESSION_PATH) {
+      return this.api.gatewaySessionResponse(request, this.binding, this.database, this.catalogJson);
+    }
     const writer = this.api.parseTenantRuntimeWriterV1(
       request.headers.get('x-seams-writer-role'),
       request.headers.get('x-seams-writer-version'),
@@ -320,14 +343,33 @@ class RealRegionalGateway {
       catalogJson: this.consoleService.catalogJson,
       ingressRegion: this.region,
     });
-    const transport = new this.api.WalletRegionalDispatch(this.bindings, entry);
-    const forwarded = await this.api.dispatchKnownWalletHome(
+    const transport = new this.api.WalletRegionalDispatch(this.bindings);
+    const resolution = await this.api.resolveGatewayDeployment({
       request,
-      authority,
-      transport,
-      this.environment.GOOGLE_OIDC_CLIENT_ID,
-      await this.api.resolveSessionHome(request, authority),
-    );
+      database: this.database,
+      binding: this.consoleService.binding,
+      writer: this.api.parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', resource),
+      deploymentLane: 'test',
+      service: this.consoleService,
+      catalogJson: this.consoleService.catalogJson,
+      timingHeaders: new Headers(),
+    });
+    let forwarded = null;
+    if (resolution.kind === 'forward') {
+      forwarded = await transport.forward(resolution.home, request);
+    } else if (resolution.kind === 'rejected') {
+      forwarded = resolution.response;
+    } else {
+      const continuation = await this.api.resolveLocalRegistrationContinuation({
+        request, database: this.database, tenant: this.scope, session: resolution.session,
+      });
+      if (continuation.kind === 'rejected') forwarded = continuation.response;
+      else if (continuation.kind === 'absent') {
+        forwarded = await this.api.dispatchKnownWalletHome(
+          request, authority, transport, this.environment.GOOGLE_OIDC_CLIENT_ID, resolution.session,
+        );
+      }
+    }
     if (forwarded) {
       this.requests.push({
         path: new URL(request.url).pathname,
@@ -393,6 +435,26 @@ class RegionalRealScenario {
     this.runtime = runtime;
     this.gateways = gateways;
     this.output = output;
+  }
+
+  beginConsoleOutage() {
+    this.consoleService.requests.length = 0;
+    this.consoleService.available = false;
+    for (const gateway of this.gateways.values()) gateway.requests.length = 0;
+  }
+
+  async verifyConsoleOutage(curve) {
+    for (const gateway of this.gateways.values()) await Promise.all(gateway.pending);
+    assert.deepEqual(this.consoleService.requests, [], 'Established signing contacted Console');
+    const requests = [...this.gateways.values()].flatMap(gatewayRequests);
+    const signingPath = curve === 'ecdsa' ? '/router-ab/ecdsa-derivation/sign' : '/router-ab/ed25519/sign';
+    assert.equal(requests.filter(isSuccessfulPrepare.bind(null, signingPath)).length, 3);
+    assert.equal(requests.filter(isSuccessfulFinalize.bind(null, signingPath)).length, 3);
+    if (curve === 'ecdsa') assert.ok(requests.some(isSuccessfulRefill));
+    await writeFile(resolve(this.output, 'console-outage.json'), JSON.stringify({
+      consoleRequests: this.consoleService.requests,
+      requests,
+    }, null, 2));
   }
 
   requestsFor(region, readinessRequests) {
@@ -1362,4 +1424,18 @@ async function verifyOperationOwnership(gateway, scope, walletId, isHome) {
       (counts[operation.authorization_source_kind] ?? 0) + 1;
   }
   return counts;
+}
+
+function gatewayRequests(gateway) {
+  return gateway.requests;
+}
+
+function isSuccessfulPrepare(signingPath, request) {
+  return request.path === `${signingPath}/prepare` && request.status === 200;
+}
+function isSuccessfulFinalize(signingPath, request) {
+  return request.path === signingPath && request.status === 200;
+}
+function isSuccessfulRefill(request) {
+  return request.path === '/router-ab/ecdsa-derivation/presignature-pool/fill/step' && request.status === 200;
 }

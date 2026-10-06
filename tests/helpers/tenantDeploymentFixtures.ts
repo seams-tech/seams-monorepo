@@ -92,6 +92,7 @@ export async function seedHistoricalActiveBinding(
 export function developmentBindingBody(
   createdAtMs: number,
   deploymentLane: string,
+  tenant?: TenantDeploymentBindingV1['tenant'],
 ): TenantDeploymentBindingBodyV1 {
   return {
     kind: 'tenant_deployment_binding_v1',
@@ -104,7 +105,7 @@ export function developmentBindingBody(
       },
     ],
     mode: { kind: 'development_testnet_v1', environment: 'development', network: 'testnet' },
-    tenant: {
+    tenant: tenant ?? {
       namespace: 'wallet',
       organizationId: 'org_1',
       projectId: 'proj_mu3mtq24_6ni46i',
@@ -419,10 +420,14 @@ export async function bindingForResourceSet(
   return result.value;
 }
 
-export async function fourRegionBinding(createdAtMs: number, deploymentLane: string) {
+export async function fourRegionBinding(
+  createdAtMs: number,
+  deploymentLane: string,
+  tenant?: TenantDeploymentBindingV1['tenant'],
+) {
   const existing = await regionalBinding(createdAtMs, deploymentLane);
   const result = await buildTenantDeploymentBindingV1({
-    ...developmentBindingBody(createdAtMs, deploymentLane),
+    ...developmentBindingBody(createdAtMs, deploymentLane, tenant),
     resources: [
       ...existing.resources,
       {

@@ -53,7 +53,10 @@ export async function createRegionalRealGateway({
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-        export { fourRegionBinding } from './tests/helpers/tenantDeploymentFixtures';
+        export { fourRegionBinding, regionalResourceProof } from './tests/helpers/tenantDeploymentFixtures';
+        export { D1RegionalDeploymentAdmission } from './packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
+        export { DeploymentFencedDatabase } from './packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';
+        export { TenantDeploymentD1ResourceIdentityV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
         export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
         export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       `,
@@ -128,7 +131,28 @@ export async function createRegionalRealGateway({
       if (databaseState?.mode !== 'reopen') {
         await migrate(database, resolve(candidate, 'migrations/d1-signer'));
       }
+      const home = catalog.select(region);
+      const localAdmission = new api.D1RegionalDeploymentAdmission(
+        database,
+        api.TenantDeploymentD1ResourceIdentityV1.parse({
+          namespace: scope.namespace,
+          accountId: home.accountId,
+          databaseId: home.databaseId,
+        }),
+      );
+      if (databaseState?.mode !== 'reopen') {
+        const admission = {
+          binding: consoleService.binding,
+          activationSequence: 1,
+          resourceVerificationsJson: JSON.stringify(
+            regionalDeploymentProofs(api, consoleService.binding),
+          ),
+        };
+        await localAdmission.prepare(admission);
+        await localAdmission.activate(admission);
+      }
       const gateway = new RealRegionalGateway({
+        localAdmission,
         acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
         activationFault: new ActivationReplyLoss(),
         environmentKey: config.deployment.environmentKey,
@@ -150,6 +174,22 @@ export async function createRegionalRealGateway({
     await runtime.dispose();
     throw error;
   }
+}
+
+function regionalDeploymentProofs(api, binding) {
+  const proofs = [];
+  for (const resource of binding.resources) {
+    proofs.push(
+      api.regionalResourceProof(
+        binding,
+        resource.databaseId,
+        resource.databaseId,
+        randomUUID(),
+        Date.now(),
+      ),
+    );
+  }
+  return proofs;
 }
 
 class LocalRoleTransport {
@@ -330,15 +370,17 @@ class RealRegionalGateway {
   async handle(request, entry) {
     const home = this.catalog.select(this.region);
     const resource = { accountId: home.accountId, databaseId: home.databaseId };
+    const writer = this.api.parseTenantRuntimeWriterV1('gateway', home.databaseId, resource);
+    const binding = await this.localAdmission.resolveRuntimeBinding('test', writer);
+    if (!binding) {
+      return Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, { status: 503 });
+    }
+    const fencedDatabase = new this.api.DeploymentFencedDatabase(this.database, binding, writer);
     const authority = new this.api.ConsoleRegistrationHomeAdmission({
       environmentKey: this.environmentKey,
       service: this.consoleService,
       scope: this.scope,
-      writer: this.api.parseTenantRuntimeWriterV1(
-        'gateway',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        resource,
-      ),
+      writer,
       localResource: resource,
       catalogJson: this.consoleService.catalogJson,
       ingressRegion: this.region,
@@ -346,9 +388,9 @@ class RealRegionalGateway {
     const transport = new this.api.WalletRegionalDispatch(this.bindings);
     const resolution = await this.api.resolveGatewayDeployment({
       request,
-      database: this.database,
-      binding: this.consoleService.binding,
-      writer: this.api.parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', resource),
+      database: fencedDatabase,
+      binding,
+      writer,
       deploymentLane: 'test',
       service: this.consoleService,
       catalogJson: this.consoleService.catalogJson,
@@ -361,7 +403,7 @@ class RealRegionalGateway {
       forwarded = resolution.response;
     } else {
       const continuation = await this.api.resolveLocalRegistrationContinuation({
-        request, database: this.database, tenant: this.scope, session: resolution.session,
+        request, database: fencedDatabase, tenant: this.scope, session: resolution.session,
       });
       if (continuation.kind === 'rejected') forwarded = continuation.response;
       else if (continuation.kind === 'absent') {
@@ -380,7 +422,7 @@ class RealRegionalGateway {
       return forwarded;
     }
     const identityStore = authority.identityStore();
-    const database = new this.api.TracedD1Database(this.database);
+    const database = new this.api.TracedD1Database(fencedDatabase);
     const response = database.response(
       await this.api.handleSplitGatewayRequest(
         request,

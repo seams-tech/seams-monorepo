@@ -1,4 +1,4 @@
-import type { PresignSourceRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignRelocationCommand';
+import type { PresignSourceRequest, PresignTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignRelocationCommand';
 import type { EcdsaTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
 import type { Ed25519TransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
 import type { DeriverTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
@@ -385,3 +385,14 @@ acceptPresignSource({ operation: 'inventory', cursor: { kind: 'start' }, limit: 
 declare const inventoryRequest: { readonly operation: 'inventory'; readonly cursor: { readonly kind: 'start' }; readonly limit: 1 };
 // @ts-expect-error A spread cannot carry inventory fields into a fence.
 acceptPresignSource({ ...inventoryRequest, operation: 'fence', session: { presignSessionId: 'session', serverPresignatureId: 'presignature' } });
+
+declare function acceptPresignTransfer(request: PresignTransferRequest): void;
+declare const presignSession: { readonly presignSessionId: string; readonly serverPresignatureId: string };
+acceptPresignTransfer({ operation: 'export', session: presignSession, segmentIndex: 0 });
+acceptPresignTransfer({ operation: 'verify', session: presignSession });
+// @ts-expect-error Export requires a cursor.
+acceptPresignTransfer({ operation: 'export', session: presignSession });
+// @ts-expect-error A spread cannot retain an export cursor during verification.
+acceptPresignTransfer({ ...deriverExport, operation: 'verify', session: presignSession });
+// @ts-expect-error Import requires both session identities.
+acceptPresignTransfer({ operation: 'import', session: { presignSessionId: 'session' } });

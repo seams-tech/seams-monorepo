@@ -1,3 +1,4 @@
+import { PresignRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/presignPreparation';
 import { DeriverRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/deriverPreparation';
 import { GatewayRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/gatewayPreparation';
 import type { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
@@ -123,6 +124,39 @@ class DeriverPreparationRuntime {
   }
 }
 
+class PresignPreparationRuntime {
+  constructor(
+    private readonly side: 'source' | 'destination',
+    private readonly failedParticipant: unknown,
+  ) {}
+
+  async fetch(input: Request): Promise<Response> {
+    const body: unknown = await input.json();
+    if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
+    if (input.url.endsWith('/presign-preparation-inventory') && this.side === 'source') {
+      if (!isPlainObject(body.cursor)) return new Response(null, { status: 400 });
+      if (this.failedParticipant === 'presign_inventory_unavailable') return new Response(null, { status: 503 });
+      if (body.cursor.kind === 'start' || this.failedParticipant === 'presign_inventory_cycle') {
+        return Response.json({ state: 'more', next_presign_session_id: 'session-a', sessions: [{
+          presign_session_id: 'session-a', server_presignature_id: 'server-a', request_digest_hex: 'a'.repeat(64),
+        }] });
+      }
+      return Response.json({ state: 'complete', sessions: [{
+        presign_session_id: 'session-b', server_presignature_id: 'server-b', request_digest_hex: 'b'.repeat(64),
+      }] });
+    }
+    if (input.url.endsWith('/presign-transfer') && this.side === 'destination') {
+      if (!isPlainObject(body.command)) return new Response(null, { status: 400 });
+      if (body.command.presign_session_id === 'session-b' && this.failedParticipant === 'presignSessions') {
+        return new Response(null, { status: 409 });
+      }
+      if (this.failedParticipant === 'presign_receipt_conflict') body.command.server_presignature_id = 'wrong-server';
+      return Response.json({ kind: 'prepared', command: body.command, chunk_bytes: body.chunk_bytes });
+    }
+    return new Response(null, { status: 404 });
+  }
+}
+
 class GatewayPreparationBinding {
   constructor(private readonly failedParticipant: unknown) {}
 
@@ -176,7 +210,12 @@ export function relocationPreparationParticipants(
       new SigningPreparationRuntime(failedParticipant),
       relocationFixtureClock.bind(null, nowMs),
     ),
-    presignSessions: participant,
+    presignSessions: new PresignRelocationPreparation(
+      request.destination,
+      new PresignPreparationRuntime('source', failedParticipant),
+      new PresignPreparationRuntime('destination', failedParticipant),
+      relocationFixtureClock.bind(null, nowMs),
+    ),
   };
 }
 

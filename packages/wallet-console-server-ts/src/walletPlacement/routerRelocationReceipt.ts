@@ -119,6 +119,56 @@ export async function authorizeRouterExport(
   );
   if (!authorized.ok) return authorized;
   const command = authorized.command;
+  const receipt = await readRouterReceipt(database, command, command.generation);
+  if (!receipt) return { ok: false, code: 'source_manifest_unavailable' } as const;
+  if (recordIndex >= receipt.record_count) return { ok: false, code: 'invalid_cursor' } as const;
+  return {
+    ok: true,
+    command: {
+      kind: 'export',
+      receipt,
+      record_index: recordIndex,
+      segment_index: segmentIndex,
+      chunk_bytes: 4096,
+    },
+  } as const;
+}
+
+export async function authorizeRouterDestination(
+  database: D1DatabaseLike,
+  wallet: WalletOwnershipKey,
+  writer: TenantRuntimeWriterV1,
+  attempt: WalletRelocationAttempt,
+  operation: unknown,
+) {
+  if (operation !== 'status' && operation !== 'verify')
+    throw new WalletPlacementError('invalid_input', 'Router destination operation is invalid');
+  if (writer.role !== 'walletRuntime') return { ok: false, code: 'participant_conflict' } as const;
+  const authorized = await WalletD1RelocationCommand.authorize(
+    database,
+    wallet,
+    writer,
+    attempt,
+    'verify',
+  );
+  if (!authorized.ok) return authorized;
+  const receipt = await readRouterReceipt(
+    database,
+    authorized.command,
+    authorized.command.generation - 1,
+  );
+  if (!receipt) return { ok: false, code: 'source_manifest_unavailable' } as const;
+  if (operation === 'status')
+    return { ok: true, command: { kind: 'status', receipt, chunk_bytes: 4096 } } as const;
+  return { ok: true, command: { kind: 'verify', receipt } } as const;
+}
+
+async function readRouterReceipt(
+  database: D1DatabaseLike,
+  command: WalletD1RelocationCommand,
+  sourceGeneration: number,
+) {
+  const wallet = command.wallet;
   const row = await queryD1One(
     database,
     `SELECT router_source_receipt_json FROM wallet_relocations
@@ -133,9 +183,8 @@ export async function authorizeRouterExport(
       command.moveId,
     ],
   );
-  if (typeof row?.router_source_receipt_json !== 'string')
-    return { ok: false, code: 'source_manifest_unavailable' } as const;
-  const receipt = parseRouterReceipt(JSON.parse(row.router_source_receipt_json), {
+  if (typeof row?.router_source_receipt_json !== 'string') return null;
+  return parseRouterReceipt(JSON.parse(row.router_source_receipt_json), {
     owner: {
       org_id: wallet.organizationId,
       project_id: wallet.projectId,
@@ -144,18 +193,7 @@ export async function authorizeRouterExport(
     },
     move_id: command.moveId,
     request_digest_hex: command.requestDigest,
-    source_generation: command.generation,
-    destination_generation: command.generation + 1,
+    source_generation: sourceGeneration,
+    destination_generation: sourceGeneration + 1,
   });
-  if (recordIndex >= receipt.record_count) return { ok: false, code: 'invalid_cursor' } as const;
-  return {
-    ok: true,
-    command: {
-      kind: 'export',
-      receipt,
-      record_index: recordIndex,
-      segment_index: segmentIndex,
-      chunk_bytes: 4096,
-    },
-  } as const;
 }

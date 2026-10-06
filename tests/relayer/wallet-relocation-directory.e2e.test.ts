@@ -339,6 +339,23 @@ async function routerExportCommand(runtime: Miniflare, request: WalletRelocation
   ));
 }
 
+async function routerDestinationCommand(runtime: Miniflare, request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt, operation: 'status' | 'verify', home = destination) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-destination', {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, operation }),
+    },
+  ));
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -1046,6 +1063,22 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerExportCommand(runtime, request, copyAttempt, 0)).toEqual(routerExport);
     expect(await routerExportCommand(runtime, request, copyAttempt, 1)).toEqual({ ok: false, code: 'invalid_cursor' });
     expect(await routerExportCommand(runtime, request, copyAttempt, 0, destination)).toEqual({ ok: false, code: 'participant_conflict' });
+    const routerStatus = await routerDestinationCommand(runtime, request, copyAttempt, 'status');
+    expect(routerStatus).toMatchObject({ ok: true, command: {
+      kind: 'status', chunk_bytes: 4096,
+      receipt: { request: { source_generation: 1, destination_generation: 2 }, records_digest_hex: 'a'.repeat(64) },
+    } });
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'status')).toEqual(routerStatus);
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'verify')).toMatchObject({
+      ok: true, command: { kind: 'verify', receipt: { records_digest_hex: 'a'.repeat(64) } },
+    });
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'verify', source)).toEqual({
+      ok: false, code: 'participant_conflict',
+    });
+    expect(await routerDestinationCommand(runtime, request, freezeAttempt, 'verify')).toEqual({
+      ok: false, code: 'attempt_conflict',
+    });
+    observations.push({ routerDestinationCommandsUsePinnedReceipt: true });
     observations.push({ routerExportUsesStoredReceipt: true });
     const exportCommand = await relocationCommand(
       runtime,

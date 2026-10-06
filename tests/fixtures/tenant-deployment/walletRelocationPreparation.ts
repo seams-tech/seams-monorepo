@@ -1,3 +1,5 @@
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
+import { SigningWorkerRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/signingWorkerPreparation';
 import { RouterRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/routerPreparation';
 import { GatewayRelocationOwnerApproval } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
 import { WalletRegionalDispatch } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
@@ -53,6 +55,28 @@ class PreparationRuntime {
   }
 }
 
+class SigningPreparationRuntime {
+  constructor(private readonly failedParticipant: unknown) {}
+
+  async fetch(input: Request): Promise<Response> {
+    const body: unknown = await input.json();
+    if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
+    const destinationObject = `signing-worker-wallet-${'a'.repeat(64)}`;
+    if (input.url.endsWith('/ed25519-snapshot')) {
+      return Response.json({ state: 'prepared', source: body.source, destination_object: destinationObject });
+    }
+    if (input.url.endsWith('/ecdsa-transfer')) {
+      if (this.failedParticipant === 'signingWorker') return new Response(null, { status: 503 });
+      return Response.json({
+        kind: 'prepared', scope: body.scope, request: body.request, chunk_bytes: body.chunk_bytes,
+        destination_object: this.failedParticipant === 'signing_worker_object_conflict'
+          ? `signing-worker-wallet-${'b'.repeat(64)}` : destinationObject,
+      });
+    }
+    return new Response(null, { status: 404 });
+  }
+}
+
 export function relocationPreparationParticipants(
   request: Command['request'],
   nowMs: number,
@@ -69,7 +93,11 @@ export function relocationPreparationParticipants(
     ),
     deriverA: participant,
     deriverB: participant,
-    signingWorker: participant,
+    signingWorker: new SigningWorkerRelocationPreparation(
+      request.destination,
+      new SigningPreparationRuntime(failedParticipant),
+      relocationFixtureClock.bind(null, nowMs),
+    ),
     presignSessions: participant,
   };
 }

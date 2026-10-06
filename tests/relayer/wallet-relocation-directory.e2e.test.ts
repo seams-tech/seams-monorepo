@@ -713,7 +713,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // Failure at the Router boundary or the last role must leave the source active.
-    for (const failedParticipant of ['router', 'router_conflicting_chunk', 'presignSessions']) {
+    for (const failedParticipant of ['router', 'router_conflicting_chunk', 'signingWorker', 'signing_worker_object_conflict', 'presignSessions']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -732,6 +732,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       lastParticipantPreparationFailureLeftSourceActive: true,
       routerPreparationUnavailableOrConflictingLeavesSourceActive: true,
+      incompleteOrConflictingCurvePreparationLeavesSourceActive: true,
     });
 
     const races = await Promise.all([

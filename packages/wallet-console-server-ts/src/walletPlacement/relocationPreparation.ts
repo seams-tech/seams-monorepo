@@ -143,3 +143,13 @@ export class WalletRelocationPreparation {
     }
   }
 }
+
+export async function preparationEvidenceDigest(value: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(digest, hexByte).join('');
+}
+
+function hexByte(value: number): string {
+  return value.toString(16).padStart(2, '0');
+}

@@ -76,8 +76,11 @@ class UnavailableRegistrationAuthority {
 
 class UncertainRegistrationCompletion {
   calls = 0;
+  admissionCalls = 0;
   loseReply = true;
   async admitHome() {
+    this.admissionCalls += 1;
+    if (this.admissionCalls > 1) throw new Error('Unexpected registration directory lookup');
     return { ok: true, purpose: 'registration', ownershipGeneration: 1 };
   }
   async complete() {
@@ -93,6 +96,12 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
   const identity = { walletId, ceremonyId: `wrc_${digest(outcome)}` };
   assert.equal((await authority.admitHome(identity)).ok, true);
+  const resumed = new api.D1WalletExecutionAuthority(database, scope, directory);
+  assert.deepEqual(await resumed.admitHome(identity), {
+    ok: true, purpose: 'registration', ownershipGeneration: 1,
+  });
+  assert.equal(directory.admissionCalls, 1);
+
   const tenant = {
     namespace: scope.namespace,
     organizationId: scope.orgId,
@@ -160,7 +169,8 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   await assert.rejects(authority.complete({ ...identity, outcome: conflict }));
   assert.equal(directory.calls, 1);
   directory.loseReply = false;
-  assert.deepEqual(await authority.complete({ ...identity, outcome }), { ok: true });
+  const reconciled = await resumed.admitHome(identity);
+  assert.equal(reconciled.ok, outcome === 'established');
   assert.equal(directory.calls, 2);
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, outcome === 'established');
 }
@@ -513,6 +523,8 @@ try {
     completedRegistrationAdmissionUsesLocalState: true,
     registrationTerminalDecisionSurvivesLostReply: true,
     localRegistrationContinuationRouting: true,
+    pendingRegistrationAdmissionSurvivesRestartWithoutConsole: true,
+    terminalRegistrationAdmissionReconcilesLostReplies: true,
     cancelledRegistrationRejectsLateWritesAndRecreation: true,
     cancelledRegistrationRejectsLifecycleWritesAndSessionPublication: true,
     conflictingRegistrationCompletionRejectedBeforeConsole: true,

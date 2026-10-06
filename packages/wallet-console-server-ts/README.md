@@ -299,6 +299,10 @@ Email OTP budget/step-up scenario in
 On 2026-10-07, regional acceptance passed with 32 concurrent counter requests:
 12 accepted and 20 limited. Console outage, independent project scopes, and real
 counter-storage failure checks passed. Package type-check also passed.
-The browser step-up scenario delivered its OTP, then stopped because the development
-outbox lookup still needs Console wallet-home resolution. Full browser acceptance
-remains incomplete. See [sanitized evidence](docs/evidence/r155b-direct-otp-counters-20261007.json).
+The browser step-up scenario also passed after replacing its Console-dependent
+development outbox reader with a local email-provider mailbox. During the outage,
+it completed two NEAR signatures, three ECDSA signatures, and two OTP step-ups.
+Console requests stayed at zero. All authorization records remained in the US home.
+External email delivery is simulated; regional OTP verification and MPC signing
+execute production code. This is local acceptance, with no hosted latency claim.
+See [sanitized evidence](docs/evidence/r155b-direct-otp-counters-20261007.json).

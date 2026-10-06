@@ -1,4 +1,5 @@
 import type { APIRequestContext, BrowserContext, Page, TestInfo } from '@playwright/test';
+import { RegionalEmailMailbox } from '../../helpers/regional-email-mailbox.mjs';
 import { createRegionalRealGateway } from '../../helpers/regional-real-gateway.mjs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -74,7 +75,9 @@ async function verifyEmailOtpBudgetAndStepUp(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
 ) {
+  const emailDelivery = new RegionalEmailMailbox();
   const scenario = await createRegionalRealGateway({
+    emailDelivery,
     root,
     candidate,
     lostAcknowledgements: 0,
@@ -105,6 +108,10 @@ async function verifyEmailOtpBudgetAndStepUp(
     await scenario.verifyStepUpConsoleOutage();
     harness.assertNoLifecycleViolations();
   } finally {
+    await testInfo.attach('email-delivery-evidence.json', {
+      body: Buffer.from(JSON.stringify(emailDelivery.evidence())),
+      contentType: 'application/json',
+    });
     await testInfo.attach('email-otp-console-dependencies.json', {
       body: Buffer.from(JSON.stringify({ consoleRequests: scenario.consoleService.requests })),
       contentType: 'application/json',

@@ -17,6 +17,7 @@ export async function createRegionalRealGateway({
   output,
   lostAcknowledgements,
   databaseState,
+  emailDelivery,
 }) {
   await mkdir(output, { recursive: true });
   const publicRoot = resolve(candidate, '../..');
@@ -132,6 +133,7 @@ export async function createRegionalRealGateway({
       ...variables,
       ...secrets,
       EMAIL_OTP_RATE_LIMIT_DB: counterDatabase,
+      ...(emailDelivery ? { EMAIL_OTP_DELIVERY_MODE: 'email_provider' } : {}),
       WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
       MPC_ROUTER: routerFault,
       SIGNING_WORKER: new LocalRoleTransport('http://127.0.0.1:4105'),
@@ -167,6 +169,7 @@ export async function createRegionalRealGateway({
         await localAdmission.activate(admission);
       }
       const gateway = new RealRegionalGateway({
+        emailDelivery,
         localAdmission,
         writerVersion: home.databaseId,
         acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
@@ -295,6 +298,13 @@ class RealRegionalGateway {
 
   async intercept(route) {
     const request = route.request();
+    if (
+      this.emailDelivery &&
+      new URL(request.url()).pathname === '/wallet/email-otp/dev/otp-outbox'
+    ) {
+      await this.emailDelivery.intercept(route);
+      return;
+    }
     const response = await this.handle(
       new Request(request.url(), {
         method: request.method(),
@@ -448,6 +458,7 @@ class RealRegionalGateway {
         this,
         {
           signerWasm: this.signerWasm,
+          emailOtpDeliveryProvider: this.emailDelivery,
           sessionRouting: authority,
           lifecycleRouting: authority,
           recoveryRouting: authority,

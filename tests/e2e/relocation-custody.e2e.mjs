@@ -28,6 +28,7 @@ try {
         scope:
           'Real Cloudflare Rust Workers with separate regional wallet object namespaces and SigningWorker D1. Shared tenant-root authority. Source NEAR registration acknowledged. Directory-coordinated relocation, source cleanup, and destination signing verified locally.',
         objects: custody.objects,
+        releaseFaultProbe: custody.releaseFaultProbe,
         registrationReceiptSha256: createHash('sha256')
           .update(JSON.stringify(custody.registration.publicReceipt))
           .digest('hex'),

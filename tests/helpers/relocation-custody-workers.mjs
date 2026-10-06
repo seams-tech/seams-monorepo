@@ -49,6 +49,10 @@ export async function createRelocationCustodyWorkers(publicRoot) {
   });
   try {
     await topology.ready;
+    const releaseFaultProbe =
+      process.env.ROUTER_AB_WORKER_BUILD_PROFILE === 'release'
+        ? await verifyReleaseFaultUnavailable(topology)
+        : { kind: 'not_checked', reason: 'development_profile' };
     const migrations = resolve(publicRoot, 'crates/router-ab-cloudflare/migrations');
     const deriverA = await api.applyMigrations(
       topology,
@@ -100,7 +104,7 @@ export async function createRelocationCustodyWorkers(publicRoot) {
       );
       objects.push({ binding, source, destination, independentNamespaces: true });
     }
-    return { topology, fixture, roots, registration, objects };
+    return { topology, fixture, roots, registration, objects, releaseFaultProbe };
   } catch (error) {
     await topology.dispose();
     throw error;
@@ -129,4 +133,23 @@ async function acknowledgeRegistration(topology, registration) {
     },
   );
   assert.equal(response.status, 200, await response.text());
+}
+
+async function verifyReleaseFaultUnavailable(topology) {
+  const statuses = [];
+  for (const worker of ['fixture-signing-worker', 'destination-signing-worker']) {
+    const namespace = await topology.getDurableObjectNamespace('SIGNING_WORKER_WALLET_DO', worker);
+    const object = namespace.get(namespace.idFromName('release-fault-route-probe'));
+    const response = await object.fetch(
+      'https://router-ab-do.internal/router-ab/internal/signing-worker/wallet/harness-activation-fault',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    );
+    assert.equal(
+      response.status,
+      404,
+      'Release custody must not expose the activation-fault handler',
+    );
+    statuses.push({ worker, status: response.status });
+  }
+  return { kind: 'verified', statuses };
 }

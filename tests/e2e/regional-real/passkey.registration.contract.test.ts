@@ -42,7 +42,7 @@ for (const curve of ['ecdsa', 'ed25519']) {
 }
 
 for (const curve of ['ecdsa', 'ed25519']) {
-  test(`linked ${curve} signs three times while Console is unavailable`, async ({
+  test(`linked ${curve} signs then rejects signing after revocation while Console is unavailable`, async ({
     harness,
     context,
     browser,
@@ -69,6 +69,8 @@ for (const curve of ['ecdsa', 'ed25519']) {
         if (curve === 'ecdsa') await device.signTempoTransaction('post_device_link');
         else await device.signNearTransaction('post_device_link');
       }
+      await harness.revokeLinkedDeviceWithOwnerPasskey();
+      await device.assertRevokedDeviceCannotSign();
       await scenario.verifyConsoleOutage(curve);
     } finally {
       await scenario.close();

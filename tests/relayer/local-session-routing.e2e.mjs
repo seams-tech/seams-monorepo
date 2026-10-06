@@ -28,7 +28,8 @@ const bundle = await build({
     contents: `
     export { findLocalSessionWallet } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/localSessionRouting';
     export { resolveGatewayDeployment } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-    export { WalletRegionalDispatch } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+    export { WalletRegionalDispatch, resolveLocalRegistrationContinuation } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+    export { WalletOwnershipKey } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/home';
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
@@ -88,13 +89,42 @@ class UncertainRegistrationCompletion {
 async function verifyRegistrationTerminalDecision(database, scope, walletId, outcome) {
   const directory = new UncertainRegistrationCompletion();
   const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
-  const identity = { walletId, ceremonyId: `terminal-${outcome}` };
+  const identity = { walletId, ceremonyId: `wrc_${digest(outcome)}` };
   assert.equal((await authority.admitHome(identity)).ok, true);
+  const tenant = {
+    namespace: scope.namespace,
+    organizationId: scope.orgId,
+    projectId: scope.projectId,
+    environmentId: scope.envId,
+  };
+  const request = new Request('https://gateway.test/wallets/register/respond', {
+    method: 'POST',
+    body: JSON.stringify({ registrationCeremonyId: identity.ceremonyId }),
+  });
+  const routing = { request, database, tenant, session: { kind: 'absent' } };
+  assert.deepEqual(await api.resolveLocalRegistrationContinuation(routing), { kind: 'local' });
+  assert.deepEqual(
+    await api.resolveLocalRegistrationContinuation({
+      ...routing,
+      tenant: { ...tenant, namespace: `${tenant.namespace}-wrong` },
+    }),
+    { kind: 'absent' },
+  );
+  const mismatch = await api.resolveLocalRegistrationContinuation({
+    ...routing,
+    session: { kind: 'local', wallet: api.WalletOwnershipKey.parse({ ...tenant, walletId: 'wallet:wrong' }) },
+  });
+  assert.equal(mismatch.kind, 'rejected');
+  assert.equal(mismatch.response.status, 403);
+
   await assert.rejects(authority.complete({ ...identity, outcome }), /reply lost/u);
-  const row = await database.prepare(
-    `SELECT state, registration_completion FROM wallet_execution_generations
+  const row = await database
+    .prepare(
+      `SELECT state, registration_completion FROM wallet_execution_generations
      WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ? AND wallet_id = ?`,
-  ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId).first();
+    )
+    .bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId)
+    .first();
   assert.equal(row.registration_completion, outcome);
   assert.equal(row.state, outcome === 'cancelled' ? 'retired' : 'registering');
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, false);
@@ -418,6 +448,7 @@ try {
     exchangeIframePayloadRetainsHome: true,
     completedRegistrationAdmissionUsesLocalState: true,
     registrationTerminalDecisionSurvivesLostReply: true,
+    localRegistrationContinuationRouting: true,
     conflictingRegistrationCompletionRejectedBeforeConsole: true,
     sessionlessContinuationHintUsesBoundedForwarding: true,
   };

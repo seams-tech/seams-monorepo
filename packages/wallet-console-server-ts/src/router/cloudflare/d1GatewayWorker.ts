@@ -5,6 +5,7 @@ import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/dep
 /// <reference types="@cloudflare/workers-types" />
 import {
   dispatchKnownWalletHome,
+  resolveLocalRegistrationContinuation,
   ConsoleRegistrationSetupDispatcher,
   WalletRegionalDispatch,
   type RegionalGatewayBindings,
@@ -137,13 +138,24 @@ async function handleGatewayRequest(
   });
   const sessionHome = authority.home();
   const transport = new WalletRegionalDispatch(env);
-  const forwarded = await dispatchKnownWalletHome(
+  const continuation = await resolveLocalRegistrationContinuation({
     request,
-    authority,
-    transport,
-    boundEnv.GOOGLE_OIDC_CLIENT_ID,
+    database: boundEnv.SIGNER_DB,
+    tenant: binding.tenant,
     session,
-  );
+  });
+  let forwarded: Response | null = null;
+  if (continuation.kind === 'rejected') {
+    forwarded = continuation.response;
+  } else if (continuation.kind === 'absent') {
+    forwarded = await dispatchKnownWalletHome(
+      request,
+      authority,
+      transport,
+      boundEnv.GOOGLE_OIDC_CLIENT_ID,
+      session,
+    );
+  }
   if (forwarded) {
     const response = new Response(forwarded.body, forwarded);
     withCors(

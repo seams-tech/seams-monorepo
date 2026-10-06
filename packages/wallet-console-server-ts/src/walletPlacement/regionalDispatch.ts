@@ -5,7 +5,9 @@ import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
 import { digestOpaqueValue, parseWalletId } from '@seams/wallet-server/cloud-host';
 import { SessionLocator } from './sessionLocators';
-import type { WalletHomeAssignment, WalletOwnershipKey } from './home';
+import { WalletOwnershipKey, type WalletHomeAssignment } from './home';
+import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
 import type { WalletHome } from './home';
 import { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 
@@ -87,6 +89,59 @@ export class ConsoleRegistrationSetupDispatcher implements WalletRegistrationSet
     }
     return { status: response.status, headers, body };
   }
+}
+
+export async function resolveLocalRegistrationContinuation(input: {
+  readonly request: Request;
+  readonly database: D1DatabaseLike;
+  readonly tenant: TenantDeploymentBindingV1['tenant'];
+  readonly session: SessionHomeResolution;
+}): Promise<
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'local' }
+  | { readonly kind: 'rejected'; readonly response: Response }
+> {
+  const pathname = new URL(input.request.url).pathname;
+  if (input.request.method !== 'POST' || !isRegistrationContinuation(pathname)) {
+    return { kind: 'absent' };
+  }
+  if (input.session.kind === 'rejected') return input.session;
+  const body: unknown = await input.request.clone().json().catch(invalidJsonBody);
+  const ceremonyId = registrationCeremonyId(pathname, body);
+  if (ceremonyId === null) {
+    return {
+      kind: 'rejected',
+      response: Response.json({ ok: false, code: 'invalid_body' }, { status: 400 }),
+    };
+  }
+  const tenant = input.tenant;
+  const row = await input.database
+    .prepare(
+      `SELECT wallet_id FROM wallet_execution_generations
+     WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4
+       AND origin = 'registration' AND origin_id = ?5`,
+    )
+    .bind(
+      tenant.namespace,
+      tenant.organizationId,
+      tenant.projectId,
+      tenant.environmentId,
+      ceremonyId,
+    )
+    .first<{ readonly wallet_id: unknown }>();
+  if (!row) return { kind: 'absent' };
+  const wallet = WalletOwnershipKey.parse({ ...tenant, walletId: row.wallet_id });
+  if (!sessionMatchesWallet(input.session, wallet)) {
+    return {
+      kind: 'rejected',
+      response: Response.json(
+        { ok: false, code: 'wallet_session_scope_mismatch' },
+        { status: 403 },
+      ),
+    };
+  }
+  // Presence only selects the handler. Its admission and mutation fences still apply.
+  return { kind: 'local' };
 }
 
 export async function dispatchKnownWalletHome(

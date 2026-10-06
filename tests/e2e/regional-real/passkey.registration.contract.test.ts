@@ -698,3 +698,96 @@ for (const curve of ['ed25519', 'ecdsa']) {
     }
   });
 }
+
+class LostRegistrationSetupReply {
+  attempts = 0;
+  identity: { operationId: string; walletId: string; ceremonyId: string } | null = null;
+  readonly statuses: number[] = [];
+
+  constructor(readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
+
+  async intercept(route: Route): Promise<void> {
+    this.attempts += 1;
+    assert.ok(this.attempts <= 2, 'Setup recovery must remain bounded');
+    const browserRequest = route.request();
+    const requestBody = browserRequest.postDataJSON();
+    const request = new Request(browserRequest.url(), {
+      method: browserRequest.method(),
+      headers: await browserRequest.allHeaders(),
+      body: browserRequest.postDataBuffer(),
+    });
+    const ingress = this.attempts === 1 ? 'US' : 'APAC';
+    const response = await this.scenario.gateways.get(ingress).handle(request, 'ingress');
+    this.statuses.push(response.status);
+    assert.equal(response.status, 200);
+    const result = await response.clone().json();
+    assert.deepEqual(result.home, { kind: 'regional', region: 'US' });
+    assert.equal(typeof requestBody.registrationOperationId, 'string');
+    const identity = {
+      operationId: requestBody.registrationOperationId,
+      walletId: result.walletId,
+      ceremonyId: result.registrationCeremonyId,
+    };
+    if (this.identity === null) {
+      this.identity = identity;
+      await route.abort('connectionreset');
+      return;
+    }
+    assert.deepEqual(identity, this.identity, 'Reload and foreign ingress must reuse the same registration');
+    await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
+  }
+}
+
+for (const signerSet of ['mixed', 'near-only']) {
+  test(`${signerSet} setup reply loss survives reload and foreign-region retry`, async ({
+    harness, context, page,
+  }, testInfo) => {
+    const output = path.resolve(root, `.artifacts/r155b/console-outage/setup-retry-${signerSet}`);
+    const scenario = await createRegionalRealGateway({
+      root, candidate, lostAcknowledgements: 0,
+      localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT, output,
+    });
+    const fault = new LostRegistrationSetupReply(scenario);
+    try {
+      await scenario.routeContext(context, 'US');
+      await context.route('**/wallets/register/setup', fault.intercept.bind(fault));
+      const first = signerSet === 'near-only'
+        ? harness.registerPasskeyEd25519YaoWallet()
+        : harness.registerPasskeyWallet();
+      await assert.rejects(first, /Failed to fetch|NetworkError|Load failed/u);
+      assert.equal(fault.attempts, 1);
+      await page.reload();
+      if (signerSet === 'near-only') await harness.registerPasskeyEd25519YaoWallet();
+      else {
+        await harness.registerPasskeyWallet();
+        await harness.awaitNearReady();
+      }
+      assert.equal(fault.attempts, 2);
+      const placement = await scenario.consoleService.database.prepare(
+        'SELECT region, state FROM wallet_homes',
+      ).all();
+      assert.deepEqual(placement.results, [{ region: 'US', state: 'established' }]);
+      scenario.beginConsoleOutage();
+      const curve = signerSet === 'near-only' ? 'ed25519' : 'ecdsa';
+      for (const ingress of ['WEUR', 'APAC', 'OC']) {
+        await scenario.routeContext(context, ingress);
+        if (curve === 'ed25519') await harness.signNearTransaction('post_registration');
+        else await harness.signTempoTransaction('post_registration');
+      }
+      await scenario.verifyConsoleOutage(curve);
+      await writeFile(path.join(output, 'setup-retry.json'), JSON.stringify({
+        signerSet, statuses: fault.statuses,
+        lostReplyBeforeClientAcceptance: true,
+        browserReloaded: true,
+        identicalOperationWalletAndCeremony: true,
+        ingress: ['US', 'APAC'], home: 'US', directoryRows: placement.results.length,
+        verifiedSignatures: 3, signingConsoleCalls: scenario.consoleService.requests.length,
+        scope: 'Actual SDK retry after a caller retries registration following a lost response and browser reload; no automatic network retry is claimed.',
+      }, null, 2));
+      harness.assertNoLifecycleViolations();
+    } finally {
+      await harness.attachTrace(testInfo);
+      await scenario.close();
+    }
+  });
+}

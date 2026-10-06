@@ -72,6 +72,41 @@ class UnavailableRegistrationAuthority {
   }
 }
 
+class UncertainRegistrationCompletion {
+  calls = 0;
+  loseReply = true;
+  async admitHome() {
+    return { ok: true, purpose: 'registration', ownershipGeneration: 1 };
+  }
+  async complete() {
+    this.calls += 1;
+    if (this.loseReply) throw new Error('Registration completion reply lost');
+    return { ok: true };
+  }
+}
+
+async function verifyRegistrationTerminalDecision(database, scope, walletId, outcome) {
+  const directory = new UncertainRegistrationCompletion();
+  const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
+  const identity = { walletId, ceremonyId: `terminal-${outcome}` };
+  assert.equal((await authority.admitHome(identity)).ok, true);
+  await assert.rejects(authority.complete({ ...identity, outcome }), /reply lost/u);
+  const row = await database.prepare(
+    `SELECT state, registration_completion FROM wallet_execution_generations
+     WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ? AND wallet_id = ?`,
+  ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId).first();
+  assert.equal(row.registration_completion, outcome);
+  assert.equal(row.state, outcome === 'cancelled' ? 'retired' : 'registering');
+  assert.equal((await authority.admitEstablishedHome({ walletId })).ok, false);
+  const conflict = outcome === 'cancelled' ? 'established' : 'cancelled';
+  await assert.rejects(authority.complete({ ...identity, outcome: conflict }));
+  assert.equal(directory.calls, 1);
+  directory.loseReply = false;
+  assert.deepEqual(await authority.complete({ ...identity, outcome }), { ok: true });
+  assert.equal(directory.calls, 2);
+  assert.equal((await authority.admitEstablishedHome({ walletId })).ok, outcome === 'established');
+}
+
 class RegionalSessionPublication {
   home() {
     return { kind: 'regional', region: 'US' };
@@ -122,6 +157,22 @@ try {
     tenantId: scope.orgId,
     expiresAtMs: Date.now() + 3_600_000,
   });
+  for (const outcome of ['established', 'cancelled']) {
+    const terminalFixture = await api.buildLinkedDeviceManagementAuthorityFixture({
+      label: `terminal-${outcome}`,
+      permissions: api.buildFullOwnerPermissionsV1(),
+      provenance: 'wallet_registration',
+      keyFamily: 'ecdsa_secp256k1',
+      tenantId: scope.orgId,
+      expiresAtMs: Date.now() + 3_600_000,
+    });
+    await verifyRegistrationTerminalDecision(
+      database,
+      { ...scope, namespace: `${scope.namespace}-${outcome}` },
+      terminalFixture.authority.walletId,
+      outcome,
+    );
+  }
   await seedExecutionGeneration({ api, database, scope, walletId: fixture.authority.walletId });
   const registrationDirectory = new UnavailableRegistrationAuthority();
   const localRegistration = new api.D1WalletExecutionAuthority(database, scope, registrationDirectory);
@@ -366,6 +417,8 @@ try {
     restoredSdkCredentialEmitsRegionalHint: true,
     exchangeIframePayloadRetainsHome: true,
     completedRegistrationAdmissionUsesLocalState: true,
+    registrationTerminalDecisionSurvivesLostReply: true,
+    conflictingRegistrationCompletionRejectedBeforeConsole: true,
     sessionlessContinuationHintUsesBoundedForwarding: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');

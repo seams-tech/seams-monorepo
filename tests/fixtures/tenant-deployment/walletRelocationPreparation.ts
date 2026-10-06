@@ -297,3 +297,10 @@ export function ecdsaSnapshotFixture(request: WalletRelocationRequest, invalidat
   const source = ed25519SnapshotFixture(request, invalidatedAtMs, digest).source;
   return { scope: source.scope, request: source.request, record_count: 3, wallet_records_digest_hex: digest };
 }
+
+export function presignSnapshotFixture(request: WalletRelocationRequest, invalidatedAtMs: number, digest: string) {
+  const source = ed25519SnapshotFixture(request, invalidatedAtMs, digest).source;
+  return { command: { wallet_scope: source.scope, request: source.request,
+    presign_session_id: 'linked-session', server_presignature_id: 'linked-server-presignature' },
+    record_count: 2, records_digest_hex: digest };
+}

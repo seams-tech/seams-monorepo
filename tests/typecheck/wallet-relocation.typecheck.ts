@@ -1,3 +1,4 @@
+import type { PresignSourceRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignRelocationCommand';
 import type { EcdsaTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
 import type { Ed25519TransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
 import type { DeriverTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
@@ -373,3 +374,14 @@ acceptEcdsaTransfer({ operation: 'cleanup' });
 acceptEcdsaTransfer({ operation: 'export' });
 // @ts-expect-error Cleanup cannot carry an export cursor.
 acceptEcdsaTransfer({ ...deriverExport, operation: 'cleanup' });
+
+declare function acceptPresignSource(request: PresignSourceRequest): void;
+acceptPresignSource({ operation: 'inventory', cursor: { kind: 'start' }, limit: 128 });
+acceptPresignSource({ operation: 'freeze', session: { presignSessionId: 'session', serverPresignatureId: 'presignature' } });
+// @ts-expect-error Freeze requires both session identities.
+acceptPresignSource({ operation: 'freeze', session: { presignSessionId: 'session' } });
+// @ts-expect-error Inventory cannot carry a session command.
+acceptPresignSource({ operation: 'inventory', cursor: { kind: 'start' }, limit: 1, session: { presignSessionId: 'session', serverPresignatureId: 'presignature' } });
+declare const inventoryRequest: { readonly operation: 'inventory'; readonly cursor: { readonly kind: 'start' }; readonly limit: 1 };
+// @ts-expect-error A spread cannot carry inventory fields into a fence.
+acceptPresignSource({ ...inventoryRequest, operation: 'fence', session: { presignSessionId: 'session', serverPresignatureId: 'presignature' } });

@@ -1,3 +1,4 @@
+import { authorizePresignSource, parsePresignSourceRequest, recordPresignSnapshot } from './presignRelocationCommand';
 import { authorizeEcdsaTransfer, parseEcdsaTransferRequest, recordEcdsaActivation, recordEcdsaSnapshot } from './ecdsaRelocationReceipt';
 import { authorizeEd25519Transfer, parseEd25519TransferRequest, recordEd25519Activation, recordEd25519Snapshot } from './ed25519RelocationReceipt';
 import { recordDeriverActivation, recordDeriverSnapshot, authorizeDeriverTransfer, parseDeriverTransferRequest } from './deriverRelocationReceipt';
@@ -141,6 +142,8 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-activation` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-activation` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-receipt` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-source` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-receipt` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-receipt` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-transfer` &&
@@ -198,6 +201,8 @@ export async function handleWalletHomeServiceRequest(
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-activation` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-activation` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-receipt` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-source` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-receipt` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-receipt` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ecdsa-transfer` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-transfer` ||
@@ -280,6 +285,18 @@ export async function handleWalletHomeServiceRequest(
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-ed25519-activation`) {
         if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Ed25519 activation fields are invalid');
         const result = await recordEd25519Activation(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        return json(result, result.ok ? 200 : 409);
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-source`) {
+        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Presign source fields are invalid');
+        const result = await authorizePresignSource(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt), parsePresignSourceRequest(body.request));
+        return json(result, result.ok ? 200 : 409);
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-presign-receipt`) {
+        if (Object.keys(body).length !== 3) throw new WalletPlacementError('invalid_input', 'Presign receipt fields are invalid');
+        const result = await recordPresignSnapshot(options.database, wallet, options.writer,
           WalletRelocationAttempt.parse(body.attempt), body.receipt);
         return json(result, result.ok ? 200 : 409);
       }

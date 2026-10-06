@@ -1,3 +1,4 @@
+import { verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
 import { verifyEcdsaSnapshotJournal, verifyEcdsaTransferJournal, verifyEcdsaActivationJournal, verifyEcdsaCleanupJournal } from './ecdsa-relocation.scenario';
 import { deriverSnapshotFixture, ed25519SnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { verifyRuntimePreparation } from './runtime-preparation.scenario';
@@ -990,6 +991,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     }
     observations.push({ deriverSnapshotsPersistExactSourceReceipts: true });
     await verifyEcdsaSnapshotJournal({ runtime, request, attempt: freezeAttempt, source, destination, admittedAtMs });
+    await verifyPresignSourceJournal({ runtime, request, attempt: freezeAttempt, source, destination, admittedAtMs });
     const ed25519Receipt = ed25519SnapshotFixture(request, admittedAtMs, 'e'.repeat(64));
     expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt', ed25519Receipt))
       .toEqual({ ok: true, receipt: ed25519Receipt });
@@ -1227,6 +1229,8 @@ test('relocation directory serializes competing moves and survives lost replies 
     }
     observations.push({ deriverTransferUsesPinnedReceiptsAndRegionalWriters: true });
     await verifyEcdsaTransferJournal({ runtime, request, attempt: copyAttempt, source, destination, admittedAtMs });
+    await verifyPresignSourceClosedAfterFreeze({ runtime, request, attempt: copyAttempt, source, destination, admittedAtMs });
+    observations.push({ presignSourceCommandsRequireFreezingAttempt: true, presignReceiptsAreImmutable: true });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 1 }))
       .toEqual({ ok: true, command: { command: 'export', receipt: ed25519Receipt, segment_index: 1 } });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 2 }))

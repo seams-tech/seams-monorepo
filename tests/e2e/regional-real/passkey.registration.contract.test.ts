@@ -1,4 +1,4 @@
-import type { BrowserContext } from '@playwright/test';
+import type { APIRequestContext, BrowserContext, Page, TestInfo } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
@@ -8,7 +8,7 @@ const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = path.resolve(candidate, '../..');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const { intendedTest: test } = await import(
+const { intendedTest: test, IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 
@@ -110,3 +110,45 @@ for (const curve of ['ecdsa', 'ed25519']) {
     }
   });
 }
+
+async function verifySharedBudgetAndStepUp(
+  { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
+  testInfo: TestInfo,
+) {
+  const scenario = await createRegionalRealGateway({
+    root,
+    candidate,
+    lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+    output: path.resolve(root, '.artifacts/r155b/console-outage/shared-budget-step-up'),
+  });
+  const harness = new IntendedBehaviourHarness({
+    context,
+    page,
+    request: scenario.requestsFor('US', request),
+    flow: 'passkey.registration',
+    networkMode: 'managed_local',
+  });
+  try {
+    await harness.initialize();
+    await scenario.routeContext(context, 'US');
+    await harness.registerPasskeyWallet();
+    await harness.awaitNearReady();
+    await harness.unlockPasskeyWallet();
+    scenario.beginConsoleOutage();
+    await scenario.routeContext(context, 'WEUR');
+    await harness.signNearTransaction('post_unlock');
+    await harness.signTempoAndArcEvmConcurrently('post_unlock');
+    await scenario.routeContext(context, 'APAC');
+    await harness.signNearTransaction('step_up_required');
+    await scenario.routeContext(context, 'OC');
+    await harness.signTempoTransaction('step_up_required');
+    await scenario.verifyStepUpConsoleOutage();
+    harness.assertNoLifecycleViolations();
+  } finally {
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+}
+
+test('shared budget exhaustion and both signing step-ups work while Console is unavailable', verifySharedBudgetAndStepUp);

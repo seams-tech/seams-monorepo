@@ -237,6 +237,15 @@ export async function dispatchKnownWalletHome(
     if (!walletId.ok) {
       return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
     }
+    if (
+      session.kind === 'local' &&
+      pathname === '/router-ab/ecdsa-derivation/operation-step-up'
+    ) {
+      if (session.wallet.walletId !== walletId.value) {
+        return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
+      }
+      return null;
+    }
     locator = { kind: 'wallet', walletId: walletId.value };
   } else if (isRegistrationContinuation(pathname)) {
     if (request.method !== 'POST') return null;

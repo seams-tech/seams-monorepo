@@ -443,17 +443,51 @@ class RegionalRealScenario {
     for (const gateway of this.gateways.values()) gateway.requests.length = 0;
   }
 
-  async verifyConsoleOutage(curve) {
+  async consoleOutageRequests() {
     assert.equal(this.consoleService.available, false, 'Console must remain unavailable');
     for (const gateway of this.gateways.values()) await Promise.all(gateway.pending);
     assert.deepEqual(this.consoleService.requests, [], 'Established signing contacted Console');
-    const requests = [...this.gateways.values()].flatMap(gatewayRequests);
+    return [...this.gateways.values()].flatMap(gatewayRequests);
+  }
+
+  async verifyConsoleOutage(curve) {
+    const requests = await this.consoleOutageRequests();
     const signingPath = curve === 'ecdsa' ? '/router-ab/ecdsa-derivation/sign' : '/router-ab/ed25519/sign';
     assert.equal(requests.filter(isSuccessfulPrepare.bind(null, signingPath)).length, 3);
     assert.equal(requests.filter(isSuccessfulFinalize.bind(null, signingPath)).length, 3);
     if (curve === 'ecdsa') assert.ok(requests.some(isSuccessfulRefill));
     await writeFile(resolve(this.output, 'console-outage.json'), JSON.stringify({
       consoleRequests: this.consoleService.requests,
+      requests,
+    }, null, 2));
+  }
+
+  async verifyStepUpConsoleOutage() {
+    const requests = await this.consoleOutageRequests();
+    for (const [path, count] of [
+      ['/router-ab/ed25519/sign', 2],
+      ['/router-ab/ecdsa-derivation/sign', 3],
+    ]) {
+      assert.equal(requests.filter(isSuccessfulPrepare.bind(null, path)).length, count);
+      assert.equal(requests.filter(isSuccessfulFinalize.bind(null, path)).length, count);
+    }
+    const placement = await this.consoleService.database
+      .prepare('SELECT wallet_id, region FROM wallet_homes')
+      .first();
+    assert.ok(placement);
+    assert.equal(placement.region, 'US');
+    const ownership = {};
+    for (const [region, gateway] of this.gateways) {
+      ownership[region] = await verifyOperationOwnership(
+        gateway, gateway.scope, placement.wallet_id, region === placement.region,
+      );
+    }
+    assert.equal(ownership.US.authorization_grant, 3);
+    assert.equal(ownership.US.verified_step_up, 2);
+    await writeFile(resolve(this.output, 'step-up-outage.json'), JSON.stringify({
+      consoleRequests: this.consoleService.requests,
+      home: placement.region,
+      ownership,
       requests,
     }, null, 2));
   }

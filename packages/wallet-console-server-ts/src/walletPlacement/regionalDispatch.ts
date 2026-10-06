@@ -169,7 +169,13 @@ export async function dispatchKnownWalletHome(
     }
   }
 
-  const authentication = await authenticationHome(request, authority, googleClientId);
+  const authentication = await authenticationHome(
+    request,
+    authority,
+    googleClientId,
+    session.kind === 'local' ? session.wallet : null,
+  );
+  if (authentication.kind === 'local') return null;
   const scopedHome =
     authentication.kind === 'absent' ? await recoveryHome(request, authority) : authentication;
   if (scopedHome.kind === 'rejected') return scopedHome.response;

@@ -4,12 +4,13 @@ import {
   parseWalletId,
   webAuthnCredentialIdB64uFromCredential,
 } from '@seams/wallet-server/cloud-host';
-import type { WalletHomeAssignment } from './home';
+import type { WalletHomeAssignment, WalletOwnershipKey } from './home';
 import type { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 import { WalletRouteLocator } from './walletRouteLocators';
 
 type AuthenticationHome =
   | { readonly kind: 'absent' }
+  | { readonly kind: 'local' }
   | { readonly kind: 'resolved'; readonly assignment: WalletHomeAssignment }
   | { readonly kind: 'rejected'; readonly response: Response };
 
@@ -21,6 +22,7 @@ export async function authenticationHome(
   request: Request,
   authority: ConsoleRegistrationHomeAdmission,
   googleClientId: string | undefined,
+  localWallet: WalletOwnershipKey | null,
 ): Promise<AuthenticationHome> {
   const path = new URL(request.url).pathname;
   if (request.method !== 'POST' || !isAuthenticationRoute(path)) return { kind: 'absent' };
@@ -51,6 +53,11 @@ export async function authenticationHome(
     locator = authenticationLocator(path, body);
   } catch {
     return rejected(400, 'invalid_body');
+  }
+  if (localWallet && locator.kind === 'wallet' && isEmailOtpSessionRoute(path)) {
+    return locator.walletId === localWallet.walletId
+      ? { kind: 'local' }
+      : rejected(403, 'wallet_session_scope_mismatch');
   }
   try {
     const assignment =
@@ -208,4 +215,8 @@ async function syncDiscoveryHome(
   } catch {
     return rejected(503, 'wallet_home_unavailable');
   }
+}
+
+function isEmailOtpSessionRoute(path: string): boolean {
+  return path === '/wallet/email-otp/challenge' || path === '/wallet/email-otp/factor-release';
 }

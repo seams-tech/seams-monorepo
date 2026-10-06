@@ -163,6 +163,67 @@ for (const workload of ['back_to_back', 'prefilled'] as const) {
   });
 }
 
+test('hosted early preparation: registration, unlock and idle', async ({
+  context, page, request,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  await installCandidateAssets(context);
+  const harness = new IntendedBehaviourHarness({
+    context, page, request, flow: 'passkey.registration', networkMode: 'hosted_product',
+  });
+  const timing = new SigningTimingEvidence();
+  const gateway = new GatewayRequestEvidence();
+  const recordTiming = timing.record.bind(timing);
+  page.on('console', recordTiming);
+  gateway.start(context);
+  const samples = [];
+  try {
+    await harness.initialize();
+    const registrationStarted = performance.now();
+    await harness.registerPasskeyWallet();
+    const registrationMs = performance.now() - registrationStarted;
+    let startedAt = performance.now();
+    await harness.signTempoTransaction('post_registration');
+    let endedAt = performance.now();
+    samples.push({
+      phase: 'registration_immediate', registrationMs, verified: true,
+      client: timing.window(startedAt, endedAt),
+      gateway: await gateway.window(startedAt, endedAt),
+    });
+    await harness.awaitNearReady();
+    for (const delayMs of [0, 2_000, 5_000, 15_000, 90_000]) {
+      const unlockStarted = performance.now();
+      await harness.unlockPasskeyWallet();
+      const unlockMs = performance.now() - unlockStarted;
+      // Controlled user think time is part of the workload, never a readiness poll.
+      if (delayMs > 0) await page.waitForTimeout(delayMs);
+      startedAt = performance.now();
+      await harness.signTempoTransaction('post_unlock');
+      endedAt = performance.now();
+      samples.push({
+        phase: 'unlock_delay', delayMs, unlockMs, verified: true,
+        client: timing.window(startedAt, endedAt),
+        gateway: await gateway.window(startedAt, endedAt),
+      });
+    }
+    harness.assertNoLifecycleViolations();
+    harness.assertNoWrongAuthPath();
+    expect(samples).toHaveLength(6);
+  } finally {
+    const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/mpc-signing');
+    await mkdir(output, { recursive: true });
+    await writeFile(path.join(output, 'mpc-signing-early-preparation.json'), JSON.stringify({
+      scope: 'Verified full MPC signing without broadcast; registration and unlock duration are separate. Idle duration does not prove eviction.',
+      walletId: harness.walletId,
+      samples,
+      refillResults: timing.refillResults,
+    }, null, 2), { mode: 0o600 });
+    await harness.attachTrace(testInfo);
+    gateway.stop(context);
+    page.off('console', recordTiming);
+  }
+});
+
 function countReadyPools(
   events: readonly { receivedAtMs: number; outcome: string; depth: number }[],
   startedAt: number,

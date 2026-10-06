@@ -12,6 +12,9 @@ if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = path.resolve(candidate, '../..');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const { expect } = await import(pathToFileURL(path.join(publicRoot, 'node_modules/@playwright/test/index.mjs')).href);
+const { createRegistrationSetupOperationId } = await import(
+  pathToFileURL(path.join(publicRoot, 'packages/shared-ts/src/utils/registrationSetupOperation.ts')).href
+);
 const { intendedTest: test, IntendedBehaviourHarness, requireNearSigningResult, verifyNearEd25519Signature, waitForWalletIframeConfirmationSettlement } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
@@ -890,3 +893,108 @@ for (const curve of ['ed25519', 'ecdsa']) {
     }
   });
 }
+
+class ConcurrentRegistrationSetup {
+  attempts = 0;
+  readonly statuses: number[] = [];
+  readonly conflicts: { status: number; code: string }[] = [];
+  home: string | null = null;
+
+  constructor(readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
+
+  async intercept(route: Route): Promise<void> {
+    this.attempts += 1;
+    assert.equal(this.attempts, 1);
+    const browserRequest = route.request();
+    const request = new Request(browserRequest.url(), {
+      method: browserRequest.method(),
+      headers: await browserRequest.allHeaders(),
+      body: browserRequest.postDataBuffer(),
+    });
+    const responses = await Promise.all([
+      this.scenario.gateways.get('US').handle(request.clone(), 'ingress'),
+      this.scenario.gateways.get('APAC').handle(request.clone(), 'ingress'),
+      this.scenario.gateways.get('OC').handle(request.clone(), 'ingress'),
+    ]);
+    const accepted = await responses[0].clone().json();
+    assert.equal(accepted.home.kind, 'regional');
+    this.home = accepted.home.region;
+    for (const response of responses) {
+      this.statuses.push(response.status);
+      assert.equal(response.status, 200);
+      const result = await response.clone().json();
+      assert.equal(result.walletId, accepted.walletId);
+      assert.equal(result.registrationCeremonyId, accepted.registrationCeremonyId);
+      assert.deepEqual(result.home, accepted.home);
+    }
+    const setup = browserRequest.postDataJSON();
+    const contenderBody = {
+      registrationOperationId: createRegistrationSetupOperationId(),
+      wallet: { kind: 'provided', walletId: accepted.walletId },
+      signerSelection: setup.signerSelection,
+      authMethod: setup.authMethod,
+    };
+    const contender = new Request(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: JSON.stringify(contenderBody),
+    });
+    const conflicts = await Promise.all([
+      this.scenario.gateways.get('WEUR').handle(contender.clone(), 'ingress'),
+      this.scenario.gateways.get('OC').handle(contender.clone(), 'ingress'),
+    ]);
+    for (const response of conflicts) {
+      const result = await response.json();
+      this.conflicts.push({ status: response.status, code: result.code });
+      assert.equal(response.status, 409);
+      assert.equal(result.code, 'wallet_conflict');
+    }
+    await route.fulfill({
+      status: responses[0].status,
+      headers: Object.fromEntries(responses[0].headers),
+      body: await responses[0].text(),
+    });
+  }
+}
+
+test('concurrent NEAR-only setup through three regions establishes one wallet', async ({
+  harness, context,
+}, testInfo) => {
+  const output = path.resolve(root, '.artifacts/r155b/console-outage/concurrent-setup');
+  const scenario = await createRegionalRealGateway({
+    root, candidate, lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT, output,
+  });
+  const concurrent = new ConcurrentRegistrationSetup(scenario);
+  try {
+    await scenario.routeContext(context, 'US');
+    await context.route('**/wallets/register/setup', concurrent.intercept.bind(concurrent));
+    await harness.registerPasskeyEd25519YaoWallet();
+    assert.equal(concurrent.attempts, 1);
+    const placement = await scenario.consoleService.database.prepare(
+      'SELECT region, state FROM wallet_homes',
+    ).all();
+    assert.deepEqual(placement.results, [{ region: concurrent.home, state: 'established' }]);
+    scenario.beginConsoleOutage();
+    for (const ingress of ['WEUR', 'APAC', 'OC']) {
+      await scenario.routeContext(context, ingress);
+      await harness.signNearTransaction('post_registration');
+    }
+    await scenario.verifyConsoleOutage('ed25519');
+    await writeFile(path.join(output, 'concurrent-setup.json'), JSON.stringify({
+      simultaneousIngress: ['US', 'APAC', 'OC'],
+      statuses: concurrent.statuses,
+      competingOperation: concurrent.conflicts,
+      home: concurrent.home,
+      identicalWalletAndCeremony: true,
+      establishedDirectoryRows: placement.results.length,
+      verifiedSignatures: 3,
+      signingConsoleCalls: scenario.consoleService.requests.length,
+      scope: 'Concurrent copies of one SDK registration operation, then a different operation claims the reserved wallet through two regions. Credential conflicts remain a separate check.',
+    }, null, 2));
+    harness.assertNoLifecycleViolations();
+  } finally {
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+});

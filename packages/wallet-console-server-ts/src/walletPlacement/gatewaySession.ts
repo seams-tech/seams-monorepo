@@ -77,9 +77,6 @@ export async function resolveGatewayDeployment(input: {
 }): Promise<GatewayDeploymentResolution> {
   const session = await readRequestSessionLocator(input.request);
   if (session.kind === 'rejected') return session;
-  if (session.kind === 'absent') {
-    return { kind: 'ready', binding: input.binding, session };
-  }
   try {
     const region = input.request.headers.get('x-seams-wallet-region');
     if (region !== null) {
@@ -100,6 +97,9 @@ export async function resolveGatewayDeployment(input: {
         }
         return { kind: 'forward', home };
       }
+    }
+    if (session.kind === 'absent') {
+      return { kind: 'ready', binding: input.binding, session };
     }
     const wallet = await findLocalSessionWallet(input.database, input.binding.tenant, session.locator);
     if (wallet) {

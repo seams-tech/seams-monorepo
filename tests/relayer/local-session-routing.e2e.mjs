@@ -64,6 +64,14 @@ class UnavailableConsole {
     return new Response(null, { status: 503 });
   }
 }
+class UnavailableRegistrationAuthority {
+  calls = 0;
+  async admitHome() {
+    this.calls += 1;
+    throw new Error('Registration directory unavailable');
+  }
+}
+
 class RegionalSessionPublication {
   home() {
     return { kind: 'regional', region: 'US' };
@@ -115,6 +123,18 @@ try {
     expiresAtMs: Date.now() + 3_600_000,
   });
   await seedExecutionGeneration({ api, database, scope, walletId: fixture.authority.walletId });
+  const registrationDirectory = new UnavailableRegistrationAuthority();
+  const localRegistration = new api.D1WalletExecutionAuthority(database, scope, registrationDirectory);
+  assert.deepEqual(await localRegistration.admitHome({
+    walletId: fixture.authority.walletId,
+    ceremonyId: 'fixture-execution-registration',
+  }), { ok: true, purpose: 'ordinary', ownershipGeneration: 1 });
+  assert.equal(registrationDirectory.calls, 0);
+  await assert.rejects(localRegistration.admitHome({
+    walletId: fixture.authority.walletId,
+    ceremonyId: 'different-registration',
+  }), /Registration directory unavailable/u);
+  assert.equal(registrationDirectory.calls, 1);
   await database.batch([
     api.prepareD1WalletAuthorityPutStatement({ database, scope, authority: fixture.authority }),
     api.prepareD1WalletAuthMethodV2PutStatement({ database, scope, record: fixture.authMethod }),
@@ -274,6 +294,10 @@ try {
   const travel = await api.resolveGatewayDeployment({ ...routing, request: hinted });
   assert.equal(travel.kind, 'forward');
   assert.equal(travel.home.region, 'WEUR');
+  const continuation = new Request('https://gateway.test/wallets/register/activate', {
+    method: 'POST', headers: { 'X-Seams-Wallet-Region': 'WEUR' },
+  });
+  assert.equal((await api.resolveGatewayDeployment({ ...routing, request: continuation })).kind, 'forward');
   const destination = new RegionalDestination(routing);
   const transport = new api.WalletRegionalDispatch({
     WALLET_GATEWAY_US: destination,
@@ -341,6 +365,8 @@ try {
     issuedAndHostedCredentialsRetainRegionalHome: true,
     restoredSdkCredentialEmitsRegionalHint: true,
     exchangeIframePayloadRetainsHome: true,
+    completedRegistrationAdmissionUsesLocalState: true,
+    sessionlessContinuationHintUsesBoundedForwarding: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(`Local session routing passed: ${resolve(output, 'evidence.json')}`);

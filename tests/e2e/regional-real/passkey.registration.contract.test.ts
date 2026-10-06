@@ -510,3 +510,71 @@ for (const signerSet of ['mixed', 'near-only']) {
     }
   });
 }
+
+class ForeignNearRegistrationProtocol {
+  readonly requests: { path: string; ingress: string; home: string; status: number; consolePaths: string[] }[] = [];
+
+  constructor(private readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
+
+  async intercept(route: Route): Promise<void> {
+    const browserRequest = route.request();
+    const headers = await browserRequest.allHeaders();
+    assert.equal(headers['x-seams-wallet-region'], 'US');
+    const pathname = new URL(browserRequest.url()).pathname;
+    const ingress = pathname.endsWith('/admit') ? 'WEUR' : 'APAC';
+    const request = new Request(browserRequest.url(), {
+      method: browserRequest.method(), headers, body: browserRequest.postDataBuffer(),
+    });
+    const callsBefore = this.scenario.consoleService.requests.length;
+    const response = await this.scenario.gateways.get(ingress).handle(request, 'ingress');
+    const consolePaths = this.scenario.consoleService.requests.slice(callsBefore);
+    this.requests.push({ path: pathname, ingress, home: 'US', status: response.status, consolePaths });
+    await writeFile(path.join(this.scenario.output, 'protocol-requests.json'), JSON.stringify(this.requests, null, 2));
+    assert.equal(response.status, 200);
+    await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
+  }
+}
+
+async function verifyNearRegistrationProtocolHome(
+  { harness, context }: { harness: InstanceType<typeof IntendedBehaviourHarness>; context: BrowserContext },
+  testInfo: TestInfo,
+) {
+  const output = path.resolve(root, '.artifacts/r155b/console-outage/near-registration-protocol-home');
+  const scenario = await createRegionalRealGateway({
+    root, candidate, lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT, output,
+  });
+  const protocol = new ForeignNearRegistrationProtocol(scenario);
+  try {
+    await scenario.routeContext(context, 'US');
+    await context.route('**/router-ab/ed25519/yao/registration/*', protocol.intercept.bind(protocol));
+    await harness.registerPasskeyEd25519YaoWallet();
+    assert.ok(protocol.requests.some(isYaoAdmission));
+    assert.ok(protocol.requests.some(isYaoExecution));
+    scenario.beginConsoleOutage();
+    for (const ingress of ['WEUR', 'APAC', 'OC']) {
+      await scenario.routeContext(context, ingress);
+      await harness.signNearTransaction('post_registration');
+    }
+    await scenario.verifyConsoleOutage('ed25519');
+    await writeFile(path.join(output, 'protocol-home.json'), JSON.stringify({
+      signerSet: 'near-only', requests: protocol.requests,
+      verifiedSignatures: 3, signingConsoleCalls: scenario.consoleService.requests.length,
+      scope: 'Console is unavailable during subsequent signing. Registration retains its tenant-root context dependency; admission and execution carry the known home through foreign ingress.',
+    }, null, 2));
+    harness.assertNoLifecycleViolations();
+  } finally {
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+}
+
+function isYaoAdmission(request: { path: string }): boolean {
+  return request.path.endsWith('/admit');
+}
+
+function isYaoExecution(request: { path: string }): boolean {
+  return request.path.endsWith('/execute');
+}
+
+test('NEAR-only Yao registration uses its fixed home through foreign ingress', verifyNearRegistrationProtocolHome);

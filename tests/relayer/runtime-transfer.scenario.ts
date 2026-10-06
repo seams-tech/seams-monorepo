@@ -32,7 +32,7 @@ export class TransferParticipant {
     if (operation === 'status') {
       if (this.corruptStatus) return Response.json({ [stateKey]: 'unexpected' });
       if (this.verified) return Response.json({ [stateKey]: 'verified', receipt });
-      if (this.restoring) return Response.json({ state: 'restoring' });
+      if (this.restoring) return Response.json({ [stateKey]: 'restoring', receipt, restored_records: 16 });
       if (participant === 'router') return Response.json({ kind: 'receiving', receipt,
         chunk_bytes: 4096, next_record: this.next === 2 ? 1 : 0, next_segment: this.next === 2 ? 0 : this.next });
       if (participant === 'deriver-a' || participant === 'deriver-b')
@@ -67,9 +67,9 @@ export class TransferParticipant {
     }
     expect(operation).toBe('verify');
     expect(this.next).toBe(2);
-    if (participant === 'ed25519' && !this.restoring) {
+    if ((participant === 'ed25519' || participant === 'ecdsa') && !this.restoring) {
       this.restoring = true;
-      return Response.json({ state: 'restoring' });
+      return Response.json({ [stateKey]: 'restoring', receipt, restored_records: 16 });
     }
     this.verified = true;
     return Response.json({ [stateKey]: 'verified', receipt });
@@ -96,7 +96,7 @@ export async function verifyRuntimeTransferResume(request: WalletRelocationReque
     const restarted = new RuntimeRelocationTransfer(participant, participant);
     expect(await restarted.advance(request.wallet, attempt, target)).toEqual({ state: 'pending' });
     expect(participant.exported).toEqual([0, 1]);
-    if (target.participant === 'ed25519')
+    if (target.participant === 'ed25519' || target.participant === 'ecdsa')
       expect(await restarted.advance(request.wallet, attempt, target)).toEqual({ state: 'pending' });
     const verified = await restarted.advance(request.wallet, attempt, target);
     expect(verified.state).toBe('verified');
@@ -104,7 +104,7 @@ export async function verifyRuntimeTransferResume(request: WalletRelocationReque
     expect(participant.exported).toEqual([0, 1]);
   }
   return { nativeTransferDriver: { simulatedRegionalResponses: true, participants: targets.length,
-    lostImportReplyResumesAtDestinationCursor: true, oneChunkPerAdvance: true,
+    lostImportReplyResumesAtDestinationCursor: true, oneChunkPerAdvance: true, ecdsaRestoreResumesWithoutExport: true,
     invalidStatusStopsSourceExport: true, verifiedRetrySkipsSourceExport: true } };
 }
 

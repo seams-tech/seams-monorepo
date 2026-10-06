@@ -51,7 +51,7 @@ export class RuntimeRelocationTransfer {
       if (progress.state === 'verify') {
         const verified = await this.call(this.destination, target, envelope, { operation: 'verify' });
         const tag = target.participant === 'ed25519' ? verified.state : verified.kind;
-        if (tag === 'restoring' && target.participant === 'ed25519') return { state: 'pending' };
+        if (tag === 'restoring' && (target.participant === 'ed25519' || target.participant === 'ecdsa')) return { state: 'pending' };
         if (tag !== 'verified' || !isPlainObject(verified.receipt)) throw new TransferFailure('receipt_conflict');
         return { state: 'verified', receiptJson: JSON.stringify(verified.receipt) };
       }
@@ -119,7 +119,7 @@ function parseProgress(raw: Record<string, unknown>, participant: Target['partic
       throw new TransferFailure('receipt_conflict');
     return segmentProgress(raw.next_segment, raw.receipt.segment_count);
   }
-  if (participant === 'ed25519' && tag === 'restoring') return { state: 'verify' };
+  if ((participant === 'ed25519' || participant === 'ecdsa') && tag === 'restoring') return { state: 'verify' };
   if ((participant === 'ecdsa' || participant === 'presign') && tag === 'prepared') {
     if (raw.chunk_bytes !== 4096) throw new TransferFailure('receipt_conflict');
     return { state: 'segment', segmentIndex: 0 };

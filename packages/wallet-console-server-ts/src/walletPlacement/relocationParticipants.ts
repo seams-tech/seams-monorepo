@@ -43,7 +43,7 @@ export function createWalletRelocationParticipants(input: {
     router: new RouterRelocationPreparation(destination, destinationRuntime, input.clock),
     deriverA: new DeriverRelocationPreparation('deriverA', destination, sourceRuntime, destinationRuntime, input.clock),
     deriverB: new DeriverRelocationPreparation('deriverB', destination, sourceRuntime, destinationRuntime, input.clock),
-    signingWorker: new SigningWorkerRelocationPreparation(destination, destinationRuntime, input.clock),
+    signingWorker: new SigningWorkerRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock),
     presignSessions: new PresignRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock),
   };
 }

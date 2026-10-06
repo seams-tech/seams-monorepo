@@ -784,7 +784,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // A preparation failure must leave the source active.
-    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'walletRuntime', 'runtime_version_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
+    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'walletRuntime', 'runtime_version_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'signingWorker', 'signing_worker_context_unavailable', 'signing_worker_context_conflict', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -807,6 +807,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       deriverContextOrReservationFailureLeavesSourceActive: true,
       wrongRouterOrSigningWalletObjectLeavesSourceActive: true,
       incompleteOrConflictingCurvePreparationLeavesSourceActive: true,
+      signingWorkerCipherContextMismatchLeavesSourceActive: true,
     });
 
     const races = await Promise.all([

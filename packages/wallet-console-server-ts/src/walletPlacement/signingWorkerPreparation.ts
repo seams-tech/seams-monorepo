@@ -32,6 +32,7 @@ type RuntimePreparation =
 export class SigningWorkerRelocationPreparation {
   constructor(
     private readonly destination: WalletHome,
+    private readonly sourceRuntime: WalletRuntimeServiceBinding,
     private readonly runtime: WalletRuntimeServiceBinding,
     private readonly clock: () => number,
   ) {}
@@ -40,6 +41,10 @@ export class SigningWorkerRelocationPreparation {
     if (command.participant !== 'signingWorker' || !command.request.destination.matches(this.destination)) {
       throw new WalletPlacementError('invalid_input', 'SigningWorker preparation destination conflicts');
     }
+    const sourceContext = await readCipherContext(this.sourceRuntime);
+    if (sourceContext === null) return { kind: 'unavailable' };
+    const destinationContext = await readCipherContext(this.runtime);
+    if (destinationContext !== sourceContext) return { kind: 'unavailable' };
     const scope: Scope = {
       org_id: command.request.wallet.organizationId,
       project_id: command.request.wallet.projectId,
@@ -89,7 +94,7 @@ export class SigningWorkerRelocationPreparation {
       destinationGeneration: command.destinationGeneration,
       physicalResource: ed25519.destination_object,
       evidenceDigest: await preparationEvidenceDigest([
-        'seams/signing-worker/preparation/v1', scope, request, ed25519.destination_object, 4096,
+        'seams/signing-worker/preparation/v1', scope, request, ed25519.destination_object, 4096, sourceContext,
       ]),
       preparedAtMs,
       expiresAtMs: preparedAtMs + 300_000,
@@ -119,4 +124,16 @@ function matchesScope(raw: unknown, expected: Scope): boolean {
   return isPlainObject(raw) && Object.keys(raw).length === 4 &&
     raw.org_id === expected.org_id && raw.project_id === expected.project_id &&
     raw.project_environment_id === expected.project_environment_id && raw.wallet_id === expected.wallet_id;
+}
+
+async function readCipherContext(runtime: WalletRuntimeServiceBinding): Promise<string | null> {
+  const response = await runtime.fetch(new Request(
+    'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/signing-worker-context',
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+  ));
+  if (response.status !== 200) return null;
+  const raw: unknown = await response.json();
+  if (!isPlainObject(raw) || Object.keys(raw).length !== 1 ||
+      typeof raw.digest_hex !== 'string' || !/^[a-f0-9]{64}$/u.test(raw.digest_hex)) return null;
+  return raw.digest_hex;
 }

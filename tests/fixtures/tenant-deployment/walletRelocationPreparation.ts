@@ -170,6 +170,13 @@ class RegionalPreparationRuntime {
 
   async fetch(input: Request): Promise<Response> {
     const path = new URL(input.url).pathname;
+    if (path.endsWith('/signing-worker-context')) {
+      if (this.failedParticipant === 'signing_worker_context_unavailable')
+        return new Response(null, { status: 503 });
+      const conflicting = this.side === 'destination' &&
+        this.failedParticipant === 'signing_worker_context_conflict';
+      return Response.json({ digest_hex: (conflicting ? 'b' : 'a').repeat(64) });
+    }
     if (path.endsWith('/prepare'))
       return new RuntimePreparationBinding(this.writer, this.failedParticipant).fetch(input);
     if (path.endsWith('/router-transfer')) return new PreparationRuntime(this.failedParticipant).fetch(input);

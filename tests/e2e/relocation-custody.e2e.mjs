@@ -131,8 +131,10 @@ async function verifyCoordinatorBindings(custody) {
     const owner = await approveRelocationOwner(context, move, candidate);
     browserSession = await createRelocationBrowserSession({ candidate, output, owner });
     const pendingSignature = await prepareSigningBeforeMove(custody, publicRoot);
+    const expiringRefill = custody.ecdsa ? await startExpiringRefill(custody) : null;
     const approved = await journal.admit(move, verifications, 'test', bindings, Date.now);
     assert.equal(approved.ok, true, JSON.stringify(approved));
+    const freezeStartedAtMs = Date.now();
     const first = await advanceOnce(context, move);
     const paused = await journal.find(move);
     assert.equal(paused.progress.state, 'freezing');
@@ -144,6 +146,9 @@ async function verifyCoordinatorBindings(custody) {
     });
     const settlement = bindings.runtimes.WEUR.observations.find(isPendingEd25519Settlement);
     assert.ok(settlement, 'A real unfinished NEAR round must block source settlement');
+    if (expiringRefill) {
+      await verifyRefillExpiryDuringFreeze(custody, expiringRefill, freezeStartedAtMs);
+    }
     const recovered = await finalizeWhileMoveWaits(pendingSignature);
     const completed = await advanceRelocation(context, journal, move, [first]);
     assert.deepEqual(await browserSession.observe(completed), {
@@ -287,6 +292,42 @@ function isPendingEd25519Settlement(observation) {
     observation.state === 'draining' &&
     observation.pendingRounds === 1
   );
+}
+
+async function startExpiringRefill(custody) {
+  const api = await import(
+    pathToFileURL(resolve(publicRoot, 'crates/router-ab-cloudflare/scripts/test-private-d1.mjs'))
+  );
+  const initialized = Promise.withResolvers();
+  const result = Promise.allSettled([
+    api.runEcdsaPresignSession(
+      custody.topology,
+      custody.ecdsa.state,
+      'pool',
+      false,
+      15_000,
+      18_000,
+      initialized.resolve,
+    ),
+  ]);
+  assert.equal(await Promise.race([initialized.promise, result]), undefined);
+  return { result };
+}
+
+async function verifyRefillExpiryDuringFreeze(custody, pending, freezeStartedAtMs) {
+  const [result] = await pending.result;
+  assert.equal(result.status, 'rejected', 'An expired refill cannot complete during source freeze');
+  assert.match(String(result.reason), /ExpiredLocalRequest/);
+  const alarm = custody.alarms.at(-1);
+  assert.ok(alarm, 'The production alarm must run during source freeze');
+  assert.ok(alarm.startedAtMs >= freezeStartedAtMs);
+  assert.equal(alarm.status, 200);
+  await writeFile(resolve(output, 'presign-expiry-alarm.json'), JSON.stringify({
+    scope: 'Production presign alarm observed through a local test wrapper while source settlement waits for an unfinished NEAR signature.',
+    freezeStartedAtMs,
+    alarm,
+    lateRefillRejected: true,
+  }, null, 2));
 }
 
 async function verifyEcdsaAfterMove(custody) {

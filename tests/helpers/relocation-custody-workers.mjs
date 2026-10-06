@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Miniflare } from 'miniflare';
+import { observePresignAlarms } from './presign-alarm-observer.mjs';
 
 // Tenant root authority stays shared. Wallet objects and SigningWorker stores
 // have separate source and destination namespaces.
@@ -30,6 +31,11 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       TENANT_ROOT_CONTROL_PLANE: 'tenant-root-control-plane',
     },
   };
+  const alarms = [];
+  const sourceSigningWorker = api.signingWorker('fixture-signing-worker', 'source-signing-worker', fixture);
+  const observedSigningWorker = includeEcdsa
+    ? await observePresignAlarms(publicRoot, sourceSigningWorker, alarms)
+    : sourceSigningWorker;
   const topology = new Miniflare({
     rootPath: publicRoot,
     workers: [
@@ -37,7 +43,7 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       sourceA,
       sourceB,
       api.tenantRootControlPlaneWorker(fixture),
-      api.signingWorker('fixture-signing-worker', 'source-signing-worker', fixture),
+      observedSigningWorker,
       destinationRouter,
       {
         ...sourceA,
@@ -134,7 +140,7 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       );
       objects.push({ binding, source, destination, independentNamespaces: true });
     }
-    return { topology, fixture, roots, registration, objects, releaseFaultProbe, ecdsa };
+    return { topology, fixture, roots, registration, objects, releaseFaultProbe, ecdsa, alarms };
   } catch (error) {
     await topology.dispose();
     throw error;

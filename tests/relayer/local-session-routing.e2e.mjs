@@ -27,6 +27,7 @@ const bundle = await build({
     contents: `
     export { findLocalSessionWallet } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/localSessionRouting';
     export { resolveGatewayDeployment } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
+    export { WalletRegionalDispatch } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
@@ -55,6 +56,21 @@ class UnavailableConsole {
   async fetch() {
     this.calls += 1;
     return new Response(null, { status: 503 });
+  }
+}
+class RegionalDestination {
+  calls = 0;
+  constructor(routing) {
+    this.routing = routing;
+  }
+  async fetch(request) {
+    this.calls += 1;
+    assert.equal(request.headers.get('x-seams-wallet-forwarded'), '1');
+    assert.equal(request.headers.has('x-seams-wallet-region'), false);
+    const result = await api.resolveGatewayDeployment({ ...this.routing, request });
+    assert.equal(result.kind, 'ready');
+    assert.equal(result.session.kind, 'local');
+    return Response.json({ walletId: result.session.wallet.walletId });
   }
 }
 function digest(value) {
@@ -123,7 +139,12 @@ try {
     writer: { role: 'gateway', versionId: crypto.randomUUID(), resource: binding.resources[0] },
     deploymentLane: binding.deploymentLane,
     service: consoleService,
-    catalogJson: '{}',
+    catalogJson: JSON.stringify(
+      binding.resources.map((resource, index) => ({
+        ...resource,
+        region: ['US', 'WEUR', 'APAC', 'OC'][index],
+      })),
+    ),
     timingHeaders: new Headers(),
   };
   const request = new Request('https://gateway.test/router-ab/ecdsa-derivation/sign/prepare', {
@@ -208,6 +229,56 @@ try {
     'rejected',
   );
   assert.equal(consoleService.calls, 1);
+  const hinted = new Request(request, {
+    headers: {
+      Authorization: `Bearer ${issued.operationCredential.token}`,
+      'x-seams-wallet-region': 'WEUR',
+    },
+  });
+  const travel = await api.resolveGatewayDeployment({ ...routing, request: hinted });
+  assert.equal(travel.kind, 'forward');
+  assert.equal(travel.home.region, 'WEUR');
+  const destination = new RegionalDestination(routing);
+  const transport = new api.WalletRegionalDispatch({
+    WALLET_GATEWAY_US: destination,
+    WALLET_GATEWAY_WEUR: destination,
+    WALLET_GATEWAY_APAC: destination,
+    WALLET_GATEWAY_OC: destination,
+  });
+  const forwarded = await transport.forward(travel.home, hinted);
+  assert.equal(forwarded.status, 200);
+  assert.equal((await forwarded.json()).walletId, issued.session.walletId);
+  assert.equal(destination.calls, 1);
+  const loop = new Request(hinted, {
+    headers: {
+      ...Object.fromEntries(hinted.headers),
+      'x-seams-wallet-forwarded': '1',
+    },
+  });
+  assert.equal(
+    (await api.resolveGatewayDeployment({ ...routing, request: loop })).response.status,
+    409,
+  );
+  const missingAtHome = new Request(unknown, {
+    headers: {
+      ...Object.fromEntries(unknown.headers),
+      'x-seams-wallet-region': 'US',
+    },
+  });
+  const missing = await api.resolveGatewayDeployment({ ...routing, request: missingAtHome });
+  assert.equal(missing.response.status, 409);
+  assert.equal((await missing.response.json()).code, 'wallet_home_discovery_required');
+  const invalidHint = new Request(request, {
+    headers: {
+      ...Object.fromEntries(request.headers),
+      'x-seams-wallet-region': 'https://untrusted.test',
+    },
+  });
+  assert.equal(
+    (await api.resolveGatewayDeployment({ ...routing, request: invalidHint })).response.status,
+    400,
+  );
+  assert.equal(consoleService.calls, 1);
   const evidence = {
     kind: 'local_session_routing_evidence_v1',
     productionBundleSha256: createHash('sha256').update(bundle.outputFiles[0].text).digest('hex'),
@@ -219,6 +290,11 @@ try {
     retiredCredentialAuthorizationRejected: true,
     quotaPreserved: 3,
     unknownCredentialDiscoveryCalls: 1,
+    hintedTravelConsoleCalls: 0,
+    forwardingLoopRejected: true,
+    destinationHandlesForwardedCredentialLocally: true,
+    missingHintedCredentialRequiresExplicitDiscovery: true,
+    arbitraryRoutingTargetRejected: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(`Local session routing passed: ${resolve(output, 'evidence.json')}`);

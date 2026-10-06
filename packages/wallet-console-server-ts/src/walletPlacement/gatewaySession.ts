@@ -8,7 +8,7 @@ import {
 } from '../tenantDeployment/runtimeBinding';
 import { forwardTenantDeploymentD1Timing } from '../tenantDeployment/bindingTiming';
 import { D1WalletHomeDirectory } from './d1';
-import { WalletHomeCatalog } from './home';
+import { WalletHomeCatalog, type WalletHome } from './home';
 import { D1WalletSessionLocators, SessionLocator } from './sessionLocators';
 import { assignmentFromResponse } from './serviceClient';
 import { WALLET_HOME_SERVICE_BASE_PATH, WALLET_HOME_SERVICE_ORIGIN } from './service';
@@ -44,6 +44,7 @@ export async function gatewaySessionResponse(
 }
 
 type GatewayDeploymentResolution =
+  | { readonly kind: 'forward'; readonly home: WalletHome }
   | {
       readonly kind: 'ready';
       readonly binding: TenantDeploymentBindingV1;
@@ -80,9 +81,34 @@ export async function resolveGatewayDeployment(input: {
     return { kind: 'ready', binding: input.binding, session };
   }
   try {
+    const region = input.request.headers.get('x-seams-wallet-region');
+    if (region !== null) {
+      if (region !== 'US' && region !== 'WEUR' && region !== 'APAC' && region !== 'OC') {
+        return rejected(400, 'invalid_wallet_region');
+      }
+      const catalog = WalletHomeCatalog.parse(JSON.parse(input.catalogJson));
+      if (!catalog.matchesResources(input.binding.resources)) {
+        return rejected(503, 'wallet_home_resources_unverified');
+      }
+      const home = catalog.select(region);
+      if (
+        home.accountId !== input.writer.resource.accountId ||
+        home.databaseId !== input.writer.resource.databaseId
+      ) {
+        if (input.request.headers.has('x-seams-wallet-forwarded')) {
+          return rejected(409, 'wallet_home_mismatch');
+        }
+        return { kind: 'forward', home };
+      }
+    }
     const wallet = await findLocalSessionWallet(input.database, input.binding.tenant, session.locator);
     if (wallet) {
       return { kind: 'ready', binding: input.binding, session: { kind: 'local', wallet } };
+    }
+    // A selected home must authenticate locally. Route misses require explicit
+    // discovery; they must not turn an ordinary request into region probing.
+    if (region !== null || input.request.headers.has('x-seams-wallet-forwarded')) {
+      return rejected(409, 'wallet_home_discovery_required');
     }
     const response = await input.service.fetch(
       new Request(`${WALLET_HOME_SERVICE_ORIGIN}${GATEWAY_SESSION_PATH}`, {

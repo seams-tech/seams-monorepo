@@ -92,6 +92,12 @@ async function handleGatewayRequest(
     service: env.WALLET_CONSOLE,
     timingHeaders: bindingTimingHeaders,
   });
+  if (deployment.kind === 'forward') {
+    const forwarded = await new WalletRegionalDispatch(env).forward(deployment.home, request);
+    const response = new Response(forwarded.body, forwarded);
+    withCors(response.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    return response;
+  }
   if (deployment.kind === 'rejected') {
     withCors(
       deployment.response.headers,

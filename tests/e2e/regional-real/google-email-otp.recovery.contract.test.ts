@@ -117,6 +117,7 @@ async function verifyEmailOtpBudgetAndStepUp(
       contentType: 'application/json',
     });
     await harness.attachTrace(testInfo);
+    await context.unrouteAll({ behavior: 'wait' });
     await scenario.close();
   }
 }

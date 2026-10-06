@@ -267,6 +267,31 @@ async function relocationCommand(
   return responseBody(response);
 }
 
+async function runtimeSourceCommand(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt,
+  operation: 'ed25519-settle' | 'ed25519-capture' | 'ecdsa-freeze',
+  home = source,
+  role = 'walletRuntime',
+) {
+  const service = await runtime.getWorker('ingress-b');
+  const response = await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-runtime-source',
+    {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': role,
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, role),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, operation }),
+    },
+  );
+  return responseBody(response);
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -715,6 +740,37 @@ test('relocation directory serializes competing moves and survives lost replies 
     const freezeAttempt = attemptFromResponse(await responseBody(claimRace[1]));
     expect(freezeAttempt.number).toBe(1);
     const freezeCommand = await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze');
+    const runtimeSettlement = await runtimeSourceCommand(runtime, request, freezeAttempt, 'ed25519-settle');
+    expect(runtimeSettlement).toEqual({
+      ok: true,
+      command: {
+        operation: 'ed25519-settle',
+        payload: {
+          scope: {
+            org_id: request.wallet.organizationId,
+            project_id: request.wallet.projectId,
+            project_environment_id: request.wallet.environmentId,
+            wallet_id: request.wallet.walletId,
+          },
+          request: { move_id: request.moveId, source_generation: 1, invalidated_at_ms: admittedAtMs },
+        },
+      },
+    });
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ed25519-settle')).toEqual(runtimeSettlement);
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ed25519-capture')).toMatchObject({
+      ok: true, command: { operation: 'ed25519-capture', payload: { command: 'capture' } },
+    });
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ecdsa-freeze')).toMatchObject({
+      ok: true, command: { operation: 'ecdsa-freeze' },
+    });
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ecdsa-freeze', destination)).toEqual({
+      ok: false, code: 'participant_conflict',
+    });
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ecdsa-freeze', source, 'gateway')).toEqual({
+      ok: false, code: 'participant_conflict',
+    });
+    observations.push({ runtimeSourceCommandsUsePinnedJournalIdentity: true });
+
     expect(
       await relocationCommand(
         runtime,

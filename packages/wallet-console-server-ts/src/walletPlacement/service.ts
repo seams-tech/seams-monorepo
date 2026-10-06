@@ -1,3 +1,4 @@
+import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
 import { WalletExecutionAuthority } from './executionAuthority';
 import {
   WalletAuthorizationManifest,
@@ -126,6 +127,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
@@ -167,6 +169,7 @@ export async function handleWalletHomeServiceRequest(
     if (
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`
     ) {
@@ -185,6 +188,16 @@ export async function handleWalletHomeServiceRequest(
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
         return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source`) {
+        if (Object.keys(body).length !== 3)
+          throw new WalletPlacementError('invalid_input', 'Runtime source command fields are invalid');
+        const result = await authorizeWalletRuntimeSourceCommand(
+          options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt),
+          parseWalletRuntimeSourceOperation(body.operation),
+        );
+        return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`) {
         if (Object.keys(body).length !== 3)

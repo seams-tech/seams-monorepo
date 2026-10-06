@@ -124,6 +124,18 @@ export async function approveRelocationOwner(context, move, candidate) {
   const approvals = new api.D1WalletRelocationApprovals(database, scope);
   const result = await approvals.approvePasskey({ owner, binding, credential, nowMs: Date.now() });
   assert.equal(result.kind, 'approved');
+  return {
+    authority: fixture.authority,
+    authMethod: fixture.authMethod,
+    activeWalletSession: api.projectActiveWalletSession(issued),
+    operationCredential: {
+      kind: 'opaque_wallet_session_operation_credential_v1',
+      ownershipGeneration: 1,
+      home: { kind: 'regional', region: 'WEUR' },
+      token: issued.operationCredential.token,
+      walletSessionId: issued.session.walletSessionId,
+    },
+  };
 }
 
 function relocationAssertion(privateKey, method, challenge, origin) {

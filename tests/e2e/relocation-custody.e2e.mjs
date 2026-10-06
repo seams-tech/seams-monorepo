@@ -1,3 +1,4 @@
+import { createRelocationBrowserSession } from '../helpers/relocation-browser-session.mjs';
 import {
   prepareSigningBeforeMove,
   finalizeWhileMoveWaits,
@@ -50,6 +51,7 @@ async function verifyCoordinatorBindings(custody) {
     custody,
     output,
   });
+  let browserSession = null;
   try {
     const { api, database, catalog, wallet, bindings } = context;
     const now = Date.now();
@@ -120,7 +122,8 @@ async function verifyCoordinatorBindings(custody) {
     assert.equal(response.status, 409, await response.clone().text());
     assert.equal(bindings.runtimes.WEUR.env.MPC_ROUTER.calls, 0);
     assert.ok(context.directory.requests.some(isSourceAdmission));
-    await approveRelocationOwner(context, move, candidate);
+    const owner = await approveRelocationOwner(context, move, candidate);
+    browserSession = await createRelocationBrowserSession({ candidate, output, owner });
     const pendingSignature = await prepareSigningBeforeMove(custody, publicRoot);
     const approved = await journal.admit(move, verifications, 'test', bindings, Date.now);
     assert.equal(approved.ok, true, JSON.stringify(approved));
@@ -128,10 +131,26 @@ async function verifyCoordinatorBindings(custody) {
     const paused = await journal.find(move);
     assert.equal(paused.progress.state, 'freezing');
     assert.equal(paused.progress.execution.state, 'running');
+    assert.deepEqual(await browserSession.observe(first.result), {
+      state: 'moving',
+      authentication: 'authenticated',
+      lockRequests: 0,
+    });
     const settlement = bindings.runtimes.WEUR.observations.find(isPendingEd25519Settlement);
     assert.ok(settlement, 'A real unfinished NEAR round must block source settlement');
     const recovered = await finalizeWhileMoveWaits(pendingSignature);
-    await advanceRelocation(context, journal, move, [first]);
+    const completed = await advanceRelocation(context, journal, move, [first]);
+    assert.deepEqual(await browserSession.observe(completed), {
+      state: 'completed',
+      authentication: 'signed_out',
+      lockRequests: 1,
+    });
+    assert.deepEqual(await browserSession.observe(completed), {
+      state: 'completed',
+      authentication: 'signed_out',
+      lockRequests: 1,
+    });
+    await browserSession.verifyReload();
     const stale = await verifySigningReplayAfterMove(
       pendingSignature,
       custody,
@@ -203,6 +222,7 @@ async function verifyCoordinatorBindings(custody) {
       ),
     );
   } finally {
+    if (browserSession) await browserSession.close();
     await context.storage.dispose();
   }
 }
@@ -221,7 +241,7 @@ async function advanceRelocation(context, journal, move, observations) {
     );
     assert.equal(status, 200, JSON.stringify(body));
     const current = await journal.find(move);
-    if (current.progress.state === 'completed') return;
+    if (current.progress.state === 'completed') return body;
     assert.ok(
       ['ready', 'running'].includes(current.progress.execution.state),
       JSON.stringify(body),

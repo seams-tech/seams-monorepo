@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import {
   RegistrationSetupAllocation,
   WalletHome,
+  WalletHomeCatalog,
   WalletOwnershipKey,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import {
@@ -2275,6 +2276,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     }));
     const assembledCleanup = await verifyCleanupAssembly(
       await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated, attemptFromResponse(cleanupClaim),
+      WalletHomeCatalog.parse([source, destination, thirdHome, apacHome]),
     );
     const coordinatorCompleted = await responseBody(
       await call(runtime, {
@@ -2337,6 +2339,8 @@ test('relocation directory serializes competing moves and survives lost replies 
         activationRequiresDurableNativeReceipts: true,
         cleanupRequiresExactParticipantReceipts: true,
         cleanupReplaysWithoutDestinationCalls: true,
+        productionAdvanceEndpointCompletesCleanup: true,
+        advanceRejectsCrossTenantScope: true,
         lostActivationReplySkipsRecordedParticipant: true,
         verifiedReceiptReplaysWithoutRegionalCalls: true,
         sealedSourceReplaySkipsUnavailableParticipants: true,

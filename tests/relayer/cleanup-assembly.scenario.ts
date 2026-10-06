@@ -1,3 +1,5 @@
+import type { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { handleWalletRelocationAdvance, WALLET_RELOCATION_ADVANCE_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationService';
 import { expect } from '@playwright/test';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { WalletRelocationCleanup } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCleanup';
@@ -63,7 +65,7 @@ class CleanupRuntime {
 
 function cleanupClock(admittedAtMs: number): number { return admittedAtMs + 1600; }
 
-export async function verifyCleanupAssembly(database: D1DatabaseLike, request: WalletRelocationRequest, attempt: WalletRelocationAttempt) {
+export async function verifyCleanupAssembly(database: D1DatabaseLike, request: WalletRelocationRequest, attempt: WalletRelocationAttempt, catalog: WalletHomeCatalog) {
   const move = await readWalletRelocation(database, request);
   if (!move || move.progress.state !== 'cutover' || move.progress.activation.state !== 'activated')
     throw new Error('Cleanup requires an active destination');
@@ -95,11 +97,27 @@ export async function verifyCleanupAssembly(database: D1DatabaseLike, request: W
   expect(await restarted.cleanup(context, activation)).toEqual({ state: 'pending' });
   expect(native.cleaned.size).toBe(6);
   gateway.pending = false;
+  const scope = { namespace: move.wallet.namespace, organizationId: move.wallet.organizationId,
+    projectId: move.wallet.projectId, environmentId: move.wallet.environmentId };
+  const bindings = { gateways: dispatch, runtimes: { US: unused, WEUR: native, APAC: unused, OC: unused } };
+  const options = { database, catalog, scope, bindings, clock };
+  const body = JSON.stringify({ wallet: move.wallet, moveId: move.moveId, attemptId: attempt.id });
+  const denied = await handleWalletRelocationAdvance(new Request(WALLET_RELOCATION_ADVANCE_URL, { method: 'POST', body }), {
+    database, catalog, bindings, clock,
+    scope: { namespace: 'another-namespace', organizationId: scope.organizationId, projectId: scope.projectId, environmentId: scope.environmentId },
+  });
+  expect(denied.status).toBe(403);
+  const advanced = await handleWalletRelocationAdvance(new Request(WALLET_RELOCATION_ADVANCE_URL, { method: 'POST', body }), options);
+  expect(advanced.status).toBe(200);
+  const completed = await advanced.json();
+  expect(completed.state).toBe('completed');
   const cleaned = await restarted.cleanup(context, activation);
   expect(cleaned.state).toBe('cleaned');
   if (cleaned.state !== 'cleaned') throw new Error('Source cleanup did not finish');
   native.unavailable = true;
   gateway.corruptReceipt = true;
   expect(await restarted.cleanup(context, activation)).toEqual(cleaned);
+  const replay = await handleWalletRelocationAdvance(new Request(WALLET_RELOCATION_ADVANCE_URL, { method: 'POST', body }), options);
+  expect(await replay.json()).toEqual(completed);
   return cleaned.receipt;
 }

@@ -1,4 +1,4 @@
-import { recordRouterRelocationReceipt } from './routerRelocationReceipt';
+import { recordRouterRelocationReceipt, authorizeRouterExport } from './routerRelocationReceipt';
 import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
 import { WalletExecutionAuthority } from './executionAuthority';
 import {
@@ -128,6 +128,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
@@ -171,6 +172,7 @@ export async function handleWalletHomeServiceRequest(
     if (
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` ||
@@ -191,6 +193,13 @@ export async function handleWalletHomeServiceRequest(
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
         return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export`) {
+        if (Object.keys(body).length !== 4)
+          throw new WalletPlacementError('invalid_input', 'Router export fields are invalid');
+        const result = await authorizeRouterExport(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt), body.recordIndex, body.segmentIndex);
+        return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt`) {
         if (Object.keys(body).length !== 3)

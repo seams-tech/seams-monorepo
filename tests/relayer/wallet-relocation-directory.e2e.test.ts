@@ -322,6 +322,23 @@ async function routerSourceReceipt(
   ));
 }
 
+async function routerExportCommand(runtime: Miniflare, request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt, recordIndex: number, home = source) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-export', {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, recordIndex, segmentIndex: 0 }),
+    },
+  ));
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -820,6 +837,9 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'b'.repeat(64))).toEqual({
       ok: false, code: 'receipt_conflict',
     });
+    expect(await routerExportCommand(runtime, request, freezeAttempt, 0)).toEqual({
+      ok: false, code: 'phase_conflict',
+    });
     observations.push({ routerSourceReceiptPreservesExactInventory: true });
     observations.push({ runtimeSourceCommandsUsePinnedJournalIdentity: true });
 
@@ -1018,6 +1038,15 @@ test('relocation directory serializes competing moves and survives lost replies 
       "copying",
       admittedAtMs + 100,
     );
+    const routerExport = await routerExportCommand(runtime, request, copyAttempt, 0);
+    expect(routerExport).toMatchObject({ ok: true, command: {
+      kind: 'export', record_index: 0, segment_index: 0, chunk_bytes: 4096,
+      receipt: { records_digest_hex: 'a'.repeat(64), record_count: 1 },
+    } });
+    expect(await routerExportCommand(runtime, request, copyAttempt, 0)).toEqual(routerExport);
+    expect(await routerExportCommand(runtime, request, copyAttempt, 1)).toEqual({ ok: false, code: 'invalid_cursor' });
+    expect(await routerExportCommand(runtime, request, copyAttempt, 0, destination)).toEqual({ ok: false, code: 'participant_conflict' });
+    observations.push({ routerExportUsesStoredReceipt: true });
     const exportCommand = await relocationCommand(
       runtime,
       request.wallet,

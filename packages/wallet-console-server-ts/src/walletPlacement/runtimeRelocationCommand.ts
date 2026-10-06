@@ -27,21 +27,23 @@ type Source = {
   };
 };
 
+export type RouterFreezeRequest = {
+  readonly owner: {
+    readonly org_id: string;
+    readonly project_id: string;
+    readonly env_id: string;
+    readonly wallet_id: string;
+  };
+  readonly move_id: string;
+  readonly request_digest_hex: string;
+  readonly source_generation: number;
+  readonly destination_generation: number;
+};
+
 type SourceCommand =
   | {
       readonly operation: 'router-freeze';
-      readonly payload: {
-        readonly owner: {
-          readonly org_id: string;
-          readonly project_id: string;
-          readonly env_id: string;
-          readonly wallet_id: string;
-        };
-        readonly move_id: string;
-        readonly request_digest_hex: string;
-        readonly source_generation: number;
-        readonly destination_generation: number;
-      };
+      readonly payload: RouterFreezeRequest;
     }
   | { readonly operation: 'ed25519-settle' | 'ecdsa-freeze'; readonly payload: Source }
   | {

@@ -1,6 +1,7 @@
 import { isPlainObject, type D1DatabaseLike, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import type { WalletOwnershipKey } from './home';
 import type { WalletRelocation } from './relocation';
+import type { NativeRelocationSnapshots } from './relocationManifest';
 import { PresignRelocationPreparation } from './presignPreparation';
 import type { WalletRelocationAttempt, WalletRelocationFailure } from './relocationExecution';
 
@@ -10,16 +11,8 @@ type NativeSourceOperation = 'router-freeze' | 'ed25519-settle' | 'ecdsa-freeze'
 type Snapshot = { readonly receiptJson: string };
 type FreezeResult =
   | { readonly state: 'pending'; readonly snapshots?: never; readonly code?: never }
-  | { readonly state: 'frozen'; readonly snapshots: RuntimeSnapshots; readonly code?: never }
+  | { readonly state: 'frozen'; readonly snapshots: NativeRelocationSnapshots; readonly code?: never }
   | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly snapshots?: never };
-type RuntimeSnapshots = {
-  readonly router: Snapshot;
-  readonly deriverA: Snapshot;
-  readonly deriverB: Snapshot;
-  readonly ed25519: Snapshot;
-  readonly ecdsa: Snapshot;
-};
-
 class RuntimeFreezeFailure extends Error {
   constructor(readonly code: WalletRelocationFailure) {
     super(code);

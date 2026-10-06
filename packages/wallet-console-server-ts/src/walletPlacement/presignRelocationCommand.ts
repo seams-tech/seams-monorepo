@@ -1,8 +1,8 @@
-import { isPlainObject, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, queryD1One, queryD1All, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletPlacementError, type WalletOwnershipKey } from './home';
 import { WalletD1RelocationCommand } from './relocationCommands';
-import { relocationDigest, relocationTimestamp } from './relocation';
+import { relocationDigest, relocationTimestamp, type WalletRelocation } from './relocation';
 import type { WalletRelocationAttempt } from './relocationExecution';
 import { authorizeWalletRuntimeSourceCommand } from './runtimeRelocationCommand';
 
@@ -174,4 +174,45 @@ export async function authorizePresignTransfer(
       throw new Error(`Unknown presign transfer request: ${String(unexpected)}`);
     }
   }
+}
+
+export async function readPresignSnapshotInventory(database: D1DatabaseLike, move: WalletRelocation) {
+  const wallet = move.wallet;
+  const rows = await queryD1All(database, `SELECT presign_session_id, receipt_json FROM wallet_presign_snapshots
+    WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+      AND wallet_id = ?5 AND move_id = ?6 ORDER BY presign_session_id`, [
+    wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId,
+  ]);
+  const sessions = [];
+  for (const row of rows) {
+    if (typeof row.receipt_json !== 'string') throw invalid('Stored presign snapshot is invalid');
+    const raw: unknown = JSON.parse(row.receipt_json);
+    if (!isPlainObject(raw) || !isPlainObject(raw.command)) throw invalid('Stored presign command is invalid');
+    const session = {
+      presignSessionId: identity(row.presign_session_id),
+      serverPresignatureId: identity(raw.command.server_presignature_id),
+    };
+    const receipt = parseReceipt(raw, {
+      wallet_scope: { org_id: wallet.organizationId, project_id: wallet.projectId,
+        project_environment_id: wallet.environmentId, wallet_id: wallet.walletId },
+      request: { move_id: move.moveId, source_generation: move.sourceGeneration, invalidated_at_ms: move.admittedAtMs },
+      presign_session_id: session.presignSessionId, server_presignature_id: session.serverPresignatureId,
+    });
+    sessions.push({ session, receipt });
+  }
+  return sessions;
+}
+
+export function presignSnapshotMatches(raw: unknown, expected: ReturnType<typeof parseReceipt>): boolean {
+  try {
+    return JSON.stringify(parseReceipt(raw, expected.command)) === JSON.stringify(expected);
+  } catch {
+    return false;
+  }
+}
+
+export function presignInventoryJson(inventory: Awaited<ReturnType<typeof readPresignSnapshotInventory>>): string {
+  const receipts: string[] = [];
+  for (const entry of inventory) receipts.push(JSON.stringify(entry.receipt));
+  return JSON.stringify(receipts);
 }

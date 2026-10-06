@@ -300,8 +300,8 @@ export function ecdsaSnapshotFixture(request: WalletRelocationRequest, invalidat
 
 export function presignSnapshotFixture(request: WalletRelocationRequest, invalidatedAtMs: number, digest: string) {
   const source = ed25519SnapshotFixture(request, invalidatedAtMs, digest).source;
-  return { command: { wallet_scope: source.scope, request: source.request,
-    presign_session_id: 'linked-session', server_presignature_id: 'linked-server-presignature' },
+  return { command: { wallet_scope: source.scope,
+    presign_session_id: 'linked-session', server_presignature_id: 'linked-server-presignature', request: source.request },
     record_count: 2, records_digest_hex: digest };
 }
 

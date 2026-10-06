@@ -14,7 +14,7 @@ import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRel
 
 // The real journal supplies commands. These regional participants simulate durable
 // acknowledgements and lost responses; storage restoration has its own public E2E.
-class RegionalAuthorizationParticipant {
+export class RegionalAuthorizationParticipant {
   nextIndex = 0;
   verified = false;
   loseNextAcknowledgement = true;

@@ -1,3 +1,4 @@
+import { verifyTransferAssembly } from './transfer-assembly.scenario';
 import { verifyRuntimeTransferResume } from './runtime-transfer.scenario';
 import { verifySourceFreezeAssembly } from './source-freeze.scenario';
 import { verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
@@ -2169,6 +2170,9 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(pendingProgress.state).toBe('copying');
     expect(objectValue(pendingProgress.execution).state).toBe('running');
     observations.push(await verifyRuntimeTransferResume(coordinated, attemptFromResponse(pendingCopy), admittedAtMs));
+    const assembledVerification = await verifyTransferAssembly(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated, attemptFromResponse(pendingCopy),
+    );
     runtime = await restart(runtime, directory);
     expect(await responseBody(await call(runtime, {
       action: 'advance',
@@ -2182,7 +2186,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         action: "advance",
         request: coordinated,
         attemptId: attemptIdentity(),
-        receipt: relocationDestinationVerification(coordinated, admittedAtMs + 200, assembledFence.manifestDigest),
+        receipt: assembledVerification,
         nowMs: admittedAtMs + 210,
       }),
     );
@@ -2322,6 +2326,8 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({
       coordinator: {
         sourceReceiptAssembledFromParticipantSnapshots: true,
+        destinationVerificationRequiresMatchingSourceManifest: true,
+        verifiedReceiptReplaysWithoutRegionalCalls: true,
         sealedSourceReplaySkipsUnavailableParticipants: true,
         nativeParticipantsSimulated: true,
         lostFenceReplyResumesNextPhaseAfterRestart: true,

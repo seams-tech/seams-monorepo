@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -38,7 +40,7 @@ const bundle = await build({
     export { buildPMRedeemHostedWalletSeamsSessionPayload, parsePMRedeemHostedWalletSeamsSessionPayload } from './packages/wallet/src/SeamsWeb/walletIframe/shared/messages';
     export { projectActiveWalletSession } from './packages/wallet-server/src/authorization/domain';
     export { toStoredExactWalletSessionAuthorizationRowV6, parseStoredExactWalletSessionAuthorizationRowV6 } from './packages/wallet/src/core/indexedDB/seamsWalletDB/walletSessionAuthorizationStore';
-    export { buildWalletSessionAuthorizationHeaders } from './packages/wallet/src/core/rpcClients/relayer/relayerHttp';
+    export { buildWalletSessionAuthorizationHeaders, fetchWithWalletHomeDiscovery } from './packages/wallet/src/core/rpcClients/relayer/relayerHttp';
     export { AuthorizationService } from './packages/wallet-server/src/authorization/service';
     export { capabilityPolicyPort } from './packages/wallet-server/src/authorization/capabilityPolicy';
     export { parseSessionOrigin } from './packages/wallet-server/src/authorization/domain';
@@ -59,6 +61,61 @@ const runtime = new Miniflare({
   compatibilityDate: '2026-04-17',
   d1Databases: { SIGNER_DB: 'local-session-routing' },
 });
+const discoveryRequests = [];
+async function serveDiscoveryRequest(request, response) {
+  let body = '';
+  for await (const chunk of request) body += chunk.toString();
+  discoveryRequests.push({ path: request.url, body, headers: request.headers });
+  const unauthorized = request.url === '/unauthorized';
+  const refuse = request.url === '/persistent' || request.headers['x-seams-wallet-region'];
+  let status = 200;
+  let code = 'ok';
+  if (unauthorized) {
+    status = 401;
+    code = 'unauthorized';
+  } else if (refuse) {
+    status = 409;
+    code = 'wallet_home_discovery_required';
+  }
+  response.writeHead(status, { 'Content-Type': 'application/json' });
+  response.end(JSON.stringify({ code }));
+}
+async function verifyBoundedDiscovery() {
+  const server = createServer(serveDiscoveryRequest);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  try {
+    for (const path of ['/recover', '/unauthorized', '/persistent']) {
+      const start = discoveryRequests.length;
+      const response = await api.fetchWithWalletHomeDiscovery(new Request(
+        `http://127.0.0.1:${address.port}${path}`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer test-session', 'X-Seams-Wallet-Region': 'WEUR' },
+          body: JSON.stringify({ operationId: 'fixed-operation', payload: 'unchanged' }),
+        },
+      ));
+      const expectedStatus = new Map([['/recover', 200], ['/unauthorized', 401], ['/persistent', 409]]);
+      assert.equal(response.status, expectedStatus.get(path));
+      const requests = discoveryRequests.slice(start);
+      assert.equal(requests.length, path === '/unauthorized' ? 1 : 2);
+      for (const observed of requests) {
+        assert.equal(observed.body, requests[0].body);
+        assert.equal(observed.headers.authorization, 'Bearer test-session');
+      }
+      if (requests.length === 2) assert.equal(requests[1].headers['x-seams-wallet-region'], undefined);
+      await response.arrayBuffer();
+    }
+  } finally {
+    server.closeAllConnections();
+    const closed = once(server, 'close');
+    server.close();
+    await closed;
+  }
+}
+await verifyBoundedDiscovery();
+
 class UnavailableConsole {
   calls = 0;
   async fetch() {
@@ -523,6 +580,7 @@ try {
     completedRegistrationAdmissionUsesLocalState: true,
     registrationTerminalDecisionSurvivesLostReply: true,
     localRegistrationContinuationRouting: true,
+    explicitHomeDiscoveryRetriesOnceWithExactRequest: true,
     pendingRegistrationAdmissionSurvivesRestartWithoutConsole: true,
     terminalRegistrationAdmissionReconcilesLostReplies: true,
     cancelledRegistrationRejectsLateWritesAndRecreation: true,

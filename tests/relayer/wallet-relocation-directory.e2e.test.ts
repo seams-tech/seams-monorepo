@@ -340,7 +340,7 @@ async function routerExportCommand(runtime: Miniflare, request: WalletRelocation
 }
 
 async function routerDestinationCommand(runtime: Miniflare, request: WalletRelocationRequest,
-  attempt: WalletRelocationAttempt, operation: 'status' | 'verify' | 'import', home = destination) {
+  attempt: WalletRelocationAttempt, operation: 'status' | 'verify' | 'import' | 'activate', home = destination) {
   const service = await runtime.getWorker('ingress-b');
   return responseBody(await service.fetch(
     'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-destination', {
@@ -1083,6 +1083,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       receipt: { records_digest_hex: 'a'.repeat(64), record_count: 1 } } });
     expect(await routerDestinationCommand(runtime, request, copyAttempt, 'import')).toEqual(routerImport);
     expect(await routerDestinationCommand(runtime, request, copyAttempt, 'import', source)).toEqual({ ok: false, code: 'participant_conflict' });
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'activate')).toEqual({ ok: false, code: 'phase_conflict' });
     observations.push({ routerDestinationCommandsUsePinnedReceipt: true });
     observations.push({ routerExportUsesStoredReceipt: true });
     const exportCommand = await relocationCommand(
@@ -1291,6 +1292,13 @@ test('relocation directory serializes competing moves and survives lost replies 
       code: 'wallet_relocation_in_progress',
     });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    const routerActivation = await routerDestinationCommand(runtime, request, activationAttempt, 'activate');
+    expect(routerActivation).toMatchObject({ ok: true, command: { kind: 'activate', receipt: {
+      records_digest_hex: 'a'.repeat(64), request: { source_generation: 1, destination_generation: 2 },
+    } } });
+    expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate')).toEqual(routerActivation);
+    expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate', source)).toEqual({ ok: false, code: 'participant_conflict' });
+
     expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze')).toEqual({
       ok: false,
       code: 'attempt_conflict',

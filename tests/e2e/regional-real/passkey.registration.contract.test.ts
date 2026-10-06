@@ -11,7 +11,8 @@ const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = path.resolve(candidate, '../..');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const { intendedTest: test, IntendedBehaviourHarness } = await import(
+const { expect } = await import(pathToFileURL(path.join(publicRoot, 'node_modules/@playwright/test/index.mjs')).href);
+const { intendedTest: test, IntendedBehaviourHarness, requireNearSigningResult, verifyNearEd25519Signature, waitForWalletIframeConfirmationSettlement } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 
@@ -386,6 +387,9 @@ function isSuccessfulSigningFinalize(request: { path: string; status: number }):
 }
 
 class RegistrationProvisioningReplyLoss {
+  walletId = '';
+  nearAccountId = '';
+  publicKey = '';
   attempts = 0;
   statuses: number[] = [];
 
@@ -404,6 +408,9 @@ class RegistrationProvisioningReplyLoss {
     this.statuses.push(committed.status);
     assert.equal(committed.status, 200);
     const committedBody = await committed.json();
+    this.walletId = committedBody.walletId;
+    this.nearAccountId = committedBody.ed25519.nearAccountId;
+    this.publicKey = committedBody.ed25519.publicKey;
     const before = await readSigningBudgetSnapshot(this.scenario.gateways.get('US').database);
     this.scenario.beginConsoleOutage();
     const replay = await this.scenario.gateways.get('WEUR').handle(original.clone(), 'ingress');
@@ -430,38 +437,76 @@ class RegistrationProvisioningReplyLoss {
   }
 }
 
-test('NEAR provisioning reply loss resumes through another region during Console outage', async ({
-  harness, context,
-}, testInfo) => {
-  const output = path.resolve(root, '.artifacts/r155b/console-outage/registration-provisioning-retry');
-  const scenario = await createRegionalRealGateway({
-    root, candidate, lostAcknowledgements: 0,
-    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
-    output,
-  });
-  const fault = new RegistrationProvisioningReplyLoss(scenario);
-  try {
-    await scenario.routeContext(context, 'US');
-    await context.route('**/wallets/register/near-provisioning', fault.intercept.bind(fault));
-    await harness.registerPasskeyWallet();
-    await harness.awaitNearReady();
-    assert.equal(fault.attempts, 1);
-    for (const ingress of ['WEUR', 'APAC', 'OC']) {
-      await scenario.routeContext(context, ingress);
-      await harness.signNearTransaction('post_registration');
+for (const signerSet of ['mixed', 'near-only']) {
+  test(`${signerSet} NEAR provisioning reply loss resumes through another region during Console outage`, async ({
+    harness, context, page,
+  }, testInfo) => {
+    const output = path.resolve(root, `.artifacts/r155b/console-outage/registration-provisioning-retry-${signerSet}`);
+    const scenario = await createRegionalRealGateway({
+      root, candidate, lostAcknowledgements: 0,
+      localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+      output,
+    });
+    const fault = new RegistrationProvisioningReplyLoss(scenario);
+    try {
+      await scenario.routeContext(context, 'US');
+      await context.route('**/wallets/register/near-provisioning', fault.intercept.bind(fault));
+      if (signerSet === 'near-only') {
+        await assert.rejects(harness.registerPasskeyEd25519YaoWallet(), /exact-method unlock/u);
+        assert.deepEqual(scenario.consoleService.requests, []);
+        await context.unroute('**/wallets/register/near-provisioning');
+        scenario.consoleService.available = true;
+        const recoveredUrl = new URL(page.url());
+        recoveredUrl.searchParams.set('nearAccountId', fault.nearAccountId);
+        await page.goto(recoveredUrl.href);
+        await expect(page.getByTestId('intended-e2e-page')).toHaveAttribute('data-login-state', 'logged_out');
+        await page.getByLabel('Wallet to unlock', { exact: true }).fill(fault.walletId);
+        await page.getByLabel('Require NEAR', { exact: true }).check();
+        await page.getByRole('button', { name: 'Unlock wallet', exact: true }).click();
+        const recovery = page.getByTestId('wallet-unlock-result');
+        await expect(recovery).toHaveAttribute('data-state', 'unlocked', { timeout: 60_000 });
+        const recovered = JSON.parse(await recovery.innerText());
+        assert.equal(recovered.result.walletId, fault.walletId);
+        assert.equal(recovered.result.success, true);
+        scenario.beginConsoleOutage();
+      } else {
+        await harness.registerPasskeyWallet();
+        await harness.awaitNearReady();
+      }
+      assert.equal(fault.attempts, 1);
+      for (const ingress of ['WEUR', 'APAC', 'OC']) {
+        await scenario.routeContext(context, ingress);
+        if (signerSet === 'near-only') {
+          await page.getByTestId('intended-sign-near').click();
+          const confirm = page.frameLocator('iframe.seams-wallet-overlay-iframe')
+            .locator('#seams-confirm-portal button.btn-confirm, #seams-confirm-portal button.confirm').last();
+          await confirm.click({ timeout: 30_000 });
+          const result = page.getByTestId('intended-result-json');
+          await expect(result).toContainText('near_sign_success', { timeout: 60_000 });
+          const signed = requireNearSigningResult(JSON.parse(await result.innerText()), {
+            walletId: fault.walletId, nearAccountId: fault.nearAccountId,
+          });
+          await verifyNearEd25519Signature({ registration: { operationalPublicKey: fault.publicKey }, result: signed });
+          await waitForWalletIframeConfirmationSettlement(page);
+        } else {
+          await harness.signNearTransaction('post_registration');
+        }
+      }
+      await scenario.verifyConsoleOutage('ed25519');
+      await writeFile(path.join(output, 'registration-retry.json'), JSON.stringify({
+        scope: 'The harness discards the committed provisioning reply and retries the identical request before delivering the replay to the SDK.',
+        signerSet,
+        exactMethodUnlockRequired: signerSet === 'near-only',
+        statuses: fault.statuses,
+        sameWalletAndSigner: true,
+        unchangedBudgetAndOperations: true,
+        verifiedSignatures: 3,
+        attemptedConsoleCalls: scenario.consoleService.requests.length,
+      }, null, 2));
+      harness.assertNoLifecycleViolations();
+    } finally {
+      await harness.attachTrace(testInfo);
+      await scenario.close();
     }
-    await scenario.verifyConsoleOutage('ed25519');
-    await writeFile(path.join(output, 'registration-retry.json'), JSON.stringify({
-      scope: 'The harness discards the committed provisioning reply and retries the identical request before delivering the replay to the SDK.',
-      statuses: fault.statuses,
-      sameWalletAndSigner: true,
-      unchangedBudgetAndOperations: true,
-      verifiedSignatures: 3,
-      attemptedConsoleCalls: scenario.consoleService.requests.length,
-    }, null, 2));
-    harness.assertNoLifecycleViolations();
-  } finally {
-    await harness.attachTrace(testInfo);
-    await scenario.close();
-  }
-});
+  });
+}

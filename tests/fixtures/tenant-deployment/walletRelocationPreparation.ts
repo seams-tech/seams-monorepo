@@ -1,3 +1,5 @@
+import { GatewayRelocationOwnerApproval } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
+import { WalletRegionalDispatch } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import { WalletRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
 
 type Participants = Parameters<typeof WalletRelocationPreparation.prepare>[1];
@@ -49,15 +51,54 @@ export function relocationFixtureClock(nowMs: number): number {
 }
 
 // The source proof is synthetic here; public Wallet E2Es own factor verification.
-export class RelocationFixtureOwnerApproval {
+class RelocationFixtureApprovalGateway {
   private reads = 0;
-  constructor(private readonly nowMs: number, private readonly mode: unknown) {}
-  async read(request: Command['request']): Promise<unknown> {
+
+  constructor(
+    private readonly nowMs: number,
+    private readonly mode: unknown,
+    private readonly request: Command['request'],
+  ) {}
+
+  async fetch(input: Request): Promise<Response> {
+    const body = await input.json();
+    const expected = {
+      walletId: this.request.wallet.walletId,
+      moveId: this.request.moveId,
+      requestDigest: await this.request.digest(),
+      authorityId: this.request.authorityId,
+      sourceGeneration: this.request.expectedGeneration,
+    };
+    if (
+      input.url !== 'https://wallet-relocation.internal/internal/wallet-relocation/v1/authorization/owner-approval' ||
+      input.method !== 'POST' ||
+      JSON.stringify(body) !== JSON.stringify(expected)
+    ) return new Response(null, { status: 400 });
     this.reads += 1;
-    if (this.mode === 'denied' || (this.mode === 'revoked_during_preparation' && this.reads > 1))
-      return { kind: 'denied' };
-    return { kind: 'approved', requestDigest: await request.digest(), authorityId: request.authorityId,
-      sourceGeneration: request.expectedGeneration, approvedAtMs: this.nowMs,
-      expiresAtMs: this.mode === 'expired' ? this.nowMs : this.nowMs + 300_000 };
+    if (this.mode === 'denied' || (this.mode === 'revoked_during_preparation' && this.reads > 1)) {
+      return Response.json({ kind: 'denied' });
+    }
+    return Response.json({
+      kind: 'approved',
+      requestDigest: expected.requestDigest,
+      authorityId: expected.authorityId,
+      sourceGeneration: expected.sourceGeneration,
+      approvedAtMs: this.nowMs,
+      expiresAtMs: this.mode === 'expired' ? this.nowMs : this.nowMs + 300_000,
+    });
   }
+}
+
+export function relocationFixtureOwnerApproval(
+  request: Command['request'],
+  nowMs: number,
+  mode: unknown,
+): GatewayRelocationOwnerApproval {
+  const gateway = new RelocationFixtureApprovalGateway(nowMs, mode, request);
+  return new GatewayRelocationOwnerApproval(new WalletRegionalDispatch({
+    WALLET_GATEWAY_US: gateway,
+    WALLET_GATEWAY_WEUR: gateway,
+    WALLET_GATEWAY_APAC: gateway,
+    WALLET_GATEWAY_OC: gateway,
+  }));
 }

@@ -32,6 +32,7 @@ const bundle = await build({
     export { WalletOwnershipKey } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/home';
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
+    export { lifecycleWriteFenceStatements } from './packages/wallet-server/src/router/cloudflare/d1/ed25519Yao/d1Ed25519YaoStateWriteFence';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
     export { withCors } from './packages/wallet-server/src/router/framework/http';
     export { buildPMRedeemHostedWalletSeamsSessionPayload, parsePMRedeemHostedWalletSeamsSessionPayload } from './packages/wallet/src/SeamsWeb/walletIframe/shared/messages';
@@ -86,7 +87,8 @@ class UncertainRegistrationCompletion {
   }
 }
 
-async function verifyRegistrationTerminalDecision(database, scope, walletId, outcome) {
+async function verifyRegistrationTerminalDecision(database, scope, fixture, outcome) {
+  const walletId = fixture.authority.walletId;
   const directory = new UncertainRegistrationCompletion();
   const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
   const identity = { walletId, ceremonyId: `wrc_${digest(outcome)}` };
@@ -137,6 +139,11 @@ async function verifyRegistrationTerminalDecision(database, scope, walletId, out
        WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND record_id = ?5`,
     ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, identity.ceremonyId).run();
     await assert.rejects(insertCeremony.run(), /registration_cancelled/u);
+    await assert.rejects(database.batch(api.lifecycleWriteFenceStatements(
+      { database, scope }, new Set([walletId]),
+    )), /cas_guard/u);
+    await verifyCancelledSessionPublication(database, scope, fixture);
+
   }
 
   const row = await database
@@ -156,6 +163,42 @@ async function verifyRegistrationTerminalDecision(database, scope, walletId, out
   assert.deepEqual(await authority.complete({ ...identity, outcome }), { ok: true });
   assert.equal(directory.calls, 2);
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, outcome === 'established');
+}
+
+async function verifyCancelledSessionPublication(database, scope, fixture) {
+  await database.batch([
+    api.prepareD1WalletAuthorityPutStatement({ database, scope, authority: fixture.authority }),
+    api.prepareD1WalletAuthMethodV2PutStatement({ database, scope, record: fixture.authMethod }),
+  ]);
+  const store = new api.CloudflareD1AuthorizationStore({
+    database,
+    namespace: scope.namespace,
+    walletSignerScope: scope,
+  });
+  const service = new api.AuthorizationService({
+    policy: api.capabilityPolicyPort,
+    sessions: store,
+    grants: store,
+    evidence: store,
+    authorizedOperations: store,
+    audit: {},
+  });
+  await assert.rejects(service.issueDirectWalletSessionAuthorizationV2({
+    tenantId: fixture.issuedSession.session.tenantId,
+    principalId: fixture.issuedSession.session.principalId,
+    walletId: fixture.authority.walletId,
+    authority: fixture.authority,
+    walletAuthMethodId: fixture.authMethod.walletAuthMethodId,
+    mintId: fixture.issuedSession.session.mintId,
+    remainingUses: 3,
+    issuedAtMs: Date.now(),
+    expiresAtMs: fixture.issuedSession.session.expiresAtMs,
+  }), /registration_cancelled/u);
+  const row = await database.prepare(
+    `SELECT COUNT(*) AS count FROM wallet_session_authorizations_v2
+     WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ? AND wallet_id = ?`,
+  ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, fixture.authority.walletId).first();
+  assert.equal(row.count, 0);
 }
 
 class RegionalSessionPublication {
@@ -220,7 +263,7 @@ try {
     await verifyRegistrationTerminalDecision(
       database,
       { ...scope, namespace: `${scope.namespace}-${outcome}` },
-      terminalFixture.authority.walletId,
+      terminalFixture,
       outcome,
     );
   }
@@ -471,6 +514,7 @@ try {
     registrationTerminalDecisionSurvivesLostReply: true,
     localRegistrationContinuationRouting: true,
     cancelledRegistrationRejectsLateWritesAndRecreation: true,
+    cancelledRegistrationRejectsLifecycleWritesAndSessionPublication: true,
     conflictingRegistrationCompletionRejectedBeforeConsole: true,
     sessionlessContinuationHintUsesBoundedForwarding: true,
   };

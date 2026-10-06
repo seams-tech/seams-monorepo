@@ -270,3 +270,35 @@ The evidence verifier rejects missing manifests, dry-run manifests, failed
 commands, reconciliation mismatch rows, missing signer custody export-share
 evidence, wrong custody endpoint paths/statuses, mixed staging environments, and
 incomplete restore artifacts.
+
+## R155B shared Email OTP counters
+
+Regional Gateways require `EMAIL_OTP_RATE_LIMIT_DB`. All regions in one environment
+must bind the same dedicated D1 database. Apply `migrations/d1-email-otp-rate-limit`
+to that database. Keep Console and signer records in their existing databases.
+The staging example and readiness check include the required binding.
+
+The Gateway scopes counter keys with its admitted deployment tenant. The existing
+atomic D1 counter enforces the global limits. Counter storage failures reject the
+OTP action. There is no fallback to a regional counter or to Console.
+The Console `/internal/wallet-placement/v1/rate-limit` endpoint is removed.
+
+This change is prepared locally. No shared counter database has been provisioned.
+Before deployment, approve the dedicated database within the $25 Cloudflare budget.
+Bind every regional Gateway before accepting OTP traffic on this candidate.
+For a live cutover, preserve unexpired counters or pause OTP traffic until the
+maximum configured rate-limit window expires. Do not split traffic between old
+and new counter stores. Remove the obsolete Console counter table after all old
+Gateway versions stop serving traffic. Historical Console migrations remain
+unchanged until that deployment cutover is complete.
+
+Local verification uses `tests/e2e/regional-session-routing.e2e.mjs` and the
+Email OTP budget/step-up scenario in
+`tests/e2e/regional-real/google-email-otp.recovery.contract.test.ts`.
+
+On 2026-10-07, regional acceptance passed with 32 concurrent counter requests:
+12 accepted and 20 limited. Console outage, independent project scopes, and real
+counter-storage failure checks passed. Package type-check also passed.
+The browser step-up scenario delivered its OTP, then stopped because the development
+outbox lookup still needs Console wallet-home resolution. Full browser acceptance
+remains incomplete. See [sanitized evidence](docs/evidence/r155b-direct-otp-counters-20261007.json).

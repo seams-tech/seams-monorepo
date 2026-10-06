@@ -227,6 +227,7 @@ const bundle = await build({
     resolveDir: root,
     loader: 'ts',
     contents: `
+      export { createSharedEmailOtpRateLimitCounter } from './packages/wallet-console-server-ts/src/walletPlacement/sharedRateLimitCounter';
       export { createD1IdentityStore, createD1GoogleRegistrationAttempts, createD1EmailOtpRateLimits } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/auth/d1AuthorizationAssembly.ts'))};
       export { parseEmailOtpWalletEnrollmentRow } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
       export { parseGoogleLoginVerifyRequest } from ${JSON.stringify(resolve(candidate, 'src/router/auth/authRequestValidation.ts'))};
@@ -366,12 +367,17 @@ workers.push({
   modules: true,
   script: 'export default { fetch(request, env) { return env.HANDLER.fetch(request); } };',
   serviceBindings: { HANDLER: consoleBridge.fetch.bind(consoleBridge) },
-  d1Databases: { CONSOLE_DB: 'console' },
+  d1Databases: { CONSOLE_DB: 'console', EMAIL_OTP_RATE_LIMIT_DB: 'otp-counters' },
   compatibilityDate: '2026-06-12',
 });
 const runtime = new Miniflare({ workers, port: 0 });
 try {
   const authorityDatabase = await runtime.getD1Database('CONSOLE_DB', 'console');
+  const counterDatabase = await runtime.getD1Database('EMAIL_OTP_RATE_LIMIT_DB', 'console');
+  await migrate(
+    counterDatabase,
+    resolve(root, 'packages/wallet-console-server-ts/migrations/d1-email-otp-rate-limit'),
+  );
   await migrate(
     authorityDatabase,
     resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
@@ -641,8 +647,10 @@ try {
   });
   const rateLimits = await verifyRegionalRateLimits({
     api,
+    counterDatabase,
+    scope,
+    isolatedScope,
     bridges,
-    isolatedIdentity,
     consoleBridge,
     runtime,
   });

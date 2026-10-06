@@ -15,7 +15,6 @@ import { handleLinkedDeviceBootstrap } from './linkedDeviceBootstrap';
 import { D1LinkedDeviceRequestProofNonceStoreV1 } from '@seams/wallet-server/cloud-host';
 import { handleSyncChallengeCommand } from './syncChallenges';
 import { claimPasskeyCredential } from './passkeyClaims';
-import { consumeSharedRateLimit } from './rateLimitService';
 import { handleRegistrationOfferCommand } from './registrationOfferService';
 import { handleIdentityCommand } from './identityService';
 import { D1WalletRoutes, WalletRouteLocator } from './walletRouteLocators';
@@ -117,7 +116,6 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
@@ -489,8 +487,6 @@ export async function handleWalletHomeServiceRequest(
     }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge`)
       return handleSyncChallengeCommand(body, options.database, options.scope, options.writer);
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/rate-limit`)
-      return await consumeSharedRateLimit(body, options.database, options.scope);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer`) {
       return await handleRegistrationOfferCommand(
         body,

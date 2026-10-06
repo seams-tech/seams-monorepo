@@ -50,6 +50,7 @@ export async function createRegionalRealGateway({
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
         export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
+        export { createSharedEmailOtpRateLimitCounter } from './packages/wallet-console-server-ts/src/walletPlacement/sharedRateLimitCounter';
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
@@ -67,13 +68,25 @@ export async function createRegionalRealGateway({
   const runtime = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response(null, {status: 404}); } };',
-    d1Databases: { CONSOLE_DB: 'console', US: 'us', WEUR: 'weur', APAC: 'apac', OC: 'oc' },
+    d1Databases: {
+      EMAIL_OTP_RATE_LIMIT_DB: 'otp-counters',
+      CONSOLE_DB: 'console',
+      US: 'us',
+      WEUR: 'weur',
+      APAC: 'apac',
+      OC: 'oc',
+    },
     compatibilityDate: '2026-06-12',
     d1Persist: databaseState?.directory,
   });
   try {
     const consoleDatabase = await runtime.getD1Database('CONSOLE_DB');
+    const counterDatabase = await runtime.getD1Database('EMAIL_OTP_RATE_LIMIT_DB');
     if (databaseState?.mode !== 'reopen') {
+      await migrate(
+        counterDatabase,
+        resolve(root, 'packages/wallet-console-server-ts/migrations/d1-email-otp-rate-limit'),
+      );
       await migrate(
         consoleDatabase,
         resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
@@ -118,6 +131,7 @@ export async function createRegionalRealGateway({
     const environment = {
       ...variables,
       ...secrets,
+      EMAIL_OTP_RATE_LIMIT_DB: counterDatabase,
       WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
       MPC_ROUTER: routerFault,
       SIGNING_WORKER: new LocalRoleTransport('http://127.0.0.1:4105'),
@@ -448,7 +462,10 @@ class RealRegionalGateway {
               : undefined,
           identityStore,
           credentialClaims: identityStore,
-          emailOtpRateLimitCounter: identityStore.rateLimitCounter(),
+          emailOtpRateLimitCounter: this.api.createSharedEmailOtpRateLimitCounter(
+            this.environment.EMAIL_OTP_RATE_LIMIT_DB,
+            this.scope,
+          ),
           syncChallenges: identityStore.syncChallenges(),
           linkedDeviceBootstrap: identityStore.linkedDeviceBootstrap(),
           linkedDeviceProofNonces: identityStore.linkedDeviceProofNonces(),

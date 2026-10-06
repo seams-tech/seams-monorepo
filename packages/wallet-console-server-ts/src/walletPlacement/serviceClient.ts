@@ -13,7 +13,6 @@ import {
   type WebAuthnSyncChallengeStore,
 } from '@seams/wallet-server/cloud-host';
 import type { PasskeyCredentialClaims } from '@seams/wallet-server/cloud-host';
-import type { EmailOtpRateLimitCounter } from '@seams/wallet-server/cloud-host';
 import type { RegistrationOfferCommand } from './registrationOfferService';
 import type { IdentityCommand } from './identityService';
 import type { IdentityStore } from '@seams/wallet-server/cloud-host';
@@ -411,39 +410,6 @@ export class WalletHomeServiceClient
     if (response.status !== 200 || body.ok !== true)
       throw new Error(`Passkey ownership unavailable: HTTP ${response.status}`);
     return true;
-  }
-
-  rateLimitCounter(): EmailOtpRateLimitCounter {
-    return { consume: this.consumeRateLimit.bind(this) };
-  }
-
-  private async consumeRateLimit(
-    input: Parameters<EmailOtpRateLimitCounter['consume']>[0],
-  ): ReturnType<EmailOtpRateLimitCounter['consume']> {
-    const response = await this.post('rate-limit', input);
-    if (response.status !== 200)
-      throw new Error(`Shared rate limit unavailable: HTTP ${response.status}`);
-    const body = record(response.body);
-    if (body.ok === true) return { ok: true };
-    if (
-      body.ok !== false ||
-      body.code !== 'rate_limited' ||
-      typeof body.message !== 'string' ||
-      typeof body.retryAfterMs !== 'number' ||
-      !Number.isFinite(body.retryAfterMs) ||
-      body.retryAfterMs < 0 ||
-      typeof body.resetAtMs !== 'number' ||
-      !Number.isSafeInteger(body.resetAtMs) ||
-      body.resetAtMs <= 0
-    )
-      throw new Error('Invalid shared rate-limit response');
-    return {
-      ok: false,
-      code: 'rate_limited',
-      message: body.message,
-      retryAfterMs: body.retryAfterMs,
-      resetAtMs: body.resetAtMs,
-    };
   }
 
   async registrationOffer(command: RegistrationOfferCommand): Promise<Record<string, unknown>> {

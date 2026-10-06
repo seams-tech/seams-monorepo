@@ -12,11 +12,11 @@ const request = {
   providerSubject: 'google:rate-limit-owner',
 };
 
-function store(api, client) {
+function store(api, database, scope) {
   return api.createD1EmailOtpRateLimits(
     {
       emailOtp: { rateLimits: policies },
-      emailOtpRateLimitCounter: client.rateLimitCounter(),
+      emailOtpRateLimitCounter: api.createSharedEmailOtpRateLimitCounter(database, scope),
     },
     forbiddenRegionalPrepare,
   );
@@ -31,32 +31,53 @@ function succeeded(result) {
 export async function verifyRegionalRateLimits({
   api,
   bridges,
-  isolatedIdentity,
+  counterDatabase,
+  scope: tenantScope,
+  isolatedScope,
   consoleBridge,
   runtime,
 }) {
   let totalRequests = 0;
+  let accepted = 0;
   for (const scope of Object.keys(policies)) {
     const scopedRequest = { ...request, scope };
     const requests = [];
-    for (const bridge of bridges.values()) {
-      const limiter = store(api, bridge.publisher);
+    for (const _region of bridges.keys()) {
+      const limiter = store(api, counterDatabase, tenantScope);
       requests.push(limiter.consume(scopedRequest), limiter.consume(scopedRequest));
     }
     const results = await Promise.all(requests);
     totalRequests += results.length;
-    assert.equal(results.filter(succeeded).length, 3, scope);
+    const allowed = results.filter(succeeded).length;
+    assert.equal(allowed, 3, scope);
+    accepted += allowed;
     for (const result of results) {
       if (result.ok) continue;
       assert.equal(result.code, 'rate_limited');
       assert.ok(result.retryAfterMs > 0);
       assert.ok(result.resetAtMs > Date.now());
     }
-    assert.equal((await store(api, isolatedIdentity).consume(scopedRequest)).ok, true);
+    assert.equal(
+      (await store(api, counterDatabase, isolatedScope).consume(scopedRequest)).ok,
+      true,
+    );
   }
   consoleBridge.available = false;
   try {
-    await assert.rejects(store(api, bridges.get('US').publisher).consume(request));
+    assert.equal(
+      (
+        await store(api, counterDatabase, tenantScope).consume({
+          ...request,
+          action: 'console-outage',
+        })
+      ).ok,
+      true,
+    );
+    await counterDatabase.prepare('DROP TABLE email_otp_rate_limits').run();
+    await assert.rejects(
+      store(api, counterDatabase, tenantScope).consume(request),
+      /no such table: email_otp_rate_limits/,
+    );
   } finally {
     consoleBridge.available = true;
   }
@@ -70,12 +91,14 @@ export async function verifyRegionalRateLimits({
   }
   return {
     totalRequests,
-    accepted: 12,
-    limited: 12,
+    accepted,
+    limited: totalRequests - accepted,
     policyScopes: Object.keys(policies),
     projectScopesIndependent: true,
+    consoleOutageAccepted: true,
+    counterStorageFailureFailsClosed: true,
     outagesHaveNoRegionalFallback: true,
     scope:
-      'Production Email OTP policy/key generation and shared D1 counter through four admitted regional clients. Writer admission is fixture-controlled; hosted HTTP retry headers are outside this scenario.',
+      'Production Email OTP policy/key generation and isolated shared D1 counter across regional callers. Console is unavailable for the outage check. Hosted HTTP retry headers are outside this scenario.',
   };
 }

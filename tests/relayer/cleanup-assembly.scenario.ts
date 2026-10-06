@@ -15,6 +15,15 @@ import { relocationAuthorizationManifest } from '../fixtures/tenant-deployment/w
 import { routerSnapshotFixture, deriverSnapshotFixture, ed25519SnapshotFixture, ecdsaSnapshotFixture, presignSnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { RegionalLifecycleParticipant, UnusedRegionalParticipant } from './authorization-transfer.scenario';
 
+class CleanupGateway extends RegionalLifecycleParticipant {
+  override async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname.endsWith('/freeze')) {
+      throw new Error('Regional freeze unavailable for other wallets');
+    }
+    return super.fetch(request);
+  }
+}
+
 class CleanupRuntime {
   corrupt = true;
   pending = true;
@@ -75,7 +84,7 @@ export async function verifyCleanupAssembly(database: D1DatabaseLike, request: W
   const gatewayWriter = parseTenantRuntimeWriterV1('gateway', relocationWriterVersion(home.databaseId, 'gateway'), resource);
   const command = await WalletD1RelocationCommand.authorize(database, move.wallet, gatewayWriter, attempt, 'cleanup');
   if (!command.ok) throw new Error('Gateway cleanup authority missing');
-  const gateway = new RegionalLifecycleParticipant(command.command, relocationAuthorizationManifest());
+  const gateway = new CleanupGateway(command.command, relocationAuthorizationManifest());
   const unused = new UnusedRegionalParticipant();
   // The destination binding throws if called during cleanup.
   const dispatch = new WalletRegionalDispatch({ WALLET_GATEWAY_US: unused, WALLET_GATEWAY_WEUR: gateway,
@@ -107,6 +116,15 @@ export async function verifyCleanupAssembly(database: D1DatabaseLike, request: W
     scope: { namespace: 'another-namespace', organizationId: scope.organizationId, projectId: scope.projectId, environmentId: scope.environmentId },
   });
   expect(denied.status).toBe(403);
+  await resumeWalletRelocations({ database, catalog, bindings, clock, namespace: scope.namespace });
+  const deferredMove = await readWalletRelocation(database, request);
+  expect(deferredMove?.progress.state).toBe('cutover');
+  // The first four unavailable moves do not prevent the next batch from
+  // reaching cleanup. The original running attempt remains authoritative.
+  expect(deferredMove?.progress).toEqual(move.progress);
+  const waiting = await queryD1One(database, `SELECT COUNT(*) AS count FROM wallet_relocations
+    WHERE wallet_id LIKE 'scheduled-outage-%' AND execution_state = 'retry_wait'`, []);
+  expect(waiting?.count).toBe(4);
   await resumeWalletRelocations({ database, catalog, bindings, clock, namespace: scope.namespace });
   const resumedMove = await readWalletRelocation(database, request);
   expect(resumedMove?.progress.state).toBe('completed');

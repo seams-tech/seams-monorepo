@@ -2274,10 +2274,28 @@ test('relocation directory serializes competing moves and survives lost replies 
     const cleanupClaim = await responseBody(await call(runtime, {
       action: 'claim', request: coordinated, phase: 'cutover', attemptId: attemptIdentity(), nowMs: admittedAtMs + 1600,
     }));
+    // Older moves encounter unavailable regional participants. A bounded cron
+    // batch must still reach the wallet whose destination is already active.
+    for (let index = 0; index < 5; index += 1) {
+      const walletId = `scheduled-outage-${index}`;
+      await establish(runtime, walletId);
+      const stalled = relocation(walletId, destination);
+      expect(await responseBody(await call(runtime, {
+        action: 'admit', request: stalled, nowMs: admittedAtMs - 50 + index,
+      }))).toMatchObject({ ok: true, disposition: 'admitted' });
+    }
     const assembledCleanup = await verifyCleanupAssembly(
       await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated, attemptFromResponse(cleanupClaim),
       WalletHomeCatalog.parse([source, destination, thirdHome, apacHome]),
     );
+    observations.push({
+      scheduledFailureIsolation: {
+        precedingMoves: 5,
+        firstBatchFailures: 4,
+        deferredCleanupKeepsExactAttempt: true,
+        cleanupCompletedOnSecondTick: true,
+      },
+    });
     const coordinatorCompleted = await responseBody(
       await call(runtime, {
         action: "advance",

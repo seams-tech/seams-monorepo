@@ -7,7 +7,11 @@ import { WalletOwnershipKey, WalletPlacementError } from './home';
 import type { WalletRelocationAttempt } from './relocationExecution';
 import { readWalletPlacementStatus } from './relocationStatus';
 
-export type WalletRuntimeSourceOperation = 'ed25519-settle' | 'ed25519-capture' | 'ecdsa-freeze';
+export type WalletRuntimeSourceOperation =
+  | 'ed25519-settle'
+  | 'ed25519-capture'
+  | 'ecdsa-freeze'
+  | 'router-freeze';
 
 type Source = {
   readonly scope: {
@@ -24,6 +28,21 @@ type Source = {
 };
 
 type SourceCommand =
+  | {
+      readonly operation: 'router-freeze';
+      readonly payload: {
+        readonly owner: {
+          readonly org_id: string;
+          readonly project_id: string;
+          readonly env_id: string;
+          readonly wallet_id: string;
+        };
+        readonly move_id: string;
+        readonly request_digest_hex: string;
+        readonly source_generation: number;
+        readonly destination_generation: number;
+      };
+    }
   | { readonly operation: 'ed25519-settle' | 'ecdsa-freeze'; readonly payload: Source }
   | {
       readonly operation: 'ed25519-capture';
@@ -40,6 +59,7 @@ type Authorization =
 
 export function parseWalletRuntimeSourceOperation(raw: unknown): WalletRuntimeSourceOperation {
   switch (raw) {
+    case 'router-freeze':
     case 'ed25519-settle':
     case 'ed25519-capture':
     case 'ecdsa-freeze':
@@ -102,6 +122,25 @@ export async function authorizeWalletRuntimeSourceCommand(
     },
   };
   switch (operation) {
+    case 'router-freeze':
+      return {
+        ok: true,
+        command: {
+          operation,
+          payload: {
+            owner: {
+              org_id: wallet.organizationId,
+              project_id: wallet.projectId,
+              env_id: wallet.environmentId,
+              wallet_id: wallet.walletId,
+            },
+            move_id: move.moveId,
+            request_digest_hex: move.requestDigest,
+            source_generation: move.sourceGeneration,
+            destination_generation: move.destinationGeneration,
+          },
+        },
+      };
     case 'ed25519-settle':
     case 'ecdsa-freeze':
       return { ok: true, command: { operation, payload: source } };

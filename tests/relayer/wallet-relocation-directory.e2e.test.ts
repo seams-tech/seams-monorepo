@@ -271,7 +271,7 @@ async function runtimeSourceCommand(
   runtime: Miniflare,
   request: WalletRelocationRequest,
   attempt: WalletRelocationAttempt,
-  operation: 'ed25519-settle' | 'ed25519-capture' | 'ecdsa-freeze',
+  operation: 'ed25519-settle' | 'ed25519-capture' | 'ecdsa-freeze' | 'router-freeze',
   home = source,
   role = 'walletRuntime',
 ) {
@@ -769,6 +769,21 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'ecdsa-freeze', source, 'gateway')).toEqual({
       ok: false, code: 'participant_conflict',
     });
+    const routerFreeze = await runtimeSourceCommand(runtime, request, freezeAttempt, 'router-freeze');
+    expect(routerFreeze).toEqual({
+      ok: true,
+      command: {
+        operation: 'router-freeze',
+        payload: {
+          owner: { org_id: request.wallet.organizationId, project_id: request.wallet.projectId, env_id: request.wallet.environmentId, wallet_id: request.wallet.walletId },
+          move_id: request.moveId,
+          request_digest_hex: await request.digest(),
+          source_generation: 1,
+          destination_generation: 2,
+        },
+      },
+    });
+    expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'router-freeze')).toEqual(routerFreeze);
     observations.push({ runtimeSourceCommandsUsePinnedJournalIdentity: true });
 
     expect(

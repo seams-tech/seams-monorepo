@@ -43,6 +43,7 @@ class ObservedConsole {
 
 export async function verifyGatewaySessionLookup(
   database: D1DatabaseLike,
+  signerDatabase: D1DatabaseLike,
   service: { fetch(url: string, init: RequestInit): Promise<Response> },
   binding: TenantDeploymentBindingV1,
 ) {
@@ -95,6 +96,7 @@ export async function verifyGatewaySessionLookup(
   const observed = new ObservedConsole(service);
   const timingHeaders = new Headers();
   const input = {
+    database: signerDatabase,
     binding,
     request: new Request('https://gateway.test/router-ab/ecdsa-derivation/sign/prepare', {
       method: 'POST',

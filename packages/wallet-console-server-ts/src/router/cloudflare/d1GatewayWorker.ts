@@ -84,6 +84,7 @@ async function handleGatewayRequest(
   }
   const deployment = await resolveGatewayDeployment({
     binding: localBinding,
+    database: new DeploymentFencedDatabase(env.SIGNER_DB, localBinding, writer),
     request,
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     writer,

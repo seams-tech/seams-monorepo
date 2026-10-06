@@ -9,7 +9,7 @@ import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
@@ -163,7 +163,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
           SEAMS_TENANT_DEPLOYMENT_LANE: 'live-demo',
           SEAMS_WALLET_HOME_CATALOG_JSON: gatewayCatalog,
         },
-        d1Databases: { CONSOLE_DB: 'isolated-console-binding-e2e' },
+        d1Databases: { CONSOLE_DB: 'isolated-console-binding-e2e', SIGNER_DB: 'isolated-session-routing-e2e' },
       },
       {
         name: 'wrong-home',
@@ -185,6 +185,19 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
   const observations = [];
   let gatewaySessionLookup;
   try {
+    const signerDatabase = await runtime.getD1Database('SIGNER_DB', 'console');
+    if (!isD1DatabaseLike(signerDatabase)) throw new Error('Local signer D1 binding is unavailable');
+    const signerMigrations = path.resolve(
+      process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
+        path.join(repoRoot, '../seams-wallet/packages/wallet-server'),
+      'migrations/d1-signer',
+    );
+    for (const name of (await readdir(signerMigrations)).sort()) {
+      if (!name.endsWith('.sql')) continue;
+      for (const sql of unstable_splitSqlQuery(await readFile(path.join(signerMigrations, name), 'utf8'))) {
+        await signerDatabase.prepare(sql).run();
+      }
+    }
     const database = await runtime.getD1Database('CONSOLE_DB', 'console');
     if (!isD1DatabaseLike(database)) throw new Error('Local Console D1 binding is unavailable');
     const migration = await readFile(migrationPath, 'utf8');
@@ -408,7 +421,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       }
     }
     const consoleWorker = await runtime.getWorker('console');
-    gatewaySessionLookup = await verifyGatewaySessionLookup(database, consoleWorker, second);
+    gatewaySessionLookup = await verifyGatewaySessionLookup(database, signerDatabase, consoleWorker, second);
     await database.prepare('DELETE FROM active_tenant_deployment_bindings').run();
     const removed = await reader.fetch('https://consumer.test/');
     expect(removed.status).toBe(503);

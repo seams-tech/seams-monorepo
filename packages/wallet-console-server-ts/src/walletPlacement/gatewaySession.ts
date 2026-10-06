@@ -1,3 +1,4 @@
+import { findLocalSessionWallet } from './localSessionRouting';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
@@ -65,6 +66,7 @@ function rejected(
 
 export async function resolveGatewayDeployment(input: {
   readonly request: Request;
+  readonly database: D1DatabaseLike;
   readonly binding: TenantDeploymentBindingV1;
   readonly writer: TenantRuntimeWriterV1;
   readonly deploymentLane: string;
@@ -78,6 +80,10 @@ export async function resolveGatewayDeployment(input: {
     return { kind: 'ready', binding: input.binding, session };
   }
   try {
+    const wallet = await findLocalSessionWallet(input.database, input.binding.tenant, session.locator);
+    if (wallet) {
+      return { kind: 'ready', binding: input.binding, session: { kind: 'local', wallet } };
+    }
     const response = await input.service.fetch(
       new Request(`${WALLET_HOME_SERVICE_ORIGIN}${GATEWAY_SESSION_PATH}`, {
         method: 'POST',

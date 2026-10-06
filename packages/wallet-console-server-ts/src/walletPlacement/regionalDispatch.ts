@@ -5,7 +5,7 @@ import { recoveryHome } from './recoveryDispatch';
 import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/cloud-host';
 import { digestOpaqueValue, parseWalletId } from '@seams/wallet-server/cloud-host';
 import { SessionLocator } from './sessionLocators';
-import type { WalletHomeAssignment } from './home';
+import type { WalletHomeAssignment, WalletOwnershipKey } from './home';
 import type { WalletHome } from './home';
 import { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 
@@ -120,8 +120,7 @@ export async function dispatchKnownWalletHome(
   if (scopedHome.kind === 'rejected') return scopedHome.response;
   if (scopedHome.kind === 'resolved') {
     if (
-      session.kind === 'resolved' &&
-      !session.assignment.wallet.matches(scopedHome.assignment.wallet)
+      !sessionMatchesWallet(session, scopedHome.assignment.wallet)
     ) {
       return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
     }
@@ -198,7 +197,11 @@ export async function dispatchKnownWalletHome(
         pathname,
       );
     if (!path) {
-      if (session.kind === 'absent' || authority.isLocal(session.assignment.home)) return null;
+      if (
+        session.kind === 'absent' ||
+        session.kind === 'local' ||
+        authority.isLocal(session.assignment.home)
+      ) return null;
       return transport.forward(session.assignment.home, request);
     }
     let walletId: string;
@@ -219,13 +222,17 @@ export async function dispatchKnownWalletHome(
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 503 });
   }
   if (!assignment && locator.kind === 'lifecycle' && locator.route.kind === 'linked_device') {
-    if (session.kind === 'absent' || authority.isLocal(session.assignment.home)) return null;
+    if (
+      session.kind === 'absent' ||
+      session.kind === 'local' ||
+      authority.isLocal(session.assignment.home)
+    ) return null;
     return transport.forward(session.assignment.home, request);
   }
   if (!assignment || assignment.state === 'cancelled') {
     return Response.json({ ok: false, code: 'wallet_home_unavailable' }, { status: 404 });
   }
-  if (session.kind === 'resolved' && !session.assignment.wallet.matches(assignment.wallet)) {
+  if (!sessionMatchesWallet(session, assignment.wallet)) {
     return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
   }
   if (authority.isLocal(assignment.home)) return null;
@@ -290,8 +297,23 @@ function requestField(body: unknown, keys: readonly string[]): unknown {
 
 export type SessionHomeResolution =
   | { readonly kind: 'absent' }
+  | { readonly kind: 'local'; readonly wallet: WalletOwnershipKey }
   | { readonly kind: 'resolved'; readonly assignment: WalletHomeAssignment }
   | { readonly kind: 'rejected'; readonly response: Response };
+
+function sessionMatchesWallet(
+  session: Exclude<SessionHomeResolution, { kind: 'rejected' }>,
+  wallet: WalletOwnershipKey,
+): boolean {
+  switch (session.kind) {
+    case 'absent':
+      return true;
+    case 'local':
+      return session.wallet.matches(wallet);
+    case 'resolved':
+      return session.assignment.wallet.matches(wallet);
+  }
+}
 
 type RequestSessionLocator =
   | { readonly kind: 'absent' }

@@ -712,22 +712,27 @@ test('relocation directory serializes competing moves and survives lost replies 
     }
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
-    // The last role refuses after the other six prepare. The source stays usable.
-    expect(
-      await responseBody(
-        await call(runtime, {
-          action: 'admit',
-          request,
-          nowMs: admittedAtMs,
-          failedParticipant: 'presignSessions',
-        }),
-      ),
-    ).toEqual({ code: 'invalid_record' });
-    expect(
-      await responseBody(await call(runtime, { action: 'home', wallet: request.wallet })),
-    ).toEqual(original);
-    expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
-    observations.push({ lastParticipantPreparationFailureLeftSourceActive: true });
+    // Failure at the Router boundary or the last role must leave the source active.
+    for (const failedParticipant of ['router', 'router_conflicting_chunk', 'presignSessions']) {
+      expect(
+        await responseBody(
+          await call(runtime, {
+            action: 'admit',
+            request,
+            nowMs: admittedAtMs,
+            failedParticipant,
+          }),
+        ),
+      ).toEqual({ code: 'invalid_record' });
+      expect(
+        await responseBody(await call(runtime, { action: 'home', wallet: request.wallet })),
+      ).toEqual(original);
+      expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
+    }
+    observations.push({
+      lastParticipantPreparationFailureLeftSourceActive: true,
+      routerPreparationUnavailableOrConflictingLeavesSourceActive: true,
+    });
 
     const races = await Promise.all([
       call(runtime, { action: 'admit', request, nowMs: admittedAtMs }, 'ingress-a', true),

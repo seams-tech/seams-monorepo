@@ -1,3 +1,4 @@
+import { RouterRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/routerPreparation';
 import { GatewayRelocationOwnerApproval } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
 import { WalletRegionalDispatch } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import { WalletRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
@@ -30,7 +31,30 @@ class PreparedParticipant {
   }
 }
 
+class PreparationRuntime {
+  constructor(
+    private readonly request: Command['request'],
+    private readonly failedParticipant: unknown,
+  ) {}
+
+  async fetch(input: Request): Promise<Response> {
+    if (this.failedParticipant === 'router') return new Response(null, { status: 503 });
+    if (input.url !== 'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/router-transfer' || input.method !== 'POST')
+      return new Response(null, { status: 404 });
+    const raw = await input.json();
+    if (!raw || typeof raw !== 'object' || !('request' in raw))
+      return new Response(null, { status: 400 });
+    return Response.json({
+      kind: 'prepared',
+      request: raw.request,
+      chunk_bytes: this.failedParticipant === 'router_conflicting_chunk' ? 2048 : 4096,
+      destination_object: `${this.request.destination.databaseId}/router/${this.request.expectedGeneration + 1}`,
+    });
+  }
+}
+
 export function relocationPreparationParticipants(
+  request: Command['request'],
   nowMs: number,
   failedParticipant: unknown,
 ): Participants {
@@ -38,7 +62,11 @@ export function relocationPreparationParticipants(
   return {
     gateway: participant,
     walletRuntime: participant,
-    router: participant,
+    router: new RouterRelocationPreparation(
+      request.destination,
+      new PreparationRuntime(request, failedParticipant),
+      relocationFixtureClock.bind(null, nowMs),
+    ),
     deriverA: participant,
     deriverB: participant,
     signingWorker: participant,

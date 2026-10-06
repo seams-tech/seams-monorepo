@@ -153,6 +153,7 @@ export async function createRegionalRealGateway({
       }
       const gateway = new RealRegionalGateway({
         localAdmission,
+        writerVersion: home.databaseId,
         acknowledgementFault: new AcknowledgementReplyLoss(lostAcknowledgements),
         activationFault: new ActivationReplyLoss(),
         environmentKey: config.deployment.environmentKey,
@@ -371,7 +372,7 @@ class RealRegionalGateway {
   async handle(request, entry) {
     const home = this.catalog.select(this.region);
     const resource = { accountId: home.accountId, databaseId: home.databaseId };
-    const writer = this.api.parseTenantRuntimeWriterV1('gateway', home.databaseId, resource);
+    const writer = this.api.parseTenantRuntimeWriterV1('gateway', this.writerVersion, resource);
     const binding = await this.localAdmission.resolveRuntimeBinding('test', writer);
     if (!binding) {
       return Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, { status: 503 });

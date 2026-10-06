@@ -282,27 +282,35 @@ class RetireDuringSigningPrepare {
     if (new URL(request.url).pathname !== this.preparePath) return;
     this.attempts += 1;
     assert.equal(this.attempts, 1, 'The rejected prepare must not retry');
-    const gateway = this.scenario.gateways.get('US');
-    const binding = this.scenario.consoleService.binding;
-    const proofs = [];
-    for (const resource of binding.resources) {
-      proofs.push(gateway.api.regionalResourceProof(
-        binding,
-        resource.databaseId,
-        randomUUID(),
-        randomUUID(),
-        Date.now(),
-      ));
-    }
-    const admission = {
-      binding,
-      activationSequence: 2,
-      resourceVerificationsJson: JSON.stringify(proofs),
-    };
-    await gateway.localAdmission.prepare(admission);
-    await gateway.localAdmission.activate(admission);
+    await retireRegionalWriter(this.scenario);
     this.retired = true;
   }
+}
+
+async function retireRegionalWriter(
+  scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>,
+): Promise<string> {
+  const gateway = scenario.gateways.get('US');
+  const binding = scenario.consoleService.binding;
+  const proofs = [];
+  const gatewayVersion = randomUUID();
+  for (const resource of binding.resources) {
+    proofs.push(gateway.api.regionalResourceProof(
+      binding,
+      resource.databaseId,
+      gatewayVersion,
+      randomUUID(),
+      Date.now(),
+    ));
+  }
+  const admission = {
+    binding,
+    activationSequence: 2,
+    resourceVerificationsJson: JSON.stringify(proofs),
+  };
+  await gateway.localAdmission.prepare(admission);
+  await gateway.localAdmission.activate(admission);
+  return gatewayVersion;
 }
 
 async function readSigningBudgetSnapshot(database: {
@@ -578,3 +586,115 @@ function isYaoExecution(request: { path: string }): boolean {
 }
 
 test('NEAR-only Yao registration uses its fixed home through foreign ingress', verifyNearRegistrationProtocolHome);
+
+class RetireAfterSigningResponse {
+  retired = false;
+  replacementVersion: string | null = null;
+  request: BrowserRequest | null = null;
+  custodyResponseHash: string | null = null;
+  replayedCustodyResponses = 0;
+  responseStatus: number | null = null;
+  before: Awaited<ReturnType<typeof readSigningBudgetSnapshot>> | null = null;
+
+  constructor(
+    readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>,
+  ) {}
+
+  capture(request: BrowserRequest): void {
+    if (new URL(request.url()).pathname.endsWith('/sign')) this.request = request;
+  }
+
+  async fetch(
+    delegate: { fetch(input: Request): Promise<Response> },
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const request = new Request(input, init);
+    const response = await delegate.fetch(request);
+    if (!new URL(request.url).pathname.endsWith('/sign')) return response;
+    const responseHash = createHash('sha256').update(await response.clone().text()).digest('hex');
+    if (this.retired) {
+      assert.equal(response.status, 200);
+      assert.equal(responseHash, this.custodyResponseHash, 'Custody must return the same terminal result');
+      this.replayedCustodyResponses += 1;
+      return response;
+    }
+    this.custodyResponseHash = responseHash;
+    assert.equal(response.status, 200, 'The custody operation must finish before writer retirement');
+    this.responseStatus = response.status;
+    this.before = await readSigningBudgetSnapshot(this.scenario.gateways.get('US').database);
+    this.replacementVersion = await retireRegionalWriter(this.scenario);
+    this.retired = true;
+    return response;
+  }
+}
+
+for (const curve of ['ed25519', 'ecdsa']) {
+  test(`${curve} retirement after custody response prevents stale Gateway settlement`, async ({
+    harness, context,
+  }, testInfo) => {
+    const output = path.resolve(root, `.artifacts/r155b/console-outage/post-custody-retirement-${curve}`);
+    const scenario = await createRegionalRealGateway({
+      root, candidate, lostAcknowledgements: 0,
+      localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT, output,
+    });
+    try {
+      await scenario.routeContext(context, 'US');
+      await harness.registerPasskeyWallet();
+      await harness.awaitNearReady();
+      scenario.beginConsoleOutage();
+      await scenario.routeContext(context, 'WEUR');
+      const home = scenario.gateways.get('US');
+      const retirement = new RetireAfterSigningResponse(scenario);
+      context.on('request', retirement.capture.bind(retirement));
+      const environment = home.environment;
+      home.environment = {
+        ...environment,
+        MPC_ROUTER: { fetch: retirement.fetch.bind(retirement, environment.MPC_ROUTER) },
+        SIGNING_WORKER: { fetch: retirement.fetch.bind(retirement, environment.SIGNING_WORKER) },
+      };
+      const signing = curve === 'ecdsa'
+        ? harness.signTempoTransaction('post_registration')
+        : harness.signNearTransaction('post_registration');
+      await assert.rejects(signing, /HTTP 50[03]/u);
+      assert.equal(retirement.retired, true);
+      assert.equal(retirement.responseStatus, 200);
+      assert.ok(retirement.before);
+      const after = await readSigningBudgetSnapshot(home.database);
+      assert.deepEqual(after, retirement.before, 'A retired writer cannot settle the admitted operation');
+      assert.deepEqual(scenario.consoleService.requests, []);
+      assert.equal(home.requests.filter(isSuccessfulSigningFinalize).length, 0);
+      assert.ok(retirement.replacementVersion);
+      assert.ok(retirement.request);
+      const retry = new Request(retirement.request.url(), {
+        method: retirement.request.method(),
+        headers: await retirement.request.allHeaders(),
+        body: retirement.request.postDataBuffer(),
+      });
+      home.writerVersion = retirement.replacementVersion;
+      const replay = await scenario.gateways.get('WEUR').handle(retry, 'ingress');
+      const replayCode = (await replay.clone().json()).code ?? null;
+      assert.equal(replay.status, 200, `Replacement writer replay failed: ${replayCode}`);
+      assert.equal(retirement.replayedCustodyResponses, 1);
+      const settled = await readSigningBudgetSnapshot(home.database);
+      assert.equal(settled.quotaSha256, after.quotaSha256, 'Terminal replay cannot spend another use');
+      assert.equal(settled.operationRows, after.operationRows);
+      assert.notEqual(settled.operationSha256, after.operationSha256, 'The replacement must settle the pending operation');
+      assert.deepEqual(scenario.consoleService.requests, []);
+      await writeFile(path.join(output, 'post-custody-retirement.json'), JSON.stringify({
+        curve, custodyResponseStatus: retirement.responseStatus,
+        retirementPoint: 'After successful custody response, before Gateway operation settlement',
+        unchangedQuotaAndOperations: true,
+        before: retirement.before, after, settled,
+        replacementReplayStatus: replay.status,
+        sameCustodyResult: true,
+        unchangedQuotaOnReplay: true,
+        attemptedConsoleCalls: scenario.consoleService.requests.length,
+        scope: 'Gateway deployment retirement. The custody operation already completed; this does not prove custody-side relocation fencing.',
+      }, null, 2));
+    } finally {
+      await harness.attachTrace(testInfo);
+      await scenario.close();
+    }
+  });
+}

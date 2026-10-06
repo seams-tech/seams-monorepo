@@ -2,7 +2,7 @@ import { verifyActivationAssembly } from './activation-assembly.scenario';
 import { verifyTransferAssembly } from './transfer-assembly.scenario';
 import { verifyRuntimeTransferResume } from './runtime-transfer.scenario';
 import { verifySourceFreezeAssembly } from './source-freeze.scenario';
-import { verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
+import { verifyPresignCleanupAdmission, verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
 import { verifyEcdsaSnapshotJournal, verifyEcdsaTransferJournal, verifyEcdsaActivationJournal, verifyEcdsaCleanupJournal } from './ecdsa-relocation.scenario';
 import { deriverSnapshotFixture, ed25519SnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { verifyRuntimePreparation } from './runtime-preparation.scenario';
@@ -1486,6 +1486,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       code: 'wallet_relocation_in_progress',
     });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    await verifyPresignCleanupAdmission({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs }, false);
     await verifyEcdsaActivationJournal({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs });
     expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'activate' }, destination))
       .toEqual({ ok: true, command: { command: 'activate', receipt: ed25519Receipt } });
@@ -1539,7 +1540,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       source: routerActivationProof.source, destination_object: 'different-router-object',
     })).toEqual({ ok: false, code: 'receipt_conflict' });
     expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual({ ok: false, code: 'phase_conflict' });
-    observations.push({ routerActivationReceiptPinsPreparedObject: true });
+    observations.push({ presignCleanupRequiresDestinationActivation: true, routerActivationReceiptPinsPreparedObject: true });
 
 
     expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze')).toEqual({
@@ -1716,6 +1717,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual(routerCleanup);
     expect(await routerCleanupCommand(runtime, request, activationAttempt, destination)).toEqual({ ok: false, code: 'participant_conflict' });
     observations.push({ routerCleanupUsesDurableActivationAfterRestart: true });
+    await verifyPresignCleanupAdmission({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs }, true);
     await verifyEcdsaCleanupJournal({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs });
     const ed25519Cleanup = await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' });
     expect(ed25519Cleanup).toEqual({ ok: true, command: { command: 'cleanup', activation: ed25519Receipt } });

@@ -139,3 +139,20 @@ async function verifyLateSessionSettlement(context: Context) {
   expect(runtime.sourceMutations).toBe(2);
   expect(runtime.preparations).toBe(2);
 }
+
+export async function verifyPresignCleanupAdmission(context: Context, activated: boolean) {
+  const receipt = presignSnapshotFixture(context.request, context.admittedAtMs, 'e'.repeat(64));
+  const session = { presignSessionId: receipt.command.presign_session_id, serverPresignatureId: receipt.command.server_presignature_id };
+  const command = { operation: 'cleanup', session };
+  const result = await call(context, 'transfer', command, context.source);
+  if (!activated) {
+    expect(result).toEqual({ ok: false, code: 'phase_conflict' });
+    return;
+  }
+  expect(result).toEqual({ ok: true, command: { kind: 'cleanup', receipt } });
+  expect(await call(context, 'transfer', command, context.source)).toEqual(result);
+  expect(await call(context, 'transfer', command, context.destination)).toEqual({ ok: false, code: 'participant_conflict' });
+  expect(await call(context, 'transfer', { operation: 'cleanup', session: {
+    presignSessionId: 'unknown-session', serverPresignatureId: session.serverPresignatureId,
+  } }, context.source)).toEqual({ ok: false, code: 'source_manifest_unavailable' });
+}

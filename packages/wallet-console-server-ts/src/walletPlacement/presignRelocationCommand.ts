@@ -18,7 +18,7 @@ type SessionCommand = {
 
 export type PresignTransferRequest =
   | { readonly operation: 'export'; readonly session: Session; readonly segmentIndex: number }
-  | { readonly operation: 'import' | 'verify' | 'status'; readonly session: Session; readonly segmentIndex?: never };
+  | { readonly operation: 'import' | 'verify' | 'status' | 'cleanup'; readonly session: Session; readonly segmentIndex?: never };
 
 export function parsePresignTransferRequest(raw: unknown): PresignTransferRequest {
   if (!isPlainObject(raw)) throw invalid('Presign transfer request is invalid');
@@ -26,7 +26,7 @@ export function parsePresignTransferRequest(raw: unknown): PresignTransferReques
   if (raw.operation === 'export' && Object.keys(raw).length === 3 &&
       typeof raw.segmentIndex === 'number' && Number.isInteger(raw.segmentIndex) && raw.segmentIndex >= 0 && raw.segmentIndex <= 4294967295)
     return { operation: 'export', session, segmentIndex: raw.segmentIndex };
-  if ((raw.operation === 'import' || raw.operation === 'verify' || raw.operation === 'status') && Object.keys(raw).length === 2)
+  if ((raw.operation === 'import' || raw.operation === 'verify' || raw.operation === 'status' || raw.operation === 'cleanup') && Object.keys(raw).length === 2)
     return { operation: raw.operation, session };
   throw invalid('Presign transfer operation fields are invalid');
 }
@@ -146,7 +146,9 @@ export async function authorizePresignTransfer(
   attempt: WalletRelocationAttempt, request: PresignTransferRequest,
 ) {
   if (writer.role !== 'walletRuntime') return { ok: false, code: 'participant_conflict' } as const;
-  const kind = request.operation === 'export' ? 'export' : 'verify';
+  let kind: 'export' | 'verify' | 'cleanup' = 'verify';
+  if (request.operation === 'export') kind = 'export';
+  else if (request.operation === 'cleanup') kind = 'cleanup';
   const authorized = await WalletD1RelocationCommand.authorize(database, wallet, writer, attempt, kind);
   if (!authorized.ok) return authorized;
   const command = authorized.command;
@@ -160,7 +162,7 @@ export async function authorizePresignTransfer(
   if (typeof row?.receipt_json !== 'string') return { ok: false, code: 'source_manifest_unavailable' } as const;
   const receipt = parseReceipt(JSON.parse(row.receipt_json), {
     wallet_scope: { org_id: wallet.organizationId, project_id: wallet.projectId, project_environment_id: wallet.environmentId, wallet_id: wallet.walletId },
-    request: { move_id: command.moveId, source_generation: kind === 'export' ? command.generation : command.generation - 1,
+    request: { move_id: command.moveId, source_generation: kind === 'export' || kind === 'cleanup' ? command.generation : command.generation - 1,
       invalidated_at_ms: relocationTimestamp(row.admitted_at_ms) },
     presign_session_id: request.session.presignSessionId, server_presignature_id: request.session.serverPresignatureId,
   });
@@ -169,6 +171,7 @@ export async function authorizePresignTransfer(
     case 'import': return { ok: true, command: { kind: 'import', receipt, chunk_bytes: 4096 } } as const;
     case 'status': return { ok: true, command: { kind: 'status', receipt, chunk_bytes: 4096 } } as const;
     case 'verify': return { ok: true, command: { kind: 'verify', receipt } } as const;
+    case 'cleanup': return { ok: true, command: { kind: 'cleanup', receipt } } as const;
     default: {
       const unexpected: never = request;
       throw new Error(`Unknown presign transfer request: ${String(unexpected)}`);

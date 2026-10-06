@@ -420,3 +420,9 @@ acceptTransferTarget({ participant: 'router' });
 acceptTransferTarget({ participant: 'presign' });
 // @ts-expect-error Wallet participants cannot retain a presign session through a spread.
 acceptTransferTarget({ ...{ session: presignSession }, participant: 'router' });
+
+acceptPresignTransfer({ operation: 'cleanup', session: presignSession });
+// @ts-expect-error Cleanup requires the exact linked session identity.
+acceptPresignTransfer({ operation: 'cleanup' });
+// @ts-expect-error Cleanup cannot inherit an export cursor through a spread.
+acceptPresignTransfer({ ...deriverExport, operation: 'cleanup', session: presignSession });

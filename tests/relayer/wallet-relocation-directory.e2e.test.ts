@@ -356,6 +356,22 @@ async function routerDestinationCommand(runtime: Miniflare, request: WalletReloc
   ));
 }
 
+async function routerActivationReceipt(runtime: Miniflare, request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt, receipt: unknown) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-activation', {
+      method: 'POST', headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(destination.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': destination.accountId,
+        'x-seams-writer-database': destination.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, receipt }),
+    },
+  ));
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -1298,6 +1314,16 @@ test('relocation directory serializes competing moves and survives lost replies 
     } } });
     expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate')).toEqual(routerActivation);
     expect(await routerDestinationCommand(runtime, request, activationAttempt, 'activate', source)).toEqual({ ok: false, code: 'participant_conflict' });
+    const routerActivationProof = { source: objectValue(routerActivation.command).receipt,
+      destination_object: `${destination.databaseId}/router/2` };
+    const recordedRouterActivation = await routerActivationReceipt(runtime, request, activationAttempt, routerActivationProof);
+    expect(recordedRouterActivation).toEqual({ ok: true, receipt: routerActivationProof });
+    expect(await routerActivationReceipt(runtime, request, activationAttempt, routerActivationProof)).toEqual(recordedRouterActivation);
+    expect(await routerActivationReceipt(runtime, request, activationAttempt, {
+      source: routerActivationProof.source, destination_object: 'different-router-object',
+    })).toEqual({ ok: false, code: 'receipt_conflict' });
+    observations.push({ routerActivationReceiptPinsPreparedObject: true });
+
 
     expect(await relocationCommand(runtime, request.wallet, freezeAttempt, 'freeze')).toEqual({
       ok: false,

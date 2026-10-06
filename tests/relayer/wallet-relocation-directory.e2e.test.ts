@@ -1,3 +1,4 @@
+import { deriverSnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { verifyRuntimePreparation } from './runtime-preparation.scenario';
 import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
 import { verifyAuthorizationRegionalTransfer, verifyAuthorizationRegionalLifecycle } from './authorization-transfer.scenario';
@@ -311,6 +312,25 @@ async function deriverSourceCommand(
         'x-seams-writer-database': home.databaseId,
       },
       body: JSON.stringify({ wallet: request.wallet, attempt, role, cipherContextDigest }),
+    },
+  ));
+}
+
+async function deriverJournalRequest(
+  runtime: Miniflare, request: WalletRelocationRequest, attempt: WalletRelocationAttempt,
+  role: 'deriverA' | 'deriverB', endpoint: 'receipt' | 'transfer', value: unknown, home = source,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  const body = endpoint === 'receipt'
+    ? { wallet: request.wallet, attempt, role, receipt: value }
+    : { wallet: request.wallet, attempt, role, request: value };
+  return responseBody(await service.fetch(
+    `https://wallet-placement.internal/internal/wallet-placement/v1/relocation-deriver-${endpoint}`, {
+      method: 'POST', headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId, 'x-seams-writer-database': home.databaseId,
+      }, body: JSON.stringify(body),
     },
   ));
 }
@@ -936,6 +956,19 @@ test('relocation directory serializes competing moves and survives lost replies 
         .toEqual({ ok: false, code: 'participant_conflict' });
     }
     observations.push({ deriverSourceCommandsMatchPreparedCipherContext: true });
+    for (const role of ['deriverA', 'deriverB'] as const) {
+      const receipt = await deriverSnapshotFixture(request, role, 'e'.repeat(64));
+      const stored = await deriverJournalRequest(runtime, request, freezeAttempt, role, 'receipt', receipt);
+      expect(stored).toEqual({ ok: true, receipt });
+      expect(await deriverJournalRequest(runtime, request, freezeAttempt, role, 'receipt', receipt)).toEqual(stored);
+      expect(await deriverJournalRequest(runtime, request, freezeAttempt, role, 'receipt',
+        await deriverSnapshotFixture(request, role, 'f'.repeat(64)))).toEqual({ ok: false, code: 'receipt_conflict' });
+      expect(await deriverJournalRequest(runtime, request, freezeAttempt, role, 'receipt', receipt, destination))
+        .toEqual({ ok: false, code: 'participant_conflict' });
+      expect(await deriverJournalRequest(runtime, request, freezeAttempt, role, 'transfer', { operation: 'export', segmentIndex: 0 }))
+        .toEqual({ ok: false, code: 'phase_conflict' });
+    }
+    observations.push({ deriverSnapshotsPersistExactSourceReceipts: true });
     const routerReceipt = await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64));
     expect(routerReceipt).toMatchObject({ ok: true, receipt: { record_count: 1 } });
     expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64))).toEqual(routerReceipt);
@@ -1143,6 +1176,22 @@ test('relocation directory serializes competing moves and survives lost replies 
       "copying",
       admittedAtMs + 100,
     );
+    for (const role of ['deriverA', 'deriverB'] as const) {
+      const receipt = await deriverSnapshotFixture(request, role, 'e'.repeat(64));
+      expect(await deriverJournalRequest(runtime, request, copyAttempt, role, 'transfer', { operation: 'export', segmentIndex: 1 }))
+        .toEqual({ ok: true, command: { operation: 'export', source: receipt.source, segment_index: 1 } });
+      expect(await deriverJournalRequest(runtime, request, copyAttempt, role, 'transfer', { operation: 'export', segmentIndex: 2 }))
+        .toEqual({ ok: false, code: 'invalid_cursor' });
+      expect(await deriverJournalRequest(runtime, request, copyAttempt, role, 'transfer', { operation: 'export', segmentIndex: 0 }, destination))
+        .toEqual({ ok: false, code: 'participant_conflict' });
+      for (const operation of ['import', 'status', 'verify'] as const) {
+        expect(await deriverJournalRequest(runtime, request, copyAttempt, role, 'transfer', { operation }, destination))
+          .toEqual({ ok: true, command: { operation, receipt } });
+        expect(await deriverJournalRequest(runtime, request, copyAttempt, role, 'transfer', { operation }))
+          .toEqual({ ok: false, code: 'participant_conflict' });
+      }
+    }
+    observations.push({ deriverTransferUsesPinnedReceiptsAndRegionalWriters: true });
     const routerExport = await routerExportCommand(runtime, request, copyAttempt, 0);
     expect(routerExport).toMatchObject({ ok: true, command: {
       kind: 'export', record_index: 0, segment_index: 0, chunk_bytes: 4096,

@@ -1,13 +1,15 @@
-import { isPlainObject, queryD1One, sha256Bytes, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletPlacementError, type WalletOwnershipKey } from './home';
 import type { WalletRelocationAttempt } from './relocationExecution';
 import { preparationEvidenceDigest } from './relocationPreparation';
-import { authorizeWalletRuntimeSourceCommand } from './runtimeRelocationCommand';
+import { deriverWalletObject } from './deriverPreparation';
+import { authorizeWalletRuntimeSourceCommand, type RouterFreezeRequest } from './runtimeRelocationCommand';
 
-type Role = 'deriverA' | 'deriverB';
+export type DeriverRelocationRole = 'deriverA' | 'deriverB';
+export type DeriverSourceRequest = RouterFreezeRequest & { readonly cipher_context_digest_hex: string };
 
-export function parseDeriverRelocationRole(raw: unknown): Role {
+export function parseDeriverRelocationRole(raw: unknown): DeriverRelocationRole {
   if (raw === 'deriverA' || raw === 'deriverB') return raw;
   throw new WalletPlacementError('invalid_input', 'Deriver relocation role is invalid');
 }
@@ -18,7 +20,7 @@ export async function authorizeDeriverSourceFence(
   wallet: WalletOwnershipKey,
   writer: TenantRuntimeWriterV1,
   attempt: WalletRelocationAttempt,
-  role: Role,
+  role: DeriverRelocationRole,
   cipherContextDigest: string,
 ) {
   const authorized = await authorizeWalletRuntimeSourceCommand(database, wallet, writer, attempt, 'router-freeze');
@@ -33,36 +35,41 @@ export async function authorizeDeriverSourceFence(
     source_generation: source.source_generation,
     destination_generation: source.destination_generation,
   };
-  const rolePath = role === 'deriverA' ? 'deriver-a' : 'deriver-b';
-  const encoded = new TextEncoder().encode(`seams/${rolePath}/wallet-do/v1${JSON.stringify(source.owner)}`);
-  const objectDigest = Array.from(await sha256Bytes(encoded), hexByte).join('');
-  const destinationObject = `${rolePath}-wallet-${objectDigest}`;
+  if (!await matchesDeriverPreparation(database, wallet, role, command)) {
+    return { ok: false, code: 'participant_conflict' } as const;
+  }
+  return { ok: true, command } as const;
+}
+
+export async function matchesDeriverPreparation(
+  database: D1DatabaseLike,
+  wallet: WalletOwnershipKey,
+  role: DeriverRelocationRole,
+  command: DeriverSourceRequest,
+): Promise<boolean> {
+  const destinationObject = await deriverWalletObject(role, command.owner);
   const evidenceDigest = await preparationEvidenceDigest([
     'seams/deriver/preparation/v1', role, command, destinationObject,
   ]);
   const row = await queryD1One(database, `SELECT preparation_json FROM wallet_relocations
     WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
       AND wallet_id = ?5 AND move_id = ?6`, [
-    wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, attempt.moveId,
+    wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, command.move_id,
   ]);
-  if (!row || typeof row.preparation_json !== 'string') return { ok: false, code: 'participant_conflict' } as const;
+  if (!row || typeof row.preparation_json !== 'string') return false;
   const prepared: unknown = JSON.parse(row.preparation_json);
-  if (!isPlainObject(prepared) || prepared.requestDigest !== source.request_digest_hex ||
-      prepared.destinationGeneration !== source.destination_generation || !Array.isArray(prepared.receipts)) {
-    return { ok: false, code: 'participant_conflict' } as const;
+  if (!isPlainObject(prepared) || prepared.requestDigest !== command.request_digest_hex ||
+      prepared.destinationGeneration !== command.destination_generation || !Array.isArray(prepared.receipts)) {
+    return false;
   }
   let matches = 0;
   for (const receipt of prepared.receipts) {
     if (!isPlainObject(receipt) || receipt.participant !== role) continue;
     if (receipt.physicalResource !== destinationObject || receipt.evidenceDigest !== evidenceDigest) {
-      return { ok: false, code: 'participant_conflict' } as const;
+      return false;
     }
     matches += 1;
   }
-  if (matches !== 1) return { ok: false, code: 'participant_conflict' } as const;
-  return { ok: true, command } as const;
-}
-
-function hexByte(value: number): string {
-  return value.toString(16).padStart(2, '0');
+  if (matches !== 1) return false;
+  return true;
 }

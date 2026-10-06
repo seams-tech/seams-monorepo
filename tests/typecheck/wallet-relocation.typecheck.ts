@@ -1,3 +1,4 @@
+import type { DeriverTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
 import type { WalletRelocationBindings } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
 import type { WalletAuthorizationManifest } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
 import { WalletRelocationPreparation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
@@ -331,3 +332,14 @@ const pendingCleanupWithReceipt: CleanupEffect = { ...cleanedSource, state: 'pen
 const cleanupWithoutReceipt: CleanupEffect = { state: 'cleaned' };
 void pendingCleanupWithReceipt;
 void cleanupWithoutReceipt;
+
+declare function acceptDeriverTransfer(request: DeriverTransferRequest): void;
+acceptDeriverTransfer({ operation: 'export', segmentIndex: 0 });
+acceptDeriverTransfer({ operation: 'verify' });
+// @ts-expect-error Export requires an explicit segment cursor.
+acceptDeriverTransfer({ operation: 'export' });
+// @ts-expect-error Verification cannot carry an export cursor.
+acceptDeriverTransfer({ operation: 'verify', segmentIndex: 0 });
+declare const deriverExport: { readonly operation: 'export'; readonly segmentIndex: number };
+// @ts-expect-error A broad spread cannot retain a cursor when changing operations.
+acceptDeriverTransfer({ ...deriverExport, operation: 'status' });

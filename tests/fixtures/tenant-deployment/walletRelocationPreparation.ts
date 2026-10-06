@@ -268,3 +268,16 @@ async function fixtureObjectDigest(domain: string, identity: unknown): Promise<s
   for (const byte of digest) hex += byte.toString(16).padStart(2, '0');
   return hex;
 }
+
+export async function deriverSnapshotFixture(request: WalletRelocationRequest, role: 'deriverA' | 'deriverB', digest: string) {
+  const owner = { org_id: request.wallet.organizationId, project_id: request.wallet.projectId,
+    env_id: request.wallet.environmentId, wallet_id: request.wallet.walletId };
+  const rolePath = role === 'deriverA' ? 'deriver-a' : 'deriver-b';
+  return {
+    source: { owner, move_id: request.moveId, request_digest_hex: await request.digest(),
+      cipher_context_digest_hex: 'c'.repeat(64), source_generation: request.expectedGeneration,
+      destination_generation: request.expectedGeneration + 1 },
+    source_object: `${rolePath}-wallet-${await fixtureObjectDigest(`seams/${rolePath}/wallet-do/v1`, owner)}`,
+    record_count: 1, segment_count: 2, digest_hex: digest,
+  };
+}

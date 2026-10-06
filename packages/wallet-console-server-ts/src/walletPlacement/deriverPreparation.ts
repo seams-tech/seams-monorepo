@@ -1,3 +1,4 @@
+import type { RouterFreezeRequest } from './runtimeRelocationCommand';
 import {
   isPlainObject,
   sha256Bytes,
@@ -61,9 +62,7 @@ export class DeriverRelocationPreparation {
     }));
     if (response.status !== 200) return { kind: 'unavailable' };
     const raw: unknown = await response.json();
-    const nameBytes = new TextEncoder().encode(`seams/${rolePath}/wallet-do/v1${JSON.stringify(owner)}`);
-    const objectDigest = Array.from(await sha256Bytes(nameBytes), hexByte).join('');
-    const destinationObject = `${rolePath}-wallet-${objectDigest}`;
+    const destinationObject = await deriverWalletObject(this.role, owner);
     if (
       !isPlainObject(raw) || Object.keys(raw).length !== 3 || raw.kind !== 'prepared' ||
       raw.destination_object !== destinationObject ||
@@ -95,4 +94,11 @@ export class DeriverRelocationPreparation {
 
 function hexByte(value: number): string {
   return value.toString(16).padStart(2, '0');
+}
+
+export async function deriverWalletObject(role: Role, owner: RouterFreezeRequest['owner']): Promise<string> {
+  const rolePath = ROLE_PATHS[role];
+  const bytes = new TextEncoder().encode(`seams/${rolePath}/wallet-do/v1${JSON.stringify(owner)}`);
+  const digest = Array.from(await sha256Bytes(bytes), hexByte).join('');
+  return `${rolePath}-wallet-${digest}`;
 }

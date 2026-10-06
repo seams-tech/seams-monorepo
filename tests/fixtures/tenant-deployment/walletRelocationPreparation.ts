@@ -292,3 +292,8 @@ export function ed25519SnapshotFixture(request: WalletRelocationRequest, invalid
     record_count: 1, segment_count: 2, digest_hex: digest,
   };
 }
+
+export function ecdsaSnapshotFixture(request: WalletRelocationRequest, invalidatedAtMs: number, digest: string) {
+  const source = ed25519SnapshotFixture(request, invalidatedAtMs, digest).source;
+  return { scope: source.scope, request: source.request, record_count: 3, wallet_records_digest_hex: digest };
+}

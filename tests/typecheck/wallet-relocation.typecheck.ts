@@ -1,3 +1,4 @@
+import type { EcdsaTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
 import type { Ed25519TransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
 import type { DeriverTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
 import type { WalletRelocationBindings } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
@@ -363,3 +364,12 @@ acceptEd25519Transfer({ operation: 'activate' });
 acceptEd25519Transfer({ operation: 'cleanup' });
 // @ts-expect-error Cleanup cannot carry an export cursor.
 acceptEd25519Transfer({ ...deriverExport, operation: 'cleanup' });
+
+declare function acceptEcdsaTransfer(request: EcdsaTransferRequest): void;
+acceptEcdsaTransfer({ operation: 'export', segmentIndex: 0 });
+acceptEcdsaTransfer({ operation: 'activate' });
+acceptEcdsaTransfer({ operation: 'cleanup' });
+// @ts-expect-error Export requires its cursor.
+acceptEcdsaTransfer({ operation: 'export' });
+// @ts-expect-error Cleanup cannot carry an export cursor.
+acceptEcdsaTransfer({ ...deriverExport, operation: 'cleanup' });

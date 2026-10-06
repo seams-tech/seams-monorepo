@@ -1,3 +1,4 @@
+import { verifyEcdsaSnapshotJournal, verifyEcdsaTransferJournal, verifyEcdsaActivationJournal, verifyEcdsaCleanupJournal } from './ecdsa-relocation.scenario';
 import { deriverSnapshotFixture, ed25519SnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { verifyRuntimePreparation } from './runtime-preparation.scenario';
 import { establishedRuntimeAdmission, executionAdmissionClient, verifyExecutionAdmissionResponses, verifyRegistrationExecutionAdmission } from './execution-authority.scenario';
@@ -988,6 +989,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         .toEqual({ ok: false, code: 'phase_conflict' });
     }
     observations.push({ deriverSnapshotsPersistExactSourceReceipts: true });
+    await verifyEcdsaSnapshotJournal({ runtime, request, attempt: freezeAttempt, source, destination, admittedAtMs });
     const ed25519Receipt = ed25519SnapshotFixture(request, admittedAtMs, 'e'.repeat(64));
     expect(await ed25519JournalRequest(runtime, request, freezeAttempt, 'receipt', ed25519Receipt))
       .toEqual({ ok: true, receipt: ed25519Receipt });
@@ -1224,6 +1226,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
     }
     observations.push({ deriverTransferUsesPinnedReceiptsAndRegionalWriters: true });
+    await verifyEcdsaTransferJournal({ runtime, request, attempt: copyAttempt, source, destination, admittedAtMs });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 1 }))
       .toEqual({ ok: true, command: { command: 'export', receipt: ed25519Receipt, segment_index: 1 } });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 2 }))
@@ -1475,6 +1478,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       code: 'wallet_relocation_in_progress',
     });
     const activationAttempt = await claim(runtime, request, 'cutover', admittedAtMs + 400);
+    await verifyEcdsaActivationJournal({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs });
     expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'activate' }, destination))
       .toEqual({ ok: true, command: { command: 'activate', receipt: ed25519Receipt } });
     expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'activate' }))
@@ -1704,12 +1708,14 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual(routerCleanup);
     expect(await routerCleanupCommand(runtime, request, activationAttempt, destination)).toEqual({ ok: false, code: 'participant_conflict' });
     observations.push({ routerCleanupUsesDurableActivationAfterRestart: true });
+    await verifyEcdsaCleanupJournal({ runtime, request, attempt: activationAttempt, source, destination, admittedAtMs });
     const ed25519Cleanup = await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' });
     expect(ed25519Cleanup).toEqual({ ok: true, command: { command: 'cleanup', activation: ed25519Receipt } });
     expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' })).toEqual(ed25519Cleanup);
     expect(await ed25519JournalRequest(runtime, request, activationAttempt, 'transfer', { operation: 'cleanup' }, destination))
       .toEqual({ ok: false, code: 'participant_conflict' });
-    observations.push({ ed25519ActivationPersistsBeforeCleanup: true, ed25519CleanupUsesDurableActivationAfterRestart: true });
+    observations.push({ ed25519ActivationPersistsBeforeCleanup: true, ed25519CleanupUsesDurableActivationAfterRestart: true,
+      ecdsaSnapshotAndActivationReceiptsPersist: true, ecdsaTransferAndCleanupRequireRegionalAuthority: true });
 
     for (const role of ['deriverA', 'deriverB'] as const) {
       const receipt = await deriverSnapshotFixture(request, role, 'e'.repeat(64));

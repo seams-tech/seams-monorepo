@@ -1,3 +1,4 @@
+import { hasFreshRelocationOwnerApproval, type WalletRelocationOwnerApprovalReader } from './relocationOwnerApproval';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { walletHomeAssignmentFromRow } from './d1';
 import {
@@ -52,6 +53,7 @@ export type WalletRelocationAdmission =
   | {
       readonly ok: false;
       readonly code:
+        | 'owner_approval_required'
         | 'not_found'
         | 'wallet_not_established'
         | 'stale_generation'
@@ -130,6 +132,7 @@ export class D1WalletRelocations {
     resourceVerifications: TenantDeploymentResourceVerificationsV1,
     deploymentLane: string,
     participants: WalletRelocationParticipants,
+    ownerApproval: WalletRelocationOwnerApprovalReader,
     clock: () => number,
   ): Promise<WalletRelocationAdmission> {
     let admittedAtMs = relocationTimestamp(clock());
@@ -179,7 +182,11 @@ export class D1WalletRelocations {
       throw new WalletPlacementError('invalid_record', 'Wallet ownership generation is exhausted');
     }
 
+    if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
+      return { ok: false, code: 'owner_approval_required' };
     const preparation = await WalletRelocationPreparation.prepare(request, participants, clock);
+    if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
+      return { ok: false, code: 'owner_approval_required' };
     admittedAtMs = relocationTimestamp(clock());
     preparation.assertFor(digest, request.expectedGeneration + 1, admittedAtMs);
     assertDeploymentResourcesVerified(
@@ -192,6 +199,7 @@ export class D1WalletRelocations {
       resourceVerifications,
       admittedAtMs,
     );
+
 
     // Admission and the source pause are one transaction, including racing owner requests.
     const inserted = await this.database

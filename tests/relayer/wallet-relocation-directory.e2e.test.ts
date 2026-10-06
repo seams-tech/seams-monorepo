@@ -704,6 +704,14 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
     observations.push({ failedResourcePreparationLeftSourceActive: true });
 
+    for (const ownerApproval of ['denied', 'expired', 'revoked_during_preparation']) {
+      expect(await responseBody(await call(runtime, { action: 'admit', request, nowMs: admittedAtMs, ownerApproval })))
+        .toEqual({ ok: false, code: 'owner_approval_required' });
+      expect(await responseBody(await call(runtime, { action: 'home', wallet: request.wallet }))).toEqual(original);
+      expect(await (await call(runtime, { action: 'status', request })).json()).toBeNull();
+    }
+    observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
+
     // The last role refuses after the other six prepare. The source stays usable.
     expect(
       await responseBody(

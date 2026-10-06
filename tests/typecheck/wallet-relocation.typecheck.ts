@@ -1,3 +1,4 @@
+import type { WalletRelocationOwnerApprovalReader } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
 import type { WalletAuthorizationManifest } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationManifest';
 import { WalletRelocationPreparation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
 import type { WalletPlacementView } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationView';
@@ -31,6 +32,9 @@ declare const resourceProof: TenantResourceVerificationV1;
 declare const preparation: WalletRelocationPreparation;
 declare const participants: Parameters<typeof WalletRelocationPreparation.prepare>[1];
 declare const clock: () => number;
+declare const ownerApproval: WalletRelocationOwnerApprovalReader;
+// @ts-expect-error Admission must consult the source owner approval.
+void relocations.admit(request, [resourceProof], 'test', participants, clock);
 // @ts-expect-error A complete participant set is required before admission.
 void WalletRelocationPreparation.prepare(request, { gateway: participants.gateway }, clock);
 // @ts-expect-error Only all-participant preparation can construct admission evidence.
@@ -43,7 +47,7 @@ void forgedPreparation;
 // @ts-expect-error Admission requires verified resources and a deployment lane.
 void relocations.admit(request, 1);
 // @ts-expect-error A spread cannot replace an authenticated resource proof.
-void relocations.admit(request, [{ ...resourceProof }], 'test', participants, clock);
+void relocations.admit(request, [{ ...resourceProof }], 'test', participants, ownerApproval, clock);
 
 declare const command: WalletD1RelocationCommand;
 // @ts-expect-error A spread cannot forge command authorization from a journal read.
@@ -240,7 +244,7 @@ const forgedLocator: WalletRelocationLocator = { ...locator };
 // @ts-expect-error A move locator grants no command authority.
 const locatorAsAuthority: WalletD1RelocationCommand = locator;
 // @ts-expect-error A locator cannot admit a new relocation.
-void relocations.admit(locator, [resourceProof], 'test', participants, clock);
+void relocations.admit(locator, [resourceProof], 'test', participants, ownerApproval, clock);
 void forgedLocator;
 void locatorAsAuthority;
 

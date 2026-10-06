@@ -47,3 +47,17 @@ export function relocationPreparationParticipants(
 export function relocationFixtureClock(nowMs: number): number {
   return nowMs;
 }
+
+// The source proof is synthetic here; public Wallet E2Es own factor verification.
+export class RelocationFixtureOwnerApproval {
+  private reads = 0;
+  constructor(private readonly nowMs: number, private readonly mode: unknown) {}
+  async read(request: Command['request']): Promise<unknown> {
+    this.reads += 1;
+    if (this.mode === 'denied' || (this.mode === 'revoked_during_preparation' && this.reads > 1))
+      return { kind: 'denied' };
+    return { kind: 'approved', requestDigest: await request.digest(), authorityId: request.authorityId,
+      sourceGeneration: request.expectedGeneration, approvedAtMs: this.nowMs,
+      expiresAtMs: this.mode === 'expired' ? this.nowMs : this.nowMs + 300_000 };
+  }
+}

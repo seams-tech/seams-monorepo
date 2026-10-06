@@ -229,6 +229,13 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   const reconciled = await resumed.admitHome(identity);
   assert.equal(reconciled.ok, outcome === 'established');
   assert.equal(directory.calls, 2);
+  if (outcome === 'established') {
+    directory.loseReply = true;
+    assert.deepEqual(await resumed.complete({ ...identity, outcome }), { ok: true });
+    assert.equal(directory.calls, 2, 'Published completion retry must remain local');
+    await assert.rejects(resumed.complete({ ...identity, outcome: 'cancelled' }));
+    assert.equal(directory.calls, 2, 'Conflicting terminal retry must not reach the directory');
+  }
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, outcome === 'established');
 }
 
@@ -260,7 +267,7 @@ async function verifyCancelledSessionPublication(database, scope, fixture) {
     remainingUses: 3,
     issuedAtMs: Date.now(),
     expiresAtMs: fixture.issuedSession.session.expiresAtMs,
-  }), /registration_cancelled/u);
+  }), /Wallet session issuance requires an open execution generation/u);
   const row = await database.prepare(
     `SELECT COUNT(*) AS count FROM wallet_session_authorizations_v2
      WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ? AND wallet_id = ?`,

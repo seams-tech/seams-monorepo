@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import type { APIRequestContext, BrowserContext, Page, Request as BrowserRequest, TestInfo } from '@playwright/test';
+import type { APIRequestContext, BrowserContext, Page, Request as BrowserRequest, Route, TestInfo } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
@@ -384,3 +384,84 @@ function isSuccessfulSigningFinalize(request: { path: string; status: number }):
     request.path === '/router-ab/ecdsa-derivation/sign'
   );
 }
+
+class RegistrationProvisioningReplyLoss {
+  attempts = 0;
+  statuses: number[] = [];
+
+  constructor(private readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
+
+  async intercept(route: Route): Promise<void> {
+    this.attempts += 1;
+    assert.equal(this.attempts, 1);
+    const request = route.request();
+    const original = new Request(request.url(), {
+      method: request.method(),
+      headers: await request.allHeaders(),
+      body: request.postDataBuffer(),
+    });
+    const committed = await this.scenario.gateways.get('US').handle(original.clone(), 'ingress');
+    this.statuses.push(committed.status);
+    assert.equal(committed.status, 200);
+    const committedBody = await committed.json();
+    const before = await readSigningBudgetSnapshot(this.scenario.gateways.get('US').database);
+    this.scenario.beginConsoleOutage();
+    const replay = await this.scenario.gateways.get('WEUR').handle(original.clone(), 'ingress');
+    this.statuses.push(replay.status);
+    const replayBody = await replay.text();
+    const replayCode = JSON.parse(replayBody).code ?? null;
+    await writeFile(path.join(this.scenario.output, 'replay-diagnostics.json'), JSON.stringify({
+      status: replay.status, code: replayCode,
+      consolePaths: this.scenario.consoleService.requests,
+    }, null, 2));
+    assert.equal(replay.status, 200, `Provisioning replay failed: ${replayCode}`);
+    const replayed = JSON.parse(replayBody);
+    for (const field of ['walletId', 'ed25519', 'custodyKeyManifestDigestB64u', 'authMethod']) {
+      assert.ok(Object.hasOwn(committedBody, field), `Missing committed ${field}`);
+      assert.deepEqual(replayed[field], committedBody[field], `Provisioning retry changed ${field}`);
+    }
+    const after = await readSigningBudgetSnapshot(this.scenario.gateways.get('US').database);
+    assert.deepEqual(after, before, 'Provisioning retry must preserve budget and operation records');
+    await route.fulfill({
+      status: replay.status,
+      headers: Object.fromEntries(replay.headers),
+      body: replayBody,
+    });
+  }
+}
+
+test('NEAR provisioning reply loss resumes through another region during Console outage', async ({
+  harness, context,
+}, testInfo) => {
+  const output = path.resolve(root, '.artifacts/r155b/console-outage/registration-provisioning-retry');
+  const scenario = await createRegionalRealGateway({
+    root, candidate, lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+    output,
+  });
+  const fault = new RegistrationProvisioningReplyLoss(scenario);
+  try {
+    await scenario.routeContext(context, 'US');
+    await context.route('**/wallets/register/near-provisioning', fault.intercept.bind(fault));
+    await harness.registerPasskeyWallet();
+    await harness.awaitNearReady();
+    assert.equal(fault.attempts, 1);
+    for (const ingress of ['WEUR', 'APAC', 'OC']) {
+      await scenario.routeContext(context, ingress);
+      await harness.signNearTransaction('post_registration');
+    }
+    await scenario.verifyConsoleOutage('ed25519');
+    await writeFile(path.join(output, 'registration-retry.json'), JSON.stringify({
+      scope: 'The harness discards the committed provisioning reply and retries the identical request before delivering the replay to the SDK.',
+      statuses: fault.statuses,
+      sameWalletAndSigner: true,
+      unchangedBudgetAndOperations: true,
+      verifiedSignatures: 3,
+      attemptedConsoleCalls: scenario.consoleService.requests.length,
+    }, null, 2));
+    harness.assertNoLifecycleViolations();
+  } finally {
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+});

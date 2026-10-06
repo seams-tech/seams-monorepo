@@ -1,14 +1,9 @@
-import { RuntimeRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/runtimePreparation';
+import { createWalletRelocationParticipants } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
 import { WalletRelocationRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { relocationWriterVersion } from './walletRelocationResources';
-import { PresignRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/presignPreparation';
-import { DeriverRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/deriverPreparation';
-import { GatewayRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/gatewayPreparation';
+import { relocationWriterVersion, relocationResourceVerification } from './walletRelocationResources';
 import type { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
-import { SigningWorkerRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/signingWorkerPreparation';
-import { RouterRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/routerPreparation';
 import { GatewayRelocationOwnerApproval } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
 import { WalletRegionalDispatch } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import { WalletRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
@@ -168,6 +163,24 @@ class GatewayPreparationBinding {
   }
 }
 
+class RegionalPreparationRuntime {
+  constructor(
+    private readonly side: 'source' | 'destination',
+    private readonly writer: TenantRuntimeWriterV1,
+    private readonly failedParticipant: unknown,
+  ) {}
+
+  async fetch(input: Request): Promise<Response> {
+    const path = new URL(input.url).pathname;
+    if (path.endsWith('/prepare'))
+      return new RuntimePreparationBinding(this.writer, this.failedParticipant).fetch(input);
+    if (path.endsWith('/router-transfer')) return new PreparationRuntime(this.failedParticipant).fetch(input);
+    if (path.includes('/deriver-')) return new DeriverPreparationRuntime(this.side, this.failedParticipant).fetch(input);
+    if (path.includes('/presign-')) return new PresignPreparationRuntime(this.side, this.failedParticipant).fetch(input);
+    return new SigningPreparationRuntime(this.failedParticipant).fetch(input);
+  }
+}
+
 export function relocationPreparationParticipants(
   request: Command['request'],
   source: WalletHome,
@@ -179,42 +192,22 @@ export function relocationPreparationParticipants(
     { accountId: request.destination.accountId, databaseId: request.destination.databaseId },
   );
   const gateway = new GatewayPreparationBinding(failedParticipant);
-  return {
-    gateway: new GatewayRelocationPreparation(source, request.destination, new WalletRegionalDispatch({
+  const sourceRuntime = new RegionalPreparationRuntime('source', writer, failedParticipant);
+  const destinationRuntime = new RegionalPreparationRuntime('destination', writer, failedParticipant);
+  const runtimes = { US: sourceRuntime, WEUR: sourceRuntime, APAC: sourceRuntime, OC: sourceRuntime };
+  runtimes[request.destination.region] = destinationRuntime;
+  return createWalletRelocationParticipants({
+    request, source,
+    verifications: [
+      relocationResourceVerification(source, request.wallet.namespace, nowMs),
+      relocationResourceVerification(request.destination, request.wallet.namespace, nowMs),
+    ],
+    gateways: new WalletRegionalDispatch({
       WALLET_GATEWAY_US: gateway, WALLET_GATEWAY_WEUR: gateway,
       WALLET_GATEWAY_APAC: gateway, WALLET_GATEWAY_OC: gateway,
-    }), relocationFixtureClock.bind(null, nowMs)),
-    walletRuntime: new RuntimeRelocationPreparation(writer,
-      new RuntimePreparationBinding(writer, failedParticipant), relocationFixtureClock.bind(null, nowMs)),
-    router: new RouterRelocationPreparation(
-      request.destination,
-      new PreparationRuntime(failedParticipant),
-      relocationFixtureClock.bind(null, nowMs),
-    ),
-    deriverA: new DeriverRelocationPreparation(
-      'deriverA', request.destination,
-      new DeriverPreparationRuntime('source', failedParticipant),
-      new DeriverPreparationRuntime('destination', failedParticipant),
-      relocationFixtureClock.bind(null, nowMs),
-    ),
-    deriverB: new DeriverRelocationPreparation(
-      'deriverB', request.destination,
-      new DeriverPreparationRuntime('source', failedParticipant),
-      new DeriverPreparationRuntime('destination', failedParticipant),
-      relocationFixtureClock.bind(null, nowMs),
-    ),
-    signingWorker: new SigningWorkerRelocationPreparation(
-      request.destination,
-      new SigningPreparationRuntime(failedParticipant),
-      relocationFixtureClock.bind(null, nowMs),
-    ),
-    presignSessions: new PresignRelocationPreparation(
-      request.destination,
-      new PresignPreparationRuntime('source', failedParticipant),
-      new PresignPreparationRuntime('destination', failedParticipant),
-      relocationFixtureClock.bind(null, nowMs),
-    ),
-  };
+    }),
+    runtimes, clock: relocationFixtureClock.bind(null, nowMs),
+  });
 }
 
 export function relocationFixtureClock(nowMs: number): number {

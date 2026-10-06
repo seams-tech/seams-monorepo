@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 
-class CustodyBinding {
+export class CustodyBinding {
   calls = 0;
   constructor(worker) {
     this.worker = worker;
@@ -55,7 +55,7 @@ class DirectoryBinding {
   }
 }
 
-class RuntimeBinding {
+export class RuntimeBinding {
   requests = [];
   observations = [];
   constructor(api, database, namespace, writer, env) {
@@ -80,7 +80,7 @@ class RuntimeBinding {
   }
 }
 
-class GatewayBinding {
+export class GatewayBinding {
   constructor(routes) {
     this.routes = routes;
   }
@@ -108,7 +108,7 @@ function isMigration(name) {
   return name.endsWith('.sql');
 }
 
-export async function createRelocationDirectoryRuntime({ root, candidate, custody, output }) {
+export async function loadRelocationApi({ root, candidate, output }) {
   await mkdir(output, { recursive: true });
   const bundlePath = resolve(output, 'directory-runtime.mjs');
   await build({
@@ -153,7 +153,11 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
     `,
     },
   });
-  const api = await import(pathToFileURL(bundlePath));
+  return import(pathToFileURL(bundlePath));
+}
+
+export async function createRelocationDirectoryRuntime({ root, candidate, custody, output }) {
+  const api = await loadRelocationApi({ root, candidate, output });
   const storage = new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response(null, { status: 404 }); } };',

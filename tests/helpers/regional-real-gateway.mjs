@@ -18,6 +18,7 @@ export async function createRegionalRealGateway({
   lostAcknowledgements,
   databaseState,
   emailDelivery,
+  custody,
 }) {
   await mkdir(output, { recursive: true });
   const publicRoot = resolve(candidate, '../..');
@@ -56,6 +57,7 @@ export async function createRegionalRealGateway({
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
+        export { relocationWriterVersion } from './tests/fixtures/tenant-deployment/walletRelocationResources';
         export { fourRegionBinding, regionalResourceProof } from './tests/helpers/tenantDeploymentFixtures';
         export { D1RegionalDeploymentAdmission } from './packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
         export { DeploymentFencedDatabase } from './packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';
@@ -101,9 +103,9 @@ export async function createRegionalRealGateway({
       'utf8',
     );
     const variables = dotenv.parse(template.split('[vars]')[1]);
-    const config = api.parseStaticWalletConsoleBindingConfigV1(
-      JSON.parse(secrets.WALLET_LOCAL_DEPLOYMENT_JSON),
-    );
+    const deployment = JSON.parse(secrets.WALLET_LOCAL_DEPLOYMENT_JSON);
+    if (custody) deployment.tenantRoot = custody.tenantRoot;
+    const config = api.parseStaticWalletConsoleBindingConfigV1(deployment);
     const scope = {
       namespace: variables.SEAMS_TENANT_STORAGE_NAMESPACE,
       organizationId: config.deployment.orgId,
@@ -178,7 +180,7 @@ export async function createRegionalRealGateway({
         api,
         region,
         database,
-        environment,
+        environment: custody ? { ...environment, ...custody.regions[region] } : environment,
         consoleService,
         scope,
         catalog,
@@ -203,7 +205,7 @@ function regionalDeploymentProofs(api, binding) {
         binding,
         resource.databaseId,
         resource.databaseId,
-        randomUUID(),
+        api.relocationWriterVersion(resource.databaseId, 'walletRuntime'),
         Date.now(),
       ),
     );

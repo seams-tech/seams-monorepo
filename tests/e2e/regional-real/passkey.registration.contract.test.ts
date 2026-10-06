@@ -7,6 +7,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
 import { createRegionalRealGateway } from '../../helpers/regional-real-gateway.mjs';
+import { BrowserWalletRelocation } from '../../helpers/browser-wallet-relocation.mjs';
+import { createBrowserRelocationCustody } from '../../helpers/browser-relocation-custody.mjs';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
@@ -24,15 +26,25 @@ for (const curve of ['ecdsa', 'ed25519']) {
   test(`${curve} signs through WEUR, APAC and OC while Console is unavailable`, async ({
     harness,
     context,
+    page,
   }) => {
-    const scenario = await createRegionalRealGateway({
-      root,
-      candidate,
-      lostAcknowledgements: 0,
+    const custody = await createBrowserRelocationCustody({
+      publicRoot,
       localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
-      output: path.resolve(root, '.artifacts/r155b/console-outage', curve),
     });
+    let scenario: Awaited<ReturnType<typeof createRegionalRealGateway>> | null = null;
     try {
+      scenario = await createRegionalRealGateway({
+        root,
+        candidate,
+        lostAcknowledgements: 0,
+        localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+        output: path.resolve(root, '.artifacts/r155b/console-outage', curve),
+        custody,
+      });
+      const relocation = new BrowserWalletRelocation({ root, candidate, scenario });
+      const observe = relocation.observe.bind(relocation);
+      context.on('request', observe);
       await scenario.routeContext(context, 'US');
       await harness.registerPasskeyWallet();
       await harness.awaitNearReady();
@@ -62,10 +74,35 @@ for (const curve of ['ecdsa', 'ed25519']) {
         signaturesAfterUnlock: 2,
         consoleRequests: scenario.consoleService.requests.length,
         unlockDirectoryRequests,
+        custodyNamespaces: custody.namespaces,
         scope: 'Browser registration, runtime reset and passkey unlock with directory coordination available. Console is unavailable for signing before and after unlock through foreign ingress. Excludes relocation and Console-independent unlock.',
       }, null, 2));
+      const moved = await relocation.moveToApac(page);
+      context.off('request', observe);
+      await harness.unlockPasskeyWallet();
+      scenario.beginConsoleOutage();
+      await scenario.routeContext(context, 'WEUR');
+      if (curve === 'ecdsa') await harness.signTempoTransaction('post_unlock');
+      else await harness.signNearTransactionAfterRefresh();
+      assert.equal(scenario.consoleService.requests.length, 0);
+      const home = await scenario.consoleService.database
+        .prepare('SELECT region, state FROM wallet_homes WHERE wallet_id = ?')
+        .bind(moved.walletId).first();
+      assert.deepEqual(home, { region: 'APAC', state: 'established' });
+      await writeFile(path.join(scenario.output, 'browser-relocation.json'), JSON.stringify({
+        curve, ...moved, source: 'US', destination: 'APAC',
+        approval: 'Registered browser passkey',
+        freshUnlockAfterMove: true,
+        signaturesAfterMove: 1,
+        signingIngress: 'WEUR',
+        consoleRequestsDuringDestinationSigning: scenario.consoleService.requests.length,
+        custodyNamespaces: custody.namespaces,
+        scope: 'Local production coordinator, browser registration and passkey approval, independent custody namespaces, fresh unlock and destination signing. Excludes hosted latency.',
+      }, null, 2));
     } finally {
-      await scenario.close();
+      await context.unrouteAll({ behavior: 'wait' });
+      if (scenario) await scenario.close();
+      await custody.close();
     }
   });
 }

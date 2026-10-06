@@ -1,3 +1,4 @@
+import { verifySourceFreezeAssembly } from './source-freeze.scenario';
 import { verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
 import { verifyEcdsaSnapshotJournal, verifyEcdsaTransferJournal, verifyEcdsaActivationJournal, verifyEcdsaCleanupJournal } from './ecdsa-relocation.scenario';
 import { deriverSnapshotFixture, ed25519SnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
@@ -2138,13 +2139,17 @@ test('relocation directory serializes competing moves and survives lost replies 
         }),
       ),
     ).toEqual(pendingFreeze);
+    const assembledFence = await verifySourceFreezeAssembly(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated,
+      attemptFromResponse(pendingFreeze),
+    );
     const lostFence = await call(
       runtime,
       {
         action: "advance",
         request: coordinated,
         attemptId: attemptIdentity(),
-        receipt: fence(coordinated),
+        receipt: assembledFence,
         nowMs: admittedAtMs + 110,
       },
       "ingress-a",
@@ -2175,7 +2180,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         action: "advance",
         request: coordinated,
         attemptId: attemptIdentity(),
-        receipt: verification(coordinated),
+        receipt: relocationDestinationVerification(coordinated, admittedAtMs + 200, assembledFence.manifestDigest),
         nowMs: admittedAtMs + 210,
       }),
     );
@@ -2201,7 +2206,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         receipt: relocationDestinationActivation(
           coordinated,
           admittedAtMs + 400,
-          manifest,
+          assembledFence.manifestDigest,
         ),
         nowMs: admittedAtMs + 410,
       }),
@@ -2262,7 +2267,7 @@ test('relocation directory serializes competing moves and survives lost replies 
           coordinated,
           source,
           admittedAtMs + 1600,
-          manifest,
+          assembledFence.manifestDigest,
         ),
         nowMs: admittedAtMs + 1610,
       }),
@@ -2314,6 +2319,9 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(blockedExecution.code).toBe("receipt_conflict");
     observations.push({
       coordinator: {
+        sourceReceiptAssembledFromParticipantSnapshots: true,
+        sealedSourceReplaySkipsUnavailableParticipants: true,
+        nativeParticipantsSimulated: true,
         lostFenceReplyResumesNextPhaseAfterRestart: true,
         pendingDrainPreservesRunningAttemptAcrossRestart: true,
         pendingChunksPreserveRunningAttemptAcrossRestart: true,

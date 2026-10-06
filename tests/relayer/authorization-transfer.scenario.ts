@@ -79,7 +79,7 @@ class RegionalAuthorizationParticipant {
   }
 }
 
-class UnusedRegionalParticipant {
+export class UnusedRegionalParticipant {
   async fetch(): Promise<Response> {
     throw new Error('Transfer selected an unrelated region');
   }
@@ -166,7 +166,7 @@ export async function verifyAuthorizationRegionalTransfer(
   };
 }
 
-class RegionalLifecycleParticipant {
+export class RegionalLifecycleParticipant {
   pendingReason: 'ceremonies_unsettled' | 'operations_unsettled' = 'ceremonies_unsettled';
   corruptReceipt = false;
   pending = true;

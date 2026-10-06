@@ -1,3 +1,4 @@
+import type { RuntimeRelocationFreeze } from '../../packages/wallet-console-server-ts/src/walletPlacement/runtimeRelocationFreeze';
 import type { PresignSourceRequest, PresignTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignRelocationCommand';
 import type { EcdsaTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
 import type { Ed25519TransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
@@ -396,3 +397,12 @@ acceptPresignTransfer({ operation: 'export', session: presignSession });
 acceptPresignTransfer({ ...deriverExport, operation: 'verify', session: presignSession });
 // @ts-expect-error Import requires both session identities.
 acceptPresignTransfer({ operation: 'import', session: { presignSessionId: 'session' } });
+
+type RuntimeFreezeResult = Awaited<ReturnType<RuntimeRelocationFreeze['advance']>>;
+declare const capturedRuntime: Extract<RuntimeFreezeResult, { state: 'frozen' }>;
+// @ts-expect-error Pending capture cannot expose a complete participant snapshot set.
+const pendingRuntimeSnapshots: RuntimeFreezeResult = { ...capturedRuntime, state: 'pending' };
+// @ts-expect-error A sealed Runtime result requires every native participant snapshot.
+const incompleteRuntimeSnapshots: RuntimeFreezeResult = { state: 'frozen', snapshots: { router: capturedRuntime.snapshots.router } };
+void pendingRuntimeSnapshots;
+void incompleteRuntimeSnapshots;

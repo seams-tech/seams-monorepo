@@ -304,3 +304,15 @@ export function presignSnapshotFixture(request: WalletRelocationRequest, invalid
     presign_session_id: 'linked-session', server_presignature_id: 'linked-server-presignature' },
     record_count: 2, records_digest_hex: digest };
 }
+
+export async function routerSnapshotFixture(request: WalletRelocationRequest, digest: string) {
+  return {
+    request: {
+      owner: { org_id: request.wallet.organizationId, project_id: request.wallet.projectId,
+        env_id: request.wallet.environmentId, wallet_id: request.wallet.walletId },
+      move_id: request.moveId, request_digest_hex: await request.digest(),
+      source_generation: request.expectedGeneration, destination_generation: request.expectedGeneration + 1,
+    },
+    record_count: 1, records_digest_hex: digest,
+  };
+}

@@ -5,10 +5,11 @@ import { Miniflare } from 'miniflare';
 
 // Tenant root authority stays shared. Wallet objects and SigningWorker stores
 // have separate source and destination namespaces.
-export async function createRelocationCustodyWorkers(publicRoot) {
+export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa }) {
   const scripts = resolve(publicRoot, 'crates/router-ab-cloudflare/scripts');
   const api = await import(pathToFileURL(resolve(scripts, 'test-private-d1.mjs')));
   const fixture = api.loadFixture();
+  const jwtSigner = api.configureRouterJwt(fixture);
   const sourceRouter = api.routerWorker(fixture);
   const sourceA = api.deriverAWorker(fixture);
   const sourceB = api.deriverBWorker(fixture);
@@ -88,6 +89,35 @@ export async function createRelocationCustodyWorkers(publicRoot) {
       roots.tenantRoot,
     );
     await acknowledgeRegistration(topology, registration);
+    let ecdsa = null;
+    if (includeEcdsa) {
+      const walletScope = JSON.parse(registration.delivery).scope;
+      const state = await api.testEcdsaRegistrationAndActivation(
+        topology,
+        fixture,
+        roots.tenantRoot,
+        jwtSigner,
+        'composed-ecdsa',
+        walletScope.wallet_id,
+        walletScope.project_environment_id,
+      );
+      assert.deepEqual(
+        state.activationBody.pending.wallet_scope,
+        walletScope,
+        'Both curves must share the exact wallet scope',
+      );
+      const signed = await api.testEcdsaNormalSigning(topology, state, 'pool', false);
+      const delayedPublication = await api.completeOwnerPresignBeforePublication(
+        topology,
+        state,
+        fixture,
+      );
+      ecdsa = {
+        state,
+        sourceSignature: signed.response.signature65_b64u,
+        delayedPublication,
+      };
+    }
     const objects = [];
     for (const [binding, source, destination] of [
       ['ROUTER_WALLET_DO', 'router', 'destination-router'],
@@ -104,7 +134,7 @@ export async function createRelocationCustodyWorkers(publicRoot) {
       );
       objects.push({ binding, source, destination, independentNamespaces: true });
     }
-    return { topology, fixture, roots, registration, objects, releaseFaultProbe };
+    return { topology, fixture, roots, registration, objects, releaseFaultProbe, ecdsa };
   } catch (error) {
     await topology.dispose();
     throw error;

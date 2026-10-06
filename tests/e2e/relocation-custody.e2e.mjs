@@ -16,8 +16,13 @@ import { createRelocationCustodyWorkers } from '../helpers/relocation-custody-wo
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = resolve(candidate, '../..');
-const output = resolve(import.meta.dirname, '../../.artifacts/r155b/composed-relocation');
-const custody = await createRelocationCustodyWorkers(publicRoot);
+const includeEcdsa = process.argv.includes('--with-ecdsa');
+const output = resolve(
+  import.meta.dirname,
+  '../../.artifacts/r155b',
+  includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
+);
+const custody = await createRelocationCustodyWorkers(publicRoot, { includeEcdsa });
 try {
   await mkdir(output, { recursive: true });
   await verifyCoordinatorBindings(custody);
@@ -204,6 +209,7 @@ async function verifyCoordinatorBindings(custody) {
         2,
       ),
     );
+    if (custody.ecdsa) await verifyEcdsaAfterMove(custody);
     await writeFile(
       resolve(output, 'coordinator-bindings.json'),
       JSON.stringify(
@@ -280,5 +286,48 @@ function isPendingEd25519Settlement(observation) {
     observation.path.endsWith('/ed25519-settle') &&
     observation.state === 'draining' &&
     observation.pendingRounds === 1
+  );
+}
+
+async function verifyEcdsaAfterMove(custody) {
+  const api = await import(
+    pathToFileURL(resolve(publicRoot, 'crates/router-ab-cloudflare/scripts/test-private-d1.mjs'))
+  );
+  await api.rejectDelayedPresignPublication(
+    custody.topology,
+    custody.ecdsa.delayedPublication,
+    /ExpiredLocalRequest: Presign authority is unavailable/,
+  );
+  custody.ecdsa.state.executionHome = {
+    workerName: 'destination-signing-worker',
+    ownershipGeneration: 2,
+  };
+  const signed = await api.testEcdsaNormalSigning(
+    custody.topology,
+    custody.ecdsa.state,
+    'pool',
+    false,
+    false,
+    'destination-router',
+  );
+  await writeFile(
+    resolve(output, 'ecdsa-signing.json'),
+    JSON.stringify(
+      {
+        scope:
+          'Native ECDSA registration for the same wallet as NEAR, real directory coordinator, independent custody namespaces, source cleanup, and fresh destination ECDSA signing. Excludes browser ECDSA authorization and an in-flight ECDSA finalize during freeze.',
+        sourceSignatureSha256: createHash('sha256')
+          .update(Buffer.from(custody.ecdsa.sourceSignature, 'base64url'))
+          .digest('hex'),
+        destinationSignatureSha256: createHash('sha256')
+          .update(Buffer.from(signed.response.signature65_b64u, 'base64url'))
+          .digest('hex'),
+        destinationOwnershipGeneration: 2,
+        sourceRefillPublicationRejectedAfterMove: true,
+        independentlyVerifiedSignatures: 2,
+      },
+      null,
+      2,
+    ),
   );
 }

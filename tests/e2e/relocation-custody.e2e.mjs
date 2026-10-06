@@ -1,8 +1,10 @@
+import { approveRelocationOwner } from '../helpers/relocation-owner-approval.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
 import { createRelocationDirectoryRuntime } from '../helpers/relocation-directory-runtime.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createRelocationCustodyWorkers } from '../helpers/relocation-custody-workers.mjs';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
@@ -12,25 +14,25 @@ const output = resolve(import.meta.dirname, '../../.artifacts/r155b/composed-rel
 const custody = await createRelocationCustodyWorkers(publicRoot);
 try {
   await mkdir(output, { recursive: true });
+  await verifyCoordinatorBindings(custody);
   await writeFile(
     resolve(output, 'custody-topology.json'),
     JSON.stringify(
       {
         scope:
-          'Real Cloudflare Rust Workers with separate regional wallet object namespaces and SigningWorker D1. Shared tenant-root authority. Source NEAR registration completed. No directory-coordinated relocation or destination signing yet.',
+          'Real Cloudflare Rust Workers with separate regional wallet object namespaces and SigningWorker D1. Shared tenant-root authority. Source NEAR registration acknowledged. Directory-coordinated relocation, source cleanup, and destination signing verified locally.',
         objects: custody.objects,
         registrationReceiptSha256: createHash('sha256')
           .update(JSON.stringify(custody.registration.publicReceipt))
           .digest('hex'),
         sourceRegistrationCompleted: true,
-        directoryCoordinatorConnected: false,
-        destinationSigningVerified: false,
+        directoryCoordinatorConnected: true,
+        destinationSigningVerified: true,
       },
       null,
       2,
     ),
   );
-  await verifyCoordinatorBindings(custody);
   console.log(`Relocation custody topology passed: ${output}`);
 } finally {
   await custody.topology.dispose();
@@ -113,17 +115,53 @@ async function verifyCoordinatorBindings(custody) {
     assert.equal(response.status, 409, await response.clone().text());
     assert.equal(bindings.runtimes.WEUR.env.MPC_ROUTER.calls, 0);
     assert.ok(context.directory.requests.some(isSourceAdmission));
+    await approveRelocationOwner(context, move, candidate);
+    const approved = await journal.admit(move, verifications, 'test', bindings, Date.now);
+    assert.equal(approved.ok, true, JSON.stringify(approved));
+    await advanceRelocation(context, journal, move);
+    const { verifyEd25519DestinationSigning } = await import(
+      pathToFileURL(
+        resolve(publicRoot, 'crates/router-ab-cloudflare/scripts/ed25519-signing-evidence.mjs'),
+      )
+    );
+    const signed = await verifyEd25519DestinationSigning({
+      topology: custody.topology,
+      routerName: 'destination-router',
+      activation: custody.registration.result.result.result,
+      identity: custody.fixture.tenant_root_creation.identity,
+      clientRecipientSeed: custody.fixture.activation.client_recipient_seed,
+      destinationName: 'destination-signing-worker',
+      ownershipGeneration: 2,
+      credential: 'private-d1-gateway-router-auth',
+      repoRoot: publicRoot,
+      scope: JSON.parse(custody.registration.delivery).scope,
+    });
+    await writeFile(
+      resolve(output, 'destination-signing.json'),
+      JSON.stringify(
+        {
+          signatureSha256Hex: signed.signatureSha256Hex,
+          staleGenerationRejected: signed.staleGenerationRejected,
+          prepareReplayAfterEviction: signed.prepareReplayAfterEviction,
+          finalizeReplayAfterEviction: signed.finalizeReplayAfterEviction,
+        },
+        null,
+        2,
+      ),
+    );
     await writeFile(
       resolve(output, 'coordinator-bindings.json'),
       JSON.stringify(
         {
           realDirectoryAndRuntimeHandlers: true,
           unapprovedMoveRejected: true,
+          ownerApprovedMoveCompleted: true,
+          destinationSignatureVerified: true,
           unadmittedSourceCommandStatus: response.status,
-          custodyCallsBeforeAdmission: bindings.runtimes.WEUR.env.MPC_ROUTER.calls,
+          custodyCallsBeforeAdmission: 0,
           directoryPaths: context.directory.requests,
           scope:
-            'Real journal, Gateway approval reader, Runtime admission and native custody bindings. Owner approval and successful move remain to implement in this scenario.',
+            'Real journal, WebAuthn owner approval, Runtime admission, independent custody namespaces, completed move, and destination native NEAR signing. This is local composition evidence, not hosted SDK acceptance.',
         },
         null,
         2,
@@ -136,4 +174,42 @@ async function verifyCoordinatorBindings(custody) {
 
 function isSourceAdmission(path) {
   return path.endsWith('/relocation-runtime-source');
+}
+
+async function advanceRelocation(context, journal, move) {
+  const observations = [];
+  for (let step = 0; step < 128; step += 1) {
+    const response = await context.api.handleWalletRelocationAdvance(
+      new Request(context.api.WALLET_RELOCATION_ADVANCE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: context.wallet,
+          moveId: move.moveId,
+          attemptId: `wattempt_${randomBytes(32).toString('base64url')}`,
+        }),
+      }),
+      {
+        database: context.database,
+        catalog: context.catalog,
+        bindings: context.bindings,
+        scope: context.scope,
+        clock: Date.now,
+      },
+    );
+    const body = await response.json();
+    observations.push({ status: response.status, result: body });
+    await writeFile(
+      resolve(output, 'coordinator-progress.json'),
+      JSON.stringify(observations, null, 2),
+    );
+    assert.equal(response.status, 200, JSON.stringify(body));
+    const current = await journal.find(move);
+    if (current.progress.state === 'completed') return;
+    assert.ok(
+      ['ready', 'running'].includes(current.progress.execution.state),
+      JSON.stringify(body),
+    );
+  }
+  assert.fail('Relocation did not complete within 128 coordinator steps');
 }

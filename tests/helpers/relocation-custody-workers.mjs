@@ -83,6 +83,7 @@ export async function createRelocationCustodyWorkers(publicRoot) {
       fixture,
       roots.tenantRoot,
     );
+    await acknowledgeRegistration(topology, registration);
     const objects = [];
     for (const [binding, source, destination] of [
       ['ROUTER_WALLET_DO', 'router', 'destination-router'],
@@ -104,4 +105,28 @@ export async function createRelocationCustodyWorkers(publicRoot) {
     await topology.dispose();
     throw error;
   }
+}
+
+async function acknowledgeRegistration(topology, registration) {
+  const binding = registration.envelope.target.binding;
+  const router = await topology.getWorker('router');
+  const response = await router.fetch(
+    'https://mpc-router.router-ab.internal/router-ab/router/ed25519-yao/registration/consume',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-router-ab-internal-service-auth': 'private-d1-gateway-router-auth',
+      },
+      body: JSON.stringify({
+        ownership_generation: 1,
+        tenant_root: registration.envelope.tenant_root,
+        wallet_id: binding.lifecycle.account_id,
+        lifecycle_id: binding.lifecycle.lifecycle_id,
+        session_id: binding.session_id,
+        consumer_binding: 'composed-registration-finalization',
+      }),
+    },
+  );
+  assert.equal(response.status, 200, await response.text());
 }

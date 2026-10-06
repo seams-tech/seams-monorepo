@@ -68,9 +68,25 @@ class RuntimeBinding {
       this.namespace,
       this.writer,
     );
-    if (prepared) return prepared;
+    if (prepared) {
+      console.log('Relocation Runtime', new URL(request.url).pathname, prepared.status);
+      return prepared;
+    }
     const response = await this.api.handleWalletControlRequest(request, this.env);
     assert.ok(response, 'Every custody request must reach its production Runtime handler');
+    await logRelocationState('Runtime', request, response);
+    return response;
+  }
+}
+
+class GatewayBinding {
+  constructor(routes) {
+    this.routes = routes;
+  }
+  async fetch(request) {
+    const response = await this.routes.handle(request);
+    assert.ok(response);
+    await logRelocationState('Gateway', request, response);
     return response;
   }
 }
@@ -106,6 +122,21 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
     stdin: {
       resolveDir: root,
       contents: `
+      export { WalletRelocationOwnerRequest } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletRelocationOwnerRequest.ts'))};
+      export { D1WalletRelocationApprovals } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletRelocationApprovals.ts'))};
+      export { D1WalletRelocationChallenges, WalletRelocationChallengeBinding } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletRelocationChallenges.ts'))};
+      export { D1WalletExecutionAuthority } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/registration/d1WalletExecutionAuthority.ts'))};
+      export { AuthorizationService } from ${JSON.stringify(resolve(candidate, 'src/authorization/service.ts'))};
+      export { capabilityPolicyPort } from ${JSON.stringify(resolve(candidate, 'src/authorization/capabilityPolicy.ts'))};
+      export { parseSessionOrigin } from ${JSON.stringify(resolve(candidate, 'src/authorization/domain.ts'))};
+      export { CloudflareD1AuthorizationStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/authorization/d1AuthorizationStore.ts'))};
+      export { prepareD1WalletAuthorityPutStatement } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletAuthorityStore.ts'))};
+      export { prepareD1WalletAuthMethodV2PutStatement } from ${JSON.stringify(resolve(candidate, 'src/core/d1WalletAuthMethodStore.ts'))};
+      export { CloudflareD1WebAuthnStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/webauthn/d1WebAuthnStore.ts'))};
+      export { buildLinkedDeviceManagementAuthorityFixture } from ${JSON.stringify(resolve(candidate, '../../tests/unit/helpers/linkedDeviceManagement.fixtures.ts'))};
+      export { routerAbMpcMaterialActivationRefFromWire } from ${JSON.stringify(resolve(candidate, '../shared-ts/src/utils/routerAbNormalSigningIdentity.ts'))};
+      export { buildFullOwnerPermissionsV1 } from ${JSON.stringify(resolve(candidate, '../shared-ts/src/authorization/delegatedAuthority.ts'))};
+      export { handleWalletRelocationAdvance, WALLET_RELOCATION_ADVANCE_URL } from './packages/wallet-console-server-ts/src/walletPlacement/relocationService';
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
       export { WalletPlacementConsoleBinding } from './packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
@@ -183,7 +214,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
         scope: signerScope,
         directory: gatewayDirectory,
       });
-      gateways[`WALLET_GATEWAY_${region}`] = { fetch: routes.handle.bind(routes) };
+      gateways[`WALLET_GATEWAY_${region}`] = new GatewayBinding(routes);
       const env = {
         WALLET_CONSOLE: runtimeDirectory,
         CF_VERSION_METADATA: { id: writer.versionId },
@@ -207,9 +238,40 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
       }),
       runtimes: { ...runtimes, US: unavailable, OC: unavailable },
     };
-    return { api, storage, database, catalog, wallet, directory, scope, regions, bindings };
+    return {
+      api,
+      storage,
+      database,
+      catalog,
+      wallet,
+      directory,
+      scope,
+      signerScope,
+      registration: custody.registration,
+      regions,
+      bindings,
+    };
   } catch (error) {
     await storage.dispose();
     throw error;
   }
+}
+
+async function logRelocationState(role, request, response) {
+  const value = await response.clone().json();
+  console.log(
+    'Relocation',
+    role,
+    new URL(request.url).pathname,
+    response.status,
+    JSON.stringify({
+      state: value.state,
+      kind: value.kind,
+      pendingEffects: value.pending_effects,
+      pendingRounds: value.pending_rounds,
+      pendingPairs: value.pending_pairs,
+      pendingLinkedSessions: value.pending_linked_sessions,
+      unsettledLifecycles: value.unsettled_lifecycles?.length,
+    }),
+  );
 }

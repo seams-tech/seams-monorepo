@@ -292,6 +292,36 @@ async function runtimeSourceCommand(
   return responseBody(response);
 }
 
+async function routerSourceReceipt(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt,
+  digest: string,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-receipt',
+    {
+      method: 'POST',
+      headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(source.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': source.accountId,
+        'x-seams-writer-database': source.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, receipt: {
+        request: {
+          owner: { org_id: request.wallet.organizationId, project_id: request.wallet.projectId,
+            env_id: request.wallet.environmentId, wallet_id: request.wallet.walletId },
+          move_id: request.moveId, request_digest_hex: await request.digest(),
+          source_generation: 1, destination_generation: 2,
+        },
+        records_digest_hex: digest, record_count: 1,
+      } }),
+    },
+  ));
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -784,6 +814,13 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'router-freeze')).toEqual(routerFreeze);
+    const routerReceipt = await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64));
+    expect(routerReceipt).toMatchObject({ ok: true, receipt: { record_count: 1 } });
+    expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64))).toEqual(routerReceipt);
+    expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'b'.repeat(64))).toEqual({
+      ok: false, code: 'receipt_conflict',
+    });
+    observations.push({ routerSourceReceiptPreservesExactInventory: true });
     observations.push({ runtimeSourceCommandsUsePinnedJournalIdentity: true });
 
     expect(

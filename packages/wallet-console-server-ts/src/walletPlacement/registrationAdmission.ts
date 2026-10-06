@@ -216,33 +216,6 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     }
   }
 
-  async admitEstablishedHome(input: {
-    readonly walletId: Parameters<
-      WalletRegistrationReservationAuthority['admitHome']
-    >[0]['walletId'];
-  }) {
-    const scope = this.options.scope;
-    const wallet = WalletOwnershipKey.parse({
-      namespace: scope.namespace,
-      organizationId: scope.organizationId,
-      projectId: scope.projectId,
-      environmentId: scope.environmentId,
-      walletId: input.walletId,
-    });
-    const admitted = await this.client().executionAuthority(wallet);
-    if (!admitted.ok)
-      return {
-        ok: false as const,
-        code: admitted.code,
-        message: 'Wallet execution is not admitted at this home',
-      };
-    return {
-      ok: true as const,
-      ownershipGeneration: admitted.authority.generation,
-      purpose: admitted.authority.purpose,
-    };
-  }
-
   async admitHome(input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0]) {
     const client = this.client();
     const assignment = await client.findByCeremony(input.ceremonyId);

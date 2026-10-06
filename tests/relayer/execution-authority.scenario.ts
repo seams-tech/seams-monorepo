@@ -142,20 +142,19 @@ async function registrationRuntimeAdmission(
   return admission.admitHome({ walletId, ceremonyId });
 }
 
-export async function establishedRuntimeAdmission(
+export async function sharedDirectoryAdmission(
   runtime: Miniflare,
   wallet: WalletOwnershipKey,
   home: WalletHome,
   homes: readonly WalletHome[],
 ) {
-  const { admission, walletId } = await registrationRuntimeAuthority(
-    runtime,
-    wallet,
-    home,
-    homes,
-    'honest',
-  );
-  return admission.admitEstablishedHome({ walletId });
+  const result = await executionAdmissionClient(runtime, wallet, home, homes, 'honest');
+  if (!result.ok) return result;
+  return {
+    ok: true as const,
+    ownershipGeneration: result.authority.generation,
+    purpose: result.authority.purpose,
+  };
 }
 
 export async function verifyRegistrationExecutionAdmission(
@@ -204,7 +203,7 @@ export async function verifyRegistrationExecutionAdmission(
     ),
   ).rejects.toThrow();
 
-  expect(await establishedRuntimeAdmission(runtime, wallet, source, homes)).toMatchObject({
+  expect(await sharedDirectoryAdmission(runtime, wallet, source, homes)).toMatchObject({
     ok: false,
     code: 'wallet_unavailable',
   });
@@ -291,13 +290,13 @@ export async function verifyExecutionAdmissionResponses(
     ),
   ).toEqual({ ok: true, ownershipGeneration: 1, purpose: 'ordinary' });
 
-  expect(await establishedRuntimeAdmission(runtime, wallet, home, homes)).toEqual({
+  expect(await sharedDirectoryAdmission(runtime, wallet, home, homes)).toEqual({
     ok: true,
     ownershipGeneration: 1,
     purpose: 'ordinary',
   });
   return {
     executionClientRejectsConflictingConsoleResponses: true,
-    establishedRuntimeRequiresOrdinaryAuthority: true,
+    sharedDirectoryRequiresOrdinaryAuthority: true,
   };
 }

@@ -328,3 +328,35 @@ wallet-server imports. The inventory contains 5,821 hashed files.
 See [candidate identity and limitations](docs/evidence/r155b-verified-candidate-20261007.json).
 Database allocation, coordinated staging deployment, and hosted comparison remain
 open. These build results do not establish a latency gain.
+
+#### Staging OTP counter cutover and rollback
+
+Use a coordinated maintenance interval for the counter cutover. Stop OTP traffic
+through every regional Gateway before changing the counter authority. A quiet
+request log alone does not prove that traffic is blocked. If a verified traffic
+block is unavailable, do not switch stores.
+
+1. Record all current Worker versions, bindings, routes, and non-versioned settings.
+2. After database approval, allocate the dedicated database and apply its migration.
+3. Block OTP traffic on every ingress and drain in-flight OTP requests.
+4. Read the latest `reset_at_ms` from the old counter table after draining. Keep
+   traffic blocked until that time passes. Repeat the read to confirm that no
+   unexpired rows remain. Do not substitute a default policy window: deployments
+   can configure longer windows.
+5. Bind all four candidate Gateways to the same dedicated counter database.
+   Keep the old Console endpoint available until all old Gateways stop serving.
+6. Deploy the candidate Console after the Gateway switch. Verify the bindings
+   and versions, then reopen OTP traffic and run the cross-region limiter check.
+
+For rollback, first block OTP traffic and drain requests again. Wait until all
+unexpired counters in **both** databases expire. Restore Console before restoring
+the old Gateways, because those Gateways require its counter endpoint. Restore
+recorded bindings and non-versioned settings as well as Worker versions. Reopen
+traffic only after every Gateway uses the original shared counter store.
+
+The old and dedicated counter schemas are identical as of 2026-10-07. This runbook
+uses expiry under blocked traffic, so it needs no counter-copy compatibility path.
+Retain the old Console table during the bounded comparison and rollback interval.
+Remove it only after the accepted cutover, when old Gateway traffic and rollback
+are no longer required. This procedure has been reviewed against the migration
+and deployment scripts. It has not been executed on staging.

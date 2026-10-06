@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import type { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import type { APIRequestContext, BrowserContext, Page, Request as BrowserRequest, Route, TestInfo } from '@playwright/test';
@@ -899,6 +900,7 @@ class ConcurrentRegistrationSetup {
   readonly statuses: number[] = [];
   readonly conflicts: { status: number; code: string }[] = [];
   home: string | null = null;
+  competingWallet: { walletId: string; ceremonyId: string; region: string } | null = null;
 
   constructor(readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
@@ -949,6 +951,26 @@ class ConcurrentRegistrationSetup {
       assert.equal(response.status, 409);
       assert.equal(result.code, 'wallet_conflict');
     }
+    const separateOperation = new Request(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: JSON.stringify({
+        registrationOperationId: createRegistrationSetupOperationId(),
+        wallet: { kind: 'server_allocated' },
+        signerSelection: setup.signerSelection,
+        authMethod: setup.authMethod,
+      }),
+    });
+    const separateResponse = await this.scenario.gateways.get('APAC').handle(separateOperation, 'ingress');
+    assert.equal(separateResponse.status, 200);
+    const separate = await separateResponse.json();
+    assert.notEqual(separate.walletId, accepted.walletId);
+    assert.equal(separate.home.region, 'APAC');
+    this.competingWallet = {
+      walletId: separate.walletId,
+      ceremonyId: separate.registrationCeremonyId,
+      region: separate.home.region,
+    };
     await route.fulfill({
       status: responses[0].status,
       headers: Object.fromEntries(responses[0].headers),
@@ -971,8 +993,10 @@ test('concurrent NEAR-only setup through three regions establishes one wallet', 
     await context.route('**/wallets/register/setup', concurrent.intercept.bind(concurrent));
     await harness.registerPasskeyEd25519YaoWallet();
     assert.equal(concurrent.attempts, 1);
+    assert.ok(concurrent.competingWallet);
+    const credentialOwnership = await verifyCompetingCredentialOwnership(scenario, concurrent.competingWallet);
     const placement = await scenario.consoleService.database.prepare(
-      'SELECT region, state FROM wallet_homes',
+      "SELECT region, state FROM wallet_homes WHERE state = 'established'",
     ).all();
     assert.deepEqual(placement.results, [{ region: concurrent.home, state: 'established' }]);
     scenario.beginConsoleOutage();
@@ -985,12 +1009,13 @@ test('concurrent NEAR-only setup through three regions establishes one wallet', 
       simultaneousIngress: ['US', 'APAC', 'OC'],
       statuses: concurrent.statuses,
       competingOperation: concurrent.conflicts,
+      credentialOwnership,
       home: concurrent.home,
       identicalWalletAndCeremony: true,
       establishedDirectoryRows: placement.results.length,
       verifiedSignatures: 3,
       signingConsoleCalls: scenario.consoleService.requests.length,
-      scope: 'Concurrent copies of one SDK registration operation, then a different operation claims the reserved wallet through two regions. Credential conflicts remain a separate check.',
+      scope: 'Concurrent copies of one SDK registration operation, then a different operation claims the reserved wallet through two regions. Includes production directory credential claims and cancellation; excludes browser credential reuse and regional cancellation cleanup.',
     }, null, 2));
     harness.assertNoLifecycleViolations();
   } finally {
@@ -998,3 +1023,75 @@ test('concurrent NEAR-only setup through three regions establishes one wallet', 
     await scenario.close();
   }
 });
+
+
+function registrationAuthorityAt(
+  scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>,
+  region: string,
+): ConsoleRegistrationHomeAdmission {
+  const gateway = scenario.gateways.get(region);
+  const home = gateway.catalog.select(region);
+  const resource = { accountId: home.accountId, databaseId: home.databaseId };
+  const writer = gateway.api.parseTenantRuntimeWriterV1('gateway', gateway.writerVersion, resource);
+  return new gateway.api.ConsoleRegistrationHomeAdmission({
+    environmentKey: gateway.environmentKey,
+    service: scenario.consoleService,
+    scope: gateway.scope,
+    writer,
+    localResource: resource,
+    catalogJson: scenario.consoleService.catalogJson,
+    ingressRegion: region,
+  });
+}
+
+async function verifyCompetingCredentialOwnership(
+  scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>,
+  competing: { walletId: string; ceremonyId: string; region: string },
+) {
+  const before = await scenario.consoleService.database.prepare(
+    `SELECT claim.wallet_id, claim.rp_id, claim.credential_id, home.region
+     FROM wallet_passkey_claims claim JOIN wallet_homes home ON
+       home.namespace = claim.namespace AND home.organization_id = claim.organization_id
+       AND home.project_id = claim.project_id AND home.environment_id = claim.environment_id
+       AND home.wallet_id = claim.wallet_id`,
+  ).all();
+  assert.equal(before.results.length, 1);
+  const owner = before.results[0];
+  assert.notEqual(owner.wallet_id, competing.walletId);
+  const ownerAuthority = registrationAuthorityAt(scenario, owner.region);
+  const competingAuthority = registrationAuthorityAt(scenario, competing.region);
+  const results = await Promise.all([
+    ownerAuthority.identityStore().claim({
+      walletId: owner.wallet_id, rpId: owner.rp_id, credentialIdB64u: owner.credential_id,
+    }),
+    competingAuthority.identityStore().claim({
+      walletId: competing.walletId, rpId: owner.rp_id, credentialIdB64u: owner.credential_id,
+    }),
+  ]);
+  assert.deepEqual(results, [true, false]);
+  const assignment = await competingAuthority.findHome({ kind: 'ceremony', ceremonyId: competing.ceremonyId });
+  assert.ok(assignment);
+  const cancellation = await competingAuthority.complete({
+    walletId: assignment.wallet.walletId, ceremonyId: competing.ceremonyId, outcome: 'cancelled',
+  });
+  assert.deepEqual(cancellation, { ok: true });
+  const after = await scenario.consoleService.database.prepare(
+    'SELECT wallet_id FROM wallet_passkey_claims',
+  ).all();
+  assert.deepEqual(after.results, [{ wallet_id: owner.wallet_id }]);
+  const cancelledClaim = await competingAuthority.identityStore().claim({
+    walletId: competing.walletId, rpId: owner.rp_id, credentialIdB64u: owner.credential_id,
+  });
+  assert.equal(cancelledClaim, false);
+  const cancelled = await scenario.consoleService.database.prepare(
+    'SELECT state FROM wallet_homes WHERE wallet_id = ?',
+  ).bind(competing.walletId).first('state');
+  assert.equal(cancelled, 'cancelled');
+  return {
+    ownerReplayAccepted: results[0],
+    competingClaimAccepted: results[1],
+    competingDirectoryReservationCancelled: true,
+    cancelledClaimAccepted: cancelledClaim,
+    originalClaimPreserved: true,
+  };
+}

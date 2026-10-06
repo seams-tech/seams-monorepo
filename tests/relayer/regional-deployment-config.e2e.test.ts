@@ -47,6 +47,7 @@ function runRenderer(
   output: string,
   allocated: boolean,
   pendingCounter = false,
+  counterReuse = 'none',
 ) {
   const args = allocated ? ['--import', allocations] : [];
   args.push(renderer, '--lane', 'production-testnet', '--worker', worker, '--output', output);
@@ -57,6 +58,7 @@ function runRenderer(
       ...process.env,
       CLOUDFLARE_ACCOUNT_ID: accountId,
       SEAMS_TEST_PENDING_OTP_COUNTER: pendingCounter ? '1' : '0',
+      SEAMS_TEST_COUNTER_DATABASE_REUSE: counterReuse,
     },
   });
 }
@@ -64,6 +66,15 @@ function runRenderer(
 test('regional rollout renders one shared Console and four isolated writer pairs, refusing missing allocations', async ({
   request: _request,
 }, testInfo) => {
+  const rejectedCounterBindings = [];
+  for (const reuse of ['console', 'signer', 'other-lane']) {
+    const output = testInfo.outputPath(`rejected-counter-${reuse}.json`);
+    await expect(runRenderer('gateway', 'US', output, true, false, reuse)).rejects.toThrow(
+      /distinct database|identities must be distinct|backend D1 identities/,
+    );
+    await expect(readFile(output)).rejects.toThrow();
+    rejectedCounterBindings.push(reuse);
+  }
   const configs = [];
   const catalog = [];
   const gatewayBindings = [];
@@ -139,6 +150,7 @@ test('regional rollout renders one shared Console and four isolated writer pairs
       {
         checkedAt: new Date().toISOString(),
         remoteCloudflareUsed: false,
+        rejectedCounterBindings,
         allocationSource: 'child-process fixture; canonical US/WEUR/OC allocations remain pending',
         configs,
       },

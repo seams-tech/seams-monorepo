@@ -24,7 +24,21 @@ const counter =
     .emailOtpRateLimitD1;
 if (process.env.SEAMS_TEST_PENDING_OTP_COUNTER !== '1') {
   counter.kind = 'allocated';
-  counter.id = '99999999-9999-4999-8999-999999999999';
+  switch (process.env.SEAMS_TEST_COUNTER_DATABASE_REUSE) {
+    case 'console':
+      counter.id =
+        targets.production.lanes.testnet.provisioning.gatewayDeploymentConfig.resources.consoleD1.id;
+      break;
+    case 'signer':
+      counter.id = databases.US;
+      break;
+    case 'other-lane':
+      counter.id =
+        targets.production.lanes.mainnet.provisioning.gatewayDeploymentConfig.resources.consoleD1.id;
+      break;
+    default:
+      counter.id = '99999999-9999-4999-8999-999999999999';
+  }
 }
 
 function fixtureReadFileSync(filename, options) {

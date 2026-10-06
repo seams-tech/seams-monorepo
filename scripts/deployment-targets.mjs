@@ -866,13 +866,16 @@ function regionalDatabaseIds(lane) {
   return ids;
 }
 
+function backendDatabaseIds(lane) {
+  return [
+    lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id,
+    ...regionalDatabaseIds(lane),
+  ];
+}
+
 function assertUniqueProvisionedIdentities(lanes) {
   const provisioned = lanes.filter((lane) => lane.provisioning.kind === 'provisioned');
-  assertUnique(
-    provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id),
-    'console D1 identities',
-  );
-  assertUnique(provisioned.flatMap(regionalDatabaseIds), 'signer D1 identities');
+  assertUnique(provisioned.flatMap(backendDatabaseIds), 'backend D1 identities');
   assertUnique(
     provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.tenant.namespace),
     'tenant namespaces',

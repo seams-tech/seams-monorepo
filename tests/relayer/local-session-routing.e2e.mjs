@@ -22,6 +22,7 @@ const bundle = await build({
   format: 'esm',
   tsconfig: resolve(wallet, 'packages/wallet-server/tsconfig.json'),
   loader: { '.wasm': 'binary' },
+  alias: { '@': resolve(wallet, 'packages/wallet/src') },
   stdin: {
     resolveDir: wallet,
     contents: `
@@ -32,6 +33,7 @@ const bundle = await build({
     export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
     export { withCors } from './packages/wallet-server/src/router/framework/http';
+    export { buildPMRedeemHostedWalletSeamsSessionPayload, parsePMRedeemHostedWalletSeamsSessionPayload } from './packages/wallet/src/SeamsWeb/walletIframe/shared/messages';
     export { projectActiveWalletSession } from './packages/wallet-server/src/authorization/domain';
     export { toStoredExactWalletSessionAuthorizationRowV6, parseStoredExactWalletSessionAuthorizationRowV6 } from './packages/wallet/src/core/indexedDB/seamsWalletDB/walletSessionAuthorizationStore';
     export { buildWalletSessionAuthorizationHeaders } from './packages/wallet/src/core/rpcClients/relayer/relayerHttp';
@@ -190,6 +192,19 @@ try {
     issuedAtMs: nowMs,
     expiresAtMs: issued.session.expiresAtMs,
   });
+  assert.deepEqual(exchange.home, issued.operationCredential.home);
+  const exchangePayload = api.buildPMRedeemHostedWalletSeamsSessionPayload({
+    home: exchange.home,
+    exchangeCode: exchange.exchangeCode,
+    nonce: exchange.nonce,
+    appOrigin: exchange.appOrigin,
+    walletOrigin: exchange.walletOrigin,
+    relayUrl: 'https://gateway.test',
+  });
+  assert.deepEqual(
+    api.parsePMRedeemHostedWalletSeamsSessionPayload(JSON.parse(JSON.stringify(exchangePayload))).home,
+    issued.operationCredential.home,
+  );
   assert.equal(
     (
       await api.findLocalSessionWallet(
@@ -325,6 +340,7 @@ try {
     browserRoutingMetadataAllowedAndExposed: true,
     issuedAndHostedCredentialsRetainRegionalHome: true,
     restoredSdkCredentialEmitsRegionalHint: true,
+    exchangeIframePayloadRetainsHome: true,
   };
   await writeFile(resolve(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
   console.log(`Local session routing passed: ${resolve(output, 'evidence.json')}`);

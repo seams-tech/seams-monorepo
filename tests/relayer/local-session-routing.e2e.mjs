@@ -488,12 +488,12 @@ try {
     nowMs: nowMs + 2,
   });
   assert.equal((await api.resolveGatewayDeployment({ ...routing, request })).session.kind, 'local');
-  await assert.rejects(
-    service.readWalletSessionAdmissionSnapshotByOperationCredential({
+  assert.equal(
+    await service.readWalletSessionAdmissionSnapshotByOperationCredential({
       ...credential,
       nowMs: nowMs + 3,
     }),
-    /retired/u,
+    null,
   );
   assert.equal(consoleService.calls, 0);
   const unknown = new Request(request, {

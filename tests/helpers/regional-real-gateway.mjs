@@ -43,6 +43,7 @@ export async function createRegionalRealGateway({
         export { encodeRouterAbEd25519YaoProductRegistrationStateV1, parseRouterAbEd25519YaoProductRegistrationStateJsonV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPersistence.ts'))};
         export { parseRouterAbEd25519YaoProductRegistrationPartitionRecordV1 } from ${JSON.stringify(resolve(candidate, 'src/router/domains/ed25519Yao/capabilityLifecycle/routerAbEd25519YaoProductRegistrationPartitionedStateStore.ts'))};
         export { parseRouterAbEd25519YaoRecoveryAdmissionRequestV1, parseRouterAbEd25519YaoRegistrationAdmissionRequestV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/utils/routerAbEd25519Yao.ts'))};
+        export { D1WalletRelocationSessions, WalletRelocationSessionSource } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/wallet/d1WalletRelocationSessions.ts'))};
         export { CloudflareD1AuthorizationStore } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/authorization/d1AuthorizationStore.ts'))};
         export { parseEmailOtpRegistrationVerificationReceiptV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
         export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};

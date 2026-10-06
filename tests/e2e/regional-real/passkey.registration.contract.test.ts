@@ -791,3 +791,102 @@ for (const signerSet of ['mixed', 'near-only']) {
     }
   });
 }
+
+class RetirementDuringPendingSignature {
+  attempts = 0;
+  request: BrowserRequest | null = null;
+
+  constructor(
+    readonly sessions: { hasPendingOperations(walletId: string): Promise<boolean>; retire(source: unknown, nowMs: number): Promise<number> },
+    readonly source: { walletId: string },
+    readonly path: string,
+    readonly database: Parameters<typeof readSigningBudgetSnapshot>[0],
+  ) {}
+
+  capture(request: BrowserRequest): void {
+    if (new URL(request.url()).pathname === this.path) this.request = request;
+  }
+
+  async beforeExecution(request: Request): Promise<void> {
+    if (new URL(request.url).pathname !== this.path) return;
+    this.attempts += 1;
+    assert.equal(this.attempts, 1);
+    assert.equal(await this.sessions.hasPendingOperations(this.source.walletId), true);
+    const before = await readSigningBudgetSnapshot(this.database);
+    await assert.rejects(this.sessions.retire(this.source, Date.now()), /wallet_operations_unsettled/u);
+    assert.deepEqual(await readSigningBudgetSnapshot(this.database), before);
+  }
+}
+
+for (const curve of ['ed25519', 'ecdsa']) {
+  test(`${curve} relocation retirement waits for admitted signing to settle`, async ({
+    harness, context,
+  }, testInfo) => {
+    const output = path.resolve(root, `.artifacts/r155b/console-outage/relocation-signing-settlement-${curve}`);
+    const scenario = await createRegionalRealGateway({
+      root, candidate, lostAcknowledgements: 0,
+      localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT, output,
+    });
+    try {
+      await scenario.routeContext(context, 'US');
+      await harness.registerPasskeyWallet();
+      await harness.awaitNearReady();
+      const home = scenario.gateways.get('US');
+      const wallet = await home.database.prepare(
+        "SELECT wallet_id, generation FROM wallet_execution_generations WHERE state = 'active'",
+      ).first();
+      assert.ok(wallet);
+      const source = home.api.WalletRelocationSessionSource.parse({
+        walletId: wallet.wallet_id,
+        sourceGeneration: wallet.generation,
+        moveId: `wmove_${createHash('sha256').update(randomUUID()).digest('base64url')}`,
+        requestDigestHex: createHash('sha256').update(randomUUID()).digest('hex'),
+      });
+      const sessions = new home.api.D1WalletRelocationSessions(home.database, {
+        namespace: home.scope.namespace,
+        orgId: home.scope.organizationId,
+        projectId: home.scope.projectId,
+        envId: home.scope.environmentId,
+      });
+      const signingPath = curve === 'ecdsa' ? '/router-ab/ecdsa-derivation/sign' : '/router-ab/ed25519/sign';
+      const retirement = new RetirementDuringPendingSignature(sessions, source, signingPath, home.database);
+      home.beforeHomeExecution = retirement.beforeExecution.bind(retirement);
+      context.on('request', retirement.capture.bind(retirement));
+      scenario.beginConsoleOutage();
+      await scenario.routeContext(context, 'WEUR');
+      if (curve === 'ecdsa') await harness.signTempoTransaction('post_registration');
+      else await harness.signNearTransaction('post_registration');
+      assert.equal(retirement.attempts, 1);
+      assert.equal(await sessions.hasPendingOperations(source.walletId), false);
+      home.beforeHomeExecution = null;
+      const retiredAt = await sessions.retire(source, Date.now());
+      assert.equal(await sessions.retire(source, Date.now()), retiredAt);
+      const execution = await home.database.prepare(
+        'SELECT state, generation FROM wallet_execution_generations WHERE wallet_id = ?',
+      ).bind(source.walletId).first();
+      assert.deepEqual(execution, { state: 'retired', generation: source.sourceGeneration });
+      const settled = await readSigningBudgetSnapshot(home.database);
+      assert.ok(retirement.request);
+      const original = retirement.request;
+      const rejected = await scenario.gateways.get('WEUR').handle(new Request(original.url(), {
+        method: original.method(), headers: await original.allHeaders(), body: original.postDataBuffer(),
+      }), 'ingress');
+      assert.equal(rejected.status, 401, 'Retired session replay must fail authentication');
+      assert.deepEqual(await readSigningBudgetSnapshot(home.database), settled);
+      assert.deepEqual(scenario.consoleService.requests, []);
+      await writeFile(path.join(output, 'settlement.json'), JSON.stringify({
+        curve, pendingRetirementRejections: retirement.attempts,
+        verifiedSignaturesBeforeRetirement: 1,
+        retirementAfterSettlement: 'succeeded',
+        exactRetirementReplay: true,
+        retiredSessionFinalizeReplayStatus: rejected.status,
+        noAdditionalQuotaOrOperationMutation: true,
+        attemptedConsoleCalls: scenario.consoleService.requests.length,
+        scope: 'Production regional session-retirement participant during live signing. Excludes directory orchestration, custody freeze, transfer and destination activation.',
+      }, null, 2));
+    } finally {
+      await harness.attachTrace(testInfo);
+      await scenario.close();
+    }
+  });
+}

@@ -1,10 +1,8 @@
-import { createWalletRelocationParticipants } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
+import type { WalletRelocationBindings } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationParticipants';
 import { WalletRelocationRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { relocationWriterVersion, relocationResourceVerification } from './walletRelocationResources';
-import type { WalletHome } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { relocationWriterVersion } from './walletRelocationResources';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
-import { GatewayRelocationOwnerApproval } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationOwnerApproval';
 import { WalletRegionalDispatch } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import { WalletRelocationPreparation } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationPreparation';
 
@@ -181,33 +179,43 @@ class RegionalPreparationRuntime {
   }
 }
 
-export function relocationPreparationParticipants(
+class PreparationGateway {
+  constructor(
+    private readonly approval: RelocationFixtureApprovalGateway,
+    private readonly preparation: GatewayPreparationBinding,
+  ) {}
+
+  fetch(input: Request): Promise<Response> {
+    if (input.url.endsWith('/owner-approval')) return this.approval.fetch(input);
+    return this.preparation.fetch(input);
+  }
+}
+
+export function relocationFixtureBindings(
   request: Command['request'],
-  source: WalletHome,
   nowMs: number,
   failedParticipant: unknown,
-): Participants {
+  approvalMode: unknown,
+): WalletRelocationBindings {
   const writer = parseTenantRuntimeWriterV1('walletRuntime',
     relocationWriterVersion(request.destination.databaseId, 'walletRuntime'),
     { accountId: request.destination.accountId, databaseId: request.destination.databaseId },
   );
-  const gateway = new GatewayPreparationBinding(failedParticipant);
+  const gateway = new PreparationGateway(
+    new RelocationFixtureApprovalGateway(nowMs, approvalMode, request),
+    new GatewayPreparationBinding(failedParticipant),
+  );
   const sourceRuntime = new RegionalPreparationRuntime('source', writer, failedParticipant);
   const destinationRuntime = new RegionalPreparationRuntime('destination', writer, failedParticipant);
   const runtimes = { US: sourceRuntime, WEUR: sourceRuntime, APAC: sourceRuntime, OC: sourceRuntime };
   runtimes[request.destination.region] = destinationRuntime;
-  return createWalletRelocationParticipants({
-    request, source,
-    verifications: [
-      relocationResourceVerification(source, request.wallet.namespace, nowMs),
-      relocationResourceVerification(request.destination, request.wallet.namespace, nowMs),
-    ],
+  return {
     gateways: new WalletRegionalDispatch({
       WALLET_GATEWAY_US: gateway, WALLET_GATEWAY_WEUR: gateway,
       WALLET_GATEWAY_APAC: gateway, WALLET_GATEWAY_OC: gateway,
     }),
-    runtimes, clock: relocationFixtureClock.bind(null, nowMs),
-  });
+    runtimes,
+  };
 }
 
 export function relocationFixtureClock(nowMs: number): number {
@@ -251,20 +259,6 @@ class RelocationFixtureApprovalGateway {
       expiresAtMs: this.mode === 'expired' ? this.nowMs : this.nowMs + 300_000,
     });
   }
-}
-
-export function relocationFixtureOwnerApproval(
-  request: Command['request'],
-  nowMs: number,
-  mode: unknown,
-): GatewayRelocationOwnerApproval {
-  const gateway = new RelocationFixtureApprovalGateway(nowMs, mode, request);
-  return new GatewayRelocationOwnerApproval(new WalletRegionalDispatch({
-    WALLET_GATEWAY_US: gateway,
-    WALLET_GATEWAY_WEUR: gateway,
-    WALLET_GATEWAY_APAC: gateway,
-    WALLET_GATEWAY_OC: gateway,
-  }));
 }
 
 async function fixtureObjectDigest(domain: string, identity: unknown): Promise<string> {

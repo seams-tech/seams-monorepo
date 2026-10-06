@@ -1,4 +1,5 @@
-import { hasFreshRelocationOwnerApproval, type WalletRelocationOwnerApprovalReader } from './relocationOwnerApproval';
+import { GatewayRelocationOwnerApproval, hasFreshRelocationOwnerApproval } from './relocationOwnerApproval';
+import { createWalletRelocationParticipants, type WalletRelocationBindings } from './relocationParticipants';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { walletHomeAssignmentFromRow } from './d1';
 import {
@@ -30,7 +31,6 @@ import {
 
 import {
   WalletRelocationPreparation,
-  type WalletRelocationParticipants,
 } from './relocationPreparation';
 
 const NEXT_EXECUTION_SQL = `execution_revision = execution_revision + 1,
@@ -131,8 +131,7 @@ export class D1WalletRelocations {
     request: WalletRelocationRequest,
     resourceVerifications: TenantDeploymentResourceVerificationsV1,
     deploymentLane: string,
-    participants: WalletRelocationParticipants,
-    ownerApproval: WalletRelocationOwnerApprovalReader,
+    bindings: WalletRelocationBindings,
     clock: () => number,
   ): Promise<WalletRelocationAdmission> {
     let admittedAtMs = relocationTimestamp(clock());
@@ -182,8 +181,13 @@ export class D1WalletRelocations {
       throw new WalletPlacementError('invalid_record', 'Wallet ownership generation is exhausted');
     }
 
+    const ownerApproval = new GatewayRelocationOwnerApproval(bindings.gateways);
     if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
       return { ok: false, code: 'owner_approval_required' };
+    const participants = createWalletRelocationParticipants({
+      request, source: assignment.home, verifications: resourceVerifications,
+      gateways: bindings.gateways, runtimes: bindings.runtimes, clock,
+    });
     const preparation = await WalletRelocationPreparation.prepare(request, participants, clock);
     if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
       return { ok: false, code: 'owner_approval_required' };

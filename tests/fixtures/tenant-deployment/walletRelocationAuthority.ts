@@ -3,9 +3,8 @@ import { WalletPlacementConsoleBinding } from '../../../packages/wallet-console-
 import { WalletRelocationCoordinator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
 import { RelocationFixtureEffects } from './walletRelocationEffects';
 import {
-  relocationPreparationParticipants,
+  relocationFixtureBindings,
   relocationFixtureClock,
-  relocationFixtureOwnerApproval,
 } from './walletRelocationPreparation';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
@@ -162,8 +161,7 @@ export default {
               ),
             ],
             'test',
-            relocationPreparationParticipants(moveRequest, sourceHome, preparationAtMs, body.failedParticipant),
-            relocationFixtureOwnerApproval(moveRequest, nowMs, body.ownerApproval),
+            relocationFixtureBindings(moveRequest, nowMs, body.failedParticipant, body.ownerApproval),
             relocationFixtureClock.bind(null, nowMs),
           );
           break;

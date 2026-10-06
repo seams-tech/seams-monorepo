@@ -14,16 +14,19 @@ import { RouterRelocationPreparation } from './routerPreparation';
 import { RuntimeRelocationPreparation } from './runtimePreparation';
 import { SigningWorkerRelocationPreparation } from './signingWorkerPreparation';
 
+export type WalletRelocationBindings = {
+  readonly gateways: WalletRegionalDispatch;
+  readonly runtimes: Readonly<Record<WalletRegion, WalletRuntimeServiceBinding>>;
+};
+
 // Construct participants without network calls. The journal checks resource freshness
 // before invoking them, after unchanged-home and exact-replay handling.
 export function createWalletRelocationParticipants(input: {
   readonly request: WalletRelocationRequest;
   readonly source: WalletHome;
   readonly verifications: TenantDeploymentResourceVerificationsV1;
-  readonly gateways: WalletRegionalDispatch;
-  readonly runtimes: Readonly<Record<WalletRegion, WalletRuntimeServiceBinding>>;
   readonly clock: () => number;
-}): WalletRelocationParticipants {
+} & WalletRelocationBindings): WalletRelocationParticipants {
   const destination = input.request.destination;
   const proof = input.verifications.find(matchesDestination.bind(null, destination));
   if (!proof || proof.authority.kind !== 'cloudflare') {

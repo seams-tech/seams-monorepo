@@ -261,6 +261,7 @@ class RealHomeConsole {
 }
 
 class RealRegionalGateway {
+  beforeHomeExecution = null;
   methodFinalizeFault = new CommittedMethodReplyLoss(/\/auth-methods\/finalize$/u);
   methodRevokeFault = new CommittedMethodReplyLoss(/\/auth-methods\/[^/]+\/revoke$/u);
   recoveryPrepare = null;
@@ -421,6 +422,7 @@ class RealRegionalGateway {
       });
       return forwarded;
     }
+    await this.beforeHomeExecution?.(request);
     const identityStore = authority.identityStore();
     const database = new this.api.TracedD1Database(fencedDatabase);
     const response = database.response(

@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import type { APIRequestContext, BrowserContext, Page, Request as BrowserRequest, TestInfo } from '@playwright/test';
@@ -266,3 +267,120 @@ async function verifyRegionalRoutingRejections(
 }
 
 test('regional routing rejects malformed hints and wallet mismatches without consuming signing budget', verifyRegionalRoutingRejections);
+
+class RetireDuringSigningPrepare {
+  attempts = 0;
+  retired = false;
+
+  constructor(
+    readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>,
+    readonly preparePath: string,
+  ) {}
+
+  async beforeExecution(request: Request): Promise<void> {
+    if (new URL(request.url).pathname !== this.preparePath) return;
+    this.attempts += 1;
+    assert.equal(this.attempts, 1, 'The rejected prepare must not retry');
+    const gateway = this.scenario.gateways.get('US');
+    const binding = this.scenario.consoleService.binding;
+    const proofs = [];
+    for (const resource of binding.resources) {
+      proofs.push(gateway.api.regionalResourceProof(
+        binding,
+        resource.databaseId,
+        randomUUID(),
+        randomUUID(),
+        Date.now(),
+      ));
+    }
+    const admission = {
+      binding,
+      activationSequence: 2,
+      resourceVerificationsJson: JSON.stringify(proofs),
+    };
+    await gateway.localAdmission.prepare(admission);
+    await gateway.localAdmission.activate(admission);
+    this.retired = true;
+  }
+}
+
+async function readSigningBudgetSnapshot(database: {
+  prepare(sql: string): { all(): Promise<{ results: readonly unknown[] }> };
+}) {
+  const quotas = await database.prepare(
+    'SELECT * FROM authorization_wallet_session_quotas ORDER BY quota_id',
+  ).all();
+  const operations = await database.prepare(
+    'SELECT * FROM authorized_operations ORDER BY authorized_operation_id',
+  ).all();
+  return {
+    quotaRows: quotas.results.length,
+    quotaSha256: createHash('sha256').update(JSON.stringify(quotas.results)).digest('hex'),
+    operationRows: operations.results.length,
+    operationSha256: createHash('sha256').update(JSON.stringify(operations.results)).digest('hex'),
+  };
+}
+
+for (const curve of ['ed25519', 'ecdsa']) {
+  test(`in-flight ${curve} signing rejects a retired regional writer without spending budget`, async ({
+    harness,
+    context,
+  }, testInfo) => {
+    const output = path.resolve(root, '.artifacts/r155b/console-outage', `live-retirement-${curve}`);
+    const scenario = await createRegionalRealGateway({
+      root, candidate, lostAcknowledgements: 0,
+      localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+      output,
+    });
+    try {
+      await scenario.routeContext(context, 'US');
+      await harness.registerPasskeyWallet();
+      await harness.awaitNearReady();
+      if (curve === 'ed25519') await harness.signNearTransaction('post_registration');
+      else await harness.signTempoTransaction('post_registration');
+      for (const gateway of scenario.gateways.values()) await Promise.all(gateway.pending);
+      scenario.beginConsoleOutage();
+      await scenario.routeContext(context, 'WEUR');
+      const home = scenario.gateways.get('US');
+      const before = await readSigningBudgetSnapshot(home.database);
+      const signingPath = curve === 'ed25519'
+        ? '/router-ab/ed25519/sign'
+        : '/router-ab/ecdsa-derivation/sign';
+      const fault = new RetireDuringSigningPrepare(scenario, `${signingPath}/prepare`);
+      home.beforeHomeExecution = fault.beforeExecution.bind(fault);
+      const signing = curve === 'ed25519'
+        ? harness.signNearTransaction('post_registration')
+        : harness.signTempoTransaction('post_registration');
+      await assert.rejects(signing, /HTTP 503/);
+      assert.equal(fault.retired, true);
+      assert.equal(fault.attempts, 1);
+      const after = await readSigningBudgetSnapshot(home.database);
+      assert.deepEqual(after, before, 'Retired admission must not spend budget or create an operation');
+      assert.deepEqual(scenario.consoleService.requests, []);
+      const homeFinalize = home.requests.filter(isSuccessfulSigningFinalize);
+      assert.equal(homeFinalize.length, 0);
+      await writeFile(path.join(output, 'retirement.json'), JSON.stringify({
+        curve,
+        verifiedBaselineSignatures: 1,
+        retiredAfterHomeRouting: true,
+        rejectedPrepareAttempts: fault.attempts,
+        unchangedQuotaAndOperations: true,
+        storageBefore: before,
+        storageAfter: after,
+        successfulFinalizesAfterRetirement: homeFinalize.length,
+        attemptedConsoleCalls: scenario.consoleService.requests.length,
+        scope: 'Regional D1 deployment retirement during live browser signing prepare; excludes custody relocation and retirement after MPC execution begins.',
+      }, null, 2));
+    } finally {
+      await harness.attachTrace(testInfo);
+      await scenario.close();
+    }
+  });
+}
+
+function isSuccessfulSigningFinalize(request: { path: string; status: number }): boolean {
+  return request.status === 200 && (
+    request.path === '/router-ab/ed25519/sign' ||
+    request.path === '/router-ab/ecdsa-derivation/sign'
+  );
+}

@@ -372,6 +372,22 @@ async function routerActivationReceipt(runtime: Miniflare, request: WalletReloca
   ));
 }
 
+async function routerCleanupCommand(runtime: Miniflare, request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt, home = source) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-cleanup', {
+      method: 'POST', headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt }),
+    },
+  ));
+}
+
 async function executionAuthority(runtime: Miniflare, key: WalletOwnershipKey, home: WalletHome) {
   return executionAdmissionClient(runtime, key, home, [source, destination, thirdHome, apacHome], 'honest');
 }
@@ -1322,6 +1338,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerActivationReceipt(runtime, request, activationAttempt, {
       source: routerActivationProof.source, destination_object: 'different-router-object',
     })).toEqual({ ok: false, code: 'receipt_conflict' });
+    expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual({ ok: false, code: 'phase_conflict' });
     observations.push({ routerActivationReceiptPinsPreparedObject: true });
 
 
@@ -1494,6 +1511,11 @@ test('relocation directory serializes competing moves and survives lost replies 
       ok: false,
       code: 'phase_conflict',
     });
+    const routerCleanup = await routerCleanupCommand(runtime, request, activationAttempt);
+    expect(routerCleanup).toEqual({ ok: true, command: { kind: 'cleanup', activation: routerActivationProof } });
+    expect(await routerCleanupCommand(runtime, request, activationAttempt)).toEqual(routerCleanup);
+    expect(await routerCleanupCommand(runtime, request, activationAttempt, destination)).toEqual({ ok: false, code: 'participant_conflict' });
+    observations.push({ routerCleanupUsesDurableActivationAfterRestart: true });
     const cleanupCommand = await relocationCommand(
       runtime,
       request.wallet,

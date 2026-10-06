@@ -1,4 +1,4 @@
-import { recordRouterRelocationReceipt, authorizeRouterExport, authorizeRouterDestination, recordRouterActivation } from './routerRelocationReceipt';
+import { recordRouterRelocationReceipt, authorizeRouterExport, authorizeRouterDestination, recordRouterActivation, authorizeRouterCleanup } from './routerRelocationReceipt';
 import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
 import { WalletExecutionAuthority } from './executionAuthority';
 import {
@@ -128,6 +128,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-replay` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-request` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-cleanup` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-activation` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-destination` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` &&
@@ -174,6 +175,7 @@ export async function handleWalletHomeServiceRequest(
     if (
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-cleanup` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-activation` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-destination` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` ||
@@ -197,6 +199,13 @@ export async function handleWalletHomeServiceRequest(
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status`) {
         return json(walletPlacementView(await readWalletPlacementStatus(options.database, wallet)));
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-cleanup`) {
+        if (Object.keys(body).length !== 2)
+          throw new WalletPlacementError('invalid_input', 'Router cleanup fields are invalid');
+        const result = await authorizeRouterCleanup(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt));
+        return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-activation`) {
         if (Object.keys(body).length !== 3)

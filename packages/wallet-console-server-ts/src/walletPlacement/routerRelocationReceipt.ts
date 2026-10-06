@@ -272,3 +272,61 @@ export async function recordRouterActivation(
   if (row?.receipt_json !== encoded) return { ok: false, code: 'receipt_conflict' } as const;
   return { ok: true, receipt } as const;
 }
+
+export async function authorizeRouterCleanup(
+  database: D1DatabaseLike,
+  wallet: WalletOwnershipKey,
+  writer: TenantRuntimeWriterV1,
+  attempt: WalletRelocationAttempt,
+) {
+  if (writer.role !== 'walletRuntime') return { ok: false, code: 'participant_conflict' } as const;
+  const authorized = await WalletD1RelocationCommand.authorize(
+    database,
+    wallet,
+    writer,
+    attempt,
+    'cleanup',
+  );
+  if (!authorized.ok) return authorized;
+  const command = authorized.command;
+  const expected = await readRouterReceipt(database, command, command.generation);
+  if (!expected) return { ok: false, code: 'source_manifest_unavailable' } as const;
+  const row = await queryD1One(
+    database,
+    `SELECT receipt_json FROM wallet_router_activations
+    WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+      AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6`,
+    [
+      wallet.namespace,
+      wallet.organizationId,
+      wallet.projectId,
+      wallet.environmentId,
+      wallet.walletId,
+      command.moveId,
+    ],
+  );
+  if (typeof row?.receipt_json !== 'string')
+    return { ok: false, code: 'activation_receipt_unavailable' } as const;
+  const raw: unknown = JSON.parse(row.receipt_json);
+  if (
+    !isPlainObject(raw) ||
+    Object.keys(raw).length !== 2 ||
+    typeof raw.destination_object !== 'string' ||
+    raw.destination_object.length === 0 ||
+    raw.destination_object.length > 512
+  )
+    throw new WalletPlacementError('invalid_record', 'Stored Router activation is invalid');
+  const source = parseRouterReceipt(raw.source, expected.request);
+  if (
+    source.records_digest_hex !== expected.records_digest_hex ||
+    source.record_count !== expected.record_count
+  )
+    return { ok: false, code: 'receipt_conflict' } as const;
+  return {
+    ok: true,
+    command: {
+      kind: 'cleanup',
+      activation: { source, destination_object: raw.destination_object },
+    },
+  } as const;
+}

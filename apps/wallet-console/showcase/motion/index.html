@@ -749,21 +749,13 @@ const COUNT = 4;
 const REST = 0.28;
 const OUTLINE = fillet(
   [
-    [0, 0],
-    [80, 0],
-    [100, 20],
+    [0, 16],
+    [16, 0],
+    [100, 0],
     [100, 124],
     [0, 124],
   ],
-  [3, 1, 1, 3, 3],
-);
-const FOLD = fillet(
-  [
-    [80, 0],
-    [80, 20],
-    [100, 20],
-  ],
-  [0.6, 1.8, 0.6],
+  [0.6, 0.6, 3, 3, 3],
 );
 
 function sheetPoint(P, index, z, point) {
@@ -778,13 +770,23 @@ function line(P, index, z, x0, y0, x1, y1) {
   return seg(sheetPoint(P, index, z, [x0, y0]), sheetPoint(P, index, z, [x1, y1]));
 }
 
+function foldPath(P, index, z) {
+  // Reflect the missing corner across x + y = 16 onto the sheet's own plane.
+  const start = sheetPoint(P, index, z, [0, 16]);
+  const beforeTip = sheetPoint(P, index, z, [15, 16]);
+  const tip = sheetPoint(P, index, z, [16, 16]);
+  const afterTip = sheetPoint(P, index, z, [16, 15]);
+  const end = sheetPoint(P, index, z, [16, 0]);
+  return `M${start}L${beforeTip}Q${tip} ${afterTip}L${end}`;
+}
+
 function createSheet(parent, C, index) {
   const group = mk('g', {}, parent);
   const back = mk('path', { class: 'lo' }, group);
   const face = mk('path', { class: 'sil' }, group);
   const rules = mk('path', { class: 'nf lo' }, group);
   const entries = mk('path', { class: 'nf' }, group);
-  const fold = mk('path', { class: 'sil' }, group);
+  const fold = mk('path', { class: 'nf lo' }, group);
   const holes = [];
   const dots = [];
   for (let row = 0; row < 3; row++) holes.push(flatDot(group, C, 1.4, 'nf'));
@@ -798,8 +800,8 @@ function drawSheet(state, sheet) {
   const z = height(index, state.gap.x);
   sheet.back.setAttribute('d', poly(OUTLINE.map(sheetPoint.bind(null, P, index, z - 1.2))));
   sheet.face.setAttribute('d', poly(OUTLINE.map(sheetPoint.bind(null, P, index, z))));
-  sheet.fold.setAttribute('d', poly(FOLD.map(sheetPoint.bind(null, P, index, z))));
-  let rules = line(P, index, z, 13, 10, 13, 113);
+  sheet.fold.setAttribute('d', foldPath(P, index, z));
+  let rules = line(P, index, z, 13, 19, 13, 113);
   rules += line(P, index, z, 18, 29, 88, 29);
   rules += line(P, index, z, 18, 105, 88, 105);
   let entries = line(P, index, z, 19, 13, 46, 13);
@@ -816,9 +818,6 @@ function drawSheet(state, sheet) {
   // Punched binding holes, ruled entries, and a folded corner identify paper.
   for (let row = 0; row < 3; row++) {
     place(sheet.holes[row], sheetPoint(P, index, z, [7, 25 + row * 39]));
-  }
-  for (let dot = 0; dot <= index; dot++) {
-    entries += line(P, index, z, 76 + dot * 4, 112, 76 + dot * 4, 115);
   }
   sheet.rules.setAttribute('d', rules);
   sheet.entries.setAttribute('d', entries);
@@ -837,7 +836,6 @@ function select(state, index) {
   for (const sheet of state.sheets) {
     const highlighted = index < 0 ? sheet.index === COUNT - 1 : sheet.index === index;
     sheet.face.classList.toggle('hi', highlighted);
-    sheet.fold.classList.toggle('hi', highlighted);
   }
   state.read.textContent = index < 0 ? 'rest' : `record 0${index + 1}`;
 }
@@ -851,7 +849,7 @@ function move(state, point) {
     const ground = unproj(state.C, point[0], point[1], height(index, state.gap.t));
     const x = ground[0] - index * 2;
     const y = ground[1] + index * 2;
-    if (x < 0 || x > WIDTH || y < 0 || y > DEPTH || x - y > 80) continue;
+    if (x < 0 || x > WIDTH || y < 0 || y > DEPTH || x + y < 16) continue;
     closest = index;
     break;
   }

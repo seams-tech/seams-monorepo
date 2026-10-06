@@ -1,3 +1,4 @@
+import { verifyCleanupAssembly } from './cleanup-assembly.scenario';
 import { verifyActivationAssembly } from './activation-assembly.scenario';
 import { verifyTransferAssembly } from './transfer-assembly.scenario';
 import { verifyRuntimeTransferResume } from './runtime-transfer.scenario';
@@ -2269,17 +2270,18 @@ test('relocation directory serializes competing moves and survives lost replies 
       }),
     );
     expect(tooEarly.code).toBe("retry_wait");
+    const cleanupClaim = await responseBody(await call(runtime, {
+      action: 'claim', request: coordinated, phase: 'cutover', attemptId: attemptIdentity(), nowMs: admittedAtMs + 1600,
+    }));
+    const assembledCleanup = await verifyCleanupAssembly(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated, attemptFromResponse(cleanupClaim),
+    );
     const coordinatorCompleted = await responseBody(
       await call(runtime, {
         action: "advance",
         request: coordinated,
         attemptId: attemptIdentity(),
-        receipt: relocationSourceCleanup(
-          coordinated,
-          source,
-          admittedAtMs + 1600,
-          assembledFence.manifestDigest,
-        ),
+        receipt: assembledCleanup,
         nowMs: admittedAtMs + 1610,
       }),
     );
@@ -2333,6 +2335,8 @@ test('relocation directory serializes competing moves and survives lost replies 
         sourceReceiptAssembledFromParticipantSnapshots: true,
         destinationVerificationRequiresMatchingSourceManifest: true,
         activationRequiresDurableNativeReceipts: true,
+        cleanupRequiresExactParticipantReceipts: true,
+        cleanupReplaysWithoutDestinationCalls: true,
         lostActivationReplySkipsRecordedParticipant: true,
         verifiedReceiptReplaysWithoutRegionalCalls: true,
         sealedSourceReplaySkipsUnavailableParticipants: true,

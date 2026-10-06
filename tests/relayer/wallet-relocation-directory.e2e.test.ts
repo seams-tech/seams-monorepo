@@ -1,3 +1,4 @@
+import { verifyActivationAssembly } from './activation-assembly.scenario';
 import { verifyTransferAssembly } from './transfer-assembly.scenario';
 import { verifyRuntimeTransferResume } from './runtime-transfer.scenario';
 import { verifySourceFreezeAssembly } from './source-freeze.scenario';
@@ -2204,16 +2205,18 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(
       objectValue(objectValue(switchedByCoordinator.move).progress).state,
     ).toBe("cutover");
+    const activationClaim = await responseBody(await call(runtime, {
+      action: 'claim', request: coordinated, phase: 'cutover', attemptId: attemptIdentity(), nowMs: admittedAtMs + 400,
+    }));
+    const assembledActivation = await verifyActivationAssembly(
+      await runtime.getD1Database('CONSOLE_DB', 'ingress-a'), coordinated, attemptFromResponse(activationClaim),
+    );
     const activatedByCoordinator = await responseBody(
       await call(runtime, {
         action: "advance",
         request: coordinated,
         attemptId: attemptIdentity(),
-        receipt: relocationDestinationActivation(
-          coordinated,
-          admittedAtMs + 400,
-          assembledFence.manifestDigest,
-        ),
+        receipt: assembledActivation,
         nowMs: admittedAtMs + 410,
       }),
     );
@@ -2327,6 +2330,8 @@ test('relocation directory serializes competing moves and survives lost replies 
       coordinator: {
         sourceReceiptAssembledFromParticipantSnapshots: true,
         destinationVerificationRequiresMatchingSourceManifest: true,
+        activationRequiresDurableNativeReceipts: true,
+        lostActivationReplySkipsRecordedParticipant: true,
         verifiedReceiptReplaysWithoutRegionalCalls: true,
         sealedSourceReplaySkipsUnavailableParticipants: true,
         nativeParticipantsSimulated: true,

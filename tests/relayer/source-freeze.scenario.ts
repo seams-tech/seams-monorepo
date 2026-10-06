@@ -1,3 +1,7 @@
+import { recordEcdsaSnapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
+import { recordEd25519Snapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
+import { recordDeriverSnapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
+import { recordRouterRelocationReceipt } from '../../packages/wallet-console-server-ts/src/walletPlacement/routerRelocationReceipt';
 import { expect } from '@playwright/test';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { WalletRelocationRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
@@ -97,6 +101,17 @@ export async function verifySourceFreezeAssembly(database: D1DatabaseLike, reque
   gateway.pending = false;
   native.pending = false;
   expect(await source.freeze(context)).toEqual({ state: 'pending' });
+  // Simulate the Runtime callbacks that persist native receipts before replying.
+  expect((await recordRouterRelocationReceipt(database, move.wallet, runtimeWriter, attempt,
+    await routerSnapshotFixture(request, '2'.repeat(64)))).ok).toBe(true);
+  for (const role of ['deriverA', 'deriverB'] as const) {
+    expect((await recordDeriverSnapshot(database, move.wallet, runtimeWriter, attempt, role,
+      await deriverSnapshotFixture(request, role, '4'.repeat(64)))).ok).toBe(true);
+  }
+  expect((await recordEd25519Snapshot(database, move.wallet, runtimeWriter, attempt,
+    ed25519SnapshotFixture(request, move.admittedAtMs, '1'.repeat(64)))).ok).toBe(true);
+  expect((await recordEcdsaSnapshot(database, move.wallet, runtimeWriter, attempt,
+    ecdsaSnapshotFixture(request, move.admittedAtMs, '3'.repeat(64)))).ok).toBe(true);
   native.capturing = false;
   const frozen = await source.freeze(context);
   expect(frozen.state).toBe('frozen');

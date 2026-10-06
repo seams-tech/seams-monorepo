@@ -340,7 +340,7 @@ async function routerExportCommand(runtime: Miniflare, request: WalletRelocation
 }
 
 async function routerDestinationCommand(runtime: Miniflare, request: WalletRelocationRequest,
-  attempt: WalletRelocationAttempt, operation: 'status' | 'verify', home = destination) {
+  attempt: WalletRelocationAttempt, operation: 'status' | 'verify' | 'import', home = destination) {
   const service = await runtime.getWorker('ingress-b');
   return responseBody(await service.fetch(
     'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-router-destination', {
@@ -1078,6 +1078,11 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(await routerDestinationCommand(runtime, request, freezeAttempt, 'verify')).toEqual({
       ok: false, code: 'attempt_conflict',
     });
+    const routerImport = await routerDestinationCommand(runtime, request, copyAttempt, 'import');
+    expect(routerImport).toMatchObject({ ok: true, command: { kind: 'import', chunk_bytes: 4096,
+      receipt: { records_digest_hex: 'a'.repeat(64), record_count: 1 } } });
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'import')).toEqual(routerImport);
+    expect(await routerDestinationCommand(runtime, request, copyAttempt, 'import', source)).toEqual({ ok: false, code: 'participant_conflict' });
     observations.push({ routerDestinationCommandsUsePinnedReceipt: true });
     observations.push({ routerExportUsesStoredReceipt: true });
     const exportCommand = await relocationCommand(

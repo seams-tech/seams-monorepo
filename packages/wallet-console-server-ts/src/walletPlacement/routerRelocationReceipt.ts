@@ -141,7 +141,7 @@ export async function authorizeRouterDestination(
   attempt: WalletRelocationAttempt,
   operation: unknown,
 ) {
-  if (operation !== 'status' && operation !== 'verify')
+  if (operation !== 'status' && operation !== 'verify' && operation !== 'import')
     throw new WalletPlacementError('invalid_input', 'Router destination operation is invalid');
   if (writer.role !== 'walletRuntime') return { ok: false, code: 'participant_conflict' } as const;
   const authorized = await WalletD1RelocationCommand.authorize(
@@ -158,6 +158,8 @@ export async function authorizeRouterDestination(
     authorized.command.generation - 1,
   );
   if (!receipt) return { ok: false, code: 'source_manifest_unavailable' } as const;
+  if (operation === 'import')
+    return { ok: true, command: { kind: 'import', receipt, chunk_bytes: 4096 } } as const;
   if (operation === 'status')
     return { ok: true, command: { kind: 'status', receipt, chunk_bytes: 4096 } } as const;
   return { ok: true, command: { kind: 'verify', receipt } } as const;

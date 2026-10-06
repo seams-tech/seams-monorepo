@@ -1,4 +1,4 @@
-import { recordDeriverSnapshot, authorizeDeriverTransfer, parseDeriverTransferRequest } from './deriverRelocationReceipt';
+import { recordDeriverActivation, recordDeriverSnapshot, authorizeDeriverTransfer, parseDeriverTransferRequest } from './deriverRelocationReceipt';
 import { authorizeDeriverSourceFence, parseDeriverRelocationRole } from './deriverRelocationCommand';
 import { recordRouterRelocationReceipt, authorizeRouterExport, authorizeRouterDestination, recordRouterActivation, authorizeRouterCleanup } from './routerRelocationReceipt';
 import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
@@ -138,6 +138,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source` &&
       url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt` &&
+      url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation` &&
       url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
@@ -188,6 +189,7 @@ export async function handleWalletHomeServiceRequest(
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`
@@ -241,6 +243,12 @@ export async function handleWalletHomeServiceRequest(
           throw new WalletPlacementError('invalid_input', 'Router receipt fields are invalid');
         const result = await recordRouterRelocationReceipt(options.database, wallet, options.writer,
           WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        return json(result, result.ok ? 200 : 409);
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-activation`) {
+        if (Object.keys(body).length !== 4) throw new WalletPlacementError('invalid_input', 'Deriver activation fields are invalid');
+        const result = await recordDeriverActivation(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role), body.receipt);
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-receipt`) {

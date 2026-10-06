@@ -336,6 +336,10 @@ void cleanupWithoutReceipt;
 declare function acceptDeriverTransfer(request: DeriverTransferRequest): void;
 acceptDeriverTransfer({ operation: 'export', segmentIndex: 0 });
 acceptDeriverTransfer({ operation: 'verify' });
+acceptDeriverTransfer({ operation: 'activate' });
+acceptDeriverTransfer({ operation: 'cleanup' });
+// @ts-expect-error Cleanup has no segment cursor.
+acceptDeriverTransfer({ operation: 'cleanup', segmentIndex: 0 });
 // @ts-expect-error Export requires an explicit segment cursor.
 acceptDeriverTransfer({ operation: 'export' });
 // @ts-expect-error Verification cannot carry an export cursor.

@@ -18,24 +18,36 @@ const { IntendedBehaviourHarness } = await import(
 class ApprovalRequests {
   statuses = 0;
   prepares = 0;
-  failStatus = false;
+  finalizes = 0;
+  mode: 'unavailable' | 'wrong_session' | 'success' = 'success';
 
   record(request: Request): void {
     const pathname = new URL(request.url()).pathname;
     if (pathname === '/wallet/session/status') this.statuses += 1;
     if (pathname === '/router-ab/ecdsa-derivation/sign/prepare') this.prepares += 1;
+    if (pathname === '/router-ab/ecdsa-derivation/sign') this.finalizes += 1;
   }
 
-  async status(route: Route): Promise<void> {
-    if (this.failStatus) {
-      await route.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false}' });
-    } else {
-      await route.continue();
+  async prepare(route: Route): Promise<void> {
+    switch (this.mode) {
+      case 'unavailable':
+        await route.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false}' });
+        return;
+      case 'wrong_session': {
+        const response = await route.fetch();
+        if (!response.ok()) throw new Error(`Prepare failed: ${response.status()}`);
+        const body = await response.json();
+        body.session_status.walletSessionId += '-wrong-session';
+        await route.fulfill({ response, json: body });
+        return;
+      }
+      case 'success':
+        await route.continue();
     }
   }
 }
 
-test('local approval planning still requires fresh status before a hosted signature', async ({
+test('hosted signing requires fresh prepare authority before finalization', async ({
   context,
   page,
   request,
@@ -50,7 +62,7 @@ test('local approval planning still requires fresh status before a hosted signat
   });
   const capture = new ApprovalRequests();
   const record = capture.record.bind(capture);
-  const status = capture.status.bind(capture);
+  const prepare = capture.prepare.bind(capture);
   const rounds = [];
   try {
     await harness.initialize();
@@ -66,17 +78,19 @@ test('local approval planning still requires fresh status before a hosted signat
       .getByRole('button', { name: 'Close transaction', exact: true })
       .click();
     context.on('request', record);
-    await context.route('**/wallet/session/status', status);
+    await context.route('**/router-ab/ecdsa-derivation/sign/prepare', prepare);
     const result = page.getByTestId('intended-result-json');
     const actionStatus = page.getByTestId('intended-action-status');
     const wallet = page.frameLocator('iframe.seams-wallet-overlay-iframe');
     const confirm = wallet
       .locator('#seams-confirm-portal button.btn-confirm, #seams-confirm-portal button.confirm')
       .last();
-    for (const failure of [true, false]) {
-      capture.failStatus = failure;
+    for (const mode of ['unavailable', 'wrong_session', 'success'] as const) {
+      capture.mode = mode;
+      const failure = mode !== 'success';
       capture.statuses = 0;
       capture.prepares = 0;
+      capture.finalizes = 0;
       await page.getByTestId('intended-sign-arc-evm').click();
       await expect(confirm).toBeVisible({ timeout: 30_000 });
       expect(capture.statuses).toBe(0);
@@ -85,16 +99,17 @@ test('local approval planning still requires fresh status before a hosted signat
       await expect(actionStatus).toHaveText(failure ? 'error' : 'success', {
         timeout: 60_000,
       });
-      expect(capture.statuses).toBeGreaterThan(0);
+      expect(capture.statuses).toBe(0);
+      expect(capture.prepares).toBe(1);
       if (failure) {
-        expect(capture.prepares).toBe(0);
+        expect(capture.finalizes).toBe(0);
         await page
           .getByRole('dialog', { name: 'Transaction receipt' })
           .frameLocator('iframe')
           .getByRole('button', { name: 'Minimize transaction', exact: true })
           .click();
       } else {
-        expect(capture.prepares).toBe(1);
+        expect(capture.finalizes).toBe(1);
         const signed = JSON.parse(await result.innerText()).action.result;
         if (!isHex(signed.rawTxHex)) throw new Error('Expected a signed transaction');
         expect(
@@ -104,10 +119,11 @@ test('local approval planning still requires fresh status before a hosted signat
         ).toBe(expectedAddress.toLowerCase());
       }
       rounds.push({
-        statusFailureInjected: failure,
+        prepareMode: mode,
         preApprovalStatusRequests: 0,
         postApprovalStatusRequests: capture.statuses,
         signingPrepareRequests: capture.prepares,
+        signingFinalizeRequests: capture.finalizes,
         verifiedSignature: !failure,
       });
     }

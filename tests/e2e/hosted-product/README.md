@@ -53,3 +53,11 @@ The test does not time broadcast or blockchain confirmation. Stage timings can
 overlap. Report samples with `refill_wait` separately from samples with ready
 material. Each `mpc-signing-<workload>.json` artifact retains allowlisted Gateway timing and placement
 headers, request activity, and browser automation overhead.
+
+`signing-approval.test.ts` checks the combined prepare response. It injects an
+unavailable prepare and a response for the wrong session. Neither case may reach
+finalization. A subsequent valid prepare must produce a verified signature.
+All three signing attempts must issue zero separate session-status requests.
+`approval-evidence.json` records request counts and outcomes. The existing
+`refill-session.test.ts` checks live retirement: old credentials must fail refill,
+prepare and finalize while a newly unlocked session can still sign.

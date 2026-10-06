@@ -286,6 +286,12 @@ The existing wallet-system migration command applies the counter schema once,
 using the ingress Gateway manifest. It then remains the shared counter authority
 for every regional Gateway.
 
+The staging inventory command records remote metadata for the counter database.
+The staging migration command lists, applies, and rechecks its schema alongside
+Console and signer schemas. Evidence verification requires those counter checks,
+rejects a `CONSOLE_DB` binding on the Gateway, and rejects counter database IDs
+that match either the Console or signer database.
+
 The Gateway scopes counter keys with its admitted deployment tenant. The existing
 atomic D1 counter enforces the global limits. Counter storage failures reject the
 OTP action. There is no fallback to a regional counter or to Console.

@@ -127,10 +127,11 @@ const tenantFieldNames = Object.freeze(['namespace', 'orgId', 'projectId', 'envI
 const requiredResourceInventoryCheckIds = Object.freeze([
   'console_d1_info',
   'signer_d1_info',
+  'email_otp_rate_limit_d1_info',
   'console_worker_deployment_status',
   'router_api_worker_deployment_status',
 ]);
-const signerOnlyConsoleD1Bindings = Object.freeze(['SIGNER_DB']);
+const signerOnlyConsoleD1Bindings = Object.freeze(['SIGNER_DB', 'EMAIL_OTP_RATE_LIMIT_DB']);
 const signerOnlyConsoleDurableObjectBindings = Object.freeze([]);
 const requiredGatewayDurableObjectBindings = Object.freeze([]);
 const requiredMigrationTargetActionPairs = Object.freeze([
@@ -140,6 +141,9 @@ const requiredMigrationTargetActionPairs = Object.freeze([
   'signer:list_before',
   'signer:apply',
   'signer:list_after',
+  'email_otp_rate_limit:list_before',
+  'email_otp_rate_limit:apply',
+  'email_otp_rate_limit:list_after',
 ]);
 const requiredFixtureLogicalNames = Object.freeze(['console', 'signer']);
 const requiredBookmarkLogicalNames = Object.freeze(['console', 'signer']);
@@ -404,10 +408,10 @@ function validateResourceInventoryD1Metadata(input, checks) {
     workerFieldName: 'consoleWorker',
     binding: 'CONSOLE_DB',
   });
-  const relayConsoleDatabaseId = requireResourceD1DatabaseId({
+  const counterDatabaseId = requireResourceD1DatabaseId({
     input,
     workerFieldName: 'gatewayWorker',
-    binding: 'CONSOLE_DB',
+    binding: 'EMAIL_OTP_RATE_LIMIT_DB',
   });
   const signerDatabaseId = requireResourceD1DatabaseId({
     input,
@@ -415,10 +419,25 @@ function validateResourceInventoryD1Metadata(input, checks) {
     binding: 'SIGNER_DB',
   });
 
-  if (consoleDatabaseId && relayConsoleDatabaseId && consoleDatabaseId !== relayConsoleDatabaseId) {
+  if (
+    counterDatabaseId &&
+    (counterDatabaseId === consoleDatabaseId || counterDatabaseId === signerDatabaseId)
+  ) {
     input.errors.push(
-      `resource_inventory: gatewayWorker CONSOLE_DB databaseId ${relayConsoleDatabaseId} must match consoleWorker CONSOLE_DB ${consoleDatabaseId}`,
+      'resource_inventory: EMAIL_OTP_RATE_LIMIT_DB must be distinct from Console and signer databases',
     );
+  }
+  const gatewayWorker = resourceInventoryWorker(input.manifest, 'gatewayWorker');
+  if (gatewayWorker) {
+    validateOnlyResourceBindings({
+      id: input.id,
+      errors: input.errors,
+      workerFieldName: 'gatewayWorker',
+      resourceFieldName: 'd1Databases',
+      bindingFieldName: 'binding',
+      bindings: readArray(gatewayWorker.d1Databases),
+      allowedBindings: ['SIGNER_DB', 'EMAIL_OTP_RATE_LIMIT_DB'],
+    });
   }
 
   validateRemoteD1InfoDatabaseId({
@@ -434,6 +453,13 @@ function validateResourceInventoryD1Metadata(input, checks) {
     checkId: 'signer_d1_info',
     binding: 'SIGNER_DB',
     expectedDatabaseId: signerDatabaseId,
+  });
+  validateRemoteD1InfoDatabaseId({
+    input,
+    checks,
+    checkId: 'email_otp_rate_limit_d1_info',
+    binding: 'EMAIL_OTP_RATE_LIMIT_DB',
+    expectedDatabaseId: counterDatabaseId,
   });
 }
 

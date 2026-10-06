@@ -163,6 +163,54 @@ for (const workload of ['back_to_back', 'prefilled'] as const) {
   });
 }
 
+test('hosted first preparation: immediate registration and consecutive signing', async ({
+  context, page, request,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await installCandidateAssets(context);
+  const harness = new IntendedBehaviourHarness({
+    context, page, request, flow: 'passkey.registration', networkMode: 'hosted_product',
+  });
+  const timing = new SigningTimingEvidence();
+  const gateway = new GatewayRequestEvidence();
+  const recordTiming = timing.record.bind(timing);
+  page.on('console', recordTiming);
+  gateway.start(context);
+  const samples = [];
+  const registrationStarted = performance.now();
+  let registrationMs = null;
+  try {
+    await harness.initialize();
+    const started = performance.now();
+    await harness.registerPasskeyWallet();
+    registrationMs = performance.now() - started;
+    for (let index = 0; index < 3; index += 1) {
+      const startedAt = performance.now();
+      await harness.signTempoTransaction('post_registration');
+      const endedAt = performance.now();
+      samples.push({
+        index, verified: true,
+        client: timing.window(startedAt, endedAt),
+        gateway: await gateway.window(startedAt, endedAt),
+      });
+    }
+    harness.assertNoLifecycleViolations();
+    harness.assertNoWrongAuthPath();
+    expect(samples).toHaveLength(3);
+  } finally {
+    const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/mpc-signing');
+    await mkdir(output, { recursive: true });
+    await writeFile(path.join(output, `first-preparation-${testInfo.repeatEachIndex}.json`), JSON.stringify({
+      scope: 'Fresh registration, then three verified signatures without a readiness wait or broadcast.',
+      registrationMs, samples, refillResults: timing.refillResults,
+      gateway: await gateway.window(registrationStarted, performance.now()),
+    }, null, 2), { mode: 0o600 });
+    await harness.attachTrace(testInfo);
+    gateway.stop(context);
+    page.off('console', recordTiming);
+  }
+});
+
 test('hosted early preparation: registration, unlock and idle', async ({
   context, page, request,
 }, testInfo) => {

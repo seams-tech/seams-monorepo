@@ -125,6 +125,17 @@ class RestartingRegionalGateway {
     });
   }
 
+  async beginConsoleOutageAndRestart(ingress) {
+    await this.call({ kind: 'begin-console-outage' });
+    this.ready = this.restart(ingress, { kind: 'console_outage', status: null });
+    await this.ready;
+  }
+
+  async verifyConsoleOutage(curve, ingress) {
+    await this.call({ kind: 'verify-console-outage', curve });
+    await this.writeRestartEvidence([{ ingress, point: 'console_outage', status: null }]);
+  }
+
   async verifyGoogleRecovery(home, ingress, foundingMethod) {
     await this.call({ kind: 'verify-google-recovery', home, ingress, foundingMethod });
     await this.writeRestartEvidence([
@@ -162,7 +173,7 @@ class RestartingRegionalGateway {
           routes,
           restarts: this.restarts,
           scope:
-            'Gateway/Console and all five local role Workers restart after each recorded commit, before the masked response reaches the client. Gateway databases and role D1/DO state are reopened in place. Only test observations and fault counters are restored in memory. These are controlled process replacements after commit.',
+            'Gateway/Console and all five local role Workers restart at each recorded test boundary. Gateway databases and role D1/DO state are reopened in place. Only test observations and fault counters are restored in memory. These are controlled process replacements at the recorded boundaries.',
         },
         null,
         2,

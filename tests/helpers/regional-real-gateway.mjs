@@ -444,6 +444,7 @@ class RegionalRealScenario {
   }
 
   async verifyConsoleOutage(curve) {
+    assert.equal(this.consoleService.available, false, 'Console must remain unavailable');
     for (const gateway of this.gateways.values()) await Promise.all(gateway.pending);
     assert.deepEqual(this.consoleService.requests, [], 'Established signing contacted Console');
     const requests = [...this.gateways.values()].flatMap(gatewayRequests);

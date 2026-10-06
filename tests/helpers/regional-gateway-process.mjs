@@ -39,12 +39,24 @@ async function execute(message) {
         scenario.routerFault.outcome(),
       ]);
       return null;
+    case 'begin-console-outage':
+      scenario.beginConsoleOutage();
+      return null;
+    case 'verify-console-outage':
+      await scenario.verifyConsoleOutage(message.curve);
+      return null;
     case 'observations':
       return {
+        console: {
+          available: scenario.consoleService.available,
+          requests: scenario.consoleService.requests,
+        },
         gateways: [...scenario.gateways].map(gatewayObservations),
         routerReplays: [...routerReplayHistory, scenario.routerFault.outcome()],
       };
     case 'restore-observations':
+      scenario.consoleService.available = message.observations.console.available;
+      scenario.consoleService.requests = message.observations.console.requests;
       routerReplayHistory = message.observations.routerReplays;
       for (const observation of message.observations.gateways) {
         const gateway = scenario.gateways.get(observation.region);

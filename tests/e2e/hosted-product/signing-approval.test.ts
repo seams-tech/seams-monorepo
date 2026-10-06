@@ -64,6 +64,8 @@ test('hosted signing requires fresh prepare authority before finalization', asyn
   const record = capture.record.bind(capture);
   const prepare = capture.prepare.bind(capture);
   const rounds = [];
+  let stepUpVerified = false;
+  let postStepUpBudgetStatus: string | null = null;
   try {
     await harness.initialize();
     await harness.registerPasskeyWallet();
@@ -127,6 +129,25 @@ test('hosted signing requires fresh prepare authority before finalization', asyn
         verifiedSignature: !failure,
       });
     }
+    await page
+      .getByRole('dialog', { name: 'Transaction receipt' })
+      .frameLocator('iframe')
+      .getByRole('button', { name: 'Done', exact: true })
+      .click({ timeout: 15_000 });
+    // Exhaustion is discovered after warm approval. Fresh authorization appears
+    // in the receipt frame while the original SDK operation remains pending.
+    await Promise.all([
+      harness.signTempoTransaction('step_up_required'),
+      page
+        .getByRole('dialog', { name: 'Transaction receipt' })
+        .frameLocator('iframe')
+        .getByRole('button', { name: 'Confirm', exact: true })
+        .click({ timeout: 30_000 }),
+    ]);
+    stepUpVerified = true;
+    const budget = await harness.readCurrentWalletSessionStatus();
+    postStepUpBudgetStatus = budget.status;
+    expect(budget.status).toBe('exhausted');
     harness.assertNoLifecycleViolations();
     harness.assertNoWrongAuthPath();
   } finally {
@@ -137,7 +158,7 @@ test('hosted signing requires fresh prepare authority before finalization', asyn
     await mkdir(output, { recursive: true });
     await writeFile(
       path.join(output, 'approval-evidence.json'),
-      JSON.stringify({ rounds }, null, 2),
+      JSON.stringify({ rounds, stepUpVerified, postStepUpBudgetStatus }, null, 2),
     );
     await harness.attachTrace(testInfo);
   }

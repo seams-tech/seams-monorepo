@@ -58,6 +58,9 @@ headers, request activity, and browser automation overhead.
 unavailable prepare and a response for the wrong session. Neither case may reach
 finalization. A subsequent valid prepare must produce a verified signature.
 All three signing attempts must issue zero separate session-status requests.
-`approval-evidence.json` records request counts and outcomes. The existing
+The exhausted-budget attempt then requires fresh passkey approval and verifies
+one signature without renewing the reusable quota. The test approves this retry
+in the transaction receipt frame. `approval-evidence.json` records request counts,
+outcomes and the final exhausted quota. The existing
 `refill-session.test.ts` checks live retirement: old credentials must fail refill,
 prepare and finalize while a newly unlocked session can still sign.

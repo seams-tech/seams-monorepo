@@ -117,7 +117,28 @@ async function verifyRegistrationTerminalDecision(database, scope, walletId, out
   assert.equal(mismatch.kind, 'rejected');
   assert.equal(mismatch.response.status, 403);
 
+  const insertCeremony = database.prepare(
+    `INSERT INTO registration_ceremony_records
+      (namespace, org_id, project_id, env_id, record_scope, record_id, version, record_json, expires_at_ms)
+     SELECT namespace, org_id, project_id, env_id, 'ceremony', origin_id, 1,
+       json_object('registrationCeremonyId', origin_id), ?6
+     FROM wallet_execution_generations
+     WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND wallet_id = ?5`,
+  ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId, Date.now() + 60_000);
+  await insertCeremony.run();
   await assert.rejects(authority.complete({ ...identity, outcome }), /reply lost/u);
+  if (outcome === 'cancelled') {
+    await assert.rejects(database.prepare(
+      `UPDATE registration_ceremony_records SET version = version + 1
+       WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND record_id = ?5`,
+    ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, identity.ceremonyId).run(), /registration_cancelled/u);
+    await database.prepare(
+      `DELETE FROM registration_ceremony_records
+       WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND record_id = ?5`,
+    ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, identity.ceremonyId).run();
+    await assert.rejects(insertCeremony.run(), /registration_cancelled/u);
+  }
+
   const row = await database
     .prepare(
       `SELECT state, registration_completion FROM wallet_execution_generations
@@ -449,6 +470,7 @@ try {
     completedRegistrationAdmissionUsesLocalState: true,
     registrationTerminalDecisionSurvivesLostReply: true,
     localRegistrationContinuationRouting: true,
+    cancelledRegistrationRejectsLateWritesAndRecreation: true,
     conflictingRegistrationCompletionRejectedBeforeConsole: true,
     sessionlessContinuationHintUsesBoundedForwarding: true,
   };

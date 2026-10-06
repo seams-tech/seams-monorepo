@@ -1,4 +1,6 @@
-import type { APIRequestContext, BrowserContext, Page, TestInfo } from '@playwright/test';
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import type { APIRequestContext, BrowserContext, Page, Request as BrowserRequest, TestInfo } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRestartingRegionalGateway } from '../../helpers/restarting-regional-gateway.mjs';
@@ -152,3 +154,81 @@ async function verifySharedBudgetAndStepUp(
 }
 
 test('shared budget exhaustion and both signing step-ups work while Console is unavailable', verifySharedBudgetAndStepUp);
+
+
+class SigningRequestCapture {
+  request: BrowserRequest | null = null;
+
+  observe(request: BrowserRequest): void {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/router-ab/ed25519/sign/prepare') {
+      this.request = request;
+    }
+  }
+}
+
+async function verifyRegionalRoutingRejections(
+  { harness, context }: { harness: InstanceType<typeof IntendedBehaviourHarness>; context: BrowserContext },
+  testInfo: TestInfo,
+) {
+  const output = path.resolve(root, '.artifacts/r155b/console-outage/routing-rejections');
+  const scenario = await createRegionalRealGateway({
+    root, candidate, lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+    output,
+  });
+  const capture = new SigningRequestCapture();
+  const observe = capture.observe.bind(capture);
+  context.on('request', observe);
+  try {
+    await scenario.routeContext(context, 'US');
+    await harness.registerPasskeyWallet();
+    await harness.awaitNearReady();
+    scenario.beginConsoleOutage();
+    await scenario.routeContext(context, 'WEUR');
+    await harness.signNearTransaction('post_registration');
+    const signed = capture.request;
+    assert.ok(signed, 'Expected the real browser prepare request');
+    const headers = await signed.allHeaders();
+    const body = signed.postDataBuffer();
+    assert.ok(body);
+    const cases = [
+      { name: 'malformed_region', region: 'invalid', status: 400, code: 'invalid_wallet_region' },
+      { name: 'wrong_home', region: 'APAC', status: 409, code: 'wallet_home_discovery_required' },
+    ];
+    const rejections = [];
+    for (const rejected of cases) {
+      const response = await scenario.gateways.get('WEUR').handle(new Request(signed.url(), {
+        method: 'POST', headers: { ...headers, 'x-seams-wallet-region': rejected.region }, body,
+      }), 'ingress');
+      const result = await response.json();
+      assert.equal(response.status, rejected.status);
+      assert.equal(result.code, rejected.code);
+      rejections.push({ name: rejected.name, status: response.status, code: result.code });
+    }
+    const mismatch = await scenario.gateways.get('WEUR').handle(new Request(
+      'http://127.0.0.1:4100/wallet/email-otp/challenge', {
+        method: 'POST', headers,
+        body: JSON.stringify({ walletId: 'another-wallet', operation: 'transaction_sign' }),
+      },
+    ), 'ingress');
+    const mismatchBody = await mismatch.json();
+    assert.equal(mismatch.status, 403);
+    assert.equal(mismatchBody.code, 'wallet_session_scope_mismatch');
+    rejections.push({ name: 'session_wallet_mismatch', status: mismatch.status, code: mismatchBody.code });
+    await scenario.routeContext(context, 'APAC');
+    await harness.signNearTransaction('post_registration');
+    await scenario.routeContext(context, 'OC');
+    await harness.signNearTransaction('post_registration');
+    await scenario.verifyConsoleOutage('ed25519');
+    await writeFile(path.join(output, 'rejections.json'), JSON.stringify({
+      rejections, verifiedSignatures: 3, attemptedConsoleCalls: 0,
+    }, null, 2));
+    harness.assertNoLifecycleViolations();
+  } finally {
+    context.off('request', observe);
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+}
+
+test('regional routing rejects malformed hints and wallet mismatches without consuming signing budget', verifyRegionalRoutingRejections);

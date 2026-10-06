@@ -1,3 +1,4 @@
+import { authorizeDeriverSourceFence, parseDeriverRelocationRole } from './deriverRelocationCommand';
 import { recordRouterRelocationReceipt, authorizeRouterExport, authorizeRouterDestination, recordRouterActivation, authorizeRouterCleanup } from './routerRelocationReceipt';
 import { authorizeWalletRuntimeSourceCommand, parseWalletRuntimeSourceOperation } from './runtimeRelocationCommand';
 import { WalletExecutionAuthority } from './executionAuthority';
@@ -21,7 +22,7 @@ import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { D1WalletHomeDirectory } from './d1';
 import { readWalletPlacementStatus } from './relocationStatus';
 import { walletPlacementView, walletRelocationStatusView } from './relocationView';
-import { WalletRelocationLocator, WalletRelocationRequest } from './relocation';
+import { relocationDigest, WalletRelocationLocator, WalletRelocationRequest } from './relocation';
 import { readWalletRelocation } from './relocationStore';
 import { WalletD1RelocationCommand, parseWalletRelocationCommandKind } from './relocationCommands';
 import { WalletRelocationAttempt } from './relocationExecution';
@@ -134,6 +135,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
@@ -181,6 +183,7 @@ export async function handleWalletHomeServiceRequest(
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-export` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-router-receipt` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source` ||
+      url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` ||
       url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest`
     ) {
@@ -233,6 +236,14 @@ export async function handleWalletHomeServiceRequest(
           throw new WalletPlacementError('invalid_input', 'Router receipt fields are invalid');
         const result = await recordRouterRelocationReceipt(options.database, wallet, options.writer,
           WalletRelocationAttempt.parse(body.attempt), body.receipt);
+        return json(result, result.ok ? 200 : 409);
+      }
+      if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-source`) {
+        if (Object.keys(body).length !== 4)
+          throw new WalletPlacementError('invalid_input', 'Deriver source command fields are invalid');
+        const result = await authorizeDeriverSourceFence(options.database, wallet, options.writer,
+          WalletRelocationAttempt.parse(body.attempt), parseDeriverRelocationRole(body.role),
+          relocationDigest(body.cipherContextDigest));
         return json(result, result.ok ? 200 : 409);
       }
       if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-runtime-source`) {

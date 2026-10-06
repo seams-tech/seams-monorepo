@@ -293,6 +293,28 @@ async function runtimeSourceCommand(
   return responseBody(response);
 }
 
+async function deriverSourceCommand(
+  runtime: Miniflare,
+  request: WalletRelocationRequest,
+  attempt: WalletRelocationAttempt,
+  role: 'deriverA' | 'deriverB',
+  cipherContextDigest: string,
+  home = source,
+) {
+  const service = await runtime.getWorker('ingress-b');
+  return responseBody(await service.fetch(
+    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-deriver-source', {
+      method: 'POST', headers: {
+        'x-seams-writer-role': 'walletRuntime',
+        'x-seams-writer-version': relocationWriterVersion(home.databaseId, 'walletRuntime'),
+        'x-seams-writer-account': home.accountId,
+        'x-seams-writer-database': home.databaseId,
+      },
+      body: JSON.stringify({ wallet: request.wallet, attempt, role, cipherContextDigest }),
+    },
+  ));
+}
+
 async function routerSourceReceipt(
   runtime: Miniflare,
   request: WalletRelocationRequest,
@@ -899,6 +921,21 @@ test('relocation directory serializes competing moves and survives lost replies 
       },
     });
     expect(await runtimeSourceCommand(runtime, request, freezeAttempt, 'router-freeze')).toEqual(routerFreeze);
+    for (const role of ['deriverA', 'deriverB'] as const) {
+      const command = await deriverSourceCommand(runtime, request, freezeAttempt, role, 'c'.repeat(64));
+      expect(command).toEqual({ ok: true, command: {
+        owner: { org_id: request.wallet.organizationId, project_id: request.wallet.projectId,
+          env_id: request.wallet.environmentId, wallet_id: request.wallet.walletId },
+        move_id: request.moveId, request_digest_hex: await request.digest(),
+        cipher_context_digest_hex: 'c'.repeat(64), source_generation: 1, destination_generation: 2,
+      } });
+      expect(await deriverSourceCommand(runtime, request, freezeAttempt, role, 'c'.repeat(64))).toEqual(command);
+      expect(await deriverSourceCommand(runtime, request, freezeAttempt, role, 'd'.repeat(64)))
+        .toEqual({ ok: false, code: 'participant_conflict' });
+      expect(await deriverSourceCommand(runtime, request, freezeAttempt, role, 'c'.repeat(64), destination))
+        .toEqual({ ok: false, code: 'participant_conflict' });
+    }
+    observations.push({ deriverSourceCommandsMatchPreparedCipherContext: true });
     const routerReceipt = await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64));
     expect(routerReceipt).toMatchObject({ ok: true, receipt: { record_count: 1 } });
     expect(await routerSourceReceipt(runtime, request, freezeAttempt, 'a'.repeat(64))).toEqual(routerReceipt);

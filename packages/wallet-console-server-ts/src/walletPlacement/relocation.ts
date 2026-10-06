@@ -22,7 +22,7 @@ function relocationId(raw: unknown): string {
   return raw;
 }
 
-function relocationDigest(raw: unknown): string {
+export function relocationDigest(raw: unknown): string {
   if (typeof raw !== 'string' || !/^[a-f0-9]{64}$/u.test(raw)) {
     throw new WalletPlacementError('invalid_record', 'Wallet relocation digest is invalid');
   }

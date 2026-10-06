@@ -1230,7 +1230,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ deriverTransferUsesPinnedReceiptsAndRegionalWriters: true });
     await verifyEcdsaTransferJournal({ runtime, request, attempt: copyAttempt, source, destination, admittedAtMs });
     await verifyPresignSourceClosedAfterFreeze({ runtime, request, attempt: copyAttempt, source, destination, admittedAtMs });
-    observations.push({ presignSourceCommandsRequireFreezingAttempt: true, presignReceiptsAreImmutable: true });
+    observations.push({ presignSourceCommandsRequireFreezingAttempt: true, presignReceiptsAreImmutable: true, lateSessionPreparationPrecedesSourceMutation: true, lostSessionFreezeReplyResumesFromJournal: true });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 1 }))
       .toEqual({ ok: true, command: { command: 'export', receipt: ed25519Receipt, segment_index: 1 } });
     expect(await ed25519JournalRequest(runtime, request, copyAttempt, 'transfer', { operation: 'export', segmentIndex: 2 }))

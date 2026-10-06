@@ -1,6 +1,7 @@
-import { isPlainObject, sha256Bytes, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
+import { isPlainObject, queryD1One, sha256Bytes, type D1DatabaseLike, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import { WalletPlacementError, type WalletHome } from './home';
-import { relocationTimestamp } from './relocation';
+import { relocationTimestamp, type WalletRelocation } from './relocation';
+import type { WalletRelocationAttempt } from './relocationExecution';
 import { preparationEvidenceDigest, type WalletRelocationParticipants } from './relocationPreparation';
 
 type Command = Parameters<WalletRelocationParticipants['presignSessions']['prepare']>[0];
@@ -32,6 +33,62 @@ export class PresignRelocationPreparation {
     private readonly destinationRuntime: WalletRuntimeServiceBinding,
     private readonly clock: () => number,
   ) {}
+
+  // The journal receipt is the durable progress marker. A lost response repeats
+  // the same reservation and freeze; no in-memory cursor is required.
+  async settle(database: D1DatabaseLike, move: WalletRelocation, attempt: WalletRelocationAttempt): Promise<'pending' | 'settled' | 'unavailable'> {
+    if (move.progress.state !== 'freezing' || attempt.phase !== 'freezing' ||
+        move.moveId !== attempt.moveId || !move.wallet.matches(attempt.wallet) ||
+        !move.destination.matches(this.destination)) return 'unavailable';
+    const wallet = move.wallet;
+    const scope: Scope = {
+      org_id: wallet.organizationId, project_id: wallet.projectId,
+      project_environment_id: wallet.environmentId, wallet_id: wallet.walletId,
+    };
+    const request: Move = { move_id: move.moveId, source_generation: move.sourceGeneration };
+    let cursor: Cursor = { kind: 'start' };
+    for (;;) {
+      const page = parsePage(await call(this.sourceRuntime, 'presign-inventory', {
+        wallet, attempt, cursor, limit: PAGE_SIZE,
+      }));
+      if (!page) return 'unavailable';
+      let previous: string = cursor.kind === 'after' ? cursor.presign_session_id : '';
+      for (const session of page.sessions) {
+        if (!orderedAfter(session.presign_session_id, previous)) return 'unavailable';
+        previous = session.presign_session_id;
+        const stored = await queryD1One(database, `SELECT json_extract(receipt_json, '$.command.server_presignature_id') AS server_presignature_id FROM wallet_presign_snapshots
+          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [
+          wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
+          wallet.walletId, move.moveId, session.presign_session_id,
+        ]);
+        if (stored) {
+          if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
+          continue;
+        }
+        const prepared = await call(this.destinationRuntime, 'presign-transfer', {
+          kind: 'prepare', command: {
+            wallet_scope: scope, request, presign_session_id: session.presign_session_id,
+            server_presignature_id: session.server_presignature_id,
+          }, chunk_bytes: 4096,
+        });
+        if (!matchesPreparation(prepared, scope, request, session)) return 'unavailable';
+        const identity = {
+          presignSessionId: session.presign_session_id,
+          serverPresignatureId: session.server_presignature_id,
+        };
+        const fenced = await call(this.sourceRuntime, 'presign-fence', { wallet, attempt, session: identity });
+        if (!isPlainObject(fenced)) return 'unavailable';
+        const frozen = await call(this.sourceRuntime, 'presign-freeze', { wallet, attempt, session: identity });
+        if (!isPlainObject(frozen)) return 'unavailable';
+        // Runtime returns success only after Console persists the exact receipt.
+        return 'pending';
+      }
+      if (page.state === 'complete') return 'settled';
+      if (page.next !== previous) return 'unavailable';
+      cursor = { kind: 'after', presign_session_id: page.next };
+    }
+  }
 
   async prepare(command: Command): Promise<unknown> {
     if (command.participant !== 'presignSessions' || !command.request.destination.matches(this.destination)) {
@@ -94,11 +151,15 @@ export class PresignRelocationPreparation {
   }
 }
 
-async function call(runtime: WalletRuntimeServiceBinding, operation: 'presign-preparation-inventory' | 'presign-transfer', body: unknown): Promise<unknown> {
-  const response = await runtime.fetch(new Request(`${BASE}/${operation}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  }));
-  return response.status === 200 ? response.json() : null;
+async function call(runtime: WalletRuntimeServiceBinding, operation: 'presign-preparation-inventory' | 'presign-transfer' | 'presign-inventory' | 'presign-fence' | 'presign-freeze', body: unknown): Promise<unknown> {
+  try {
+    const response = await runtime.fetch(new Request(`${BASE}/${operation}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }));
+    return response.status === 200 ? await response.json() : null;
+  } catch {
+    return null;
+  }
 }
 
 function parsePage(raw: unknown): Page | null {

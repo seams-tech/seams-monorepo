@@ -1,3 +1,5 @@
+import { PresignRelocationPreparation } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignPreparation';
+import { readWalletRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import { expect } from '@playwright/test';
 import type { Miniflare } from 'miniflare';
 import type { WalletHome } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
@@ -31,6 +33,7 @@ async function call(context: Context, endpoint: 'source' | 'receipt' | 'transfer
 }
 
 export async function verifyPresignSourceJournal(context: Context) {
+  await verifyLateSessionSettlement(context);
   const receipt = presignSnapshotFixture(context.request, context.admittedAtMs, 'e'.repeat(64));
   const session = { presignSessionId: receipt.command.presign_session_id, serverPresignatureId: receipt.command.server_presignature_id };
   for (const operation of ['fence', 'freeze'] as const) {
@@ -77,4 +80,58 @@ async function verifyPresignTransferJournal(context: Context) {
   expect(await call(context, 'transfer', { operation: 'verify', session: {
     presignSessionId: 'missing-session', serverPresignatureId: session.serverPresignatureId,
   } }, context.destination)).toEqual({ ok: false, code: 'source_manifest_unavailable' });
+}
+
+class SettlementRuntime {
+  preparationAvailable = false;
+  lostFreezeReply = true;
+  sourceMutations = 0;
+  preparations = 0;
+
+  constructor(private readonly context: Context) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const body = await request.json();
+    const receipt = presignSnapshotFixture(this.context.request, this.context.admittedAtMs, 'e'.repeat(64));
+    const path = new URL(request.url).pathname;
+    if (path.endsWith('/presign-transfer')) {
+      this.preparations += 1;
+      if (!this.preparationAvailable) return new Response(null, { status: 503 });
+      return Response.json({ kind: 'prepared', command: body.command, chunk_bytes: body.chunk_bytes });
+    }
+    const operation = path.slice(path.lastIndexOf('presign-') + 8);
+    const command = operation === 'inventory'
+      ? { operation, cursor: body.cursor, limit: body.limit }
+      : { operation, session: body.session };
+    const authorization = await call(this.context, 'source', command, this.context.source);
+    expect(authorization.ok).toBe(true);
+    if (operation === 'inventory') return Response.json({ state: 'complete', sessions: [{
+      presign_session_id: receipt.command.presign_session_id,
+      server_presignature_id: receipt.command.server_presignature_id,
+      request_digest_hex: 'a'.repeat(64),
+    }] });
+    this.sourceMutations += 1;
+    if (operation === 'fence') return Response.json({ initialization: { state: 'registered' } });
+    expect(operation).toBe('freeze');
+    expect(await call(this.context, 'receipt', receipt, this.context.source)).toEqual({ ok: true, receipt });
+    if (this.lostFreezeReply) throw new Error('Freeze reply lost after its durable receipt');
+    return Response.json(receipt);
+  }
+}
+
+async function verifyLateSessionSettlement(context: Context) {
+  const database = await context.runtime.getD1Database('CONSOLE_DB', 'ingress-a');
+  const move = await readWalletRelocation(database, context.request);
+  if (!move) throw new Error('Admitted move is required');
+  const runtime = new SettlementRuntime(context);
+  const participant = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now);
+  expect(await participant.settle(database, move, context.attempt)).toBe('unavailable');
+  expect(runtime.sourceMutations).toBe(0);
+  runtime.preparationAvailable = true;
+  expect(await participant.settle(database, move, context.attempt)).toBe('unavailable');
+  expect(runtime.sourceMutations).toBe(2);
+  const restarted = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now);
+  expect(await restarted.settle(database, move, context.attempt)).toBe('settled');
+  expect(runtime.sourceMutations).toBe(2);
+  expect(runtime.preparations).toBe(2);
 }

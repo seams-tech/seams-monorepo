@@ -579,22 +579,6 @@ export class WalletHomeServiceClient
     }
   }
 
-  async findSession(locator: SessionLocator): Promise<WalletHomeAssignment | null> {
-    const response = await this.post('find-session', { locator });
-    const body = record(response.body);
-    if (response.status === 404 && body.ok === false && body.code === 'not_found') return null;
-    if (response.status !== 200 || body.ok !== true)
-      throw new Error(`Session home lookup failed: HTTP ${response.status}`);
-    const confirmed = SessionLocator.parse(body.locator);
-    if (!confirmed.matches(locator)) {
-      throw new WalletPlacementError(
-        'invalid_record',
-        'Session home lookup returned another locator',
-      );
-    }
-    return assignmentFromResponse(body.assignment, this.scope, this.catalog);
-  }
-
   async registrationExecutionAuthority(
     assignment: Extract<WalletHomeAssignment, { state: 'reserved' }>,
   ) {

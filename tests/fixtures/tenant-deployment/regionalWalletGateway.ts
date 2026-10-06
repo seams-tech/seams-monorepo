@@ -5,7 +5,6 @@ import {
   ConsoleRegistrationSetupDispatcher,
   WalletRegionalDispatch,
   dispatchKnownWalletHome,
-  resolveSessionHome,
   type RegionalGatewayBindings,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import {
@@ -50,7 +49,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     authority,
     transport,
     undefined,
-    await resolveSessionHome(request, authority),
+    { kind: 'absent' },
   );
   if (forwarded) return forwarded;
   const body: unknown = await request.json();

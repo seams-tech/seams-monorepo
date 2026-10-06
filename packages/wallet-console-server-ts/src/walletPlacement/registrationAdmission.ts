@@ -3,7 +3,6 @@ import type { WalletLifecycleRoutingPublisher } from '@seams/wallet-server/cloud
 import type { WalletRecoveryRoutingPublication } from '@seams/wallet-server/cloud-host';
 import type { WalletRouteLocator } from './walletRouteLocators';
 import type { WalletSessionLocatorPublication } from '@seams/wallet-server/cloud-host';
-import type { SessionLocator } from './sessionLocators';
 import {
   parseWalletRegistrationSetupReservation,
   proposeWalletRegistrationSetup,
@@ -94,10 +93,6 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
 
   async publish(input: WalletSessionLocatorPublication): Promise<void> {
     await this.client().publish(input);
-  }
-
-  async findSession(locator: SessionLocator): Promise<WalletHomeAssignment | null> {
-    return this.client().findSession(locator);
   }
 
   async resolveSetup(input: SetupInput): Promise<ResolvedSetupHome> {

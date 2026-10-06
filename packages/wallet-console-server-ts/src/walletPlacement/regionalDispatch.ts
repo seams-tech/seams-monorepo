@@ -426,22 +426,6 @@ export async function readRequestSessionLocator(request: Request): Promise<Reque
   return { kind: 'locator', locator };
 }
 
-export async function resolveSessionHome(
-  request: Request,
-  authority: ConsoleRegistrationHomeAdmission,
-): Promise<SessionHomeResolution> {
-  const parsed = await readRequestSessionLocator(request);
-  if (parsed.kind !== 'locator') return parsed;
-  try {
-    const assignment = await authority.findSession(parsed.locator);
-    if (!assignment || assignment.state === 'cancelled')
-      return rejectedSessionHome(401, 'unauthorized');
-    return { kind: 'resolved', assignment };
-  } catch {
-    return rejectedSessionHome(503, 'wallet_home_unavailable');
-  }
-}
-
 function rejectedSessionHome(
   status: number,
   code: string,

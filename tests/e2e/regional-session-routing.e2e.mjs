@@ -75,6 +75,10 @@ class ConsoleBridge {
       this.dropNextBootstrapClaimReply &&
       new URL(request.url).pathname.endsWith('/device-bootstrap') &&
       (await request.clone().json()).operation === 'claim';
+    if (new URL(request.url).pathname === api.GATEWAY_SESSION_PATH) {
+      const binding = await api.fourRegionBinding(1_791_000_000_000, 'test', this.tenantScope);
+      return api.gatewaySessionResponse(request, binding, this.database, catalogJson);
+    }
     const response = await api.handleWalletHomeServiceRequest(request, {
       database: this.database,
       catalogJson,
@@ -107,12 +111,25 @@ class GatewayBridge {
       return this.runtimeIdentities.handle(request);
     }
     request = await nativeRequest(request);
+    const transport = new api.WalletRegionalDispatch(this.bindings);
+    const resolution = await api.resolveGatewayDeployment({
+      request,
+      database: this.database,
+      binding: this.binding,
+      writer: this.writer,
+      deploymentLane: 'test',
+      service: this.consoleService,
+      catalogJson,
+      timingHeaders: new Headers(),
+    });
+    if (resolution.kind === 'rejected') return resolution.response;
+    if (resolution.kind === 'forward') return transport.forward(resolution.home, request);
     const response = await api.dispatchKnownWalletHome(
       request,
       this.authority,
-      new api.WalletRegionalDispatch(this.bindings),
+      transport,
       'regional-google-test',
-      await api.resolveSessionHome(request, this.authority),
+      resolution.session,
     );
     if (response) return response;
     const pathname = new URL(request.url).pathname;
@@ -187,6 +204,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = resolve(candidate, '../..');
+const { seedExecutionGeneration } = await import(
+  pathToFileURL(resolve(publicRoot, 'tests/e2e/execution-generation.scenario.mjs'))
+);
 const output = resolve(
   root,
   process.env.SEAMS_TEST_ARTIFACT_DIR ?? '.artifacts/r152/session-routing-20261003',
@@ -281,8 +301,11 @@ const bundle = await build({
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
       export { WalletHomeServiceClient } from './packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
       export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
-      export { WalletRegionalDispatch, dispatchKnownWalletHome, resolveSessionHome } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+      export { WalletRegionalDispatch, dispatchKnownWalletHome } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
       export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+      export { D1WalletExecutionAuthority } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/registration/d1WalletExecutionAuthority.ts'))};
+      export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
+      export { fourRegionBinding } from './tests/helpers/tenantDeploymentFixtures';
     `,
   },
 });
@@ -384,15 +407,6 @@ try {
       namespace: scope.namespace,
       walletSignerScope: signerScope,
     });
-    const service = new api.AuthorizationService({
-      policy: api.capabilityPolicyPort,
-      sessions: store,
-      grants: store,
-      evidence: store,
-      authorizedOperations: store,
-      audit: {},
-      sessionRouting: publisher,
-    });
     bridge.authority = new api.ConsoleRegistrationHomeAdmission({
       environmentKey: scope.environmentId,
       service: consoleService,
@@ -401,7 +415,21 @@ try {
       localResource: catalog.select(region),
       catalogJson,
       ingressRegion: region,
+    })
+    const service = new api.AuthorizationService({
+      policy: api.capabilityPolicyPort,
+      sessions: store,
+      grants: store,
+      evidence: store,
+      authorizedOperations: store,
+      audit: {},
+      sessionRouting: bridge.authority,
     });
+;
+    bridge.database = database;
+    bridge.writer = writer;
+    bridge.binding = await api.fourRegionBinding(1_791_000_000_000, 'test', scope);
+    bridge.consoleService = consoleService;
     bridge.bindings = regionalBindings;
     bridge.service = service;
     const now = Date.now();
@@ -409,6 +437,7 @@ try {
     bridge.ownerSigner = ownerSigner.record;
     const fixture = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-session-${region}`,
+      tenantId: scope.organizationId,
       materialActivation: ownerSigner.materialActivation,
       ed25519Signer: ownerSigner.identity,
       identity: {
@@ -458,6 +487,7 @@ try {
         record: fixture.authMethod,
       }),
     ]);
+    await seedExecutionGeneration({ api, database, scope: signerScope, walletId: fixture.authority.walletId });
     const issued = await service.issueDirectWalletSessionAuthorizationV2({
       tenantId: fixture.issuedSession.session.tenantId,
       principalId: fixture.issuedSession.session.principalId,
@@ -477,6 +507,7 @@ try {
     bridge.ownerAuthority = fixture.authority;
     const linked = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `regional-linked-${region}`,
+      tenantId: scope.organizationId,
       permissions: api.buildFullOwnerPermissionsV1(),
       provenance: 'device_link',
       sourceAuthorityId: fixture.authority.authorityId,

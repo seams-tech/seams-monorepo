@@ -122,7 +122,6 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
@@ -509,13 +508,6 @@ export async function handleWalletHomeServiceRequest(
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-route`) {
       const locator = WalletRouteLocator.parse(body.locator);
       const assignment = await routes.find(locator);
-      return assignment
-        ? json({ ok: true, locator, assignment })
-        : json({ ok: false, code: 'not_found' }, 404);
-    }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-session`) {
-      const locator = SessionLocator.parse(body.locator);
-      const assignment = await sessions.find(locator);
       return assignment
         ? json({ ok: true, locator, assignment })
         : json({ ok: false, code: 'not_found' }, 404);

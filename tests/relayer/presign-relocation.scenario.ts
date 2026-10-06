@@ -73,6 +73,10 @@ async function verifyPresignTransferJournal(context: Context) {
     .toEqual({ ok: false, code: 'participant_conflict' });
   expect(await call(context, 'transfer', { operation: 'import', session }, context.destination))
     .toEqual({ ok: true, command: { kind: 'import', receipt, chunk_bytes: 4096 } });
+  expect(await call(context, 'transfer', { operation: 'status', session }, context.destination))
+    .toEqual({ ok: true, command: { kind: 'status', receipt, chunk_bytes: 4096 } });
+  expect(await call(context, 'transfer', { operation: 'status', session }, context.source))
+    .toEqual({ ok: false, code: 'participant_conflict' });
   expect(await call(context, 'transfer', { operation: 'verify', session }, context.destination))
     .toEqual({ ok: true, command: { kind: 'verify', receipt } });
   expect(await call(context, 'transfer', { operation: 'verify', session }, context.source))

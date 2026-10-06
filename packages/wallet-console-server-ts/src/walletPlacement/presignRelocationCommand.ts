@@ -18,7 +18,7 @@ type SessionCommand = {
 
 export type PresignTransferRequest =
   | { readonly operation: 'export'; readonly session: Session; readonly segmentIndex: number }
-  | { readonly operation: 'import' | 'verify'; readonly session: Session; readonly segmentIndex?: never };
+  | { readonly operation: 'import' | 'verify' | 'status'; readonly session: Session; readonly segmentIndex?: never };
 
 export function parsePresignTransferRequest(raw: unknown): PresignTransferRequest {
   if (!isPlainObject(raw)) throw invalid('Presign transfer request is invalid');
@@ -26,7 +26,7 @@ export function parsePresignTransferRequest(raw: unknown): PresignTransferReques
   if (raw.operation === 'export' && Object.keys(raw).length === 3 &&
       typeof raw.segmentIndex === 'number' && Number.isInteger(raw.segmentIndex) && raw.segmentIndex >= 0 && raw.segmentIndex <= 4294967295)
     return { operation: 'export', session, segmentIndex: raw.segmentIndex };
-  if ((raw.operation === 'import' || raw.operation === 'verify') && Object.keys(raw).length === 2)
+  if ((raw.operation === 'import' || raw.operation === 'verify' || raw.operation === 'status') && Object.keys(raw).length === 2)
     return { operation: raw.operation, session };
   throw invalid('Presign transfer operation fields are invalid');
 }
@@ -167,6 +167,7 @@ export async function authorizePresignTransfer(
   switch (request.operation) {
     case 'export': return { ok: true, command: { kind: 'export', receipt, segment_index: request.segmentIndex, chunk_bytes: 4096 } } as const;
     case 'import': return { ok: true, command: { kind: 'import', receipt, chunk_bytes: 4096 } } as const;
+    case 'status': return { ok: true, command: { kind: 'status', receipt, chunk_bytes: 4096 } } as const;
     case 'verify': return { ok: true, command: { kind: 'verify', receipt } } as const;
     default: {
       const unexpected: never = request;

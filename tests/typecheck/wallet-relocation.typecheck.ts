@@ -1,3 +1,4 @@
+import type { RuntimeRelocationTransfer } from '../../packages/wallet-console-server-ts/src/walletPlacement/runtimeRelocationTransfer';
 import type { RuntimeRelocationFreeze } from '../../packages/wallet-console-server-ts/src/walletPlacement/runtimeRelocationFreeze';
 import type { PresignSourceRequest, PresignTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignRelocationCommand';
 import type { EcdsaTransferRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
@@ -406,3 +407,16 @@ const pendingRuntimeSnapshots: RuntimeFreezeResult = { ...capturedRuntime, state
 const incompleteRuntimeSnapshots: RuntimeFreezeResult = { state: 'frozen', snapshots: { router: capturedRuntime.snapshots.router } };
 void pendingRuntimeSnapshots;
 void incompleteRuntimeSnapshots;
+
+acceptPresignTransfer({ operation: 'status', session: presignSession });
+// @ts-expect-error Status reads the destination cursor and cannot accept a caller cursor.
+acceptPresignTransfer({ ...deriverExport, operation: 'status', session: presignSession });
+
+type TransferTarget = Parameters<RuntimeRelocationTransfer['advance']>[2];
+declare function acceptTransferTarget(target: TransferTarget): void;
+acceptTransferTarget({ participant: 'presign', session: presignSession });
+acceptTransferTarget({ participant: 'router' });
+// @ts-expect-error Presign transfer requires both session identities.
+acceptTransferTarget({ participant: 'presign' });
+// @ts-expect-error Wallet participants cannot retain a presign session through a spread.
+acceptTransferTarget({ ...{ session: presignSession }, participant: 'router' });

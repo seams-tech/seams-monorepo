@@ -1,3 +1,4 @@
+import { verifyRuntimeTransferResume } from './runtime-transfer.scenario';
 import { verifySourceFreezeAssembly } from './source-freeze.scenario';
 import { verifyPresignSourceJournal, verifyPresignSourceClosedAfterFreeze } from './presign-relocation.scenario';
 import { verifyEcdsaSnapshotJournal, verifyEcdsaTransferJournal, verifyEcdsaActivationJournal, verifyEcdsaCleanupJournal } from './ecdsa-relocation.scenario';
@@ -2167,6 +2168,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     const pendingProgress = objectValue(objectValue(pendingCopy.move).progress);
     expect(pendingProgress.state).toBe('copying');
     expect(objectValue(pendingProgress.execution).state).toBe('running');
+    observations.push(await verifyRuntimeTransferResume(coordinated, attemptFromResponse(pendingCopy), admittedAtMs));
     runtime = await restart(runtime, directory);
     expect(await responseBody(await call(runtime, {
       action: 'advance',

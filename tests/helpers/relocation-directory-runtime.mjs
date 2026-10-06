@@ -57,6 +57,7 @@ class DirectoryBinding {
 
 class RuntimeBinding {
   requests = [];
+  observations = [];
   constructor(api, database, namespace, writer, env) {
     Object.assign(this, { api, database, namespace, writer, env });
   }
@@ -74,7 +75,7 @@ class RuntimeBinding {
     }
     const response = await this.api.handleWalletControlRequest(request, this.env);
     assert.ok(response, 'Every custody request must reach its production Runtime handler');
-    await logRelocationState('Runtime', request, response);
+    this.observations.push(await logRelocationState('Runtime', request, response));
     return response;
   }
 }
@@ -259,19 +260,17 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
 
 async function logRelocationState(role, request, response) {
   const value = await response.clone().json();
-  console.log(
-    'Relocation',
-    role,
-    new URL(request.url).pathname,
-    response.status,
-    JSON.stringify({
-      state: value.state,
-      kind: value.kind,
-      pendingEffects: value.pending_effects,
-      pendingRounds: value.pending_rounds,
-      pendingPairs: value.pending_pairs,
-      pendingLinkedSessions: value.pending_linked_sessions,
-      unsettledLifecycles: value.unsettled_lifecycles?.length,
-    }),
-  );
+  const observation = {
+    path: new URL(request.url).pathname,
+    status: response.status,
+    state: value.state,
+    kind: value.kind,
+    pendingEffects: value.pending_effects,
+    pendingRounds: value.pending_rounds,
+    pendingPairs: value.pending_pairs,
+    pendingLinkedSessions: value.pending_linked_sessions,
+    unsettledLifecycles: value.unsettled_lifecycles?.length,
+  };
+  console.log('Relocation', role, JSON.stringify(observation));
+  return observation;
 }

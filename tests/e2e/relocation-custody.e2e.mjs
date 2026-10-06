@@ -1,3 +1,8 @@
+import {
+  prepareSigningBeforeMove,
+  finalizeWhileMoveWaits,
+  verifySigningReplayAfterMove,
+} from '../helpers/relocation-signing-race.mjs';
 import { approveRelocationOwner } from '../helpers/relocation-owner-approval.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
@@ -116,9 +121,39 @@ async function verifyCoordinatorBindings(custody) {
     assert.equal(bindings.runtimes.WEUR.env.MPC_ROUTER.calls, 0);
     assert.ok(context.directory.requests.some(isSourceAdmission));
     await approveRelocationOwner(context, move, candidate);
+    const pendingSignature = await prepareSigningBeforeMove(custody, publicRoot);
     const approved = await journal.admit(move, verifications, 'test', bindings, Date.now);
     assert.equal(approved.ok, true, JSON.stringify(approved));
-    await advanceRelocation(context, journal, move);
+    const first = await advanceOnce(context, move);
+    const paused = await journal.find(move);
+    assert.equal(paused.progress.state, 'freezing');
+    assert.equal(paused.progress.execution.state, 'running');
+    const settlement = bindings.runtimes.WEUR.observations.find(isPendingEd25519Settlement);
+    assert.ok(settlement, 'A real unfinished NEAR round must block source settlement');
+    const recovered = await finalizeWhileMoveWaits(pendingSignature);
+    await advanceRelocation(context, journal, move, [first]);
+    const stale = await verifySigningReplayAfterMove(
+      pendingSignature,
+      custody,
+      recovered.signature,
+    );
+    await writeFile(
+      resolve(output, 'signing-race.json'),
+      JSON.stringify(
+        {
+          sourceWaitedForPendingRound: true,
+          pendingRounds: settlement.pendingRounds,
+          signatureSha256Hex: recovered.signatureSha256Hex,
+          lostFinalizeReplyRecoveredBeforeCutover:
+            recovered.lostFinalizeReplyRecoveredBeforeCutover,
+          ...stale,
+          scope:
+            'Native signing prepared before move admission. Finalize reply lost after commit and recovered while source was still freezing. Exact terminal result replayed at destination after completed move; changed finalization rejected. Does not cover SDK session reconciliation after cutover.',
+        },
+        null,
+        2,
+      ),
+    );
     const { verifyEd25519DestinationSigning } = await import(
       pathToFileURL(
         resolve(publicRoot, 'crates/router-ab-cloudflare/scripts/ed25519-signing-evidence.mjs'),
@@ -176,34 +211,15 @@ function isSourceAdmission(path) {
   return path.endsWith('/relocation-runtime-source');
 }
 
-async function advanceRelocation(context, journal, move) {
-  const observations = [];
+async function advanceRelocation(context, journal, move, observations) {
   for (let step = 0; step < 128; step += 1) {
-    const response = await context.api.handleWalletRelocationAdvance(
-      new Request(context.api.WALLET_RELOCATION_ADVANCE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          wallet: context.wallet,
-          moveId: move.moveId,
-          attemptId: `wattempt_${randomBytes(32).toString('base64url')}`,
-        }),
-      }),
-      {
-        database: context.database,
-        catalog: context.catalog,
-        bindings: context.bindings,
-        scope: context.scope,
-        clock: Date.now,
-      },
-    );
-    const body = await response.json();
-    observations.push({ status: response.status, result: body });
+    const { status, result: body } = await advanceOnce(context, move);
+    observations.push({ status, result: body });
     await writeFile(
       resolve(output, 'coordinator-progress.json'),
       JSON.stringify(observations, null, 2),
     );
-    assert.equal(response.status, 200, JSON.stringify(body));
+    assert.equal(status, 200, JSON.stringify(body));
     const current = await journal.find(move);
     if (current.progress.state === 'completed') return;
     assert.ok(
@@ -212,4 +228,36 @@ async function advanceRelocation(context, journal, move) {
     );
   }
   assert.fail('Relocation did not complete within 128 coordinator steps');
+}
+
+async function advanceOnce(context, move) {
+  const response = await context.api.handleWalletRelocationAdvance(
+    new Request(context.api.WALLET_RELOCATION_ADVANCE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet: context.wallet,
+        moveId: move.moveId,
+        attemptId: `wattempt_${randomBytes(32).toString('base64url')}`,
+      }),
+    }),
+    {
+      database: context.database,
+      catalog: context.catalog,
+      bindings: context.bindings,
+      scope: context.scope,
+      clock: Date.now,
+    },
+  );
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  return { status: response.status, result: body };
+}
+
+function isPendingEd25519Settlement(observation) {
+  return (
+    observation.path.endsWith('/ed25519-settle') &&
+    observation.state === 'draining' &&
+    observation.pendingRounds === 1
+  );
 }

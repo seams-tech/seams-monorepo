@@ -2,8 +2,9 @@ import type { Route, BrowserContext } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const site = process.env.SEAMS_HOSTED_CANDIDATE_SITE;
-if (!site) throw new Error('SEAMS_HOSTED_CANDIDATE_SITE is required');
+const configuredSite = process.env.SEAMS_HOSTED_CANDIDATE_SITE;
+if (!configuredSite) throw new Error('SEAMS_HOSTED_CANDIDATE_SITE is required');
+const site = path.resolve(configuredSite);
 
 export async function installCandidateAssets(context: BrowserContext): Promise<void> {
   await context.route(`${process.env.SEAMS_INTENDED_APP_URL}/**`, candidateAsset);
@@ -25,7 +26,7 @@ async function candidateAsset(route: Route): Promise<void> {
     relative += 'index.html';
   }
   const file = path.resolve(site, relative);
-  if (!file.startsWith(`${path.resolve(site)}/`)) throw new Error('Invalid candidate asset path');
+  if (!file.startsWith(`${site}/`)) throw new Error('Invalid candidate asset path');
   const types: Record<string, string> = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -44,4 +45,3 @@ async function candidateAsset(route: Route): Promise<void> {
     },
   });
 }
-

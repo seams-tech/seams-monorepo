@@ -310,3 +310,32 @@ It must overlap independent registration work to reduce user-visible waiting.
 
 The observed 832 ms includes required state work and transport. It is not a promised
 saving. Evaluate this bounded change before moving the whole coordinator into the DO.
+
+
+### Router startup experiment — 2026-10-08
+
+The new Gateway starts the exact Router wallet object after it persists verified
+registration intent. The request uses the fixed home and ownership generation.
+It grants no authority and performs no storage mutation. Local correctness checks pass.
+Public implementation commit: `eddb696a5912df6ef5e9dccadcc81b56718ef095`.
+
+The hosted control completed three wallets and 21 verified signatures. Setup measured
+**5.317 seconds median**, **4.998–5.332 seconds** range. The local Router HTTP boundary
+measured **420–427 ms** across four homes. The local timer excludes browser and Gateway.
+
+No candidate hosted result is available. Tenant activation rejected the new Gateway.
+Two unfinished US records belonged to the registration canary from the preceding
+successful activation. Earlier diagnostic queries omitted US. The canary calls setup
+and does not complete or cancel registration. Its unexpired records fail the runtime
+inspection's zero-in-flight-ceremony requirement. Check all four regions before activation.
+This observation explains a concrete readiness blocker; it does not prove every field
+in the composite readiness check matched during every failed attempt.
+
+After the records expired, GitHub returned HTTP 500 for workflow dispatch. The workflow
+list showed no new run. All 13 original Worker versions were restored and verified.
+`/healthz` and the tenant projection both returned HTTP 200. No new resources were created.
+
+The hosted **1–2 second** setup target remains unmet. Continue with the frozen
+control/candidate/control comparison when staging activation is available. Keep the
+Gateway fixed across arms and check unfinished ceremonies before cleanup activation.
+[Sanitized measurements](evidence/r155b-router-startup-20261008.json) preserve all boundaries.

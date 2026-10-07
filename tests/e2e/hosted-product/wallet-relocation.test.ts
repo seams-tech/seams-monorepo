@@ -55,6 +55,11 @@ class GatewayObservations {
 }
 
 test('hosted relocation preserves signing and records the pause and refill', runRelocation);
+test.beforeAll(enableSigningTiming);
+
+function enableSigningTiming(): void {
+  process.env.SEAMS_INTENDED_SIGNING_SESSION_DEBUG = '1';
+}
 
 async function runRelocation(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
@@ -90,7 +95,17 @@ async function runRelocation(
     }
     const walletId = await page.getByTestId('intended-e2e-page').getAttribute('data-wallet-id');
     if (!walletId) throw new Error('Registered wallet identity is missing');
-    const moved = await completeMove(page, walletId, 'US', 1, output, progress, harness, timing, samples);
+    const moved = await completeMove(
+      page,
+      walletId,
+      'US',
+      1,
+      output,
+      progress,
+      harness,
+      timing,
+      samples,
+    );
     samples.push(moved);
     await harness.unlockPasskeyWallet();
     for (let index = 0; index < 3; index += 1) {
@@ -107,7 +122,9 @@ async function runRelocation(
     while (Date.now() < moved.admittedAtMs + 300_000) {
       await page.waitForTimeout(Math.min(5_000, moved.admittedAtMs + 300_000 - Date.now()));
     }
-    samples.push(await completeMove(page, walletId, 'APAC', 2, output, progress, harness, timing, samples));
+    samples.push(
+      await completeMove(page, walletId, 'APAC', 2, output, progress, harness, timing, samples),
+    );
     await harness.unlockPasskeyWallet();
     samples.push(await measureSigning(harness, timing, 'first_after_return'));
     await harness.signNearTransactionAfterRefresh();
@@ -175,15 +192,22 @@ async function completeMove(
   timing: InstanceType<typeof SigningTimingEvidence>,
   samples: unknown[],
 ) {
-  const intent = parseWalletMoveRequest({ walletId, moveId: `wmove_${randomBytes(32).toString('base64url')}`,
-    destinationRegion, expectedGeneration });
+  const intent = parseWalletMoveRequest({
+    walletId,
+    moveId: `wmove_${randomBytes(32).toString('base64url')}`,
+    destinationRegion,
+    expectedGeneration,
+  });
   const requestedAtMs = Date.now();
   let result = await page.evaluate(admitMove, intent);
   let firstActiveObservationMs: number | null = null;
   for (;;) {
     const observedAt = Date.now();
     progress.push({ observedAt, result });
-    await writeFile(path.join(output, 'relocation-progress.json'), JSON.stringify(progress, null, 2));
+    await writeFile(
+      path.join(output, 'relocation-progress.json'),
+      JSON.stringify(progress, null, 2),
+    );
     if (!result.ok) {
       samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));
       throw new Error(`Move request failed: ${result.code}`);
@@ -191,11 +215,15 @@ async function completeMove(
     if (result.status.state === 'completed') {
       expect(result.status.destinationRegion).toBe(destinationRegion);
       expect(result.status.destinationGeneration).toBe(expectedGeneration + 1);
-      return { stage: `move_to_${destinationRegion}`, walletId, moveId: intent.moveId,
+      return {
+        stage: `move_to_${destinationRegion}`,
+        walletId,
+        moveId: intent.moveId,
         admittedAtMs: result.status.admittedAtMs,
         admissionThroughCleanupMs: observedAt - requestedAtMs,
         pauseUpperBoundMs: (firstActiveObservationMs ?? observedAt) - result.status.admittedAtMs,
-        pollIntervalMs: 5_000 };
+        pollIntervalMs: 5_000,
+      };
     }
     if (result.status.move.progress.availability === 'active' && firstActiveObservationMs === null)
       firstActiveObservationMs = observedAt;

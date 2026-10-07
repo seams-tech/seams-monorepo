@@ -185,12 +185,11 @@ async function inspectTarget(
     !/^[a-f0-9]{64}$/u.test(raw.object_id) ||
     !isPlainObject(raw.location) ||
     typeof raw.location.colo !== 'string' ||
-    !/^[A-Z]{3}$/u.test(raw.location.colo) ||
-    typeof raw.location.country !== 'string' ||
-    !/^[A-Z]{2}$/u.test(raw.location.country)
+    !/^[A-Z]{3}$/u.test(raw.location.colo)
   )
     invalid('Custody target observation is invalid');
-  if (destination && !countryMatches(home.region, raw.location.country))
+  const country = datacenterCountry(raw.location.colo);
+  if (destination && !countryMatches(home.region, country))
     invalid(`Custody destination is outside ${home.region}: ${raw.location.colo}`);
   return {
     accountId: namespace.accountId,
@@ -203,8 +202,68 @@ async function inspectTarget(
     generation,
     objectName,
     objectId: raw.object_id,
-    observedLocation: { colo: raw.location.colo, country: raw.location.country },
+    observedLocation: { colo: raw.location.colo, country },
   };
+}
+
+function datacenterCountry(colo: string): string {
+  // Trace loc describes the request IP, which can retain the browser's country.
+  // Resolve the observed datacenter instead. Unknown sites fail before admission.
+  const countries: Readonly<Record<string, string>> = {
+    IAD: 'US',
+    EWR: 'US',
+    ORD: 'US',
+    ATL: 'US',
+    DFW: 'US',
+    IAH: 'US',
+    LAX: 'US',
+    SJC: 'US',
+    SEA: 'US',
+    DEN: 'US',
+    MIA: 'US',
+    BOS: 'US',
+    LHR: 'GB',
+    MAN: 'GB',
+    DUB: 'IE',
+    CDG: 'FR',
+    MRS: 'FR',
+    FRA: 'DE',
+    AMS: 'NL',
+    BRU: 'BE',
+    ZRH: 'CH',
+    VIE: 'AT',
+    MAD: 'ES',
+    LIS: 'PT',
+    MXP: 'IT',
+    CPH: 'DK',
+    ARN: 'SE',
+    OSL: 'NO',
+    HEL: 'FI',
+    NRT: 'JP',
+    KIX: 'JP',
+    HKG: 'HK',
+    SIN: 'SG',
+    ICN: 'KR',
+    TPE: 'TW',
+    BOM: 'IN',
+    DEL: 'IN',
+    MAA: 'IN',
+    BKK: 'TH',
+    KUL: 'MY',
+    CGK: 'ID',
+    MNL: 'PH',
+    SGN: 'VN',
+    HAN: 'VN',
+    SYD: 'AU',
+    MEL: 'AU',
+    BNE: 'AU',
+    PER: 'AU',
+    ADL: 'AU',
+    AKL: 'NZ',
+  };
+  const country = countries[colo];
+  if (!country) invalid(`Custody datacenter location is unknown: ${colo}`);
+  return country;
 }
 
 function countryMatches(region: WalletRegion, country: string): boolean {

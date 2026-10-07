@@ -342,10 +342,10 @@ export async function custodyTargetResponse(input: Request, failure: unknown = n
   const raw: unknown = await input.json();
   if (!isPlainObject(raw) || typeof raw.object_name !== 'string' || !isPlainObject(raw.placement))
     return new Response(null, { status: 400 });
-  const country = raw.placement.location_hint === 'enam' ? 'US'
-    : raw.placement.location_hint === 'weur' ? 'GB' : raw.placement.location_hint === 'oc' ? 'AU' : 'JP';
+  const colo = raw.placement.location_hint === 'enam' ? 'IAD'
+    : raw.placement.location_hint === 'weur' ? 'LHR' : raw.placement.location_hint === 'oc' ? 'SYD' : 'NRT';
   const objectId = failure === 'custody_collision' ? 'a'.repeat(64)
     : await fixtureObjectDigest('fixture-shared-namespace', raw.object_name);
   return Response.json({ object_name: raw.object_name, object_id: objectId,
-    location: { colo: 'NRT', country } });
+    location: { colo, country: 'JP' } });
 }

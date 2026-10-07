@@ -10,13 +10,13 @@ The second example develops **Scoped credentials** into four cut metal keys on a
 
 The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
 
-| Existing asset     | Replacement status                                                  |
-| ------------------ | ------------------------------------------------------------------- |
-| Scoped credentials | Keychain approved.                                                  |
-| Audit log          | Paper-record example available for review.                          |
-| Policy engine      | Precision sieve and combination interlock available for comparison. |
-| Split-key custody  | Not started.                                                        |
-| Threshold signing  | Not started.                                                        |
+| Existing asset     | Replacement status                                                              |
+| ------------------ | ------------------------------------------------------------------------------- |
+| Scoped credentials | Keychain approved.                                                              |
+| Audit log          | Paper-record example available for review.                                      |
+| Policy engine      | Combination interlock concept approved. Mechanical detail refinement in review. |
+| Split-key custody  | Not started.                                                                    |
+| Threshold signing  | Not started.                                                                    |
 
 ## Reference and engine
 
@@ -137,19 +137,21 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Inspect the aperture walls and the motion sheet as each piece crosses the plate. Passing pieces must reach the lower plate. Oversized pieces must stop above it. Enter and leave during motion to check reversal. Check the 240px view and both themes.
 
-## Combination interlock alternative
+## Combination interlock
 
-The combination interlock is a second **Policy engine** concept. Three independently rotated discs share an axle. Each disc has a radial slot. All three slots must align before a rigid bar can pass through the assembly. Each disc represents a required policy condition.
+The user selected the combination interlock for **Policy engine** on 2026-10-07 and requested more mechanical detail. Three independently rotated discs share an axle. Each disc has a radial slot. All three slots must align before a rigid bar can pass through the assembly. Each disc represents a required policy condition.
 
-The drawing includes thick disc rims, recessed face rings, grip marks, an axle, bearing supports, a slotted end cap, and four base fasteners. Rounded slot corners leave clearance around the bar. Opaque faces and visible side walls hide the parts behind them. The bar draws in sections between the discs, so each slot correctly hides its far edges.
+The drawing includes beveled disc rims and gate mouths, curved adjustment slots, coupling pins, raised axle collars, recessed bearing supports, a hex-socket retaining cap, and four base fasteners. Rounded slot corners leave clearance around the bar. Opaque faces and visible side walls hide the parts behind them. The bar draws in sections between the discs, so each slot correctly hides its far edges.
 
 Hovering the figure aligns the discs, then advances the bar. Pointer exit withdraws the bar before the discs rotate back. One reversible timeline controls both actions. The discs finish rotating at progress 0.58. The bar starts moving at 0.64. This gap preserves clearance when the pointer changes direction during motion.
+
+Each disc has three curved adjustment slots between radii 19 and 24. A coupling pin follows the center radius of 21.5. Its relative angle moves by at most 0.2 radians as the disc turns, and returns to the slot center when aligned. The pin radius is 1.8, which leaves clearance from both slot walls and ends. Three-unit axle collars keep the wheels separated. The main gates retain their original clearance and motion sequence.
 
 The center disc starts first. The two outer discs follow together. The resting angles are 65, −48, and 110 degrees. Slots measure 13 units across. The bar measures eight units across and six units high, and travels 75 units. Its height stays fixed throughout the animation.
 
 The intensity slider controls the complete sequence duration at 900, 1200, or 1500 milliseconds. The longer duration makes both mechanical phases visible. The kernel supplies its standard ease curve, reduced-motion behavior, and frame-loop sleep. Changing the slider preserves the current pose. The fixed stage is the hover target. One highlighted outline moves from the center disc to the bar.
 
-Keep this alternative separate from the precision sieve until the user selects a concept. This example shows a conjunction: every required condition must permit passage. It does not represent threshold signing or an actual wallet authorization decision.
+Keep the refined interlock on its review page until the user approves the additional detail. This example shows a conjunction: every required condition must permit passage. It does not represent threshold signing or an actual wallet authorization decision.
 
 Edit `apps/wallet-console/showcase/motion/interlock/combination-interlock.js`, then rebuild:
 
@@ -167,7 +169,7 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
   --answer 9,0,68 --edge 43,20,43 --zoom answer
 ```
 
-Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the disc slots, bearing thickness, and bar ends. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
+Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the coupling pins inside their slots, beveled gate mouths, axle collars, bearing thickness, and bar ends. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
 
 ## Visual verification
 

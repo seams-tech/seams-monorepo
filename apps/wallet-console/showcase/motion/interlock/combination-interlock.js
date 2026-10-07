@@ -3,11 +3,11 @@
 function path(parent, classes) {
   return HL.mk('path', { class: classes }, parent);
 }
-function circle(radius, start = 0, end = Math.PI * 2) {
+function circle(radius, start = 0, end = Math.PI * 2, y = 0, z = 0, steps = 72) {
   const points = [];
-  for (let i = 0; i <= 72; i++) {
-    const angle = HL.lerp(start, end, i / 72);
-    points.push([radius * Math.sin(angle), radius * Math.cos(angle)]);
+  for (let i = 0; i <= steps; i++) {
+    const angle = HL.lerp(start, end, i / steps);
+    points.push([y + radius * Math.sin(angle), z + radius * Math.cos(angle)]);
   }
   return points;
 }
@@ -47,22 +47,24 @@ function drawBody(P, part, angle, detail = '') {
 function sideVisible(a, b, direction) {
   return (b[0] - a[0]) * direction[1] - (b[1] - a[1]) * direction[0] < 0;
 }
-function discProfile() {
-  const opening = Math.asin(6.5 / 31);
-  const contour = circle(31, opening, Math.PI * 2 - opening);
-  contour.push([-6.5, 17], [6.5, 17]);
+function discProfile(radius = 31, slot = 6.5, floor = 17) {
+  const opening = Math.asin(slot / radius);
+  const contour = circle(radius, opening, Math.PI * 2 - opening);
+  contour.push([-slot, floor], [slot, floor]);
   return HL.fillet(contour, Array(contour.length).fill(0.8), 3);
 }
 function discDetail(P, disc, angle) {
   const map = project.bind(null, P, disc.x + disc.depth, 43, angle);
-  let d = HL.open(circle(26, 0.29, Math.PI * 2 - 0.29).map(map));
+  let d = HL.poly(discProfile(29.6, 7.8, 15.7).map(map));
   d += HL.poly(circle(11).map(map)) + HL.poly(circle(5).map(map));
-  for (let i = 1; i < 24; i++) {
-    const theta = (i * Math.PI) / 12;
-    d += HL.seg(
-      map([27.5 * Math.sin(theta), 27.5 * Math.cos(theta)]),
-      map([29.5 * Math.sin(theta), 29.5 * Math.cos(theta)]),
-    );
+  for (const degrees of [60, 180, 300]) {
+    const theta = HL.rad(degrees);
+    const pocket = circle(24, theta - 0.42, theta + 0.42, 0, 0, 12);
+    pocket.push(...circle(19, theta + 0.42, theta - 0.42, 0, 0, 12));
+    d += HL.poly(HL.fillet(pocket, Array(pocket.length).fill(0.9), 3).map(map));
+    const pinAngle = theta + Math.sin(angle) * 0.2;
+    const pin = circle(1.8, 0, Math.PI * 2, 21.5 * Math.sin(pinAngle), 21.5 * Math.cos(pinAngle));
+    d += HL.poly(pin.map(map));
   }
   return d;
 }
@@ -109,7 +111,8 @@ function pedestal(svg, P, x, tall) {
   outline.push([13, top], [13, 9]);
   const part = body(svg, x, 8, HL.fillet(outline, Array(outline.length).fill(2), 6), 0);
   const bearing = circle(8).map(project.bind(null, P, x + 8, 43, 0));
-  drawBody(P, part, 0, HL.poly(bearing));
+  const pocket = HL.rrect(-8, 15, 8, 29, 3, 8).map(barPoint.bind(null, P, x + 8));
+  drawBody(P, part, 0, HL.poly(bearing) + HL.poly(pocket));
 }
 function base(svg, P, front) {
   const rings = HL.rings(-60, -38, 66, 38, 6, 1.5);
@@ -124,20 +127,17 @@ function base(svg, P, front) {
 }
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);
-  if (progress !== state.drawn) {
-    for (const [index, disc] of state.discs.entries()) {
-      const delay = Math.abs(index - 1) * 0.08;
-      const aligned = HL.clamp((progress - delay) / (0.58 - delay), 0, 1);
-      const angle = HL.rad(disc.rest * (1 - aligned));
-      drawBody(state.P, disc, angle, discDetail(state.P, disc, angle));
-    }
-    // One reversible timeline withdraws the bar fully before any disc can turn.
-    const travel = 75 * HL.clamp((progress - 0.64) / 0.36, 0, 1);
-    for (const part of state.bars) drawBar(state.P, part, travel);
-    state.read.textContent = 'rest';
-    if (state.active) state.read.textContent = progress < 0.64 ? 'aligning' : '3 aligned · open';
-    state.drawn = progress;
+  for (const [index, disc] of state.discs.entries()) {
+    const delay = Math.abs(index - 1) * 0.08;
+    const aligned = HL.clamp((progress - delay) / (0.58 - delay), 0, 1);
+    const angle = HL.rad(disc.rest * (1 - aligned));
+    drawBody(state.P, disc, angle, discDetail(state.P, disc, angle));
   }
+  // One reversible timeline withdraws the bar fully before any disc can turn.
+  const travel = 75 * HL.clamp((progress - 0.64) / 0.36, 0, 1);
+  for (const part of state.bars) drawBar(state.P, part, travel);
+  state.read.textContent = 'rest';
+  if (state.active) state.read.textContent = progress < 0.64 ? 'aligning' : '3 aligned · open';
   return !HL.tdone(state.motion, now);
 }
 function select(state, active) {
@@ -156,11 +156,9 @@ function set(state, duration) {
 }
 function mount({ stage, svg, read }, duration) {
   const C = HL.Cam(45, 0.5, 1.75);
-  const bounds = [
-    [-135, -4, 68],
-    [104, 0, 3],
-  ];
-  HL.fit(C, bounds, 200, 166);
+  const farCorner = [-135, -4, 68];
+  const nearCorner = [104, 0, 3];
+  HL.fit(C, [farCorner, nearCorner], 200, 166);
   const P = HL.proj(C);
   base(svg, P, HL.facing(C));
   const bars = [bar(svg, -135, -36)];
@@ -169,18 +167,20 @@ function mount({ stage, svg, read }, duration) {
   let previous = -36;
   for (const [index, x] of [-18, 9, 36].entries()) {
     drawBody(P, body(svg, previous, x + 7 - previous, circle(4)), 0);
-    bars.push(bar(svg, previous, x + 7));
+    bars.push(bar(svg, index === 0 ? -36 : x - 20, x + 7));
     const disc = body(svg, x, 7, discProfile());
     disc.rest = [65, -48, 110][index];
     discs.push(disc);
-    previous = x + 7;
+    drawBody(P, body(svg, x + 7, 3, circle(9)), 0);
+    previous = x + 10;
   }
-  drawBody(P, body(svg, 43, 19, circle(4)), 0);
+  drawBody(P, body(svg, 46, 16, circle(4)), 0);
   bars.push(bar(svg, 43, 51));
   pedestal(svg, P, 54, false);
-  drawBody(P, body(svg, 62, 2, circle(7)), 0, HL.seg(P(64, -3, 40), P(64, 3, 46)));
+  const socket = circle(3, 0, Math.PI * 2, 0, 0, 6).map(project.bind(null, P, 65, 43, 0));
+  drawBody(P, body(svg, 62, 3, circle(8)), 0, HL.poly(socket));
   const motion = HL.tween(0, duration);
-  const state = { P, read, bars, discs, motion, drawn: NaN, active: null, loop: null };
+  const state = { P, read, bars, discs, motion, active: null, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   select(state, false);
   const bag = HL.disposer();

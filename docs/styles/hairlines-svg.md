@@ -10,13 +10,13 @@ The second example develops **Scoped credentials** into four cut metal keys on a
 
 The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
 
-| Existing asset     | Replacement status                                |
-| ------------------ | ------------------------------------------------- |
-| Scoped credentials | Keychain approved.                                |
-| Audit log          | Paper-record example available for review.        |
-| Policy engine      | Three-lane tollgate example available for review. |
-| Split-key custody  | Not started.                                      |
-| Threshold signing  | Not started.                                      |
+| Existing asset     | Replacement status                              |
+| ------------------ | ----------------------------------------------- |
+| Scoped credentials | Keychain approved.                              |
+| Audit log          | Paper-record example available for review.      |
+| Policy engine      | Tollgate rejected; replacement concept pending. |
+| Split-key custody  | Not started.                                    |
+| Threshold signing  | Not started.                                    |
 
 ## Reference and engine
 
@@ -109,7 +109,9 @@ Inspect the tooth contours, ring, and openings at full size. Select each key, sw
 
 ## Policy engine example
 
-The user selected a tollgate with multiple arms. Three proportioned cabins have inset sliding window frames, paneled doors, payment ledges, and separate roof caps. Visible posts and a crossbeam support the thin canopy, with a raised roof edge and panel seams. Bollards protect the raised islands. Vent panels and hexagonal axle caps identify the barrier drives. Stop lines and vehicle-detection loops mark the roadway. This replaces the existing Policy engine shield illustration after review.
+The user rejected the tollgate concept on 2026-10-07 after reviewing its detailed revision. Keep it out of frontpage integration. The replacement concept is pending.
+
+The rejected example uses a tollgate with multiple arms. Three proportioned cabins have inset sliding window frames, paneled doors, payment ledges, and separate roof caps. Visible posts and a crossbeam support the thin canopy, with a raised roof edge and panel seams. Bollards protect the raised islands. Vent panels and hexagonal axle caps identify the barrier drives. Stop lines and vehicle-detection loops mark the roadway. This replaces the existing Policy engine shield illustration after review.
 
 Hovering a barrier or its roadway raises that lane's arm. Each rigid arm rotates around a fixed axle that extends from its motor housing. Moving to another lane closes the previous arm and opens the new arm. A 35ms delay per lane of distance separates the movements. Pointer exit restores the resting pose, with the middle arm slightly raised.
 

@@ -212,31 +212,31 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Inspect the six occupied bays, rail alignment, and cabinet occlusion during insertion. Check both themes, 240px width, slider extremes, and interrupted hover transitions. Verify that six power lights remain steady, all twelve activity lights change independently, and reduced-motion mode freezes the lamps. The reference camera makes the sliding motion more compact; the single-server movement remains intentional. This preview remains separate from frontpage integration.
 
-## Wallet access cards
+## Device linking: two phones in a pairing dock
 
-The delegation preview uses one wallet holding three access cards, following the selected reference image. The cardholder has three curved pockets, folded side panels, a stitched front perimeter, and thin lining edges. Each card has visible thickness, a contact chip, and a distinct punched pattern. The rear card also has a small corner notch.
+Two recognizable phones share a slim dock. The first phone is seated with a completed screen check. The second rests above its connector. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
 
-Hovering the stationary stage raises all three cards. The middle card starts first; the outer cards follow after 55 milliseconds. Each card uses the kernel's standard 700ms easing and returns from its current position when the pointer leaves. The rear card rises farthest, preserving the stepped silhouette. The slider sets its travel to 24, 30, or 36 world units. The other cards rise six and twelve units less.
+Hovering the fixed stage lowers the second phone. After it seats, a short pause precedes a check drawn across its screen. The dock indicator then illuminates. Leaving reverses the sequence: the check clears before the phone rises. A single reversible 1300ms tween preserves this order through interruptions. The longer duration separates docking from confirmation. The slider sets lift to 18, 23, or 28 world units.
 
-Cards and opaque pockets alternate in drawing order. Each card stays inside its pocket at maximum travel. Only the card groups translate during animation; the wallet geometry stays fixed. The rear card carries the resting accent, which moves to the middle card on hover. Kernel reduced motion lands directly at the target pose, and the loop sleeps when movement ends.
+The check is an explicit user-requested screen confirmation. Its path grows geometrically rather than using a separate CSS animation. The first phone and base remain static; only the second phone's group, check path, and dock lamp update. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
 
-Edit `apps/wallet-console/showcase/motion/delegation/access-cards.js`, then rebuild:
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/build.mjs" \
-  apps/wallet-console/showcase/motion/delegation/access-cards.js \
+  apps/wallet-console/showcase/motion/delegation/device-linking.js \
   apps/wallet-console/showcase/motion/delegation/index.html
 ```
 
-Review at `/dashboard-static/showcase/motion/delegation/`. From `.artifacts/access-cards`, run:
+Review at `/dashboard-static/showcase/motion/delegation/`. From `.artifacts/device-linking`, run:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/delegation/access-cards.js \
-  --answer 0,0,95 --edge 3,-35,90 --zoom answer
+  ../../apps/wallet-console/showcase/motion/delegation/device-linking.js \
+  --answer 3,28,45 --edge 3,-28,45 --zoom answer
 ```
 
-Check the pocket seams, card occlusion, full travel, both themes, and fast enter/leave/re-enter gestures. This remains a separate preview pending approval.
+Check that the confirmation never appears while the second phone is raised. Verify both themes, thumbnail size, slider extremes, rapid enter/leave/re-enter gestures, and reduced motion. The illustration remains a separate preview pending frontpage integration.
 
 ## Visual verification
 

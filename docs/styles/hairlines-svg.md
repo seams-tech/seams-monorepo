@@ -149,7 +149,7 @@ The wheels use the original circular grooves and radial tick marks requested in 
 
 Hovering the figure aligns the discs, then advances the bar. Pointer exit withdraws the bar before the discs rotate back. One reversible timeline controls both actions. The discs finish rotating at progress 0.58. The bar starts moving at 0.64. This gap preserves clearance when the pointer changes direction during motion.
 
-The bar outline comes from the projected rounded cross-sections at both ends. Its long edges therefore meet the rounded ends exactly. The bar draws in sections between the discs, without artificial end caps at those divisions. Rear slot walls draw behind each bar section. Exterior walls and front faces draw above it. This order hides rear construction lines while preserving the visible thickness of each wheel. Three-unit axle collars keep the wheels separated.
+The bar outline comes from the projected rounded cross-sections at both ends. Its long edges therefore meet the rounded ends exactly. A faint longitudinal crease separates the top and side faces, and meets the rounded end profile. The bar draws in sections between the discs, without artificial end caps at those divisions. Rear slot walls draw behind each bar section. Exterior walls and front faces draw above it. This order hides rear construction lines while preserving the visible thickness of each wheel. Three-unit axle collars keep the wheels separated.
 
 The center disc starts first. The two outer discs follow together. The resting angles are 65, −48, and 110 degrees. Slots measure 13 units across. The bar measures eight units across and six units high, and travels 75 units. Its height stays fixed throughout the animation.
 

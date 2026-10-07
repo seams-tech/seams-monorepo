@@ -77,8 +77,9 @@ function discDetail(P, disc, angle) {
 function bar(svg, low, high, cover) {
   const surface = path(svg, 'fo');
   const edge = path(svg, 'sil nf');
+  const crease = path(svg, 'lo nf');
   if (cover) svg.append(cover.frontWall, cover.face, cover.detail);
-  return { low, high, surface, edge };
+  return { low, high, surface, edge, crease };
 }
 function drawBar(P, part, travel) {
   const start = Math.max(part.low, -135 + travel);
@@ -92,8 +93,7 @@ function drawBar(P, part, travel) {
     const outline = HL.hull(a.concat(b));
     fill = HL.poly(outline);
     for (let i = 0; i < outline.length; i++) {
-      const p = outline[i];
-      const q = outline[(i + 1) % outline.length];
+      const [p, q] = [outline[i], outline[(i + 1) % outline.length]];
       if (b.includes(p) && b.includes(q)) continue;
       if (start !== -135 + travel && a.includes(p) && a.includes(q)) continue;
       edge += HL.seg(p, q);
@@ -102,6 +102,7 @@ function drawBar(P, part, travel) {
   }
   part.surface.setAttribute('d', fill);
   part.edge.setAttribute('d', edge);
+  part.crease.setAttribute('d', end > start ? HL.seg(P(start, 3, 68), P(end, 3, 68)) : '');
 }
 function barPoint(P, x, point) {
   return P(x, point.u, point.v);
@@ -117,8 +118,7 @@ function pedestal(svg, P, x, tall) {
   return part;
 }
 function base(svg, P, front) {
-  const rings = HL.rings(-60, -38, 66, 38, 6, 1.5);
-  HL.put(HL.solid(svg), HL.prism(P, front, rings[0], rings[1], 3, 9));
+  HL.put(HL.solid(svg), HL.prism(P, front, ...HL.rings(-60, -38, 66, 38, 6, 1.5), 3, 9));
   for (const x of [-51, 57]) {
     for (const y of [-29, 29]) {
       const screw = HL.rrect(x - 2.8, y - 2.8, x + 2.8, y + 2.8, 2.8, 10);

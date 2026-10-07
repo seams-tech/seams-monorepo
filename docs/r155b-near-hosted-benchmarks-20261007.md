@@ -222,6 +222,82 @@ The [diagnostic evidence](evidence/r155b-near-first-sign-diagnosis-20261007.json
 contains sanitized request timelines, custody spans, handler durations and the
 read-only database probe. No live deployment changed during this diagnosis.
 
+## Optimization plan: hosted Yao setup
+
+Scope: reduce the hosted registration setup request. Treat user funding separately.
+Keep NEAR provisioning as a separate measurement. Preserve the frozen baseline and
+concurrent relocation changes. Use existing staging resources within the $25 budget.
+
+The repeated root reads come from composing individually defensive helpers.
+`load_bound` calls `admit_bound`, rereads the epoch, then calls `load_active`.
+Admission itself reads the epoch, conditionally inserts an admission and reads it
+back. These checks protect rotation, cancellation, exact retries and active-root
+uniqueness. Their current composition incurs five remote calls per load and opens
+the encrypted share row repeatedly. Preparation and execution each repeat this
+sequence for both parties. The SQL adapter already provides atomic `batch`.
+
+The DO delay has two components: work inside its handler and overhead outside it.
+Deriver preparation awaits role-private D1 from inside the wallet DO. That cost
+is included in the handler duration. Stub routing, scheduling, startup and response
+transport occur outside the measured handler. Their individual costs remain unknown.
+The slow subsequent begin call shows that first-use startup alone is insufficient
+to explain the measured path. There is no evidence here of a general Cloudflare
+outage or a cryptographic algorithm regression.
+
+1. **Consolidate the root-store operation.**
+   - [ ] Keep an authenticated initial row read. Batch conditional admission and
+         the dependent reads into one transaction using the existing SQL adapter.
+   - [ ] Target at most two D1 round trips per bound-root load: eight across the
+         four loads, versus twenty today. Count SQL statements separately from trips.
+   - [ ] Validate the transaction's results as one precise lifecycle outcome.
+         Preserve active-root uniqueness, exact binding checks, retired-epoch access
+         for admitted work, cancellation, erasure and conflicting-attempt rejection.
+   - [ ] Remove superseded reread/fallback helpers. Extract this operation from
+         the oversized store module along its existing domain boundary.
+   - [ ] Then remove repeated row decryption and redundant SQL where the same
+         transaction snapshot proves the required facts. Do not introduce a global
+         plaintext-share cache or weaken per-execution checks.
+
+2. **Measure and reduce the remaining DO boundary cost.**
+   - [ ] Extend existing spans with a shared attempt identifier, constructor
+         occurrence, handler duration and role-private D1 duration/counts. Record
+         request ingress and database serving locations with their correct scope.
+   - [ ] Compare first and subsequent commands on the exact same wallet objects.
+         Separate new-object, existing-object and post-idle cohorts. Do not call an
+         unexplained caller/handler gap a cold start.
+   - [ ] Audit first-touch routing against the wallet's authenticated home. Compare
+         fresh-object placement hints where supported. Hints cannot move existing
+         objects or guarantee an exact data center.
+   - [ ] Remove repeated admission/status fetches inside one operation where an
+         already verified result provides the same authority. Retain the durable
+         claim before protocol messages and durable completion before success.
+   - [ ] Prewarm the exact required wallet objects at the earliest authorized
+         registration point only if constructor evidence shows a material benefit.
+         Use bounded preparation; no permanent warm pool or keepalive loop.
+
+3. **Shorten output delivery.**
+   - [ ] Split signing-worker delivery into transport, authentication, cryptographic
+         combination, database and wallet-DO persistence spans.
+   - [ ] Batch its dependent writes and eliminate repeated same-attempt reads.
+         Keep delivery durable and idempotent before reporting setup success.
+
+4. **Verify and retain only measured improvements.**
+   - [ ] Exercise existing custody integration and E2E flows with refresh during
+         setup, cancellation, exact retry after a lost reply, and verified NEAR signing.
+   - [ ] Alternate baseline/candidate runs with matching SDK and role builds.
+         Report median, range, maximum, D1 trips/statements and each setup stage.
+   - [ ] Repeat fresh registration and unlock-to-first-signature without funding
+         inside the MPC timer. Record SDK completion before harness cleanup.
+   - [ ] Use an initial hosted Yao setup median below two seconds as the first
+         performance gate. Pursue 0.5–1 second after the call-count reduction. These
+         are engineering targets, not measured gains or guarantees.
+
+[Cloudflare D1 batching](https://developers.cloudflare.com/d1/worker-api/d1-database/#batch)
+reduces network trips and executes the batch as a transaction. The repository's
+`RoleSqlSessionV1::batch` already exposes this behavior.
+[DO location hints](https://developers.cloudflare.com/durable-objects/reference/data-location/)
+influence initial placement; they do not guarantee physical colocation.
+
 ## Reproduction and evidence
 
 Use [the hosted benchmark instructions](../tests/e2e/hosted-product/README.md).

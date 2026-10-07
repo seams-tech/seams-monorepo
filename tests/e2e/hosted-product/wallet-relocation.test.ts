@@ -201,6 +201,7 @@ async function completeMove(
   const requestedAtMs = Date.now();
   let result = await page.evaluate(admitMove, intent);
   let firstActiveObservationMs: number | null = null;
+  let destinationUnlocked = false;
   for (;;) {
     const observedAt = Date.now();
     progress.push({ observedAt, result });
@@ -209,6 +210,12 @@ async function completeMove(
       JSON.stringify(progress, null, 2),
     );
     if (!result.ok) {
+      if (result.code === 'wallet_unlock_required' && progress.length > 1 && !destinationUnlocked) {
+        await harness.unlockPasskeyWallet();
+        destinationUnlocked = true;
+        result = await page.evaluate(readMove, intent.moveId);
+        continue;
+      }
       if (progress.length === 1) {
         await harness.unlockPasskeyWallet();
         samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));

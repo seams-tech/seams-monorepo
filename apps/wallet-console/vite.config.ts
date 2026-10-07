@@ -44,7 +44,6 @@ export default defineConfig(() => {
           showcaseInterlock: `${appRoot}showcase/motion/interlock/index.html`,
           showcaseSelfHostable: `${appRoot}showcase/motion/self-hostable/index.html`,
           showcaseDelegation: `${appRoot}showcase/motion/delegation/index.html`,
-          showcaseLinking: `${appRoot}showcase/motion/linking/index.html`,
         },
       },
     },

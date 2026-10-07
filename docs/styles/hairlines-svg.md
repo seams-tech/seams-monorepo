@@ -10,13 +10,13 @@ The second example develops **Scoped credentials** into four cut metal keys on a
 
 The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
 
-| Existing asset     | Replacement status                              |
-| ------------------ | ----------------------------------------------- |
-| Scoped credentials | Keychain approved.                              |
-| Audit log          | Paper-record example available for review.      |
-| Policy engine      | Tollgate rejected; replacement concept pending. |
-| Split-key custody  | Not started.                                    |
-| Threshold signing  | Not started.                                    |
+| Existing asset     | Replacement status                         |
+| ------------------ | ------------------------------------------ |
+| Scoped credentials | Keychain approved.                         |
+| Audit log          | Paper-record example available for review. |
+| Policy engine      | Precision sieve available for review.      |
+| Split-key custody  | Not started.                               |
+| Threshold signing  | Not started.                               |
 
 ## Reference and engine
 
@@ -109,37 +109,33 @@ Inspect the tooth contours, ring, and openings at full size. Select each key, sw
 
 ## Policy engine example
 
-The user rejected the tollgate concept on 2026-10-07 after reviewing its detailed revision. Keep it out of frontpage integration. The replacement concept is pending.
+The precision sieve replaces the rejected tollgate concept. A thick plate has rounded square, hexagonal, and circular openings. Four posts support it above a collection plate. Countersunk edges, slotted fasteners, and beveled pieces identify the physical parts.
 
-The rejected example uses a tollgate with multiple arms. Three proportioned cabins have inset sliding window frames, paneled doors, payment ledges, and separate roof caps. Visible posts and a crossbeam support the thin canopy, with a raised roof edge and panel seams. Bollards protect the raised islands. Vent panels and hexagonal axle caps identify the barrier drives. Stop lines and vehicle-detection loops mark the roadway. This replaces the existing Policy engine shield illustration after review.
+Hovering the assembly lowers six pieces in a short sequence. Three pieces fit through their corresponding openings and reach the collection plate. Three oversized pieces stop on the upper surface. The geometry shows the rule: a matching shape must also fit the permitted size. Pointer exit reverses the demonstration from its current position.
 
-Hovering a barrier or its roadway raises that lane's arm. Each rigid arm rotates around a fixed axle that extends from its motor housing. Moving to another lane closes the previous arm and opens the new arm. A 35ms delay per lane of distance separates the movements. Pointer exit restores the resting pose, with the middle arm slightly raised.
+The plate is six world units thick. Openings measure 15 units in radius or half-width. Passing pieces measure 12 units; held pieces measure 19. Each piece remains rigid and aligned to its opening. Upper and lower portions draw on opposite sides of the opaque plate. The visible bore is the intersection of its projected upper and lower openings, so its inner wall hides objects behind it.
 
-The intensity slider sets the opening angle to 58, 72, or 86 degrees. The arms sit in front of the canopy and clear it throughout their sweep. Their thickness, diagonal markings, and hinge position remain fixed during rotation. Only the selected arm receives the strong outline.
+The center pair moves first. The intensity slider controls the delay to the outer pairs at 30, 55, or 80 milliseconds. The kernel supplies the 700ms tween, reduced motion, and frame-loop sleep. Hit testing uses the stationary plate plane. Settled pieces do not redraw. The readout says `3 pass · 3 held` during filtering and `rest` on exit.
 
-Hit testing uses the resting arm segments and the stationary roadway. It does not follow the animated geometry. Road markings are drawn before the opaque islands and housings. The kernel supplies the interruptible 700ms tween and reduced-motion behavior. Settled arms do not redraw.
+This is a visual metaphor for policy filtering. Hovering does not grant permission or change wallet state. The isolated example remains subject to visual approval before frontpage integration.
 
-Most of the tollgate remains stationary. The moving arm covers a small fraction of the thumbnail, but its open and closed poses remain distinct. Keep this motion confined to the barrier mechanism.
-
-This illustration represents a policy checkpoint. Its hover state does not grant permission or change wallet state.
-
-Edit `apps/wallet-console/showcase/motion/policy/policy-gate.js`, then rebuild:
+Edit `apps/wallet-console/showcase/motion/policy/precision-sieve.js`, then rebuild:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/build.mjs" \
-  apps/wallet-console/showcase/motion/policy/policy-gate.js \
+  apps/wallet-console/showcase/motion/policy/precision-sieve.js \
   apps/wallet-console/showcase/motion/policy/index.html
 ```
 
-Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/policy-gate`, run:
+Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/precision-sieve`, run:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/policy/policy-gate.js \
-  --answer 102,31,29 --edge 168,31,29 --zoom high
+  ../../apps/wallet-console/showcase/motion/policy/precision-sieve.js \
+  --answer 0,0,64 --edge 65,30,64 --zoom answer
 ```
 
-Inspect all three hinges and the arm sweep at maximum opening. Switch lanes during motion, select the exposed roadway, and leave the figure. Each arm must remain attached and return without a jump. Check the 240px view, both themes, and the motion sheet.
+Inspect the aperture walls and the motion sheet as each piece crosses the plate. Passing pieces must reach the lower plate. Oversized pieces must stop above it. Enter and leave during motion to check reversal. Check the 240px view and both themes.
 
 ## Visual verification
 

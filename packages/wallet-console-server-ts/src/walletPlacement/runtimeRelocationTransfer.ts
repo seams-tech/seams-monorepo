@@ -36,6 +36,7 @@ class TransferFailure extends Error {
 // Destination status is authoritative after a lost reply or a process restart.
 export class RuntimeRelocationTransfer {
   private readonly verified = new Map<string, { readonly state: 'verified'; readonly receiptJson: string }>();
+  private readonly progress = new Map<string, Progress>();
   constructor(
     private readonly source: WalletRuntimeServiceBinding,
     private readonly destination: WalletRuntimeServiceBinding,
@@ -57,18 +58,21 @@ export class RuntimeRelocationTransfer {
     if (completed) return completed;
     const envelope: Envelope = { wallet, attempt };
     try {
-      const status = await this.call(this.destination, target, envelope, { operation: 'status' });
-      const progress = parseProgress(status, target.participant);
+      const progress = this.progress.get(key) ?? parseProgress(
+        await this.call(this.destination, target, envelope, { operation: 'status' }), target.participant);
       if (progress.state === 'verified') {
+        this.progress.delete(key);
         this.verified.set(key, progress);
         return progress;
       }
       if (progress.state === 'verify') {
+        this.progress.set(key, progress);
         const verified = await this.call(this.destination, target, envelope, { operation: 'verify' });
         const tag = target.participant === 'ed25519' ? verified.state : verified.kind;
         if (tag === 'restoring' && (target.participant === 'ed25519' || target.participant === 'ecdsa')) return { state: 'pending' };
         if (tag !== 'verified' || !isPlainObject(verified.receipt)) throw new TransferFailure('receipt_conflict');
         const receipt = { state: 'verified' as const, receiptJson: JSON.stringify(verified.receipt) };
+        this.progress.delete(key);
         this.verified.set(key, receipt);
         return receipt;
       }
@@ -77,14 +81,18 @@ export class RuntimeRelocationTransfer {
         : { segmentIndex: progress.segmentIndex };
       const exported = await this.call(this.source, target, envelope, { operation: 'export', fields: cursor });
       const payload = importPayload(exported, target.participant, progress);
+      const next = nextProgress(exported, target.participant, progress);
       const accepted = await this.call(this.destination, target, envelope, { operation: 'import', fields: payload });
       const kind = target.participant === 'ed25519' ? accepted.state : accepted.kind;
       if (kind !== 'imported' || accepted.segment_index !== progress.segmentIndex ||
           (progress.state === 'record' && accepted.record_index !== progress.recordIndex) ||
           typeof accepted.input_digest_hex !== 'string' || !/^[a-f0-9]{64}$/u.test(accepted.input_digest_hex))
         throw new TransferFailure('receipt_conflict');
+      this.progress.set(key, next);
       return { state: 'pending' };
     } catch (error) {
+      // A lost acknowledgement must resume from the destination's durable cursor.
+      this.progress.delete(key);
       if (error instanceof TransferFailure) return { state: 'failed', code: error.code };
       throw error;
     }
@@ -114,6 +122,28 @@ export class RuntimeRelocationTransfer {
     if (!isPlainObject(raw)) throw new TransferFailure('receipt_conflict');
     return raw;
   }
+}
+
+function nextProgress(
+  raw: Record<string, unknown>, participant: Target['participant'],
+  current: Extract<Progress, { state: 'segment' | 'record' }>,
+): Progress {
+  if (participant === 'router') {
+    const chunk = raw.chunk;
+    if (current.state !== 'record' || !isPlainObject(chunk) || !isPlainObject(chunk.receipt) ||
+        !count(chunk.segment_count) || current.segmentIndex >= chunk.segment_count ||
+        !count(chunk.receipt.record_count) || current.recordIndex >= chunk.receipt.record_count)
+      throw new TransferFailure('receipt_conflict');
+    if (current.segmentIndex + 1 < chunk.segment_count)
+      return { state: 'record', recordIndex: current.recordIndex, segmentIndex: current.segmentIndex + 1 };
+    return current.recordIndex + 1 === chunk.receipt.record_count ? { state: 'verify' }
+      : { state: 'record', recordIndex: current.recordIndex + 1, segmentIndex: 0 };
+  }
+  const receipt = participant === 'deriver-a' || participant === 'deriver-b' || participant === 'ed25519'
+    ? raw.receipt : raw;
+  if (!isPlainObject(receipt) || !count(receipt.segment_count) || current.segmentIndex >= receipt.segment_count)
+    throw new TransferFailure('receipt_conflict');
+  return segmentProgress(current.segmentIndex + 1, receipt.segment_count);
 }
 
 function parseProgress(raw: Record<string, unknown>, participant: Target['participant']): Progress {

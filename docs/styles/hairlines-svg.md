@@ -188,19 +188,17 @@ The fourth example replaces Audit log as a frontpage selling point. The approved
 > **Your infrastructure. Your control.**
 > Run threshold signing on your own serverless infrastructure.
 
-A removable server cartridge sits partly withdrawn from an open chassis. The open top exposes the guide rails, rear socket, connector contacts, cooling fins, memory modules, and mounting screws. The front panel has ventilation slots, a recessed grip, and a pivoting retention lever.
+A compact datacenter rack holds six closely stacked, closed server units. The third server from the top rests partly withdrawn. Simple pull handles, three indicator outlines, three ventilation slots, and mounting posts supply the detail. The short cabinet has a solid side panel, top, base, and small feet.
 
-Hovering seats the cartridge along the rails, then closes the retention lever. Leaving opens the lever before the cartridge withdraws. A single reversible timeline preserves that order when the pointer interrupts either movement. The lever carries the accent stroke. The fixed stage is the hover target.
+Hovering the fixed stage slides the third server into its bay. Leaving withdraws it from its current position. The kernel's standard 700ms tween makes this movement reversible without jumps. The slider changes withdrawal distance from 20 through 26 to 32 world units. Only the selected server group translates; all other geometry stays fixed. The loop sleeps after settling and respects reduced motion.
 
-The slider changes the full motion duration from 900 through 1200 to 1500 milliseconds. The kernel supplies easing, reduced motion, and offscreen sleep. Static geometry stays fixed. The cartridge uses one group translation, and only the lever geometry changes during rotation.
+The rack draws lower bays before upper bays, then the near side wall and top. Opaque surfaces hide parts inside the cabinet. The selected front panel and handle carry the accent stroke. The small motion affects one of six servers, so the rest of the rack remains visually stable.
 
-This illustration is a deployment metaphor. The product copy describes serverless infrastructure; the pictured hardware is illustrative. Keep this mockup separate until the user approves it.
-
-Edit `apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js`, then rebuild:
+Edit `apps/wallet-console/showcase/motion/self-hostable/server-rack.js`, then rebuild:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/build.mjs" \
-  apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js \
+  apps/wallet-console/showcase/motion/self-hostable/server-rack.js \
   apps/wallet-console/showcase/motion/self-hostable/index.html
 ```
 
@@ -208,11 +206,11 @@ Review at `/dashboard-static/showcase/motion/self-hostable/`. From `.artifacts/s
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js \
-  --answer 60,0,20 --edge 85,20,20 --zoom rest
+  ../../apps/wallet-console/showcase/motion/self-hostable/server-rack.js \
+  --answer 42,0,56 --edge 42,30,56 --zoom rest
 ```
 
-Inspect the board and connector in the withdrawn and seated positions. Check that the near chassis wall hides the parts behind it. Enter, leave, and re-enter during motion. Confirm the cartridge stops before the lever closes, and withdrawal waits until the lever opens.
+Inspect the six occupied bays, rail alignment, and cabinet occlusion during insertion. Check both themes, 240px width, slider extremes, and interrupted hover transitions. This preview remains separate from frontpage integration.
 
 ## Wallet access cards
 

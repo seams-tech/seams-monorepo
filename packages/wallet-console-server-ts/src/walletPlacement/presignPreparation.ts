@@ -43,11 +43,6 @@ export class PresignRelocationPreparation {
         move.moveId !== attempt.moveId || !move.wallet.matches(attempt.wallet) ||
         !move.destination.matches(this.destination)) return 'unavailable';
     const wallet = move.wallet;
-    const scope: Scope = {
-      org_id: wallet.organizationId, project_id: wallet.projectId,
-      project_environment_id: wallet.environmentId, wallet_id: wallet.walletId,
-    };
-    const request: Move = { move_id: move.moveId, source_generation: move.sourceGeneration };
     let cursor: Cursor = { kind: 'start' };
     for (;;) {
       const page = parsePage(await call(this.sourceRuntime, 'presign-inventory', {
@@ -58,69 +53,83 @@ export class PresignRelocationPreparation {
       for (const session of page.sessions) {
         if (!orderedAfter(session.presign_session_id, previous)) return 'unavailable';
         previous = session.presign_session_id;
-        const stored = await queryD1One(database, `SELECT json_extract(receipt_json, '$.command.server_presignature_id') AS server_presignature_id FROM wallet_presign_snapshots
-          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [
-          wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
-          wallet.walletId, move.moveId, session.presign_session_id,
-        ]);
-        if (stored) {
-          if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
-          continue;
-        }
-        const names = await this.targets.linkedNames(session.server_presignature_id, request.source_generation);
-        const previousTargets = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
-          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7
-          UNION ALL SELECT target.value AS targets_json FROM wallet_relocations,
-            json_each(preparation_json, '$.receipts') AS receipt,
-            json_each(receipt.value, '$.custodyTargets') AS target
-          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-            AND wallet_id = ?5 AND move_id = ?6 AND json_extract(receipt.value, '$.participant') = 'presignSessions'
-            AND json_extract(target.value, '$.source.objectName') = ?8 LIMIT 1`, [wallet.namespace,
-          wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId,
-          session.presign_session_id, names.source]);
-        const targets = previousTargets && typeof previousTargets.targets_json === 'string'
-          ? parseCustodyTargetPair(JSON.parse(previousTargets.targets_json), request.source_generation)
-          : await this.targets.linked(session.server_presignature_id, request.source_generation);
-        if (targets.source.objectName !== names.source || targets.destination.objectName !== names.destination)
-          return 'unavailable';
-        await database.prepare(`INSERT INTO wallet_presign_custody_targets
-          (namespace, organization_id, project_id, environment_id, wallet_id, move_id, presign_session_id, targets_json)
-          SELECT namespace, organization_id, project_id, environment_id, wallet_id, move_id, ?7, ?8
-          FROM wallet_relocations WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
-            AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'freezing'
-          ON CONFLICT DO NOTHING`).bind(wallet.namespace, wallet.organizationId, wallet.projectId,
-          wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id, JSON.stringify(targets)).run();
-        const pinned = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
-          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [wallet.namespace,
-          wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id]);
-        if (!pinned || typeof pinned.targets_json !== 'string') return 'unavailable';
-        const saved = parseCustodyTargetPair(JSON.parse(pinned.targets_json), request.source_generation);
-        if (!sameTarget(saved.source, targets.source) || !sameTarget(saved.destination, targets.destination)) return 'unavailable';
-        const prepared = await call(this.destinationRuntime, 'presign-transfer', {
-          kind: 'prepare', command: {
-            wallet_scope: scope, request, presign_session_id: session.presign_session_id,
-            server_presignature_id: session.server_presignature_id,
-          }, chunk_bytes: 4096,
-        });
-        if (!matchesPreparation(prepared, scope, request, session)) return 'unavailable';
-        const identity = {
-          presignSessionId: session.presign_session_id,
-          serverPresignatureId: session.server_presignature_id,
-        };
-        const fenced = await call(this.sourceRuntime, 'presign-fence', { wallet, attempt, session: identity });
-        if (!isPlainObject(fenced)) return 'unavailable';
-        const frozen = await call(this.sourceRuntime, 'presign-freeze', { wallet, attempt, session: identity });
-        if (!isPlainObject(frozen)) return 'unavailable';
-        // Runtime returns success only after Console persists the exact receipt.
-        return 'pending';
       }
+      const results = await Promise.all(page.sessions.map(this.settleSession.bind(this, database, move, attempt)));
+      if (results.includes('unavailable')) return 'unavailable';
+      if (results.includes('pending')) return 'pending';
       if (page.state === 'complete') return 'settled';
       if (page.next !== previous) return 'unavailable';
       cursor = { kind: 'after', presign_session_id: page.next };
     }
+  }
+
+  private async settleSession(
+    database: D1DatabaseLike, move: WalletRelocation, attempt: WalletRelocationAttempt, session: Session,
+  ): Promise<'pending' | 'settled' | 'unavailable'> {
+    const wallet = move.wallet;
+    const scope: Scope = {
+      org_id: wallet.organizationId, project_id: wallet.projectId,
+      project_environment_id: wallet.environmentId, wallet_id: wallet.walletId,
+    };
+    const request: Move = { move_id: move.moveId, source_generation: move.sourceGeneration };
+    const stored = await queryD1One(database, `SELECT json_extract(receipt_json, '$.command.server_presignature_id') AS server_presignature_id FROM wallet_presign_snapshots
+      WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+        AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [
+      wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
+      wallet.walletId, move.moveId, session.presign_session_id,
+    ]);
+    if (stored) {
+      if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
+      return 'settled';
+    }
+    const names = await this.targets.linkedNames(session.server_presignature_id, request.source_generation);
+    const previousTargets = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
+      WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+        AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7
+      UNION ALL SELECT target.value AS targets_json FROM wallet_relocations,
+        json_each(preparation_json, '$.receipts') AS receipt,
+        json_each(receipt.value, '$.custodyTargets') AS target
+      WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+        AND wallet_id = ?5 AND move_id = ?6 AND json_extract(receipt.value, '$.participant') = 'presignSessions'
+        AND json_extract(target.value, '$.source.objectName') = ?8 LIMIT 1`, [wallet.namespace,
+      wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId,
+      session.presign_session_id, names.source]);
+    const targets = previousTargets && typeof previousTargets.targets_json === 'string'
+      ? parseCustodyTargetPair(JSON.parse(previousTargets.targets_json), request.source_generation)
+      : await this.targets.linked(session.server_presignature_id, request.source_generation);
+    if (targets.source.objectName !== names.source || targets.destination.objectName !== names.destination)
+      return 'unavailable';
+    await database.prepare(`INSERT INTO wallet_presign_custody_targets
+      (namespace, organization_id, project_id, environment_id, wallet_id, move_id, presign_session_id, targets_json)
+      SELECT namespace, organization_id, project_id, environment_id, wallet_id, move_id, ?7, ?8
+      FROM wallet_relocations WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+        AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'freezing'
+      ON CONFLICT DO NOTHING`).bind(wallet.namespace, wallet.organizationId, wallet.projectId,
+      wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id, JSON.stringify(targets)).run();
+    const pinned = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
+      WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+        AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [wallet.namespace,
+      wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id]);
+    if (!pinned || typeof pinned.targets_json !== 'string') return 'unavailable';
+    const saved = parseCustodyTargetPair(JSON.parse(pinned.targets_json), request.source_generation);
+    if (!sameTarget(saved.source, targets.source) || !sameTarget(saved.destination, targets.destination)) return 'unavailable';
+    const prepared = await call(this.destinationRuntime, 'presign-transfer', {
+      kind: 'prepare', command: {
+        wallet_scope: scope, request, presign_session_id: session.presign_session_id,
+        server_presignature_id: session.server_presignature_id,
+      }, chunk_bytes: 4096,
+    });
+    if (!matchesPreparation(prepared, scope, request, session)) return 'unavailable';
+    const identity = {
+      presignSessionId: session.presign_session_id,
+      serverPresignatureId: session.server_presignature_id,
+    };
+    const fenced = await call(this.sourceRuntime, 'presign-fence', { wallet, attempt, session: identity });
+    if (!isPlainObject(fenced)) return 'unavailable';
+    const frozen = await call(this.sourceRuntime, 'presign-freeze', { wallet, attempt, session: identity });
+    if (!isPlainObject(frozen)) return 'unavailable';
+    // Runtime returns success only after Console persists the exact receipt.
+    return 'pending';
   }
 
   async prepare(command: Command): Promise<unknown> {

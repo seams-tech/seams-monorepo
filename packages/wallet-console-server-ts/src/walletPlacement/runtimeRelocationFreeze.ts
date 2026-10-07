@@ -23,6 +23,7 @@ class RuntimeFreezeFailure extends Error {
 // and cannot issue a new freeze identity after a lost response.
 export class RuntimeRelocationFreeze {
   private readonly completed = new Map<string, Record<string, unknown>>();
+  private readonly settledPresign = new Set<string>();
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly runtime: WalletRuntimeServiceBinding,
@@ -45,11 +46,15 @@ export class RuntimeRelocationFreeze {
       const ed25519Ready = settledOrDraining(ed25519);
       const deriverAReady = settledDeriver(deriverA);
       const deriverBReady = settledDeriver(deriverB);
-      const sessions = await this.presign.settle(this.database, move, attempt);
+      const presignKey = JSON.stringify([wallet, move.moveId]);
+      const sessions = this.settledPresign.has(presignKey)
+        ? 'settled' : await this.presign.settle(this.database, move, attempt);
       if (sessions === 'unavailable') return { state: 'failed', code: 'authority_unavailable' };
       if (sessions === 'pending') return { state: 'pending' };
       if (!routerReady || !ecdsaReady || !ed25519Ready || !deriverAReady || !deriverBReady)
         return { state: 'pending' };
+      // All source fences are settled, so no new linked session can enter the inventory.
+      this.settledPresign.add(presignKey);
       const [ed25519Snapshot, deriverASnapshot, deriverBSnapshot] = await Promise.all([
         this.call('ed25519-capture', envelope), this.call('deriver-a-capture', envelope),
         this.call('deriver-b-capture', envelope),

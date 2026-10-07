@@ -1,5 +1,10 @@
 # R155B: live custody location observations, 2026-10-07
 
+**Timing correction:** [the subsequent diagnosis](r155b-custody-latency-diagnosis-20261007.md)
+uses provider CPU and wall telemetry. Application timers freeze during CPU work.
+The 285 ms A span does not establish parity with a local CPU benchmark.
+Likewise, the caller spans below do not isolate DO network latency.
+
 The captured staging requests show HKG for all four requested contexts.
 This run found no regional split between A execution, B execution, A's DO, and B's DO.
 The sample does not establish a placement guarantee or a 99% compliance rate.
@@ -87,6 +92,6 @@ observations, span summaries, sample counts, and all deployment versions.
 the temporary wrappers. Raw tails remain in ignored local artifacts because they
 can contain request credentials.
 
-The next optimization target is the repeated B session-state call path.
-The 285 ms median A protocol span is already near the previously observed local
-250–400 ms range. The complete setup request remains above the two-second target.
+The next optimization targets are repeated root admission and the B session-state
+call path. The complete setup request remains above the two-second target.
+Use provider telemetry and a matching local WASM benchmark to assess CPU cost.

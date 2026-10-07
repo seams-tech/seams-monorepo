@@ -14,7 +14,7 @@ The security section contains four custody illustrations and one threshold-signi
 | ------------------ | ------------------------------------------------- |
 | Scoped credentials | Keychain approved.                                |
 | Audit log          | Paper-record example available for review.        |
-| Policy engine      | Next proposed example; concept selection pending. |
+| Policy engine      | Three-lane tollgate example available for review. |
 | Split-key custody  | Not started.                                      |
 | Threshold signing  | Not started.                                      |
 
@@ -106,6 +106,38 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 ```
 
 Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum travel.
+
+## Policy engine example
+
+The user selected a tollgate with multiple arms. Three glazed booths, a shared canopy, raised islands, and striped barrier arms make the object recognizable. This replaces the existing Policy engine shield illustration after review.
+
+Hovering a barrier or its roadway raises that lane's arm. Each rigid arm rotates around a fixed axle that extends from its motor housing. Moving to another lane closes the previous arm and opens the new arm. A 35ms delay per lane of distance separates the movements. Pointer exit restores the resting pose, with the middle arm slightly raised.
+
+The intensity slider sets the opening angle to 58, 72, or 86 degrees. The arms sit in front of the canopy and clear it throughout their sweep. Their thickness, diagonal markings, and hinge position remain fixed during rotation. Only the selected arm receives the strong outline.
+
+Hit testing uses the resting arm segments and the stationary roadway. It does not follow the animated geometry. Road markings are drawn before the opaque islands and housings. The kernel supplies the interruptible 700ms tween and reduced-motion behavior. Settled arms do not redraw.
+
+Most of the tollgate remains stationary. The moving arm covers a small fraction of the thumbnail, but its open and closed poses remain distinct. Keep this motion confined to the barrier mechanism.
+
+This illustration represents a policy checkpoint. Its hover state does not grant permission or change wallet state.
+
+Edit `apps/wallet-console/showcase/motion/policy/policy-gate.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/policy/policy-gate.js \
+  apps/wallet-console/showcase/motion/policy/index.html
+```
+
+Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/policy-gate`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/policy/policy-gate.js \
+  --answer 102,31,29 --edge 168,31,29 --zoom high
+```
+
+Inspect all three hinges and the arm sweep at maximum opening. Switch lanes during motion, select the exposed roadway, and leave the figure. Each arm must remain attached and return without a jump. Check the 240px view, both themes, and the motion sheet.
 
 ## Visual verification
 

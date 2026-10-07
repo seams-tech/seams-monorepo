@@ -40,6 +40,7 @@ export default defineConfig(() => {
           showcaseCheckoutWallet: `${appRoot}showcase/checkout/wallet/index.html`,
           showcaseMotion: `${appRoot}showcase/motion/index.html`,
           showcaseCredentials: `${appRoot}showcase/motion/credentials/index.html`,
+          showcasePolicy: `${appRoot}showcase/motion/policy/index.html`,
         },
       },
     },

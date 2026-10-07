@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   GatewayBinding,
   RuntimeBinding,
@@ -10,6 +11,7 @@ import {
 
 export class BrowserWalletRelocation {
   ownerRequest = null;
+  completedCleanups = [];
 
   constructor(options) {
     Object.assign(this, options);
@@ -21,7 +23,7 @@ export class BrowserWalletRelocation {
     }
   }
 
-  async moveToApac(page) {
+  async move(page, { sourceRegion, destinationRegion, expectedGeneration }) {
     const { scenario, root, candidate } = this;
     const api = await loadRelocationApi({ root, candidate, output: scenario.output });
     const directory = scenario.consoleService;
@@ -30,12 +32,12 @@ export class BrowserWalletRelocation {
     const catalog = api.WalletHomeCatalog.parse(JSON.parse(directory.catalogJson));
     const placements = await database.prepare('SELECT wallet_id, region FROM wallet_homes').all();
     assert.equal(placements.results.length, 1);
-    assert.equal(placements.results[0].region, 'US');
+    assert.equal(placements.results[0].region, sourceRegion);
     const wallet = api.WalletOwnershipKey.parse({
       ...scope,
       walletId: placements.results[0].wallet_id,
     });
-    const source = scenario.gateways.get('US');
+    const source = scenario.gateways.get(sourceRegion);
     const signerScope = {
       namespace: scope.namespace,
       orgId: scope.organizationId,
@@ -46,8 +48,8 @@ export class BrowserWalletRelocation {
     const move = api.WalletRelocationRequest.parse({
       wallet,
       moveId: `wmove_${randomBytes(32).toString('base64url')}`,
-      destination: catalog.select('APAC'),
-      expectedGeneration: 1,
+      destination: catalog.select(destinationRegion),
+      expectedGeneration,
       authorityId: owner.authorityId,
     });
     const headers = await this.ownerRequest.allHeaders();
@@ -55,10 +57,11 @@ export class BrowserWalletRelocation {
     const intent = {
       walletId: wallet.walletId,
       moveId: move.moveId,
-      destinationRegion: 'APAC',
-      expectedGeneration: 1,
+      destinationRegion,
+      expectedGeneration,
     };
-    const bindings = relocationBindings(api, scenario, signerScope);
+    const faults = { activationReplyLost: false, cleanupFailed: false };
+    const bindings = relocationBindings(api, scenario, signerScope, faults, this.completedCleanups);
     const verifier = new BrowserMoveResourceProofs(directory.api, scope.namespace);
     directory.relocationAdmission = { bindings, verifyResources: verifier.verify.bind(verifier) };
     const journal = new api.D1WalletRelocations(database, catalog);
@@ -69,7 +72,7 @@ export class BrowserWalletRelocation {
       .prepare('SELECT region, placement_state FROM wallet_homes WHERE wallet_id = ?')
       .bind(wallet.walletId)
       .first();
-    assert.equal(unchanged.region, 'US');
+    assert.equal(unchanged.region, sourceRegion);
     assert.equal(unchanged.placement_state, 'active');
     const retry = new Request('https://gateway.example.test/wallet/placement/v1/relocations', {
       method: 'POST',
@@ -103,7 +106,7 @@ export class BrowserWalletRelocation {
     );
     const progress = [];
     let checkedFreeze = false;
-    for (let step = 0; step < 128; step += 1) {
+    for (let step = 0; step < 256; step += 1) {
       const response = await api.handleWalletRelocationAdvance(
         new Request(api.WALLET_RELOCATION_ADVANCE_URL, {
           method: 'POST',
@@ -141,12 +144,32 @@ export class BrowserWalletRelocation {
             .run(),
           /wallet_authorization_history_frozen/,
         );
+        if (sourceRecords.linked_device_authority_installations.count > 0) {
+          await assert.rejects(
+            source.database
+              .prepare(
+                `
+            UPDATE linked_device_authority_installations SET updated_at_ms = updated_at_ms
+            WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ?
+              AND wallet_id = ?`,
+              )
+              .bind(
+                scope.namespace,
+                scope.organizationId,
+                scope.projectId,
+                scope.environmentId,
+                wallet.walletId,
+              )
+              .run(),
+            /linked_device_relocation_fenced/,
+          );
+        }
         checkedFreeze = true;
       }
       if (current.progress.state === 'completed') {
         assert.equal(checkedFreeze, true);
         const destinationRecords = await authenticationRecords(
-          scenario.gateways.get('APAC'),
+          scenario.gateways.get(destinationRegion),
           wallet.walletId,
         );
         assert.deepEqual(
@@ -154,6 +177,41 @@ export class BrowserWalletRelocation {
           sourceRecords,
           'Relocation must preserve authentication records exactly',
         );
+        if (destinationRecords.linked_device_authority_installations.count > 0) {
+          await assert.rejects(
+            scenario.gateways
+              .get(destinationRegion)
+              .database.prepare(
+                `
+            UPDATE linked_device_authority_installations SET updated_at_ms = updated_at_ms
+            WHERE namespace = ? AND org_id = ? AND project_id = ? AND env_id = ?
+              AND wallet_id = ?`,
+              )
+              .bind(
+                scope.namespace,
+                scope.organizationId,
+                scope.projectId,
+                scope.environmentId,
+                wallet.walletId,
+              )
+              .run(),
+            /linked_device_relocation_fenced/,
+          );
+        }
+        let priorCleanupRejections = 0;
+        for (const cleanup of this.completedCleanups) {
+          if (cleanup.region !== destinationRegion) continue;
+          const replay = await cleanup.binding.fetch(cleanup.request.clone());
+          assert.equal(replay.status, 403);
+          assert.equal((await replay.json()).code, 'relocation_command_denied');
+          priorCleanupRejections += 1;
+        }
+        assert.deepEqual(
+          await authenticationRecords(scenario.gateways.get(destinationRegion), wallet.walletId),
+          destinationRecords,
+          'An old cleanup retry must preserve the returned wallet',
+        );
+        if (expectedGeneration > 1) assert.ok(priorCleanupRejections > 0);
         const cleaned = await authenticationRecords(source, wallet.walletId);
         for (const record of Object.values(cleaned)) assert.equal(record.count, 0);
         await writeFile(
@@ -164,19 +222,43 @@ export class BrowserWalletRelocation {
               destinationRecords,
               sourceAfterCleanup: cleaned,
               frozenCounterWriteRejected: checkedFreeze,
+              linkedHistoryImmutable:
+                destinationRecords.linked_device_authority_installations.count > 0,
+              faults,
+              priorCleanupRejections,
             },
             null,
             2,
           ),
         );
-        return { walletId: wallet.walletId, moveId: move.moveId };
+        assert.deepEqual(faults, { activationReplyLost: true, cleanupFailed: true });
+        return {
+          walletId: wallet.walletId,
+          moveId: move.moveId,
+          nextMoveAtMs: admitted.move.nextMoveAtMs,
+        };
+      }
+      if (current.progress.execution.state === 'retry_wait') {
+        if (current.progress.state === 'cleanup') {
+          const placement = await database
+            .prepare('SELECT placement_state FROM wallet_homes WHERE wallet_id = ?')
+            .bind(wallet.walletId)
+            .first();
+          assert.equal(
+            placement.placement_state,
+            'active',
+            'Cleanup failure must preserve destination availability',
+          );
+        }
+        await delay(Math.max(0, current.progress.execution.retryAtMs - Date.now()));
+        continue;
       }
       assert.ok(
         ['ready', 'running'].includes(current.progress.execution.state),
         JSON.stringify(result),
       );
     }
-    assert.fail('Browser wallet relocation did not complete within 128 coordinator steps');
+    assert.fail('Browser wallet relocation did not complete within 256 coordinator steps');
   }
 
   async authenticateOwner(api, database, scope, walletId) {
@@ -218,6 +300,10 @@ async function authenticationRecords(gateway, walletId) {
   for (const [table, column] of [
     ['wallets', 'wallet_id'],
     ['wallet_signers', 'wallet_id'],
+    ['wallet_recovery_code_locators', 'wallet_id'],
+    ['linked_device_sessions', "json_extract(record_json, '$.claimTranscript.value.walletId')"],
+    ['linked_device_authority_installations', 'wallet_id'],
+    ['linked_device_wallet_session_credential_deliveries_v1', 'wallet_id'],
     ['webauthn_credential_bindings', 'user_id'],
     ['webauthn_authenticators', 'user_id'],
     ['router_ab_yao_versioned_json_records', "json_extract(record_json, '$.walletId')"],
@@ -243,7 +329,7 @@ async function authenticationRecords(gateway, walletId) {
   return records;
 }
 
-function relocationBindings(api, scenario, scope) {
+function relocationBindings(api, scenario, scope, faults, completedCleanups) {
   const gateways = {};
   const runtimes = {};
   for (const [region, gateway] of scenario.gateways) {
@@ -255,12 +341,17 @@ function relocationBindings(api, scenario, scope) {
       resource,
     );
     const gatewayWriter = api.parseTenantRuntimeWriterV1('gateway', home.databaseId, resource);
-    gateways[`WALLET_GATEWAY_${region}`] = new GatewayBinding(
-      new api.WalletAuthorizationRelocationRoutes({
-        database: gateway.database,
-        scope,
-        directory: new api.WalletPlacementConsoleBinding(scenario.consoleService, gatewayWriter),
-      }),
+    gateways[`WALLET_GATEWAY_${region}`] = new RelocationGatewayFaults(
+      new GatewayBinding(
+        new api.WalletAuthorizationRelocationRoutes({
+          database: gateway.database,
+          scope,
+          directory: new api.WalletPlacementConsoleBinding(scenario.consoleService, gatewayWriter),
+        }),
+      ),
+      faults,
+      completedCleanups,
+      region,
     );
     runtimes[region] = new RuntimeBinding(api, gateway.database, scope.namespace, writer, {
       ...gateway.environment,
@@ -290,5 +381,39 @@ class BrowserMoveResourceProofs {
       this.api.relocationResourceVerification(source, this.namespace, Date.now()),
       this.api.relocationResourceVerification(destination, this.namespace, Date.now()),
     ];
+  }
+}
+
+class RelocationGatewayFaults {
+  constructor(binding, faults, completedCleanups, region) {
+    Object.assign(this, { binding, faults, completedCleanups, region });
+  }
+
+  async fetch(request) {
+    const pathname = new URL(request.url).pathname;
+    if (pathname.endsWith('/authorization/cleanup') && !this.faults.cleanupFailed) {
+      this.faults.cleanupFailed = true;
+      return new Response('Injected cleanup outage', { status: 503 });
+    }
+    const cleanupRequest = pathname.endsWith('/authorization/cleanup') ? request.clone() : null;
+    const response = await this.binding.fetch(request);
+    if (cleanupRequest && response.status === 200) {
+      const result = await response.clone().json();
+      assert.equal(result.progress.state, 'cleaned');
+      this.completedCleanups.push({
+        binding: this.binding,
+        region: this.region,
+        request: cleanupRequest,
+      });
+    }
+    if (
+      pathname.endsWith('/authorization/activate') &&
+      response.ok &&
+      !this.faults.activationReplyLost
+    ) {
+      this.faults.activationReplyLost = true;
+      return new Response('Injected lost activation acknowledgement', { status: 503 });
+    }
+    return response;
   }
 }

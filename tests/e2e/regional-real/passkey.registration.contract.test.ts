@@ -27,12 +27,15 @@ for (const curve of ['ecdsa', 'ed25519']) {
     harness,
     context,
     page,
+    browser,
   }) => {
+    test.setTimeout(600_000);
     const custody = await createBrowserRelocationCustody({
       publicRoot,
       localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
     });
     let scenario: Awaited<ReturnType<typeof createRegionalRealGateway>> | null = null;
+    let linkedContext: BrowserContext | null = null;
     try {
       scenario = await createRegionalRealGateway({
         root,
@@ -48,6 +51,14 @@ for (const curve of ['ecdsa', 'ed25519']) {
       await scenario.routeContext(context, 'US');
       await harness.registerPasskeyWallet();
       await harness.awaitNearReady();
+      const previousContexts = browser.contexts();
+      const offlineDevice = await harness.openLinkedDevice(browser);
+      const [offlineContext] = browser.contexts().filter(isNewContext.bind(null, previousContexts));
+      assert.ok(offlineContext, 'The enrolled device must have a separate browser context');
+      linkedContext = offlineContext;
+      await scenario.routeContext(offlineContext, 'US');
+      await harness.linkDeviceWithPasskey(offlineDevice);
+      await offlineContext.setOffline(true);
       scenario.beginConsoleOutage();
       let signingPhase: 'post_registration' | 'post_unlock' = 'post_registration';
       let unlockDirectoryRequests: string[] = [];
@@ -65,19 +76,31 @@ for (const curve of ['ecdsa', 'ed25519']) {
         else await harness.signNearTransactionAfterRefresh();
       }
       await scenario.verifyConsoleOutage(curve);
-      await writeFile(path.join(scenario.output, 'fresh-unlock.json'), JSON.stringify({
-        curve,
-        home: 'US',
-        unlockIngress: 'APAC',
-        freshUnlockAfterRuntimeReset: true,
-        signaturesBeforeUnlock: 1,
-        signaturesAfterUnlock: 2,
-        consoleRequests: scenario.consoleService.requests.length,
-        unlockDirectoryRequests,
-        custodyNamespaces: custody.namespaces,
-        scope: 'Browser registration, runtime reset and passkey unlock with directory coordination available. Console is unavailable for signing before and after unlock through foreign ingress. Excludes relocation and Console-independent unlock.',
-      }, null, 2));
-      const moved = await relocation.moveToApac(page);
+      await writeFile(
+        path.join(scenario.output, 'fresh-unlock.json'),
+        JSON.stringify(
+          {
+            curve,
+            home: 'US',
+            unlockIngress: 'APAC',
+            freshUnlockAfterRuntimeReset: true,
+            signaturesBeforeUnlock: 1,
+            signaturesAfterUnlock: 2,
+            consoleRequests: scenario.consoleService.requests.length,
+            unlockDirectoryRequests,
+            custodyNamespaces: custody.namespaces,
+            scope:
+              'Browser registration, runtime reset and passkey unlock with directory coordination available. Console is unavailable for signing before and after unlock through foreign ingress. Excludes relocation and Console-independent unlock.',
+          },
+          null,
+          2,
+        ),
+      );
+      const moved = await relocation.move(page, {
+        sourceRegion: 'US',
+        destinationRegion: 'APAC',
+        expectedGeneration: 1,
+      });
       context.off('request', observe);
       await harness.unlockPasskeyWallet();
       scenario.beginConsoleOutage();
@@ -87,19 +110,103 @@ for (const curve of ['ecdsa', 'ed25519']) {
       assert.equal(scenario.consoleService.requests.length, 0);
       const home = await scenario.consoleService.database
         .prepare('SELECT region, state FROM wallet_homes WHERE wallet_id = ?')
-        .bind(moved.walletId).first();
+        .bind(moved.walletId)
+        .first();
       assert.deepEqual(home, { region: 'APAC', state: 'established' });
-      await writeFile(path.join(scenario.output, 'browser-relocation.json'), JSON.stringify({
-        curve, ...moved, source: 'US', destination: 'APAC',
-        approval: 'Registered browser passkey',
-        freshUnlockAfterMove: true,
-        signaturesAfterMove: 1,
-        signingIngress: 'WEUR',
-        consoleRequestsDuringDestinationSigning: scenario.consoleService.requests.length,
-        custodyNamespaces: custody.namespaces,
-        scope: 'Local production coordinator, browser registration and passkey approval, independent custody namespaces, fresh unlock and destination signing. Excludes hosted latency.',
-      }, null, 2));
+      scenario.consoleService.available = true;
+      await scenario.routeContext(offlineContext, 'WEUR');
+      await offlineContext.setOffline(false);
+      await offlineDevice.unlockPasskeyWallet();
+      scenario.beginConsoleOutage();
+      if (curve === 'ecdsa') await offlineDevice.signTempoTransaction('post_unlock');
+      else await offlineDevice.signNearTransactionAfterRefresh();
+      assert.equal(scenario.consoleService.requests.length, 0);
+
+      await writeFile(
+        path.join(scenario.output, 'browser-relocation.json'),
+        JSON.stringify(
+          {
+            curve,
+            ...moved,
+            source: 'US',
+            destination: 'APAC',
+            approval: 'Registered browser passkey',
+            freshUnlockAfterMove: true,
+            enrolledDeviceOfflineThroughActivation: true,
+            offlineDeviceUnlockedWithoutEnrollment: true,
+            offlineDeviceSignedAfterMove: true,
+            signaturesAfterMove: 2,
+            signingIngress: 'WEUR',
+            consoleRequestsDuringDestinationSigning: scenario.consoleService.requests.length,
+            custodyNamespaces: custody.namespaces,
+            scope:
+              'Local production coordinator, browser registration and passkey approval, independent custody namespaces, fresh unlock and destination signing. Excludes hosted latency.',
+          },
+          null,
+          2,
+        ),
+      );
+      if (curve === 'ecdsa') {
+        scenario.consoleService.available = true;
+        context.on('request', observe);
+        await harness.recoverPasskeyWalletFromFreshBrowser();
+        scenario.beginConsoleOutage();
+        await harness.signTempoTransaction('post_unlock');
+        await harness.signNearTransactionAfterRefresh();
+        assert.equal(scenario.consoleService.requests.length, 0);
+        await writeFile(
+          path.join(scenario.output, 'recovery-after-relocation.json'),
+          JSON.stringify(
+            {
+              walletId: moved.walletId,
+              region: 'APAC',
+              freshBrowserRecovery: true,
+              signingCurves: ['ecdsa', 'ed25519'],
+              consoleRequestsDuringSigning: 0,
+            },
+            null,
+            2,
+          ),
+        );
+        scenario.consoleService.available = true;
+        while (Date.now() <= moved.nextMoveAtMs) {
+          await page.waitForTimeout(Math.min(30_000, moved.nextMoveAtMs - Date.now() + 1));
+        }
+        const returned = await relocation.move(page, {
+          sourceRegion: 'APAC',
+          destinationRegion: 'US',
+          expectedGeneration: 2,
+        });
+        context.off('request', observe);
+        await harness.unlockPasskeyWallet();
+        scenario.beginConsoleOutage();
+        await harness.signTempoTransaction('post_unlock');
+        await harness.signNearTransactionAfterRefresh();
+        assert.equal(scenario.consoleService.requests.length, 0);
+        const returnedHome = await scenario.consoleService.database
+          .prepare('SELECT region, state FROM wallet_homes WHERE wallet_id = ?')
+          .bind(returned.walletId)
+          .first();
+        assert.deepEqual(returnedHome, { region: 'US', state: 'established' });
+        await writeFile(
+          path.join(scenario.output, 'return-relocation.json'),
+          JSON.stringify(
+            {
+              ...returned,
+              source: 'APAC',
+              destination: 'US',
+              expectedGeneration: 2,
+              freshUnlockAfterMove: true,
+              signingCurves: ['ecdsa', 'ed25519'],
+              consoleRequestsDuringSigning: 0,
+            },
+            null,
+            2,
+          ),
+        );
+      }
     } finally {
+      if (linkedContext) await linkedContext.close();
       await context.unrouteAll({ behavior: 'wait' });
       if (scenario) await scenario.close();
       await custody.close();

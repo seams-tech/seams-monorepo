@@ -34,13 +34,19 @@ export class WalletRelocationTransfer {
       ? { state: 'verified', receipt: existing }
       : { state: 'failed', code: 'receipt_conflict' };
     const wallet = move.wallet;
-    const [authorization, router, deriverA, deriverB, ed25519, ecdsa] = await Promise.all([
+    const sessions = await readPresignSnapshotInventory(this.database, move);
+    const sessionTransfers = [];
+    for (const entry of sessions) {
+      sessionTransfers.push(this.runtime.transfer(wallet, attempt, { participant: 'presign', session: entry.session }));
+    }
+    const [authorization, router, deriverA, deriverB, ed25519, ecdsa, transferredSessions] = await Promise.all([
       this.authorization.transfer(wallet, attempt, this.sourceWriter, this.destinationWriter),
-      this.runtime.advance(wallet, attempt, { participant: 'router' }),
-      this.runtime.advance(wallet, attempt, { participant: 'deriver-a' }),
-      this.runtime.advance(wallet, attempt, { participant: 'deriver-b' }),
-      this.runtime.advance(wallet, attempt, { participant: 'ed25519' }),
-      this.runtime.advance(wallet, attempt, { participant: 'ecdsa' }),
+      this.runtime.transfer(wallet, attempt, { participant: 'router' }),
+      this.runtime.transfer(wallet, attempt, { participant: 'deriver-a' }),
+      this.runtime.transfer(wallet, attempt, { participant: 'deriver-b' }),
+      this.runtime.transfer(wallet, attempt, { participant: 'ed25519' }),
+      this.runtime.transfer(wallet, attempt, { participant: 'ecdsa' }),
+      Promise.all(sessionTransfers),
     ]);
     if (authorization.state === 'failed') return authorization;
     if (router.state === 'failed') return router;
@@ -48,9 +54,8 @@ export class WalletRelocationTransfer {
     if (deriverB.state === 'failed') return deriverB;
     if (ed25519.state === 'failed') return ed25519;
     if (ecdsa.state === 'failed') return ecdsa;
-    const sessions = await readPresignSnapshotInventory(this.database, move);
-    for (const entry of sessions) {
-      const transferred = await this.runtime.advance(wallet, attempt, { participant: 'presign', session: entry.session });
+    for (const [index, entry] of sessions.entries()) {
+      const transferred = transferredSessions[index];
       if (transferred.state === 'failed') return transferred;
       if (transferred.state === 'pending') return { state: 'pending' };
       if (!presignSnapshotMatches(JSON.parse(transferred.receiptJson), entry.receipt))

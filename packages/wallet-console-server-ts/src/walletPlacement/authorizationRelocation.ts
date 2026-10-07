@@ -70,6 +70,7 @@ class AuthorizationRelocationFailure extends Error {
 // This component receipt cannot authorize activation of the complete wallet.
 export class WalletAuthorizationRelocation {
   private readonly verified = new Map<string, string>();
+  private readonly frozen = new Map<string, Extract<FreezeResult, { readonly state: 'frozen' }>>();
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly transport: WalletRegionalDispatch,
@@ -81,6 +82,9 @@ export class WalletAuthorizationRelocation {
     sourceWriter: TenantRuntimeWriterV1,
   ): Promise<FreezeResult> {
     if (sourceWriter.role !== 'gateway') return { state: 'failed', code: 'identity_conflict' };
+    const key = JSON.stringify([wallet, attempt.moveId]);
+    const completed = this.frozen.get(key);
+    if (completed) return completed;
     const authorized = await WalletD1RelocationCommand.authorize(
       this.database,
       wallet,
@@ -107,7 +111,9 @@ export class WalletAuthorizationRelocation {
       if (retiredAtMs > frozenAtMs) throw new AuthorizationRelocationFailure('receipt_conflict');
       const manifest = WalletAuthorizationManifest.parse(response.manifest);
       await recordWalletAuthorizationManifest(this.database, authorized.command, attempt, manifest);
-      return { state: 'frozen', manifest, retiredAtMs, frozenAtMs };
+      const frozen = { state: 'frozen' as const, manifest, retiredAtMs, frozenAtMs };
+      this.frozen.set(key, frozen);
+      return frozen;
     } catch (error) {
       if (error instanceof AuthorizationRelocationFailure)
         return { state: 'failed', code: error.code };

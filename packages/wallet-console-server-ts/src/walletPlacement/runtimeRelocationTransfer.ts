@@ -41,6 +41,14 @@ export class RuntimeRelocationTransfer {
     private readonly destination: WalletRuntimeServiceBinding,
   ) {}
 
+  async transfer(wallet: WalletOwnershipKey, attempt: WalletRelocationAttempt, target: Target): Promise<Result> {
+    for (let step = 0; step < 256; step += 1) {
+      const result = await this.advance(wallet, attempt, target);
+      if (result.state !== 'pending') return result;
+    }
+    return { state: 'pending' };
+  }
+
   async advance(wallet: WalletOwnershipKey, attempt: WalletRelocationAttempt, target: Target): Promise<Result> {
     if (attempt.phase !== 'copying' || !attempt.wallet.matches(wallet))
       return { state: 'failed', code: 'identity_conflict' };

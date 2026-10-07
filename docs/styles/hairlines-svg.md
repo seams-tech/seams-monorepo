@@ -10,13 +10,13 @@ The second example develops **Scoped credentials** into four cut metal keys on a
 
 The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
 
-| Existing asset     | Replacement status                                                              |
-| ------------------ | ------------------------------------------------------------------------------- |
-| Scoped credentials | Keychain approved.                                                              |
-| Audit log          | Paper-record example available for review.                                      |
-| Policy engine      | Combination interlock concept approved. Mechanical detail refinement in review. |
-| Split-key custody  | Not started.                                                                    |
-| Threshold signing  | Not started.                                                                    |
+| Existing asset     | Replacement status                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| Scoped credentials | Keychain approved.                                                                             |
+| Audit log          | Paper-record example available for review.                                                     |
+| Policy engine      | Interlock concept approved. Three-layer sieve available as another policy-filtering direction. |
+| Split-key custody  | Not started.                                                                                   |
+| Threshold signing  | Not started.                                                                                   |
 
 ## Reference and engine
 
@@ -107,35 +107,39 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum travel.
 
-## Policy engine example
+## Three-layer sieve example
 
-The precision sieve replaces the rejected tollgate concept. A thick plate has rounded square, hexagonal, and circular openings. Four posts support it above a collection plate. Countersunk edges, slotted fasteners, and beveled pieces identify the physical parts.
+The graded sieve replaces the rejected single-plate shape sorter. Three circular screens sit on four slender support rods above a collection plate. Dense perforations, machined rims, hexagonal fasteners, and thin screen material give it the form of a laboratory screening assembly. The grains are uneven, tapered fragments with visible facets.
 
-Hovering the assembly lowers six pieces in a short sequence. Three pieces fit through their corresponding openings and reach the collection plate. Three oversized pieces stop on the upper surface. The geometry shows the rule: a matching shape must also fit the permitted size. Pointer exit reverses the demonstration from its current position.
+The screens have progressively smaller round openings. Their aperture radii are 9, 4.6, and 2.4 world units. The fragment sizes are 12, 7, 3.8, and 2 units before their irregular outlines are applied. Twelve fragments form four groups: two coarse fragments stop at the upper screen, three medium fragments stop at the middle screen, two small fragments stop at the lower screen, and five fines reach the collector. The finer feed positions sit toward the front so their final positions remain visible.
 
-The plate is six world units thick. Openings measure 15 units in radius or half-width. Passing pieces measure 12 units; held pieces measure 19. Each piece remains rigid and aligned to its opening. Upper and lower portions draw on opposite sides of the opaque plate. The visible bore is the intersection of its projected upper and lower openings, so its inner wall hides objects behind it.
+Hovering lowers the fragments through four successive stages. Each stage includes a short pause at the screen. A fragment stops when its size exceeds the next opening. The frame stays rigid. A highlighted fine grain carries the eye through the screens, then transfers the highlight to the collector. Pointer exit reverses the same path from its current position.
 
-The center pair moves first. The intensity slider controls the delay to the outer pairs at 30, 55, or 80 milliseconds. The kernel supplies the 700ms tween, reduced motion, and frame-loop sleep. Hit testing uses the stationary plate plane. Settled pieces do not redraw. The readout says `3 pass · 3 held` during filtering and `rest` on exit.
+The 1700ms tween gives the three screening stages time to read. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Grain paths update only when their height changes.
 
-This is a visual metaphor for policy filtering. Hovering does not grant permission or change wallet state. The isolated example remains subject to visual approval before frontpage integration.
+Each screen combines a five-unit structural rim with a 0.8-unit perforated sheet. The visible bore is the intersection of the projected upper and lower openings. Each fragment draws in separate vertical bands between screens. This keeps the opaque plates in front of the material beneath them. The rods and their fasteners also follow the back-to-front order.
 
-Edit `apps/wallet-console/showcase/motion/policy/precision-sieve.js`, then rebuild:
+The sieve remains a review alternative alongside the selected interlock. Its metaphor is successive filtering: each layer applies a tighter condition. Review this direction before frontpage integration.
+
+Edit `apps/wallet-console/showcase/motion/policy/graded-sieve.js`, then rebuild:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/build.mjs" \
-  apps/wallet-console/showcase/motion/policy/precision-sieve.js \
+  apps/wallet-console/showcase/motion/policy/graded-sieve.js \
   apps/wallet-console/showcase/motion/policy/index.html
 ```
 
-Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/precision-sieve`, run:
+Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/graded-sieve`, run:
 
 ```sh
 node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/policy/precision-sieve.js \
-  --answer 0,0,64 --edge 65,30,64 --zoom answer
+  ../../apps/wallet-console/showcase/motion/policy/graded-sieve.js \
+  --answer 0,0,136 --edge 43,20,83 --zoom answer
 ```
 
-Inspect the aperture walls and the motion sheet as each piece crosses the plate. Passing pieces must reach the lower plate. Oversized pieces must stop above it. Enter and leave during motion to check reversal. Check the 240px view and both themes.
+Inspect the contact sheet, motion sheet, and enlarged answer. Follow a fine fragment through all three screens. Check that larger fragments stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
+
+The fixed frame and dense perforations dominate the 240px view. The automated changed-ink metric therefore reports a small response. This is deliberate: the grains carry the motion while the machine stays fixed. Inspect the finer material at full size when judging the filtering sequence.
 
 ## Combination interlock
 

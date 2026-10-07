@@ -109,17 +109,21 @@ Inspect the tooth contours, ring, and openings at full size. Select each key, sw
 
 ## Three-layer sieve example
 
-The graded sieve replaces the rejected single-plate shape sorter. Three circular screens sit on four slender support rods above a collection plate. Dense perforations, machined rims, hexagonal fasteners, and thin screen material give it the form of a laboratory screening assembly. The grains are uneven, tapered fragments with visible facets.
+The graded sieve replaces the rejected single-plate shape sorter. Three circular screens sit on four slender support rods above a collection plate. Dense perforations, machined rims, hexagonal fasteners, and thin screen material give it the form of a laboratory screening assembly.
 
-The screens have progressively smaller round openings. Their aperture radii are 9, 4.6, and 2.4 world units. The fragment sizes are 12, 7, 3.8, and 2 units before their irregular outlines are applied. Twelve fragments form four groups: two coarse fragments stop at the upper screen, three medium fragments stop at the middle screen, two small fragments stop at the lower screen, and five fines reach the collector. The finer feed positions sit toward the front so their final positions remain visible.
+The particles are thin, unbranded metal tokens. Each token has a beveled rim. The three larger sizes also have one faint inset ring. Small starting tilts settle level before the tokens reach the upper screen.
 
-Hovering lowers the fragments through four successive stages. Each stage includes a short pause at the screen. A fragment stops when its size exceeds the next opening. The frame stays rigid. A highlighted fine grain carries the eye through the screens, then transfers the highlight to the collector. Pointer exit reverses the same path from its current position.
+The screens have progressively smaller round openings. Their aperture radii are 9, 4.6, and 2.4 world units. The token radii are 10.5, 7, 3.8, and 2 units. The largest pair has one unit of clearance between their rims. Thickness is 0.3 times the radius. The upper 30% of the thickness tapers to 90% of the full radius.
 
-The 1700ms tween gives the three screening stages time to read. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Grain paths update only when their height changes.
+Twelve tokens form four groups: two large tokens stop at the upper screen, three medium tokens stop at the middle screen, two small tokens stop at the lower screen, and five smallest tokens reach the collector. The smallest token positions sit toward the front so their final positions remain visible.
 
-Each screen combines a five-unit structural rim with a 0.8-unit perforated sheet. The visible bore is the intersection of the projected upper and lower openings. Each fragment draws in separate vertical bands between screens. This keeps the opaque plates in front of the material beneath them. The rods and their fasteners also follow the back-to-front order.
+Hovering lowers the tokens through four successive stages. Each stage includes a short pause at the screen. A token stops when its size exceeds the next opening. The frame stays rigid. A highlighted small token carries the eye through the screens, then transfers the highlight to the collector. Pointer exit reverses the same path from its current position.
 
-The sieve remains a review alternative alongside the selected interlock. Its metaphor is successive filtering: each layer applies a tighter condition. Review this direction before frontpage integration.
+The 1700ms tween gives the three screening stages time to read. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Token paths update only when their height changes.
+
+Each screen combines a five-unit structural rim with a 0.8-unit perforated sheet. The visible bore is the intersection of the projected upper and lower openings. Each token draws in separate vertical bands between screens. This keeps the opaque plates in front of the material beneath them. The rods and their fasteners also follow the back-to-front order.
+
+The user approved the sieve assembly and selected machined tokens to replace its fragments. The sieve remains a review alternative alongside the selected interlock. Its metaphor is successive filtering: each layer applies a tighter condition. Review this direction before frontpage integration.
 
 Edit `apps/wallet-console/showcase/motion/policy/graded-sieve.js`, then rebuild:
 
@@ -137,9 +141,9 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
   --answer 0,0,136 --edge 43,20,83 --zoom answer
 ```
 
-Inspect the contact sheet, motion sheet, and enlarged answer. Follow a fine fragment through all three screens. Check that larger fragments stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
+Inspect the contact sheet, motion sheet, and enlarged answer. Follow a small token through all three screens. Check that larger tokens stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
 
-The fixed frame and dense perforations dominate the 240px view. The automated changed-ink metric therefore reports a small response. This is deliberate: the grains carry the motion while the machine stays fixed. Inspect the finer material at full size when judging the filtering sequence.
+The fixed frame and dense perforations dominate the 240px view. The automated changed-ink metric therefore reports a small response. This is deliberate: the tokens carry the motion while the machine stays fixed. Inspect the smallest tokens at full size when judging the filtering sequence.
 
 ## Combination interlock
 

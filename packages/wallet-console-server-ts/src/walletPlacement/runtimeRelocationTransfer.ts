@@ -18,8 +18,9 @@ type Progress =
   | { readonly state: 'segment'; readonly segmentIndex: number }
   | { readonly state: 'record'; readonly recordIndex: number; readonly segmentIndex: number };
 type ImportPayload =
-  | { readonly chunk: Record<string, unknown>; readonly segment?: never }
-  | { readonly segment: Record<string, unknown>; readonly chunk?: never };
+  | { readonly chunk: Record<string, unknown>; readonly segment?: never; readonly chunks?: never }
+  | { readonly segment: Record<string, unknown>; readonly chunk?: never; readonly chunks?: never }
+  | { readonly chunks: readonly Record<string, unknown>[]; readonly chunk?: never; readonly segment?: never };
 type TransferRequest =
   | { readonly operation: 'status' | 'verify'; readonly fields?: never }
   | { readonly operation: 'export'; readonly fields: {
@@ -32,7 +33,7 @@ class TransferFailure extends Error {
   constructor(readonly code: WalletRelocationFailure) { super(code); }
 }
 
-// Each advance moves at most one chunk or performs one bounded verification step.
+// Each advance moves one bounded payload or performs one verification step.
 // Destination status is authoritative after a lost reply or a process restart.
 export class RuntimeRelocationTransfer {
   private readonly verified = new Map<string, { readonly state: 'verified'; readonly receiptJson: string }>();
@@ -80,11 +81,16 @@ export class RuntimeRelocationTransfer {
         ? { recordIndex: progress.recordIndex, segmentIndex: progress.segmentIndex }
         : { segmentIndex: progress.segmentIndex };
       const exported = await this.call(this.source, target, envelope, { operation: 'export', fields: cursor });
-      const payload = importPayload(exported, target.participant, progress);
-      const next = nextProgress(exported, target.participant, progress);
+      const chunks = target.participant === 'ecdsa' ? ecdsaBatch(exported, progress.segmentIndex) : null;
+      const last = chunks?.at(-1);
+      const payload: ImportPayload = chunks ? { chunks } : importPayload(exported, target.participant, progress);
+      const acknowledgedIndex = last ? last.segment_index : progress.segmentIndex;
+      const next = last
+        ? segmentProgress(last.segment_index + 1, last.segment_count)
+        : nextProgress(exported, target.participant, progress);
       const accepted = await this.call(this.destination, target, envelope, { operation: 'import', fields: payload });
       const kind = target.participant === 'ed25519' ? accepted.state : accepted.kind;
-      if (kind !== 'imported' || accepted.segment_index !== progress.segmentIndex ||
+      if (kind !== 'imported' || accepted.segment_index !== acknowledgedIndex ||
           (progress.state === 'record' && accepted.record_index !== progress.recordIndex) ||
           typeof accepted.input_digest_hex !== 'string' || !/^[a-f0-9]{64}$/u.test(accepted.input_digest_hex))
         throw new TransferFailure('receipt_conflict');
@@ -122,6 +128,31 @@ export class RuntimeRelocationTransfer {
     if (!isPlainObject(raw)) throw new TransferFailure('receipt_conflict');
     return raw;
   }
+}
+
+type EcdsaChunk = {
+  readonly receipt: Record<string, unknown>;
+  readonly chunk_bytes: number;
+  readonly segment_index: number;
+  readonly segment_count: number;
+  readonly data_b64u: string;
+};
+
+function ecdsaBatch(raw: Record<string, unknown>, firstIndex: number): EcdsaChunk[] {
+  if (Object.keys(raw).length !== 1 || !Array.isArray(raw.chunks) ||
+      raw.chunks.length === 0 || raw.chunks.length > 8) throw new TransferFailure('content_conflict');
+  const chunks: EcdsaChunk[] = [];
+  for (const rawChunk of raw.chunks) {
+    if (!isPlainObject(rawChunk) || !isPlainObject(rawChunk.receipt) || rawChunk.chunk_bytes !== 4096 ||
+        !count(rawChunk.segment_index) || rawChunk.segment_index !== firstIndex + chunks.length ||
+        !count(rawChunk.segment_count) || rawChunk.segment_index >= rawChunk.segment_count ||
+        (chunks.length > 0 && rawChunk.segment_count !== chunks[0].segment_count) ||
+        typeof rawChunk.data_b64u !== 'string' || rawChunk.data_b64u.length > 5462 ||
+        !/^[A-Za-z0-9_-]+$/u.test(rawChunk.data_b64u)) throw new TransferFailure('content_conflict');
+    chunks.push({ receipt: rawChunk.receipt, chunk_bytes: 4096, segment_index: rawChunk.segment_index,
+      segment_count: rawChunk.segment_count, data_b64u: rawChunk.data_b64u });
+  }
+  return chunks;
 }
 
 function nextProgress(

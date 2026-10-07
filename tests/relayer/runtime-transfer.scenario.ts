@@ -52,18 +52,26 @@ export class TransferParticipant {
       const chunk = { receipt, segment_index: this.next, segment_count: 2,
         chunk_bytes: 4096, data_b64u: 'YQ' };
       if (participant === 'router') return Response.json({ kind: 'exported', chunk: { ...chunk, record_index: 0 } });
+      if (participant === 'ecdsa') {
+        const chunks = [chunk];
+        if (this.next === 0) chunks.push({ ...chunk, segment_index: 1 });
+        return Response.json({ chunks });
+      }
       return Response.json(chunk);
     }
     if (operation === 'import') {
-      const chunk = body.chunk ?? body.segment;
-      expect(chunk.segment_index).toBe(this.next);
-      this.next += 1;
-      if (this.loseImportReply) {
-        this.loseImportReply = false;
-        throw new Error('Import committed before response loss');
+      const chunks = participant === 'ecdsa' ? body.chunks : [body.chunk ?? body.segment];
+      if (participant === 'ecdsa') expect(chunks.length).toBe(2 - this.next);
+      for (const chunk of chunks) {
+        expect(chunk.segment_index).toBe(this.next);
+        this.next += 1;
+        if (this.loseImportReply) {
+          this.loseImportReply = false;
+          throw new Error('Import committed before response loss');
+        }
       }
       return Response.json({ [stateKey]: 'imported', record_index: 0,
-        segment_index: chunk.segment_index, input_digest_hex: 'a'.repeat(64) });
+        segment_index: this.next - 1, input_digest_hex: 'a'.repeat(64) });
     }
     expect(operation).toBe('verify');
     expect(this.next).toBe(2);
@@ -104,7 +112,7 @@ export async function verifyRuntimeTransferResume(request: WalletRelocationReque
     expect(participant.exported).toEqual([0, 1]);
   }
   return { nativeTransferDriver: { simulatedRegionalResponses: true, participants: targets.length,
-    lostImportReplyResumesAtDestinationCursor: true, oneChunkPerAdvance: true, ecdsaRestoreResumesWithoutExport: true,
+    lostImportReplyResumesAtDestinationCursor: true, boundedPayloadPerAdvance: true, lostEcdsaReplyAfterPartialBatchResumesAtNextSegment: true, ecdsaRestoreResumesWithoutExport: true,
     invalidStatusStopsSourceExport: true, verifiedRetrySkipsSourceExport: true } };
 }
 

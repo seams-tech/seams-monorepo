@@ -1,6 +1,6 @@
+import type { RelocationResourceVerification } from '../tenantDeployment/relocationResourceVerification';
 import { isPlainObject, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type {
-  TenantDeploymentResourceVerificationsV1,
   TenantRuntimeWriterV1,
 } from '../tenantDeployment/resourceVerification';
 import { WalletHomeCatalog, type WalletHome, type WalletOwnershipKey } from './home';
@@ -36,7 +36,7 @@ type Options = {
   readonly verifyResources: (
     source: WalletHome,
     destination: WalletHome,
-  ) => Promise<TenantDeploymentResourceVerificationsV1>;
+  ) => Promise<RelocationResourceVerification>;
   readonly clock: () => number;
 };
 

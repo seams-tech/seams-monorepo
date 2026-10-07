@@ -56,7 +56,7 @@ export async function createRegionalRealGateway({
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-        export { relocationWriterVersion, relocationResourceVerification } from './tests/fixtures/tenant-deployment/walletRelocationResources';
+        export { relocationWriterVersion, relocationResourceVerification, relocationCustodyNamespaces } from './tests/fixtures/tenant-deployment/walletRelocationResources';
         export { fourRegionBinding, regionalResourceProof } from './tests/helpers/tenantDeploymentFixtures';
         export { D1RegionalDeploymentAdmission } from './packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
         export { DeploymentFencedDatabase } from './packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';

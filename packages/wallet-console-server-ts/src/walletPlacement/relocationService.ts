@@ -1,4 +1,6 @@
-import { base64UrlEncode, isPlainObject, queryD1All, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { readStoredCustodyNamespaces } from '../tenantDeployment/custodyResourceVerification';
+import { CustodyTargetInspector } from './custodyTargets';
+import { base64UrlEncode, isPlainObject, queryD1All, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { parseTenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletHomeCatalog, WalletPlacementError, type WalletHome, type WalletOwnershipKey } from './home';
 import { WalletRelocationLocator, WalletRelocationRequest, WalletRelocation } from './relocation';
@@ -62,7 +64,15 @@ async function advanceMove(move: WalletRelocation, attemptId: string, options: E
   const source = options.bindings.runtimes[move.source.region];
   const destination = options.bindings.runtimes[move.destination.region];
   const authorization = new WalletAuthorizationRelocation(options.database, options.bindings.gateways);
-  const presign = new PresignRelocationPreparation(move.destination, source, destination, options.clock);
+  const wallet = move.wallet;
+  const stored = await queryD1One(options.database, `SELECT preparation_json FROM wallet_relocations
+    WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+      AND wallet_id = ?5 AND move_id = ?6`, [wallet.namespace, wallet.organizationId,
+    wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId]);
+  const custody = readStoredCustodyNamespaces(stored?.preparation_json);
+  if (!custody) return json({ ok: false, code: 'authority_unavailable' }, 503);
+  const targets = new CustodyTargetInspector(move.source, move.destination, custody, source, destination);
+  const presign = new PresignRelocationPreparation(move.destination, source, destination, options.clock, targets);
   const freeze = new WalletRelocationSourceFreeze(options.database, authorization,
     new RuntimeRelocationFreeze(options.database, source, presign), sourceWriters.gateway, options.clock);
   const transfer = new WalletRelocationTransfer(options.database, authorization,

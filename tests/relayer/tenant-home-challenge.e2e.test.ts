@@ -1,3 +1,4 @@
+import { custodyProviderResponse, custodyServiceBindings } from '../fixtures/tenant-deployment/walletRelocationResources';
 import { D1RegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
 import { RelocationResourceVerifier } from '../../packages/wallet-console-server-ts/src/tenantDeployment/relocationResourceVerification';
 import { createTenantD1ResourceVerifierV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceChallenge';
@@ -178,6 +179,11 @@ class ChallengeProvider {
   }
 
   readProvider(request: IncomingMessage, response: ServerResponse): void {
+    const custody = custodyProviderResponse(request.url ?? '', runtimeVersion, deploymentId);
+    if (custody) {
+      response.end(JSON.stringify({ success: true, result: custody }));
+      return;
+    }
     const match = request.url?.match(
       /\/workers\/scripts\/(seams-sdk-d1-(gateway|wallet-runtime)-testnet(-us|-weur|-oc)?)\/(deployments|versions\/[a-f0-9-]+)$/u,
     );
@@ -228,7 +234,12 @@ class ChallengeProvider {
         success: true,
         result: {
           id: match[4].slice('versions/'.length),
-          resources: { bindings: [{ name: 'SIGNER_DB', type: 'd1', id: databaseId }] },
+          resources: {
+            bindings: [{ name: 'SIGNER_DB', type: 'd1', id: databaseId }, ...custodyServiceBindings()],
+            script: { placement: { mode: 'targeted', target: [{ type: 'region',
+              region: match[3] === '-us' ? 'aws:us-east-1' : match[3] === '-weur' ? 'aws:eu-west-2'
+                : match[3] === '-oc' ? 'aws:ap-southeast-2' : 'aws:ap-east-1' }] } },
+          },
         },
       }),
     );
@@ -288,6 +299,7 @@ function writer(
   return {
     name,
     modules: true,
+    modulesRoot: output,
     scriptPath: path.join(output, `${entry}.js`),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
@@ -318,6 +330,7 @@ function consoleWorker(
   return {
     name,
     modules: true,
+    modulesRoot: output,
     scriptPath: path.join(output, 'console.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
@@ -1293,7 +1306,7 @@ async function verifyRelocationResources(
       const result = verifier.verify(catalog.select('US'), catalog.select('APAC'));
       if (scenario === 'stable') {
         const proofs = await result;
-        expect(proofs.map(verifiedDatabaseId)).toEqual([
+        expect(proofs.resources.map(verifiedDatabaseId)).toEqual([
           secondResource.databaseId,
           thirdResource.databaseId,
         ]);

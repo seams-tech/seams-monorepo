@@ -183,6 +183,7 @@ class RegionalPreparationRuntime {
 
   async fetch(input: Request): Promise<Response> {
     const path = new URL(input.url).pathname;
+    if (path.endsWith('/custody-target')) return custodyTargetResponse(input, this.failedParticipant);
     if (path.endsWith('/signing-worker-context')) {
       if (this.failedParticipant === 'signing_worker_context_unavailable')
         return new Response(null, { status: 503 });
@@ -335,4 +336,16 @@ export async function routerSnapshotFixture(request: WalletRelocationRequest, di
     },
     record_count: 1, records_digest_hex: digest,
   };
+}
+
+export async function custodyTargetResponse(input: Request, failure: unknown = null): Promise<Response> {
+  const raw: unknown = await input.json();
+  if (!isPlainObject(raw) || typeof raw.object_name !== 'string' || !isPlainObject(raw.placement))
+    return new Response(null, { status: 400 });
+  const country = raw.placement.location_hint === 'enam' ? 'US'
+    : raw.placement.location_hint === 'weur' ? 'GB' : raw.placement.location_hint === 'oc' ? 'AU' : 'JP';
+  const objectId = failure === 'custody_collision' ? 'a'.repeat(64)
+    : await fixtureObjectDigest('fixture-shared-namespace', raw.object_name);
+  return Response.json({ object_name: raw.object_name, object_id: objectId,
+    location: { colo: 'NRT', country } });
 }

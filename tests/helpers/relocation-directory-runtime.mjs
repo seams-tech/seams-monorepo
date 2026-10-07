@@ -146,7 +146,7 @@ export async function loadRelocationApi({ root, candidate, output }) {
       export { WalletRelocationRequest } from './packages/wallet-console-server-ts/src/walletPlacement/relocation';
       export { WalletRegionalDispatch } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
       export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-      export { relocationWriterVersion, relocationResourceVerification } from './tests/fixtures/tenant-deployment/walletRelocationResources';
+      export { relocationWriterVersion, relocationResourceVerification, relocationCustodyNamespaces } from './tests/fixtures/tenant-deployment/walletRelocationResources';
       export { handleRuntimeRelocationPreparation } from './packages/wallet-console-server-ts/src/walletPlacement/runtimePreparation';
       export { handleWalletControlRequest } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/walletControlOps.ts'))};
       export { WalletAuthorizationRelocationRoutes } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/walletAuthorizationRelocationRoutes.ts'))};

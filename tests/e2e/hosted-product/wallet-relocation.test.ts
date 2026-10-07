@@ -60,7 +60,7 @@ async function runRelocation(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
 ): Promise<void> {
-  test.setTimeout(900_000);
+  test.setTimeout(1_200_000);
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
   if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
   await mkdir(output, { recursive: true });
@@ -77,53 +77,21 @@ async function runRelocation(
   page.on('console', timing.record.bind(timing));
   context.on('response', gateway.observe.bind(gateway));
   const samples = [];
-  const progress = [];
+  const progress: ProgressObservation[] = [];
   let outcome = 'failed';
   try {
     await harness.initialize();
     await harness.registerPasskeyWallet();
     await harness.awaitNearReady();
     await harness.unlockPasskeyWallet();
+    await harness.signNearTransactionAfterRefresh();
     for (let index = 0; index < 2; index += 1) {
       samples.push(await measureSigning(harness, timing, `before_${index}`));
     }
     const walletId = await page.getByTestId('intended-e2e-page').getAttribute('data-wallet-id');
     if (!walletId) throw new Error('Registered wallet identity is missing');
-    const moveId = `wmove_${randomBytes(32).toString('base64url')}`;
-    const admittedAt = Date.now();
-    const intent = parseWalletMoveRequest({
-      walletId,
-      moveId,
-      destinationRegion: 'US',
-      expectedGeneration: 1,
-    });
-    let result = await page.evaluate(admitMove, intent);
-    progress.push({ observedAt: Date.now(), result });
-    await writeFile(
-      path.join(output, 'relocation-progress.json'),
-      JSON.stringify(progress, null, 2),
-    );
-    if (!result.ok) {
-      samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));
-    }
-    expect(result.ok, JSON.stringify(result)).toBe(true);
-    if (!result.ok) throw new Error(`Move admission failed: ${result.code}`);
-    while (result.status.state !== 'completed') {
-      if (result.status.move.progress.execution.state === 'blocked') {
-        throw new Error(`Relocation blocked: ${result.status.move.progress.execution.code}`);
-      }
-      await page.waitForTimeout(5_000);
-      result = await page.evaluate(readMove, intent.moveId);
-      progress.push({ observedAt: Date.now(), result });
-      await writeFile(
-        path.join(output, 'relocation-progress.json'),
-        JSON.stringify(progress, null, 2),
-      );
-      if (!result.ok) throw new Error(`Move progress failed: ${result.code}`);
-    }
-    expect(result.status.destinationRegion).toBe('US');
-    expect(result.status.destinationGeneration).toBe(2);
-    samples.push({ stage: 'admission_through_cleanup', elapsedMs: Date.now() - admittedAt });
+    const moved = await completeMove(page, walletId, 'US', 1, output, progress, harness, timing, samples);
+    samples.push(moved);
     await harness.unlockPasskeyWallet();
     for (let index = 0; index < 3; index += 1) {
       samples.push(
@@ -135,6 +103,14 @@ async function runRelocation(
       );
     }
     await harness.signNearTransactionAfterRefresh();
+    // Observe the normal cooldown; never bypass admission for the return leg.
+    while (Date.now() < moved.admittedAtMs + 300_000) {
+      await page.waitForTimeout(Math.min(5_000, moved.admittedAtMs + 300_000 - Date.now()));
+    }
+    samples.push(await completeMove(page, walletId, 'APAC', 2, output, progress, harness, timing, samples));
+    await harness.unlockPasskeyWallet();
+    samples.push(await measureSigning(harness, timing, 'first_after_return'));
+    await harness.signNearTransactionAfterRefresh();
     harness.assertNoLifecycleViolations();
     harness.assertNoWrongAuthPath();
     outcome = 'passed';
@@ -145,7 +121,7 @@ async function runRelocation(
         {
           outcome,
           scope:
-            'One local browser, real hosted services, APAC to US. Signing timings include automated UI confirmation. Gateway ingress is not proof of durable resource placement.',
+            'One local browser, real hosted services, APAC to US and return. Signing timings include automated UI confirmation. Gateway ingress is not proof of durable resource placement.',
           samples,
           progress,
           refillResults: timing.refillResults,
@@ -184,4 +160,48 @@ async function readMove(moveId: WalletMoveId) {
   if (!window.__seamsIntendedE2EReadWalletMove)
     throw new Error('SDK progress helper is unavailable');
   return window.__seamsIntendedE2EReadWalletMove(moveId);
+}
+
+type ProgressObservation = { readonly observedAt: number; readonly result: WalletMoveStatusResult };
+
+async function completeMove(
+  page: Page,
+  walletId: string,
+  destinationRegion: 'US' | 'APAC',
+  expectedGeneration: number,
+  output: string,
+  progress: ProgressObservation[],
+  harness: InstanceType<typeof IntendedBehaviourHarness>,
+  timing: InstanceType<typeof SigningTimingEvidence>,
+  samples: unknown[],
+) {
+  const intent = parseWalletMoveRequest({ walletId, moveId: `wmove_${randomBytes(32).toString('base64url')}`,
+    destinationRegion, expectedGeneration });
+  const requestedAtMs = Date.now();
+  let result = await page.evaluate(admitMove, intent);
+  let firstActiveObservationMs: number | null = null;
+  for (;;) {
+    const observedAt = Date.now();
+    progress.push({ observedAt, result });
+    await writeFile(path.join(output, 'relocation-progress.json'), JSON.stringify(progress, null, 2));
+    if (!result.ok) {
+      samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));
+      throw new Error(`Move request failed: ${result.code}`);
+    }
+    if (result.status.state === 'completed') {
+      expect(result.status.destinationRegion).toBe(destinationRegion);
+      expect(result.status.destinationGeneration).toBe(expectedGeneration + 1);
+      return { stage: `move_to_${destinationRegion}`, walletId, moveId: intent.moveId,
+        admittedAtMs: result.status.admittedAtMs,
+        admissionThroughCleanupMs: observedAt - requestedAtMs,
+        pauseUpperBoundMs: (firstActiveObservationMs ?? observedAt) - result.status.admittedAtMs,
+        pollIntervalMs: 5_000 };
+    }
+    if (result.status.move.progress.availability === 'active' && firstActiveObservationMs === null)
+      firstActiveObservationMs = observedAt;
+    if (result.status.move.progress.execution.state === 'blocked')
+      throw new Error(`Relocation blocked: ${result.status.move.progress.execution.code}`);
+    await page.waitForTimeout(5_000);
+    result = await page.evaluate(readMove, intent.moveId);
+  }
 }

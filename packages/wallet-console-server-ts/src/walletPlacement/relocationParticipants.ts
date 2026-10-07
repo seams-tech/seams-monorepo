@@ -1,3 +1,5 @@
+import { CustodyRelocationPreparation, CustodyTargetInspector } from './custodyTargets';
+import type { RelocationCustodyNamespaces } from '../tenantDeployment/custodyResourceVerification';
 import type { WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import {
   parseTenantRuntimeWriterV1,
@@ -25,6 +27,7 @@ export function createWalletRelocationParticipants(input: {
   readonly request: WalletRelocationRequest;
   readonly source: WalletHome;
   readonly verifications: TenantDeploymentResourceVerificationsV1;
+  readonly custody: RelocationCustodyNamespaces;
   readonly clock: () => number;
 } & WalletRelocationBindings): WalletRelocationParticipants {
   const destination = input.request.destination;
@@ -37,14 +40,15 @@ export function createWalletRelocationParticipants(input: {
   });
   const sourceRuntime = input.runtimes[input.source.region];
   const destinationRuntime = input.runtimes[destination.region];
+  const inspector = new CustodyTargetInspector(input.source, destination, input.custody, sourceRuntime, destinationRuntime);
   return {
     gateway: new GatewayRelocationPreparation(input.source, destination, input.gateways, input.clock),
     walletRuntime: new RuntimeRelocationPreparation(writer, destinationRuntime, input.clock),
-    router: new RouterRelocationPreparation(destination, destinationRuntime, input.clock),
-    deriverA: new DeriverRelocationPreparation('deriverA', destination, sourceRuntime, destinationRuntime, input.clock),
-    deriverB: new DeriverRelocationPreparation('deriverB', destination, sourceRuntime, destinationRuntime, input.clock),
-    signingWorker: new SigningWorkerRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock),
-    presignSessions: new PresignRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock),
+    router: new CustodyRelocationPreparation('router', inspector, new RouterRelocationPreparation(destination, destinationRuntime, input.clock)),
+    deriverA: new CustodyRelocationPreparation('deriverA', inspector, new DeriverRelocationPreparation('deriverA', destination, sourceRuntime, destinationRuntime, input.clock)),
+    deriverB: new CustodyRelocationPreparation('deriverB', inspector, new DeriverRelocationPreparation('deriverB', destination, sourceRuntime, destinationRuntime, input.clock)),
+    signingWorker: new CustodyRelocationPreparation('signingWorker', inspector, new SigningWorkerRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock)),
+    presignSessions: new PresignRelocationPreparation(destination, sourceRuntime, destinationRuntime, input.clock, inspector),
   };
 }
 

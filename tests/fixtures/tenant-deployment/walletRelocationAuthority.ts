@@ -1,3 +1,4 @@
+import { relocationCustodyNamespaces } from './walletRelocationResources';
 import { StrictPlacementDirectory } from './walletPlacementDirectory';
 import { WalletPlacementConsoleBinding } from '../../../packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
 import { WalletRelocationCoordinator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
@@ -148,7 +149,7 @@ export default {
               : WalletHome.parse(body.preparedDestination);
           result = await moves.admit(
             moveRequest,
-            [
+            { resources: [
               relocationResourceVerification(
                 sourceHome,
                 moveRequest.wallet.namespace,
@@ -159,7 +160,7 @@ export default {
                 moveRequest.wallet.namespace,
                 preparationAtMs,
               ),
-            ],
+            ], custody: relocationCustodyNamespaces(sourceHome, preparedDestination) },
             'test',
             relocationFixtureBindings(moveRequest, nowMs, body.failedParticipant, body.ownerApproval),
             relocationFixtureClock.bind(null, nowMs),

@@ -377,10 +377,10 @@ class BrowserMoveResourceProofs {
   async verify(source, destination) {
     this.calls += 1;
     if (this.calls === 1) throw new Error('Injected resource verification outage');
-    return [
+    return { resources: [
       this.api.relocationResourceVerification(source, this.namespace, Date.now()),
       this.api.relocationResourceVerification(destination, this.namespace, Date.now()),
-    ];
+    ], custody: this.api.relocationCustodyNamespaces(source, destination) };
   }
 }
 

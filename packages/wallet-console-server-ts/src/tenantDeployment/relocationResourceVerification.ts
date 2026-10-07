@@ -1,3 +1,4 @@
+import { verifyCustodyNamespaces, type RelocationCustodyNamespaces } from './custodyResourceVerification';
 import { isPlainObject, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { WalletHome } from '../walletPlacement/home';
 import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
@@ -6,6 +7,11 @@ import {
   TenantResourceVerificationV1,
   type TenantDeploymentResourceVerificationsV1,
 } from './resourceVerification';
+
+export type RelocationResourceVerification = {
+  readonly resources: TenantDeploymentResourceVerificationsV1;
+  readonly custody: RelocationCustodyNamespaces;
+};
 
 type ProviderWriter = {
   readonly workerName: string;
@@ -29,12 +35,26 @@ export class RelocationResourceVerifier {
   async verify(
     source: WalletHome,
     destination: WalletHome,
-  ): Promise<TenantDeploymentResourceVerificationsV1> {
+  ): Promise<RelocationResourceVerification> {
     if (!this.apiToken.trim())
       throw new Error('Relocation resource verification credential is unavailable');
     const sourceProof = await this.verifyHome(source);
     const destinationProof = await this.verifyHome(destination);
-    return [sourceProof, destinationProof];
+    if (sourceProof.authority.kind !== 'cloudflare' || destinationProof.authority.kind !== 'cloudflare')
+      throw new Error('Custody verification requires deployed writers');
+    const sourceCustody = await verifyCustodyNamespaces(
+      this.readProvider.bind(this), source.accountId, sourceProof.authority.walletRuntime.workerName,
+      sourceProof.authority.walletRuntime.versionId, sourceProof.authority.gateway.workerName, source.region,
+    );
+    const destinationCustody = await verifyCustodyNamespaces(
+      this.readProvider.bind(this), destination.accountId, destinationProof.authority.walletRuntime.workerName,
+      destinationProof.authority.walletRuntime.versionId, destinationProof.authority.gateway.workerName, destination.region,
+    );
+    return { resources: [sourceProof, destinationProof], custody: { source: sourceCustody, destination: destinationCustody } };
+  }
+
+  private async readProvider(accountId: string, path: string): Promise<unknown> {
+    return this.provider(accountId, path, null);
   }
 
   private async verifyHome(home: WalletHome): Promise<TenantResourceVerificationV1> {

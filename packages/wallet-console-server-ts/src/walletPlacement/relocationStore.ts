@@ -1,3 +1,4 @@
+import type { RelocationResourceVerification } from '../tenantDeployment/relocationResourceVerification';
 import { GatewayRelocationOwnerApproval, hasFreshRelocationOwnerApproval } from './relocationOwnerApproval';
 import { createWalletRelocationParticipants, type WalletRelocationBindings } from './relocationParticipants';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
@@ -129,11 +130,12 @@ export class D1WalletRelocations {
 
   async admit(
     request: WalletRelocationRequest,
-    resourceVerifications: TenantDeploymentResourceVerificationsV1,
+    verification: RelocationResourceVerification,
     deploymentLane: string,
     bindings: WalletRelocationBindings,
     clock: () => number,
   ): Promise<WalletRelocationAdmission> {
+    const resourceVerifications = verification.resources;
     let admittedAtMs = relocationTimestamp(clock());
     const digest = await request.digest();
     const existing = await this.find(request);
@@ -185,7 +187,7 @@ export class D1WalletRelocations {
     if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
       return { ok: false, code: 'owner_approval_required' };
     const participants = createWalletRelocationParticipants({
-      request, source: assignment.home, verifications: resourceVerifications,
+      request, source: assignment.home, verifications: resourceVerifications, custody: verification.custody,
       gateways: bindings.gateways, runtimes: bindings.runtimes, clock,
     });
     const preparation = await WalletRelocationPreparation.prepare(request, participants, clock);
@@ -236,7 +238,9 @@ export class D1WalletRelocations {
         request.expectedGeneration,
         WALLET_RELOCATION_COOLDOWN_MS,
         JSON.stringify(resourceVerifications),
-        JSON.stringify(preparation),
+        JSON.stringify({ requestDigest: preparation.requestDigest,
+          destinationGeneration: preparation.destinationGeneration, receipts: preparation.receipts,
+          custodyNamespaces: verification.custody }),
       )
       .first<string>('move_id');
     const committed = await this.find(request);

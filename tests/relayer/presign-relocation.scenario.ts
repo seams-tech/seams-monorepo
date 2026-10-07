@@ -1,3 +1,5 @@
+import { CustodyTargetInspector } from '../../packages/wallet-console-server-ts/src/walletPlacement/custodyTargets';
+import { relocationCustodyNamespaces } from '../fixtures/tenant-deployment/walletRelocationResources';
 import { PresignRelocationPreparation } from '../../packages/wallet-console-server-ts/src/walletPlacement/presignPreparation';
 import { readWalletRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import { expect } from '@playwright/test';
@@ -5,7 +7,7 @@ import type { Miniflare } from 'miniflare';
 import type { WalletHome } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import type { WalletRelocationRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import type { WalletRelocationAttempt } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationExecution';
-import { presignSnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
+import { custodyTargetResponse, presignSnapshotFixture } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRelocationResources';
 
 type Context = {
@@ -95,6 +97,7 @@ class SettlementRuntime {
   constructor(private readonly context: Context) {}
 
   async fetch(request: Request): Promise<Response> {
+    if (request.url.endsWith('/custody-target')) return custodyTargetResponse(request);
     const body = await request.json();
     const receipt = presignSnapshotFixture(this.context.request, this.context.admittedAtMs, 'e'.repeat(64));
     const path = new URL(request.url).pathname;
@@ -128,16 +131,23 @@ async function verifyLateSessionSettlement(context: Context) {
   const move = await readWalletRelocation(database, context.request);
   if (!move) throw new Error('Admitted move is required');
   const runtime = new SettlementRuntime(context);
-  const participant = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now);
+  const targets = new CustodyTargetInspector(context.source, context.destination,
+    relocationCustodyNamespaces(context.source, context.destination), runtime, runtime);
+  const participant = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now, targets);
   expect(await participant.settle(database, move, context.attempt)).toBe('unavailable');
   expect(runtime.sourceMutations).toBe(0);
   runtime.preparationAvailable = true;
   expect(await participant.settle(database, move, context.attempt)).toBe('unavailable');
   expect(runtime.sourceMutations).toBe(2);
-  const restarted = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now);
+  const restarted = new PresignRelocationPreparation(context.destination, runtime, runtime, Date.now, targets);
   expect(await restarted.settle(database, move, context.attempt)).toBe('settled');
   expect(runtime.sourceMutations).toBe(2);
   expect(runtime.preparations).toBe(2);
+  const pinned = await database.prepare(`SELECT targets_json FROM wallet_presign_custody_targets
+    WHERE move_id = ?`).bind(move.moveId).all();
+  expect(pinned.results).toHaveLength(1);
+  await expect(database.prepare(`UPDATE wallet_presign_custody_targets SET targets_json = '{}'
+    WHERE move_id = ?`).bind(move.moveId).run()).rejects.toThrow('presign_custody_targets_immutable');
 }
 
 export async function verifyPresignCleanupAdmission(context: Context, activated: boolean) {

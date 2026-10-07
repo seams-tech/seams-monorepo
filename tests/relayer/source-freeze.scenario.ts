@@ -1,3 +1,5 @@
+import { CustodyTargetInspector } from '../../packages/wallet-console-server-ts/src/walletPlacement/custodyTargets';
+import { relocationCustodyNamespaces } from '../fixtures/tenant-deployment/walletRelocationResources';
 import { recordEcdsaSnapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/ecdsaRelocationReceipt';
 import { recordEd25519Snapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/ed25519RelocationReceipt';
 import { recordDeriverSnapshot } from '../../packages/wallet-console-server-ts/src/walletPlacement/deriverRelocationReceipt';
@@ -92,7 +94,9 @@ export async function verifySourceFreezeAssembly(database: D1DatabaseLike, reque
   const authorization = new WalletAuthorizationRelocation(database, dispatch);
   const native = new NativeFreezeParticipant(request, move.admittedAtMs);
   const clock = sealClock.bind(null, move.admittedAtMs);
-  const presign = new PresignRelocationPreparation(move.destination, native, unused, clock);
+  const targets = new CustodyTargetInspector(move.source, move.destination,
+    relocationCustodyNamespaces(move.source, move.destination), native, unused);
+  const presign = new PresignRelocationPreparation(move.destination, native, unused, clock, targets);
   const runtime = new RuntimeRelocationFreeze(database, native, presign);
   const source = new WalletRelocationSourceFreeze(database, authorization, runtime, writer, clock);
   const context = { request, move, attempt };

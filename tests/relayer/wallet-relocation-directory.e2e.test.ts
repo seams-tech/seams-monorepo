@@ -806,7 +806,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     observations.push({ ownerApprovalRequiredBeforeAndAfterPreparation: true });
 
     // A preparation failure must leave the source active.
-    for (const failedParticipant of ['gateway', 'gateway_schema_conflict', 'walletRuntime', 'runtime_version_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'deriver_physical_collision', 'signingWorker', 'signing_worker_context_unavailable', 'signing_worker_context_conflict', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
+    for (const failedParticipant of ['custody_collision', 'gateway', 'gateway_schema_conflict', 'walletRuntime', 'runtime_version_conflict', 'router', 'router_conflicting_chunk', 'router_object_conflict', 'deriverA', 'deriverB', 'deriver_context_unavailable', 'deriver_context_conflict', 'deriver_object_conflict', 'deriver_physical_collision', 'signingWorker', 'signing_worker_context_unavailable', 'signing_worker_context_conflict', 'signing_worker_object_conflict', 'signing_worker_wrong_wallet', 'presignSessions', 'presign_inventory_unavailable', 'presign_inventory_cycle', 'presign_receipt_conflict']) {
       expect(
         await responseBody(
           await call(runtime, {
@@ -863,6 +863,12 @@ test('relocation directory serializes competing moves and survives lost replies 
     const preparationEvidence = JSON.parse(pinnedPreparation!);
     expect(preparationEvidence.requestDigest).toBe(await request.digest());
     expect(preparationEvidence.receipts).toHaveLength(7);
+    for (const role of ['router', 'deriverA', 'deriverB', 'signingWorker']) {
+      const receipt = preparationEvidence.receipts.find(preparationParticipantMatches.bind(null, role));
+      expect(receipt.custodyTargets.source.objectId).not.toBe(receipt.custodyTargets.destination.objectId);
+      expect(receipt.custodyTargets.source.namespaceId).toBe(receipt.custodyTargets.destination.namespaceId);
+      expect(receipt.custodyTargets.destination.generation).toBe(2);
+    }
     await expect(
       database
         .prepare(
@@ -2455,3 +2461,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     await runtime.dispose();
   }
 });
+
+function preparationParticipantMatches(role: string, value: { participant: string }): boolean {
+  return value.participant === role;
+}

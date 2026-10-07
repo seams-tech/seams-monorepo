@@ -1,3 +1,4 @@
+import { CustodyTargetInspector, parseCustodyTargetPair, type CustodyTargetPair } from './custodyTargets';
 import { isPlainObject, queryD1One, sha256Bytes, type D1DatabaseLike, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import { WalletPlacementError, type WalletHome } from './home';
 import { relocationTimestamp, type WalletRelocation } from './relocation';
@@ -32,6 +33,7 @@ export class PresignRelocationPreparation {
     private readonly sourceRuntime: WalletRuntimeServiceBinding,
     private readonly destinationRuntime: WalletRuntimeServiceBinding,
     private readonly clock: () => number,
+    private readonly targets: CustodyTargetInspector,
   ) {}
 
   // The journal receipt is the durable progress marker. A lost response repeats
@@ -66,6 +68,21 @@ export class PresignRelocationPreparation {
           if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
           continue;
         }
+        const targets = await this.targets.linked(session.presign_session_id, request.source_generation);
+        await database.prepare(`INSERT INTO wallet_presign_custody_targets
+          (namespace, organization_id, project_id, environment_id, wallet_id, move_id, presign_session_id, targets_json)
+          SELECT namespace, organization_id, project_id, environment_id, wallet_id, move_id, ?7, ?8
+          FROM wallet_relocations WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+            AND environment_id = ?4 AND wallet_id = ?5 AND move_id = ?6 AND state = 'freezing'
+          ON CONFLICT DO NOTHING`).bind(wallet.namespace, wallet.organizationId, wallet.projectId,
+          wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id, JSON.stringify(targets)).run();
+        const pinned = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
+          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7`, [wallet.namespace,
+          wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId, session.presign_session_id]);
+        if (!pinned || typeof pinned.targets_json !== 'string') return 'unavailable';
+        const saved = parseCustodyTargetPair(JSON.parse(pinned.targets_json), request.source_generation);
+        if (!sameTarget(saved.source, targets.source) || !sameTarget(saved.destination, targets.destination)) return 'unavailable';
         const prepared = await call(this.destinationRuntime, 'presign-transfer', {
           kind: 'prepare', command: {
             wallet_scope: scope, request, presign_session_id: session.presign_session_id,
@@ -106,6 +123,7 @@ export class PresignRelocationPreparation {
       move_id: command.request.moveId,
       source_generation: command.request.expectedGeneration,
     };
+    const custodyTargets: CustodyTargetPair[] = [];
     let cursor: Cursor = { kind: 'start' };
     let evidence = await preparationEvidenceDigest(['seams/presign/preparation/v1', command.requestDigest]);
     for (;;) {
@@ -119,6 +137,7 @@ export class PresignRelocationPreparation {
         if (!orderedAfter(session.presign_session_id, previous)) return { kind: 'unavailable' };
         previous = session.presign_session_id;
         if (relocationTimestamp(this.clock()) >= expiresAtMs) return { kind: 'unavailable' };
+        custodyTargets.push(await this.targets.linked(session.presign_session_id, request.source_generation));
         const prepared = await call(this.destinationRuntime, 'presign-transfer', {
           kind: 'prepare',
           command: {
@@ -146,6 +165,8 @@ export class PresignRelocationPreparation {
       destinationGeneration: command.destinationGeneration,
       physicalResource: `signing-worker-wallet-${objectDigest}/generation/${command.destinationGeneration}`,
       evidenceDigest: evidence,
+      custodyTargets,
+      custodyEvidenceDigest: await preparationEvidenceDigest([command.requestDigest, command.participant, custodyTargets]),
       preparedAtMs, expiresAtMs,
     };
   }
@@ -209,4 +230,9 @@ function orderedAfter(value: string, previous: string): boolean {
 
 function hexByte(value: number): string {
   return value.toString(16).padStart(2, '0');
+}
+
+function sameTarget(left: CustodyTargetPair['source'], right: CustodyTargetPair['source']): boolean {
+  return left.accountId === right.accountId && left.namespaceId === right.namespaceId &&
+    left.objectName === right.objectName && left.objectId === right.objectId && left.generation === right.generation;
 }

@@ -1,3 +1,4 @@
+import { parseCustodyTargetPair, type CustodyTargetPair } from './custodyTargets';
 import { WalletPlacementError } from './home';
 import { WalletRelocationRequest, relocationTimestamp } from './relocation';
 
@@ -34,6 +35,10 @@ type PreparationReceipt = {
 } & (
   | { readonly participant: 'deriverA' | 'deriverB'; readonly physicalObjects: { readonly source: string; readonly destination: string } }
   | { readonly participant: Exclude<Participant, 'deriverA' | 'deriverB'>; readonly physicalObjects?: never }
+) & (
+  | { readonly participant: 'router' | 'deriverA' | 'deriverB' | 'signingWorker'; readonly custodyTargets: CustodyTargetPair; readonly custodyEvidenceDigest: string }
+  | { readonly participant: 'presignSessions'; readonly custodyTargets: readonly CustodyTargetPair[]; readonly custodyEvidenceDigest: string }
+  | { readonly participant: 'gateway' | 'walletRuntime'; readonly custodyTargets?: never; readonly custodyEvidenceDigest?: never }
 );
 
 function invalid(): never {
@@ -45,11 +50,12 @@ function invalid(): never {
 
 function readReceipt(raw: unknown, command: PreparationCommand, nowMs: number): PreparationReceipt {
   const deriver = command.participant === 'deriverA' || command.participant === 'deriverB';
+  const custody = deriver || command.participant === 'router' || command.participant === 'signingWorker' || command.participant === 'presignSessions';
   if (
     !raw ||
     typeof raw !== 'object' ||
     Array.isArray(raw) ||
-    Object.keys(raw).length !== (deriver ? 10 : 9) ||
+    Object.keys(raw).length !== (deriver ? 12 : custody ? 11 : 9) ||
     !('kind' in raw) ||
     raw.kind !== 'prepared' ||
     !('admission' in raw) ||
@@ -81,16 +87,38 @@ function readReceipt(raw: unknown, command: PreparationCommand, nowMs: number): 
     expiresAtMs - preparedAtMs > 300_000
   )
     invalid();
-  if (command.participant === 'deriverA' || command.participant === 'deriverB') {
+  if (command.participant === 'deriverA' || command.participant === 'deriverB' ||
+      command.participant === 'router' || command.participant === 'signingWorker') {
+    if (!('custodyTargets' in raw) || !('custodyEvidenceDigest' in raw) ||
+        typeof raw.custodyEvidenceDigest !== 'string' || !/^[a-f0-9]{64}$/u.test(raw.custodyEvidenceDigest)) invalid();
+    const custodyTargets = parseCustodyTargetPair(raw.custodyTargets, command.request.expectedGeneration);
+    const common = {
+      physicalResource: raw.physicalResource, evidenceDigest: raw.evidenceDigest,
+      preparedAtMs, expiresAtMs, custodyTargets, custodyEvidenceDigest: raw.custodyEvidenceDigest,
+    };
+    if (command.participant === 'router' || command.participant === 'signingWorker') {
+      return Object.freeze({ ...common, participant: command.participant });
+    }
     if (!('physicalObjects' in raw)) invalid();
     const physicalObjects = parseDeriverPhysicalObjects(raw.physicalObjects);
     return Object.freeze({
       participant: command.participant,
-      physicalResource: raw.physicalResource,
-      evidenceDigest: raw.evidenceDigest,
-      preparedAtMs,
-      expiresAtMs,
+      ...common,
       physicalObjects,
+    });
+  }
+  if (command.participant === 'presignSessions') {
+    if (!('custodyTargets' in raw) || !Array.isArray(raw.custodyTargets) ||
+        !('custodyEvidenceDigest' in raw) || typeof raw.custodyEvidenceDigest !== 'string' ||
+        !/^[a-f0-9]{64}$/u.test(raw.custodyEvidenceDigest)) invalid();
+    const custodyTargets: CustodyTargetPair[] = [];
+    for (const target of raw.custodyTargets) {
+      custodyTargets.push(parseCustodyTargetPair(target, command.request.expectedGeneration));
+    }
+    return Object.freeze({
+      participant: 'presignSessions', physicalResource: raw.physicalResource,
+      evidenceDigest: raw.evidenceDigest, preparedAtMs, expiresAtMs,
+      custodyTargets, custodyEvidenceDigest: raw.custodyEvidenceDigest,
     });
   }
   return Object.freeze({
@@ -142,7 +170,10 @@ export class WalletRelocationPreparation {
         destinationGeneration,
       };
       const raw = await participants[participant].prepare(Object.freeze(command));
-      receipts.push(readReceipt(raw, command, relocationTimestamp(clock())));
+      const receipt = readReceipt(raw, command, relocationTimestamp(clock()));
+      if (receipt.custodyTargets && receipt.custodyEvidenceDigest !==
+          await preparationEvidenceDigest([requestDigest, participant, receipt.custodyTargets])) invalid();
+      receipts.push(receipt);
     }
     const preparation = new WalletRelocationPreparation(
       requestDigest,

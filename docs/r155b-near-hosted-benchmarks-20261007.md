@@ -407,3 +407,32 @@ The public custody E2E artifact is
 
 Phase 6A remains open. The principal remaining work is authenticated first-touch
 placement, reducing the measured DO boundaries, and safe NEAR preflight consolidation.
+
+
+### Same-operation NEAR material reuse
+
+A separate SDK change passes transaction planning's existing material preparation
+and executor into execution. It removes the second material preparation call.
+Prepare still reconciles fresh session authority before producing the client share.
+This removes one owner-lane read. It preserves both current status reads.
+
+One hosted wallet verified seven signatures against the restored custody deployments.
+Ordinary signing used **5 Gateway POSTs instead of 6**: two status reads, one owner
+lane read, prepare and finalize. Warm signing took 2.056 and 2.232 seconds.
+The three-signature sequence took 1.690, 1.772 and 1.964 seconds.
+First signing after unlock took 1.895 seconds. This single-wallet sample establishes
+the request reduction, with no controlled latency improvement claimed.
+
+Composed acceptance passed linked Ed25519 revocation and shared-budget exhaustion
+with successful NEAR and ECDSA step-up during Console outage. The earlier rejected
+status-cache experiment remains rejected. This change reuses one transaction's
+prepared material and adds no authority cache.
+
+[SDK request-count evidence](./evidence/r155b-near-material-reuse-20261007.json).
+The local artifacts are `.artifacts/r155b-near-phase6a/sdk-*`.
+
+The three focused public contracts also passed: transaction signing after reload,
+message verification across reload, and changed prepare authority rejected before
+finalize followed by a valid operation. The final run took 43.8 seconds.
+The SDK build and bloat check passed. Two setup failures (missing initializer and
+wrong app origin) were classified as test infrastructure failures and excluded.

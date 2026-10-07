@@ -240,6 +240,34 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Check the pocket seams, card occlusion, full travel, both themes, and fast enter/leave/re-enter gestures. This remains a separate preview pending approval.
 
+## Device linking: chains and a locking carabiner
+
+Two short chains join through one screw-lock carabiner. Alternating link planes show how the solid links interweave. The carabiner has a curved body, hinge pin, inward-opening gate, and ribbed locking sleeve.
+
+Hovering opens the gate before the loose chain moves. Its elongated end link enters through the opening, then slides into the curved end. The gate closes, and the sleeve rotates twice while advancing over the closure. Leaving reverses this sequence from the current position. The fixed stage remains the hover target throughout.
+
+The slider sets the full timeline to 1800, 2200, or 2600 milliseconds. This longer duration makes the separate mechanical steps readable. The kernel supplies easing, reduced motion, and offscreen sleep. Curved tube sections use opaque faces and depth sorting to hide rear edges. Unchanged geometry is cached, and rendering stops when the tween settles. The sleeve carries the accent stroke.
+
+This is a separate device-linking preview. The earlier wallet-card illustration remains available for comparison; this concept awaits approval before frontpage integration.
+
+Edit `apps/wallet-console/showcase/motion/linking/chain-linking.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/linking/chain-linking.js \
+  apps/wallet-console/showcase/motion/linking/index.html
+```
+
+Review at `/dashboard-static/showcase/motion/linking/`. From `.artifacts/chain-linking`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/linking/chain-linking.js \
+  --answer 0,0,0 --edge 70,0,0 --zoom answer
+```
+
+Inspect the resting and linked poses, the insertion path, gate closure, and sleeve rotation. Confirm the loose link clears the body and open sleeve. Check both themes, 240px width, slider extremes, and rapid enter/leave/re-enter gestures. Sampled geometry checks at 101 timeline positions found positive clearance between the incoming links and the body, gate, and sleeve.
+
 ## Visual verification
 
 Run the skill's browser review after each figure change. From `.artifacts/audit-log`, run:

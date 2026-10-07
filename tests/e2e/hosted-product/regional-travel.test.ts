@@ -15,6 +15,8 @@ const { IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 
+const nearOnly = process.env.SEAMS_HOSTED_NEAR_ONLY === '1';
+
 type Region = 'weur' | 'enam' | 'apac' | 'oc';
 
 type ProbeIdentity = {
@@ -37,6 +39,7 @@ type RequestTiming = {
   regionalCompletedMs: number;
   localRoundtripMs: number;
   gatewayRay: string | null;
+  walletHome: string | null;
   failureCode: string | null;
 };
 
@@ -118,6 +121,7 @@ class RegionalGatewayProbe {
       regionalCompletedMs: result.completedMs,
       localRoundtripMs: performance.now() - started,
       gatewayRay: result.headers['cf-ray'] ?? null,
+      walletHome: result.headers['x-seams-wallet-region'] ?? null,
       failureCode: responseFailureCode(result.status, result.bodyBase64),
     });
     await route.fulfill({
@@ -131,16 +135,26 @@ class RegionalGatewayProbe {
 async function registerRegionalWallet(client: RegionalClient): Promise<void> {
   await client.harness.initialize();
   const started = performance.now();
-  await client.harness.registerPasskeyWallet();
-  await client.harness.awaitNearReady();
-  client.registration = { started, completed: performance.now(), walletId: client.harness.walletId };
+  if (nearOnly) {
+    await client.harness.registerPasskeyEd25519YaoWallet();
+  } else {
+    await client.harness.registerPasskeyWallet();
+    await client.harness.awaitNearReady();
+  }
+  client.registration = {
+    started,
+    completed: performance.now(),
+    walletId: client.harness.walletId,
+  };
 }
 
 for (const home of ['weur', 'apac', 'oc'] as const) {
-  test(`${home} home: hosted concurrent regional registration and same-wallet travel`,
-    async ({ browser, request }, testInfo) => {
-      await verifyRegionalTravel(home, { browser, request }, testInfo);
-    });
+  test(`${home} home: hosted concurrent regional registration and same-wallet travel`, async ({
+    browser,
+    request,
+  }, testInfo) => {
+    await verifyRegionalTravel(home, { browser, request }, testInfo);
+  });
 }
 
 async function verifyRegionalTravel(
@@ -153,10 +167,13 @@ async function verifyRegionalTravel(
   const config = JSON.parse(await readFile(process.env.SEAMS_HOSTED_PROBE!, 'utf8'));
   const clients: RegionalClient[] = [];
   const unlocks: { region: Region; elapsedMs: number; requests: RequestTiming[] }[] = [];
-  const samples: { region: Region; index: number; elapsedMs: number; requests: RequestTiming[] }[] = [];
+  const samples: { region: Region; index: number; elapsedMs: number; requests: RequestTiming[] }[] =
+    [];
   try {
-    const regions: Region[] = home === 'oc' ? ['oc', 'apac', 'weur', 'enam'] : ['weur', 'enam', 'apac'];
-    for (const region of regions) {
+    const regions: Region[] =
+      home === 'oc' ? ['oc', 'apac', 'weur', 'enam'] : ['weur', 'enam', 'apac'];
+    const clientRegions = nearOnly ? [home] : regions;
+    for (const region of clientRegions) {
       const context = await browser.newContext();
       await installCandidateAssets(context);
       const probe = new RegionalGatewayProbe(region, config.workerUrl, config.accessToken);
@@ -164,44 +181,72 @@ async function verifyRegionalTravel(
       await context.route(`${process.env.SEAMS_INTENDED_ROUTER_URL}/**`, probe.forward.bind(probe));
       const page = await context.newPage();
       const harness = new IntendedBehaviourHarness({
-        context, page, request, flow: 'passkey.registration', networkMode: 'hosted_product',
+        context,
+        page,
+        request,
+        flow: 'passkey.registration',
+        networkMode: 'hosted_product',
       });
       clients.push({ region, context, probe, harness, registration: null });
     }
-    await Promise.all(clients.map(registerRegionalWallet));
     const primary = clients.find(clientHasRegion.bind(undefined, home));
     if (!primary) throw new Error(`${home} client is missing`);
-    const sequence: Region[] = home === 'oc'
-      ? ['oc', 'apac', 'weur', 'enam', 'oc']
-      : [home, home === 'weur' ? 'apac' : 'weur', 'enam', home];
+    if (nearOnly) await registerRegionalWallet(primary);
+    else await Promise.all(clients.map(registerRegionalWallet));
+    const sequence: Region[] =
+      home === 'oc'
+        ? ['oc', 'apac', 'weur', 'enam', 'oc']
+        : [home, home === 'weur' ? 'apac' : 'weur', 'enam', home];
     for (const region of sequence) {
       await primary.probe.selectRegion(region);
       const unlockStart = performance.now();
       const unlockFirstRecord = primary.probe.records.length;
       await primary.harness.unlockPasskeyWallet();
-      unlocks.push({ region, elapsedMs: performance.now() - unlockStart,
-        requests: primary.probe.records.slice(unlockFirstRecord) });
+      unlocks.push({
+        region,
+        elapsedMs: performance.now() - unlockStart,
+        requests: primary.probe.records.slice(unlockFirstRecord),
+      });
       for (let index = 0; index < 3; index += 1) {
         const start = performance.now();
         const firstRecord = primary.probe.records.length;
-        await primary.harness.signTempoTransaction('post_unlock');
-        samples.push({ region, index, elapsedMs: performance.now() - start,
-          requests: primary.probe.records.slice(firstRecord) });
+        if (nearOnly) await primary.harness.signNearTransaction('post_unlock');
+        else await primary.harness.signTempoTransaction('post_unlock');
+        samples.push({
+          region,
+          index,
+          elapsedMs: performance.now() - start,
+          requests: primary.probe.records.slice(firstRecord),
+        });
       }
     }
-    await primary.harness.unlockPasskeyWallet();
-    await primary.harness.signNearTransaction('post_unlock');
-    await primary.harness.signTempoAndArcEvmConcurrently('post_unlock');
+    if (!nearOnly) {
+      await primary.harness.unlockPasskeyWallet();
+      await primary.harness.signNearTransaction('post_unlock');
+      await primary.harness.signTempoAndArcEvmConcurrently('post_unlock');
+    }
   } finally {
-    const output = path.resolve(process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product');
+    const output = path.resolve(
+      process.env.SEAMS_TEST_ARTIFACT_DIR || '.artifacts/r152/hosted-product',
+    );
     await mkdir(output, { recursive: true });
-    await writeFile(path.join(output, `regional-travel-${home}.json`), JSON.stringify({
-      scope: 'One local browser; Gateway traffic forwarded through physically regional Containers. Regional request timing excludes the local-to-probe hop; browser elapsed includes it.',
-      home,
-      registrations: clients.map(regionalRegistrationEvidence),
-      unlocks,
-      samples,
-    }, null, 2), { mode: 0o600 });
+    await writeFile(
+      path.join(output, `regional-travel-${home}.json`),
+      JSON.stringify(
+        {
+          scope:
+            'One local browser; Gateway traffic forwarded through physically regional Containers. Regional request timing excludes the local-to-probe hop; browser elapsed includes it.',
+          home,
+          signer: nearOnly ? 'near-only' : 'mixed',
+          registrations: clients.map(regionalRegistrationEvidence),
+          unlocks,
+          samples,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
     for (const client of clients) {
       await client.harness.attachTrace(testInfo, `${client.region}-trace.json`);
       await client.context.close();
@@ -210,8 +255,12 @@ async function verifyRegionalTravel(
 }
 
 function regionalRegistrationEvidence(client: RegionalClient) {
-  return { region: client.region, registration: client.registration,
-    identityReads: client.probe.identityReads, requests: client.probe.records };
+  return {
+    region: client.region,
+    registration: client.registration,
+    identityReads: client.probe.identityReads,
+    requests: client.probe.records,
+  };
 }
 
 function clientHasRegion(region: Region, client: RegionalClient): boolean {
@@ -223,10 +272,18 @@ function responseFailureCode(status: number, bodyBase64: string): string | null 
   try {
     const body: unknown = JSON.parse(Buffer.from(bodyBase64, 'base64').toString('utf8'));
     if (!body || typeof body !== 'object') return null;
-    if ('code' in body && typeof body.code === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.code)) {
+    if (
+      'code' in body &&
+      typeof body.code === 'string' &&
+      /^[a-zA-Z0-9_-]{1,100}$/.test(body.code)
+    ) {
       return body.code;
     }
-    if ('error' in body && typeof body.error === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(body.error)) {
+    if (
+      'error' in body &&
+      typeof body.error === 'string' &&
+      /^[a-zA-Z0-9_-]{1,100}$/.test(body.error)
+    ) {
       return body.error;
     }
     return null;

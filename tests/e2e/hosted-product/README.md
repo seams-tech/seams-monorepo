@@ -64,3 +64,18 @@ in the transaction receipt frame. `approval-evidence.json` records request count
 outcomes and the final exhausted quota. The existing
 `refill-session.test.ts` checks live retirement: old credentials must fail refill,
 prepare and finalize while a newly unlocked session can still sign.
+
+`near-signing-latency.test.ts` registers three NEAR-only wallets. Each case verifies
+the first signature, two warm signatures, unlock and its first signature, then a
+three-signature sequence. The test rejects ECDSA signer assets. The SDK timer
+excludes independent signature verification. Registration and unlock phase timers
+include browser automation and verification. Each `near-<sample>.json` retains
+Gateway POST requests and timing evidence. Use `SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1`
+for preparation stages. Missing D1 and service-binding counters remain null.
+
+Set `SEAMS_HOSTED_NEAR_ONLY=1` for the regional travel test to register one NEAR-only
+wallet and sign with it through each client region. For example, select
+`regional-travel --grep 'apac home:'`. The wallet retains its original home. The
+evidence records its home response header and each probe's physical identity.
+The probe hop remains part of browser elapsed time. It is not a native browser
+benchmark from those remote cities.

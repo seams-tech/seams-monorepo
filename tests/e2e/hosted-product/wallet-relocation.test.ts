@@ -117,7 +117,7 @@ async function runRelocation(
         ),
       );
     }
-    await harness.signNearTransaction('step_up_required');
+    await harness.signNearMessage('Verify NEAR custody after relocation to US');
     // Observe the normal cooldown; never bypass admission for the return leg.
     while (Date.now() < moved.admittedAtMs + 300_000) {
       await page.waitForTimeout(Math.min(5_000, moved.admittedAtMs + 300_000 - Date.now()));
@@ -127,7 +127,7 @@ async function runRelocation(
     );
     await harness.unlockPasskeyWallet();
     samples.push(await measureSigning(harness, timing, 'first_after_return'));
-    await harness.signNearTransaction('step_up_required');
+    await harness.signNearMessage('Verify NEAR custody after return to APAC');
     harness.assertNoLifecycleViolations();
     harness.assertNoWrongAuthPath();
     outcome = 'passed';

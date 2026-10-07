@@ -17,7 +17,6 @@ type Target =
   | { readonly participant: 'presign'; readonly session: { readonly presignSessionId: string; readonly serverPresignatureId: string } };
 type Progress = { readonly state: 'pending'; readonly code?: never }
   | { readonly state: 'cleaned'; readonly code?: never } | Extract<Result, { state: 'failed' }>;
-const walletParticipants = ['router', 'deriver-a', 'deriver-b', 'ed25519', 'ecdsa'] as const;
 
 export class WalletRelocationCleanup {
   constructor(
@@ -48,12 +47,20 @@ export class WalletRelocationCleanup {
       const result = await this.cleanParticipant(context, { participant: 'presign', session: entry.session });
       if (result.state !== 'cleaned') return result;
     }
-    for (const participant of walletParticipants) {
-      const result = await this.cleanParticipant(context, { participant });
-      if (result.state !== 'cleaned') return result;
+    const results = await Promise.all([
+      this.cleanParticipant(context, { participant: 'router' }),
+      this.cleanParticipant(context, { participant: 'deriver-a' }),
+      this.cleanParticipant(context, { participant: 'deriver-b' }),
+      this.cleanParticipant(context, { participant: 'ed25519' }),
+      this.cleanParticipant(context, { participant: 'ecdsa' }),
+      this.authorization.cleanup(move.wallet, attempt, this.gatewayWriter),
+    ]);
+    for (const result of results) {
+      if (result.state === 'failed') return result;
     }
-    const gateway = await this.authorization.cleanup(move.wallet, attempt, this.gatewayWriter);
-    if (gateway.state !== 'cleaned') return gateway;
+    for (const result of results) {
+      if (result.state === 'pending') return result;
+    }
     const receipt = WalletRelocationReceipt.parse({
       kind: 'source_cleanup', wallet: move.wallet, moveId: move.moveId,
       home: move.source, generation: move.sourceGeneration, recordedAtMs: this.clock(),

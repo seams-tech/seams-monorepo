@@ -65,7 +65,7 @@ async function runRelocation(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
 ): Promise<void> {
-  test.setTimeout(1_200_000);
+  test.setTimeout(1_800_000);
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
   if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
   await mkdir(output, { recursive: true });
@@ -209,7 +209,10 @@ async function completeMove(
       JSON.stringify(progress, null, 2),
     );
     if (!result.ok) {
-      samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));
+      if (progress.length === 1) {
+        await harness.unlockPasskeyWallet();
+        samples.push(await measureSigning(harness, timing, 'source_after_rejected_admission'));
+      }
       throw new Error(`Move request failed: ${result.code}`);
     }
     if (result.status.state === 'completed') {

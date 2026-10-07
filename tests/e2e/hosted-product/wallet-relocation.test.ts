@@ -218,7 +218,7 @@ async function completeMove(
       JSON.stringify(progress, null, 2),
     );
     if (!result.ok) {
-      if (result.code === 'wallet_unlock_required' && progress.length > 1 && !destinationUnlocked) {
+      if (result.code === 'wallet_unlock_required' && !destinationUnlocked) {
         await harness.unlockPasskeyWallet();
         destinationUnlocked = true;
         result = await page.evaluate(readMove, intent.moveId);

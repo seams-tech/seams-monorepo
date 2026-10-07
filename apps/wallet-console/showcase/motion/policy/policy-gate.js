@@ -6,13 +6,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 /* global HL, hairline */
 const LANES = 3;
 const PITCH = 66;
+const REST_ANGLES = [0, 12, 0];
 const ARM = HL.rrect(-6, -3, 52, 3, 2, 8);
 
 function block(parent, P, front, x0, y0, x1, y1, z0, z1, radius) {
   const [ring, inner] = HL.rings(x0, y0, x1, y1, radius, 0.7);
   const solid = HL.solid(parent);
   HL.put(solid, HL.prism(P, front, ring, inner, z0, z1));
-  return solid;
 }
 
 function wallPoint(P, x, y, side, point) {
@@ -24,15 +24,37 @@ function panel(parent, P, x, y, side, bounds) {
   HL.mk('path', { d: HL.poly(points), class: 'nf lo' }, parent);
 }
 
-function booth(parent, P, front, x) {
-  block(parent, P, front, x - 5, -29, x + 12, 46, 3, 6, 6);
-  block(parent, P, front, x - 3, -22, x + 10, -2, 6, 48, 2);
-  panel(parent, P, x, -1.9, false, [-1, 29, 8, 43]);
-  panel(parent, P, x + 10.1, 0, true, [-20, 29, -4, 43]);
-  panel(parent, P, x, -1.9, false, [0, 10, 7, 25]);
-  HL.mk('path', { d: HL.seg(P(x + 5, -1.8, 19), P(x + 5, -1.8, 22)), class: 'nf lo' }, parent);
-  block(parent, P, front, x - 1, 17, x + 10, 30, 6, 32, 2);
-  panel(parent, P, x, 30.1, false, [1, 10, 8, 21]);
+function lanePoint(P, x, u, v, z) {
+  return P(x + u, v, z);
+}
+
+function booth(parent, P, front) {
+  for (const bounds of [
+    [-10, -31, 16, 46, 3, 6, 5],
+    [-2, -26, 3, -21, 6, 56, 1],
+    [-8, -24, 13, 0, 6, 42, 2],
+    [-10, -26, 15, 2, 42, 44, 2],
+    [-6, -2, -3, 1, 44, 56, 1],
+    [13, -23, 18, -1, 23, 24.5, 1],
+    [-1, 17, 10, 30, 6, 32, 2],
+    [-7, 38, -3, 42, 6, 17, 2],
+  ])
+    block(parent, P, front, ...bounds);
+  for (const bounds of [
+    [-5, 8, 10, 39],
+    [-3, 25, 8, 37],
+    [-3, 11, 8, 21],
+  ]) {
+    panel(parent, P, 0, 0.1, false, bounds);
+  }
+  panel(parent, P, 13.1, 0, true, [-22, 25, -2, 39]);
+  panel(parent, P, 13.2, 0, true, [-20.8, 26.2, -3.2, 37.8]);
+  panel(parent, P, 0, 30.1, false, [1, 10, 8, 21]);
+  let details = HL.seg(P(7, 0.2, 22), P(7, 0.2, 25));
+  details += HL.seg(P(13.3, -12, 26.2), P(13.3, -12, 37.8));
+  details += HL.seg(P(13.3, -19, 30), P(13.3, -15, 34));
+  for (const z of [13, 16, 19]) details += HL.seg(P(3, 30.2, z), P(6, 30.2, z));
+  HL.mk('path', { d: details, class: 'nf lo' }, parent);
 }
 
 function armPoint(P, x, angle, depth, point) {
@@ -45,34 +67,26 @@ function armPoint(P, x, angle, depth, point) {
   );
 }
 
-function hubPoint(P, x, depth, point) {
-  return P(x + 6 + point.u, 31 + depth, 29 + point.v);
-}
-
 function makeArm(parent, P, index) {
   const x = index * PITCH;
   const beam = HL.solid(parent);
   const marks = HL.mk('path', { class: 'nf lo' }, parent);
   const hub = HL.circ(4.3, 40);
-  const rear = hub.map(hubPoint.bind(null, P, x, -1));
-  const face = hub.map(hubPoint.bind(null, P, x, 5));
+  const rear = hub.map(armPoint.bind(null, P, x, 0, -1));
+  const face = hub.map(armPoint.bind(null, P, x, 0, 5));
   HL.mk('path', { d: HL.poly(HL.hull(rear.concat(face))), class: 'sil' }, parent);
   HL.mk('path', { d: HL.poly(face), class: 'nf lo' }, parent);
-  const axle = HL.circ(1.5, 24).map(hubPoint.bind(null, P, x, 5));
+  const axle = HL.circ(1.5, 6).map(armPoint.bind(null, P, x, 0, 5));
   HL.mk('path', { d: HL.poly(axle), class: 'nf lo' }, parent);
-  return { index, beam, marks, angle: HL.tween(restAngle(index)), drawn: NaN };
-}
-
-function restAngle(index) {
-  return index === 1 ? 12 : 0;
+  return { index, beam, marks, angle: HL.tween(REST_ANGLES[index]), drawn: NaN };
 }
 
 function drawArm(state, arm, angle) {
   const x = arm.index * PITCH;
   const rear = armPoint.bind(null, state.P, x, angle, 0);
   const front = armPoint.bind(null, state.P, x, angle, 3.2);
-  const face = ARM.map(front);
-  const silhouette = HL.poly(HL.hull(ARM.map(rear).concat(face)));
+  const face = HL.rrect(-5.4, -2.4, 51.4, 2.4, 1.4, 8).map(front);
+  const silhouette = HL.poly(HL.hull(ARM.map(rear).concat(ARM.map(front))));
   HL.put(arm.beam, { sil: silhouette, crease: HL.poly(face) });
   let stripes = '';
   for (let stripe = 0; stripe < 4; stripe++) {
@@ -100,12 +114,8 @@ function select(state, index) {
   const now = performance.now();
   for (const arm of state.arms) {
     const selected = index === arm.index;
-    HL.tset(
-      arm.angle,
-      selected ? state.lift : restAngle(arm.index),
-      now,
-      Math.abs(arm.index - index) * 35,
-    );
+    const delay = Math.abs(arm.index - index) * 35;
+    HL.tset(arm.angle, selected ? state.lift : REST_ANGLES[arm.index], now, delay);
     arm.beam.sil.classList.toggle('hi', selected || (index < 0 && arm.index === 1));
   }
   state.read.textContent = index < 0 ? 'rest' : `lane 0${index + 1}`;
@@ -114,7 +124,7 @@ function select(state, index) {
 
 function armDistance(P, index, point) {
   const root = P(index * PITCH + 6, 34.2, 29);
-  const tip = armPoint(P, index * PITCH, restAngle(index), 3.2, { u: 52, v: 0 });
+  const tip = armPoint(P, index * PITCH, REST_ANGLES[index], 3.2, { u: 52, v: 0 });
   const dx = tip[0] - root[0];
   const dy = tip[1] - root[1];
   const along = ((point[0] - root[0]) * dx + (point[1] - root[1]) * dy) / (dx * dx + dy * dy);
@@ -132,7 +142,7 @@ function move(state, point) {
   const [x, y] = HL.unproj(state.C, point[0], point[1], 3);
   const index = Math.floor(x / PITCH);
   const localX = x - index * PITCH;
-  const onRoad = localX > 12 && localX < 62 && y > -34 && y < 56;
+  const onRoad = localX > 18 && localX < 62 && y > -34 && y < 56;
   select(state, index >= 0 && index < LANES && onRoad ? index : -1);
 }
 
@@ -146,12 +156,10 @@ function set(state, lift) {
 function mount({ stage, svg, read }, lift) {
   const C = HL.Cam(45, 0.5, 1.45);
   const bounds = [
-    [-12, -40, 0],
+    [-14, -32, 60],
     [194, -40, 0],
     [-12, 56, 0],
     [194, 56, 0],
-    [6, 34, 84],
-    [138, 34, 84],
   ];
   HL.fit(C, bounds, 200, 166);
   const P = HL.proj(C);
@@ -159,12 +167,18 @@ function mount({ stage, svg, read }, lift) {
   block(svg, P, front, -12, -40, 194, 56, 0, 3, 6);
   let road = '';
   for (let lane = 0; lane < LANES; lane++) {
-    const x = lane * PITCH + 35;
-    for (const y of [-28, -10, 8, 43]) road += HL.seg(P(x, y, 3.1), P(x, y + 8, 3.1));
+    const x = lane * PITCH;
+    road += HL.poly(HL.ringAt(P, HL.rrect(x + 20, 43, x + 59, 44.3, 0.3, 4), 3.1));
+    road += HL.poly(HL.ringAt(P, HL.rrect(x + 23, 30, x + 55, 39, 1.5, 6), 3.1));
   }
   HL.mk('path', { d: road, class: 'nf lo' }, svg);
-  for (let lane = 0; lane < LANES; lane++) booth(svg, P, front, lane * PITCH);
-  block(svg, P, front, -7, -27, 181, 1, 48, 54, 3);
+  for (let lane = 0; lane < LANES; lane++) booth(svg, lanePoint.bind(null, P, lane * PITCH), front);
+  block(svg, P, front, -5, -16, 185, -9, 51, 56, 1);
+  block(svg, P, front, -14, -32, 194, 5, 56, 59, 2);
+  block(svg, P, front, -11, -29, 191, 2, 59, 60, 1);
+  for (const x of [54, 120, 186]) {
+    HL.mk('path', { d: HL.seg(P(x, -27, 60.1), P(x, 0, 60.1)), class: 'nf lo' }, svg);
+  }
   const arms = [];
   for (let index = 0; index < LANES; index++) arms.push(makeArm(svg, P, index));
   const state = { C, P, arms, read, lift, active: -2, loop: null };

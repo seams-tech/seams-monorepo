@@ -109,7 +109,7 @@ Inspect the tooth contours, ring, and openings at full size. Select each key, sw
 
 ## Policy engine example
 
-The user selected a tollgate with multiple arms. Three glazed booths, a shared canopy, raised islands, and striped barrier arms make the object recognizable. This replaces the existing Policy engine shield illustration after review.
+The user selected a tollgate with multiple arms. Three proportioned cabins have inset sliding window frames, paneled doors, payment ledges, and separate roof caps. Visible posts and a crossbeam support the thin canopy, with a raised roof edge and panel seams. Bollards protect the raised islands. Vent panels and hexagonal axle caps identify the barrier drives. Stop lines and vehicle-detection loops mark the roadway. This replaces the existing Policy engine shield illustration after review.
 
 Hovering a barrier or its roadway raises that lane's arm. Each rigid arm rotates around a fixed axle that extends from its motor housing. Moving to another lane closes the previous arm and opens the new arm. A 35ms delay per lane of distance separates the movements. Pointer exit restores the resting pose, with the middle arm slightly raised.
 

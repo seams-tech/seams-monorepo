@@ -145,11 +145,11 @@ The fixed frame and dense perforations dominate the 240px view. The automated ch
 
 The user selected the combination interlock for **Policy engine** on 2026-10-07 and requested more mechanical detail. Three independently rotated discs share an axle. Each disc has a radial slot. All three slots must align before a rigid bar can pass through the assembly. Each disc represents a required policy condition.
 
-The drawing includes beveled disc rims and gate mouths, curved adjustment slots, coupling pins, raised axle collars, recessed bearing supports, a hex-socket retaining cap, and four base fasteners. Rounded slot corners leave clearance around the bar. Opaque faces and visible side walls hide the parts behind them. The bar draws in sections between the discs, so each slot correctly hides its far edges.
+The wheels use the original circular grooves and radial tick marks requested in the reference screenshot. Raised axle collars, rounded bearing supports, a slotted retaining cap, and four mounting holes give the assembly depth. Rounded slot corners leave clearance around the bar.
 
 Hovering the figure aligns the discs, then advances the bar. Pointer exit withdraws the bar before the discs rotate back. One reversible timeline controls both actions. The discs finish rotating at progress 0.58. The bar starts moving at 0.64. This gap preserves clearance when the pointer changes direction during motion.
 
-Each disc has three curved adjustment slots between radii 19 and 24. A coupling pin follows the center radius of 21.5. Its relative angle moves by at most 0.2 radians as the disc turns, and returns to the slot center when aligned. The pin radius is 1.8, which leaves clearance from both slot walls and ends. Three-unit axle collars keep the wheels separated. The main gates retain their original clearance and motion sequence.
+The bar outline comes from the projected rounded cross-sections at both ends. Its long edges therefore meet the rounded ends exactly. The bar draws in sections between the discs, without artificial end caps at those divisions. Rear slot walls draw behind each bar section. Exterior walls and front faces draw above it. This order hides rear construction lines while preserving the visible thickness of each wheel. Three-unit axle collars keep the wheels separated.
 
 The center disc starts first. The two outer discs follow together. The resting angles are 65, −48, and 110 degrees. Slots measure 13 units across. The bar measures eight units across and six units high, and travels 75 units. Its height stays fixed throughout the animation.
 
@@ -173,7 +173,7 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
   --answer 9,0,68 --edge 43,20,43 --zoom answer
 ```
 
-Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the coupling pins inside their slots, beveled gate mouths, axle collars, bearing thickness, and bar ends. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
+Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the radial markings, slot walls, axle collars, bearing thickness, and connected bar ends. Look closely for rear lines crossing the bar or gaps at its rounded corners. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
 
 ## Visual verification
 

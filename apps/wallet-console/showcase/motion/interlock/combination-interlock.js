@@ -3,11 +3,11 @@
 function path(parent, classes) {
   return HL.mk('path', { class: classes }, parent);
 }
-function circle(radius, start = 0, end = Math.PI * 2, y = 0, z = 0, steps = 72) {
+function circle(radius, start = 0, end = Math.PI * 2) {
   const points = [];
-  for (let i = 0; i <= steps; i++) {
-    const angle = HL.lerp(start, end, i / steps);
-    points.push([y + radius * Math.sin(angle), z + radius * Math.cos(angle)]);
+  for (let i = 0; i <= 72; i++) {
+    const angle = HL.lerp(start, end, i / 72);
+    points.push([radius * Math.sin(angle), radius * Math.cos(angle)]);
   }
   return points;
 }
@@ -19,86 +19,89 @@ function project(P, x, center, angle, point) {
 function body(svg, x, depth, profile, center = 43) {
   const wall = path(svg, 'fo');
   const back = path(svg, 'sil nf');
+  const frontWall = path(svg, 'fo');
   const face = path(svg, 'sil');
   const detail = path(svg, 'lo nf');
-  return { x, depth, profile, center, wall, back, face, detail, drawn: NaN };
+  return { x, depth, profile, center, wall, back, frontWall, face, detail };
 }
 function drawBody(P, part, angle, detail = '') {
-  if (part.drawn === angle) return;
-  part.drawn = angle;
   const far = part.profile.map(project.bind(null, P, part.x, part.center, angle));
   const near = part.profile.map(project.bind(null, P, part.x + part.depth, part.center, angle));
   let walls = '';
   let edges = '';
+  let frontWalls = '';
+  let frontEdges = '';
   const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
   for (let i = 0; i < far.length; i++) {
     const next = (i + 1) % far.length;
     const before = (i + far.length - 1) % far.length;
     const visible = sideVisible(far[i], far[next], direction);
-    if (visible) walls += HL.poly([far[i], far[next], near[next], near[i]]);
-    if (visible) edges += HL.seg(far[i], far[next]);
-    if (visible !== sideVisible(far[before], far[i], direction)) edges += HL.seg(far[i], near[i]);
+    const wall = HL.poly([far[i], far[next], near[next], near[i]]);
+    const inSlot =
+      Math.abs(part.profile[i][0]) <= 6.501 && part.profile[i][1] + part.center >= 59.99;
+    if (visible) walls += wall;
+    if (visible && !inSlot) frontWalls += wall;
+    let edge = visible ? HL.seg(far[i], far[next]) : '';
+    if (visible !== sideVisible(far[before], far[i], direction)) edge += HL.seg(far[i], near[i]);
+    if (inSlot) edges += edge;
+    else frontEdges += edge;
   }
   part.wall.setAttribute('d', HL.poly(far) + walls);
   part.back.setAttribute('d', edges);
-  part.face.setAttribute('d', HL.poly(near));
+  part.frontWall.setAttribute('d', frontWalls);
+  part.face.setAttribute('d', HL.poly(near) + frontEdges);
   part.detail.setAttribute('d', detail);
 }
 function sideVisible(a, b, direction) {
   return (b[0] - a[0]) * direction[1] - (b[1] - a[1]) * direction[0] < 0;
 }
-function discProfile(radius = 31, slot = 6.5, floor = 17) {
-  const opening = Math.asin(slot / radius);
-  const contour = circle(radius, opening, Math.PI * 2 - opening);
-  contour.push([-slot, floor], [slot, floor]);
+function discProfile() {
+  const opening = Math.asin(6.5 / 31);
+  const contour = circle(31, opening, Math.PI * 2 - opening);
+  contour.push([-6.5, 17], [6.5, 17]);
   return HL.fillet(contour, Array(contour.length).fill(0.8), 3);
 }
 function discDetail(P, disc, angle) {
   const map = project.bind(null, P, disc.x + disc.depth, 43, angle);
-  let d = HL.poly(discProfile(29.6, 7.8, 15.7).map(map));
+  let d = HL.open(circle(26, 0.29, Math.PI * 2 - 0.29).map(map));
   d += HL.poly(circle(11).map(map)) + HL.poly(circle(5).map(map));
-  for (const degrees of [60, 180, 300]) {
-    const theta = HL.rad(degrees);
-    const pocket = circle(24, theta - 0.42, theta + 0.42, 0, 0, 12);
-    pocket.push(...circle(19, theta + 0.42, theta - 0.42, 0, 0, 12));
-    d += HL.poly(HL.fillet(pocket, Array(pocket.length).fill(0.9), 3).map(map));
-    const pinAngle = theta + Math.sin(angle) * 0.2;
-    const pin = circle(1.8, 0, Math.PI * 2, 21.5 * Math.sin(pinAngle), 21.5 * Math.cos(pinAngle));
-    d += HL.poly(pin.map(map));
+  for (let i = 1; i < 24; i++) {
+    const theta = (i * Math.PI) / 12;
+    d += HL.seg(
+      map([27.5 * Math.sin(theta), 27.5 * Math.cos(theta)]),
+      map([29.5 * Math.sin(theta), 29.5 * Math.cos(theta)]),
+    );
   }
   return d;
 }
-function bar(svg, low, high) {
+function bar(svg, low, high, cover) {
   const surface = path(svg, 'fo');
   const edge = path(svg, 'sil nf');
-  const crease = path(svg, 'lo nf');
-  return { low, high, surface, edge, crease, drawn: NaN };
+  if (cover) svg.append(cover.frontWall, cover.face, cover.detail);
+  return { low, high, surface, edge };
 }
 function drawBar(P, part, travel) {
-  if (part.drawn === travel) return;
-  part.drawn = travel;
   const start = Math.max(part.low, -135 + travel);
   const end = Math.min(part.high, -25 + travel);
   let fill = '';
   let edge = '';
-  let crease = '';
   if (end > start) {
     const cross = HL.rrect(-4, 62, 4, 68, 1, 8);
     const a = cross.map(barPoint.bind(null, P, start));
     const b = cross.map(barPoint.bind(null, P, end));
-    fill = HL.poly(HL.hull(a.concat(b)));
-    edge = HL.seg(P(start, -4, 67), P(end, -4, 67)) + HL.seg(P(start, 4, 63), P(end, 4, 63));
-    crease = HL.seg(P(start, 3, 68), P(end, 3, 68));
+    const outline = HL.hull(a.concat(b));
+    fill = HL.poly(outline);
+    for (let i = 0; i < outline.length; i++) {
+      const p = outline[i];
+      const q = outline[(i + 1) % outline.length];
+      if (b.includes(p) && b.includes(q)) continue;
+      if (start !== -135 + travel && a.includes(p) && a.includes(q)) continue;
+      edge += HL.seg(p, q);
+    }
     if (end === -25 + travel) edge += HL.poly(b);
-    if (start === -135 + travel)
-      edge += HL.open(HL.run(cross, barFace).map(barPoint.bind(null, P, start)));
   }
   part.surface.setAttribute('d', fill);
   part.edge.setAttribute('d', edge);
-  part.crease.setAttribute('d', crease);
-}
-function barFace(point) {
-  return point.nu * Math.sqrt(0.375) + point.nv * 0.5 > 0;
 }
 function barPoint(P, x, point) {
   return P(x, point.u, point.v);
@@ -110,9 +113,8 @@ function pedestal(svg, P, x, tall) {
   if (tall) outline.push([-6.5, top], [-6.5, 60], [6.5, 60], [6.5, top]);
   outline.push([13, top], [13, 9]);
   const part = body(svg, x, 8, HL.fillet(outline, Array(outline.length).fill(2), 6), 0);
-  const bearing = circle(8).map(project.bind(null, P, x + 8, 43, 0));
-  const pocket = HL.rrect(-8, 15, 8, 29, 3, 8).map(barPoint.bind(null, P, x + 8));
-  drawBody(P, part, 0, HL.poly(bearing) + HL.poly(pocket));
+  drawBody(P, part, 0, HL.poly(circle(8).map(project.bind(null, P, x + 8, 43, 0))));
+  return part;
 }
 function base(svg, P, front) {
   const rings = HL.rings(-60, -38, 66, 38, 6, 1.5);
@@ -120,13 +122,14 @@ function base(svg, P, front) {
   for (const x of [-51, 57]) {
     for (const y of [-29, 29]) {
       const screw = HL.rrect(x - 2.8, y - 2.8, x + 2.8, y + 2.8, 2.8, 10);
-      const slot = HL.seg(P(x - 1, y - 1, 9), P(x + 1, y + 1, 9));
-      path(svg, 'lo nf').setAttribute('d', HL.poly(HL.ringAt(P, screw, 9)) + slot);
+      path(svg, 'lo nf').setAttribute('d', HL.poly(HL.ringAt(P, screw, 9)));
     }
   }
 }
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);
+  if (progress === state.drawn) return !HL.tdone(state.motion, now);
+  state.drawn = progress;
   for (const [index, disc] of state.discs.entries()) {
     const delay = Math.abs(index - 1) * 0.08;
     const aligned = HL.clamp((progress - delay) / (0.58 - delay), 0, 1);
@@ -136,8 +139,8 @@ function tick(state, _dt, now) {
   // One reversible timeline withdraws the bar fully before any disc can turn.
   const travel = 75 * HL.clamp((progress - 0.64) / 0.36, 0, 1);
   for (const part of state.bars) drawBar(state.P, part, travel);
-  state.read.textContent = 'rest';
-  if (state.active) state.read.textContent = progress < 0.64 ? 'aligning' : '3 aligned · open';
+  state.read.textContent = progress < 0.64 ? 'aligning' : '3 aligned · open';
+  if (!state.active) state.read.textContent = 'rest';
   return !HL.tdone(state.motion, now);
 }
 function select(state, active) {
@@ -157,18 +160,16 @@ function set(state, duration) {
 function mount({ stage, svg, read }, duration) {
   const C = HL.Cam(45, 0.5, 1.75);
   const farCorner = [-135, -4, 68];
-  const nearCorner = [104, 0, 3];
-  HL.fit(C, [farCorner, nearCorner], 200, 166);
+  HL.fit(C, [farCorner, [104, 0, 3]], 200, 166);
   const P = HL.proj(C);
   base(svg, P, HL.facing(C));
-  const bars = [bar(svg, -135, -36)];
-  pedestal(svg, P, -44, true);
+  const bars = [bar(svg, -135, -36, pedestal(svg, P, -44, true))];
   const discs = [];
   let previous = -36;
   for (const [index, x] of [-18, 9, 36].entries()) {
     drawBody(P, body(svg, previous, x + 7 - previous, circle(4)), 0);
-    bars.push(bar(svg, index === 0 ? -36 : x - 20, x + 7));
     const disc = body(svg, x, 7, discProfile());
+    bars.push(bar(svg, index === 0 ? -36 : x - 20, x + 7, disc));
     disc.rest = [65, -48, 110][index];
     discs.push(disc);
     drawBody(P, body(svg, x + 7, 3, circle(9)), 0);
@@ -177,10 +178,9 @@ function mount({ stage, svg, read }, duration) {
   drawBody(P, body(svg, 46, 16, circle(4)), 0);
   bars.push(bar(svg, 43, 51));
   pedestal(svg, P, 54, false);
-  const socket = circle(3, 0, Math.PI * 2, 0, 0, 6).map(project.bind(null, P, 65, 43, 0));
-  drawBody(P, body(svg, 62, 3, circle(8)), 0, HL.poly(socket));
+  drawBody(P, body(svg, 62, 2, circle(7)), 0, HL.seg(P(64, -3, 40), P(64, 3, 46)));
   const motion = HL.tween(0, duration);
-  const state = { P, read, bars, discs, motion, active: null, loop: null };
+  const state = { P, read, bars, discs, motion, drawn: NaN, active: null, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   select(state, false);
   const bag = HL.disposer();

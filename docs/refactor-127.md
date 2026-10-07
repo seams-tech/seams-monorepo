@@ -460,7 +460,7 @@ pnpm tenant:cutover --lane production-testnet \
   --environment-id proj_example:dev
 ```
 
-The command accepts only the deployment lane and environment ID. The Console
+The provisioning command accepts only the deployment lane and environment ID. The Console
 resolves organization and project identity from the target environment. It
 does not accept separate organization, project, root, credential, or origin
 overrides that can form an inconsistent deployment.
@@ -471,11 +471,192 @@ short-lived GitHub OIDC token scoped to that workflow, repository, environment,
 branch, and audience. No cutover signing secret or readiness HMAC environment
 variable exists.
 
-The protected workflow deploys and smokes the complete production-testnet
-Wallet runtime plus the Console control plane before it invokes the cutover.
-An empty Console with no active binding remains infrastructure-ready so the
-first automated cutover can bootstrap it; an existing active binding must still
-pass semantic readiness during the Console health check.
+For historical bindings that lack a D1 home, the explicit operator command is:
+
+```text
+pnpm tenant:cutover adopt-home --lane production-testnet \
+  --revision tdb_RECORDED_PREVIOUS_REVISION --activation-sequence 1 \
+  --operation-id tco_STABLE_OPERATOR_OPERATION
+```
+
+This calls `/internal/tenant-deployment/v1/adopt-home` under the same protected
+OIDC scope. Obtain the exact revision and sequence from the active Console
+record. The namespace must already be inventoried and reserved to its current
+account/database; the request cannot supply a home override. Adoption preserves
+the original binding, root and credential, creates a deterministic replacement,
+runs production readiness, activates through the existing compare-and-swap,
+then runs the registration setup canary. Readiness reads only historical ownership
+scope from persistence; ordinary runtime readers continue to reject old bindings.
+
+Repeat the exact command after an interrupted request. Pending attempts get fresh
+readiness. An activated attempt repeats the canary and retains its activation
+sequence. Canary failure returns an error even though activation is durable;
+reuse the same operation ID to finish verification. A changed active pointer or
+reused operation naming another cutover is rejected. Successful canary attempts
+append audit events, so retries can produce multiple verification events for one
+activation.
+
+This flow is locally verified with the production Console Worker, D1 and
+readiness adapter; external custody, inventory and canary responses are controlled
+in the E2E. It is not wired into the automatic deployment job yet. Before rollout,
+verify physical Worker/database bindings and coordinate adoption with consumer
+deployment: the new ordinary decoder rejects the historical active binding, and
+the existing workflow smokes readiness before cutover. Do not run that unchanged
+deployment sequence against historical bindings. Local evidence and reproduction
+are in `.artifacts/r152/operator-home-adoption-20261002/` and
+`tests/relayer/tenant-home-adoption-operator.e2e.test.ts`.
+
+The read-only provider checkpoint is available separately:
+
+```text
+pnpm tenant:verify-d1-bindings --lane production-testnet \
+  --output .artifacts/d1-binding-checkpoint-UNIQUE_RUN.json
+```
+
+Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the operator environment.
+The token needs permission to read Worker deployments and versions. The command
+reads the existing lane manifest, inspects `SIGNER_DB` on every version in the
+current Gateway and Wallet Runtime deployments, and rereads both deployment
+IDs and traffic weights. Missing bindings, duplicate names, wrong databases,
+malformed weights, denied reads and changed deployments fail the checkpoint.
+Only the selected D1 binding and deployment/version IDs are retained; unrelated
+bindings and secrets are excluded. The output path must be new, and a failure
+records `status: failed`. An interrupted run retains `status: checking`.
+
+`provider_bindings_match` records provider configuration agreement at that time.
+It does not compare the Console reservation, perform the fresh D1/runtime
+challenge, authorize activation, or account for other reachable older versions
+and internal/admin routes. Those are still rollout gates. Provider API semantics:
+[current deployment ordering](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/),
+[version resources](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/versions/methods/get/),
+and [D1 binding IDs](https://developers.cloudflare.com/workers/configuration/multipart-upload-metadata/#bindings).
+
+The combined provider/runtime checkpoint uses the protected OIDC workflow:
+
+```text
+pnpm tenant:cutover verify-resource --lane production-testnet
+```
+
+This operation needs Worker deployment/version read and D1 query permissions as
+well as the existing GitHub OIDC scope. It first verifies the actual provider
+bindings, requiring one serving version at 100% for each writer. It then writes
+one random, five-minute challenge directly through
+the configured database UUID. Console reads its immutable namespace reservation,
+then asks Gateway and Wallet Runtime to read the challenge through their actual
+`SIGNER_DB` bindings. The expected proof is omitted from these private requests;
+only namespace and challenge ID are sent. Both observations must match the
+reservation, proof and validity window. Each writer reports its own Cloudflare
+version metadata ID, which must match the provider's serving version. Missing
+version metadata fails verification. After the runtime reads, the CLI repeats
+provider verification and rejects changes to deployments, versions or weights.
+The challenge must still be fresh when this final check completes. A successful
+single-version run performs twelve provider GETs, one challenge INSERT and one
+DELETE. The returned `tenant_d1_home_checkpoint_v1` includes both provider check
+times, serving deployments and the answering versions, excludes the proof and
+retains `activationAuthorized: false`.
+
+The standalone read-only provider command supports gradual rollouts. The combined
+command rejects them before writing a challenge because one request cannot
+establish runtime coverage of every serving version.
+
+The CLI deletes its exact challenge in `finally`, including when an INSERT
+committed but its response was lost. Process termination can leave an expired
+row; expiry rejects verification but does not itself delete data. Public requests
+to the writer challenge path return 404. The handler works before binding
+adoption and does not initialize homes or touch custody/session records.
+
+Both provisioning and `adopt-home` now run this combined check automatically and
+submit its checkpoint to the OIDC-protected Console route. The protected workflow
+supplies its existing Cloudflare account/token secrets to the cutover step. Console
+accepts provider evidence only from that operator authority; the JSON receipt is
+not an independently signed Cloudflare attestation. Browser onboarding can reuse
+an active deployment; a new hosted activation requires operator verification.
+
+Console migration `0050_tenant_deployment_home_verification.sql` stores the parsed
+verification in the immutable activation row. A unique challenge-ID index makes
+consumption atomic with the active-pointer and cutover transition: another operation
+cannot reuse the proof. Activation checks the reserved home, lane and expiry, with
+a database-clock expiry check in the transaction. That check conservatively requires
+validity beyond the current one-second SQLite clock bucket. Completed activation
+retries return the recorded result after expiry when the original evidence and
+active pointer still match. Expiry does not invalidate an already active deployment.
+
+The Gateway sends its version identity for request and scheduled-work admission;
+Wallet Runtime does so for bound wallet requests. Console joins the activation
+evidence into the existing binding query and rejects unattested or different
+versions. This adds no signing/unlock D1 roundtrip. Deploying new Worker versions
+with unchanged wallet configuration requires a fresh activation; the operator
+provisioning path refreshes that activation while preserving the binding, custody
+and credential. Historical binding conversion remains at the adoption boundary.
+
+The local combined development Worker owns its bootstrap authority and records a
+distinct local verification. The database accepts it only for development bindings.
+The hosted operator boundary rejects local proofs, and split hosted writer admission
+requires Cloudflare evidence. Before admission, the private challenge and readiness
+inspection only read `SIGNER_DB`. The private custody-control handler forwards an
+allowlisted operation to Router/control-plane/Deriver service bindings with internal
+service authentication; it does not access `SIGNER_DB`. It must remain reachable
+for first-tenant creation and cutover preparation. This review covers the pinned
+Wallet Server 0.7.3 handler and the canonical split Worker entrypoints; privileged
+administrative writers and previously deployed code still require inventory.
+
+Rollout prerequisites: Console migration 0050, signer migration
+`0042_deployment_resource_challenges.sql` (after the ordered earlier migrations), the
+new private Console `WALLET_GATEWAY` service binding, the challenge endpoint and
+`CF_VERSION_METADATA` binding on both writers. The renderer supplies that metadata
+binding. The migration currently lives in `seams-wallet` source and is absent
+from the pinned `@seams/wallet-server` 0.7.3 release. Publish/consume the exact new
+package release before the normal migration pipeline can apply it. The local
+acceptance test deliberately reads this source migration and records its hash.
+The version admission check rejects a later different serving version when it
+uses these entrypoints. It cannot constrain privileged replacement code that
+ignores the checks or establish coverage of other administrative writer paths.
+A copied database receiving the fresh challenge can answer it, so runtime proof
+alone cannot establish the provider resource or prevent a second writer.
+
+The protected production-testnet workflow now installs exact dependencies and
+requires the packaged signer challenge migration before authorizing deployment.
+The currently pinned Wallet Server 0.7.3 fails this preflight, so it cannot begin
+this rollout. After that dependency is updated, the workflow deploys Console and
+the complete Wallet runtime, obtains fresh resource verification, activates the binding
+and runs its canary, then smokes Wallet and Console. A missing binding (503) fails
+Wallet smoke; propagation retries retain the existing three-minute budget.
+
+The production-testnet backend workflow is reusable only. Console's standalone
+dispatch offers the other lanes. Both production-testnet deployment CLI commands
+route through the protected coordinator and require the live-demo environment ID:
+
+```sh
+pnpm wallet-system:deploy --lane production-testnet --environment-id <environment-id>
+pnpm console:deploy --lane production-testnet --environment-id <environment-id>
+```
+
+Both commands deploy Console and Wallet together. Staging and production-mainnet
+retain their existing dispatch routes; this change does not add operator activation
+authority for those lanes. New writer versions fail closed until activation;
+this sequence does not establish zero-downtime rollout. Hosted validation remains
+pending. Local evidence is in `.artifacts/r152/coordinated-rollout-20261002/`.
+
+Before upgrading the SDK pin, exercise the packed Wallet Server candidate through
+the same composed home-verification E2E. Set `SEAMS_WALLET_SERVER_CANDIDATE` to an
+absolute extracted package directory. The test resolves the candidate's public
+exports, bundles its JavaScript into the three private Workers, applies its
+packaged signer migrations and records package/manifest hashes and bundle inputs.
+It rejects accidental imports from the installed Wallet Server package. With no
+candidate selected, the development scenario retains the installed SDK plus source
+migrations and labels that combination explicitly in its evidence.
+
+```sh
+SEAMS_WALLET_SERVER_CANDIDATE=/absolute/path/to/extracted/package \
+  pnpm -C tests exec playwright test -c playwright.relayer.config.ts \
+  relayer/tenant-home-challenge.e2e.test.ts --reporter=line
+```
+
+The local Worker obtains presign configuration from the SDK's existing parser,
+with participant IDs 1 and 2. This removes its dependency on the retired `nodeRole`
+field. Candidate and installed-SDK type checks must both pass before changing the
+exact dependency pin. Package acceptance does not authorize npm publication or
+infrastructure deployment.
 
 The workflow is:
 
@@ -819,3 +1000,840 @@ R127 is complete when:
   readers, fallbacks, fixtures, and documentation are deleted;
 - the production-testnet incident is preserved as an end-to-end regression
   test.
+
+### October 3: resource-set activation contract
+
+The current candidate replaces binding `home` with canonical `resources` and
+accepts `resourceCheckpoints` at the protected cutover boundary. Each physical
+resource needs its own fresh Gateway/Wallet Runtime proof. Writer admission now
+matches role, version, account and database; a configured regional catalog must
+match the active set before Console can reserve wallet homes.
+
+Console migration 0054 retires active deployment pointers and unfinished cutovers
+so the new contract requires fresh activation. It preserves activation history
+and consumed challenge IDs, removes singular resource columns, and atomically
+consumes every challenge in an activation. This migration has only been exercised
+locally; no hosted state has been reset.
+
+The regional renderer, complete-set operator challenge collection, regional
+readiness inspection, and admission renewal for changed serving versions remain
+unfinished. The current one-resource operator collector cannot activate the
+three-resource hosted catalog. Deployment and release remain held until these
+paths are replaced and the composed hosted flow is verified.
+
+### October 3: deployment writer renewal
+
+Explicit protected activation now renews writer admission even when the tenant and
+public URLs are unchanged. The provisioner validates the entire resource-proof set
+and adopts the existing managed browser credential. Reuse-only onboarding remains
+a read-only lookup. Root/credential failures release unfinished cutovers; cleanup
+preserves an active credential when the activation committed before its reply was
+lost. The new `tenant-deployment-renewal.e2e.test.ts` exercises six-writer replacement,
+partial proofs, outage/retry, revoked credentials and lost-reply recovery against
+real local D1 persistence.
+
+The final renewal E2E passed in 8.7s; its retained receipt is
+`.artifacts/r152/deployment-renewal-20261003/deployment-renewal-evidence.json`
+(SHA-256 `d8b232d65474ddeed1431fd2340453b0ca60494ad99f64b09dd4f98d42f1139b`).
+The canary authenticates a real persisted key against a controlled HTTP fixture;
+provider/Router evidence is controlled and no hosted latency claim follows.
+Regional rendering, all-backend proof collection and regional readiness remain
+unfinished. Deployment and the 0.8.0 release remain held.
+
+### October 3: regional readiness composition
+
+Hosted Console readiness uses the catalog's three resources through required
+`WALLET_RUNTIME_US`, `WALLET_RUNTIME_WEUR` and `WALLET_RUNTIME_APAC` bindings.
+Every response must identify its expected physical resource. Readiness requires
+exact candidate-set coverage, totals wallet/ceremony counts across regions, and
+fails when any regional inspection fails. `WALLET_RUNTIME` still serves existing
+control/shared operations while their remaining routing work is pending.
+
+Three focused E2Es passed in 45.5s, including three real local Runtime Workers and
+separate signer D1s. An APAC ceremony/outage blocks renewal; wrong-resource and
+incomplete-coverage checks reject invalid readiness. Receipt and logs are retained
+under `.artifacts/r152/regional-readiness-20261003/`; the public R152 results document
+records its SHA-256 and fixture limits. No hosted measurement or deployment occurred.
+The regional renderer and complete-set operator proof collector remain required
+before deployment; 0.8.0 remains held.
+
+### October 3: explicit regional challenge resources
+
+Protected resource verification now requires `{ deploymentLane, resource,
+challengeId, expectedProof }`. Console validates namespace/catalog membership and
+uses the resource's fixed regional Gateway/Runtime pair. Its singular Gateway
+challenge binding and `SEAMS_D1_HOME_*` settings are retired; operator requests and
+provider receipts identify the physical `resource` explicitly.
+
+One Console verifies three local signer D1s and six writer versions in the expanded
+challenge E2E. Cross-resource, unlisted and foreign-namespace requests fail. Three
+focused E2Es passed in 21.6s, with receipt/logs under
+`.artifacts/r152/regional-resource-challenges-20261003/`. Canonical regional targets,
+rendered service bindings and complete-set operator collection remain unfinished;
+no hosted deployment or release occurred.
+
+### October 3: regional configuration and complete-set operator collection
+
+The canonical Gateway deployment schema is now version 5: explicit US/WEUR/APAC
+resources, an ingress region, and an allocated/pending signer-D1 branch. The
+existing APAC resource IDs and public ingress names remain configured. US/WEUR
+allocations remain pending in each lane; no new live UUIDs or allocations were
+invented. These are configured placement hints, not a new provider locality
+measurement. Schema 4 and singular signer-resource configuration are rejected.
+
+The renderer requires `--region US|WEUR|APAC` for Gateway and Wallet Runtime and
+renders one shared Console. All seven configurations receive the catalog; Console
+receives six regional bindings, Gateways receive three named `WalletHomeGateway`
+bindings, and each regional writer pair binds its own signer D1 with matching
+placement. Only the ingress Gateway receives the public custom domain. Existing
+shared/control Runtime calls retain the ingress Runtime pending their routing
+refactor. Pending allocations block rendering, deployment preflight and proof
+collection. Migration/deployment commands iterate all three signer resources and
+writer pairs while retaining packaged migration fingerprint checks.
+
+The operator now returns three fresh resource checkpoints. It checks serving
+versions and physical bindings for all six writers before challenges, rechecks the
+complete set after challenges, rejects any drift/expiry, and passes the full proof
+array to protected activation. Every challenge is cleaned up, including an INSERT
+that commits before its response is lost. A third-region lost-response scenario
+verifies zero challenge rows remain in all three databases. The composed D1
+activation test uses all three actual CLI-collected proofs; synthetic extra-region
+activation proofs were removed.
+
+Four focused E2Es passed in **22.6s**, covering seven rendered configurations,
+pending-allocation refusal, provider binding failures/rollout drift, local
+Worker/D1 challenges and complete-set activation. Targeted candidate-backed
+TypeScript, lint and formatting checks passed. Ten existing deployment-target
+behavior checks passed; an unrelated source-text guard expecting SES workflow
+secrets still fails against the current Resend workflow and was left unchanged.
+The old single-region placement test was replaced by the regional rendering E2E.
+
+Repeat from the private repository:
+
+```sh
+SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server \
+pnpm --dir tests exec playwright test -c playwright.relayer.config.ts \
+  relayer/regional-deployment-config.e2e.test.ts \
+  relayer/tenant-d1-provider-bindings.e2e.test.ts \
+  relayer/tenant-deployment-binding.e2e.test.ts \
+  relayer/tenant-home-challenge.e2e.test.ts --reporter=line
+```
+
+Evidence is retained in the private repository under
+`.artifacts/r152/regional-deployment-set-20261003/`, including command logs,
+`tsconfig.json`, deployment plan, receipts and `receipt-index.json`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `regional-deployment-config-evidence.json` | `062787fae71a892ba7fe84849aa090c86ecc470ff164fde6f601ede3e6c1f9f6` |
+| `runtime-resource-challenge-evidence.json` | `88288f58f26b2e1ac5dcfa2e5a6888eff273315d32d26332a910e80811605bab` |
+| `combined-home-checkpoint.json` | `a6914728dd3e29eabd5ef647c35732f240b8342d124e7beb7f335218c5a840f9` |
+
+Provider HTTP and resource allocations are controlled test fixtures. These results
+prove local composition and operator behavior; no hosted timing was measured.
+Before hosted rollout, allocate/verify US and WEUR resources, bootstrap the new
+service-binding targets, and inspect the frozen deployment plan. The ordinary
+update order assumes targets already exist and does not bootstrap mutual service
+bindings. Shared identity/session/recovery routing, internal/deferred enforcement,
+expiry reconciliation and hosted travel/concurrency tests remain open. No remote
+deployment, schema reset or package publication occurred; 0.8.0 remains held.
+
+### October 3: opaque session and exchange routing
+
+Console migration 0055 adds a tenant-scoped digest-to-wallet index. Gateway hashes
+opaque primary/hosted credentials and exchange codes, resolves their wallet home,
+and forwards through the existing fixed regional binding. Explicit wallet paths
+must agree with the session wallet. Unknown credentials return 401; directory
+outages return 503. The home-local authorization store still owns validity,
+expiry, exchange consumption and revocation.
+
+Only an admitted writer at the wallet's physical home can publish a locator.
+Primary credentials (including linked-device activation) now share one preparation
+path. Direct credential and exchange locators publish before local persistence;
+a failed local commit can leave an inert locator. Hosted child credentials publish
+after successful home-local exchange consumption and before returning the token.
+If that publication fails, the caller receives no token and needs a fresh exchange;
+the parent session remains usable. This is fail-closed ordering across two D1s,
+with no distributed atomicity claim. Expired locators remain routable so the home
+can apply current lifecycle rules; expiry metadata alone grants no authority.
+
+The three-region Worker/D1 scenario passes with 12 digest-only locators. It checks
+remote ingress, one winning concurrent exchange redemption, wrong-home publication,
+wallet/token disagreement, publication outage, retirement of primary and child
+credentials, and continued access by a second device of the same wallet. It uses
+the production authorization preparation and local commit statements used by linked
+devices; the complete device-linking ceremony is outside this test. Three existing
+directory/challenge/activation E2Es also pass (25.3s). SDK build, public and
+candidate-backed private type checks, focused lint and public bloat checks pass.
+
+Remaining: passkey/external-identity/recovery/delivery lookup and shared uniqueness;
+direct Yao, Runtime and deferred home enforcement; expiry/fresh-attempt handling;
+verified regional allocations and service-target bootstrap; hosted concurrency and
+travel acceptance. The replacement remains incomplete and 0.8.0 remains held.
+No hosted deployment, reset, publication or geographic measurement occurred.
+
+Repeatable evidence and commands are recorded in the public
+`docs/refactor-152-results.md`, “opaque session and exchange routing evidence”.
+Local receipt: `.artifacts/r152/session-routing-20261003/regional-session-routing-evidence.json`,
+SHA-256 `4046e52174715aff31d8ac19545db4adc4f7d4bbff32c518326c96fe2d36398f`.
+
+### October 3: direct registration continuation placement
+
+Gateway resolves both direct Yao registration routes by their existing ceremony
+locator before regional service construction. Initial registration credentials
+and later Wallet Sessions reach the ceremony's reserved/established home; a
+session for another wallet is rejected. Malformed/unknown/cancelled ceremonies
+fail closed, and directory outages return `wallet_home_unavailable` with 503.
+Protocol proof validation remains in the home handler. No new index or wire field.
+
+The local directory E2E passed (9.4s), with 12 simulated continuation effects in
+exactly their assigned regional D1s. The session composition also passed, including
+six cross-wallet ceremony rejections. Type checks and lint passed. Receipt hashes,
+repeat commands and test limits are in the public `refactor-152-results.md` direct
+registration checkpoint; evidence is retained in
+`.artifacts/r152/direct-registration-routing-20261003/`.
+Direct recovery/export and remaining shared/internal/deferred routes are still open.
+Release 0.8.0 remains held; no hosted deployment or latency measurement occurred.
+
+### October 3: recovery code and operation routing
+
+Console migration 0056 owns immutable, tenant-scoped `wallet_recovery_routes`:
+`code` contains the existing contextual recovery-code digest; `operation` contains
+the server-issued recovery operation ID. Neither stores a recovery code, custody
+secret, envelope, factor proof or credential. Publication requires the admitted
+writer at the wallet's exact physical home. A conflicting code anywhere in a
+submitted set prevents all new claims in that set. Identical retries are accepted.
+
+The public custody commit store publishes code routes before registration and
+rotation's existing local atomic batches. Successful publication followed by a
+failed local CAS can leave inert metadata. Rotation/consumption removes or changes
+home-local usable material; shared lookup metadata alone cannot make a code usable.
+Old route entries remain bound to their original wallet. A scoped disposable-data
+reset must include this table alongside homes and session locators. No legacy
+namespace routing or migration fallback was added.
+
+Preparation publishes its operation ID after reserving the code and before exposing
+the prepared operation. A publication outage returns a distinct `routing_unavailable`
+result, rendered as HTTP 503 `wallet_home_unavailable`. An interrupted attempt can
+retain its existing local hold until the reservation timeout; this change adds no
+cross-D1 transaction or rollback. Subsequent local attempt/proof checks remain
+mandatory even when a shared operation route exists.
+
+| Route | Home lookup |
+| --- | --- |
+| `/wallets/recovery/prepare` | Decode transiently, derive the existing contextual digest, zero the decoded bytes, resolve shared code route |
+| `/wallets/recovery/finalize`, `google/verify`, `email-otp/verify`, `email-otp/release`, `google-email-otp/finalize` | Shared recovery operation ID; reject a supplied wallet ID that differs |
+| `/wallets/recovery/read`, `rotate`, `acknowledge-backup` | Scoped wallet ID from the request body |
+
+An accompanying session must resolve to the same wallet. Unknown recovery lookup
+and home-local absent/retired codes use the generic recovery-code refusal. Home
+proof verification remains authoritative. Direct Yao recovery/export lifecycle IDs
+are a separate remaining lookup seam, as are passkey/provider uniqueness, delivery,
+internal/deferred enforcement, expiry/fresh attempts and hosted acceptance.
+
+The local three-region session/recovery E2E and focused composition checks pass.
+Canonical custody registration and rotation commits are exercised with synthetic
+ciphertext; full recovery ceremonies and hosted latency remain unverified. See the
+public `refactor-152-results.md` recovery checkpoint for commands and limitations.
+Evidence: `.artifacts/r152/recovery-routing-20261003/`; receipt SHA-256
+`e0049be9472103d6b256fb1e62b8c1cd3ca2bae470ec5a5402346172c716c104`.
+No hosted deployment or publication; 0.8.0 stays held.
+
+### October 3: direct Yao wallet-identity entry routing
+
+The Gateway resolves recovery bootstrap/admission/status and export admission
+through the existing scoped wallet directory before constructing local services.
+Their request wallet and any Wallet Session must agree. Twelve route/home cases
+passed through regional Worker transports and Console D1; malformed/unknown IDs,
+conflicting sessions and directory outages fail closed. Terminal protocol execution
+is controlled; this is routing evidence only. The public R152 results doc records
+the repeat command and receipt hash under `yao-entry-routing-20261003`.
+
+Opaque lifecycle continuations and wallet-less linked-device QR coordination remain
+open, along with shared identity, internal/deferred enforcement, terminal cleanup
+and hosted acceptance. No deployment or 0.8.0 publication occurred.
+
+### October 3: opaque Yao lifecycle routing
+
+Recovery execute/activate now extract `binding.lifecycle.lifecycle_id`; export
+execute extracts `protocol.binding.ceremony.lifecycle.lifecycle_id`. The Gateway
+resolves the scoped operation-kind/ID before constructing regional services, checks
+any Wallet Session against the same wallet, and repeats lookup at the receiving
+home. Unknown routes return 404, malformed IDs 400, conflicts 403 and lookup outages
+503. The home still owns full protocol authorization, expiry and one-use state.
+
+The public recovery handler publishes after successful authorization and admission
+preparation, before the prepared claim is committed or backend admission runs.
+The export handler publishes after its existing atomic authorization commit and
+before backend admission. Publication conflicts return 409 `wallet_home_conflict`;
+outages return 503 `wallet_home_unavailable`. An export publication failure can leave
+an authorized local record; its existing exact-request replay handles retry. There
+is no cross-D1 transaction. A later local/backend failure can leave inert route
+metadata; the locator alone grants no authority and is never reassigned.
+
+Console migration 0057 consolidates recovery code/operation and Yao lifecycle
+locators into `wallet_routes`, preserving existing claims and dropping the former
+`wallet_recovery_routes` table and its triggers. The single immutable store and
+service endpoints replace the recovery-only implementation; no compatibility
+endpoint remains. Only the admitted writer at the wallet's physical home can
+publish. Scoped reset must include `wallet_routes` with homes and session locators.
+
+Remaining: shared passkey/provider uniqueness and lookup, pre-wallet linked-device
+coordination and approved delivery, internal/deferred home enforcement, terminal
+expiry/fresh attempts, cleanup and full hosted acceptance. Release 0.8.0 stays held.
+
+### October 3: passkey challenge and explicit-wallet authentication routing
+
+The Gateway now resolves `/auth/passkey/options` from `user_id`, passkey
+`/wallet/unlock/challenge` from `userId`, and both corresponding verification
+routes from the opaque challenge ID. Email OTP unlock challenge/verify plus
+`/wallet/email-otp/challenge` and `factor-release` resolve the supplied `walletId`.
+Any Wallet Session and any supplied wallet ID must agree with the resolved home.
+Existing home-local proof, active-method, enrollment, expiry and consumption checks
+remain authoritative.
+
+The actual D1 WebAuthn service publishes a `passkey_challenge` locator after finding
+an active credential and before writing/exposing its local login challenge.
+Migration 0058 adds this kind to the existing immutable `wallet_routes` index,
+preserving all claims and leaving no parallel table or compatibility endpoint.
+Publication conflicts return 409; outages return 503 through both public challenge
+handlers. A later local-write failure may leave inert metadata, which grants no
+authority. Consumed/expired challenges retain their home route and fail in the local
+store. Route retention/cleanup remains part of terminal-state work.
+
+Review found the public auth parser accepted repeated/trailing slashes while home
+dispatch used exact paths. It now requires canonical paths; the regional E2E checks
+both aliases return 404 without creating challenges. No alias fallback remains.
+
+This closes challenge-based passkey entry routing, not global credential/provider
+uniqueness, provider discovery or full hosted unlock acceptance. Shared identity,
+pre-wallet linked-device coordination, internal/deferred home enforcement, terminal
+reconciliation/cleanup and hosted lifecycle/travel verification remain open.
+
+### October 3: explicitly selected Google login
+
+`/auth/google/verify` with `account_mode: login` and `wallet_id` now resolves that
+wallet's scoped home before constructing regional services. Invalid selections and
+register-mode selections are rejected; directory outages and conflicting Wallet
+Sessions fail closed. Provider token verification remains in the home handler.
+Requests without `wallet_id` retain their separate discovery/registration path,
+whose shared authority remains unfinished.
+
+Review found `resolveLoginSession` could fall back from a mismatched selected
+wallet to another locally linked/discovered wallet, or to registration after a
+miss. It now returns the precise `wallet_identity_mismatch` failure, with required
+selected-wallet and verified-provider fields. The new branch rejects registration
+fields and mismatched mode/code combinations in type fixtures. An explicit
+selection never silently changes wallet identity.
+
+The three-home composition uses the production request parser, resolver, D1
+identity store and D1 enrollment store. Valid selections succeed through foreign
+ingress; another valid account/wallet in the same home cannot substitute for the
+selection. Missing enrollment fails without registration; session conflicts and
+outages are rejected. Google token verification and enrollment ciphertext are
+controlled fixtures. Shared provider/credential uniqueness, discovery, linking,
+internal/deferred enforcement, terminal cleanup and hosted acceptance remain open.
+
+### R152 shared identity checkpoint — October 3
+
+Hosted Gateway identity operations now use the authenticated Console service and
+its shared `identity_links` table (migration 0059). The existing public D1 identity
+store supplies claim/move/unlink behavior. Scope comes from admitted writer context.
+Three-region composition verifies competing claims, common reads, project isolation,
+move restrictions and fail-closed outages; Google selected-wallet resolution uses
+the shared store. Receipt: `.artifacts/r152/shared-identity-20261003/regional-session-routing-evidence.json`.
+Apply migration 0059 before deploying this candidate. No deployment occurred.
+Provider discovery forwarding, shared offers/limits/credential uniqueness,
+linked-device coordination, internal/deferred routing and hosted acceptance remain
+open; release 0.8.0 stays held.
+
+### R152 verified Google discovery — October 3
+
+Login without `wallet_id` now verifies the Google token before reading the shared
+provider mapping and dispatching to its wallet home. Both endpoints use the same
+production proof verifier, with no generic identity-link side effect during
+routing. The regional composition uses real RSA verification with fixture JWKS;
+shared identity and home lookups use production Console/D1 services. New-account
+registration offers, credential uniqueness, rate limits, linking and remaining
+internal enforcement are still open. No deployment or release occurred.
+
+### R152 shared Google registration offers — October 3
+
+Gateway registration-attempt operations now use Console `/registration-offer` and
+migration 0060. Apply the migration before deploying this candidate. Scope comes
+from admitted writer context; supplied runtime scope must match it. Concurrent
+regional creation returns one offer; retries and sequential restarts share state.
+Pending-only updates reject stale writes after abandonment and do not recreate
+missing records. Regional offer tables remain unused in composition. Receipt:
+`.artifacts/r152/shared-offers-20261003/regional-session-routing-evidence.json`.
+Candidate-selection, concurrent restart/completion, expiry/reservation cleanup,
+shared limits/credential uniqueness and hosted acceptance remain open. No deployment
+or release occurred.
+
+### R152 immutable Google candidate claims — October 3
+
+Console migration 0061 (signer equivalent 0043) adds the registration-intent digest
+claim. Candidate selection is an atomic operation exposed through the authenticated
+offer service. Competing candidates/intents, stale selection writes and restart of
+a claimed offer are rejected; identical retries succeed. The SDK authority path
+claims only after proof, runtime-scope and duplicate-method validation. The regional
+composition verifies claim contention, not complete custody registration. Identity
+publication/offer completion races, expiry and home reconciliation remain open.
+No deployment or release occurred.
+
+### R152 atomic registration completion — October 3
+
+Console offer completion now batches the identity link and offer activation in its
+own D1 authority, followed by an acknowledgement lookup. Failed activation rolls
+back identity publication. The public resolver uses the same store command in
+hosted and standalone composition; sequential linking/finalization was removed.
+Completed offers survive pending-offer expiry cleanup for retry. Regional custody
+commit remains a separate database boundary requiring reconciliation with shared
+completion, expiry and wallet-home reservation. Receipt:
+`.artifacts/r152/registration-completion-20261003/regional-session-routing-evidence.json`.
+No deployment, reset or release occurred.
+
+### R152 completion after offer expiry — October 3
+
+Post-wallet-commit completion carries the original intent digest. Console verifies
+the claim and requires the authenticated writer to match the assigned wallet home.
+Expired claims survive pending cleanup; normal expired completion remains rejected.
+The regional composition simulates the interruption with a retained claim and real
+home reservation. Full custody crash/replay and terminal claim/home cleanup remain
+open. No deployment or release occurred.
+
+### R152 claimed-offer cleanup audit — October 3
+
+Removed unrestricted shared-offer deletion and confined malformed-record deletion
+to unclaimed rows. Expired pending claims remain visible to wallet allocation.
+The composed scenario rejects the removed command, preserves the record and then
+completes through its original intent/home writer. Full terminal home/custody
+reconciliation remains open. No deployment or release occurred.
+
+### R152 terminal cleanup and shared limits — October 3
+
+Console migrations 0062 and 0063 enforce terminal offer cleanup and store shared
+Email OTP counters. Only the assigned writer can finish a home; active Google
+offers prevent cancellation. Four policy scopes each admitted three of six
+concurrent regional requests, with project isolation and outage rejection verified.
+Persistent home-directory E2E also passed. Evidence is retained under
+`.artifacts/r152/shared-limits-20261003/`. Deploy these migrations with the matched
+SDK/Console candidate after the remaining release gates pass. Full custody replay,
+passkey uniqueness, linked devices and hosted verification remain open.
+No deployment, reset or release occurred.
+
+### R152 shared passkey reservation — October 3
+
+Console migration 0064 reserves scoped RP/credential ownership for a wallet, gated
+by its assigned writer. The matched SDK candidate calls it before registration,
+add-method, recovery and linked-device binding writes. Regional composition proved
+one owner under contention, retained claims after interrupted writes, safe retry,
+foreign-writer rejection and outage rejection. Claims do not authenticate users.
+Credential discovery publication, terminal reconciliation and full hosted lifecycle
+acceptance remain open. Receipt: `.artifacts/r152/passkey-claims-20261003/`.
+No deployment or release occurred.
+
+The matched public candidate also passed all 13 isolated passkey registration
+contracts via `pnpm --dir tests test:intended:representative`. Logs and JSON artifacts
+are retained beside the regional claim receipt. These local lifecycle contracts
+supplement the regional composition; hosted acceptance remains outstanding.
+
+### R152 terminal claims and account sync — October 3
+
+Migration 0065 prevents cancellation after passkey ownership is claimed. The service
+returns a home conflict while retaining the claim/home for reconciliation; claim
+and cancellation races cannot both succeed. Known-wallet account sync now publishes
+and resolves home-bound challenges. Wallet-less hosted sync returns explicit 503
+until discovery is implemented. Nine terminal ordering/race cases, regional sync
+travel/conflict/outage checks and persistent-directory E2E passed. Evidence:
+`.artifacts/r152/passkey-terminal-sync-20261003/`. No deployment or release occurred.
+
+### R152 shared discovery challenges — October 3
+
+Console migration 0066 adds shared sync challenges and consumption tombstones.
+Gateway discovery resolves RP/credential claims to a home; consumption is restricted
+to that home's admitted writer. The SDK home verifier still requires committed
+binding, active method and WebAuthn proof. The temporary wallet-less unavailable
+branch and hosted local sync challenge writes are removed. Typed errors preserve
+503 handling across separately bundled SDK entry points.
+
+Regional composition passed travel, replay, expiry, project isolation, outages and
+uncommitted-binding rejection. The local unlock/export/signing browser contract
+passed. Evidence: `.artifacts/r152/passkey-discovery-20261003/`. Full hosted proof
+verification and remaining R152 lifecycle gates remain open; no release or deployment
+occurred. Include this table in scoped resets and expired-row cleanup.
+
+### October 3: regional discovery proof acceptance
+
+The R152 composition now verifies real ES256 sync assertions against shared
+single-use challenges and regional authenticators. It covers known-wallet and
+wallet-less travel, concurrent consumption, forged signatures, wrong signed origins,
+wrong challenges, and revocation after challenge issuance while the shared claim
+remains. Evidence is in `.artifacts/r152/discovery-signature-20261003/` and the
+public `docs/refactor-152-results.md` records its checksum and limitations.
+
+This is local service composition. Expected origin and signer-manifest lookup are
+fixture inputs; full browser discovery/session bootstrap and live timing remain
+open. Linked-device pre-wallet coordination, durable terminal reconciliation and
+internal/deferred enforcement still block release 0.8.0.
+
+### October 3: shared linked-device request proofs
+
+Console migration 0067 adds tenant-scoped linked-device request-proof nonces. Hosted
+Gateway composition supplies the shared port to the SDK verifier; standalone SDK
+composition retains local persistence. Three-region composition verifies real signed
+proof contention, replay, lost acknowledgement, invalid signature, expiry, project
+isolation and outage recovery. The create route returns 503 while Console authority
+is unavailable; hosted regional nonce tables remain empty. Evidence and validation
+logs: `.artifacts/r152/device-proof-nonces-20261003/`; the public R152 results document
+records its SHA-256. Include this table in scoped operational reset inventories.
+
+QR session creation/polling and owner-home handoff remain unimplemented. This checkpoint
+closes replay-authority work only. Release 0.8.0 remains held.
+
+### October 3: linked-session home binding
+
+Migration 0068 extends immutable lifecycle routes with `linked_device`. The SDK
+publishes after owner authorization and before the regional claim CAS; Gateway
+continuations resolve this binding, including nested Email OTP and source execution.
+Three-region composition covers competing owners, denied authorization, publication
+outage, lost replies, cancellation retention, project isolation and traveling routes.
+Evidence: `.artifacts/r152/link-home-20261003/`; checksum and limitations are in the
+public R152 results document. Shared unclaimed QR coordination and crash-safe local
+installation remain open. Release 0.8.0 remains held.
+
+### October 3: shared linked-device bootstrap and home import
+
+Migration 0069 adds shared QR bootstrap state. Its claim transaction publishes the
+linked-device route and winning claim together, replacing the preceding separate
+publication step. Generic route publication now rejects linked-device locators.
+The matched SDK candidate needs signer migration 0044: a durable import receipt
+commits with the home session and claim transcript and survives session cleanup.
+Include both tables in scoped operational reset inventories; shared terminal
+snapshots and import receipts must not be removed by ordinary expiry cleanup.
+
+Local three-home composition covers shared creation/polling, competing owners,
+claim/cancel races, transactional rollback, lost replies, failed import recovery,
+foreign-home rejection and cleanup without resurrection. Evidence is recorded in
+`.artifacts/r152/bootstrap-20261003/` and the public R152 results document. Owner
+permission and subsequent device actions remain controlled in this composition;
+complete approval/delivery/authority installation, terminal reservation
+reconciliation, internal/deferred routing and hosted latency remain open. Release
+0.8.0 remains held. No infrastructure was deployed.
+
+### October 3: creation retries follow the claimed home
+
+Regional dispatch now resolves the QR session ID on linked-device creation POSTs.
+After claim, a retry reaches the wallet home. The SDK returns current local state
+rather than the frozen bootstrap claim; cancellation remains visible and cleanup
+returns conflict without resurrection. The signed HTTP scenario reproduced stale
+`claimed` state after cancellation before this fix. Creation/polling/cancellation
+now execute through real regional HTTP handlers with real Ed25519 request proofs.
+Owner claim authorization and later installation stages remain controlled/open.
+Evidence: `.artifacts/r152/link-http-20261003/`; full R152 and 0.8.0 remain pending.
+
+### October 3: regional approval persistence and polling
+
+The regional HTTP E2E now exercises production owner claim/approval rules, home-only
+approval persistence, exact replay, changed-transcript conflict, cross-wallet
+rejection, signed approval polling and terminal cancellation. Source metadata and
+owner HTTP authentication remain controlled. Invalid signatures cannot read approval
+or consume a valid request's nonce. No production fix was required by these checks.
+
+Evidence: `.artifacts/r152/link-approval-20261003/`. This covers the approval
+transcript; committed signer-package delivery and authority installation still need
+coverage through `targetCredential`, `sourceContributionRouter` and
+`installationReceipt`. Hosted acceptance, internal/deferred routing and terminal
+reservation reconciliation remain open; release 0.8.0 is still held.
+
+### October 3: target-preparation race
+
+Extended the approved regional scenario with concurrent calls to the production D1
+target credential provider at WEUR. A controlled planner generates two independent
+canonical challenges. This exposed an SDK race: the losing insert compared its fresh
+digest to the stored winner and threw. The SDK now validates/replays the durable
+winner; recipient changes remain conflicts. Evidence and logs are retained under
+`.artifacts/r152/target-preparation-20261003/`.
+
+This checks provider persistence after regional HTTP approval. Preparation endpoint
+authentication, real WebAuthn registration, source contribution and final authority
+installation still need verification. No deployment or release was performed.
+
+### October 3: target-preparation HTTP authentication
+
+Regional target preparation now has composed HTTP coverage using real Ed25519
+request proofs and production Console publishable-key authentication with in-memory
+key storage. APAC dispatch reaches WEUR; missing/invalid keys, missing/blocked origins
+and mismatched environments are rejected. Authenticated replay returns the durable
+preparation and a changed recipient conflicts. The harness uses `regional:dev` and
+explicit routes for test Origin hosts required by Miniflare's local proxy.
+
+Evidence: `.artifacts/r152/target-http-20261003/`. Actual target WebAuthn registration,
+source contribution and authority installation remain open. No deployment or release
+was performed; 0.8.0 remains held.
+
+### October 3: browser target registration verification
+
+Chromium's virtual authenticator now produces the target registration in the regional
+E2E. Production verification accepts it; altered challenges and changed configuration
+are rejected. Signed credential HTTP forwards APAC to WEUR. A deliberate source-lookup
+failure after verification keeps the target prepared, releases the commit reservation,
+and permits a fresh-proof retry; invalid challenges never reach source lookup.
+
+Evidence: `.artifacts/r152/target-webauthn-20261003/`. Successful credential persistence
+still requires coherent source-authority and source-contribution planner composition;
+source contribution, package delivery and final installation remain open. This is
+local browser/Worker/D1 composition, with no deployment or release.
+
+### October 3: regional target credential commit
+
+The browser-backed regional scenario now verifies successful target registration
+through APAC into WEUR, the `awaiting_source_contribution` transition, absence of
+US/APAC target rows, and exact retry without another source read or plan. Owner
+session/method/authority reads use D1. Signer protocol material and contribution
+planning remain controlled; actual owner protocol resolution, contribution and
+final installation remain open. Evidence: `.artifacts/r152/target-commit-20261003/`.
+No deployment or release occurred; 0.8.0 remains held.
+
+### October 3: production linked-device source reads
+
+Regional credential registration now composes the production source reader with
+D1 session, method, authority and signer stores. A missing signer fails before
+planning and releases its reservation; a matching parser-validated synthetic signer
+allows registration and exact retry without another source read. The handwritten
+source verification fixture was removed. Regional E2E, focused lint and public bloat
+checks passed. Evidence: `.artifacts/r152/source-read-20261003/`.
+
+Source cryptographic material and contribution planning remain controlled. Real
+custody/source contribution, package delivery and activation remain open; 0.8.0 is held.
+
+### October 3: R153 ownership handoff baseline
+
+Public `docs/refactor-152-state-ownership.md` freezes schema inventory revision 1:
+56 signer tables and 84 shared Console tables, with complete signer-table accounting
+and explicit blocked selectors. Both effective schemas apply cleanly to fresh SQLite.
+Evidence: `.artifacts/r152/ownership-freeze-20261003/schema-baseline.json`.
+
+This is not a relocation-ready copy contract. Audit found that Wallet Runtime's
+mixed-wallet identity reads still use local D1 without home dispatch. Deferred write
+fencing, opaque record selectors/credential reconciliation, DO/Container material
+and complete linked-device activation remain gates. Shared routes must retain enough
+identity to locate link import tombstones after local session cleanup. Concurrent
+R153 implementation files were left untouched.
+
+### October 3: Console mixed-home wallet identity reads
+
+Console's hosted wallet balance reader now resolves every wallet through the shared
+home directory before issuing identity reads. It groups selectors by US/WEUR/APAC,
+sends one request per home, deduplicates selectors within that request, and returns
+results in caller order. Missing/non-established homes and regional HTTP failures
+reject the read; unrequested or duplicate response identities are rejected. The
+existing Runtime contract still omits wallets without both chain identities.
+
+The regional E2E uses the production directory, regional resolver and HTTP client
+across three Worker transports. It checks mixed homes, duplicate inputs, missing
+homes, a failed region, foreign/duplicate response identities and incomplete wallets.
+Regional response payloads are controlled fixtures. This closes Console caller
+routing; direct Runtime entry enforcement, relocation races/write fencing and
+signed-delegate ownership remain separate gates. No hosted deployment occurred.
+
+Evidence: `.artifacts/r152/runtime-identities-20261003/`. R153 placement edits were preserved.
+
+### October 3: direct Runtime identity home enforcement
+
+The private Wallet Runtime now handles its internal identity endpoint through a
+home guard before the signer read. The boundary parses once, checks the active
+tenant scope, resolves every wallet using the authenticated Console home client,
+and compares the assigned account/database with the local resource. Unknown or
+non-established homes return 404, wrong homes 409, scope mismatch 403, invalid input
+400 and directory failure 503. A rejected batch never invokes the local reader.
+The guard reuses the existing production D1 identity reader, now exported by the
+hosted gateway module. The request body is not reparsed by the generic handler.
+
+The three-Worker regional E2E composes this production guard with a Wallet Runtime
+writer-authenticated home client. It verifies mixed-home rejection including a
+local-first/remote-second batch, missing homes, tenant mismatch, malformed batches,
+directory outage and successful home-routed requests. Regional identity payloads
+remain controlled. This closes direct identity-read home enforcement; signed-delegate
+and control operations, in-flight relocation fencing, deferred work and full linked
+device installation remain open. No deployment or release occurred.
+
+Evidence: `.artifacts/r152/runtime-home-20261003/`.
+
+### October 3: deferred continuation and Runtime audit
+
+Both deferred NEAR continuation routes now have three-home routing coverage (18
+home/ingress/operation combinations), stable retry and conflict/outage rejection.
+The private Runtime's unreachable registration-setup gate was removed. Signed
+delegate execution, relayer identity and tenant-root control were confirmed to be
+tenant-owned operations; wallet identity reads retain their new home guard.
+
+E2E, focused types, lint and public bloat checks passed. Evidence:
+`.artifacts/r152/deferred-routing-20261003/`. Deferred effect commits and captured
+background Deriver B execution still require relocation fencing; protocol execution
+and linked-device activation remain open. R153 edits were preserved.
+
+### October 3: production linked-device source preparation
+
+The regional E2E replaces its handwritten contribution planner with production
+D1 source-child/owner metadata resolution, owner-lane projection and contribution
+preparation. Browser registration through APAC commits at WEUR and retries replay
+without replanning; missing source material rejects and remote homes stay empty.
+Fixed the E2E bundle's `bs58` module interop failure by using its native Node import.
+
+Regional E2E, focused lint and public bloat checks passed. Evidence:
+`.artifacts/r152/source-plan-20261003/`. Owner material and target preparation are
+still controlled fixtures. Real contribution execution, package delivery and final
+installation remain R152 work; relocation fencing is R153's responsibility.
+No deployment or release occurred.
+
+### October 3: linked-device home-handler owner binding
+
+Extended regional registration acceptance through source-preparation HTTP reads
+from US, WEUR and APAC. The Gateway already rejected a different wallet's session;
+the direct handler lacked that check. The public SDK now binds authenticated
+owners to the durable claimed wallet in the shared owner-session helper, before
+contribution preparation/execution and export-root access. Direct denial uses the
+existing 401 `unauthorized` response; Gateway scope rejection remains 403.
+
+The new scenario controls owner authentication to exercise downstream enforcement,
+verifies unchanged durable session state, and records evidence under
+`.artifacts/r152/source-owner-20261003/`. Contribution execution, package delivery
+and final installation remain open. No deployment or release occurred.
+
+### October 3: real Wallet linked-device protocol verification
+
+The public Wallet contracts passed on real local MPC Workers and fresh D1:
+three-device linking with NEAR/Tempo signing and both exports; and lost execution/
+activation replies with exact replay, revocation and continued owner signing.
+Five retained device traces report zero lifecycle violations. Whole-run times after
+building were 43.0 and 34.5 seconds; these are not operation latency measurements.
+
+Evidence lives in the public repository at
+`.artifacts/r152/linked-protocol-20261003/evidence.json`, with source/build/log/trace
+hashes. This closes local protocol execution and retry verification. Complete
+regional installation through production Console authentication, final-state and
+cleanup isolation across homes, and hosted verification remain open. The stale
+private pre-split linked-device suite was not used as an acceptance gate.
+
+### October 3: regional owner authentication uses production D1 readers
+
+The regional linked-device scenario now uses the production owner bearer
+authenticator and active/exhausted session readers. The token-comparison fixture
+was deleted. Approval and source-preparation reads validate durable session,
+authority, method and capability state. A foreign wallet authenticated against its
+own real home is still rejected by the downstream claimed-wallet guard; Gateway
+scope rejection also passes across all three ingress regions.
+
+Regional E2E, focused lint and public bloat checks passed. Private receipt:
+`.artifacts/r152/owner-auth-20261003/regional-session-routing-evidence.json`;
+SHA-256 `05438478f525d73d86435b7c67405daff993ebb813410741b7676bf1c0ba4460`.
+Approval source facts and target preparation remain controlled; regional protocol
+execution and final installation remain open. No deployment or release.
+
+### October 3: regional approval source metadata
+
+The regional link scenario now reads approval source facts through production D1
+readers. Missing signer material rejects approval without a transcript; inserting
+it at WEUR allows approval, registration and replay. Removed the hard-coded
+approval manifest/digest fixture. Regional E2E and focused lint passed; evidence is
+`.artifacts/r152/approval-source-20261003/`. Target planning, initial claim context
+and protocol material remain controlled; full regional installation remains open.
+
+### October 3: production target planner and authenticated claim HTTP
+
+Deleted the handwritten target preparation fixture. The existing production
+planner now generates challenges, target method IDs, export-root preparation and
+recipient requirements; the fixture only synchronizes concurrent entry. Two plans
+converge on one durable preparation, changed recipients conflict, and browser
+registration succeeds. The initial claim now travels through authenticated HTTP
+from APAC to WEUR and replays identically through US, replacing the direct service
+call with a manufactured owner context in this composed scenario.
+
+Regional E2Es, focused lint and public bloat checks passed. Real owner protocol
+material and complete regional installation remain open; see
+the public R152 results document for receipts and reproduction.
+
+### October 3: terminal source requests stop explicitly
+
+The regional cancellation scenario exposed preparation polling returning 204 after
+cancellation. Source preparation and execution now return 409 `invalid_state` for
+cancelled, expired or failed-before-commit sessions, before looking up preparation
+or dispatching the Router. The exhaustive shared state predicate preserves active
+and in-progress retry behavior. Regional cancellation checks and the real local
+lost-execution/activation-response contract pass. Complete installation across
+regional databases remains open; see the results document for evidence.
+
+
+### October 3: regional export-root delivery and replay
+
+The composed regional linking E2E now verifies production recipient/package relay
+HTTP through US/APAC to WEUR, exact retry replay, changed-key/package conflicts,
+signed delivery and home-only D1 persistence. Regional E2E and focused lint pass;
+the public R152 results document records the repeatable receipt and checksum.
+Ciphertext is an opaque fixture. Cryptographic installation, terminal relay and
+preparation-binding audit, and cleanup remain open.
+
+
+### October 3: export-root relay guards
+
+Regional E2E reproduced terminal polling returning 204 and signed recipient
+registration accepting another wallet's identity. Both are classified as production
+regressions and fixed in Wallet Server. The E2E now rejects all eight changed
+preparation binding fields before the first write and all four terminal relay
+operations through US/APAC. Valid delivery/replay remains covered. The real local
+lost-reply linking, signing and revocation contract also passes; see public R152
+results for artifacts. Full regional cryptographic installation remains open.
+
+
+### October 3: admitted relay writes racing cancellation
+
+Added a bounded barrier around the production relay port to pause recipient and
+package requests after their HTTP authentication/admission. Cancellation completes
+through APAC at WEUR before releasing the writes. The initial E2E reproduced a
+recipient insert returning 200 and recreating its deleted row. This is classified
+as a production regression. The server now makes insertion conditional on current
+session state within the same D1 statement, with no additional roundtrip.
+The scenario checks both delayed writes conflict and the relay row remains absent.
+Public R152 results retain the before/after evidence and real-protocol validation.
+
+
+### October 3: delayed target preparation versus cancellation
+
+The composed regional E2E now pauses a production target planner before persistence,
+allows a second preparation to win and complete browser registration/relay delivery,
+then cancels at WEUR before releasing the delayed plan. The initial run recreated
+the preparation row and returned success: a production regression. The fixed D1
+insert requires the current session to await its target factor, and the provider
+returns a conflict if cleanup won. The regional E2E now passes with zero target
+credential rows after cancellation. The delayed call enters the production provider
+directly; the surrounding lifecycle and cancellation use regional HTTP. See the
+public R152 results for reproduction and checksums. Commit-reservation and Email
+OTP-grant races remain separate verification tasks.
+
+
+### October 3: target-commit acquisition versus cancellation
+
+The regional scenario now pauses a production credential registration immediately
+before its reservation INSERT, completes cancellation, then resumes it. The initial
+controlled run inserted one row after cleanup: a production regression. The fixed
+INSERT checks the current session state atomically, and missing reservation readback
+terminates acquisition through the existing recoverable registration result. The
+E2E now measures zero inserted rows. Browser registration and surrounding regional
+HTTP are real; the delayed call enters the production provider directly through a
+D1 write barrier. Harness cleanup now drains paused tasks before disposing Miniflare,
+so a test failure cannot be obscured by a poisoned-stub teardown error. Public R152
+results retain before/after evidence. Email OTP grant races remain open.
+
+
+### October 3: Email OTP grant cancellation and consumption
+
+Added a regional new-enrollment grant scenario using production claim/approval,
+target planning, grant creation, D1 storage and signed verification/cancellation
+HTTP. OTP verification and challenge delivery are controlled fixtures. A grant
+is consumed once and a second consumption fails. A paused subsequent grant write
+initially returned success after cancellation: a production regression. Issuance
+now checks current session state atomically and both enrollment branches propagate
+refusal, preventing token delivery after the rejected write. The regional scenario
+passes with zero remaining grants in all regions. Full Email OTP installation and
+actual email delivery remain outside this checkpoint; see public R152 results.

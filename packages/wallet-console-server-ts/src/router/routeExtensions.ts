@@ -153,6 +153,7 @@ async function handleConsoleApiWalletRoute(input: {
   const response = await handleRouterApiWalletGet({
     ...common,
     walletId: input.walletId,
+    query: Object.fromEntries(url.searchParams.entries()),
   });
   return toFetchRouteResponse(response);
 }

@@ -6,6 +6,7 @@
       "origin": "https://staging.wallet.seams.sh",
       "siteOrigin": "https://staging.wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-staging",
+      "placementRegion": "aws:ap-northeast-1",
       "database": {
         "name": "seams-console-staging-nrt",
         "id": "f77260ef-0f8a-4063-9cab-ab648536f473"

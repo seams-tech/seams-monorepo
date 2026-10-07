@@ -1,4 +1,6 @@
 .navbar-static {
+  --navbar-top-space: 26px;
+  --navbar-inline-space: max(1rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
   --navbar-bg: var(--site-canvas, var(--vp-c-bg));
   --navbar-surface: var(--site-surface, var(--vp-c-bg));
   --navbar-surface2: var(--site-surface-muted, var(--vp-c-bg-alt));
@@ -24,21 +26,21 @@
   --navbar-mobile-subitem-text: var(--navbar-text);
   --navbar-mobile-subitem-copy: var(--site-text-secondary);
   position: fixed;
-  top: 26px;
+  top: calc(var(--navbar-top-space) + env(safe-area-inset-top, 0px));
   left: 0;
   right: 0;
   z-index: 1000;
   pointer-events: auto;
   display: grid;
   justify-content: center;
-  padding: 0 1rem;
+  padding: 0 var(--navbar-inline-space);
 }
 
 .navbar-static__shell {
   position: relative;
   width: max-content;
-  min-width: min(720px, calc(100vw - 2rem));
-  max-width: calc(100vw - 2rem);
+  min-width: min(720px, calc(100vw - 2 * var(--navbar-inline-space)));
+  max-width: calc(100vw - 2 * var(--navbar-inline-space));
   min-height: 52px;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -113,8 +115,10 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background-color 150ms ease;
 }
 
-.navbar-static__brand:hover {
-  background: transparent;
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__brand:hover {
+    background: transparent;
+  }
 }
 
 .navbar-static__brand-wordmark {
@@ -148,8 +152,14 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background-color 150ms ease;
 }
 
-.navbar-static__link:hover {
-  background: rgba(31, 41, 55, 0.05);
+.navbar-static__link:active {
+  background: rgba(31, 41, 55, 0.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__link:hover {
+    background: rgba(31, 41, 55, 0.08);
+  }
 }
 
 .navbar-static__link--button {
@@ -161,7 +171,7 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
 }
 
 .navbar-static__link--button.is-active {
-  background: rgba(31, 41, 55, 0.05);
+  background: rgba(31, 41, 55, 0.08);
 }
 
 .navbar-static__group {
@@ -323,9 +333,15 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   transition: background 120ms ease;
 }
 
-.navbar-static__menu-row:hover,
-.navbar-static__menu-row:focus-visible {
+.navbar-static__menu-row:focus-visible,
+.navbar-static__menu-row:active {
   background: var(--navbar-access-trigger-active);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__menu-row:hover {
+    background: var(--navbar-access-trigger-active);
+  }
 }
 
 .navbar-static__menu-row-icon {
@@ -337,9 +353,15 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   color: var(--navbar-access-muted);
 }
 
-.navbar-static__menu-row:hover .navbar-static__menu-row-icon,
-.navbar-static__menu-row:focus-visible .navbar-static__menu-row-icon {
+.navbar-static__menu-row:focus-visible .navbar-static__menu-row-icon,
+.navbar-static__menu-row:active .navbar-static__menu-row-icon {
   color: var(--navbar-text);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__menu-row:hover .navbar-static__menu-row-icon {
+    color: var(--navbar-text);
+  }
 }
 
 .navbar-static__menu-row-text {
@@ -410,12 +432,19 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   background-image: url('/gradients/web/cobalt-gold-ember.jpg');
 }
 
-.navbar-static__menu-highlight:hover,
-.navbar-static__menu-highlight:focus-visible {
+.navbar-static__menu-highlight:focus-visible,
+.navbar-static__menu-highlight:active {
   filter: brightness(1.06);
-  /* the global `a:hover` brand color outranks the card's own white, and the
-     title inherits it; hold white so the card keeps its one text color */
   color: #ffffff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__menu-highlight:hover {
+    filter: brightness(1.06);
+    /* the global `a:hover` brand color outranks the card's own white, and the
+       title inherits it; hold white so the card keeps its one text color */
+    color: #ffffff;
+  }
 }
 
 .navbar-static__menu-highlight-title {
@@ -459,17 +488,24 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   border-left: 1px solid var(--navbar-access-divider);
 }
 
-.navbar-static__menu-footer-link:hover,
-.navbar-static__menu-footer-link:focus-visible {
+.navbar-static__menu-footer-link:focus-visible,
+.navbar-static__menu-footer-link:active {
   color: var(--navbar-text);
   background: var(--navbar-access-trigger-active);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__menu-footer-link:hover {
+    color: var(--navbar-text);
+    background: var(--navbar-access-trigger-active);
+  }
 }
 
 html[data-seams-theme='light'] .navbar-static {
   --navbar-shadow-color: rgba(15, 23, 42, 0.34);
   /* same faint wash as the nav triggers (.navbar-static__link:hover), so a
      dropdown row doesn't read heavier than the trigger that opened it */
-  --navbar-access-trigger-active: rgba(31, 41, 55, 0.05);
+  --navbar-access-trigger-active: rgba(31, 41, 55, 0.08);
   --navbar-access-divider: var(--navbar-border);
   --navbar-access-muted: var(--site-text-secondary);
 }
@@ -506,8 +542,14 @@ html[data-seams-theme='light'] .navbar-static {
   background: var(--navbar-surface2);
 }
 
-.navbar-static__pill--ghost:hover {
+.navbar-static__pill--ghost:active {
   background: var(--navbar-surface3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__pill--ghost:hover {
+    background: var(--navbar-surface3);
+  }
 }
 
 .navbar-static__pill--solid {
@@ -515,9 +557,16 @@ html[data-seams-theme='light'] .navbar-static {
   background: var(--navbar-primary);
 }
 
-.navbar-static__pill--solid:hover {
+.navbar-static__pill--solid:active {
   color: var(--navbar-text-button);
   background: var(--navbar-primary-hover);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__pill--solid:hover {
+    color: var(--navbar-text-button);
+    background: var(--navbar-primary-hover);
+  }
 }
 
 .navbar-static__context-icon {
@@ -543,8 +592,8 @@ html[data-seams-theme='light'] .navbar-static {
 .navbar-static__mobile-toggle {
   display: none;
   appearance: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   border: 1px solid var(--navbar-border);
   background: var(--navbar-surface2);
@@ -555,9 +604,16 @@ html[data-seams-theme='light'] .navbar-static {
     border-color 180ms ease;
 }
 
-.navbar-static__mobile-toggle:hover {
+.navbar-static__mobile-toggle:active {
   border-color: var(--navbar-border-hover);
   background: var(--navbar-surface3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navbar-static__mobile-toggle:hover {
+    border-color: var(--navbar-border-hover);
+    background: var(--navbar-surface3);
+  }
 }
 
 .navbar-static__mobile-menu {
@@ -576,6 +632,44 @@ html[data-seams-theme='light'] .navbar-static {
 .navbar-static__mobile-subitem:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--navbar-focus) 65%, transparent);
+}
+
+/* A chosen dropdown item blinks once, highlight off then on, before the menu
+   closes (blinkMenuItem). No transition, so each phase lands on its own frame. */
+.navbar-static__menu-row[data-blink],
+.navbar-static__menu-highlight[data-blink],
+.navbar-static__menu-footer-link[data-blink] {
+  transition: none;
+}
+
+.navbar-static__menu-row[data-blink='off'],
+.navbar-static__menu-footer-link[data-blink='off'] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.navbar-static__menu-row[data-blink='on'],
+.navbar-static__menu-footer-link[data-blink='on'] {
+  background: var(--navbar-access-trigger-active);
+}
+
+.navbar-static__menu-row[data-blink='off'] .navbar-static__menu-row-icon,
+.navbar-static__menu-footer-link[data-blink='off'] {
+  color: var(--navbar-access-muted);
+}
+
+.navbar-static__menu-row[data-blink='on'] .navbar-static__menu-row-icon,
+.navbar-static__menu-footer-link[data-blink='on'] {
+  color: var(--navbar-text);
+}
+
+.navbar-static__menu-highlight[data-blink='off'] {
+  filter: none;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+}
+
+.navbar-static__menu-highlight[data-blink='on'] {
+  filter: brightness(1.06);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -616,7 +710,7 @@ html[data-seams-theme='light'] .navbar-static {
 @media (max-width: 980px) {
   .navbar-static__shell {
     grid-template-columns: minmax(0, 1fr) max-content;
-    width: min(1420px, calc(100vw - 2rem));
+    width: min(1420px, calc(100vw - 2 * var(--navbar-inline-space)));
     min-width: 0;
   }
 
@@ -642,8 +736,12 @@ html[data-seams-theme='light'] .navbar-static {
   }
 
   .navbar-static__mobile-menu {
-    width: min(1420px, calc(100vw - 2rem));
-    max-height: calc(100dvh - 5.5rem);
+    width: min(1420px, calc(100vw - 2 * var(--navbar-inline-space)));
+    /* Subtract the actual header height, menu gap, and device safe areas. */
+    max-height: calc(
+      100dvh - 100% - var(--navbar-top-space) - env(safe-area-inset-top, 0px) - 0.65rem -
+        max(0.5rem, env(safe-area-inset-bottom, 0px))
+    );
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -703,8 +801,14 @@ html[data-seams-theme='light'] .navbar-static {
     cursor: pointer;
   }
 
-  .navbar-static__mobile-link:hover {
+  .navbar-static__mobile-link:active {
     background: var(--navbar-mobile-link-hover-surface);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .navbar-static__mobile-link:hover {
+      background: var(--navbar-mobile-link-hover-surface);
+    }
   }
 
   .navbar-static__mobile-submenu {
@@ -747,8 +851,14 @@ html[data-seams-theme='light'] .navbar-static {
     background: var(--navbar-mobile-subitem-surface);
   }
 
-  .navbar-static__mobile-subitem:hover {
+  .navbar-static__mobile-subitem:active {
     background: var(--navbar-mobile-subitem-surface-hover);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .navbar-static__mobile-subitem:hover {
+      background: var(--navbar-mobile-subitem-surface-hover);
+    }
   }
 
   .navbar-static__mobile-subitem > small {
@@ -770,12 +880,16 @@ html[data-seams-theme='light'] .navbar-static {
 
 @media (max-width: 620px) {
   .navbar-static {
-    top: 0.5rem;
-    padding: 0 0.5rem;
+    --navbar-top-space: 0.5rem;
+    --navbar-inline-space: max(
+      0.5rem,
+      env(safe-area-inset-left, 0px),
+      env(safe-area-inset-right, 0px)
+    );
   }
 
   .navbar-static__shell {
-    width: calc(100vw - 1rem);
+    width: calc(100vw - 2 * var(--navbar-inline-space));
     min-height: 58px;
     padding: 0.45rem 0.5rem;
   }
@@ -785,7 +899,7 @@ html[data-seams-theme='light'] .navbar-static {
   }
 
   .navbar-static__mobile-menu {
-    width: calc(100vw - 1rem);
+    width: calc(100vw - 2 * var(--navbar-inline-space));
   }
 
   .navbar-static__brand {

@@ -53,8 +53,9 @@ const DEPLOYMENT_RESOURCE_NAMES = Object.freeze([
   'tenantRootControlPlane',
 ]);
 const GATEWAY_BASE_SECRET_NAMES = Object.freeze([
-  'ACCOUNT_ID_DERIVATION_SECRET',
   'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
+  'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+  'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
   'LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET',
   'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK',
 ]);
@@ -130,11 +131,17 @@ function parseConsoleTargets(value) {
 function parseConsoleTarget(value, laneId) {
   const targetPath = DEFAULT_CONSOLE_TARGETS_PATH + '.lanes.' + laneId;
   const target = requireObject(value, targetPath);
-  requireExactKeys(
-    target,
-    ['environment', 'origin', 'siteOrigin', 'workerName', 'database', 'emailDelivery', 'billing'],
-    targetPath,
-  );
+  const keys = [
+    'environment',
+    'origin',
+    'siteOrigin',
+    'workerName',
+    'database',
+    'emailDelivery',
+    'billing',
+  ];
+  if (Object.hasOwn(target, 'placementRegion')) keys.push('placementRegion');
+  requireExactKeys(target, keys, targetPath);
   const database = requireObject(target.database, targetPath + '.database');
   requireExactKeys(database, ['name', 'id'], targetPath + '.database');
   const billing = requireObject(target.billing, targetPath + '.billing');
@@ -148,6 +155,15 @@ function parseConsoleTarget(value, laneId) {
     origin: requireHttpsOrigin(target.origin, targetPath + '.origin'),
     siteOrigin: requireHttpsOrigin(target.siteOrigin, targetPath + '.siteOrigin'),
     workerName: requireResourceName(target.workerName, targetPath + '.workerName'),
+    ...(Object.hasOwn(target, 'placementRegion')
+      ? {
+          placementRegion: requirePattern(
+            target.placementRegion,
+            /^(?:aws|gcp|azure):[a-z0-9-]+$/u,
+            targetPath + '.placementRegion',
+          ),
+        }
+      : {}),
     database: Object.freeze({
       name: requireResourceName(database.name, targetPath + '.database.name'),
       id: requirePattern(
@@ -333,6 +349,8 @@ export function componentSecretNames(lane, component) {
       return consoleSecretNames(lane);
     case 'signing-worker':
       return [
+        'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET',
+        'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY',
         'SIGNING_WORKER_PRIVATE_D1_KEK',
@@ -358,7 +376,11 @@ export function componentSecretNames(lane, component) {
         'DERIVER_B_TENANT_ROOT_CREATION_SIGNING_KEY',
       ];
     case 'router':
-      return ['ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET'];
+      return [
+        'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET',
+        'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
+        'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+      ];
     case 'tenant-root-control-plane':
       // Production internal-service authentication is provisioned on the Worker.
       return [
@@ -600,7 +622,6 @@ function assertGatewayDeploymentConfigMatchesLane(lane) {
   if (
     config.resources.workerName !== resources.gateway.workerName ||
     config.resources.consoleD1.name !== resources.gateway.consoleD1Name ||
-    config.resources.signerD1.name !== resources.gateway.signerD1Name ||
     config.serviceNames.mpcRouter !== resources.router.workerName ||
     config.serviceNames.deriverA !== resources.deriverA.workerName ||
     config.serviceNames.deriverB !== resources.deriverB.workerName ||
@@ -676,11 +697,10 @@ function parseResources(value, pathName) {
 
 function parseGatewayResource(value, pathName) {
   const resource = requireObject(value, pathName);
-  requireExactKeys(resource, ['workerName', 'consoleD1Name', 'signerD1Name'], pathName);
+  requireExactKeys(resource, ['workerName', 'consoleD1Name'], pathName);
   return Object.freeze({
     workerName: requireResourceName(resource.workerName, pathName + '.workerName'),
     consoleD1Name: requireResourceName(resource.consoleD1Name, pathName + '.consoleD1Name'),
-    signerD1Name: requireResourceName(resource.signerD1Name, pathName + '.signerD1Name'),
   });
 }
 
@@ -813,7 +833,6 @@ function assertUniqueResourceNames(lanes) {
     names.push(
       lane.resources.gateway.workerName,
       lane.resources.gateway.consoleD1Name,
-      lane.resources.gateway.signerD1Name,
       lane.resources.router.workerName,
       lane.resources.deriverA.workerName,
       lane.resources.deriverB.workerName,
@@ -821,19 +840,39 @@ function assertUniqueResourceNames(lanes) {
       lane.resources.tenantRootControlPlane.workerName,
     );
   }
+  for (const lane of lanes) {
+    if (lane.provisioning.kind !== 'provisioned') continue;
+    for (const resource of Object.values(
+      lane.provisioning.gatewayDeploymentConfig.resources.regions,
+    )) {
+      if (resource.workerName !== lane.resources.gateway.workerName)
+        names.push(resource.workerName);
+      names.push(resource.workerName.replace('gateway', 'wallet-runtime'), resource.signerD1.name);
+    }
+  }
   assertUnique(names, 'backend resource names');
+}
+
+function regionalDatabaseIds(lane) {
+  const ids = [];
+  for (const resource of Object.values(
+    lane.provisioning.gatewayDeploymentConfig.resources.regions,
+  )) {
+    if (resource.signerD1.kind === 'allocated') ids.push(resource.signerD1.id);
+  }
+  return ids;
+}
+
+function backendDatabaseIds(lane) {
+  return [
+    lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id,
+    ...regionalDatabaseIds(lane),
+  ];
 }
 
 function assertUniqueProvisionedIdentities(lanes) {
   const provisioned = lanes.filter((lane) => lane.provisioning.kind === 'provisioned');
-  assertUnique(
-    provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id),
-    'console D1 identities',
-  );
-  assertUnique(
-    provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.resources.signerD1.id),
-    'signer D1 identities',
-  );
+  assertUnique(provisioned.flatMap(backendDatabaseIds), 'backend D1 identities');
   assertUnique(
     provisioned.map((lane) => lane.provisioning.gatewayDeploymentConfig.tenant.namespace),
     'tenant namespaces',

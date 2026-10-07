@@ -9,6 +9,8 @@ database_name = "seams-signer-staging-nrt"
 database_id = "<remote-signer-d1-database-id>"
 migrations_dir = "node_modules/@seams/wallet-server/migrations/d1-signer"
 
+# Use the same isolated counter database in every regional Gateway.
+
 [[services]]
 binding = "WALLET_CONSOLE"
 service = "seams-sdk-d1-console-staging"
@@ -31,7 +33,6 @@ CONSOLE_EMAIL_INVITATION_SECRET_KEY_ID = "console-email-staging-r1"
 CONSOLE_WEBHOOK_SECRET_KEY_ID = "console-webhook-staging-r1"
 CONSOLE_EMAIL_FROM = "Seams <notifications@<verified-email-domain>>"
 CONSOLE_EMAIL_CRON_EXPRESSIONS = "*/5 * * * *"
-ROUTER_AB_NORMAL_SIGNING_WORKER_ID = "router-ab-signing-worker-staging"
 ROUTER_AB_PREWARM_ENABLED = "true"
 SIGNING_WORKER_ID = "router-ab-signing-worker-staging"
 ROUTER_AB_CEREMONY_JWT_ISSUER = "https://<gateway-staging-host>"
@@ -58,7 +59,6 @@ crons = ["* * * * *"]
 [secrets]
 required = [
   "CONSOLE_SESSION_HMAC_SECRET",
-  "ACCOUNT_ID_DERIVATION_SECRET",
   "ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET",
   "LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET",
   "ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK",

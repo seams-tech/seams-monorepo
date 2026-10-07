@@ -12,6 +12,7 @@ import {
   GATEWAY_RUNTIME_PROFILE_KINDS,
   gatewayRuntimeProfileNearNetwork,
   parseGatewayDeploymentConfig as parseStrictGatewayDeploymentConfig,
+  requireAllocatedWalletRegions,
 } from '../../../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 import {
   gatewaySecretNames,
@@ -498,7 +499,13 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const checkedInRuntimeProfile = checkedInGatewayConfig?.runtimeProfile;
   const checkedInOrigins = checkedInGatewayConfig?.origins;
   const checkedInTenant = checkedInGatewayConfig?.tenant;
-  const checkedInResources = checkedInGatewayConfig?.resources;
+  if (!checkedInGatewayConfig) {
+    throw new Error(
+      `Provision regional Gateway resources for ${lane.id} before generating deployment keys`,
+    );
+  }
+  requireAllocatedWalletRegions(checkedInGatewayConfig);
+  const checkedInResources = checkedInGatewayConfig.resources;
   const checkedInRouter = checkedInGatewayConfig?.routerAb;
   const gatewayEnvironment = `${environmentPrefix}-gateway`;
   const deriverAEnvironment = `${environmentPrefix}-deriver-a`;
@@ -573,24 +580,6 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
-  const consoleDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_CONSOLE_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.consoleD1.id ||
-    manual(`${identityPrefix}-console-d1-database-id`);
-  const signerDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_SIGNER_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.signerD1.id ||
-    manual(`${identityPrefix}-signer-d1-database-id`);
   const deriverAPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
@@ -625,16 +614,11 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     projectId,
     environmentId,
     tenantNamespace,
-    gatewayWorkerName: checkedInResources?.workerName || lane.resources.gateway.workerName,
-    gatewayPlacementRegion: checkedInResources?.placementRegion,
+    gatewayResources: checkedInResources,
     mpcRouterWorkerName: lane.resources.router.workerName,
     deriverAWorkerName: lane.resources.deriverA.workerName,
     deriverBWorkerName: lane.resources.deriverB.workerName,
     signingWorkerName: lane.resources.signingWorker.workerName,
-    consoleDatabaseName: checkedInResources?.consoleD1.name || lane.resources.gateway.consoleD1Name,
-    consoleDatabaseId,
-    signerDatabaseName: checkedInResources?.signerD1.name || lane.resources.gateway.signerD1Name,
-    signerDatabaseId,
     deriverAPrivateDatabaseId,
     deriverBPrivateDatabaseId,
     signingWorkerPrivateDatabaseId,
@@ -652,8 +636,10 @@ function buildTargetConfiguration(targetName, suppliedValues) {
 function buildGeneratedSecrets(environmentPrefix) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
+    routerToSigningWorkerEcdsaAuth: randomBase64Url(32),
+    gatewayToRouterAuth: randomBase64Url(32),
+    gatewayToSigningWorkerPresignAuth: randomBase64Url(32),
     relaySessionHmac: randomBase64Url(32),
-    accountIdDerivation: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
       rootSecretB64u: randomBase64Url(32),
@@ -1006,8 +992,10 @@ function buildGatewayEnvironment(input) {
     CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-worker-api-token`),
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
     RELAY_SESSION_HMAC_SECRET: input.generatedSecrets.relaySessionHmac,
-    ACCOUNT_ID_DERIVATION_SECRET: input.generatedSecrets.accountIdDerivation,
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: input.generatedSecrets.internalServiceAuth,
+    ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+    ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET:
+      input.generatedSecrets.gatewayToSigningWorkerPresignAuth,
     ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK: input.generatedSecrets.ceremonyPrivateJwk,
     RELAYER_PRIVATE_KEY: manual(`${input.environmentPrefix}-near-relayer-private-key`),
     SPONSORED_EVM_EXECUTORS_JSON: manual(`${input.environmentPrefix}-sponsored-evm-executors-json`),
@@ -1052,18 +1040,7 @@ function buildGatewayDeploymentConfig(input) {
     schemaVersion: GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION,
     lane: input.laneId,
     runtimeProfile: configuration.runtimeProfile,
-    resources: {
-      workerName: configuration.gatewayWorkerName,
-      placementRegion: configuration.gatewayPlacementRegion,
-      consoleD1: {
-        name: configuration.consoleDatabaseName,
-        id: configuration.consoleDatabaseId,
-      },
-      signerD1: {
-        name: configuration.signerDatabaseName,
-        id: configuration.signerDatabaseId,
-      },
-    },
+    resources: configuration.gatewayResources,
     tenant: {
       namespace: configuration.tenantNamespace,
       orgId: configuration.orgId,
@@ -1186,11 +1163,16 @@ function buildMpcRouterEnvironment(input) {
         ROUTER_AB_PROJECT_POLICY_BOOTSTRAP_JSON: JSON.stringify(input.projectPolicy),
       },
       optionalVariables: {},
-      secrets: buildWorkerDeploymentSecrets(
-        input.environmentPrefix,
-        environmentName,
-        input.generatedSecrets.internalServiceAuth,
-      ),
+      secrets: {
+        ...buildWorkerDeploymentSecrets(
+          input.environmentPrefix,
+          environmentName,
+          input.generatedSecrets.internalServiceAuth,
+        ),
+        ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET:
+          input.generatedSecrets.routerToSigningWorkerEcdsaAuth,
+        ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+      },
     },
   ];
 }
@@ -1423,6 +1405,10 @@ function buildSigningWorkerEnvironment(input) {
     environmentName,
     input.generatedSecrets.internalServiceAuth,
   );
+  secrets.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET =
+    input.generatedSecrets.routerToSigningWorkerEcdsaAuth;
+  secrets.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET =
+    input.generatedSecrets.gatewayToSigningWorkerPresignAuth;
   secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY =
     input.deployment.secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY;
   secrets.SIGNING_WORKER_PRIVATE_D1_KEK = input.deployment.secrets.SIGNING_WORKER_PRIVATE_D1_KEK;
@@ -1638,13 +1624,6 @@ function loadValuesFile(valuesFilePath) {
 
 async function discoverCloudflareValues(lane, environmentPrefix, suppliedValues, progressLogger) {
   const accountId = discoverCloudflareAccountId(environmentPrefix, suppliedValues, progressLogger);
-  ensureD1Database({
-    environmentPrefix,
-    suppliedValues,
-    progressLogger,
-    variableName: 'GATEWAY_SIGNER_D1_DATABASE_ID',
-    databaseName: lane.resources.gateway.signerD1Name,
-  });
   ensureD1Database({
     environmentPrefix,
     suppliedValues,
@@ -2159,6 +2138,30 @@ function validateSharedInternalServiceAuth(outputDocument) {
   );
   if (new Set(values).size !== 1) {
     throw new Error('Router A/B and Gateway internal service authentication must match');
+  }
+  const gateway =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-gateway`].secrets;
+  const router =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-mpc-router`].secrets;
+  const signingWorker =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-signing-worker`].secrets;
+  const routerAuth = gateway.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
+  const presignAuth = gateway.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET;
+  if (
+    routerAuth !== router.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET ||
+    presignAuth !== signingWorker.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET ||
+    router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET !==
+      signingWorker.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET ||
+    new Set([
+      values[0],
+      routerAuth,
+      presignAuth,
+      router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET,
+    ]).size !== 4
+  ) {
+    throw new Error(
+      'Dedicated Gateway credentials must match their receiving role and remain distinct',
+    );
   }
 }
 

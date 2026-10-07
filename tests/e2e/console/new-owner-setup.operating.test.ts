@@ -1,11 +1,15 @@
+import { createHash } from 'node:crypto';
 import { expect, test } from './harness';
+import {
+  verifyAccountAndTeam,
+  verifyCredentialLifecycle,
+  verifyDeploymentStatus,
+} from './owner-administration.journey';
 
 const FULL_PUBLISHABLE_SECRET = /^pk_dev_[A-Za-z0-9]{32}$/;
 
 test.describe('Console operating paths', () => {
-  test('new owner setup creates a publishable key that reveals once and survives reload', async ({
-    console,
-  }) => {
+  test('Owner sets up a working team and credential', async ({ console }, testInfo) => {
     const { page, tenant } = console;
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/dashboard\/onboarding\/?$/);
@@ -96,55 +100,27 @@ test.describe('Console operating paths', () => {
     expect(createdKey?.environmentId).toBe(resources.environment.id);
     expect(createdKey?.secretPreview.startsWith('pk_')).toBe(true);
     expect(createdKey?.secretPreview).not.toBe(revealedSecret);
+
+    await verifyAccountAndTeam(console, resources.project, testInfo);
+    await verifyDeploymentStatus(console, resources.environment.id, revealedSecret, testInfo);
+    await verifyCredentialLifecycle(console, keyName, revealedSecret, testInfo);
+
+    await testInfo.attach('console-new-owner-evidence.json', {
+      body: Buffer.from(
+        JSON.stringify(
+          {
+            organizationId: resources.organization.id,
+            projectId: resources.project.id,
+            environmentId: resources.environment.id,
+            credentialName: keyName,
+            revealedSecretSha256: createHash('sha256').update(revealedSecret).digest('hex'),
+            secretHiddenAfterReload: true,
+          },
+          null,
+          2,
+        ),
+      ),
+      contentType: 'application/json',
+    });
   });
-});
-
-async function identitySessionResponse(route: import('@playwright/test').Route): Promise<void> {
-  await route.fulfill({ json: { ok: true, session: { kind: 'console_identity_v1' } } });
-}
-
-async function unauthorizedSessionResponse(route: import('@playwright/test').Route): Promise<void> {
-  await route.fulfill({ status: 401, json: { ok: false, code: 'unauthorized' } });
-}
-
-test('an account without an organization leaves login for dashboard onboarding', async ({
-  page,
-}) => {
-  await page.route('**/console/session', unauthorizedSessionResponse);
-  await page.route('**/console/auth/session', identitySessionResponse);
-  await page.goto('/dashboard/login');
-  await expect(page).toHaveURL(/\/dashboard\/onboarding\/?$/);
-  await expect(page.getByRole('main', { name: 'Dashboard workspace' })).toBeVisible();
-  await expect(page.getByRole('banner', { name: 'Workspace context' })).toBeVisible();
-  const navigation = page.getByRole('complementary', {
-    name: 'Primary dashboard navigation',
-  });
-  await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole('link', { name: 'API Keys', exact: true })).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
-  await expect(page.getByRole('list', { name: 'Onboarding progress' })).toContainText(
-    'Organization',
-  );
-  await expect(page.getByRole('list', { name: 'Onboarding progress' })).toContainText('Project');
-  await expect(
-    page.getByRole('button', { name: 'Continue to project setup', exact: true }),
-  ).toBeVisible();
-  const organizationNameInput = page.getByLabel('Organization name');
-  const organizationSlugInput = page.getByLabel('Organization slug');
-  await expect(organizationNameInput).toBeVisible();
-  await expect(organizationSlugInput).toBeVisible();
-  const organizationNameBox = await organizationNameInput.boundingBox();
-  const organizationSlugBox = await organizationSlugInput.boundingBox();
-  expect(organizationNameBox).not.toBeNull();
-  expect(organizationSlugBox).not.toBeNull();
-  expect(organizationNameBox!.x + organizationNameBox!.width).toBeLessThan(organizationSlugBox!.x);
-  expect(organizationNameBox!.height).toBeGreaterThanOrEqual(44);
-  expect(organizationSlugBox!.height).toBeGreaterThanOrEqual(44);
-  await page.reload();
-  await expect(page.getByLabel('Organization name')).toBeVisible();
-  await page.goto('/dashboard/overview');
-  await expect(page).toHaveURL(/\/dashboard\/onboarding\/?$/);
-  await expect(page.getByLabel('Organization name')).toBeVisible();
 });

@@ -1,0 +1,155 @@
+/// <reference types="@cloudflare/workers-types" />
+import { parseWalletId, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
+import {
+  ConsoleRegistrationSetupDispatcher,
+  WalletRegionalDispatch,
+  dispatchKnownWalletHome,
+  type RegionalGatewayBindings,
+} from '../../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+import {
+  WalletHome,
+  regionForRegistrationIngress,
+} from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import { gatewaySetupInput } from './registrationHomeAdmission';
+
+type Env = RegionalGatewayBindings & {
+  CONSOLE: { fetch(request: Request): Promise<Response> };
+  SIGNER_DB: D1DatabaseLike;
+  HOME_JSON: string;
+  CATALOG_JSON: string;
+};
+
+async function handle(request: Request, env: Env): Promise<Response> {
+  // Authentication is a controlled fixture; reservation, dispatch and D1 are production implementations.
+  if (request.headers.get('Authorization') !== 'Bearer test-application')
+    return new Response(null, { status: 401 });
+  const home = WalletHome.parse(JSON.parse(env.HOME_JSON));
+  const authority = new ConsoleRegistrationHomeAdmission({
+    service: env.CONSOLE,
+    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+      accountId: home.accountId,
+      databaseId: home.databaseId,
+    }),
+    scope: {
+      namespace: 'shared',
+      organizationId: 'owner',
+      projectId: 'project',
+      environmentId: 'test',
+    },
+    localResource: home,
+    environmentKey: 'test',
+    catalogJson: env.CATALOG_JSON,
+    ingressRegion: regionForRegistrationIngress(request, 'US'),
+  });
+  const transport = new WalletRegionalDispatch(env);
+  const forwarded = await dispatchKnownWalletHome(
+    request,
+    authority,
+    transport,
+    undefined,
+    { kind: 'absent' },
+  );
+  if (forwarded) return forwarded;
+  const body: unknown = await request.json();
+  if (!body || typeof body !== 'object' || Array.isArray(body))
+    return new Response(null, { status: 400 });
+  if (new URL(request.url).pathname === '/wallets/register/setup') {
+    if (!('operationId' in body) || typeof body.operationId !== 'string')
+      return new Response(null, { status: 400 });
+    const input = gatewaySetupInput({
+      operationId: body.operationId,
+      origin: 'https://wallet.test',
+    });
+    const original = new Request(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: JSON.stringify(body),
+    });
+    const dispatched = await new ConsoleRegistrationSetupDispatcher(
+      authority,
+      transport,
+      original,
+    ).dispatch(input);
+    if (dispatched)
+      return Response.json(dispatched.body, {
+        status: dispatched.status,
+        headers: dispatched.headers,
+      });
+    const admitted = await authority.reserve(input);
+    if (!admitted.ok) return Response.json(admitted, { status: 409 });
+    if (request.headers.get('x-test-response') === 'redirect')
+      return Response.redirect('https://untrusted.invalid', 307);
+    const reservation = admitted.reservation;
+    await env.SIGNER_DB.prepare(
+      'INSERT OR IGNORE INTO effects (ceremony_id, wallet_id, region) VALUES (?1, ?2, ?3)',
+    )
+      .bind(reservation.ceremonyId, reservation.walletId, home.region)
+      .run();
+    return Response.json({ ok: true, reservation, region: home.region, authenticatedAtHome: true });
+  }
+  const pathname = new URL(request.url).pathname;
+  if (pathname.startsWith('/router-ab/ed25519/yao/registration/')) {
+    const ceremonyId = directRegistrationCeremony(pathname, body);
+    if (!ceremonyId) return new Response(null, { status: 400 });
+    const assignment = await authority.findHome({ kind: 'ceremony', ceremonyId });
+    if (!assignment || !authority.isLocal(assignment.home))
+      return new Response(null, { status: 409 });
+    await env.SIGNER_DB.prepare(
+      'INSERT INTO continuation_effects (ceremony_id, operation, region) VALUES (?1, ?2, ?3)',
+    )
+      .bind(ceremonyId, pathname, home.region)
+      .run();
+    return Response.json({ ok: true, region: home.region, walletId: assignment.wallet.walletId });
+  }
+  if (!('registrationCeremonyId' in body) || typeof body.registrationCeremonyId !== 'string')
+    return new Response(null, { status: 400 });
+  const assignment = await authority.findHome({
+    kind: 'ceremony',
+    ceremonyId: body.registrationCeremonyId,
+  });
+  if (!assignment) return new Response(null, { status: 404 });
+  const walletId = parseWalletId(assignment.wallet.walletId);
+  if (!walletId.ok) throw new Error(walletId.error.message);
+  const admitted = await authority.admitHome({
+    ceremonyId: body.registrationCeremonyId,
+    walletId: walletId.value,
+  });
+  if (!admitted.ok) return Response.json(admitted, { status: 409 });
+  const completed = await authority.complete({
+    ceremonyId: body.registrationCeremonyId,
+    walletId: walletId.value,
+    outcome: 'established',
+  });
+  if (!completed.ok) return Response.json(completed, { status: 409 });
+  return Response.json({ ok: true, region: home.region, walletId: assignment.wallet.walletId });
+}
+
+export default {
+  fetch(request: Request, env: Env): Promise<Response> {
+    return handle(request, env);
+  },
+};
+
+function directRegistrationCeremony(pathname: string, body: object): string | null {
+  if (pathname.endsWith('/admit')) {
+    if (
+      'scope' in body &&
+      body.scope &&
+      typeof body.scope === 'object' &&
+      'lifecycle_id' in body.scope
+    )
+      return typeof body.scope.lifecycle_id === 'string' ? body.scope.lifecycle_id : null;
+  } else if (
+    'binding' in body &&
+    body.binding &&
+    typeof body.binding === 'object' &&
+    'lifecycle' in body.binding
+  ) {
+    const lifecycle = body.binding.lifecycle;
+    if (lifecycle && typeof lifecycle === 'object' && 'lifecycle_id' in lifecycle)
+      return typeof lifecycle.lifecycle_id === 'string' ? lifecycle.lifecycle_id : null;
+  }
+  return null;
+}

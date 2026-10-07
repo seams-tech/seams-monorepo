@@ -1,4 +1,4 @@
 export const SEAMS_BRAND_ASSETS = {
-  mark: '/seams-mark.svg',
-  wordmark: '/seams-wordmark.svg',
+  mark: `${import.meta.env.BASE_URL}seams-mark.svg`,
+  wordmark: `${import.meta.env.BASE_URL}seams-wordmark.svg`,
 } as const;

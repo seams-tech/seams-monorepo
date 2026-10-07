@@ -32,6 +32,7 @@ type TenantDeploymentBindingCommonV1 = {
   readonly kind: 'tenant_deployment_binding_v1';
   readonly schemaVersion: 1;
   readonly deploymentLane: string;
+  readonly resources: TenantDeploymentD1ResourcesV1;
   readonly tenantRoot: {
     readonly identityDigestB64u: string;
     readonly custodyLineageId: string;
@@ -47,6 +48,65 @@ type TenantDeploymentBindingCommonV1 = {
   readonly runtimePolicyDigestB64u: string;
   readonly createdAtMs: number;
 };
+
+export type TenantDeploymentD1ResourceV1 = {
+  readonly accountId: string;
+  readonly databaseId: string;
+};
+
+export function decodeTenantDeploymentD1ResourceV1(
+  value: unknown,
+): TenantDeploymentDecodeResult<TenantDeploymentD1ResourceV1> {
+  const input = record(value);
+  if (
+    !input ||
+    !exactKeys(input, ['accountId', 'databaseId']) ||
+    typeof input.accountId !== 'string' ||
+    !/^[a-f0-9]{32}$/u.test(input.accountId) ||
+    typeof input.databaseId !== 'string' ||
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/u.test(input.databaseId)
+  ) {
+    return { ok: false, message: 'tenant deployment D1 resource is invalid' };
+  }
+  return { ok: true, value: { accountId: input.accountId, databaseId: input.databaseId } };
+}
+
+export type TenantDeploymentD1ResourcesV1 = readonly [
+  TenantDeploymentD1ResourceV1,
+  ...TenantDeploymentD1ResourceV1[],
+];
+
+export function decodeTenantDeploymentD1ResourcesV1(
+  value: unknown,
+): TenantDeploymentDecodeResult<TenantDeploymentD1ResourcesV1> {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { ok: false, message: 'deployment resources must be a nonempty set' };
+  }
+  const resources: TenantDeploymentD1ResourceV1[] = [];
+  const identities = new Set<string>();
+  for (const raw of value) {
+    const decoded = decodeTenantDeploymentD1ResourceV1(raw);
+    if (!decoded.ok) return decoded;
+    const key = `${decoded.value.accountId}/${decoded.value.databaseId}`;
+    if (identities.has(key)) return { ok: false, message: 'deployment resource is duplicated' };
+    identities.add(key);
+    resources.push(Object.freeze(decoded.value));
+  }
+  resources.sort(compareResources);
+  const [first, ...rest] = resources;
+  if (!first) return { ok: false, message: 'deployment resources must be a nonempty set' };
+  return { ok: true, value: Object.freeze([first, ...rest]) };
+}
+
+function compareResources(
+  left: TenantDeploymentD1ResourceV1,
+  right: TenantDeploymentD1ResourceV1,
+): number {
+  return compareCodeUnits(
+    `${left.accountId}/${left.databaseId}`,
+    `${right.accountId}/${right.databaseId}`,
+  );
+}
 
 type TenantDeploymentTenantV1<TEnvironmentId extends string> = {
   readonly namespace: string;
@@ -214,6 +274,7 @@ const BINDING_BODY_KEYS = Object.freeze([
   'kind',
   'schemaVersion',
   'deploymentLane',
+  'resources',
   'mode',
   'tenant',
   'tenantRoot',
@@ -385,6 +446,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   if (!exactKeys(input, BINDING_BODY_KEYS)) return null;
   if (input.kind !== 'tenant_deployment_binding_v1' || input.schemaVersion !== 1) return null;
   const deploymentLane = nonEmptyText(input.deploymentLane);
+  const resources = decodeTenantDeploymentD1ResourcesV1(input.resources);
   const mode = parseMode(input.mode);
   const tenant = record(input.tenant);
   const tenantRoot = record(input.tenantRoot);
@@ -394,6 +456,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
   const createdAtMs = safePositiveInteger(input.createdAtMs);
   if (
     !deploymentLane ||
+    !resources.ok ||
     !mode ||
     !tenant ||
     !tenantRoot ||
@@ -486,6 +549,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
+        resources: resources.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -510,6 +574,7 @@ function parseBindingBodyRecord(input: JsonRecord): TenantDeploymentBindingBodyV
         kind: 'tenant_deployment_binding_v1',
         schemaVersion: 1,
         deploymentLane,
+        resources: resources.value,
         mode,
         tenant: { namespace, organizationId, projectId, environmentId },
         tenantRoot: { identityDigestB64u, custodyLineageId, signingRootId, signingRootVersion },
@@ -552,11 +617,14 @@ export function encodeTenantDeploymentJsonValueV1(value: TenantDeploymentJsonVal
   return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${encodeTenantDeploymentJsonValueV1(entry)}`).join(',')}}`;
 }
 
-function bindingBodyJsonValue(body: TenantDeploymentBindingBodyV1): TenantDeploymentJsonValue {
+function bindingBodyJsonValue(
+  body: TenantDeploymentBindingBodyV1,
+): Record<string, TenantDeploymentJsonValue> {
   return {
     kind: body.kind,
     schemaVersion: body.schemaVersion,
     deploymentLane: body.deploymentLane,
+    resources: body.resources,
     mode: body.mode,
     tenant: body.tenant,
     tenantRoot: body.tenantRoot,
@@ -580,11 +648,17 @@ function base64Url(bytes: Uint8Array): string {
 export async function tenantDeploymentBindingRevisionV1(
   body: TenantDeploymentBindingBodyV1,
 ): Promise<TenantDeploymentBindingRevision> {
+  return bindingRevisionFromJsonValue(bindingBodyJsonValue(body));
+}
+
+async function bindingRevisionFromJsonValue(
+  body: TenantDeploymentJsonValue,
+): Promise<TenantDeploymentBindingRevision> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) throw new Error('WebCrypto subtle API is required for tenant deployment bindings');
   const digest = await subtle.digest(
     'SHA-256',
-    new TextEncoder().encode(encodeTenantDeploymentBindingBodyV1(body)),
+    new TextEncoder().encode(encodeTenantDeploymentJsonValueV1(body)),
   );
   return `tdb_${base64Url(new Uint8Array(digest))}`;
 }

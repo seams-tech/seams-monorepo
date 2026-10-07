@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {
+  WALLET_REGIONS,
+  requireAllocatedWalletRegions,
   DEFAULT_EMAIL_OTP_CHALLENGE_RATE_LIMIT_MAX,
   DEFAULT_EMAIL_OTP_GRANT_RATE_LIMIT_MAX,
   DEFAULT_EMAIL_OTP_LOCKOUT_TTL_MS,
@@ -18,6 +20,7 @@ import {
   gatewayRuntimeProfileNearNetwork,
 } from './gateway-deployment-config.mjs';
 import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import { isDirectInvocation } from './d1-staging-config.mjs';
 
 const VALID_LANES = new Set(['staging-testnet', 'production-testnet', 'production-mainnet']);
 
@@ -29,6 +32,7 @@ function main() {
   const options = parseArguments(process.argv.slice(2));
   const lane = readBackendLane(options.lane);
   const deployment = requireProvisionedGatewayDeploymentConfig(options.lane, lane.provisioning);
+  requireAllocatedWalletRegions(deployment);
   const config =
     options.worker === 'console'
       ? buildConsoleConfig(
@@ -43,6 +47,7 @@ function main() {
       : options.worker === 'wallet-runtime'
         ? buildWalletRuntimeConfig(
             deployment,
+            options.region,
             lane.site.origin,
             lane.walletOrigin,
             lane.emailOtpDelivery,
@@ -52,6 +57,7 @@ function main() {
           )
         : buildConfig(
             deployment,
+            options.region,
             lane.site.origin,
             lane.walletOrigin,
             lane.emailOtpDelivery,
@@ -77,6 +83,7 @@ function parseArguments(args) {
   let lane = '';
   let output = '';
   let worker = 'gateway';
+  let region = '';
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--lane') {
@@ -86,6 +93,11 @@ function parseArguments(args) {
     }
     if (argument === '--output') {
       output = requireArgumentValue(args, index, argument);
+      index += 1;
+      continue;
+    }
+    if (argument === '--region') {
+      region = requireArgumentValue(args, index, argument);
       index += 1;
       continue;
     }
@@ -103,7 +115,12 @@ function parseArguments(args) {
   if (!['gateway', 'console', 'wallet-runtime'].includes(worker)) {
     throw new Error('--worker must be gateway, console, or wallet-runtime');
   }
-  return { lane, output, worker };
+  if (worker === 'console' ? region !== '' : !WALLET_REGIONS.includes(region)) {
+    throw new Error(
+      'Gateway/Runtime require --region US, WEUR, APAC, or OC; Console has no region',
+    );
+  }
+  return { lane, output, worker, region };
 }
 
 function requireArgumentValue(args, index, name) {
@@ -148,6 +165,7 @@ function buildConsoleConfig(
   const consoleOrigin = consoleTarget.origin;
   const production = deployment.lane !== 'staging-testnet';
   const vars = {
+    SEAMS_WALLET_HOME_CATALOG_JSON: walletHomeCatalogJson(deployment),
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
@@ -156,7 +174,7 @@ function buildConsoleConfig(
       gatewayOrigin,
       relyingPartyId: new URL(walletOrigin).hostname,
     }),
-    CONSOLE_BASE_URL: consoleOrigin,
+    CONSOLE_BASE_URL: walletSiteOrigin,
     CONSOLE_CORS_ORIGINS: walletSiteOrigin,
     CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
     CONSOLE_STEP_UP_ORIGIN: walletSiteOrigin,
@@ -190,6 +208,9 @@ function buildConsoleConfig(
   return {
     name: consoleWorkerNameFor(resources.workerName),
     main: path.join(packageRoot, 'src/router/cloudflare/d1ConsoleStagingWorker.ts'),
+    ...(consoleTarget.placementRegion
+      ? { placement: { region: consoleTarget.placementRegion } }
+      : {}),
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,
@@ -203,9 +224,11 @@ function buildConsoleConfig(
       },
     ],
     services: [
+      ...regionalGatewayBindings(deployment),
+      ...regionalRuntimeBindings(deployment),
       {
         binding: 'WALLET_RUNTIME',
-        service: walletRuntimeWorkerNameFor(resources.workerName),
+        service: walletRuntimeWorkerNameFor(resources.regions[resources.ingressRegion].workerName),
       },
     ],
     triggers: {
@@ -231,11 +254,14 @@ function buildConsoleRoutes(consoleOrigin, walletSiteOrigin) {
   return [
     { pattern: `${hostname}/console`, zone_name: zoneName },
     { pattern: `${hostname}/console/*`, zone_name: zoneName },
+    { pattern: `${hostname}/internal/tenant-deployment/v1/verify-resource`, zone_name: zoneName },
+    { pattern: `${hostname}/internal/tenant-deployment/v1/cutover`, zone_name: zoneName },
   ];
 }
 
 function buildWalletRuntimeConfig(
   deployment,
+  region,
   siteOrigin,
   walletOrigin,
   emailOtpDelivery,
@@ -243,13 +269,15 @@ function buildWalletRuntimeConfig(
   packageRoot,
   controlPlaneWorkerName,
 ) {
-  const resources = deployment.resources;
+  const resources = deployment.resources.regions[region];
   return {
     name: walletRuntimeWorkerNameFor(resources.workerName),
     main: path.join(packageRoot, 'src/router/cloudflare/d1WalletRuntimeWorker.ts'),
+    version_metadata: { binding: 'CF_VERSION_METADATA' },
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,
+    placement: { region: resources.placementRegion },
     d1_databases: [
       {
         binding: 'SIGNER_DB',
@@ -264,45 +292,59 @@ function buildWalletRuntimeConfig(
       { binding: 'TENANT_ROOT_CONTROL_PLANE', service: controlPlaneWorkerName },
       { binding: 'DERIVER_A', service: deployment.serviceNames.deriverA },
       { binding: 'DERIVER_B', service: deployment.serviceNames.deriverB },
-      { binding: 'WALLET_CONSOLE', service: consoleWorkerNameFor(resources.workerName) },
+      { binding: 'WALLET_CONSOLE', service: consoleWorkerNameFor(deployment.resources.workerName) },
     ],
     observability: {
       enabled: true,
       logs: { enabled: true },
     },
-    vars: buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery, docsOrigin),
+    vars: buildWorkerVars(
+      deployment,
+      region,
+      siteOrigin,
+      walletOrigin,
+      emailOtpDelivery,
+      docsOrigin,
+    ),
   };
 }
 
 function buildConfig(
   deployment,
+  region,
   siteOrigin,
   walletOrigin,
   emailOtpDelivery,
   docsOrigin,
   packageRoot,
 ) {
-  const resources = deployment.resources;
-  if (resources.consoleD1.id === resources.signerD1.id) {
-    throw new Error('resources.consoleD1.id and resources.signerD1.id must be different');
-  }
-  const vars = buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery, docsOrigin);
+  const resources = deployment.resources.regions[region];
+  const vars = buildWorkerVars(
+    deployment,
+    region,
+    siteOrigin,
+    walletOrigin,
+    emailOtpDelivery,
+    docsOrigin,
+  );
   return {
     name: resources.workerName,
     main: path.join(packageRoot, 'src/router/cloudflare/d1GatewayWorker.ts'),
+    version_metadata: { binding: 'CF_VERSION_METADATA' },
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     placement: { region: resources.placementRegion },
-    workers_dev: true,
-    routes: [
-      {
-        pattern: new URL(deployment.origins.gateway).hostname,
-        custom_domain: true,
-      },
-    ],
+    workers_dev: false,
+    routes:
+      region === deployment.resources.ingressRegion
+        ? [
+            {
+              pattern: new URL(deployment.origins.gateway).hostname,
+              custom_domain: true,
+            },
+          ]
+        : [],
     d1_databases: [
-      // R105 Phase 4 cutover: the Gateway holds no Console database binding.
-      // Console data crosses the private WALLET_CONSOLE service binding only.
       {
         binding: 'SIGNER_DB',
         database_name: resources.signerD1.name,
@@ -311,9 +353,10 @@ function buildConfig(
       },
     ],
     services: [
+      ...regionalGatewayBindings(deployment),
       { binding: 'SIGNING_WORKER', service: deployment.serviceNames.signingWorker },
       { binding: 'MPC_ROUTER', service: deployment.serviceNames.mpcRouter },
-      { binding: 'WALLET_CONSOLE', service: consoleWorkerNameFor(resources.workerName) },
+      { binding: 'WALLET_CONSOLE', service: consoleWorkerNameFor(deployment.resources.workerName) },
     ],
     triggers: {
       crons: ['* * * * *'],
@@ -334,7 +377,54 @@ function buildConfig(
   };
 }
 
-function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery, docsOrigin) {
+function walletHomeCatalogJson(deployment) {
+  const resources = requireAllocatedWalletRegions(deployment);
+  const accountId = deploymentResourceAccountId();
+  const catalog = [];
+  for (const region of WALLET_REGIONS) {
+    catalog.push({ region, accountId, databaseId: resources[region].signerD1.id });
+  }
+  return JSON.stringify(catalog);
+}
+
+function regionalGatewayBindings(deployment) {
+  const bindings = [];
+  for (const region of WALLET_REGIONS) {
+    bindings.push({
+      binding: `WALLET_GATEWAY_${region}`,
+      service: deployment.resources.regions[region].workerName,
+    });
+  }
+  return bindings;
+}
+
+function regionalRuntimeBindings(deployment) {
+  const bindings = [];
+  for (const region of WALLET_REGIONS) {
+    bindings.push({
+      binding: `WALLET_RUNTIME_${region}`,
+      service: walletRuntimeWorkerNameFor(deployment.resources.regions[region].workerName),
+    });
+  }
+  return bindings;
+}
+
+function deploymentResourceAccountId() {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  if (typeof accountId !== 'string' || !/^[a-f0-9]{32}$/u.test(accountId)) {
+    throw new Error('CLOUDFLARE_ACCOUNT_ID is required to configure the deployment D1 resource');
+  }
+  return accountId;
+}
+
+function buildWorkerVars(
+  deployment,
+  region,
+  siteOrigin,
+  walletOrigin,
+  emailOtpDelivery,
+  docsOrigin,
+) {
   const production = deployment.lane !== 'staging-testnet';
   const implicitNearTestFunding =
     deployment.runtimeProfile.nearFunding.kind === 'implicit_account_relayer';
@@ -342,9 +432,11 @@ function buildWorkerVars(deployment, siteOrigin, walletOrigin, emailOtpDelivery,
     deployment.runtimeProfile.emailOtpDelivery.kind === 'demo_code_response' ||
     deployment.runtimeProfile.emailOtpDelivery.kind === 'provider_and_demo_code';
   const vars = {
+    SEAMS_WALLET_HOME_CATALOG_JSON: walletHomeCatalogJson(deployment),
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
-    ROUTER_AB_NORMAL_SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
+    SEAMS_D1_HOME_ACCOUNT_ID: deploymentResourceAccountId(),
+    SEAMS_D1_HOME_DATABASE_ID: deployment.resources.regions[region].signerD1.id,
     ROUTER_AB_PREWARM_ENABLED: 'true',
     SIGNING_WORKER_ID: deployment.serviceNames.signingWorker,
     ROUTER_AB_CEREMONY_JWT_ISSUER: deployment.origins.gateway,
@@ -455,4 +547,4 @@ function addOptionalStringVar(vars, name, value) {
   vars[name] = value;
 }
 
-main();
+if (isDirectInvocation(import.meta.url)) main();

@@ -14,6 +14,14 @@ on:
           - wallet-site
           - company
           - wallet-host
+      wallet_lane:
+        description: Hosted-wallet lane; all updates every lane, specific lanes require wallet-host
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - staging-testnet
       wallet_revision:
         description: Full seams-wallet commit SHA; required for all or wallet-site
         required: false
@@ -23,12 +31,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: deployment-staging-${{ inputs.surface || 'all' }}
+  group: deployment-staging-frontend
   cancel-in-progress: false
 
 env:
   DEPLOY_SITE: staging
   DEPLOY_COMPONENT: ${{ inputs.surface || 'all' }}
+  DEPLOY_WALLET_LANE: ${{ inputs.wallet_lane || 'all' }}
   DEPLOY_SHA: ${{ github.sha }}
   SEAMS_WALLET_REVISION: ${{ inputs.wallet_revision }}
   RUST_TOOLCHAIN: 1.96.0
@@ -112,9 +121,13 @@ jobs:
       - name: Stage exact public Wallet docs
         if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
         run: node scripts/prepare-wallet-docs-source.mjs --checkout .wallet-source --revision "$SEAMS_WALLET_REVISION" --output .artifacts/wallet-docs
-      - name: Build frontend
-        run: pnpm deploy:frontend build --site "$DEPLOY_SITE" --component "$DEPLOY_COMPONENT"
-      - name: Deploy Pages
-        run: pnpm deploy:frontend deploy --site "$DEPLOY_SITE" --component "$DEPLOY_COMPONENT"
-      - name: Smoke frontend
-        run: pnpm deploy:frontend smoke --site "$DEPLOY_SITE" --component "$DEPLOY_COMPONENT"
+      - name: Build, deploy and smoke selected frontend
+        run: |
+          set -euo pipefail
+          lane_args=()
+          if [[ "$DEPLOY_WALLET_LANE" != all ]]; then
+            lane_args=(--lane "$DEPLOY_WALLET_LANE")
+          fi
+          for operation in build deploy smoke; do
+            pnpm deploy:frontend "$operation" --site "$DEPLOY_SITE" --component "$DEPLOY_COMPONENT" "${lane_args[@]}"
+          done

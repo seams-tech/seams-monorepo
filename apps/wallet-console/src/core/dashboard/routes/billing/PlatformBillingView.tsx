@@ -1,3 +1,4 @@
+import { blinkMenuItem } from '@/components/menuItemBlink';
 import React from 'react';
 import { toast } from 'sonner';
 import {
@@ -519,10 +520,17 @@ export function PlatformBillingView(): React.JSX.Element {
           ];
         if (!selectedMatch) return;
         event.preventDefault();
-        void onLoadSearchOrganization(selectedMatch);
+        const option = document.getElementById(
+          `${searchListboxId}-${buildOrganizationKey(selectedMatch)}`,
+        );
+        if (!option) {
+          void onLoadSearchOrganization(selectedMatch);
+          return;
+        }
+        void blinkMenuItem(option)?.then(() => onLoadSearchOrganization(selectedMatch));
       }
     },
-    [activeSearchIndex, onLoadSearchOrganization, searchResults],
+    [activeSearchIndex, onLoadSearchOrganization, searchListboxId, searchResults],
   );
 
   const onApplyActivityFilters = React.useCallback(async () => {
@@ -938,8 +946,10 @@ export function PlatformBillingView(): React.JSX.Element {
                           aria-selected={isActive}
                           onMouseDown={(event) => event.preventDefault()}
                           onMouseEnter={() => setActiveSearchIndex(index)}
-                          onClick={() => {
-                            void onLoadSearchOrganization(organization);
+                          onClick={(event) => {
+                            void blinkMenuItem(event.currentTarget)?.then(() =>
+                              onLoadSearchOrganization(organization),
+                            );
                           }}
                           disabled={loading}
                         >

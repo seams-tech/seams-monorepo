@@ -404,21 +404,23 @@ function validateResourceInventoryD1Metadata(input, checks) {
     workerFieldName: 'consoleWorker',
     binding: 'CONSOLE_DB',
   });
-  const relayConsoleDatabaseId = requireResourceD1DatabaseId({
-    input,
-    workerFieldName: 'gatewayWorker',
-    binding: 'CONSOLE_DB',
-  });
   const signerDatabaseId = requireResourceD1DatabaseId({
     input,
     workerFieldName: 'gatewayWorker',
     binding: 'SIGNER_DB',
   });
 
-  if (consoleDatabaseId && relayConsoleDatabaseId && consoleDatabaseId !== relayConsoleDatabaseId) {
-    input.errors.push(
-      `resource_inventory: gatewayWorker CONSOLE_DB databaseId ${relayConsoleDatabaseId} must match consoleWorker CONSOLE_DB ${consoleDatabaseId}`,
-    );
+  const gatewayWorker = resourceInventoryWorker(input.manifest, 'gatewayWorker');
+  if (gatewayWorker) {
+    validateOnlyResourceBindings({
+      id: input.id,
+      errors: input.errors,
+      workerFieldName: 'gatewayWorker',
+      resourceFieldName: 'd1Databases',
+      bindingFieldName: 'binding',
+      bindings: readArray(gatewayWorker.d1Databases),
+      allowedBindings: ['SIGNER_DB'],
+    });
   }
 
   validateRemoteD1InfoDatabaseId({

@@ -580,6 +580,44 @@ html[data-seams-theme='light'] .navbar-static {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--navbar-focus) 65%, transparent);
 }
 
+/* A chosen dropdown item blinks once, highlight off then on, before the menu
+   closes (blinkMenuItem). No transition, so each phase lands on its own frame. */
+.navbar-static__menu-row[data-blink],
+.navbar-static__menu-highlight[data-blink],
+.navbar-static__menu-footer-link[data-blink] {
+  transition: none;
+}
+
+.navbar-static__menu-row[data-blink='off'],
+.navbar-static__menu-footer-link[data-blink='off'] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.navbar-static__menu-row[data-blink='on'],
+.navbar-static__menu-footer-link[data-blink='on'] {
+  background: var(--navbar-access-trigger-active);
+}
+
+.navbar-static__menu-row[data-blink='off'] .navbar-static__menu-row-icon,
+.navbar-static__menu-footer-link[data-blink='off'] {
+  color: var(--navbar-access-muted);
+}
+
+.navbar-static__menu-row[data-blink='on'] .navbar-static__menu-row-icon,
+.navbar-static__menu-footer-link[data-blink='on'] {
+  color: var(--navbar-text);
+}
+
+.navbar-static__menu-highlight[data-blink='off'] {
+  filter: none;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+}
+
+.navbar-static__menu-highlight[data-blink='on'] {
+  filter: brightness(1.06);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .navbar-static__shell,
   .navbar-static__link,

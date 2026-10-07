@@ -20,6 +20,7 @@ import type {
   TenantDeploymentReadinessInspectorV1,
 } from './readiness';
 import type { TenantDeploymentBindingReaderV1 } from './types';
+import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type {
   TenantDeploymentRuntimeInspectorV1,
   TenantDeploymentRuntimeScopeV1,
@@ -36,6 +37,8 @@ export type TenantDeploymentCandidateSurfacesV1 = {
 
 export interface TenantDeploymentCandidateResolverV1 {
   buildCandidate(input: {
+    readonly namespace: string;
+    readonly resources: TenantDeploymentD1ResourcesV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;
@@ -55,7 +58,7 @@ export type ProductionTenantDeploymentReadinessOptionsV1 = {
   readonly policies: ConsolePolicyService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
   readonly tenantRootState: TenantRootSecurityStateReaderV1;
-  readonly bindings: TenantDeploymentBindingReaderV1;
+  readonly bindings: Pick<TenantDeploymentBindingReaderV1, 'readActiveScope'>;
   readonly walletRuntime: TenantDeploymentRuntimeInspectorV1;
   readonly now?: () => number;
 };
@@ -245,14 +248,14 @@ function runtimeScope(binding: TenantDeploymentBindingV1): TenantDeploymentRunti
 }
 
 function sameEnvironment(
-  left: TenantDeploymentBindingV1,
+  left: TenantDeploymentRuntimeScopeV1,
   right: TenantDeploymentBindingV1,
 ): boolean {
   return (
-    left.tenant.namespace === right.tenant.namespace &&
-    left.tenant.organizationId === right.tenant.organizationId &&
-    left.tenant.projectId === right.tenant.projectId &&
-    left.tenant.environmentId === right.tenant.environmentId
+    left.namespace === right.tenant.namespace &&
+    left.organizationId === right.tenant.organizationId &&
+    left.projectId === right.tenant.projectId &&
+    left.environmentId === right.tenant.environmentId
   );
 }
 
@@ -285,12 +288,16 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   constructor(private readonly options: ProductionTenantDeploymentReadinessOptionsV1) {}
 
   async buildCandidate(input: {
+    readonly namespace: string;
+    readonly resources: TenantDeploymentD1ResourcesV1;
     readonly identity: TenantRootIdentityV1;
     readonly activeTenantRoot: ActiveTenantRootReferenceV1;
     readonly credentialId: string;
     readonly publishableKey: string;
     readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   }): Promise<TenantDeploymentBindingV1> {
+    if (input.namespace !== this.options.namespace)
+      throw new Error('candidate resources belong to another namespace');
     const environment = await resolveEnvironment(this.options, input.identity);
     const credential = await resolveCredential(this.options, input.identity, input.credentialId);
     const runtimePolicyDigestB64u = await resolveRuntimePolicyDigest(
@@ -302,6 +309,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
       kind: 'tenant_deployment_binding_v1',
       schemaVersion: 1,
       deploymentLane: this.options.deploymentLane,
+      resources: input.resources,
       mode: modeForEnvironment(environment),
       tenant: {
         namespace: this.options.namespace,
@@ -331,6 +339,11 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
   }
 
   async inspect(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentReadinessEvidenceV1> {
+    if (
+      JSON.stringify(this.options.walletRuntime.resources) !== JSON.stringify(binding.resources)
+    ) {
+      throw new Error('Readiness runtimes do not cover the deployment resource set');
+    }
     const identity = identityFromBinding(binding);
     const environment = await resolveEnvironment(this.options, identity);
     const mode = modeForEnvironment(environment);
@@ -338,7 +351,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
       this.options.tenantRootState.readStatus({ identity }),
       resolveCredential(this.options, identity, binding.browserCredential.credentialId),
       resolveRuntimePolicyDigest(this.options, identity, false),
-      this.options.bindings.resolveActiveBinding(binding.deploymentLane),
+      this.options.bindings.readActiveScope(binding.deploymentLane),
     ]);
     assertRootStatus(binding, root);
     const authenticatedCredential = await authenticateCredential(this.options, binding);
@@ -348,7 +361,7 @@ class ProductionTenantDeploymentReadinessAdapter implements ProductionTenantDepl
     const sourceEnvironmentChanged = active !== null && !sameEnvironment(active, binding);
     const runtime = await this.options.walletRuntime.inspect({
       bindingRevision: binding.revision,
-      source: sourceEnvironmentChanged && active ? runtimeScope(active) : null,
+      source: sourceEnvironmentChanged ? active : null,
       target: runtimeScope(binding),
     });
     return {

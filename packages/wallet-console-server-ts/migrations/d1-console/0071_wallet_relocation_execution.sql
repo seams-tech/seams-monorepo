@@ -1,0 +1,122 @@
+-- Relocation has not been enabled. Require the planned disposable-wallet reset
+-- rather than reconstructing missing execution and completion evidence.
+CREATE TABLE relocation_execution_reset_guard (move_count INTEGER NOT NULL CHECK (move_count = 0));
+INSERT INTO relocation_execution_reset_guard SELECT COUNT(*) FROM wallet_relocations;
+DROP TABLE relocation_execution_reset_guard;
+
+ALTER TABLE wallet_relocations ADD COLUMN destination_activation_json TEXT
+  CHECK (destination_activation_json IS NULL OR json_valid(destination_activation_json));
+ALTER TABLE wallet_relocations ADD COLUMN source_cleanup_json TEXT
+  CHECK (source_cleanup_json IS NULL OR json_valid(source_cleanup_json));
+ALTER TABLE wallet_relocations ADD COLUMN execution_state TEXT DEFAULT 'ready'
+  CHECK (execution_state IS NULL OR execution_state IN ('ready', 'running', 'retry_wait', 'blocked'));
+ALTER TABLE wallet_relocations ADD COLUMN execution_revision INTEGER NOT NULL DEFAULT 0
+  CHECK (execution_revision BETWEEN 0 AND 9007199254740991);
+ALTER TABLE wallet_relocations ADD COLUMN execution_run INTEGER NOT NULL DEFAULT 1
+  CHECK (execution_run BETWEEN 1 AND 9007199254740991);
+ALTER TABLE wallet_relocations ADD COLUMN execution_attempt INTEGER NOT NULL DEFAULT 0
+  CHECK (execution_attempt BETWEEN 0 AND 6);
+ALTER TABLE wallet_relocations ADD COLUMN execution_attempt_id TEXT;
+ALTER TABLE wallet_relocations ADD COLUMN execution_started_at_ms INTEGER;
+ALTER TABLE wallet_relocations ADD COLUMN execution_error TEXT
+  CHECK (execution_error IS NULL OR execution_error IN (
+    'transport_unavailable', 'authority_unavailable', 'identity_conflict', 'receipt_conflict', 'content_conflict'
+  ));
+ALTER TABLE wallet_relocations ADD COLUMN execution_retry_at_ms INTEGER;
+
+CREATE TRIGGER wallet_relocations_execution_admission
+BEFORE INSERT ON wallet_relocations
+WHEN NEW.execution_state IS NOT 'ready' OR NEW.execution_revision != 0 OR NEW.execution_run != 1
+  OR NEW.execution_attempt != 0 OR NEW.execution_attempt_id IS NOT NULL
+  OR NEW.execution_started_at_ms IS NOT NULL OR NEW.execution_error IS NOT NULL
+  OR NEW.execution_retry_at_ms IS NOT NULL OR NEW.destination_activation_json IS NOT NULL
+  OR NEW.source_cleanup_json IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'wallet relocation execution admission rejected');
+END;
+
+CREATE TRIGGER wallet_relocations_execution_shape
+BEFORE UPDATE ON wallet_relocations
+WHEN NOT (
+  (NEW.state = 'completed' AND NEW.execution_state IS NULL
+    AND NEW.destination_activation_json IS NOT NULL AND NEW.source_cleanup_json IS NOT NULL
+    AND NEW.execution_attempt = 0 AND NEW.execution_attempt_id IS NULL
+    AND NEW.execution_started_at_ms IS NULL AND NEW.execution_error IS NULL
+    AND NEW.execution_retry_at_ms IS NULL) OR
+  (NEW.state != 'completed' AND NEW.execution_state IS NOT NULL
+    AND NEW.destination_activation_json IS NULL AND NEW.source_cleanup_json IS NULL AND (
+      (NEW.execution_state = 'ready' AND NEW.execution_attempt = 0
+        AND NEW.execution_attempt_id IS NULL AND NEW.execution_started_at_ms IS NULL
+        AND NEW.execution_error IS NULL AND NEW.execution_retry_at_ms IS NULL) OR
+      (NEW.execution_attempt BETWEEN 1 AND 6
+        AND NEW.execution_attempt_id IS NOT NULL AND length(NEW.execution_attempt_id) = 52
+        AND NEW.execution_attempt_id GLOB 'wattempt_*'
+        AND NEW.execution_started_at_ms IS NOT NULL AND NEW.execution_started_at_ms >= NEW.admitted_at_ms
+        AND (
+          (NEW.execution_state = 'running' AND NEW.execution_error IS NULL AND NEW.execution_retry_at_ms IS NULL) OR
+          (NEW.execution_state = 'retry_wait' AND NEW.execution_attempt < 6
+            AND NEW.execution_error IS NOT NULL AND NEW.execution_error IN ('transport_unavailable', 'authority_unavailable')
+            AND NEW.execution_retry_at_ms IS NOT NULL
+            AND NEW.execution_retry_at_ms >= NEW.execution_started_at_ms + (1000 << (NEW.execution_attempt - 1))) OR
+          (NEW.execution_state = 'blocked' AND NEW.execution_retry_at_ms IS NULL
+            AND NEW.execution_error IS NOT NULL AND (
+              NEW.execution_error IN ('identity_conflict', 'receipt_conflict', 'content_conflict') OR
+              NEW.execution_attempt = 6
+            ))
+        ))
+    ))
+)
+BEGIN
+  SELECT RAISE(ABORT, 'wallet relocation execution shape rejected');
+END;
+
+DROP TRIGGER wallet_relocations_transition;
+CREATE TRIGGER wallet_relocations_transition
+BEFORE UPDATE ON wallet_relocations
+BEGIN
+  SELECT CASE WHEN NEW.namespace != OLD.namespace OR NEW.organization_id != OLD.organization_id OR
+    NEW.project_id != OLD.project_id OR NEW.environment_id != OLD.environment_id OR
+    NEW.wallet_id != OLD.wallet_id OR NEW.move_id != OLD.move_id OR NEW.request_digest != OLD.request_digest OR
+    NEW.authority_id != OLD.authority_id OR NEW.source_region != OLD.source_region OR
+    NEW.source_account_id != OLD.source_account_id OR NEW.source_database_id != OLD.source_database_id OR
+    NEW.destination_region != OLD.destination_region OR NEW.destination_account_id != OLD.destination_account_id OR
+    NEW.destination_database_id != OLD.destination_database_id OR NEW.source_generation != OLD.source_generation OR
+    NEW.destination_generation != OLD.destination_generation OR NEW.admitted_at_ms != OLD.admitted_at_ms OR
+    (OLD.source_fence_json IS NOT NULL AND NEW.source_fence_json IS NOT OLD.source_fence_json) OR
+    (OLD.destination_verification_json IS NOT NULL AND NEW.destination_verification_json IS NOT OLD.destination_verification_json) OR
+    (OLD.cutover_at_ms IS NOT NULL AND NEW.cutover_at_ms IS NOT OLD.cutover_at_ms) OR
+    (OLD.completed_at_ms IS NOT NULL AND NEW.completed_at_ms IS NOT OLD.completed_at_ms) OR
+    (OLD.destination_activation_json IS NOT NULL AND NEW.destination_activation_json IS NOT OLD.destination_activation_json) OR
+    (OLD.source_cleanup_json IS NOT NULL AND NEW.source_cleanup_json IS NOT OLD.source_cleanup_json) OR NOT (
+      (OLD.execution_state = 'running' AND NEW.execution_revision = OLD.execution_revision + 1
+        AND NEW.execution_run = OLD.execution_run AND NEW.execution_attempt = 0 AND (
+          (OLD.state = 'freezing' AND NEW.state = 'copying' AND NEW.execution_state = 'ready') OR
+          (OLD.state = 'copying' AND NEW.state = 'verified' AND NEW.execution_state = 'ready') OR
+          (OLD.state = 'verified' AND NEW.state = 'cutover' AND NEW.execution_state = 'ready') OR
+          (OLD.state = 'cutover' AND NEW.state = 'completed' AND NEW.execution_state IS NULL)
+        )) OR
+      (OLD.state = NEW.state AND OLD.state != 'completed'
+        AND NEW.source_fence_json IS OLD.source_fence_json
+        AND NEW.destination_verification_json IS OLD.destination_verification_json
+        AND NEW.destination_activation_json IS OLD.destination_activation_json
+        AND NEW.source_cleanup_json IS OLD.source_cleanup_json
+        AND NEW.cutover_at_ms IS OLD.cutover_at_ms
+        AND NEW.completed_at_ms IS OLD.completed_at_ms AND (
+          (OLD.execution_state IN ('ready', 'retry_wait') AND NEW.execution_state = 'running'
+            AND NEW.execution_run = OLD.execution_run
+            AND NEW.execution_revision = OLD.execution_revision + 1
+            AND NEW.execution_attempt = OLD.execution_attempt + 1
+            AND NEW.execution_attempt_id IS NOT OLD.execution_attempt_id
+            AND (OLD.execution_state = 'ready' OR NEW.execution_started_at_ms >= OLD.execution_retry_at_ms)) OR
+          (OLD.execution_state = 'running' AND NEW.execution_state IN ('retry_wait', 'blocked')
+            AND NEW.execution_revision = OLD.execution_revision AND NEW.execution_run = OLD.execution_run
+            AND NEW.execution_attempt = OLD.execution_attempt
+            AND NEW.execution_attempt_id = OLD.execution_attempt_id
+            AND NEW.execution_started_at_ms = OLD.execution_started_at_ms) OR
+          (OLD.execution_state = 'blocked' AND NEW.execution_state = 'ready'
+            AND NEW.execution_revision = OLD.execution_revision + 1
+            AND NEW.execution_run = OLD.execution_run + 1 AND NEW.execution_attempt = 0)
+        ))
+    ) THEN RAISE(ABORT, 'wallet relocation transition rejected') END;
+END;
+

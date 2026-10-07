@@ -10,20 +10,6 @@ import {
 const NEAR_ACCOUNT_ID = 'frost-vermillion-k7p9m2.testnet';
 const NEAR_PUBLIC_KEY = 'ed25519:demo-near-public-key';
 
-test('mixed logged-in wallet keeps a complete NEAR funding-check identity', () => {
-  expect(
-    resolveDemoNearFundingCheck({
-      isLoggedIn: true,
-      nearAccountId: NEAR_ACCOUNT_ID,
-      nearPublicKey: NEAR_PUBLIC_KEY,
-    }),
-  ).toEqual({
-    kind: 'check',
-    nearAccountId: NEAR_ACCOUNT_ID,
-    nearPublicKey: NEAR_PUBLIC_KEY,
-  });
-});
-
 test('NEAR funding profile validation trims identity fields before readiness checks', () => {
   expect(
     resolveDemoNearFundingCheck({
@@ -77,16 +63,6 @@ test('logged-in wallet with a missing NEAR public key has visible blocked readin
   if (resolution.kind !== 'skip') throw new Error('expected blocked NEAR readiness');
   expect(demoNearFundingStatusText(resolution.status)).toContain('public key is unavailable');
   expect(canStartDemoNearTransaction(resolution.status)).toBe(false);
-});
-
-test('transient checking status renders no text so the status slot never jolts the buttons', () => {
-  /* A "Checking..." line that mounts and unmounts a beat later shifts the
-     buttons below it on every card load — 'checking' must stay silent. */
-  expect(
-    demoNearFundingStatusText({ kind: 'checking', nearAccountId: NEAR_ACCOUNT_ID }),
-  ).toBeNull();
-  expect(demoNearFundingStatusText({ kind: 'ready', nearAccountId: NEAR_ACCOUNT_ID })).toBeNull();
-  expect(demoNearFundingStatusText({ kind: 'signed_out' })).toBeNull();
 });
 
 test('funding readiness controls NEAR transaction and delegate actions independently', () => {

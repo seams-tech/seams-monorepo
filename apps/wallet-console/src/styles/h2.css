@@ -3469,6 +3469,98 @@ body:has(.h2-page) {
   }
 }
 
+/* ---------- wallet UI showcase (copy left, demo stage right) ---------- */
+
+/* Split like the hero: the copy cell keeps the section's padding, and the
+   stage runs the full section height out to the column border, in the hero
+   demo's tint. The pager sits on the divider/bottom-rule junction. */
+.h2-showcase__split {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.h2-showcase__main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 86px 44px 72px 36px;
+}
+
+.h2-showcase__copy {
+  margin: -20px 0 30px;
+  max-width: 432px;
+  font-size: var(--h2-text-xl);
+  line-height: 1.6;
+  color: var(--h2-smoke);
+}
+
+/* each demo's description doubles as its tab: the active one reads at full
+   ink and carries a rule on its leading edge */
+.h2-showcase__item {
+  display: block;
+  width: 100%;
+  padding: 2px 0 2px 16px;
+  border: 0;
+  border-inline-start: 2px solid var(--h2-line);
+  background: none;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 150ms ease,
+    border-color 150ms ease;
+}
+
+.h2-showcase__item:hover,
+.h2-showcase__item.is-active {
+  opacity: 1;
+}
+
+.h2-showcase__item.is-active {
+  border-inline-start-color: var(--h2-ink);
+}
+
+/* Both demos share one fixed-height stage, tall enough for the receipt with
+   its details open, so paging or expanding never moves the page. Each frame
+   fills the stage and is transparent, so the tint shows around its card. */
+.h2-showcase__stage {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  height: 668px;
+  border-left: 1px solid var(--h2-stone);
+  background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
+}
+
+.h2-showcase__stage > .h2-security__view {
+  align-self: stretch;
+}
+
+.h2-showcase__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+@media (max-width: 980px) {
+  .h2-showcase__split {
+    grid-template-columns: 1fr;
+  }
+
+  .h2-showcase__main {
+    padding: 64px 22px 36px;
+  }
+
+  .h2-showcase__stage {
+    border-left: none;
+    border-top: 1px solid var(--h2-stone);
+  }
+}
+
 /* ---------- get-started band (stacked two-column rows) ---------- */
 
 .h2-starthead {

@@ -14,8 +14,6 @@ test.describe('console API key secret format', () => {
     });
 
     expect(secret).toMatch(/^pk_dev_[A-Za-z0-9]+$/);
-    expect(secret).not.toContain('.');
-    expect(secret.slice(3)).not.toContain('-');
     expect(secret.length).toBeLessThan(50);
     expect(parseApiKeySecret(secret)).toEqual({ kind: 'publishable_key' });
     expect(makeApiKeyLookupPrefix(secret)).toBe(secret.slice(0, 24));
@@ -25,8 +23,6 @@ test.describe('console API key secret format', () => {
     const secret = makeApiKeySecret({ kind: 'secret_key', environmentId: 'project-a:prod' });
 
     expect(secret).toMatch(/^sk_prod_[A-Za-z0-9]+$/);
-    expect(secret).not.toContain('.');
-    expect(secret.slice(3)).not.toContain('-');
     expect(secret.length).toBeLessThan(50);
     expect(parseApiKeySecret(secret)).toEqual({ kind: 'secret_key' });
   });

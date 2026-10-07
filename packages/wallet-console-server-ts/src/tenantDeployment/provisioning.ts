@@ -1,8 +1,14 @@
+import type { RegionalDeploymentInstaller } from './regionalAdmission';
 import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/service';
+import { base64UrlEncode } from '@seams/wallet-server/cloud-host';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
 import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
-import type { TenantDeploymentCutoverId } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import type {
+  TenantDeploymentCutoverId,
+  TenantDeploymentCutoverPhaseV1,
+  TenantDeploymentCutoverV1,
+} from '@seams-internal/wallet-console-shared/tenant-deployment';
 import {
   ensureTenantRootActiveV1,
   type TenantRootCreationConsoleRouteDependenciesV1,
@@ -16,12 +22,24 @@ import type {
 } from './productionReadiness';
 import type { TenantDeploymentReadinessServiceV1 } from './readiness';
 import type { TenantDeploymentServiceV1 } from './service';
+import { TenantDeploymentStoreError } from './service';
+import type { TenantDeploymentD1ResourcesV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import {
+  assertDeploymentResourcesVerified,
+  type TenantDeploymentResourceVerificationsV1,
+} from './resourceVerification';
 
 const SYSTEM_ACTOR_USER_ID = 'system:tenant-deployment-provisioner';
 
 export type TenantDeploymentProvisioningRequestV1 = {
   readonly deploymentLane: string;
   readonly environmentId: string;
+  readonly authorization:
+    | { readonly kind: 'reuse_active'; readonly verifications?: never }
+    | {
+        readonly kind: 'activate';
+        readonly verifications: TenantDeploymentResourceVerificationsV1;
+      };
 };
 
 export type TenantDeploymentCanaryReceiptV1 = {
@@ -65,7 +83,16 @@ export interface TenantDeploymentProvisionerV1 {
   ): Promise<TenantDeploymentProvisioningResultV1>;
 }
 
+export type TenantDeploymentBrowserCredentialProvisioningV1 =
+  | { readonly kind: 'create_managed_publishable_key' }
+  | {
+      readonly kind: 'adopt_publishable_key';
+      readonly publishableKey: `pk_${string}`;
+    };
+
 export type TenantDeploymentProvisionerOptionsV1 = {
+  readonly namespace: string;
+  readonly resources: TenantDeploymentD1ResourcesV1;
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
   readonly orgProjectEnv: ConsoleOrgProjectEnvService;
@@ -76,7 +103,9 @@ export type TenantDeploymentProvisionerOptionsV1 = {
   readonly candidates: TenantDeploymentCandidateResolverV1;
   readonly readiness: TenantDeploymentReadinessServiceV1;
   readonly store: TenantDeploymentServiceV1;
+  readonly regionalAdmission: RegionalDeploymentInstaller;
   readonly canary: TenantDeploymentRegistrationCanaryV1;
+  readonly browserCredential: TenantDeploymentBrowserCredentialProvisioningV1;
   readonly newOperationId?: () => TenantDeploymentCutoverId;
 };
 
@@ -91,6 +120,28 @@ function defaultOperationId(): TenantDeploymentCutoverId {
   return `tco_${crypto.randomUUID().replace(/-/gu, '')}`;
 }
 
+function failedCutoverPhase(
+  state: Exclude<TenantDeploymentCutoverV1, { kind: 'active' | 'failed' }>,
+  credential: ProvisionedBrowserCredentialV1 | null,
+): TenantDeploymentCutoverPhaseV1 {
+  switch (state.kind) {
+    case 'planning':
+      return 'planning';
+    case 'awaiting_tenant_root':
+      return 'tenant_root';
+    case 'awaiting_browser_credential':
+      return credential === null ? 'browser_credential' : 'readiness';
+    case 'ready':
+      return 'activation';
+    default:
+      return assertNeverCutover(state);
+  }
+}
+
+function assertNeverCutover(state: never): never {
+  throw new Error(`Unexpected deployment cutover state: ${state}`);
+}
+
 function parseCredentialId(value: string): `ak_${string}` {
   if (!value.startsWith('ak_') || value.length <= 3) {
     throw new Error('publishable credential ID is invalid');
@@ -103,6 +154,66 @@ function parsePublishableKey(value: string): `pk_${string}` {
     throw new Error('publishable credential value is invalid');
   }
   return `pk_${value.slice(3)}`;
+}
+
+type ProvisionedBrowserCredentialV1 =
+  | {
+      readonly kind: 'created';
+      readonly credentialId: `ak_${string}`;
+      readonly publishableKey: `pk_${string}`;
+    }
+  | {
+      readonly kind: 'adopted';
+      readonly credentialId: `ak_${string}`;
+      readonly publishableKey: `pk_${string}`;
+    };
+
+async function provisionBrowserCredential(input: {
+  readonly options: TenantDeploymentProvisionerOptionsV1;
+  readonly credential: TenantDeploymentBrowserCredentialProvisioningV1;
+  readonly identity: TenantRootIdentityV1;
+  readonly environmentId: string;
+}): Promise<ProvisionedBrowserCredentialV1> {
+  switch (input.credential.kind) {
+    case 'create_managed_publishable_key': {
+      const credential = await input.options.apiKeys.createApiKey(
+        { orgId: input.identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
+        {
+          kind: 'publishable_key',
+          name: `Managed deployment ${input.options.deploymentLane}`,
+          environmentId: input.environmentId,
+          allowedOrigins: [
+            input.options.surfaces.applicationOrigin,
+            input.options.surfaces.hostedWalletOrigin,
+          ],
+          rateLimitBucket: 'managed-registration',
+          quotaBucket: 'included-registration',
+        },
+      );
+      return {
+        kind: 'created',
+        credentialId: parseCredentialId(credential.apiKey.id),
+        publishableKey: parsePublishableKey(credential.secret),
+      };
+    }
+    case 'adopt_publishable_key': {
+      const authenticate = input.options.apiKeys.authenticatePublishableKey;
+      if (!authenticate) throw new Error('publishable credential authentication is unavailable');
+      const authenticated = await authenticate.call(input.options.apiKeys, {
+        secret: input.credential.publishableKey,
+        origin: input.options.surfaces.applicationOrigin,
+        environmentId: input.environmentId,
+      });
+      if (!authenticated.ok || authenticated.apiKey.kind !== 'publishable_key') {
+        throw new Error('configured publishable credential is invalid');
+      }
+      return {
+        kind: 'adopted',
+        credentialId: parseCredentialId(authenticated.apiKey.id),
+        publishableKey: input.credential.publishableKey,
+      };
+    }
+  }
 }
 
 function bindingMatchesRequest(input: {
@@ -238,14 +349,47 @@ export function createTenantDeploymentProvisionerV1(
       const identity = await resolveIdentity(options, environmentId);
       const active = await options.store.findActiveBinding(deploymentLane);
       const activeBinding = await options.store.resolveActiveBinding(deploymentLane);
+      const resourcesMatch =
+        JSON.stringify(activeBinding?.resources) === JSON.stringify(options.resources);
       if (
+        activeBinding &&
+        (activeBinding.tenant.namespace !== options.namespace ||
+          !preservesDeploymentResources(activeBinding.resources, options.resources) ||
+          (request.authorization.kind === 'reuse_active' && !resourcesMatch))
+      ) {
+        throw new TenantDeploymentStoreError(
+          'deployment_resource_conflict',
+          'active lane uses a different deployment resource or namespace',
+        );
+      }
+      const matchesActive =
         active &&
         active.revision === activeBinding?.revision &&
-        bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces })
-      ) {
+        bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces });
+      if (matchesActive && request.authorization.kind === 'reuse_active') {
+        const regional = await options.store.readActiveRegionalAdmission(deploymentLane);
+        if (!regional || regional.binding.revision !== active.revision ||
+            regional.activationSequence !== active.activationSequence) {
+          throw new TenantDeploymentStoreError('activation_conflict', 'Active regional admission differs');
+        }
+        await options.regionalAdmission.activate(regional);
         return reuseActiveBinding({ active, binding: activeBinding });
       }
       const operationId = newOperationId();
+      if (request.authorization.kind !== 'activate') {
+        throw new TenantDeploymentStoreError(
+          'readiness_invalid',
+          'A new deployment activation requires protected operator verification',
+        );
+      }
+      const resourceVerifications = request.authorization.verifications;
+      assertDeploymentResourcesVerified(
+        options.resources,
+        options.namespace,
+        deploymentLane,
+        resourceVerifications,
+        Date.now(),
+      );
       const planning = await options.store.createCutover({
         kind: 'planning',
         operationId,
@@ -272,45 +416,58 @@ export function createTenantDeploymentProvisionerV1(
       if (awaitingRoot.state.kind !== 'awaiting_tenant_root') {
         throw new Error('tenant deployment cutover did not await its tenant root');
       }
-      const root = await ensureActiveTenantRoot({ options, operationId, identity });
-      const awaitingCredential = await options.store.transitionCutover(awaitingRoot, {
-        kind: 'awaiting_browser_credential',
-        operationId,
-        deploymentLane,
-        targetIdentity: awaitingRoot.state.targetIdentity,
-        activeTenantRoot: {
-          identityDigestB64u: root.identityDigestB64u,
-          custodyLineageId: root.custodyLineageB64u,
-          signingRootId: identity.signingRootId,
-          signingRootVersion: identity.signingRootVersion,
-        },
-        expectedActiveRevision: active?.revision ?? null,
-      });
-      if (awaitingCredential.state.kind !== 'awaiting_browser_credential') {
-        throw new Error('tenant deployment cutover did not await its browser credential');
-      }
-      const credential = await options.apiKeys.createApiKey(
-        { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
-        {
-          kind: 'publishable_key',
-          name: `Managed deployment ${deploymentLane}`,
-          environmentId,
-          allowedOrigins: [options.surfaces.applicationOrigin, options.surfaces.hostedWalletOrigin],
-          rateLimitBucket: 'managed-registration',
-          quotaBucket: 'included-registration',
-        },
-      );
-      const credentialId = parseCredentialId(credential.apiKey.id);
-      const publishableKey = parsePublishableKey(credential.secret);
+      let credential: ProvisionedBrowserCredentialV1 | null = null;
       let activated = false;
       try {
+        const root = await ensureActiveTenantRoot({ options, operationId, identity });
+        const awaitingCredential = await options.store.transitionCutover(awaitingRoot, {
+          kind: 'awaiting_browser_credential',
+          operationId,
+          deploymentLane,
+          targetIdentity: awaitingRoot.state.targetIdentity,
+          activeTenantRoot: {
+            identityDigestB64u: root.identityDigestB64u,
+            custodyLineageId: root.custodyLineageB64u,
+            signingRootId: identity.signingRootId,
+            signingRootVersion: identity.signingRootVersion,
+          },
+          expectedActiveRevision: active?.revision ?? null,
+        });
+        if (awaitingCredential.state.kind !== 'awaiting_browser_credential') {
+          throw new Error('tenant deployment cutover did not await its browser credential');
+        }
+        credential = await provisionBrowserCredential({
+          options,
+          identity,
+          environmentId,
+          credential:
+            matchesActive && options.browserCredential.kind === 'create_managed_publishable_key'
+              ? {
+                  kind: 'adopt_publishable_key',
+                  publishableKey: activeBinding.browserCredential.publishableKey,
+                }
+              : options.browserCredential,
+        });
+        const credentialId = credential.credentialId;
+        const publishableKey = credential.publishableKey;
         const binding = await options.candidates.buildCandidate({
+          namespace: options.namespace,
+          resources: options.resources,
           identity,
           activeTenantRoot: awaitingCredential.state.activeTenantRoot,
           credentialId,
           publishableKey,
           surfaces: options.surfaces,
         });
+        if (
+          binding.tenant.namespace !== options.namespace ||
+          JSON.stringify(binding.resources) !== JSON.stringify(options.resources)
+        ) {
+          throw new TenantDeploymentStoreError(
+            'deployment_resource_conflict',
+            'candidate uses a different deployment resource or namespace',
+          );
+        }
         await options.store.putBinding(binding);
         const readinessReceipt = await options.readiness.issue({
           binding,
@@ -324,7 +481,14 @@ export function createTenantDeploymentProvisionerV1(
           readinessReceipt,
           expectedActiveRevision: active?.revision ?? null,
         });
+        const regionalAdmission = {
+          binding,
+          activationSequence: (active?.activationSequence ?? 0) + 1,
+          resourceVerificationsJson: JSON.stringify(resourceVerifications),
+        };
+        await options.regionalAdmission.prepare(regionalAdmission);
         const activation = await options.store.activateBinding({
+          resourceVerifications,
           operationId,
           expectedCutoverRecordRevision: ready.recordRevision,
           deploymentLane,
@@ -335,6 +499,7 @@ export function createTenantDeploymentProvisionerV1(
           readinessReceipt,
         });
         activated = true;
+        await options.regionalAdmission.activate(regionalAdmission);
         const canaryReceipt = await options.canary.run({
           bindingRevision: binding.revision,
           environmentId,
@@ -361,28 +526,46 @@ export function createTenantDeploymentProvisionerV1(
       } catch (error) {
         if (!activated) {
           const current = await options.store.findCutover(operationId);
-          if (current && current.state.kind !== 'active' && current.state.kind !== 'failed') {
+          // A lost activation reply can leave the durable cutover active.
+          if (current?.state.kind === 'active') throw error;
+          if (current && current.state.kind !== 'failed') {
             await options.store.transitionCutover(current, {
               kind: 'failed',
               operationId,
               deploymentLane,
-              failedPhase: 'readiness',
+              failedPhase: failedCutoverPhase(current.state, credential),
               failure: {
                 code: 'automated_provisioning_failed',
                 message: error instanceof Error ? error.message : 'automated provisioning failed',
               },
             });
           }
-          await options.apiKeys.revokeApiKey(
-            { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
-            credentialId,
-            { reason: 'tenant deployment provisioning failed' },
-          );
+          if (credential?.kind === 'created') {
+            await options.apiKeys.revokeApiKey(
+              { orgId: identity.orgId, actorUserId: SYSTEM_ACTOR_USER_ID },
+              credential.credentialId,
+              { reason: 'tenant deployment provisioning failed' },
+            );
+          }
         }
         throw error;
       }
     },
   };
+}
+
+function preservesDeploymentResources(
+  current: TenantDeploymentD1ResourcesV1,
+  target: TenantDeploymentD1ResourcesV1,
+): boolean {
+  const targetIdentities = new Set<string>();
+  for (const resource of target) {
+    targetIdentities.add(`${resource.accountId}/${resource.databaseId}`);
+  }
+  for (const resource of current) {
+    if (!targetIdentities.has(`${resource.accountId}/${resource.databaseId}`)) return false;
+  }
+  return true;
 }
 
 export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
@@ -399,8 +582,10 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
           'content-type': 'application/json',
           origin: input.surfaces.hostedWalletOrigin,
           'x-seams-environment-id': input.environmentId,
+          'x-seams-wallet-protocol': '2',
         },
         body: JSON.stringify({
+          registrationOperationId: `wreg_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`,
           wallet: { kind: 'provided', walletId: `canary-${crypto.randomUUID()}` },
           signerSelection: {
             kind: 'signer_set',

@@ -91,6 +91,12 @@ html {
   text-size-adjust: 100%;
 }
 
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
 html,
 body,
 #app-root {
@@ -121,6 +127,20 @@ textarea {
   font-family: inherit;
 }
 
+/* These controls provide their own press feedback instead of the tap highlight. */
+:where(.h2-btn, .h2-pager__btn, .contact-form__submit),
+.navbar-static :where(button, a):not(.navbar-static__brand) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:is(.h2-btn, .h2-pager__btn, .contact-form__submit):active,
+.navbar-static :where(button, a):not(.navbar-static__brand):active {
+  transition-duration: 0s;
+}
+
 html[data-seams-theme] {
   color-scheme: light;
   background: #ffffff;
@@ -130,8 +150,10 @@ a {
   font-weight: 500;
   color: var(--site-brand);
 }
-a:hover {
-  color: var(--site-brand-hover);
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--site-brand-hover);
+  }
 }
 
 h1 {

@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from './DashboardMenu';
 
 export type DashboardTableTone = 'neutral' | 'success' | 'warning' | 'danger';
 export type DashboardTableColumnSize = number | string;
@@ -628,63 +629,42 @@ export interface DashboardTableActionMenuProps {
    folds the rest here so action columns stay one row tall. */
 export function DashboardTableActionMenu(props: DashboardTableActionMenuProps): React.JSX.Element {
   const { ariaLabel = 'More actions', className, items } = props;
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
+  const menu = useDashboardMenu();
 
   if (items.length === 0) return <></>;
 
   return (
-    <div ref={rootRef} className={clsx('dashboard-data-table__action-menu', className)}>
+    <div ref={menu.rootRef} className={clsx('dashboard-data-table__action-menu', className)}>
       <button
         type="button"
         className="dashboard-data-table__action-button dashboard-data-table__action-menu-trigger"
         aria-label={ariaLabel}
         aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        aria-expanded={menu.open}
+        onClick={menu.toggle}
       >
         &#8943;
       </button>
-      {open ? (
-        <div className="dashboard-context-menu dashboard-data-table__action-menu-list" role="menu">
-          {items.map((item, index) => (
-            <button
-              key={index}
-              type="button"
-              role="menuitem"
-              className={clsx(
-                'dashboard-context-menu__item',
-                item.tone === 'danger' && 'dashboard-context-menu__item--danger',
-                item.disabled && 'is-disabled',
-              )}
-              disabled={item.disabled}
-              title={item.title}
-              onClick={() => {
-                setOpen(false);
-                item.onSelect();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <DashboardMenu
+        menu={menu}
+        className="dashboard-context-menu dashboard-data-table__action-menu-list"
+      >
+        {items.map((item, index) => (
+          <DashboardMenuItem
+            key={index}
+            className={clsx(
+              'dashboard-context-menu__item',
+              item.tone === 'danger' && 'dashboard-context-menu__item--danger',
+              item.disabled && 'is-disabled',
+            )}
+            disabled={item.disabled}
+            title={item.title}
+            onSelect={item.onSelect}
+          >
+            {item.label}
+          </DashboardMenuItem>
+        ))}
+      </DashboardMenu>
     </div>
   );
 }

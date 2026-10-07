@@ -1,7 +1,13 @@
+import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { D1RegionalDeploymentAdmission } from './regionalAdmission';
+import { DeploymentFencedDatabase } from './fencedDatabase';
+import { parseTenantRuntimeWriterV1, type TenantRuntimeWriterV1 } from './resourceVerification';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantDeploymentBindingReaderV1 } from './types';
 import { TenantDeploymentStoreError } from './service';
+import { forwardTenantDeploymentD1Timing } from './bindingTiming';
+import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
 
 export const TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1 = 'https://tenant-deployment.internal';
 export const TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1 = '/internal/tenant-deployment/v1/active';
@@ -19,6 +25,8 @@ export interface TenantDeploymentServiceBindingV1 {
 export type TenantDeploymentRuntimeEnvironmentV1 = Readonly<Record<string, unknown>> & {
   readonly WALLET_CONSOLE: TenantDeploymentServiceBindingV1;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
+  readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
+  readonly SEAMS_D1_HOME_DATABASE_ID: string;
 };
 
 export type BoundTenantDeploymentRuntimeEnvironmentV1<
@@ -37,10 +45,18 @@ function requiredDeploymentLane(value: unknown): string {
   return value;
 }
 
-function internalActiveBindingRequest(): Request {
+function internalActiveBindingRequest(writer: TenantRuntimeWriterV1): Request {
   return new Request(
     `${TENANT_DEPLOYMENT_INTERNAL_ORIGIN_V1}${TENANT_DEPLOYMENT_INTERNAL_ACTIVE_PATH_V1}`,
-    { headers: { Accept: 'application/json' } },
+    {
+      headers: {
+        Accept: 'application/json',
+        'x-seams-writer-role': writer.role,
+        'x-seams-writer-version': writer.versionId,
+        'x-seams-writer-account': writer.resource.accountId,
+        'x-seams-writer-database': writer.resource.databaseId,
+      },
+    },
   );
 }
 
@@ -76,7 +92,32 @@ export function createTenantDeploymentInternalBindingHandlerV1(options: {
         { headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    const binding = await options.reader.resolveActiveBinding(deploymentLane);
+    let binding: TenantDeploymentBindingV1 | null;
+    try {
+      const writer = parseTenantRuntimeWriterV1(
+        request.headers.get('x-seams-writer-role'),
+        request.headers.get('x-seams-writer-version'),
+        {
+          accountId: request.headers.get('x-seams-writer-account'),
+          databaseId: request.headers.get('x-seams-writer-database'),
+        },
+      );
+      binding = await options.reader.resolveRuntimeBinding(deploymentLane, writer);
+    } catch (error) {
+      if (
+        error instanceof TenantDeploymentStoreError &&
+        (error.code === 'activation_conflict' || error.code === 'readiness_invalid')
+      ) {
+        return Response.json(
+          { ok: false, code: 'tenant_deployment_writer_unauthorized' },
+          {
+            status: 403,
+            headers: { 'Cache-Control': 'no-store' },
+          },
+        );
+      }
+      throw error;
+    }
     if (!binding) {
       return Response.json(
         { ok: false, code: 'tenant_deployment_unavailable' },
@@ -118,11 +159,14 @@ export async function resolveTenantDeploymentSetupAdmissionFromServiceV1(input: 
 }
 
 export async function resolveActiveTenantDeploymentFromServiceV1(input: {
+  readonly writer: TenantRuntimeWriterV1;
   readonly deploymentLane: string;
   readonly service: TenantDeploymentServiceBindingV1;
+  readonly timingHeaders?: Headers;
 }): Promise<TenantDeploymentBindingV1 | null> {
   const deploymentLane = requiredDeploymentLane(input.deploymentLane);
-  const response = await input.service.fetch(internalActiveBindingRequest());
+  const response = await input.service.fetch(internalActiveBindingRequest(input.writer));
+  if (input.timingHeaders) forwardTenantDeploymentD1Timing(response.headers, input.timingHeaders);
   if (response.status === 503) {
     const body: unknown = await response.json().catch(() => null);
     if (
@@ -167,6 +211,27 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
       'active tenant deployment belongs to another lane',
     );
   }
+  const configured = TenantDeploymentD1ResourceIdentityV1.parse({
+    namespace: binding.tenant.namespace,
+    accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+    databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+  });
+  let admitted = false;
+  for (const resource of binding.resources) {
+    if (
+      resource.accountId === configured.accountId &&
+      resource.databaseId === configured.databaseId
+    ) {
+      admitted = true;
+      break;
+    }
+  }
+  if (!admitted) {
+    throw new TenantDeploymentStoreError(
+      'deployment_resource_conflict',
+      'runtime D1 resource conflicts with the active binding',
+    );
+  }
   return {
     ...env,
     SEAMS_TENANT_STORAGE_NAMESPACE: binding.tenant.namespace,
@@ -178,11 +243,24 @@ export function bindTenantDeploymentToRuntimeEnvironmentV1<
 }
 
 export async function resolveBoundTenantDeploymentRuntimeEnvironmentV1<
-  TEnvironment extends TenantDeploymentRuntimeEnvironmentV1,
->(env: TEnvironment): Promise<BoundTenantDeploymentRuntimeEnvironmentV1<TEnvironment> | null> {
-  const binding = await resolveActiveTenantDeploymentFromServiceV1({
-    deploymentLane: env.SEAMS_TENANT_DEPLOYMENT_LANE,
-    service: env.WALLET_CONSOLE,
-  });
-  return binding ? bindTenantDeploymentToRuntimeEnvironmentV1(env, binding) : null;
+  TEnvironment extends TenantDeploymentRuntimeEnvironmentV1 & {
+    readonly SIGNER_DB: D1DatabaseLike;
+    readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
+  },
+>(
+  env: TEnvironment,
+  writer: TenantRuntimeWriterV1,
+): Promise<BoundTenantDeploymentRuntimeEnvironmentV1<TEnvironment> | null> {
+  const local = new D1RegionalDeploymentAdmission(env.SIGNER_DB,
+    TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }));
+  const binding = await local.resolveRuntimeBinding(env.SEAMS_TENANT_DEPLOYMENT_LANE, writer);
+  if (!binding) return null;
+  return {
+    ...bindTenantDeploymentToRuntimeEnvironmentV1(env, binding),
+    SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+  };
 }

@@ -52,6 +52,7 @@ import {
 import type { ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/service';
 import { isConsoleWalletError } from '@seams-internal/wallet-console-server/wallets/errors';
 import {
+  parseConsoleWalletKey,
   parseListConsoleWalletsRequest,
   parseSearchConsoleWalletsRequest,
 } from '@seams-internal/wallet-console-server/wallets/requests';
@@ -3388,7 +3389,14 @@ async function handleConsoleWallets(ctx: CloudflareConsoleContext): Promise<Resp
 
     if (ctx.method === 'GET' && walletMatch) {
       const walletId = decodePathPart(walletMatch[1]);
-      const wallet = await wallets.getWallet(walletCtx, walletId);
+      const wallet = await wallets.getWallet(
+        walletCtx,
+        parseConsoleWalletKey({
+          id: walletId,
+          projectId: query.projectId,
+          environmentId: query.environmentId,
+        }),
+      );
       if (!wallet) {
         return json(
           {
@@ -3424,6 +3432,7 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
   const policyDeleteMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)$/);
   const policyPublishMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/publish$/);
   const policySimulateMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/simulate$/);
+  const policyVersionsMatch = ctx.pathname.match(/^\/console\/policies\/([^/]+)\/versions$/);
 
   try {
     if (ctx.method === 'GET' && ctx.pathname === '/console/policies') {
@@ -3441,6 +3450,18 @@ async function handleConsolePolicies(ctx: CloudflareConsoleContext): Promise<Res
       });
       const assignments = await policies.listAssignments(policyCtx, request);
       return json({ ok: true, assignments }, { status: 200 });
+    }
+
+    if (ctx.method === 'GET' && policyVersionsMatch) {
+      const policyId = decodePathPart(policyVersionsMatch[1]);
+      const versions = await policies.listPolicyVersions(policyCtx, policyId);
+      if (!versions) {
+        return json(
+          { ok: false, code: 'policy_not_found', message: `Policy ${policyId} was not found` },
+          { status: 404 },
+        );
+      }
+      return json({ ok: true, versions }, { status: 200 });
     }
 
     if (ctx.method === 'POST' && ctx.pathname === '/console/policies') {

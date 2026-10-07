@@ -270,7 +270,6 @@ function passingManifests(dir: string): PassingEvidenceManifests {
         },
         gatewayWorker: {
           d1Databases: [
-            { binding: 'CONSOLE_DB', databaseId: 'd1-console-id' },
             { binding: 'SIGNER_DB', databaseId: 'd1-signer-id' },
           ],
           durableObjects: [],
@@ -795,7 +794,7 @@ const evidenceMutationCases: readonly EvidenceMutationCase[] = [
       /checks\.console_d1_info\.json database id other-console-d1-id must match CONSOLE_DB d1-console-id/,
   },
   {
-    name: 'D1 staging evidence verifier rejects Gateway config pointed at a different console D1',
+    name: 'D1 staging evidence verifier rejects Gateway access to Console D1',
     mutate: (m) =>
       patchResourceWorker(m.resources, 'gatewayWorker', {
         d1Databases: [
@@ -804,7 +803,7 @@ const evidenceMutationCases: readonly EvidenceMutationCase[] = [
         ],
       }),
     expectedError:
-      /gatewayWorker CONSOLE_DB databaseId other-console-d1-id must match consoleWorker CONSOLE_DB d1-console-id/,
+      /gatewayWorker\.d1Databases includes unexpected binding CONSOLE_DB/,
   },
   {
     name: 'D1 staging evidence verifier rejects incomplete migration evidence',

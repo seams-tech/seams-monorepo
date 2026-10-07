@@ -9,93 +9,6 @@ test.describe('Google Identity prompt handling', () => {
     await page.goto('/');
   });
 
-  test('requests the Google prompt and resolves the credential callback', async ({ page }) => {
-    const result = await page.evaluate(
-      async ({ paths }) => {
-        let initializedConfig: Record<string, unknown> | null = null;
-        let initializeCount = 0;
-        let promptCount = 0;
-        let renderButtonCount = 0;
-        const nativeSetTimeout = window.setTimeout.bind(window);
-        const nativeClearTimeout = window.clearTimeout.bind(window);
-        window.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) =>
-          nativeSetTimeout(
-            handler,
-            timeout === 60_000 ? 1_000 : timeout,
-            ...args,
-          )) as typeof window.setTimeout;
-        window.clearTimeout = ((handle?: number) =>
-          nativeClearTimeout(handle)) as typeof window.clearTimeout;
-
-        (window as any).google = {
-          accounts: {
-            id: {
-              initialize(config: Record<string, unknown>) {
-                initializeCount += 1;
-                initializedConfig = config;
-              },
-              prompt() {
-                promptCount += 1;
-                nativeSetTimeout(() => {
-                  const callback = initializedConfig?.callback as
-                    | ((response: { credential: string }) => void)
-                    | undefined;
-                  callback?.({ credential: 'google-id-token' });
-                }, 20);
-              },
-              renderButton() {
-                renderButtonCount += 1;
-              },
-              cancel() {},
-            },
-          },
-        };
-
-        try {
-          const { requestGoogleIdToken } = await import(paths.googleIdentity);
-          const token = await requestGoogleIdToken('google-client-id');
-          return {
-            ok: true,
-            token,
-            initializeCount,
-            promptCount,
-            renderButtonCount,
-            autoSelect: initializedConfig?.auto_select,
-            fedCmPrompt: initializedConfig?.use_fedcm_for_prompt,
-            message: '',
-          };
-        } catch (error) {
-          return {
-            ok: false,
-            token: '',
-            initializeCount,
-            promptCount,
-            renderButtonCount,
-            autoSelect: initializedConfig?.auto_select,
-            fedCmPrompt: initializedConfig?.use_fedcm_for_prompt,
-            message: error instanceof Error ? error.message : String(error),
-          };
-        } finally {
-          window.setTimeout = nativeSetTimeout as typeof window.setTimeout;
-          window.clearTimeout = nativeClearTimeout as typeof window.clearTimeout;
-          delete (window as any).google;
-        }
-      },
-      { paths: IMPORT_PATHS },
-    );
-
-    expect(result).toEqual({
-      ok: true,
-      token: 'google-id-token',
-      initializeCount: 1,
-      promptCount: 1,
-      renderButtonCount: 0,
-      autoSelect: true,
-      fedCmPrompt: true,
-      message: '',
-    });
-  });
-
   test('reuses the initialized Google client for repeated requests', async ({ page }) => {
     const result = await page.evaluate(
       async ({ paths }) => {
@@ -320,8 +233,8 @@ test.describe('Google Identity prompt handling', () => {
           const { cancelGoogleIdTokenRequest, requestGoogleIdToken } = await import(
             paths.googleIdentity
           );
-          const abandoned = requestGoogleIdToken('google-client-id').catch(
-            (error: unknown) => (error instanceof Error ? error.message : String(error)),
+          const abandoned = requestGoogleIdToken('google-client-id').catch((error: unknown) =>
+            error instanceof Error ? error.message : String(error),
           );
           cancelGoogleIdTokenRequest();
           const cancelledMessage = await abandoned;

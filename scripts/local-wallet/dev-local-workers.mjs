@@ -15,7 +15,10 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const walletServerRoot = dirname(require.resolve('@seams/wallet-server/package.json'));
 
-import { prepareRouterAbD1LocalRuntimeConfig } from './d1-local-runtime-config.mjs';
+import {
+  bindRouterAbD1LocalGatewayAuthSecrets,
+  prepareRouterAbD1LocalRuntimeConfig,
+} from './d1-local-runtime-config.mjs';
 import { prepareRouterAbStrictLocalRuntimeConfigs } from '@seams/wallet-server/local-runtime';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -187,6 +190,10 @@ try {
     localEnvRoot: root,
     ceremonyJwksJson: d1Runtime.ceremonyJwksJson,
   });
+  bindRouterAbD1LocalGatewayAuthSecrets({
+    outputConfigPath: d1Runtime.outputConfigPath,
+    strictConfigs: strictRuntime.configs,
+  });
   assertProductionWorkerBinariesReady();
   await stopExistingProductionWorkerProcesses();
   await assertProductionWorkerPortsAvailable();
@@ -257,6 +264,7 @@ function prepareD1LocalRouterConfig() {
     outputConfigPath: d1LocalWranglerConfigPath,
     localConsoleProjectId: process.env.SEAMS_LOCAL_CONSOLE_PROJECT_ID,
     localConsoleEnvironmentId: process.env.SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID,
+    localConsolePublishableKey: process.env.SEAMS_LOCAL_CONSOLE_PUBLISHABLE_KEY,
   });
 }
 
@@ -562,21 +570,40 @@ async function productionWorkerPortsAreFree() {
 
 async function startProductionWorkers() {
   for (let index = 1; index < strictRuntime.configs.length; index += 1) {
-    startProductionWorker(index);
+    await startProductionWorker(index);
   }
   for (let index = 1; index < strictRuntime.configs.length; index += 1) {
     await waitForUrlResponse(strictRuntime.configs[index].url, 90_000);
   }
-  startProductionWorker(0);
+  await startProductionWorker(0);
 }
 
-function startProductionWorker(index) {
+// The inspector only serves debugging, so another dev server on the preferred
+// 42xx port (wallet browser tests use 4203) must not stop the worker.
+async function inspectorPortFor(config) {
+  return (await bindableLoopbackPort(config.port + 100)) ?? (await bindableLoopbackPort(0));
+}
+
+function bindableLoopbackPort(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(null));
+    server.listen(port, '127.0.0.1', () => {
+      const bound = server.address().port;
+      server.close(() => resolve(bound));
+    });
+  });
+}
+
+async function startProductionWorker(index) {
   const config = strictRuntime.configs[index];
   const pane = workerPanes[index];
   pane.url = config.url;
   pane.status = 'starting';
+  const inspectorPort = await inspectorPortFor(config);
   appendLine(pane, `config ${relative(repoRoot, config.configPath)}`);
   appendLine(pane, `url ${config.url}`);
+  appendLine(pane, `inspector 127.0.0.1:${inspectorPort}`);
 
   const child = spawn(
     'pnpm',
@@ -589,7 +616,7 @@ function startProductionWorker(index) {
       '--port',
       String(config.port),
       '--inspector-port',
-      String(config.port + 100),
+      String(inspectorPort),
       '--persist-to',
       join(strictPersistPath, config.role),
       '--env-file',
@@ -821,6 +848,15 @@ async function ensureGatewayHttpsProxy() {
       return;
     } catch {
       const status = await describeUrlStatus(gatewayPublicWellKnownUrl);
+      // Ask the Gateway for the same route directly: a healthy /healthz does
+      // not show whether the proxy or the Gateway is failing this one.
+      const directWellKnownUrl = `${gatewayBaseUrl}${new URL(gatewayPublicWellKnownUrl).pathname}`;
+      if (!(await urlStatusIsReady(directWellKnownUrl))) {
+        throw new Error(
+          `${directWellKnownUrl} is not healthy (${await describeUrlStatus(directWellKnownUrl)}), ` +
+            `so the Gateway itself is failing this route; its error is in the gateway log above.`,
+        );
+      }
       throw new Error(
         `${gatewayPublicWellKnownUrl} is listening but not healthy (${status}). ` +
           `${gatewayBaseUrl}/healthz is healthy, so restart the local Caddy proxy with pnpm caddy or stop the process on ${gatewayPublicPort}.`,

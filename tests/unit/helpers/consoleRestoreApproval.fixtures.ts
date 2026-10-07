@@ -4,7 +4,7 @@ import type {
   ConsoleAuthAdapter,
   ConsoleAuthClaims,
 } from '../../../packages/console-server-ts/src/router/consoleAuth';
-import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '../../../packages/shared-ts/src/tenant-root';
+import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams/wallet-server/cloud-host';
 import type { TenantRootStepUpSessionRecordV1 } from '../../../packages/wallet-console-server-ts/src/tenantRootSecurity/stepUp';
 
 export async function consoleRestoreApprovalFixture() {

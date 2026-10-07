@@ -1,4 +1,9 @@
 import {
+  assertDeploymentResourcesVerified,
+  storedRuntimeVersionMatches,
+  type TenantRuntimeWriterV1,
+} from './resourceVerification';
+import {
   d1ChangedRows,
   queryD1One,
   type D1DatabaseLike,
@@ -21,6 +26,7 @@ import type {
   TenantDeploymentCutoverRecordV1,
 } from './types';
 import type { TenantDeploymentSetupAdmissionReaderV1 } from './runtimeBinding';
+import { appendTenantDeploymentD1Timing } from './bindingTiming';
 
 export type D1TenantDeploymentServiceOptionsV1 = {
   readonly database: D1DatabaseLike;
@@ -29,6 +35,7 @@ export type D1TenantDeploymentServiceOptionsV1 = {
 
 export type D1TenantDeploymentBindingReaderOptionsV1 = {
   readonly database: D1DatabaseLike;
+  readonly timingHeaders?: Headers;
 };
 
 function requiredText(value: unknown, label: string): string {
@@ -90,9 +97,18 @@ async function parseBindingJson(value: unknown): Promise<TenantDeploymentBinding
 
 async function parseBindingRow(row: D1Row): Promise<TenantDeploymentBindingV1> {
   const binding = await parseBindingJson(row.binding_json);
+  assertBindingRowColumns(binding, row, binding.revision);
+  return binding;
+}
+
+function assertBindingRowColumns(
+  binding: TenantDeploymentBindingV1,
+  row: D1Row,
+  revision: TenantDeploymentBindingRevision,
+): void {
   if (
     binding.deploymentLane !== row.deployment_lane ||
-    binding.revision !== row.revision ||
+    revision !== row.revision ||
     binding.tenant.namespace !== row.namespace ||
     binding.tenant.organizationId !== row.org_id ||
     binding.tenant.projectId !== row.project_id ||
@@ -107,7 +123,6 @@ async function parseBindingRow(row: D1Row): Promise<TenantDeploymentBindingV1> {
       'tenant deployment binding columns disagree with the canonical binding',
     );
   }
-  return binding;
 }
 
 function parseActiveRow(row: D1Row): ActiveTenantDeploymentBindingV1 {
@@ -355,6 +370,26 @@ export function createD1TenantDeploymentBindingReaderV1(
 ): TenantDeploymentBindingReaderV1 {
   const database = options.database;
   return {
+    async readActiveScope(rawLane) {
+      // Readiness needs only persisted ownership; historical records cannot authorize runtime work.
+      const row = await queryD1One(
+        database,
+        `SELECT binding.namespace, binding.org_id, binding.project_id, binding.environment_id
+           FROM active_tenant_deployment_bindings AS active
+           LEFT JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane AND binding.revision = active.revision
+          WHERE active.deployment_lane = ?1`,
+        [requiredText(rawLane, 'deploymentLane')],
+      );
+      if (!row) return null;
+      return {
+        namespace: requiredText(row.namespace, 'namespace'),
+        organizationId: requiredText(row.org_id, 'org_id'),
+        projectId: requiredText(row.project_id, 'project_id'),
+        environmentId: requiredText(row.environment_id, 'environment_id'),
+      };
+    },
+
     async findBinding(rawLane, revision) {
       return await readBinding(database, requiredText(rawLane, 'deploymentLane'), revision);
     },
@@ -364,35 +399,10 @@ export function createD1TenantDeploymentBindingReaderV1(
     },
 
     async resolveActiveBinding(rawLane) {
-      const deploymentLane = requiredText(rawLane, 'deploymentLane');
-      const row = await queryD1One(
-        database,
-        `SELECT active.deployment_lane AS active_deployment_lane,
-                active.revision AS active_revision,
-                active.previous_revision, active.activation_sequence, active.activated_at_ms,
-                binding.*
-           FROM active_tenant_deployment_bindings AS active
-           LEFT JOIN tenant_deployment_bindings AS binding
-             ON binding.deployment_lane = active.deployment_lane
-            AND binding.revision = active.revision
-          WHERE active.deployment_lane = ?1`,
-        [deploymentLane],
-      );
-      if (!row) return null;
-      parseActiveRow({
-        deployment_lane: row.active_deployment_lane,
-        revision: row.active_revision,
-        previous_revision: row.previous_revision,
-        activation_sequence: row.activation_sequence,
-        activated_at_ms: row.activated_at_ms,
-      });
-      if (row.revision === null) {
-        throw new TenantDeploymentStoreError(
-          'invalid_record',
-          'active tenant deployment binding does not exist',
-        );
-      }
-      return await parseBindingRow(row);
+      return await resolveActiveBindingRecord(options, rawLane, { kind: 'inspection' });
+    },
+    async resolveRuntimeBinding(rawLane, writer) {
+      return await resolveActiveBindingRecord(options, rawLane, { kind: 'writer', writer });
     },
   };
 }
@@ -425,6 +435,25 @@ export function createD1TenantDeploymentServiceV1(
   const reader = createD1TenantDeploymentBindingReaderV1({ database });
   return {
     ...reader,
+    async readActiveRegionalAdmission(rawLane) {
+      const lane = requiredText(rawLane, 'deploymentLane');
+      const row = await queryD1One(database,
+        `SELECT binding.binding_json, active.activation_sequence, activation.resource_verifications_json
+           FROM active_tenant_deployment_bindings AS active
+           JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane AND binding.revision = active.revision
+           JOIN tenant_deployment_activations AS activation
+             ON activation.deployment_lane = active.deployment_lane
+            AND activation.activation_sequence = active.activation_sequence
+            AND activation.binding_revision = active.revision
+          WHERE active.deployment_lane = ?1`, [lane]);
+      if (!row) return null;
+      return {
+        binding: await parseBindingJson(row.binding_json),
+        activationSequence: positiveSafeInteger(row.activation_sequence, 'activation_sequence'),
+        resourceVerificationsJson: requiredText(row.resource_verifications_json, 'resource_verifications_json'),
+      };
+    },
     async putBinding(rawBinding) {
       const decoded = await decodeTenantDeploymentBindingV1(rawBinding);
       if (!decoded.ok) {
@@ -467,6 +496,7 @@ export function createD1TenantDeploymentServiceV1(
 
     async activateBinding(rawInput) {
       const input: ActivateTenantDeploymentBindingInputV1 = {
+        resourceVerifications: rawInput.resourceVerifications,
         operationId: parseCutoverId(rawInput.operationId, 'operationId'),
         expectedCutoverRecordRevision: positiveSafeInteger(
           rawInput.expectedCutoverRecordRevision,
@@ -486,6 +516,13 @@ export function createD1TenantDeploymentServiceV1(
         readinessReceipt: rawInput.readinessReceipt,
       };
       const timestamp = positiveSafeInteger(now().getTime(), 'current time');
+      const binding = await readBinding(database, input.deploymentLane, input.bindingRevision);
+      if (!binding) {
+        throw new TenantDeploymentStoreError(
+          'binding_not_found',
+          'tenant deployment binding was not found',
+        );
+      }
       const cutover = await readCutover(database, input.operationId);
       const before = await readActive(database, input.deploymentLane);
       if (
@@ -500,6 +537,21 @@ export function createD1TenantDeploymentServiceV1(
         before?.revision === input.bindingRevision &&
         before.activationSequence === cutover.state.activationReceipt.activationSequence
       ) {
+        const recordedProofs = await queryD1One(
+          database,
+          `SELECT resource_verifications_json FROM tenant_deployment_activations
+           WHERE operation_id = ?1`,
+          [input.operationId],
+        );
+        if (
+          recordedProofs?.resource_verifications_json !==
+          JSON.stringify(input.resourceVerifications)
+        ) {
+          throw new TenantDeploymentStoreError(
+            'activation_conflict',
+            'completed activation has no matching resource evidence; a new activation is required',
+          );
+        }
         return activationResult(before);
       }
       if (
@@ -516,13 +568,13 @@ export function createD1TenantDeploymentServiceV1(
         );
       }
       assertReadiness(input, timestamp);
-      const binding = await readBinding(database, input.deploymentLane, input.bindingRevision);
-      if (!binding) {
-        throw new TenantDeploymentStoreError(
-          'binding_not_found',
-          'tenant deployment binding was not found',
-        );
-      }
+      assertDeploymentResourcesVerified(
+        binding.resources,
+        binding.tenant.namespace,
+        input.deploymentLane,
+        input.resourceVerifications,
+        timestamp,
+      );
       const activationSequence = (input.expectedActive?.activationSequence ?? 0) + 1;
       const receipt = {
         kind: 'tenant_deployment_activation_receipt_v1' as const,
@@ -545,8 +597,8 @@ export function createD1TenantDeploymentServiceV1(
              operation_id, deployment_lane, binding_revision,
              expected_previous_revision, expected_activation_sequence,
              activation_sequence, activated_at_ms, expected_cutover_record_revision,
-             ready_state_json, active_state_json, receipt_json
-           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
+             ready_state_json, active_state_json, receipt_json, resource_verifications_json
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
           )
           .bind(
             input.operationId,
@@ -560,6 +612,7 @@ export function createD1TenantDeploymentServiceV1(
             JSON.stringify(cutover.state),
             JSON.stringify(activeState),
             JSON.stringify(receipt),
+            JSON.stringify(input.resourceVerifications),
           )
           .run();
       } catch {
@@ -696,4 +749,68 @@ export function createD1TenantDeploymentServiceV1(
       return stored;
     },
   };
+}
+
+async function resolveActiveBindingRecord(
+  options: D1TenantDeploymentBindingReaderOptionsV1,
+  rawLane: string,
+  access:
+    | { readonly kind: 'inspection' }
+    | { readonly kind: 'writer'; readonly writer: TenantRuntimeWriterV1 },
+): Promise<TenantDeploymentBindingV1 | null> {
+  const database = options.database;
+  const deploymentLane = requiredText(rawLane, 'deploymentLane');
+  const startedAt = performance.now();
+  const result = await database
+    .prepare(
+      `SELECT active.deployment_lane AS active_deployment_lane,
+                active.revision AS active_revision,
+                active.previous_revision, active.activation_sequence, active.activated_at_ms,
+                binding.*, activation.resource_verifications_json
+           FROM active_tenant_deployment_bindings AS active
+           LEFT JOIN tenant_deployment_bindings AS binding
+             ON binding.deployment_lane = active.deployment_lane
+            AND binding.revision = active.revision
+           LEFT JOIN tenant_deployment_activations AS activation
+             ON activation.deployment_lane = active.deployment_lane
+            AND activation.activation_sequence = active.activation_sequence
+            AND activation.binding_revision = active.revision
+          WHERE active.deployment_lane = ?1`,
+    )
+    .bind(deploymentLane)
+    .all<D1Row>();
+  if (options.timingHeaders) {
+    appendTenantDeploymentD1Timing(
+      options.timingHeaders,
+      performance.now() - startedAt,
+      result.meta,
+    );
+  }
+  if (!result.success) {
+    throw new TenantDeploymentStoreError('invalid_record', 'active tenant deployment query failed');
+  }
+  const row = result.results?.[0] ?? null;
+  if (!row) return null;
+  parseActiveRow({
+    deployment_lane: row.active_deployment_lane,
+    revision: row.active_revision,
+    previous_revision: row.previous_revision,
+    activation_sequence: row.activation_sequence,
+    activated_at_ms: row.activated_at_ms,
+  });
+  if (row.revision === null) {
+    throw new TenantDeploymentStoreError(
+      'invalid_record',
+      'active tenant deployment binding does not exist',
+    );
+  }
+  if (access.kind === 'writer') {
+    if (!storedRuntimeVersionMatches(row.resource_verifications_json, access.writer)) {
+      throw new TenantDeploymentStoreError(
+        'activation_conflict',
+        'Runtime version is not authorized by the active resource verification',
+      );
+    }
+  }
+  return await parseBindingRow(row);
 }

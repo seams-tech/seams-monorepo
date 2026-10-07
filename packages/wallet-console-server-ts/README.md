@@ -83,7 +83,7 @@ gitignored; keep the `.example` templates as the tracked source of structure. Th
 examples already point at the staging entrypoints:
 
 - `src/router/cloudflare/d1ConsoleStagingWorker.ts`
-- `src/router/cloudflare/d1RouterApiStagingWorker.ts`
+- `src/router/cloudflare/d1GatewayWorker.ts`
 
 Fill in the remote D1 database IDs, relayer public key, and Wrangler secret
 declarations, then run:
@@ -270,3 +270,50 @@ The evidence verifier rejects missing manifests, dry-run manifests, failed
 commands, reconciliation mismatch rows, missing signer custody export-share
 evidence, wrong custody endpoint paths/statuses, mixed staging environments, and
 incomplete restore artifacts.
+
+## Regional Email OTP counters
+
+Gateways enforce OTP spam limits in their existing `SIGNER_DB`. They have no
+counter database binding and make no Console rate-limit request. Wallet counters
+use `wallet_email_otp_rate_limits` with an explicit wallet owner. IP, subject,
+provider, and organization counters remain in regional `email_otp_rate_limits`.
+Those broader limits are independent across regions by design.
+
+Wallet requests consume counters at the fixed home after regional routing.
+Relocation snapshots select wallet counters that were unexpired when the source
+froze. Imports preserve their count and reset time. Frozen sources and inactive
+destinations reject ordinary writes. Source cleanup deletes wallet counters;
+regional counters remain with the region. Counter storage errors remain failures.
+OTP authentication expiry, attempt limits, and single-use grants stay enforced.
+
+Apply signer migrations to each regional database with the existing wallet-system
+migration command. No new Cloudflare database or allocation approval is required.
+The snapshot inventory change requires source cleanup and destination activation
+for existing transfers. Completed receipts remain intact.
+
+Console schema migrations retain the old counter table during rollout. After all
+four Gateways use regional counters, verify that old versions receive no traffic
+and close the rollback interval. Then run the separate cleanup on Console D1:
+
+```sh
+pnpm exec wrangler d1 execute CONSOLE_DB --remote --config <console-config> --file scripts/remove-shared-otp-counters.sql
+```
+
+Run this command from this package directory. It is a destructive post-rollout
+step, excluded from automatic migration commands. Rollback to an old Gateway
+requires restoring its counter table and Console endpoint first.
+Approximate spam counters do not require transfer of the old global counter history.
+
+The previously frozen dedicated-counter candidate is superseded. Rebuild SDK/server,
+Gateway, Runtime, and Console inputs after the regional implementation passes
+acceptance. See the public `docs/refactor-155B.md` Phase 3A for remaining gates.
+
+Local acceptance on October 7 passed with 128 concurrent spam-counter requests:
+48 accepted and 80 limited across four regions and four policy scopes. Independent
+region and tenant allowances, Console outage, and storage failure were verified.
+Authorization-transfer acceptance preserved an exhausted wallet allowance and its
+expiry, rejected inactive-home writes, excluded regional counters, and cleaned the
+source. Chromium OTP step-up passed for NEAR and ECDSA with zero Console requests.
+Deployment rendering and both package type-checks passed. Evidence is recorded in
+the public repository at `docs/evidence/r155b-regional-otp-20261007.json`.
+These checks establish local behavior. Hosted deployment and timings remain open.

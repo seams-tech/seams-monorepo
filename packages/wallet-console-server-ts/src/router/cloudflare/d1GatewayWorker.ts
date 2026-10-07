@@ -24,6 +24,7 @@ import {
   runRouterAbPrewarmScheduledV1,
   readEnvironmentCsv,
   withCors,
+  WalletHomeCustodyBinding,
 } from '@seams/wallet-server/cloud-host';
 import { resolveEmailOtpDeliveryProviderFromEnv } from '../../email/otp/emailOtpProviders';
 import {
@@ -165,7 +166,12 @@ async function handleGatewayRequest(
     );
     return response;
   }
-  const handled = await handleSplitGatewayRequest(request, boundEnv, ctx, {
+  const custodyEnv = {
+    ...boundEnv,
+    MPC_ROUTER: new WalletHomeCustodyBinding(boundEnv.MPC_ROUTER, sessionHome.region),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(boundEnv.SIGNING_WORKER, sessionHome.region),
+  };
+  const handled = await handleSplitGatewayRequest(request, custodyEnv, ctx, {
     sessionRouting: authority,
     identityStore: authority.identityStore(),
     credentialClaims: authority.identityStore(),

@@ -12,6 +12,7 @@ import {
 } from '@seams/wallet-server/hosted-wallet-gateway';
 import {
   handleWalletControlRequest,
+  WalletHomeCustodyBinding,
   WALLET_RUNTIME_OP_PATHS_V1,
   type WalletControlRuntimeBindings,
 } from '@seams/wallet-server/cloud-host';
@@ -56,6 +57,16 @@ async function fetch(
     env.CF_VERSION_METADATA,
   );
   if (challenge) return challenge;
+  const home = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON))
+    .homeForResource({
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    });
+  env = {
+    ...env,
+    MPC_ROUTER: new WalletHomeCustodyBinding(env.MPC_ROUTER, home.region),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(env.SIGNING_WORKER, home.region),
+  };
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,
     resource: TenantDeploymentD1ResourceIdentityV1.parse({

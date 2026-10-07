@@ -175,6 +175,15 @@ export class WalletHomeCatalog {
     return this.#resources;
   }
 
+  homeForResource(resource: { readonly accountId: string; readonly databaseId: string }): WalletHome {
+    for (const home of this.#byRegion.values()) {
+      if (home.accountId === resource.accountId && home.databaseId === resource.databaseId) {
+        return home;
+      }
+    }
+    throw new WalletPlacementError('invalid_record', 'Local wallet home is absent from the admitted catalog');
+  }
+
   matchesResources(resources: TenantDeploymentD1ResourcesV1): boolean {
     return JSON.stringify(this.deploymentResources()) === JSON.stringify(resources);
   }

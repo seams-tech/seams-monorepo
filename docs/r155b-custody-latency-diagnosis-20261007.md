@@ -423,3 +423,28 @@ the gains from these separate comparisons. The **1–2 s target remains unmet**.
 All thirteen original Worker versions were restored and verified. No Gateway
 activation or new resource was required. [The evidence](evidence/r155b-prepared-root-admission-20261008.json)
 records actual serving versions, exclusions, raw results, D1 counts, and E2E commands.
+
+### Combined startup and prepared-admission baseline — 2026-10-08
+
+Three fresh NEAR-only wallets completed **21 verified signatures** with both changes
+enabled. Yao execute measured **3.466 s median**, with a **2.276–3.802 s** range.
+All captured Router, A, B, Signing Worker, and Gateway versions matched the candidate.
+Each role reused its already-started wallet object. Each wallet used six bound-root
+D1 round trips and sixteen statements. These counts exclude other stores.
+
+Registration through the first verified signature measured **16.611 s median**,
+with a **15.830–19.003 s** range. That boundary includes funding and provisioning.
+Prepared and consecutive signatures each used four browser Gateway requests.
+This three-wallet baseline has no concurrent control arm. It does not establish
+a stable gain over earlier isolated comparisons. The two-second setup target remains unmet.
+
+Signing Worker's package-delivery handler used **1–3 ms CPU**. Its complete request
+took **124–637 ms**, and the wallet object's first required call took **113–135 ms**.
+The large variation occurs around the object call. These measurements do not
+isolate transport, scheduling, and placement individually. They do not support a
+large expected saving from serialization changes.
+
+All thirteen original Worker versions were restored and verified. Both tenant
+activations passed. No resources or keepalive traffic were added.
+[Sanitized evidence](evidence/r155b-combined-startup-admission-20261008.json) records
+the timing boundaries, counts, actual serving versions, and limitations.

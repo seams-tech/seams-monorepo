@@ -743,13 +743,12 @@ function slab(svg, P, front, ring, inner, low, high) {
 function token(index) {
   const grade = GRADES[index];
   const radius = RADII[grade];
-  const profile = HL.circ(radius, 48);
-  const tilt = ((index % 3) - 1) * 0.1;
+  const ring = HL.circ(radius, 48);
   const x = ((index % 4) * 2 - 3) * 11;
   const y = (Math.floor(index / 4) * 2 - 3) * 11;
   const rest = 152 + ((index * 7) % 5) * 4;
-  const motion = HL.tween(0, 1700);
-  return { index, grade, radius, profile, tilt, x, y, rest, motion, chunks: [], drawn: NaN };
+  const motion = HL.tween(0, 3500);
+  return { index, grade, radius, ring, x, y, rest, motion, chunks: [], drawn: NaN };
 }
 function depth(a, b) {
   return a.x + a.y - b.x - b.y;
@@ -812,7 +811,7 @@ function posts(svg, P, front, low, high, near) {
   }
 }
 function tokenPoint(P, piece, base, height, scale, point) {
-  const tilt = piece.tilt * HL.clamp((base - 136) / 16, 0, 1);
+  const tilt = ((piece.index % 3) - 1) * 0.1 * HL.clamp((base - 136) / 16, 0, 1);
   const z = base + height + piece.radius * Math.abs(tilt) + point.u * scale * tilt;
   return P(piece.x + point.u * scale, piece.y + point.v * scale, z);
 }
@@ -826,34 +825,37 @@ function portion(state, piece, chunk, base) {
   for (const h of [low, HL.clamp(thickness * 0.7, low, high), high]) {
     const scale = 1 - 0.1 * HL.clamp((h / thickness - 0.7) / 0.3, 0, 1);
     const project = tokenPoint.bind(null, state.P, piece, base, h, scale);
-    points.push(...piece.profile.map(project));
+    points.push(...piece.ring.map(project));
   }
   let crease = '';
   if (chunk.high >= base + thickness) {
-    crease = HL.poly(piece.profile.map(tokenPoint.bind(null, state.P, piece, base, high, 0.9)));
+    crease = HL.poly(piece.ring.map(tokenPoint.bind(null, state.P, piece, base, high, 0.9)));
     if (piece.radius > 3)
-      crease += HL.poly(piece.profile.map(tokenPoint.bind(null, state.P, piece, base, high, 0.72)));
+      crease += HL.poly(piece.ring.map(tokenPoint.bind(null, state.P, piece, base, high, 0.72)));
   }
-  HL.put(chunk.solid, { sil: HL.poly(HL.hull(points)), crease });
+  chunk.outline = HL.hull(points);
+  chunk.outline.push(chunk.outline[0]);
+  HL.put(chunk.solid, { sil: HL.poly(chunk.outline), crease });
 }
 function tick(state, _dt, now) {
   let moving = false;
   for (const piece of state.pieces) {
-    const progress = Math.min(HL.tval(piece.motion, now), piece.grade + 1);
-    const step = Math.min(3, Math.floor(progress));
+    const progress = HL.tval(piece.motion, now);
+    const step = Math.min(Math.floor(progress), piece.grade, 3);
+    const phase = progress - step;
     const stops = [piece.rest, 136, 83, 30, -12];
-    const base = HL.lerp(
-      stops[step],
-      stops[step + 1],
-      HL.clamp((progress - step - 0.1) / 0.8, 0, 1),
-    );
+    const base = HL.lerp(stops[step], stops[step + 1], HL.clamp(phase / 0.5, 0, 1));
+    const tracing = state.active && step < 3 && phase > 0.5 && phase < 1;
     for (const chunk of piece.chunks) {
       if (base !== piece.drawn) portion(state, piece, chunk, base);
-      const bright = piece.index === (state.active ? 15 : 2) && base > -12;
-      chunk.solid.sil.classList.toggle('hi', bright);
+      chunk.solid.sil.classList.toggle('hi', !state.active && piece.index === 2);
+      const length = tracing
+        ? Math.ceil(HL.clamp((phase - 0.5) / 0.4, 0, 1) * chunk.outline.length)
+        : 0;
+      if (length !== chunk.traced)
+        chunk.trace.setAttribute('d', HL.open(chunk.outline.slice(0, length)));
+      chunk.traced = length;
     }
-    if (piece.index === 15)
-      state.collector.sil.classList.toggle('hi', state.active && base === -12);
     piece.drawn = base;
     if (!HL.tdone(piece.motion, now)) moving = true;
   }
@@ -865,10 +867,7 @@ function select(state, active) {
   for (const piece of state.pieces) {
     const delay = ((Math.abs(piece.x) + Math.abs(piece.y)) / 22) * state.stagger;
     HL.tset(piece.motion, active ? 4 : 0, performance.now(), delay);
-    for (const chunk of piece.chunks)
-      chunk.solid.sil.classList.toggle('hi', piece.index === (active ? 15 : 2));
   }
-  state.collector.sil.classList.remove('hi');
   state.read.textContent = active ? '3 grades · fines' : 'rest';
   state.loop.wake();
 }
@@ -878,15 +877,13 @@ function set(state, stagger) {
 function mount({ stage, svg, read }, stagger) {
   const C = HL.Cam(45, 0.5, 1.35);
   const bounds = [
-    [-48, 48, 2],
-    [48, -48, 2],
     [48, 48, -17],
     [-33, -33, 176],
   ];
   HL.fit(C, bounds, 200, 166);
   const P = HL.proj(C);
   const front = HL.facing(C);
-  const collector = slab(svg, P, front, HL.circ(68, 96), HL.circ(64, 96), -17, -12);
+  slab(svg, P, front, HL.circ(68, 96), HL.circ(64, 96), -17, -12);
   path(svg, HL.poly(HL.ringAt(P, HL.circ(57, 96), -12)), 'nf lo');
   const pieces = [];
   for (let i = 0; i < 16; i++) if (![0, 4, 10, 14].includes(i)) pieces.push(token(i));
@@ -895,11 +892,15 @@ function mount({ stage, svg, read }, stagger) {
     const low = PLANES[band];
     const high = PLANES[band + 1];
     posts(svg, P, front, low, high, false);
-    for (const piece of pieces) piece.chunks.push({ solid: HL.solid(svg), low, high });
+    for (const piece of pieces) {
+      const solid = HL.solid(svg);
+      const trace = path(solid.g, '', 'hi nf');
+      piece.chunks.push({ solid, trace, low, high, outline: [], traced: 0 });
+    }
     posts(svg, P, front, low, high, true);
     if (band < 3) screen(svg, P, high, [2.4, 4.6, 9][band], band === 2 ? 22 : 11);
   }
-  const state = { P, pieces, collector, read, stagger, active: null, loop: null };
+  const state = { P, pieces, read, stagger, active: null, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   select(state, false);
   const bag = HL.disposer();
@@ -912,8 +913,7 @@ function mount({ stage, svg, read }, stagger) {
 }
 hairline({
   name: 'graded-sieve',
-  means:
-    'Hover to sift: three screens retain larger tokens while the smallest reach the collector.',
+  means: 'Hover to sift: each token traces its rim as it reaches a screen.',
   rules: [1, 2, 4, 6, 7, 8, 9],
   range: [30, 60, 90],
   mount,

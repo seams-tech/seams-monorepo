@@ -21,12 +21,13 @@
     }
   ],
   "deployment": {
-    "state": "not_deployed",
+    "state": "deployed_staging",
     "signer_migration": "0076_wallet_relocation_write_block.sql",
     "console_migration": "0090_wallet_relocation_capacity.sql",
     "console_prerequisite": "0089_wallet_relocation_driver.sql",
-    "requirement": "Deploy matching Gateway and Console candidates after applying migrations. No new environment variables."
+    "requirement": "Deploy matching Gateway and Console candidates after applying migrations. No new environment variables.",
+    "hosted_receipt": "r153b-capacity-hosted-20261007.json"
   },
-  "recovery": "A 30-second admission deadline permits existing cron to release unadmitted blocks. Admitted moves keep their fence and resume forward. No hosted duration measured for this follow-up.",
+  "recovery": "A 30-second admission deadline permits existing cron to release unadmitted blocks. Admitted moves keep their fence and resume forward. Hosted signing and cleanup completed in both directions; the return exceeded the 60-second pause requirement.",
   "wallet_commit": "35415be9ccf6a2143a0ba3ff639a81166d41aadb"
 }

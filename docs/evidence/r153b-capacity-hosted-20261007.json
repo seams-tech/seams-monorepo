@@ -1,0 +1,320 @@
+{
+  "kind": "wallet_relocation_r153b_capacity_hosted_v1",
+  "recordedAt": "2026-10-07T13:30:21.441115+00:00",
+  "outcome": "failed",
+  "scope": "One browser in Japan, staging APAC to US and return. Includes final wallet-local capacity block, fresh passkey unlock, first ECDSA signature, NEAR signatures, and source cleanup. Single observations, not percentiles.",
+  "candidate": {
+    "walletCommit": "03d9a6c0da44d24eaf4e9ac7823b22fabdb9b3fa",
+    "consoleCommit": "be71e28be4437d6f3415bb106d55d4214df1eb4e",
+    "walletServerSourceMatchesCommit": true,
+    "bundleHashes": {
+      ".artifacts/r153b/capacity/gateway/4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+      ".artifacts/r153b/capacity/gateway/d1GatewayWorker.js": "9c02f74c134a0cecc18cc42e9d896dcccd0234b40c8d70c97e7f787dfaf567b8",
+      ".artifacts/r153b/capacity/gateway/10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+      ".artifacts/r153b/capacity/gateway/75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3",
+      ".artifacts/r153b/capacity/console/d1ConsoleStagingWorker.js": "5c96967f77fc2af0ee10fa762f0c7c4dd308db76cdaa21cfde9c5c977a6b1e89",
+      ".artifacts/r153b/capacity/console/4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+      ".artifacts/r153b/capacity/console/10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+      ".artifacts/r153b/capacity/console/75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3"
+    },
+    "browserCandidate": "../site (same frozen SDK as original R153B hosted run)",
+    "activationRun": 37626903530
+  },
+  "migrations": {
+    "allFourSignerDatabases": "0076_wallet_relocation_write_block.sql",
+    "console": [
+      "0089_wallet_relocation_driver.sql",
+      "0090_wallet_relocation_capacity.sql"
+    ]
+  },
+  "moves": [
+    {
+      "moveId": "wmove_jzudXuQqIfC_d6d4yTJD6EUcj1zYwyPwveZP-cFUcwk",
+      "source": "APAC",
+      "destination": "US",
+      "freezeMs": 14257,
+      "copyMs": 13287,
+      "ownershipCommitMs": 418,
+      "activationMs": 6598,
+      "pauseToActivationMs": 34560,
+      "cleanupMs": 18064,
+      "state": "completed",
+      "preparationMs": 24679,
+      "pauseToFirstSignatureMs": 49186,
+      "snapshotBytes": 152860,
+      "exportRequests": 1,
+      "importRequests": 1
+    },
+    {
+      "moveId": "wmove_LwvHpPBHoj1XTetEdu8lPAWWop_kA1eFVDapaVXC1mw",
+      "source": "US",
+      "destination": "APAC",
+      "freezeMs": 26860,
+      "copyMs": 27373,
+      "ownershipCommitMs": 318,
+      "activationMs": 5561,
+      "pauseToActivationMs": 60112,
+      "cleanupMs": 141314,
+      "state": "completed",
+      "preparationMs": 29055,
+      "pauseToFirstSignatureMs": 73811,
+      "snapshotBytes": 216200,
+      "exportRequests": 1,
+      "importRequests": 1
+    }
+  ],
+  "signingSamples": [
+    {
+      "stage": "before_0",
+      "elapsedMs": 2300.510542
+    },
+    {
+      "stage": "before_1",
+      "elapsedMs": 3759.8738749999975
+    },
+    {
+      "stage": "first_after",
+      "elapsedMs": 5293.684459000011
+    },
+    {
+      "stage": "steady_after_1",
+      "elapsedMs": 6082.4432080000115
+    },
+    {
+      "stage": "steady_after_2",
+      "elapsedMs": 7614.600667000006
+    },
+    {
+      "stage": "first_after_return",
+      "elapsedMs": 7554.325375000015
+    }
+  ],
+  "refillResults": [
+    {
+      "receivedAtMs": 15014.039458,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 32603.647125,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 36001.830083,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 38577.948166,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 41603.942166,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 44182.556625,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 108318.584958,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 113941.947041,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 118803.498625,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 124251.372833,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 129994.341708,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 134934.021208,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 139992.534166,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 469810.7095,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 473887.452041,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 476613.837958,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 479346.921625,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 482163.316875,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    }
+  ],
+  "runtimeVersions": [
+    {
+      "worker": "seams-sdk-d1-console-staging",
+      "versionId": "40803007-50f9-4d93-855a-e6f2bdc11253"
+    },
+    {
+      "worker": "router-ab-deriver-a-staging",
+      "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0"
+    },
+    {
+      "worker": "router-ab-deriver-b-staging",
+      "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8"
+    },
+    {
+      "worker": "router-ab-mpc-router-staging",
+      "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a"
+    },
+    {
+      "worker": "router-ab-signing-worker-staging",
+      "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging",
+      "versionId": "12f48c20-df36-4d15-8355-33c2ac72338f"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-oc",
+      "versionId": "d997446e-77de-4b55-90fb-20e7549c5a39"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-us",
+      "versionId": "991403ec-65e5-4885-a1a0-847e662e3871"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-weur",
+      "versionId": "b4614e86-1ae0-4f1e-bf78-bdf620b63731"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging",
+      "versionId": "ba435195-8e73-4aad-8fe2-fe4233d50092"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-oc",
+      "versionId": "d43c21e9-3c86-469e-8755-c5745fcb49a7"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-us",
+      "versionId": "27675e94-13a6-4c2d-9c83-cc746af61387"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-weur",
+      "versionId": "3879a02b-1f34-4541-8983-96f1998d9a0a"
+    }
+  ],
+  "verification": {
+    "authorizationTransferE2E": "passed after hosted SQL formatting correction",
+    "composedRelocationE2E": "passed before deployment; runtime logic unchanged",
+    "walletServerBuild": "passed",
+    "gatewayAndConsoleBundles": "passed",
+    "activationAndReadinessRun": 37626903530,
+    "hostedRoundTrip": "failed: return pause exceeded 60000 ms; both signing curves and cleanup completed in both directions"
+  },
+  "deploymentCorrections": [
+    "Replaced one trigger CASE with equivalent conditional RAISE statements for hosted D1 SQL parsing.",
+    "Updated hosted E2E to unlock when the first admission response already reflects destination activation."
+  ],
+  "artifacts": [
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/candidate.json",
+      "sha256": "38bfb7b9f60f3e75b246980afbbdd6fd76ded428bf7de02de4ec5c73690fece1"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/hosted/relocation.json",
+      "sha256": "07eb014753d0cc1716352407afb5c23ff5196dacb494f9dc71e542eb04c8e9f4"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/hosted/journal.json",
+      "sha256": "36045b36203140d9d39880aebe918168bf35f496f97e62ea564f8865be0197ba"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/hosted/stages.json",
+      "sha256": "f24de9ed6867d3037a3016d6c50af3a04e26d191d9cc4a2559ade4548fa51ce7"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/runtime-versions-before.json",
+      "sha256": "e83b7e104a1fb0b0b2c0de7118c14c6e9a06c5368817753e3afd44980e02d660"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/runtime-versions-after.json",
+      "sha256": "e83b7e104a1fb0b0b2c0de7118c14c6e9a06c5368817753e3afd44980e02d660"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/capacity/reproduce.sh",
+      "sha256": "bc067964764ecff18362d85cc4ef7f6045298a8a3ecd84f7ca00057ffed36540"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet/.artifacts/r153/authorization-storage-transfer/evidence.json",
+      "sha256": "47edfba248d1a6526a641faf59d0363d77ba66818eba37cbb47c935600c6fed4"
+    }
+  ]
+}

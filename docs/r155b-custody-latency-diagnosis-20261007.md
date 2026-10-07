@@ -167,3 +167,37 @@ No new resources or keepalive traffic were introduced. Raw provider logs remain
 private local artifacts. [Sanitized comparison evidence](evidence/r155b-custody-phase6b-20261007.json)
 records exact deployed versions, frozen harness/assets, bundle hashes, CPU/wall
 telemetry, local profile summaries, and measurement limitations.
+
+## Follow-up: background admission settlement
+
+Public commit `ace09a0249433304eff94ad41c3283e8edacdaca` schedules A/B root-use
+acknowledgements after durable completion, using each owning DO's context.
+A now uses the physical object name for the current ownership generation.
+Lost acknowledgements remain recoverable through retirement reconciliation.
+
+Five local E2E scenarios and all five release builds pass. The hosted comparison
+uses the preceding Phase 6B candidate as its control. Only two Rust source files
+differ. All nine fresh NEAR-only wallets complete, with 63 verified signatures.
+
+| Setup HTTP request | Median | Minimum–maximum |
+| --- | ---: | ---: |
+| Phase 6B control before | 6.540 s | 5.898–7.294 s |
+| Background-settlement candidate | 5.898 s | 5.583–6.626 s |
+| Phase 6B control after | 5.950 s | 5.834–6.283 s |
+
+The candidate median is 642 ms below the preceding control and 52 ms below the
+following control. The ranges overlap. A stable latency improvement is not established.
+The previous 4.929 s sample remains a separate historical cohort. The two-second
+target remains unmet. No new resources were created. All thirteen tracked deployments
+were restored to their starting versions.
+
+The D1 call count remains unchanged. Two settlement waits leave the success response
+path. Provider invocation wall time can include those background writes, so it must
+not be interpreted as response-delivery latency. [Sanitized evidence](evidence/r155b-custody-background-settlement-20261007.json)
+records exact versions, source/bundle hashes, SDK signing results, and limitations.
+
+Next, evaluate overlap between A's root read and B's connection/root preparation.
+Both started operations must finish or close safely. Keep A's durable claim before
+its first protocol output, and verify cancellation and connection failures first.
+Router claim/finish dispatch remains another measurement target; its individual
+cost is not established yet.

@@ -1,3 +1,6 @@
+import { D1RegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
+import { RelocationResourceVerifier } from '../../packages/wallet-console-server-ts/src/tenantDeployment/relocationResourceVerification';
+import { createTenantD1ResourceVerifierV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceChallenge';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -880,6 +883,16 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       ];
       const input = { ...ready, resourceVerifications };
       const activated = await store.activateBinding(input);
+      const regionalAdmission = await store.readActiveRegionalAdmission(lane);
+      if (!regionalAdmission) throw new Error('Activated deployment admission is missing');
+      for (const resource of [home, secondResource, thirdResource, oceaniaResource]) {
+        const signerDatabase = provider.databases.get(resource.databaseId);
+        if (!signerDatabase) throw new Error('Regional signer database is missing');
+        const admission = new D1RegionalDeploymentAdmission(signerDatabase, resource);
+        await admission.prepare(regionalAdmission);
+        await admission.activate(regionalAdmission);
+      }
+
       const placementUrl = 'https://wallet-placement.internal/internal/wallet-placement/v1';
       const placementWallet = { ...candidate.tenant, walletId: 'writer-admission-wallet' };
       const placementBody = {
@@ -967,7 +980,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       ]);
       const changedWriter = await smokeGateway(smokeOrigin, '/changed');
       expect(changedWriter).toEqual([
-        { name: 'Gateway projection', ok: false, status: 500, attempts: 1 },
+        { name: 'Gateway projection', ok: false, status: 403, attempts: 1 },
       ]);
       await writeFile(
         testInfo.outputPath('activation-smoke-evidence.json'),
@@ -984,11 +997,9 @@ test('Console verifies both regional writer bindings against a fresh challenge',
       );
       expect(projection.status).toBe(200);
       const changedGateway = await runtime.getWorker('gateway-changed');
-      await expect(
-        changedGateway.fetch(
-          'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
-        ),
-      ).rejects.toThrow();
+      expect((await changedGateway.fetch(
+        'https://gateway.example.test/.well-known/seams-tenant-deployment.json',
+      )).status).toBe(403);
       const signerStateBefore = await signerDatabaseDigest(databaseA);
       const rejectedWriterRequests = [];
       for (const name of ['gateway-changed', 'runtime-changed']) {
@@ -997,13 +1008,13 @@ test('Console verifies both regional writer bindings against a fresh challenge',
           '/wallets/register/setup',
           '/wallets/fixture-wallet/auth-methods/intent',
         ]) {
-          await expect(
-            staleWriter.fetch(`https://wallet.example.test${pathname}`, {
-              method: 'POST',
-              headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '2' },
-              body: '{',
-            }),
-          ).rejects.toThrow('active tenant deployment lookup failed with HTTP 403');
+          const rejected = staleWriter.fetch(`https://wallet.example.test${pathname}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '2' },
+            body: '{',
+          });
+          if (name === 'gateway-changed') expect((await rejected).status).toBe(403);
+          else await expect(rejected).rejects.toThrow();
           rejectedWriterRequests.push({ writer: name, method: 'POST', pathname });
         }
       }
@@ -1131,6 +1142,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         ).toBe(0);
       }
       expect(provider.failures).toEqual([]);
+      await verifyRelocationResources(runtime, authority, provider, providerOrigin, testInfo.outputPath('relocation-resource-verification.json'));
       await writeFile(testInfo.outputPath('combined-home-checkpoint.json'), completed.stdout);
     } finally {
       providerServer.close();
@@ -1212,3 +1224,117 @@ test('Console verifies both regional writer bindings against a fresh challenge',
     await runtime.dispose();
   }
 });
+
+class RelocationProviderTransport {
+  constructor(
+    readonly origin: string,
+    readonly delegate: typeof fetch,
+  ) {}
+
+  fetch(input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    if (url.origin !== 'https://api.cloudflare.com') return this.delegate(request);
+    return this.delegate(new Request(new URL(url.pathname, this.origin), request));
+  }
+}
+
+async function verifyRelocationResources(
+  runtime: Miniflare,
+  database: D1DatabaseLike,
+  provider: ChallengeProvider,
+  providerOrigin: string,
+  output: string,
+): Promise<void> {
+  const verifier = new RelocationResourceVerifier(
+    database,
+    namespace,
+    lane,
+    'fixture-only',
+    createTenantD1ResourceVerifierV1({
+      namespace,
+      catalog,
+      deploymentLane: lane,
+      writers: {
+        US: {
+          gateway: await runtime.getWorker('gateway-second-resource'),
+          walletRuntime: await runtime.getWorker('runtime-second-resource'),
+        },
+        WEUR: {
+          gateway: await runtime.getWorker('gateway'),
+          walletRuntime: await runtime.getWorker('runtime-good'),
+        },
+        APAC: {
+          gateway: await runtime.getWorker('gateway-third-resource'),
+          walletRuntime: await runtime.getWorker('runtime-third-resource'),
+        },
+        OC: {
+          gateway: await runtime.getWorker('gateway-oceania-resource'),
+          walletRuntime: await runtime.getWorker('runtime-oceania-resource'),
+        },
+      },
+    }),
+  );
+  const originalFetch = globalThis.fetch;
+  const transport = new RelocationProviderTransport(providerOrigin, originalFetch);
+  globalThis.fetch = transport.fetch.bind(transport);
+  const observations = [];
+  try {
+    const scenarios: readonly ProviderScenario[] = [
+      'stable',
+      'changed_deployment',
+      'changed_version',
+      'wrong_version',
+      'gradual',
+    ];
+    for (const scenario of scenarios) {
+      provider.scenario = scenario;
+      provider.challengeWritten = false;
+      const result = verifier.verify(catalog.select('US'), catalog.select('APAC'));
+      if (scenario === 'stable') {
+        const proofs = await result;
+        expect(proofs.map(verifiedDatabaseId)).toEqual([
+          secondResource.databaseId,
+          thirdResource.databaseId,
+        ]);
+        observations.push({ scenario, accepted: true, proofs });
+      } else {
+        await expect(result).rejects.toThrow();
+        observations.push({ scenario, accepted: false });
+      }
+    }
+    provider.scenario = 'stable';
+    provider.challengeWritten = false;
+    provider.failInsertDatabaseId = secondResource.databaseId;
+    await expect(verifier.verify(catalog.select('US'), catalog.select('APAC'))).rejects.toThrow();
+    observations.push({ scenario: 'lost_challenge_insert_reply', accepted: false });
+    for (const signerDatabase of provider.databases.values()) {
+      expect(
+        await signerDatabase
+          .prepare('SELECT COUNT(*) AS count FROM deployment_resource_challenges')
+          .first('count'),
+      ).toBe(0);
+    }
+    await writeFile(
+      output,
+      JSON.stringify(
+        {
+          provider: 'simulated',
+          runtimeAndDatabases: 'real Miniflare workers',
+          challengesRemoved: true,
+          observations,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    provider.failInsertDatabaseId = null;
+    provider.scenario = 'stable';
+  }
+}
+
+function verifiedDatabaseId(proof: TenantResourceVerificationV1): string {
+  return proof.resource.databaseId;
+}

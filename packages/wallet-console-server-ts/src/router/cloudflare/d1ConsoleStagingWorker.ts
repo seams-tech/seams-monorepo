@@ -1,3 +1,5 @@
+import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../walletPlacement/relocationAdmission';
+import { RelocationResourceVerifier } from '../../tenantDeployment/relocationResourceVerification';
 import { handleWalletRelocationAdvance, resumeWalletRelocations, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
 import { WalletRegionalDispatch } from '../../walletPlacement/regionalDispatch';
 import { RegionalDeploymentServiceInstaller } from '../../tenantDeployment/regionalAdmissionTransport';
@@ -128,6 +130,7 @@ import {
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
+  readonly CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN?: string;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
@@ -578,20 +581,12 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     browserCredential: { kind: 'create_managed_publishable_key' },
   });
   onboardingDeployment.attach(tenantDeploymentProvisioner);
+  const resourceVerifier = relocationRuntimeVerifier(env, namespace, deploymentLane, walletHomeCatalog);
+
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
     deploymentLane,
     provisioner: tenantDeploymentProvisioner,
-    resourceVerifier: createTenantD1ResourceVerifierV1({
-      namespace,
-      catalog: walletHomeCatalog,
-      deploymentLane,
-      writers: {
-        US: { gateway: env.WALLET_GATEWAY_US, walletRuntime: env.WALLET_RUNTIME_US },
-        WEUR: { gateway: env.WALLET_GATEWAY_WEUR, walletRuntime: env.WALLET_RUNTIME_WEUR },
-        APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
-        OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
-      },
-    }),
+    resourceVerifier,
   });
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.
@@ -770,6 +765,35 @@ async function fetch(
       if (timing) response.headers.append('Server-Timing', timing);
       return response;
     }
+    if (request.url === WALLET_RELOCATION_ADMISSION_URL) {
+      const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+      const runtimeVerifier = relocationRuntimeVerifier(env, active.tenant.namespace, deploymentLane, catalog);
+      const verifier = new RelocationResourceVerifier(
+        env.CONSOLE_DB,
+        active.tenant.namespace,
+        deploymentLane,
+        readEnvString(env, 'CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN') ?? '',
+        runtimeVerifier,
+      );
+      return handleWalletRelocationAdmission(request, {
+        database: env.CONSOLE_DB,
+        catalog,
+        scope: active.tenant,
+        writer,
+        deploymentLane,
+        bindings: {
+          gateways: new WalletRegionalDispatch(env),
+          runtimes: {
+            US: env.WALLET_RUNTIME_US,
+            WEUR: env.WALLET_RUNTIME_WEUR,
+            APAC: env.WALLET_RUNTIME_APAC,
+            OC: env.WALLET_RUNTIME_OC,
+          },
+        },
+        verifyResources: verifier.verify.bind(verifier),
+        clock: Date.now,
+      });
+    }
     if (request.url === WALLET_RELOCATION_ADVANCE_URL) {
       return handleWalletRelocationAdvance(request, {
         database: env.CONSOLE_DB,
@@ -777,8 +801,12 @@ async function fetch(
         scope: active.tenant,
         bindings: {
           gateways: new WalletRegionalDispatch(env),
-          runtimes: { US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR,
-            APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC },
+          runtimes: {
+            US: env.WALLET_RUNTIME_US,
+            WEUR: env.WALLET_RUNTIME_WEUR,
+            APAC: env.WALLET_RUNTIME_APAC,
+            OC: env.WALLET_RUNTIME_OC,
+          },
         },
         clock: Date.now,
       });
@@ -960,3 +988,22 @@ async function scheduled(
 }
 
 export default { fetch, scheduled };
+
+function relocationRuntimeVerifier(
+  env: CloudflareD1ConsoleStagingEnv,
+  namespace: string,
+  deploymentLane: string,
+  catalog: WalletHomeCatalog,
+) {
+  return createTenantD1ResourceVerifierV1({
+    namespace,
+    catalog,
+    deploymentLane,
+    writers: {
+      US: { gateway: env.WALLET_GATEWAY_US, walletRuntime: env.WALLET_RUNTIME_US },
+      WEUR: { gateway: env.WALLET_GATEWAY_WEUR, walletRuntime: env.WALLET_RUNTIME_WEUR },
+      APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
+      OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
+    },
+  });
+}

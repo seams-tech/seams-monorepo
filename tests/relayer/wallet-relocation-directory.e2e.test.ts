@@ -1,3 +1,6 @@
+import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
+import { relocationFixtureBindings } from '../fixtures/tenant-deployment/walletRelocationPreparation';
+import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { verifyCleanupAssembly } from './cleanup-assembly.scenario';
 import { verifyActivationAssembly } from './activation-assembly.scenario';
 import { verifyTransferAssembly } from './transfer-assembly.scenario';
@@ -215,15 +218,34 @@ async function replayMove(
   requestDigest: string,
   key = request.wallet,
 ) {
-  const service = await runtime.getWorker('ingress-b');
-  return service.fetch(
-    'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-replay',
-    {
+  const catalog = WalletHomeCatalog.parse([source, destination, thirdHome, apacHome]);
+  return handleWalletRelocationAdmission(
+    new Request(WALLET_RELOCATION_ADMISSION_URL, {
       method: 'POST',
-      headers: { 'x-test-catalog-json': '{malformed' },
-      body: JSON.stringify({ wallet: key, moveId: request.moveId, requestDigest }),
+      body: JSON.stringify({
+        wallet: key,
+        moveId: request.moveId,
+        authorityId: request.authorityId,
+        expectedGeneration: request.expectedGeneration,
+        destinationRegion: request.destination.region,
+        requestDigest,
+      }),
+    }),
+    {
+      database: await runtime.getD1Database('CONSOLE_DB', 'ingress-b'),
+      catalog,
+      scope: wallet('traveller'),
+      writer: parseTenantRuntimeWriterV1('gateway', relocationWriterVersion(source.databaseId, 'gateway'), { accountId: source.accountId, databaseId: source.databaseId }),
+      deploymentLane: 'test',
+      bindings: relocationFixtureBindings(request, admittedAtMs),
+      verifyResources: unexpectedReplayPreparation,
+      clock: Date.now,
     },
   );
+}
+
+async function unexpectedReplayPreparation(): Promise<never> {
+  throw new Error('Exact replay must not prepare resources again');
 }
 
 async function publishAuthorizationManifest(
@@ -1112,7 +1134,7 @@ test('relocation directory serializes competing moves and survives lost replies 
     expect(conflictingReplay.status).toBe(409);
     expect(await responseBody(conflictingReplay)).toEqual({ ok: false, code: 'request_conflict' });
     expect((await replayMove(runtime, request, await request.digest(), foreignWallet)).status).toBe(403);
-    expect((await replayMove(runtime, request, await request.digest(), wallet('unrelated'))).status).toBe(404);
+    expect((await replayMove(runtime, request, await request.digest(), wallet('unrelated'))).status).toBe(409);
     expect((await replayMove(runtime, request, 'invalid')).status).toBe(400);
     observations.push(freezingStatus);
     expect(
@@ -2108,7 +2130,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         source, destination, thirdHome, apacHome,
       ]),
     );
-    observations.push({ exactReplayAfterRestartIgnoresCatalogAndPreservesHistoricalMove: true });
+    observations.push({ exactReplayAfterRestartSkipsPreparationAndPreservesHistoricalMove: true });
     observations.push({ historicalMoveReadableDuringReturnAndAfterRestart: true });
     await establish(runtime, "coordinator");
     const coordinated = relocation("coordinator", destination);

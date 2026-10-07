@@ -50,36 +50,57 @@ export class BrowserWalletRelocation {
       expectedGeneration: 1,
       authorityId: owner.authorityId,
     });
-    const binding = owner.bindMove({
+    const headers = await this.ownerRequest.allHeaders();
+    headers['content-type'] = 'application/json';
+    const intent = {
+      walletId: wallet.walletId,
       moveId: move.moveId,
-      requestDigestHex: await move.digest(),
-      sourceGeneration: 1,
       destinationRegion: 'APAC',
-    });
-    const challenge = await new api.D1WalletRelocationChallenges(
-      source.database,
-      signerScope,
-    ).issue(binding, Date.now(), Date.now() + 60_000);
-    const frame = page.frames().find(hasWalletOrigin.bind(null, owner.origin));
-    assert.ok(frame, 'The registered wallet iframe must approve the move');
-    const credential = await frame.evaluate(requestBrowserAssertion, challenge.challengeB64u);
-    credential.response.userHandle ??= null;
-    const approval = await new api.D1WalletRelocationApprovals(
-      source.database,
-      signerScope,
-    ).approvePasskey({ owner, binding, credential, nowMs: Date.now() });
-    assert.equal(approval.kind, 'approved');
-    const sourceRecords = await authenticationRecords(source, wallet.walletId);
-
+      expectedGeneration: 1,
+    };
     const bindings = relocationBindings(api, scenario, signerScope);
-    const proofs = [];
-    for (const region of ['US', 'APAC']) {
-      const home = catalog.select(region);
-      proofs.push(api.relocationResourceVerification(home, scope.namespace, Date.now()));
-    }
+    const verifier = new BrowserMoveResourceProofs(directory.api, scope.namespace);
+    directory.relocationAdmission = { bindings, verifyResources: verifier.verify.bind(verifier) };
     const journal = new api.D1WalletRelocations(database, catalog);
-    const admission = await journal.admit(move, proofs, 'test', bindings, Date.now);
-    assert.equal(admission.ok, true, JSON.stringify(admission));
+    const preparationFailure = await page.evaluate(requestSdkMove, intent);
+    assert.deepEqual(preparationFailure, { ok: false, code: 'transport_unavailable' });
+    assert.equal(await journal.find(move), null);
+    const unchanged = await database
+      .prepare('SELECT region, placement_state FROM wallet_homes WHERE wallet_id = ?')
+      .bind(wallet.walletId)
+      .first();
+    assert.equal(unchanged.region, 'US');
+    assert.equal(unchanged.placement_state, 'active');
+    const retry = new Request('https://gateway.example.test/wallet/placement/v1/relocations', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...intent, sourceProof: null }),
+    });
+    const admittedResult = await page.evaluate(requestSdkMove, intent);
+    assert.equal(admittedResult.ok, true, JSON.stringify(admittedResult));
+    const admitted = admittedResult.status;
+    const replayResponse = await source.handle(retry, 'ingress');
+    assert.equal(replayResponse.status, 200);
+    assert.deepEqual(await replayResponse.json(), admitted);
+    assert.equal(verifier.calls, 2, 'Exact admission replay does not repeat provider verification');
+    const sourceRecords = await authenticationRecords(source, wallet.walletId);
+    await writeFile(
+      resolve(scenario.output, 'public-admission.json'),
+      JSON.stringify(
+        {
+          sdkPlacementMove: true,
+          gatewayChallengeAndAdmissionRoutes: true,
+          realBrowserPasskeyApproval: true,
+          preparationFailureKeepsSourceActive: true,
+          exactRetryUsesStoredApproval: true,
+          admittedReplayDoesNotRepeatPreparation: true,
+          resourceVerification:
+            'Fresh local fixture proofs. Cloudflare provider verification is excluded.',
+        },
+        null,
+        2,
+      ),
+    );
     const progress = [];
     let checkedFreeze = false;
     for (let step = 0; step < 128; step += 1) {
@@ -252,16 +273,22 @@ function relocationBindings(api, scenario, scope) {
   return { gateways: new api.WalletRegionalDispatch(gateways), runtimes };
 }
 
-function hasWalletOrigin(origin, frame) {
-  return frame.url().startsWith(`${origin}/`);
+async function requestSdkMove(request) {
+  if (!window.__seamsIntendedE2EMoveWallet) throw new Error('SDK move helper is unavailable');
+  return window.__seamsIntendedE2EMoveWallet(request);
 }
 
-async function requestBrowserAssertion(challenge) {
-  const decoded = atob(challenge.replaceAll('-', '+').replaceAll('_', '/'));
-  const bytes = new Uint8Array(decoded.length);
-  for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
-  const credential = await navigator.credentials.get({
-    publicKey: { challenge: bytes, rpId: location.hostname, userVerification: 'required' },
-  });
-  return credential.toJSON();
+class BrowserMoveResourceProofs {
+  calls = 0;
+  constructor(api, namespace) {
+    Object.assign(this, { api, namespace });
+  }
+  async verify(source, destination) {
+    this.calls += 1;
+    if (this.calls === 1) throw new Error('Injected resource verification outage');
+    return [
+      this.api.relocationResourceVerification(source, this.namespace, Date.now()),
+      this.api.relocationResourceVerification(destination, this.namespace, Date.now()),
+    ];
+  }
 }

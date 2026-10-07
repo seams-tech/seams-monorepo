@@ -130,7 +130,7 @@ import {
 interface CloudflareD1ConsoleStagingEnv
   extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
   readonly CONSOLE_DB: D1DatabaseLike;
-  readonly CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN?: string;
+  readonly CLOUDFLARE_API_TOKEN?: string;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
   readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
@@ -772,7 +772,7 @@ async function fetch(
         env.CONSOLE_DB,
         active.tenant.namespace,
         deploymentLane,
-        readEnvString(env, 'CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN') ?? '',
+        readEnvString(env, 'CLOUDFLARE_API_TOKEN') ?? '',
         runtimeVerifier,
       );
       return handleWalletRelocationAdmission(request, {

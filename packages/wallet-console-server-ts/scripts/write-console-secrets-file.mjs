@@ -6,7 +6,7 @@ import process from 'node:process';
 import { consoleSecretNames, readBackendLane } from '../../../scripts/deployment-targets.mjs';
 
 const OPTIONAL_SECRET_NAMES = [
-  'CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN',
+  'CLOUDFLARE_API_TOKEN',
   'GITHUB_OAUTH_CALLBACK_URL',
   'GITHUB_OAUTH_CLIENT_ID',
   'GITHUB_OAUTH_CLIENT_SECRET',

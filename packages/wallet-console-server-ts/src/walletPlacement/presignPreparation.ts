@@ -144,7 +144,7 @@ export class PresignRelocationPreparation {
       kind: 'prepared', admission: 'closed', participant: 'presignSessions',
       requestDigest: command.requestDigest,
       destinationGeneration: command.destinationGeneration,
-      physicalResource: `signing-worker-wallet-${objectDigest}`,
+      physicalResource: `signing-worker-wallet-${objectDigest}/generation/${command.destinationGeneration}`,
       evidenceDigest: evidence,
       preparedAtMs, expiresAtMs,
     };

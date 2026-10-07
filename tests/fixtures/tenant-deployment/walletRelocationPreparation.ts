@@ -56,10 +56,14 @@ class SigningPreparationRuntime {
     if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
     let scope = body.scope;
     if (isPlainObject(body.source)) scope = body.source.scope;
+    const request = isPlainObject(body.source) ? body.source.request : body.request;
+    if (!isPlainObject(request) || typeof request.source_generation !== 'number') {
+      return new Response(null, { status: 400 });
+    }
     const digest = await fixtureObjectDigest('seams/signing-worker/wallet-do/v1', scope);
     const destinationObject = `signing-worker-wallet-${
       this.failedParticipant === 'signing_worker_wrong_wallet' ? '0'.repeat(64) : digest
-    }`;
+    }/generation/${request.source_generation + 1}`;
     if (input.url.endsWith('/ed25519-snapshot')) {
       return Response.json({ state: 'prepared', source: body.source, destination_object: destinationObject });
     }

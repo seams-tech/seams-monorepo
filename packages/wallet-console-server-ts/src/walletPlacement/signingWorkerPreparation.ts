@@ -57,7 +57,7 @@ export class SigningWorkerRelocationPreparation {
     };
     const objectInput = new TextEncoder().encode(`seams/signing-worker/wallet-do/v1${JSON.stringify(scope)}`);
     const objectDigest = Array.from(await sha256Bytes(objectInput), hexByte).join('');
-    const destinationObject = `signing-worker-wallet-${objectDigest}`;
+    const destinationObject = `signing-worker-wallet-${objectDigest}/generation/${command.destinationGeneration}`;
     const preparedAtMs = relocationTimestamp(this.clock());
     const ed25519 = await prepareRole(this.runtime, {
       operation: 'ed25519-snapshot',

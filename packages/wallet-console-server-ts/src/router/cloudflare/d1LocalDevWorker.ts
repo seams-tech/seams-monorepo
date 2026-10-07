@@ -716,6 +716,7 @@ const SIGNER_READY_TABLES = Object.freeze([
   'email_otp_unlock_challenges',
   'email_otp_registration_attempts',
   'email_otp_rate_limits',
+  'wallet_email_otp_rate_limits',
   'router_ab_yao_capability_replacements',
   'router_ab_yao_versioned_json_records',
   'router_ab_yao_versioned_json_cas_guard',

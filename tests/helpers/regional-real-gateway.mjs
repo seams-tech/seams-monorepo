@@ -52,16 +52,17 @@ export async function createRegionalRealGateway({
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
         export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
-        export { createSharedEmailOtpRateLimitCounter } from './packages/wallet-console-server-ts/src/walletPlacement/sharedRateLimitCounter';
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-        export { relocationWriterVersion } from './tests/fixtures/tenant-deployment/walletRelocationResources';
+        export { relocationWriterVersion, relocationResourceVerification } from './tests/fixtures/tenant-deployment/walletRelocationResources';
         export { fourRegionBinding, regionalResourceProof } from './tests/helpers/tenantDeploymentFixtures';
         export { D1RegionalDeploymentAdmission } from './packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
         export { DeploymentFencedDatabase } from './packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';
         export { TenantDeploymentD1ResourceIdentityV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
+        export { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from './packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
+        export { WalletPlacementConsoleBinding } from './packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
         export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
         export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       `,
@@ -72,7 +73,6 @@ export async function createRegionalRealGateway({
     modules: true,
     script: 'export default { fetch() { return new Response(null, {status: 404}); } };',
     d1Databases: {
-      EMAIL_OTP_RATE_LIMIT_DB: 'otp-counters',
       CONSOLE_DB: 'console',
       US: 'us',
       WEUR: 'weur',
@@ -84,12 +84,7 @@ export async function createRegionalRealGateway({
   });
   try {
     const consoleDatabase = await runtime.getD1Database('CONSOLE_DB');
-    const counterDatabase = await runtime.getD1Database('EMAIL_OTP_RATE_LIMIT_DB');
     if (databaseState?.mode !== 'reopen') {
-      await migrate(
-        counterDatabase,
-        resolve(root, 'packages/wallet-console-server-ts/migrations/d1-email-otp-rate-limit'),
-      );
       await migrate(
         consoleDatabase,
         resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
@@ -134,7 +129,6 @@ export async function createRegionalRealGateway({
     const environment = {
       ...variables,
       ...secrets,
-      EMAIL_OTP_RATE_LIMIT_DB: counterDatabase,
       ...(emailDelivery ? { EMAIL_OTP_DELIVERY_MODE: 'email_provider' } : {}),
       WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
       MPC_ROUTER: routerFault,
@@ -233,6 +227,9 @@ class ObservableConsoleTransport {
   }
   fetch(input, init) {
     const request = new Request(input, init);
+    if (new URL(request.url).origin === 'https://wallet-placement.internal') {
+      return this.control.fetch(request);
+    }
     this.control.requests.push(new URL(request.url).pathname);
     if (!this.control.available) return Promise.resolve(new Response(null, { status: 503 }));
     return this.delegate.fetch(request);
@@ -240,6 +237,7 @@ class ObservableConsoleTransport {
 }
 
 class RealHomeConsole {
+  relocationAdmission = null;
   available = true;
   requests = [];
   constructor(api, database, scope, catalog, environmentKey) {
@@ -269,6 +267,14 @@ class RealHomeConsole {
         databaseId: request.headers.get('x-seams-writer-database'),
       },
     );
+    if (request.url === this.api.WALLET_RELOCATION_ADMISSION_URL) {
+      assert.ok(this.relocationAdmission, 'Relocation test must configure resource verification');
+      return this.api.handleWalletRelocationAdmission(request, {
+        database: this.database, catalog: this.catalog, scope: this.scope, writer,
+        deploymentLane: 'test', bindings: this.relocationAdmission.bindings,
+        verifyResources: this.relocationAdmission.verifyResources, clock: Date.now,
+      });
+    }
     return this.api.handleWalletHomeServiceRequest(request, {
       database: this.database,
       scope: this.scope,
@@ -456,7 +462,13 @@ class RealRegionalGateway {
     const response = database.response(
       await this.api.handleSplitGatewayRequest(
         request,
-        { ...this.environment, SIGNER_DB: database },
+        {
+          ...this.environment,
+          SIGNER_DB: database,
+          WALLET_CONSOLE: new this.api.WalletPlacementConsoleBinding(
+            this.environment.WALLET_CONSOLE, writer,
+          ),
+        },
         this,
         {
           signerWasm: this.signerWasm,
@@ -475,10 +487,6 @@ class RealRegionalGateway {
               : undefined,
           identityStore,
           credentialClaims: identityStore,
-          emailOtpRateLimitCounter: this.api.createSharedEmailOtpRateLimitCounter(
-            this.environment.EMAIL_OTP_RATE_LIMIT_DB,
-            this.scope,
-          ),
           syncChallenges: identityStore.syncChallenges(),
           linkedDeviceBootstrap: identityStore.linkedDeviceBootstrap(),
           linkedDeviceProofNonces: identityStore.linkedDeviceProofNonces(),

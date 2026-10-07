@@ -41,14 +41,7 @@ const resources = [
   },
 ];
 
-function runRenderer(
-  worker: string,
-  region: string,
-  output: string,
-  allocated: boolean,
-  pendingCounter = false,
-  counterReuse = 'none',
-) {
+function runRenderer(worker: string, region: string, output: string, allocated: boolean) {
   const args = allocated ? ['--import', allocations] : [];
   args.push(renderer, '--lane', 'production-testnet', '--worker', worker, '--output', output);
   if (region) args.push('--region', region);
@@ -57,8 +50,6 @@ function runRenderer(
     env: {
       ...process.env,
       CLOUDFLARE_ACCOUNT_ID: accountId,
-      SEAMS_TEST_PENDING_OTP_COUNTER: pendingCounter ? '1' : '0',
-      SEAMS_TEST_COUNTER_DATABASE_REUSE: counterReuse,
     },
   });
 }
@@ -66,15 +57,6 @@ function runRenderer(
 test('regional rollout renders one shared Console and four isolated writer pairs, refusing missing allocations', async ({
   request: _request,
 }, testInfo) => {
-  const rejectedCounterBindings = [];
-  for (const reuse of ['console', 'signer', 'other-lane']) {
-    const output = testInfo.outputPath(`rejected-counter-${reuse}.json`);
-    await expect(runRenderer('gateway', 'US', output, true, false, reuse)).rejects.toThrow(
-      /distinct database|identities must be distinct|backend D1 identities/,
-    );
-    await expect(readFile(output)).rejects.toThrow();
-    rejectedCounterBindings.push(reuse);
-  }
   const configs = [];
   const catalog = [];
   const gatewayBindings = [];
@@ -98,12 +80,6 @@ test('regional rollout renders one shared Console and four isolated writer pairs
         'US signer D1 allocation is pending',
       );
       await expect(readFile(output)).rejects.toThrow();
-      if (worker === 'gateway') {
-        await expect(runRenderer(worker, region, output, true, true)).rejects.toThrow(
-          'shared Email OTP counter D1 allocation is pending',
-        );
-        await expect(readFile(output)).rejects.toThrow();
-      }
       await runRenderer(worker, region, output, true);
       const config = JSON.parse(await readFile(output, 'utf8'));
       expect(JSON.parse(config.vars.SEAMS_WALLET_HOME_CATALOG_JSON)).toEqual(catalog);
@@ -121,7 +97,7 @@ test('regional rollout renders one shared Console and four isolated writer pairs
       } else {
         const resource = resources.find(matchesRegion.bind(null, region));
         if (!resource) throw new Error('Missing regional resource');
-        expect(config.d1_databases).toHaveLength(worker === 'gateway' ? 2 : 1);
+        expect(config.d1_databases).toHaveLength(1);
         expect(config.d1_databases[0]).toMatchObject({
           binding: 'SIGNER_DB',
           database_id: resource.databaseId,
@@ -129,11 +105,6 @@ test('regional rollout renders one shared Console and four isolated writer pairs
         expect(config.vars.SEAMS_D1_HOME_DATABASE_ID).toBe(resource.databaseId);
         expect(config.placement).toEqual({ region: resource.placement });
         if (worker === 'gateway') {
-          expect(config.d1_databases[1]).toMatchObject({
-            binding: 'EMAIL_OTP_RATE_LIMIT_DB',
-            database_id: '99999999-9999-4999-8999-999999999999',
-            migrations_dir: path.join(packageRoot, 'migrations/d1-email-otp-rate-limit'),
-          });
           expect(config.services).toEqual(expect.arrayContaining(gatewayBindings));
           expect(config.routes).toHaveLength(region === 'APAC' ? 1 : 0);
         } else {
@@ -150,7 +121,6 @@ test('regional rollout renders one shared Console and four isolated writer pairs
       {
         checkedAt: new Date().toISOString(),
         remoteCloudflareUsed: false,
-        rejectedCounterBindings,
         allocationSource: 'child-process fixture; canonical US/WEUR/OC allocations remain pending',
         configs,
       },

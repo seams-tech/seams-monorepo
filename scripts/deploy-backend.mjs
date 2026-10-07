@@ -960,16 +960,6 @@ function migrateRegionalBackend(lane, component, region) {
     renderGatewayConfig(lane.id, region, gatewayConfig);
   }
   applyBackendMigration(migrations[component]);
-  if (
-    component === 'wallet-system' &&
-    region === requireProvisionedLane(lane).resources.ingressRegion
-  ) {
-    applyBackendMigration({
-      database: 'EMAIL_OTP_RATE_LIMIT_DB',
-      config: gatewayConfig,
-      directory: path.join(GATEWAY_ROOT, 'migrations/d1-email-otp-rate-limit'),
-    });
-  }
 }
 
 function applyBackendMigration(migration) {

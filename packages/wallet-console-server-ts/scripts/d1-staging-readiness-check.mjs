@@ -36,14 +36,9 @@ const signerD1Database = Object.freeze({
   databaseName: 'seams-signer-staging-nrt',
   migrationsDir: 'node_modules/@seams/wallet-server/migrations/d1-signer',
 });
-const emailOtpRateLimitDatabase = Object.freeze({
-  binding: 'EMAIL_OTP_RATE_LIMIT_DB',
-  databaseName: 'seams-email-otp-rate-limit-staging',
-  migrationsDir: 'migrations/d1-email-otp-rate-limit',
-});
 const requiredD1DatabasesByProfile = Object.freeze({
   console: Object.freeze([consoleD1Database]),
-  gateway: Object.freeze([signerD1Database, emailOtpRateLimitDatabase]),
+  gateway: Object.freeze([signerD1Database]),
 });
 
 const stagingProfiles = Object.freeze(['console', 'gateway']);

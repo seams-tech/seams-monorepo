@@ -269,7 +269,7 @@ function parseResources(value) {
   const resources = requireObject(value, 'resources');
   requireExactKeys(
     resources,
-    ['workerName', 'ingressRegion', 'consoleD1', 'emailOtpRateLimitD1', 'regions'],
+    ['workerName', 'ingressRegion', 'consoleD1', 'regions'],
     'resources',
   );
   const rawRegions = requireObject(resources.regions, 'resources.regions');
@@ -277,20 +277,8 @@ function parseResources(value) {
   const regions = {};
   const names = new Set();
   const consoleD1 = parseD1Resource(resources.consoleD1, 'resources.consoleD1');
-  const emailOtpRateLimitD1 = parseD1Allocation(
-    resources.emailOtpRateLimitD1,
-    'resources.emailOtpRateLimitD1',
-  );
   const ids = new Set([consoleD1.id]);
   names.add(consoleD1.name);
-  if (emailOtpRateLimitD1.name === consoleD1.name)
-    throw new Error('OTP counters must use a distinct database');
-  names.add(emailOtpRateLimitD1.name);
-  if (emailOtpRateLimitD1.kind === 'allocated') {
-    if (ids.has(emailOtpRateLimitD1.id))
-      throw new Error('OTP counters must use a distinct database');
-    ids.add(emailOtpRateLimitD1.id);
-  }
   for (const region of WALLET_REGIONS) {
     const label = `resources.regions.${region}`;
     const raw = requireObject(rawRegions[region], label);
@@ -324,7 +312,7 @@ function parseResources(value) {
   );
   if (regions[ingressRegion].workerName !== workerName)
     throw new Error('Ingress worker must match its regional Gateway');
-  return { workerName, ingressRegion, consoleD1, emailOtpRateLimitD1, regions };
+  return { workerName, ingressRegion, consoleD1, regions };
 }
 
 export function requireAllocatedWalletRegions(deployment) {

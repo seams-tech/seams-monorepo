@@ -271,92 +271,38 @@ commands, reconciliation mismatch rows, missing signer custody export-share
 evidence, wrong custody endpoint paths/statuses, mixed staging environments, and
 incomplete restore artifacts.
 
-## R155B shared Email OTP counters
+## Regional Email OTP counters
 
-Regional Gateways require `EMAIL_OTP_RATE_LIMIT_DB`. All regions in one environment
-must bind the same dedicated D1 database. Apply `migrations/d1-email-otp-rate-limit`
-to that database. Keep Console and signer records in their existing databases.
-The staging example and readiness check include the required binding.
-The canonical deployment target stores this allocation in
-`gatewayDeploymentConfig.resources.emailOtpRateLimitD1`. Its `kind` is `pending`
-until provisioning supplies an `allocated` database ID. Gateway manifest rendering
-rejects pending allocations. The renderer gives all regional Gateways the same
-counter binding and keeps it out of Console and Wallet Runtime manifests.
-The existing wallet-system migration command applies the counter schema once,
-using the ingress Gateway manifest. It then remains the shared counter authority
-for every regional Gateway.
+Gateways enforce OTP spam limits in their existing `SIGNER_DB`. They have no
+counter database binding and make no Console rate-limit request. Wallet counters
+use `wallet_email_otp_rate_limits` with an explicit wallet owner. IP, subject,
+provider, and organization counters remain in regional `email_otp_rate_limits`.
+Those broader limits are independent across regions by design.
 
-The staging inventory command records remote metadata for the counter database.
-The staging migration command lists, applies, and rechecks its schema alongside
-Console and signer schemas. Evidence verification requires those counter checks,
-rejects a `CONSOLE_DB` binding on the Gateway, and rejects counter database IDs
-that match either the Console or signer database.
+Wallet requests consume counters at the fixed home after regional routing.
+Relocation snapshots select wallet counters that were unexpired when the source
+froze. Imports preserve their count and reset time. Frozen sources and inactive
+destinations reject ordinary writes. Source cleanup deletes wallet counters;
+regional counters remain with the region. Counter storage errors remain failures.
+OTP authentication expiry, attempt limits, and single-use grants stay enforced.
 
-The Gateway scopes counter keys with its admitted deployment tenant. The existing
-atomic D1 counter enforces the global limits. Counter storage failures reject the
-OTP action. There is no fallback to a regional counter or to Console.
-The Console `/internal/wallet-placement/v1/rate-limit` endpoint is removed.
+Apply signer migrations to each regional database with the existing wallet-system
+migration command. No new Cloudflare database or allocation approval is required.
+The snapshot inventory change requires existing relocation snapshots/imports to
+be cleaned up before migration. Stop old Gateway traffic before applying Console cleanup migration
+`0088_remove_shared_otp_counters.sql`. It removes the obsolete Console counter table. Historical migrations retain their original text.
+Approximate spam counters do not require transfer of the old global counter history.
 
-This change is prepared locally. No shared counter database has been provisioned.
-Before deployment, approve the dedicated database within the $25 Cloudflare budget.
-Bind every regional Gateway before accepting OTP traffic on this candidate.
-For a live cutover, preserve unexpired counters or pause OTP traffic until the
-maximum configured rate-limit window expires. Do not split traffic between old
-and new counter stores. Remove the obsolete Console counter table after all old
-Gateway versions stop serving traffic. Historical Console migrations remain
-unchanged until that deployment cutover is complete.
+The previously frozen dedicated-counter candidate is superseded. Rebuild SDK/server,
+Gateway, Runtime, and Console inputs after the regional implementation passes
+acceptance. See the public `docs/refactor-155B.md` Phase 3A for remaining gates.
 
-Local verification uses `tests/e2e/regional-session-routing.e2e.mjs` and the
-Email OTP budget/step-up scenario in
-`tests/e2e/regional-real/google-email-otp.recovery.contract.test.ts`.
-
-On 2026-10-07, regional acceptance passed with 32 concurrent counter requests:
-12 accepted and 20 limited. Console outage, independent project scopes, and real
-counter-storage failure checks passed. Package type-check also passed.
-The browser step-up scenario also passed after replacing its Console-dependent
-development outbox reader with a local email-provider mailbox. During the outage,
-it completed two NEAR signatures, three ECDSA signatures, and two OTP step-ups.
-Console requests stayed at zero. All authorization records remained in the US home.
-External email delivery is simulated; regional OTP verification and MPC signing
-execute production code. This is local acceptance, with no hosted latency claim.
-See [sanitized evidence](docs/evidence/r155b-direct-otp-counters-20261007.json).
-
-The 2026-10-07 candidate now freezes the rebuilt wallet server, migrations, SDK,
-and custody artifacts. Gateway, Runtime, and Console passed Wrangler dry-run
-builds against that frozen server. Bundle input records contain no published
-wallet-server imports. The inventory contains 5,821 hashed files.
-See [candidate identity and limitations](docs/evidence/r155b-verified-candidate-20261007.json).
-Database allocation, coordinated staging deployment, and hosted comparison remain
-open. These build results do not establish a latency gain.
-
-#### Staging OTP counter cutover and rollback
-
-Use a coordinated maintenance interval for the counter cutover. Stop OTP traffic
-through every regional Gateway before changing the counter authority. A quiet
-request log alone does not prove that traffic is blocked. If a verified traffic
-block is unavailable, do not switch stores.
-
-1. Record all current Worker versions, bindings, routes, and non-versioned settings.
-2. After database approval, allocate the dedicated database and apply its migration.
-3. Block OTP traffic on every ingress and drain in-flight OTP requests.
-4. Read the latest `reset_at_ms` from the old counter table after draining. Keep
-   traffic blocked until that time passes. Repeat the read to confirm that no
-   unexpired rows remain. Do not substitute a default policy window: deployments
-   can configure longer windows.
-5. Bind all four candidate Gateways to the same dedicated counter database.
-   Keep the old Console endpoint available until all old Gateways stop serving.
-6. Deploy the candidate Console after the Gateway switch. Verify the bindings
-   and versions, then reopen OTP traffic and run the cross-region limiter check.
-
-For rollback, first block OTP traffic and drain requests again. Wait until all
-unexpired counters in **both** databases expire. Restore Console before restoring
-the old Gateways, because those Gateways require its counter endpoint. Restore
-recorded bindings and non-versioned settings as well as Worker versions. Reopen
-traffic only after every Gateway uses the original shared counter store.
-
-The old and dedicated counter schemas are identical as of 2026-10-07. This runbook
-uses expiry under blocked traffic, so it needs no counter-copy compatibility path.
-Retain the old Console table during the bounded comparison and rollback interval.
-Remove it only after the accepted cutover, when old Gateway traffic and rollback
-are no longer required. This procedure has been reviewed against the migration
-and deployment scripts. It has not been executed on staging.
+Local acceptance on October 7 passed with 128 concurrent spam-counter requests:
+48 accepted and 80 limited across four regions and four policy scopes. Independent
+region and tenant allowances, Console outage, and storage failure were verified.
+Authorization-transfer acceptance preserved an exhausted wallet allowance and its
+expiry, rejected inactive-home writes, excluded regional counters, and cleaned the
+source. Chromium OTP step-up passed for NEAR and ECDSA with zero Console requests.
+Deployment rendering and both package type-checks passed. Evidence is recorded in
+the public repository at `docs/evidence/r155b-regional-otp-20261007.json`.
+These checks establish local behavior. Hosted deployment and timings remain open.

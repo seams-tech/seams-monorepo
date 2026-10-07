@@ -1,5 +1,3 @@
-import { createSharedEmailOtpRateLimitCounter } from '../../walletPlacement/sharedRateLimitCounter';
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { TenantDeploymentStoreError } from '../../tenantDeployment/service';
 import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
 import { DeploymentFencedDatabase } from '../../tenantDeployment/fencedDatabase';
@@ -36,13 +34,12 @@ import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployme
 import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
 
 // The split Wallet Gateway entrypoint (R105 Phase 4). Bindings: SIGNER_DB,
-// EMAIL_OTP_RATE_LIMIT_DB, MPC_ROUTER, SIGNING_WORKER, and WALLET_CONSOLE.
+// MPC_ROUTER, SIGNING_WORKER, and WALLET_CONSOLE.
 // No CONSOLE_DB, no /console/* routes, no Console cron; deploying this
 // entrypoint IS the gateway half of the cutover.
 
 type TenantDeploymentGatewayEnv = CloudflareD1GatewayEnv &
   RegionalGatewayBindings & {
-    readonly EMAIL_OTP_RATE_LIMIT_DB: D1DatabaseLike;
     readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
     readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
     readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
@@ -171,10 +168,6 @@ async function handleGatewayRequest(
   const handled = await handleSplitGatewayRequest(request, boundEnv, ctx, {
     sessionRouting: authority,
     identityStore: authority.identityStore(),
-    emailOtpRateLimitCounter: createSharedEmailOtpRateLimitCounter(
-      env.EMAIL_OTP_RATE_LIMIT_DB,
-      binding.tenant,
-    ),
     credentialClaims: authority.identityStore(),
     syncChallenges: authority.identityStore().syncChallenges(),
     linkedDeviceBootstrap: authority.identityStore().linkedDeviceBootstrap(),

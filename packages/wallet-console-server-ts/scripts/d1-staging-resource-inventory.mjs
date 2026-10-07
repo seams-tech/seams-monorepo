@@ -197,11 +197,6 @@ function inventoryCommands(input) {
       command: wranglerCommand('d1 info seams-signer-staging-nrt --json', input.gatewayConfigPath),
     }),
     inventoryCommand({
-      id: 'email_otp_rate_limit_d1_info',
-      target: 'email_otp_rate_limit_d1',
-      command: wranglerCommand('d1 info seams-email-otp-rate-limit-staging --json', input.gatewayConfigPath),
-    }),
-    inventoryCommand({
       id: 'console_worker_deployment_status',
       target: 'console_worker',
       command: wranglerCommand('deployments status --json', input.consoleConfigPath),

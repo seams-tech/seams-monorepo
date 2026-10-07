@@ -38,13 +38,6 @@ const migrationTargets = Object.freeze([
     configField: 'gatewayConfigPath',
     migrationsDir: 'node_modules/@seams/wallet-server/migrations/d1-signer',
   }),
-  Object.freeze({
-    logicalName: 'email_otp_rate_limit',
-    profile: 'gateway',
-    databaseName: 'seams-email-otp-rate-limit-staging',
-    configField: 'gatewayConfigPath',
-    migrationsDir: 'migrations/d1-email-otp-rate-limit',
-  }),
 ]);
 
 export function buildD1StagingMigrationPlan(input = {}) {

@@ -193,11 +193,6 @@ database_name = "seams-signer-staging-nrt"
 database_id = "22222222-2222-4222-8222-222222222222"
 migrations_dir = "node_modules/@seams/wallet-server/migrations/d1-signer"
 
-[[d1_databases]]
-binding = "EMAIL_OTP_RATE_LIMIT_DB"
-database_name = "seams-email-otp-rate-limit-staging"
-database_id = "33333333-3333-4333-8333-333333333333"
-migrations_dir = "migrations/d1-email-otp-rate-limit"
 
 [[services]]
 binding = "WALLET_CONSOLE"

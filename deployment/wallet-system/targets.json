@@ -139,10 +139,6 @@
                     "id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e"
                   }
                 }
-              },
-              "emailOtpRateLimitD1": {
-                "kind": "pending",
-                "name": "seams-console-staging-nrt-otp-counters"
               }
             },
             "tenant": {
@@ -402,10 +398,6 @@
                     "name": "seams-signer-testnet-oc"
                   }
                 }
-              },
-              "emailOtpRateLimitD1": {
-                "kind": "pending",
-                "name": "seams-console-testnet-otp-counters"
               }
             },
             "tenant": {
@@ -637,10 +629,6 @@
                     "name": "seams-signer-oc"
                   }
                 }
-              },
-              "emailOtpRateLimitD1": {
-                "kind": "pending",
-                "name": "seams-console-otp-counters"
               }
             },
             "tenant": {

@@ -209,7 +209,7 @@ export class RelocationResourceVerifier {
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/${path}`,
       {
         method: body ? 'POST' : 'GET',
-        redirect: 'error',
+        redirect: 'manual',
         signal: AbortSignal.timeout(15_000),
         headers: { authorization: `Bearer ${this.apiToken}`, 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,

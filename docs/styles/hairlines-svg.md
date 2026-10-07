@@ -4,7 +4,7 @@ Use one detailed, interactive illustration at a time. Start from an existing wal
 
 The first example develops the wallet security section's **Audit log** image into four layered paper records. The folded corner, binding holes, ruled entries, and thin paper edges identify the object without words inside the drawing.
 
-The second example develops **Scoped credentials** into two cut metal keys on one shoulder pin. Each example has its own review page.
+The second example develops **Scoped credentials** into four cut metal keys on a shared ring. Each example has its own review page.
 
 ## Reference and engine
 
@@ -65,13 +65,15 @@ The local review URL is `/dashboard-static/showcase/motion/`. The page contains 
 
 ## Scoped credentials example
 
-The key pair preserves the circular head and patterned shaft from the wallet's existing **Scoped credentials** illustration. Different cut patterns distinguish the keys. Recessed channels, etched head details, thin metal edges, and a slotted pivot give the object physical detail.
+The keychain preserves the circular heads and patterned shafts from the wallet's existing **Scoped credentials** illustration. Four cut patterns distinguish the keys. Recessed channels, thin metal edges, and slotted heads give the object physical detail.
 
-The keys rotate in parallel planes around a fixed pin. Their heads remain attached throughout movement. Horizontal pointer position controls their spread through the shared spring. Pointer exit returns them to a slightly open resting pose.
+Hovering a key slides it forward along its shaft. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit retracts the selected key and restores the resting fan. The bright outline follows selection, and the readout names the selected key.
 
-The intensity slider adds 14, 24, or 34 degrees to the resting spread. The camera fits geometry from across this range. The upper key carries the single outline highlight. The lower key remains covered where the two keys overlap.
+The shared ring passes through elongated openings in the key heads. These openings permit limited travel while the keys remain attached. Opaque faces hide the keys behind them. The openings use an even-odd fill rule, which leaves a real hole through each face.
 
-This is an illustration of distinct credentials. Opening the pair does not grant permission or represent a signing ceremony.
+The intensity slider controls travel at 12, 18, or 24 world units. Selection uses the resting key angles, so a moving key cannot change its own hover target. The shared 700ms tween handles selection changes and reverses from the current pose.
+
+This is an illustration of distinct credentials. Selecting a key does not grant permission or represent a signing ceremony.
 
 Edit `apps/wallet-console/showcase/motion/credentials/scoped-credentials.js`, then rebuild:
 
@@ -86,10 +88,10 @@ Review it at `/dashboard-static/showcase/motion/credentials/`. From `.artifacts/
 ```sh
 node "$HOME/.codex/skills/hairline-create/look.mjs" \
   ../../apps/wallet-console/showcase/motion/credentials/scoped-credentials.js \
-  --answer 280,180 --edge 340,180 --zoom answer
+  --answer 0,90,9 --edge 70,100,3 --zoom answer
 ```
 
-Inspect the tooth contours and the pivot at full size. Check that the lower key stays behind the upper key throughout rotation. Confirm that the open pair remains inside the frame at maximum intensity.
+Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum travel.
 
 ## Visual verification
 

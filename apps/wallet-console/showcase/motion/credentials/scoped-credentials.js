@@ -4,168 +4,197 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* global HL, hairline */
-// Two cut keys rotate on one fixed shoulder pin; their metal never separates.
 const {
   Cam,
-  clamp,
   fillet,
   fit,
   poly,
   open,
   proj,
+  unproj,
   rad,
   rrect,
-  ringAt,
-  seg,
-  spring,
-  stepS,
+  tween,
+  tset,
+  tval,
+  tdone,
   mk,
   pointer,
   register,
   disposer,
 } = HL;
-const REST = 14;
+const COUNT = 4;
 
 function bow(radius) {
   const points = [];
   for (let step = 0; step <= 64; step++) {
     const angle = rad(109.47 + (321.06 * step) / 64);
-    points.push([radius * Math.cos(angle), radius * Math.sin(angle)]);
+    points.push([radius * Math.cos(angle), radius * Math.sin(angle) - 12]);
   }
   return points;
 }
 
 function outline(index) {
   const points = [
-    [8, 22.63],
-    [8, 55],
+    [8, 10.63],
+    [8, 43],
   ];
-  const cuts = index === 0 ? [3, 7, 4, 9, 5] : [8, 3, 7, 4, 9];
-  for (let tooth = 0; tooth < cuts.length; tooth++) {
-    const y = 58 + tooth * 11;
-    points.push([cuts[tooth], y], [cuts[tooth], y + 5], [11, y + 8]);
+  for (let tooth = 0; tooth < 5; tooth++) {
+    const y = 46 + tooth * 11;
+    const depth = 3 + ((tooth * 3 + index * 5) % 7);
+    points.push([depth, y], [depth, y + 5], [11, y + 8]);
   }
-  points.push([11, 117], [5, 125], [-7, 125], [-9, 121], [-9, 29], [-8, 22.63]);
-  const radii = Array(points.length).fill(1);
-  return fillet(points, radii).concat(bow(24));
+  points.push([11, 105], [5, 113], [-7, 113], [-9, 109], [-9, 17], [-8, 10.63]);
+  return fillet(points, Array(points.length).fill(1)).concat(bow(24));
 }
 
-function projectKey(P, angle, z, point) {
+function restAngle(index) {
+  return -42 + index * 24;
+}
+
+function projectKey(P, angle, slide, z, point) {
   const cosine = Math.cos(rad(angle));
   const sine = Math.sin(rad(angle));
-  return P(point[0] * cosine - point[1] * sine, point[0] * sine + point[1] * cosine, z);
+  const y = point[1] + slide;
+  return P(point[0] * cosine - y * sine, point[0] * sine + y * cosine, z);
 }
 
-function keyAngle(index, spread) {
-  return index === 0 ? -spread - 12 : spread - 12;
+function slotPoint(point) {
+  return [point.u, point.v];
 }
-
-function keyPath(P, angle, z, points) {
-  return poly(points.map(projectKey.bind(null, P, angle, z)));
-}
+const SLOT = rrect(-5, -30, 5, 2, 5, 10).map(slotPoint);
 
 function makeKey(svg, index) {
   const group = mk('g', {}, svg);
-  const back = mk('path', { class: 'lo' }, group);
-  const face = mk('path', { class: index === 1 ? 'sil hi' : 'sil' }, group);
-  const engraving = mk('path', { class: 'nf lo' }, group);
-  const groove = mk('path', { class: 'nf' }, group);
-  return { index, shape: outline(index), back, face, engraving, groove };
+  const back = mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group);
+  const face = mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group);
+  const details = mk('path', { class: 'nf lo' }, group);
+  return {
+    index,
+    shape: outline(index),
+    back,
+    face,
+    details,
+    slide: tween(0),
+    angle: tween(restAngle(index)),
+    drawn: '',
+  };
 }
 
-function drawKey(state, key) {
-  const angle = keyAngle(key.index, state.spread.x);
+function drawKey(state, key, angle, slide) {
   const z = 3 + key.index * 3;
-  const projection = projectKey.bind(null, state.P, angle, z);
-  key.back.setAttribute('d', keyPath(state.P, angle, z - 2.2, key.shape));
-  key.face.setAttribute('d', keyPath(state.P, angle, z, key.shape));
-  let marks = open(bow(19).map(projection));
-  for (let mark = 0; mark < 3; mark++) {
-    marks += seg(projection([-11 + mark * 4, 10]), projection([-11 + mark * 4, 14]));
-  }
-  key.engraving.setAttribute('d', marks);
+  const top = projectKey.bind(null, state.P, angle, slide, z);
+  const bottom = projectKey.bind(null, state.P, angle, slide, z - 2.2);
+  key.back.setAttribute('d', poly(key.shape.map(bottom)) + poly(SLOT.map(bottom)));
+  key.face.setAttribute('d', poly(key.shape.map(top)) + poly(SLOT.map(top)));
   const channel = [
-    [-5, 30],
-    [-5, 116],
-    [-2, 119],
-    [0, 116],
-    [0, 32],
+    [-5, 19],
+    [-5, 104],
+    [-2, 107],
+    [0, 104],
+    [0, 20],
   ];
-  key.groove.setAttribute('d', open(channel.map(projection)));
+  key.details.setAttribute('d', open(bow(19).map(top)) + open(channel.map(top)));
 }
 
-function tick(state, dt) {
-  const moving = stepS(state.spread, dt);
-  if (state.drawn !== state.spread.x) {
-    for (const key of state.keys) drawKey(state, key);
-    state.drawn = state.spread.x;
+function ringPoint(P, radius, angle) {
+  return P(0, -22 + radius * Math.cos(angle), 12 + radius * Math.sin(angle));
+}
+
+function ring(svg, P, start, end) {
+  const outer = [];
+  const inner = [];
+  for (let step = 0; step <= 64; step++) {
+    const angle = start + ((end - start) * step) / 64;
+    outer.push(ringPoint(P, 23.5, angle));
+    inner.push(ringPoint(P, 20.5, angle));
+  }
+  mk('path', { d: poly(outer.concat(inner.reverse())), class: 'sil' }, svg);
+}
+
+function tick(state, _dt, now) {
+  let moving = false;
+  for (const key of state.keys) {
+    const angle = tval(key.angle, now);
+    const slide = tval(key.slide, now);
+    const pose = `${angle},${slide}`;
+    if (pose !== key.drawn) drawKey(state, key, angle, slide);
+    key.drawn = pose;
+    if (!tdone(key.angle, now) || !tdone(key.slide, now)) moving = true;
   }
   return moving;
 }
 
+function select(state, index) {
+  if (index === state.active) return;
+  const from = index < 0 ? state.active : index;
+  state.active = index;
+  const now = performance.now();
+  for (const key of state.keys) {
+    const distance = Math.abs(key.index - from);
+    const selected = key.index === index;
+    const part = index < 0 ? 0 : Math.sign(key.index - index) * 4;
+    tset(key.slide, selected ? state.travel : 0, now, distance * 35);
+    tset(key.angle, restAngle(key.index) + part, now, distance * 35);
+    key.face.classList.toggle('hi', selected || (index < 0 && key.index === COUNT - 1));
+  }
+  state.read.textContent = index < 0 ? 'rest' : `key 0${index + 1}`;
+  state.loop.wake();
+}
+
 function move(state, point) {
-  state.spread.t = REST + clamp((point[0] - 80) / 240, 0, 1) * state.maximum;
-  state.read.textContent = 'key pair';
-  state.loop.wake();
-}
-
-function leave(state) {
-  state.spread.t = REST;
-  state.read.textContent = 'rest';
-  state.loop.wake();
-}
-
-function set(state, maximum) {
-  const fraction = (state.spread.t - REST) / state.maximum;
-  state.maximum = maximum;
-  state.spread.t = REST + fraction * maximum;
-  state.loop.wake();
-}
-
-function pivot(svg, P) {
-  const washer = rrect(-8, -8, 8, 8, 8, 12);
-  mk('path', { d: poly(ringAt(P, washer, 6.3)), class: 'lo' }, svg);
-  mk('path', { d: poly(ringAt(P, washer, 8)), class: 'sil' }, svg);
-  const head = rrect(-5.5, -5.5, 5.5, 5.5, 5.5, 12);
-  mk('path', { d: poly(ringAt(P, head, 8.4)), class: 'nf lo' }, svg);
-  mk('path', { d: seg(P(-3, 0, 8.5), P(3, 0, 8.5)), class: 'nf' }, svg);
-}
-
-function worldPoint(x, y, z) {
-  return [x, y, z];
-}
-
-function cameraBounds(keys) {
-  const bounds = [];
-  for (const key of keys) {
-    for (const spread of [REST, 26, 38, 48]) {
-      const angle = keyAngle(key.index, spread);
-      bounds.push(...key.shape.map(projectKey.bind(null, worldPoint, angle, 3)));
+  let nearest = -1;
+  let distance = Infinity;
+  for (const key of state.keys) {
+    const ground = unproj(state.C, point[0], point[1], 3 + key.index * 3);
+    const angle = rad(restAngle(key.index));
+    const x = ground[0] * Math.cos(angle) + ground[1] * Math.sin(angle);
+    const y = -ground[0] * Math.sin(angle) + ground[1] * Math.cos(angle);
+    if (y < 20 || y > 150 || Math.abs(x) > 26) continue;
+    const delta = Math.abs(x) / y;
+    if (delta < distance) {
+      nearest = key.index;
+      distance = delta;
     }
   }
-  return bounds;
+  select(state, nearest);
 }
 
-function mount({ stage, svg, read }, maximum) {
-  const C = Cam(45, 0.5, 1.95);
-  const keys = [makeKey(svg, 0), makeKey(svg, 1)];
-  fit(C, cameraBounds(keys), 200, 166);
+function set(state, travel) {
+  state.travel = travel;
+  if (state.active < 0) return;
+  tset(state.keys[state.active].slide, travel, performance.now(), 0);
+  state.loop.wake();
+}
+
+function mount({ stage, svg, read }, travel) {
+  const C = Cam(45, 0.5, 1.62);
+  const bounds = [
+    [-110, -44, 0],
+    [100, 125, 0],
+    [0, -22, 36],
+  ];
+  fit(C, bounds, 200, 166);
   const P = proj(C);
-  pivot(svg, P);
-  const state = { P, keys, read, maximum, spread: spring(REST), drawn: null, loop: null };
+  ring(svg, P, Math.PI, Math.PI * 2);
+  const keys = [];
+  for (let index = 0; index < COUNT; index++) keys.push(makeKey(svg, index));
+  ring(svg, P, 0, Math.PI);
+  const state = { C, P, keys, read, travel, active: -2, loop: null };
   state.loop = register(stage, tick.bind(null, state));
-  read.textContent = 'rest';
+  select(state, -1);
   const bag = disposer();
   bag.add(state.loop.unregister);
-  bag.add(pointer(stage, { move: move.bind(null, state), leave: leave.bind(null, state) }));
+  bag.add(pointer(stage, { move: move.bind(null, state), leave: select.bind(null, state, -1) }));
   bag.add(svg.replaceChildren.bind(svg));
   return { set: set.bind(null, state), destroy: bag.dispose };
 }
 
 hairline({
   name: 'scoped-credentials',
-  means: 'Two keys on one pivot: move across to fan them apart and reveal their distinct cuts.',
-  rules: [1, 3, 6, 8, 9],
-  range: [14, 24, 34],
+  means:
+    'Four keys on a ring: hover a key to slide it forward from the bundle, with its neighbours making room.',
+  rules: [1, 2, 4, 6, 8],
+  range: [12, 18, 24],
   mount,
 });

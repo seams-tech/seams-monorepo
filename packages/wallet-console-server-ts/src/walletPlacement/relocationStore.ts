@@ -1,11 +1,11 @@
 import type { RelocationResourceVerification } from '../tenantDeployment/relocationResourceVerification';
+import { WalletRelocationCapacity } from './relocationCapacity';
 import { GatewayRelocationOwnerApproval, hasFreshRelocationOwnerApproval } from './relocationOwnerApproval';
 import { createWalletRelocationParticipants, type WalletRelocationBindings } from './relocationParticipants';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { walletHomeAssignmentFromRow } from './d1';
 import {
   assertDeploymentResourcesVerified,
-  type TenantDeploymentResourceVerificationsV1,
 } from '../tenantDeployment/resourceVerification';
 import {
   WalletHomeCatalog,
@@ -207,59 +207,75 @@ export class D1WalletRelocations {
     );
 
 
-    // Admission and the source pause are one transaction, including racing owner requests.
-    const inserted = await this.database
-      .prepare(
-        `INSERT INTO wallet_relocations (namespace, organization_id, project_id, environment_id,
-         wallet_id, move_id, request_digest, authority_id, source_region, source_account_id,
-         source_database_id, destination_region, destination_account_id, destination_database_id,
-         source_generation, destination_generation, state, admitted_at_ms, resource_verifications_json, preparation_json)
-       SELECT home.namespace, home.organization_id, home.project_id, home.environment_id,
-         home.wallet_id, ?6, ?7, ?8, home.region, home.account_id, home.database_id,
-         ?9, ?10, ?11, home.ownership_generation, home.ownership_generation + 1, 'freezing', ?12, ?15, ?16
-       FROM wallet_homes home WHERE home.namespace = ?1 AND home.organization_id = ?2
-         AND home.project_id = ?3 AND home.environment_id = ?4 AND home.wallet_id = ?5
-         AND home.state = 'established' AND home.placement_state = 'active'
-         AND home.ownership_generation = ?13
-         AND NOT EXISTS (SELECT 1 FROM wallet_relocations prior
-           WHERE prior.namespace = ?1 AND prior.organization_id = ?2 AND prior.project_id = ?3
-             AND prior.environment_id = ?4 AND prior.wallet_id = ?5
-             AND (prior.move_id = ?6 OR prior.state != 'completed' OR prior.admitted_at_ms + ?14 > ?12))
-       RETURNING move_id`,
-      )
-      .bind(
-        ...moveBindings(request),
-        digest,
-        request.authorityId,
-        request.destination.region,
-        request.destination.accountId,
-        request.destination.databaseId,
+    const capacity = new WalletRelocationCapacity(this.database, bindings.gateways);
+    try {
+      if (!await capacity.check(request, assignment.home, clock()))
+        throw new WalletPlacementError('invalid_record', 'Wallet relocation capacity is unavailable');
+      preparation.assertFor(digest, request.expectedGeneration + 1, clock());
+      if (!await hasFreshRelocationOwnerApproval(ownerApproval, request, assignment.home, clock))
+        return { ok: false, code: 'owner_approval_required' };
+      // The source block stays held until admission commits or release becomes durable.
+      const inserted = await this.database
+        .prepare(
+          `INSERT INTO wallet_relocations (namespace, organization_id, project_id, environment_id,
+           wallet_id, move_id, request_digest, authority_id, source_region, source_account_id,
+           source_database_id, destination_region, destination_account_id, destination_database_id,
+           source_generation, destination_generation, state, admitted_at_ms, resource_verifications_json, preparation_json)
+         SELECT home.namespace, home.organization_id, home.project_id, home.environment_id,
+           home.wallet_id, ?6, ?7, ?8, home.region, home.account_id, home.database_id,
+           ?9, ?10, ?11, home.ownership_generation, home.ownership_generation + 1, 'freezing', ?12, ?15, ?16
+         FROM wallet_homes home WHERE home.namespace = ?1 AND home.organization_id = ?2
+           AND home.project_id = ?3 AND home.environment_id = ?4 AND home.wallet_id = ?5
+           AND home.state = 'established' AND home.placement_state = 'active'
+           AND home.ownership_generation = ?13
+           AND EXISTS (SELECT 1 FROM wallet_relocation_capacity capacity
+             WHERE capacity.namespace = home.namespace AND capacity.organization_id = home.organization_id
+               AND capacity.project_id = home.project_id AND capacity.environment_id = home.environment_id
+               AND capacity.wallet_id = home.wallet_id AND capacity.move_id = ?6
+               AND capacity.state = 'checking' AND capacity.expires_at_ms > ?17)
+           AND NOT EXISTS (SELECT 1 FROM wallet_relocations prior
+             WHERE prior.namespace = ?1 AND prior.organization_id = ?2 AND prior.project_id = ?3
+               AND prior.environment_id = ?4 AND prior.wallet_id = ?5
+               AND (prior.move_id = ?6 OR prior.state != 'completed' OR prior.admitted_at_ms + ?14 > ?12))
+         RETURNING move_id`,
+        )
+        .bind(
+          ...moveBindings(request),
+          digest,
+          request.authorityId,
+          request.destination.region,
+          request.destination.accountId,
+          request.destination.databaseId,
+          admittedAtMs,
+          request.expectedGeneration,
+          WALLET_RELOCATION_COOLDOWN_MS,
+          JSON.stringify(resourceVerifications),
+          JSON.stringify({ requestDigest: preparation.requestDigest,
+            destinationGeneration: preparation.destinationGeneration, receipts: preparation.receipts,
+            custodyNamespaces: verification.custody }),
+          clock(),
+        )
+        .first<string>('move_id');
+      const committed = await this.find(request);
+      if (committed) {
+        if (!committed.matchesRequest(request, digest))
+          return { ok: false, code: 'request_conflict' };
+        return {
+          ok: true,
+          disposition: inserted === request.moveId ? 'admitted' : 'reused',
+          move: committed,
+        };
+      }
+      const conflict = await this.admissionRejection(
+        await this.readHome(request.wallet),
+        request,
         admittedAtMs,
-        request.expectedGeneration,
-        WALLET_RELOCATION_COOLDOWN_MS,
-        JSON.stringify(resourceVerifications),
-        JSON.stringify({ requestDigest: preparation.requestDigest,
-          destinationGeneration: preparation.destinationGeneration, receipts: preparation.receipts,
-          custodyNamespaces: verification.custody }),
-      )
-      .first<string>('move_id');
-    const committed = await this.find(request);
-    if (committed) {
-      if (!committed.matchesRequest(request, digest))
-        return { ok: false, code: 'request_conflict' };
-      return {
-        ok: true,
-        disposition: inserted === request.moveId ? 'admitted' : 'reused',
-        move: committed,
-      };
+      );
+      if (conflict) return conflict;
+      throw new WalletPlacementError('invalid_record', 'Wallet relocation admission disappeared');
+    } finally {
+      await capacity.release(request, assignment.home);
     }
-    const conflict = await this.admissionRejection(
-      await this.readHome(request.wallet),
-      request,
-      admittedAtMs,
-    );
-    if (conflict) return conflict;
-    throw new WalletPlacementError('invalid_record', 'Wallet relocation admission disappeared');
   }
 
   async recordSourceFence(

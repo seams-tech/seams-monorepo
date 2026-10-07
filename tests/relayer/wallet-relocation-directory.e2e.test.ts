@@ -1,5 +1,7 @@
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
 import { WalletRelocationDriver } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationDriver';
+import { WalletRelocationCapacity } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCapacity';
+import { WalletRegionalDispatch } from '../../packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
 import { D1WalletRelocations } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { WalletRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import { relocationFixtureBindings } from '../fixtures/tenant-deployment/walletRelocationPreparation';
@@ -299,6 +301,41 @@ async function verifyDriverRecovery(runtime: Miniflare, request: WalletRelocatio
 
 function isClaimedDriver(driver: WalletRelocationDriver | null): driver is WalletRelocationDriver {
   return driver !== null;
+}
+
+class InterruptedCapacityGateway {
+  readonly calls: string[] = [];
+
+  async fetch(request: Request): Promise<Response> {
+    this.calls.push(new URL(request.url).pathname);
+    if (request.url.endsWith('/block')) throw new Error('Lost block acknowledgement');
+    return Response.json({ kind: 'authorization_released' });
+  }
+}
+
+async function verifyCapacityRecovery(runtime: Miniflare) {
+  await establish(runtime, 'capacity-interruption');
+  const request = relocation('capacity-interruption', destination);
+  const database = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
+  const gateway = new InterruptedCapacityGateway();
+  const transport = new WalletRegionalDispatch({ WALLET_GATEWAY_US: gateway, WALLET_GATEWAY_WEUR: gateway,
+    WALLET_GATEWAY_APAC: gateway, WALLET_GATEWAY_OC: gateway });
+  const capacity = new WalletRelocationCapacity(database, transport);
+  expect(await capacity.check(request, source, admittedAtMs)).toBe(false);
+  expect((await responseBody(await placementStatus(runtime, request.wallet))).state).toBe('settled');
+  // The requesting process disappears without releasing the successfully blocked source.
+  const recovered = new WalletRelocationCapacity(await runtime.getD1Database('CONSOLE_DB', 'ingress-b'), transport);
+  await recovered.recover(request.wallet.namespace, admittedAtMs + 29_999);
+  expect(gateway.calls).toHaveLength(1);
+  await recovered.recover(request.wallet.namespace, admittedAtMs + 30_001);
+  expect(gateway.calls.at(-1)).toMatch(/\/release$/u);
+  expect(await database.prepare('SELECT state FROM wallet_relocation_capacity WHERE wallet_id = ?')
+    .bind(request.wallet.walletId).first<string>('state')).toBe('released');
+  expect(await recovered.check(request, source, admittedAtMs + 30_002)).toBe(false);
+  expect(await responseBody(await call(runtime, { action: 'admit', request, nowMs: admittedAtMs + 30_003 })))
+    .toMatchObject({ code: 'invalid_record' });
+  expect((await responseBody(await placementStatus(runtime, request.wallet))).state).toBe('settled');
+  return { lostCapacityAcknowledgementRecovered: true, delayedAdmissionAfterReleaseRejected: true };
 }
 
 async function unexpectedReplayPreparation(): Promise<never> {
@@ -752,6 +789,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
+    observations.push(await verifyCapacityRecovery(runtime));
     await establish(runtime, 'response-status');
     const responseMove = relocation('response-status', destination);
     expect(await responseBody(await call(runtime, {

@@ -18,6 +18,7 @@ import { WalletRelocationActivation } from './relocationActivation';
 import { WalletRelocationCleanup } from './relocationCleanup';
 import { walletRelocationStatusView } from './relocationView';
 import { WalletRelocationDriver } from './relocationDriver';
+import { WalletRelocationCapacity } from './relocationCapacity';
 
 export const WALLET_RELOCATION_ADVANCE_URL = 'https://wallet-placement.internal/internal/wallet-placement/v1/relocation-advance';
 type Scope = Pick<WalletOwnershipKey, 'namespace' | 'organizationId' | 'projectId' | 'environmentId'>;
@@ -146,6 +147,7 @@ async function driveWalletRelocation(
 // Each selected move advances continuously until complete or waiting for recovery.
 export async function resumeWalletRelocations(options: ExecutionOptions & { readonly namespace: string }): Promise<void> {
   const nowMs = options.clock();
+  await new WalletRelocationCapacity(options.database, options.bindings.gateways).recover(options.namespace, nowMs);
   const rows = await queryD1All(options.database, `SELECT move.* FROM wallet_relocations AS move
     LEFT JOIN wallet_relocation_dispatch AS dispatch
       USING (namespace, organization_id, project_id, environment_id, wallet_id, move_id)

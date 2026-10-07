@@ -207,7 +207,8 @@ class PreparationGateway {
   ) {}
 
   fetch(input: Request): Promise<Response> {
-    if (input.url.endsWith('/owner-approval')) return this.approval.fetch(input);
+    if (input.url.endsWith('/owner-approval') || input.url.endsWith('/block') || input.url.endsWith('/release'))
+      return this.approval.fetch(input);
     return this.preparation.fetch(input);
   }
 }
@@ -255,6 +256,13 @@ class RelocationFixtureApprovalGateway {
 
   async fetch(input: Request): Promise<Response> {
     const body = await input.json();
+    if (input.url.endsWith('/authorization/block') || input.url.endsWith('/authorization/release')) {
+      if (JSON.stringify(body) !== JSON.stringify({ source: {
+        walletId: this.request.wallet.walletId, moveId: this.request.moveId,
+        requestDigestHex: await this.request.digest(), sourceGeneration: this.request.expectedGeneration,
+      } })) return new Response(null, { status: 400 });
+      return Response.json({ kind: input.url.endsWith('/block') ? 'authorization_blocked' : 'authorization_released' });
+    }
     const expected = {
       walletId: this.request.wallet.walletId,
       moveId: this.request.moveId,

@@ -21,7 +21,7 @@ export class GatewayRelocationPreparation {
     }
     const preparedAtMs = relocationTimestamp(this.clock());
     const schemaResponse = await this.transport.forward(this.source, new Request(`${BASE}/schema`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ walletId: command.request.wallet.walletId }),
     }));
     if (schemaResponse.status !== 200) return { kind: 'unavailable' };
     const schema: unknown = await schemaResponse.json();

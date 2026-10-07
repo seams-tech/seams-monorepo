@@ -38,6 +38,7 @@ type Options = {
     destination: WalletHome,
   ) => Promise<RelocationResourceVerification>;
   readonly clock: () => number;
+  readonly onAdmitted: (move: WalletRelocation) => Promise<void>;
 };
 
 export async function handleWalletRelocationAdmission(
@@ -89,6 +90,7 @@ export async function handleWalletRelocationAdmission(
   const journal = new D1WalletRelocations(options.database, options.catalog);
   if (existing) {
     if (!existing.matchesRequest(intent, digest)) return failure('request_conflict', 409);
+    await options.onAdmitted(existing);
     return json(walletRelocationStatusView(existing));
   }
   const placement = await readWalletPlacementStatus(options.database, wallet);
@@ -116,6 +118,7 @@ export async function handleWalletRelocationAdmission(
     );
     if (!result.ok) return json(result, 409);
     if (result.disposition === 'unchanged') return failure('destination_unchanged', 409);
+    await options.onAdmitted(result.move);
     return json(walletRelocationStatusView(result.move));
   } catch (error) {
     console.warn(

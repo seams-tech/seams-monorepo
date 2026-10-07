@@ -35,6 +35,7 @@ class TransferFailure extends Error {
 // Each advance moves at most one chunk or performs one bounded verification step.
 // Destination status is authoritative after a lost reply or a process restart.
 export class RuntimeRelocationTransfer {
+  private readonly verified = new Map<string, { readonly state: 'verified'; readonly receiptJson: string }>();
   constructor(
     private readonly source: WalletRuntimeServiceBinding,
     private readonly destination: WalletRuntimeServiceBinding,
@@ -43,17 +44,25 @@ export class RuntimeRelocationTransfer {
   async advance(wallet: WalletOwnershipKey, attempt: WalletRelocationAttempt, target: Target): Promise<Result> {
     if (attempt.phase !== 'copying' || !attempt.wallet.matches(wallet))
       return { state: 'failed', code: 'identity_conflict' };
+    const key = JSON.stringify([wallet, attempt.moveId, target]);
+    const completed = this.verified.get(key);
+    if (completed) return completed;
     const envelope: Envelope = { wallet, attempt };
     try {
       const status = await this.call(this.destination, target, envelope, { operation: 'status' });
       const progress = parseProgress(status, target.participant);
-      if (progress.state === 'verified') return progress;
+      if (progress.state === 'verified') {
+        this.verified.set(key, progress);
+        return progress;
+      }
       if (progress.state === 'verify') {
         const verified = await this.call(this.destination, target, envelope, { operation: 'verify' });
         const tag = target.participant === 'ed25519' ? verified.state : verified.kind;
         if (tag === 'restoring' && (target.participant === 'ed25519' || target.participant === 'ecdsa')) return { state: 'pending' };
         if (tag !== 'verified' || !isPlainObject(verified.receipt)) throw new TransferFailure('receipt_conflict');
-        return { state: 'verified', receiptJson: JSON.stringify(verified.receipt) };
+        const receipt = { state: 'verified' as const, receiptJson: JSON.stringify(verified.receipt) };
+        this.verified.set(key, receipt);
+        return receipt;
       }
       const cursor = progress.state === 'record'
         ? { recordIndex: progress.recordIndex, segmentIndex: progress.segmentIndex }

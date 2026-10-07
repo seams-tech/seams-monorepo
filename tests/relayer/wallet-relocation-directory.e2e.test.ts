@@ -239,10 +239,14 @@ async function replayMove(
       deploymentLane: 'test',
       bindings: relocationFixtureBindings(request, admittedAtMs),
       verifyResources: unexpectedReplayPreparation,
+      onAdmitted: preserveManualExecution,
       clock: Date.now,
     },
   );
 }
+
+// This journal scenario advances each stage explicitly to inject faults.
+async function preserveManualExecution(): Promise<void> {}
 
 async function unexpectedReplayPreparation(): Promise<never> {
   throw new Error('Exact replay must not prepare resources again');

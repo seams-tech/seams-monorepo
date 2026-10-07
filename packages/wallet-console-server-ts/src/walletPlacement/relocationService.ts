@@ -56,11 +56,19 @@ export async function handleWalletRelocationAdvance(request: Request, options: E
 
 async function advanceMove(move: WalletRelocation, attemptId: string, options: ExecutionOptions): Promise<Response> {
   if (move.progress.state === 'completed') return json(walletRelocationStatusView(move));
+  const coordinator = await createCoordinator(move, options);
+  if (!coordinator) return json({ ok: false, code: 'authority_unavailable' }, 503);
   const intent = WalletRelocationRequest.parse({ wallet: move.wallet, moveId: move.moveId,
     destination: move.destination, expectedGeneration: move.sourceGeneration, authorityId: move.authorityId });
+  const result = await coordinator.advance(intent, attemptId);
+  if (!result.ok) return json(result, 409);
+  return json(walletRelocationStatusView(result.move));
+}
+
+async function createCoordinator(move: WalletRelocation, options: ExecutionOptions): Promise<WalletRelocationCoordinator | null> {
   const sourceWriters = await storedWriters(options.database, move, move.source);
   const destinationWriters = await storedWriters(options.database, move, move.destination);
-  if (!sourceWriters || !destinationWriters) return json({ ok: false, code: 'authority_unavailable' }, 503);
+  if (!sourceWriters || !destinationWriters) return null;
   const source = options.bindings.runtimes[move.source.region];
   const destination = options.bindings.runtimes[move.destination.region];
   const authorization = new WalletAuthorizationRelocation(options.database, options.bindings.gateways);
@@ -70,7 +78,7 @@ async function advanceMove(move: WalletRelocation, attemptId: string, options: E
       AND wallet_id = ?5 AND move_id = ?6`, [wallet.namespace, wallet.organizationId,
     wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId]);
   const custody = readStoredCustodyNamespaces(stored?.preparation_json);
-  if (!custody) return json({ ok: false, code: 'authority_unavailable' }, 503);
+  if (!custody) return null;
   const targets = new CustodyTargetInspector(move.source, move.destination, custody, source, destination);
   const presign = new PresignRelocationPreparation(move.destination, source, destination, options.clock, targets);
   const freeze = new WalletRelocationSourceFreeze(options.database, authorization,
@@ -80,20 +88,40 @@ async function advanceMove(move: WalletRelocation, attemptId: string, options: E
   const activation = new WalletRelocationActivation(options.database, authorization, destination, destinationWriters.gateway, options.clock);
   const cleanup = new WalletRelocationCleanup(options.database, authorization, source,
     sourceWriters.gateway, sourceWriters.runtime, options.clock);
-  const coordinator = new WalletRelocationCoordinator(new D1WalletRelocations(options.database, options.catalog), {
+  return new WalletRelocationCoordinator(new D1WalletRelocations(options.database, options.catalog), {
     freeze: freeze.freeze.bind(freeze), transfer: transfer.transfer.bind(transfer),
     activate: activation.activate.bind(activation), cleanup: cleanup.cleanup.bind(cleanup),
   }, options.clock);
-  const result = await coordinator.advance(intent, attemptId);
-  if (!result.ok) return json(result, 409);
-  return json(walletRelocationStatusView(result.move));
+}
+
+// The admitted request stays alive through activation. Cron only resumes interrupted work.
+export async function runWalletRelocation(
+  options: ExecutionOptions,
+  until: 'activation' | 'cleanup',
+  initial: WalletRelocation,
+): Promise<void> {
+  if (initial.progress.state === 'completed') return;
+  const coordinator = await createCoordinator(initial, options);
+  if (!coordinator) return;
+  const intent = WalletRelocationRequest.parse({ wallet: initial.wallet, moveId: initial.moveId,
+    destination: initial.destination, expectedGeneration: initial.sourceGeneration, authorityId: initial.authorityId });
+  let move = initial;
+  for (let step = 0; step < 256; step += 1) {
+    if (move.progress.state === 'completed') return;
+    if (until === 'activation' && move.progress.state === 'cutover' && move.progress.activation.state === 'activated') return;
+    if (move.progress.execution.state === 'blocked' ||
+        (move.progress.execution.state === 'retry_wait' && move.progress.execution.retryAtMs > options.clock())) return;
+    const attemptId = `wattempt_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`;
+    const result = await coordinator.advance(intent, attemptId);
+    if (!result.ok) return;
+    move = result.move;
+  }
 }
 
 // The existing Console cron retries admitted work without browser polling.
-// Bound each invocation while allowing ready chunks to progress without a cron delay.
+// Each selected move advances continuously until complete or waiting for recovery.
 export async function resumeWalletRelocations(options: ExecutionOptions & { readonly namespace: string }): Promise<void> {
   const nowMs = options.clock();
-  const deadlineMs = nowMs + 20_000;
   const rows = await queryD1All(options.database, `SELECT move.* FROM wallet_relocations AS move
     LEFT JOIN wallet_relocation_dispatch AS dispatch
       USING (namespace, organization_id, project_id, environment_id, wallet_id, move_id)
@@ -102,9 +130,8 @@ export async function resumeWalletRelocations(options: ExecutionOptions & { read
       (execution_state = 'retry_wait' AND execution_retry_at_ms <= ?2))
     ORDER BY COALESCE(dispatch.dispatched_at_ms, 0), admitted_at_ms, move_id LIMIT 4`, [options.namespace, nowMs]);
   for (const row of rows) {
-    if (options.clock() >= deadlineMs) break;
     try {
-      let move = WalletRelocation.fromRow(row);
+      const move = WalletRelocation.fromRow(row);
       // Rotate unfinished moves fairly across the bounded cron batch. This does
       // not claim execution or reset any attempt/retry budget in the journal.
       const wallet = move.wallet;
@@ -114,19 +141,7 @@ export async function resumeWalletRelocations(options: ExecutionOptions & { read
         ON CONFLICT DO UPDATE SET dispatched_at_ms = MAX(dispatched_at_ms, excluded.dispatched_at_ms)`)
         .bind(wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
           wallet.walletId, move.moveId, nowMs).run();
-      const locator = WalletRelocationLocator.parse({ wallet, moveId: move.moveId });
-      for (let step = 0; step < 256 && options.clock() < deadlineMs; step += 1) {
-        const attemptId = `wattempt_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`;
-        const result = await advanceMove(move, attemptId, options);
-        if (!result.ok) {
-          console.error('Wallet relocation resumption unavailable', { moveId: move.moveId, status: result.status });
-          break;
-        }
-        const next = await readWalletRelocation(options.database, locator);
-        if (!next || next.progress.state === 'completed') break;
-        if (next.progress.execution.state === 'blocked' || next.progress.execution.state === 'retry_wait') break;
-        move = next;
-      }
+      await runWalletRelocation(options, 'cleanup', move);
     } catch (error) {
       console.error('Wallet relocation resumption failed', { moveId: row.move_id, error });
     }

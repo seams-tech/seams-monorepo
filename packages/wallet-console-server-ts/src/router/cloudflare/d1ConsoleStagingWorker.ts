@@ -1,6 +1,6 @@
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../walletPlacement/relocationAdmission';
 import { RelocationResourceVerifier } from '../../tenantDeployment/relocationResourceVerification';
-import { handleWalletRelocationAdvance, resumeWalletRelocations, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
+import { handleWalletRelocationAdvance, resumeWalletRelocations, runWalletRelocation, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
 import { WalletRegionalDispatch } from '../../walletPlacement/regionalDispatch';
 import { RegionalDeploymentServiceInstaller } from '../../tenantDeployment/regionalAdmissionTransport';
 import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacement/gatewaySession';
@@ -791,6 +791,7 @@ async function fetch(
           },
         },
         verifyResources: verifier.verify.bind(verifier),
+        onAdmitted: runWalletRelocation.bind(null, relocationResumptionOptions(env), 'activation'),
         clock: Date.now,
       });
       if (response.ok) ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));

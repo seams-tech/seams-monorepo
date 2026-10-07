@@ -65,7 +65,7 @@ async function runRelocation(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
 ): Promise<void> {
-  test.setTimeout(1_800_000);
+  test.setTimeout(600_000);
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
   if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
   await mkdir(output, { recursive: true });
@@ -107,7 +107,8 @@ async function runRelocation(
       samples,
     );
     samples.push(moved);
-    await harness.unlockPasskeyWallet();
+    if (!moved.destinationUnlocked) await harness.unlockPasskeyWallet();
+    let outboundPauseToSignatureMs = 0;
     for (let index = 0; index < 3; index += 1) {
       samples.push(
         await measureSigning(
@@ -116,18 +117,25 @@ async function runRelocation(
           index === 0 ? 'first_after' : `steady_after_${index}`,
         ),
       );
+      if (index === 0) outboundPauseToSignatureMs = Date.now() - moved.admittedAtMs;
     }
+    samples.push({ stage: 'pause_to_first_signature_US', durationMs: outboundPauseToSignatureMs });
     await harness.signNearMessage('Verify NEAR custody after relocation to US');
+    await waitForCleanup(page, moved.moveId, progress, output);
     // Observe the normal cooldown; never bypass admission for the return leg.
     while (Date.now() < moved.admittedAtMs + 300_000) {
       await page.waitForTimeout(Math.min(5_000, moved.admittedAtMs + 300_000 - Date.now()));
     }
-    samples.push(
-      await completeMove(page, walletId, 'APAC', 2, output, progress, harness, timing, samples),
-    );
-    await harness.unlockPasskeyWallet();
+    const returned = await completeMove(page, walletId, 'APAC', 2, output, progress, harness, timing, samples);
+    samples.push(returned);
+    if (!returned.destinationUnlocked) await harness.unlockPasskeyWallet();
     samples.push(await measureSigning(harness, timing, 'first_after_return'));
+    const returnPauseToSignatureMs = Date.now() - returned.admittedAtMs;
+    samples.push({ stage: 'pause_to_first_signature_APAC', durationMs: returnPauseToSignatureMs });
     await harness.signNearMessage('Verify NEAR custody after return to APAC');
+    await waitForCleanup(page, returned.moveId, progress, output);
+    expect(outboundPauseToSignatureMs).toBeLessThanOrEqual(60_000);
+    expect(returnPauseToSignatureMs).toBeLessThanOrEqual(60_000);
     harness.assertNoLifecycleViolations();
     harness.assertNoWrongAuthPath();
     outcome = 'passed';
@@ -232,14 +240,33 @@ async function completeMove(
         admittedAtMs: result.status.admittedAtMs,
         admissionThroughCleanupMs: observedAt - requestedAtMs,
         pauseUpperBoundMs: (firstActiveObservationMs ?? observedAt) - result.status.admittedAtMs,
-        pollIntervalMs: 5_000,
+        pollIntervalMs: 1_000,
+        destinationUnlocked,
       };
     }
-    if (result.status.move.progress.availability === 'active' && firstActiveObservationMs === null)
+    if (result.status.move.progress.availability === 'active') {
       firstActiveObservationMs = observedAt;
+      return { stage: `move_to_${destinationRegion}`, walletId, moveId: intent.moveId,
+        admittedAtMs: result.status.move.admittedAtMs,
+        pauseUpperBoundMs: observedAt - result.status.move.admittedAtMs,
+        pollIntervalMs: 1_000, destinationUnlocked };
+    }
     if (result.status.move.progress.execution.state === 'blocked')
       throw new Error(`Relocation blocked: ${result.status.move.progress.execution.code}`);
-    await page.waitForTimeout(5_000);
+    await page.waitForTimeout(1_000);
     result = await page.evaluate(readMove, intent.moveId);
+  }
+}
+
+async function waitForCleanup(page: Page, moveId: WalletMoveId, progress: ProgressObservation[], output: string): Promise<void> {
+  for (;;) {
+    const result = await page.evaluate(readMove, moveId);
+    progress.push({ observedAt: Date.now(), result });
+    await writeFile(path.join(output, 'relocation-progress.json'), JSON.stringify(progress, null, 2));
+    if (!result.ok) throw new Error(`Cleanup status failed: ${result.code}`);
+    if (result.status.state === 'completed') return;
+    if (result.status.move.progress.execution.state === 'blocked')
+      throw new Error(`Cleanup blocked: ${result.status.move.progress.execution.code}`);
+    await page.waitForTimeout(1_000);
   }
 }

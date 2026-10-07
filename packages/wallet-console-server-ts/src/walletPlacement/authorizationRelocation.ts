@@ -11,24 +11,8 @@ import { WalletD1RelocationCommand } from './relocationCommands';
 import type { WalletRelocationAttempt, WalletRelocationFailure } from './relocationExecution';
 
 type TransferResult =
-  | {
-      readonly state: 'advanced';
-      readonly nextIndex: number;
-      readonly digestHex?: never;
-      readonly code?: never;
-    }
-  | {
-      readonly state: 'verified';
-      readonly digestHex: string;
-      readonly nextIndex?: never;
-      readonly code?: never;
-    }
-  | {
-      readonly state: 'failed';
-      readonly code: WalletRelocationFailure;
-      readonly nextIndex?: never;
-      readonly digestHex?: never;
-    };
+  | { readonly state: 'verified'; readonly digestHex: string; readonly code?: never }
+  | { readonly state: 'failed'; readonly code: WalletRelocationFailure; readonly digestHex?: never };
 
 type FreezeResult =
   | {
@@ -82,9 +66,10 @@ class AuthorizationRelocationFailure extends Error {
   }
 }
 
-// Each call transfers at most one chunk. The destination owns the durable cursor.
+// Transfer one immutable snapshot. The destination commits data and its receipt together.
 // This component receipt cannot authorize activation of the complete wallet.
 export class WalletAuthorizationRelocation {
+  private readonly verified = new Map<string, string>();
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly transport: WalletRegionalDispatch,
@@ -216,6 +201,9 @@ export class WalletAuthorizationRelocation {
   ): Promise<TransferResult> {
     if (sourceWriter.role !== 'gateway' || destinationWriter.role !== 'gateway')
       return { state: 'failed', code: 'identity_conflict' };
+    const key = JSON.stringify([wallet, attempt.moveId]);
+    const completed = this.verified.get(key);
+    if (completed) return { state: 'verified', digestHex: completed };
     const source = await WalletD1RelocationCommand.authorize(
       this.database,
       wallet,
@@ -236,66 +224,23 @@ export class WalletAuthorizationRelocation {
       return { state: 'failed', code: 'identity_conflict' };
     const manifest = operation.manifest;
     try {
-      const prepared = await this.call(destination.command, attempt, 'prepare', {
-        walletId: wallet.walletId,
-        attempt,
-      });
-      const progress = prepared.progress;
-      if (prepared.kind !== 'authorization_prepared' || !isPlainObject(progress))
-        throw new AuthorizationRelocationFailure('receipt_conflict');
-      if (progress.state === 'verified') {
-        if (Object.keys(progress).length !== 2 || progress.digestHex !== manifest.digestHex)
-          throw new AuthorizationRelocationFailure('receipt_conflict');
-        return { state: 'verified', digestHex: manifest.digestHex };
-      }
-      if (
-        progress.state !== 'receiving' ||
-        Object.keys(progress).length !== 3 ||
-        typeof progress.nextIndex !== 'number' ||
-        !Number.isSafeInteger(progress.nextIndex) ||
-        progress.nextIndex < 0 ||
-        progress.nextIndex > manifest.chunkCount ||
-        progress.chunkCount !== manifest.chunkCount
-      )
-        throw new AuthorizationRelocationFailure('receipt_conflict');
-      const index = progress.nextIndex;
-      if (index === manifest.chunkCount) {
-        const verified = await this.call(destination.command, attempt, 'verify', {
-          walletId: wallet.walletId,
-          attempt,
-        });
-        if (verified.kind !== 'authorization_verified' || verified.digestHex !== manifest.digestHex)
-          throw new AuthorizationRelocationFailure('receipt_conflict');
-        return { state: 'verified', digestHex: manifest.digestHex };
-      }
       const exported = await this.call(source.command, attempt, 'export', {
-        walletId: wallet.walletId,
-        attempt,
-        index,
+        walletId: wallet.walletId, attempt,
       });
-      const chunk = exported.chunk;
-      if (
-        exported.kind !== 'authorization_chunk' ||
-        !isPlainObject(chunk) ||
-        Object.keys(chunk).length !== 3 ||
-        chunk.index !== index ||
-        typeof chunk.chunkJson !== 'string' ||
-        new TextEncoder().encode(chunk.chunkJson).byteLength > 131072 ||
-        typeof chunk.digestHex !== 'string' ||
-        !/^[a-f0-9]{64}$/u.test(chunk.digestHex)
-      )
+      if (exported.kind !== 'authorization_snapshot' || !Array.isArray(exported.snapshot))
         throw new AuthorizationRelocationFailure('content_conflict');
-      const accepted = await this.call(destination.command, attempt, 'accept', {
-        walletId: wallet.walletId,
-        attempt,
-        chunk,
+      const verified = await this.call(destination.command, attempt, 'import', {
+        walletId: wallet.walletId, attempt, snapshot: exported.snapshot,
       });
-      if (
-        accepted.kind !== 'authorization_chunk_accepted' ||
-        accepted.digestHex !== chunk.digestHex
-      )
+      if (verified.kind !== 'authorization_verified' || verified.digestHex !== manifest.digestHex)
         throw new AuthorizationRelocationFailure('receipt_conflict');
-      return { state: 'advanced', nextIndex: index + 1 };
+      console.info('wallet_relocation_authorization_transfer', {
+        moveId: attempt.moveId,
+        snapshotBytes: new TextEncoder().encode(JSON.stringify(exported.snapshot)).byteLength,
+        exportRequests: 1, importRequests: 1,
+      });
+      this.verified.set(key, manifest.digestHex);
+      return { state: 'verified', digestHex: manifest.digestHex };
     } catch (error) {
       if (error instanceof AuthorizationRelocationFailure)
         return { state: 'failed', code: error.code };
@@ -306,7 +251,7 @@ export class WalletAuthorizationRelocation {
   private async call(
     command: WalletD1RelocationCommand,
     attempt: WalletRelocationAttempt,
-    operation: 'freeze' | 'prepare' | 'export' | 'accept' | 'verify' | 'activate' | 'cleanup',
+    operation: 'freeze' | 'export' | 'import' | 'activate' | 'cleanup',
     body: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     if (command.moveId !== attempt.moveId || !command.wallet.matches(attempt.wallet))

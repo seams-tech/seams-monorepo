@@ -15,11 +15,10 @@ import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRel
 // The real journal supplies commands. These regional participants simulate durable
 // acknowledgements and lost responses; storage restoration has its own public E2E.
 export class RegionalAuthorizationParticipant {
-  nextIndex = 0;
   verified = false;
   loseNextAcknowledgement = true;
   corruptReceipt = false;
-  readonly exported: number[] = [];
+  exports = 0;
   constructor(private readonly command: WalletD1RelocationCommand) {}
 
   async fetch(request: Request): Promise<Response> {
@@ -27,55 +26,24 @@ export class RegionalAuthorizationParticipant {
     const body = await request.json();
     expect(body.walletId).toBe(this.command.wallet.walletId);
     const commandDigest = this.corruptReceipt ? '0'.repeat(64) : await this.command.digest();
-    const path = new URL(request.url).pathname;
     const operation = this.command.operation;
     if (operation.kind === 'export') {
-      expect(path.endsWith('/export')).toBe(true);
-      this.exported.push(body.index);
-      return Response.json({
-        kind: 'authorization_chunk',
-        commandDigest,
-        chunk: {
-          index: body.index,
-          chunkJson: JSON.stringify({ value: body.index }),
-          digestHex: '6'.repeat(64),
-        },
-      });
+      expect(new URL(request.url).pathname.endsWith('/export')).toBe(true);
+      expect(body.index).toBeUndefined();
+      this.exports += 1;
+      return Response.json({ kind: 'authorization_snapshot', commandDigest,
+        snapshot: [{ index: 0, chunkJson: '{}', digestHex: '6'.repeat(64) }] });
     }
     if (operation.kind !== 'import_authorization') throw new Error('Unexpected command');
-    if (path.endsWith('/prepare'))
-      return Response.json({
-        kind: 'authorization_prepared',
-        commandDigest,
-        progress: this.verified
-          ? { state: 'verified', digestHex: operation.manifest.digestHex }
-          : {
-              state: 'receiving',
-              nextIndex: this.nextIndex,
-              chunkCount: operation.manifest.chunkCount,
-            },
-      });
-    if (path.endsWith('/accept')) {
-      expect(body.chunk.index).toBe(this.nextIndex);
-      this.nextIndex += 1;
-      if (this.loseNextAcknowledgement) {
-        this.loseNextAcknowledgement = false;
-        throw new Error('Lost response after durable acceptance');
-      }
-      return Response.json({
-        kind: 'authorization_chunk_accepted',
-        commandDigest,
-        digestHex: body.chunk.digestHex,
-      });
-    }
-    expect(path.endsWith('/verify')).toBe(true);
-    expect(this.nextIndex).toBe(operation.manifest.chunkCount);
+    expect(new URL(request.url).pathname.endsWith('/import')).toBe(true);
+    expect(body.snapshot).toHaveLength(1);
     this.verified = true;
-    return Response.json({
-      kind: 'authorization_verified',
-      commandDigest,
-      digestHex: operation.manifest.digestHex,
-    });
+    if (this.loseNextAcknowledgement) {
+      this.loseNextAcknowledgement = false;
+      throw new Error('Lost response after durable acceptance');
+    }
+    return Response.json({ kind: 'authorization_verified', commandDigest,
+      digestHex: operation.manifest.digestHex });
   }
 }
 
@@ -130,20 +98,20 @@ export async function verifyAuthorizationRegionalTransfer(
     state: 'failed',
     code: 'transport_unavailable',
   });
-  expect(receiver.nextIndex).toBe(1);
+  expect(receiver.verified).toBe(true);
   const restarted = new WalletAuthorizationRelocation(database, transport);
   receiver.corruptReceipt = true;
   expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'failed',
     code: 'receipt_conflict',
   });
-  expect(sender.exported).toEqual([0]);
+  expect(sender.exports).toBe(2);
   receiver.corruptReceipt = false;
   expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
-    state: 'advanced',
-    nextIndex: 2,
+    state: 'verified',
+    digestHex: '6'.repeat(64),
   });
-  expect(sender.exported).toEqual([0, 1]);
+  expect(sender.exports).toBe(3);
   expect(await restarted.transfer(wallet, attempt, sourceWriter, destinationWriter)).toEqual({
     state: 'verified',
     digestHex: '6'.repeat(64),
@@ -156,13 +124,13 @@ export async function verifyAuthorizationRegionalTransfer(
       destinationWriter,
     ),
   ).toEqual({ state: 'verified', digestHex: '6'.repeat(64) });
-  expect(sender.exported).toEqual([0, 1]);
+  expect(sender.exports).toBe(4);
   return {
     actualConsoleCommands: true,
     simulatedRegionalParticipants: true,
-    lostAcknowledgementResumedAtNextChunk: true,
+    lostAcknowledgementReplaysWholeSnapshot: true,
     corruptReceiptRejected: true,
-    verifiedRetrySkippedSourceExport: true,
+    verifiedRetryInSameInvocationSkipsTransfer: true,
   };
 }
 

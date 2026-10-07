@@ -84,13 +84,16 @@ export async function verifyTransferAssembly(database: D1DatabaseLike, request: 
   expect(await database.prepare("SELECT COUNT(*) AS count FROM wallet_relocation_stage_receipts WHERE move_id = ? AND kind = 'destination_verification'")
     .bind(move.moveId).first<number>('count')).toBe(0);
   corrupted.corruptReceipt = false;
-  const verified = await transfer.transfer(context, move.progress.sourceFence);
+  const retried = new WalletRelocationTransfer(database, authorization,
+    new RuntimeRelocationTransfer(regional, regional), sourceWriter, destinationWriter, clock);
+  const verified = await retried.transfer(context, move.progress.sourceFence);
   expect(verified.state).toBe('verified');
   if (verified.state !== 'verified') throw new Error('Destination did not verify');
   expect(verified.receipt.manifestDigest).toBe(move.progress.sourceFence.manifestDigest);
   for (const participant of participants.values()) participant.unavailable = true;
   receiver.corruptReceipt = true;
-  const restarted = new WalletRelocationTransfer(database, authorization, native, sourceWriter, destinationWriter, clock);
+  const restarted = new WalletRelocationTransfer(database, authorization,
+    new RuntimeRelocationTransfer(regional, regional), sourceWriter, destinationWriter, clock);
   expect(await restarted.transfer(context, move.progress.sourceFence)).toEqual(verified);
   return verified.receipt;
 }

@@ -22,6 +22,7 @@ class RuntimeFreezeFailure extends Error {
 // Native participants own durable cursors. Repeating this step resumes captures
 // and cannot issue a new freeze identity after a lost response.
 export class RuntimeRelocationFreeze {
+  private readonly completed = new Map<string, Record<string, unknown>>();
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly runtime: WalletRuntimeServiceBinding,
@@ -35,10 +36,10 @@ export class RuntimeRelocationFreeze {
     const envelope = { wallet, attempt };
     try {
       const router = await this.call('router-freeze', envelope);
-      const ed25519 = await this.call('ed25519-settle', envelope);
-      const ecdsa = await this.call('ecdsa-freeze', envelope);
-      const deriverA = await this.call('deriver-a-fence', envelope);
-      const deriverB = await this.call('deriver-b-fence', envelope);
+      const [ed25519, ecdsa, deriverA, deriverB] = await Promise.all([
+        this.call('ed25519-settle', envelope), this.call('ecdsa-freeze', envelope),
+        this.call('deriver-a-fence', envelope), this.call('deriver-b-fence', envelope),
+      ]);
       const routerReady = routerFrozen(router);
       const ecdsaReady = ecdsaFrozen(ecdsa);
       const ed25519Ready = settledOrDraining(ed25519);
@@ -49,9 +50,10 @@ export class RuntimeRelocationFreeze {
       if (sessions === 'pending') return { state: 'pending' };
       if (!routerReady || !ecdsaReady || !ed25519Ready || !deriverAReady || !deriverBReady)
         return { state: 'pending' };
-      const ed25519Snapshot = await this.call('ed25519-capture', envelope);
-      const deriverASnapshot = await this.call('deriver-a-capture', envelope);
-      const deriverBSnapshot = await this.call('deriver-b-capture', envelope);
+      const [ed25519Snapshot, deriverASnapshot, deriverBSnapshot] = await Promise.all([
+        this.call('ed25519-capture', envelope), this.call('deriver-a-capture', envelope),
+        this.call('deriver-b-capture', envelope),
+      ]);
       const ed25519Receipt = captured(ed25519Snapshot, 'state');
       const deriverAReceipt = captured(deriverASnapshot, 'kind');
       const deriverBReceipt = captured(deriverBSnapshot, 'kind');
@@ -67,6 +69,9 @@ export class RuntimeRelocationFreeze {
   }
 
   private async call(operation: NativeSourceOperation, body: { readonly wallet: WalletOwnershipKey; readonly attempt: WalletRelocationAttempt }): Promise<Record<string, unknown>> {
+    const key = JSON.stringify([body.wallet, body.attempt.moveId, operation]);
+    const completed = this.completed.get(key);
+    if (completed) return completed;
     let response: Response;
     try {
       response = await this.runtime.fetch(new Request(
@@ -85,7 +90,21 @@ export class RuntimeRelocationFreeze {
       throw new RuntimeFreezeFailure('receipt_conflict');
     }
     if (!isPlainObject(raw)) throw new RuntimeFreezeFailure('receipt_conflict');
+    if (freezeOperationComplete(operation, raw)) this.completed.set(key, raw);
     return raw;
+  }
+}
+
+function freezeOperationComplete(operation: NativeSourceOperation, raw: Record<string, unknown>): boolean {
+  switch (operation) {
+    case 'router-freeze': return routerFrozen(raw);
+    case 'ecdsa-freeze': return ecdsaFrozen(raw);
+    case 'ed25519-settle': return settledOrDraining(raw);
+    case 'deriver-a-fence':
+    case 'deriver-b-fence': return settledDeriver(raw);
+    case 'ed25519-capture': return captured(raw, 'state') !== null;
+    case 'deriver-a-capture':
+    case 'deriver-b-capture': return captured(raw, 'kind') !== null;
   }
 }
 

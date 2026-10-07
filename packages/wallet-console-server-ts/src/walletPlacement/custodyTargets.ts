@@ -39,7 +39,10 @@ export class CustodyTargetInspector {
     return this.inspect(role, sourceName, destinationName, command.request.expectedGeneration);
   }
 
-  async linked(sessionId: string, generation: number): Promise<CustodyTargetPair> {
+  async linkedNames(
+    sessionId: string,
+    generation: number,
+  ): Promise<{ source: string; destination: string }> {
     const hash = new Uint8Array(
       await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sessionId)),
     );
@@ -48,12 +51,15 @@ export class CustodyTargetInspector {
     const digest = btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
     const sourceLogical = `${this.namespaces.source.presignSessions.objectNamePrefix}-${digest}`;
     const destinationLogical = `${this.namespaces.destination.presignSessions.objectNamePrefix}-${digest}`;
-    return this.inspect(
-      'presignSessions',
-      generation === 1 ? sourceLogical : `${sourceLogical}/generation/${generation}`,
-      `${destinationLogical}/generation/${generation + 1}`,
-      generation,
-    );
+    return {
+      source: generation === 1 ? sourceLogical : `${sourceLogical}/generation/${generation}`,
+      destination: `${destinationLogical}/generation/${generation + 1}`,
+    };
+  }
+
+  async linked(sessionId: string, generation: number): Promise<CustodyTargetPair> {
+    const names = await this.linkedNames(sessionId, generation);
+    return this.inspect('presignSessions', names.source, names.destination, generation);
   }
 
   async inspect(

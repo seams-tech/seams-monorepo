@@ -68,7 +68,23 @@ export class PresignRelocationPreparation {
           if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
           continue;
         }
-        const targets = await this.targets.linked(session.presign_session_id, request.source_generation);
+        const names = await this.targets.linkedNames(session.presign_session_id, request.source_generation);
+        const previousTargets = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
+          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+            AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7
+          UNION ALL SELECT target.value AS targets_json FROM wallet_relocations,
+            json_each(preparation_json, '$.receipts') AS receipt,
+            json_each(receipt.value, '$.custodyTargets') AS target
+          WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+            AND wallet_id = ?5 AND move_id = ?6 AND json_extract(receipt.value, '$.participant') = 'presignSessions'
+            AND json_extract(target.value, '$.source.objectName') = ?8 LIMIT 1`, [wallet.namespace,
+          wallet.organizationId, wallet.projectId, wallet.environmentId, wallet.walletId, move.moveId,
+          session.presign_session_id, names.source]);
+        const targets = previousTargets && typeof previousTargets.targets_json === 'string'
+          ? parseCustodyTargetPair(JSON.parse(previousTargets.targets_json), request.source_generation)
+          : await this.targets.linked(session.presign_session_id, request.source_generation);
+        if (targets.source.objectName !== names.source || targets.destination.objectName !== names.destination)
+          return 'unavailable';
         await database.prepare(`INSERT INTO wallet_presign_custody_targets
           (namespace, organization_id, project_id, environment_id, wallet_id, move_id, presign_session_id, targets_json)
           SELECT namespace, organization_id, project_id, environment_id, wallet_id, move_id, ?7, ?8

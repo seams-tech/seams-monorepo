@@ -120,11 +120,50 @@ All five release Workers build. Local custody scenarios pass for four regions,
 forged readiness, concurrent execution, lost replies, eviction, admission races,
 root erasure, relocation, and fresh signing after return. Repeatable evidence is in
 `seams-wallet/docs/evidence/near-custody-setup-optimization-20261007.json`.
-These local results do not measure hosted latency or individual cryptographic CPU cost.
+The subsequent hosted comparison and local profile are recorded below.
 
-The bounded hosted comparison is prepared at
-`.artifacts/r155b-phase6b-hosted/run.py`. It uses frozen inputs and existing staging
-resources. It compares control, A-only, A-and-B, and restored control cohorts.
-It records starting versions and restores them on success or failure.
-Execution is deferred while R153 uses the shared staging deployment. No live
-resources or deployments changed in this implementation run. No speedup is claimed yet.
+## Phase 6B measured result
+
+The candidate completed 12 fresh NEAR-only wallets and 84 verified signatures.
+Three wallets ran per arm. Browser assets, harness, and all other deployments
+stayed fixed. Only A and B changed. Exact original versions were restored.
+
+| Setup HTTP request | Median | Minimum–maximum |
+| --- | ---: | ---: |
+| Control before | 5.808 s | 5.649–6.768 s |
+| A validation consolidation | 5.723 s | 5.658–6.691 s |
+| A consolidation plus B protocol inside its DO | **4.929 s** | **4.924–5.204 s** |
+| Restored control after | 6.423 s | 5.006–6.720 s |
+
+The full candidate improves the observed median by 15.1–23.3% against the two
+controls. The two-second target remains unmet. These small sequential cohorts
+provide no percentile guarantee. The earlier 6.173-second result is a separate cohort.
+
+Provider A DO CPU/wall medians changed from 605/2,604 ms to 519/2,104 ms.
+B protocol CPU/wall medians changed from 707/1,957 ms to 331/1,010 ms. B moved
+from Worker execution to DO execution; the new scope includes local begin/complete.
+The old scope excludes their separate DO CPU. Overlapping A/B wall times cannot
+be added. Bound-root work remains eight D1 trips and twenty statements per pair.
+
+Candidate SDK signing medians were 2.318 s warm, 1.916 s after unlock, and
+2.013 s per consecutive signature. Routine-signing improvement is not established;
+the restored control's consecutive median was 1.889 s. The complete evidence records
+all workflow timers, SDK timers, ranges, maxima, and browser Gateway request counts.
+Whole-system D1 counts, backend Console calls, and internal payload sizes are unavailable.
+
+The same release WASM completed one profiled local Router setup span in 380 ms;
+A's protocol span was 155 ms. The processes were warm after an interrupted wallet.
+The profile exposes Yao, Curve25519 arithmetic, software AES, SHA-256, verification,
+encryption, and JSON work. Inlining and async boundaries prevent complete attribution.
+Sample weights are not provider CPU billing. This sample supports further hosted
+boundary analysis; it does not justify a cryptographic protocol change.
+
+The dedicated disconnect E2E interrupts a valid WebSocket exchange. Both roles
+persist burned state. Exact retry cannot reconnect, and an independent wallet
+then succeeds. The obsolete direct-reservation fixture was removed.
+
+All thirteen tracked deployments match their starting versions after restoration.
+No new resources or keepalive traffic were introduced. Raw provider logs remain
+private local artifacts. [Sanitized comparison evidence](evidence/r155b-custody-phase6b-20261007.json)
+records exact deployed versions, frozen harness/assets, bundle hashes, CPU/wall
+telemetry, local profile summaries, and measurement limitations.

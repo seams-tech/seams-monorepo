@@ -735,15 +735,28 @@ function face(parent, P, x, y0, z0, y1, z1, radius, classes = 'lo nf') {
   const ring = HL.rrect(y0, z0, y1, z1, radius, 8);
   return path(parent, HL.poly(ring.map(facePoint.bind(null, P, x))), classes);
 }
-function server(parent, P, front, z, active) {
-  block(parent, P, front, -15, -38, 42, 38, z, z + 12, 1.3);
+function server(parent, P, front, z, active, lights, bay) {
   for (const y of [-39.5, 39.5]) {
-    block(parent, P, front, -22, y - 0.7, 41, y + 0.7, z + 1, z + 3, 0.5);
+    block(parent, P, front, -12, y - 0.7, 41, y + 0.7, z + 1, z + 3, 0.5);
   }
-  face(parent, P, 42.1, -38, z, 38, z + 12, 1.2, active ? 'hi' : 'sil');
+  block(parent, P, front, -15, -38, 42, 38, z, z + 13, 1.3);
+  face(parent, P, 42.1, -38, z, 38, z + 13, 1.2, active ? 'hi' : 'sil');
   face(parent, P, 42.2, -15, z + 4.5, 1, z + 7.5, 1.5, active ? 'hi nf' : 'sil nf');
-  for (const y of [10, 14, 18]) {
-    face(parent, P, 42.2, y - 0.65, z + 7, y + 0.65, z + 8.3, 0.65);
+  face(parent, P, 42.3, -13.5, z + 5.6, -0.5, z + 6.4, 0.4);
+  for (const y of [-35, 35]) {
+    face(parent, P, 42.2, y - 0.7, z + 5.3, y + 0.7, z + 6.7, 0.7);
+  }
+  for (let port = 0; port < 3; port++) {
+    const y = 10 + port * 4;
+    face(parent, P, 42.2, y - 0.95, z + 6.7, y + 0.95, z + 8.6, 0.95);
+    const lamp = face(parent, P, 42.3, y - 0.65, z + 7, y + 0.65, z + 8.3, 0.65, 'dot m');
+    if (port > 0)
+      lights.push({
+        lamp,
+        period: 2900 + bay * 379 + port * 811,
+        offset: bay * 613 + port * 1103,
+        lit: null,
+      });
   }
   for (const dz of [3, 6, 9]) {
     face(parent, P, 42.2, 25, z + dz - 0.5, 33, z + dz + 0.5, 0.5);
@@ -755,9 +768,20 @@ function post(parent, P, front, y) {
     face(parent, P, 43.1, y - 0.65, z, y + 0.65, z + 1.8, 0.25);
   }
 }
+function blink(state, now) {
+  const reduced = HL.reducedMotion();
+  for (const light of state.lights) {
+    const lit = reduced || (now - state.started + light.offset) % light.period < 340;
+    if (lit === light.lit) continue;
+    light.lit = lit;
+    light.lamp.setAttribute('class', lit ? 'dot m' : 'dot off');
+  }
+  return !reduced;
+}
 function tick(state, _dt, now) {
+  const ambient = blink(state, now);
   const progress = HL.tval(state.motion, now);
-  if (progress === state.drawn) return !HL.tdone(state.motion, now);
+  if (progress === state.drawn) return ambient || !HL.tdone(state.motion, now);
   state.drawn = progress;
   const origin = state.P(0, 0, 0);
   const position = state.P(state.travel * (1 - progress), 0, 0);
@@ -767,7 +791,7 @@ function tick(state, _dt, now) {
   );
   state.read.textContent = state.active ? 'seating' : 'rest';
   if (state.active && progress === 1) state.read.textContent = 'installed';
-  return !HL.tdone(state.motion, now);
+  return ambient || !HL.tdone(state.motion, now);
 }
 function select(state, active) {
   if (state.active === active) return;
@@ -780,8 +804,12 @@ function set(state, travel) {
   state.drawn = NaN;
   state.loop.wake();
 }
+function referenceView(P, x, y, z) {
+  const point = P(x, y, z);
+  return [400 - point[0], point[1]];
+}
 function mount({ stage, svg, read }, travel) {
-  const C = HL.Cam(45, 0.5, 1.9);
+  const C = HL.Cam(60, 0.28, 2.05);
   HL.fit(
     C,
     [
@@ -793,7 +821,7 @@ function mount({ stage, svg, read }, travel) {
     200,
     163,
   );
-  const P = HL.proj(C);
+  const P = referenceView.bind(null, HL.proj(C));
   const front = HL.facing(C);
   for (const x of [-14, 33]) {
     for (const y of [-37, 37]) block(svg, P, front, x - 4, y - 4, x + 4, y + 4, -4, 0, 2);
@@ -803,12 +831,13 @@ function mount({ stage, svg, read }, travel) {
   block(svg, P, front, -19, -46, 40, -42, 6, 94, 1);
   post(svg, P, front, -41);
   let moving;
+  const lights = [];
   // Lower bays precede upper bays; the near wall masks everything inside the rack.
   for (let index = 0; index < 6; index++) {
     const z = 8 + index * 14;
     for (const y of [-39.5, 39.5]) block(svg, P, front, -15, y - 1, 39, y + 1, z, z + 2, 0.5);
     const group = HL.mk('g', {}, svg);
-    server(group, P, front, z, index === 3);
+    server(group, P, front, z, index === 3, lights, index);
     if (index === 3) moving = group;
   }
   block(svg, P, front, -19, 42, 40, 46, 6, 94, 1);
@@ -818,6 +847,8 @@ function mount({ stage, svg, read }, travel) {
     P,
     read,
     server: moving,
+    lights,
+    started: performance.now(),
     travel,
     motion: HL.tween(0),
     drawn: NaN,

@@ -64,6 +64,12 @@ explains this run. Physical colocation and exact transport delay remain unproved
 
 ## Proposed fixes, in order
 
+The implementation checklist is now Phase 6B of `seams-wallet/docs/refactor-155B.md`,
+committed on `dev` as `6b77a8122dc34c4a4d859468636b4714f6883df3`.
+It defines validation, database, DO execution, optional material reuse, and hosted
+acceptance steps. Implementation remains open. It preserves the two-second target
+and distinguishes structural call reductions from unmeasured latency savings.
+
 1. **Remove duplicated validation within one trusted invocation.** Pass a validated
    execution context from A's boundary handler to its protocol function. Parse
    immutable runtime configuration once per instance where its lifetime permits.

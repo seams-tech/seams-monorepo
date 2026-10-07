@@ -121,17 +121,15 @@ function tick(state, _dt, now) {
   let moving = false;
   for (const piece of state.pieces) {
     const progress = HL.tval(piece.motion, now);
-    const step = Math.min(Math.floor(progress), piece.grade, 3);
-    const phase = progress - step;
-    const stops = [piece.rest, 136, 83, 30, -12];
-    const base = HL.lerp(stops[step], stops[step + 1], HL.clamp(phase / 0.5, 0, 1));
-    const tracing = state.active && step < 3 && phase > 0.5 && phase < 1;
+    const arrival = piece.grade + 0.5;
+    const phase = progress - arrival;
+    const terminal = PLANES[3 - piece.grade];
+    const base = HL.lerp(piece.rest, terminal, HL.clamp(progress / arrival, 0, 1));
+    const tracing = state.active && phase > 0 && phase < 0.5;
     for (const chunk of piece.chunks) {
       if (base !== piece.drawn) portion(state, piece, chunk, base);
       chunk.solid.sil.classList.toggle('hi', !state.active && piece.index === 2);
-      const length = tracing
-        ? Math.ceil(HL.clamp((phase - 0.5) / 0.4, 0, 1) * chunk.outline.length)
-        : 0;
+      const length = tracing ? Math.ceil(HL.clamp(phase / 0.4, 0, 1) * chunk.outline.length) : 0;
       if (length !== chunk.traced)
         chunk.trace.setAttribute('d', HL.open(chunk.outline.slice(0, length)));
       chunk.traced = length;
@@ -193,7 +191,7 @@ function mount({ stage, svg, read }, stagger) {
 }
 hairline({
   name: 'graded-sieve',
-  means: 'Hover to sift: each token traces its rim as it reaches a screen.',
+  means: 'Hover to sift: each token falls to its final layer, then traces its rim.',
   rules: [1, 2, 4, 6, 7, 8, 9],
   range: [30, 60, 90],
   mount,

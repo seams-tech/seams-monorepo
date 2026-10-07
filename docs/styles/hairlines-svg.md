@@ -117,11 +117,11 @@ The screens have progressively smaller round openings. Their aperture radii are 
 
 Twelve tokens form four groups: two large tokens stop at the upper screen, three medium tokens stop at the middle screen, two small tokens stop at the lower screen, and five smallest tokens reach the collector. The smallest token positions sit toward the front so their final positions remain visible.
 
-Hovering lowers the tokens through four successive stages. Each token pauses on every screen it reaches. During that pause, a dark stroke traces its actual outer contour once. The stroke completes before the token continues or settles. A token stops when its size exceeds the next opening. The frame stays rigid.
+Hovering lowers each token continuously to its final layer. Tokens pass through intermediate screens without pausing or tracing. A token stops when its size exceeds the next opening. The smallest tokens stop on the collector. The frame stays rigid.
 
-The first half of each stage moves the token to the screen. The trace grows during the next 40%, then holds complete for the final 10%. Tokens trace independently, so several contact outlines can appear together. The collector has no contact trace. Pointer exit removes the traces and reverses the same path from its current position.
+Once a token reaches its terminal position, a dark stroke traces its actual outer contour once. The completed outline holds briefly, then clears. Tokens trace independently, including those on the collector. Pointer exit removes the traces and reverses the same path from its current position.
 
-The 3500ms tween gives the three contact traces time to read. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Token geometry updates only when its height changes. A separate outline path reveals successive contour points during contact. It updates only when the visible point count changes. Reduced motion goes directly to the sorted pose without tracing.
+The 3500ms tween gives the fall and terminal trace time to read. Deeper destinations have later arrival points within that tween. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Token geometry updates only when its height changes. A separate outline path reveals successive contour points after landing. It updates only when the visible point count changes. Reduced motion goes directly to the sorted pose without tracing.
 
 Each screen combines a five-unit structural rim with a 0.8-unit perforated sheet. The visible bore is the intersection of the projected upper and lower openings. Each token draws in separate vertical bands between screens. This keeps the opaque plates in front of the material beneath them. The rods and their fasteners also follow the back-to-front order.
 
@@ -143,7 +143,7 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
   --answer 0,0,136 --edge 43,20,83 --zoom answer
 ```
 
-Inspect the contact sheet, motion sheet, and enlarged answer. Follow a small token through all three screens. Capture intermediate frames to check the trace on each layer, including tokens that remain there. Check that larger tokens stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
+Inspect the contact sheet, motion sheet, and enlarged answer. Follow a small token through all three screens without intermediate pauses or traces. Capture intermediate frames to check that each outline starts only after its token lands, including the collector. Check that larger tokens stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
 
 The fixed frame and dense perforations dominate the 240px view. The automated changed-ink metric therefore reports a small response. This is deliberate: the tokens carry the motion while the machine stays fixed. Inspect the smallest tokens at full size when judging the filtering sequence.
 

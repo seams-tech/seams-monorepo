@@ -65,13 +65,19 @@ outcomes and the final exhausted quota. The existing
 `refill-session.test.ts` checks live retirement: old credentials must fail refill,
 prepare and finalize while a newly unlocked session can still sign.
 
-`near-signing-latency.test.ts` registers three NEAR-only wallets. Each case verifies
+`near-signing-latency.test.ts` has three main NEAR-only samples. Each case verifies
 the first signature, two warm signatures, unlock and its first signature, then a
 three-signature sequence. The test rejects ECDSA signer assets. The SDK timer
 excludes independent signature verification. Registration and unlock phase timers
 include browser automation and verification. Each `near-<sample>.json` retains
 Gateway POST requests and timing evidence. Use `SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1`
 for preparation stages. Missing D1 and service-binding counters remain null.
+
+Select `--grep 'sample [123]:'` for the three main samples. Select `--grep post-idle`
+for the separate idle case. It obtains a fresh signing grant, measures one signature,
+waits 65 seconds, and measures another signature for the same wallet. It writes
+`near-4.json`. Worker tails distinguish a new DO instance from later commands on
+that instance. Constructor occurrence alone does not measure startup cost.
 
 Set `SEAMS_HOSTED_NEAR_ONLY=1` for the regional travel test to register one NEAR-only
 wallet and sign with it through each client region. For example, select

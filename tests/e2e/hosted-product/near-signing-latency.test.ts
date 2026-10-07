@@ -97,9 +97,20 @@ for (let sample = 1; sample <= 3; sample += 1) {
     runNearBenchmark,
   );
 }
+
+test('hosted NEAR-only post-idle sample 4: same wallet and signing grant', runNearIdleBenchmark);
+
+async function runNearIdleBenchmark(
+  { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
+  testInfo: TestInfo,
+): Promise<void> {
+  await runNearBenchmark({ context, page, request }, testInfo, 65_000);
+}
+
 async function runNearBenchmark(
   { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
   testInfo: TestInfo,
+  idleMs = 0,
 ): Promise<void> {
   test.setTimeout(300_000);
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
@@ -185,6 +196,32 @@ async function runNearBenchmark(
         ),
       );
     }
+    if (idleMs > 0) {
+      // Use the same fresh grant for both samples so budget step-up does not
+      // become part of the idle comparison.
+      await harness.unlockPasskeyWallet();
+      samples.push(
+        await measure(
+          harness,
+          observations,
+          gateway,
+          'idle_control',
+          performance.now(),
+          'post_unlock',
+        ),
+      );
+      await page.waitForTimeout(idleMs);
+      samples.push(
+        await measure(
+          harness,
+          observations,
+          gateway,
+          'post_idle',
+          performance.now(),
+          'post_unlock',
+        ),
+      );
+    }
     expect(
       [...observations.assets].filter(isOtherSigner),
       'NEAR-only must not load another signer',
@@ -200,6 +237,7 @@ async function runNearBenchmark(
           outcome,
           samples,
           lifecycleActions,
+          idleMs,
           assets: [...observations.assets],
           browserConsoleCalls: observations.consoleRequests,
           notes: [

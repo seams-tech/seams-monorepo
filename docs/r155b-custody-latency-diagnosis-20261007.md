@@ -67,8 +67,9 @@ explains this run. Physical colocation and exact transport delay remain unproved
 The implementation checklist is now Phase 6B of `seams-wallet/docs/refactor-155B.md`,
 committed on `dev` as `6b77a8122dc34c4a4d859468636b4714f6883df3`.
 It defines validation, database, DO execution, optional material reuse, and hosted
-acceptance steps. Implementation remains open. It preserves the two-second target
-and distinguishes structural call reductions from unmeasured latency savings.
+acceptance steps. The implementation update below records completed changes.
+The two-second target remains open. Structural call reductions are distinct from
+measured latency savings.
 
 1. **Remove duplicated validation within one trusted invocation.** Pass a validated
    execution context from A's boundary handler to its protocol function. Parse
@@ -100,3 +101,30 @@ No numerical speedup is established yet. The complete setup target remains below
 [Sanitized provider evidence](evidence/r155b-custody-latency-diagnosis-20261007.json)
 contains the invocation metrics and supporting events. The original benchmark
 and deployment evidence remain in [the location report](r155b-custody-location-20261007.md).
+
+
+## Phase 6B implementation update
+
+Public `dev` commit `2ee2b6960e04ebfcc67085eb33d741ca1b8e5282` implements
+A readiness verification once per execute invocation and B protocol execution in
+its existing wallet Durable Object. A removes six repeated signature verifications.
+B removes separate remote begin and complete exchanges. Claims, durable completion,
+exact replay, cancellation, retirement, and ownership fences remain.
+
+The two-trip bound-root loader remains. Its preliminary read authenticates fields
+inside encrypted state before admission. The SQL projection cannot enforce those
+checks in a single batch. Optional cross-step root-material reuse is deferred;
+this change adds no cache or invalidation subsystem.
+
+All five release Workers build. Local custody scenarios pass for four regions,
+forged readiness, concurrent execution, lost replies, eviction, admission races,
+root erasure, relocation, and fresh signing after return. Repeatable evidence is in
+`seams-wallet/docs/evidence/near-custody-setup-optimization-20261007.json`.
+These local results do not measure hosted latency or individual cryptographic CPU cost.
+
+The bounded hosted comparison is prepared at
+`.artifacts/r155b-phase6b-hosted/run.py`. It uses frozen inputs and existing staging
+resources. It compares control, A-only, A-and-B, and restored control cohorts.
+It records starting versions and restores them on success or failure.
+Execution is deferred while R153 uses the shared staging deployment. No live
+resources or deployments changed in this implementation run. No speedup is claimed yet.

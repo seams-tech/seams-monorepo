@@ -41,6 +41,7 @@ export default defineConfig(() => {
           showcaseMotion: `${appRoot}showcase/motion/index.html`,
           showcaseCredentials: `${appRoot}showcase/motion/credentials/index.html`,
           showcasePolicy: `${appRoot}showcase/motion/policy/index.html`,
+          showcaseInterlock: `${appRoot}showcase/motion/interlock/index.html`,
         },
       },
     },

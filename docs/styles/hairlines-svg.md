@@ -2,7 +2,9 @@
 
 Use one detailed, interactive illustration at a time. Start from an existing wallet image and preserve its meaning.
 
-The current example develops the wallet security section's **Audit log** image into four layered paper records. The folded corner, binding holes, ruled entries, and thin paper edges identify the object without words inside the drawing.
+The first example develops the wallet security section's **Audit log** image into four layered paper records. The folded corner, binding holes, ruled entries, and thin paper edges identify the object without words inside the drawing.
+
+The second example develops **Scoped credentials** into two cut metal keys on one shoulder pin. Each example has its own review page.
 
 ## Reference and engine
 
@@ -60,6 +62,34 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
 Do not format or manually edit the generated HTML. The validator checks that its kernel and bench remain unchanged.
 
 The local review URL is `/dashboard-static/showcase/motion/`. The page contains one figure with intensity and theme controls.
+
+## Scoped credentials example
+
+The key pair preserves the circular head and patterned shaft from the wallet's existing **Scoped credentials** illustration. Different cut patterns distinguish the keys. Recessed channels, etched head details, thin metal edges, and a slotted pivot give the object physical detail.
+
+The keys rotate in parallel planes around a fixed pin. Their heads remain attached throughout movement. Horizontal pointer position controls their spread through the shared spring. Pointer exit returns them to a slightly open resting pose.
+
+The intensity slider adds 14, 24, or 34 degrees to the resting spread. The camera fits geometry from across this range. The upper key carries the single outline highlight. The lower key remains covered where the two keys overlap.
+
+This is an illustration of distinct credentials. Opening the pair does not grant permission or represent a signing ceremony.
+
+Edit `apps/wallet-console/showcase/motion/credentials/scoped-credentials.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/credentials/scoped-credentials.js \
+  apps/wallet-console/showcase/motion/credentials/index.html
+```
+
+Review it at `/dashboard-static/showcase/motion/credentials/`. From `.artifacts/scoped-credentials`, run the repeatable visual check:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/credentials/scoped-credentials.js \
+  --answer 280,180 --edge 340,180 --zoom answer
+```
+
+Inspect the tooth contours and the pivot at full size. Check that the lower key stays behind the upper key throughout rotation. Confirm that the open pair remains inside the frame at maximum intensity.
 
 ## Visual verification
 

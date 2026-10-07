@@ -27,12 +27,14 @@ type PreparationTransport = {
 export type WalletRelocationParticipants = Readonly<Record<Participant, PreparationTransport>>;
 
 type PreparationReceipt = {
-  readonly participant: Participant;
   readonly physicalResource: string;
   readonly evidenceDigest: string;
   readonly preparedAtMs: number;
   readonly expiresAtMs: number;
-};
+} & (
+  | { readonly participant: 'deriverA' | 'deriverB'; readonly physicalObjects: { readonly source: string; readonly destination: string } }
+  | { readonly participant: Exclude<Participant, 'deriverA' | 'deriverB'>; readonly physicalObjects?: never }
+);
 
 function invalid(): never {
   throw new WalletPlacementError(
@@ -42,11 +44,12 @@ function invalid(): never {
 }
 
 function readReceipt(raw: unknown, command: PreparationCommand, nowMs: number): PreparationReceipt {
+  const deriver = command.participant === 'deriverA' || command.participant === 'deriverB';
   if (
     !raw ||
     typeof raw !== 'object' ||
     Array.isArray(raw) ||
-    Object.keys(raw).length !== 9 ||
+    Object.keys(raw).length !== (deriver ? 10 : 9) ||
     !('kind' in raw) ||
     raw.kind !== 'prepared' ||
     !('admission' in raw) ||
@@ -78,6 +81,18 @@ function readReceipt(raw: unknown, command: PreparationCommand, nowMs: number): 
     expiresAtMs - preparedAtMs > 300_000
   )
     invalid();
+  if (command.participant === 'deriverA' || command.participant === 'deriverB') {
+    if (!('physicalObjects' in raw)) invalid();
+    const physicalObjects = parseDeriverPhysicalObjects(raw.physicalObjects);
+    return Object.freeze({
+      participant: command.participant,
+      physicalResource: raw.physicalResource,
+      evidenceDigest: raw.evidenceDigest,
+      preparedAtMs,
+      expiresAtMs,
+      physicalObjects,
+    });
+  }
   return Object.freeze({
     participant: command.participant,
     physicalResource: raw.physicalResource,
@@ -85,6 +100,14 @@ function readReceipt(raw: unknown, command: PreparationCommand, nowMs: number): 
     preparedAtMs,
     expiresAtMs,
   });
+}
+
+export function parseDeriverPhysicalObjects(raw: unknown): { readonly source: string; readonly destination: string } {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || Object.keys(raw).length !== 2 ||
+      !('source' in raw) || typeof raw.source !== 'string' || !/^[a-f0-9]{64}$/u.test(raw.source) ||
+      !('destination' in raw) || typeof raw.destination !== 'string' || !/^[a-f0-9]{64}$/u.test(raw.destination) ||
+      raw.source === raw.destination) invalid();
+  return Object.freeze({ source: raw.source, destination: raw.destination });
 }
 
 // Construction requires every role's authenticated preparation call to succeed.

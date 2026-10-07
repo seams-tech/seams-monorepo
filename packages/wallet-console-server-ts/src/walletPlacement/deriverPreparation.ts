@@ -29,29 +29,30 @@ export class DeriverRelocationPreparation {
     }
     const preparedAtMs = relocationTimestamp(this.clock());
     const rolePath = ROLE_PATHS[this.role];
-    const contextResponse = await this.sourceRuntime.fetch(new Request(`${BASE}/${rolePath}-context`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    }));
-    if (contextResponse.status !== 200) return { kind: 'unavailable' };
-    const context: unknown = await contextResponse.json();
-    if (
-      !isPlainObject(context) || Object.keys(context).length !== 2 ||
-      context.kind !== 'deriver_cipher_context' || typeof context.digest_hex !== 'string' ||
-      !/^[a-f0-9]{64}$/u.test(context.digest_hex)
-    ) return { kind: 'unavailable' };
     const owner = {
       org_id: command.request.wallet.organizationId,
       project_id: command.request.wallet.projectId,
       env_id: command.request.wallet.environmentId,
       wallet_id: command.request.wallet.walletId,
     };
+    const source = await readContext(this.sourceRuntime, rolePath, owner);
+    if (source === null) return { kind: 'unavailable' };
+    const destination = await readContext(this.destinationRuntime, rolePath, owner);
+    if (destination === null || destination.digest_hex !== source.digest_hex) {
+      return { kind: 'unavailable' };
+    }
+    if (destination.object_id === source.object_id) {
+      throw new WalletPlacementError('invalid_record', 'Deriver source and destination resolve to the same physical object');
+    }
+    const physicalObjects = {
+      source: source.object_id,
+      destination: destination.object_id,
+    };
     const request = {
       owner,
       move_id: command.request.moveId,
       request_digest_hex: command.requestDigest,
-      cipher_context_digest_hex: context.digest_hex,
+      cipher_context_digest_hex: source.digest_hex,
       source_generation: command.request.expectedGeneration,
       destination_generation: command.destinationGeneration,
     };
@@ -83,13 +84,33 @@ export class DeriverRelocationPreparation {
       requestDigest: command.requestDigest,
       destinationGeneration: command.destinationGeneration,
       physicalResource: destinationObject,
+      physicalObjects,
       evidenceDigest: await preparationEvidenceDigest([
-        'seams/deriver/preparation/v1', this.role, request, destinationObject,
+        'seams/deriver/preparation/v1', this.role, request, destinationObject, physicalObjects,
       ]),
       preparedAtMs,
       expiresAtMs: preparedAtMs + 300_000,
     };
   }
+}
+
+async function readContext(
+  runtime: WalletRuntimeServiceBinding,
+  rolePath: (typeof ROLE_PATHS)[Role],
+  owner: RouterFreezeRequest['owner'],
+): Promise<{ digest_hex: string; object_id: string } | null> {
+  const response = await runtime.fetch(new Request(`${BASE}/${rolePath}-context`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ owner }),
+  }));
+  if (response.status !== 200) return null;
+  const raw: unknown = await response.json();
+  if (!isPlainObject(raw) || Object.keys(raw).length !== 3 ||
+      raw.kind !== 'deriver_cipher_context' || typeof raw.digest_hex !== 'string' ||
+      !/^[a-f0-9]{64}$/u.test(raw.digest_hex) || typeof raw.object_id !== 'string' ||
+      !/^[a-f0-9]{64}$/u.test(raw.object_id)) return null;
+  return { digest_hex: raw.digest_hex, object_id: raw.object_id };
 }
 
 function hexByte(value: number): string {

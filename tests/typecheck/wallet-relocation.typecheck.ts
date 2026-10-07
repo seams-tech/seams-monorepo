@@ -39,6 +39,14 @@ declare const preparation: WalletRelocationPreparation;
 declare const participants: Parameters<typeof WalletRelocationPreparation.prepare>[1];
 declare const clock: () => number;
 declare const bindings: WalletRelocationBindings;
+type PreparationReceipt = WalletRelocationPreparation['receipts'][number];
+declare const deriverPreparation: PreparationReceipt & { readonly participant: 'deriverA' };
+// @ts-expect-error A Deriver receipt requires both physical object IDs.
+const missingPhysicalObjects: PreparationReceipt = { participant: 'deriverA', physicalResource: 'wallet', evidenceDigest: 'digest', preparedAtMs: 1, expiresAtMs: 2 };
+// @ts-expect-error A spread cannot attach Deriver physical evidence to another participant.
+const wrongPhysicalRole: PreparationReceipt = { ...deriverPreparation, participant: 'gateway' };
+void missingPhysicalObjects;
+void wrongPhysicalRole;
 void relocations.admit(request, [resourceProof], 'test', bindings, clock);
 // @ts-expect-error Caller-supplied participant receipts cannot replace regional bindings.
 void relocations.admit(request, [resourceProof], 'test', participants, clock);

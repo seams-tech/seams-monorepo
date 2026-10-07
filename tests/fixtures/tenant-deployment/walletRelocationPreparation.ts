@@ -85,9 +85,17 @@ class DeriverPreparationRuntime {
     const body: unknown = await input.json();
     if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
     if (input.url.endsWith('-context')) {
-      if (this.side !== 'source') return new Response(null, { status: 409 });
       if (this.failedParticipant === 'deriver_context_unavailable') return new Response(null, { status: 503 });
-      return Response.json({ kind: 'deriver_cipher_context', digest_hex: 'c'.repeat(64) });
+      if (!isPlainObject(body.owner)) return new Response(null, { status: 400 });
+      const objectSide = this.failedParticipant === 'deriver_physical_collision' ? 'source' : this.side;
+      return Response.json({
+        kind: 'deriver_cipher_context',
+        digest_hex: 'c'.repeat(64),
+        object_id: await fixtureObjectDigest(objectSide, body.owner),
+      });
+    }
+    if (this.failedParticipant === 'deriver_physical_collision') {
+      throw new Error('A physical collision must fail before destination reservation');
     }
     if (this.side !== 'destination') return new Response(null, { status: 409 });
     let role = 'deriver-a';

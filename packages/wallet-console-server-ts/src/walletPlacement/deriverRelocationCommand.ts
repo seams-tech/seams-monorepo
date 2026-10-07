@@ -2,7 +2,7 @@ import { isPlainObject, queryD1One, type D1DatabaseLike } from '@seams/wallet-se
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletPlacementError, type WalletOwnershipKey } from './home';
 import type { WalletRelocationAttempt } from './relocationExecution';
-import { preparationEvidenceDigest } from './relocationPreparation';
+import { parseDeriverPhysicalObjects, preparationEvidenceDigest } from './relocationPreparation';
 import { deriverWalletObject } from './deriverPreparation';
 import { authorizeWalletRuntimeSourceCommand, type RouterFreezeRequest } from './runtimeRelocationCommand';
 
@@ -48,9 +48,6 @@ export async function matchesDeriverPreparation(
   command: DeriverSourceRequest,
 ): Promise<boolean> {
   const destinationObject = await deriverWalletObject(role, command.owner);
-  const evidenceDigest = await preparationEvidenceDigest([
-    'seams/deriver/preparation/v1', role, command, destinationObject,
-  ]);
   const row = await queryD1One(database, `SELECT preparation_json FROM wallet_relocations
     WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
       AND wallet_id = ?5 AND move_id = ?6`, [
@@ -65,6 +62,10 @@ export async function matchesDeriverPreparation(
   let matches = 0;
   for (const receipt of prepared.receipts) {
     if (!isPlainObject(receipt) || receipt.participant !== role) continue;
+    const physicalObjects = parseDeriverPhysicalObjects(receipt.physicalObjects);
+    const evidenceDigest = await preparationEvidenceDigest([
+      'seams/deriver/preparation/v1', role, command, destinationObject, physicalObjects,
+    ]);
     if (receipt.physicalResource !== destinationObject || receipt.evidenceDigest !== evidenceDigest) {
       return false;
     }

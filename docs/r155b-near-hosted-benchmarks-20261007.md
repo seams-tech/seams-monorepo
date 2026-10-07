@@ -436,3 +436,45 @@ message verification across reload, and changed prepare authority rejected befor
 finalize followed by a valid operation. The final run took 43.8 seconds.
 The SDK build and bloat check passed. Two setup failures (missing initializer and
 wrong app origin) were classified as test infrastructure failures and excluded.
+
+
+### Single-status NEAR transaction planning
+
+The SDK now reuses authenticated preparation readiness in transaction planning.
+It keeps the first status read and all fresh prepare/finalize enforcement. This
+removes the second status request and deletes its obsolete implementation.
+
+Six new wallets verified 42 signatures across the previous SDK and candidate.
+Ordinary signing used **4 Gateway POSTs instead of 5** in every warm and consecutive
+sample. This combines with material reuse to reduce the original six requests to four.
+
+| SDK signing workload | Samples per arm | Control median / range | Candidate median / range |
+| --- | ---: | --- | --- |
+| Warm | 6 | 2.772s / 2.193–3.084s | 2.551s / 2.161–3.472s |
+| Three-signature sequences | 9 | 2.138s / 1.575–3.635s | 1.952s / 1.503–3.071s |
+| First after unlock | 3 | 1.721s / 1.694–2.493s | 2.177s / 1.344–2.558s |
+| First after registration | 3 | 7.293s / 6.909–8.048s | 8.047s / 7.672–8.323s |
+
+The candidate ran first. Local correctness tests overlapped part of that arm.
+Backend version snapshots were not captured. Treat these timings as exploratory:
+the ranges overlap and the first-sign medians increased. The request-count reduction
+is firm. SDK signing time excludes preceding registration, funding and unlock work;
+it also excludes test cleanup. It is not the Yao setup duration.
+
+The SDK build, type check, bloat check and five correctness scenarios pass. The
+scenarios cover linked-device revocation, shared-budget step-up on both curves,
+transaction and message signing across reload, and changed prepare authority.
+No deployment or resources changed. Browser Console calls were zero; backend
+Console calls and D1 counts remain unavailable.
+
+[Samples, source and artifact hashes](./evidence/r155b-near-single-status-20261007.json).
+Raw samples and logs are in `.artifacts/r155b-near-phase6a-next/` in each repository.
+The public frozen SDK source remains `.artifacts/r155b-near-phase6a/source-traced/`.
+Reproduce the hosted comparison with `tests/playwright.hosted-product.config.mjs`
+and `near-signing-latency.test.ts --grep 'sample [1-3]:'`, selecting each frozen
+site with `SEAMS_HOSTED_CANDIDATE_SITE`. The artifact records the site manifests.
+
+Authenticated initial placement and the remaining DO delay are still open. The
+private Gateway already has a validated regional home after dispatch/admission;
+propagate that value to generation-specific custody object creation. This SDK
+change does not implement placement or meet the two-second setup target.

@@ -1,0 +1,1610 @@
+{
+  "kind": "near_phase6a_comparison_v1",
+  "baselineSource": "2bee39abb947a6524a42e8c74c6ff7b89c1a7acb",
+  "candidateCommit": "3690a15d940742de90bb4e3de62ecda19b425f86",
+  "arms": {
+    "control": {
+      "wallets": 3,
+      "verifiedSignatures": 21,
+      "allSucceeded": true,
+      "artifacts": {
+        "near-1.json": "13fc182f49c9ee3f25b32cd8f4905bf9f9abab928946121ffb79b1ad33002f54",
+        "near-2.json": "950a57c1ca39fed5a9ee7c8f9c685cd3b38616098c6dc7983f9d0b2329c100e3",
+        "near-3.json": "acdc2159c7b9cb3711f03de8f378172d33af618d18b8ae5c30a0e4e95ae99e57"
+      },
+      "yaoExecute": {
+        "n": 3,
+        "medianMs": 6316.13,
+        "minimumMs": 5314.369,
+        "maximumMs": 6637.826,
+        "samplesMs": [
+          6637.826,
+          6316.13,
+          5314.369
+        ]
+      },
+      "registrationSdk": {
+        "n": 3,
+        "medianMs": 11610.269999980927,
+        "minimumMs": 10839.034999966621,
+        "maximumMs": 12574.794999957085,
+        "samplesMs": [
+          12574.794999957085,
+          11610.269999980927,
+          10839.034999966621
+        ]
+      },
+      "sdkSigning": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 6769.40499997139,
+          "minimumMs": 5950.879999995232,
+          "maximumMs": 8929.664999961853,
+          "samplesMs": [
+            8929.664999961853,
+            5950.879999995232,
+            6769.40499997139
+          ]
+        },
+        "three_consecutive": {
+          "n": 9,
+          "medianMs": 2135.060000061989,
+          "minimumMs": 1560.7300000190735,
+          "maximumMs": 2516.399999976158,
+          "samplesMs": [
+            1560.7300000190735,
+            1936.6399999856949,
+            2516.399999976158,
+            2507.514999985695,
+            1789.1449999809265,
+            2135.060000061989,
+            2407.0199999809265,
+            1834.1299999952316,
+            2138.7699999809265
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 1650.0349999666214,
+          "minimumMs": 1556.789999961853,
+          "maximumMs": 1652.8150000572205,
+          "samplesMs": [
+            1650.0349999666214,
+            1556.789999961853,
+            1652.8150000572205
+          ]
+        },
+        "warm_signing": {
+          "n": 6,
+          "medianMs": 2398.527499973774,
+          "minimumMs": 2153.9049999713898,
+          "maximumMs": 2589.1349999904633,
+          "samplesMs": [
+            2216.0250000953674,
+            2429.2599999904633,
+            2367.7949999570847,
+            2589.1349999904633,
+            2153.9049999713898,
+            2442.514999985695
+          ]
+        }
+      },
+      "workflowToVerified": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 19083.89570800001,
+          "minimumMs": 19058.758959,
+          "maximumMs": 22163.337457999998,
+          "samplesMs": [
+            22163.337457999998,
+            19058.758959,
+            19083.89570800001
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 5048.280916000003,
+          "minimumMs": 5010.185375000001,
+          "maximumMs": 5248.834167000008,
+          "samplesMs": [
+            5010.185375000001,
+            5048.280916000003,
+            5248.834167000008
+          ]
+        }
+      },
+      "httpCounts": {
+        "registration_to_first_verified": [
+          16,
+          16,
+          16
+        ],
+        "three_consecutive": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "unlock_to_first_verified": [
+          11,
+          11,
+          11
+        ],
+        "warm_signing": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "gatewayD1": "unavailable: current Gateway does not expose benchmark count headers",
+      "consoleServiceCalls": "unavailable: current Gateway does not expose benchmark count headers"
+    },
+    "candidate": {
+      "wallets": 3,
+      "verifiedSignatures": 21,
+      "allSucceeded": true,
+      "artifacts": {
+        "near-1.json": "f6d782d33e7f66f55204023fc6a14647da9a0764095ffd4bd212fbcfb2214aa7",
+        "near-2.json": "78981bc076dd4784891812e6ca46872dffa8e069c5aff551c9bdc256ca613cc7",
+        "near-3.json": "913a6d19c84d6b95bd58cee8745fff8a684fb0474ccb248e4add5f4502d28d0c"
+      },
+      "yaoExecute": {
+        "n": 3,
+        "medianMs": 6457.361,
+        "minimumMs": 5833.935,
+        "maximumMs": 6460.212,
+        "samplesMs": [
+          6460.212,
+          6457.361,
+          5833.935
+        ]
+      },
+      "registrationSdk": {
+        "n": 3,
+        "medianMs": 11681.409999966621,
+        "minimumMs": 11218.324999928474,
+        "maximumMs": 12462.455000042915,
+        "samplesMs": [
+          12462.455000042915,
+          11681.409999966621,
+          11218.324999928474
+        ]
+      },
+      "sdkSigning": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 6602.274999976158,
+          "minimumMs": 6416.854999899864,
+          "maximumMs": 6996.495000004768,
+          "samplesMs": [
+            6416.854999899864,
+            6602.274999976158,
+            6996.495000004768
+          ]
+        },
+        "three_consecutive": {
+          "n": 9,
+          "medianMs": 2017.2450000047684,
+          "minimumMs": 1530.6850000619888,
+          "maximumMs": 2527.2200000286102,
+          "samplesMs": [
+            1956.164999961853,
+            2074.0299999713898,
+            2412.289999961853,
+            1855.1850000619888,
+            2165.1200000047684,
+            2527.2200000286102,
+            1530.6850000619888,
+            1780.914999961853,
+            2017.2450000047684
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 1703.3650000095367,
+          "minimumMs": 1531.0149999856949,
+          "maximumMs": 2111.139999985695,
+          "samplesMs": [
+            1531.0149999856949,
+            1703.3650000095367,
+            2111.139999985695
+          ]
+        },
+        "warm_signing": {
+          "n": 6,
+          "medianMs": 2296.035000026226,
+          "minimumMs": 2114.820000052452,
+          "maximumMs": 2595.9899998903275,
+          "samplesMs": [
+            2204.229999899864,
+            2595.9899998903275,
+            2350.335000038147,
+            2114.820000052452,
+            2400.179999947548,
+            2241.735000014305
+          ]
+        }
+      },
+      "workflowToVerified": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 19373.052666999996,
+          "minimumMs": 19040.608374999996,
+          "maximumMs": 20318.90525,
+          "samplesMs": [
+            20318.90525,
+            19373.052666999996,
+            19040.608374999996
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 5306.089582999994,
+          "minimumMs": 5038.922916000003,
+          "maximumMs": 5897.850000000006,
+          "samplesMs": [
+            5038.922916000003,
+            5306.089582999994,
+            5897.850000000006
+          ]
+        }
+      },
+      "httpCounts": {
+        "registration_to_first_verified": [
+          17,
+          16,
+          17
+        ],
+        "three_consecutive": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "unlock_to_first_verified": [
+          11,
+          11,
+          11
+        ],
+        "warm_signing": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "gatewayD1": "unavailable: current Gateway does not expose benchmark count headers",
+      "consoleServiceCalls": "unavailable: current Gateway does not expose benchmark count headers"
+    },
+    "final": {
+      "wallets": 3,
+      "verifiedSignatures": 21,
+      "allSucceeded": true,
+      "artifacts": {
+        "near-1.json": "cf4d5af484a5e3615df12e34bcf35958af805997cc52696b1207943f6befbe5a",
+        "near-2.json": "67abcc44be030926d82ac45d1a3d9a1f6a044edebbe2ed4fee0ead9d395dcb54",
+        "near-3.json": "a6dc55efeb0ea1fa97a0a0739dda737a8c3bfb0a56b40bf44652c21bc98afc1e"
+      },
+      "yaoExecute": {
+        "n": 3,
+        "medianMs": 5414.33,
+        "minimumMs": 5278.104,
+        "maximumMs": 5653.19,
+        "samplesMs": [
+          5653.19,
+          5414.33,
+          5278.104
+        ]
+      },
+      "registrationSdk": {
+        "n": 3,
+        "medianMs": 10979.480000019073,
+        "minimumMs": 10791.05999994278,
+        "maximumMs": 13064.484999895096,
+        "samplesMs": [
+          13064.484999895096,
+          10979.480000019073,
+          10791.05999994278
+        ]
+      },
+      "sdkSigning": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 8083.375,
+          "minimumMs": 7328.464999914169,
+          "maximumMs": 8961.294999957085,
+          "samplesMs": [
+            8083.375,
+            7328.464999914169,
+            8961.294999957085
+          ]
+        },
+        "three_consecutive": {
+          "n": 9,
+          "medianMs": 1978.9300000667572,
+          "minimumMs": 1574.4850000143051,
+          "maximumMs": 2645.475000023842,
+          "samplesMs": [
+            1574.4850000143051,
+            1975.6450001001358,
+            2645.475000023842,
+            1663.2549999952316,
+            1845.5199999809265,
+            2235.0250000953674,
+            2121.2200000286102,
+            1978.9300000667572,
+            2279.1749999523163
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 1645.3999999761581,
+          "minimumMs": 1586.5350000858307,
+          "maximumMs": 1683.5299999713898,
+          "samplesMs": [
+            1683.5299999713898,
+            1586.5350000858307,
+            1645.3999999761581
+          ]
+        },
+        "warm_signing": {
+          "n": 6,
+          "medianMs": 2726.3249999284744,
+          "minimumMs": 1840.4449999332428,
+          "maximumMs": 2963.110000014305,
+          "samplesMs": [
+            2963.110000014305,
+            2525.360000014305,
+            2555.3349999189377,
+            2937.764999985695,
+            1840.4449999332428,
+            2897.314999938011
+          ]
+        }
+      },
+      "workflowToVerified": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 21155.944000000003,
+          "minimumMs": 18907.306041999997,
+          "maximumMs": 22561.719125,
+          "samplesMs": [
+            22561.719125,
+            18907.306041999997,
+            21155.944000000003
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 4967.1629589999975,
+          "minimumMs": 4960.520208000002,
+          "maximumMs": 4981.842583999998,
+          "samplesMs": [
+            4967.1629589999975,
+            4960.520208000002,
+            4981.842583999998
+          ]
+        }
+      },
+      "httpCounts": {
+        "registration_to_first_verified": [
+          16,
+          16,
+          17
+        ],
+        "three_consecutive": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "unlock_to_first_verified": [
+          11,
+          11,
+          11
+        ],
+        "warm_signing": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "gatewayD1": "unavailable: current Gateway does not expose benchmark count headers",
+      "consoleServiceCalls": "unavailable: current Gateway does not expose benchmark count headers"
+    },
+    "control-after": {
+      "wallets": 3,
+      "verifiedSignatures": 21,
+      "allSucceeded": true,
+      "artifacts": {
+        "near-1.json": "c48d0af07cc11bef882539cfe69d4f9d09a63894e75975c34b8c3777aa5220ab",
+        "near-2.json": "18658d29c6c141893c1713047fc1f61f648a295536c48c75539d5bdab9da8e97",
+        "near-3.json": "ecf6d103445c12fc7ece2cdadf1953135be56e57ee75cafd68877646087f09bb"
+      },
+      "yaoExecute": {
+        "n": 3,
+        "medianMs": 6164.555,
+        "minimumMs": 5278.626,
+        "maximumMs": 7012.351,
+        "samplesMs": [
+          7012.351,
+          5278.626,
+          6164.555
+        ]
+      },
+      "registrationSdk": {
+        "n": 3,
+        "medianMs": 11569.5,
+        "minimumMs": 10199.264999985695,
+        "maximumMs": 12594.909999966621,
+        "samplesMs": [
+          12594.909999966621,
+          10199.264999985695,
+          11569.5
+        ]
+      },
+      "sdkSigning": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 7790.205000042915,
+          "minimumMs": 7083.215000033379,
+          "maximumMs": 8016.830000042915,
+          "samplesMs": [
+            7790.205000042915,
+            8016.830000042915,
+            7083.215000033379
+          ]
+        },
+        "three_consecutive": {
+          "n": 9,
+          "medianMs": 1848.8650000095367,
+          "minimumMs": 1589.1000000238419,
+          "maximumMs": 2900.0800000429153,
+          "samplesMs": [
+            2265.719999909401,
+            1784.7850000858307,
+            2900.0800000429153,
+            1771.8899999856949,
+            1848.8650000095367,
+            2665.314999938011,
+            1589.1000000238419,
+            1741.1449999809265,
+            2559.2000000476837
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 1637.8349999189377,
+          "minimumMs": 1581.2149999141693,
+          "maximumMs": 2066.8300000429153,
+          "samplesMs": [
+            1581.2149999141693,
+            2066.8300000429153,
+            1637.8349999189377
+          ]
+        },
+        "warm_signing": {
+          "n": 6,
+          "medianMs": 2719.3525000214577,
+          "minimumMs": 2515.585000038147,
+          "maximumMs": 3493.5900000333786,
+          "samplesMs": [
+            2664.725000023842,
+            3306.8499999046326,
+            3493.5900000333786,
+            2515.585000038147,
+            2773.9800000190735,
+            2663.069999933243
+          ]
+        }
+      },
+      "workflowToVerified": {
+        "registration_to_first_verified": {
+          "n": 3,
+          "medianMs": 19695.030708000006,
+          "minimumMs": 18883.955666999995,
+          "maximumMs": 21294.712958,
+          "samplesMs": [
+            21294.712958,
+            18883.955666999995,
+            19695.030708000006
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 3,
+          "medianMs": 5435.816166999997,
+          "minimumMs": 4976.857833000002,
+          "maximumMs": 5787.212499999994,
+          "samplesMs": [
+            4976.857833000002,
+            5787.212499999994,
+            5435.816166999997
+          ]
+        }
+      },
+      "httpCounts": {
+        "registration_to_first_verified": [
+          17,
+          16,
+          17
+        ],
+        "three_consecutive": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "unlock_to_first_verified": [
+          11,
+          11,
+          11
+        ],
+        "warm_signing": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "gatewayD1": "unavailable: current Gateway does not expose benchmark count headers",
+      "consoleServiceCalls": "unavailable: current Gateway does not expose benchmark count headers"
+    },
+    "post-idle": {
+      "wallets": 1,
+      "verifiedSignatures": 9,
+      "allSucceeded": true,
+      "artifacts": {
+        "near-4.json": "782eb33f2a79b506ac9935c4adde13bd782732c29b7408c6c2ae9824e5759eb2"
+      },
+      "yaoExecute": {
+        "n": 1,
+        "medianMs": 5300.47,
+        "minimumMs": 5300.47,
+        "maximumMs": 5300.47,
+        "samplesMs": [
+          5300.47
+        ]
+      },
+      "registrationSdk": {
+        "n": 1,
+        "medianMs": 11047.694999933243,
+        "minimumMs": 11047.694999933243,
+        "maximumMs": 11047.694999933243,
+        "samplesMs": [
+          11047.694999933243
+        ]
+      },
+      "sdkSigning": {
+        "idle_control": {
+          "n": 1,
+          "medianMs": 1720.7400000095367,
+          "minimumMs": 1720.7400000095367,
+          "maximumMs": 1720.7400000095367,
+          "samplesMs": [
+            1720.7400000095367
+          ]
+        },
+        "post_idle": {
+          "n": 1,
+          "medianMs": 2616.625,
+          "minimumMs": 2616.625,
+          "maximumMs": 2616.625,
+          "samplesMs": [
+            2616.625
+          ]
+        },
+        "registration_to_first_verified": {
+          "n": 1,
+          "medianMs": 8196.435000061989,
+          "minimumMs": 8196.435000061989,
+          "maximumMs": 8196.435000061989,
+          "samplesMs": [
+            8196.435000061989
+          ]
+        },
+        "three_consecutive": {
+          "n": 3,
+          "medianMs": 2188.554999947548,
+          "minimumMs": 1909.0800000429153,
+          "maximumMs": 2560.4250000715256,
+          "samplesMs": [
+            2560.4250000715256,
+            1909.0800000429153,
+            2188.554999947548
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 1,
+          "medianMs": 2329.170000076294,
+          "minimumMs": 2329.170000076294,
+          "maximumMs": 2329.170000076294,
+          "samplesMs": [
+            2329.170000076294
+          ]
+        },
+        "warm_signing": {
+          "n": 2,
+          "medianMs": 2640.862500011921,
+          "minimumMs": 2464.3650000095367,
+          "maximumMs": 2817.360000014305,
+          "samplesMs": [
+            2464.3650000095367,
+            2817.360000014305
+          ]
+        }
+      },
+      "workflowToVerified": {
+        "registration_to_first_verified": {
+          "n": 1,
+          "medianMs": 20612.190917,
+          "minimumMs": 20612.190917,
+          "maximumMs": 20612.190917,
+          "samplesMs": [
+            20612.190917
+          ]
+        },
+        "unlock_to_first_verified": {
+          "n": 1,
+          "medianMs": 6069.859417000003,
+          "minimumMs": 6069.859417000003,
+          "maximumMs": 6069.859417000003,
+          "samplesMs": [
+            6069.859417000003
+          ]
+        }
+      },
+      "httpCounts": {
+        "idle_control": [
+          6
+        ],
+        "post_idle": [
+          6
+        ],
+        "registration_to_first_verified": [
+          16
+        ],
+        "three_consecutive": [
+          6,
+          6,
+          6
+        ],
+        "unlock_to_first_verified": [
+          11
+        ],
+        "warm_signing": [
+          6,
+          6
+        ]
+      },
+      "gatewayD1": "unavailable: current Gateway does not expose benchmark count headers",
+      "consoleServiceCalls": "unavailable: current Gateway does not expose benchmark count headers"
+    }
+  },
+  "rootStore": {
+    "observedCalls": [
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 78,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 67,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 70,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 115,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 76,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 80,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 70,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 112,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 77,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 76,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 73,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 212,
+        "role": "deriver_a",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 77,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 168,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 231,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 61,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 67,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 188,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 70,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 63,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 140,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 96,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      },
+      {
+        "attempt_kind": "ed25519_yao_pair_session",
+        "batch_ms": 70,
+        "event": "bound_root_d1_timing",
+        "initial_read_and_open_ms": 60,
+        "role": "deriver_b",
+        "round_trips": 2,
+        "statements": 5
+      }
+    ],
+    "totalRoundTrips": 24,
+    "totalStatements": 60,
+    "scope": "Only bound-root loads during the three final registration setups; excludes all other custody and Gateway D1 calls."
+  },
+  "idle": {
+    "idle_control": {
+      "sdkMs": 1720.7400000095367,
+      "requestedIdleMs": 65000,
+      "requests": [
+        {
+          "path": "/wallet/session/status",
+          "elapsedMs": 133.039
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "elapsedMs": 153.398
+        },
+        {
+          "path": "/wallet/session/status",
+          "elapsedMs": 134.498
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "elapsedMs": 134.763
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "elapsedMs": 294.998
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "elapsedMs": 463.807
+        }
+      ],
+      "doCommands": [
+        {
+          "firstCommandAfterConstructor": false,
+          "command": 15,
+          "platformWallMs": 44,
+          "platformCpuMs": 5
+        },
+        {
+          "firstCommandAfterConstructor": false,
+          "command": 16,
+          "platformWallMs": 48,
+          "platformCpuMs": 9
+        }
+      ]
+    },
+    "post_idle": {
+      "sdkMs": 2616.625,
+      "requestedIdleMs": 65000,
+      "requests": [
+        {
+          "path": "/wallet/session/status",
+          "elapsedMs": 255.279
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "elapsedMs": 139.765
+        },
+        {
+          "path": "/wallet/session/status",
+          "elapsedMs": 181.089
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "elapsedMs": 191.43
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "elapsedMs": 372.562
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "elapsedMs": 347.791
+        }
+      ],
+      "doCommands": [
+        {
+          "firstCommandAfterConstructor": true,
+          "command": 1,
+          "platformWallMs": 46,
+          "platformCpuMs": 6
+        },
+        {
+          "firstCommandAfterConstructor": false,
+          "command": 2,
+          "platformWallMs": 48,
+          "platformCpuMs": 9
+        }
+      ]
+    }
+  },
+  "registrationDoCommands": [
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "platformWallMs": 365,
+      "platformCpuMs": 179
+    },
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "platformWallMs": 2268,
+      "platformCpuMs": 480
+    },
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "platformWallMs": 346,
+      "platformCpuMs": 150
+    },
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "platformWallMs": 2166,
+      "platformCpuMs": 456
+    },
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "platformWallMs": 347,
+      "platformCpuMs": 150
+    },
+    {
+      "role": "deriver-a",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "platformWallMs": 2364,
+      "platformCpuMs": 489
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 516,
+      "platformCpuMs": 241
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 57,
+      "platformCpuMs": 14
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 3,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 53,
+      "platformCpuMs": 11
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 508,
+      "platformCpuMs": 221
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 59,
+      "platformCpuMs": 13
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 3,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 51,
+      "platformCpuMs": 10
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 428,
+      "platformCpuMs": 160
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 2,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 50,
+      "platformCpuMs": 8
+    },
+    {
+      "role": "deriver-b",
+      "firstCommandAfterConstructor": false,
+      "command": 3,
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "platformWallMs": 47,
+      "platformCpuMs": 7
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": true,
+      "command": 1,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 85,
+      "platformCpuMs": 43
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 11,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 41,
+      "platformCpuMs": 5
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 12,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 45,
+      "platformCpuMs": 9
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 13,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 41,
+      "platformCpuMs": 5
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 14,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 46,
+      "platformCpuMs": 8
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 12,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 49,
+      "platformCpuMs": 9
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 13,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 45,
+      "platformCpuMs": 6
+    },
+    {
+      "role": "signing-worker",
+      "firstCommandAfterConstructor": false,
+      "command": 14,
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "platformWallMs": 52,
+      "platformCpuMs": 10
+    }
+  ],
+  "routerSetupStages": {
+    "control": {
+      "router.deriver_a_execute": {
+        "n": 2,
+        "medianMs": 2487.5,
+        "minimumMs": 2289,
+        "maximumMs": 2686,
+        "samplesMs": [
+          2686,
+          2289
+        ]
+      },
+      "router.deriver_a_execute.http": {
+        "n": 2,
+        "medianMs": 2487.5,
+        "minimumMs": 2289,
+        "maximumMs": 2686,
+        "samplesMs": [
+          2686,
+          2289
+        ]
+      },
+      "router.parse_and_authorize": {
+        "n": 2,
+        "medianMs": 716.5,
+        "minimumMs": 673,
+        "maximumMs": 760,
+        "samplesMs": [
+          673,
+          760
+        ]
+      },
+      "router.prepare_pair": {
+        "n": 2,
+        "medianMs": 1599.0,
+        "minimumMs": 1355,
+        "maximumMs": 1843,
+        "samplesMs": [
+          1843,
+          1355
+        ]
+      },
+      "router.prepare_pair.deriver_a": {
+        "n": 2,
+        "medianMs": 1457.0,
+        "minimumMs": 1071,
+        "maximumMs": 1843,
+        "samplesMs": [
+          1843,
+          1071
+        ]
+      },
+      "router.prepare_pair.deriver_b": {
+        "n": 2,
+        "medianMs": 1404.5,
+        "minimumMs": 1355,
+        "maximumMs": 1454,
+        "samplesMs": [
+          1454,
+          1355
+        ]
+      },
+      "router.signing_worker_delivery": {
+        "n": 2,
+        "medianMs": 807.5,
+        "minimumMs": 716,
+        "maximumMs": 899,
+        "samplesMs": [
+          899,
+          716
+        ]
+      },
+      "router.verify_readiness_receipts": {
+        "n": 2,
+        "medianMs": 0.0,
+        "minimumMs": 0,
+        "maximumMs": 0,
+        "samplesMs": [
+          0,
+          0
+        ]
+      },
+      "router.yao_execute": {
+        "n": 2,
+        "medianMs": 4906.0,
+        "minimumMs": 4371,
+        "maximumMs": 5441,
+        "samplesMs": [
+          5441,
+          4371
+        ]
+      }
+    },
+    "candidate": {
+      "router.deriver_a_execute": {
+        "n": 3,
+        "medianMs": 3084,
+        "minimumMs": 2332,
+        "maximumMs": 3291,
+        "samplesMs": [
+          3291,
+          2332,
+          3084
+        ]
+      },
+      "router.deriver_a_execute.http": {
+        "n": 3,
+        "medianMs": 3084,
+        "minimumMs": 2332,
+        "maximumMs": 3291,
+        "samplesMs": [
+          3291,
+          2332,
+          3084
+        ]
+      },
+      "router.parse_and_authorize": {
+        "n": 3,
+        "medianMs": 711,
+        "minimumMs": 634,
+        "maximumMs": 712,
+        "samplesMs": [
+          712,
+          711,
+          634
+        ]
+      },
+      "router.prepare_pair": {
+        "n": 3,
+        "medianMs": 1439,
+        "minimumMs": 1398,
+        "maximumMs": 2568,
+        "samplesMs": [
+          1398,
+          2568,
+          1439
+        ]
+      },
+      "router.prepare_pair.deriver_a": {
+        "n": 3,
+        "medianMs": 1327,
+        "minimumMs": 1023,
+        "maximumMs": 1398,
+        "samplesMs": [
+          1398,
+          1327,
+          1023
+        ]
+      },
+      "router.prepare_pair.deriver_b": {
+        "n": 3,
+        "medianMs": 1439,
+        "minimumMs": 1273,
+        "maximumMs": 2568,
+        "samplesMs": [
+          1273,
+          2568,
+          1439
+        ]
+      },
+      "router.signing_worker_delivery": {
+        "n": 3,
+        "medianMs": 587,
+        "minimumMs": 495,
+        "maximumMs": 722,
+        "samplesMs": [
+          722,
+          587,
+          495
+        ]
+      },
+      "router.verify_readiness_receipts": {
+        "n": 3,
+        "medianMs": 0,
+        "minimumMs": 0,
+        "maximumMs": 0,
+        "samplesMs": [
+          0,
+          0,
+          0
+        ]
+      },
+      "router.yao_execute": {
+        "n": 3,
+        "medianMs": 5426,
+        "minimumMs": 5031,
+        "maximumMs": 5502,
+        "samplesMs": [
+          5426,
+          5502,
+          5031
+        ]
+      }
+    },
+    "final": {
+      "router.deriver_a_execute": {
+        "n": 3,
+        "medianMs": 2296,
+        "minimumMs": 2200,
+        "maximumMs": 2396,
+        "samplesMs": [
+          2296,
+          2200,
+          2396
+        ]
+      },
+      "router.deriver_a_execute.http": {
+        "n": 3,
+        "medianMs": 2296,
+        "minimumMs": 2200,
+        "maximumMs": 2396,
+        "samplesMs": [
+          2296,
+          2200,
+          2396
+        ]
+      },
+      "router.parse_and_authorize": {
+        "n": 3,
+        "medianMs": 662,
+        "minimumMs": 620,
+        "maximumMs": 715,
+        "samplesMs": [
+          620,
+          662,
+          715
+        ]
+      },
+      "router.prepare_pair": {
+        "n": 3,
+        "medianMs": 1537,
+        "minimumMs": 1240,
+        "maximumMs": 1662,
+        "samplesMs": [
+          1662,
+          1537,
+          1240
+        ]
+      },
+      "router.prepare_pair.deriver_a": {
+        "n": 3,
+        "medianMs": 1277,
+        "minimumMs": 910,
+        "maximumMs": 1300,
+        "samplesMs": [
+          1277,
+          1300,
+          910
+        ]
+      },
+      "router.prepare_pair.deriver_b": {
+        "n": 3,
+        "medianMs": 1537,
+        "minimumMs": 1240,
+        "maximumMs": 1662,
+        "samplesMs": [
+          1662,
+          1537,
+          1240
+        ]
+      },
+      "router.signing_worker_delivery": {
+        "n": 3,
+        "medianMs": 719,
+        "minimumMs": 711,
+        "maximumMs": 860,
+        "samplesMs": [
+          860,
+          719,
+          711
+        ]
+      },
+      "router.verify_readiness_receipts": {
+        "n": 3,
+        "medianMs": 0,
+        "minimumMs": 0,
+        "maximumMs": 0,
+        "samplesMs": [
+          0,
+          0,
+          0
+        ]
+      },
+      "router.yao_execute": {
+        "n": 3,
+        "medianMs": 4467,
+        "minimumMs": 4360,
+        "maximumMs": 4832,
+        "samplesMs": [
+          4832,
+          4467,
+          4360
+        ]
+      }
+    },
+    "control-after": {
+      "router.deriver_a_execute": {
+        "n": 3,
+        "medianMs": 3071,
+        "minimumMs": 2013,
+        "maximumMs": 3131,
+        "samplesMs": [
+          3131,
+          2013,
+          3071
+        ]
+      },
+      "router.deriver_a_execute.http": {
+        "n": 3,
+        "medianMs": 3071,
+        "minimumMs": 2013,
+        "maximumMs": 3131,
+        "samplesMs": [
+          3131,
+          2013,
+          3071
+        ]
+      },
+      "router.parse_and_authorize": {
+        "n": 3,
+        "medianMs": 698,
+        "minimumMs": 643,
+        "maximumMs": 801,
+        "samplesMs": [
+          801,
+          698,
+          643
+        ]
+      },
+      "router.prepare_pair": {
+        "n": 3,
+        "medianMs": 1618,
+        "minimumMs": 1450,
+        "maximumMs": 1738,
+        "samplesMs": [
+          1738,
+          1618,
+          1450
+        ]
+      },
+      "router.prepare_pair.deriver_a": {
+        "n": 3,
+        "medianMs": 1618,
+        "minimumMs": 1274,
+        "maximumMs": 1738,
+        "samplesMs": [
+          1738,
+          1618,
+          1274
+        ]
+      },
+      "router.prepare_pair.deriver_b": {
+        "n": 3,
+        "medianMs": 1497,
+        "minimumMs": 1450,
+        "maximumMs": 1521,
+        "samplesMs": [
+          1497,
+          1521,
+          1450
+        ]
+      },
+      "router.signing_worker_delivery": {
+        "n": 3,
+        "medianMs": 797,
+        "minimumMs": 756,
+        "maximumMs": 1124,
+        "samplesMs": [
+          1124,
+          756,
+          797
+        ]
+      },
+      "router.verify_readiness_receipts": {
+        "n": 3,
+        "medianMs": 0,
+        "minimumMs": 0,
+        "maximumMs": 0,
+        "samplesMs": [
+          0,
+          0,
+          0
+        ]
+      },
+      "router.yao_execute": {
+        "n": 3,
+        "medianMs": 5333,
+        "minimumMs": 4396,
+        "maximumMs": 6006,
+        "samplesMs": [
+          6006,
+          4396,
+          5333
+        ]
+      }
+    },
+    "post-idle": {
+      "router.deriver_a_execute": {
+        "n": 1,
+        "medianMs": 2267,
+        "minimumMs": 2267,
+        "maximumMs": 2267,
+        "samplesMs": [
+          2267
+        ]
+      },
+      "router.deriver_a_execute.http": {
+        "n": 1,
+        "medianMs": 2267,
+        "minimumMs": 2267,
+        "maximumMs": 2267,
+        "samplesMs": [
+          2267
+        ]
+      },
+      "router.parse_and_authorize": {
+        "n": 1,
+        "medianMs": 769,
+        "minimumMs": 769,
+        "maximumMs": 769,
+        "samplesMs": [
+          769
+        ]
+      },
+      "router.prepare_pair": {
+        "n": 1,
+        "medianMs": 1200,
+        "minimumMs": 1200,
+        "maximumMs": 1200,
+        "samplesMs": [
+          1200
+        ]
+      },
+      "router.prepare_pair.deriver_a": {
+        "n": 1,
+        "medianMs": 955,
+        "minimumMs": 955,
+        "maximumMs": 955,
+        "samplesMs": [
+          955
+        ]
+      },
+      "router.prepare_pair.deriver_b": {
+        "n": 1,
+        "medianMs": 1200,
+        "minimumMs": 1200,
+        "maximumMs": 1200,
+        "samplesMs": [
+          1200
+        ]
+      },
+      "router.signing_worker_delivery": {
+        "n": 1,
+        "medianMs": 753,
+        "minimumMs": 753,
+        "maximumMs": 753,
+        "samplesMs": [
+          753
+        ]
+      },
+      "router.verify_readiness_receipts": {
+        "n": 1,
+        "medianMs": 0,
+        "minimumMs": 0,
+        "maximumMs": 0,
+        "samplesMs": [
+          0
+        ]
+      },
+      "router.yao_execute": {
+        "n": 1,
+        "medianMs": 4236,
+        "minimumMs": 4236,
+        "maximumMs": 4236,
+        "samplesMs": [
+          4236
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Three wallets per main arm. Small samples do not establish a population latency guarantee.",
+    "Yao execute excludes user funding and NEAR provisioning. Registration workflow and first signing SDK figures include other work.",
+    "Routine signing code is unchanged except diagnostics; routine timing differences are not attributed to the root-store change.",
+    "Worker Date-based spans are scoped clock observations. Use Cloudflare wallTime/cpuTime for complete handler comparisons.",
+    "Constructor occurrence does not measure constructor cost or prove physical placement.",
+    "Tail events may be missing. Recorded root counts must equal twelve loads before claiming four loads per setup.",
+    "Registration intervals group events only; no latency is computed by subtracting clocks on different machines."
+  ],
+  "restoration": {
+    "deriver-a": {
+      "wasmSha256": "b45c8ffce31abbe65615032ad5f778d0a41b54daa18e5512e9654e7b934eed6b",
+      "originalBindingsMatch": true,
+      "originalWasmMatches": true
+    },
+    "deriver-b": {
+      "wasmSha256": "187b959d09c5b83bd49103e877e3b93739cd60e4a6c82b3bf2e3ed1861117df9",
+      "originalBindingsMatch": true,
+      "originalWasmMatches": true
+    },
+    "signing-worker": {
+      "wasmSha256": "bdd851961e73f005105e1bcc33d145c04672eb89c798667b7f925e46e37d4073",
+      "originalBindingsMatch": true,
+      "originalWasmMatches": true
+    }
+  }
+}

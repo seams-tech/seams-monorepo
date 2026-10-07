@@ -245,16 +245,16 @@ to explain the measured path. There is no evidence here of a general Cloudflare
 outage or a cryptographic algorithm regression.
 
 1. **Consolidate the root-store operation.**
-   - [ ] Keep an authenticated initial row read. Batch conditional admission and
+   - [x] Keep an authenticated initial row read. Batch conditional admission and
          the dependent reads into one transaction using the existing SQL adapter.
-   - [ ] Target at most two D1 round trips per bound-root load: eight across the
+   - [x] Target at most two D1 round trips per bound-root load: eight across the
          four loads, versus twenty today. Count SQL statements separately from trips.
-   - [ ] Validate the transaction's results as one precise lifecycle outcome.
+   - [x] Validate the transaction's results as one precise lifecycle outcome.
          Preserve active-root uniqueness, exact binding checks, retired-epoch access
          for admitted work, cancellation, erasure and conflicting-attempt rejection.
-   - [ ] Remove superseded reread/fallback helpers. Extract this operation from
+   - [x] Remove superseded reread/fallback helpers. Extract this operation from
          the oversized store module along its existing domain boundary.
-   - [ ] Then remove repeated row decryption and redundant SQL where the same
+   - [x] Then remove repeated row decryption and redundant SQL where the same
          transaction snapshot proves the required facts. Do not introduce a global
          plaintext-share cache or weaken per-execution checks.
 
@@ -309,3 +309,101 @@ The local evidence directory is `.artifacts/r155b-near-hosted-20261007/`. It con
 frozen sources, build hashes, deployment and migration logs, workflow results,
 raw benchmark samples and `analyze.py`. Failed diagnostic attempts remain separate.
 Protected probe credentials and raw Worker tails are not published in this report.
+
+
+## Phase 6A controlled comparison — 2026-10-07
+
+The final custody candidate reduces the Yao execute median by 0.75–0.90 seconds
+against controls run before and after it. The two-second target remains unmet.
+Each main arm used three new NEAR-only wallets and verified 21 signatures.
+
+| Arm | Yao execute median | Range / maximum |
+| --- | ---: | ---: |
+| Original source, before | 6.316 s | 5.314–6.638 s |
+| Admission/read batching only | 6.457 s | 5.834–6.460 s |
+| Final candidate | **5.414 s** | **5.278–5.653 s** |
+| Original source, after | 6.165 s | 5.279–7.012 s |
+
+The measured reduction is approximately 12–14%. These small samples overlap.
+They establish an observed improvement, with no population latency guarantee.
+The batching-only arm did not improve total setup. The final candidate also
+removes a repeated row decryption and adds diagnostics and lifecycle error mapping.
+The experiment cannot attribute the full improvement to any single subchange.
+Yao execute excludes user funding and NEAR provisioning.
+
+The four bound-root loads now use **8 remote D1 trips instead of 20** per setup.
+They still execute **20 SQL statements**. Twelve hosted load events across the
+three final wallets recorded 24 trips and 60 statements. Each load opens two
+encrypted rows instead of three. These counts exclude other custody and Gateway D1.
+
+The final Router spans identify the remaining work:
+
+| Stage | Median | Range |
+| --- | ---: | ---: |
+| Parse and authorize | 662 ms | 620–715 ms |
+| Parallel preparation of A and B | 1,537 ms | 1,240–1,662 ms |
+| Deriver A execution | 2,296 ms | 2,200–2,396 ms |
+| Signing-worker delivery | 719 ms | 711–860 ms |
+
+These spans have nested work. Do not add them to nested protocol measurements.
+Cloudflare reports signing-worker delivery handlers of 85–153 ms wall time.
+The remainder of the caller span is unresolved. Worker clock spans can omit
+synchronous CPU time. Use platform wall/CPU measurements for handler comparisons.
+The difference between caller and handler spans does not prove network or startup cost.
+
+Delivery already uses one wallet-DO transaction. It has no repeated D1 write
+sequence to batch. Deriver B already returns sealed durable completion through
+its protocol WebSocket. There is no extra completion-status request to remove.
+Keep the durable claim and completion writes when reducing further boundaries.
+
+### Routine signing and idle comparison
+
+| Final candidate workload | Count | SDK median | Range / maximum |
+| --- | ---: | ---: | ---: |
+| Warm signing after registration | 6 | 2.726 s | 1.840–2.963 s |
+| First signing after unlock | 3 | 1.645 s | 1.587–1.684 s |
+| Three consecutive signatures | 9 | 1.979 s | 1.574–2.645 s |
+
+The root-store change affects registration. Routine signing changes only include
+diagnostics, so these signing differences are not attributed to that optimization.
+Every ordinary signature still used six Gateway POSTs: two status reads, two owner
+lane reads, prepare and finalize. Current Gateway headers omit D1 and Console
+counters. The evidence records those measurements as unavailable, not zero.
+
+A separate wallet supplied nine verified signatures, including a 65-second idle
+comparison. A fresh grant kept both measured signatures away from budget step-up.
+The warm SDK call took 1.721 seconds. The post-idle call took 2.617 seconds.
+Both used six Gateway POSTs. The signing DO was reconstructed after idle.
+Its first handler took 46 ms, versus 44 ms while warm. Its second handler took
+48 ms in both cases. This sample does not justify a keepalive or warm pool.
+The extra SDK time remains only partly attributed by the recorded HTTP timeline.
+
+### Correctness, sources and cleanup
+
+The custody E2E scenarios passed for admission races, replay after erasure,
+DO admission settlement, and ECDSA across refresh. The admission-race scenario
+exposed a lifecycle refusal that Deriver A converted to generic HTTP 500.
+The candidate preserves the existing typed recoverable failure at that boundary.
+A release-build claimed-recovery invocation lacked its development-only fault.
+It is excluded from acceptance evidence.
+
+The controlled arms and idle case verified **93 signatures** in total.
+All five role release builds, focused checks, SDK-independent bloat checks and
+benchmark type checks passed. The public implementation is on `dev` in commits
+`9d4e3388` and `3690a15d`. The frozen source starts at `2bee39ab`; its own file
+hashes identify the exact deployed candidate, independently of concurrent R153 edits.
+
+Only existing staging A, B and signing-worker deployments changed during the
+comparison. Original WASM and all bindings were restored and verified afterward.
+Router, Gateway, Runtime and Console deployments remained unchanged.
+No resource or keepalive was created. This experiment remains within the existing
+$25 budget constraint; these timings are not a Cloudflare billing audit.
+
+[Sanitized comparison and raw sample hashes](./evidence/r155b-near-phase6a-20261007.json).
+Local frozen builds, raw tails, deployment records, restoration verification and
+`analyze.py` remain in `.artifacts/r155b-near-phase6a/`. Raw tails are protected.
+The public custody E2E artifact is
+`seams-wallet/docs/evidence/r155b-root-admission-20261007.json`.
+
+Phase 6A remains open. The principal remaining work is authenticated first-touch
+placement, reducing the measured DO boundaries, and safe NEAR preflight consolidation.

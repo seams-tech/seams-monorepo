@@ -1,4 +1,7 @@
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
+import { WalletRelocationDriver } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationDriver';
+import { D1WalletRelocations } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
+import type { WalletRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocation';
 import { relocationFixtureBindings } from '../fixtures/tenant-deployment/walletRelocationPreparation';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { verifyCleanupAssembly } from './cleanup-assembly.scenario';
@@ -217,6 +220,7 @@ async function replayMove(
   request: WalletRelocationRequest,
   requestDigest: string,
   key = request.wallet,
+  onAdmitted: (move: WalletRelocation) => Promise<void> = preserveManualExecution,
 ) {
   const catalog = WalletHomeCatalog.parse([source, destination, thirdHome, apacHome]);
   return handleWalletRelocationAdmission(
@@ -239,7 +243,7 @@ async function replayMove(
       deploymentLane: 'test',
       bindings: relocationFixtureBindings(request, admittedAtMs),
       verifyResources: unexpectedReplayPreparation,
-      onAdmitted: preserveManualExecution,
+      onAdmitted,
       clock: Date.now,
     },
   );
@@ -247,6 +251,55 @@ async function replayMove(
 
 // This journal scenario advances each stage explicitly to inject faults.
 async function preserveManualExecution(): Promise<void> {}
+
+class DriverClock {
+  constructor(public nowMs: number) {}
+
+  now(): number {
+    return this.nowMs;
+  }
+}
+
+async function verifyDriverRecovery(runtime: Miniflare, request: WalletRelocationRequest) {
+  const database = await runtime.getD1Database('CONSOLE_DB', 'ingress-a');
+  const competingDatabase = await runtime.getD1Database('CONSOLE_DB', 'ingress-b');
+  const catalog = WalletHomeCatalog.parse([source, destination, thirdHome, apacHome]);
+  const move = await new D1WalletRelocations(database, catalog).find(request);
+  if (!move) throw new Error('Expected an admitted move');
+  const clock = new DriverClock(admittedAtMs);
+  const now = clock.now.bind(clock);
+  const claims = await Promise.all([
+    WalletRelocationDriver.claim(database, move, now),
+    WalletRelocationDriver.claim(competingDatabase, move, now),
+  ]);
+  const owners = claims.filter(isClaimedDriver);
+  expect(owners).toHaveLength(1);
+  const original = owners[0];
+  try {
+    expect(await WalletRelocationDriver.claim(competingDatabase, move, now)).toBeNull();
+    // Simulate a stopped invocation whose durable lease was never released.
+    clock.nowMs += 120_001;
+    expect(original.held).toBe(false);
+    const recovered = await WalletRelocationDriver.claim(competingDatabase, move, now);
+    if (!recovered) throw new Error('Expired driver must permit recovery');
+    try {
+      await original.release();
+      expect(await WalletRelocationDriver.claim(database, move, now)).toBeNull();
+    } finally {
+      await recovered.release();
+    }
+    const next = await WalletRelocationDriver.claim(database, move, now);
+    if (!next) throw new Error('Released driver must permit cleanup');
+    await next.release();
+  } finally {
+    await original.release();
+  }
+  return { driverClaimRace: true, expiredDriverRecovery: true, staleReleasePreservesNewDriver: true };
+}
+
+function isClaimedDriver(driver: WalletRelocationDriver | null): driver is WalletRelocationDriver {
+  return driver !== null;
+}
 
 async function unexpectedReplayPreparation(): Promise<never> {
   throw new Error('Exact replay must not prepare resources again');
@@ -699,6 +752,15 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
+    await establish(runtime, 'response-status');
+    const responseMove = relocation('response-status', destination);
+    expect(await responseBody(await call(runtime, {
+      action: 'admit', request: responseMove, nowMs: admittedAtMs,
+    }))).toMatchObject({ ok: true });
+    const activatedResponse = await replayMove(runtime, responseMove, await responseMove.digest(),
+      responseMove.wallet, finishPriorMove.bind(null, runtime, responseMove));
+    expect(await responseBody(activatedResponse)).toMatchObject({ state: 'completed' });
+    observations.push({ admissionReturnsCurrentStatusAfterExecution: true });
     observations.push(await verifyRegistrationExecutionAdmission(
       runtime, wallet('registration-execution'), source, destination,
       [source, destination, thirdHome, apacHome],
@@ -881,6 +943,7 @@ test('relocation directory serializes competing moves and survives lost replies 
         .run(),
     ).rejects.toThrow();
     observations.push({ pinnedPreparation: preparationEvidence, replaySkippedPreparation: true });
+    observations.push(await verifyDriverRecovery(runtime, request));
     observations.push(
       await verifyRelocationReadRouting(runtime, request, source, [
         source, destination, thirdHome, apacHome,

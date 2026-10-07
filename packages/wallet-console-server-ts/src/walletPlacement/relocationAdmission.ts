@@ -91,7 +91,7 @@ export async function handleWalletRelocationAdmission(
   if (existing) {
     if (!existing.matchesRequest(intent, digest)) return failure('request_conflict', 409);
     await options.onAdmitted(existing);
-    return json(walletRelocationStatusView(existing));
+    return await currentStatus(journal, intent);
   }
   const placement = await readWalletPlacementStatus(options.database, wallet);
   if (placement.state === 'unavailable') return failure('not_found', 404);
@@ -119,7 +119,7 @@ export async function handleWalletRelocationAdmission(
     if (!result.ok) return json(result, 409);
     if (result.disposition === 'unchanged') return failure('destination_unchanged', 409);
     await options.onAdmitted(result.move);
-    return json(walletRelocationStatusView(result.move));
+    return await currentStatus(journal, intent);
   } catch (error) {
     console.warn(
       'Wallet relocation preparation failed',
@@ -127,6 +127,15 @@ export async function handleWalletRelocationAdmission(
     );
     return failure('relocation_preparation_unavailable', 503);
   }
+}
+
+async function currentStatus(
+  journal: D1WalletRelocations,
+  intent: WalletRelocationRequest,
+): Promise<Response> {
+  const current = await journal.find(intent);
+  if (!current) return failure('not_found', 404);
+  return json(walletRelocationStatusView(current));
 }
 
 function failure(code: string, status: number): Response {

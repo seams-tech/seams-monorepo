@@ -1,5 +1,9 @@
 # R155B: NEAR-only hosted benchmarks, 2026-10-07
 
+For the later A/B execution and Durable Object location measurements, see
+[the custody location report](r155b-custody-location-20261007.md).
+It records a separate candidate and an uninstrumented latency control.
+
 The clean browser run used passkey registration and unlock. It verified 21 NEAR
 signatures across three new wallets. No
 ECDSA signer worker or ECDSA operation WASM loaded. A separate diagnostic run

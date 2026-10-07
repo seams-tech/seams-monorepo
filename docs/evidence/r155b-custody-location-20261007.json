@@ -1,0 +1,1077 @@
+{
+  "measurement": "Staging testnet A/B execution and wallet Durable Object observations",
+  "date": "2026-10-07",
+  "method": "Temporary JS wrappers around unchanged deployed WASM. Outbound cloudflare.com/cdn-cgi/trace observation per execution context. A execution occurs inside A DO. B execution occurs in B Worker.",
+  "limits": [
+    "Trace colo identifies the probe-serving Cloudflare location, not physical host identity.",
+    "Trace country is retained as raw probe metadata. It is not evidence of the execution country.",
+    "Two wallets have all four context observations. The first wallet lacks B tail observations.",
+    "Probe timings include observer overhead. Use the restored-version latency control for latency claims.",
+    "Tail spans are incomplete observations and are not full-system request counts.",
+    "Three fresh wallets per arm do not establish a placement compliance rate.",
+    "The B protocol span reports 0 ms at the available Worker clock resolution. This does not establish zero CPU cost."
+  ],
+  "baseline": {
+    "observedAt": "2026-10-07T10:23:34.850454+00:00",
+    "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+    "workers": [
+      {
+        "worker": "seams-sdk-d1-console-staging",
+        "versions": [
+          {
+            "version_id": "ffe8e062-b10c-4702-a64d-538a101a09ff",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-deriver-a-staging",
+        "versions": [
+          {
+            "version_id": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-deriver-b-staging",
+        "versions": [
+          {
+            "version_id": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-mpc-router-staging",
+        "versions": [
+          {
+            "version_id": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-signing-worker-staging",
+        "versions": [
+          {
+            "version_id": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging",
+        "versions": [
+          {
+            "version_id": "6bcf635e-a9ac-46fe-8981-3145136a49d0",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-oc",
+        "versions": [
+          {
+            "version_id": "2f555f9a-bca7-43b1-87e8-f50d9ffcd18c",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-us",
+        "versions": [
+          {
+            "version_id": "4fb33bc0-3e64-424e-ad1e-b5fc81ccd4cb",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-weur",
+        "versions": [
+          {
+            "version_id": "19cb5a5b-a00a-46b5-beff-7dd0096a506b",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging",
+        "versions": [
+          {
+            "version_id": "ba435195-8e73-4aad-8fe2-fe4233d50092",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-oc",
+        "versions": [
+          {
+            "version_id": "d43c21e9-3c86-469e-8755-c5745fcb49a7",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-us",
+        "versions": [
+          {
+            "version_id": "27675e94-13a6-4c2d-9c83-cc746af61387",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-weur",
+        "versions": [
+          {
+            "version_id": "3879a02b-1f34-4541-8983-96f1998d9a0a",
+            "percentage": 100
+          }
+        ]
+      }
+    ]
+  },
+  "probeVersions": {
+    "seams-sdk-d1-console-staging": [
+      {
+        "version_id": "ffe8e062-b10c-4702-a64d-538a101a09ff",
+        "percentage": 100
+      }
+    ],
+    "router-ab-deriver-a-staging": [
+      {
+        "version_id": "e5c6cbb6-9dee-4c08-ba2a-2653430306e4",
+        "percentage": 100
+      }
+    ],
+    "router-ab-deriver-b-staging": [
+      {
+        "version_id": "2ccc6e89-7fa4-4d7d-99fd-ac1975cc38f1",
+        "percentage": 100
+      }
+    ],
+    "router-ab-mpc-router-staging": [
+      {
+        "version_id": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+        "percentage": 100
+      }
+    ],
+    "router-ab-signing-worker-staging": [
+      {
+        "version_id": "c18b2202-8063-4c96-9772-fb1a268494fc",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging": [
+      {
+        "version_id": "6bcf635e-a9ac-46fe-8981-3145136a49d0",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-oc": [
+      {
+        "version_id": "2f555f9a-bca7-43b1-87e8-f50d9ffcd18c",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-us": [
+      {
+        "version_id": "4fb33bc0-3e64-424e-ad1e-b5fc81ccd4cb",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-weur": [
+      {
+        "version_id": "19cb5a5b-a00a-46b5-beff-7dd0096a506b",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging": [
+      {
+        "version_id": "ba435195-8e73-4aad-8fe2-fe4233d50092",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-oc": [
+      {
+        "version_id": "d43c21e9-3c86-469e-8755-c5745fcb49a7",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-us": [
+      {
+        "version_id": "27675e94-13a6-4c2d-9c83-cc746af61387",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-weur": [
+      {
+        "version_id": "3879a02b-1f34-4541-8983-96f1998d9a0a",
+        "percentage": 100
+      }
+    ]
+  },
+  "restored": {
+    "observedAt": "2026-10-07T10:31:42.312751+00:00",
+    "workers": {
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "ffe8e062-b10c-4702-a64d-538a101a09ff",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "c18b2202-8063-4c96-9772-fb1a268494fc",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "6bcf635e-a9ac-46fe-8981-3145136a49d0",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "2f555f9a-bca7-43b1-87e8-f50d9ffcd18c",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "4fb33bc0-3e64-424e-ad1e-b5fc81ccd4cb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "19cb5a5b-a00a-46b5-beff-7dd0096a506b",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "ba435195-8e73-4aad-8fe2-fe4233d50092",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "d43c21e9-3c86-469e-8755-c5745fcb49a7",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "27675e94-13a6-4c2d-9c83-cc746af61387",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "3879a02b-1f34-4541-8983-96f1998d9a0a",
+          "percentage": 100
+        }
+      ]
+    }
+  },
+  "completion": {
+    "finishedAt": "2026-10-07T10:33:57.744568+00:00",
+    "probeSamples": 3,
+    "controlSamples": 3,
+    "allVersionsRestored": true
+  },
+  "observations": [
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "daa54ec1e720fd60ea5b22dc8ff8a528bfca0aa9309570823d441b641a72b682",
+      "observedAt": "2026-10-07T10:30:06.759Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 54
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "daa54ec1e720fd60ea5b22dc8ff8a528bfca0aa9309570823d441b641a72b682",
+      "observedAt": "2026-10-07T10:30:08.237Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 46
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_execution"
+      ],
+      "pairDigest": "daa54ec1e720fd60ea5b22dc8ff8a528bfca0aa9309570823d441b641a72b682",
+      "observedAt": "2026-10-07T10:30:08.158Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 2
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "daa54ec1e720fd60ea5b22dc8ff8a528bfca0aa9309570823d441b641a72b682",
+      "observedAt": "2026-10-07T10:30:09.839Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 43
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "f4494d311b0a7cf22885db800a824eb94e04517dc8f676cbc7c8be241e11d7dd",
+      "observedAt": "2026-10-07T10:30:54.315Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 55
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "f4494d311b0a7cf22885db800a824eb94e04517dc8f676cbc7c8be241e11d7dd",
+      "observedAt": "2026-10-07T10:30:55.586Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 60
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_execution"
+      ],
+      "pairDigest": "f4494d311b0a7cf22885db800a824eb94e04517dc8f676cbc7c8be241e11d7dd",
+      "observedAt": "2026-10-07T10:30:55.591Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 1
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "b_do"
+      ],
+      "pairDigest": "f4494d311b0a7cf22885db800a824eb94e04517dc8f676cbc7c8be241e11d7dd",
+      "observedAt": "2026-10-07T10:30:56.750Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 45
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "a_execution",
+        "a_do"
+      ],
+      "pairDigest": "797aff820e9795436602ff0613a29994ca8b419ad60e3e7c29e96ce5deed7d0d",
+      "observedAt": "2026-10-07T10:29:17.674Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 1
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "a_execution",
+        "a_do"
+      ],
+      "pairDigest": "daa54ec1e720fd60ea5b22dc8ff8a528bfca0aa9309570823d441b641a72b682",
+      "observedAt": "2026-10-07T10:30:09.561Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 2
+    },
+    {
+      "event": "custody_execution_location_probe",
+      "scopes": [
+        "a_execution",
+        "a_do"
+      ],
+      "pairDigest": "f4494d311b0a7cf22885db800a824eb94e04517dc8f676cbc7c8be241e11d7dd",
+      "observedAt": "2026-10-07T10:30:56.231Z",
+      "ingressColo": null,
+      "kind": "outbound_trace_observation",
+      "status": "observed",
+      "colo": "HKG",
+      "country": "JP",
+      "probeMs": 2
+    }
+  ],
+  "arms": {
+    "location-probes": {
+      "completedWallets": 3,
+      "verifiedSignatures": 21,
+      "timings": [
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 3,
+          "medianMs": 23550.749,
+          "minimumMs": 21240.29,
+          "maximumMs": 23644.042
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "sdkSigningMs",
+          "samples": 3,
+          "medianMs": 9076.94,
+          "minimumMs": 8050.04,
+          "maximumMs": 9195.045
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "prepare",
+          "samples": 3,
+          "medianMs": 865.4,
+          "minimumMs": 439.3,
+          "maximumMs": 957
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "finalize",
+          "samples": 3,
+          "medianMs": 1018.9,
+          "minimumMs": 423.4,
+          "maximumMs": 1042.8
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "signature_total",
+          "samples": 3,
+          "medianMs": 1487.1,
+          "minimumMs": 1293.9,
+          "maximumMs": 1981
+        },
+        {
+          "workload": "registration",
+          "metric": "yaoExecuteHttpMs",
+          "samples": 3,
+          "medianMs": 6099.47,
+          "minimumMs": 5558.781,
+          "maximumMs": 6701.149
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 6,
+          "medianMs": 3416.405,
+          "minimumMs": 3010.31,
+          "maximumMs": 5315.329
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "sdkSigningMs",
+          "samples": 6,
+          "medianMs": 2902.59,
+          "minimumMs": 2419.4,
+          "maximumMs": 4348.58
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "prepare",
+          "samples": 6,
+          "medianMs": 590.5,
+          "minimumMs": 360.5,
+          "maximumMs": 994.1
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "finalize",
+          "samples": 6,
+          "medianMs": 803.25,
+          "minimumMs": 386,
+          "maximumMs": 1171.2
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "signature_total",
+          "samples": 6,
+          "medianMs": 1244.75,
+          "minimumMs": 771.8,
+          "maximumMs": 2168.3
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 3,
+          "medianMs": 6005.013,
+          "minimumMs": 5756.534,
+          "maximumMs": 7521.714
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "sdkSigningMs",
+          "samples": 3,
+          "medianMs": 2130.225,
+          "minimumMs": 1659.415,
+          "maximumMs": 2911.67
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "prepare",
+          "samples": 3,
+          "medianMs": 711.8,
+          "minimumMs": 562,
+          "maximumMs": 1134.7
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "finalize",
+          "samples": 3,
+          "medianMs": 516.2,
+          "minimumMs": 413.9,
+          "maximumMs": 1048.3
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "signature_total",
+          "samples": 3,
+          "medianMs": 1232.6,
+          "minimumMs": 981.2,
+          "maximumMs": 2187.5
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 9,
+          "medianMs": 2993.785,
+          "minimumMs": 2221.861,
+          "maximumMs": 3049.91
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "sdkSigningMs",
+          "samples": 9,
+          "medianMs": 2076.1,
+          "minimumMs": 1713.12,
+          "maximumMs": 2335.05
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "prepare",
+          "samples": 9,
+          "medianMs": 385.2,
+          "minimumMs": 324.4,
+          "maximumMs": 1109.2
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "finalize",
+          "samples": 9,
+          "medianMs": 440,
+          "minimumMs": 368.8,
+          "maximumMs": 785.6
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "signature_total",
+          "samples": 9,
+          "medianMs": 921.8,
+          "minimumMs": 696.6,
+          "maximumMs": 1483.1
+        }
+      ]
+    },
+    "latency-control": {
+      "completedWallets": 3,
+      "verifiedSignatures": 21,
+      "timings": [
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 3,
+          "medianMs": 20589.845,
+          "minimumMs": 18244.713,
+          "maximumMs": 22303.537
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "sdkSigningMs",
+          "samples": 3,
+          "medianMs": 7496.99,
+          "minimumMs": 6173.47,
+          "maximumMs": 8639.74
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "prepare",
+          "samples": 3,
+          "medianMs": 851.6,
+          "minimumMs": 820.9,
+          "maximumMs": 1088.2
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "finalize",
+          "samples": 3,
+          "medianMs": 882.5,
+          "minimumMs": 577.9,
+          "maximumMs": 940.5
+        },
+        {
+          "workload": "registration_to_first_verified",
+          "metric": "signature_total",
+          "samples": 3,
+          "medianMs": 1739.3,
+          "minimumMs": 1404,
+          "maximumMs": 2033.5
+        },
+        {
+          "workload": "registration",
+          "metric": "yaoExecuteHttpMs",
+          "samples": 3,
+          "medianMs": 6172.809,
+          "minimumMs": 5514.459,
+          "maximumMs": 6692.151
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 6,
+          "medianMs": 2662.608,
+          "minimumMs": 2273.567,
+          "maximumMs": 3771.926
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "sdkSigningMs",
+          "samples": 6,
+          "medianMs": 2211.705,
+          "minimumMs": 1712.815,
+          "maximumMs": 2978.465
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "prepare",
+          "samples": 6,
+          "medianMs": 547.75,
+          "minimumMs": 344,
+          "maximumMs": 1009.5
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "finalize",
+          "samples": 6,
+          "medianMs": 412.9,
+          "minimumMs": 379.6,
+          "maximumMs": 968
+        },
+        {
+          "workload": "warm_signing",
+          "metric": "signature_total",
+          "samples": 6,
+          "medianMs": 1168.4,
+          "minimumMs": 765.6,
+          "maximumMs": 1980
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 3,
+          "medianMs": 4965.064,
+          "minimumMs": 4955.109,
+          "maximumMs": 4980.899
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "sdkSigningMs",
+          "samples": 3,
+          "medianMs": 1544.1,
+          "minimumMs": 1526.235,
+          "maximumMs": 1894.045
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "prepare",
+          "samples": 3,
+          "medianMs": 382.3,
+          "minimumMs": 330.4,
+          "maximumMs": 427
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "finalize",
+          "samples": 3,
+          "medianMs": 405,
+          "minimumMs": 375.5,
+          "maximumMs": 428.4
+        },
+        {
+          "workload": "unlock_to_first_verified",
+          "metric": "signature_total",
+          "samples": 3,
+          "medianMs": 763,
+          "minimumMs": 740.5,
+          "maximumMs": 860.6
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "elapsedToVerifiedMs",
+          "samples": 9,
+          "medianMs": 2281.425,
+          "minimumMs": 2213.622,
+          "maximumMs": 3047.867
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "sdkSigningMs",
+          "samples": 9,
+          "medianMs": 1756.73,
+          "minimumMs": 1377.55,
+          "maximumMs": 2367.35
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "prepare",
+          "samples": 9,
+          "medianMs": 343.4,
+          "minimumMs": 328.2,
+          "maximumMs": 407.5
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "finalize",
+          "samples": 9,
+          "medianMs": 414.7,
+          "minimumMs": 348.5,
+          "maximumMs": 840.5
+        },
+        {
+          "workload": "three_consecutive",
+          "metric": "signature_total",
+          "samples": 9,
+          "medianMs": 761.7,
+          "minimumMs": 688.1,
+          "maximumMs": 1189.9
+        }
+      ]
+    }
+  },
+  "roleSpans": [
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.session_do",
+      "operation": "prepare_pair",
+      "samples": 3,
+      "medianMs": 1325,
+      "minimumMs": 1314,
+      "maximumMs": 1406
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.session_do",
+      "operation": "begin_pair",
+      "samples": 3,
+      "medianMs": 742,
+      "minimumMs": 731,
+      "maximumMs": 749
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.input_private_key",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.transport",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.yao_protocol",
+      "operation": "activation",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.output_serialization",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.session_do",
+      "operation": "complete_pair",
+      "samples": 3,
+      "medianMs": 216,
+      "minimumMs": 216,
+      "maximumMs": 870
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_b.role_execution",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 481,
+      "minimumMs": 436,
+      "maximumMs": 1212
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.session_do",
+      "operation": "prepare_pair",
+      "samples": 3,
+      "medianMs": 1294,
+      "minimumMs": 1133,
+      "maximumMs": 1789
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.session_do",
+      "operation": "begin_pair",
+      "samples": 3,
+      "medianMs": 659,
+      "minimumMs": 533,
+      "maximumMs": 677
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.input_private_key",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.transport",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.yao_protocol",
+      "operation": "activation",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.output_serialization",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.session_do",
+      "operation": "complete_pair",
+      "samples": 3,
+      "medianMs": 162,
+      "minimumMs": 140,
+      "maximumMs": 1270
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_b.role_execution",
+      "operation": "yao",
+      "samples": 3,
+      "medianMs": 424,
+      "minimumMs": 391,
+      "maximumMs": 1532
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_a.websocket_connect",
+      "operation": "websocket",
+      "samples": 3,
+      "medianMs": 890,
+      "minimumMs": 890,
+      "maximumMs": 1045
+    },
+    {
+      "arm": "location-probes",
+      "span": "deriver_a.yao_protocol",
+      "operation": "activation",
+      "samples": 3,
+      "medianMs": 329,
+      "minimumMs": 323,
+      "maximumMs": 955
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_a.websocket_connect",
+      "operation": "websocket",
+      "samples": 3,
+      "medianMs": 807,
+      "minimumMs": 723,
+      "maximumMs": 956
+    },
+    {
+      "arm": "latency-control",
+      "span": "deriver_a.yao_protocol",
+      "operation": "activation",
+      "samples": 3,
+      "medianMs": 285,
+      "minimumMs": 263,
+      "maximumMs": 1347
+    }
+  ],
+  "doHandlers": [
+    {
+      "arm": "location-probes",
+      "role": "deriver_b",
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "samples": 9,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 426
+    },
+    {
+      "arm": "latency-control",
+      "role": "deriver_b",
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "samples": 9,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 303
+    },
+    {
+      "arm": "location-probes",
+      "role": "signing_worker",
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "samples": 44,
+      "medianMs": 0.0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "latency-control",
+      "role": "signing_worker",
+      "path": "/router-ab/internal/signing-worker/wallet",
+      "samples": 45,
+      "medianMs": 0,
+      "minimumMs": 0,
+      "maximumMs": 0
+    },
+    {
+      "arm": "location-probes",
+      "role": "deriver_a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "samples": 3,
+      "medianMs": 155,
+      "minimumMs": 154,
+      "maximumMs": 308
+    },
+    {
+      "arm": "location-probes",
+      "role": "deriver_a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "samples": 3,
+      "medianMs": 1761,
+      "minimumMs": 1733,
+      "maximumMs": 2712
+    },
+    {
+      "arm": "latency-control",
+      "role": "deriver_a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "samples": 3,
+      "medianMs": 160,
+      "minimumMs": 156,
+      "maximumMs": 182
+    },
+    {
+      "arm": "latency-control",
+      "role": "deriver_a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "samples": 3,
+      "medianMs": 1627,
+      "minimumMs": 1583,
+      "maximumMs": 2886
+    }
+  ],
+  "source": {
+    "public": "7d9956879187ae410518d9ec02de96fb5056a52b",
+    "privateDeployment": "2e597ab2cd38df9dce30d69367ed10db3becd23d",
+    "hostedHarness": "d825fdf",
+    "browserAssets": "Existing frozen R155B near-phase6a-next site used by the completed R153 acceptance run"
+  }
+}

@@ -151,6 +151,53 @@ async function seedCeremony(
     .run();
 }
 
+async function seedTerminalCeremony(
+  database: D1DatabaseLike,
+  scope: TenantDeploymentRuntimeScopeV1,
+  completion: 'established' | 'cancelled',
+) {
+  const ceremonyId = `terminal-${completion}`;
+  const state = completion === 'established' ? 'active' : 'retired';
+  await database
+    .prepare(
+      `INSERT INTO wallet_execution_generations
+     (namespace, org_id, project_id, env_id, wallet_id, generation, origin, origin_id, state)
+     VALUES (?1,?2,?3,?4,?5,1,'registration',?5,'registering')`,
+    )
+    .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId, ceremonyId)
+    .run();
+  await database
+    .prepare(
+      `INSERT INTO registration_ceremony_records
+     (namespace, org_id, project_id, env_id, record_scope, record_id, version, record_json, expires_at_ms)
+     VALUES (?1,?2,?3,?4,'setup-ceremony',?5,1,json_object('registrationCeremonyId',?5),?6)`,
+    )
+    .bind(
+      scope.namespace,
+      scope.organizationId,
+      scope.projectId,
+      scope.environmentId,
+      ceremonyId,
+      Date.now() + 300_000,
+    )
+    .run();
+  await database
+    .prepare(
+      `UPDATE wallet_execution_generations SET state = ?6, registration_completion = ?7
+     WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND wallet_id = ?5`,
+    )
+    .bind(
+      scope.namespace,
+      scope.organizationId,
+      scope.projectId,
+      scope.environmentId,
+      ceremonyId,
+      state,
+      completion,
+    )
+    .run();
+}
+
 test('regional deployment renewal preserves the browser key and retires previous writer versions', async () => {
   const testInfo = test.info();
   test.setTimeout(120_000);
@@ -187,7 +234,11 @@ test('regional deployment renewal preserves the browser key and retires previous
           'migrations/d1-signer',
         ),
       );
-    const localAdmission = new RegionalDeploymentTestInstaller({ US: usDatabase, WEUR: weurDatabase, APAC: apacDatabase });
+    const localAdmission = new RegionalDeploymentTestInstaller({
+      US: usDatabase,
+      WEUR: weurDatabase,
+      APAC: apacDatabase,
+    });
     const scenario = await provisioningScenario(
       database,
       regional.inspector,
@@ -227,23 +278,63 @@ test('regional deployment renewal preserves the browser key and retires previous
       versionId: initialUsProof.authority.gateway.versionId,
       resource: initialUsProof.resource,
     };
-    const controlBody = JSON.stringify({ action: 'activate', binding: initialBinding,
-      activationSequence: initial.activationSequence, resourceVerificationsJson: JSON.stringify(initialProofs) });
-    const controlRequest = new Request('https://wallet-runtime.internal/internal/tenant-deployment/v1/regional-admission', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: controlBody,
+    const controlBody = JSON.stringify({
+      action: 'activate',
+      binding: initialBinding,
+      activationSequence: initial.activationSequence,
+      resourceVerificationsJson: JSON.stringify(initialProofs),
     });
-    expect((await handleRegionalDeploymentAdmission(controlRequest.clone(), usDatabase,
-      initialUsProof.resource, initialUsProof.authority.walletRuntime.versionId))?.status).toBe(200);
-    expect((await handleRegionalDeploymentAdmission(controlRequest.clone(), usDatabase,
-      initialUsProof.resource, crypto.randomUUID()))?.status).toBe(403);
-    expect((await handleRegionalDeploymentAdmission(new Request(
-      'https://public.example/internal/tenant-deployment/v1/regional-admission', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: controlBody,
-      }), usDatabase, initialUsProof.resource, initialUsProof.authority.walletRuntime.versionId))?.status).toBe(404);
+    const controlRequest = new Request(
+      'https://wallet-runtime.internal/internal/tenant-deployment/v1/regional-admission',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: controlBody,
+      },
+    );
+    expect(
+      (
+        await handleRegionalDeploymentAdmission(
+          controlRequest.clone(),
+          usDatabase,
+          initialUsProof.resource,
+          initialUsProof.authority.walletRuntime.versionId,
+        )
+      )?.status,
+    ).toBe(200);
+    expect(
+      (
+        await handleRegionalDeploymentAdmission(
+          controlRequest.clone(),
+          usDatabase,
+          initialUsProof.resource,
+          crypto.randomUUID(),
+        )
+      )?.status,
+    ).toBe(403);
+    expect(
+      (
+        await handleRegionalDeploymentAdmission(
+          new Request('https://public.example/internal/tenant-deployment/v1/regional-admission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: controlBody,
+          }),
+          usDatabase,
+          initialUsProof.resource,
+          initialUsProof.authority.walletRuntime.versionId,
+        )
+      )?.status,
+    ).toBe(404);
     const oldDatabase = new DeploymentFencedDatabase(usDatabase, initialBinding, oldWriter);
     await usDatabase.prepare('CREATE TABLE deployment_write_probe (value TEXT NOT NULL)').run();
-    await oldDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('before-cutover').run();
-    const delayedWrite = oldDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('after-cutover');
+    await oldDatabase
+      .prepare('INSERT INTO deployment_write_probe VALUES (?1)')
+      .bind('before-cutover')
+      .run();
+    const delayedWrite = oldDatabase
+      .prepare('INSERT INTO deployment_write_probe VALUES (?1)')
+      .bind('after-cutover');
 
     const reused = await provisioner.provision({
       deploymentLane: reference.deploymentLane,
@@ -274,6 +365,8 @@ test('regional deployment renewal preserves the browser key and retires previous
     }
     await seedCeremony(weurDatabase, target, Date.now() - 1000);
     await seedCeremony(apacDatabase, target, Date.now() + 300_000);
+    await seedTerminalCeremony(apacDatabase, target, 'established');
+    await seedTerminalCeremony(apacDatabase, target, 'cancelled');
     const regionalCounts = await regional.inspector.inspect(inspectionRequest);
     expect(regionalCounts).toMatchObject({
       sourceDurableWalletCount: 3,
@@ -299,7 +392,10 @@ test('regional deployment renewal preserves the browser key and retires previous
         authorization: { kind: 'activate', verifications: nextProofs },
       }),
     ).rejects.toMatchObject({ code: 'readiness_invalid' });
-    await apacDatabase.prepare('DELETE FROM registration_ceremony_records').run();
+    await apacDatabase
+      .prepare("DELETE FROM registration_ceremony_records WHERE record_scope = 'readiness-fixture'")
+      .run();
+    expect((await regional.inspector.inspect(inspectionRequest)).inFlightCeremonyCount).toBe(0);
     regional.apacTransport.available = false;
     await expect(
       provisioner.provision({
@@ -333,16 +429,25 @@ test('regional deployment renewal preserves the browser key and retires previous
     await checkWriters(store, initialProofs, initial.bindingRevision);
     router.available = true;
     localAdmission.failActivationRegion = 'WEUR';
-    await expect(provisioner.provision({
-      deploymentLane: reference.deploymentLane,
-      environmentId,
-      authorization: { kind: 'activate', verifications: nextProofs },
-    })).rejects.toThrow('Injected regional activation outage');
+    await expect(
+      provisioner.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: nextProofs },
+      }),
+    ).rejects.toThrow('Injected regional activation outage');
     await expect(delayedWrite.run()).rejects.toThrow('regional_deployment_writer_retired');
-    expect(await usDatabase.prepare('SELECT COUNT(*) AS count FROM deployment_write_probe').first('count')).toBe(1);
-    await expect(localAdmission.stores.US.resolveRuntimeBinding(reference.deploymentLane, oldWriter))
-      .rejects.toMatchObject({ code: 'activation_conflict' });
-    const preparedRows = await weurDatabase.prepare('SELECT state FROM regional_deployment_admissions').all();
+    expect(
+      await usDatabase
+        .prepare('SELECT COUNT(*) AS count FROM deployment_write_probe')
+        .first('count'),
+    ).toBe(1);
+    await expect(
+      localAdmission.stores.US.resolveRuntimeBinding(reference.deploymentLane, oldWriter),
+    ).rejects.toMatchObject({ code: 'activation_conflict' });
+    const preparedRows = await weurDatabase
+      .prepare('SELECT state FROM regional_deployment_admissions')
+      .all();
     expect(preparedRows.results).toEqual([{ state: 'prepared' }]);
     localAdmission.failActivationRegion = null;
     const renewed = await provisioner.provision({
@@ -366,17 +471,36 @@ test('regional deployment renewal preserves the browser key and retires previous
       versionId: nextUsProof.authority.gateway.versionId,
       resource: nextUsProof.resource,
     };
-    const currentDatabase = new DeploymentFencedDatabase(usDatabase, currentAdmission.binding, currentWriter);
-    expect((await localAdmission.stores.US.resolveRuntimeBinding(reference.deploymentLane, currentWriter))?.revision)
-      .toBe(renewed.bindingRevision);
+    const currentDatabase = new DeploymentFencedDatabase(
+      usDatabase,
+      currentAdmission.binding,
+      currentWriter,
+    );
+    expect(
+      (
+        await localAdmission.stores.US.resolveRuntimeBinding(
+          reference.deploymentLane,
+          currentWriter,
+        )
+      )?.revision,
+    ).toBe(renewed.bindingRevision);
     await currentDatabase.batch([
-      currentDatabase.prepare('INSERT INTO deployment_write_probe VALUES (?1)').bind('current-writer'),
+      currentDatabase
+        .prepare('INSERT INTO deployment_write_probe VALUES (?1)')
+        .bind('current-writer'),
       currentDatabase.prepare('SELECT value FROM deployment_write_probe'),
     ]);
-    const staleAdmission = { binding: initialBinding, activationSequence: initial.activationSequence,
-      resourceVerificationsJson: JSON.stringify(initialProofs) };
-    await expect(localAdmission.prepare(staleAdmission)).rejects.toMatchObject({ code: 'activation_conflict' });
-    await expect(localAdmission.activate(staleAdmission)).rejects.toMatchObject({ code: 'activation_conflict' });
+    const staleAdmission = {
+      binding: initialBinding,
+      activationSequence: initial.activationSequence,
+      resourceVerificationsJson: JSON.stringify(initialProofs),
+    };
+    await expect(localAdmission.prepare(staleAdmission)).rejects.toMatchObject({
+      code: 'activation_conflict',
+    });
+    await expect(localAdmission.activate(staleAdmission)).rejects.toMatchObject({
+      code: 'activation_conflict',
+    });
     const admitted = await checkWriters(store, nextProofs, renewed.bindingRevision);
     const retired = await checkWriters(store, initialProofs, null);
     expect(await apiKeys.listApiKeys(context)).toHaveLength(1);
@@ -454,7 +578,10 @@ test('regional deployment renewal preserves the browser key and retires previous
       privateControlRetryVerified: true,
       wrongWriterAndPublicControlRequestsRejected: true,
       delayedRetiredWriterWriteRejected: true,
-      regionalGuardLeavesNoRows: await usDatabase.prepare('SELECT COUNT(*) AS count FROM regional_deployment_write_checks').first('count') === 0,
+      regionalGuardLeavesNoRows:
+        (await usDatabase
+          .prepare('SELECT COUNT(*) AS count FROM regional_deployment_write_checks')
+          .first('count')) === 0,
       incompleteProofSetRejected: true,
       resourceRemovalRejected: true,
       unverifiedResourceAdditionRejected: true,

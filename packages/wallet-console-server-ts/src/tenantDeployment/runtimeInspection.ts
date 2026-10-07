@@ -213,9 +213,20 @@ async function countInFlightCeremonies(
   const row = await database
     .prepare(
       `SELECT COUNT(*) AS count
-         FROM registration_ceremony_records
-        WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4
-          AND expires_at_ms > ?5`,
+         FROM registration_ceremony_records AS ceremony
+        WHERE ceremony.namespace = ?1 AND ceremony.org_id = ?2
+          AND ceremony.project_id = ?3 AND ceremony.env_id = ?4
+          AND ceremony.expires_at_ms > ?5
+          AND NOT EXISTS (
+            SELECT 1 FROM wallet_execution_generations AS execution
+             WHERE execution.namespace = ceremony.namespace
+               AND execution.org_id = ceremony.org_id
+               AND execution.project_id = ceremony.project_id
+               AND execution.env_id = ceremony.env_id
+               AND execution.origin = 'registration'
+               AND execution.origin_id = json_extract(ceremony.record_json, '$.registrationCeremonyId')
+               AND execution.registration_completion IN ('established', 'cancelled')
+          )`,
     )
     .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId, nowMs)
     .first<CountRow>();

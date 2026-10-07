@@ -34,17 +34,19 @@ export class WalletRelocationTransfer {
       ? { state: 'verified', receipt: existing }
       : { state: 'failed', code: 'receipt_conflict' };
     const wallet = move.wallet;
-    const authorization = await this.authorization.transfer(wallet, attempt, this.sourceWriter, this.destinationWriter);
+    const [authorization, router, deriverA, deriverB, ed25519, ecdsa] = await Promise.all([
+      this.authorization.transfer(wallet, attempt, this.sourceWriter, this.destinationWriter),
+      this.runtime.advance(wallet, attempt, { participant: 'router' }),
+      this.runtime.advance(wallet, attempt, { participant: 'deriver-a' }),
+      this.runtime.advance(wallet, attempt, { participant: 'deriver-b' }),
+      this.runtime.advance(wallet, attempt, { participant: 'ed25519' }),
+      this.runtime.advance(wallet, attempt, { participant: 'ecdsa' }),
+    ]);
     if (authorization.state === 'failed') return authorization;
-    const router = await this.runtime.advance(wallet, attempt, { participant: 'router' });
     if (router.state === 'failed') return router;
-    const deriverA = await this.runtime.advance(wallet, attempt, { participant: 'deriver-a' });
     if (deriverA.state === 'failed') return deriverA;
-    const deriverB = await this.runtime.advance(wallet, attempt, { participant: 'deriver-b' });
     if (deriverB.state === 'failed') return deriverB;
-    const ed25519 = await this.runtime.advance(wallet, attempt, { participant: 'ed25519' });
     if (ed25519.state === 'failed') return ed25519;
-    const ecdsa = await this.runtime.advance(wallet, attempt, { participant: 'ecdsa' });
     if (ecdsa.state === 'failed') return ecdsa;
     const sessions = await readPresignSnapshotInventory(this.database, move);
     for (const entry of sessions) {

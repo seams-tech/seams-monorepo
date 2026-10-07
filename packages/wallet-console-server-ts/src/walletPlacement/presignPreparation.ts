@@ -68,7 +68,7 @@ export class PresignRelocationPreparation {
           if (stored.server_presignature_id !== session.server_presignature_id) return 'unavailable';
           continue;
         }
-        const names = await this.targets.linkedNames(session.presign_session_id, request.source_generation);
+        const names = await this.targets.linkedNames(session.server_presignature_id, request.source_generation);
         const previousTargets = await queryD1One(database, `SELECT targets_json FROM wallet_presign_custody_targets
           WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
             AND wallet_id = ?5 AND move_id = ?6 AND presign_session_id = ?7
@@ -82,7 +82,7 @@ export class PresignRelocationPreparation {
           session.presign_session_id, names.source]);
         const targets = previousTargets && typeof previousTargets.targets_json === 'string'
           ? parseCustodyTargetPair(JSON.parse(previousTargets.targets_json), request.source_generation)
-          : await this.targets.linked(session.presign_session_id, request.source_generation);
+          : await this.targets.linked(session.server_presignature_id, request.source_generation);
         if (targets.source.objectName !== names.source || targets.destination.objectName !== names.destination)
           return 'unavailable';
         await database.prepare(`INSERT INTO wallet_presign_custody_targets
@@ -153,7 +153,7 @@ export class PresignRelocationPreparation {
         if (!orderedAfter(session.presign_session_id, previous)) return { kind: 'unavailable' };
         previous = session.presign_session_id;
         if (relocationTimestamp(this.clock()) >= expiresAtMs) return { kind: 'unavailable' };
-        custodyTargets.push(await this.targets.linked(session.presign_session_id, request.source_generation));
+        custodyTargets.push(await this.targets.linked(session.server_presignature_id, request.source_generation));
         const prepared = await call(this.destinationRuntime, 'presign-transfer', {
           kind: 'prepare',
           command: {

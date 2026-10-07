@@ -80,9 +80,10 @@ async function advanceMove(move: WalletRelocation, attemptId: string, options: E
 }
 
 // The existing Console cron retries admitted work without browser polling.
-// One tick visits at most four moves and performs one coordinator step per move.
+// Bound each invocation while allowing ready chunks to progress without a cron delay.
 export async function resumeWalletRelocations(options: ExecutionOptions & { readonly namespace: string }): Promise<void> {
   const nowMs = options.clock();
+  const deadlineMs = nowMs + 20_000;
   const rows = await queryD1All(options.database, `SELECT move.* FROM wallet_relocations AS move
     LEFT JOIN wallet_relocation_dispatch AS dispatch
       USING (namespace, organization_id, project_id, environment_id, wallet_id, move_id)
@@ -91,9 +92,9 @@ export async function resumeWalletRelocations(options: ExecutionOptions & { read
       (execution_state = 'retry_wait' AND execution_retry_at_ms <= ?2))
     ORDER BY COALESCE(dispatch.dispatched_at_ms, 0), admitted_at_ms, move_id LIMIT 4`, [options.namespace, nowMs]);
   for (const row of rows) {
+    if (options.clock() >= deadlineMs) break;
     try {
-      const move = WalletRelocation.fromRow(row);
-      const attemptId = `wattempt_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`;
+      let move = WalletRelocation.fromRow(row);
       // Rotate unfinished moves fairly across the bounded cron batch. This does
       // not claim execution or reset any attempt/retry budget in the journal.
       const wallet = move.wallet;
@@ -103,8 +104,19 @@ export async function resumeWalletRelocations(options: ExecutionOptions & { read
         ON CONFLICT DO UPDATE SET dispatched_at_ms = MAX(dispatched_at_ms, excluded.dispatched_at_ms)`)
         .bind(wallet.namespace, wallet.organizationId, wallet.projectId, wallet.environmentId,
           wallet.walletId, move.moveId, nowMs).run();
-      const result = await advanceMove(move, attemptId, options);
-      if (result.status >= 500) console.error('Wallet relocation resumption unavailable', { moveId: move.moveId, status: result.status });
+      const locator = WalletRelocationLocator.parse({ wallet, moveId: move.moveId });
+      for (let step = 0; step < 256 && options.clock() < deadlineMs; step += 1) {
+        const attemptId = `wattempt_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`;
+        const result = await advanceMove(move, attemptId, options);
+        if (!result.ok) {
+          console.error('Wallet relocation resumption unavailable', { moveId: move.moveId, status: result.status });
+          break;
+        }
+        const next = await readWalletRelocation(options.database, locator);
+        if (!next || next.progress.state === 'completed') break;
+        if (next.progress.execution.state === 'blocked' || next.progress.execution.state === 'retry_wait') break;
+        move = next;
+      }
     } catch (error) {
       console.error('Wallet relocation resumption failed', { moveId: row.move_id, error });
     }

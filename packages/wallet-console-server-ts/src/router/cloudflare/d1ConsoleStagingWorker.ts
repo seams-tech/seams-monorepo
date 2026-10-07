@@ -775,7 +775,7 @@ async function fetch(
         readEnvString(env, 'CLOUDFLARE_API_TOKEN') ?? '',
         runtimeVerifier,
       );
-      return handleWalletRelocationAdmission(request, {
+      const response = await handleWalletRelocationAdmission(request, {
         database: env.CONSOLE_DB,
         catalog,
         scope: active.tenant,
@@ -793,6 +793,8 @@ async function fetch(
         verifyResources: verifier.verify.bind(verifier),
         clock: Date.now,
       });
+      if (response.ok) ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
+      return response;
     }
     if (request.url === WALLET_RELOCATION_ADVANCE_URL) {
       return handleWalletRelocationAdvance(request, {
@@ -972,7 +974,13 @@ async function scheduled(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<void> {
-  ctx.waitUntil(resumeWalletRelocations({
+  ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
+  const handler = consoleScheduledHandler(env);
+  await handler(event, env, ctx);
+}
+
+function relocationResumptionOptions(env: CloudflareD1ConsoleStagingEnv) {
+  return {
     database: env.CONSOLE_DB,
     catalog: WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON)),
     namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
@@ -982,9 +990,7 @@ async function scheduled(
         APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC },
     },
     clock: Date.now,
-  }));
-  const handler = consoleScheduledHandler(env);
-  await handler(event, env, ctx);
+  };
 }
 
 export default { fetch, scheduled };

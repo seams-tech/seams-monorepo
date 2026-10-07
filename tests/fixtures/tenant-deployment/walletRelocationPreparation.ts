@@ -86,10 +86,11 @@ class DeriverPreparationRuntime {
     if (!isPlainObject(body) || input.method !== 'POST') return new Response(null, { status: 400 });
     if (input.url.endsWith('-context')) {
       if (this.failedParticipant === 'deriver_context_unavailable') return new Response(null, { status: 503 });
-      if (!isPlainObject(body.owner)) return new Response(null, { status: 400 });
+      if (body.kind !== 'wallet' || !isPlainObject(body.owner) ||
+          typeof body.ownership_generation !== 'number') return new Response(null, { status: 400 });
       const objectSide = this.failedParticipant === 'deriver_physical_collision' ? 'source' : this.side;
       return Response.json({
-        kind: 'deriver_cipher_context',
+        kind: 'deriver_wallet_context',
         digest_hex: 'c'.repeat(64),
         object_id: await fixtureObjectDigest(objectSide, body.owner),
       });

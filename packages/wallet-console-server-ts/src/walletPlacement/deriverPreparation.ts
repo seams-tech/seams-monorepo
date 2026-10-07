@@ -35,9 +35,9 @@ export class DeriverRelocationPreparation {
       env_id: command.request.wallet.environmentId,
       wallet_id: command.request.wallet.walletId,
     };
-    const source = await readContext(this.sourceRuntime, rolePath, owner);
+    const source = await readContext(this.sourceRuntime, rolePath, owner, command.request.expectedGeneration);
     if (source === null) return { kind: 'unavailable' };
-    const destination = await readContext(this.destinationRuntime, rolePath, owner);
+    const destination = await readContext(this.destinationRuntime, rolePath, owner, command.destinationGeneration);
     if (destination === null || destination.digest_hex !== source.digest_hex) {
       return { kind: 'unavailable' };
     }
@@ -98,16 +98,17 @@ async function readContext(
   runtime: WalletRuntimeServiceBinding,
   rolePath: (typeof ROLE_PATHS)[Role],
   owner: RouterFreezeRequest['owner'],
+  ownershipGeneration: number,
 ): Promise<{ digest_hex: string; object_id: string } | null> {
   const response = await runtime.fetch(new Request(`${BASE}/${rolePath}-context`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ owner }),
+    body: JSON.stringify({ kind: 'wallet', owner, ownership_generation: ownershipGeneration }),
   }));
   if (response.status !== 200) return null;
   const raw: unknown = await response.json();
   if (!isPlainObject(raw) || Object.keys(raw).length !== 3 ||
-      raw.kind !== 'deriver_cipher_context' || typeof raw.digest_hex !== 'string' ||
+      raw.kind !== 'deriver_wallet_context' || typeof raw.digest_hex !== 'string' ||
       !/^[a-f0-9]{64}$/u.test(raw.digest_hex) || typeof raw.object_id !== 'string' ||
       !/^[a-f0-9]{64}$/u.test(raw.object_id)) return null;
   return { digest_hex: raw.digest_hex, object_id: raw.object_id };

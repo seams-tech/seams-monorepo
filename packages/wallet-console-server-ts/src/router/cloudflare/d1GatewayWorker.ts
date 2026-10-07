@@ -192,7 +192,9 @@ async function handleGatewayRequest(
     emailOtpDeliveryProvider: resolveEmailOtpDeliveryProviderFromEnv(boundEnv),
   });
   const response = new Response(handled.body, handled);
-  response.headers.set('X-Seams-Wallet-Region', sessionHome.region);
+  if (!response.headers.has('X-Seams-Wallet-Region')) {
+    response.headers.set('X-Seams-Wallet-Region', sessionHome.region);
+  }
   withCors(response.headers, { corsOrigins: readEnvironmentCsv(boundEnv.RELAY_CORS_ORIGINS) }, request);
   if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')
     return response;

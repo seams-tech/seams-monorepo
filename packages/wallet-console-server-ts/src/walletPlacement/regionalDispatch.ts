@@ -83,7 +83,7 @@ export class ConsoleRegistrationSetupDispatcher implements WalletRegistrationSet
       return { status: 502, body: { ok: false, code: 'regional_gateway_invalid_response' } };
     }
     const headers: Record<string, string> = { 'Cache-Control': 'no-store' };
-    for (const name of ['Server-Timing', 'Retry-After']) {
+    for (const name of ['Server-Timing', 'Retry-After', 'X-Seams-Wallet-Region']) {
       const value = response.headers.get(name);
       if (value) headers[name] = value;
     }

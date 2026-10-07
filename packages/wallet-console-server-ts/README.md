@@ -288,9 +288,20 @@ OTP authentication expiry, attempt limits, and single-use grants stay enforced.
 
 Apply signer migrations to each regional database with the existing wallet-system
 migration command. No new Cloudflare database or allocation approval is required.
-The snapshot inventory change requires existing relocation snapshots/imports to
-be cleaned up before migration. Stop old Gateway traffic before applying Console cleanup migration
-`0088_remove_shared_otp_counters.sql`. It removes the obsolete Console counter table. Historical migrations retain their original text.
+The snapshot inventory change requires source cleanup and destination activation
+for existing transfers. Completed receipts remain intact.
+
+Console schema migrations retain the old counter table during rollout. After all
+four Gateways use regional counters, verify that old versions receive no traffic
+and close the rollback interval. Then run the separate cleanup on Console D1:
+
+```sh
+pnpm exec wrangler d1 execute CONSOLE_DB --remote --config <console-config> --file scripts/remove-shared-otp-counters.sql
+```
+
+Run this command from this package directory. It is a destructive post-rollout
+step, excluded from automatic migration commands. Rollback to an old Gateway
+requires restoring its counter table and Console endpoint first.
 Approximate spam counters do not require transfer of the old global counter history.
 
 The previously frozen dedicated-counter candidate is superseded. Rebuild SDK/server,

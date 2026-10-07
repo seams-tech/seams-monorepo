@@ -15,7 +15,7 @@ const request = {
 
 function store(api, database, scope) {
   return api.createD1EmailOtpRateLimits(
-    { emailOtp: { rateLimits: policies } },
+    { database, emailOtp: { rateLimits: policies } },
     api.prepareD1TenantStatement.bind(null, database, {
       namespace: scope.namespace,
       orgId: scope.organizationId,

@@ -214,6 +214,32 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Inspect the board and connector in the withdrawn and seated positions. Check that the near chassis wall hides the parts behind it. Enter, leave, and re-enter during motion. Confirm the cartridge stops before the lever closes, and withdrawal waits until the lever opens.
 
+## Wallet access cards
+
+The delegation preview uses one wallet holding three access cards, following the selected reference image. The cardholder has three curved pockets, folded side panels, a stitched front perimeter, and thin lining edges. Each card has visible thickness, a contact chip, and a distinct punched pattern. The rear card also has a small corner notch.
+
+Hovering the stationary stage raises all three cards. The middle card starts first; the outer cards follow after 55 milliseconds. Each card uses the kernel's standard 700ms easing and returns from its current position when the pointer leaves. The rear card rises farthest, preserving the stepped silhouette. The slider sets its travel to 24, 30, or 36 world units. The other cards rise six and twelve units less.
+
+Cards and opaque pockets alternate in drawing order. Each card stays inside its pocket at maximum travel. Only the card groups translate during animation; the wallet geometry stays fixed. The rear card carries the resting accent, which moves to the middle card on hover. Kernel reduced motion lands directly at the target pose, and the loop sleeps when movement ends.
+
+Edit `apps/wallet-console/showcase/motion/delegation/access-cards.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/delegation/access-cards.js \
+  apps/wallet-console/showcase/motion/delegation/index.html
+```
+
+Review at `/dashboard-static/showcase/motion/delegation/`. From `.artifacts/access-cards`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/delegation/access-cards.js \
+  --answer 0,0,95 --edge 3,-35,90 --zoom answer
+```
+
+Check the pocket seams, card occlusion, full travel, both themes, and fast enter/leave/re-enter gestures. This remains a separate preview pending approval.
+
 ## Visual verification
 
 Run the skill's browser review after each figure change. From `.artifacts/audit-log`, run:

@@ -1,0 +1,378 @@
+{
+  "kind": "wallet_relocation_r153b_latency_hosted_v1",
+  "recordedAt": "2026-10-07T14:03:21.852375+00:00",
+  "outcome": "passed",
+  "scope": "One browser in Japan, staging APAC to US and return. Includes final wallet-local capacity block, fresh passkey unlock, first ECDSA signature, NEAR signatures, and source cleanup. Single observations, not percentiles.",
+  "candidate": {
+    "walletCommit": "b3db11618514d745d1b63c4f00e2cb27fd48982d",
+    "consoleCommit": "654f65a3b6d1056c2a1b7b157af334af1a8d0814",
+    "bundleHashes": {
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/wallet-runtime/d1WalletRuntimeWorker.js": "f37d80f8ad0cfee69c0a954b3bd2a0cfc2e5e58d60ff6c442b1401800684d41c",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/wallet-runtime/4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/wallet-runtime/10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/wallet-runtime/75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/console/d1ConsoleStagingWorker.js": "7ef0ebd19eafdd20384c942425484e385777f3aa2e95b5e1d214a875eaecebf5",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/console/4a6ce90d4de5770978e4f8d55765275330601767-evm_crypto_bg.wasm": "db68ab3dfd1d43a8f52b3a25e86aca072a06dd1ab05290744f4e15b71ef9d9ff",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/console/10b122e32085494bdf4e0b94aae1146a9a0f2aa7-shamir3pass_runtime_bg.wasm": "99bbb650019c6c07ea6cba1cc756c817cee954e347216177891256699461edd3",
+      "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/console/75f8787af663be8474440c45c7a277303f51654d-wasm_signer_worker_bg.wasm": "27d2cbf2071723dc3a4370503922594ba727200df7675b1c74c51ea51e57d7b3"
+    },
+    "browserCandidate": "../site (same frozen SDK as earlier R153B hosted runs)",
+    "activationRun": 37631869120
+  },
+  "migrations": {
+    "allFourSignerDatabases": "0076_wallet_relocation_write_block.sql",
+    "console": [
+      "0089_wallet_relocation_driver.sql",
+      "0090_wallet_relocation_capacity.sql"
+    ]
+  },
+  "moves": [
+    {
+      "moveId": "wmove_ISFIepk927iUIYCayqriPLDRfFxribs1HkuXzS0aYhY",
+      "source": "APAC",
+      "destination": "US",
+      "freezeMs": 11626,
+      "copyMs": 11588,
+      "ownershipCommitMs": 288,
+      "activationMs": 6938,
+      "pauseToActivationMs": 30440,
+      "cleanupMs": 18859,
+      "state": "completed",
+      "preparationMs": 25728,
+      "pauseToFirstSignatureMs": 43845,
+      "snapshotBytes": 152728,
+      "exportRequests": 1,
+      "importRequests": 1,
+      "authorizationCallsThroughActivation": {
+        "relocation-command": 4,
+        "relocation-authorization-manifest": 1,
+        "relocation-runtime-source": 7,
+        "relocation-router-receipt": 1,
+        "relocation-deriver-source": 5,
+        "relocation-ecdsa-receipt": 1,
+        "relocation-presign-source": 1,
+        "relocation-deriver-receipt": 2,
+        "relocation-ed25519-receipt": 1,
+        "relocation-router-destination": 8,
+        "relocation-ecdsa-transfer": 7,
+        "relocation-deriver-transfer": 25,
+        "relocation-ed25519-transfer": 19,
+        "relocation-router-export": 6,
+        "relocation-router-activation": 1,
+        "relocation-deriver-activation": 2,
+        "relocation-ed25519-activation": 1,
+        "relocation-ecdsa-activation": 1
+      }
+    },
+    {
+      "moveId": "wmove_1R-auwJtFQFQDfs4lHu7BP7Mb2wQUfK0MrXnOj4BZOo",
+      "source": "US",
+      "destination": "APAC",
+      "freezeMs": 14252,
+      "copyMs": 13970,
+      "ownershipCommitMs": 314,
+      "activationMs": 6188,
+      "pauseToActivationMs": 34724,
+      "cleanupMs": 156642,
+      "state": "completed",
+      "preparationMs": 31479,
+      "pauseToFirstSignatureMs": 43326,
+      "snapshotBytes": 216082,
+      "exportRequests": 1,
+      "importRequests": 1,
+      "authorizationCallsThroughActivation": {
+        "relocation-command": 4,
+        "relocation-authorization-manifest": 1,
+        "relocation-runtime-source": 7,
+        "relocation-router-receipt": 1,
+        "relocation-deriver-source": 5,
+        "relocation-ecdsa-receipt": 1,
+        "relocation-presign-source": 1,
+        "relocation-deriver-receipt": 2,
+        "relocation-ed25519-receipt": 1,
+        "relocation-ecdsa-transfer": 11,
+        "relocation-ed25519-transfer": 27,
+        "relocation-router-destination": 9,
+        "relocation-deriver-transfer": 26,
+        "relocation-router-export": 6,
+        "relocation-router-activation": 1,
+        "relocation-deriver-activation": 2,
+        "relocation-ed25519-activation": 1,
+        "relocation-ecdsa-activation": 1
+      }
+    }
+  ],
+  "signingSamples": [
+    {
+      "stage": "before_0",
+      "elapsedMs": 2316.8626250000016
+    },
+    {
+      "stage": "before_1",
+      "elapsedMs": 3053.742624999999
+    },
+    {
+      "stage": "first_after",
+      "elapsedMs": 5279.161124999999
+    },
+    {
+      "stage": "steady_after_1",
+      "elapsedMs": 6847.455000000002
+    },
+    {
+      "stage": "steady_after_2",
+      "elapsedMs": 3799.5715000000055
+    },
+    {
+      "stage": "first_after_return",
+      "elapsedMs": 3761.1714159999974
+    }
+  ],
+  "refillResults": [
+    {
+      "receivedAtMs": 13608.770417,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 28957.579583,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 30835.041333,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 32298.47,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 33852.057417,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 35814.35275,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 100277.654875,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 105831.137875,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 109988.700375,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 114523.299708,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 118647.742333,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 122556.171167,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 127176.801625,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 438257.41125,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 439829.534583,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 441995.821917,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 443501.724542,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 445348.332167,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    }
+  ],
+  "runtimeVersions": [
+    {
+      "worker": "seams-sdk-d1-console-staging",
+      "versionId": "29d08e63-3d81-4fa0-adf2-123ecbbe5641"
+    },
+    {
+      "worker": "router-ab-deriver-a-staging",
+      "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0"
+    },
+    {
+      "worker": "router-ab-deriver-b-staging",
+      "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8"
+    },
+    {
+      "worker": "router-ab-mpc-router-staging",
+      "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a"
+    },
+    {
+      "worker": "router-ab-signing-worker-staging",
+      "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging",
+      "versionId": "12f48c20-df36-4d15-8355-33c2ac72338f"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-oc",
+      "versionId": "d997446e-77de-4b55-90fb-20e7549c5a39"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-us",
+      "versionId": "991403ec-65e5-4885-a1a0-847e662e3871"
+    },
+    {
+      "worker": "seams-sdk-d1-gateway-staging-weur",
+      "versionId": "b4614e86-1ae0-4f1e-bf78-bdf620b63731"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging",
+      "versionId": "b068efef-5043-4072-b1fe-0c6dbce1c902"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-oc",
+      "versionId": "3f48c537-0d1e-4b3e-9595-f1c586fc3ab6"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-us",
+      "versionId": "273942f8-a9d8-45d0-a616-cf467043073d"
+    },
+    {
+      "worker": "seams-sdk-d1-wallet-runtime-staging-weur",
+      "versionId": "3431e054-ca39-4032-a830-96b2a615b406"
+    }
+  ],
+  "verification": {
+    "authorizationTransferE2E": "passed for preceding capacity candidate; D1 behavior unchanged",
+    "composedRelocationE2E": "passed with partial ECDSA batch reply loss and restart",
+    "walletServerBuild": "passed",
+    "gatewayAndConsoleBundles": "passed",
+    "activationAndReadinessRun": 37631869120,
+    "hostedRoundTrip": "passed, including unchanged 60000 ms limit in both directions",
+    "bloatCheck": "passed",
+    "scopedTypecheck": "passed",
+    "runtimeBundle": "passed",
+    "composedCommand": "SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server pnpm -C tests test:relayer wallet-relocation-directory.e2e.test.ts --output=/tmp/r153b-latency-e2e"
+  },
+  "changes": [
+    "Up to eight native ECDSA segments per Runtime export/import request, with exact native receipts and partial-batch restart.",
+    "Up to eight local ECDSA freeze or Deriver capture steps per authorization; draining returns immediately."
+  ],
+  "baseline": {
+    "receipt": "r153b-capacity-hosted-20261007.json",
+    "returnPauseToFirstSignatureMs": 73811,
+    "returnFreezeMs": 26860,
+    "returnCopyMs": 27373,
+    "returnEcdsaAuthorizationCallsThroughActivation": 51
+  },
+  "artifacts": [
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/candidate.json",
+      "sha256": "8a8f8ccb11f2cfb62adfdb8ef03366669a04c50c3f6d87d07b1e38efea3ccc52"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/hosted/relocation.json",
+      "sha256": "7a8b1d29c56cfc3cac8071f3dba39c97dbc59a988527d50a328eceb74dd0a2e2"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/hosted/journal.json",
+      "sha256": "2226d15e0066f6a11a31f583eacf78c275b24266f64a38206a3bc2b68e045151"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/hosted/stages.json",
+      "sha256": "9af2f59d1e282309e36ae5f0f0c7b5cc1ab826fc57a90fdff0a3dda8f5473b28"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/runtime-versions-before.json",
+      "sha256": "e507e27ab56de91cd50aa1eba2213da6edde2d8e0c2757df5f058c1bdad6e499"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/runtime-versions-after.json",
+      "sha256": "e507e27ab56de91cd50aa1eba2213da6edde2d8e0c2757df5f058c1bdad6e499"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/reproduce.sh",
+      "sha256": "7404b62846e5b354865a8f9cea89e8d58e21e94580ad5720beb0c61b1ed89b9e"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet/.artifacts/r153/authorization-storage-transfer/evidence.json",
+      "sha256": "47edfba248d1a6526a641faf59d0363d77ba66818eba37cbb47c935600c6fed4"
+    },
+    {
+      "path": "/tmp/r153b-latency-e2e/relayer-wallet-relocation--210c4-es-lost-replies-and-restart/wallet-relocation-directory-evidence.json",
+      "sha256": "f6d5c7308a53e29e1c880fb6813e059aa7cfb867b1e0be85661dfc24a10143a3"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/r153b/latency/hosted/console-tail.jsonl",
+      "sha256": "179497a82dba4e60a4eed9fd6485077d21fe74f9801f8bb49ce042049483d2de"
+    }
+  ]
+}

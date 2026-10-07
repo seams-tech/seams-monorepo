@@ -136,6 +136,92 @@ The next activation waited for expiry. No pending records were deleted or bypass
 The committed [JSON evidence](evidence/r155b-near-hosted-20261007.json) records
 summary distributions, deployment versions, cleanup and hashes of raw results.
 
+## First-sign diagnosis
+
+Funding is a separate user step for the intended application. Exclude it from
+the MPC optimization target. Keep its original measurement above for provenance.
+The accepted NEAR provisioning budget is approximately two to three seconds.
+The immediate optimization target is the hosted Yao setup path.
+
+Earlier [local custody measurements](https://github.com/seams-tech/seams-wallet/blob/2bee39abb947a6524a42e8c74c6ff7b89c1a7acb/docs/near-custody-profiling.md)
+recorded a 316 ms median Router execution and 325–327 ms custody join.
+Those runs used local Workers and stubbed chain RPCs. They establish a useful
+local reference, but do not establish hosted transport or storage latency.
+
+The three clean hosted registrations produced the following spans. Rows nest;
+the protocol and WebSocket rows are part of Deriver A execution.
+
+| Yao setup stage                         |    Run 1 |    Run 2 |    Run 3 |
+| --------------------------------------- | -------: | -------: | -------: |
+| Browser execute request                 | 7,475 ms | 6,400 ms | 5,752 ms |
+| Router authorization and root admission |   885 ms |   749 ms |   946 ms |
+| Prepare both parties, in parallel       | 1,773 ms | 1,643 ms | 1,642 ms |
+| Deriver A execution HTTP                | 3,327 ms | 2,877 ms | 2,319 ms |
+| A-to-B WebSocket establishment          |   848 ms |   836 ms |   692 ms |
+| Deriver A protocol span                 | 1,414 ms |   353 ms |   184 ms |
+| Signing-worker delivery                 | 1,130 ms |   911 ms |   627 ms |
+
+In run 3, authorization, pair preparation, execution and delivery account for
+5,534 ms of the 5,752 ms browser request. Only 184 ms lies inside the named
+Deriver A protocol span. That span includes peer I/O and is not a CPU-only timer.
+The first run's slower protocol span means cold-state effects remain possible.
+The current evidence does not isolate Worker startup, DO startup and network delay.
+
+Code inspection identifies repeated storage work around the protocol:
+
+- Each party loads its bound root share during preparation, then loads it again
+  during execution. Preparation opens the share and then drops it.
+- The active-epoch success path in `TenantRootRoleShareStoreV1::load_bound`
+  executes five sequential D1 calls: read the epoch, admit the attempt, read the
+  admission, reread the epoch, and read the active share. This is 20 calls across
+  two loads per party, before other custody persistence. This is a static count;
+  the earlier Gateway counters exclude these custody calls.
+- Router authorization includes wallet-DO admission and a tenant-root activation
+  receipt lookup. Signing-worker delivery follows execution and persists its result.
+- Deriver B's run-3 preparation call took 1,370 ms; its DO handler took 622 ms.
+  The later begin call took 542 ms; its handler took 52 ms. These boundaries expose
+  substantial overhead outside the handlers. They do not identify network,
+  scheduling and startup costs separately.
+
+A read-only D1 probe returned primary locations KIX for Deriver A, SIN for
+Deriver B, and ICN for the signing worker. All report APAC. These current locations
+do not prove where the Workers or DOs ran during the benchmark. The wallet DO call
+sites use `get_by_name` without a location hint. Regional labels alone therefore
+do not establish physical colocation for this custody path.
+
+Unlock has a separate source of overhead. Each clean sample made a challenge
+request, a verification request, five session-status requests, two owner-lane
+requests, prepare and final signing. Challenge plus verification took
+1.275–1.320 seconds. The four signing preflight requests took 0.481–0.557 seconds
+in summed browser request time. They ran before prepare. The diagnostic verify
+request made 25 Gateway D1 calls, and unlock still made four Console calls.
+
+The median-total unlock sample illustrates the 5.705-second measurement:
+
+| Phase                                                   | Approximate duration |
+| ------------------------------------------------------- | -------------------: |
+| Harness runtime reset, unlock and checks before signing |              2.720 s |
+| Signing action through SDK completion                   |              2.199 s |
+| Automation drain and confirmation settlement            |              0.785 s |
+
+The SDK signing timer itself was 2.179 seconds in that sample. The first phase
+includes a full page reload because `unlockPasskeyWallet` resets runtime state.
+Its first network request starts 452 ms into the measured window. Registration
+and unlock SDK-only durations were not retained by this observer. Do not present
+the workflow timer as either SDK duration, or subtract all unexplained gaps as
+test overhead.
+
+The next targeted change should consolidate bound-root admission and retrieval
+while preserving epoch retirement, cancellation and replay checks. Measure this
+against the same hosted setup spans. Then address DO call overhead and signer
+delivery with separate handler and caller timings. For unlock, remove repeated
+session/lane resolution within one signing operation while preserving fresh
+authorization. A 250–500 ms hosted setup remains an unverified target.
+
+The [diagnostic evidence](evidence/r155b-near-first-sign-diagnosis-20261007.json)
+contains sanitized request timelines, custody spans, handler durations and the
+read-only database probe. No live deployment changed during this diagnosis.
+
 ## Reproduction and evidence
 
 Use [the hosted benchmark instructions](../tests/e2e/hosted-product/README.md).

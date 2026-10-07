@@ -10,13 +10,13 @@ The second example develops **Scoped credentials** into four cut metal keys on a
 
 The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
 
-| Existing asset     | Replacement status                                                                             |
-| ------------------ | ---------------------------------------------------------------------------------------------- |
-| Scoped credentials | Keychain approved.                                                                             |
-| Audit log          | Paper-record example available for review.                                                     |
-| Policy engine      | Interlock concept approved. Three-layer sieve available as another policy-filtering direction. |
-| Split-key custody  | Not started.                                                                                   |
-| Threshold signing  | Not started.                                                                                   |
+| Existing asset     | Replacement status                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| Scoped credentials | Keychain approved.                                                                          |
+| Audit log          | Replaced as a selling point by Self-hostable. Server-cartridge mockup available for review. |
+| Policy engine      | Interlock and three-layer sieve animations approved.                                        |
+| Split-key custody  | Not started.                                                                                |
+| Threshold signing  | Not started.                                                                                |
 
 ## Reference and engine
 
@@ -180,6 +180,39 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 ```
 
 Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the radial markings, slot walls, axle collars, bearing thickness, and connected bar ends. Look closely for rear lines crossing the bar or gaps at its rounded corners. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
+
+## Self-hostable example
+
+The fourth example replaces Audit log as a frontpage selling point. The approved copy is:
+
+> **Your infrastructure. Your control.**
+> Run threshold signing on your own serverless infrastructure.
+
+A removable server cartridge sits partly withdrawn from an open chassis. The open top exposes the guide rails, rear socket, connector contacts, cooling fins, memory modules, and mounting screws. The front panel has ventilation slots, a recessed grip, and a pivoting retention lever.
+
+Hovering seats the cartridge along the rails, then closes the retention lever. Leaving opens the lever before the cartridge withdraws. A single reversible timeline preserves that order when the pointer interrupts either movement. The lever carries the accent stroke. The fixed stage is the hover target.
+
+The slider changes the full motion duration from 900 through 1200 to 1500 milliseconds. The kernel supplies easing, reduced motion, and offscreen sleep. Static geometry stays fixed. The cartridge uses one group translation, and only the lever geometry changes during rotation.
+
+This illustration is a deployment metaphor. The product copy describes serverless infrastructure; the pictured hardware is illustrative. Keep this mockup separate until the user approves it.
+
+Edit `apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js \
+  apps/wallet-console/showcase/motion/self-hostable/index.html
+```
+
+Review at `/dashboard-static/showcase/motion/self-hostable/`. From `.artifacts/self-hostable`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/self-hostable/server-cartridge.js \
+  --answer 60,0,20 --edge 85,20,20 --zoom rest
+```
+
+Inspect the board and connector in the withdrawn and seated positions. Check that the near chassis wall hides the parts behind it. Enter, leave, and re-enter during motion. Confirm the cartridge stops before the lever closes, and withdrawal waits until the lever opens.
 
 ## Visual verification
 

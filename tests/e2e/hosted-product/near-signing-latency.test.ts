@@ -119,11 +119,18 @@ async function runNearBenchmark(
   context.on('response', observations.observeResponse.bind(observations));
   gateway.start(context);
   const samples = [];
+  const lifecycleActions = [];
   let outcome = 'failed';
   try {
     await harness.initialize();
     const registrationStartedAt = performance.now();
     await harness.registerPasskeyEd25519YaoWallet();
+    lifecycleActions.push({
+      action: 'registration',
+      elapsedMs: performance.now() - registrationStartedAt,
+      automation: harness.signingActionTimingEvidence(),
+      sdkTimings: observations.window(registrationStartedAt, performance.now()),
+    });
     samples.push(
       await measure(
         harness,
@@ -149,6 +156,12 @@ async function runNearBenchmark(
     await harness.assertLockedPageReloadStaysLocked();
     const unlockStartedAt = performance.now();
     await harness.unlockPasskeyWallet();
+    lifecycleActions.push({
+      action: 'unlock',
+      elapsedMs: performance.now() - unlockStartedAt,
+      automation: harness.signingActionTimingEvidence(),
+      sdkTimings: observations.window(unlockStartedAt, performance.now()),
+    });
     samples.push(
       await measure(
         harness,
@@ -186,6 +199,7 @@ async function runNearBenchmark(
         {
           outcome,
           samples,
+          lifecycleActions,
           assets: [...observations.assets],
           browserConsoleCalls: observations.consoleRequests,
           notes: [

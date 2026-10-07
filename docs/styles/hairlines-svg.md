@@ -4,7 +4,19 @@ Use one detailed, interactive illustration at a time. Start from an existing wal
 
 The first example develops the wallet security section's **Audit log** image into four layered paper records. The folded corner, binding holes, ruled entries, and thin paper edges identify the object without words inside the drawing.
 
-The second example develops **Scoped credentials** into four cut metal keys on a shared ring. Each example has its own review page.
+The second example develops **Scoped credentials** into four cut metal keys on a shared ring. The user approved this animation on 2026-10-07. Preserve its geometry and interaction as the reference for the remaining examples. Each example has its own review page.
+
+## Replacement status
+
+The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
+
+| Existing asset     | Replacement status                                |
+| ------------------ | ------------------------------------------------- |
+| Scoped credentials | Keychain approved.                                |
+| Audit log          | Paper-record example available for review.        |
+| Policy engine      | Next proposed example; concept selection pending. |
+| Split-key custody  | Not started.                                      |
+| Threshold signing  | Not started.                                      |
 
 ## Reference and engine
 

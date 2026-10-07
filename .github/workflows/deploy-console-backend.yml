@@ -131,6 +131,7 @@ jobs:
     environment:
       name: ${{ needs.configure.outputs.environment }}
     env:
+      CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN: ${{ secrets.CLOUDFLARE_RELOCATION_VERIFICATION_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CONSOLE_SESSION_HMAC_SECRET: ${{ secrets.CONSOLE_SESSION_HMAC_SECRET }}

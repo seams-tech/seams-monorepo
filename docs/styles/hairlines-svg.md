@@ -69,7 +69,9 @@ The keychain preserves the circular heads and patterned shafts from the wallet's
 
 Hovering a key slides it forward along its shaft. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit retracts the selected key and restores the resting fan. The bright outline follows selection, and the readout names the selected key.
 
-The shared ring passes through elongated openings in the key heads. These openings permit limited travel while the keys remain attached. Opaque faces hide the keys behind them. The openings use an even-odd fill rule, which leaves a real hole through each face.
+The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 26 world units, and its tube radius is 2.6. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
+
+The ring passes through elongated openings in the key heads. These openings permit limited travel while the keys remain attached. Their width and rounded ends leave clearance around the tube throughout the full slide. An even-odd fill rule leaves a real hole through each face.
 
 The intensity slider controls travel at 12, 18, or 24 world units. Selection uses the resting key angles, so a moving key cannot change its own hover target. The shared 700ms tween handles selection changes and reverses from the current pose.
 

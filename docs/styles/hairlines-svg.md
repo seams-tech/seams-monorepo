@@ -77,11 +77,11 @@ The local review URL is `/dashboard-static/showcase/motion/`. The page contains 
 
 ## Scoped credentials example
 
-The keychain preserves the circular heads and patterned shafts from the wallet's existing **Scoped credentials** illustration. Four cut patterns distinguish the keys. Recessed channels, thin metal edges, and slotted heads give the object physical detail.
+The keychain preserves the circular heads and patterned shafts from the wallet's existing **Scoped credentials** illustration. Each head has a radius of 32 world units, one-third larger than the original. The shafts retain their original width and length. Four cut patterns distinguish the keys. Recessed channels, thin metal edges, and slotted heads give the object physical detail.
 
 Hovering a key slides it forward along its shaft. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit retracts the selected key and restores the resting fan. The bright outline follows selection, and the readout names the selected key.
 
-The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 26 world units, and its tube radius is 2.6. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
+The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 34 world units, and its tube radius is 2.6. The larger ring accommodates the wider heads. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
 
 The ring passes through elongated openings in the key heads. These openings permit limited travel while the keys remain attached. Their width and rounded ends leave clearance around the tube throughout the full slide. An even-odd fill rule leaves a real hole through each face.
 

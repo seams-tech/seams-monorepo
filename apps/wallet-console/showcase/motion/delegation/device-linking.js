@@ -3,6 +3,9 @@
 const MOVE_END = HL.EASE_LIFT(0.32);
 const CODE_END = HL.EASE_LIFT(0.45);
 const SCAN_END = HL.EASE_LIFT(0.75);
+// Within the 2200 ms sequence, finish the circle at 1900 ms and the tick at 2150 ms.
+const CIRCLE_END = (HL.EASE_LIFT(1900 / 2200) - SCAN_END) / (1 - SCAN_END);
+const TICK_END = (HL.EASE_LIFT(2150 / 2200) - SCAN_END) / (1 - SCAN_END);
 const FINISH_EASE = HL.bezier(0.23, 1, 0.32, 1);
 // A compact illustrative matrix with quiet space around its three finder squares.
 const QR_ROWS = [
@@ -67,15 +70,12 @@ function phone(parent, P, center, name) {
   const sweep = path(content, '', 'hi nf');
   sweep.setAttribute('data-part', 'scan-line');
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
-  const circle = successArc(1);
-  const halo = path(success, circle, 'lo nf');
-  const track = path(success, circle, 'lo nf');
-  const rim = path(success, circle, 'sil nf');
+  const rim = path(success, '', 'hi nf');
   const check = path(success, '', 'hi nf');
-  for (const mark of [halo, track, rim, check]) mark.style.strokeWidth = '1.5px';
+  for (const mark of [rim, check]) mark.style.strokeWidth = '1.5px';
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
-  return { group, content, qr, sweep, success, halo, rim, check };
+  return { group, content, qr, sweep, success, rim, check };
 }
 function sideButton(parent, P, center, low, high) {
   const points = [];
@@ -131,9 +131,9 @@ function progressBetween(value, start, end) {
 }
 function tickStroke(ink) {
   if (ink <= 0) return '';
-  const start = [-5.2, -0.2];
-  const corner = [-1.5, 3.5];
-  const end = [5.8, -5.1];
+  const start = [-4.8, -0.3];
+  const corner = [-1.7, 2.8];
+  const end = [6, -6];
   const firstLength = Math.hypot(corner[0] - start[0], corner[1] - start[1]);
   const secondLength = Math.hypot(end[0] - corner[0], end[1] - corner[1]);
   const distance = ink * (firstLength + secondLength);
@@ -160,14 +160,13 @@ function drawScreen(device, code, scan, success, scanner) {
   const sweepY = HL.lerp(-13, 13, scan);
   device.sweep.setAttribute('d', HL.seg([-13, sweepY], [13, sweepY]));
   device.sweep.setAttribute('opacity', Math.sin(Math.PI * scan));
-  const settle = FINISH_EASE(progressBetween(success, 0.08, 0.8));
+  const settle = FINISH_EASE(progressBetween(success, CIRCLE_END, 1));
   device.success.setAttribute('opacity', progressBetween(success, 0.08, 0.3));
-  device.success.setAttribute('transform', `scale(${HL.lerp(0.92, 1, settle)})`);
-  device.rim.setAttribute('d', successArc(FINISH_EASE(progressBetween(success, 0.1, 0.65))));
-  const pulse = progressBetween(success, 0.45, 1);
-  device.halo.setAttribute('transform', `scale(${HL.lerp(1, 1.22, FINISH_EASE(pulse))})`);
-  device.halo.setAttribute('opacity', Math.sin(Math.PI * pulse) * 0.5);
-  const ink = progressBetween(success, 0.2, 0.85);
+  device.success.setAttribute('transform', `scale(${HL.lerp(0.96, 1, settle)})`);
+  const circle = FINISH_EASE(progressBetween(success, 0.08, CIRCLE_END));
+  device.rim.setAttribute('d', successArc(circle));
+  device.rim.setAttribute('data-progress', circle);
+  const ink = progressBetween(success, CIRCLE_END, TICK_END);
   device.check.setAttribute('d', tickStroke(ink));
   device.success.setAttribute('data-progress', ink);
 }

@@ -37,12 +37,12 @@ function label(svg, location, text) {
   );
   el.textContent = text;
 }
-function port(svg, P) {
+function port(svg, P, center) {
   const points = [];
   for (let step = 0; step < 32; step++) {
     const angle = (step * Math.PI) / 16;
     const offset = 0.8 * Math.cos(angle);
-    points.push(P(33.05, offset, 1.3 + 0.8 * Math.sin(angle)));
+    points.push(P(33.05, center + offset, 1.3 + 0.8 * Math.sin(angle)));
   }
   path(svg, HL.poly(points), 'sil');
 }
@@ -340,19 +340,16 @@ function mount({ stage, svg, read }, lag) {
   const routes = [];
   for (const vertices of [
     [
-      [-67, -15, 1.3],
-      [-18, -15, 1.3],
-      [-18, -4, 1.3],
-      [-8, -4, 1.3],
+      [-67, -4, 1.3],
+      [-7, -4, 1.3],
     ],
     [
-      [-5, 63, 1.3],
-      [-5, 12, 1.3],
-      [-2, 12, 1.3],
+      [15.3, 63, 1.3],
+      [15.3, 19, 1.3],
     ],
     [
-      [8, -19.5, 1.3],
-      [8, -85, 1.3],
+      [17, -14, 1.3],
+      [17, -85, 1.3],
       [26, -85, 1.3],
     ],
   ]) {
@@ -376,7 +373,7 @@ function mount({ stage, svg, read }, lag) {
   }
   // The first wire leaves a visible front wall; the second enters behind its slab.
   svg.append(routes[0].group);
-  port(svg, local.bind(null, P, sourceOrigins[0]));
+  port(svg, local.bind(null, P, sourceOrigins[0]), 11);
   const gate = shield(svg, gateP);
   const result = transaction(svg, resultP, front);
   const gateAt = gateP(0, 0, 0),

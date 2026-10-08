@@ -69,9 +69,11 @@ function phone(parent, P, center, name) {
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
   const circle = successArc(1);
   const halo = path(success, circle, 'lo nf');
-  path(success, circle, 'lo nf');
+  const track = path(success, circle, 'lo nf');
   const rim = path(success, circle, 'sil nf');
-  const check = path(success, '', 'dot');
+  const check = path(success, '', 'hi nf');
+  for (const mark of [halo, track, rim, check]) mark.style.strokeWidth = '1.5px';
+  rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
   return { group, content, qr, sweep, success, halo, rim, check };
 }
@@ -127,7 +129,7 @@ function qrCode(parent) {
 function progressBetween(value, start, end) {
   return HL.clamp((value - start) / (end - start), 0, 1);
 }
-function tickShape(ink) {
+function tickStroke(ink) {
   if (ink <= 0) return '';
   const start = [-5.2, -0.2];
   const corner = [-1.5, 3.5];
@@ -145,26 +147,7 @@ function tickShape(ink) {
     const tail = (distance - firstLength) / secondLength;
     points.push(corner, [HL.lerp(corner[0], end[0], tail), HL.lerp(corner[1], end[1], tail)]);
   }
-  const left = [];
-  const right = [];
-  for (let index = 0; index < points.length; index++) {
-    const point = points[index];
-    const before = points[Math.max(0, index - 1)];
-    const after = points[Math.min(points.length - 1, index + 1)];
-    const incoming = Math.atan2(point[1] - before[1], point[0] - before[0]);
-    const outgoing = Math.atan2(after[1] - point[1], after[0] - point[0]);
-    let angle = (incoming + outgoing) / 2;
-    let halfWidth = 0.82;
-    if (index === 0) angle = outgoing;
-    else if (index === points.length - 1) angle = incoming;
-    else halfWidth /= Math.cos((outgoing - incoming) / 2);
-    const dx = -Math.sin(angle) * halfWidth;
-    const dy = Math.cos(angle) * halfWidth;
-    left.push([point[0] + dx, point[1] + dy]);
-    right.push([point[0] - dx, point[1] - dy]);
-  }
-  const outline = left.concat(right.reverse());
-  return HL.poly(HL.fillet(outline, Array(outline.length).fill(0.45), 5));
+  return HL.open(points);
 }
 function drawScreen(device, code, scan, success, scanner) {
   device.content.setAttribute('opacity', 1 - progressBetween(success, 0, 0.2));
@@ -185,7 +168,7 @@ function drawScreen(device, code, scan, success, scanner) {
   device.halo.setAttribute('transform', `scale(${HL.lerp(1, 1.22, FINISH_EASE(pulse))})`);
   device.halo.setAttribute('opacity', Math.sin(Math.PI * pulse) * 0.5);
   const ink = progressBetween(success, 0.2, 0.85);
-  device.check.setAttribute('d', tickShape(ink));
+  device.check.setAttribute('d', tickStroke(ink));
   device.success.setAttribute('data-progress', ink);
 }
 function tick(state, _dt, now) {

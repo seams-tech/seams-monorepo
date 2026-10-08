@@ -744,18 +744,67 @@ function phone(parent, P, center, active) {
   screenPath(group, P, center, HL.rrect(-18.5, 7, 18.5, 85, 3.8, 12));
   screenPath(group, P, center, HL.rrect(-4, 80, 4, 81.3, 0.65, 8));
   screenPath(group, P, center, HL.rrect(-5, 10, 5, 10.8, 0.4, 8));
-  const dots = [];
-  for (const u of [-9, 0, 9]) {
-    screenPath(group, P, center, HL.rrect(u - 2.6, 43.4, u + 2.6, 48.6, 2.6, 16));
-    dots.push(screenPath(group, P, center, HL.rrect(u - 2, 44, u + 2, 48, 2, 16), 'dot off'));
-  }
-  return { group, dots };
+  return { group, symbol: linkingSymbol(group, P, center) };
 }
-function matchingPattern(state, progress) {
-  for (let index = 0; index < 3; index++) {
-    const classes = progress >= 0.66 + index * 0.13 ? 'dot m' : 'dot off';
-    state.fixed.dots[index].setAttribute('class', classes);
-    state.moving.dots[index].setAttribute('class', classes);
+function linkingSymbol(parent, P, center) {
+  const origin = P(3.1, center, 46);
+  const u = P(3.1, center + 1, 46);
+  const v = P(3.1, center, 45);
+  const matrix = [
+    u[0] - origin[0],
+    u[1] - origin[1],
+    v[0] - origin[0],
+    v[1] - origin[1],
+    ...origin,
+  ];
+  const group = HL.mk('g', { transform: `matrix(${matrix.join(' ')})` }, parent);
+  const segments = [];
+  for (let index = 0; index < 4; index++) {
+    const points = [];
+    for (let step = 0; step <= 24; step++) {
+      const angle = HL.rad(index * 90 - 85 + (step / 24) * 70);
+      points.push([14 * Math.cos(angle), 14 * Math.sin(angle)]);
+    }
+    segments.push(tracedPath(group, HL.open(points)));
+  }
+  const halves = [];
+  for (const side of [-1, 1]) {
+    const half = HL.mk('g', {}, group);
+    const ink = tracedPath(half, 'M -2 1 A 5 5 0 0 0 5 1 L 8 -2 A 5 5 0 0 0 1 -9 L -1 -7');
+    halves.push({ group: half, ink, side });
+  }
+  return { segments, halves };
+}
+function tracedPath(parent, d) {
+  const guide = path(parent, d);
+  const length = guide.getTotalLength();
+  const points = [];
+  for (let step = 0; step <= 96; step++) {
+    const point = guide.getPointAtLength((length * step) / 96);
+    points.push([point.x, point.y]);
+  }
+  return { points, ink: path(parent, '', 'sil nf') };
+}
+function trace(stroke, progress) {
+  const cursor = progress * 96;
+  const index = Math.floor(cursor);
+  const points = stroke.points.slice(0, index + 1);
+  if (index < 96) {
+    const [x, y] = stroke.points[index];
+    const [nextX, nextY] = stroke.points[index + 1];
+    points.push([HL.lerp(x, nextX, cursor - index), HL.lerp(y, nextY, cursor - index)]);
+  }
+  stroke.ink.setAttribute('d', progress === 0 ? '' : HL.open(points));
+}
+function matchingPattern(phone, progress) {
+  const join = HL.clamp((progress - 0.8) / 0.16, 0, 1);
+  for (let index = 0; index < 4; index++) {
+    trace(phone.symbol.segments[index], HL.clamp((progress - 0.6 - index * 0.095) / 0.115, 0, 1));
+  }
+  for (const half of phone.symbol.halves) {
+    const gap = (1 - join) * 2.4 * half.side;
+    half.group.setAttribute('transform', `translate(${gap} ${-gap}) scale(${half.side})`);
+    trace(half.ink, HL.clamp((progress - 0.68) / 0.14, 0, 1));
   }
 }
 function base(parent, P, front) {
@@ -777,10 +826,11 @@ function tick(state, _dt, now) {
   const zero = state.P(0, 0, 0),
     raised = state.P(0, 0, lift);
   state.moving.group.setAttribute('transform', `translate(0 ${raised[1] - zero[1]})`);
-  matchingPattern(state, progress);
+  matchingPattern(state.fixed, progress);
+  matchingPattern(state.moving, progress);
   state.lamp.setAttribute('class', confirmed === 1 ? 'dot m' : 'dot off');
   state.read.textContent = state.active ? 'docking' : 'rest';
-  if (state.active && progress >= 0.66) state.read.textContent = 'confirming';
+  if (state.active && progress >= 0.6) state.read.textContent = 'confirming';
   if (state.active && progress === 1) state.read.textContent = 'linked';
   return !HL.tdone(state.motion, now);
 }
@@ -835,7 +885,7 @@ function mount({ stage, svg, read }, travel) {
     lamp,
     read,
     travel,
-    motion: HL.tween(0, 1800),
+    motion: HL.tween(0, 2400),
     drawn: NaN,
     active: null,
     loop: null,
@@ -855,7 +905,7 @@ function mount({ stage, svg, read }, travel) {
 }
 hairline({
   name: 'device-linking',
-  means: 'Hover to dock the second device; matching dots light on both screens after it seats.',
+  means: 'Hover to dock the second device; matching circuits trace and interlock on both screens.',
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [18, 23, 28],
   mount,

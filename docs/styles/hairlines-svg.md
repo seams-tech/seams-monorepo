@@ -214,11 +214,11 @@ Inspect the six occupied bays, rail alignment, and cabinet occlusion during inse
 
 ## Device linking: two phones in a pairing dock
 
-Two recognizable phones share a slim dock. The first phone is seated. The second rests above its connector. Each screen has three small indicator rings. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
+Two recognizable phones share a slim dock. The first phone is seated. The second rests above its connector. Each screen holds a segmented confirmation ring around two separated link halves. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
 
-Hovering the fixed stage lowers the second phone. After it seats, the three dots illuminate in the same order on both screens. Each pair lights together, and all six dots remain lit while docked. The dock indicator then illuminates. Leaving clears the dots in reverse order before the phone rises. A single reversible 1800ms tween preserves this order through interruptions. The slider sets lift to 18, 23, or 28 world units.
+Hovering the fixed stage lowers the second phone. After it seats, four ring segments trace clockwise on both screens. Two rounded link halves trace into view, then slide together. The last ring segment completes the confirmation, and the dock lamp illuminates. Both screens hold the same linked symbol. Leaving reverses the sequence before the phone rises. A single reversible 2400ms tween preserves this order through interruptions. The slider sets lift to 18, 23, or 28 world units.
 
-The matching pattern is the screen confirmation. Both screens use the same progress value. Only the second phone's position, the screen dot classes, and the dock lamp update. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
+Both screens use the same progress value. Screen geometry follows each phone's perspective. Faint outlines remain at rest, and the traced strokes use the standard silhouette class. Paths are sampled once during mounting. Animation reveals those samples and translates the link halves. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
 
 Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild:
 

@@ -10,29 +10,6 @@ function path(parent, d, classes = 'lo nf') {
 function local(P, origin, x, y, z) {
   return P(origin[0] + x, origin[1] + y, z);
 }
-function positioned(P, center, x, y, z) {
-  const origin = P(0, 0, 0);
-  const point = P(x, y, z);
-  return [center[0] + point[0] - origin[0], center[1] + point[1] - origin[1]];
-}
-function middlePorts(outline) {
-  let low = Infinity,
-    high = -Infinity;
-  for (const point of outline) {
-    low = Math.min(low, point[1]);
-    high = Math.max(high, point[1]);
-  }
-  const y = (low + high) / 2;
-  const crossings = [];
-  for (let index = 0; index < outline.length; index++) {
-    const a = outline[index],
-      b = outline[(index + 1) % outline.length];
-    if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) {
-      crossings.push(HL.lerp(a[0], b[0], (y - a[1]) / (b[1] - a[1])));
-    }
-  }
-  return { inlet: [Math.min(...crossings), y], outlet: [Math.max(...crossings), y] };
-}
 function curvePoint(points, t) {
   const [a, b, c, d] = points;
   const s = 1 - t;
@@ -241,8 +218,7 @@ function shield(svg, P) {
     [P(-6 * scale, 0, 4.1), P(-scale, 5 * scale, 4.1), P(7 * scale, -7 * scale, 4.1)],
     'check',
   );
-  const ports = middlePorts(silhouette);
-  return { body, mark, inlet: ports.inlet, outlet: ports.outlet };
+  return { body, mark, inlet: P(-17.8, 0, 2.6), outlet: P(17.8, 0, 2.6) };
 }
 function transaction(svg, P, front) {
   const body = HL.solid(svg);
@@ -346,33 +322,29 @@ function mount({ stage, svg, read }, lag) {
   const preview = stage.closest('main');
   if (preview && !preview.style.maxWidth) preview.style.maxWidth = '896px';
   const C = HL.Cam(45, 0.5, 1.45);
+  HL.fit(C, [[0, 0, 0]], 185, 82);
   const P = HL.proj(C),
     front = HL.facing(C);
+  // The keys share one x position; the shield and result follow their centre axis.
   const sourceCenters = [
-    [85, 90],
-    [85, 190],
+    [0, -50],
+    [0, 50],
   ];
   const sources = [];
-  for (const center of sourceCenters) sources.push(positioned.bind(null, P, center));
-  const gateP = positioned.bind(null, P, [290, 155]);
+  for (const center of sourceCenters) sources.push(local.bind(null, P, center));
+  const gateP = local.bind(null, P, [110, 0]);
+  const resultP = local.bind(null, P, [220, 0]);
   const gate = shield(svg, gateP);
-  const cardHeight = P(0, 0, 0)[1] - P(0, 0, 1.75)[1];
-  const resultP = positioned.bind(null, P, [460, gate.inlet[1] + cardHeight]);
-  const inlet = [gate.inlet[0] + 2, gate.inlet[1]];
   const wireBase = HL.mk('g', {}, svg);
   const vertices = [];
+  const inlet = HL.unproj(C, gate.inlet[0], gate.inlet[1], 0);
+  const junction = [inlet[0] - 24, inlet[1]];
   for (const source of sources) {
-    const start = source(33.05, -12, 1.3);
-    // Route on the ground axes, then round the projected corner.
+    const start = source(33.05, 0, 1.3);
     const from = HL.unproj(C, start[0], start[1], 0);
-    const to = HL.unproj(C, inlet[0], inlet[1], 0);
-    vertices.push([start, P(to[0], from[1], 0), inlet]);
+    vertices.push([start, P(junction[0], from[1], 0), P(junction[0], junction[1], 0), gate.inlet]);
   }
-  const outlet = [gate.outlet[0] - 2, gate.outlet[1]];
-  const destination = resultP(-21, 21, 1.75);
-  const from = HL.unproj(C, outlet[0], outlet[1], 0);
-  const to = HL.unproj(C, destination[0], destination[1], 0);
-  vertices.push([outlet, P(from[0], to[1], 0), destination]);
+  vertices.push([gate.outlet, resultP(-28.8, 0, 2.6)]);
   const routes = [];
   for (const route of vertices) {
     const routeName = ['device', 'infrastructure', 'transaction'][routes.length];
@@ -388,18 +360,19 @@ function mount({ stage, svg, read }, lag) {
   }
   for (let index = 0; index < sources.length; index++) {
     slab(svg, sources[index], front);
-    const center = sourceCenters[index];
-    label(svg, [center[0], center[1] - 37], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
+    const center = sources[index](0, 0, 0);
+    label(svg, [center[0], center[1] - 31], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
   }
   // Keep shared wire segments beneath every signal and the shield above the join.
   svg.append(wireBase);
   for (const route of routes) svg.append(route.group);
-  for (const source of sources) port(svg, source, -12);
+  for (const source of sources) port(svg, source, 0);
   svg.append(gate.body.g);
   const result = transaction(svg, resultP, front);
-  const captionY = gate.inlet[1] + 38;
-  label(svg, [290, captionY], 'Policy check');
-  label(svg, [460, captionY], 'Signed transaction');
+  const gateCenter = gateP(0, 0, 0);
+  const resultCenter = resultP(0, 0, 0);
+  label(svg, [gateCenter[0], gateCenter[1] + 35], 'Policy check');
+  label(svg, [resultCenter[0], resultCenter[1] + 35], 'Signed transaction');
   label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');
   const state = {
     stage,

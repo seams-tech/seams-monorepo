@@ -152,18 +152,13 @@ function iris(state, lift, opening) {
   state.shutter.setAttribute('d', face);
   state.seams.setAttribute('d', seams);
 }
-function blockRing(radius, cut, z) {
-  const shoulder = radius - cut;
-  return [
-    [-radius, -shoulder, z],
-    [-shoulder, -radius, z],
-    [shoulder, -radius, z],
-    [radius, -shoulder, z],
-    [radius, shoulder, z],
-    [shoulder, radius, z],
-    [-shoulder, radius, z],
-    [-radius, shoulder, z],
-  ];
+function cylinderRing(radius, z) {
+  const points = [];
+  for (let step = 0; step < 64; step++) {
+    const angle = -Math.PI / 4 + (step * Math.PI) / 32;
+    points.push([radius * Math.cos(angle), radius * Math.sin(angle), z]);
+  }
+  return points;
 }
 function projectVertex(P, point) {
   return P(...point);
@@ -184,35 +179,34 @@ function engravedPath(P, points, floor) {
   }
   return d;
 }
-function inscriptionPoint(face, top, point) {
+function inscriptionPoint(surface, top, point) {
   const [u, v] = point;
-  if (face === 'top') return [u, v, top + 0.01];
-  if (face === 'right') return [8.01, u, top - v];
-  if (face === 'chamfer') return [6.5 + u / Math.SQRT2, 6.5 - u / Math.SQRT2, top - v];
-  return [u, 8.01, top - v];
+  if (surface === 'top') return [u, v, top + 0.01];
+  const angle = Math.PI / 4 + u / 8;
+  return [8.01 * Math.cos(angle), 8.01 * Math.sin(angle), top - v];
 }
-function inscriptionLines(P, face, top, floor) {
-  const width = face === 'chamfer' ? 2.3 : 6.2;
-  const firstRow = face === 'top' ? -3.4 : 4;
+function inscriptionLines(P, surface, top, floor) {
+  const width = surface === 'top' ? 6.2 : 13;
+  const firstRow = surface === 'top' ? -3.4 : 4;
   const lengths = [1, 0.9, 0.72, 1, 0.58];
   let d = '';
   for (let row = 0; row < lengths.length; row++) {
     const v = firstRow + row * 1.6 + (row > 0 ? 0.6 : 0);
-    const points = [
-      [-width / 2, v],
-      [-width / 2 + width * lengths[row], v],
-    ];
-    d += engravedPath(P, points.map(inscriptionPoint.bind(null, face, top)), floor);
+    const points = [];
+    for (let step = 0; step <= 24; step++) {
+      points.push([-width / 2 + (width * lengths[row] * step) / 24, v]);
+    }
+    d += engravedPath(P, points.map(inscriptionPoint.bind(null, surface, top)), floor);
   }
   return d;
 }
-function signedBlock(state, floor, top) {
+function signedCylinder(state, floor, top) {
   const P = state.baseP;
   const profiles = [
-    { radius: 6.9, cut: 2.4, z: top - 16 },
-    { radius: 8, cut: 3, z: top - 14.9 },
-    { radius: 8, cut: 3, z: top - 1.1 },
-    { radius: 6.9, cut: 2.4, z: top },
+    { radius: 6.9, z: top - 16 },
+    { radius: 8, z: top - 14.9 },
+    { radius: 8, z: top - 1.1 },
+    { radius: 6.9, z: top },
   ];
   const vertices = [];
   for (let index = 0; index < profiles.length; index++) {
@@ -221,44 +215,23 @@ function signedBlock(state, floor, top) {
     if (index > 0 && profiles[index - 1].z < floor) {
       const previous = profiles[index - 1];
       const t = (floor - previous.z) / (profile.z - previous.z);
-      vertices.push(
-        ...blockRing(
-          HL.lerp(previous.radius, profile.radius, t),
-          HL.lerp(previous.cut, profile.cut, t),
-          floor,
-        ),
-      );
+      vertices.push(...cylinderRing(HL.lerp(previous.radius, profile.radius, t), floor));
     }
-    vertices.push(...blockRing(profile.radius, profile.cut, profile.z));
+    vertices.push(...cylinderRing(profile.radius, profile.z));
   }
-  const cap = blockRing(6.9, 2.4, top);
+  const cap = cylinderRing(6.9, top);
   let edges = HL.poly(cap.map(projectVertex.bind(null, P)));
-  const upper = blockRing(8, 3, top - 1.1);
-  const lower = blockRing(8, 3, top - 14.9);
-  const foot = blockRing(6.9, 2.4, top - 16);
-  // This camera sees the front shoulders and the two edges of the front chamfer.
-  edges += engravedPath(P, upper.slice(3, 7), floor);
-  edges += engravedPath(P, lower.slice(3, 7), floor);
-  for (const corner of [4, 5]) {
-    edges += engravedPath(P, [cap[corner], upper[corner], lower[corner], foot[corner]], floor);
-  }
-  HL.put(state.block, {
+  // Only the near halves of the bevel rings are visible below the top face.
+  edges += engravedPath(P, cylinderRing(8, top - 1.1).slice(0, 33), floor);
+  edges += engravedPath(P, cylinderRing(8, top - 14.9).slice(0, 33), floor);
+  HL.put(state.transaction, {
     sil: HL.poly(HL.hull(vertices.map(projectVertex.bind(null, P)))),
     crease: edges,
   });
-  const border = blockRing(6.1, 2.1, top + 0.01);
+  const border = cylinderRing(6.1, top + 0.01);
   let marks = HL.poly(border.map(projectVertex.bind(null, P)));
-  for (const face of ['top', 'right', 'left', 'chamfer']) {
-    marks += inscriptionLines(P, face, top, floor);
-    if (face === 'top' || face === 'chamfer') continue;
-    const frame = [
-      [-4.1, 2.6],
-      [4.1, 2.6],
-      [4.1, 12.6],
-      [-4.1, 12.6],
-      [-4.1, 2.6],
-    ];
-    marks += engravedPath(P, frame.map(inscriptionPoint.bind(null, face, top)), floor);
+  for (const surface of ['top', 'wall']) {
+    marks += inscriptionLines(P, surface, top, floor);
   }
   state.inscriptions.setAttribute('d', marks);
 }
@@ -271,12 +244,12 @@ function output(state, lift, emit, dt, now) {
   const top = floor + height;
   if (top !== state.top) {
     state.top = top;
-    state.block.g.setAttribute('display', height > 0.01 ? 'inline' : 'none');
-    signedBlock(state, floor, top);
+    state.transaction.g.setAttribute('display', height > 0.01 ? 'inline' : 'none');
+    signedCylinder(state, floor, top);
   }
   const sway = HL.reducedMotion() ? 0 : HL.clamp((height - 38) / 16, 0, 1);
   const [cx, cy] = state.baseP(0, 0, top - 8);
-  state.block.g.setAttribute(
+  state.transaction.g.setAttribute(
     'transform',
     `translate(${sway * Math.sin(now / 1050)} ${sway * 2 * Math.sin(now / 730)}) rotate(${sway * 1.4 * Math.sin(now / 1200)} ${cx} ${cy})`,
   );
@@ -343,10 +316,10 @@ function mount({ stage, svg, read }, travel) {
   const bezel = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, center);
   const rim = path(center, 'sil nf');
   const screws = path(center);
-  const block = HL.solid(center),
-    inscriptions = path(block.g, 'sil nf');
-  block.sil.setAttribute('class', 'hi');
-  block.cr.setAttribute('class', 'hi nf');
+  const transaction = HL.solid(center),
+    inscriptions = path(transaction.g, 'sil nf');
+  transaction.sil.setAttribute('class', 'hi');
+  transaction.cr.setAttribute('class', 'hi nf');
   const keys = [],
     positions = [
       [-27, -20, -20],
@@ -383,7 +356,7 @@ function mount({ stage, svg, read }, travel) {
     bezel,
     rim,
     screws,
-    block,
+    transaction,
     inscriptions,
     read,
     travel,

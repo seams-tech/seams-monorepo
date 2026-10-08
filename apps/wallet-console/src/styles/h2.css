@@ -3005,6 +3005,10 @@ body:has(.h2-page) {
   background: var(--h2-bg);
 }
 
+.h2-wallet-figure[data-figure='signing'] {
+  aspect-ratio: 2 / 1;
+}
+
 .h2-security__cell span {
   font-family: var(--h2-mono);
   font-size: var(--h2-text-base);

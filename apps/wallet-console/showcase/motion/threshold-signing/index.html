@@ -1060,28 +1060,39 @@ function set(state, lag) {
   state.loop.wake();
 }
 function mount({ stage, svg, read }, lag) {
+  svg.setAttribute('viewBox', '0 0 560 280');
+  stage.style.aspectRatio = '2 / 1';
+  svg.style.aspectRatio = '2 / 1';
+  const preview = stage.closest('main');
+  if (preview && !preview.style.maxWidth) preview.style.maxWidth = '896px';
   const C = HL.Cam(45, 0.5, 1.45);
   const P = HL.proj(C),
     front = HL.facing(C);
   const sourceCenters = [
-    [85, 118],
-    [85, 218],
+    [85, 90],
+    [85, 190],
   ];
   const sources = [];
   for (const center of sourceCenters) sources.push(positioned.bind(null, P, center));
-  const gateP = positioned.bind(null, P, [215, 168]);
+  const gateP = positioned.bind(null, P, [290, 155]);
   const gate = shield(svg, gateP);
   const cardHeight = P(0, 0, 0)[1] - P(0, 0, 1.75)[1];
-  const resultP = positioned.bind(null, P, [330, gate.inlet[1] + cardHeight]);
-  const junctionX = gate.inlet[0] - 14;
+  const resultP = positioned.bind(null, P, [460, gate.inlet[1] + cardHeight]);
   const inlet = [gate.inlet[0] + 2, gate.inlet[1]];
   const wireBase = HL.mk('g', {}, svg);
   const vertices = [];
   for (const source of sources) {
     const start = source(33.05, -12, 1.3);
-    vertices.push([start, [junctionX, start[1]], [junctionX, inlet[1]], inlet]);
+    // Route on the ground axes, then round the projected corner.
+    const from = HL.unproj(C, start[0], start[1], 0);
+    const to = HL.unproj(C, inlet[0], inlet[1], 0);
+    vertices.push([start, P(to[0], from[1], 0), inlet]);
   }
-  vertices.push([[gate.outlet[0] - 2, gate.outlet[1]], resultP(-21, 21, 1.75)]);
+  const outlet = [gate.outlet[0] - 2, gate.outlet[1]];
+  const destination = resultP(-21, 21, 1.75);
+  const from = HL.unproj(C, outlet[0], outlet[1], 0);
+  const to = HL.unproj(C, destination[0], destination[1], 0);
+  vertices.push([outlet, P(from[0], to[1], 0), destination]);
   const routes = [];
   for (const route of vertices) {
     const routeName = ['device', 'infrastructure', 'transaction'][routes.length];
@@ -1107,9 +1118,9 @@ function mount({ stage, svg, read }, lag) {
   svg.append(gate.body.g);
   const result = transaction(svg, resultP, front);
   const captionY = gate.inlet[1] + 38;
-  label(svg, [215, captionY], 'Policy check');
-  label(svg, [330, captionY], 'Signed transaction');
-  label(svg, [200, 281], '2-of-2 threshold · neither share signs alone');
+  label(svg, [290, captionY], 'Policy check');
+  label(svg, [460, captionY], 'Signed transaction');
+  label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');
   const state = {
     stage,
     read,

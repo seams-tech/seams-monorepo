@@ -491,3 +491,45 @@ resources, production deployments, or npm releases were added.
 [Sanitized evidence](evidence/r155b-continuous-ceremony-20261008.json) retains every
 workload, request count, timing boundary, serving-version audit, build hash, and
 E2E reproduction command. Raw data and frozen sources remain in local artifacts.
+
+## Object-dispatch isolation — 2026-10-08
+
+Warm no-op calls stayed fast across separate incoming requests. This disproves a
+universal half-second penalty for the first object call in every request. Fresh
+handles, APAC hints, and named lookups did not reproduce that penalty.
+
+The experiment used six existing wallet objects and temporarily wrapped two
+existing staging Workers. Three arms each sent 36 probe requests and 108 object
+calls. All **324 calls** returned the expected object identity and counter. Each
+object retained one instance per arm. Signing Worker probes passed through the
+Router's existing service binding.
+
+| Lookup | Warm first call: Router, reused / fresh | Warm first call: Signing Worker, reused / fresh |
+| --- | ---: | ---: |
+| Object ID | 56 / 56 ms | 55.5 / 57 ms |
+| Object ID with APAC hint | 55.5 / 55 ms | 53.5 / 56 ms |
+| Object name with APAC hint | 56.5 / 54 ms | 56 / 55 ms |
+
+These are medians, with six reused-handle samples and nine fresh-handle samples
+per cell. Warm first calls ranged from 51–67 ms. Later calls in each request had
+medians of 51–56.5 ms. Each object's first probe cost 471–655 ms in the first arm
+and 140–196 ms in the later arms. Existing routing caches may survive between
+arms. These observations cannot separate routing and object reconstruction costs.
+
+The no-op handlers performed no storage or protocol work. This experiment does
+not establish a Yao speed improvement. The real setup still has longer dispatch
+spans. The next targeted measurement must correlate startup, claim, and delivery
+for the same wallet. Record payload sizes and response-header/body-read boundaries.
+Observe actual execution locations separately from latency measurements.
+
+All three local E2E runs passed. Hosted probes rejected missing credentials and
+unknown objects. All captured versions matched, although object tails were
+incomplete. Each arm restored and verified all thirteen original Worker versions.
+The initial Python-client attempt received Cloudflare error 1010 before reaching
+the Workers and also restored exact versions. The successful runs used browser
+HTTP headers. No production code, infrastructure, or npm release changed.
+
+Keep the existing lookup and placement implementation. These results do not
+justify a global handle cache or another coordinator rewrite.
+[Sanitized evidence](evidence/r155b-object-dispatch-probe-20261008.json) records
+all samples, coverage limits, source hashes, local checks, and reproduction commands.

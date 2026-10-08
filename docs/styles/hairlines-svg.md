@@ -264,15 +264,17 @@ The review script saves repeatable visual artifacts. Its automatic checks cover 
 
 Before production integration, check keyboard access, reduced motion, and physical touch behavior in the host component. Keep essential explanations in adjacent HTML. Decorative motion must never determine wallet authentication, signing, or transaction state.
 
-## Infrastructure array: Terrain variation
+## Infrastructure array: a wave across a rack wall
 
 Preview: `/dashboard-static/showcase/motion/infrastructure-array/`.
 
-Twenty-five server modules stand on a rounded base. Lid vents, two front slots, and status dots distinguish them from plain pillars. Two uneven rises compose the rest pose. The tallest resting module carries the accent. The pointer raises nearby modules into a smooth hill. Each module uses its own default Hairline spring. A Gaussian falloff controls the height, with a 15-unit floor and a 52-unit maximum. The slider sets the response radius to 22, 34, or 48 world units.
+Five adjoining racks hold six server modules each. Closed side panels, mounting posts, rail sections, recessed handles, ventilation slots, and status dots establish the datacenter setting. The mirrored 65-degree camera shows the rack fronts and their depth. A few modules rest slightly withdrawn to suggest movement before interaction.
 
-Pointer selection uses the fixed resting tops. Diagonal paint order preserves occlusion. Settled modules stop updating, and reduced motion lands each spring immediately. This is an alternative self-hosting preview; the server-rack preview remains available.
+Moving across the wall draws nearby modules outward along their rails. A Gaussian falloff spreads the motion across neighboring racks and bays. Each module has an independent default Hairline spring. The maximum withdrawal is 24 world units. The slider sets the wave radius to 18, 30, or 44 world units. Leaving restores the resting arrangement.
 
-Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 54,54,25 --edge 98,98,16 --zoom answer`.
+Pointer selection projects onto the fixed rack face. Moving fronts never change the hit areas. Rack groups draw from far to near, and server groups draw from bottom to top. Near walls, mounting posts, and top panels mask the chassis inside each cabinet. Each server's geometry stays fixed; only its group translates. Settled springs stop updating, and reduced motion lands at the target immediately.
+
+Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 205,157 --edge 105,131 --edge 295,154 --zoom answer`. Screen coordinates account for the mirrored camera. The original single-rack preview remains available separately.
 
 ## Signing assembly: block keys and a signed transaction
 

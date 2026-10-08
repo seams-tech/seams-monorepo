@@ -917,13 +917,13 @@ function mount({ stage, svg, read }, radius) {
     block(group, P, front, -22, y + 1, -20, y + 39, 5, 80, 0.7);
     block(group, P, front, -20, y, 11, y + 2, 5, 80, 0.7);
     post(group, P, front, y + 2);
+    for (const z of [13, 41, 69])
+      face(group, P, 14.6, y + 1.2, z - 1.8, y + 2.8, z + 1.8, 0.3, 'sil');
     const modules = [];
     for (let bay = 0; bay < 6; bay++) modules.push(server(group, P, front, index, bay));
     block(group, P, front, -20, y + 38, 11, y + RACK_WIDTH, 5, 80, 0.7);
     post(group, P, front, y + 38);
     block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 1.4);
-    for (const z of [13, 41, 69])
-      face(group, P, 14.6, y + 1.2, z - 1.8, y + 2.8, z + 1.8, 0.3, 'sil');
     racks.push({ index, modules, door: door(group, index) });
   }
   const state = { P, racks, read, radius, over: null, loop: null };

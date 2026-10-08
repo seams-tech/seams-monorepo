@@ -574,11 +574,59 @@ the encrypted row before admission. The follow-up reads preserve cancellation an
 uniqueness. The six-to-four proposal was not applied because it lacked an atomic,
 verified admission guard. Actual execution locations remain unmeasured.
 
-Retain the CPU reduction and simpler state path. The next network-call candidate
-is a single A connection for preparation and execution while B prepares in
-parallel. It remains unimplemented. The earlier combined-call experiment lost
-that parallelism. The 1–2 second setup target remains unmet.
+Retain the CPU reduction and simpler state path. The next candidate was a single
+A connection while B preparation started independently. The earlier combined-call
+experiment put B preparation behind the initial A dispatch. The following
+experiment evaluates connection reuse. The 1–2 second setup target remains unmet.
 
 [Sanitized evidence](evidence/r155b-bound-root-start-20261008.json) retains every
 sample, build hashes, HTTP counts, bounded D1 counts, payload sizes, local checks,
 serving-version audits, and restoration evidence.
+
+
+## 2026-10-08: one A connection — rejected
+
+The connection candidate did not establish an end-to-end improvement. It was
+removed from `dev`. The retained implementation is the Phase 6M baseline.
+
+| NEAR-only Yao setup HTTP request | Median | Range |
+| --- | ---: | ---: |
+| Baseline before | 4.136 s | 4.057–5.026 s |
+| Candidate | 3.932 s | 3.445–3.987 s |
+| Baseline after | 3.589 s | 3.043–3.934 s |
+
+Each arm used three fresh wallets and verified 21 signatures. All five release
+builds, the other Workers host check, and twelve local E2E scenarios passed before
+hosted testing. The local placement test held A dispatch until B preparation
+finished. It proved independent B dispatch in all four homes. Cancellation,
+forged messages, concurrency, lost replies, root erasure, and relocation state
+remained enforced.
+
+The candidate removed one Router-to-A HTTP dispatch and one A Worker-to-object
+dispatch. It preserved the logical preparation and start exchanges. The Router
+still had to receive both readiness receipts before starting execution.
+Bound-root work stayed at six D1 calls and sixteen statements per setup.
+Browser request counts stayed at four per warm or consecutive signature, and
+nine for unlock through the first verified signature.
+
+A's execution-stage medians were 1,567 / 1,431 / 1,733 ms in arm order. Preparation
+medians were 1,153 / 988 / 843 ms. Signing Worker delivery medians were
+582 / 595 / 494 ms. Stage medians cannot be added to reconstruct whole latency.
+These spans include processing and storage waits. They do not isolate network time.
+The candidate's A invocation includes both preparation and execution, so its CPU
+is not comparable to a baseline preparation invocation alone.
+
+All captured versions matched. Every first required object call reused an
+instance observed during startup. Physical execution locations remain unmeasured.
+No resources were added. The 1–2 second setup target remains unmet.
+
+Candidate: `9eab3375e10d33477ac793ce108c219efedecfce`. Removal:
+`9d808eb233a5928b6c7728f9eeba63d7ea07d2f3`. The removal restores the exact previous
+source tree. Avoid repeating this transport-only change without new evidence.
+
+[Sanitized evidence](evidence/r155b-ceremony-connection-20261008.json) contains all
+63 verified signature results, source and build hashes, HTTP and bounded D1
+counts, version audits, local checks, limitations, and restoration evidence.
+
+All thirteen original staging versions were restored. Tenant activation passed
+in [run 37718977503](https://github.com/seams-tech/seams-monorepo/actions/runs/37718977503).

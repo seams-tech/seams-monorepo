@@ -448,3 +448,46 @@ All thirteen original Worker versions were restored and verified. Both tenant
 activations passed. No resources or keepalive traffic were added.
 [Sanitized evidence](evidence/r155b-combined-startup-admission-20261008.json) records
 the timing boundaries, counts, actual serving versions, and limitations.
+
+### Continuous Deriver A ceremony — rejected on 2026-10-08
+
+The candidate combined A preparation and execution in one wallet-object request.
+A started local preparation and B preparation in parallel. It verified both signed
+readiness receipts before the existing durable execution claim. The candidate
+passed five release builds, twelve local E2E scenarios, and the bloat check.
+
+Nine fresh wallets completed **63 verified NEAR signatures** across three arms.
+Every captured serving version matched. SDK assets, APAC hints, B, and Signing
+Worker remained fixed. Only Router and A changed for the candidate arm.
+
+| Arm | Fresh wallets | Median Yao execute HTTP | Observed range |
+| --- | ---: | ---: | ---: |
+| Combined baseline, before | 3 | **3.548 s** | 3.217–4.854 s |
+| Continuous A ceremony | 3 | **3.379 s** | 3.208–3.986 s |
+| Combined baseline, after | 3 | **3.354 s** | 2.788–3.802 s |
+
+The candidate improved on the first control by 169 ms and exceeded the second by
+25 ms. This does not establish a repeatable latency gain. The candidate was reverted.
+Its source remains reproducible at public Wallet commit
+`3cdcce98cc1316eb6f1a2f0cb93b5dbabc253c1f`. The two-second Yao setup target remains unmet.
+
+All roles reused already-started wallet objects. Bound-root work stayed at six D1
+round trips and sixteen statements per setup. Removing one A object entry left
+that work intact and made B preparation depend on the initial A dispatch.
+
+Signing Worker delivery medians were **572 / 553 / 529 ms** in arm order. Its first
+object-work medians were **123 / 99 / 129 ms**. Package-handler CPU medians were
+**5 / 2 / 3 ms**, with one 77 ms control outlier. The trace does not identify a
+serialization fix for the larger delay around the object call. Overlapping clocks
+do not permit an exact network-time subtraction.
+
+Router finish-dispatch medians were **49 / 54 / 52 ms**. A larger gain from moving
+coordinator placement remains unmeasured. This comparison does not justify another
+coordinator rewrite or additional regional resources.
+
+All thirteen original deployments were restored and verified. Initial activation
+`37705691755` and restoration activation `37706751098` passed. No infrastructure
+resources, production deployments, or npm releases were added.
+[Sanitized evidence](evidence/r155b-continuous-ceremony-20261008.json) retains every
+workload, request count, timing boundary, serving-version audit, build hash, and
+E2E reproduction command. Raw data and frozen sources remain in local artifacts.

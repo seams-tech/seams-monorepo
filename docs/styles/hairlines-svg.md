@@ -276,16 +276,18 @@ Pointer selection projects onto the fixed rack face. Moving fronts never change 
 
 Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 205,157 --edge 105,131 --edge 295,154 --zoom answer`. Screen coordinates account for the mirrored camera. The original single-rack preview remains available separately.
 
-## Signing assembly: block keys and a signed transaction
+## Signing assembly: rod keys, iris, and transaction output
 
 Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
 
-Three block keys stand above cylindrical sockets on a circular indexed disk. Each key has a broad grip, a thick blade, and a distinct tooth position. The sockets rotate with the disk. Each socket opening also turns with its key.
+Three cylindrical rod keys stand above matching sockets on an indexed disk. Each rod has a recessed collar and a lateral key bit. An index mark on the grip makes its quarter-turn visible. Two keys insert and lock. The third remains withdrawn.
 
-Hovering runs five ordered stages: two keys insert, both turn 90 degrees, the disk rotates 70 degrees, the center platform rises, and an engraved transaction block emerges. The block has recessed line marks and a square seal on its lid. It lifts clear of the platform after emerging. The third key stays withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram.
+Six separate Hairline tweens control the sequence. Insertion takes 500ms, the locking turn 450ms, and disk rotation 650ms. A 180ms pause follows rotation. The central cylinder then rises over 400ms. Its six-part iris opens over 350ms before the 200ms ejection begins. Each stage finishes before the next starts. Hover interruptions resume from the current pose.
 
-A reversible 3600ms tween preserves the stage order through interruptions. The disk cannot rotate before both keys turn. The platform cannot rise before the disk stops. The transaction remains hidden until the platform finishes rising. Leaving reverses the entire sequence. The slider sets insertion depth to 22, 23, or 24 world units.
+The transaction block rises 54 world units above the raised platform, with a spring overshoot. Its spring uses stiffness 100, damping 10, and mass 1. Small vertical, lateral, and rotational oscillations keep it hovering. The block carries engraved lines and a recessed square seal. Only the output block continues moving after the mechanism settles. The shared loop sleeps offscreen.
 
-Inserted blade geometry stops at the socket entrance. Transaction geometry stops at the platform surface until it emerges. Object groups sort by depth while the disk rotates. The accent transfers from the platform to its output block. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
+Leaving retracts the block before closing the iris, lowering the cylinder, rotating back, and unlocking and withdrawing the keys. Reverse motion waits for the block spring to settle before closing the aperture. Reduced motion lands all stages and disables the hover oscillation. The slider sets key insertion depth to 22, 23, or 24 world units.
 
-Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/signing-assembly` with `--answer 0,0,22 --edge 27,-19,65 --zoom answer`.
+Inserted rod sections stop at the socket entrance. The transaction remains hidden until the iris opens. Its exposed geometry starts at the platform surface. Object groups reorder by depth during rotation. The output block is the accent.
+
+Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`, then run the Hairline `build.mjs` into that directory's `index.html`. This extended figure uses the unchanged Hairline runtime but exceeds the standalone skill's 200-line figure limit. Review it in the browser with both themes, a 240px preview, both slider extremes, rapid hover reversals, and reduced motion. The repeatable local check is `.artifacts/signing-assembly/check-iris.mjs`; its screenshots and JSON report record the stage order, output visibility, hover, interrupted reverse, and reduced motion.

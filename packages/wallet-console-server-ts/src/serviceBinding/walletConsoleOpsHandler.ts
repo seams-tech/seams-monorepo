@@ -3,8 +3,6 @@ import type {
   RouterApiPublishableKeyAuthAdapter,
   RouterApiProjectEnvironmentResolver,
   RouterApiUsageMeterAdapter,
-  RouterApiWalletProjectionAdapter,
-  RouterApiWalletProjectionEvent,
 } from '@seams/wallet-server/cloud-host';
 import {
   isApiCredentialScope,
@@ -17,7 +15,6 @@ import {
 import {
   decodeWalletConsoleTenantRootActiveLineageRequestV1,
   WALLET_CONSOLE_OP_PATHS_V1,
-  WALLET_CONSOLE_OPS_BASE_PATH_V1,
   WALLET_CONSOLE_SERVICE_ORIGIN_V1,
   type WalletConsoleSecretKeyAuthRequestV1,
   type WalletConsolePublishableKeyAuthRequestV1,
@@ -30,7 +27,6 @@ export interface WalletConsoleOpsHandlerServices {
   readonly apiKeyAuth: RouterApiKeyAuthAdapter;
   readonly publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
   readonly usageMeter: RouterApiUsageMeterAdapter;
-  readonly walletProjection: RouterApiWalletProjectionAdapter;
   readonly projectEnvironments: RouterApiProjectEnvironmentResolver;
   readonly tenantRootActiveLineage: {
     resolveActiveLineage(
@@ -126,15 +122,6 @@ export function createWalletConsoleOpsHandler(
       };
       const result = await services.publishableKeyAuth.authenticate(input);
       return json(result, result.ok ? 200 : result.status);
-    }
-
-    if (pathname === `${WALLET_CONSOLE_OPS_BASE_PATH_V1}/wallet-projections`) {
-      const event = parseWalletProjection(await readJsonBody(request));
-      if (!event) {
-        return json({ ok: false, code: 'invalid_body', message: 'Invalid Wallet projection' }, 400);
-      }
-      await services.walletProjection.recordCreatedWallet(event);
-      return json({ ok: true });
     }
 
     if (pathname === WALLET_CONSOLE_OP_PATHS_V1.usageEvents) {
@@ -236,42 +223,5 @@ export function createWalletConsoleOpsHandler(
     }
 
     return json({ ok: false, code: 'not_found', message: 'Unknown wallet-console operation' }, 404);
-  };
-}
-
-function parseWalletProjection(
-  body: Record<string, unknown> | null,
-): RouterApiWalletProjectionEvent | null {
-  const scope = body?.runtimePolicyScope;
-  if (!body || !scope || typeof scope !== 'object' || Array.isArray(scope)) return null;
-  const fields = scope as Record<string, unknown>;
-  const { orgId, walletId, occurredAt } = body;
-  const { projectId, envId, signingRootVersion } = fields;
-  if (
-    typeof orgId !== 'string' ||
-    !orgId.trim() ||
-    typeof walletId !== 'string' ||
-    !walletId.trim() ||
-    typeof occurredAt !== 'string' ||
-    !Number.isFinite(Date.parse(occurredAt)) ||
-    typeof projectId !== 'string' ||
-    !projectId.trim() ||
-    typeof envId !== 'string' ||
-    !envId.trim() ||
-    typeof signingRootVersion !== 'string' ||
-    !signingRootVersion.trim() ||
-    fields.orgId !== orgId
-  )
-    return null;
-  return {
-    orgId: orgId.trim(),
-    walletId: walletId.trim(),
-    occurredAt: new Date(occurredAt).toISOString(),
-    runtimePolicyScope: {
-      orgId: orgId.trim(),
-      projectId: projectId.trim(),
-      envId: envId.trim(),
-      signingRootVersion: signingRootVersion.trim(),
-    },
   };
 }

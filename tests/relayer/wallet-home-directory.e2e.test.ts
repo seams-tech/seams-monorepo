@@ -55,6 +55,7 @@ function worker(directory: string, name: string) {
   return {
     name,
     modules: true,
+    modulesRoot: directory,
     scriptPath: path.join(directory, 'authority.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
@@ -66,6 +67,7 @@ function regionalWorker(directory: string, home: WalletHome) {
   return {
     name: `gateway-${home.region}`,
     modules: true,
+    modulesRoot: directory,
     scriptPath: path.join(directory, 'regional.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],
@@ -139,7 +141,8 @@ class MiniflareWalletHomeServiceBinding {
     });
     if (
       this.lostResponseOperation &&
-      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/${this.lostResponseOperation}`
+      new URL(request.url).pathname ===
+        `${WALLET_HOME_SERVICE_BASE_PATH}/${this.lostResponseOperation}`
     ) {
       this.lostResponseOperation = null;
       return Response.json({ ok: false, code: 'injected_lost_response' }, { status: 503 });
@@ -484,8 +487,35 @@ test('wallet homes are independent within a tenant and durable across competing 
     );
     const committedWithoutReply = await homeClient.find(clientInput.wallet);
     expect(committedWithoutReply?.state).toBe('established');
+    const projectionAfterLostReply = await database
+      .prepare('SELECT * FROM wallet_index WHERE id = ?')
+      .bind(clientInput.wallet.walletId)
+      .first();
+    expect(projectionAfterLostReply).toMatchObject({
+      namespace: clientInput.wallet.namespace,
+      org_id: clientInput.wallet.organizationId,
+      project_id: clientInput.wallet.projectId,
+      environment_id: clientInput.wallet.environmentId,
+      id: clientInput.wallet.walletId,
+      address: clientInput.wallet.walletId,
+      status: 'ACTIVE',
+      balance_minor: 0,
+    });
+    await database
+      .prepare("UPDATE wallet_index SET status = 'FROZEN', balance_minor = 42 WHERE id = ?")
+      .bind(clientInput.wallet.walletId)
+      .run();
     const clientCompleted = await homeClient.complete(clientCompletion);
     expect(clientCompleted).toEqual(committedWithoutReply);
+    const projectionAfterReplay = await database
+      .prepare('SELECT * FROM wallet_index WHERE id = ?')
+      .bind(clientInput.wallet.walletId)
+      .first();
+    expect(projectionAfterReplay).toEqual({
+      ...projectionAfterLostReply,
+      status: 'FROZEN',
+      balance_minor: 42,
+    });
     await expect(
       homeClient.complete({ ...clientCompletion, ceremonyId: 'wrc_wrong-completion' }),
     ).rejects.toMatchObject({ code: 'home_conflict' });
@@ -494,6 +524,48 @@ test('wallet homes are independent within a tenant and durable across competing 
     ).rejects.toMatchObject({ code: 'home_conflict' });
     expect(clientCompleted.state).toBe('established');
     observations.push({ stage: 'service_client_roundtrip', assignment: clientCompleted });
+    const projectionFailure = reservation('projection-rollback', homes[2]);
+    expect((await call(runtime, projectionFailure)).status).toBe(200);
+    const projectionCompletion = {
+      wallet: projectionFailure.wallet,
+      home: homes[2],
+      ceremonyId: projectionFailure.registrationAllocation.ceremonyId,
+      outcome: 'established' as const,
+    };
+    await database
+      .prepare(
+        `CREATE TRIGGER reject_registration_projection BEFORE INSERT ON wallet_index
+         WHEN NEW.id = 'projection-rollback'
+         BEGIN SELECT RAISE(ABORT, 'Injected projection failure'); END`,
+      )
+      .run();
+    await expect(homeClient.complete(projectionCompletion)).rejects.toThrow();
+    expect((await homeClient.find(projectionFailure.wallet))?.state).toBe('reserved');
+    expect(
+      await database
+        .prepare('SELECT id FROM wallet_index WHERE id = ?')
+        .bind(projectionFailure.wallet.walletId)
+        .first(),
+    ).toBeNull();
+    await database.prepare('DROP TRIGGER reject_registration_projection').run();
+    const projectionRecovered = await homeClient.complete(projectionCompletion);
+    expect(projectionRecovered.state).toBe('established');
+    const recoveredProjection = await database
+      .prepare('SELECT created_at_ms, updated_at_ms FROM wallet_index WHERE id = ?')
+      .bind(projectionFailure.wallet.walletId)
+      .first();
+    if (projectionRecovered.state !== 'established') throw new Error('Completion did not recover');
+    expect(recoveredProjection).toEqual({
+      created_at_ms: projectionRecovered.completedAtMs,
+      updated_at_ms: projectionRecovered.completedAtMs,
+    });
+    observations.push({
+      stage: 'atomic_home_and_projection',
+      projectionAfterLostReply,
+      projectionAfterReplay,
+      failedProjectionRolledBackHome: true,
+      recoveredProjection,
+    });
     const firstCandidate = reservation('client-loss-a', homes[1]);
     const nextCandidate = reservation('client-loss-b', homes[0]);
     const lostRequest = {
@@ -625,14 +697,10 @@ test('wallet homes are independent within a tenant and durable across competing 
     const established = await completed.json();
     expect(completed.status).toBe(200);
     expect(established.state).toBe('established');
-    expect(
-      await (
-        await call(runtime, completion(interrupted, 'established'))
-      ).json(),
-    ).toEqual(established);
-    expect(
-      (await call(runtime, completion(interrupted, 'cancelled'))).status,
-    ).toBe(409);
+    expect(await (await call(runtime, completion(interrupted, 'established'))).json()).toEqual(
+      established,
+    );
+    expect((await call(runtime, completion(interrupted, 'cancelled'))).status).toBe(409);
     expect(
       (
         await call(runtime, {
@@ -645,12 +713,8 @@ test('wallet homes are independent within a tenant and durable across competing 
 
     const cancelledInput = reservation('cancelled', homes[0]);
     await call(runtime, cancelledInput);
-    expect(
-      (await call(runtime, completion(cancelledInput, 'cancelled'))).status,
-    ).toBe(200);
-    expect(
-      (await call(runtime, completion(cancelledInput, 'established'))).status,
-    ).toBe(409);
+    expect((await call(runtime, completion(cancelledInput, 'cancelled'))).status).toBe(200);
+    expect((await call(runtime, completion(cancelledInput, 'established'))).status).toBe(409);
     const cancelledRetry = await call(runtime, reservation('cancelled', homes[2]));
     expect(cancelledRetry.status).toBe(409);
     expect(await cancelledRetry.json()).toMatchObject({
@@ -710,7 +774,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     const rows = await persisted
       .prepare('SELECT * FROM wallet_homes ORDER BY project_id, wallet_id')
       .all();
-    expect(rows.results).toHaveLength(18);
+    expect(rows.results).toHaveLength(19);
     const admissionObservations = [];
     for (const home of homes) {
       const setup = {
@@ -788,6 +852,12 @@ test('wallet homes are independent within a tenant and durable across competing 
       if (outcome === 'cancelled') {
         expect(afterTerminal).toMatchObject({ ok: false, code: 'registration_cancelled' });
         expect(lateContinuation.status).toBe(409);
+        expect(
+          await persisted
+            .prepare('SELECT id FROM wallet_index WHERE id = ?')
+            .bind(first.reservation.walletId)
+            .first(),
+        ).toBeNull();
       } else {
         expect(afterTerminal).toEqual({ ...first, lifecycle: 'established' });
         expect(lateContinuation.status).toBe(200);

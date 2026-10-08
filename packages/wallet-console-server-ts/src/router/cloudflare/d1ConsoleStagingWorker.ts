@@ -41,7 +41,6 @@ import {
   createRouterApiBillingUsageMeterAdapter,
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
-  createRouterApiWalletProjectionAdapter,
 } from '@seams-internal/wallet-console-server/router/routerApiKeyAuth';
 import {
   createConsoleProviderIdentity,
@@ -591,7 +590,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.
   const opsHandler = createWalletConsoleOpsHandler({
-    walletProjection: createRouterApiWalletProjectionAdapter(bundle.orgProjectEnv, bundle.wallets),
     apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
     publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(bundle.apiKeys),
     usageMeter: createRouterApiBillingUsageMeterAdapter(bundle.billing, {

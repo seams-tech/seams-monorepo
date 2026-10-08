@@ -1,4 +1,9 @@
-import { d1ChangedRows, queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  d1ChangedRows,
+  queryD1One,
+  type D1DatabaseLike,
+  type D1ResultLike,
+} from '@seams/wallet-server/cloud-host';
 import {
   RegistrationSetupAllocation,
   WalletHome,
@@ -266,7 +271,7 @@ export class D1WalletHomeDirectory {
     readonly nowMs: number;
   }): Promise<WalletHomeAssignment> {
     const nowMs = timestamp(input.nowMs);
-    const row = await this.database
+    const completion = this.database
       .prepare(
         `UPDATE wallet_homes SET state = ?10, completed_at_ms = ?11
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
@@ -288,8 +293,43 @@ export class D1WalletHomeDirectory {
         input.home.databaseId,
         input.outcome,
         nowMs,
-      )
-      .first<Record<string, unknown>>();
+      );
+    let row: Record<string, unknown> | null;
+    if (input.outcome === 'established') {
+      // The home and its Console display row commit together. Exact retries
+      // preserve the original completion time and any later display updates.
+      const results = await this.database.batch<D1ResultLike<Record<string, unknown>>>([
+        completion,
+        this.database
+          .prepare(
+            `INSERT INTO wallet_index (
+              namespace, org_id, id, project_id, environment_id, user_id, external_ref_id,
+              address, chain, wallet_type, status, policy_id, balance_minor,
+              last_activity_at_ms, created_at_ms, updated_at_ms
+            )
+            SELECT namespace, organization_id, wallet_id, project_id, environment_id,
+              wallet_id, wallet_id, wallet_id, 'Multichain', 'EOA', 'ACTIVE', NULL, 0,
+              completed_at_ms, completed_at_ms, completed_at_ms
+            FROM wallet_homes
+            WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3
+              AND environment_id = ?4 AND wallet_id = ?5 AND ceremony_id = ?6
+              AND region = ?7 AND account_id = ?8 AND database_id = ?9
+              AND state = 'established' AND placement_state = 'active'
+            ON CONFLICT (namespace, org_id, project_id, environment_id, id) DO NOTHING`,
+          )
+          .bind(
+            ...scopeBindings(input.wallet),
+            input.wallet.walletId,
+            input.ceremonyId,
+            input.home.region,
+            input.home.accountId,
+            input.home.databaseId,
+          ),
+      ]);
+      row = results[0]?.results?.[0] ?? null;
+    } else {
+      row = await completion.first<Record<string, unknown>>();
+    }
     const assignment = row ? walletHomeAssignmentFromRow(row) : await this.find(input.wallet);
     if (
       !assignment ||

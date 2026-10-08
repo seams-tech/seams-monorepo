@@ -5,8 +5,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 /* global HL, hairline */
 const COUNT = 4;
-const BOW_RADIUS = 32;
-const BOW_Y = 10.63 - Math.sqrt(BOW_RADIUS ** 2 - 8 ** 2);
+const BOW_RADIUS = 27;
+const BOW_Y = 14;
+const NECK_Y = BOW_Y + Math.sqrt(BOW_RADIUS ** 2 - 8 ** 2);
 const RING_RADIUS = 34;
 
 function bow(radius) {
@@ -20,31 +21,35 @@ function bow(radius) {
 }
 
 function outline(index) {
-  const points = [[8, 43]];
-  for (let tooth = 0; tooth < 5; tooth++) {
-    const y = 46 + tooth * 11;
-    const depth = 3 + ((tooth * 3 + index * 5) % 7);
-    points.push([depth, y], [depth, y + 5], [11, y + 8]);
+  const points = [[8, NECK_Y]];
+  for (let tooth = 0; tooth < 4; tooth++) {
+    const y = 59 + tooth * 12;
+    const depth = 4 + ((tooth + index) % 3);
+    points.push([8, y], [depth, y + 2], [depth, y + 5], [8, y + 7]);
   }
-  points.push([11, 105], [5, 113], [-7, 113], [-9, 109], [-9, 17], [-8, 10.63]);
-  return HL.fillet(points, Array(points.length).fill(1)).concat(bow(BOW_RADIUS));
+  points.push([8, 106], [3, 113], [-6, 113], [-8, 109], [-8, NECK_Y]);
+  const radii = Array(points.length).fill(0.7);
+  radii[0] = 0;
+  radii[radii.length - 1] = 0;
+  return HL.fillet(points, radii).concat(bow(BOW_RADIUS));
 }
 
 function restAngle(index) {
   return -42 + index * 24;
 }
 
-function projectKey(P, angle, slide, z, point) {
+function projectKey(P, angle, z, point) {
   const cosine = Math.cos(HL.rad(angle));
   const sine = Math.sin(HL.rad(angle));
-  const y = point[1] + slide;
+  const y = point[1];
   return P(point[0] * cosine - y * sine, point[0] * sine + y * cosine, z);
 }
 
-function slotPoint(point) {
+function planarPoint(point) {
   return [point.u, point.v];
 }
-const SLOT = HL.rrect(-6.5, -39, 6.5, 4, 6.5, 10).map(slotPoint);
+const HOLE = HL.circ(6.2, 48).map(planarPoint);
+const GROOVE = HL.rrect(-4.5, 43, -1, 106, 0.9, 8).map(planarPoint);
 
 function makeKey(svg, index) {
   const group = HL.mk('g', {}, svg);
@@ -54,25 +59,17 @@ function makeKey(svg, index) {
     back: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
     face: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
     details: HL.mk('path', { class: 'nf lo' }, group),
-    slide: HL.tween(0),
     angle: HL.tween(restAngle(index)),
   };
 }
 
-function drawKey(state, key, angle, slide) {
+function drawKey(state, key, angle) {
   const z = 3 + key.index * 3;
-  const top = projectKey.bind(null, state.P, angle, slide, z);
-  const bottom = projectKey.bind(null, state.P, angle, slide, z - 2.2);
-  key.back.setAttribute('d', HL.poly(key.shape.map(bottom)) + HL.poly(SLOT.map(bottom)));
-  key.face.setAttribute('d', HL.poly(key.shape.map(top)) + HL.poly(SLOT.map(top)));
-  const channel = [
-    [-5, 19],
-    [-5, 104],
-    [-2, 107],
-    [0, 104],
-    [0, 20],
-  ];
-  key.details.setAttribute('d', HL.open(bow(BOW_RADIUS - 5).map(top)) + HL.open(channel.map(top)));
+  const top = projectKey.bind(null, state.P, angle, z);
+  const bottom = projectKey.bind(null, state.P, angle, z - 2.2);
+  key.back.setAttribute('d', HL.poly(key.shape.map(bottom)) + HL.poly(HOLE.map(bottom)));
+  key.face.setAttribute('d', HL.poly(key.shape.map(top)) + HL.poly(HOLE.map(top)));
+  key.details.setAttribute('d', HL.poly(GROOVE.map(top)));
 }
 
 function torusPoint(angle, tubeAngle) {
@@ -117,9 +114,8 @@ function tick(state, _dt, now) {
   let moving = false;
   for (const key of state.keys) {
     const angle = HL.tval(key.angle, now);
-    const slide = HL.tval(key.slide, now);
-    drawKey(state, key, angle, slide);
-    if (!HL.tdone(key.angle, now) || !HL.tdone(key.slide, now)) moving = true;
+    drawKey(state, key, angle);
+    if (!HL.tdone(key.angle, now)) moving = true;
   }
   return moving;
 }
@@ -132,8 +128,9 @@ function select(state, index) {
   for (const key of state.keys) {
     const distance = Math.abs(key.index - from);
     const selected = key.index === index;
-    const part = index < 0 ? 0 : Math.sign(key.index - index) * 4;
-    HL.tset(key.slide, selected ? state.travel : 0, now, distance * 35);
+    let part = 0;
+    if (selected) part = -state.fanAngle;
+    else if (index >= 0) part = Math.sign(key.index - index) * 4;
     HL.tset(key.angle, restAngle(key.index) + part, now, distance * 35);
     key.face.classList.toggle('hi', selected || (index < 0 && key.index === COUNT - 1));
   }
@@ -159,14 +156,14 @@ function move(state, point) {
   select(state, nearest);
 }
 
-function set(state, travel) {
-  state.travel = travel;
+function set(state, fanAngle) {
+  state.fanAngle = fanAngle;
   if (state.active < 0) return;
-  HL.tset(state.keys[state.active].slide, travel, performance.now(), 0);
+  HL.tset(state.keys[state.active].angle, restAngle(state.active) - fanAngle, performance.now(), 0);
   state.loop.wake();
 }
 
-function mount({ stage, svg, read }, travel) {
+function mount({ stage, svg, read }, fanAngle) {
   const C = HL.Cam(45, 0.5, 1.62);
   const bounds = [
     [-110, -44, 0],
@@ -181,7 +178,7 @@ function mount({ stage, svg, read }, travel) {
     keys.push(makeKey(svg, index));
     ring(svg, P, 3 + index * 3, index === COUNT - 1 ? Infinity : 6 + index * 3);
   }
-  const state = { C, P, keys, read, travel, active: -2, loop: null };
+  const state = { C, P, keys, read, fanAngle, active: -2, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   select(state, -1);
   const bag = HL.disposer();
@@ -193,8 +190,9 @@ function mount({ stage, svg, read }, travel) {
 
 hairline({
   name: 'scoped-credentials',
-  means: 'Four keys threaded onto a solid ring. Hover a key to slide it out of the bundle.',
+  means:
+    'Four house keys threaded through small head holes. Hover a key to fan it out around the ring.',
   rules: [1, 2, 4, 6, 8],
-  range: [12, 18, 24],
+  range: [6, 10, 14],
   mount,
 });

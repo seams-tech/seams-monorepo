@@ -17,9 +17,6 @@ function curvePoint(points, t) {
     s ** 3 * a[1] + 3 * s * s * t * b[1] + 3 * s * t * t * c[1] + t ** 3 * d[1],
   ];
 }
-function curve(points) {
-  return `M${points[0]} C${points[1]} ${points[2]} ${points[3]}`;
-}
 function label(svg, location, text) {
   const el = HL.mk(
     'text',
@@ -48,32 +45,43 @@ function port(svg, P) {
   }
   path(svg, HL.poly(points), 'sil');
 }
-function headPoint(K, sign, point, edge) {
-  const scale = edge ? 8.5 / Math.hypot(...point) : 1;
-  return K(point[0] * scale, point[1] * scale * sign, 4.6);
-}
-function keyBlade(parent, P) {
+function classicKey(parent, P) {
+  const radius = 8.5;
+  const neckAngle = Math.asin(3 / radius);
+  const neck = -15 + Math.sqrt(radius ** 2 - 3 ** 2);
   const profile = [
-    [-9, -2.6],
-    [22, -2.6],
-    [25, -0.4],
-    [25, 1.4],
-    [22, 3.6],
-    [19, 3.6],
-    [18, 1.1],
-    [15, 1.1],
-    [14, 3.6],
-    [11, 3.6],
-    [10, 1.8],
-    [7, 1.8],
-    [6, 3.6],
-    [3, 3.6],
-    [2, 0.8],
-    [-1, 0.8],
-    [-2, 3.6],
-    [-9, 3.6],
+    [neck, -3],
+    [20, -3],
+    [23, -1],
+    [23, 1],
+    [21, 3],
+    [19, 3],
+    [18, 1.5],
+    [16, 1.5],
+    [15, 3],
+    [13, 3],
+    [12, 2],
+    [10, 2],
+    [9, 3],
+    [7, 3],
+    [6, 1.3],
+    [4, 1.3],
+    [3, 3],
+    [1, 3],
+    [0, 2],
+    [-2, 2],
+    [-3, 3],
+    [neck, 3],
   ];
-  const outline = HL.fillet(profile, Array(profile.length).fill(0.3), 4);
+  const radii = Array(profile.length).fill(0.18);
+  radii[0] = 0;
+  radii[radii.length - 1] = 0;
+  const outline = HL.fillet(profile, radii, 3);
+  // The head and blade share one continuous silhouette.
+  for (let step = 0; step <= 64; step++) {
+    const angle = neckAngle + ((2 * Math.PI - 2 * neckAngle) * step) / 64;
+    outline.push([-15 + radius * Math.cos(angle), radius * Math.sin(angle)]);
+  }
   const top = [];
   const bottom = [];
   const visible = [];
@@ -98,7 +106,11 @@ function keyBlade(parent, P) {
   }
   path(parent, walls, 'fo');
   path(parent, edges, 'sil nf');
-  path(parent, HL.poly(top), 'sil');
+  const holeP = local.bind(null, P, [-19, 0]);
+  const hole = HL.circ(2.1, 48);
+  path(parent, HL.poly(HL.ringAt(holeP, hole, 2.6)));
+  const face = path(parent, HL.poly(top) + HL.poly(HL.ringAt(holeP, hole, 4.6)), 'sil');
+  face.setAttribute('fill-rule', 'evenodd');
   const groove = HL.rrect(-6, -1.5, 20, -0.6, 0.4, 8);
   path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
 }
@@ -116,38 +128,7 @@ function tray(svg, P, front, mirrored) {
   HL.mk('path', { d: opening }, clip);
   const contents = HL.mk('g', { 'clip-path': `url(#${clipId})` }, body.g);
   path(contents, HL.open(HL.ringAt(P, HL.run(inner, rear), 2.5)));
-  // The shaft enters beneath the head. The opening masks everything behind the rim.
-  keyBlade(contents, P);
-  const K = local.bind(null, P, [-15, 0]);
-  const head = HL.solid(contents);
-  const ring = HL.circ(8.5, 48);
-  HL.put(head, {
-    sil: HL.poly(HL.hull(HL.ringAt(K, ring, 2.6).concat(HL.ringAt(K, ring, 4.6)))),
-    crease: HL.poly(HL.ringAt(K, ring, 4.6)),
-  });
-  const sign = mirrored ? -1 : 1;
-  let seams = '';
-  for (const arc of [
-    [
-      [-7.2, 4.5],
-      [-6.5, -3],
-      [1, -6.5],
-      [7.8, -3.4],
-    ],
-    [
-      [-2.9, 8],
-      [-3, 2.8],
-      [2.8, -1],
-      [8.3, 1.8],
-    ],
-  ]) {
-    const vertices = [];
-    for (let index = 0; index < arc.length; index++) {
-      vertices.push(headPoint(K, sign, arc[index], index === 0 || index === arc.length - 1));
-    }
-    seams += curve(vertices);
-  }
-  path(head.g, seams, 'sil nf');
+  classicKey(contents, P);
   path(body.g, opening, 'sil nf');
 }
 function curvePoints(points) {

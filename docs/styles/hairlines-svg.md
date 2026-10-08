@@ -77,15 +77,15 @@ The local review URL is `/dashboard-static/showcase/motion/`. The page contains 
 
 ## Scoped credentials example
 
-The keychain preserves the circular heads and patterned shafts from the wallet's existing **Scoped credentials** illustration. Each head has a radius of 32 world units, one-third larger than the original. The shafts retain their original width and length. Four cut patterns distinguish the keys. Recessed channels, thin metal edges, and slotted heads give the object physical detail.
+The keychain uses four house keys with solid rounded heads, small circular ring holes, shallow edge cuts, and recessed blade grooves. Each head has a 27-unit radius. Four cut patterns distinguish the keys. The complete head and blade share one outline, with a 2.2-unit metal thickness.
 
-Hovering a key slides it forward along its shaft. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit retracts the selected key and restores the resting fan. The bright outline follows selection, and the readout names the selected key.
+Hovering a key fans it out around its fixed ring hole. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit restores the resting fan. The bright outline follows selection, and the readout names the selected key.
 
-The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 34 world units, and its tube radius is 2.6. The larger ring accommodates the wider heads. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
+The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 34 world units, and its tube radius is 2.6. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
 
-The ring passes through elongated openings in the key heads. These openings permit limited travel while the keys remain attached. Their width and rounded ends leave clearance around the tube throughout the full slide. An even-odd fill rule leaves a real hole through each face.
+The ring passes through 6.2-unit-radius openings near the back of each head. Each key rotates about that opening, keeping it centred on the ring throughout motion. An even-odd fill rule leaves a real hole through each face.
 
-The intensity slider controls travel at 12, 18, or 24 world units. Selection uses the resting key angles, so a moving key cannot change its own hover target. The shared 700ms tween handles selection changes and reverses from the current pose.
+The intensity slider sets fan rotation to 6, 10, or 14 degrees. Selection uses the resting key angles, so a moving key cannot change its own hover target. The shared 700ms tween handles selection changes and reverses from the current pose.
 
 This is an illustration of distinct credentials. Selecting a key does not grant permission or represent a signing ceremony.
 
@@ -105,7 +105,7 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
   --answer 0,90,9 --edge 70,100,3 --zoom answer
 ```
 
-Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum travel.
+Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum fan rotation.
 
 ## Three-layer sieve example
 
@@ -298,9 +298,9 @@ Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`,
 
 Preview: `/dashboard-static/showcase/motion/threshold-signing/`.
 
-This fifth illustration follows the approved two-source diagram. Two keys remain in separate recessed trays, labelled “USER’S DEVICE” and “YOUR INFRASTRUCTURE”. Each key has a circular head with two curved seams and a solid blade. The blade has three cut notches, a chamfered tip, and a narrow lengthwise groove. Both head and blade are two world units thick. Only visible blade sidewalls and lower edges are drawn; the concave tooth profile stays open. Both paths meet a simple shield. A transaction plate receives the outgoing signal and an engraved signature.
+This fifth illustration follows the approved two-source diagram. Two keys remain in separate recessed trays, labelled “USER’S DEVICE” and “YOUR INFRASTRUCTURE”. Each house key has a solid rounded head with a small ring hole and a straight blade with four shallow cuts. The head and blade share one continuous outline and a two-unit thickness. A narrow lengthwise groove follows the blade. Visible sidewalls follow the concave tooth profile, and the opening shows the inner edge of the hole. Both paths meet a simple shield. A transaction plate receives the outgoing signal and an engraved signature.
 
-Every solid uses the same `Cam(45, 0.5, 1.45)` projection. Keys lie on their tray floors. The shield lies flat in the x/y plane, with a two-unit side edge and a check engraved on its top. The transaction plate follows the same ground axes as the trays. Every wire follows straight x/y segments at one shared height. Signals follow those same segments through each corner. The lower tray connects behind its rear rim. Each tray has one continuous outer edge and a clipped opening. The rim hides the recessed floor and key where they pass behind it. Key-head seams terminate on the head perimeter, and the shaft joins beneath the head on the same plane. The source centres share a screen x-coordinate, and the policy and transaction captions share a baseline. Labels remain horizontal for reading. The device connector draws in front of its tray and joins the front port. The infrastructure connector stays behind its tray. Both connectors pass behind the shield, so hidden segments stay covered.
+Every solid uses the same `Cam(45, 0.5, 1.45)` projection. Keys lie on their tray floors. The shield lies flat in the x/y plane, with a two-unit side edge and a check engraved on its top. The transaction plate follows the same ground axes as the trays. Every wire follows straight x/y segments at one shared height. Signals follow those same segments through each corner. The lower tray connects behind its rear rim. Each tray has one continuous outer edge and a clipped opening. The rim hides the recessed floor and key where they pass behind it. The head and shaft meet without a seam or overlapping disk. The source centres share a screen x-coordinate, and the policy and transaction captions share a baseline. Labels remain horizontal for reading. The device connector draws in front of its tray and joins the front port. The infrastructure connector stays behind its tray. Both connectors pass behind the shield, so hidden segments stay covered.
 
 Hover or Enter starts four stages: incoming signals (600ms), policy check (250ms), outgoing signal (280ms), and signature tracing (450ms). The intensity slider varies the separation between incoming arrivals. The check waits for both arrivals. The signature waits for the outgoing signal. Keys remain stationary throughout. Leaving reverses the sequence; returning resumes from the current pose. Enter and Space toggle the animation from keyboard focus. Reduced motion lands at the final pose, and the shared loop sleeps once settled or offscreen.
 

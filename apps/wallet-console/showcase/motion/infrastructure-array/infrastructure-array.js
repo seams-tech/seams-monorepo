@@ -127,7 +127,10 @@ function tick(state, _dt, now) {
       drawDoor(state.P, rack, doorOpen);
     }
   }
-  state.racks[0].door.frame.setAttribute('class', allClosed && state.over === null ? 'hi' : 'sil');
+  for (const rack of state.racks) {
+    const highlighted = allClosed && state.over === null && rack.index === state.nearbyRack;
+    rack.door.frame.setAttribute('class', highlighted ? 'hi' : 'sil');
+  }
   return moving;
 }
 function retarget(state) {
@@ -159,6 +162,7 @@ function move(state, point) {
     up = state.P(14.5, 0, 1);
   const y = (point[0] - origin[0]) / (across[0] - origin[0]);
   const z = (point[1] - origin[1] - y * (across[1] - origin[1])) / (up[1] - origin[1]);
+  state.nearbyRack = HL.clamp(Math.floor(y / RACK_WIDTH), 0, RACK_COUNT - 1);
   state.over =
     y >= 0 && y < RACK_WIDTH * RACK_COUNT && z >= 5 && z <= 80
       ? { rack: Math.floor(y / RACK_WIDTH), z }
@@ -166,6 +170,7 @@ function move(state, point) {
   retarget(state);
 }
 function leave(state) {
+  state.nearbyRack = 0;
   state.over = null;
   retarget(state);
 }
@@ -209,7 +214,7 @@ function mount({ stage, svg, read }, radius) {
     block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 1.4);
     racks.push({ index, modules, door: door(group, index) });
   }
-  const state = { P, racks, read, radius, over: null, loop: null };
+  const state = { P, racks, read, radius, nearbyRack: 0, over: null, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   retarget(state);
   const bag = HL.disposer();

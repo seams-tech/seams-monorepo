@@ -74,7 +74,10 @@ function phone(parent, P, center, name) {
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
   const rim = path(success, '', 'hi nf');
   const check = path(success, '', 'hi nf');
-  for (const mark of [rim, check]) mark.style.strokeWidth = '1.5px';
+  for (const mark of [rim, check]) {
+    mark.style.strokeWidth = '1.5px';
+    mark.setAttribute('stroke-opacity', 0.6);
+  }
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
   return { group, content, qr, sweep, success, rim, check };

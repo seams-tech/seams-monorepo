@@ -231,7 +231,7 @@ function shield(svg, P) {
   const body = HL.solid(svg);
   const silhouette = HL.hull(face.concat(back));
   HL.put(body, { sil: HL.poly(silhouette), crease: HL.poly(face) });
-  body.sil.setAttribute('class', 'hi');
+  body.sil.style.strokeWidth = '1px';
   body.cr.setAttribute('class', 'sil nf');
   path(body.g, HL.poly(inset));
   const mark = trace(
@@ -328,6 +328,9 @@ function tick(state, _dt, now) {
         tip = route.arrival;
       }
       HL.place(route.dot, tip);
+      // Keep completed connections quiet while the accent follows the active signal.
+      const accented = index === 2 || (progress[0] < 1 ? index === 0 : index === 1);
+      route.dot.setAttribute('class', accented ? 'hi' : 'sil');
       route.dot.setAttribute(
         'visibility',
         progress[index] > 0 && (progress[index] < 1 || (index < 2 && input < 1))
@@ -337,8 +340,7 @@ function tick(state, _dt, now) {
     }
     setTrace(state.gate.mark, policy);
     setTrace(state.result.mark, SIGNATURE_EASE(signed));
-    state.gate.mark.el.setAttribute('class', policy === 1 ? 'hi nf' : 'sil nf');
-    state.result.body.sil.setAttribute('class', signed === 1 ? 'hi' : 'sil');
+    state.gate.mark.el.setAttribute('class', policy > 0 && output === 0 ? 'hi nf' : 'sil nf');
   }
   state.read.textContent = 'rest';
   if (state.active) {
@@ -433,7 +435,7 @@ function mount({ stage, svg, read }, lag) {
       ],
       dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, group),
     });
-    routes[routes.length - 1].trail.el.setAttribute('class', 'sil nf');
+    routes[routes.length - 1].trail.el.setAttribute('class', 'lo nf');
   }
   path(wireBase, wiring);
   for (let index = 0; index < sources.length; index++) {
@@ -442,7 +444,7 @@ function mount({ stage, svg, read }, lag) {
     label(
       svg,
       [center[0], source.labelTop - 8],
-      index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE',
+      index === 0 ? 'User’s device' : 'Your infrastructure',
     );
   }
   // Keep shared wire segments beneath every signal and the shield above the join.

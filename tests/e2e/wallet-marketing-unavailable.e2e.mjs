@@ -37,13 +37,13 @@ try {
   assert.equal(await page.getByRole('link', { name: 'Start building', exact: true }).count(), 1);
   const section = page.locator('#wallet-security');
   await section.scrollIntoViewIfNeeded();
-  assert.equal(await section.locator('iframe').count(), 4);
+  assert.equal(await section.locator('iframe:visible').count(), 4);
   const devices = page.frameLocator('iframe[data-figure="devices"]');
   await devices.locator('#stage').focus();
   await page.keyboard.press('Enter');
   await devices.locator('#read').filter({ hasText: 'linked' }).waitFor();
   await section.screenshot({ path: `${artifacts}/desktop-capabilities.png` });
-  await page.getByRole('button', { name: 'How signing works' }).click();
+  await page.getByRole('button', { name: 'Next custody view' }).click();
   const signing = page.frameLocator('iframe[data-figure="signing"]');
   await signing.locator('#stage').focus();
   await page.keyboard.press('Enter');

@@ -787,6 +787,39 @@ export function H2Cases(): React.JSX.Element {
 /* ---------- security ---------- */
 
 type SecurityView = 'features' | 'signing';
+
+function nextSecurityView(view: SecurityView): SecurityView {
+  return view === 'features' ? 'signing' : 'features';
+}
+
+function notifySecurityFocusChanged(notify: () => void): void {
+  // Wait for the parent document to identify the newly focused iframe.
+  window.requestAnimationFrame(notify);
+}
+
+function stopWatchingSecurityFocus(changed: () => void): void {
+  window.removeEventListener('blur', changed);
+  window.removeEventListener('focus', changed);
+  document.removeEventListener('focusin', changed);
+}
+
+function watchSecurityFocus(notify: () => void): () => void {
+  const changed = notifySecurityFocusChanged.bind(null, notify);
+  window.addEventListener('blur', changed);
+  window.addEventListener('focus', changed);
+  document.addEventListener('focusin', changed);
+  return stopWatchingSecurityFocus.bind(null, changed);
+}
+
+function securityFigureHasFocus(): boolean {
+  // CSS :focus-within does not cross an iframe boundary.
+  return document.activeElement?.matches('#wallet-security iframe') ?? false;
+}
+
+function securityServerHasFocus(): boolean {
+  return false;
+}
+
 const walletCapabilities: ReadonlyArray<{ figure: WalletFigureName; label: string }> = [
   { figure: 'keychain', label: 'Keys you control' },
   { figure: 'interlock', label: 'Scoped permissions' },
@@ -820,11 +853,20 @@ function renderWalletCapability(capability: {
 
 export function H2Security(): React.JSX.Element {
   const [view, setView] = React.useState<SecurityView>('features');
+  const [paused, setPaused] = React.useState(false);
+  const figureFocused = React.useSyncExternalStore(
+    watchSecurityFocus,
+    securityFigureHasFocus,
+    securityServerHasFocus,
+  );
+  const advance = setView.bind(null, nextSecurityView(view));
   return (
     <section
       id="wallet-security"
-      className="h2-section h2-rule"
+      className="h2-section h2-rule h2-security-section"
       aria-labelledby="h2-security-title"
+      data-view={view}
+      data-paused={paused || figureFocused}
     >
       <div className="h2-shell">
         <div className="h2-security">
@@ -859,36 +901,54 @@ export function H2Security(): React.JSX.Element {
             </div>
           </div>
           <div className="h2-security__visuals">
-            <div className="h2-security__switch" role="group" aria-label="Custody illustrations">
-              <button
-                type="button"
-                aria-pressed={view === 'features'}
-                onClick={setView.bind(null, 'features')}
-              >
-                Wallet capabilities
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === 'signing'}
-                onClick={setView.bind(null, 'signing')}
-              >
-                How signing works
-              </button>
-            </div>
             <div className="h2-security__stage">
-              {view === 'features' ? (
-                <div className="h2-security__grid">
-                  {walletCapabilities.map(renderWalletCapability)}
-                </div>
-              ) : (
-                <div className="h2-security__signing">
-                  <WalletFigure figure="signing" />
-                </div>
-              )}
+              <div
+                className={`h2-security__view h2-security__grid${view === 'features' ? ' is-active' : ''}`}
+                aria-hidden={view !== 'features'}
+              >
+                {walletCapabilities.map(renderWalletCapability)}
+              </div>
+              <div
+                className={`h2-security__view h2-security__signing${view === 'signing' ? ' is-active' : ''}`}
+                aria-hidden={view !== 'signing'}
+              >
+                <WalletFigure figure="signing" />
+              </div>
             </div>
             <p className="h2-security__hint">Hover or tap an illustration to explore.</p>
           </div>
         </div>
+      </div>
+      <div className="h2-security__progress" aria-hidden="true">
+        <span key={view} className="h2-security__progress-fill" onAnimationEnd={advance} />
+      </div>
+      <div className="h2-pager" role="group" aria-label="Custody views">
+        <button
+          type="button"
+          className="h2-pager__btn"
+          aria-label="Previous custody view"
+          onClick={advance}
+        >
+          <ChevronLeft aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="h2-pager__dots h2-security__pause"
+          aria-label={paused ? 'Resume automatic cycling' : 'Pause automatic cycling'}
+          aria-pressed={paused}
+          onClick={setPaused.bind(null, !paused)}
+        >
+          <span className={`h2-pager__dot${view === 'features' ? ' is-active' : ''}`} aria-hidden />
+          <span className={`h2-pager__dot${view === 'signing' ? ' is-active' : ''}`} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="h2-pager__btn"
+          aria-label="Next custody view"
+          onClick={advance}
+        >
+          <ChevronRight aria-hidden />
+        </button>
       </div>
     </section>
   );

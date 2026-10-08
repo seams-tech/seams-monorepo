@@ -2940,32 +2940,66 @@ body:has(.h2-page) {
   min-width: 0;
 }
 
-.h2-security__switch {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 20px;
+.h2-security-section {
+  padding-bottom: 34px;
 }
 
-.h2-security__switch button {
-  border: 0;
-  border-radius: 7px;
-  padding: 9px 12px;
-  background: transparent;
-  color: var(--h2-smoke);
-  font: inherit;
-  font-size: var(--h2-text-base);
+.h2-security__pause {
   cursor: pointer;
 }
 
-.h2-security__switch button[aria-pressed='true'] {
-  background: var(--h2-taupe);
-  color: var(--h2-ink);
-}
-
-.h2-security__switch button:focus-visible {
+.h2-security-section .h2-pager button:focus-visible {
   outline: 2px solid var(--h2-smoke);
   outline-offset: 3px;
+}
+
+.h2-security__progress {
+  position: absolute;
+  inset-inline: calc(50% + 58px) 12px;
+  bottom: -0.5px;
+  z-index: 4;
+  height: 1px;
+  overflow: hidden;
+  background: var(--h2-bg);
+  pointer-events: none;
+}
+
+.h2-security__progress-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--h2-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+@keyframes h2-security-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .h2-security__progress-fill {
+    animation: h2-security-progress 6s linear both;
+  }
+}
+
+.h2-security-section[data-paused='true'] .h2-security__progress-fill,
+.h2-security-section:has(.h2-security__visuals:focus-within) .h2-security__progress-fill {
+  animation-play-state: paused;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-security-section:has(.h2-security__visuals:hover) .h2-security__progress-fill {
+    animation-play-state: paused;
+  }
+}
+
+@media (max-width: 1160px) {
+  .h2-security__progress {
+    inset-inline-end: 0;
+  }
 }
 
 .h2-security__stage {
@@ -2973,6 +3007,19 @@ body:has(.h2-page) {
   align-items: center;
   min-height: 440px;
   container-type: inline-size;
+}
+
+/* Both views reserve the same grid cell, so the pager stays still when cycling. */
+.h2-security__view {
+  grid-area: 1 / 1;
+  min-width: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.h2-security__view.is-active {
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .h2-security__grid {

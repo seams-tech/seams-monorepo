@@ -242,7 +242,7 @@ Before production integration, check keyboard access, reduced motion, and physic
 
 Preview: `/dashboard-static/showcase/motion/infrastructure-array/`.
 
-Five adjoining racks hold six server modules each. Each cabinet is 40 world units wide, with a framed glass door, three hinges on its far edge, and a handle on the opposite edge. Mounting posts, rails, recessed handles, ventilation slots, and status dots detail the servers. All modules remain inside their cabinets at rest. The mirrored 45-degree camera uses the same 2:1 isometric projection as the interlock.
+Three adjoining racks hold six server modules each. The larger camera scale keeps the doors and server details readable in the small frontpage card. Each cabinet is 40 world units wide, with a framed glass door, three hinges on its far edge, and a handle on the opposite edge. Mounting posts, rails, recessed handles, ventilation slots, and status dots detail the servers. All modules remain inside their cabinets at rest. The mirrored 45-degree camera uses the same 2:1 isometric projection as the interlock.
 
 Hovering a cabinet opens its door through 90 degrees with a 260 ms tween. Once the door clears, nearby modules extend up to 22 world units with 180 ms tweens. A Gaussian falloff distributes the extension vertically around the pointer. The slider sets its radius to 18, 30, or 44 world units. Only the selected rack extends. Switching racks retracts the previous rack's modules before the next rack extends. Leaving retracts the modules before the door closes.
 
@@ -250,7 +250,7 @@ Pointer selection projects onto the fixed rack face. Moving doors and server fro
 
 The glass uses a translucent pane and faint reflection strokes. These details and the coordinated door sequence extend Hairline's palette and 200-line conventions. Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`, then generate that directory's `index.html` with Hairline's `build.mjs`.
 
-Run `node .artifacts/infrastructure-array/check-doors.mjs` to check all five racks, door clearance, exclusive extension, pointer height, rapid switches, reduced motion, themes, and compact bounds. The script saves screenshots and `doors-check.json` in the same artifact directory. The original single-rack preview remains available separately.
+Run `node .artifacts/infrastructure-array/check-doors.mjs` to check all three racks, door clearance, exclusive extension, pointer height, rapid switches, reduced motion, themes, and compact bounds. The script saves screenshots and `doors-check.json` in the same artifact directory. The original single-rack preview remains available separately.
 
 ## Signing assembly: rod keys, iris, and transaction output
 

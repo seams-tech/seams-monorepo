@@ -51,9 +51,20 @@ function door(parent, rack) {
   const glass = HL.mk('path', { class: 'fo', opacity: 0.12 }, group);
   const frame = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group);
   const crease = HL.mk('path', { class: 'lo nf' }, group);
+  const outline = HL.mk('path', { class: 'sil nf', 'data-part': 'door-outline' }, group);
   const reflection = HL.mk('path', { class: 'lo nf', opacity: 0.6 }, group);
   const handle = HL.mk('path', { class: 'sil' }, group);
-  return { group, glass, frame, crease, reflection, handle, motion: HL.tween(0, 260), drawn: NaN };
+  return {
+    group,
+    glass,
+    frame,
+    crease,
+    outline,
+    reflection,
+    handle,
+    motion: HL.tween(0, 260),
+    drawn: NaN,
+  };
 }
 function drawDoor(P, rack, progress) {
   const angle = (-progress * Math.PI) / 2;
@@ -63,7 +74,9 @@ function drawDoor(P, rack, progress) {
   const front = outer.map(project.bind(null, 0.8));
   const back = outer.map(project.bind(null, 0));
   const pane = inner.map(project.bind(null, 0.8));
-  rack.door.frame.setAttribute('d', HL.poly(HL.hull(front.concat(back))) + HL.poly(pane));
+  const silhouette = HL.poly(HL.hull(front.concat(back)));
+  rack.door.frame.setAttribute('d', silhouette + HL.poly(pane));
+  rack.door.outline.setAttribute('d', silhouette);
   rack.door.crease.setAttribute('d', HL.poly(front));
   rack.door.glass.setAttribute('d', HL.poly(pane));
   rack.door.handle.setAttribute(
@@ -127,11 +140,36 @@ function tick(state, _dt, now) {
       drawDoor(state.P, rack, doorOpen);
     }
   }
-  for (const rack of state.racks) {
-    const highlighted = allClosed && state.over === null && rack.index === state.nearbyRack;
-    rack.door.frame.setAttribute('class', highlighted ? 'hi' : 'sil');
-  }
+  updateAccents(state, allClosed);
   return moving;
+}
+function updateAccents(state, allClosed) {
+  let accentedDoor = null;
+  let accentedModule = null;
+  if (state.over !== null) {
+    const rack = state.racks[state.over.rack];
+    if (rack.door.drawn < 0.99) accentedDoor = rack;
+    else accentedModule = state.nearest;
+  } else if (allClosed) {
+    accentedDoor = state.racks[state.nearbyRack];
+  } else {
+    for (const rack of state.racks) {
+      if (rack.door.drawn > 0 && rack.modules.every(isStowed)) {
+        accentedDoor = rack;
+        break;
+      }
+    }
+  }
+  for (const rack of state.racks) {
+    rack.door.outline.setAttribute('class', rack === accentedDoor ? 'hi nf' : 'sil nf');
+    for (const module of rack.modules) {
+      module.panel.setAttribute('class', module === accentedModule ? 'hi' : 'sil');
+      module.lamp.setAttribute('class', module === accentedModule ? 'dot' : 'dot m');
+    }
+  }
+}
+function isStowed(module) {
+  return module.drawn <= 0.04;
 }
 function retarget(state) {
   let nearest = null;
@@ -146,12 +184,7 @@ function retarget(state) {
       }
     }
   }
-  for (const rack of state.racks) {
-    for (const module of rack.modules) {
-      module.panel.setAttribute('class', module === nearest ? 'hi' : 'sil');
-      module.lamp.setAttribute('class', module === nearest ? 'dot' : 'dot m');
-    }
-  }
+  state.nearest = nearest;
   state.read.textContent = nearest ? `rack ${nearest.rack + 1} · bay ${nearest.bay + 1}` : 'rest';
   state.loop.wake();
 }
@@ -162,10 +195,15 @@ function move(state, point) {
     up = state.P(14.5, 0, 1);
   const y = (point[0] - origin[0]) / (across[0] - origin[0]);
   const z = (point[1] - origin[1] - y * (across[1] - origin[1])) / (up[1] - origin[1]);
-  state.nearbyRack = HL.clamp(Math.floor(y / RACK_WIDTH), 0, RACK_COUNT - 1);
+  // Require a two-unit crossing before switching racks at a shared boundary.
+  const lower = state.nearbyRack * RACK_WIDTH - 2;
+  const upper = (state.nearbyRack + 1) * RACK_WIDTH + 2;
+  if (y < lower || y > upper) {
+    state.nearbyRack = HL.clamp(Math.floor(y / RACK_WIDTH), 0, RACK_COUNT - 1);
+  }
   state.over =
     y >= 0 && y < RACK_WIDTH * RACK_COUNT && z >= 5 && z <= 80
-      ? { rack: Math.floor(y / RACK_WIDTH), z }
+      ? { rack: state.nearbyRack, z }
       : null;
   retarget(state);
 }
@@ -214,7 +252,7 @@ function mount({ stage, svg, read }, radius) {
     block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 1.4);
     racks.push({ index, modules, door: door(group, index) });
   }
-  const state = { P, racks, read, radius, nearbyRack: 0, over: null, loop: null };
+  const state = { P, racks, read, radius, nearbyRack: 0, nearest: null, over: null, loop: null };
   state.loop = HL.register(stage, tick.bind(null, state));
   retarget(state);
   const bag = HL.disposer();

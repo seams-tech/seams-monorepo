@@ -533,3 +533,52 @@ Keep the existing lookup and placement implementation. These results do not
 justify a global handle cache or another coordinator rewrite.
 [Sanitized evidence](evidence/r155b-object-dispatch-probe-20261008.json) records
 all samples, coverage limits, source hashes, local checks, and reproduction commands.
+
+## 2026-10-08: verified root reuse and B start simplification
+
+Wallet commit `c80586cdbe7e7bd8dc40658ee9fe045531b4f3ac` reuses an authenticated
+root row within one request only when its fresh ciphertext and metadata match.
+It removes duplicate receipt signature checks and repeated state parsing from B's
+start path. Fresh cancellation, active-root uniqueness, revision checks, and
+parallel A/B preparation remain enforced.
+
+Five release builds and twelve local E2E scenarios passed. The added fault case
+forges A's receipt during the WebSocket handoff. B refuses it before claiming the
+pair. No protocol data is sent, and a fresh wallet can still complete afterward.
+
+| NEAR-only Yao setup HTTP request | Median | Range |
+| --- | ---: | ---: |
+| Control before | 3.194 s | 2.295–4.238 s |
+| Candidate | 3.584 s | 2.817–4.165 s |
+| Control after | 4.171 s | 3.456–4.262 s |
+
+Each arm completed three fresh wallets and verified 21 signatures. All captured
+versions matched. All thirteen original staging versions were restored. The
+restore activation passed in GitHub run `37714533805`.
+
+Preparation DO CPU medians were **144 → 84 → 172 ms** for A and
+**146 → 110 → 202 ms** for B. These are whole-invocation measurements. The candidate
+reduced observed preparation CPU. The variable controls do not establish a
+repeatable end-to-end setup improvement. The first control ran while the local
+release build finished. The candidate and final control ran after local checks.
+
+Signing Worker delivery carried about 5.5 KB and returned less than 0.9 KB. Median
+wait for headers was 537 ms, and median body reading was 4 ms. The wait includes
+processing and storage completion, as well as transport. Application clocks freeze
+during CPU work, so zero-millisecond decode and B-start spans are not CPU measures.
+
+Bound-root reads still require **six D1 calls / sixteen SQL statements per setup**.
+This excludes root creation and other database work. Each role makes two calls
+before preparation finishes and one before execution. The initial read verifies
+the encrypted row before admission. The follow-up reads preserve cancellation and
+uniqueness. The six-to-four proposal was not applied because it lacked an atomic,
+verified admission guard. Actual execution locations remain unmeasured.
+
+Retain the CPU reduction and simpler state path. The next network-call candidate
+is a single A connection for preparation and execution while B prepares in
+parallel. It remains unimplemented. The earlier combined-call experiment lost
+that parallelism. The 1–2 second setup target remains unmet.
+
+[Sanitized evidence](evidence/r155b-bound-root-start-20261008.json) retains every
+sample, build hashes, HTTP counts, bounded D1 counts, payload sizes, local checks,
+serving-version audits, and restoration evidence.

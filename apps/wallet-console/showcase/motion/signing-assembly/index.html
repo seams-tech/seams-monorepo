@@ -797,7 +797,7 @@ function drawKey(state, key, insert, turn) {
   const rotation = view.bind(null, base, 0, 0, angle);
   cylinder(key.housing, base, 10, 7, 30);
   cylinder(key.plug, base, 7.6, 30, 31);
-  const notch = height + 8 + key.index * 2;
+  const notch = height + 10 + key.index * 2;
   const levels = [
     [4.5, height, notch],
     [2.8, notch, notch + 1.8],

@@ -39,33 +39,45 @@ function label(svg, location, text) {
 function rear(sample) {
   return sample.nu + sample.nv < 0;
 }
-function port(svg, P, x, y, side) {
+function port(svg, P) {
   const points = [];
   for (let step = 0; step < 32; step++) {
     const angle = (step * Math.PI) / 16;
     const offset = 1.1 * Math.cos(angle);
-    points.push(
-      P(
-        x + (side === 'y' ? offset : 0),
-        y + (side === 'x' ? offset : 0),
-        3 + 1.1 * Math.sin(angle),
-      ),
-    );
+    points.push(P(33.05, offset, 3 + 1.1 * Math.sin(angle)));
   }
   path(svg, HL.poly(points), 'sil');
 }
+function headPoint(K, sign, point, edge) {
+  const scale = edge ? 8.5 / Math.hypot(...point) : 1;
+  return K(point[0] * scale, point[1] * scale * sign, 4);
+}
 function tray(svg, P, front, mirrored) {
   const body = HL.solid(svg);
-  HL.put(body, HL.prism(P, front, ...HL.rings(-33, -17, 33, 17, 5, 0.8), 0, 6));
+  const outer = HL.rrect(-33, -17, 33, 17, 5, 12);
+  HL.put(body, {
+    sil: HL.poly(HL.hull(HL.ringAt(P, outer, 0).concat(HL.ringAt(P, outer, 6)))),
+    crease: HL.open(HL.ringAt(P, HL.run(outer, front), 6)),
+  });
   const inner = HL.rrect(-29, -13, 29, 13, 3.5, 12);
-  path(body.g, HL.poly(HL.ringAt(P, inner, 6)), 'sil nf');
-  path(body.g, HL.open(HL.ringAt(P, HL.run(inner, rear), 2.5)));
+  const opening = HL.poly(HL.ringAt(P, inner, 6));
+  const clipId = mirrored ? 'infrastructure-tray-opening' : 'device-tray-opening';
+  const clip = HL.mk('clipPath', { id: clipId }, HL.mk('defs', {}, body.g));
+  HL.mk('path', { d: opening }, clip);
+  const contents = HL.mk('g', { 'clip-path': `url(#${clipId})` }, body.g);
+  path(contents, HL.open(HL.ringAt(P, HL.run(inner, rear), 2.5)));
+  // The shaft enters beneath the head. The opening masks everything behind the rim.
+  let shaft = HL.seg(P(-8, 0, 4), P(23, 0, 4));
+  for (const x of [-1, 4]) shaft += HL.seg(P(x, -2.2, 4), P(x, 2.2, 4));
+  shaft += HL.seg(P(17, 0, 4), P(17, 4, 4));
+  shaft += HL.seg(P(14.8, 4, 4), P(19.2, 4, 4));
+  path(contents, shaft, 'sil nf');
   const K = local.bind(null, P, [-15, 0]);
-  const head = HL.solid(body.g);
+  const head = HL.solid(contents);
   const ring = HL.circ(8.5, 48);
   HL.put(head, {
     sil: HL.poly(HL.hull(HL.ringAt(K, ring, 3).concat(HL.ringAt(K, ring, 4)))),
-    crease: HL.open(HL.ringAt(K, HL.run(ring, front), 4)),
+    crease: HL.poly(HL.ringAt(K, ring, 4)),
   });
   const sign = mirrored ? -1 : 1;
   let seams = '';
@@ -84,17 +96,13 @@ function tray(svg, P, front, mirrored) {
     ],
   ]) {
     const vertices = [];
-    for (const [u, v] of arc) vertices.push(K(u, v * sign, 4.05));
+    for (let index = 0; index < arc.length; index++) {
+      vertices.push(headPoint(K, sign, arc[index], index === 0 || index === arc.length - 1));
+    }
     seams += curve(vertices);
   }
-  path(body.g, seams, 'sil nf');
-  let shaft = HL.seg(P(-6.5, 0, 3.7), P(23, 0, 3.7));
-  for (const x of [-1, 4]) shaft += HL.seg(P(x, -2.2, 3.7), P(x, 2.2, 3.7));
-  shaft += HL.seg(P(17, 0, 3.7), P(17, 4, 3.7));
-  shaft += HL.seg(P(14.8, 4, 3.7), P(19.2, 4, 3.7));
-  path(body.g, shaft, 'sil nf');
-  if (mirrored) port(body.g, P, 0, -17.05, 'y');
-  else port(body.g, P, 33.05, 0, 'x');
+  path(head.g, seams, 'sil nf');
+  path(body.g, opening, 'sil nf');
 }
 function curvePoints(points) {
   const samples = [];
@@ -287,12 +295,6 @@ function mount({ stage, svg, read }, lag) {
   ];
   const gateP = local.bind(null, P, [15, 10]);
   const resultP = local.bind(null, P, [55, -85]);
-  for (let index = 0; index < sourceOrigins.length; index++) {
-    const T = local.bind(null, P, sourceOrigins[index]);
-    tray(svg, T, front, index === 1);
-    const at = T(0, 0, 0);
-    label(svg, [at[0], at[1] - 37], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
-  }
   const routes = [];
   for (const vertices of [
     [
@@ -312,16 +314,28 @@ function mount({ stage, svg, read }, lag) {
       [26, -85, 3],
     ],
   ]) {
+    const routeName = ['device', 'infrastructure', 'transaction'][routes.length];
+    const group = HL.mk('g', { 'data-route': routeName }, svg);
     const points = wirePoints(vertices.map(point.bind(null, P)));
     const d = HL.open(points);
-    path(svg, d);
+    path(group, d);
     routes.push({
+      group,
       points,
-      trail: trace(svg, points, 'signal'),
-      dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, svg),
+      trail: trace(group, points, 'signal'),
+      dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, group),
     });
     routes[routes.length - 1].trail.el.setAttribute('class', 'sil nf');
   }
+  for (let index = 0; index < sourceOrigins.length; index++) {
+    const T = local.bind(null, P, sourceOrigins[index]);
+    tray(svg, T, front, index === 1);
+    const at = T(0, 0, 0);
+    label(svg, [at[0], at[1] - 37], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
+  }
+  // The first wire leaves a visible front wall; the second enters behind its tray.
+  svg.append(routes[0].group);
+  port(svg, local.bind(null, P, sourceOrigins[0]));
   const gate = shield(svg, gateP);
   const result = transaction(svg, resultP, front);
   const gateAt = gateP(0, 0, 0),

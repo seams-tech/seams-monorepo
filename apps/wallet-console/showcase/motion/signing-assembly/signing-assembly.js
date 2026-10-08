@@ -9,17 +9,16 @@ function view(P, x0, y0, angle, x, y, z) {
   return P(x0 + x * c - y * s, y0 + x * s + y * c, z);
 }
 function cylinder(solid, P, radius, low, high) {
-  HL.put(
-    solid,
-    HL.prism(
-      P,
-      HL.facing(HL.Cam(45, 0.5, 1)),
-      HL.circ(radius, 48),
-      HL.circ(radius - 0.6, 48),
-      low,
-      high,
-    ),
-  );
+  const rim = HL.circ(radius, 64);
+  const top = HL.ringAt(P, rim, high);
+  const bottom = HL.ringAt(P, rim, low);
+  const front = [];
+  for (let step = 0; step <= 32; step++) {
+    const angle = -Math.PI / 4 + (step * Math.PI) / 32;
+    front.push(P(radius * Math.cos(angle), radius * Math.sin(angle), high));
+  }
+  HL.put(solid, { sil: HL.poly(HL.hull(bottom.concat(top))), crease: HL.open(front) });
+  solid.cr.setAttribute('class', 'sil nf');
 }
 function clock(duration) {
   return HL.tween(0, duration);
@@ -96,26 +95,28 @@ function order(a, b) {
 }
 function iris(state, lift, opening) {
   const z = 12 + lift * 12;
+  const rotation = opening * Math.asin((11.8 * Math.cos(Math.PI / 6)) / 14);
+  const radius = (14 * Math.sin(rotation)) / Math.cos(Math.PI / 6);
   cylinder(state.lift, state.baseP, 14, 7, z);
-  state.well.setAttribute('d', HL.poly(HL.ringAt(state.baseP, HL.circ(10, 48), z - 4)));
+  const aperture = [];
+  let seams = '';
   for (let blade = 0; blade < 6; blade++) {
-    const points = [],
-      start = (blade * Math.PI) / 3;
-    for (let step = 0; step <= 8; step++) {
-      const angle = start + (step * Math.PI) / 24;
-      points.push(state.baseP(13.5 * Math.cos(angle), 13.5 * Math.sin(angle), z + 0.1));
+    const anchor = (blade * Math.PI) / 3;
+    const tip = anchor + rotation - Math.PI / 3;
+    aperture.push(state.baseP(radius * Math.cos(tip), radius * Math.sin(tip), z));
+    const edge = [];
+    for (let step = 0; step <= 24; step++) {
+      const progress = step / 24;
+      const distance = HL.lerp(radius, 14, progress);
+      const angle = HL.lerp(tip, anchor + Math.PI / 9, progress * progress);
+      edge.push(state.baseP(distance * Math.cos(angle), distance * Math.sin(angle), z));
     }
-    for (const angle of [start + Math.PI / 3, start]) {
-      points.push(
-        state.baseP(
-          opening * 12 * Math.cos(angle + opening * 0.3),
-          opening * 12 * Math.sin(angle + opening * 0.3),
-          z + 0.1,
-        ),
-      );
-    }
-    state.blades[blade].setAttribute('d', HL.poly(points));
+    seams += HL.open(edge);
   }
+  let face = HL.poly(HL.ringAt(state.baseP, HL.circ(14, 64), z));
+  if (opening > 0) face += HL.poly(aperture);
+  state.shutter.setAttribute('d', face);
+  state.seams.setAttribute('d', seams);
 }
 function output(state, lift, emit, dt, now) {
   state.float.t = emit * 54;
@@ -155,8 +156,8 @@ function tick(state, dt, now) {
   const values = state.clocks.map(value.bind(null, now));
   const [insert, rotation, release] = values;
   // Clear the aperture as the lift starts, then launch during the same stroke.
-  const opening = HL.clamp(release / 0.24, 0, 1);
-  const emit = HL.clamp((release - 0.24) / 0.76, 0, 1);
+  const opening = HL.clamp(release / 0.72, 0, 1);
+  const emit = HL.clamp((release - 0.72) / 0.28, 0, 1);
   const pose = [...values, opening].join();
   if (pose !== state.pose) {
     state.pose = pose;
@@ -204,10 +205,9 @@ function mount({ stage, svg, read }, travel) {
   const ticks = path(svg);
   const objects = HL.mk('g', {}, svg),
     center = HL.mk('g', {}, objects);
-  const lift = HL.solid(center),
-    well = path(center, 'lo nf'),
-    blades = [];
-  for (let index = 0; index < 6; index++) blades.push(path(center, 'sil'));
+  const lift = HL.solid(center);
+  const shutter = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, center);
+  const seams = path(center, 'sil nf');
   const block = HL.solid(center),
     inscriptions = path(block.g);
   block.sil.setAttribute('class', 'hi');
@@ -242,8 +242,8 @@ function mount({ stage, svg, read }, travel) {
     center,
     keys,
     lift,
-    well,
-    blades,
+    shutter,
+    seams,
     block,
     inscriptions,
     read,

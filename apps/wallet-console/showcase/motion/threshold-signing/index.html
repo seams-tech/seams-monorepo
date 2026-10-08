@@ -916,6 +916,7 @@ function setTrace(trace, progress) {
   return tip;
 }
 function shield(svg, P) {
+  const scale = 1.3;
   const outline = [
     [-14, -12],
     [0, -18],
@@ -929,12 +930,16 @@ function shield(svg, P) {
   const face = [],
     back = [];
   for (const [x, y] of HL.fillet(outline, [1, 0.6, 1, 3, 3, 1, 3, 3], 8)) {
-    face.push(P(x, y, 4));
-    back.push(P(x, y, 2));
+    face.push(P(x * scale, y * scale, 4));
+    back.push(P(x * scale, y * scale, 2));
   }
   const body = HL.solid(svg);
   HL.put(body, { sil: HL.poly(HL.hull(face.concat(back))), crease: HL.poly(face) });
-  const mark = trace(body.g, [P(-6, 0, 4.1), P(-1, 5, 4.1), P(7, -7, 4.1)], 'check');
+  const mark = trace(
+    body.g,
+    [P(-6 * scale, 0, 4.1), P(-scale, 5 * scale, 4.1), P(7 * scale, -7 * scale, 4.1)],
+    'check',
+  );
   return { body, mark };
 }
 function transaction(svg, P, front) {
@@ -1050,24 +1055,24 @@ function mount({ stage, svg, read }, lag) {
     [-100, -15],
     [-5, 80],
   ];
-  const gateP = local.bind(null, P, [15, 10]);
+  const gateP = local.bind(null, P, [8, 3]);
   const resultP = local.bind(null, P, [55, -85]);
   const routes = [];
   for (const vertices of [
     [
       [-67, -15, 1.3],
-      [-12, -15, 1.3],
-      [-12, 4, 1.3],
-      [1, 4, 1.3],
+      [-18, -15, 1.3],
+      [-18, -4, 1.3],
+      [-8, -4, 1.3],
     ],
     [
       [-5, 63, 1.3],
-      [-5, 10, 1.3],
-      [1, 10, 1.3],
+      [-5, 12, 1.3],
+      [-2, 12, 1.3],
     ],
     [
-      [15, -7.5, 1.3],
-      [15, -85, 1.3],
+      [8, -19.5, 1.3],
+      [8, -85, 1.3],
       [26, -85, 1.3],
     ],
   ]) {
@@ -1096,7 +1101,7 @@ function mount({ stage, svg, read }, lag) {
   const result = transaction(svg, resultP, front);
   const gateAt = gateP(0, 0, 0),
     resultAt = resultP(0, 0, 0);
-  const captionY = Math.max(gateAt[1] + 29, resultAt[1] + 36);
+  const captionY = Math.max(gateAt[1], resultAt[1]) + 36;
   label(svg, [gateAt[0], captionY], 'Policy check');
   label(svg, [resultAt[0], captionY], 'Signed transaction');
   label(svg, [200, 281], '2-of-2 threshold · neither share signs alone');

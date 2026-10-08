@@ -823,30 +823,186 @@ function drawKey(state, key, insert, turn) {
 function order(a, b) {
   return a.depth - b.depth;
 }
+function wallPoint(P, angle, point) {
+  const around = angle + point.u / 14;
+  return P(14 * Math.cos(around), 14 * Math.sin(around), point.v);
+}
+function apertureHousing(state, z) {
+  const lower = Math.max(10.2, z - 10);
+  const upper = z - 2.4;
+  let grooves = '';
+  if (upper > lower + 0.4) {
+    const slot = HL.rrect(-0.55, lower, 0.55, upper, 0.55, 8);
+    for (const angle of [-15, 25, 65, 105]) {
+      grooves += HL.poly(slot.map(wallPoint.bind(null, state.baseP, HL.rad(angle))));
+    }
+  }
+  state.grooves.setAttribute('d', grooves);
+  const top = HL.ringAt(state.baseP, HL.circ(16, 64), z + 0.7);
+  const bottom = HL.ringAt(state.baseP, HL.circ(16, 64), z - 0.5);
+  const opening = HL.ringAt(state.baseP, HL.circ(14, 64), z + 0.7);
+  state.bezel.setAttribute('d', HL.poly(HL.hull(bottom.concat(top))) + HL.poly(opening));
+  state.rim.setAttribute('d', HL.poly(top));
+  let screws = '';
+  for (let index = 0; index < 6; index++) {
+    const angle = (index * Math.PI) / 3;
+    const P = view.bind(null, state.baseP, 15 * Math.cos(angle), 15 * Math.sin(angle), angle);
+    screws += HL.poly(HL.ringAt(P, HL.circ(0.45, 16), z + 0.72));
+    screws += HL.seg(P(-0.3, 0, z + 0.72), P(0.3, 0, z + 0.72));
+  }
+  state.screws.setAttribute('d', screws);
+}
 function iris(state, lift, opening) {
   const z = 12 + lift * 12;
   const rotation = opening * Math.asin((11.8 * Math.cos(Math.PI / 6)) / 14);
   const radius = (14 * Math.sin(rotation)) / Math.cos(Math.PI / 6);
-  cylinder(state.lift, state.baseP, 14, 7, z);
+  cylinder(state.lift, state.baseP, 14, 9, z);
+  apertureHousing(state, z);
   const aperture = [];
   let seams = '';
   for (let blade = 0; blade < 6; blade++) {
     const anchor = (blade * Math.PI) / 3;
     const tip = anchor + rotation - Math.PI / 3;
-    aperture.push(state.baseP(radius * Math.cos(tip), radius * Math.sin(tip), z));
-    const edge = [];
-    for (let step = 0; step <= 24; step++) {
-      const progress = step / 24;
-      const distance = HL.lerp(radius, 14, progress);
-      const angle = HL.lerp(tip, anchor + Math.PI / 9, progress * progress);
-      edge.push(state.baseP(distance * Math.cos(angle), distance * Math.sin(angle), z));
-    }
-    seams += HL.open(edge);
+    const vertex = state.baseP(radius * Math.cos(tip), radius * Math.sin(tip), z);
+    aperture.push(vertex);
+    seams += HL.seg(vertex, state.baseP(14 * Math.cos(anchor), 14 * Math.sin(anchor), z));
   }
   let face = HL.poly(HL.ringAt(state.baseP, HL.circ(14, 64), z));
   if (opening > 0) face += HL.poly(aperture);
   state.shutter.setAttribute('d', face);
   state.seams.setAttribute('d', seams);
+}
+function blockRing(radius, cut, z) {
+  const shoulder = radius - cut;
+  return [
+    [-radius, -shoulder, z],
+    [-shoulder, -radius, z],
+    [shoulder, -radius, z],
+    [radius, -shoulder, z],
+    [radius, shoulder, z],
+    [shoulder, radius, z],
+    [-shoulder, radius, z],
+    [-radius, shoulder, z],
+  ];
+}
+function projectVertex(P, point) {
+  return P(...point);
+}
+function engravedPath(P, points, floor) {
+  let d = '';
+  for (let index = 1; index < points.length; index++) {
+    let a = points[index - 1];
+    let b = points[index];
+    if (a[2] < floor && b[2] < floor) continue;
+    if (a[2] < floor || b[2] < floor) {
+      const t = (floor - a[2]) / (b[2] - a[2]);
+      const edge = [HL.lerp(a[0], b[0], t), HL.lerp(a[1], b[1], t), floor];
+      if (a[2] < floor) a = edge;
+      else b = edge;
+    }
+    d += HL.seg(P(...a), P(...b));
+  }
+  return d;
+}
+function sealPoint(face, u, v, top, turn, size, point) {
+  const cosine = Math.cos(turn),
+    sine = Math.sin(turn);
+  const x = u + size * (point[0] * cosine - point[1] * sine);
+  const y = v + size * (point[0] * sine + point[1] * cosine);
+  if (face === 'top') return [x, y, top + 0.01];
+  if (face === 'right') return [8.01, x, top - y];
+  return [x, 8.01, top - y];
+}
+function sealGrid(P, face, top, floor) {
+  const motif = [
+    [-0.9, -0.9],
+    [0.9, -0.9],
+    [0.9, 0.9],
+    [-0.9, 0.9],
+    [-0.9, -0.25],
+    [0.25, -0.25],
+    [0.25, 0.25],
+    [-0.25, 0.25],
+  ];
+  let d = '';
+  const columns = face === 'top' ? 3 : 2;
+  for (let row = 0; row < 3; row++) {
+    for (let column = 0; column < columns; column++) {
+      const u = face === 'top' ? (column - 1) * 3.2 : (column - 0.5) * 4.3;
+      const v = face === 'top' ? (row - 1) * 3.2 : 4.4 + row * 3.4;
+      const turn = (((row + column * 3) % 4) * Math.PI) / 2;
+      const size = face === 'top' ? 1.1 : 1.25;
+      const points = motif.slice(0, 6 + ((row + column) % 3));
+      d += engravedPath(P, points.map(sealPoint.bind(null, face, u, v, top, turn, size)), floor);
+    }
+  }
+  return d;
+}
+function signedBlock(state, floor, top) {
+  const P = state.baseP;
+  const profiles = [
+    { radius: 6.9, cut: 2.4, z: top - 16 },
+    { radius: 8, cut: 3, z: top - 14.9 },
+    { radius: 8, cut: 3, z: top - 1.1 },
+    { radius: 6.9, cut: 2.4, z: top },
+  ];
+  const vertices = [];
+  for (let index = 0; index < profiles.length; index++) {
+    const profile = profiles[index];
+    if (profile.z < floor) continue;
+    if (index > 0 && profiles[index - 1].z < floor) {
+      const previous = profiles[index - 1];
+      const t = (floor - previous.z) / (profile.z - previous.z);
+      vertices.push(
+        ...blockRing(
+          HL.lerp(previous.radius, profile.radius, t),
+          HL.lerp(previous.cut, profile.cut, t),
+          floor,
+        ),
+      );
+    }
+    vertices.push(...blockRing(profile.radius, profile.cut, profile.z));
+  }
+  const cap = blockRing(6.9, 2.4, top);
+  let edges = HL.poly(cap.map(projectVertex.bind(null, P)));
+  const upper = blockRing(8, 3, top - 1.1);
+  const lower = blockRing(8, 3, top - 14.9);
+  const foot = blockRing(6.9, 2.4, top - 16);
+  // This camera sees the front shoulders and the two edges of the front chamfer.
+  edges += engravedPath(P, upper.slice(3, 7), floor);
+  edges += engravedPath(P, lower.slice(3, 7), floor);
+  for (const corner of [4, 5]) {
+    edges += engravedPath(P, [cap[corner], upper[corner], lower[corner], foot[corner]], floor);
+  }
+  HL.put(state.block, {
+    sil: HL.poly(HL.hull(vertices.map(projectVertex.bind(null, P)))),
+    crease: edges,
+  });
+  const border = blockRing(6.1, 2.1, top + 0.01);
+  let marks = HL.poly(border.map(projectVertex.bind(null, P)));
+  for (const face of ['top', 'right', 'left']) {
+    marks += sealGrid(P, face, top, floor);
+    if (face === 'top') continue;
+    const frame = [
+      [-4.1, 2.6],
+      [4.1, 2.6],
+      [4.1, 12.6],
+      [-4.1, 12.6],
+      [-4.1, 2.6],
+    ];
+    marks += engravedPath(P, frame.map(sealPoint.bind(null, face, 0, 0, top, 0, 1)), floor);
+  }
+  for (const scale of [1, 0.5]) {
+    const seal = [
+      [6.5, 6.5, top - 8 + 2.8 * scale],
+      [6.5 + scale, 6.5 - scale, top - 8],
+      [6.5, 6.5, top - 8 - 2.8 * scale],
+      [6.5 - scale, 6.5 + scale, top - 8],
+      [6.5, 6.5, top - 8 + 2.8 * scale],
+    ];
+    marks += engravedPath(P, seal, floor);
+  }
+  state.inscriptions.setAttribute('d', marks);
 }
 function output(state, lift, emit, dt, now) {
   state.float.t = emit * 54;
@@ -854,27 +1010,14 @@ function output(state, lift, emit, dt, now) {
     floor = 12 + lift * 12;
   // Taper the exposed height to zero before the reversing iris can close.
   const height = Math.max(0, state.float.x) * HL.clamp(emit / 0.15, 0, 1);
-  const top = floor + height,
-    bottom = Math.max(floor, top - 18);
+  const top = floor + height;
   if (top !== state.top) {
     state.top = top;
     state.block.g.setAttribute('display', height > 0.01 ? 'inline' : 'none');
-    HL.put(
-      state.block,
-      HL.prism(state.baseP, state.front, ...HL.rings(-7, -7, 7, 7, 1.5, 0.6), bottom, top),
-    );
-    let marks = HL.poly(HL.ringAt(state.baseP, HL.rrect(-3, -3, 3, 3, 1, 8), top + 0.1));
-    for (const drop of [4, 7, 10, 13]) {
-      if (top - drop > floor)
-        marks += HL.seg(
-          state.baseP(7.1, -4.5, top - drop),
-          state.baseP(7.1, drop === 10 ? 2 : 4.5, top - drop),
-        );
-    }
-    state.inscriptions.setAttribute('d', marks);
+    signedBlock(state, floor, top);
   }
   const sway = HL.reducedMotion() ? 0 : HL.clamp((height - 38) / 16, 0, 1);
-  const [cx, cy] = state.baseP(0, 0, top - 9);
+  const [cx, cy] = state.baseP(0, 0, top - 8);
   state.block.g.setAttribute(
     'transform',
     `translate(${sway * Math.sin(now / 1050)} ${sway * 2 * Math.sin(now / 730)}) rotate(${sway * 1.4 * Math.sin(now / 1200)} ${cx} ${cy})`,
@@ -929,18 +1072,23 @@ function mount({ stage, svg, read }, travel) {
     200,
     166,
   );
-  const baseP = HL.proj(C),
-    front = HL.facing(C);
+  const baseP = HL.proj(C);
   cylinder(HL.solid(svg), baseP, 65, 0, 7);
   const ticks = path(svg);
   const objects = HL.mk('g', {}, svg),
     center = HL.mk('g', {}, objects);
+  cylinder(HL.solid(center), baseP, 16, 7, 9);
   const lift = HL.solid(center);
+  const grooves = path(center);
   const shutter = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, center);
   const seams = path(center, 'sil nf');
+  const bezel = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, center);
+  const rim = path(center, 'sil nf');
+  const screws = path(center);
   const block = HL.solid(center),
-    inscriptions = path(block.g);
+    inscriptions = path(block.g, 'sil nf');
   block.sil.setAttribute('class', 'hi');
+  block.cr.setAttribute('class', 'hi nf');
   const keys = [],
     positions = [
       [-27, -20, -20],
@@ -965,15 +1113,18 @@ function mount({ stage, svg, read }, travel) {
   const state = {
     baseP,
     P: baseP,
-    front,
     origin: baseP(0, 0, 0),
     objects,
     ticks,
     center,
     keys,
     lift,
+    grooves,
     shutter,
     seams,
+    bezel,
+    rim,
+    screws,
     block,
     inscriptions,
     read,

@@ -771,6 +771,18 @@ function set(state, travel) {
   state.pose = '';
   state.loop.wake();
 }
+function socketOpening(P) {
+  const radius = 4.8;
+  const halfNotch = 1.2;
+  const start = Math.asin(halfNotch / radius);
+  const points = [];
+  for (let step = 0; step <= 64; step++) {
+    const angle = start + ((Math.PI * 2 - start * 2) * step) / 64;
+    points.push(P(radius * Math.cos(angle), radius * Math.sin(angle), 31.1));
+  }
+  points.push(P(5.9, -halfNotch, 31.1), P(5.9, halfNotch, 31.1));
+  return HL.poly(points);
+}
 function drawKey(state, key, insert, turn) {
   const [x, y, orientation] = key.position;
   const location = state.P(x, y, 0);
@@ -785,11 +797,11 @@ function drawKey(state, key, insert, turn) {
   const rotation = view.bind(null, base, 0, 0, angle);
   cylinder(key.housing, base, 10, 7, 30);
   cylinder(key.plug, base, 7.6, 30, 31);
-  const notch = height + 5 + key.index * 2;
+  const notch = height + 8 + key.index * 2;
   const levels = [
     [4.5, height, notch],
-    [2.8, notch, notch + 2.5],
-    [4.5, notch + 2.5, height + 20],
+    [2.8, notch, notch + 1.8],
+    [4.5, notch + 1.8, height + 20],
   ];
   for (let index = 0; index < 3; index++) {
     const [radius, low, high] = levels[index];
@@ -797,17 +809,15 @@ function drawKey(state, key, insert, turn) {
     cylinder(key.rod[index], base, radius, Math.max(31.1, low), Math.max(31.1, high));
   }
   const low = Math.max(31.1, notch),
-    high = Math.max(31.1, notch + 2.5);
+    high = Math.max(31.1, notch + 1.8);
   key.bit.g.setAttribute('display', high > 31.1 ? 'inline' : 'none');
   const facing = HL.facing(HL.Cam(45 - (angle * 180) / Math.PI, 0.5, 1));
-  HL.put(key.bit, HL.prism(rotation, facing, ...HL.rings(2.5, -1.4, 6, 1.4, 0.4, 0.3), low, high));
+  HL.put(key.bit, HL.prism(rotation, facing, ...HL.rings(2.5, -1, 5.6, 1, 0.25, 0.2), low, high));
   if (Math.cos(angle) + Math.sin(angle) > 0) key.rod[2].g.after(key.bit.g);
   else key.rod[0].g.before(key.bit.g);
   cylinder(key.grip, base, 6.5, height + 20, height + 28);
   key.mark.setAttribute('d', HL.seg(rotation(0, 0, height + 28.1), rotation(5, 0, height + 28.1)));
-  const opening = HL.ringAt(rotation, HL.circ(4.8, 48), 31.1);
-  const channel = HL.ringAt(rotation, HL.rrect(3.8, -1.7, 6.2, 1.7, 0.4, 8), 31.1);
-  key.slot.setAttribute('d', HL.poly(HL.hull(opening.concat(channel))));
+  key.slot.setAttribute('d', socketOpening(rotation));
   return { group: key.group, depth: location[1] };
 }
 function order(a, b) {

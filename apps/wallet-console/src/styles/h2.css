@@ -2941,7 +2941,7 @@ body:has(.h2-page) {
 }
 
 .h2-security-section {
-  padding-bottom: 34px;
+  padding-block: 56px 18px;
 }
 
 .h2-security__pause {
@@ -3005,7 +3005,6 @@ body:has(.h2-page) {
 .h2-security__stage {
   display: grid;
   align-items: center;
-  min-height: 440px;
   container-type: inline-size;
 }
 
@@ -3025,7 +3024,7 @@ body:has(.h2-page) {
 .h2-security__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  transform: translateY(-16px);
+  margin-top: -16px;
 }
 
 .h2-security__cell {
@@ -3075,10 +3074,6 @@ body:has(.h2-page) {
   .h2-security {
     grid-template-columns: 1fr;
     gap: 36px;
-  }
-
-  .h2-security__stage {
-    min-height: 0;
   }
 }
 

@@ -769,3 +769,61 @@ The preceding placement evidence remains the available source.
 [Sanitized evidence](evidence/r155b-storage-startup-20261008.json) records all
 attempts, the failure and cancelled retry, local checks, build hashes, HTTP and
 bounded D1 counts, serving versions, and restoration.
+
+## 2026-10-08: remove redundant NEAR signing status reads
+
+Repeated NEAR signing now uses **three Gateway calls instead of four**. Lane
+discovery uses the SDK's existing session observation. Prepare still checks live
+authority and quota before the client creates its signature share. Missing or
+mismatched observations require a fresh status read. Export retains its exact
+authorization reader. No backend code changed.
+
+The comparison completed **63 verified signatures across nine fresh wallets**.
+It served baseline/candidate/baseline SDK assets only to the test browser. Each
+arm used three wallets against the same staging backend. All thirteen Worker
+versions stayed unchanged, and every captured serving version matched. No
+deployment, activation, new resource, or npm publication occurred.
+
+| SDK signing, per signature | Control before: median (range) | Candidate: median (range) | Control after: median (range) |
+| --- | --- | --- | --- |
+| Warm, 6 signatures per arm | 3.165 s (2.473–4.022) | **2.423 s (1.963–2.901)** | 3.132 s (2.338–3.595) |
+| Three-signature sequences, 9 signatures per arm | 2.189 s (1.487–2.457) | **2.130 s (1.399–2.693)** | 2.168 s (1.604–2.815) |
+| Both repeated workloads, 15 signatures per arm | 2.355 s (1.487–4.022) | **2.195 s (1.399–2.901)** | 2.384 s (1.604–3.595) |
+
+SDK timing includes automated confirmation and required nonce/RPC work. It ends
+at signed output, before blockchain submission or confirmation. It excludes the
+browser harness's later verification overhead. Sequence timings measure each
+signature, rather than the sum of all three.
+
+The isolated authorization probe fell from **199.8 / 198.1 ms** in the controls
+to **3.5 ms** in the candidate. The removed HTTP request measured **195.1 / 192.2 ms**.
+Every repeated candidate signature used owner lane, prepare, and finalize, with
+zero status calls. Other requests and confirmation varied across the arms.
+The sample establishes the request reduction. It does not establish a guaranteed
+whole-flow saving or percentile.
+
+Registration through verified signature measured **19.122 / 20.685 / 20.523 s**
+median across the three arms. Candidate range was **20.659–22.230 s**. Unlock
+through verified signature measured **5.710 / 5.006 / 5.717 s**, with a candidate
+range of **5.000–5.704 s**. These lifecycle values include browser automation.
+Registration also includes funding, provisioning, and Yao setup. This change does
+not optimize those stages, and the **1–2 second Yao setup target remains unmet**.
+
+Candidate registration used thirteen Gateway calls, compared with fourteen or
+fifteen in the controls. Unlock used eight, compared with nine. Lifecycle counts
+include background requests that overlap their windows. D1 and Gateway-to-Console
+counts were unavailable. Browser-to-Console requests were zero.
+
+Both SDK builds, Wallet and intended-test type checks, two local browser E2Es,
+and the exact-tree bloat check passed. The E2Es preserve quota step-up, fresh
+reads after reload, and rejection of changed prepare authority before finalize.
+Both valid transaction and message signing passed after that rejection. Review
+found no additional issue in the changed path.
+
+The next candidates are the repeated owner-lane request (**167 ms median**),
+nonce-lease recovery (**0 ms median, 345 ms maximum wait**), and prepare/finalize
+server work (**427 / 519 ms median**). Each change must retain identity, placement,
+admission, revocation, concurrent-tab safety, and recovery checks.
+
+[Sanitized evidence](evidence/r155b-signing-observation-20261008.json) preserves
+all samples, request counts, build hashes, local evidence, and version audits.

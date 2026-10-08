@@ -79,7 +79,7 @@ function drawKey(state, key, insert, turn) {
   cylinder(key.plug, base, 7.6, 30, 31);
   const notch = height + 10 + key.index * 2;
   const levels = [
-    [4.5, height, notch],
+    [3.5, height, notch],
     [2.8, notch, notch + 1.8],
     [4.5, notch + 1.8, height + 20],
   ];
@@ -95,8 +95,8 @@ function drawKey(state, key, insert, turn) {
   HL.put(key.bit, HL.prism(rotation, facing, ...HL.rings(2.5, -1, 5.6, 1, 0.25, 0.2), low, high));
   if (Math.cos(angle) + Math.sin(angle) > 0) key.rod[2].g.after(key.bit.g);
   else key.rod[0].g.before(key.bit.g);
-  cylinder(key.grip, base, 6.5, height + 20, height + 28);
-  key.mark.setAttribute('d', HL.seg(rotation(0, 0, height + 28.1), rotation(5, 0, height + 28.1)));
+  cylinder(key.grip, base, 6.5, height + 20, height + 24);
+  key.mark.setAttribute('d', HL.seg(rotation(0, 0, height + 24.1), rotation(5, 0, height + 24.1)));
   key.slot.setAttribute('d', socketOpening(rotation));
   return { group: key.group, depth: location[1] };
 }

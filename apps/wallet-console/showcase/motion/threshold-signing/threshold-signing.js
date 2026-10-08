@@ -11,6 +11,9 @@ function path(parent, d, classes = 'lo nf') {
 function local(P, origin, x, y, z) {
   return P(origin[0] + x, origin[1] + y, z);
 }
+function screenY(point) {
+  return point[1];
+}
 function curvePoint(points, t) {
   const [a, b, c, d] = points;
   const s = 1 - t;
@@ -143,15 +146,16 @@ function slab(svg, P, front) {
   const body = HL.solid(svg);
   body.sil.style.strokeWidth = '1px';
   const outline = HL.rrect(-33, -17, 33, 17, 3, 12);
+  const top = HL.ringAt(P, outline, 2.6);
   HL.put(body, {
-    sil: HL.poly(HL.hull(HL.ringAt(P, outline, 0).concat(HL.ringAt(P, outline, 2.6)))),
+    sil: HL.poly(HL.hull(HL.ringAt(P, outline, 0).concat(top))),
     crease: HL.open(HL.ringAt(P, HL.run(outline, front), 2.6)),
   });
   const engravings =
     HL.seg(P(-25, 11, 2.6), P(-17, 11, 2.6)) + HL.seg(P(-25, 13, 2.6), P(-20, 13, 2.6));
   path(body.g, engravings);
   classicKey(body.g, P, front);
-  return body;
+  return { body, labelTop: Math.min(...top.map(screenY)) };
 }
 function curvePoints(points) {
   const samples = [];
@@ -235,12 +239,19 @@ function shield(svg, P) {
     [P(-7 * scale, 0, 4.1), P(-1.2 * scale, 6 * scale, 4.1), P(8 * scale, -8 * scale, 4.1)],
     'check',
   );
-  return { body, mark, inlet: P(-17.8, 0, 2.6), outlet: P(17.8, 0, 2.6) };
+  return {
+    body,
+    mark,
+    labelBottom: Math.max(...silhouette.map(screenY)),
+    inlet: P(-17.8, 0, 2.6),
+    outlet: P(17.8, 0, 2.6),
+  };
 }
 function transaction(svg, P, front) {
   const body = HL.solid(svg);
   body.sil.style.strokeWidth = '1px';
-  HL.put(body, HL.prism(P, front, ...HL.rings(-29, -21, 29, 21, 4, 0.8), 0, 3.5));
+  const [outline, inset] = HL.rings(-29, -21, 29, 21, 4, 0.8);
+  HL.put(body, HL.prism(P, front, outline, inset, 0, 3.5));
   let lines = '';
   for (let row = 0; row < 3; row++) {
     lines += HL.seg(P(-20, -12 + row * 4, 3.6), P(20 - row * 4, -12 + row * 4, 3.6));
@@ -278,7 +289,11 @@ function transaction(svg, P, front) {
     const samples = curvePoints(vertices);
     signature.push(...(signature.length ? samples.slice(1) : samples));
   }
-  return { body, mark: trace(body.g, signature, 'signature') };
+  return {
+    body,
+    mark: trace(body.g, signature, 'signature'),
+    labelBottom: Math.max(...HL.ringAt(P, outline, 0).map(screenY)),
+  };
 }
 function select(state, active) {
   if (active === state.active) return;
@@ -422,10 +437,13 @@ function mount({ stage, svg, read }, lag) {
   }
   path(wireBase, wiring);
   for (let index = 0; index < sources.length; index++) {
-    const body = slab(svg, sources[index], front);
+    const source = slab(svg, sources[index], front);
     const center = sources[index](0, 0, 0);
-    const top = body.g.getBBox().y;
-    label(svg, [center[0], top - 8], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
+    label(
+      svg,
+      [center[0], source.labelTop - 8],
+      index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE',
+    );
   }
   // Keep shared wire segments beneath every signal and the shield above the join.
   svg.append(wireBase);
@@ -435,12 +453,10 @@ function mount({ stage, svg, read }, lag) {
   const result = transaction(svg, resultP, front);
   const gateCenter = gateP(0, 0, 0);
   const resultCenter = resultP(0, 0, 0);
-  const gateBounds = gate.body.g.getBBox();
-  const resultBounds = result.body.g.getBBox();
-  label(svg, [gateCenter[0], gateBounds.y + gateBounds.height + 15], 'Policy check');
+  label(svg, [gateCenter[0], gate.labelBottom + 15], 'Policy check');
   const transactionLabel = label(
     svg,
-    [resultCenter[0], resultBounds.y + resultBounds.height + 15],
+    [resultCenter[0], result.labelBottom + 15],
     'Signed transaction',
   );
   label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');

@@ -3024,7 +3024,7 @@ body:has(.h2-page) {
 .h2-security__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: -16px;
+  margin-top: -28px;
 }
 
 .h2-security__cell {

@@ -14,6 +14,28 @@ function progressState(element) {
   };
 }
 
+function signingLabelsArePlaced() {
+  const svg = document.querySelector('#stage svg');
+  const keys = svg.querySelectorAll('[data-part="key"]');
+  const shapes = [
+    keys[0].parentElement,
+    keys[1].parentElement,
+    svg.querySelector('[data-part="check"]').parentElement,
+    svg.querySelector('[data-part="signature"]').parentElement,
+  ];
+  const labels = svg.querySelectorAll('text');
+  for (let index = 0; index < shapes.length; index++) {
+    const shape = shapes[index].getBBox();
+    const y = Number(labels[index].getAttribute('y'));
+    if (index < 2 && y >= shape.y) return false;
+    if (index >= 2 && y <= shape.y + shape.height) return false;
+    const box = labels[index].getBoundingClientRect();
+    if (box.top < 0 || box.left < 0 || box.bottom > innerHeight || box.right > innerWidth)
+      return false;
+  }
+  return true;
+}
+
 function approachCompletion(element) {
   element.getAnimations()[0].currentTime = 5900;
 }
@@ -51,6 +73,13 @@ try {
   await page.locator('#wallet-security[data-view="signing"]').waitFor({ timeout: 7000 });
   assert.ok((await progress.evaluate(progressState)).time < 1500, 'Each view starts a new timer');
   assert.equal(await section.locator('.h2-pager__dot.is-active').count(), 1);
+  const firstSigning = page.frameLocator('iframe[data-figure="signing"]');
+  await firstSigning.locator('#stage svg text').first().waitFor();
+  assert.equal(
+    await firstSigning.locator('#stage').evaluate(signingLabelsArePlaced),
+    true,
+    'All labels match their shapes on first reveal',
+  );
   await section.screenshot({ path: `${artifacts}/desktop-signing.png` });
 
   // Both arrows wrap around the two views and restart their progress.
@@ -113,6 +142,12 @@ try {
     (await section.boundingBox()).height,
     featuresHeight,
     'Pagination must not shift the mobile layout',
+  );
+  await signing.locator('#stage svg text').first().waitFor();
+  assert.equal(
+    await signing.locator('#stage').evaluate(signingLabelsArePlaced),
+    true,
+    'Labels remain placed after cycling and mobile resize',
   );
   await section.screenshot({ path: `${artifacts}/mobile-signing.png` });
   await page.keyboard.press('Enter');

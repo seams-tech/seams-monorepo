@@ -256,7 +256,7 @@ function mount({ stage, svg, read }, distance) {
       [51, -49, 4],
     ],
     230,
-    160,
+    152,
   );
   const P = view.bind(null, HL.proj(C));
   const receiver = phone(svg, P, 28, 'receiver');

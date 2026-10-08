@@ -282,11 +282,11 @@ Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
 
 Three cylindrical rod keys stand above matching sockets on an indexed disk. Each rod has a recessed collar and a lateral key bit. An index mark on the grip makes its quarter-turn visible. Two keys insert and lock. The third remains withdrawn.
 
-Six separate Hairline tweens control the sequence. Insertion takes 500ms, the locking turn 450ms, and disk rotation 650ms. A 180ms pause follows rotation. The central cylinder then rises over 400ms. Its six-part iris opens over 350ms before the 200ms ejection begins. Each stage finishes before the next starts. Hover interruptions resume from the current pose.
+Three Hairline tweens control the sequence. Insertion takes 350ms. The keys lock while the disk rotates, sharing one 500ms motion. A 400ms release combines the central cylinder lift, iris opening, and block launch. The iris clears the block near the start of that stroke, while the cylinder continues rising. There is no pause between stages. The three stages take approximately 1.25 seconds, followed by the block spring settling into its hover. Hover interruptions resume from the current pose.
 
 The transaction block rises 54 world units above the raised platform, with a spring overshoot. Its spring uses stiffness 100, damping 10, and mass 1. Small vertical, lateral, and rotational oscillations keep it hovering. The block carries engraved lines and a recessed square seal. Only the output block continues moving after the mechanism settles. The shared loop sleeps offscreen.
 
-Leaving retracts the block before closing the iris, lowering the cylinder, rotating back, and unlocking and withdrawing the keys. Reverse motion waits for the block spring to settle before closing the aperture. Reduced motion lands all stages and disables the hover oscillation. The slider sets key insertion depth to 22, 23, or 24 world units.
+Leaving lowers the cylinder and retracts the block together. The exposed block height tapers to zero before the iris closes during the same release stroke. The disk and keys then turn back together before the keys withdraw. Reduced motion lands all stages and disables the hover oscillation. The slider sets key insertion depth to 22, 23, or 24 world units.
 
 Inserted rod sections stop at the socket entrance. The transaction remains hidden until the iris opens. Its exposed geometry starts at the platform surface. Object groups reorder by depth during rotation. The output block is the accent.
 

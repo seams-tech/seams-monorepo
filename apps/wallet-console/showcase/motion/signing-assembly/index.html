@@ -748,18 +748,12 @@ function value(now, motion) {
   return HL.tval(motion, now);
 }
 function advance(state, now) {
-  const previous = state.phase;
   state.phase = -1;
-  for (let n = 0; n < 6; n++) {
-    const index = state.active ? n : 5 - n;
+  for (let n = 0; n < state.clocks.length; n++) {
+    const index = state.active ? n : state.clocks.length - 1 - n;
     if (HL.tval(state.clocks[index], now) === Number(state.active)) continue;
     state.phase = index;
-    HL.tset(
-      state.clocks[index],
-      Number(state.active),
-      now,
-      state.active && index === 3 && previous === 2 ? 180 : 0,
-    );
+    HL.tset(state.clocks[index], Number(state.active), now, 0);
     break;
   }
 }
@@ -847,12 +841,13 @@ function output(state, lift, emit, dt, now) {
   state.float.t = emit * 54;
   const moving = HL.stepS(state.float, dt),
     floor = 12 + lift * 12;
-  state.floatMoving = moving;
-  const top = floor + Math.max(0, state.float.x),
+  // Taper the exposed height to zero before the reversing iris can close.
+  const height = Math.max(0, state.float.x) * HL.clamp(emit / 0.15, 0, 1);
+  const top = floor + height,
     bottom = Math.max(floor, top - 18);
   if (top !== state.top) {
     state.top = top;
-    state.block.g.setAttribute('display', state.float.x > 0.01 ? 'inline' : 'none');
+    state.block.g.setAttribute('display', height > 0.01 ? 'inline' : 'none');
     HL.put(
       state.block,
       HL.prism(state.baseP, state.front, ...HL.rings(-7, -7, 7, 7, 1.5, 0.6), bottom, top),
@@ -867,7 +862,7 @@ function output(state, lift, emit, dt, now) {
     }
     state.inscriptions.setAttribute('d', marks);
   }
-  const sway = HL.reducedMotion() ? 0 : HL.clamp((state.float.x - 38) / 16, 0, 1);
+  const sway = HL.reducedMotion() ? 0 : HL.clamp((height - 38) / 16, 0, 1);
   const [cx, cy] = state.baseP(0, 0, top - 9);
   state.block.g.setAttribute(
     'transform',
@@ -876,23 +871,22 @@ function output(state, lift, emit, dt, now) {
   return moving || (emit === 1 && !HL.reducedMotion());
 }
 function tick(state, dt, now) {
-  while (
-    state.phase >= 0 &&
-    HL.tdone(state.clocks[state.phase], now) &&
-    (state.active || state.phase !== 5 || !state.floatMoving)
-  )
-    advance(state, now);
+  while (state.phase >= 0 && HL.tdone(state.clocks[state.phase], now)) advance(state, now);
   const values = state.clocks.map(value.bind(null, now));
-  const [insert, turn, rotation, lift, opening, emit] = values;
-  if (values.join() !== state.pose) {
-    state.pose = values.join();
+  const [insert, rotation, release] = values;
+  // Clear the aperture as the lift starts, then launch during the same stroke.
+  const opening = HL.clamp(release / 0.24, 0, 1);
+  const emit = HL.clamp((release - 0.24) / 0.76, 0, 1);
+  const pose = [...values, opening].join();
+  if (pose !== state.pose) {
+    state.pose = pose;
     state.angle = 70 * rotation;
     state.P = view.bind(null, state.baseP, 0, 0, HL.rad(state.angle));
     const parts = [{ group: state.center, depth: state.origin[1] }];
-    for (const key of state.keys) parts.push(drawKey(state, key, insert, turn));
+    for (const key of state.keys) parts.push(drawKey(state, key, insert, rotation));
     parts.sort(order);
     for (const part of parts) state.objects.appendChild(part.group);
-    iris(state, lift, opening);
+    iris(state, release, opening);
     let ticks = '';
     for (let index = 0; index < 36; index++) {
       const angle = (index * Math.PI) / 18;
@@ -903,8 +897,8 @@ function tick(state, dt, now) {
     }
     state.ticks.setAttribute('d', ticks);
   }
-  const floating = output(state, lift, emit, dt, now);
-  const names = ['inserting', 'turning', 'rotating', 'raising', 'opening', 'issuing'];
+  const floating = output(state, release, emit, dt, now);
+  const names = ['inserting', 'turning', 'issuing'];
   state.read.textContent = state.active
     ? state.phase < 0
       ? 'signed'
@@ -974,9 +968,8 @@ function mount({ stage, svg, read }, travel) {
     inscriptions,
     read,
     travel,
-    clocks: [500, 450, 650, 400, 350, 200].map(clock),
+    clocks: [350, 500, 400].map(clock),
     float: HL.spring(0, { k: 100, c: 10, m: 1, eps: 0.01 }),
-    floatMoving: false,
     top: NaN,
     angle: 0,
     phase: -1,
@@ -999,7 +992,8 @@ function mount({ stage, svg, read }, travel) {
 }
 hairline({
   name: 'signing-assembly',
-  means: 'Insert, lock, rotate. The iris opens to release a signed transaction.',
+  means:
+    'Keys insert, then turn with the disk. The cylinder and iris release a signed transaction together.',
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [22, 23, 24],
   mount,

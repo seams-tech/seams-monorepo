@@ -30,6 +30,7 @@ type Timing = { at: number; event: string; stage: string | null; durationMs: num
 class NearEvidence {
   readonly timings: Timing[] = [];
   readonly assets = new Set<string>();
+  readonly accessKeyRequests: number[] = [];
   readonly responses: { at: number; response: Response }[] = [];
   observeResponse(response: Response): void {
     this.responses.push({ at: performance.now(), response });
@@ -73,10 +74,30 @@ class NearEvidence {
     if (/\.(?:js|wasm)$/u.test(url.pathname)) this.assets.add(url.pathname);
     if (url.pathname.startsWith('/console/') || url.pathname.startsWith('/internal/'))
       this.consoleRequests.push(url.pathname);
+    if (request.method() !== 'POST') return;
+    try {
+      const body: unknown = request.postDataJSON();
+      if (isAccessKeyQuery(body)) this.accessKeyRequests.push(performance.now());
+    } catch {
+      // Non-JSON requests do not contribute to the NEAR RPC count.
+    }
+  }
+  accessKeyCalls(startedAt: number, endedAt: number): number {
+    let count = 0;
+    for (const at of this.accessKeyRequests) {
+      if (at >= startedAt && at <= endedAt) count += 1;
+    }
+    return count;
   }
   window(startedAt: number, endedAt: number) {
     return this.timings.filter(inWindow.bind(null, startedAt, endedAt));
   }
+}
+function isAccessKeyQuery(body: unknown): boolean {
+  if (typeof body !== 'object' || body === null || !('method' in body) || body.method !== 'query')
+    return false;
+  if (!('params' in body) || typeof body.params !== 'object' || body.params === null) return false;
+  return 'request_type' in body.params && body.params.request_type === 'view_access_key';
 }
 function inWindow(startedAt: number, endedAt: number, timing: Timing): boolean {
   return timing.at >= startedAt && timing.at <= endedAt;
@@ -274,6 +295,7 @@ async function measure(
     verified: true,
     elapsedToVerifiedMs: endedAt - startedAt,
     sdkSigningMs: sdk[0].durationMs,
+    nearAccessKeyCalls: observations.accessKeyCalls(signStartedAt, endedAt),
     timings,
     gateway: await gateway.window(startedAt, endedAt),
     gatewayConsoleCalls: await observations.consoleCalls(startedAt, endedAt),

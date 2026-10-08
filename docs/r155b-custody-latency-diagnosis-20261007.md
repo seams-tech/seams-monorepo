@@ -897,3 +897,55 @@ alone would not address that wait.
 [Sanitized evidence](evidence/r155b-direct-prepare-20261008.json) preserves the
 samples, request counts, build hashes, retirement result, version audits, and
 baseline-reproduced regional failure.
+
+## Phase 6S — NEAR nonce recovery, 2026-10-08
+
+Recovery repeated the same access-key RPC for each saved nonce reservation.
+The SDK now shares one fresh observation per exact wallet/key lane within a
+recovery pass. Later passes query again. Failed reads retain unexpired reservations.
+Lane locks, expiry, and EVM behavior remain unchanged. Commit: `fa0648d8` on public `dev`.
+
+Baseline/candidate/baseline testing verified **63 signatures across nine fresh
+NEAR-only wallets**. Thirteen staging Worker versions stayed unchanged. All captured
+serving versions matched. No deployment or live infrastructure changed.
+
+| SDK signing, per signature | Control before: median (range) | Candidate: median (range) | Control after: median (range) |
+| --- | --- | --- | --- |
+| Warm, 6 signatures per arm | 2.384 s (2.134–3.609) | **2.385 s (1.704–2.635)** | 1.885 s (1.702–2.331) |
+| Three-signature sequences, 9 signatures per arm | 1.676 s (1.217–2.790) | **1.636 s (1.280–2.480)** | 1.819 s (1.598–2.516) |
+| Combined, 15 signatures per arm | 2.249 s (1.217–3.609) | **1.829 s (1.280–2.635)** | 1.885 s (1.598–2.516) |
+
+The candidate made **28 NEAR access-key RPC calls** over fifteen repeated signatures;
+each control made **33**. Third signatures used **two calls instead of three**.
+Maximum recovery wait after confirmation was **0 ms**, versus **353.8 / 330.8 ms**
+in the controls. All arms had a zero median recovery wait. Two Gateway POST calls
+per repeated signature remain: prepare and finalize.
+
+The request reduction is confirmed. A consistent warm-signing latency gain is
+unproven: the candidate matched the first control and was slower than the last.
+These small sequential samples include network and confirmation variation.
+SDK timings include automated confirmation and nonce/RPC work. They exclude
+blockchain submission, confirmation, and the harness's later signature verification.
+
+Candidate prepare/finalize medians were **432.2 / 692.5 ms**; maxima were
+**952.5 / 976.2 ms**. The three MPC stages together measured **1.204 s median**,
+range **0.782–1.902 s**. Approval through signed output was **1.207 s median**,
+range **0.787–1.905 s**. Registration through verified signature was **20.583 s**,
+range **18.273–23.096 s**; unlock was **4.921 s**, range **4.230–5.746 s**.
+Lifecycle times include automation. Registration includes funding and provisioning.
+No Yao setup gain is claimed. Its 1–2 second target remains unmet.
+
+D1 and Gateway-to-Console counts were unavailable; browser-to-Console calls were
+zero. Only the NEAR signer loaded. A local browser scenario verified nonces 2, 3, 4
+through a failed RPC and reload within one unlocked session. Type checks and the
+implementation bloat check passed. Concurrent tabs were not newly tested.
+The existing lock path clears durable nonce reservations; that lifecycle behavior
+is outside this optimization. The prior ECDSA confirmation timeout also remains.
+
+Next: remove finalize's duplicate authorized-operation read while retaining live
+authority and transactional checks. Then evaluate sharing the fresh recovery
+observation with transaction-context acquisition. Both require new measurements.
+
+[Sanitized evidence](evidence/r155b-nonce-recovery-20261008.json) contains all samples,
+request counts, waits, build hashes, local verification, and version audits.
+The public `docs/refactor-155B.md` Phase 6S records the complete implementation result.

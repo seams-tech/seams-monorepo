@@ -275,12 +275,22 @@ function tick(state, dt, now) {
     let ticks = '';
     for (let index = 0; index < 36; index++) {
       const angle = (index * Math.PI) / 18;
+      const inner = index % 3 === 0 ? 57.8 : 59.5;
       ticks += HL.seg(
-        state.P(59 * Math.cos(angle), 59 * Math.sin(angle), 7.1),
+        state.P(inner * Math.cos(angle), inner * Math.sin(angle), 7.1),
         state.P(62 * Math.cos(angle), 62 * Math.sin(angle), 7.1),
       );
     }
     state.ticks.setAttribute('d', ticks);
+    let fasteners = '';
+    for (let index = 0; index < 6; index++) {
+      const angle = (index * Math.PI) / 3;
+      const P = view.bind(null, state.P, 51 * Math.cos(angle), 51 * Math.sin(angle), angle);
+      fasteners += HL.poly(HL.ringAt(P, HL.circ(2, 24), 7.1));
+      fasteners += HL.poly(HL.ringAt(P, HL.circ(1.2, 24), 7.1));
+      fasteners += HL.seg(P(-0.8, 0, 7.1), P(0.8, 0, 7.1));
+    }
+    state.fasteners.setAttribute('d', fasteners);
   }
   const floating = output(state, release, emit, dt, now);
   const names = ['inserting', 'turning', 'issuing'];
@@ -305,6 +315,14 @@ function mount({ stage, svg, read }, travel) {
   );
   const baseP = HL.proj(C);
   cylinder(HL.solid(svg), baseP, 65, 0, 7);
+  const rimDetail = path(svg);
+  rimDetail.setAttribute(
+    'd',
+    HL.poly(HL.ringAt(baseP, HL.circ(63, 64), 7.1)) +
+      HL.poly(HL.ringAt(baseP, HL.circ(56, 64), 7.1)) +
+      HL.open(cylinderRing(65, 2.3).slice(0, 33).map(projectVertex.bind(null, baseP))),
+  );
+  const fasteners = path(svg);
   const ticks = path(svg);
   const objects = HL.mk('g', {}, svg),
     center = HL.mk('g', {}, objects);
@@ -347,6 +365,7 @@ function mount({ stage, svg, read }, travel) {
     origin: baseP(0, 0, 0),
     objects,
     ticks,
+    fasteners,
     center,
     keys,
     lift,

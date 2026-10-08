@@ -62,7 +62,7 @@ function door(parent, rack) {
     outline,
     reflection,
     handle,
-    motion: HL.tween(0, 260),
+    motion: HL.tween(0, 340),
     drawn: NaN,
   };
 }

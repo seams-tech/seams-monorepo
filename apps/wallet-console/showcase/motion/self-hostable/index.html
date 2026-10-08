@@ -742,7 +742,11 @@ function server(parent, P, front, z, active, lights, bay) {
   block(parent, P, front, -15, -38, 42, 38, z, z + 13, 1.3);
   face(parent, P, 42.1, -38, z, 38, z + 13, 1.2, active ? 'hi' : 'sil');
   face(parent, P, 42.2, -15, z + 4.5, 1, z + 7.5, 1.5, active ? 'hi nf' : 'sil nf');
-  face(parent, P, 42.3, -13.5, z + 5.6, -0.5, z + 6.4, 0.4);
+  if (!active) face(parent, P, 42.3, -13.5, z + 5.6, -0.5, z + 6.4, 0.4);
+  if (active) {
+    path(parent, HL.seg(P(10, -35, z + 13.1), P(39, -35, z + 13.1)));
+    for (const y of [-32, 32]) face(parent, P, 42.3, y - 0.4, z + 5.8, y + 0.4, z + 6.2, 0.2);
+  }
   for (const y of [-35, 35]) {
     face(parent, P, 42.2, y - 0.7, z + 5.3, y + 0.7, z + 6.7, 0.7);
   }
@@ -750,13 +754,14 @@ function server(parent, P, front, z, active, lights, bay) {
     const y = 10 + port * 4;
     face(parent, P, 42.2, y - 0.95, z + 6.7, y + 0.95, z + 8.6, 0.95);
     const lamp = face(parent, P, 42.3, y - 0.65, z + 7, y + 0.65, z + 8.3, 0.65, 'dot m');
-    if (port > 0)
-      lights.push({
-        lamp,
-        period: 2900 + bay * 379 + port * 811,
-        offset: bay * 613 + port * 1103,
-        lit: null,
-      });
+    lights.push({
+      active,
+      port,
+      lamp,
+      period: 2900 + bay * 379 + port * 811,
+      offset: bay * 613 + port * 1103,
+      lit: null,
+    });
   }
   for (const dz of [3, 6, 9]) {
     face(parent, P, 42.2, 25, z + dz - 0.5, 33, z + dz + 0.5, 0.5);
@@ -768,29 +773,56 @@ function post(parent, P, front, y) {
     face(parent, P, 43.1, y - 0.65, z, y + 0.65, z + 1.8, 0.25);
   }
 }
-function blink(state, now) {
+function blink(state, now, progress) {
   const reduced = HL.reducedMotion();
   for (const light of state.lights) {
-    const lit = reduced || (now - state.started + light.offset) % light.period < 340;
+    const ready = !light.active || progress >= 0.78 + light.port * 0.065;
+    const booting = light.active && progress < 1;
+    const lit =
+      ready &&
+      (light.port === 0 ||
+        booting ||
+        reduced ||
+        (now - state.started + light.offset) % light.period < 340);
     if (lit === light.lit) continue;
     light.lit = lit;
     light.lamp.setAttribute('class', lit ? 'dot m' : 'dot off');
   }
   return !reduced;
 }
+function handlePoint(P, angle, depth, point) {
+  return P(
+    42.5 + point.v * Math.sin(angle) + depth * Math.cos(angle),
+    point.u,
+    53.5 + point.v * Math.cos(angle) - depth * Math.sin(angle),
+  );
+}
+function latch(state, progress) {
+  const angle = HL.rad(78 * (1 - HL.clamp((progress - 0.48) / 0.22, 0, 1)));
+  const ring = HL.rrect(-16, 0, 2, 6, 1.8, 8);
+  const near = ring.map(handlePoint.bind(null, state.P, angle, 0.8));
+  const far = ring.map(handlePoint.bind(null, state.P, angle, 0));
+  const inner = HL.rrect(-14.5, 1.5, 0.5, 4.5, 1, 8).map(
+    handlePoint.bind(null, state.P, angle, 0.8),
+  );
+  state.handle.setAttribute('d', HL.poly(HL.hull(near.concat(far))) + HL.poly(inner));
+}
 function tick(state, _dt, now) {
-  const ambient = blink(state, now);
   const progress = HL.tval(state.motion, now);
+  const ambient = blink(state, now, progress);
   if (progress === state.drawn) return ambient || !HL.tdone(state.motion, now);
   state.drawn = progress;
   const origin = state.P(0, 0, 0);
-  const position = state.P(state.travel * (1 - progress), 0, 0);
+  const position = state.P(state.travel * (1 - HL.clamp(progress / 0.42, 0, 1)), 0, 0);
   state.server.setAttribute(
     'transform',
     `translate(${position[0] - origin[0]} ${position[1] - origin[1]})`,
   );
+  latch(state, progress);
   state.read.textContent = state.active ? 'seating' : 'rest';
-  if (state.active && progress === 1) state.read.textContent = 'installed';
+  if (state.active && progress >= 0.48) state.read.textContent = 'locking';
+  if (state.active && progress >= 0.78) state.read.textContent = 'starting';
+  if (state.active && progress === 1) state.read.textContent = 'online';
   return ambient || !HL.tdone(state.motion, now);
 }
 function select(state, active) {
@@ -847,10 +879,11 @@ function mount({ stage, svg, read }, travel) {
     P,
     read,
     server: moving,
+    handle: HL.mk('path', { class: 'hi', 'fill-rule': 'evenodd' }, moving),
     lights,
     started: performance.now(),
     travel,
-    motion: HL.tween(0),
+    motion: HL.tween(0, 2400),
     drawn: NaN,
     active: null,
     loop: null,

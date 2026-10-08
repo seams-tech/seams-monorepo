@@ -76,11 +76,24 @@ function phone(parent, P, center, name) {
   const check = path(success, '', 'hi nf');
   for (const mark of [rim, check]) {
     mark.style.strokeWidth = '1.5px';
-    mark.setAttribute('stroke-opacity', 0.6);
+    mark.style.stroke = '#2997e8';
   }
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
-  return { group, content, qr, sweep, success, rim, check };
+  const done = HL.mk(
+    'text',
+    {
+      x: 0,
+      y: 17,
+      'text-anchor': 'middle',
+      'data-part': 'success-label',
+    },
+    success,
+  );
+  done.style.cssText =
+    'font: 4px -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0; fill: var(--hl-edge); stroke: none;';
+  done.textContent = 'Done';
+  return { group, content, qr, sweep, success, rim, check, done };
 }
 function sideButton(parent, P, center, low, high) {
   const points = [];
@@ -136,9 +149,9 @@ function progressBetween(value, start, end) {
 }
 function tickStroke(ink) {
   if (ink <= 0) return '';
-  const start = [-4.8, -0.3];
-  const corner = [-1.7, 2.8];
-  const end = [6, -6];
+  const start = [-3.8, -0.1];
+  const corner = [-1.1, 3];
+  const end = [4.2, -4.5];
   const firstLength = Math.hypot(corner[0] - start[0], corner[1] - start[1]);
   const secondLength = Math.hypot(end[0] - corner[0], end[1] - corner[1]);
   const distance = ink * (firstLength + secondLength);
@@ -168,12 +181,13 @@ function drawScreen(device, code, scan, success, scanner) {
   device.sweep.setAttribute('opacity', Math.sin(Math.PI * scan));
   const settle = FINISH_EASE(progressBetween(success, CIRCLE_END, 1));
   device.success.setAttribute('opacity', progressBetween(success, 0.22, 0.4));
-  device.success.setAttribute('transform', `scale(${HL.lerp(0.96, 1, settle)})`);
+  device.success.setAttribute('transform', `translate(0 -2) scale(${HL.lerp(0.96, 1, settle)})`);
   const circle = FINISH_EASE(progressBetween(success, 0.22, CIRCLE_END));
   device.rim.setAttribute('d', successArc(circle));
   device.rim.setAttribute('data-progress', circle);
   const ink = progressBetween(success, CIRCLE_END, TICK_END);
   device.check.setAttribute('d', tickStroke(ink));
+  device.done.setAttribute('opacity', FINISH_EASE(progressBetween(ink, 0.65, 1)));
   device.success.setAttribute('data-progress', ink);
 }
 function tick(state, _dt, now) {

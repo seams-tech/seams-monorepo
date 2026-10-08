@@ -25,6 +25,8 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #stage svg { display: block; width: 100%; height: 100%; transform: scale(1.22); transform-origin: center; }
 #stage[data-hairline="scoped-credentials"] svg { transform: translateX(5%) scale(1.22); }
 #stage[data-hairline="interlock"] svg { transform: translateX(2%) scale(1.22); }
+#stage[data-hairline="device-linking"] svg,
+#stage[data-hairline="infrastructure-array"] svg { transform: translateY(5%) scale(1.22); }
 #stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
 @media (max-width: 480px) {
   #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%) scale(1.05); }

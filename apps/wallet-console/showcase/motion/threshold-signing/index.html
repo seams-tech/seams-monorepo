@@ -720,6 +720,10 @@ var HL = (() => {
 <script type="module" id="hl-figure">
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
+// Share the tween's easing without restarting its velocity at stage boundaries.
+const INPUT_END = HL.EASE_LIFT(0.38);
+const POLICY_END = HL.EASE_LIFT(0.5);
+const OUTPUT_END = HL.EASE_LIFT(0.72);
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
 }
@@ -753,15 +757,12 @@ function label(svg, location, text) {
   );
   el.textContent = text;
 }
-function rear(sample) {
-  return sample.nu + sample.nv < 0;
-}
 function port(svg, P) {
   const points = [];
   for (let step = 0; step < 32; step++) {
     const angle = (step * Math.PI) / 16;
-    const offset = 1.1 * Math.cos(angle);
-    points.push(P(33.05, offset, 3 + 1.1 * Math.sin(angle)));
+    const offset = 0.8 * Math.cos(angle);
+    points.push(P(33.05, offset, 1.3 + 0.8 * Math.sin(angle)));
   }
   path(svg, HL.poly(points), 'sil');
 }
@@ -834,22 +835,14 @@ function classicKey(parent, P) {
   const groove = HL.rrect(-6, -1.5, 20, -0.6, 0.4, 8);
   path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
 }
-function tray(svg, P, front, mirrored) {
+function slab(svg, P, front) {
   const body = HL.solid(svg);
-  const outer = HL.rrect(-33, -17, 33, 17, 5, 12);
+  const outline = HL.rrect(-33, -17, 33, 17, 3, 12);
   HL.put(body, {
-    sil: HL.poly(HL.hull(HL.ringAt(P, outer, 0).concat(HL.ringAt(P, outer, 6)))),
-    crease: HL.open(HL.ringAt(P, HL.run(outer, front), 6)),
+    sil: HL.poly(HL.hull(HL.ringAt(P, outline, 0).concat(HL.ringAt(P, outline, 2.6)))),
+    crease: HL.open(HL.ringAt(P, HL.run(outline, front), 2.6)),
   });
-  const inner = HL.rrect(-29, -13, 29, 13, 3.5, 12);
-  const opening = HL.poly(HL.ringAt(P, inner, 6));
-  const clipId = mirrored ? 'infrastructure-tray-opening' : 'device-tray-opening';
-  const clip = HL.mk('clipPath', { id: clipId }, HL.mk('defs', {}, body.g));
-  HL.mk('path', { d: opening }, clip);
-  const contents = HL.mk('g', { 'clip-path': `url(#${clipId})` }, body.g);
-  path(contents, HL.open(HL.ringAt(P, HL.run(inner, rear), 2.5)));
-  classicKey(contents, P);
-  path(body.g, opening, 'sil nf');
+  classicKey(body.g, P);
 }
 function curvePoints(points) {
   const samples = [];
@@ -858,35 +851,49 @@ function curvePoints(points) {
 }
 function wirePoints(vertices) {
   const samples = [vertices[0]];
-  for (let index = 1; index < vertices.length; index++) {
-    const a = vertices[index - 1];
-    const b = vertices[index];
-    const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
-    for (let step = 1; step <= steps; step++) {
-      samples.push([HL.lerp(a[0], b[0], step / steps), HL.lerp(a[1], b[1], step / steps)]);
+  for (let index = 1; index < vertices.length - 1; index++) {
+    const previous = vertices[index - 1];
+    const corner = vertices[index];
+    const next = vertices[index + 1];
+    const incoming = Math.hypot(corner[0] - previous[0], corner[1] - previous[1]);
+    const outgoing = Math.hypot(next[0] - corner[0], next[1] - corner[1]);
+    const radius = Math.min(8, incoming / 2, outgoing / 2);
+    const entry = [],
+      exit = [];
+    for (let axis = 0; axis < 2; axis++) {
+      entry.push(HL.lerp(corner[axis], previous[axis], radius / incoming));
+      exit.push(HL.lerp(corner[axis], next[axis], radius / outgoing));
     }
+    samples.push(...curvePoints([entry, corner, corner, exit]));
   }
+  samples.push(vertices[vertices.length - 1]);
   return samples;
 }
-function tracePoint(points, progress) {
-  const position = progress * (points.length - 1);
-  const index = Math.floor(position);
-  const a = points[index];
-  const b = points[Math.min(index + 1, points.length - 1)];
-  return [HL.lerp(a[0], b[0], position - index), HL.lerp(a[1], b[1], position - index)];
-}
 function trace(svg, points, name) {
-  return { points, el: HL.mk('path', { class: 'hi nf', 'data-part': name }, svg) };
+  const distances = [0];
+  for (let index = 1; index < points.length; index++) {
+    const previous = points[index - 1];
+    const current = points[index];
+    distances.push(
+      distances[index - 1] + Math.hypot(current[0] - previous[0], current[1] - previous[1]),
+    );
+  }
+  return { points, distances, el: HL.mk('path', { class: 'hi nf', 'data-part': name }, svg) };
 }
 function setTrace(trace, progress) {
-  const position = progress * (trace.points.length - 1);
-  const index = Math.floor(position);
+  const distance = progress * trace.distances[trace.distances.length - 1];
+  let index = 0;
+  while (index < trace.points.length - 2 && trace.distances[index + 1] < distance) index++;
+  const span = trace.distances[index + 1] - trace.distances[index];
+  const fraction = span > 0 ? (distance - trace.distances[index]) / span : 0;
+  const a = trace.points[index];
+  const b = trace.points[index + 1];
+  const tip = [HL.lerp(a[0], b[0], fraction), HL.lerp(a[1], b[1], fraction)];
   const vertices = trace.points.slice(0, index + 1);
-  if (index < trace.points.length - 1) {
-    vertices.push(tracePoint(trace.points, progress));
-  }
+  vertices.push(tip);
   trace.el.setAttribute('d', progress > 0 ? HL.open(vertices) : '');
   trace.el.setAttribute('data-progress', progress);
+  return tip;
 }
 function shield(svg, P) {
   const outline = [
@@ -952,25 +959,10 @@ function transaction(svg, P, front) {
   }
   return { body, mark: trace(body.g, signature, 'signature') };
 }
-function advance(state, now) {
-  state.phase = -1;
-  for (let n = 0; n < state.clocks.length; n++) {
-    const index = state.active ? n : state.clocks.length - 1 - n;
-    if (HL.tval(state.clocks[index], now) === Number(state.active)) continue;
-    state.phase = index;
-    HL.tset(state.clocks[index], Number(state.active), now, 0);
-    break;
-  }
-}
 function select(state, active) {
   if (active === state.active) return;
-  const now = performance.now();
-  if (state.phase >= 0) {
-    const motion = state.clocks[state.phase];
-    HL.tset(motion, HL.tval(motion, now), now, 0);
-  }
   state.active = active;
-  advance(state, now);
+  HL.tset(state.motion, Number(active), performance.now(), 0);
   state.loop.wake();
 }
 function keyboard(state, event) {
@@ -978,16 +970,13 @@ function keyboard(state, event) {
   event.preventDefault();
   select(state, !state.active);
 }
-function timing(duration) {
-  return HL.tween(0, duration);
-}
-function tick(state, dt, now) {
-  while (state.phase >= 0 && HL.tdone(state.clocks[state.phase], now)) advance(state, now);
-  const input = HL.tval(state.clocks[0], now);
-  const policy = HL.tval(state.clocks[1], now);
-  const output = HL.tval(state.clocks[2], now);
-  const signed = HL.tval(state.clocks[3], now);
-  const pose = [input, policy, output, signed, state.lag].join();
+function tick(state, _dt, now) {
+  const motion = HL.tval(state.motion, now);
+  const input = HL.clamp(motion / INPUT_END, 0, 1);
+  const policy = HL.clamp((motion - INPUT_END) / (POLICY_END - INPUT_END), 0, 1);
+  const output = HL.clamp((motion - POLICY_END) / (OUTPUT_END - POLICY_END), 0, 1);
+  const signed = HL.clamp((motion - OUTPUT_END) / (1 - OUTPUT_END), 0, 1);
+  const pose = [motion, state.lag].join();
   if (pose !== state.pose) {
     state.pose = pose;
     const progress = [
@@ -997,8 +986,7 @@ function tick(state, dt, now) {
     ];
     for (let index = 0; index < state.routes.length; index++) {
       const route = state.routes[index];
-      setTrace(route.trail, progress[index]);
-      HL.place(route.dot, tracePoint(route.points, progress[index]));
+      HL.place(route.dot, setTrace(route.trail, progress[index]));
       route.dot.setAttribute(
         'visibility',
         progress[index] > 0 && progress[index] < 1 ? 'visible' : 'hidden',
@@ -1009,14 +997,16 @@ function tick(state, dt, now) {
     state.gate.mark.el.setAttribute('class', signed === 1 ? 'sil nf' : 'hi nf');
     state.result.body.sil.setAttribute('class', signed === 1 ? 'hi' : 'sil');
   }
-  const phases = ['two shares', 'policy check', 'authorized', 'signing'];
-  state.read.textContent = state.active
-    ? state.phase < 0
-      ? 'signed'
-      : phases[state.phase]
-    : 'rest';
+  state.read.textContent = 'rest';
+  if (state.active) {
+    if (input < 1) state.read.textContent = 'two shares';
+    else if (policy < 1) state.read.textContent = 'policy check';
+    else if (output < 1) state.read.textContent = 'authorized';
+    else if (signed < 1) state.read.textContent = 'signing';
+    else state.read.textContent = 'signed';
+  }
   state.stage.setAttribute('aria-pressed', String(state.active));
-  return state.phase >= 0;
+  return !HL.tdone(state.motion, now);
 }
 function set(state, lag) {
   state.lag = lag;
@@ -1045,20 +1035,20 @@ function mount({ stage, svg, read }, lag) {
   const routes = [];
   for (const vertices of [
     [
-      [-67, -15, 3],
-      [-12, -15, 3],
-      [-12, 4, 3],
-      [1, 4, 3],
+      [-67, -15, 1.3],
+      [-12, -15, 1.3],
+      [-12, 4, 1.3],
+      [1, 4, 1.3],
     ],
     [
-      [-5, 63, 3],
-      [-5, 10, 3],
-      [1, 10, 3],
+      [-5, 63, 1.3],
+      [-5, 10, 1.3],
+      [1, 10, 1.3],
     ],
     [
-      [15, -7.5, 3],
-      [15, -85, 3],
-      [26, -85, 3],
+      [15, -7.5, 1.3],
+      [15, -85, 1.3],
+      [26, -85, 1.3],
     ],
   ]) {
     const routeName = ['device', 'infrastructure', 'transaction'][routes.length];
@@ -1068,7 +1058,6 @@ function mount({ stage, svg, read }, lag) {
     path(group, d);
     routes.push({
       group,
-      points,
       trail: trace(group, points, 'signal'),
       dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, group),
     });
@@ -1076,11 +1065,11 @@ function mount({ stage, svg, read }, lag) {
   }
   for (let index = 0; index < sourceOrigins.length; index++) {
     const T = local.bind(null, P, sourceOrigins[index]);
-    tray(svg, T, front, index === 1);
+    slab(svg, T, front);
     const at = T(0, 0, 0);
     label(svg, [at[0], at[1] - 37], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
   }
-  // The first wire leaves a visible front wall; the second enters behind its tray.
+  // The first wire leaves a visible front wall; the second enters behind its slab.
   svg.append(routes[0].group);
   port(svg, local.bind(null, P, sourceOrigins[0]));
   const gate = shield(svg, gateP);
@@ -1098,8 +1087,7 @@ function mount({ stage, svg, read }, lag) {
     gate,
     result,
     lag,
-    clocks: [600, 250, 280, 450].map(timing),
-    phase: -1,
+    motion: HL.tween(0, 1800),
     active: false,
     pose: '',
     loop: null,

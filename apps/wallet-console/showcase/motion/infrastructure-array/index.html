@@ -768,12 +768,29 @@ function doorPoint(P, hinge, angle, depth, point) {
 }
 function door(parent, rack) {
   const group = HL.mk('g', { 'data-door': rack }, parent);
-  const glass = HL.mk('path', { class: 'fo', opacity: 0.12 }, group);
+  const panel = HL.mk('path', { class: 'fo', opacity: 0.28 }, group);
+  const perforations = HL.mk('path', { class: 'dot m', opacity: 0.35 }, group);
   const frame = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group);
   const crease = HL.mk('path', { class: 'lo nf' }, group);
-  const reflection = HL.mk('path', { class: 'lo nf', opacity: 0.6 }, group);
   const handle = HL.mk('path', { class: 'sil' }, group);
-  return { group, glass, frame, crease, reflection, handle, motion: HL.tween(0, 260), drawn: NaN };
+  const holes = [];
+  for (let row = 0; row < 17; row++) {
+    const stagger = (row % 2) * 2;
+    for (let u = 4 + stagger; u <= 32; u += 4) {
+      holes.push(HL.rrect(u - 0.5, 10 + row * 4 - 0.5, u + 0.5, 10 + row * 4 + 0.5, 0.5, 4));
+    }
+  }
+  return {
+    group,
+    panel,
+    perforations,
+    holes,
+    frame,
+    crease,
+    handle,
+    motion: HL.tween(0, 260),
+    drawn: NaN,
+  };
 }
 function drawDoor(P, rack, progress) {
   const angle = (-progress * Math.PI) / 2;
@@ -782,22 +799,17 @@ function drawDoor(P, rack, progress) {
   const inner = HL.rrect(1.4, 6.4, 34.6, 77.6, 0.6, 8);
   const front = outer.map(project.bind(null, 0.8));
   const back = outer.map(project.bind(null, 0));
-  const pane = inner.map(project.bind(null, 0.8));
-  rack.door.frame.setAttribute('d', HL.poly(HL.hull(front.concat(back))) + HL.poly(pane));
+  const panel = inner.map(project.bind(null, 0.8));
+  rack.door.frame.setAttribute('d', HL.poly(HL.hull(front.concat(back))) + HL.poly(panel));
   rack.door.crease.setAttribute('d', HL.poly(front));
-  rack.door.glass.setAttribute('d', HL.poly(pane));
+  rack.door.panel.setAttribute('d', HL.poly(panel));
+  let perforations = '';
+  for (const hole of rack.door.holes) perforations += HL.poly(hole.map(project.bind(null, 0.9)));
+  rack.door.perforations.setAttribute('d', perforations);
   rack.door.handle.setAttribute(
     'd',
     HL.poly(HL.rrect(31.2, 36, 32.5, 48, 0.5, 6).map(project.bind(null, 1.3))),
   );
-  let reflection = '';
-  for (const offset of [0, 3]) {
-    reflection += HL.seg(
-      project(0.9, { u: 7 + offset, v: 70 }),
-      project(0.9, { u: 13 + offset, v: 61 }),
-    );
-  }
-  rack.door.reflection.setAttribute('d', reflection);
   // Past the edge-on pose, the far-hinged door sits behind the server units.
   const parent = rack.door.group.parentNode;
   if (progress >= 0.5) parent.insertBefore(rack.door.group, rack.modules[0].group);
@@ -938,7 +950,7 @@ function mount({ stage, svg, read }, radius) {
 hairline({
   name: 'infrastructure-array',
   means:
-    'Hover a cabinet to open its glass door and extend nearby servers. Leaving retracts the servers, then closes the door.',
+    'Hover a cabinet to open its perforated door and extend nearby servers. Leaving retracts the servers, then closes the door.',
   rules: [1, 3, 4, 5, 6, 7, 8, 9],
   range: [18, 30, 44],
   mount,

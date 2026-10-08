@@ -274,14 +274,16 @@ Pointer selection uses the fixed resting tops. Diagonal paint order preserves oc
 
 Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 54,54,25 --edge 98,98,16 --zoom answer`.
 
-## Signing assembly: block keys
+## Signing assembly: block keys and a signed transaction
 
 Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
 
-Three block keys stand above cylindrical sockets on a circular indexed platform. Each key has a broad grip, a thick blade, and a distinct tooth position. One, two, or three dots identify the keys. Each socket has a fixed housing and a rotating plug. The central seal carries the accent.
+Three block keys stand above cylindrical sockets on a circular indexed disk. Each key has a broad grip, a thick blade, and a distinct tooth position. The sockets rotate with the disk. Each socket opening also turns with its key.
 
-Hovering inserts two keys with a small stagger. After both seat, they turn 90 degrees in their sockets. The central seal then rises. The third key remains withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram. Leaving lowers the seal, reverses the turns, and withdraws the keys. One reversible 2000ms tween preserves this sequence through interruptions. The slider sets insertion depth to 22, 23, or 24 world units.
+Hovering runs five ordered stages: two keys insert, both turn 90 degrees, the disk rotates 70 degrees, the center platform rises, and an engraved transaction block emerges. The block has recessed line marks and a square seal on its lid. It lifts clear of the platform after emerging. The third key stays withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram.
 
-Blade geometry stops at the socket entrance, so inserted teeth do not show through the housing. Socket openings turn with their keys. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
+A reversible 3600ms tween preserves the stage order through interruptions. The disk cannot rotate before both keys turn. The platform cannot rise before the disk stops. The transaction remains hidden until the platform finishes rising. Leaving reverses the entire sequence. The slider sets insertion depth to 22, 23, or 24 world units.
+
+Inserted blade geometry stops at the socket entrance. Transaction geometry stops at the platform surface until it emerges. Object groups sort by depth while the disk rotates. The accent transfers from the platform to its output block. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
 
 Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/signing-assembly` with `--answer 0,0,22 --edge 27,-19,65 --zoom answer`.

@@ -77,7 +77,7 @@ The local review URL is `/dashboard-static/showcase/motion/`. The page contains 
 
 ## Scoped credentials example
 
-The keychain uses four house keys with solid rounded heads, small circular ring holes, shallow edge cuts, and recessed blade grooves. Each head has a 27-unit radius. Four cut patterns distinguish the keys. The complete head and blade share one outline, with a 2.2-unit metal thickness.
+The keychain uses four house keys with solid rounded heads, small circular ring holes, shallow edge cuts, and recessed blade grooves. Each head has a 27-unit radius. Four cut patterns distinguish the keys. The complete head and blade share one outline, with a 2.2-unit metal thickness. Each handle has a recessed perimeter border, a rounded identification panel with one to four stamped dots, and a short grip groove near the neck. A 0.45-unit raised collar surrounds the ring hole. All marks follow the key plane and remain behind nearer keys and ring sections.
 
 Hovering a key fans it out around its fixed ring hole. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit restores the resting fan. The bright outline follows selection, and the readout names the selected key.
 

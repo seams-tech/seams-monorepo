@@ -723,82 +723,80 @@ var HL = (() => {
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
 }
-function local(P, angle, offset, x, y, z) {
-  const c = Math.cos(angle),
-    s = Math.sin(angle);
-  return P((x + offset) * c - y * s, (x + offset) * s + y * c, z);
-}
-function depthOrder(a, b) {
-  return a.depth - b.depth;
-}
-function drawModule(state, module, angle, engagement) {
-  const theta = angle + (module.index * Math.PI * 2) / 3;
-  const slide = module.index < 2 ? engagement * 11 : 0;
-  const P = local.bind(null, state.P, theta, -slide);
-  const C = HL.Cam(45 - (theta * 180) / Math.PI, 0.5, 1);
-  const front = HL.facing(C);
-  const group = module.group;
-  // Geometry is redrawn only while its pose changes; every face stays opaque.
-  HL.put(
-    module.body,
-    HL.prism(P, front, ...HL.rings(34, -10, 54, 10, 3, 0.8), 7, 30 + module.index * 3),
+function keyView(P, x0, y0, angle, x, y, z) {
+  return P(
+    x0 + x * Math.cos(angle) - y * Math.sin(angle),
+    y0 + x * Math.sin(angle) + y * Math.cos(angle),
+    z,
   );
-  HL.put(module.tongue, HL.prism(P, front, ...HL.rings(26, -3, 37, 3, 1, 0.5), 13, 17));
-  let cuts = '';
-  for (const x of [40, 44, 48])
-    cuts += HL.seg(P(x, -5, 30.2 + module.index * 3), P(x, 5, 30.2 + module.index * 3));
-  module.vents.setAttribute('d', cuts);
+}
+function bladePoint(P, y, height, point) {
+  return P(point[0], y, height + point[1]);
+}
+function exposedBlade(shape, floor) {
+  const points = [];
+  for (let index = 0; index < shape.length; index++) {
+    const a = shape[index],
+      b = shape[(index + 1) % shape.length];
+    if (a[1] >= floor) points.push(a);
+    if (a[1] >= floor !== b[1] >= floor) {
+      points.push([HL.lerp(a[0], b[0], (floor - a[1]) / (b[1] - a[1])), floor]);
+    }
+  }
+  return points;
+}
+function blade(P, angle, height, shape) {
+  const nearY = Math.cos(angle) - Math.sin(angle) > 0 ? 2 : -2;
+  const near = shape.map(bladePoint.bind(null, P, nearY, height));
+  const far = shape.map(bladePoint.bind(null, P, -nearY, height));
+  let sides = '';
+  for (let index = 0; index < shape.length; index++) {
+    const next = (index + 1) % shape.length;
+    const normal = (shape[next][1] - shape[index][1]) * (Math.cos(angle) + Math.sin(angle));
+    if (normal > 0) sides += HL.poly([near[index], far[index], far[next], near[next]]);
+  }
+  return { sides, face: HL.poly(near) };
+}
+function drawKey(state, key, progress) {
+  const active = key.index < 2;
+  const insertion = active ? HL.clamp((progress - key.index * 0.05) / 0.4, 0, 1) : 0;
+  const rotation = active ? HL.clamp((progress - 0.54 - key.index * 0.04) / 0.28, 0, 1) : 0;
+  const angle = HL.rad(key.restAngle + rotation * 90);
+  const height = 42 - insertion * state.travel;
+  const P = keyView.bind(null, state.P, key.x, key.y, angle);
+  const front = HL.facing(HL.Cam(45 - (angle * 180) / Math.PI, 0.5, 1));
+  const geometry = blade(P, angle, height, exposedBlade(key.shape, 31.1 - height));
+  key.sides.setAttribute('d', geometry.sides);
+  key.face.setAttribute('d', geometry.face);
+  HL.put(
+    key.head,
+    HL.prism(P, front, ...HL.rings(-10, -4, 10, 4, 2, 0.7), height + 14, height + 28),
+  );
+  let detail = '';
+  const nearY = Math.cos(angle) - Math.sin(angle) > 0 ? 4.1 : -4.1;
+  for (const z of [19, 22]) detail += HL.seg(P(-6, nearY, height + z), P(6, nearY, height + z));
+  key.grip.setAttribute('d', detail);
   let marks = '';
-  for (let index = 0; index <= module.index; index++) {
+  for (let index = 0; index <= key.index; index++) {
     marks += HL.poly(
-      HL.ringAt(
-        P,
-        HL.rrect(36 + index * 4, -7, 37.2 + index * 4, -5.8, 0.6, 8),
-        30.3 + module.index * 3,
-      ),
+      HL.ringAt(P, HL.rrect(-4 + index * 4, -0.6, -2.8 + index * 4, 0.6, 0.6, 8), height + 28.1),
     );
   }
-  module.marks.setAttribute('d', marks);
-  module.body.sil.setAttribute('class', 'sil');
-  module.depth = state.P((44 - slide) * Math.cos(theta), (44 - slide) * Math.sin(theta), 0)[1];
-  state.parts.push({ group, depth: module.depth });
+  key.marks.setAttribute('d', marks);
+  // The plug and its opening rotate with the inserted key inside the fixed housing.
+  key.slot.setAttribute('d', HL.poly(HL.ringAt(P, HL.rrect(-5, -2.4, 5, 2.4, 0.8, 8), 31.1)));
+  key.head.sil.setAttribute('class', 'sil');
 }
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);
   if (progress === state.drawn) return !HL.tdone(state.motion, now);
   state.drawn = progress;
-  const angle = HL.rad(-state.turn * (1 - HL.clamp(progress / 0.45, 0, 1)));
-  const engagement = HL.clamp((progress - 0.52) / 0.32, 0, 1);
-  const lift = 7 * HL.clamp((progress - 0.87) / 0.13, 0, 1);
-  const P = local.bind(null, state.P, angle, 0);
-  let ticks = '',
-    tracks = '';
-  for (let index = 0; index < 36; index++) {
-    const a = (index * Math.PI) / 18;
-    ticks += HL.seg(
-      P(61 * Math.cos(a), 61 * Math.sin(a), 7.1),
-      P(64 * Math.cos(a), 64 * Math.sin(a), 7.1),
-    );
-  }
-  for (let index = 0; index < 3; index++) {
-    const Q = local.bind(null, state.P, angle + (index * Math.PI * 2) / 3, 0);
-    for (const y of [-6, 6]) tracks += HL.seg(Q(20, y, 7.2), Q(57, y, 7.2));
-  }
-  state.ticks.setAttribute('d', ticks);
-  state.tracks.setAttribute('d', tracks);
-  state.parts = [];
-  for (const module of state.modules) drawModule(state, module, angle, engagement);
-  HL.put(state.hub, HL.prism(state.P, state.front, HL.circ(19, 64), HL.circ(18, 64), 7, 20));
-  HL.put(
-    state.seal,
-    HL.prism(state.P, state.front, HL.circ(11, 48), HL.circ(10, 48), 20, 22 + lift),
-  );
+  for (const key of state.keys) drawKey(state, key, progress);
+  const lift = 6 * HL.clamp((progress - 0.9) / 0.1, 0, 1);
+  HL.put(state.seal, HL.prism(state.P, state.front, HL.circ(9, 48), HL.circ(8, 48), 10, 12 + lift));
   state.seal.sil.setAttribute('class', 'hi');
-  state.parts.push({ group: state.center, depth: state.P(0, 0, 0)[1] });
-  state.parts.sort(depthOrder);
-  for (const part of state.parts) state.objects.appendChild(part.group);
-  state.read.textContent = state.active ? 'aligning' : 'rest';
-  if (state.active && progress >= 0.52) state.read.textContent = '2 of 3';
+  state.read.textContent = state.active ? 'inserting' : 'rest';
+  if (state.active && progress >= 0.54) state.read.textContent = 'turning';
   if (state.active && progress === 1) state.read.textContent = 'signed';
   return !HL.tdone(state.motion, now);
 }
@@ -807,61 +805,92 @@ function select(state, active) {
   HL.tset(state.motion, active ? 1 : 0, performance.now(), 0);
   state.loop.wake();
 }
-function set(state, turn) {
-  state.turn = turn;
+function set(state, travel) {
+  state.travel = travel;
   state.drawn = NaN;
   state.loop.wake();
 }
-function mount({ stage, svg, read }, turn) {
-  const C = HL.Cam(45, 0.5, 1.95);
+function socket(parent, P, front, x, y) {
+  const Q = keyView.bind(null, P, x, y, 0);
+  HL.put(HL.solid(parent), HL.prism(Q, front, HL.circ(12, 48), HL.circ(11, 48), 7, 10));
+  HL.put(HL.solid(parent), HL.prism(Q, front, HL.circ(10, 48), HL.circ(9.3, 48), 10, 30));
+  HL.put(HL.solid(parent), HL.prism(Q, front, HL.circ(7.6, 48), HL.circ(7, 48), 30, 31));
+  return path(parent, '', 'sil');
+}
+function mount({ stage, svg, read }, travel) {
+  const C = HL.Cam(45, 0.5, 1.85);
   HL.fit(
     C,
     [
-      [-69, -69, 0],
-      [69, 69, 0],
-      [0, 0, 43],
+      [-65, -65, 0],
+      [65, 65, 0],
+      [-28, -20, 72],
+      [30, 25, 72],
     ],
     200,
-    165,
+    166,
   );
   const P = HL.proj(C),
     front = HL.facing(C);
-  HL.put(HL.solid(svg), HL.prism(P, front, HL.circ(68, 96), HL.circ(66.5, 96), 0, 7));
-  const ticks = path(svg, ''),
-    tracks = path(svg, '');
-  const objects = HL.mk('g', {}, svg),
-    modules = [];
+  HL.put(HL.solid(svg), HL.prism(P, front, HL.circ(65, 96), HL.circ(63.5, 96), 0, 7));
+  let ticks = '';
+  for (let index = 0; index < 36; index++) {
+    const angle = (index * Math.PI) / 18;
+    ticks += HL.seg(
+      P(59 * Math.cos(angle), 59 * Math.sin(angle), 7.1),
+      P(62 * Math.cos(angle), 62 * Math.sin(angle), 7.1),
+    );
+  }
+  path(svg, ticks);
+  const keys = [];
+  const locations = [
+    [-27, -20, -20],
+    [27, -19, 15],
+    [0, 33, -12],
+  ];
+  let seal;
   for (let index = 0; index < 3; index++) {
-    const group = HL.mk('g', {}, objects);
-    const tongue = HL.solid(group),
-      body = HL.solid(group);
-    modules.push({
+    if (index === 2) {
+      HL.put(HL.solid(svg), HL.prism(P, front, HL.circ(15, 48), HL.circ(14, 48), 7, 10));
+      seal = HL.solid(svg);
+    }
+    const [x, y, restAngle] = locations[index];
+    const group = HL.mk('g', {}, svg);
+    const slot = socket(group, P, front, x, y);
+    const notch = 4 + index * 2;
+    const corners = [
+      [-3, 0],
+      [3, 0],
+      [3, notch],
+      [5, notch],
+      [5, notch + 3],
+      [3, notch + 3],
+      [3, 14],
+      [-3, 14],
+    ];
+    const shape = HL.fillet(corners, [0.7, 0.7, 0.4, 0.4, 0.4, 0.4, 0.5, 0.5]);
+    keys.push({
       index,
-      group,
-      tongue,
-      body,
-      depth: 0,
-      vents: path(group, ''),
+      x,
+      y,
+      restAngle,
+      shape,
+      slot,
+      sides: path(group, '', 'lo'),
+      face: path(group, '', 'sil'),
+      head: HL.solid(group),
+      grip: path(group, ''),
       marks: path(group, '', 'dot m'),
     });
   }
-  const center = HL.mk('g', {}, objects),
-    hub = HL.solid(center),
-    seal = HL.solid(center);
   const state = {
     P,
     front,
     read,
-    ticks,
-    tracks,
-    objects,
-    modules,
-    center,
-    hub,
+    keys,
     seal,
-    turn,
-    parts: [],
-    motion: HL.tween(0, 1800),
+    travel,
+    motion: HL.tween(0, 2000),
     drawn: NaN,
     active: false,
     loop: null,
@@ -882,9 +911,9 @@ function mount({ stage, svg, read }, turn) {
 hairline({
   name: 'signing-assembly',
   means:
-    'Independent signers, one result. Hover to align the platform and engage two of its three signing modules.',
+    'Two block keys slide into their sockets and turn together to complete the signing assembly.',
   rules: [1, 3, 4, 5, 6, 7, 8, 9],
-  range: [20, 32, 44],
+  range: [22, 23, 24],
   mount,
 });
 </script>

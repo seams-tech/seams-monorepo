@@ -274,12 +274,14 @@ Pointer selection uses the fixed resting tops. Diagonal paint order preserves oc
 
 Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 54,54,25 --edge 98,98,16 --zoom answer`.
 
-## Signing assembly: Turntable variation
+## Signing assembly: block keys
 
 Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
 
-Three separate modules stand on a circular indexed platform. Radial guides and short engagement tongues connect their motion to a central mechanism. One, two, or three small lid marks identify each module. The central seal carries the accent.
+Three block keys stand above cylindrical sockets on a circular indexed platform. Each key has a broad grip, a thick blade, and a distinct tooth position. One, two, or three dots identify the keys. Each socket has a fixed housing and a rotating plug. The central seal carries the accent.
 
-Hovering rotates the assembly into alignment. Two modules then slide inward, and the central seal rises to mark completion. The third module stays withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram. Leaving reverses the sequence. One reversible 1800ms tween separates rotation, engagement, and completion. The slider sets the initial rotation to 20, 32, or 44 degrees. Object groups reorder by depth as the assembly rotates. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
+Hovering inserts two keys with a small stagger. After both seat, they turn 90 degrees in their sockets. The central seal then rises. The third key remains withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram. Leaving lowers the seal, reverses the turns, and withdraws the keys. One reversible 2000ms tween preserves this sequence through interruptions. The slider sets insertion depth to 22, 23, or 24 world units.
 
-Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/signing-assembly` with `--answer 0,0,22 --edge 40,20,20 --zoom answer`.
+Blade geometry stops at the socket entrance, so inserted teeth do not show through the housing. Socket openings turn with their keys. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
+
+Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/signing-assembly` with `--answer 0,0,22 --edge 27,-19,65 --zoom answer`.

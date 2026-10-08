@@ -904,37 +904,25 @@ function engravedPath(P, points, floor) {
   }
   return d;
 }
-function sealPoint(face, u, v, top, turn, size, point) {
-  const cosine = Math.cos(turn),
-    sine = Math.sin(turn);
-  const x = u + size * (point[0] * cosine - point[1] * sine);
-  const y = v + size * (point[0] * sine + point[1] * cosine);
-  if (face === 'top') return [x, y, top + 0.01];
-  if (face === 'right') return [8.01, x, top - y];
-  return [x, 8.01, top - y];
+function inscriptionPoint(face, top, point) {
+  const [u, v] = point;
+  if (face === 'top') return [u, v, top + 0.01];
+  if (face === 'right') return [8.01, u, top - v];
+  if (face === 'chamfer') return [6.5 + u / Math.SQRT2, 6.5 - u / Math.SQRT2, top - v];
+  return [u, 8.01, top - v];
 }
-function sealGrid(P, face, top, floor) {
-  const motif = [
-    [-0.9, -0.9],
-    [0.9, -0.9],
-    [0.9, 0.9],
-    [-0.9, 0.9],
-    [-0.9, -0.25],
-    [0.25, -0.25],
-    [0.25, 0.25],
-    [-0.25, 0.25],
-  ];
+function inscriptionLines(P, face, top, floor) {
+  const width = face === 'chamfer' ? 2.3 : 6.2;
+  const firstRow = face === 'top' ? -3.4 : 4;
+  const lengths = [1, 0.9, 0.72, 1, 0.58];
   let d = '';
-  const columns = face === 'top' ? 3 : 2;
-  for (let row = 0; row < 3; row++) {
-    for (let column = 0; column < columns; column++) {
-      const u = face === 'top' ? (column - 1) * 3.2 : (column - 0.5) * 4.3;
-      const v = face === 'top' ? (row - 1) * 3.2 : 4.4 + row * 3.4;
-      const turn = (((row + column * 3) % 4) * Math.PI) / 2;
-      const size = face === 'top' ? 1.1 : 1.25;
-      const points = motif.slice(0, 6 + ((row + column) % 3));
-      d += engravedPath(P, points.map(sealPoint.bind(null, face, u, v, top, turn, size)), floor);
-    }
+  for (let row = 0; row < lengths.length; row++) {
+    const v = firstRow + row * 1.6 + (row > 0 ? 0.6 : 0);
+    const points = [
+      [-width / 2, v],
+      [-width / 2 + width * lengths[row], v],
+    ];
+    d += engravedPath(P, points.map(inscriptionPoint.bind(null, face, top)), floor);
   }
   return d;
 }
@@ -980,9 +968,9 @@ function signedBlock(state, floor, top) {
   });
   const border = blockRing(6.1, 2.1, top + 0.01);
   let marks = HL.poly(border.map(projectVertex.bind(null, P)));
-  for (const face of ['top', 'right', 'left']) {
-    marks += sealGrid(P, face, top, floor);
-    if (face === 'top') continue;
+  for (const face of ['top', 'right', 'left', 'chamfer']) {
+    marks += inscriptionLines(P, face, top, floor);
+    if (face === 'top' || face === 'chamfer') continue;
     const frame = [
       [-4.1, 2.6],
       [4.1, 2.6],
@@ -990,17 +978,7 @@ function signedBlock(state, floor, top) {
       [-4.1, 12.6],
       [-4.1, 2.6],
     ];
-    marks += engravedPath(P, frame.map(sealPoint.bind(null, face, 0, 0, top, 0, 1)), floor);
-  }
-  for (const scale of [1, 0.5]) {
-    const seal = [
-      [6.5, 6.5, top - 8 + 2.8 * scale],
-      [6.5 + scale, 6.5 - scale, top - 8],
-      [6.5, 6.5, top - 8 - 2.8 * scale],
-      [6.5 - scale, 6.5 + scale, top - 8],
-      [6.5, 6.5, top - 8 + 2.8 * scale],
-    ];
-    marks += engravedPath(P, seal, floor);
+    marks += engravedPath(P, frame.map(inscriptionPoint.bind(null, face, top)), floor);
   }
   state.inscriptions.setAttribute('d', marks);
 }

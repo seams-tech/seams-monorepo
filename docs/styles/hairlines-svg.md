@@ -312,11 +312,11 @@ Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js
 
 Preview: `/dashboard-static/showcase/motion/delegation/`.
 
-Each screen contains two capsule links with a consistent 1.6-unit band and a hinged end. They share the screen’s isometric projection. After docking, the open bodies draw into their final positions. The hinged ends then draw in an open position and rotate 52 degrees to clamp shut. The link centres stay fixed throughout, so closed loops never slide through each other. A local SVG clip makes the left link pass above at the upper crossing and below at the lower crossing. Both screens share the same progress during forward and reverse motion.
+Each screen contains two open oval links with a 1.6-unit band and a diagonal composition. Their ends draw closed around each other after the second phone docks. The centres remain fixed, so closed loops never slide through each other. The upper and lower portions of the left link draw on opposite sides of the right link. This gives each crossing one clear front edge without clipping or duplicate outlines. The joins between portions have no visible seam.
 
-The sequence uses one reversible 2400ms Hairline tween. Docking completes at 56% progress, body drawing at 76%, gate drawing at 82%, and clamping at 94%. The closed links hold still to confirm the connection. Reduced motion lands directly at the closed pose.
+One reversible 1800ms Hairline tween drives the sequence. Docking uses the first 38% of its duration. Both screen symbols then close together and hold still. The boundary uses the tween’s easing curve. Reduced motion lands directly at the closed pose.
 
-Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The local browser check `.artifacts/device-linking/check-clamping.mjs` verifies docking before drawing, completed bodies and gates before clamping, fixed link positions, synchronized screens, stable completion, interrupted reversal, reduced motion, both themes, and frame bounds. It saves a JSON report and stage screenshots beside the script. The stock source validator flags the internal clip reference as an outside URL; it refers only to a clip in the same SVG and makes no network request.
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The stock Hairline validator and visual review pass. The local browser check `.artifacts/device-linking/check-redraw.mjs` verifies synchronized closure, docking before closure, finite intermediate geometry, stable completion, interrupted reversal, reduced motion, both themes, and frame bounds. It saves close-ups at five stages of closure, full-stage screenshots, and `redraw-check.json` beside the script.
 
 ## Wallet frontpage integration
 

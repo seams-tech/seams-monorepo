@@ -50,7 +50,57 @@ function port(svg, P) {
 }
 function headPoint(K, sign, point, edge) {
   const scale = edge ? 8.5 / Math.hypot(...point) : 1;
-  return K(point[0] * scale, point[1] * scale * sign, 4);
+  return K(point[0] * scale, point[1] * scale * sign, 4.6);
+}
+function keyBlade(parent, P) {
+  const profile = [
+    [-9, -2.6],
+    [22, -2.6],
+    [25, -0.4],
+    [25, 1.4],
+    [22, 3.6],
+    [19, 3.6],
+    [18, 1.1],
+    [15, 1.1],
+    [14, 3.6],
+    [11, 3.6],
+    [10, 1.8],
+    [7, 1.8],
+    [6, 3.6],
+    [3, 3.6],
+    [2, 0.8],
+    [-1, 0.8],
+    [-2, 3.6],
+    [-9, 3.6],
+  ];
+  const outline = HL.fillet(profile, Array(profile.length).fill(0.3), 4);
+  const top = [];
+  const bottom = [];
+  const visible = [];
+  for (let index = 0; index < outline.length; index++) {
+    const [x, y] = outline[index];
+    const next = outline[(index + 1) % outline.length];
+    top.push(P(x, y, 4.6));
+    bottom.push(P(x, y, 2.6));
+    // At 45 degrees, visible side faces have an outward normal with positive x + y.
+    visible.push(next[1] - y > next[0] - x);
+  }
+  let walls = '';
+  let edges = '';
+  for (let index = 0; index < outline.length; index++) {
+    if (!visible[index]) continue;
+    const next = (index + 1) % outline.length;
+    const previous = (index + outline.length - 1) % outline.length;
+    walls += HL.poly([bottom[index], bottom[next], top[next], top[index]]);
+    edges += HL.seg(bottom[index], bottom[next]);
+    if (!visible[previous]) edges += HL.seg(bottom[index], top[index]);
+    if (!visible[next]) edges += HL.seg(bottom[next], top[next]);
+  }
+  path(parent, walls, 'fo');
+  path(parent, edges, 'sil nf');
+  path(parent, HL.poly(top), 'sil');
+  const groove = HL.rrect(-6, -1.5, 20, -0.6, 0.4, 8);
+  path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
 }
 function tray(svg, P, front, mirrored) {
   const body = HL.solid(svg);
@@ -67,17 +117,13 @@ function tray(svg, P, front, mirrored) {
   const contents = HL.mk('g', { 'clip-path': `url(#${clipId})` }, body.g);
   path(contents, HL.open(HL.ringAt(P, HL.run(inner, rear), 2.5)));
   // The shaft enters beneath the head. The opening masks everything behind the rim.
-  let shaft = HL.seg(P(-8, 0, 4), P(23, 0, 4));
-  for (const x of [-1, 4]) shaft += HL.seg(P(x, -2.2, 4), P(x, 2.2, 4));
-  shaft += HL.seg(P(17, 0, 4), P(17, 4, 4));
-  shaft += HL.seg(P(14.8, 4, 4), P(19.2, 4, 4));
-  path(contents, shaft, 'sil nf');
+  keyBlade(contents, P);
   const K = local.bind(null, P, [-15, 0]);
   const head = HL.solid(contents);
   const ring = HL.circ(8.5, 48);
   HL.put(head, {
-    sil: HL.poly(HL.hull(HL.ringAt(K, ring, 3).concat(HL.ringAt(K, ring, 4)))),
-    crease: HL.poly(HL.ringAt(K, ring, 4)),
+    sil: HL.poly(HL.hull(HL.ringAt(K, ring, 2.6).concat(HL.ringAt(K, ring, 4.6)))),
+    crease: HL.poly(HL.ringAt(K, ring, 4.6)),
   });
   const sign = mirrored ? -1 : 1;
   let seams = '';

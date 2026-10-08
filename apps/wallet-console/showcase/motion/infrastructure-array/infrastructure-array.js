@@ -86,6 +86,7 @@ function drawDoor(P, rack, progress) {
 }
 function tick(state, _dt, now) {
   let moving = false;
+  let allClosed = true;
   let othersExtended = false;
   const origin = state.P(0, 0, 0);
   for (const rack of state.racks) {
@@ -118,6 +119,7 @@ function tick(state, _dt, now) {
     }
     HL.tset(rack.door.motion, selected || !stowed ? 1 : 0, now, 0);
     const doorOpen = HL.tval(rack.door.motion, now);
+    if (doorOpen > 0) allClosed = false;
     if (selected && doorOpen >= 0.99 && (open < 0.99 || othersExtended)) moving = true;
     if (!HL.tdone(rack.door.motion, now)) moving = true;
     if (doorOpen !== rack.door.drawn) {
@@ -125,6 +127,7 @@ function tick(state, _dt, now) {
       drawDoor(state.P, rack, doorOpen);
     }
   }
+  state.racks[0].door.frame.setAttribute('class', allClosed && state.over === null ? 'hi' : 'sil');
   return moving;
 }
 function retarget(state) {

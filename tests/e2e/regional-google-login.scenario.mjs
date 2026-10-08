@@ -588,8 +588,7 @@ async function verifySharedRegistrationOffers({
   const terminalInput = {
     wallet,
     home: reserved.assignment.home,
-    registrationId: reserved.assignment.registrationId,
-    requestDigest: reserved.assignment.requestDigest,
+    ceremonyId: reserved.assignment.registrationAllocation.ceremonyId,
     outcome: 'cancelled',
   };
   await assert.rejects(bridges.get('US').publisher.complete(terminalInput));
@@ -653,8 +652,7 @@ async function verifySharedRegistrationOffers({
   const cancelled = await bridges.get('US').publisher.complete({
     wallet: cancelledWallet,
     home: cancelReservation.assignment.home,
-    registrationId: cancelReservation.assignment.registrationId,
-    requestDigest: cancelReservation.assignment.requestDigest,
+    ceremonyId: cancelReservation.assignment.registrationAllocation.ceremonyId,
     outcome: 'cancelled',
   });
   assert.equal(cancelled.state, 'cancelled');

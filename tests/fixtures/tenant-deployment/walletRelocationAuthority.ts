@@ -111,8 +111,7 @@ export default {
           await directory.complete({
             wallet: assignment.wallet,
             home: assignment.home,
-            registrationId: assignment.registrationId,
-            requestDigest: assignment.requestDigest,
+            ceremonyId: assignment.registrationAllocation.ceremonyId,
             outcome: 'established',
             nowMs: relocationTimestamp(body.nowMs),
           }),

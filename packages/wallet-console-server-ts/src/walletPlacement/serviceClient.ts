@@ -55,8 +55,7 @@ type WalletHomeScope = {
 type CompletionInput = {
   readonly wallet: WalletOwnershipKey;
   readonly home: WalletHome;
-  readonly registrationId: string;
-  readonly requestDigest: string;
+  readonly ceremonyId: string;
   readonly outcome: 'established' | 'cancelled';
 };
 
@@ -701,6 +700,12 @@ export class WalletHomeServiceClient
     }
     const response = await this.post('complete', input);
     if (response.status !== 200) {
+      if (response.status === 409 && record(response.body).code === 'home_conflict') {
+        throw new WalletPlacementError(
+          'home_conflict',
+          'Registration completion conflicts with the wallet home or terminal outcome',
+        );
+      }
       throw new Error(`Wallet home completion failed: HTTP ${response.status}`);
     }
     const body = record(response.body);
@@ -714,8 +719,7 @@ export class WalletHomeServiceClient
     if (
       !assignment.wallet.matches(input.wallet) ||
       !assignment.home.matches(input.home) ||
-      assignment.registrationId !== input.registrationId ||
-      assignment.requestDigest !== input.requestDigest ||
+      assignment.registrationAllocation.ceremonyId !== input.ceremonyId ||
       assignment.state !== input.outcome
     ) {
       throw new WalletPlacementError(

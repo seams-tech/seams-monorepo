@@ -118,8 +118,7 @@ export default {
           await directory.complete({
             wallet,
             home,
-            registrationId: body.registrationId,
-            requestDigest: body.requestDigest,
+            ceremonyId: body.ceremonyId,
             outcome: body.outcome,
             nowMs: Date.now(),
           }),

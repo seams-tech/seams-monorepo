@@ -142,7 +142,7 @@ async function reserveTerminalHome({ api, directory, catalog, signerScope }, reg
     }),
   });
   assert.equal(reserved.ok, true);
-  return { wallet, home, registrationId, requestDigest };
+  return { wallet, home, ceremonyId: reserved.assignment.registrationAllocation.ceremonyId };
 }
 
 async function verifyTerminalClaims(input) {

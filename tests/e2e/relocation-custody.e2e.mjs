@@ -84,8 +84,7 @@ async function verifyCoordinatorBindings(custody) {
     await directory.complete({
       wallet,
       home: catalog.select('WEUR'),
-      registrationId,
-      requestDigest,
+      ceremonyId: reservation.assignment.registrationAllocation.ceremonyId,
       outcome: 'established',
       nowMs: now + 1,
     });

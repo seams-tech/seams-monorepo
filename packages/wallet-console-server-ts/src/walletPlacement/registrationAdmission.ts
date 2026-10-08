@@ -263,32 +263,12 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     input: Parameters<WalletRegistrationReservationAuthority['complete']>[0],
   ): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['complete']>>> {
     const client = this.client();
-    const assignment = await client.findByCeremony(input.ceremonyId);
-    if (
-      !assignment ||
-      assignment.wallet.walletId !== input.walletId ||
-      assignment.home.accountId !== this.options.localResource.accountId ||
-      assignment.home.databaseId !== this.options.localResource.databaseId
-    ) {
-      return {
-        ok: false,
-        code: 'home_conflict',
-        message: 'Registration completion does not match the local wallet home',
-      };
-    }
-    if (assignment.state === input.outcome) return { ok: true };
-    if (assignment.state !== 'reserved')
-      return {
-        ok: false,
-        code: 'registration_conflict',
-        message: 'Registration terminal outcome conflicts with its reservation',
-      };
+    const catalog = WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson));
     try {
       await client.complete({
-        wallet: assignment.wallet,
-        home: assignment.home,
-        registrationId: assignment.registrationId,
-        requestDigest: assignment.requestDigest,
+        wallet: WalletOwnershipKey.parse({ ...this.options.scope, walletId: input.walletId }),
+        home: catalog.homeForResource(this.options.localResource),
+        ceremonyId: input.ceremonyId,
         outcome: input.outcome,
       });
     } catch (error) {

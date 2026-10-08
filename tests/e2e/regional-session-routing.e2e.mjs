@@ -470,8 +470,7 @@ try {
     await directory.complete({
       wallet,
       home: catalog.select(region),
-      registrationId: `registration-${region}`,
-      requestDigest: 'a'.repeat(64),
+      ceremonyId: bridge.ceremonyId,
       outcome: 'established',
       nowMs: now + 1,
     });

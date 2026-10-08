@@ -122,12 +122,12 @@ async function unavailableGateway(): Promise<Response> {
 }
 
 class MiniflareWalletHomeServiceBinding {
-  private loseNextReservationResponse = false;
+  private lostResponseOperation: 'reserve' | 'complete' | null = null;
 
   constructor(private readonly runtime: Miniflare) {}
 
-  injectLostReservationResponse(): void {
-    this.loseNextReservationResponse = true;
+  injectLostResponse(operation: 'reserve' | 'complete'): void {
+    this.lostResponseOperation = operation;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -138,10 +138,10 @@ class MiniflareWalletHomeServiceBinding {
       body: await request.text(),
     });
     if (
-      this.loseNextReservationResponse &&
-      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`
+      this.lostResponseOperation &&
+      new URL(request.url).pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/${this.lostResponseOperation}`
     ) {
-      this.loseNextReservationResponse = false;
+      this.lostResponseOperation = null;
       return Response.json({ ok: false, code: 'injected_lost_response' }, { status: 503 });
     }
     return response;
@@ -163,6 +163,16 @@ function reservation(walletId: string, home: WalletHome, projectId = 'project') 
       deviceId: `device:${walletId}`,
       walletAuthMethodId: `wallet-auth-method:${walletId}`,
     },
+  };
+}
+
+function completion(input: ReturnType<typeof reservation>, outcome: 'established' | 'cancelled') {
+  return {
+    action: 'complete',
+    wallet: input.wallet,
+    home: input.home,
+    ceremonyId: input.registrationAllocation.ceremonyId,
+    outcome,
   };
 }
 
@@ -389,16 +399,14 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(
       (
         await serviceCall(runtime, 'complete', {
-          ...serviceReservation,
+          ...completion(serviceReservation, 'established'),
           home: homes[2],
-          outcome: 'established',
         })
       ).status,
     ).toBe(403);
     const serviceCompleted = await serviceCall(runtime, 'complete', {
-      ...serviceReservation,
+      ...completion(serviceReservation, 'established'),
       home: homes[0],
-      outcome: 'established',
     });
     expect(serviceCompleted.status).toBe(200);
     expect(await serviceCompleted.json()).toMatchObject({
@@ -464,13 +472,26 @@ test('wallet homes are independent within a tenant and durable across competing 
       },
       WalletHomeCatalog.parse(homes),
     );
-    const clientCompleted = await homeClient.complete({
+    const clientCompletion = {
       wallet: clientInput.wallet,
       home: homes[2],
-      registrationId: clientInput.registrationId,
-      requestDigest: clientInput.requestDigest,
-      outcome: 'established',
-    });
+      ceremonyId: clientInput.registrationAllocation.ceremonyId,
+      outcome: 'established' as const,
+    };
+    clientBinding.injectLostResponse('complete');
+    await expect(homeClient.complete(clientCompletion)).rejects.toThrow(
+      'Wallet home completion failed: HTTP 503',
+    );
+    const committedWithoutReply = await homeClient.find(clientInput.wallet);
+    expect(committedWithoutReply?.state).toBe('established');
+    const clientCompleted = await homeClient.complete(clientCompletion);
+    expect(clientCompleted).toEqual(committedWithoutReply);
+    await expect(
+      homeClient.complete({ ...clientCompletion, ceremonyId: 'wrc_wrong-completion' }),
+    ).rejects.toMatchObject({ code: 'home_conflict' });
+    await expect(
+      homeClient.complete({ ...clientCompletion, outcome: 'cancelled' }),
+    ).rejects.toMatchObject({ code: 'home_conflict' });
     expect(clientCompleted.state).toBe('established');
     observations.push({ stage: 'service_client_roundtrip', assignment: clientCompleted });
     const firstCandidate = reservation('client-loss-a', homes[1]);
@@ -483,7 +504,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       requestDigest: firstCandidate.requestDigest,
       proposedRegistrationAllocation: firstCandidate.registrationAllocation,
     };
-    clientBinding.injectLostReservationResponse();
+    clientBinding.injectLostResponse('reserve');
     await expect(serviceClient.reserve(lostRequest)).rejects.toThrow(
       'Wallet home reservation failed: HTTP 503',
     );
@@ -593,37 +614,29 @@ test('wallet homes are independent within a tenant and durable across competing 
       },
     });
     const wrongCompletion = await call(runtime, {
-      ...interrupted,
-      action: 'complete',
-      outcome: 'established',
-      requestDigest: 'c'.repeat(64),
+      ...completion(interrupted, 'established'),
+      ceremonyId: 'wrc_other-registration',
     });
     expect(wrongCompletion.status).toBe(409);
     expect(
       await (await call(runtime, { action: 'find', wallet: interrupted.wallet })).json(),
     ).toMatchObject({ state: 'reserved' });
-    const completed = await call(runtime, {
-      ...interrupted,
-      action: 'complete',
-      outcome: 'established',
-    });
+    const completed = await call(runtime, completion(interrupted, 'established'));
     const established = await completed.json();
     expect(completed.status).toBe(200);
     expect(established.state).toBe('established');
     expect(
       await (
-        await call(runtime, { ...interrupted, action: 'complete', outcome: 'established' })
+        await call(runtime, completion(interrupted, 'established'))
       ).json(),
     ).toEqual(established);
     expect(
-      (await call(runtime, { ...interrupted, action: 'complete', outcome: 'cancelled' })).status,
+      (await call(runtime, completion(interrupted, 'cancelled'))).status,
     ).toBe(409);
     expect(
       (
         await call(runtime, {
-          ...interrupted,
-          action: 'complete',
-          outcome: 'established',
+          ...completion(interrupted, 'established'),
           home: homes[2],
         })
       ).status,
@@ -633,11 +646,10 @@ test('wallet homes are independent within a tenant and durable across competing 
     const cancelledInput = reservation('cancelled', homes[0]);
     await call(runtime, cancelledInput);
     expect(
-      (await call(runtime, { ...cancelledInput, action: 'complete', outcome: 'cancelled' })).status,
+      (await call(runtime, completion(cancelledInput, 'cancelled'))).status,
     ).toBe(200);
     expect(
-      (await call(runtime, { ...cancelledInput, action: 'complete', outcome: 'established' }))
-        .status,
+      (await call(runtime, completion(cancelledInput, 'established'))).status,
     ).toBe(409);
     const cancelledRetry = await call(runtime, reservation('cancelled', homes[2]));
     expect(cancelledRetry.status).toBe(409);

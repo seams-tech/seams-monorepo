@@ -231,8 +231,7 @@ export async function verifyRegistrationExecutionAdmission(
   await client.complete({
     wallet,
     home: assignment.home,
-    registrationId: assignment.registrationId,
-    requestDigest: assignment.requestDigest,
+    ceremonyId: assignment.registrationAllocation.ceremonyId,
     outcome: 'cancelled',
   });
   expect(await client.registrationExecutionAuthority(assignment)).toEqual({

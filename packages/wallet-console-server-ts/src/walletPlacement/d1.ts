@@ -261,44 +261,41 @@ export class D1WalletHomeDirectory {
   async complete(input: {
     readonly wallet: WalletOwnershipKey;
     readonly home: WalletHome;
-    readonly registrationId: string;
-    readonly requestDigest: string;
+    readonly ceremonyId: string;
     readonly outcome: 'established' | 'cancelled';
     readonly nowMs: number;
   }): Promise<WalletHomeAssignment> {
-    const registrationId = registrationIdentity(input.registrationId);
     const nowMs = timestamp(input.nowMs);
-    const digest = requestDigest(input.requestDigest);
-    await this.database
+    const row = await this.database
       .prepare(
         `UPDATE wallet_homes SET state = ?10, completed_at_ms = ?11
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
-         AND wallet_id = ?5 AND registration_id = ?6 AND region = ?7 AND account_id = ?8
-         AND database_id = ?9 AND state = 'reserved' AND reserved_at_ms <= ?11 AND request_digest = ?12
+         AND wallet_id = ?5 AND ceremony_id = ?6 AND region = ?7 AND account_id = ?8
+         AND database_id = ?9 AND state = 'reserved' AND reserved_at_ms <= ?11
+         AND placement_state = 'active'
          AND (?10 != 'cancelled' OR NOT EXISTS (
            SELECT 1 FROM wallet_passkey_claims claim
            WHERE claim.namespace = ?1 AND claim.organization_id = ?2 AND claim.project_id = ?3
-             AND claim.environment_id = ?4 AND claim.wallet_id = ?5))`,
+             AND claim.environment_id = ?4 AND claim.wallet_id = ?5))
+       RETURNING *`,
       )
       .bind(
         ...scopeBindings(input.wallet),
         input.wallet.walletId,
-        registrationId,
+        input.ceremonyId,
         input.home.region,
         input.home.accountId,
         input.home.databaseId,
         input.outcome,
         nowMs,
-        digest,
       )
-      .run();
-    const assignment = await this.find(input.wallet);
+      .first<Record<string, unknown>>();
+    const assignment = row ? walletHomeAssignmentFromRow(row) : await this.find(input.wallet);
     if (
       !assignment ||
-      assignment.registrationId !== registrationId ||
+      assignment.registrationAllocation.ceremonyId !== input.ceremonyId ||
       !assignment.home.matches(input.home) ||
-      assignment.state !== input.outcome ||
-      assignment.requestDigest !== digest
+      assignment.state !== input.outcome
     ) {
       throw new WalletPlacementError(
         'home_conflict',

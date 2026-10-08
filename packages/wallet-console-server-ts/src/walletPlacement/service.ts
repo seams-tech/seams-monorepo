@@ -585,8 +585,7 @@ export async function handleWalletHomeServiceRequest(
         const assignment = await directory.complete({
           wallet,
           home,
-          registrationId: requiredString(body.registrationId, 'registrationId'),
-          requestDigest: requiredString(body.requestDigest, 'requestDigest'),
+          ceremonyId: requiredString(body.ceremonyId, 'ceremonyId'),
           outcome: completionOutcome(body.outcome),
           nowMs: Date.now(),
         });

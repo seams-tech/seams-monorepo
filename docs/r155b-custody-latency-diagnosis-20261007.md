@@ -709,3 +709,63 @@ No new resources, production deployment, or npm release was required.
 [Sanitized evidence](evidence/r155b-overlapped-target-20261008.json) contains source
 and build hashes, individual samples, request counts, local checks, placement
 correlations, version audits, limitations, and restoration evidence.
+
+## 2026-10-08: initialize role storage during wallet startup
+
+The startup correction is implemented and verified. Its hosted median was
+**3.679 s**. The sample does not establish a repeatable setup gain. The **1–2 second
+Yao setup target remains unmet**.
+
+Wallet commit `b517d64d35716b8c1153648528ab88b42128b06b` initializes A, B, and
+Signing Worker tables during their existing startup calls. Previously, startup
+returned before table creation. Normal commands keep their initialization path
+when startup never ran. This adds no table, flag, authority record, or cache.
+
+Five strict release builds, the other Workers host check, thirteen local E2Es,
+and the exact-tree bloat check passed. The four-home E2E verifies empty storage
+after startup: five tables for A, five for B, and twenty-four for the Signing
+Worker. All contain zero rows. Concurrent execution, lost replies, forged receipts,
+and replay checks pass. The same check fails against old binaries because startup
+leaves all three stores uninitialized. Hosted builds contain no inspection wrapper.
+
+| Yao execute HTTP request | Successful wallets / attempts | Median | Range |
+| --- | ---: | ---: | ---: |
+| Control before | 3 / 3 | **3.908 s** | 3.871–4.881 s |
+| Candidate | 3 / 3 | **3.679 s** | 3.065–4.161 s |
+| Control after | 2 / 3 | **4.428 s** | 4.324–4.532 s |
+
+Setup excludes funding, NEAR provisioning, and the first signature. The failed
+control lost its D1 connection while A loaded its bound role share. The Gateway
+returned a retryable HTTP 503, and the browser surfaced it. This infrastructure
+failure occurred on the baseline. The evidence retains the attempt. The final
+control timings include only its two completed wallets.
+
+The candidate median was 229 ms below the first control. Startup medians were
+850 / 1,117 ms, and Signing Worker delivery medians were 519 / 444 ms.
+These small samples do not establish a repeatable saving. Stage medians cannot be
+added. Application clocks freeze during CPU work, and provider CPU spans whole
+invocations. The final control's server-stage statistics include its failed attempt.
+
+Bound-root work remains six D1 calls and sixteen SQL statements per successful
+setup. Other D1 work and local DO SQL are excluded. Warm and consecutive signing
+still use four Gateway requests each. Unlock through the first signature uses
+nine. Registration through the first signature uses fourteen or fifteen.
+Admission, cancellation, execution claims, and relocation checks remain in place.
+
+Eight of nine attempted wallets completed, and **56 signatures verified**.
+All three candidate wallets passed. All captured serving versions matched.
+All thirteen original staging versions were restored. Activation passed in
+[run 37727820202](https://github.com/seams-tech/seams-monorepo/actions/runs/37727820202).
+The final version audit passed after refreshing the local Cloudflare login.
+An optional replacement control was cancelled before any live change because new
+unfinished registration records remained after restoration. Those records were
+preserved. No extra resources, production deployment, or npm release was required.
+
+Retain the small startup correction without claiming a hosted speedup. Next,
+evaluate repeated session-status reads and sequential D1 waits under the existing
+admission rules. Actual Worker, DO, and D1 placement was not remeasured in this run.
+The preceding placement evidence remains the available source.
+
+[Sanitized evidence](evidence/r155b-storage-startup-20261008.json) records all
+attempts, the failure and cancelled retry, local checks, build hashes, HTTP and
+bounded D1 counts, serving versions, and restoration.

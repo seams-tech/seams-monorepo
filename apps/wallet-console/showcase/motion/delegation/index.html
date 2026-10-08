@@ -770,10 +770,29 @@ function linkingSymbol(parent, P, center) {
   const halves = [];
   for (const side of [-1, 1]) {
     const half = HL.mk('g', {}, group);
-    const ink = tracedPath(half, 'M -2 1 A 5 5 0 0 0 5 1 L 8 -2 A 5 5 0 0 0 1 -9 L -1 -7');
+    const ink = tracedPath(half, linkOutline(half));
     halves.push({ group: half, ink, side });
   }
   return { segments, halves };
+}
+function linkOutline(parent) {
+  const guide = path(parent, 'M -2 1 A 5 5 0 0 0 5 1 L 8 -2 A 5 5 0 0 0 1 -9 L -1 -7');
+  const length = guide.getTotalLength();
+  const outside = [];
+  const inside = [];
+  for (let step = 0; step <= 96; step++) {
+    const distance = (length * step) / 96;
+    const point = guide.getPointAtLength(distance);
+    const before = guide.getPointAtLength(Math.max(0, distance - 0.05));
+    const after = guide.getPointAtLength(Math.min(length, distance + 0.05));
+    const dx = after.x - before.x;
+    const dy = after.y - before.y;
+    const offset = 1.1 / Math.hypot(dx, dy);
+    outside.push([point.x - dy * offset, point.y + dx * offset]);
+    inside.push([point.x + dy * offset, point.y - dx * offset]);
+  }
+  guide.remove();
+  return HL.poly(outside.concat(inside.reverse()));
 }
 function tracedPath(parent, d) {
   const guide = path(parent, d);
@@ -803,7 +822,10 @@ function matchingPattern(phone, progress) {
   }
   for (const half of phone.symbol.halves) {
     const gap = (1 - join) * 2.4 * half.side;
-    half.group.setAttribute('transform', `translate(${gap} ${-gap}) scale(${half.side})`);
+    half.group.setAttribute(
+      'transform',
+      `scale(0.66) translate(${gap} ${-gap}) scale(${half.side})`,
+    );
     trace(half.ink, HL.clamp((progress - 0.68) / 0.14, 0, 1));
   }
 }

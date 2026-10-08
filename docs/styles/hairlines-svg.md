@@ -308,6 +308,14 @@ Stroke tracing reveals sampled geometry instead of using dash offsets. This avoi
 
 Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js`, then rebuild its `index.html` with the Hairline `build.mjs`. Run `.artifacts/threshold-signing/check.mjs` for a repeatable browser check. It records independent arrivals, stage ordering, partial signature strokes, interrupted reversal, keyboard control, reduced motion, alignment, both themes, slider extremes, and frame bounds. Screenshots and `check.json` are saved beside the check script.
 
+## Linked devices: screen symbols
+
+Preview: `/dashboard-static/showcase/motion/delegation/`.
+
+Each screen contains two outlined links inside a segmented circle. The links use a 2.2-unit band around their original centre lines and scale to 66% within the screen plane. Their separation also scales, so both the resting and joined poses retain clearance from the circle. The outline traces after docking, then both halves join. Both screens use the same progress throughout forward and reverse motion.
+
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The local browser check `.artifacts/device-linking/check-docking.mjs` verifies circle clearance throughout motion, synchronized screens, docking order, interruptions, and reduced motion. It saves a JSON report and screenshots beside the script.
+
 ## Wallet frontpage integration
 
 The custody section at `/wallet` uses five approved figures. The capability grid contains the keychain, combination interlock, linked phones, and server-rack wall. The linked phones and rack wall use the interlock’s 45-degree, 2:1 isometric perspective. The manual “How signing works” switch shows the threshold-signing diagram. The section does not advance on a timer.

@@ -308,15 +308,17 @@ Stroke tracing reveals sampled geometry instead of using dash offsets. This avoi
 
 Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js`, then rebuild its `index.html` with the Hairline `build.mjs`. Run `.artifacts/threshold-signing/check.mjs` for a repeatable browser check. It records independent arrivals, stage ordering, partial signature strokes, interrupted reversal, keyboard control, reduced motion, alignment, both themes, slider extremes, and frame bounds. Screenshots and `check.json` are saved beside the check script.
 
-## Linked devices: screen symbols
+## Linked devices: scan to pair
 
 Preview: `/dashboard-static/showcase/motion/delegation/`.
 
-Each screen contains two open oval links with a 1.6-unit band and a diagonal composition. Their ends draw closed around each other after the second phone docks. The centres remain fixed, so closed loops never slide through each other. The upper and lower portions of the left link draw on opposite sides of the right link. This gives each crossing one clear front edge without clipping or duplicate outlines. The joins between portions have no visible seam.
+Two isometric phones begin beside each other. The first phone has a scanner frame. The second shows three faint QR finder squares. On hover or keyboard activation, the first phone moves forward along the ground plane and across to face the second phone. Its rear camera faces the second screen. The foreground phone leaves the pairing code visible beside its right edge. The dock and chain symbols are removed.
 
-One reversible 1800ms Hairline tween drives the sequence. Docking uses the first 38% of its duration. Both screen symbols then close together and hold still. The boundary uses the tween’s easing curve. Reduced motion lands directly at the closed pose.
+One reversible 2200ms Hairline tween drives four stages. Positioning completes at 32% of the duration. A simplified QR pattern builds by rows through 45%. A scan line passes downward through 75%, with a matching camera preview on the first phone. Both screens then fade into matching circular confirmation marks and traced checks. All screen geometry uses each phone’s isometric screen plane. The QR pattern is illustrative. It contains no pairing data.
 
-Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The stock Hairline validator and visual review pass. The local browser check `.artifacts/device-linking/check-redraw.mjs` verifies synchronized closure, docking before closure, finite intermediate geometry, stable completion, interrupted reversal, reduced motion, both themes, and frame bounds. It saves close-ups at five stages of closure, full-stage screenshots, and `redraw-check.json` beside the script.
+Leaving reverses the same sequence. Re-entering resumes from the current pose. Enter and Space toggle the sequence. Reduced motion lands directly at the linked pose. The intensity slider changes the final depth separation from 40 to 48 world units. Both the code and the success marks remain visible across that range.
+
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. This requested multi-stage scene extends the standalone skill’s 200-line limit and uses opacity for screen-content transitions. The kernel and bench remain unchanged. The generic validator reports those two convention exceptions. The browser check `.artifacts/device-linking/check-scan.mjs` verifies stage order, QR visibility, synchronized success, stable completion, interrupted reversal, keyboard control, reduced motion, both themes, and frame bounds. It saves screenshots for each phase and `scan-check.json` beside the script.
 
 ## Wallet frontpage integration
 

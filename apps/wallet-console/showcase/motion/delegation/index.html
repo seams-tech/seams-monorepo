@@ -723,31 +723,26 @@ var HL = (() => {
 const MOVE_END = HL.EASE_LIFT(0.32);
 const CODE_END = HL.EASE_LIFT(0.45);
 const SCAN_END = HL.EASE_LIFT(0.75);
-const QR_CELLS = [
-  [6, 0],
-  [6, 1],
-  [6, 3],
-  [0, 6],
-  [2, 6],
-  [3, 6],
-  [5, 6],
-  [6, 5],
-  [6, 7],
-  [8, 6],
-  [10, 6],
-  [12, 6],
-  [5, 9],
-  [6, 10],
-  [8, 8],
-  [9, 8],
-  [11, 8],
-  [8, 9],
-  [11, 10],
-  [12, 10],
-  [6, 12],
-  [8, 11],
-  [9, 12],
-  [11, 12],
+const FINISH_EASE = HL.bezier(0.23, 1, 0.32, 1);
+// A compact illustrative matrix with quiet space around its three finder squares.
+const QR_ROWS = [
+  '00000000100000000',
+  '00000000100000000',
+  '00000000000000000',
+  '00000000100000000',
+  '00000000100000000',
+  '00000000000000000',
+  '00000000100000000',
+  '00000000000000000',
+  '11011010111010011',
+  '00000000100111010',
+  '00000000010100000',
+  '00000000111010110',
+  '00000000001100110',
+  '00000000100111001',
+  '00000000110101000',
+  '00000000010001101',
+  '00000000101100111',
 ];
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
@@ -773,15 +768,17 @@ function screenLayer(parent, P, center) {
 }
 function phone(parent, P, center, name) {
   const group = HL.mk('g', { 'data-device': name }, parent);
-  const ring = HL.rrect(-21, 4, 21, 88, 5, 12);
+  const ring = HL.rrect(-21, 4, 21, 88, 6.5, 12);
   const front = ring.map(screenPoint.bind(null, P, center));
   const back = [];
-  for (const point of ring) back.push(P(-3, center + point.u, point.v));
+  for (const point of ring) back.push(P(-1.6, center + point.u, point.v));
   path(group, HL.poly(HL.hull(back.concat(front))), 'sil');
   path(group, HL.poly(front), name === 'scanner' ? 'hi' : 'sil');
-  screenPath(group, P, center, HL.rrect(-18.5, 7, 18.5, 85, 3.8, 12));
-  screenPath(group, P, center, HL.rrect(-4, 80, 4, 81.3, 0.65, 8));
-  screenPath(group, P, center, HL.rrect(-5, 10, 5, 10.8, 0.4, 8));
+  screenPath(group, P, center, HL.rrect(-19.5, 5.5, 19.5, 86.5, 5.4, 12));
+  screenPath(group, P, center, HL.rrect(-5.3, 80.5, 5.3, 83.4, 1.45, 12), 'dot m');
+  screenPath(group, P, center, HL.rrect(-5.5, 8.2, 5.5, 8.9, 0.35, 8), 'dot m');
+  sideButton(group, P, center, 57, 67);
+  sideButton(group, P, center, 71, 75);
   const screen = screenLayer(group, P, center);
   const content = HL.mk('g', { 'data-part': 'scan-content' }, screen);
   const qr = qrCode(content);
@@ -790,17 +787,33 @@ function phone(parent, P, center, name) {
   const sweep = path(content, '', 'hi nf');
   sweep.setAttribute('data-part', 'scan-line');
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
-  path(success, HL.poly(HL.ringAt(identity, HL.circ(10, 64), 0)), 'lo nf');
+  const circle = successArc(1);
+  const halo = path(success, circle, 'lo nf');
+  path(success, circle, 'lo nf');
+  const rim = path(success, circle, 'sil nf');
   const check = path(success, '', 'hi nf');
-  return { group, content, qr, sweep, success, check };
+  return { group, content, qr, sweep, success, halo, rim, check };
 }
-function identity(x, y) {
-  return [x, y];
+function sideButton(parent, P, center, low, high) {
+  const points = [];
+  for (const point of HL.rrect(-0.7, low, 1.8, high, 0.65, 8)) {
+    points.push(P(point.u, center + 21.1, point.v));
+  }
+  path(parent, HL.poly(points), 'sil');
+}
+function successArc(progress) {
+  const points = [];
+  const segments = Math.max(1, Math.ceil(progress * 64));
+  for (let step = 0; step <= segments; step++) {
+    const angle = -Math.PI / 2 + (step / segments) * progress * Math.PI * 2;
+    points.push([10 * Math.cos(angle), 10 * Math.sin(angle)]);
+  }
+  return progress > 0 ? HL.open(points) : '';
 }
 function cell(x, y, size) {
-  const pitch = 1.7;
-  const left = (x - 6.5) * pitch;
-  const top = (y - 6.5) * pitch;
+  const pitch = 1.35;
+  const left = (x - 8.5) * pitch;
+  const top = (y - 8.5) * pitch;
   return HL.poly([
     [left, top],
     [left + size * pitch, top],
@@ -813,20 +826,20 @@ function qrCode(parent) {
   let anchors = '';
   for (const [x, y] of [
     [0, 0],
-    [8, 0],
-    [0, 8],
+    [10, 0],
+    [0, 10],
   ]) {
-    anchors += cell(x, y, 5) + cell(x + 1, y + 1, 3) + cell(x + 2, y + 2, 1);
+    anchors += cell(x, y, 7) + cell(x + 1, y + 1, 5) + cell(x + 2, y + 2, 3);
   }
-  const finders = path(group, anchors, 'dot m');
+  const finders = path(group, anchors, 'dot');
   finders.setAttribute('fill-rule', 'evenodd');
   const rows = [];
-  for (let row = 0; row < 13; row++) {
+  for (let row = 0; row < QR_ROWS.length; row++) {
     let modules = '';
-    for (const [x, y] of QR_CELLS) {
-      if (y === row) modules += cell(x, y, 1);
+    for (let column = 0; column < QR_ROWS[row].length; column++) {
+      if (QR_ROWS[row][column] === '1') modules += cell(column, row, 1);
     }
-    rows.push(path(group, modules, 'dot m'));
+    rows.push(path(group, modules, 'dot'));
   }
   return { group, finders, rows };
 }
@@ -835,18 +848,23 @@ function progressBetween(value, start, end) {
 }
 function drawScreen(device, code, scan, success, scanner) {
   device.content.setAttribute('opacity', 1 - progressBetween(success, 0, 0.2));
-  device.qr.group.setAttribute('opacity', scanner ? code * 0.65 : 1);
+  device.qr.group.setAttribute('opacity', scanner ? code * 0.55 : 0.72);
   device.qr.finders.setAttribute('opacity', 0.35 + code * 0.65);
   for (let row = 0; row < device.qr.rows.length; row++) {
-    const revealed = HL.clamp(code * 15 - row, 0, 1);
+    const revealed = HL.clamp(code * (QR_ROWS.length + 1) - row, 0, 1);
     device.qr.rows[row].setAttribute('opacity', revealed);
   }
   const sweepY = HL.lerp(-13, 13, scan);
   device.sweep.setAttribute('d', HL.seg([-13, sweepY], [13, sweepY]));
   device.sweep.setAttribute('opacity', Math.sin(Math.PI * scan));
-  device.success.setAttribute('opacity', progressBetween(success, 0.12, 0.38));
-  device.success.setAttribute('transform', `scale(${HL.lerp(0.94, 1, success)})`);
-  const ink = progressBetween(success, 0.18, 0.85);
+  const settle = FINISH_EASE(progressBetween(success, 0.08, 0.8));
+  device.success.setAttribute('opacity', progressBetween(success, 0.08, 0.3));
+  device.success.setAttribute('transform', `scale(${HL.lerp(0.92, 1, settle)})`);
+  device.rim.setAttribute('d', successArc(FINISH_EASE(progressBetween(success, 0.1, 0.65))));
+  const pulse = progressBetween(success, 0.45, 1);
+  device.halo.setAttribute('transform', `scale(${HL.lerp(1, 1.22, FINISH_EASE(pulse))})`);
+  device.halo.setAttribute('opacity', Math.sin(Math.PI * pulse) * 0.5);
+  const ink = FINISH_EASE(progressBetween(success, 0.25, 0.9));
   const start = [-5, 0],
     corner = [-1, 4],
     end = [6, -5];

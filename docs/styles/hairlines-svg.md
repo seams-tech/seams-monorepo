@@ -212,32 +212,6 @@ node "$HOME/.codex/skills/hairline-create/look.mjs" \
 
 Inspect the six occupied bays, rail alignment, and cabinet occlusion during insertion. Check both themes, 240px width, slider extremes, and interrupted hover transitions. Verify that the selected lamps start only after insertion. Check the reverse order on exit. Installed power lights stay steady, activity lights blink independently, and reduced-motion mode freezes enabled lamps. The reference camera makes the sliding motion more compact; the single-server movement remains intentional. This preview remains separate from frontpage integration.
 
-## Device linking: two phones in a pairing dock
-
-Two recognizable phones share a slim dock. The first phone is seated. The second rests above its connector. Each screen holds a segmented confirmation ring around two separated link halves. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
-
-Hovering the fixed stage lowers the second phone. After it seats, four ring segments trace clockwise on both screens. Two rounded link halves trace into view, then slide together. The last ring segment completes the confirmation, and the dock lamp illuminates. Both screens hold the same linked symbol. Leaving reverses the sequence before the phone rises. A single reversible 2400ms tween preserves this order through interruptions. The slider sets lift to 18, 23, or 28 world units.
-
-Both screens use the same progress value. Screen geometry follows each phone's perspective. Faint outlines remain at rest, and the traced strokes use the standard silhouette class. Paths are sampled once during mounting. Animation reveals those samples and translates the link halves. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
-
-Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild:
-
-```sh
-node "$HOME/.codex/skills/hairline-create/build.mjs" \
-  apps/wallet-console/showcase/motion/delegation/device-linking.js \
-  apps/wallet-console/showcase/motion/delegation/index.html
-```
-
-Review at `/dashboard-static/showcase/motion/delegation/`. From `.artifacts/device-linking`, run:
-
-```sh
-node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/delegation/device-linking.js \
-  --answer 3,28,45 --edge 3,-28,45 --zoom answer
-```
-
-Check that the confirmation never appears while the second phone is raised. Verify both themes, thumbnail size, slider extremes, rapid enter/leave/re-enter gestures, and reduced motion. The illustration remains a separate preview pending frontpage integration.
-
 ## Visual verification
 
 Run the skill's browser review after each figure change. From `.artifacts/audit-log`, run:
@@ -314,9 +288,9 @@ Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js
 
 Preview: `/dashboard-static/showcase/motion/delegation/`.
 
-Two isometric phones begin beside each other. The first phone has a scanner frame. The second shows three faint QR finder squares. On hover or keyboard activation, the first phone moves forward along the ground plane and across to face the second phone. Its rear camera faces the second screen. The foreground phone leaves the pairing code visible beside its right edge. The dock and chain symbols are removed.
+Two isometric phones begin beside each other. The first phone has a scanner frame. The second shows three faint QR finder squares. On hover or keyboard activation, the first phone moves forward along the ground plane and across to face the second phone. Its rear camera faces the second screen. The foreground phone leaves the pairing code visible beside its right edge. Slim bezels, rounded display corners, pill-shaped camera cutouts, and side buttons give both phones a modern iPhone silhouette.
 
-One reversible 2200ms Hairline tween drives four stages. Positioning completes at 32% of the duration. A simplified QR pattern builds by rows through 45%. A scan line passes downward through 75%, with a matching camera preview on the first phone. Both screens then fade into matching circular confirmation marks and traced checks. All screen geometry uses each phone’s isometric screen plane. The QR pattern is illustrative. It contains no pairing data.
+One reversible 2200ms Hairline tween drives four stages. Positioning completes at 32% of the duration. A compact 17-by-17 QR pattern builds by rows through 45%. Three nested finder squares, clear separators, and connected data blocks keep it recognizable at small sizes. A scan line passes downward through 75%, with a matching camera preview on the first phone. Both screens then fade into matching confirmation marks. A ring traces clockwise, the check draws with an eased finish, and one faint halo expands and fades. The marks settle from 92% to full size. Ring tracing uses sampled geometry to keep non-scaling strokes continuous at every preview size. All screen geometry uses each phone’s isometric screen plane. The QR pattern is illustrative. It contains no pairing data.
 
 Leaving reverses the same sequence. Re-entering resumes from the current pose. Enter and Space toggle the sequence. Reduced motion lands directly at the linked pose. The intensity slider changes the final depth separation from 40 to 48 world units. Both the code and the success marks remain visible across that range.
 

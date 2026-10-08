@@ -1,11 +1,12 @@
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
-const MOVE_END = HL.EASE_LIFT(0.32);
-const CODE_END = HL.EASE_LIFT(0.45);
-const SCAN_END = HL.EASE_LIFT(0.75);
-// Within the 2200 ms sequence, finish the circle at 1900 ms and the tick at 2150 ms.
-const CIRCLE_END = (HL.EASE_LIFT(1900 / 2200) - SCAN_END) / (1 - SCAN_END);
-const TICK_END = (HL.EASE_LIFT(2150 / 2200) - SCAN_END) / (1 - SCAN_END);
+const DURATION = 1900;
+const MOVE_END = HL.EASE_LIFT(400 / DURATION);
+const CODE_END = HL.EASE_LIFT(700 / DURATION);
+const SCAN_END = HL.EASE_LIFT(1350 / DURATION);
+// Finish the circle at 1600 ms, then draw the check over 250 ms.
+const CIRCLE_END = (HL.EASE_LIFT(1600 / DURATION) - SCAN_END) / (1 - SCAN_END);
+const TICK_END = (HL.EASE_LIFT(1850 / DURATION) - SCAN_END) / (1 - SCAN_END);
 const FINISH_EASE = HL.bezier(0.23, 1, 0.32, 1);
 // A compact illustrative matrix with quiet space around its three finder squares.
 const QR_ROWS = [
@@ -76,7 +77,7 @@ function phone(parent, P, center, name) {
   const check = path(success, '', 'hi nf');
   for (const mark of [rim, check]) {
     mark.style.strokeWidth = '1.5px';
-    mark.style.stroke = '#2997e8';
+    mark.setAttribute('stroke-opacity', 0.6);
   }
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
@@ -264,7 +265,7 @@ function mount({ stage, svg, read }, distance) {
     stage,
     read,
     distance,
-    motion: HL.tween(0, 2200),
+    motion: HL.tween(0, DURATION),
     drawn: NaN,
     active: false,
     loop: null,

@@ -1023,3 +1023,76 @@ Next candidates:
    authorization and material checks. No further latency saving is assumed.
 
 [Sanitized evidence](evidence/r155b-finalize-read-20261008.json).
+
+## Phase 6U — implicit registration and first signature, 2026-10-08
+
+**Registration remains above the required 3–4 seconds. Yao setup remains above
+1–2 seconds.** These tests already use implicit accounts derived from the Ed25519
+public key. The `near-provisioning` request installs wallet authority, signer
+records, recovery material and a session. Its latency does not represent named
+NEAR account creation.
+
+The Gateway now reads a fresh finalization's ceremony twice instead of five times.
+The operation executor passes its fresh record through the remaining steps.
+Expiry, live identity reads, setup verification, operation receipts and database
+commit checks remain. This count excludes other records and deployment checks.
+No cross-request cache was added. Public implementation: `e62c1513` on `dev`.
+
+The combined candidate includes all accepted custody changes through Phase 6P.
+Earlier experiments restored the original custody deployments between runs.
+The comparison therefore measures the combined changes. It does not isolate the
+three removed reads. Both arms use the same NEAR-only SDK.
+
+Across **six fresh candidate wallets**, SDK registration measured **10.409 s median**,
+range **8.873–11.017 s**. Yao execute measured **4.530 s**, range **3.038–4.836 s**.
+Server finalization measured **2.510 s**, range **1.936–3.593 s**. Registration is
+identical before the two cohorts perform their different first-signing operations.
+
+| Measurement, three wallets per arm | Restored control: median (range) | Combined candidate: median (range) |
+| --- | --- | --- |
+| SDK registration | 12.769 s (12.679–15.895) | 10.422 s (8.873–11.017) |
+| Yao execute HTTP | 5.852 s (5.663–6.339) | 3.304 s (3.038–4.836) |
+| Server finalization HTTP | 2.932 s (2.569–3.140) | 2.684 s (2.277–3.593) |
+| Registration through first verified message | 16.041 s (15.271–19.185) | 13.181 s (12.079–14.497) |
+
+The new message workload verifies a NEP-413 signature independently and rejects an
+altered message. It asserts a 64-character implicit account ID, NEAR-only assets,
+and no funding request. Background access-key reads can still occur. This workload
+cannot serve as a direct comparison with the earlier funded transaction totals.
+
+The original funded transaction workload used three further candidate wallets.
+Registration through the first verified transaction measured **18.619 s median**,
+range **18.363–18.972 s**. Funding measured **3.772 s**, range **2.800–3.847 s**.
+Yao execute measured **4.539 s**, range **4.522–4.744 s**. The first signature's
+prepare, client share and finalize stages together measured **1.355 s**,
+range **1.336–1.831 s**. Browser lifecycle timings include automation and UI settlement.
+
+Yao still incurs substantial work around the protocol. Median A/B preparation
+measured **573 / 1,075 ms** in the message and transaction cohorts. B connection
+measured **804 / 984 ms**. A protocol spans measured **512 / 503 ms** and B protocol
+spans measured **571 / 801 ms**. Final package delivery measured **112 / 531 ms**.
+Application clocks can freeze during CPU work. Provider CPU covers whole invocations.
+Stage medians must not be added. Gateway-wide D1 counts and backend Console counts
+remain unknown. APAC home hints do not establish physical colocation.
+
+Six relevant local browser scenarios passed, including loss/retry, refresh, quota,
+deferred finalization, and ECDSA/mixed activation recovery. A local lost-reply wrapper
+bypassed the home-aware binding. The unchanged baseline failed identically.
+Public commit `3b1a169b` fixes that fixture. An additional terminal-burn scenario
+requires a fault hook absent from the selected release build. Its classification
+is `environment_or_infrastructure_failure`. Server builds and exact-tree bloat checks passed.
+
+The hosted run verified **27 signatures across nine fresh wallets**. All three
+serving-version audits passed. All thirteen original staging Worker versions were
+restored, followed by successful tenant activation in run `37749204515`. No additional
+resource, production deployment or npm release occurred. Fresh wallets do not prove
+cold Worker/DO starts. These samples do not establish percentile or maximum guarantees.
+
+The next structural cuts are pure-NEAR activation/finalization consolidation,
+passkey response/admission consolidation, and reduced role preparation/B connection
+delay. Preserve identity, recovery, session, home, replay and role-isolation checks.
+These changes remain unimplemented. The public plan's Phase 6U records their scope.
+
+[Sanitized registration evidence](evidence/r155b-near-registration-critical-path-20261008.json)
+contains all samples, available request counts, protocol spans, source hashes,
+verification limits and restoration evidence.

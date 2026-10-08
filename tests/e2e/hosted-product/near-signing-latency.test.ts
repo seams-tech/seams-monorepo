@@ -51,7 +51,11 @@ class NearEvidence {
   readonly consoleRequests: string[] = [];
   observe(message: ConsoleMessage): void {
     const text = message.text();
-    if (!text.startsWith('[SigningFlow][near]') && !text.startsWith('[Intended NEAR benchmark]'))
+    if (
+      !text.startsWith('[SigningFlow][near]') &&
+      !text.startsWith('[Intended NEAR benchmark]') &&
+      !text.startsWith('[Registration] NEAR timing')
+    )
       return;
     const start = text.indexOf('{"');
     if (start < 0) return;
@@ -117,6 +121,100 @@ for (let sample = 1; sample <= 3; sample += 1) {
     `hosted NEAR-only sample ${sample}: registration, unlock, warm and three signatures`,
     runNearBenchmark,
   );
+  test(
+    `hosted NEAR implicit registration sample ${sample}: first verified message without funding`,
+    runNearRegistrationBenchmark,
+  );
+}
+
+async function runNearRegistrationBenchmark(
+  { context, page, request }: { context: BrowserContext; page: Page; request: APIRequestContext },
+  testInfo: TestInfo,
+): Promise<void> {
+  const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
+  if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
+  await installCandidateAssets(context);
+  const harness = new IntendedBehaviourHarness({
+    context,
+    page,
+    request,
+    flow: 'passkey.registration',
+    networkMode: 'hosted_product',
+  });
+  const observations = new NearEvidence();
+  const gateway = new GatewayRequestEvidence();
+  page.on('console', observations.observe.bind(observations));
+  context.on('request', observations.observeRequest.bind(observations));
+  context.on('response', observations.observeResponse.bind(observations));
+  gateway.start(context);
+  let outcome = 'failed';
+  let startedAt = performance.now();
+  let registrationMs: number | null = null;
+  let registrationToVerifiedMs: number | null = null;
+  let message: Awaited<ReturnType<typeof harness.signNearMessage>> | null = null;
+  try {
+    await harness.initialize();
+    startedAt = performance.now();
+    await harness.registerPasskeyEd25519YaoWallet();
+    registrationMs = performance.now() - startedAt;
+    message = await harness.signNearMessage('Verify this new implicit NEAR wallet before funding');
+    registrationToVerifiedMs = performance.now() - startedAt;
+    expect(message.accountId).toMatch(/^[0-9a-f]{64}$/u);
+    expect([...observations.assets].filter(isOtherSigner)).toEqual([]);
+    const requests = await gateway.window(startedAt, performance.now());
+    expect(requests.requests.filter(isFundingRequest)).toEqual([]);
+    outcome = 'succeeded';
+  } finally {
+    const endedAt = performance.now();
+    gateway.stop(context);
+    await mkdir(output, { recursive: true });
+    await writeFile(
+      path.join(output, `registration-${testInfo.title.match(/sample (\d+)/u)?.[1]}.json`),
+      JSON.stringify(
+        {
+          outcome,
+          registrationMs,
+          registrationToVerifiedMs,
+          message,
+          sdkTimings: observations.window(startedAt, endedAt),
+          nearAccessKeyCalls: observations.accessKeyCalls(startedAt, endedAt),
+          gateway: await gateway.window(startedAt, endedAt),
+          registrationResponses: await registrationResponseEvidence(observations),
+          assets: [...observations.assets],
+          notes: [
+            'Fresh implicit account. NEP-413 signature verified against its registered key; changed message rejected.',
+            'Message signing needs no funding or transaction context. Background prefetch may query the chain.',
+            'This workload is distinct from the funded transaction benchmark.',
+            'Elapsed time includes browser automation. Worker and Durable Object cold state is unproven.',
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+  }
+}
+
+function isFundingRequest(request: { path: string }): boolean {
+  return request.path.endsWith('/implicit-account/fund');
+}
+
+async function registrationResponseEvidence(observations: NearEvidence) {
+  const responses = [];
+  for (const entry of observations.responses) {
+    const pathname = new URL(entry.response.url()).pathname;
+    if (!pathname.startsWith('/wallets/register/')) continue;
+    const body = await entry.response.json();
+    responses.push({
+      path: pathname,
+      status: entry.response.status(),
+      serverTiming: await entry.response.headerValue('Server-Timing'),
+      accountProvisioning: body.accountProvisioning ?? null,
+      resolvedAccountKind: body.resolvedAccount?.kind ?? null,
+      diagnostics: body.registrationDiagnostics ?? null,
+    });
+  }
+  return responses;
 }
 
 test('hosted NEAR-only post-idle sample 4: same wallet and signing grant', runNearIdleBenchmark);

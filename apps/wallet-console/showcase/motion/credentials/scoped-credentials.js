@@ -58,40 +58,8 @@ function translatedRing(ring, x, y) {
   return points;
 }
 
-const INSET = translatedRing(HL.circ(23.5, 64), 0, BOW_Y);
-
-function handleTexture() {
-  const segments = [];
-  const diagonal = Math.SQRT1_2;
-  for (const slope of [-1, 1]) {
-    const dx = diagonal,
-      dy = slope * diagonal;
-    for (let offset = -20; offset <= 20; offset += 4) {
-      const x = -dy * offset,
-        y = BOW_Y + dx * offset;
-      const reach = Math.sqrt(22 ** 2 - offset ** 2);
-      const holeCenter = -(x * dx + y * dy);
-      const holeDistance = x * x + y * y - holeCenter ** 2;
-      const intervals = [];
-      if (holeDistance < 9.1 ** 2) {
-        const clearance = Math.sqrt(9.1 ** 2 - holeDistance);
-        intervals.push([-reach, Math.min(reach, holeCenter - clearance)]);
-        intervals.push([Math.max(-reach, holeCenter + clearance), reach]);
-      } else {
-        intervals.push([-reach, reach]);
-      }
-      for (const [start, end] of intervals) {
-        if (end <= start) continue;
-        segments.push([
-          [x + dx * start, y + dy * start],
-          [x + dx * end, y + dy * end],
-        ]);
-      }
-    }
-  }
-  return segments;
-}
-const TEXTURE = handleTexture();
+const INSET_OUTER = translatedRing(HL.circ(24.8, 64), 0, BOW_Y);
+const INSET_INNER = translatedRing(HL.circ(23, 64), 0, BOW_Y);
 const NAMEPLATE = HL.rrect(-12, 19, 12, 29, 1.4, 8).map(planarPoint);
 
 function makeKey(svg, index) {
@@ -100,11 +68,10 @@ function makeKey(svg, index) {
     index,
     shape: outline(index),
     back: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
-    inset: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
-    texture: HL.mk('path', { class: 'nf lo' }, group),
-    nameplate: HL.mk('path', { class: 'lo' }, group),
-    insetWall: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
+    edgeInset: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
+    insetWalls: HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group),
     face: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
+    nameplate: HL.mk('path', { class: 'lo' }, group),
     collar: HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group),
     details: HL.mk('path', { class: 'nf lo' }, group),
     angle: HL.tween(restAngle(index)),
@@ -116,15 +83,19 @@ function drawKey(state, key, angle) {
   const top = projectKey.bind(null, state.P, angle, z);
   const bottom = projectKey.bind(null, state.P, angle, z - 2.2);
   key.back.setAttribute('d', HL.poly(key.shape.map(bottom)) + HL.poly(HOLE.map(bottom)));
-  const inset = projectKey.bind(null, state.P, angle, z - 0.8);
-  key.inset.setAttribute('d', HL.poly(INSET.map(inset)) + HL.poly(HOLE.map(inset)));
-  let texture = '';
-  for (const [start, end] of TEXTURE) texture += HL.seg(inset(start), inset(end));
-  key.texture.setAttribute('d', texture);
-  key.nameplate.setAttribute('d', HL.poly(NAMEPLATE.map(inset)));
-  key.insetWall.setAttribute('d', HL.poly(INSET.map(top)) + HL.poly(INSET.map(inset)));
-  key.face.setAttribute('d', HL.poly(key.shape.map(top)) + HL.poly(INSET.map(top)));
-  const lip = projectKey.bind(null, state.P, angle, z - 0.35);
+  const inset = projectKey.bind(null, state.P, angle, z - 0.6);
+  const outerTop = HL.poly(INSET_OUTER.map(top));
+  const innerTop = HL.poly(INSET_INNER.map(top));
+  const outerInset = HL.poly(INSET_OUTER.map(inset));
+  const innerInset = HL.poly(INSET_INNER.map(inset));
+  key.edgeInset.setAttribute('d', outerInset + innerInset);
+  key.insetWalls.setAttribute('d', outerTop + outerInset + innerTop + innerInset);
+  key.face.setAttribute(
+    'd',
+    HL.poly(key.shape.map(top)) + outerTop + innerTop + HL.poly(HOLE.map(top)),
+  );
+  key.nameplate.setAttribute('d', HL.poly(NAMEPLATE.map(top)));
+  const lip = projectKey.bind(null, state.P, angle, z + 0.45);
   key.collar.setAttribute('d', HL.poly(COLLAR.map(lip)) + HL.poly(HOLE.map(lip)));
   key.details.setAttribute('d', HL.poly(GROOVE.map(top)));
 }

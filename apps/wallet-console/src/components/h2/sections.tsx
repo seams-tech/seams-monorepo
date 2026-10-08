@@ -15,6 +15,7 @@ import {
 import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
+import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
@@ -375,7 +376,7 @@ export function H2Showcase(): React.JSX.Element {
         {showcaseViews.map((item, i) => (
           <div
             key={item.frame}
-            className={`h2-security__view${i === view ? ' is-active' : ''}`}
+            className={`h2-showcase__view${i === view ? ' is-active' : ''}`}
             aria-hidden={i !== view}
           >
             <iframe
@@ -436,179 +437,6 @@ export function H2Trusted(): React.JSX.Element {
 }
 
 /* ---------- platform pillars ---------- */
-
-type DrawPathProps = React.ComponentPropsWithoutRef<'path'>;
-type DrawRectProps = React.ComponentPropsWithoutRef<'rect'>;
-type DrawCircleProps = React.ComponentPropsWithoutRef<'circle'>;
-
-function drawLayerClassName(className: string | undefined, layer: 'base' | 'overlay'): string {
-  const prefix = className ? `${className} ` : '';
-  return `${prefix}h2-draw__${layer}`;
-}
-
-function setDrawLength(element: SVGGeometryElement | null): void {
-  if (!element) return;
-  element.style.setProperty('--h2-draw-length', `${Math.ceil(element.getTotalLength()) + 2}px`);
-}
-
-function DrawPath({ className, ...props }: DrawPathProps): React.JSX.Element {
-  return (
-    <>
-      <path {...props} pathLength={undefined} className={drawLayerClassName(className, 'base')} />
-      <path
-        {...props}
-        pathLength={undefined}
-        ref={setDrawLength}
-        className={drawLayerClassName(className, 'overlay')}
-      />
-    </>
-  );
-}
-
-function DrawRect({ className, ...props }: DrawRectProps): React.JSX.Element {
-  return (
-    <>
-      <rect {...props} pathLength={undefined} className={drawLayerClassName(className, 'base')} />
-      <rect
-        {...props}
-        pathLength={undefined}
-        ref={setDrawLength}
-        className={drawLayerClassName(className, 'overlay')}
-      />
-    </>
-  );
-}
-
-function DrawCircle({ className, ...props }: DrawCircleProps): React.JSX.Element {
-  return (
-    <>
-      <circle {...props} pathLength={undefined} className={drawLayerClassName(className, 'base')} />
-      <circle
-        {...props}
-        pathLength={undefined}
-        ref={setDrawLength}
-        className={drawLayerClassName(className, 'overlay')}
-      />
-    </>
-  );
-}
-
-const pairedKeyOutlinePath =
-  'M16 0 A16 16 0 1 0 -16 0 A16 16 0 1 0 16 0 M0 16 V62 M-5 25 H5 M-4 33 H4 M0 52 H-6 M-6 48 V56';
-const pairedKeyFirstPatternPath = 'M-12.8 -9.6 C2 -5 5 5 5 15.2 M-16 0 C-4 0 -5 9 -5 15.2';
-const pairedKeySecondPatternPath = 'M12.8 -9.6 C-2 -5 -5 5 -5 15.2 M16 0 C4 0 5 9 5 15.2';
-
-/* Two-lane MPC diagram (wallet page security section): the shares converge
-   through a policy gate into one signed output. */
-export function MpcSplitDiagram(): React.JSX.Element {
-  return (
-    <svg
-      className="h2-mpc"
-      viewBox="0 0 560 300"
-      role="img"
-      aria-label="A key split into two shares, one on the user's device and one in your infrastructure, combines through a policy check into a signature; 2-of-2 threshold, neither share signs alone"
-    >
-      {/* input lanes */}
-      <text className="h2-mpc__kicker" x="28" y="54">
-        USER{'’'}S DEVICE
-      </text>
-      <DrawRect
-        className="h2-mpc__node"
-        x="24"
-        y="64"
-        width="128"
-        height="44"
-        rx="12"
-        pathLength="1"
-      />
-      <DrawPath
-        className="h2-mpc__share-key-outline"
-        d={pairedKeyOutlinePath}
-        transform="translate(69 86) rotate(-90) scale(0.875)"
-        vectorEffect="non-scaling-stroke"
-        pathLength="1"
-      />
-      <DrawPath
-        className="h2-mpc__share-key-detail"
-        d={pairedKeyFirstPatternPath}
-        transform="translate(69 86) rotate(-90) scale(0.875)"
-        vectorEffect="non-scaling-stroke"
-        pathLength="1"
-      />
-
-      <text className="h2-mpc__kicker" x="28" y="196">
-        YOUR INFRASTRUCTURE
-      </text>
-      <DrawRect
-        className="h2-mpc__node"
-        x="24"
-        y="206"
-        width="128"
-        height="44"
-        rx="12"
-        pathLength="1"
-      />
-      <DrawPath
-        className="h2-mpc__share-key-outline"
-        d={pairedKeyOutlinePath}
-        transform="translate(69 228) rotate(-90) scale(0.875)"
-        vectorEffect="non-scaling-stroke"
-        pathLength="1"
-      />
-      <DrawPath
-        className="h2-mpc__share-key-detail"
-        d={pairedKeySecondPatternPath}
-        transform="translate(69 228) rotate(-90) scale(0.875)"
-        vectorEffect="non-scaling-stroke"
-        pathLength="1"
-      />
-
-      <DrawCircle className="h2-mpc__terminal" cx="152" cy="86" r="2.5" />
-      <DrawCircle className="h2-mpc__terminal" cx="152" cy="228" r="2.5" />
-      <DrawPath className="h2-mpc__flow" d="M152 86 C214 86 226 148 268 151" />
-      <DrawPath className="h2-mpc__flow" d="M152 228 C214 228 226 166 268 159" />
-      <DrawCircle className="h2-mpc__terminal" cx="268" cy="151" r="2.5" />
-      <DrawCircle className="h2-mpc__terminal" cx="268" cy="159" r="2.5" />
-
-      {/* policy gate */}
-      <DrawPath className="h2-mpc__guide" d="M300 112 V196" />
-      <DrawPath
-        className="h2-mpc__gate"
-        d="M300 122 L328 132 V152 C328 168 316 180 300 186 C284 180 272 168 272 152 V132 L300 122"
-        pathLength="1"
-      />
-      <DrawPath className="h2-mpc__gate-check" d="M290 152 L297 159 L311 143" pathLength="1" />
-      <text className="h2-mpc__gatelabel" x="300" y="206" textAnchor="middle">
-        policy check
-      </text>
-
-      {/* The approved path stays monochrome with the rest of the diagram. */}
-      <DrawPath className="h2-mpc__out" d="M334 154 H414" pathLength="1" />
-      <DrawPath className="h2-mpc__out" d="M408 148 L415 154 L408 160" pathLength="1" />
-      <DrawRect
-        className="h2-mpc__node h2-mpc__node--result"
-        x="420"
-        y="132"
-        width="128"
-        height="44"
-        rx="12"
-        pathLength="1"
-      />
-      <DrawPath
-        className="h2-mpc__signature-mark"
-        d="M450 161 C457 147 463 146 460 161 C469 153 476 148 473 160 C481 153 487 153 492 160 C499 166 506 151 514 157 M451 165 C471 162 493 164 518 161"
-        pathLength="1"
-      />
-      <text className="h2-mpc__resultlabel" x="484" y="206" textAnchor="middle">
-        Signed transaction
-      </text>
-
-      <text className="h2-mpc__note" x="280" y="284" textAnchor="middle">
-        2-of-2 threshold {'·'} neither share signs alone
-      </text>
-    </svg>
-  );
-}
 
 /* Split-key visual (home duo card + Embedded Wallets pillar tab): a soft
    isometric stack of the two key shares with floating labeled chips, resolving
@@ -1124,40 +952,44 @@ export function H2Cases(): React.JSX.Element {
 
 /* ---------- security ---------- */
 
-function LineArt({ children }: { children: React.ReactNode }): React.JSX.Element {
+type SecurityView = 'features' | 'signing';
+const walletCapabilities: ReadonlyArray<{ figure: WalletFigureName; label: string }> = [
+  { figure: 'keychain', label: 'Keys you control' },
+  { figure: 'interlock', label: 'Scoped permissions' },
+  { figure: 'devices', label: 'Linked devices' },
+  { figure: 'infrastructure', label: 'Self-hostable' },
+];
+
+function WalletCapability({
+  figure,
+  label,
+}: {
+  figure: WalletFigureName;
+  label: string;
+}): React.JSX.Element {
   return (
-    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" aria-hidden>
-      {children}
-    </svg>
+    <div className="h2-security__cell">
+      <WalletFigure figure={figure} />
+      <span>{label}</span>
+    </div>
   );
 }
 
-/* the right column pages between the capability grid and the signing diagram */
-const securityViews = ['Custody primitives', 'Threshold signing'];
-type SecurityView = 0 | 1;
-const securityViewDurationMs = [6000, 6000] as const;
-
-function nextSecurityView(view: SecurityView): SecurityView {
-  return view === 0 ? 1 : 0;
+function renderWalletCapability(capability: {
+  figure: WalletFigureName;
+  label: string;
+}): React.JSX.Element {
+  return (
+    <WalletCapability key={capability.figure} figure={capability.figure} label={capability.label} />
+  );
 }
 
 export function H2Security(): React.JSX.Element {
-  const [view, setView] = React.useState<SecurityView>(0);
-
-  React.useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const timeout = window.setTimeout(
-      () => setView((currentView) => nextSecurityView(currentView)),
-      securityViewDurationMs[view],
-    );
-
-    return () => window.clearTimeout(timeout);
-  }, [view]);
-
+  const [view, setView] = React.useState<SecurityView>('features');
   return (
     <section
-      className="h2-section h2-rule h2-section--pagerfoot"
+      id="wallet-security"
+      className="h2-section h2-rule"
       aria-labelledby="h2-security-title"
     >
       <div className="h2-shell">
@@ -1174,207 +1006,55 @@ export function H2Security(): React.JSX.Element {
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>Policy checks before execution</h3>
+              <h3>Permissions, enforced</h3>
               <p>
-                Approvals, budgets, revocation, and replay checks run before transactions are
-                signed, payments are sent, or API calls are made.
+                Scope what apps and agents can do. Approvals, budgets, and revocation checks run
+                before transactions are signed.
               </p>
             </div>
             <div className="h2-security__item">
-              <h3>An audit trail for decisions</h3>
+              <h3>Your wallet, across devices</h3>
               <p>
-                Review which actions were allowed, held, or blocked, with identity and policy
-                context recorded in the audit log.
+                Link another device to your wallet for access and recovery. Keep control as you move
+                between devices.
               </p>
             </div>
+            <div className="h2-security__item">
+              <h3>Your infrastructure. Your control.</h3>
+              <p>Run threshold signing on your own serverless infrastructure.</p>
+            </div>
           </div>
-          <div className="h2-security__stage">
-            <div
-              className={`h2-security__view${view === 0 ? ' is-active' : ''}`}
-              aria-hidden={view !== 0}
-            >
-              <div className="h2-security__grid">
-                <div className="h2-security__cell">
-                  <LineArt>
-                    <g strokeLinecap="round" strokeLinejoin="round">
-                      <DrawPath
-                        className="h2-lineart__primary"
-                        d="M50 13 L80 30 V64 L50 81 L20 64 V30 Z"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__hidden"
-                        d="M50 13 V34 M20 64 L38 53.8 M62 53.8 L80 64"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d="M20 30 L38 40.2 M62 40.2 L80 30 M50 62 V81"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__share"
-                        d="M50 34 L62 41 V55 L50 62 L38 55 V41 Z"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d="M38 41 L50 48 L62 41 M50 48 V62"
-                        pathLength="1"
-                      />
-                    </g>
-                    <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="13" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="20" cy="30" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="80" cy="30" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="20" cy="64" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="80" cy="64" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="81" r="1.4" />
-                    </g>
-                  </LineArt>
-                  <span>Split-key custody</span>
-                </div>
-                <div className="h2-security__cell">
-                  <LineArt>
-                    <DrawPath className="h2-lineart__guide" d="M50 7 V14 M50 84 V91" />
-                    <g strokeLinecap="round" strokeLinejoin="round">
-                      <DrawPath
-                        className="h2-lineart__primary"
-                        d="M50 14 L79 24 V46 C79 64 67 76 50 84 C33 76 21 64 21 46 V24 Z"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__hidden"
-                        d="M50 22 L72 30 V46 C72 59 63 69 50 76 C37 69 28 59 28 46 V30 Z"
-                      />
-                      <DrawPath
-                        className="h2-lineart__accent"
-                        d="M39 48 L47 56 L62 40"
-                        pathLength="1"
-                      />
-                    </g>
-                    <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="14" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="50" cy="84" r="1.4" />
-                    </g>
-                  </LineArt>
-                  <span>Policy engine</span>
-                </div>
-                <div className="h2-security__cell">
-                  <LineArt>
-                    <DrawPath
-                      className="h2-lineart__guide"
-                      d="M36 8 V15 M36 61 V68 M6 38 H13 M59 38 H66"
-                    />
-                    <DrawCircle className="h2-lineart__hidden" cx="36" cy="38" r="23" />
-                    <g
-                      transform="translate(36 38) rotate(-45)"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <DrawPath
-                        className="h2-lineart__primary"
-                        d={pairedKeyOutlinePath}
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d={pairedKeyFirstPatternPath}
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d={pairedKeySecondPatternPath}
-                        pathLength="1"
-                      />
-                    </g>
-                    <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="36" cy="15" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="13" cy="38" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="59" cy="38" r="1.4" />
-                    </g>
-                  </LineArt>
-                  <span>Scoped credentials</span>
-                </div>
-                <div className="h2-security__cell">
-                  <LineArt>
-                    <g strokeLinecap="round" strokeLinejoin="round">
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d="M32 24 V14 H76 V76 H68"
-                        pathLength="1"
-                      />
-                      <DrawPath className="h2-lineart__guide" d="M32 14 L24 24 M76 76 L68 86" />
-                      <DrawPath
-                        className="h2-lineart__primary"
-                        d="M24 24 H55 L68 37 V86 H24 Z"
-                        fill="var(--h2-bg)"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d="M55 24 V37 H68 M31 35 H44"
-                        pathLength="1"
-                      />
-                      <DrawPath
-                        className="h2-lineart__secondary"
-                        d="M37 45 H59 M37 55 H55 M37 65 H59 M37 75 H50"
-                        pathLength="1"
-                      />
-                    </g>
-                    <g className="h2-lineart__markers">
-                      <DrawCircle className="h2-lineart__marker" cx="30" cy="45" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="30" cy="55" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="30" cy="65" r="1.4" />
-                      <DrawCircle className="h2-lineart__marker" cx="30" cy="75" r="1.4" />
-                    </g>
-                  </LineArt>
-                  <span>Audit log</span>
-                </div>
-              </div>
+          <div className="h2-security__visuals">
+            <div className="h2-security__switch" role="group" aria-label="Custody illustrations">
+              <button
+                type="button"
+                aria-pressed={view === 'features'}
+                onClick={setView.bind(null, 'features')}
+              >
+                Wallet capabilities
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === 'signing'}
+                onClick={setView.bind(null, 'signing')}
+              >
+                How signing works
+              </button>
             </div>
-            <div
-              className={`h2-security__view${view === 1 ? ' is-active' : ''}`}
-              aria-hidden={view !== 1}
-            >
-              <MpcSplitDiagram />
+            <div className="h2-security__stage">
+              {view === 'features' ? (
+                <div className="h2-security__grid">
+                  {walletCapabilities.map(renderWalletCapability)}
+                </div>
+              ) : (
+                <div className="h2-security__signing">
+                  <WalletFigure figure="signing" />
+                </div>
+              )}
             </div>
+            <p className="h2-security__hint">Hover or tap an illustration to explore.</p>
           </div>
         </div>
-      </div>
-      {/* pager straddles the section's bottom rule, centered on the page */}
-      <div className="h2-security__progress" aria-hidden="true">
-        <span
-          key={view}
-          className="h2-security__progress-fill"
-          style={{ animationDuration: `${securityViewDurationMs[view]}ms` }}
-        />
-      </div>
-      <div className="h2-pager" role="group" aria-label="Custody views">
-        <button
-          type="button"
-          className="h2-pager__btn"
-          aria-label="Previous custody view"
-          onClick={() => setView((currentView) => nextSecurityView(currentView))}
-        >
-          <ChevronLeft aria-hidden />
-        </button>
-        <span className="h2-pager__dots">
-          {securityViews.map((name, i) => (
-            <span
-              key={name}
-              className={`h2-pager__dot${i === view ? ' is-active' : ''}`}
-              title={name}
-            />
-          ))}
-        </span>
-        <button
-          type="button"
-          className="h2-pager__btn"
-          aria-label="Next custody view"
-          onClick={() => setView((currentView) => nextSecurityView(currentView))}
-        >
-          <ChevronRight aria-hidden />
-        </button>
       </div>
     </section>
   );

@@ -307,3 +307,13 @@ Hover or Enter starts four stages: incoming signals (600ms), policy check (250ms
 Stroke tracing reveals sampled geometry instead of using dash offsets. This avoids gaps when non-scaling strokes render at different preview sizes. The labels, shield/check symbol, and signature are explicit parts of the approved mock. This diagram therefore extends the standalone Hairline no-label convention and 200-line limit, while keeping its kernel and bench unchanged.
 
 Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js`, then rebuild its `index.html` with the Hairline `build.mjs`. Run `.artifacts/threshold-signing/check.mjs` for a repeatable browser check. It records independent arrivals, stage ordering, partial signature strokes, interrupted reversal, keyboard control, reduced motion, alignment, both themes, slider extremes, and frame bounds. Screenshots and `check.json` are saved beside the check script.
+
+## Wallet frontpage integration
+
+The custody section at `/wallet` uses five approved figures. The capability grid contains the keychain, combination interlock, linked phones, and server-rack wall. The manual “How signing works” switch shows the threshold-signing diagram. The section does not advance on a timer.
+
+`src/components/h2/WalletFigure.tsx` imports each generated preview HTML from the Wallet Console showcase. It extracts the unchanged kernel and figure scripts into a sandboxed iframe. The small host in `src/components/h2/hairline/embed.js` replaces the preview controls. Rebuild the relevant showcase HTML after changing a figure; the frontpage consumes that same artifact.
+
+Hover explores each figure. Enter, Space, or a touch tap toggles its animation. A second activation resets it. Figures retain their reduced-motion and offscreen suspension behavior. Essential descriptions remain in the surrounding HTML. These illustrations never control wallet state.
+
+Browser verification covers all five figures, keyboard and touch activation, manual view selection, reduced motion, and desktop/mobile layout. Local artifacts are in `.artifacts/wallet-frontpage/`. The integration check uses a validated public deployment-discovery fixture because the installed local Wallet server schema lacks a table required by deployment discovery. It does not verify wallet operations.

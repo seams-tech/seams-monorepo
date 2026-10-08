@@ -948,6 +948,7 @@ function shield(svg, P) {
   const silhouette = HL.hull(face.concat(back));
   HL.put(body, { sil: HL.poly(silhouette), crease: HL.poly(face) });
   body.sil.setAttribute('class', 'hi');
+  body.cr.setAttribute('class', 'sil nf');
   path(body.g, HL.poly(inset));
   const mark = trace(
     body.g,

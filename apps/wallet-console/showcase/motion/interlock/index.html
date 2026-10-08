@@ -720,6 +720,7 @@ var HL = (() => {
 <script type="module" id="hl-figure">
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
+const BAR_START = -115;
 function path(parent, classes) {
   return HL.mk('path', { class: classes }, parent);
 }
@@ -802,7 +803,7 @@ function bar(svg, low, high, cover) {
   return { low, high, surface, edge, crease };
 }
 function drawBar(P, part, travel) {
-  const start = Math.max(part.low, -135 + travel);
+  const start = Math.max(part.low, BAR_START + travel);
   const end = Math.min(part.high, -25 + travel);
   let fill = '';
   let edge = '';
@@ -815,7 +816,7 @@ function drawBar(P, part, travel) {
     for (let i = 0; i < outline.length; i++) {
       const [p, q] = [outline[i], outline[(i + 1) % outline.length]];
       if (b.includes(p) && b.includes(q)) continue;
-      if (start !== -135 + travel && a.includes(p) && a.includes(q)) continue;
+      if (start !== BAR_START + travel && a.includes(p) && a.includes(q)) continue;
       edge += HL.seg(p, q);
     }
     if (end === -25 + travel) edge += HL.poly(b);
@@ -879,11 +880,11 @@ function set(state, duration) {
 }
 function mount({ stage, svg, read }, duration) {
   const C = HL.Cam(45, 0.5, 1.75);
-  const farCorner = [-135, -4, 68];
+  const farCorner = [BAR_START, -4, 68];
   HL.fit(C, [farCorner, [104, 0, 3]], 200, 166);
   const P = HL.proj(C);
   base(svg, P, HL.facing(C));
-  const bars = [bar(svg, -135, -36, pedestal(svg, P, -44, true))];
+  const bars = [bar(svg, BAR_START, -36, pedestal(svg, P, -44, true))];
   const discs = [];
   let previous = -36;
   for (const [index, x] of [-18, 9, 36].entries()) {

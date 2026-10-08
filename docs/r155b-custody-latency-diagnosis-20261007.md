@@ -630,3 +630,82 @@ counts, version audits, local checks, limitations, and restoration evidence.
 
 All thirteen original staging versions were restored. Tenant activation passed
 in [run 37718977503](https://github.com/seams-tech/seams-monorepo/actions/runs/37718977503).
+
+## 2026-10-08: target preparation overlap and runtime reuse
+
+The implementation passed verification. The hosted comparison did not establish
+a setup speedup. Its median exceeded both controls. The **1–2 second Yao setup
+target remains unmet**.
+
+Wallet commit `ff2c4aecb864bea39ea5b35615ba336b4733cdc7` removes repeated runtime
+parsing within Signing Worker installation and B's command handlers. A now prepares
+and encrypts its target proof while B connects. It sends the proof only after
+acceptance verification and the durable execution claim. Fresh cancellation
+reads, signed readiness checks, and relocation checks remain in place.
+
+The target-proof exchange remains required. Putting A's proof in the opening
+request would delay B's connection until the fresh root read and proof preparation
+finish. The implemented overlap avoids that added dependency. It changes neither
+the protocol exchange count nor the HTTP request count.
+
+Five strict release builds, the other Workers host check, thirteen local E2Es,
+and the exact-tree bloat check passed before hosted testing. The added E2E delays
+B acceptance until A prepares its proof, then forges the acceptance signature.
+A sends zero protocol messages. Both connections close and both pair states burn.
+An exact retry does not restart execution. A separate wallet still completes.
+
+| Complete Yao execute HTTP request | Median | Observed range |
+| --- | ---: | ---: |
+| Control before | **3.863 s** | 3.141–4.760 s |
+| Candidate | **4.206 s** | 2.523–4.233 s |
+| Control after | **3.728 s** | 2.653–4.290 s |
+
+Each arm used three fresh NEAR-only wallets and verified twenty-one signatures.
+The measurements exclude funding, NEAR provisioning, and the first signature.
+A separate placement arm verified seven signatures for one additional wallet.
+Its outbound probes affect latency, so its timings are excluded from comparison.
+
+In arm order, A execution-stage medians were **2,021 / 1,656 / 1,784 ms**.
+Signing Worker delivery medians were **581 / 539 / 606 ms**. B connection medians
+were **744 / 755 / 386 ms**. The shorter candidate stage does not establish a
+complete setup gain. Stage medians describe different requests and cannot be added.
+Application clocks freeze during CPU work. Provider CPU covers whole invocations.
+Even unchanged A preparation code showed CPU variation across these arms.
+
+Bound-root loading remains **six D1 calls and sixteen SQL statements per setup**.
+This excludes other D1 operations and local DO SQL. Warm and consecutive signing
+each use four Gateway requests. Unlock through the first verified signature uses
+nine. Registration through the first signature uses fourteen or fifteen requests.
+The difference is one session-status poll. Candidate samples use five polls.
+Control samples use four or five. All workload timings remain in the evidence.
+
+Cloudflare analytics located all **40 matched wallet object IDs in HKG**. These
+cover A, B, the Signing Worker, and the Router across all ten wallets. For critical
+Worker requests, 51 of 60 matching second-level buckets resolved to HKG. Nine
+were unavailable. The buckets also match script version. Adaptive sampling and
+bucket granularity limit request-level conclusions. Other registration and
+management calls appeared in FRA in the broader windows.
+
+Separate read-only D1 queries reported the following primary locations:
+
+| Database | Region | Site code |
+| --- | --- | --- |
+| Deriver A private D1 | APAC | KIX |
+| Deriver B private D1 | APAC | SIN |
+| Signing Worker private D1 | APAC | ICN |
+
+Replication was disabled for all three. These snapshots preceded the benchmark.
+They are not location traces for every setup query. Cloudflare defines
+`served_by_colo` as the site that handled the query. A shared APAC label does not
+establish same-site D1 placement.
+[D1 metadata definition](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/raw/).
+
+Retain the simpler runtime handling and verified overlap without claiming a
+hosted speedup. All 70 signatures verified, and all captured serving versions
+matched. All thirteen original staging versions were restored. Activation passed
+in [run 37724107697](https://github.com/seams-tech/seams-monorepo/actions/runs/37724107697).
+No new resources, production deployment, or npm release was required.
+
+[Sanitized evidence](evidence/r155b-overlapped-target-20261008.json) contains source
+and build hashes, individual samples, request counts, local checks, placement
+correlations, version audits, limitations, and restoration evidence.

@@ -4,10 +4,9 @@ const RACK_WIDTH = 40;
 const RACK_COUNT = 3;
 function block(parent, P, front, x0, y0, x1, y1, low, high, radius = 1) {
   const inset = Math.min(0.6, (x1 - x0) / 4, (y1 - y0) / 4);
-  HL.put(
-    HL.solid(parent),
-    HL.prism(P, front, ...HL.rings(x0, y0, x1, y1, radius, inset), low, high),
-  );
+  const body = HL.solid(parent);
+  HL.put(body, HL.prism(P, front, ...HL.rings(x0, y0, x1, y1, radius, inset), low, high));
+  return body;
 }
 function facePoint(P, x, point) {
   return P(x, point.u, point.v);
@@ -22,7 +21,6 @@ function face(parent, P, x, y0, z0, y1, z1, radius, classes = 'lo nf') {
 }
 function post(parent, P, front, y) {
   block(parent, P, front, 10, y - 1, 13, y + 1, 5, 80, 0.5);
-  for (let z = 9; z < 79; z += 6) face(parent, P, 13.1, y - 0.3, z, y + 0.3, z + 1, 0.15);
 }
 function server(parent, P, front, rack, bay) {
   const y = RACK_WIDTH / 2 + rack * RACK_WIDTH,
@@ -30,12 +28,11 @@ function server(parent, P, front, rack, bay) {
   const group = HL.mk('g', { 'data-bay': bay }, parent);
   for (const rail of [-16.8, 16.8])
     block(group, P, front, -17, y + rail - 0.4, 12, y + rail + 0.4, z + 1, z + 2, 0.3);
-  block(group, P, front, -19, y - 16, 12, y + 16, z, z + 10.8, 1);
-  const panel = face(group, P, 12.1, y - 16, z, y + 16, z + 10.8, 0.9, 'sil');
+  const body = block(group, P, front, -19, y - 16, 12, y + 16, z, z + 10.8, 1);
+  body.sil.setAttribute('class', 'lo');
+  const panel = face(group, P, 12.1, y - 16, z, y + 16, z + 10.8, 0.9, 'lo');
   face(group, P, 12.2, y - 11, z + 4.3, y - 2, z + 6.2, 0.8);
-  for (const dz of [3, 5, 7]) face(group, P, 12.2, y + 8, z + dz, y + 13, z + dz + 0.6, 0.3);
-  for (const edge of [-14.5, 14.5])
-    face(group, P, 12.2, y + edge - 0.3, z + 8.5, y + edge + 0.3, z + 9.1, 0.3);
+  face(group, P, 12.2, y + 8, z + 5, y + 13, z + 5.6, 0.3);
   const lamp = face(group, P, 12.3, y + 2, z + 6, y + 3, z + 7, 0.5, 'dot m');
   return { rack, bay, y, z: z + 5.4, group, panel, lamp, slide: HL.tween(0, 180), drawn: NaN };
 }
@@ -49,11 +46,10 @@ function doorPoint(P, hinge, angle, depth, point) {
 function door(parent, rack) {
   const group = HL.mk('g', { 'data-door': rack }, parent);
   const glass = HL.mk('path', { class: 'fo', opacity: 0.12 }, group);
-  const frame = HL.mk('path', { class: 'sil', 'fill-rule': 'evenodd' }, group);
+  const frame = HL.mk('path', { class: 'lo', 'fill-rule': 'evenodd' }, group);
   const crease = HL.mk('path', { class: 'lo nf' }, group);
-  const reflection = HL.mk('path', { class: 'lo nf', opacity: 0.6 }, group);
-  const handle = HL.mk('path', { class: 'sil' }, group);
-  return { group, glass, frame, crease, reflection, handle, motion: HL.tween(0, 260), drawn: NaN };
+  const handle = HL.mk('path', { class: 'lo' }, group);
+  return { group, glass, frame, crease, handle, motion: HL.tween(0, 260), drawn: NaN };
 }
 function drawDoor(P, rack, progress) {
   const angle = (-progress * Math.PI) / 2;
@@ -70,14 +66,6 @@ function drawDoor(P, rack, progress) {
     'd',
     HL.poly(HL.rrect(31.2, 36, 32.5, 48, 0.5, 6).map(project.bind(null, 1.3))),
   );
-  let reflection = '';
-  for (const offset of [0, 3]) {
-    reflection += HL.seg(
-      project(0.9, { u: 7 + offset, v: 70 }),
-      project(0.9, { u: 13 + offset, v: 61 }),
-    );
-  }
-  rack.door.reflection.setAttribute('d', reflection);
   // Past the edge-on pose, the far-hinged door sits behind the server units.
   const parent = rack.door.group.parentNode;
   if (progress >= 0.5) parent.insertBefore(rack.door.group, rack.modules[0].group);
@@ -142,7 +130,7 @@ function retarget(state) {
   }
   for (const rack of state.racks) {
     for (const module of rack.modules) {
-      module.panel.setAttribute('class', module === nearest ? 'hi' : 'sil');
+      module.panel.setAttribute('class', module === nearest ? 'hi' : 'lo');
       module.lamp.setAttribute('class', module === nearest ? 'dot' : 'dot m');
     }
   }
@@ -193,7 +181,7 @@ function mount({ stage, svg, read }, radius) {
   for (let index = 0; index < RACK_COUNT; index++) {
     const y = index * RACK_WIDTH;
     const group = HL.mk('g', { 'data-rack': index }, svg);
-    block(group, P, front, -22, y, 14, y + RACK_WIDTH, 0, 5, 1.4);
+    block(group, P, front, -22, y, 14, y + RACK_WIDTH, 0, 5, 2);
     block(group, P, front, -22, y + 1, -20, y + 39, 5, 80, 0.7);
     block(group, P, front, -20, y, 11, y + 2, 5, 80, 0.7);
     post(group, P, front, y + 2);
@@ -203,7 +191,7 @@ function mount({ stage, svg, read }, radius) {
     for (let bay = 0; bay < 6; bay++) modules.push(server(group, P, front, index, bay));
     block(group, P, front, -20, y + 38, 11, y + RACK_WIDTH, 5, 80, 0.7);
     post(group, P, front, y + 38);
-    block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 1.4);
+    block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 2);
     racks.push({ index, modules, door: door(group, index) });
   }
   const state = { P, racks, read, radius, over: null, loop: null };

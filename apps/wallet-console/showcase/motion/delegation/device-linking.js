@@ -56,7 +56,8 @@ function phone(parent, P, center, name) {
   const back = [];
   for (const point of ring) back.push(P(-1.6, center + point.u, point.v));
   path(group, HL.poly(HL.hull(back.concat(front))), 'sil');
-  path(group, HL.poly(front), name === 'scanner' ? 'hi' : 'sil');
+  const outline = path(group, HL.poly(front), name === 'scanner' ? 'hi' : 'sil');
+  if (name === 'scanner') outline.setAttribute('stroke-opacity', 0.55);
   screenPath(group, P, center, HL.rrect(-19.5, 5.5, 19.5, 86.5, 5.4, 12));
   screenPath(group, P, center, HL.rrect(-5.3, 80.5, 5.3, 83.4, 1.45, 12), 'dot m');
   screenPath(group, P, center, HL.rrect(-5.5, 8.2, 5.5, 8.9, 0.35, 8), 'dot m');
@@ -65,9 +66,10 @@ function phone(parent, P, center, name) {
   const screen = screenLayer(group, P, center);
   const content = HL.mk('g', { 'data-part': 'scan-content' }, screen);
   const qr = qrCode(content);
-  const brackets = 'M-9 -15H-15V-9 M9 -15H15V-9 M15 9V15H9 M-9 15H-15V9';
-  path(content, brackets, name === 'scanner' ? 'sil nf' : 'lo nf');
-  const sweep = path(content, '', 'hi nf');
+  const brackets = 'M-11 -15H-15V-11 M11 -15H15V-11 M15 11V15H11 M-11 15H-15V11';
+  const frame = path(content, brackets, name === 'scanner' ? 'hi nf' : 'lo nf');
+  if (name === 'scanner') frame.setAttribute('stroke-opacity', 0.5);
+  const sweep = path(content, '', 'sil nf');
   sweep.setAttribute('data-part', 'scan-line');
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
   const rim = path(success, '', 'hi nf');
@@ -151,7 +153,8 @@ function tickStroke(ink) {
 }
 function drawScreen(device, code, scan, success, scanner) {
   device.content.setAttribute('opacity', 1 - progressBetween(success, 0, 0.2));
-  device.qr.group.setAttribute('opacity', scanner ? code * 0.55 : 0.72);
+  const codeContrast = HL.lerp(0.55, 0.7, FINISH_EASE(progressBetween(scan, 0, 0.15)));
+  device.qr.group.setAttribute('opacity', scanner ? code * 0.55 : codeContrast);
   device.qr.finders.setAttribute('opacity', 1);
   for (let row = 0; row < device.qr.rows.length; row++) {
     const revealed = scanner ? HL.clamp(code * (QR_ROWS.length + 1) - row, 0, 1) : 1;
@@ -161,9 +164,9 @@ function drawScreen(device, code, scan, success, scanner) {
   device.sweep.setAttribute('d', HL.seg([-13, sweepY], [13, sweepY]));
   device.sweep.setAttribute('opacity', Math.sin(Math.PI * scan));
   const settle = FINISH_EASE(progressBetween(success, CIRCLE_END, 1));
-  device.success.setAttribute('opacity', progressBetween(success, 0.08, 0.3));
+  device.success.setAttribute('opacity', progressBetween(success, 0.22, 0.4));
   device.success.setAttribute('transform', `scale(${HL.lerp(0.96, 1, settle)})`);
-  const circle = FINISH_EASE(progressBetween(success, 0.08, CIRCLE_END));
+  const circle = FINISH_EASE(progressBetween(success, 0.22, CIRCLE_END));
   device.rim.setAttribute('d', successArc(circle));
   device.rim.setAttribute('data-progress', circle);
   const ink = progressBetween(success, CIRCLE_END, TICK_END);

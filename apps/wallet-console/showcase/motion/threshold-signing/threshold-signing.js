@@ -46,7 +46,22 @@ function port(svg, P) {
   }
   path(svg, HL.poly(points), 'sil');
 }
-function classicKey(parent, P) {
+function embossedRing(parent, P, front, outerRadius, innerRadius, height) {
+  const outer = HL.circ(outerRadius, 64);
+  const inner = HL.circ(innerRadius, 64);
+  const visible = HL.run(outer, front);
+  const bottom = HL.ringAt(P, visible, 4.6);
+  const top = HL.ringAt(P, visible, height);
+  path(parent, HL.poly(bottom.concat(top.slice().reverse())), 'fo');
+  path(parent, HL.open(bottom));
+  const face = path(
+    parent,
+    HL.poly(HL.ringAt(P, outer, height)) + HL.poly(HL.ringAt(P, inner, height)),
+    'lo',
+  );
+  face.setAttribute('fill-rule', 'evenodd');
+}
+function classicKey(parent, P, front) {
   const radius = 8.5;
   const neckAngle = Math.asin(3 / radius);
   const neck = -15 + Math.sqrt(radius ** 2 - 3 ** 2);
@@ -114,6 +129,8 @@ function classicKey(parent, P) {
   face.setAttribute('fill-rule', 'evenodd');
   const groove = HL.rrect(-6, -1.5, 20, -0.6, 0.4, 8);
   path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
+  embossedRing(parent, local.bind(null, P, [-15, 0]), front, 7.6, 7.1, 4.95);
+  embossedRing(parent, holeP, front, 2.75, 2.1, 5.2);
 }
 function slab(svg, P, front) {
   const body = HL.solid(svg);
@@ -122,7 +139,10 @@ function slab(svg, P, front) {
     sil: HL.poly(HL.hull(HL.ringAt(P, outline, 0).concat(HL.ringAt(P, outline, 2.6)))),
     crease: HL.open(HL.ringAt(P, HL.run(outline, front), 2.6)),
   });
-  classicKey(body.g, P);
+  const engravings =
+    HL.seg(P(-25, 11, 2.6), P(-17, 11, 2.6)) + HL.seg(P(-25, 13, 2.6), P(-20, 13, 2.6));
+  path(body.g, engravings);
+  classicKey(body.g, P, front);
 }
 function curvePoints(points) {
   const samples = [];

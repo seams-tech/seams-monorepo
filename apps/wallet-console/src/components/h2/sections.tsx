@@ -908,14 +908,12 @@ export function H2Security(): React.JSX.Element {
               >
                 {walletCapabilities.map(renderWalletCapability)}
               </div>
-              <div
-                className={`h2-security__view h2-security__signing${view === 'signing' ? ' is-active' : ''}`}
-                aria-hidden={view !== 'signing'}
-              >
-                <WalletFigure figure="signing" />
-              </div>
+              {view === 'signing' && (
+                <div className="h2-security__view h2-security__signing is-active">
+                  <WalletFigure figure="signing" />
+                </div>
+              )}
             </div>
-            <p className="h2-security__hint">Hover or tap an illustration to explore.</p>
           </div>
         </div>
       </div>

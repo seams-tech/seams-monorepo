@@ -22,7 +22,13 @@ function figureDocument(html: string, pointerX: number, pointerY: number): strin
 :root { color-scheme: light; --muted: #777169; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 #stage { width: 100%; height: 100%; touch-action: pan-y; }
-#stage svg { display: block; width: 100%; height: 100%; }
+#stage svg { display: block; width: 100%; height: 100%; transform: scale(1.32); transform-origin: center; }
+#stage[data-hairline="scoped-credentials"] svg { transform: translateX(5%) scale(1.32); }
+#stage[data-hairline="interlock"] svg { transform: translateX(2%) scale(1.32); }
+#stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
+@media (max-width: 480px) {
+  #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%) scale(1.05); }
+}
 [data-hairline="threshold-signing"] svg text { font-size: 8.2px; letter-spacing: 0.25px; }
 #stage:focus-visible { outline: 1px solid #777169; outline-offset: -3px; border-radius: 8px; }
 #read { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }

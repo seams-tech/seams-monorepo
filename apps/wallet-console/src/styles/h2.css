@@ -3025,6 +3025,7 @@ body:has(.h2-page) {
 .h2-security__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  transform: translateY(-16px);
 }
 
 .h2-security__cell {
@@ -3048,13 +3049,13 @@ body:has(.h2-page) {
 .h2-wallet-figure {
   display: block;
   width: 100%;
-  aspect-ratio: 5 / 4;
+  aspect-ratio: 5 / 4.6;
   border: 0;
   background: var(--h2-bg);
 }
 
 .h2-wallet-figure[data-figure='signing'] {
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 7 / 5;
 }
 
 @container (max-width: 480px) {
@@ -3068,13 +3069,6 @@ body:has(.h2-page) {
   font-size: var(--h2-text-base);
   letter-spacing: 0.015em;
   color: var(--h2-smoke);
-}
-
-.h2-security__hint {
-  margin: 20px 0 0;
-  color: var(--h2-ash);
-  font-size: var(--h2-text-sm);
-  text-align: center;
 }
 
 @media (max-width: 980px) {

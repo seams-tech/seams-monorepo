@@ -268,7 +268,7 @@ Before production integration, check keyboard access, reduced motion, and physic
 
 Preview: `/dashboard-static/showcase/motion/infrastructure-array/`.
 
-Five adjoining racks hold six server modules each. Closed side panels, mounting posts, rail sections, recessed handles, ventilation slots, and status dots establish the datacenter setting. The mirrored 65-degree camera shows the rack fronts and their depth. A few modules rest slightly withdrawn to suggest movement before interaction.
+Five adjoining racks hold six server modules each. Closed side panels, mounting posts, rail sections, recessed handles, ventilation slots, and status dots establish the datacenter setting. The mirrored 45-degree camera uses the same 2:1 isometric projection as the interlock. It shows the rack fronts and their depth. A few modules rest slightly withdrawn to suggest movement before interaction.
 
 Moving across the wall draws nearby modules outward along their rails. A Gaussian falloff spreads the motion across neighboring racks and bays. Each module has an independent default Hairline spring. The maximum withdrawal is 24 world units. The slider sets the wave radius to 18, 30, or 44 world units. Leaving restores the resting arrangement.
 
@@ -300,7 +300,7 @@ Preview: `/dashboard-static/showcase/motion/threshold-signing/`.
 
 This fifth illustration follows the approved two-source diagram. Two keys remain in separate recessed trays, labelled “USER’S DEVICE” and “YOUR INFRASTRUCTURE”. Each key has a circular head with two curved seams, a fine shaft, and small perpendicular teeth. Both paths meet a simple shield. A transaction plate receives the outgoing signal and an engraved signature.
 
-Every solid uses the same `Cam(45, 0.5, 1.45)` projection. Keys lie on their tray floors. The shield stands upright in an x/z plane, with a thin side edge. The transaction plate follows the same ground axes as the trays. The source centres share a screen x-coordinate, and the policy and transaction captions share a baseline. Labels remain horizontal for reading. Source connectors draw in front of the trays and behind the shield and transaction plate, so the visible ports connect without gaps.
+Every solid uses the same `Cam(45, 0.5, 1.45)` projection. Keys lie on their tray floors. The shield lies flat in the x/y plane, with a two-unit side edge and a check engraved on its top. The transaction plate follows the same ground axes as the trays. Every wire follows straight x/y segments at one shared height. Signals follow those same segments through each corner. The lower tray connects through its rear rim. The source centres share a screen x-coordinate, and the policy and transaction captions share a baseline. Labels remain horizontal for reading. Source connectors draw in front of the trays and behind the shield and transaction plate, so the visible ports connect without gaps.
 
 Hover or Enter starts four stages: incoming signals (600ms), policy check (250ms), outgoing signal (280ms), and signature tracing (450ms). The intensity slider varies the separation between incoming arrivals. The check waits for both arrivals. The signature waits for the outgoing signal. Keys remain stationary throughout. Leaving reverses the sequence; returning resumes from the current pose. Enter and Space toggle the animation from keyboard focus. Reduced motion lands at the final pose, and the shared loop sleeps once settled or offscreen.
 
@@ -310,7 +310,7 @@ Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js
 
 ## Wallet frontpage integration
 
-The custody section at `/wallet` uses five approved figures. The capability grid contains the keychain, combination interlock, linked phones, and server-rack wall. The manual “How signing works” switch shows the threshold-signing diagram. The section does not advance on a timer.
+The custody section at `/wallet` uses five approved figures. The capability grid contains the keychain, combination interlock, linked phones, and server-rack wall. The linked phones and rack wall use the interlock’s 45-degree, 2:1 isometric perspective. The manual “How signing works” switch shows the threshold-signing diagram. The section does not advance on a timer.
 
 `src/components/h2/WalletFigure.tsx` imports each generated preview HTML from the Wallet Console showcase. It extracts the unchanged kernel and figure scripts into a sandboxed iframe. The small host in `src/components/h2/hairline/embed.js` replaces the preview controls. Rebuild the relevant showcase HTML after changing a figure; the frontpage consumes that same artifact.
 

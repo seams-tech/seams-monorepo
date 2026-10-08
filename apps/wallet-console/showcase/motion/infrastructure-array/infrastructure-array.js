@@ -99,7 +99,7 @@ function view(P, x, y, z) {
   return [400 - point[0], point[1]];
 }
 function mount({ stage, svg, read }, radius) {
-  const C = HL.Cam(65, 0.3, 1.72);
+  const C = HL.Cam(45, 0.5, 1.72);
   const bounds = [
     [-22, 0, 84],
     [32, 160, 0],

@@ -39,11 +39,18 @@ function label(svg, location, text) {
 function rear(sample) {
   return sample.nu + sample.nv < 0;
 }
-function port(svg, P, x, z) {
+function port(svg, P, x, y, side) {
   const points = [];
   for (let step = 0; step < 32; step++) {
     const angle = (step * Math.PI) / 16;
-    points.push(P(x, 1.1 * Math.cos(angle), z + 1.1 * Math.sin(angle)));
+    const offset = 1.1 * Math.cos(angle);
+    points.push(
+      P(
+        x + (side === 'y' ? offset : 0),
+        y + (side === 'x' ? offset : 0),
+        3 + 1.1 * Math.sin(angle),
+      ),
+    );
   }
   path(svg, HL.poly(points), 'sil');
 }
@@ -86,12 +93,32 @@ function tray(svg, P, front, mirrored) {
   shaft += HL.seg(P(17, 0, 3.7), P(17, 4, 3.7));
   shaft += HL.seg(P(14.8, 4, 3.7), P(19.2, 4, 3.7));
   path(body.g, shaft, 'sil nf');
-  port(body.g, P, 33.05, 3);
+  if (mirrored) port(body.g, P, 0, -17.05, 'y');
+  else port(body.g, P, 33.05, 0, 'x');
 }
 function curvePoints(points) {
   const samples = [];
   for (let step = 0; step <= 48; step++) samples.push(curvePoint(points, step / 48));
   return samples;
+}
+function wirePoints(vertices) {
+  const samples = [vertices[0]];
+  for (let index = 1; index < vertices.length; index++) {
+    const a = vertices[index - 1];
+    const b = vertices[index];
+    const steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
+    for (let step = 1; step <= steps; step++) {
+      samples.push([HL.lerp(a[0], b[0], step / steps), HL.lerp(a[1], b[1], step / steps)]);
+    }
+  }
+  return samples;
+}
+function tracePoint(points, progress) {
+  const position = progress * (points.length - 1);
+  const index = Math.floor(position);
+  const a = points[index];
+  const b = points[Math.min(index + 1, points.length - 1)];
+  return [HL.lerp(a[0], b[0], position - index), HL.lerp(a[1], b[1], position - index)];
 }
 function trace(svg, points, name) {
   return { points, el: HL.mk('path', { class: 'hi nf', 'data-part': name }, svg) };
@@ -101,33 +128,31 @@ function setTrace(trace, progress) {
   const index = Math.floor(position);
   const vertices = trace.points.slice(0, index + 1);
   if (index < trace.points.length - 1) {
-    const a = trace.points[index],
-      b = trace.points[index + 1];
-    vertices.push([HL.lerp(a[0], b[0], position - index), HL.lerp(a[1], b[1], position - index)]);
+    vertices.push(tracePoint(trace.points, progress));
   }
   trace.el.setAttribute('d', progress > 0 ? HL.open(vertices) : '');
   trace.el.setAttribute('data-progress', progress);
 }
 function shield(svg, P) {
   const outline = [
-    [-11, 30],
-    [0, 35],
-    [11, 30],
-    [11, 20],
-    [8, 11],
-    [0, 5],
-    [-8, 11],
-    [-11, 20],
+    [-14, -12],
+    [0, -18],
+    [14, -12],
+    [14, 1],
+    [10, 11],
+    [0, 18],
+    [-10, 11],
+    [-14, 1],
   ];
   const face = [],
     back = [];
-  for (const [x, z] of HL.fillet(outline, [1, 0.6, 1, 3, 3, 1, 3, 3], 8)) {
-    face.push(P(x, 1, z));
-    back.push(P(x, -1, z));
+  for (const [x, y] of HL.fillet(outline, [1, 0.6, 1, 3, 3, 1, 3, 3], 8)) {
+    face.push(P(x, y, 4));
+    back.push(P(x, y, 2));
   }
   const body = HL.solid(svg);
   HL.put(body, { sil: HL.poly(HL.hull(face.concat(back))), crease: HL.poly(face) });
-  const mark = trace(body.g, [P(-5, 1.1, 21), P(-1, 1.1, 17), P(6, 1.1, 27)], 'check');
+  const mark = trace(body.g, [P(-6, 0, 4.1), P(-1, 5, 4.1), P(7, -7, 4.1)], 'check');
   return { body, mark };
 }
 function transaction(svg, P, front) {
@@ -218,7 +243,7 @@ function tick(state, dt, now) {
     for (let index = 0; index < state.routes.length; index++) {
       const route = state.routes[index];
       setTrace(route.trail, progress[index]);
-      HL.place(route.dot, curvePoint(route.points, progress[index]));
+      HL.place(route.dot, tracePoint(route.points, progress[index]));
       route.dot.setAttribute(
         'visibility',
         progress[index] > 0 && progress[index] < 1 ? 'visible' : 'hidden',
@@ -272,29 +297,27 @@ function mount({ stage, svg, read }, lag) {
   for (const vertices of [
     [
       [-67, -15, 3],
-      [-35, -15, 3],
-      [-15, 11, 25],
-      [4, 11, 25],
+      [-12, -15, 3],
+      [-12, 4, 3],
+      [1, 4, 3],
     ],
     [
-      [28, 80, 3],
-      [45, 80, 3],
-      [-15, 11, 17],
-      [4, 11, 17],
+      [-5, 63, 3],
+      [-5, 10, 3],
+      [1, 10, 3],
     ],
     [
-      [26, 11, 21],
-      [48, 11, 21],
-      [7, -85, 2],
-      [26, -85, 2],
+      [15, -7.5, 3],
+      [15, -85, 3],
+      [26, -85, 3],
     ],
   ]) {
-    const points = vertices.map(point.bind(null, P));
-    const d = curve(points);
+    const points = wirePoints(vertices.map(point.bind(null, P)));
+    const d = HL.open(points);
     path(svg, d);
     routes.push({
       points,
-      trail: trace(svg, curvePoints(points), 'signal'),
+      trail: trace(svg, points, 'signal'),
       dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, svg),
     });
     routes[routes.length - 1].trail.el.setAttribute('class', 'sil nf');
@@ -303,7 +326,7 @@ function mount({ stage, svg, read }, lag) {
   const result = transaction(svg, resultP, front);
   const gateAt = gateP(0, 0, 0),
     resultAt = resultP(0, 0, 0);
-  const captionY = Math.max(gateAt[1] + 11, resultAt[1] + 36);
+  const captionY = Math.max(gateAt[1] + 29, resultAt[1] + 36);
   label(svg, [gateAt[0], captionY], 'Policy check');
   label(svg, [resultAt[0], captionY], 'Signed transaction');
   label(svg, [200, 281], '2-of-2 threshold · neither share signs alone');

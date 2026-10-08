@@ -130,7 +130,7 @@ function view(P, x, y, z) {
   return [400 - point[0], point[1]];
 }
 function mount({ stage, svg, read }, travel) {
-  const C = HL.Cam(60, 0.28, 2.05);
+  const C = HL.Cam(45, 0.5, 2.05);
   HL.fit(
     C,
     [

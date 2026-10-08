@@ -1,4 +1,6 @@
-import { FRONTEND_CONFIG } from '@/config';
+import { readFrontendSiteLinks } from '@/frontendConfig';
+
+const SITE_LINKS = readFrontendSiteLinks(import.meta.env);
 
 const DOCS_PREFIX = '/docs';
 
@@ -8,12 +10,12 @@ function stripTrailingSlash(path: string): string {
 }
 
 export function getSiteBase(): string {
-  const base = FRONTEND_CONFIG.baseUrl;
+  const base = SITE_LINKS.baseUrl;
   return stripTrailingSlash(base) || '/';
 }
 
 export function getDocsOrigin(): string {
-  return stripTrailingSlash(FRONTEND_CONFIG.docsOrigin);
+  return stripTrailingSlash(SITE_LINKS.docsOrigin);
 }
 
 export function isHttpUrl(value: string): boolean {

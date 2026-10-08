@@ -12,32 +12,20 @@ import {
   Smartphone,
   Wallet,
 } from 'lucide-react';
-import { Theme, useSeams, type HostedAuthMenuMode } from '@seams/wallet/react';
+import type { HostedAuthMenuMode } from '@seams/wallet/react';
+import { WalletDemoSlot } from './WalletDemoSlot';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
-import {
-  DEMO_THEME_PRESETS,
-  demoIframeAppearance,
-  demoReactTokens,
-  type DemoThemeId,
-} from '@/context/app-themes';
 import '@/styles/h2.css';
 
 /* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).
    Every component renders inside a `.h2-page > .h2-col` wrapper and styles
    itself from src/styles/h2.css. */
 
-// Defer the live passkey demo until after first paint/idle.
-const DemoPasskeyColumnLazy = React.lazy(() =>
-  import('@/components/DemoPasskeyColumn').then((m) => ({ default: m.DemoPasskeyColumn })),
-);
-
-/* ---------- demo hero (headline left, live product right) ---------- */
-
-const demoPageNames = ['Login', 'Transactions', 'Account recovery'];
+/* ---------- demo hero ---------- */
 
 /* Compact product forks under the CTAs. Chips reuse the case-cover gradients
    so each product keeps one fabric. */
@@ -46,71 +34,6 @@ const productForks = [
   { label: 'Harness', to: 'https://seams.sh/ecommerce', chip: 'h2-fork__chip--harness' },
   { label: 'API', to: '/docs/concepts/', chip: 'h2-fork__chip--api' },
 ];
-
-/* Grab-and-drag horizontal scrolling for a single-line chip row. Dragging only
-   engages past a small threshold, so a plain click still selects a chip; the
-   click that trails a real drag is swallowed on the way up. */
-function useDragScroll<T extends HTMLElement>(): React.RefObject<T | null> {
-  const ref = React.useRef<T>(null);
-
-  React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    let startX = 0;
-    let startScroll = 0;
-    let down = false;
-    let dragging = false;
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return;
-      down = true;
-      dragging = false;
-      startX = event.clientX;
-      startScroll = el.scrollLeft;
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (!down) return;
-      const dx = event.clientX - startX;
-      if (!dragging) {
-        if (Math.abs(dx) < 4) return;
-        dragging = true;
-        el.classList.add('is-dragging');
-        el.setPointerCapture(event.pointerId);
-      }
-      el.scrollLeft = startScroll - dx;
-    };
-
-    const onPointerEnd = (event: PointerEvent) => {
-      if (dragging) {
-        const swallowClick = (click: MouseEvent) => {
-          click.stopPropagation();
-          click.preventDefault();
-        };
-        el.addEventListener('click', swallowClick, true);
-        window.setTimeout(() => el.removeEventListener('click', swallowClick, true), 0);
-      }
-      if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
-      down = false;
-      dragging = false;
-      el.classList.remove('is-dragging');
-    };
-
-    el.addEventListener('pointerdown', onPointerDown);
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', onPointerEnd);
-    el.addEventListener('pointercancel', onPointerEnd);
-    return () => {
-      el.removeEventListener('pointerdown', onPointerDown);
-      el.removeEventListener('pointermove', onPointerMove);
-      el.removeEventListener('pointerup', onPointerEnd);
-      el.removeEventListener('pointercancel', onPointerEnd);
-    };
-  }, []);
-
-  return ref;
-}
 
 export type H2DemoHeroProps = {
   title?: React.ReactNode;
@@ -135,25 +58,8 @@ export function H2DemoHero({
   authDefaultModeWhenNoDetectedAccount,
 }: H2DemoHeroProps = {}): React.JSX.Element {
   const { linkProps } = useSiteRouter();
-  const { seams, loginState } = useSeams();
-  const [demoPage, setDemoPage] = React.useState(0);
-  const [demoTheme, setDemoTheme] = React.useState<DemoThemeId>('paper');
-  const themeTrackRef = useDragScroll<HTMLDivElement>();
-  const activePreset =
-    DEMO_THEME_PRESETS.find((theme) => theme.id === demoTheme) ?? DEMO_THEME_PRESETS[0];
-  const activeWalletId = loginState?.isLoggedIn ? loginState.walletId || '' : '';
   const startProps = linkProps('/docs/');
   const authProps = linkProps('/docs/guides/authentication');
-
-  React.useEffect(() => {
-    try {
-      seams.setAppearance(demoIframeAppearance(activePreset));
-    } catch {}
-  }, [seams, activePreset, loginState?.isLoggedIn, activeWalletId]);
-
-  // The Transactions / Account recovery screens need an unlocked wallet,
-  // mirroring the carousel's own page gating.
-  const maxPage = loginState?.isLoggedIn ? demoPageNames.length - 1 : 0;
 
   return (
     <header className="h2-hero" aria-labelledby="h2-hero-title">
@@ -193,81 +99,9 @@ export function H2DemoHero({
           </div>
         </div>
 
-        <div className="h2-hero__demo">
-          <p className="h2-demo-label">Live Demo</p>
-          <Theme
-            theme={activePreset.mode}
-            tokens={demoReactTokens(activePreset)}
-            tag="div"
-            className="h2-demo-theme-root"
-            style={{ display: 'contents' }}
-          >
-            {/* SDK card renders in its own px; scoped scaling keeps the designed
-                hero proportion now that the page-level zoom is gone */}
-            <div className="h2-sdk-zoom">
-              <React.Suspense fallback={<div className="h2-demo__placeholder" />}>
-                <DemoPasskeyColumnLazy
-                  currentPage={demoPage}
-                  onCurrentPageChange={setDemoPage}
-                  defaultModeWhenNoDetectedAccount={authDefaultModeWhenNoDetectedAccount}
-                />
-              </React.Suspense>
-            </div>
-          </Theme>
-          <div className="h2-themeswitch">
-            <span className="h2-themeswitch__label">Themes</span>
-            <div
-              ref={themeTrackRef}
-              className="h2-themeswitch__track"
-              role="group"
-              aria-label="Preview theme"
-            >
-              {DEMO_THEME_PRESETS.map((theme) => (
-                <button
-                  key={theme.id}
-                  type="button"
-                  className={`h2-themeswitch__btn${demoTheme === theme.id ? ' is-active' : ''}`}
-                  aria-pressed={demoTheme === theme.id}
-                  onClick={() => setDemoTheme(theme.id)}
-                >
-                  <span className="h2-themeswitch__swatch" style={{ background: theme.swatch }} />
-                  {theme.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Pager lives at the split level so it sits on the divider/border junction */}
-        <div className="h2-pager" role="group" aria-label="Demo screens">
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Previous demo screen"
-            disabled={demoPage === 0}
-            onClick={() => setDemoPage((p) => Math.max(0, p - 1))}
-          >
-            <ChevronLeft aria-hidden />
-          </button>
-          <span className="h2-pager__dots">
-            {demoPageNames.map((name, i) => (
-              <span
-                key={name}
-                className={`h2-pager__dot${i === demoPage ? ' is-active' : ''}`}
-                title={name}
-              />
-            ))}
-          </span>
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Next demo screen"
-            disabled={demoPage >= maxPage}
-            onClick={() => setDemoPage((p) => Math.min(maxPage, p + 1))}
-          >
-            <ChevronRight aria-hidden />
-          </button>
-        </div>
+        <WalletDemoSlot
+          authDefaultModeWhenNoDetectedAccount={authDefaultModeWhenNoDetectedAccount}
+        />
       </div>
     </header>
   );

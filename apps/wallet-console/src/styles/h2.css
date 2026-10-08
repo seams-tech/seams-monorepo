@@ -3638,6 +3638,17 @@ body:has(.h2-page) {
   width: 100%;
 }
 
+.h2-demo__unavailable {
+  max-width: 300px;
+  text-align: center;
+  color: var(--h2-smoke);
+  line-height: 1.6;
+}
+
+.h2-demo__unavailable .h2-btn {
+  margin-top: 16px;
+}
+
 .h2-demo-label {
   margin: 0 0 11px;
   font-family: var(--h2-label);

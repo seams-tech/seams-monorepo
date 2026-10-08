@@ -24,40 +24,19 @@ function phone(parent, P, center, active) {
   screenPath(group, P, center, HL.rrect(-18.5, 7, 18.5, 85, 3.8, 12));
   screenPath(group, P, center, HL.rrect(-4, 80, 4, 81.3, 0.65, 8));
   screenPath(group, P, center, HL.rrect(-5, 10, 5, 10.8, 0.4, 8));
-  // Phone 1 carries the same ring shown inside its miniature on phone 2.
-  if (!active) screenPath(group, P, center, HL.rrect(-10, 35, 10, 55, 10, 18));
-  const confirmation = path(group, '', active ? 'hi nf' : 'sil nf');
-  return { group, confirmation, center };
-}
-function miniaturePoint(P, center, rise, point) {
-  return screenPoint(P, center, { u: point.u * 0.48, v: 23 + point.v * 0.48 - rise });
-}
-function outline(P, center, ring, progress, rise) {
-  if (progress <= 0) return '';
-  const points = ring.map(miniaturePoint.bind(null, P, center, rise));
-  points.push(points[0]);
-  const distance = progress * (points.length - 1);
-  const count = Math.floor(distance);
-  const visible = points.slice(0, count + 1);
-  if (count < points.length - 1) {
-    visible.push([
-      HL.lerp(points[count][0], points[count + 1][0], distance - count),
-      HL.lerp(points[count][1], points[count + 1][1], distance - count),
-    ]);
+  const dots = [];
+  for (const u of [-9, 0, 9]) {
+    screenPath(group, P, center, HL.rrect(u - 2.6, 43.4, u + 2.6, 48.6, 2.6, 16));
+    dots.push(screenPath(group, P, center, HL.rrect(u - 2, 44, u + 2, 48, 2, 16), 'dot off'));
   }
-  return HL.open(visible);
+  return { group, dots };
 }
-function miniature(P, center, progress) {
-  const rise = 3 * (1 - progress);
-  const shell = HL.clamp(progress / 0.65, 0, 1);
-  const detail = HL.clamp((progress - 0.45) / 0.55, 0, 1);
-  return (
-    outline(P, center, HL.rrect(-21, 4, 21, 88, 5, 12), shell, rise) +
-    outline(P, center, HL.rrect(-17, 8, 17, 84, 3.5, 12), detail, rise) +
-    outline(P, center, HL.rrect(-4, 79, 4, 80.3, 0.65, 8), detail, rise) +
-    outline(P, center, HL.rrect(-5, 11, 5, 11.8, 0.4, 8), detail, rise) +
-    outline(P, center, HL.rrect(-10, 35, 10, 55, 10, 18), detail, rise)
-  );
+function matchingPattern(state, progress) {
+  for (let index = 0; index < 3; index++) {
+    const classes = progress >= 0.66 + index * 0.13 ? 'dot m' : 'dot off';
+    state.fixed.dots[index].setAttribute('class', classes);
+    state.moving.dots[index].setAttribute('class', classes);
+  }
 }
 function base(parent, P, front) {
   block(parent, P, front, -14, -56, 16, 56, 0, 8, 4);
@@ -78,7 +57,7 @@ function tick(state, _dt, now) {
   const zero = state.P(0, 0, 0),
     raised = state.P(0, 0, lift);
   state.moving.group.setAttribute('transform', `translate(0 ${raised[1] - zero[1]})`);
-  state.moving.confirmation.setAttribute('d', miniature(state.P, state.moving.center, confirmed));
+  matchingPattern(state, progress);
   state.lamp.setAttribute('class', confirmed === 1 ? 'dot m' : 'dot off');
   state.read.textContent = state.active ? 'docking' : 'rest';
   if (state.active && progress >= 0.66) state.read.textContent = 'confirming';
@@ -116,7 +95,7 @@ function mount({ stage, svg, read }, travel) {
   const P = view.bind(null, HL.proj(C));
   const front = HL.facing(C);
   base(svg, P, front);
-  phone(svg, P, -28, false);
+  const fixed = phone(svg, P, -28, false);
   const moving = phone(svg, P, 28, true);
   // The front lip hides the phone bottoms once seated in their recesses.
   block(svg, P, front, 6, -55, 16, 55, 0, 8, 2);
@@ -131,11 +110,12 @@ function mount({ stage, svg, read }, travel) {
   );
   const state = {
     P,
+    fixed,
     moving,
     lamp,
     read,
     travel,
-    motion: HL.tween(0, 1300),
+    motion: HL.tween(0, 1800),
     drawn: NaN,
     active: null,
     loop: null,
@@ -155,7 +135,7 @@ function mount({ stage, svg, read }, travel) {
 }
 hairline({
   name: 'device-linking',
-  means: 'Hover to dock the second device; its screen confirms the link after it seats.',
+  means: 'Hover to dock the second device; matching dots light on both screens after it seats.',
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [18, 23, 28],
   mount,

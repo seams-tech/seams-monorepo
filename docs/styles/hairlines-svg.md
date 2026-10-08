@@ -214,11 +214,11 @@ Inspect the six occupied bays, rail alignment, and cabinet occlusion during inse
 
 ## Device linking: two phones in a pairing dock
 
-Two recognizable phones share a slim dock. The first phone is seated with a circular screen motif. The second rests above its connector. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
+Two recognizable phones share a slim dock. The first phone is seated. The second rests above its connector. Each screen has three small indicator rings. Rounded bezels, an earpiece, a home indicator, shallow docking recesses, and a small status lamp provide restrained detail. The three-quarter camera matches the approved phone mockup.
 
-Hovering the fixed stage lowers the second phone. After it seats, a short pause precedes a miniature of phone 1 drawn on its screen. The dock indicator then illuminates. Leaving reverses the sequence: the miniature clears before the phone rises. A single reversible 1300ms tween preserves this order through interruptions. The longer duration separates docking from confirmation. The slider sets lift to 18, 23, or 28 world units.
+Hovering the fixed stage lowers the second phone. After it seats, the three dots illuminate in the same order on both screens. Each pair lights together, and all six dots remain lit while docked. The dock indicator then illuminates. Leaving clears the dots in reverse order before the phone rises. A single reversible 1800ms tween preserves this order through interruptions. The slider sets lift to 18, 23, or 28 world units.
 
-The miniature is an explicit user-requested screen confirmation. Its outline traces first, followed by its bezel, earpiece, home indicator, and matching circular screen motif. It rises three world units as it appears. Its paths grow geometrically in the shared animation loop. The first phone and base remain static; only the second phone's group, miniature path, and dock lamp update. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
+The matching pattern is the screen confirmation. Both screens use the same progress value. Only the second phone's position, the screen dot classes, and the dock lamp update. The front lip hides seated phone bottoms. Reduced motion lands at the selected state, and the loop sleeps when movement ends.
 
 Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild:
 

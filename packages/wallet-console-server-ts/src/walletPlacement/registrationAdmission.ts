@@ -29,6 +29,7 @@ type ResolvedSetupHome =
   | { readonly ok: false; readonly code: string; readonly message: string };
 
 export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReservationAuthority {
+  private routedCeremony: WalletHomeAssignment | null = null;
   private lastReservation: {
     operationId: string;
     digest: string;
@@ -209,7 +210,8 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     const client = this.client();
     switch (locator.kind) {
       case 'ceremony':
-        return client.findByCeremony(locator.ceremonyId);
+        this.routedCeremony = await client.findByCeremony(locator.ceremonyId);
+        return this.routedCeremony;
       case 'wallet':
         return client.find(
           WalletOwnershipKey.parse({ ...this.options.scope, walletId: locator.walletId }),
@@ -219,7 +221,14 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
 
   async admitHome(input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0]) {
     const client = this.client();
-    const assignment = await client.findByCeremony(input.ceremonyId);
+    // Routing already resolved this ceremony in this request. Consume that
+    // result once; execution admission below still checks the current home.
+    const routed = this.routedCeremony;
+    this.routedCeremony = null;
+    const assignment =
+      routed?.registrationAllocation.ceremonyId === input.ceremonyId
+        ? routed
+        : await client.findByCeremony(input.ceremonyId);
     if (
       !assignment ||
       assignment.state === 'cancelled' ||

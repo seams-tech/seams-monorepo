@@ -15,6 +15,8 @@ import {
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import { ConsoleRegistrationHomeAdmission } from '../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
+import { parseWalletId } from '@seams/wallet-server/cloud-host';
 import {
   WALLET_HOME_SERVICE_BASE_PATH,
   WALLET_HOME_SERVICE_ORIGIN,
@@ -124,6 +126,7 @@ async function unavailableGateway(): Promise<Response> {
 }
 
 class MiniflareWalletHomeServiceBinding {
+  readonly paths: string[] = [];
   private lostResponseOperation: 'reserve' | 'complete' | null = null;
 
   constructor(private readonly runtime: Miniflare) {}
@@ -133,6 +136,7 @@ class MiniflareWalletHomeServiceBinding {
   }
 
   async fetch(request: Request): Promise<Response> {
+    this.paths.push(new URL(request.url).pathname);
     const service = await this.runtime.getWorker('ingress-b');
     const response = await service.fetch(request.url, {
       method: request.method,
@@ -149,6 +153,49 @@ class MiniflareWalletHomeServiceBinding {
     }
     return response;
   }
+}
+
+async function verifyRoutedRegistrationAdmission(runtime: Miniflare) {
+  const observations = [];
+  for (const outcome of ['reserved', 'cancelled'] as const) {
+    const input = reservation(`routed-admission-${outcome}`, homes[0]);
+    expect((await call(runtime, input)).status).toBe(200);
+    const service = new MiniflareWalletHomeServiceBinding(runtime);
+    const authority = new ConsoleRegistrationHomeAdmission({
+      service,
+      writer: parseTenantRuntimeWriterV1('gateway', homes[0].databaseId, {
+        accountId: homes[0].accountId,
+        databaseId: homes[0].databaseId,
+      }),
+      scope: input.wallet,
+      environmentKey: 'test',
+      localResource: homes[0],
+      catalogJson: JSON.stringify(homes),
+      ingressRegion: 'US',
+    });
+    const ceremonyId = input.registrationAllocation.ceremonyId;
+    const assignment = await authority.findHome({ kind: 'ceremony', ceremonyId });
+    expect(assignment?.state).toBe('reserved');
+    if (outcome === 'cancelled') {
+      expect((await call(runtime, completion(input, 'cancelled'))).status).toBe(200);
+    }
+    const walletId = parseWalletId(input.wallet.walletId);
+    if (!walletId.ok) throw new Error(walletId.error.message);
+    const admitted = await authority.admitHome({ ceremonyId, walletId: walletId.value });
+    expect(admitted.ok).toBe(outcome === 'reserved');
+    expect(service.paths).toEqual([
+      `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`,
+      `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority`,
+    ]);
+    const callsBeforeRetry = service.paths.length;
+    const retried = await authority.admitHome({ ceremonyId, walletId: walletId.value });
+    expect(retried.ok).toBe(outcome === 'reserved');
+    expect(service.paths[callsBeforeRetry]).toBe(
+      `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`,
+    );
+    observations.push({ outcome, admitted, retried, paths: service.paths });
+  }
+  return observations;
 }
 
 function reservation(walletId: string, home: WalletHome, projectId = 'project') {
@@ -894,8 +941,10 @@ test('wallet homes are independent within a tenant and durable across competing 
       .all();
     expect(admissionRows.results).toHaveLength(homes.length);
     const regionalDispatch = await verifyRegionalWalletDispatch(runtime, homes);
+    const routedRegistrationAdmission = await verifyRoutedRegistrationAdmission(runtime);
     const receipt = {
       regionalDispatch,
+      routedRegistrationAdmission,
       kind: 'wallet_home_directory_e2e_v1',
       observations,
       admissionObservations,

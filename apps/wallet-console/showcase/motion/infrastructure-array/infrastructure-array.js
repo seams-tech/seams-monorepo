@@ -56,10 +56,10 @@ function door(parent, rack) {
   return { group, glass, frame, crease, reflection, handle, motion: HL.tween(0, 260), drawn: NaN };
 }
 function drawDoor(P, rack, progress) {
-  const angle = (progress * Math.PI) / 2;
-  const project = doorPoint.bind(null, P, rack.index * RACK_WIDTH + 38, angle);
-  const outer = HL.rrect(-36, 5, 0, 79, 1, 8);
-  const inner = HL.rrect(-34.6, 6.4, -1.4, 77.6, 0.6, 8);
+  const angle = (-progress * Math.PI) / 2;
+  const project = doorPoint.bind(null, P, rack.index * RACK_WIDTH + 2, angle);
+  const outer = HL.rrect(0, 5, 36, 79, 1, 8);
+  const inner = HL.rrect(1.4, 6.4, 34.6, 77.6, 0.6, 8);
   const front = outer.map(project.bind(null, 0.8));
   const back = outer.map(project.bind(null, 0));
   const pane = inner.map(project.bind(null, 0.8));
@@ -68,16 +68,20 @@ function drawDoor(P, rack, progress) {
   rack.door.glass.setAttribute('d', HL.poly(pane));
   rack.door.handle.setAttribute(
     'd',
-    HL.poly(HL.rrect(-32.5, 36, -31.2, 48, 0.5, 6).map(project.bind(null, 1.3))),
+    HL.poly(HL.rrect(31.2, 36, 32.5, 48, 0.5, 6).map(project.bind(null, 1.3))),
   );
   let reflection = '';
   for (const offset of [0, 3]) {
     reflection += HL.seg(
-      project(0.9, { u: -29 + offset, v: 70 }),
-      project(0.9, { u: -23 + offset, v: 61 }),
+      project(0.9, { u: 7 + offset, v: 70 }),
+      project(0.9, { u: 13 + offset, v: 61 }),
     );
   }
   rack.door.reflection.setAttribute('d', reflection);
+  // Past the edge-on pose, the far-hinged door sits behind the server units.
+  const parent = rack.door.group.parentNode;
+  if (progress >= 0.5) parent.insertBefore(rack.door.group, rack.modules[0].group);
+  else parent.appendChild(rack.door.group);
   rack.door.group.setAttribute('data-open', progress);
 }
 function tick(state, _dt, now) {
@@ -199,7 +203,7 @@ function mount({ stage, svg, read }, radius) {
     post(group, P, front, y + 38);
     block(group, P, front, -22, y, 14, y + RACK_WIDTH, 80, 84, 1.4);
     for (const z of [13, 41, 69])
-      face(group, P, 14.6, y + 37.2, z - 1.8, y + 38.8, z + 1.8, 0.3, 'sil');
+      face(group, P, 14.6, y + 1.2, z - 1.8, y + 2.8, z + 1.8, 0.3, 'sil');
     racks.push({ index, modules, door: door(group, index) });
   }
   const state = { P, racks, read, radius, over: null, loop: null };

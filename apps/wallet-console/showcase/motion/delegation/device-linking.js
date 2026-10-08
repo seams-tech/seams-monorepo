@@ -71,7 +71,8 @@ function phone(parent, P, center, name) {
   const halo = path(success, circle, 'lo nf');
   path(success, circle, 'lo nf');
   const rim = path(success, circle, 'sil nf');
-  const check = path(success, '', 'hi nf');
+  const check = path(success, '', 'dot');
+  check.setAttribute('data-part', 'success-tick');
   return { group, content, qr, sweep, success, halo, rim, check };
 }
 function sideButton(parent, P, center, low, high) {
@@ -126,12 +127,51 @@ function qrCode(parent) {
 function progressBetween(value, start, end) {
   return HL.clamp((value - start) / (end - start), 0, 1);
 }
+function tickShape(ink) {
+  if (ink <= 0) return '';
+  const start = [-5.2, -0.2];
+  const corner = [-1.5, 3.5];
+  const end = [5.8, -5.1];
+  const firstLength = Math.hypot(corner[0] - start[0], corner[1] - start[1]);
+  const secondLength = Math.hypot(end[0] - corner[0], end[1] - corner[1]);
+  const distance = ink * (firstLength + secondLength);
+  const points = [start];
+  if (distance <= firstLength) {
+    points.push([
+      HL.lerp(start[0], corner[0], distance / firstLength),
+      HL.lerp(start[1], corner[1], distance / firstLength),
+    ]);
+  } else {
+    const tail = (distance - firstLength) / secondLength;
+    points.push(corner, [HL.lerp(corner[0], end[0], tail), HL.lerp(corner[1], end[1], tail)]);
+  }
+  const left = [];
+  const right = [];
+  for (let index = 0; index < points.length; index++) {
+    const point = points[index];
+    const before = points[Math.max(0, index - 1)];
+    const after = points[Math.min(points.length - 1, index + 1)];
+    const incoming = Math.atan2(point[1] - before[1], point[0] - before[0]);
+    const outgoing = Math.atan2(after[1] - point[1], after[0] - point[0]);
+    let angle = (incoming + outgoing) / 2;
+    let halfWidth = 0.82;
+    if (index === 0) angle = outgoing;
+    else if (index === points.length - 1) angle = incoming;
+    else halfWidth /= Math.cos((outgoing - incoming) / 2);
+    const dx = -Math.sin(angle) * halfWidth;
+    const dy = Math.cos(angle) * halfWidth;
+    left.push([point[0] + dx, point[1] + dy]);
+    right.push([point[0] - dx, point[1] - dy]);
+  }
+  const outline = left.concat(right.reverse());
+  return HL.poly(HL.fillet(outline, Array(outline.length).fill(0.45), 5));
+}
 function drawScreen(device, code, scan, success, scanner) {
   device.content.setAttribute('opacity', 1 - progressBetween(success, 0, 0.2));
   device.qr.group.setAttribute('opacity', scanner ? code * 0.55 : 0.72);
-  device.qr.finders.setAttribute('opacity', 0.35 + code * 0.65);
+  device.qr.finders.setAttribute('opacity', 1);
   for (let row = 0; row < device.qr.rows.length; row++) {
-    const revealed = HL.clamp(code * (QR_ROWS.length + 1) - row, 0, 1);
+    const revealed = scanner ? HL.clamp(code * (QR_ROWS.length + 1) - row, 0, 1) : 1;
     device.qr.rows[row].setAttribute('opacity', revealed);
   }
   const sweepY = HL.lerp(-13, 13, scan);
@@ -144,24 +184,8 @@ function drawScreen(device, code, scan, success, scanner) {
   const pulse = progressBetween(success, 0.45, 1);
   device.halo.setAttribute('transform', `scale(${HL.lerp(1, 1.22, FINISH_EASE(pulse))})`);
   device.halo.setAttribute('opacity', Math.sin(Math.PI * pulse) * 0.5);
-  const ink = FINISH_EASE(progressBetween(success, 0.25, 0.9));
-  const start = [-5, 0],
-    corner = [-1, 4],
-    end = [6, -5];
-  const firstLength = Math.hypot(4, 4);
-  const secondLength = Math.hypot(7, 9);
-  const distance = ink * (firstLength + secondLength);
-  const points = [start];
-  if (distance <= firstLength) {
-    points.push([
-      HL.lerp(start[0], corner[0], distance / firstLength),
-      HL.lerp(start[1], corner[1], distance / firstLength),
-    ]);
-  } else {
-    const tail = (distance - firstLength) / secondLength;
-    points.push(corner, [HL.lerp(corner[0], end[0], tail), HL.lerp(corner[1], end[1], tail)]);
-  }
-  device.check.setAttribute('d', ink > 0 ? HL.open(points) : '');
+  const ink = progressBetween(success, 0.2, 0.85);
+  device.check.setAttribute('d', tickShape(ink));
   device.success.setAttribute('data-progress', ink);
 }
 function tick(state, _dt, now) {

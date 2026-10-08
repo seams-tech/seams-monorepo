@@ -4,6 +4,7 @@
 const INPUT_END = HL.EASE_LIFT(0.4);
 const POLICY_END = HL.EASE_LIFT(0.56);
 const OUTPUT_END = HL.EASE_LIFT(0.72);
+const SIGNATURE_EASE = HL.bezier(0.23, 1, 0.32, 1);
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
 }
@@ -33,6 +34,10 @@ function label(svg, location, text) {
     svg,
   );
   el.textContent = text;
+  return el;
+}
+function farSide(front, sample) {
+  return !front(sample);
 }
 function port(svg, P, center) {
   const points = [];
@@ -122,13 +127,14 @@ function classicKey(slab, P, front) {
   path(parent, edges, 'sil nf');
   const holeP = local.bind(null, P, [-19, 0]);
   const hole = HL.circ(2.1, 48);
-  path(parent, HL.poly(HL.ringAt(holeP, hole, 2.6)));
+  const innerWall = HL.run(hole, farSide.bind(null, front));
+  path(parent, HL.open(HL.ringAt(holeP, innerWall, 2.6)));
   const face = path(parent, HL.poly(top) + HL.poly(HL.ringAt(holeP, hole, 4.6)), 'sil');
   face.setAttribute('fill-rule', 'evenodd');
   const groove = HL.rrect(-6, -1.5, 20, -0.6, 0.4, 8);
   path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
   embossedRing(parent, local.bind(null, P, [-15, 0]), front, 7.6, 7.1, 4.95);
-  embossedRing(parent, holeP, front, 2.75, 2.1, 5.2);
+  path(parent, HL.poly(HL.ringAt(holeP, HL.circ(2.75, 48), 4.6)));
   for (const line of parent.querySelectorAll('path')) {
     line.style.strokeWidth = line.classList.contains('lo') ? '0.5px' : '0.65px';
   }
@@ -314,7 +320,7 @@ function tick(state, _dt, now) {
       );
     }
     setTrace(state.gate.mark, policy);
-    setTrace(state.result.mark, signed);
+    setTrace(state.result.mark, SIGNATURE_EASE(signed));
     state.gate.mark.el.setAttribute('class', policy === 1 ? 'hi nf' : 'sil nf');
     state.result.body.sil.setAttribute('class', signed === 1 ? 'hi' : 'sil');
   }
@@ -332,6 +338,19 @@ function tick(state, _dt, now) {
 function set(state, lag) {
   state.lag = lag;
   state.loop.wake();
+}
+function resizeFigure(stage, svg, transactionLabel) {
+  const compact = stage.clientWidth <= 480;
+  // Reserve space for the standalone preview's name and status above the drawing.
+  const top = stage.closest('main') ? -40 : 0;
+  const height = 270 - top;
+  svg.setAttribute('viewBox', compact ? `60 ${top} 420 ${height}` : '0 0 560 280');
+  stage.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
+  svg.style.aspectRatio = compact ? `420 / ${height}` : '2 / 1';
+  transactionLabel.textContent = compact ? 'Signed' : 'Signed transaction';
+  for (const text of svg.querySelectorAll('text')) {
+    text.style.fontSize = compact ? '10px' : '';
+  }
 }
 function mount({ stage, svg, read }, lag) {
   svg.setAttribute('viewBox', '0 0 560 280');
@@ -418,7 +437,11 @@ function mount({ stage, svg, read }, lag) {
   const gateBounds = gate.body.g.getBBox();
   const resultBounds = result.body.g.getBBox();
   label(svg, [gateCenter[0], gateBounds.y + gateBounds.height + 15], 'Policy check');
-  label(svg, [resultCenter[0], resultBounds.y + resultBounds.height + 15], 'Signed transaction');
+  const transactionLabel = label(
+    svg,
+    [resultCenter[0], resultBounds.y + resultBounds.height + 15],
+    'Signed transaction',
+  );
   label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');
   const state = {
     stage,
@@ -441,6 +464,10 @@ function mount({ stage, svg, read }, lag) {
   state.loop = HL.register(stage, tick.bind(null, state));
   state.loop.wake();
   const bag = HL.disposer();
+  const resize = new ResizeObserver(resizeFigure.bind(null, stage, svg, transactionLabel));
+  resizeFigure(stage, svg, transactionLabel);
+  resize.observe(stage);
+  bag.add(resize.disconnect.bind(resize));
   bag.add(state.loop.unregister);
   bag.add(
     HL.pointer(stage, {

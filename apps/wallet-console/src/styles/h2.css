@@ -2972,6 +2972,7 @@ body:has(.h2-page) {
   display: grid;
   align-items: center;
   min-height: 440px;
+  container-type: inline-size;
 }
 
 .h2-security__grid {
@@ -3007,6 +3008,12 @@ body:has(.h2-page) {
 
 .h2-wallet-figure[data-figure='signing'] {
   aspect-ratio: 2 / 1;
+}
+
+@container (max-width: 480px) {
+  .h2-wallet-figure[data-figure='signing'] {
+    aspect-ratio: 14 / 9;
+  }
 }
 
 .h2-security__cell span {

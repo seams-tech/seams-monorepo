@@ -58,8 +58,7 @@ function phone(parent, P, center, name) {
   const back = [];
   for (const point of ring) back.push(P(-1.6, center + point.u, point.v));
   path(group, HL.poly(HL.hull(back.concat(front))), 'sil');
-  const outline = path(group, HL.poly(front), name === 'scanner' ? 'hi' : 'sil');
-  if (name === 'scanner') outline.setAttribute('stroke-opacity', 0.55);
+  const outline = path(group, HL.poly(front), 'sil');
   screenPath(group, P, center, HL.rrect(-19.5, 5.5, 19.5, 86.5, 5.4, 12));
   screenPath(group, P, center, HL.rrect(-5.3, 80.5, 5.3, 83.4, 1.45, 12), 'dot m');
   screenPath(group, P, center, HL.rrect(-5.5, 8.2, 5.5, 8.9, 0.35, 8), 'dot m');
@@ -69,33 +68,15 @@ function phone(parent, P, center, name) {
   const content = HL.mk('g', { 'data-part': 'scan-content' }, screen);
   const qr = qrCode(content);
   const brackets = 'M-11 -15H-15V-11 M11 -15H15V-11 M15 11V15H11 M-11 15H-15V11';
-  const frame = path(content, brackets, name === 'scanner' ? 'hi nf' : 'lo nf');
-  if (name === 'scanner') frame.setAttribute('stroke-opacity', 0.5);
+  path(content, brackets, 'lo nf');
   const sweep = path(content, '', 'sil nf');
   sweep.setAttribute('data-part', 'scan-line');
   const success = HL.mk('g', { opacity: 0, 'data-part': 'success' }, screen);
-  const rim = path(success, '', 'hi nf');
-  const check = path(success, '', 'hi nf');
-  for (const mark of [rim, check]) {
-    mark.style.strokeWidth = '1.5px';
-    mark.setAttribute('stroke-opacity', 0.6);
-  }
+  const rim = path(success, '', 'sil nf');
+  const check = path(success, '', 'sil nf');
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
-  const done = HL.mk(
-    'text',
-    {
-      x: 0,
-      y: 17,
-      'text-anchor': 'middle',
-      'data-part': 'success-label',
-    },
-    success,
-  );
-  done.style.cssText =
-    'font: 4px -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: 0; fill: var(--hl-edge); stroke: none;';
-  done.textContent = 'Done';
-  return { group, content, qr, sweep, success, rim, check, done };
+  return { group, outline, content, qr, sweep, success, rim, check };
 }
 function sideButton(parent, P, center, low, high) {
   const points = [];
@@ -189,8 +170,12 @@ function drawScreen(device, code, scan, success, scanner) {
   device.rim.setAttribute('data-progress', circle);
   const ink = progressBetween(success, CIRCLE_END, TICK_END);
   device.check.setAttribute('d', tickStroke(ink));
-  device.done.setAttribute('opacity', FINISH_EASE(progressBetween(ink, 0.65, 1)));
   device.success.setAttribute('data-progress', ink);
+  // Pass the single accent from the scanner's edge to its sweep, then confirmation.
+  device.outline.classList.toggle('hi', scanner && scan === 0 && success === 0);
+  device.sweep.classList.toggle('hi', scanner && scan > 0 && success === 0);
+  device.rim.classList.toggle('hi', scanner && success > 0);
+  device.check.classList.toggle('hi', scanner && success > 0);
 }
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);

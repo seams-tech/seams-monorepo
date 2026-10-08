@@ -263,3 +263,23 @@ Inspect the contact sheet, the 240px views, and the motion sequence. Confirm all
 The review script saves repeatable visual artifacts. Its automatic checks cover bounds, readout, console errors, and settling. Human visual review still determines whether the illustration feels right.
 
 Before production integration, check keyboard access, reduced motion, and physical touch behavior in the host component. Keep essential explanations in adjacent HTML. Decorative motion must never determine wallet authentication, signing, or transaction state.
+
+## Infrastructure array: Terrain variation
+
+Preview: `/dashboard-static/showcase/motion/infrastructure-array/`.
+
+Twenty-five server modules stand on a rounded base. Lid vents, two front slots, and status dots distinguish them from plain pillars. Two uneven rises compose the rest pose. The tallest resting module carries the accent. The pointer raises nearby modules into a smooth hill. Each module uses its own default Hairline spring. A Gaussian falloff controls the height, with a 15-unit floor and a 52-unit maximum. The slider sets the response radius to 22, 34, or 48 world units.
+
+Pointer selection uses the fixed resting tops. Diagonal paint order preserves occlusion. Settled modules stop updating, and reduced motion lands each spring immediately. This is an alternative self-hosting preview; the server-rack preview remains available.
+
+Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/infrastructure-array` with `--answer 54,54,25 --edge 98,98,16 --zoom answer`.
+
+## Signing assembly: Turntable variation
+
+Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
+
+Three separate modules stand on a circular indexed platform. Radial guides and short engagement tongues connect their motion to a central mechanism. One, two, or three small lid marks identify each module. The central seal carries the accent.
+
+Hovering rotates the assembly into alignment. Two modules then slide inward, and the central seal rises to mark completion. The third module stays withdrawn. This is a visual metaphor for two-of-three cooperation, not a protocol diagram. Leaving reverses the sequence. One reversible 1800ms tween separates rotation, engagement, and completion. The slider sets the initial rotation to 20, 32, or 44 degrees. Object groups reorder by depth as the assembly rotates. Reduced motion selects the final pose immediately, and the loop sleeps after settling.
+
+Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`. Build with the Hairline `build.mjs` into that directory's `index.html`. Run `look.mjs` from `.artifacts/signing-assembly` with `--answer 0,0,22 --edge 40,20,20 --zoom answer`.

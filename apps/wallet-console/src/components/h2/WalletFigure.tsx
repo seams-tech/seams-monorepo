@@ -23,7 +23,7 @@ function figureDocument(html: string, pointerX: number, pointerY: number): strin
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 #stage { width: 100%; height: 100%; touch-action: pan-y; }
 #stage svg { display: block; width: 100%; height: 100%; }
-[data-hairline="threshold-signing"] svg text { font-size: 7.6px; letter-spacing: 0.3px; }
+[data-hairline="threshold-signing"] svg text { font-size: 8.2px; letter-spacing: 0.25px; }
 #stage:focus-visible { outline: 1px solid #777169; outline-offset: -3px; border-radius: 8px; }
 #read { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style></head>

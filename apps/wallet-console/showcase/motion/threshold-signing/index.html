@@ -721,8 +721,8 @@ var HL = (() => {
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
 // Share the tween's easing without restarting its velocity at stage boundaries.
-const INPUT_END = HL.EASE_LIFT(0.38);
-const POLICY_END = HL.EASE_LIFT(0.5);
+const INPUT_END = HL.EASE_LIFT(0.4);
+const POLICY_END = HL.EASE_LIFT(0.56);
 const OUTPUT_END = HL.EASE_LIFT(0.72);
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
@@ -745,8 +745,8 @@ function label(svg, location, text) {
       x: location[0],
       y: location[1],
       'text-anchor': 'middle',
-      'font-size': 5.8,
-      'letter-spacing': 0.55,
+      'font-size': 6.8,
+      'letter-spacing': 0.4,
       fill: 'var(--muted)',
       stroke: 'none',
     },
@@ -778,7 +778,8 @@ function embossedRing(parent, P, front, outerRadius, innerRadius, height) {
   );
   face.setAttribute('fill-rule', 'evenodd');
 }
-function classicKey(parent, P, front) {
+function classicKey(slab, P, front) {
+  const parent = HL.mk('g', { 'data-part': 'key' }, slab);
   const radius = 8.5;
   const neckAngle = Math.asin(3 / radius);
   const neck = -15 + Math.sqrt(radius ** 2 - 3 ** 2);
@@ -848,9 +849,13 @@ function classicKey(parent, P, front) {
   path(parent, HL.poly(HL.ringAt(P, groove, 4.6)));
   embossedRing(parent, local.bind(null, P, [-15, 0]), front, 7.6, 7.1, 4.95);
   embossedRing(parent, holeP, front, 2.75, 2.1, 5.2);
+  for (const line of parent.querySelectorAll('path')) {
+    line.style.strokeWidth = line.classList.contains('lo') ? '0.5px' : '0.65px';
+  }
 }
 function slab(svg, P, front) {
   const body = HL.solid(svg);
+  body.sil.style.strokeWidth = '1px';
   const outline = HL.rrect(-33, -17, 33, 17, 3, 12);
   HL.put(body, {
     sil: HL.poly(HL.hull(HL.ringAt(P, outline, 0).concat(HL.ringAt(P, outline, 2.6)))),
@@ -860,6 +865,7 @@ function slab(svg, P, front) {
     HL.seg(P(-25, 11, 2.6), P(-17, 11, 2.6)) + HL.seg(P(-25, 13, 2.6), P(-20, 13, 2.6));
   path(body.g, engravings);
   classicKey(body.g, P, front);
+  return body;
 }
 function curvePoints(points) {
   const samples = [];
@@ -874,7 +880,7 @@ function wirePoints(vertices) {
     const next = vertices[index + 1];
     const incoming = Math.hypot(corner[0] - previous[0], corner[1] - previous[1]);
     const outgoing = Math.hypot(next[0] - corner[0], next[1] - corner[1]);
-    const radius = Math.min(8, incoming / 2, outgoing / 2);
+    const radius = Math.min(12, incoming / 2, outgoing / 2);
     const entry = [],
       exit = [];
     for (let axis = 0; axis < 2; axis++) {
@@ -925,23 +931,28 @@ function shield(svg, P) {
     [-14, 1],
   ];
   const face = [],
+    inset = [],
     back = [];
   for (const [x, y] of HL.fillet(outline, [1, 0.6, 1, 3, 3, 1, 3, 3], 8)) {
     face.push(P(x * scale, y * scale, 4));
+    inset.push(P(x * scale * 0.82, y * scale * 0.82, 4.05));
     back.push(P(x * scale, y * scale, 2));
   }
   const body = HL.solid(svg);
   const silhouette = HL.hull(face.concat(back));
   HL.put(body, { sil: HL.poly(silhouette), crease: HL.poly(face) });
+  body.sil.setAttribute('class', 'hi');
+  path(body.g, HL.poly(inset));
   const mark = trace(
     body.g,
-    [P(-6 * scale, 0, 4.1), P(-scale, 5 * scale, 4.1), P(7 * scale, -7 * scale, 4.1)],
+    [P(-7 * scale, 0, 4.1), P(-1.2 * scale, 6 * scale, 4.1), P(8 * scale, -8 * scale, 4.1)],
     'check',
   );
   return { body, mark, inlet: P(-17.8, 0, 2.6), outlet: P(17.8, 0, 2.6) };
 }
 function transaction(svg, P, front) {
   const body = HL.solid(svg);
+  body.sil.style.strokeWidth = '1px';
   HL.put(body, HL.prism(P, front, ...HL.rings(-29, -21, 29, 21, 4, 0.8), 0, 3.5));
   let lines = '';
   for (let row = 0; row < 3; row++) {
@@ -1009,15 +1020,22 @@ function tick(state, _dt, now) {
     ];
     for (let index = 0; index < state.routes.length; index++) {
       const route = state.routes[index];
-      HL.place(route.dot, setTrace(route.trail, progress[index]));
+      let tip = setTrace(route.trail, progress[index]);
+      const end = route.trail.points.at(-1);
+      if (index < 2 && Math.hypot(tip[0] - end[0], tip[1] - end[1]) < 4) {
+        tip = route.arrival;
+      }
+      HL.place(route.dot, tip);
       route.dot.setAttribute(
         'visibility',
-        progress[index] > 0 && progress[index] < 1 ? 'visible' : 'hidden',
+        progress[index] > 0 && (progress[index] < 1 || (index < 2 && input < 1))
+          ? 'visible'
+          : 'hidden',
       );
     }
     setTrace(state.gate.mark, policy);
     setTrace(state.result.mark, signed);
-    state.gate.mark.el.setAttribute('class', signed === 1 ? 'sil nf' : 'hi nf');
+    state.gate.mark.el.setAttribute('class', policy === 1 ? 'hi nf' : 'sil nf');
     state.result.body.sil.setAttribute('class', signed === 1 ? 'hi' : 'sil');
   }
   state.read.textContent = 'rest';
@@ -1056,32 +1074,58 @@ function mount({ stage, svg, read }, lag) {
   const resultP = local.bind(null, P, [220, 0]);
   const gate = shield(svg, gateP);
   const wireBase = HL.mk('g', {}, svg);
-  const vertices = [];
+  const paths = [];
   const inlet = HL.unproj(C, gate.inlet[0], gate.inlet[1], 0);
   const junction = [inlet[0] - 24, inlet[1]];
+  const merge = P(junction[0] + 12, junction[1], 0);
   for (const source of sources) {
     const start = source(33.05, 0, 1.3);
     const from = HL.unproj(C, start[0], start[1], 0);
-    vertices.push([start, P(junction[0], from[1], 0), P(junction[0], junction[1], 0), gate.inlet]);
+    const side = Math.sign(from[1] - junction[1]);
+    const entry = P(junction[0], junction[1] + side * 12, 0);
+    const points = wirePoints([start, P(junction[0], from[1], 0), entry]);
+    const bend = curvePoints([
+      entry,
+      P(junction[0], junction[1] + side * 4, 0),
+      P(junction[0] + 4, junction[1], 0),
+      merge,
+    ]);
+    points.push(...bend.slice(1), gate.inlet);
+    paths.push(points);
   }
-  vertices.push([gate.outlet, resultP(-28.8, 0, 2.6)]);
+  paths.push([gate.outlet, resultP(-28.8, 0, 2.6)]);
   const routes = [];
-  for (const route of vertices) {
+  let wiring = '';
+  for (const points of paths) {
     const routeName = ['device', 'infrastructure', 'transaction'][routes.length];
     const group = HL.mk('g', { 'data-route': routeName }, svg);
-    const points = wirePoints(route);
-    path(wireBase, HL.open(points));
+    if (routes.length < 2) {
+      wiring += HL.open(points.slice(0, -1));
+      // Both rounded branches meet the same tangent. Draw their shared stem once.
+      if (routes.length === 0) wiring += HL.seg(points.at(-2), points.at(-1));
+    } else {
+      wiring += HL.open(points);
+    }
+    const end = points.at(-1);
+    const previous = points.at(-2);
+    const arrivalOffset = 4 / Math.hypot(end[0] - previous[0], end[1] - previous[1]);
     routes.push({
       group,
       trail: trace(group, points, 'signal'),
+      arrival: [
+        HL.lerp(end[0], previous[0], arrivalOffset),
+        HL.lerp(end[1], previous[1], arrivalOffset),
+      ],
       dot: HL.mk('circle', { r: 1.4, class: 'hi', visibility: 'hidden' }, group),
     });
     routes[routes.length - 1].trail.el.setAttribute('class', 'sil nf');
   }
+  path(wireBase, wiring);
   for (let index = 0; index < sources.length; index++) {
-    slab(svg, sources[index], front);
+    const body = slab(svg, sources[index], front);
     const center = sources[index](0, 0, 0);
-    label(svg, [center[0], center[1] - 31], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
+    const top = body.g.getBBox().y;
+    label(svg, [center[0], top - 8], index === 0 ? 'USER’S DEVICE' : 'YOUR INFRASTRUCTURE');
   }
   // Keep shared wire segments beneath every signal and the shield above the join.
   svg.append(wireBase);
@@ -1091,8 +1135,10 @@ function mount({ stage, svg, read }, lag) {
   const result = transaction(svg, resultP, front);
   const gateCenter = gateP(0, 0, 0);
   const resultCenter = resultP(0, 0, 0);
-  label(svg, [gateCenter[0], gateCenter[1] + 35], 'Policy check');
-  label(svg, [resultCenter[0], resultCenter[1] + 35], 'Signed transaction');
+  const gateBounds = gate.body.g.getBBox();
+  const resultBounds = result.body.g.getBBox();
+  label(svg, [gateCenter[0], gateBounds.y + gateBounds.height + 15], 'Policy check');
+  label(svg, [resultCenter[0], resultBounds.y + resultBounds.height + 15], 'Signed transaction');
   label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');
   const state = {
     stage,

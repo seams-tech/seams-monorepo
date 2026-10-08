@@ -38,76 +38,55 @@ function linkingSymbol(parent, P, center) {
     ...origin,
   ];
   const group = HL.mk('g', { transform: `matrix(${matrix.join(' ')})` }, parent);
-  const segments = [];
-  for (let index = 0; index < 4; index++) {
-    const points = [];
-    for (let step = 0; step <= 24; step++) {
-      const angle = HL.rad(index * 90 - 85 + (step / 24) * 70);
-      points.push([14 * Math.cos(angle), 14 * Math.sin(angle)]);
-    }
-    segments.push(tracedPath(group, HL.open(points)));
-  }
-  const halves = [];
-  for (const side of [-1, 1]) {
-    const half = HL.mk('g', {}, group);
-    const ink = tracedPath(half, linkOutline(half));
-    halves.push({ group: half, ink, side });
-  }
-  return { segments, halves };
+  const assembly = HL.mk('g', { transform: 'rotate(-35)' }, group);
+  const clipId = `link-upper-${center < 0 ? 'first' : 'second'}`;
+  const clip = HL.mk('clipPath', { id: clipId }, HL.mk('defs', {}, assembly));
+  HL.mk('rect', { x: -20, y: -10, width: 40, height: 10 }, clip);
+  const left = chainLink(assembly, 'left');
+  const right = chainLink(assembly, 'right');
+  // Alternate the crossing order: the left link passes above at the upper crossing.
+  const crossing = HL.mk('g', { 'clip-path': `url(#${clipId})` }, assembly);
+  const upper = chainLink(crossing, 'upper');
+  const sweep = path(group, '', 'sil nf');
+  sweep.setAttribute('data-part', 'confirmation');
+  return { left, right, upper, sweep };
 }
-function linkOutline(parent) {
-  const guide = path(parent, 'M -2 1 A 5 5 0 0 0 5 1 L 8 -2 A 5 5 0 0 0 1 -9 L -1 -7');
-  const length = guide.getTotalLength();
-  const outside = [];
-  const inside = [];
-  for (let step = 0; step <= 96; step++) {
-    const distance = (length * step) / 96;
-    const point = guide.getPointAtLength(distance);
-    const before = guide.getPointAtLength(Math.max(0, distance - 0.05));
-    const after = guide.getPointAtLength(Math.min(length, distance + 0.05));
-    const dx = after.x - before.x;
-    const dy = after.y - before.y;
-    const offset = 1.1 / Math.hypot(dx, dy);
-    outside.push([point.x - dy * offset, point.y + dx * offset]);
-    inside.push([point.x + dy * offset, point.y - dx * offset]);
-  }
-  guide.remove();
-  return HL.poly(outside.concat(inside.reverse()));
+function planarPoint(point) {
+  return [point.u, point.v];
 }
-function tracedPath(parent, d) {
-  const guide = path(parent, d);
-  const length = guide.getTotalLength();
-  const points = [];
-  for (let step = 0; step <= 96; step++) {
-    const point = guide.getPointAtLength((length * step) / 96);
-    points.push([point.x, point.y]);
-  }
-  return { points, ink: path(parent, '', 'sil nf') };
-}
-function trace(stroke, progress) {
-  const cursor = progress * 96;
-  const index = Math.floor(cursor);
-  const points = stroke.points.slice(0, index + 1);
-  if (index < 96) {
-    const [x, y] = stroke.points[index];
-    const [nextX, nextY] = stroke.points[index + 1];
-    points.push([HL.lerp(x, nextX, cursor - index), HL.lerp(y, nextY, cursor - index)]);
-  }
-  stroke.ink.setAttribute('d', progress === 0 ? '' : HL.open(points));
+function chainLink(parent, name) {
+  const outer = HL.rrect(-7, -4.6, 7, 4.6, 4.6, 16);
+  const inner = HL.rrect(-5.4, -3, 5.4, 3, 3, 16);
+  return HL.mk(
+    'path',
+    {
+      d: HL.poly(outer.map(planarPoint)) + HL.poly(inner.map(planarPoint)),
+      class: 'lo',
+      'fill-rule': 'evenodd',
+      'data-link': name,
+    },
+    parent,
+  );
 }
 function matchingPattern(phone, progress) {
-  const join = HL.clamp((progress - 0.8) / 0.16, 0, 1);
-  for (let index = 0; index < 4; index++) {
-    trace(phone.symbol.segments[index], HL.clamp((progress - 0.6 - index * 0.095) / 0.115, 0, 1));
+  const join = HL.EASE_LIFT(HL.clamp((progress - 0.56) / 0.28, 0, 1));
+  const separation = HL.lerp(8.8, 4.5, join);
+  for (const link of [phone.symbol.left, phone.symbol.upper]) {
+    link.setAttribute('transform', `translate(${-separation} 0)`);
+    link.setAttribute('class', join === 1 ? 'sil' : 'lo');
   }
-  for (const half of phone.symbol.halves) {
-    const gap = (1 - join) * 2.4 * half.side;
-    half.group.setAttribute(
-      'transform',
-      `scale(0.66) translate(${gap} ${-gap}) scale(${half.side})`,
-    );
-    trace(half.ink, HL.clamp((progress - 0.68) / 0.14, 0, 1));
+  phone.symbol.right.setAttribute('transform', `translate(${separation} 0)`);
+  phone.symbol.right.setAttribute('class', join === 1 ? 'sil' : 'lo');
+  const confirmed = HL.clamp((progress - 0.84) / 0.16, 0, 1);
+  const start = Math.max(0, confirmed * 2 - 1);
+  const end = Math.min(1, confirmed * 2);
+  const sweep = [];
+  for (let step = 0; step <= 64; step++) {
+    const angle = HL.rad(-90 + 360 * HL.lerp(start, end, step / 64));
+    sweep.push([16 * Math.cos(angle), 16 * Math.sin(angle)]);
   }
+  phone.symbol.sweep.setAttribute('d', confirmed > 0 && confirmed < 1 ? HL.open(sweep) : '');
+  phone.symbol.sweep.setAttribute('data-progress', confirmed);
 }
 function base(parent, P, front) {
   block(parent, P, front, -14, -56, 16, 56, 0, 8, 4);
@@ -207,7 +186,8 @@ function mount({ stage, svg, read }, travel) {
 }
 hairline({
   name: 'device-linking',
-  means: 'Hover to dock the second device; matching circuits trace and interlock on both screens.',
+  means:
+    'Hover to dock the second device; paired chain links join, then a confirmation sweep passes across both screens.',
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [18, 23, 28],
   mount,

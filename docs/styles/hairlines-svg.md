@@ -312,9 +312,11 @@ Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js
 
 Preview: `/dashboard-static/showcase/motion/delegation/`.
 
-Each screen contains two outlined links inside a segmented circle. The links use a 2.2-unit band around their original centre lines and scale to 66% within the screen plane. Their separation also scales, so both the resting and joined poses retain clearance from the circle. The outline traces after docking, then both halves join. Both screens use the same progress throughout forward and reverse motion.
+Each screen contains two closed capsule links with a consistent 1.6-unit band. They share the screen’s isometric projection. After docking, their centres move from ±8.8 to ±4.5 units with the Hairline easing curve. A local SVG clip makes the left link pass above at the upper crossing and below at the lower crossing. Both screens use the same progress throughout forward and reverse motion.
 
-Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The local browser check `.artifacts/device-linking/check-docking.mjs` verifies circle clearance throughout motion, synchronized screens, docking order, interruptions, and reduced motion. It saves a JSON report and screenshots beside the script.
+Once the links join, one continuous confirmation stroke travels around them at a 16-unit radius. It clears on completion, leaving only the linked pair. The previous open hooks, permanent segmented circle, and tracing helpers are removed. Reduced motion lands directly at the joined pose.
+
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. The local browser check `.artifacts/device-linking/check-polished.mjs` verifies synchronized screens, docking before joining, confirmation after joining, stable completion, interruptions, reduced motion, both themes, and frame bounds. It saves a JSON report and screenshots beside the script. The stock source validator flags the internal clip reference as an outside URL; it refers only to a clip in the same SVG and makes no network request.
 
 ## Wallet frontpage integration
 

@@ -2707,19 +2707,6 @@ All six observed role streams match their expected versions in every arm.
 Nested protocol spans include transport and overlap other spans. Requested APAC
 placement does not prove physical colocation.
 
-#### Follow-up: R155C combined B preparation/execution connection
-
-The implementation plan now lives in public
-`seams-wallet/docs/refactor-155C-yao-peer-connection.md`.
-It moves B preparation onto the authenticated peer connection and removes the
-separate preparation HTTP/DO dispatch. The plan counts any added startup frame
-exchange explicitly. A lower total round-trip count remains to be demonstrated.
-
-A and B retain independent keys, authority checks, durable claims, and retry handling.
-R155C inventories shared lifecycle changes, native HTTP consumers, endpoint removal,
-fault scenarios, and hosted measurement. Its transport code is not implemented.
-Phase 6AO changes only A's fresh root use. Its evidence remains below.
-
 All 13 original Worker assignments and placement settings were restored.
 Restoration activation [37888714394](https://github.com/seams-tech/seams-monorepo/actions/runs/37888714394) passed.
 All six observation process groups stopped. Existing staging resources were reused.

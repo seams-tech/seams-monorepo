@@ -43,8 +43,11 @@ class RestartingRegionalGateway {
   }
 
   async routeContext(context, region) {
-    await context.unroute('http://127.0.0.1:4100/**');
-    await context.route('http://127.0.0.1:4100/**', this.intercept.bind(this, region));
+    await context.unroute(`${process.env.SEAMS_INTENDED_ROUTER_URL}/**`);
+    await context.route(
+      `${process.env.SEAMS_INTENDED_ROUTER_URL}/**`,
+      this.intercept.bind(this, region),
+    );
   }
 
   async intercept(region, route) {

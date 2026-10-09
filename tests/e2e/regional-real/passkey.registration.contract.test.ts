@@ -378,7 +378,7 @@ async function verifyRegionalRoutingRejections(
       rejections.push({ name: rejected.name, status: response.status, code: result.code });
     }
     const mismatch = await scenario.gateways.get('WEUR').handle(new Request(
-      'http://127.0.0.1:4100/wallet/email-otp/challenge', {
+      `${process.env.SEAMS_INTENDED_ROUTER_URL}/wallet/email-otp/challenge`, {
         method: 'POST', headers,
         body: JSON.stringify({ walletId: 'another-wallet', operation: 'transaction_sign' }),
       },

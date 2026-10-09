@@ -30,14 +30,48 @@ type BrowserFixture = {
   page: Page;
 };
 
+type GatewayD1Work = { stage: string; path: string; roundTrips: number; statements: number };
+
 class RegistrationRequestEvidence {
   stage: 'registration' | 'first_signature' | 'explicit_refresh' | 'lock' = 'registration';
-  readonly requests: { stage: string; path: string }[] = [];
+  readonly requests: { stage: string; path: string; atMs: number }[] = [];
+  readonly d1: Promise<GatewayD1Work | null>[] = [];
 
   record(request: BrowserRequest): void {
-    if (request.method() !== 'POST' || !request.url().startsWith('http://127.0.0.1:4100/')) return;
-    this.requests.push({ stage: this.stage, path: new URL(request.url()).pathname });
+    if (
+      request.method() !== 'POST' ||
+      !request.url().startsWith(`${process.env.SEAMS_INTENDED_ROUTER_URL}/`)
+    )
+      return;
+    const entry = {
+      stage: this.stage,
+      path: new URL(request.url()).pathname,
+      atMs: Date.now(),
+    };
+    this.requests.push(entry);
+    this.d1.push(gatewayD1Work(request, entry));
   }
+
+  /** The database work each completed Gateway request reported, in request order. */
+  async databaseWork(): Promise<GatewayD1Work[]> {
+    const work = [];
+    for (const row of await Promise.all(this.d1)) if (row) work.push(row);
+    return work;
+  }
+}
+
+async function gatewayD1Work(
+  request: BrowserRequest,
+  entry: { stage: string; path: string },
+): Promise<GatewayD1Work | null> {
+  const response = await request.response();
+  const header = response ? await response.headerValue('x-benchmark-d1') : null;
+  if (!header) return null;
+  const trace: { calls: { statements: unknown[] }[]; dropped: number } = JSON.parse(header);
+  assert.equal(trace.dropped, 0);
+  let statements = 0;
+  for (const call of trace.calls) statements += call.statements.length;
+  return { stage: entry.stage, path: entry.path, roundTrips: trace.calls.length, statements };
 }
 
 class CompletionReplyLoss {
@@ -152,7 +186,15 @@ export async function verifyRegistrationCompletion(
     const walletId = await pageRoot.getAttribute('data-wallet-id');
     assert.ok(walletId);
     await expect(pageRoot).toHaveAttribute('data-login-wallet-id', walletId);
-    assert.equal(evidence.requests.filter(isRegistrationStatus).length, 1);
+    // The registration response states the session it issued, so no status request follows.
+    assert.equal(evidence.requests.filter(isRegistrationStatus).length, 0);
+    /* Setup starts the wallet's custody objects, once, before the proof exists.
+       The Gateway reads the ownership generation from its Console reservation. */
+    const startups = scenario.router.requests.filter(isWalletStartup);
+    const respond = evidence.requests.find(isRespond);
+    assert.equal(startups.length, 1);
+    assert.ok(respond);
+    assert.ok(startups[0].atMs <= respond.atMs, 'Wallet startup must precede respond');
     const consoleRequests = [...scenario.consoleService.requests];
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
@@ -181,8 +223,13 @@ export async function verifyRegistrationCompletion(
           signature,
           signingIngress: 'OC',
           signingConsoleCalls: 0,
+          walletStartup: {
+            routerRequests: startups.length,
+            sentBeforeRespondMs: respond.atMs - startups[0].atMs,
+          },
+          gatewayDatabaseWork: await evidence.databaseWork(),
           sessionObservation: {
-            registrationStatusRequests: 1,
+            registrationStatusRequests: 0,
             firstSignatureStatusRequests: 0,
             explicitRefreshStatusRequests: 1,
             reactLoginPublished: true,
@@ -271,6 +318,14 @@ function isStandaloneSessionPublication(pathname: string): boolean {
 }
 function isRegistrationHome(pathname: string): boolean {
   return pathname.endsWith('/registration-home');
+}
+
+function isWalletStartup(request: { path: string }): boolean {
+  return request.path === '/router-ab/router/wallet/start';
+}
+
+function isRespond(request: { stage: string; path: string }): boolean {
+  return request.stage === 'registration' && request.path === '/wallets/register/respond';
 }
 
 function isRegistrationStatus(request: { stage: string; path: string }): boolean {

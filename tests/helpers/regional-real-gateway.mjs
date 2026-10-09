@@ -135,7 +135,9 @@ export async function createRegionalRealGateway({
       ...(emailDelivery ? { EMAIL_OTP_DELIVERY_MODE: 'email_provider' } : {}),
       WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
       MPC_ROUTER: routerFault,
-      SIGNING_WORKER: new LocalRoleTransport('http://127.0.0.1:4105'),
+      SIGNING_WORKER: new LocalRoleTransport(
+        `http://127.0.0.1:${4105 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,
+      ),
     };
     const signerWasm = await WebAssembly.compile(
       await readFile(resolve(publicRoot, 'wasm/near_signer/pkg/wasm_signer_worker_bg.wasm')),
@@ -187,7 +189,7 @@ export async function createRegionalRealGateway({
       gateways.set(region, gateway);
       bindings[`WALLET_GATEWAY_${region}`] = { fetch: gateway.home.bind(gateway) };
     }
-    return new RegionalRealScenario(runtime, gateways, output, consoleService, routerFault);
+    return new RegionalRealScenario(runtime, gateways, output, consoleService, routerFault, router);
   } catch (error) {
     await runtime.dispose();
     throw error;
@@ -211,6 +213,9 @@ function regionalDeploymentProofs(api, binding) {
 }
 
 class LocalRoleTransport {
+  // Every request a Gateway sent to this role, in the order it was sent.
+  requests = [];
+
   constructor(origin) {
     this.origin = origin;
   }
@@ -218,6 +223,7 @@ class LocalRoleTransport {
   async fetch(input, init) {
     const original = new Request(input, init);
     const url = new URL(original.url);
+    this.requests.push({ path: url.pathname, atMs: Date.now() });
     const target = new URL(`${url.pathname}${url.search}`, this.origin);
     return fetch(new Request(target, original));
   }
@@ -518,8 +524,9 @@ class RealRegionalGateway {
 }
 
 class RegionalRealScenario {
-  constructor(runtime, gateways, output, consoleService, routerFault) {
+  constructor(runtime, gateways, output, consoleService, routerFault, router) {
     this.routerFault = routerFault;
+    this.router = router;
     this.consoleService = consoleService;
     this.runtime = runtime;
     this.gateways = gateways;
@@ -592,9 +599,9 @@ class RegionalRealScenario {
   }
 
   async routeContext(context, region) {
-    await context.unroute('http://127.0.0.1:4100/**');
+    await context.unroute(`${process.env.SEAMS_INTENDED_ROUTER_URL}/**`);
     await context.route(
-      'http://127.0.0.1:4100/**',
+      `${process.env.SEAMS_INTENDED_ROUTER_URL}/**`,
       this.gateways.get(region).intercept.bind(this.gateways.get(region)),
     );
   }

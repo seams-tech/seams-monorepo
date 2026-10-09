@@ -123,7 +123,9 @@ export async function createRegionalRealGateway({
       config.deployment.environmentKey,
     );
     consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
-    const router = new LocalRoleTransport('http://127.0.0.1:4102');
+    const router = new LocalRoleTransport(
+      `http://127.0.0.1:${4102 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,
+    );
     const routerFault = new api.LocalIntendedLinkExecuteFaultControllerV1(
       router.fetch.bind(router),
     );

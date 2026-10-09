@@ -56,8 +56,13 @@ type CompletionInput = {
   readonly wallet: WalletOwnershipKey;
   readonly home: WalletHome;
   readonly ceremonyId: string;
-  readonly outcome: 'established' | 'cancelled';
-};
+} & (
+  | {
+      readonly outcome: 'established';
+      readonly session: WalletSessionLocatorPublication & { readonly kind: 'credential' };
+    }
+  | { readonly outcome: 'cancelled'; readonly session?: never }
+);
 
 export type WalletHomeServiceReservationInput = {
   readonly ingressRegion: WalletRegion;
@@ -544,37 +549,6 @@ export class WalletHomeServiceClient
     }
   }
 
-  async registrationExecutionAuthority(
-    assignment: Extract<WalletHomeAssignment, { state: 'reserved' }>,
-  ) {
-    requireScope(assignment.wallet, this.scope);
-    const response = await this.post('registration-execution-authority', {
-      wallet: assignment.wallet,
-      registrationId: assignment.registrationId,
-      requestDigest: assignment.requestDigest,
-    });
-    if (response.status !== 200 && response.status !== 409)
-      throw new Error(`Registration execution admission failed: HTTP ${response.status}`);
-    const admitted = WalletExecutionAuthority.fromResponse(
-      response.body,
-      'registration',
-      assignment.wallet,
-      this.writer,
-    );
-    if ((response.status === 200) !== admitted.ok)
-      throw new WalletPlacementError('invalid_record', 'Registration execution status conflicts');
-    if (
-      admitted.ok &&
-      (!admitted.authority.home.matches(assignment.home) ||
-        !admitted.authority.matches(assignment.wallet, assignment.ownershipGeneration))
-    )
-      throw new WalletPlacementError(
-        'invalid_record',
-        'Registration execution reservation conflicts',
-      );
-    return admitted;
-  }
-
   async executionAuthority(wallet: WalletOwnershipKey) {
     requireScope(wallet, this.scope);
     const response = await this.post('execution-authority', { wallet });
@@ -630,18 +604,11 @@ export class WalletHomeServiceClient
     return assignment;
   }
 
-  async findByCeremony(ceremonyId: string): Promise<WalletHomeAssignment | null> {
-    const response = await this.post('find-by-ceremony', { ceremonyId });
-    if (response.status === 404) {
-      const body = record(response.body);
-      if (body.ok === false && body.code === 'not_found') return null;
-      throw new WalletPlacementError('invalid_record', 'Wallet ceremony lookup absence is invalid');
-    }
-    if (response.status !== 200) {
-      throw new Error(`Wallet ceremony home lookup failed: HTTP ${response.status}`);
-    }
+  async resolveRegistrationHome(ceremonyId: string) {
+    const response = await this.post('registration-home', { ceremonyId });
     const body = record(response.body);
-    if (body.ok !== true) {
+    if (response.status === 404 && body.ok === false && body.code === 'not_found') return null;
+    if (response.status !== 200 || body.ok !== true) {
       throw new WalletPlacementError(
         'invalid_record',
         'Wallet ceremony lookup response is invalid',
@@ -654,7 +621,24 @@ export class WalletHomeServiceClient
         'Wallet ceremony lookup returned another ceremony',
       );
     }
-    return assignment;
+    const admission = WalletExecutionAuthority.fromResponse(
+      body.admission,
+      assignment.state === 'established' ? 'ordinary' : 'registration',
+      assignment.wallet,
+      this.writer,
+    );
+    if (
+      admission.ok &&
+      (assignment.state === 'cancelled' ||
+        !admission.authority.home.matches(assignment.home) ||
+        !admission.authority.matches(assignment.wallet, assignment.ownershipGeneration))
+    ) {
+      throw new WalletPlacementError(
+        'invalid_record',
+        'Registration execution reservation conflicts',
+      );
+    }
+    return { assignment, admission };
   }
 
   async reserve(input: WalletHomeServiceReservationInput): Promise<WalletHomeReservation> {

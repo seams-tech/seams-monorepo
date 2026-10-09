@@ -28,23 +28,24 @@ class ExecutionConsole {
 
   async fetch(request: Request): Promise<Response> {
     const sent = await request.json();
-    if (this.mode === 'wrong_registration') sent.requestDigest = 'b'.repeat(64);
+    if (this.mode === 'wrong_registration') sent.ceremonyId = 'wrc_unrelated';
     const response = await this.worker.fetch(request.url, {
       method: request.method,
       headers: Object.fromEntries(request.headers),
       body: JSON.stringify(sent),
     });
     const body = await response.json();
-    if (body.ok === true && body.authority) {
+    const admission = body.admission ?? body;
+    if (admission.ok === true && admission.authority) {
       switch (this.mode) {
         case 'wrong_wallet':
-          body.authority.wallet.walletId = 'unrelated';
+          admission.authority.wallet.walletId = 'unrelated';
           break;
         case 'wrong_writer':
-          body.authority.versionId = '00000000-0000-4000-8000-000000000000';
+          admission.authority.versionId = '00000000-0000-4000-8000-000000000000';
           break;
         case 'invalid_generation':
-          body.authority.generation = 0;
+          admission.authority.generation = 0;
           break;
         case 'honest':
         case 'wrong_status':
@@ -211,32 +212,35 @@ export async function verifyRegistrationExecutionAdmission(
     ok: false,
     code: 'wallet_unavailable',
   });
-  const admitted = await client.registrationExecutionAuthority(assignment);
+  const admitted = await client.resolveRegistrationHome(
+    assignment.registrationAllocation.ceremonyId,
+  );
   expect(admitted).toMatchObject({
-    ok: true,
-    authority: { purpose: 'registration', generation: 1, home: source },
+    admission: { ok: true, authority: { purpose: 'registration', generation: 1, home: source } },
   });
-  expect(await client.registrationExecutionAuthority(assignment)).toEqual(admitted);
+  expect(
+    await client.resolveRegistrationHome(assignment.registrationAllocation.ceremonyId),
+  ).toEqual(admitted);
   const conflicting = await executionClient(runtime, wallet, source, homes, 'wrong_registration');
-  expect(await conflicting.registrationExecutionAuthority(assignment)).toEqual({
-    ok: false,
-    code: 'wallet_unavailable',
-  });
+  expect(
+    await conflicting.resolveRegistrationHome(assignment.registrationAllocation.ceremonyId),
+  ).toBeNull();
 
   const other = await executionClient(runtime, wallet, destination, homes, 'honest');
-  expect(await other.registrationExecutionAuthority(assignment)).toEqual({
-    ok: false,
-    code: 'writer_home_mismatch',
-  });
+  expect(
+    await other.resolveRegistrationHome(assignment.registrationAllocation.ceremonyId),
+  ).toMatchObject({ admission: { ok: false, code: 'writer_home_mismatch' } });
   await client.complete({
     wallet,
     home: assignment.home,
     ceremonyId: assignment.registrationAllocation.ceremonyId,
     outcome: 'cancelled',
   });
-  expect(await client.registrationExecutionAuthority(assignment)).toEqual({
-    ok: false,
-    code: 'wallet_unavailable',
+  expect(
+    await client.resolveRegistrationHome(assignment.registrationAllocation.ceremonyId),
+  ).toMatchObject({
+    assignment: { state: 'cancelled' },
+    admission: { ok: false, code: 'wallet_unavailable' },
   });
   expect(
     await registrationRuntimeAdmission(

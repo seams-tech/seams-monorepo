@@ -1,5 +1,6 @@
 import {
   parseWalletId,
+  digestOpaqueValue,
   parseWebAuthnRpId,
   type D1DatabaseLike,
   type WalletRegistrationReservationAuthority,
@@ -141,6 +142,25 @@ export async function registrationLifecycleFromGateway(
     case 'assert':
       return authority.admitHome(subject);
     case 'complete':
-      return authority.complete({ ...subject, outcome: input.operation.outcome });
+      if (input.operation.outcome === 'cancelled') {
+        return authority.complete({ ...subject, outcome: 'cancelled' });
+      }
+      return authority.complete({
+        ...subject,
+        outcome: 'established',
+        session: await registrationSessionLocator(walletId.value),
+      });
   }
+}
+
+export async function registrationSessionLocator(wallet: string) {
+  const walletId = parseWalletId(wallet);
+  if (!walletId.ok) throw new Error(walletId.error.message);
+  return {
+    kind: 'credential' as const,
+    walletId: walletId.value,
+    digest: await digestOpaqueValue(walletId.value),
+    // Exact retries retain the expiry of the original committed session.
+    expiresAtMs: 4_102_444_800_000,
+  };
 }

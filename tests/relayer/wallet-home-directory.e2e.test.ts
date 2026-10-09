@@ -1,4 +1,5 @@
 import { verifyRegionalWalletDispatch } from './regional-wallet-dispatch.scenario';
+import { registrationSessionLocator } from '../fixtures/tenant-deployment/registrationHomeAdmission';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
@@ -177,21 +178,20 @@ async function verifyRoutedRegistrationAdmission(runtime: Miniflare) {
     const assignment = await authority.findHome({ kind: 'ceremony', ceremonyId });
     expect(assignment?.state).toBe('reserved');
     if (outcome === 'cancelled') {
-      expect((await call(runtime, completion(input, 'cancelled'))).status).toBe(200);
+      expect((await call(runtime, await completion(input, 'cancelled'))).status).toBe(200);
     }
     const walletId = parseWalletId(input.wallet.walletId);
     if (!walletId.ok) throw new Error(walletId.error.message);
     const admitted = await authority.admitHome({ ceremonyId, walletId: walletId.value });
-    expect(admitted.ok).toBe(outcome === 'reserved');
-    expect(service.paths).toEqual([
-      `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`,
-      `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority`,
-    ]);
+    // The routed observation precedes cancellation. Production local fences reject
+    // a concurrent terminal decision; a new Console observation sees cancellation.
+    expect(admitted.ok).toBe(true);
+    expect(service.paths).toEqual([`${WALLET_HOME_SERVICE_BASE_PATH}/registration-home`]);
     const callsBeforeRetry = service.paths.length;
     const retried = await authority.admitHome({ ceremonyId, walletId: walletId.value });
     expect(retried.ok).toBe(outcome === 'reserved');
     expect(service.paths[callsBeforeRetry]).toBe(
-      `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`,
+      `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home`,
     );
     observations.push({ outcome, admitted, retried, paths: service.paths });
   }
@@ -216,13 +216,18 @@ function reservation(walletId: string, home: WalletHome, projectId = 'project') 
   };
 }
 
-function completion(input: ReturnType<typeof reservation>, outcome: 'established' | 'cancelled') {
+async function completion(
+  input: ReturnType<typeof reservation>,
+  outcome: 'established' | 'cancelled',
+) {
   return {
     action: 'complete',
     wallet: input.wallet,
     home: input.home,
     ceremonyId: input.registrationAllocation.ceremonyId,
-    outcome,
+    ...(outcome === 'established'
+      ? { outcome, session: await registrationSessionLocator(input.wallet.walletId) }
+      : { outcome }),
   };
 }
 
@@ -449,20 +454,20 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect(
       (
         await serviceCall(runtime, 'complete', {
-          ...completion(serviceReservation, 'established'),
+          ...(await completion(serviceReservation, 'established')),
           home: homes[2],
         })
       ).status,
     ).toBe(403);
     const serviceCompleted = await serviceCall(runtime, 'complete', {
-      ...completion(serviceReservation, 'established'),
+      ...(await completion(serviceReservation, 'established')),
       home: homes[0],
     });
     expect(serviceCompleted.status).toBe(200);
     expect(await serviceCompleted.json()).toMatchObject({
       assignment: { state: 'established', home: homes[0] },
     });
-    const byCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+    const byCeremony = await serviceCall(runtime, 'registration-home', {
       ceremonyId: 'wrc_service-wallet',
     });
     expect(byCeremony.status).toBe(200);
@@ -505,8 +510,8 @@ test('wallet homes are independent within a tenant and durable across competing 
     ).rejects.toMatchObject({ code: 'scope_conflict' });
     expect(
       (
-        await serviceClient.findByCeremony(clientInput.registrationAllocation.ceremonyId)
-      )?.home.matches(homes[2]),
+        await serviceClient.resolveRegistrationHome(clientInput.registrationAllocation.ceremonyId)
+      )?.assignment.home.matches(homes[2]),
     ).toBe(true);
     const homeClient = new WalletHomeServiceClient(
       clientBinding,
@@ -527,6 +532,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       home: homes[2],
       ceremonyId: clientInput.registrationAllocation.ceremonyId,
       outcome: 'established' as const,
+      session: await registrationSessionLocator(clientInput.wallet.walletId),
     };
     clientBinding.injectLostResponse('complete');
     await expect(homeClient.complete(clientCompletion)).rejects.toThrow(
@@ -567,7 +573,12 @@ test('wallet homes are independent within a tenant and durable across competing 
       homeClient.complete({ ...clientCompletion, ceremonyId: 'wrc_wrong-completion' }),
     ).rejects.toMatchObject({ code: 'home_conflict' });
     await expect(
-      homeClient.complete({ ...clientCompletion, outcome: 'cancelled' }),
+      homeClient.complete({
+        wallet: clientCompletion.wallet,
+        home: clientCompletion.home,
+        ceremonyId: clientCompletion.ceremonyId,
+        outcome: 'cancelled',
+      }),
     ).rejects.toMatchObject({ code: 'home_conflict' });
     expect(clientCompleted.state).toBe('established');
     observations.push({ stage: 'service_client_roundtrip', assignment: clientCompleted });
@@ -578,6 +589,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       home: homes[2],
       ceremonyId: projectionFailure.registrationAllocation.ceremonyId,
       outcome: 'established' as const,
+      session: await registrationSessionLocator(projectionFailure.wallet.walletId),
     };
     await database
       .prepare(
@@ -733,25 +745,25 @@ test('wallet homes are independent within a tenant and durable across competing 
       },
     });
     const wrongCompletion = await call(runtime, {
-      ...completion(interrupted, 'established'),
+      ...(await completion(interrupted, 'established')),
       ceremonyId: 'wrc_other-registration',
     });
     expect(wrongCompletion.status).toBe(409);
     expect(
       await (await call(runtime, { action: 'find', wallet: interrupted.wallet })).json(),
     ).toMatchObject({ state: 'reserved' });
-    const completed = await call(runtime, completion(interrupted, 'established'));
+    const completed = await call(runtime, await completion(interrupted, 'established'));
     const established = await completed.json();
     expect(completed.status).toBe(200);
     expect(established.state).toBe('established');
-    expect(await (await call(runtime, completion(interrupted, 'established'))).json()).toEqual(
-      established,
-    );
-    expect((await call(runtime, completion(interrupted, 'cancelled'))).status).toBe(409);
+    expect(
+      await (await call(runtime, await completion(interrupted, 'established'))).json(),
+    ).toEqual(established);
+    expect((await call(runtime, await completion(interrupted, 'cancelled'))).status).toBe(409);
     expect(
       (
         await call(runtime, {
-          ...completion(interrupted, 'established'),
+          ...(await completion(interrupted, 'established')),
           home: homes[2],
         })
       ).status,
@@ -760,15 +772,15 @@ test('wallet homes are independent within a tenant and durable across competing 
 
     const cancelledInput = reservation('cancelled', homes[0]);
     await call(runtime, cancelledInput);
-    expect((await call(runtime, completion(cancelledInput, 'cancelled'))).status).toBe(200);
-    expect((await call(runtime, completion(cancelledInput, 'established'))).status).toBe(409);
+    expect((await call(runtime, await completion(cancelledInput, 'cancelled'))).status).toBe(200);
+    expect((await call(runtime, await completion(cancelledInput, 'established'))).status).toBe(409);
     const cancelledRetry = await call(runtime, reservation('cancelled', homes[2]));
     expect(cancelledRetry.status).toBe(409);
     expect(await cancelledRetry.json()).toMatchObject({
       code: 'registration_cancelled',
       assignment: { state: 'cancelled', home: homes[0] },
     });
-    const cancelledCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+    const cancelledCeremony = await serviceCall(runtime, 'registration-home', {
       ceremonyId: 'wrc_cancelled',
     });
     expect(cancelledCeremony.status).toBe(200);
@@ -785,7 +797,7 @@ test('wallet homes are independent within a tenant and durable across competing 
       disposition: 'reserved',
       assignment: { home: homes[2] },
     });
-    const foreignCeremony = await serviceCall(runtime, 'find-by-ceremony', {
+    const foreignCeremony = await serviceCall(runtime, 'registration-home', {
       ceremonyId: 'wrc_lost-reply-foreign',
     });
     expect(foreignCeremony.status).toBe(404);

@@ -12,7 +12,7 @@ import {
   regionForRegistrationIngress,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { gatewaySetupInput } from './registrationHomeAdmission';
+import { gatewaySetupInput, registrationSessionLocator } from './registrationHomeAdmission';
 
 type Env = RegionalGatewayBindings & {
   CONSOLE: { fetch(request: Request): Promise<Response> };
@@ -44,13 +44,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
     ingressRegion: regionForRegistrationIngress(request, 'US'),
   });
   const transport = new WalletRegionalDispatch(env);
-  const forwarded = await dispatchKnownWalletHome(
-    request,
-    authority,
-    transport,
-    undefined,
-    { kind: 'absent' },
-  );
+  const forwarded = await dispatchKnownWalletHome(request, authority, transport, undefined, {
+    kind: 'absent',
+  });
   if (forwarded) return forwarded;
   const body: unknown = await request.json();
   if (!body || typeof body !== 'object' || Array.isArray(body))
@@ -121,6 +117,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
     ceremonyId: body.registrationCeremonyId,
     walletId: walletId.value,
     outcome: 'established',
+    session: await registrationSessionLocator(walletId.value),
   });
   if (!completed.ok) return Response.json(completed, { status: 409 });
   return Response.json({ ok: true, region: home.region, walletId: assignment.wallet.walletId });

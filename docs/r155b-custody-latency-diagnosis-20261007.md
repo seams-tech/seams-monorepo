@@ -2729,3 +2729,32 @@ registration completion calls, avoidable session-status requests, and repeated
 directory reads. Keep custody fixed during those comparisons. R155C owns A/B
 preparation, peer receipts and keys, connection changes, and their affected tests.
 Historical receipt checks in this record do not add requirements to R155C.
+
+
+### Phase 6AP — registration completion and directory admission
+
+The local candidate uses **7 Console requests**, compared with the 9 paths in
+Phase 6AO. Session locator publication and home completion share one request after
+the local session commit. Ceremony lookup and registration admission also share
+one response. Reserved admission uses the fetched directory row. The old separate
+admission and ceremony-lookup endpoints are removed.
+
+The eight Gateway calls remain: setup, respond, Yao execute, finalization, two
+session-status reads, prepare, and sign. Both status reads occur before registration
+returns. The iframe registration command and host observer share one observation;
+React's later session refresh starts the other. First message signing has no status
+request. SDK behavior is unchanged in this phase.
+
+Two local browser contracts pass. They verify fresh NEAR registration, lost Console
+completion replies, unchanged retry identity, signing fences until acknowledgement,
+and independently verified NEP-413 signatures through foreign ingress while Console
+is unavailable. Directory/relocation E2E, authorization-transfer E2E, public server
+build/types, and type fixtures also pass. The private full type check retains the
+same six pre-existing errors. No new infrastructure or deployment was used.
+
+**Hosted savings remain unmeasured.** Keep the **2.190s finalization median** from
+Phase 6AO as the baseline. The new session-issue timer includes home completion;
+the old standalone completion timer is removed. Compare whole finalization spans.
+R155C retains ownership of A/B preparation and transport.
+
+[Local proof and repeat commands](evidence/r155b-near-registration-combined-completion-20261009.json).

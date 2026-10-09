@@ -1,3 +1,4 @@
+import { verifyRegistrationCompletion, verifyLostRegistrationCompletion } from './registration-completion.scenario';
 import { createHash, randomUUID } from 'node:crypto';
 import type { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
 import assert from 'node:assert/strict';
@@ -1226,3 +1227,6 @@ async function verifyCompetingCredentialOwnership(
     originalClaimPreserved: true,
   };
 }
+
+test('NEAR registration combines session publication and completion before foreign-region signing', verifyRegistrationCompletion);
+test('NEAR registration recovers a lost combined completion reply with the original session', verifyLostRegistrationCompletion);

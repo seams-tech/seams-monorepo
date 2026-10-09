@@ -29,7 +29,8 @@ type ResolvedSetupHome =
   | { readonly ok: false; readonly code: string; readonly message: string };
 
 export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReservationAuthority {
-  private routedCeremony: WalletHomeAssignment | null = null;
+  private routedCeremony: Awaited<ReturnType<WalletHomeServiceClient['resolveRegistrationHome']>> =
+    null;
   private lastReservation: {
     operationId: string;
     digest: string;
@@ -210,8 +211,8 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     const client = this.client();
     switch (locator.kind) {
       case 'ceremony':
-        this.routedCeremony = await client.findByCeremony(locator.ceremonyId);
-        return this.routedCeremony;
+        this.routedCeremony = await client.resolveRegistrationHome(locator.ceremonyId);
+        return this.routedCeremony?.assignment ?? null;
       case 'wallet':
         return client.find(
           WalletOwnershipKey.parse({ ...this.options.scope, walletId: locator.walletId }),
@@ -221,15 +222,17 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
 
   async admitHome(input: Parameters<WalletRegistrationReservationAuthority['admitHome']>[0]) {
     const client = this.client();
-    // Routing already resolved this ceremony in this request. Consume that
-    // result once; execution admission below still checks the current home.
+    // Routing and admission share one Console observation. Local write fences
+    // still serialize registration effects with cancellation and relocation.
     const routed = this.routedCeremony;
     this.routedCeremony = null;
-    const assignment =
-      routed?.registrationAllocation.ceremonyId === input.ceremonyId
+    const resolved =
+      routed?.assignment.registrationAllocation.ceremonyId === input.ceremonyId
         ? routed
-        : await client.findByCeremony(input.ceremonyId);
+        : await client.resolveRegistrationHome(input.ceremonyId);
+    const assignment = resolved?.assignment;
     if (
+      !resolved ||
       !assignment ||
       assignment.state === 'cancelled' ||
       assignment.wallet.walletId !== input.walletId ||
@@ -242,10 +245,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
         message: 'Registration home is unavailable',
       };
     }
-    const admitted =
-      assignment.state === 'reserved'
-        ? await client.registrationExecutionAuthority(assignment)
-        : await client.executionAuthority(assignment.wallet);
+    const admitted = resolved.admission;
     if (!admitted.ok) {
       return {
         ok: false as const,
@@ -274,12 +274,19 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     const client = this.client();
     const catalog = WalletHomeCatalog.parse(JSON.parse(this.options.catalogJson));
     try {
-      await client.complete({
+      const completion = {
         wallet: WalletOwnershipKey.parse({ ...this.options.scope, walletId: input.walletId }),
         home: catalog.homeForResource(this.options.localResource),
         ceremonyId: input.ceremonyId,
-        outcome: input.outcome,
-      });
+      };
+      switch (input.outcome) {
+        case 'established':
+          await client.complete({ ...completion, outcome: 'established', session: input.session });
+          break;
+        case 'cancelled':
+          await client.complete({ ...completion, outcome: 'cancelled' });
+          break;
+      }
     } catch (error) {
       if (error instanceof WalletPlacementError)
         return { ok: false, code: error.code, message: error.message };

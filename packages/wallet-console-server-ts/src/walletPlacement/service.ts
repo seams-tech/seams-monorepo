@@ -124,7 +124,6 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/execution-authority` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-status` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/placement-route` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-status` &&
@@ -150,7 +149,7 @@ export async function handleWalletHomeServiceRequest(
       url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-deriver-transfer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
   ) {
@@ -426,33 +425,6 @@ export async function handleWalletHomeServiceRequest(
       });
     }
     const directory = new D1WalletHomeDirectory(options.database, catalog);
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-execution-authority`) {
-      if (
-        Object.keys(body).length !== 3 ||
-        typeof body.registrationId !== 'string' ||
-        body.registrationId.length === 0 ||
-        typeof body.requestDigest !== 'string' ||
-        !/^[a-f0-9]{64}$/u.test(body.requestDigest)
-      )
-        throw new WalletPlacementError(
-          'invalid_input',
-          'Registration execution fields are invalid',
-        );
-      const wallet = WalletOwnershipKey.parse(body.wallet);
-      if (!inScope(wallet, options.scope))
-        throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
-      const assignment = await directory.find(wallet);
-      if (
-        !assignment ||
-        assignment.state !== 'reserved' ||
-        assignment.registrationId !== body.registrationId ||
-        assignment.requestDigest !== body.requestDigest
-      )
-        return json({ ok: false, code: 'wallet_unavailable' }, 409);
-      const admitted = WalletExecutionAuthority.admitRegistration(assignment, options.writer);
-      return json(admitted, admitted.ok ? 200 : 409);
-    }
-
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap`)
       return handleLinkedDeviceBootstrap(body, options.database, options.scope, options.writer);
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce`) {
@@ -496,14 +468,37 @@ export async function handleWalletHomeServiceRequest(
       await sessions.publishExchangedCredential({ exchange, credential, writer: options.writer });
       return json({ ok: true });
     }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/find-by-ceremony`) {
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home`) {
       const assignment = await directory.findByCeremony(
         options.scope.namespace,
         requiredString(body.ceremonyId, 'ceremonyId'),
       );
-      return assignment && inScope(assignment.wallet, options.scope)
-        ? json({ ok: true, assignment })
-        : json({ ok: false, code: 'not_found' }, 404);
+      if (!assignment || !inScope(assignment.wallet, options.scope)) {
+        return json({ ok: false, code: 'not_found' }, 404);
+      }
+      let admission:
+        | Awaited<ReturnType<typeof WalletExecutionAuthority.admit>>
+        | ReturnType<typeof WalletExecutionAuthority.admitRegistration>;
+      switch (assignment.state) {
+        case 'reserved':
+          admission = WalletExecutionAuthority.admitRegistration(assignment, options.writer);
+          break;
+        case 'established':
+          admission = await WalletExecutionAuthority.admit(
+            options.database,
+            assignment.wallet,
+            options.writer,
+          );
+          break;
+        case 'cancelled':
+          admission = { ok: false, code: 'wallet_unavailable' };
+          break;
+        default: {
+          const unexpected: never = assignment;
+          throw new Error(`Unexpected registration assignment: ${String(unexpected)}`);
+        }
+      }
+      return json({ ok: true, assignment, admission });
     }
     const wallet = WalletOwnershipKey.parse(body.wallet);
     if (!inScope(wallet, options.scope)) {
@@ -582,11 +577,38 @@ export async function handleWalletHomeServiceRequest(
             'Only the assigned home writer can complete registration',
           );
         }
+        const outcome = completionOutcome(body.outcome);
+        const ceremonyId = requiredString(body.ceremonyId, 'ceremonyId');
+        if (outcome === 'established') {
+          const session = record(body.session);
+          const sessionWallet = WalletOwnershipKey.parse({
+            ...options.scope,
+            walletId: session.walletId,
+          });
+          if (session.kind !== 'credential' || !sessionWallet.matches(wallet)) {
+            throw new WalletPlacementError(
+              'invalid_input',
+              'Registration session belongs to another wallet',
+            );
+          }
+          if (typeof session.expiresAtMs !== 'number') {
+            throw new WalletPlacementError(
+              'invalid_input',
+              'Registration session expiry is required',
+            );
+          }
+          await sessions.publish({
+            locator: SessionLocator.credential(session.digest),
+            wallet,
+            expiresAtMs: session.expiresAtMs,
+            writer: options.writer,
+          });
+        }
         const assignment = await directory.complete({
           wallet,
           home,
-          ceremonyId: requiredString(body.ceremonyId, 'ceremonyId'),
-          outcome: completionOutcome(body.outcome),
+          ceremonyId,
+          outcome,
           nowMs: Date.now(),
         });
         return json({ ok: true, assignment });

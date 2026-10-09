@@ -237,6 +237,8 @@ export async function verifyRegistrationCompletion(
     await harness.assertWalletLocked();
     await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_out');
     assert.deepEqual(scenario.consoleService.requests, []);
+    const databaseWork = await evidence.databaseWork();
+    assertRoundTripCeilings(databaseWork);
     await writeFile(
       path.join(output, 'proof.json'),
       JSON.stringify(
@@ -251,7 +253,7 @@ export async function verifyRegistrationCompletion(
             routerRequests: startups.length,
             sentBeforeRespondMs: respond.atMs - startups[0].atMs,
           },
-          gatewayDatabaseWork: await evidence.databaseWork(),
+          gatewayDatabaseWork: databaseWork,
           sessionObservation: {
             registrationStatusRequests: 0,
             firstSignatureStatusRequests: 0,
@@ -354,6 +356,31 @@ function isRespond(request: { stage: string; path: string }): boolean {
 
 function isRegistrationStatus(request: { stage: string; path: string }): boolean {
   return request.stage === 'registration' && request.path === '/wallet/session/status';
+}
+
+/**
+ * The most Gateway database round trips each request may make. A change that
+ * adds one must raise its ceiling here and say why. Finalize's last read is
+ * cleanup, which may finish after the response.
+ */
+const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
+  '/wallets/register/near-provisioning': 20,
+  '/router-ab/ed25519/sign/prepare': 5,
+  '/router-ab/ed25519/sign': 6,
+};
+
+function assertRoundTripCeilings(work: readonly GatewayD1Work[]): void {
+  const measured = new Set<string>();
+  for (const request of work) {
+    const ceiling = ROUND_TRIP_CEILINGS[request.path];
+    if (ceiling === undefined) continue;
+    measured.add(request.path);
+    assert.ok(
+      request.roundTrips <= ceiling,
+      `${request.path} made ${request.roundTrips} database round trips; the ceiling is ${ceiling}`,
+    );
+  }
+  assert.deepEqual([...measured].sort(), Object.keys(ROUND_TRIP_CEILINGS).sort());
 }
 
 function isSigningStatus(request: { stage: string; path: string }): boolean {

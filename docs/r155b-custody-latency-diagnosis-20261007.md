@@ -3072,3 +3072,89 @@ The private regional scenarios are
 `registration-completion.scenario.ts`, selected by
 `passkey.registration.contract.test.ts`. All test processes stopped and temporary
 runtime directories were removed. No package release or Cloudflare deployment ran.
+
+## R155D hosted comparison — status seed and setup-time startup (October 10, 2026)
+
+The comparison measured public `947a8843` with private `ab478bc` against the
+parent `af934879`. Two of four arms ran. No end-to-end gain is measured.
+The plan and its analysis are in `seams-wallet`
+`docs/refactor-155D-registration-critical-path.md`.
+
+### What ran
+
+| Arm | Result |
+| --- | --- |
+| Baseline | Passed, three wallets |
+| Candidate | Passed, three wallets |
+| Control | Not run |
+| Trace | Not run |
+
+The driver stopped while the control arm settled. A read of the live Worker
+versions timed out against the Cloudflare API after 45 seconds. This is an
+`environment_or_infrastructure_failure`. The driver then waited for two open
+registration ceremonies to expire and restored staging. Activation run
+`37970238521` succeeded. A separate read after the driver exited confirms that
+all thirteen Workers serve the versions in `known-originals.json`.
+
+Every arm used the R155C custody set: Router `7da081d5`, Deriver A `69ba207a`,
+Deriver B `398dc7d5`, Signing Worker `59936650`. Only the four Gateways and the
+SDK assets differ between the two arms. Ten structural checks pass, and an
+independent verifier accepts all six signatures.
+
+### Results
+
+Medians of three wallets, in milliseconds:
+
+| Measure | Baseline | Candidate |
+| --- | ---: | ---: |
+| Registration to verified signature, with harness | 9,784 | 10,078 |
+| SDK flow without interaction | 7,955 | 8,314 |
+| Yao execute request | 3,408 | 3,247 |
+| Finalize request | 1,906 | 1,763 |
+| Session status request | 160 | none |
+| Sign prepare request | 509 | 914 |
+| Sign request | 418 | 839 |
+| Startup at the Router, before respond arrives | 285 after | 593 before |
+
+The structural claims hold on staging. The candidate sends no status request,
+and its startup reaches the Router before respond.
+
+### Why no gain shows
+
+For a custody Worker request that calls its wallet object once, Worker wall
+time minus object wall time is the time the request spent outside the object.
+A request "waited" at 200 ms or more.
+
+| Stage | Requests per arm | Baseline waited | Baseline median | Candidate waited | Candidate median |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Startup, four roles | 12 | 12 | 734 ms | 12 | 797 ms |
+| Yao execute: Deriver A, Deriver B, Signing Worker | 9 | 9 | 440 ms | 9 | 434 ms |
+| Registration consume, Router | 3 | 0 | 16 ms | 2 | 405 ms |
+| Sign prepare, Signing Worker | 3 | 1 | 32 ms | 3 | 393 ms |
+| Sign, Signing Worker | 3 | 1 | 21 ms | 2 | 453 ms |
+
+- The earlier startup shortened no later request. Each role request in the Yao
+  stage spent 245 to 540 ms outside its object in both arms.
+- After the Yao stage a request spends either 9 to 32 ms outside its object or
+  378 to 536 ms. These waits add 525, 0, and 492 ms to the baseline wallets and
+  1,251, 1,441, and 378 ms to the candidate wallets.
+- That spread is larger than the difference between the arms. With three
+  wallets and no control arm, chance and a candidate effect look the same.
+
+This supports the Phase 0 probe: a call to a wallet object by name pays about
+0.45 s from a server that has not called it, and an object that already runs
+does not remove that cost. The wallet-object address change comes first. The
+status seed and the setup-time startup need a new measurement after it.
+
+### Method note
+
+The first pairing matched an object invocation to the Worker invocation whose
+time window contained it. That lost every slow call: a slow call's object
+reports a start after its Worker's window. The record uses wall-time
+differences instead, which do not depend on two machines' clocks.
+
+[Sanitized evidence](evidence/r155d-near-registration-status-seed-setup-startup-20261010.json)
+holds the per-request rows. Raw tails, the driver, and the analysis scripts
+are in `.artifacts/r155d-hosted/compare`: `analyze.py`, `object_calls.py`,
+and `evidence.py`. No package release ran. Staging serves its original
+versions.

@@ -2721,10 +2721,11 @@ arrangements require authenticated communication and role-private secrets.
 The plan overlaps B preparation with A execution and removes the extra signed
 readiness and start-acceptance handshake. Durable claims, exact operation binding,
 cancellation, ownership checks, and protocol proofs remain. R155C is implemented
-and verified locally on public `dev` at
-`580cb508017f21fafbc69ab28aebf48bffda0dbf`. Its hosted measurement has not run,
-and no staging version changed. The Phase 6AO evidence above still measures the
-deployed implementation.
+on public `dev` at `580cb508017f21fafbc69ab28aebf48bffda0dbf` and measured on
+staging. Router Yao execution measures **3.758s → 2.009s → 3.199s** across
+baseline, concurrent dispatch, and restored control. The last section of this
+record has the comparison. Staging serves its original versions, so the Phase
+6AO evidence above still measures the deployed implementation.
 
 R155B completed its independent registration completion, session-status, and
 directory-read changes in Phases 6AP–6AQ. Phase 6AR records their hosted comparison
@@ -2859,3 +2860,119 @@ Temporary activation probes retain their normal ten-minute expiry.
 [Sanitized evidence](evidence/r155b-near-registration-combined-hosted-20261009.json) contains all samples, signature proofs,
 request counts, partial D1 counts, version audits, and source/build hashes.
 Repeatable raw artifacts remain in private `.artifacts/r155b-phase6ar-hosted`.
+
+### R155C hosted comparison — concurrent A/B dispatch
+
+The comparison ran on existing staging on October 9, 2026. Three fresh implicit,
+unfunded NEAR wallets ran in each sequential baseline, candidate, and restored
+control arm, on one client with the same SDK assets. Baseline and control are
+the Phase 6AO backend that Phase 6AR also measured against. The candidate arm
+replaced Router, Deriver A, and Deriver B together with release builds of
+`580cb508`. Signing Worker, Gateway, Runtime, Console, and placement
+settings stayed fixed. Existing ceremonies were settled before each change of
+versions. Cells show the median and the observed range. Funding, broadcast, and
+chain confirmation are excluded. Worker cold state was not controlled.
+
+| Metric | Baseline | Concurrent dispatch | Restored control |
+| --- | --- | --- | --- |
+| SDK registration | 10.303s (8.404–11.546s) | 7.119s (6.949–9.674s) | 8.604s (8.274–8.648s) |
+| Registration → independently verified signature | 13.639s (11.295–14.453s) | 10.599s (9.795–12.150s) | 11.482s (11.303–12.050s) |
+| Setup HTTP | 1.182s (0.665–1.218s) | 0.843s (0.593–1.595s) | 0.650s (0.645–0.651s) |
+| Respond HTTP | 0.972s (0.824–1.687s) | 0.791s (0.679–0.853s) | 0.726s (0.707–0.789s) |
+| Yao execute HTTP | 4.794s (3.761–5.075s) | 2.739s (2.460–3.247s) | 3.903s (3.840–4.160s) |
+| Finalize HTTP | 2.434s (2.366–2.520s) | 2.462s (2.177–3.103s) | 2.510s (2.059–2.601s) |
+
+Router and role spans from the same wallets:
+
+| Span | Baseline | Concurrent dispatch | Restored control |
+| --- | --- | --- | --- |
+| Router Yao execution | 3758 ms (2961–4260) | 2009 ms (1766–2505) | 3199 ms (3187–3396) |
+| A dispatched after the execution starts | 1395 ms (739–1429) | 20 ms (16–21) | 1018 ms (728–1113) |
+| B preparation, at the Router | 1207 ms (725–1283) | 770 ms (411–1189) | 1003 ms (710–1098) |
+| A execution, at the Router | 2228 ms (2118–2787) | 1900 ms (1662–2352) | 2200 ms (2065–2392) |
+| B preparation overlapping A execution | 0 ms (0–0) | 770 ms (411–1189) | 0 ms (0–0) |
+| A preparation | 172 ms (163–179) | 154 ms (153–171) | 165 ms (159–174) |
+| A connect to B | 544 ms (309–692) | 622 ms (279–726) | 388 ms (316–824) |
+| Protocol, at A | 434 ms (398–461) | 404 ms (358–439) | 359 ms (336–376) |
+| Protocol, at B | 325 ms (258–492) | 356 ms (253–398) | 360 ms (258–378) |
+| Signing Worker delivery after the roles | 101 ms (78–104) | 89 ms (83–137) | 83 ms (79–104) |
+
+`deriver_b.await_preparation` did not occur. B logs it only when a socket finds
+its pair unprepared. In all three candidate wallets B had recorded its
+preparation before A's socket arrived, so no socket waited. The local
+`socket-before-preparation` scenario covers the other ordering.
+
+| Count per wallet | Baseline | Concurrent dispatch | Restored control |
+| --- | --- | --- | --- |
+| Router readiness verifications | 1 | 0 | 1 |
+| Router-to-B preparation requests | 1 | 1 | 1 |
+| Router-to-A execution requests | 1 | 1 | 1 |
+| Browser-to-Gateway requests | 8 | 8 | 8 |
+| Bound-root D1 round trips | 5 | 5 | 5 |
+| Bound-root SQL statements | 13 | 13 | 13 |
+
+Bound-root counters cover the Derivers' root admission only. Total registration
+D1 work is not instrumented. Peer frame counts are not recorded: hosted traces
+do not count frames, and the protocol code is unchanged.
+
+Results against the structural targets:
+
+| Work | Target | Hosted result |
+| --- | --- | --- |
+| Router wait for B readiness before dispatching A | Zero | Zero. A is dispatched 16–21 ms after the execution starts, in the same instant as B |
+| Serial role stages before the protocol starts | Two | Two. B preparation overlaps A's preparation and connect for 0.411–1.189s |
+| Signed readiness receipts and start acceptances | Zero | Zero. The Router's verification span no longer exists |
+| Router-to-role HTTP requests | Two, concurrent | Two, concurrent |
+| Bound-root D1 work for a fresh ceremony | Unchanged | 5 round trips / 13 statements in every arm |
+
+Router Yao execution measures **3.758s → 2.009s → 3.199s**. Every
+candidate sample is faster than every baseline and control sample, for this span
+and for the browser's Yao execute request. The candidate median is
+**1.190s** below the restored control. The saving is the B
+preparation that no longer precedes A. The planning hypothesis of 2.0–2.2
+seconds holds for the median; the slowest candidate sample took
+2.505s.
+
+Registration to verified signature measures **13.639s → 10.599s → 11.482s**.
+The control also improves on the baseline, so the baseline difference includes
+run order. Against the control the candidate median is
+**0.883s** lower. Three sequential samples per arm do not
+establish tail percentiles or a latency guarantee. The 3–4 second
+registration-to-signature target remains unmet.
+
+Decision: keep the change. It removes the serial stage in every sample, with no
+added request, D1 work, or infrastructure. Yao execution is now bounded by A's
+own path. A's connect to B is the largest remaining A/B stage at
+0.622s median. Finalization, setup, and respond are outside this refactor.
+
+All six observed role streams ran only the expected versions in every arm. All
+nine NEP-413 signatures pass an independent Node.js Ed25519 verifier with a
+separate Borsh encoder. Altered message, recipient, nonce, and callback URL
+fail. Each wallet used new wallet objects, and each Worker received prewarm
+requests. No controlled cold run was made. Span start times derive from log time
+minus duration, and a Worker clock advances only at I/O. Requested APAC
+placement does not prove physical colocation.
+
+All 13 original Worker assignments and placement settings were restored.
+Restoration activation [37916869561](https://github.com/seams-tech/seams-monorepo/actions/runs/37916869561) passed.
+All six observation processes stopped. The experiment reused existing staging
+resources and created no Worker, object namespace, database, or paid plan. It
+uploaded three Worker versions, which staging no longer serves: Router
+`7da081d5`, Deriver A `69ba207a`, and Deriver B `398dc7d5`. The three
+candidate-arm wallets hold completed pair records without receipts. The
+restored code's record type requires them, so it cannot replay those three
+registrations. The wallets are disposable.
+
+[Sanitized evidence](evidence/r155c-near-registration-concurrent-pair-dispatch-20261009.json) contains all
+samples, signature proofs, Router and role spans, request counts, partial D1
+counts, version audits, structural checks, and source and build hashes.
+Repeatable raw artifacts remain in public `.artifacts/r155c` and private
+`.artifacts/r155c-hosted`.
+
+The public plan `seams-wallet/docs/refactor-155C-yao-peer-connection.md` holds
+the design, the local Worker and wallet-object evidence, and the same record.
+The Yao and recovery intended-behaviour contracts pass against the candidate
+Workers: 19 of 22 at the commit, and the other three once the SDK fix
+`837bd2f3` is applied. Public `dev` records this at `81439f53`.
+The hosted driver, analysis, and frozen role configurations are in private
+`.artifacts/r155c-hosted`.

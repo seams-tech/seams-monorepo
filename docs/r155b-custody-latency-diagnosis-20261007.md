@@ -2717,3 +2717,16 @@ production deployment, or package release was part of this work.
 signature proofs, version audits, source/build hashes, fault-scenario results, and
 the retention decision. Repeatable raw artifacts remain in public
 `.artifacts/r155b-phase6ao` and private `.artifacts/r155b-phase6ao-hosted`.
+
+### Next transport change: concurrent A/B preparation
+
+The revised plan is `seams-wallet/docs/refactor-155C-yao-peer-connection.md`.
+One trusted organisation operates both Derivers as separate Workers. Separate
+Cloudflare accounts are an optional administrative isolation choice. Both
+arrangements require authenticated communication and role-private secrets.
+
+The plan overlaps B preparation with A execution and removes the extra signed
+readiness and start-acceptance handshake. Durable claims, exact operation binding,
+cancellation, ownership checks, and protocol proofs remain. R155C implementation
+and hosted measurements remain pending. The Phase 6AO evidence above measures
+the current implementation.

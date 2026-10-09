@@ -30,7 +30,14 @@ type BrowserFixture = {
   page: Page;
 };
 
-type GatewayD1Work = { stage: string; path: string; roundTrips: number; statements: number };
+type GatewayD1Work = {
+  stage: string;
+  path: string;
+  roundTrips: number;
+  statements: number;
+  /** One entry per round trip: the kind and tables of each statement it carried. */
+  calls: string[][];
+};
 
 class RegistrationRequestEvidence {
   stage: 'registration' | 'first_signature' | 'explicit_refresh' | 'lock' = 'registration';
@@ -67,11 +74,28 @@ async function gatewayD1Work(
   const response = await request.response();
   const header = response ? await response.headerValue('x-benchmark-d1') : null;
   if (!header) return null;
-  const trace: { calls: { statements: unknown[] }[]; dropped: number } = JSON.parse(header);
+  const trace: {
+    calls: { statements: { query: { kind: string; tables: string[] } }[] }[];
+    dropped: number;
+  } = JSON.parse(header);
   assert.equal(trace.dropped, 0);
   let statements = 0;
-  for (const call of trace.calls) statements += call.statements.length;
-  return { stage: entry.stage, path: entry.path, roundTrips: trace.calls.length, statements };
+  const calls = [];
+  for (const call of trace.calls) {
+    statements += call.statements.length;
+    calls.push(call.statements.map(statementLabel));
+  }
+  return {
+    stage: entry.stage,
+    path: entry.path,
+    roundTrips: trace.calls.length,
+    statements,
+    calls,
+  };
+}
+
+function statementLabel(statement: { query: { kind: string; tables: string[] } }): string {
+  return `${statement.query.kind} ${statement.query.tables.join('+')}`;
 }
 
 class CompletionReplyLoss {

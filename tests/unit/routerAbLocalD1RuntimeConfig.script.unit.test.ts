@@ -13,13 +13,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { prepareRouterAbD1LocalRuntimeConfig } from '../../scripts/local-wallet/d1-local-runtime-config.mjs';
-import { localPeerVerifyingKeyHex } from '../../crates/router-ab-cloudflare/scripts/local-key-material.mjs';
 import { prepareRouterAbStrictLocalRuntimeConfigs } from '../../crates/router-ab-cloudflare/scripts/prepare-local-runtime-config.mjs';
 
-const DERIVER_A_PEER_KEY_HEX = '11'.repeat(32);
-const DERIVER_B_PEER_KEY_HEX = '22'.repeat(32);
-const DERIVER_A_PEER_SIGNING_KEY = Buffer.from(DERIVER_A_PEER_KEY_HEX, 'hex').toString('base64url');
-const DERIVER_B_PEER_SIGNING_KEY = Buffer.from(DERIVER_B_PEER_KEY_HEX, 'hex').toString('base64url');
 type X25519Fixture = {
   readonly publicKey: string;
   readonly privateKeyHex: string;
@@ -74,16 +69,10 @@ function createRuntimeFixture(): RuntimeFixture {
   writeEnv(root, '.env.router-ab.deriver-a.local', {
     DERIVER_A_URL: router.DERIVER_A_URL,
     DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY: deriverA.privateKeyHex,
-    DERIVER_A_PEER_SIGNING_KEY: DERIVER_A_PEER_SIGNING_KEY,
-    DERIVER_A_PEER_VERIFYING_KEY: localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY),
-    DERIVER_B_PEER_VERIFYING_KEY: localPeerVerifyingKeyHex(DERIVER_B_PEER_SIGNING_KEY),
   });
   writeEnv(root, '.env.router-ab.deriver-b.local', {
     DERIVER_B_URL: router.DERIVER_B_URL,
     DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY: deriverB.privateKeyHex,
-    DERIVER_B_PEER_SIGNING_KEY: DERIVER_B_PEER_SIGNING_KEY,
-    DERIVER_A_PEER_VERIFYING_KEY: localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY),
-    DERIVER_B_PEER_VERIFYING_KEY: localPeerVerifyingKeyHex(DERIVER_B_PEER_SIGNING_KEY),
   });
   writeEnv(root, '.env.router-ab.signing-worker.local', {
     SIGNING_WORKER_URL: router.SIGNING_WORKER_URL,
@@ -175,9 +164,6 @@ test('local Gateway startup projects the generated HPKE keyset into D1 Wrangler'
     'SEAMS_LOCAL_CONSOLE_ORG_ID',
   );
   expect(localConsoleOrganizationId).toMatch(/^org_[a-z0-9]{12}$/);
-  expect(config).toContain(
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY)}"`,
-  );
 
   const ceremonyPrivateJwk = parseTomlJsonAssignment(config, 'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK');
   expect(ceremonyPrivateJwk).toMatchObject({
@@ -277,12 +263,6 @@ test('local Gateway startup renders the production-shaped MPC Worker topology', 
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY = ${JSON.stringify(fixture.deriverB.publicKey)}`,
   );
   expect(routerVars).toContain(
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY)}"`,
-  );
-  expect(routerVars).toContain(
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_B_PEER_SIGNING_KEY)}"`,
-  );
-  expect(routerVars).toContain(
     `SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY = ${JSON.stringify(fixture.signingWorker.publicKey)}`,
   );
   expect(routerConfig).toContain('binding = "DERIVER_A"');
@@ -305,22 +285,10 @@ test('local Gateway startup renders the production-shaped MPC Worker topology', 
   expect(deriverAVars).toContain(
     `DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY = ${JSON.stringify(fixture.deriverA.publicKey)}`,
   );
-  expect(deriverAVars).toContain(
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY)}"`,
-  );
-  expect(deriverAVars).toContain(
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_B_PEER_SIGNING_KEY)}"`,
-  );
   const deriverBConfig = readFileSync(runtime.configs[2].configPath, 'utf8');
   const deriverBVars = tomlSection(deriverBConfig, 'vars');
   expect(deriverBVars).toContain(
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY = ${JSON.stringify(fixture.deriverB.publicKey)}`,
-  );
-  expect(deriverBVars).toContain(
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_A_PEER_SIGNING_KEY)}"`,
-  );
-  expect(deriverBVars).toContain(
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX = "${localPeerVerifyingKeyHex(DERIVER_B_PEER_SIGNING_KEY)}"`,
   );
   const signingWorkerSecretFile = readFileSync(runtime.configs[3].secretPath, 'utf8');
   expect(signingWorkerSecretFile).toContain(

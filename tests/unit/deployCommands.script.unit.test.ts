@@ -233,8 +233,6 @@ function gatewayRouterAbEnvironment(): NodeJS.ProcessEnv {
   return {
     DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
     DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
-    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
-    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
     SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
       keyset.signing_worker_server_output_hpke.public_key,
   };
@@ -681,13 +679,10 @@ test('deployment key generation provisions role-local Deriver creation signing k
       ),
     ).not.toThrow();
   }
-  // Role keys are distinct from each other, from the A/B peer keys (the Rust
-  // loader rejects reuse), and from the issuer key.
+  // Role keys are distinct from each other and from the issuer key.
   const allPublic = new Set([
     keySet.keys[0].verifying_key_hex,
     keySet.keys[1].verifying_key_hex,
-    output.variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    output.variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
     (
       JSON.parse(
         output.variables.ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON,
@@ -696,7 +691,7 @@ test('deployment key generation provisions role-local Deriver creation signing k
       }
     ).keys[0].verifying_key_hex,
   ]);
-  expect(allPublic.size).toBe(5);
+  expect(allPublic.size).toBe(3);
   // A's key cannot be selected as B's active role key.
   expect(() =>
     assertEd25519RoleKeySet(

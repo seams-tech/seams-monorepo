@@ -280,7 +280,6 @@ test('required secrets are derived from enabled capabilities', async () => {
   expect(module.componentSecretNames(staging, 'deriver-a')).toEqual([
     'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
     'DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY',
-    'DERIVER_A_PEER_SIGNING_KEY',
     'DERIVER_A_ROLE_PRIVATE_D1_KEK',
     'DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
     'DERIVER_A_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY',

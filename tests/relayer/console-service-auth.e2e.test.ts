@@ -8,6 +8,7 @@ import {
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -77,9 +78,16 @@ test('production Console service bindings enforce durable credential changes and
     platform: 'neutral',
     mainFields: ['module', 'main'],
     conditions: ['workerd', 'worker', 'browser'],
-    external: ['node:*'],
+    external: ['node:*', 'cloudflare:*'],
     loader: { '.wasm': 'file' },
     tsconfig: path.join(repoRoot, 'packages/wallet-console-server-ts/tsconfig.json'),
+    alias: process.env.SEAMS_WALLET_SERVER_CANDIDATE
+      ? {
+          '@seams/wallet-server/cloud-host': createRequire(
+            path.resolve(process.env.SEAMS_WALLET_SERVER_CANDIDATE, 'package.json'),
+          ).resolve('@seams/wallet-server/cloud-host'),
+        }
+      : {},
   });
   const guard = new ExternalRequestGuard();
   const runtime = new Miniflare({
@@ -157,7 +165,7 @@ test('production Console service bindings enforce durable credential changes and
     const service = new LocalConsoleService(consumer);
     const client = createWalletConsoleOpsClient(service);
 
-    const accepted = await client.publishableKeyAuth.authenticate({
+    const accepted = await client.registrationContext.resolve({
       secret: credential.secret,
       origin,
       environmentId,
@@ -166,7 +174,32 @@ test('production Console service bindings enforce durable credential changes and
     if (!accepted.ok) throw new Error(`Console authentication failed: ${accepted.code}`);
     expect(accepted.principal.orgId).toBe(context.orgId);
     expect(accepted.principal.environmentId).toBe(environmentId);
-    observations.push({ stage: 'accepted', ok: accepted.ok });
+    expect(accepted.environment.id).toBe(environmentId);
+    expect(accepted.environment.projectId).toBe(projectId);
+    expect(accepted.environment.status).toBe('ACTIVE');
+    expect(service.requests).toEqual([
+      { path: '/internal/wallet-console/v1/registration-context', status: 200 },
+    ]);
+    observations.push({
+      stage: 'accepted',
+      ok: accepted.ok,
+      consoleRequests: service.requests.length,
+    });
+
+    const newVersion = `${accepted.environment.signingRootVersion}-updated`;
+    await organizations.updateEnvironment(context, environmentId, { runtimeVersion: newVersion });
+    const refreshed = await client.registrationContext.resolve({
+      secret: credential.secret,
+      origin,
+      environmentId,
+    });
+    expect(refreshed.ok).toBe(true);
+    if (!refreshed.ok) throw new Error('Updated environment was unavailable');
+    expect(refreshed.environment.signingRootVersion).toBe(newVersion);
+    observations.push({
+      stage: 'fresh_environment_version',
+      version: refreshed.environment.signingRootVersion,
+    });
 
     for (const scenario of [
       {
@@ -188,7 +221,7 @@ test('production Console service bindings enforce durable credential changes and
         code: 'publishable_key_environment_mismatch',
       },
     ]) {
-      const result = await client.publishableKeyAuth.authenticate({
+      const result = await client.registrationContext.resolve({
         secret: scenario.secret,
         origin: scenario.origin,
         environmentId: scenario.environmentId,
@@ -262,7 +295,7 @@ test('production Console service bindings enforce durable credential changes and
       reason: 'Preflight rotation',
     });
     if (!rotated) throw new Error('Console credential rotation failed');
-    const replaced = await client.publishableKeyAuth.authenticate({
+    const replaced = await client.registrationContext.resolve({
       secret: credential.secret,
       origin,
       environmentId,
@@ -270,7 +303,7 @@ test('production Console service bindings enforce durable credential changes and
     expect(replaced.ok).toBe(false);
     if (replaced.ok) throw new Error('Console admitted a replaced credential');
     expect(replaced.code).toBe('publishable_key_invalid');
-    const replacement = await client.publishableKeyAuth.authenticate({
+    const replacement = await client.registrationContext.resolve({
       secret: rotated.secret,
       origin,
       environmentId,
@@ -279,7 +312,7 @@ test('production Console service bindings enforce durable credential changes and
     observations.push({ stage: 'rotation', oldAccepted: replaced.ok, newAccepted: replacement.ok });
 
     await keys.revokeApiKey(context, rotated.apiKey.id, { reason: 'Preflight revocation' });
-    const revoked = await client.publishableKeyAuth.authenticate({
+    const revoked = await client.registrationContext.resolve({
       secret: rotated.secret,
       origin,
       environmentId,
@@ -288,14 +321,44 @@ test('production Console service bindings enforce durable credential changes and
     if (revoked.ok) throw new Error('Console admitted a revoked credential');
     expect(revoked.code).toBe('publishable_key_revoked');
     observations.push({ stage: 'revoked', ok: revoked.ok, status: revoked.status });
+    const archiveCredential = await keys.createApiKey(context, {
+      kind: 'publishable_key',
+      name: 'Archive check',
+      environmentId,
+      allowedOrigins: [origin],
+      rateLimitBucket: 'default',
+      quotaBucket: 'default',
+    });
+    const beforeArchive = await client.registrationContext.resolve({
+      secret: archiveCredential.secret,
+      origin,
+      environmentId,
+    });
+    expect(beforeArchive.ok).toBe(true);
+    await organizations.archiveEnvironment(context, environmentId);
+    const archived = await client.registrationContext.resolve({
+      secret: archiveCredential.secret,
+      origin,
+      environmentId,
+    });
+    expect(archived.ok).toBe(false);
+    if (archived.ok) throw new Error('Console admitted an archived environment');
+    expect(archived.code).toBe('registration_environment_unavailable');
+    observations.push({ stage: 'archived_environment', ok: archived.ok, status: archived.status });
     expect(guard.requests).toEqual([]);
 
     const evidence = {
-      kind: 'console_service_auth_e2e_v1',
+      kind: 'console_registration_context_e2e_v1',
       at: new Date().toISOString(),
       topology: 'Wallet Console client → consumer Worker → production Console Worker → local D1',
       walletServerPackageSha256: sha256(
-        await readFile(path.join(repoRoot, 'node_modules/@seams/wallet-server/package.json')),
+        await readFile(
+          path.join(
+            process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
+              path.join(repoRoot, 'node_modules/@seams/wallet-server'),
+            'package.json',
+          ),
+        ),
       ),
       consoleBundleSha256: sha256(await readFile(path.join(output, 'console.js'))),
       migrations,
@@ -308,6 +371,7 @@ test('production Console service bindings enforce durable credential changes and
     const evidenceText = `${JSON.stringify(evidence, null, 2)}\n`;
     expect(evidenceText).not.toContain(credential.secret);
     expect(evidenceText).not.toContain(rotated.secret);
+    expect(evidenceText).not.toContain(archiveCredential.secret);
     const evidencePath = testInfo.outputPath('console-service-auth-evidence.json');
     await writeFile(evidencePath, evidenceText);
     await testInfo.attach('console-service-auth-evidence', {

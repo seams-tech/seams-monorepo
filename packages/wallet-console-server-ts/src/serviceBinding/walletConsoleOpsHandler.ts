@@ -13,6 +13,7 @@ import {
   type TenantRootIdentityV1,
 } from '@seams-internal/wallet-console-shared/tenant-root';
 import {
+  createWalletRegistrationContextResolver,
   decodeWalletConsoleTenantRootActiveLineageRequestV1,
   WALLET_CONSOLE_OP_PATHS_V1,
   WALLET_CONSOLE_SERVICE_ORIGIN_V1,
@@ -121,6 +122,21 @@ export function createWalletConsoleOpsHandler(
         environmentId: stringField(body, 'environmentId'),
       };
       const result = await services.publishableKeyAuth.authenticate(input);
+      return json(result, result.ok ? 200 : result.status);
+    }
+
+    if (pathname === WALLET_CONSOLE_OP_PATHS_V1.registrationContext) {
+      const body = await readJsonBody(request);
+      if (!body)
+        return json({ ok: false, code: 'invalid_body', message: 'JSON body required' }, 400);
+      const result = await createWalletRegistrationContextResolver(
+        services.publishableKeyAuth,
+        services.projectEnvironments,
+      ).resolve({
+        secret: stringField(body, 'secret'),
+        origin: stringField(body, 'origin'),
+        environmentId: stringField(body, 'environmentId'),
+      });
       return json(result, result.ok ? 200 : result.status);
     }
 

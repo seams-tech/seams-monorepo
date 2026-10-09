@@ -1,6 +1,11 @@
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
-import { normalizeLogger, type Logger } from '@seams/wallet-server/cloud-host';
+import {
+  createWalletRegistrationContextResolver,
+  normalizeLogger,
+  type Logger,
+  type WalletRegistrationContextResolver,
+} from '@seams/wallet-server/cloud-host';
 import type { ConsoleCoreRouterServices, WalletConsoleRouterServices } from '../consoleComposition';
 import { createD1ConsoleAccountService } from '@seams-internal/console-server/account/d1';
 import type { ConsoleAccountService } from '@seams-internal/console-server/account/service';
@@ -225,6 +230,7 @@ export interface CloudflareD1ConsoleRouterStorageOptions {
 export interface CloudflareD1RouterApiStorageOptions {
   readonly apiKeyAuth: RouterApiKeyAuthAdapter;
   readonly publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
+  readonly registrationContext: WalletRegistrationContextResolver;
   readonly apiKeyUsageMeter: RouterApiUsageMeterAdapter;
   readonly orgProjectEnv: RouterApiProjectEnvironmentResolver;
   readonly routeExtensions: NonNullable<RouterApiOptions['routeExtensions']>;
@@ -1111,14 +1117,16 @@ function createCloudflareD1RouterApiStorageOptions(input: {
   const sponsoredEvmCallConfig = options.sponsoredEvmCallConfig || null;
   const apiKeyAuth = createRouterApiKeyAuthAdapter(input.apiKeys);
   const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(input.apiKeys);
+  const orgProjectEnv = createWalletProjectEnvironmentResolver(input.orgProjectEnv);
   return {
     apiKeyAuth,
     publishableKeyAuth,
+    registrationContext: createWalletRegistrationContextResolver(publishableKeyAuth, orgProjectEnv),
     apiKeyUsageMeter: createRouterApiBillingUsageMeterAdapter(input.billing, {
       orgProjectEnv: input.orgProjectEnv,
       wallets: input.wallets,
     }),
-    orgProjectEnv: createWalletProjectEnvironmentResolver(input.orgProjectEnv),
+    orgProjectEnv,
     routeExtensions: createConsoleRouterApiRouteExtensions({
       apiKeyAuth,
       ...(sponsoredEvmCallConfig

@@ -19,7 +19,7 @@ const publicRoot = resolve(candidate, '../..');
 const includeEcdsa = process.argv.includes('--with-ecdsa');
 const output = resolve(
   import.meta.dirname,
-  '../../.artifacts/r155b',
+  '../../.artifacts/r155d-addresses',
   includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
 );
 const custody = await createRelocationCustodyWorkers(publicRoot, { includeEcdsa });
@@ -99,8 +99,12 @@ async function verifyCoordinatorBindings(custody) {
       api.relocationResourceVerification(catalog.select('WEUR'), wallet.namespace, now),
       api.relocationResourceVerification(catalog.select('APAC'), wallet.namespace, now),
     ];
+    const verification = {
+      resources: verifications,
+      custody: api.relocationCustodyNamespaces(catalog.select('WEUR'), catalog.select('APAC')),
+    };
     const journal = new api.D1WalletRelocations(database, catalog);
-    const admission = await journal.admit(move, verifications, 'test', bindings, Date.now);
+    const admission = await journal.admit(move, verification, 'test', bindings, Date.now);
     assert.deepEqual(admission, { ok: false, code: 'owner_approval_required' });
     const response = await bindings.runtimes.WEUR.fetch(
       new Request(
@@ -131,7 +135,7 @@ async function verifyCoordinatorBindings(custody) {
     browserSession = await createRelocationBrowserSession({ candidate, output, owner });
     const pendingSignature = await prepareSigningBeforeMove(custody, publicRoot);
     const expiringRefill = custody.ecdsa ? await startExpiringRefill(custody) : null;
-    const approved = await journal.admit(move, verifications, 'test', bindings, Date.now);
+    const approved = await journal.admit(move, verification, 'test', bindings, Date.now);
     assert.equal(approved.ok, true, JSON.stringify(approved));
     const freezeStartedAtMs = Date.now();
     const first = await advanceOnce(context, move);
@@ -194,11 +198,10 @@ async function verifyCoordinatorBindings(custody) {
       activation: custody.registration.result.result.result,
       identity: custody.fixture.tenant_root_creation.identity,
       clientRecipientSeed: custody.fixture.activation.client_recipient_seed,
-      destinationName: 'destination-signing-worker',
       ownershipGeneration: 2,
       credential: 'private-d1-gateway-router-auth',
       repoRoot: publicRoot,
-      scope: JSON.parse(custody.registration.delivery).scope,
+      evictWallet: evictDestinationWallet.bind(undefined, custody),
     });
     await writeFile(
       resolve(output, 'destination-signing.json'),
@@ -321,12 +324,20 @@ async function verifyRefillExpiryDuringFreeze(custody, pending, freezeStartedAtM
   assert.ok(alarm, 'The production alarm must run during source freeze');
   assert.ok(alarm.startedAtMs >= freezeStartedAtMs);
   assert.equal(alarm.status, 200);
-  await writeFile(resolve(output, 'presign-expiry-alarm.json'), JSON.stringify({
-    scope: 'Production presign alarm observed through a local test wrapper while source settlement waits for an unfinished NEAR signature.',
-    freezeStartedAtMs,
-    alarm,
-    lateRefillRejected: true,
-  }, null, 2));
+  await writeFile(
+    resolve(output, 'presign-expiry-alarm.json'),
+    JSON.stringify(
+      {
+        scope:
+          'Production presign alarm observed through a local test wrapper while source settlement waits for an unfinished NEAR signature.',
+        freezeStartedAtMs,
+        alarm,
+        lateRefillRejected: true,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 async function verifyEcdsaAfterMove(custody) {
@@ -365,6 +376,45 @@ async function verifyEcdsaAfterMove(custody) {
         destinationOwnershipGeneration: 2,
         sourceRefillPublicationRejectedAfterMove: true,
         independentlyVerifiedSignatures: 2,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function evictDestinationWallet(custody) {
+  const identity = { ...custody.identity, ownershipGeneration: 2 };
+  const store = new custody.addressApi.D1WalletObjectAddresses(custody.destinationDatabase, {
+    namespace: 'composed-relocation',
+    ...identity,
+  });
+  const addresses = await store.read(identity);
+  assert.ok(addresses, 'Destination addresses must remain after cutover');
+  const source = await new custody.addressApi.D1WalletObjectAddresses(custody.sourceDatabase, {
+    namespace: 'composed-relocation',
+    ...custody.identity,
+  }).read(custody.identity);
+  assert.deepEqual(source.toJSON(), custody.addresses.toJSON(), 'Source cleanup retains addresses');
+  for (const role of ['router', 'deriver_a', 'deriver_b', 'signing_worker']) {
+    assert.notEqual(addresses[role], source[role], 'Destination uses fresh role addresses');
+  }
+  const objectClass = 'RouterAbSigningWorkerWalletDurableObject';
+  const worker = 'destination-signing-worker';
+  const ids = await custody.rawTopology.listDurableObjectIds(objectClass, worker);
+  assert.ok(ids.includes(addresses.signing_worker), 'The persisted destination object must exist');
+  await custody.rawTopology.unsafeEvictDurableObject(worker, objectClass, {
+    id: addresses.signing_worker,
+  });
+  await writeFile(
+    resolve(output, 'wallet-object-addresses.json'),
+    JSON.stringify(
+      {
+        source: source.toJSON(),
+        destination: addresses.toJSON(),
+        sourceAddressesRetainedAfterCleanup: true,
+        destinationAddressesIndependent: true,
+        destinationSigningObjectEvictedByStoredId: true,
       },
       null,
       2,

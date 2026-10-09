@@ -1,3 +1,5 @@
+import { migrate } from './relocation-directory-runtime.mjs';
+import { loadWalletAddressApi, StoredWalletTopology } from './relocation-wallet-addresses.mjs';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -12,11 +14,13 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
   const fixture = api.loadFixture();
   const jwtSigner = api.configureRouterJwt(fixture);
   const sourceRouter = api.routerWorker(fixture);
+  sourceRouter.d1Databases = { ...sourceRouter.d1Databases, GATEWAY_DB: 'source-gateway' };
   const sourceA = api.deriverAWorker(fixture);
   const sourceB = api.deriverBWorker(fixture);
   const destinationRouter = {
     ...sourceRouter,
     name: 'destination-router',
+    d1Databases: { ...sourceRouter.d1Databases, GATEWAY_DB: 'destination-gateway' },
     durableObjects: {
       ROUTER_TENANT_ROOT_CREATION_DO: {
         ...sourceRouter.durableObjects.ROUTER_TENANT_ROOT_CREATION_DO,
@@ -32,7 +36,11 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
     },
   };
   const alarms = [];
-  const sourceSigningWorker = api.signingWorker('fixture-signing-worker', 'source-signing-worker', fixture);
+  const sourceSigningWorker = api.signingWorker(
+    'fixture-signing-worker',
+    'source-signing-worker',
+    fixture,
+  );
   const observedSigningWorker = includeEcdsa
     ? await observePresignAlarms(publicRoot, sourceSigningWorker, alarms)
     : sourceSigningWorker;
@@ -89,17 +97,50 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       deriverA,
       deriverB,
     });
-    const registration = await api.captureValidActivationDelivery(
+    const addressApi = await loadWalletAddressApi(publicRoot);
+    const envelope = api.buildEd25519ExecuteRequest(fixture, 'activation', roots.tenantRoot);
+    const identity = addressApi.walletObjectIdentity(
+      envelope.target.binding.lifecycle.account_id,
+      envelope.target.ownership_generation,
+      envelope.tenant_root.identity,
+    );
+    const sourceDatabase = await topology.getD1Database('GATEWAY_DB', 'router');
+    const destinationDatabase = await topology.getD1Database('GATEWAY_DB', 'destination-router');
+    await migrate(
+      sourceDatabase,
+      resolve(publicRoot, 'packages/wallet-server/migrations/d1-signer'),
+    );
+    await migrate(
+      destinationDatabase,
+      resolve(publicRoot, 'packages/wallet-server/migrations/d1-signer'),
+    );
+    const store = new addressApi.D1WalletObjectAddresses(sourceDatabase, {
+      namespace: 'composed-relocation',
+      ...identity,
+    });
+    const addresses = await store.initialize(
+      identity,
+      await topology.getWorker('router'),
+      'private-d1-gateway-router-auth',
+    );
+    const scopedTopology = new StoredWalletTopology(
       topology,
+      addressApi,
+      identity,
+      sourceDatabase,
+      destinationDatabase,
+    );
+    const registration = await api.captureValidActivationDelivery(
+      scopedTopology,
       fixture,
       roots.tenantRoot,
     );
-    await acknowledgeRegistration(topology, registration);
+    await acknowledgeRegistration(scopedTopology, registration);
     let ecdsa = null;
     if (includeEcdsa) {
       const walletScope = JSON.parse(registration.delivery).scope;
       const state = await api.testEcdsaRegistrationAndActivation(
-        topology,
+        scopedTopology,
         fixture,
         roots.tenantRoot,
         jwtSigner,
@@ -112,9 +153,9 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
         walletScope,
         'Both curves must share the exact wallet scope',
       );
-      const signed = await api.testEcdsaNormalSigning(topology, state, 'pool', false);
+      const signed = await api.testEcdsaNormalSigning(scopedTopology, state, 'pool', false);
       const delayedPublication = await api.completeOwnerPresignBeforePublication(
-        topology,
+        scopedTopology,
         state,
         fixture,
       );
@@ -140,7 +181,22 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       );
       objects.push({ binding, source, destination, independentNamespaces: true });
     }
-    return { topology, fixture, roots, registration, objects, releaseFaultProbe, ecdsa, alarms };
+    return {
+      topology: scopedTopology,
+      rawTopology: topology,
+      addressApi,
+      identity,
+      addresses,
+      sourceDatabase,
+      destinationDatabase,
+      fixture,
+      roots,
+      registration,
+      objects,
+      releaseFaultProbe,
+      ecdsa,
+      alarms,
+    };
   } catch (error) {
     await topology.dispose();
     throw error;

@@ -11,7 +11,8 @@ export class CustodyBinding {
   constructor(worker) {
     this.worker = worker;
   }
-  async fetch(request) {
+  async fetch(input, init) {
+    const request = new Request(input, init);
     this.calls += 1;
     return this.worker.fetch(request.url, {
       method: request.method,
@@ -99,7 +100,7 @@ class UnavailableRegion {
   }
 }
 
-async function migrate(database, directory) {
+export async function migrate(database, directory) {
   for (const name of (await readdir(directory)).filter(isMigration).sort()) {
     const statements = unstable_splitSqlQuery(await readFile(resolve(directory, name), 'utf8'));
     for (const statement of statements) await database.prepare(statement).run();
@@ -163,7 +164,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
     modules: true,
     script: 'export default { fetch() { return new Response(null, { status: 404 }); } };',
     compatibilityDate: '2026-06-12',
-    d1Databases: { DIRECTORY: 'directory', WEUR: 'weur', APAC: 'apac' },
+    d1Databases: { DIRECTORY: 'directory' },
   });
   try {
     const database = await storage.getD1Database('DIRECTORY');
@@ -200,8 +201,8 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
       ['WEUR', 'router', 'deriver-a', 'deriver-b'],
       ['APAC', 'destination-router', 'destination-deriver-a', 'destination-deriver-b'],
     ]) {
-      const regionalDatabase = await storage.getD1Database(region);
-      await migrate(regionalDatabase, resolve(candidate, 'migrations/d1-signer'));
+      const regionalDatabase =
+        region === 'WEUR' ? custody.sourceDatabase : custody.destinationDatabase;
       const home = catalog.select(region);
       const writer = api.parseTenantRuntimeWriterV1(
         'walletRuntime',
@@ -226,9 +227,30 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
         CF_VERSION_METADATA: { id: writer.versionId },
         SEAMS_D1_HOME_ACCOUNT_ID: home.accountId,
         SEAMS_D1_HOME_DATABASE_ID: home.databaseId,
-        MPC_ROUTER: new CustodyBinding(await custody.topology.getWorker(router)),
-        DERIVER_A: new CustodyBinding(await custody.topology.getWorker(deriverA)),
-        DERIVER_B: new CustodyBinding(await custody.topology.getWorker(deriverB)),
+        MPC_ROUTER: new CustodyBinding(
+          new custody.addressApi.WalletHomeCustodyBinding(
+            new CustodyBinding(await custody.rawTopology.getWorker(router)),
+            region,
+            regionalDatabase,
+            scope.namespace,
+          ),
+        ),
+        DERIVER_A: new CustodyBinding(
+          new custody.addressApi.WalletHomeCustodyBinding(
+            new CustodyBinding(await custody.rawTopology.getWorker(deriverA)),
+            region,
+            regionalDatabase,
+            scope.namespace,
+          ),
+        ),
+        DERIVER_B: new CustodyBinding(
+          new custody.addressApi.WalletHomeCustodyBinding(
+            new CustodyBinding(await custody.rawTopology.getWorker(deriverB)),
+            region,
+            regionalDatabase,
+            scope.namespace,
+          ),
+        ),
         ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'private-d1-integration-auth',
         ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: 'private-d1-gateway-router-auth',
       };

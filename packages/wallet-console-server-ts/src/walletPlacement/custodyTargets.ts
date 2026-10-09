@@ -10,6 +10,10 @@ import {
   type WalletRelocationParticipants,
 } from './relocationPreparation';
 
+type InspectionScope =
+  | { readonly role: WalletRole; readonly wallet: Command['request']['wallet'] }
+  | { readonly role: 'presignSessions'; readonly wallet?: never };
+
 type WalletRole = Exclude<CustodyRole, 'presignSessions'>;
 type Command = Parameters<WalletRelocationParticipants['router']['prepare']>[0];
 export type CustodyTarget = CustodyNamespace & {
@@ -36,7 +40,7 @@ export class CustodyTargetInspector {
   async wallet(role: WalletRole, command: Command): Promise<CustodyTargetPair> {
     const sourceName = await walletObjectName(role, command, command.request.expectedGeneration);
     const destinationName = await walletObjectName(role, command, command.destinationGeneration);
-    return this.inspect(role, sourceName, destinationName, command.request.expectedGeneration);
+    return this.inspect({ role, wallet: command.request.wallet }, sourceName, destinationName, command.request.expectedGeneration);
   }
 
   async linkedNames(
@@ -59,29 +63,29 @@ export class CustodyTargetInspector {
 
   async linked(sessionId: string, generation: number): Promise<CustodyTargetPair> {
     const names = await this.linkedNames(sessionId, generation);
-    return this.inspect('presignSessions', names.source, names.destination, generation);
+    return this.inspect({ role: 'presignSessions' }, names.source, names.destination, generation);
   }
 
   async inspect(
-    role: CustodyRole,
+    scope: InspectionScope,
     sourceName: string,
     destinationName: string,
     generation: number,
   ): Promise<CustodyTargetPair> {
     const source = await inspectTarget(
       this.sourceRuntime,
-      this.namespaces.source[role],
+      this.namespaces.source[scope.role],
       this.source,
-      role,
+      scope,
       sourceName,
       generation,
       false,
     );
     const destination = await inspectTarget(
       this.destinationRuntime,
-      this.namespaces.destination[role],
+      this.namespaces.destination[scope.role],
       this.destination,
-      role,
+      scope,
       destinationName,
       generation + 1,
       true,
@@ -154,7 +158,7 @@ async function inspectTarget(
   runtime: WalletRuntimeServiceBinding,
   namespace: CustodyNamespace,
   home: WalletHome,
-  role: CustodyRole,
+  scope: InspectionScope,
   objectName: string,
   generation: number,
   destination: boolean,
@@ -167,7 +171,8 @@ async function inspectTarget(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role,
+          role: scope.role,
+          ...(scope.role === 'presignSessions' ? {} : { wallet: scope.wallet, ownership_generation: generation }),
           object_name: objectName,
           placement: destination
             ? { kind: 'destination', location_hint: hints[home.region] }

@@ -68,6 +68,7 @@ export class RuntimeBinding {
       this.database,
       this.namespace,
       this.writer,
+      { router: this.env.MPC_ROUTER, credential: this.env.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET },
     );
     if (prepared) {
       console.log('Relocation Runtime', new URL(request.url).pathname, prepared.status);

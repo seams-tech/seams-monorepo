@@ -1,3 +1,4 @@
+import { D1WalletObjectAddresses, walletObjectIdentity } from '@seams/wallet-server/cloud-host';
 import { isPlainObject, queryD1One, type D1DatabaseLike, type WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { WalletPlacementError } from './home';
@@ -13,6 +14,7 @@ export async function handleRuntimeRelocationPreparation(
   database: D1DatabaseLike,
   namespace: string,
   writer: TenantRuntimeWriterV1,
+  custody: { readonly router: WalletRuntimeServiceBinding; readonly credential: string },
 ): Promise<Response | null> {
   if (request.url !== URL) return null;
   if (request.method !== 'POST') return Response.json({ kind: 'rejected' }, { status: 405 });
@@ -37,6 +39,12 @@ export async function handleRuntimeRelocationPreparation(
     move.wallet.walletId, move.moveId, requestDigest, move.expectedGeneration,
   ]);
   if (!row || row.state !== 'importing') return Response.json({ kind: 'rejected' }, { status: 409 });
+  const tenant = {
+    namespace, orgId: move.wallet.organizationId, projectId: move.wallet.projectId, envId: move.wallet.environmentId,
+  };
+  const addresses = new D1WalletObjectAddresses(database, tenant);
+  await addresses.initialize(walletObjectIdentity(move.wallet.walletId, move.expectedGeneration + 1, tenant),
+    custody.router, custody.credential);
   return Response.json({ kind: 'runtime_prepared', requestDigest, writer });
 }
 

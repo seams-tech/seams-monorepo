@@ -168,8 +168,8 @@ async function handleGatewayRequest(
   }
   const custodyEnv = {
     ...boundEnv,
-    MPC_ROUTER: new WalletHomeCustodyBinding(boundEnv.MPC_ROUTER, sessionHome.region),
-    SIGNING_WORKER: new WalletHomeCustodyBinding(boundEnv.SIGNING_WORKER, sessionHome.region),
+    MPC_ROUTER: new WalletHomeCustodyBinding(boundEnv.MPC_ROUTER, sessionHome.region, boundEnv.SIGNER_DB, boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(boundEnv.SIGNING_WORKER, sessionHome.region, boundEnv.SIGNER_DB, boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE),
   };
   const handled = await handleSplitGatewayRequest(request, custodyEnv, ctx, {
     sessionRouting: authority,

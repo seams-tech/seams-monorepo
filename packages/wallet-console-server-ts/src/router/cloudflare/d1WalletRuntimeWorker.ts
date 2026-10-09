@@ -64,8 +64,10 @@ async function fetch(
     });
   env = {
     ...env,
-    MPC_ROUTER: new WalletHomeCustodyBinding(env.MPC_ROUTER, home.region),
-    SIGNING_WORKER: new WalletHomeCustodyBinding(env.SIGNING_WORKER, home.region),
+    DERIVER_A: new WalletHomeCustodyBinding(env.DERIVER_A, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
+    DERIVER_B: new WalletHomeCustodyBinding(env.DERIVER_B, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
+    MPC_ROUTER: new WalletHomeCustodyBinding(env.MPC_ROUTER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(env.SIGNING_WORKER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
   };
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,
@@ -77,12 +79,15 @@ async function fetch(
   })(request);
   if (inspectionResponse) return inspectionResponse;
   if (request.url === 'https://wallet-runtime.internal/internal/wallet-runtime/v1/relocation/prepare') {
+    const credential = env.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET?.trim();
+    if (!credential) return Response.json({ kind: 'unavailable' }, { status: 503 });
     return await handleRuntimeRelocationPreparation(request, env.SIGNER_DB,
       env.SEAMS_TENANT_STORAGE_NAMESPACE,
       parseTenantRuntimeWriterV1('walletRuntime', env.CF_VERSION_METADATA.id, {
         accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
         databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
       }),
+      { router: env.MPC_ROUTER, credential },
     ) ?? new Response('Not found', { status: 404 });
   }
   const controlResponse = await handleWalletControlRequest(request, env);

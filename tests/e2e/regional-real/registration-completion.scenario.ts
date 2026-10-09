@@ -362,11 +362,16 @@ function isRegistrationStatus(request: { stage: string; path: string }): boolean
  * The most Gateway database round trips each request may make. A change that
  * adds one must raise its ceiling here and say why. Finalize's last read is
  * cleanup, which may finish after the response.
+ *
+ * Each ceiling includes one read of the wallet's object addresses for the
+ * request's custody dispatch. Setup also stores them: one read and one write.
  */
 const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
-  '/wallets/register/near-provisioning': 20,
-  '/router-ab/ed25519/sign/prepare': 5,
-  '/router-ab/ed25519/sign': 6,
+  '/wallets/register/setup': 5,
+  '/router-ab/ed25519/yao/registration/execute': 2,
+  '/wallets/register/near-provisioning': 21,
+  '/router-ab/ed25519/sign/prepare': 4,
+  '/router-ab/ed25519/sign': 5,
 };
 
 function assertRoundTripCeilings(work: readonly GatewayD1Work[]): void {

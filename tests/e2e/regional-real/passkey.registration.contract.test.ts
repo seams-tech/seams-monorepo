@@ -655,8 +655,22 @@ for (const signerSet of ['mixed', 'near-only']) {
   });
 }
 
+const REGISTRATION_RESPOND_PATH = '/wallets/register/respond';
+
+/**
+ * Sends the two protocol legs of a NEAR-only registration through regions
+ * that are not the wallet's home. Respond returns the Yao admission, so it is
+ * the admission leg; the Yao execute request is the execution leg.
+ */
 class ForeignNearRegistrationProtocol {
-  readonly requests: { path: string; ingress: string; home: string; status: number; consolePaths: string[] }[] = [];
+  readonly requests: {
+    path: string;
+    ingress: string;
+    home: string;
+    status: number;
+    admitted: boolean;
+    consolePaths: string[];
+  }[] = [];
 
   constructor(private readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
@@ -665,14 +679,23 @@ class ForeignNearRegistrationProtocol {
     const headers = await browserRequest.allHeaders();
     assert.equal(headers['x-seams-wallet-region'], 'US');
     const pathname = new URL(browserRequest.url()).pathname;
-    const ingress = pathname.endsWith('/admit') ? 'WEUR' : 'APAC';
+    const ingress = pathname === REGISTRATION_RESPOND_PATH ? 'WEUR' : 'APAC';
     const request = new Request(browserRequest.url(), {
       method: browserRequest.method(), headers, body: browserRequest.postDataBuffer(),
     });
     const callsBefore = this.scenario.consoleService.requests.length;
     const response = await this.scenario.gateways.get(ingress).handle(request, 'ingress');
     const consolePaths = this.scenario.consoleService.requests.slice(callsBefore);
-    this.requests.push({ path: pathname, ingress, home: 'US', status: response.status, consolePaths });
+    const admitted =
+      pathname === REGISTRATION_RESPOND_PATH && respondAdmittedYao(await response.clone().json());
+    this.requests.push({
+      path: pathname,
+      ingress,
+      home: 'US',
+      status: response.status,
+      admitted,
+      consolePaths,
+    });
     await writeFile(path.join(this.scenario.output, 'protocol-requests.json'), JSON.stringify(this.requests, null, 2));
     assert.equal(response.status, 200);
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
@@ -691,6 +714,7 @@ async function verifyNearRegistrationProtocolHome(
   const protocol = new ForeignNearRegistrationProtocol(scenario);
   try {
     await scenario.routeContext(context, 'US');
+    await context.route(`**${REGISTRATION_RESPOND_PATH}`, protocol.intercept.bind(protocol));
     await context.route('**/router-ab/ed25519/yao/registration/*', protocol.intercept.bind(protocol));
     await harness.registerPasskeyEd25519YaoWallet();
     assert.ok(protocol.requests.some(isYaoAdmission));
@@ -704,7 +728,7 @@ async function verifyNearRegistrationProtocolHome(
     await writeFile(path.join(output, 'protocol-home.json'), JSON.stringify({
       signerSet: 'near-only', requests: protocol.requests,
       verifiedSignatures: 3, signingConsoleCalls: scenario.consoleService.requests.length,
-      scope: 'Console is unavailable during subsequent signing. Registration retains its tenant-root context dependency; admission and execution carry the known home through foreign ingress.',
+      scope: 'Console is unavailable during subsequent signing. Registration retains its tenant-root context dependency. Respond returns the Yao admission; it and the Yao execution carry the known home through foreign ingress.',
     }, null, 2));
     harness.assertNoLifecycleViolations();
   } finally {
@@ -713,12 +737,23 @@ async function verifyNearRegistrationProtocolHome(
   }
 }
 
-function isYaoAdmission(request: { path: string }): boolean {
-  return request.path.endsWith('/admit');
+function isYaoAdmission(request: { path: string; ingress: string; admitted: boolean }): boolean {
+  return request.path === REGISTRATION_RESPOND_PATH && request.ingress === 'WEUR' && request.admitted;
 }
 
-function isYaoExecution(request: { path: string }): boolean {
-  return request.path.endsWith('/execute');
+function respondAdmittedYao(body: unknown): boolean {
+  if (typeof body !== 'object' || body === null || !('ed25519' in body)) return false;
+  const ed25519 = body.ed25519;
+  return (
+    typeof ed25519 === 'object' &&
+    ed25519 !== null &&
+    'status' in ed25519 &&
+    ed25519.status === 'admitted'
+  );
+}
+
+function isYaoExecution(request: { path: string; ingress: string }): boolean {
+  return request.path.endsWith('/execute') && request.ingress === 'APAC';
 }
 
 test('NEAR-only Yao registration uses its fixed home through foreign ingress', verifyNearRegistrationProtocolHome);

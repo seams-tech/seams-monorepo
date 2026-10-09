@@ -2742,8 +2742,10 @@ admission and ceremony-lookup endpoints are removed.
 The eight Gateway calls remain: setup, respond, Yao execute, finalization, two
 session-status reads, prepare, and sign. Both status reads occur before registration
 returns. The iframe registration command and host observer share one observation;
-React's later session refresh starts the other. First message signing has no status
-request. SDK behavior is unchanged in this phase.
+the session subscriber reads status again for the complete session projection.
+Phase 6AQ corrected the earlier attribution to React's registration wrapper: the
+NEAR harness bypassed that wrapper. First message signing has no status request.
+SDK behavior is unchanged in Phase 6AP.
 
 Two local browser contracts pass. They verify fresh NEAR registration, lost Console
 completion replies, unchanged retry identity, signing fences until acknowledgement,
@@ -2758,3 +2760,32 @@ the old standalone completion timer is removed. Compare whole finalization spans
 R155C retains ownership of A/B preparation and transport.
 
 [Local proof and repeat commands](evidence/r155b-near-registration-combined-completion-20261009.json).
+
+### Phase 6AQ — one registration session observation
+
+The SDK now publishes exact status and the complete public session from the same
+scoped observation. The application subscriber consumes it directly. React's
+registration wrapper also removes its additional refresh. The local NEAR flow
+therefore uses **1 status request and 7 Gateway requests**, compared with **2 and
+8** in Phase 6AP. Console requests remain **7**. These totals end at the first
+independently verified NEP-413 signature.
+
+The extended Console-composition scenario checks the React login and NEAR identity,
+immediate signing through OC with Console unavailable, an explicit fresh status
+request, and lock cleanup. The existing lost-completion scenario still verifies
+recovery and signing through APAC. Request counts exclude the extra explicit
+refresh that the test uses to verify freshness.
+
+The earlier caller attribution was incomplete: the NEAR harness bypassed React's
+registration wrapper. The subscriber caused its second request. The harness now
+uses the React wrapper, so both sources of repeated work are covered.
+
+Iframe protocol **15.0.0** requires matching SDK and wallet-host assets. Exact
+wallet selection, observation revisions, expiry, and local authority changes still
+govern publication. Signing prepare retains current server authorization checks.
+
+No hosted latency saving or complete D1 count is claimed. Keep **2.190s median
+finalization** and the Phase 6AO timings as the hosted baseline. No staging or
+production resources changed. R155C transport remains separate.
+
+[Local evidence and repeat commands](evidence/r155b-near-registration-session-observation-20261009.json).

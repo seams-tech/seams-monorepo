@@ -30,7 +30,7 @@ type BrowserFixture = {
 };
 
 class RegistrationRequestEvidence {
-  stage: 'registration' | 'first_signature' = 'registration';
+  stage: 'registration' | 'first_signature' | 'explicit_refresh' | 'lock' = 'registration';
   readonly requests: { stage: string; path: string }[] = [];
 
   record(request: BrowserRequest): void {
@@ -120,10 +120,10 @@ class CompletionReplyLoss {
 }
 
 export async function verifyRegistrationCompletion(
-  { harness, context }: BrowserFixture,
+  { harness, context, page }: BrowserFixture,
   testInfo: TestInfo,
 ): Promise<void> {
-  const output = path.resolve(root, '.artifacts/r155b-registration-completion/normal');
+  const output = path.resolve(root, '.artifacts/r155b-session-observation/normal');
   const scenario = await createRegionalRealGateway({
     root,
     candidate,
@@ -137,6 +137,13 @@ export async function verifyRegistrationCompletion(
   try {
     await scenario.routeContext(context, 'US');
     await harness.registerPasskeyEd25519YaoWallet();
+    const pageRoot = page.getByTestId('intended-e2e-page');
+    await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_in');
+    await expect(pageRoot).toHaveAttribute('data-login-near-ready', 'ready');
+    const walletId = await pageRoot.getAttribute('data-wallet-id');
+    assert.ok(walletId);
+    await expect(pageRoot).toHaveAttribute('data-login-wallet-id', walletId);
+    assert.equal(evidence.requests.filter(isRegistrationStatus).length, 1);
     const consoleRequests = [...scenario.consoleService.requests];
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
@@ -145,6 +152,15 @@ export async function verifyRegistrationCompletion(
     await scenario.routeContext(context, 'OC');
     evidence.stage = 'first_signature';
     const signature = await harness.signNearMessage('Combined registration completion through OC');
+    assert.equal(evidence.requests.filter(isSigningStatus).length, 0);
+    evidence.stage = 'explicit_refresh';
+    const session = await page.evaluate(readCurrentWalletSession);
+    assert.equal(session.authenticationKind, 'authenticated');
+    assert.equal(evidence.requests.filter(isExplicitStatus).length, 1);
+    evidence.stage = 'lock';
+    await harness.lockWallet();
+    await harness.assertWalletLocked();
+    await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_out');
     assert.deepEqual(scenario.consoleService.requests, []);
     await writeFile(
       path.join(output, 'proof.json'),
@@ -154,6 +170,14 @@ export async function verifyRegistrationCompletion(
           signature,
           signingIngress: 'OC',
           signingConsoleCalls: 0,
+          sessionObservation: {
+            registrationStatusRequests: 1,
+            firstSignatureStatusRequests: 0,
+            explicitRefreshStatusRequests: 1,
+            reactLoginPublished: true,
+            nearIdentityPublished: true,
+            lockClearsAuthentication: true,
+          },
           gatewayRequests: evidence.requests,
         },
         null,
@@ -171,7 +195,7 @@ export async function verifyLostRegistrationCompletion(
   { harness, context, page }: BrowserFixture,
   testInfo: TestInfo,
 ): Promise<void> {
-  const output = path.resolve(root, '.artifacts/r155b-registration-completion/lost-reply');
+  const output = path.resolve(root, '.artifacts/r155b-session-observation/lost-reply');
   const scenario = await createRegionalRealGateway({
     root,
     candidate,
@@ -236,4 +260,22 @@ function isStandaloneSessionPublication(pathname: string): boolean {
 }
 function isRegistrationHome(pathname: string): boolean {
   return pathname.endsWith('/registration-home');
+}
+
+function isRegistrationStatus(request: { stage: string; path: string }): boolean {
+  return request.stage === 'registration' && request.path === '/wallet/session/status';
+}
+
+function isSigningStatus(request: { stage: string; path: string }): boolean {
+  return request.stage === 'first_signature' && request.path === '/wallet/session/status';
+}
+
+function isExplicitStatus(request: { stage: string; path: string }): boolean {
+  return request.stage === 'explicit_refresh' && request.path === '/wallet/session/status';
+}
+
+async function readCurrentWalletSession(): Promise<{ authenticationKind: string }> {
+  const read = window.__seamsIntendedE2EReadWalletLockState;
+  if (!read) throw new Error('The wallet session reader is unavailable');
+  return read();
 }

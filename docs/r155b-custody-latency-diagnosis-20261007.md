@@ -2707,30 +2707,18 @@ All six observed role streams match their expected versions in every arm.
 Nested protocol spans include transport and overlap other spans. Requested APAC
 placement does not prove physical colocation.
 
-#### Follow-up: one authenticated B preparation/execution connection
+#### Follow-up: R155C combined B preparation/execution connection
 
-A larger transport change could remove the separate B preparation exchange.
-Router would pass B's encrypted input with the authorized ceremony to A. A would
-forward it to B on the same authenticated connection used for protocol execution.
-B would validate its own scope and root, persist its claim, and return signed
-readiness and acceptance. A would verify both before claiming locally and sending
-its proof. Router would still verify both completed role results.
+The implementation plan now lives in public
+`seams-wallet/docs/refactor-155C-yao-peer-connection.md`.
+It moves B preparation onto the authenticated peer connection and removes the
+separate preparation HTTP/DO dispatch. The plan counts any added startup frame
+exchange explicitly. A lower total round-trip count remains to be demonstrated.
 
-A must have no ability to decrypt B's input or access B's root share. Wallet home,
-ownership generation, session, input digest, and authorization must remain bound
-to the same ceremony. Lost replies, disconnects, cancellation, and completed retries
-must preserve one durable execution outcome. Remove the old preparation endpoint
-when this replacement passes the real Worker/DO fault scenarios.
-
-The expected structural benefit is one fewer complete preparation exchange and
-fewer separate persisted-state reads. Latency savings remain unmeasured. A Worker
-boundary alone does not establish a network hop: Cloudflare says service-bound
-Workers run on the same thread and server by default, subject to placement behavior.
-See [Cloudflare service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/).
-Keep the narrow authenticated Worker boundary unless measurement justifies a
-direct DO namespace binding and its broader access capability.
-
-This transport proposal is a follow-up. Phase 6AO changes only A's fresh root use.
+A and B retain independent keys, authority checks, durable claims, and retry handling.
+R155C inventories shared lifecycle changes, native HTTP consumers, endpoint removal,
+fault scenarios, and hosted measurement. Its transport code is not implemented.
+Phase 6AO changes only A's fresh root use. Its evidence remains below.
 
 All 13 original Worker assignments and placement settings were restored.
 Restoration activation [37888714394](https://github.com/seams-tech/seams-monorepo/actions/runs/37888714394) passed.

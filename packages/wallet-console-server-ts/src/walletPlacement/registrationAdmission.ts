@@ -188,6 +188,7 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
     return {
       ok: true,
       lifecycle: assignment.state,
+      ownershipGeneration: assignment.ownershipGeneration,
       reservation: parseWalletRegistrationSetupReservation({
         walletId: assignment.wallet.walletId,
         ceremonyId: stored.ceremonyId,

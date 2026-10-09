@@ -109,6 +109,41 @@ function inWindow(startedAt: number, endedAt: number, timing: Timing): boolean {
 function isSdkSigning(timing: Timing): boolean {
   return timing.event === 'near_sdk_signing_timing';
 }
+function durationOf(timings: readonly Timing[], event: string, stage: string | null): number | null {
+  for (const timing of timings) {
+    if (timing.event === event && timing.stage === stage) return timing.durationMs;
+  }
+  return null;
+}
+/**
+ * Splits the registration-to-signature flow into the time the SDK spent, the
+ * user's two interactions, and the time this test's automation added. The
+ * latency target applies to the SDK time without the interactions.
+ */
+function registrationMeasurement(timings: readonly Timing[], registrationToVerifiedMs: number | null) {
+  const sdkRegistrationMs = durationOf(timings, 'near_sdk_registration_timing', null);
+  const sdkMessageSigningMs = durationOf(timings, 'near_sdk_message_signing_timing', null);
+  const webAuthnMs = durationOf(timings, 'near_registration_timing', 'near_only.authentication');
+  const confirmationMs = durationOf(timings, 'ed25519_signing_timing', 'confirmation');
+  if (
+    sdkRegistrationMs === null ||
+    sdkMessageSigningMs === null ||
+    webAuthnMs === null ||
+    confirmationMs === null ||
+    registrationToVerifiedMs === null
+  )
+    return null;
+  const sdkFlowMs = sdkRegistrationMs + sdkMessageSigningMs;
+  return {
+    sdkRegistrationMs,
+    sdkMessageSigningMs,
+    sdkFlowMs,
+    webAuthnMs,
+    confirmationMs,
+    sdkFlowWithoutInteractionMs: sdkFlowMs - webAuthnMs - confirmationMs,
+    harnessMs: registrationToVerifiedMs - sdkFlowMs,
+  };
+}
 function isOtherSigner(asset: string): boolean {
   return (
     /\/(?:ecdsa-[^/]+|email-otp)\.worker\.js$/u.test(asset) ||
@@ -175,6 +210,10 @@ async function runNearRegistrationBenchmark(
           outcome,
           registrationMs,
           registrationToVerifiedMs,
+          measurement: registrationMeasurement(
+            observations.window(startedAt, endedAt),
+            registrationToVerifiedMs,
+          ),
           message,
           sdkTimings: observations.window(startedAt, endedAt),
           nearAccessKeyCalls: observations.accessKeyCalls(startedAt, endedAt),

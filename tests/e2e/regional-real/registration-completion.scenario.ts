@@ -6,6 +6,7 @@ import type {
   BrowserContext,
   Page,
   Request as BrowserRequest,
+  Response as BrowserResponse,
   Route,
   TestInfo,
 } from '@playwright/test';
@@ -136,7 +137,15 @@ export async function verifyRegistrationCompletion(
   context.on('request', record);
   try {
     await scenario.routeContext(context, 'US');
-    await harness.registerPasskeyEd25519YaoWallet();
+    const [finalization] = await Promise.all([
+      page.waitForResponse(isNearFinalizationResponse),
+      harness.registerPasskeyEd25519YaoWallet(),
+    ]);
+    const trace = await finalization.headerValue('x-benchmark-d1');
+    assert.ok(trace);
+    const finalizationD1 = JSON.parse(trace);
+    assert.equal(finalizationD1.dropped, 0);
+    const finalizationTiming = await finalization.headerValue('server-timing');
     const pageRoot = page.getByTestId('intended-e2e-page');
     await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_in');
     await expect(pageRoot).toHaveAttribute('data-login-near-ready', 'ready');
@@ -167,6 +176,8 @@ export async function verifyRegistrationCompletion(
       JSON.stringify(
         {
           consoleRequests,
+          finalizationD1,
+          finalizationTiming,
           signature,
           signingIngress: 'OC',
           signingConsoleCalls: 0,
@@ -278,4 +289,11 @@ async function readCurrentWalletSession(): Promise<{ authenticationKind: string 
   const read = window.__seamsIntendedE2EReadWalletLockState;
   if (!read) throw new Error('The wallet session reader is unavailable');
   return read();
+}
+
+function isNearFinalizationResponse(response: BrowserResponse): boolean {
+  return (
+    response.request().method() === 'POST' &&
+    new URL(response.url()).pathname === '/wallets/register/near-provisioning'
+  );
 }

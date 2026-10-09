@@ -248,6 +248,11 @@ export class WalletHomeServiceClient
     this.service = new WalletPlacementConsoleBinding(service, writer);
   }
 
+  home() {
+    const home = this.catalog.homeForResource(this.writer.resource);
+    return { kind: 'regional' as const, region: home.region };
+  }
+
   private async post(path: string, body: unknown): Promise<{ status: number; body: unknown }> {
     const response = await this.service.fetch(
       new Request(`${WALLET_HOME_SERVICE_ORIGIN}${WALLET_HOME_SERVICE_BASE_PATH}/${path}`, {

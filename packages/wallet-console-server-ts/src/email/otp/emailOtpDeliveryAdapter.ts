@@ -141,6 +141,13 @@ function emailOtpOperationCopy(operation: WalletEmailOtpOperation): EmailOtpOper
         caution:
           'Exported key material grants full control of your wallet. Continue only if you requested it.',
       };
+    case 'wallet_relocation':
+      return {
+        subject: 'Confirm your Seams wallet region change',
+        heading: 'Confirm wallet region change',
+        introduction: 'Enter this code to move your Seams wallet to another region.',
+        caution: 'Continue only if you requested this region change.',
+      };
     case 'device_link':
       return {
         subject: 'Confirm your Seams device link',
@@ -160,6 +167,7 @@ function parseEmailOtpOperation(value: unknown): WalletEmailOtpOperation {
     case 'transaction_sign':
     case 'export_key':
     case 'device_link':
+    case 'wallet_relocation':
       return value;
     default:
       throw new Error(`Unsupported Email OTP operation: ${String(value)}`);

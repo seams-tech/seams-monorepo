@@ -1,3 +1,4 @@
+import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
 import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
 import { TenantResourceVerificationV1 } from '../../tenantDeployment/resourceVerification';
 import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
@@ -1413,7 +1414,7 @@ async function createLocalRouterApiHandler(
     env,
     routerFetch,
     orgId,
-    resolveLocalRecoveryAuthorizationServices.bind(undefined, routerApiServiceState),
+    resolveLocalRecoveryAuthorizationServices.bind(undefined, routerApiServiceState, env, orgId),
     resolveLocalActiveTenantRoot.bind(undefined, routerApiServiceState),
     readLocalLinkedAuthorities.bind(undefined, routerApiServiceState),
   );
@@ -1438,6 +1439,7 @@ async function createLocalRouterApiHandler(
               routerApiService.walletRegistration.resolveEd25519MaterialActivation.bind(
                 routerApiService.walletRegistration,
               ),
+              localEstablishedHomeAdmission(env, orgId),
             ),
           },
         }
@@ -1714,11 +1716,23 @@ async function resolveLocalActiveTenantRoot(
   return resolved;
 }
 
+function localEstablishedHomeAdmission(env: LocalD1DevEnv, orgId: string) {
+  return admitD1EstablishedWalletHome.bind(undefined, env.SIGNER_DB, {
+    namespace: localTenantStorageNamespace(env),
+    orgId,
+    projectId: localConsoleProjectId(env),
+    envId: localConsoleEnvironmentId(env),
+  });
+}
+
 async function resolveLocalRecoveryAuthorizationServices(
   state: LocalRouterApiServiceState,
+  env: LocalD1DevEnv,
+  orgId: string,
 ): Promise<LocalRecoveryAuthorizationServices> {
   const service = requireLocalRouterApiService(state);
   return {
+    admitEstablishedHome: localEstablishedHomeAdmission(env, orgId),
     authorizationSessions: service.authorizationSessions,
     preparedRecoveryAdmission: service.passkeyCustody,
     resolveEd25519MaterialActivation:
@@ -1912,6 +1926,7 @@ function localLinkedDeviceSessionComposition(
           tenant: scope,
         }),
         deactivationEndpoint: createCloudflareOrdinaryInactiveSignerMaterialDeactivationEndpointV1({
+          admitEstablishedHome: localEstablishedHomeAdmission(env, orgId),
           fetch: serviceFetch,
           internalServiceAuthSecret,
           tenant: scope,
@@ -1919,6 +1934,7 @@ function localLinkedDeviceSessionComposition(
       },
       sourceContributionRouter: createCloudflareLinkedDeviceEd25519SourcePreservingRouterEndpointV1(
         {
+          admitEstablishedHome: localEstablishedHomeAdmission(env, orgId),
           fetch: serviceFetch,
           internalServiceAuthSecret: localGatewayToRouterAuthSecret(env),
           resolveTenantRoot: createLocalLinkedDeviceTenantRootResolver(

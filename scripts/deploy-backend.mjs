@@ -89,8 +89,6 @@ const BACKEND_SMOKE_PATHS = Object.freeze([
 const GATEWAY_ROUTER_AB_PUBLIC_ENVIRONMENT_NAMES = Object.freeze([
   'DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY',
   'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
-  'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-  'DERIVER_B_PEER_VERIFYING_KEY_HEX',
   'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
 ]);
 const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
@@ -839,8 +837,6 @@ function componentRuntimeRequirements(lane, component) {
         'DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY',
         'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
         'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
-        'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-        'DERIVER_B_PEER_VERIFYING_KEY_HEX',
         'TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON',
         'TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON',
         'ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON',
@@ -879,8 +875,6 @@ export function validateGatewayRouterAbPublicConfiguration(lane, environment = p
   const expectedValues = {
     DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
     DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
-    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
-    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
     SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
       keyset.signing_worker_server_output_hpke.public_key,
   };
@@ -902,8 +896,6 @@ function deriverRuntimeRequirements(lane, role) {
     `${prefix}_ROLE_PRIVATE_D1_KEK_VERSION`,
     `${prefix}_ENVELOPE_HPKE_PUBLIC_KEY`,
     `${peerPrefix}_ENVELOPE_HPKE_PUBLIC_KEY`,
-    'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-    'DERIVER_B_PEER_VERIFYING_KEY_HEX',
     `${prefix}_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF`,
     `${prefix}_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY`,
     managedBackup.providerIdEnvironmentName,
@@ -1334,7 +1326,6 @@ function deployDeriver(lane, role) {
   const managedBackup = tenantRootManagedBackupConfig(lane, role);
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   putWorkerSecret(resource, `${prefix}_ENVELOPE_HPKE_PRIVATE_KEY`);
-  putWorkerSecret(resource, `${prefix}_PEER_SIGNING_KEY`);
   putWorkerSecret(resource, `${prefix}_ROLE_PRIVATE_D1_KEK`);
   putWorkerSecret(resource, `${prefix}_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY`);
   putWorkerSecret(
@@ -1353,10 +1344,6 @@ function deployDeriver(lane, role) {
     `DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY')}`,
     '--var',
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY')}`,
-    '--var',
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_A_PEER_VERIFYING_KEY_HEX')}`,
-    '--var',
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_B_PEER_VERIFYING_KEY_HEX')}`,
     '--var',
     `DERIVER_ROLE_PRIVATE_D1_KEK_PUBLIC_KEY:${requireEnvironmentValue(`${prefix}_ROLE_PRIVATE_D1_KEK_PUBLIC_KEY`)}`,
     '--var',
@@ -1457,10 +1444,6 @@ function deployMpcRouter(lane) {
     `DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY')}`,
     '--var',
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY')}`,
-    '--var',
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_A_PEER_VERIFYING_KEY_HEX')}`,
-    '--var',
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_B_PEER_VERIFYING_KEY_HEX')}`,
     '--var',
     `SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:${requireEnvironmentValue('SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY')}`,
     '--var',

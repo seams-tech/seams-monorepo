@@ -19,7 +19,6 @@ const require = createRequire(import.meta.url);
 const walletServerRoot = path.dirname(require.resolve('@seams/wallet-server/package.json'));
 
 import { resolveLocalConsoleOrganizationId } from './local-console-identity.mjs';
-import { localPeerVerifyingKeyHex } from '@seams/wallet-server/local-runtime';
 import { resolveLocalTenantRootKeyMaterial } from '@seams/wallet-server/local-runtime';
 
 const X25519_PKCS8_PREFIX = Buffer.from('302e020100300506032b656e04220420', 'hex');
@@ -108,16 +107,6 @@ export function prepareRouterAbD1LocalRuntimeConfig(input) {
     runtimeConfig,
     'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
     requiredEnv(routerEnv, 'DERIVER_B_ED25519_YAO_INPUT_PUBLIC_KEY'),
-  );
-  runtimeConfig = replaceTomlAssignment(
-    runtimeConfig,
-    'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-    localPeerVerifyingKeyHex(requiredEnv(deriverAEnv, 'DERIVER_A_PEER_SIGNING_KEY')),
-  );
-  runtimeConfig = replaceTomlAssignment(
-    runtimeConfig,
-    'DERIVER_B_PEER_VERIFYING_KEY_HEX',
-    localPeerVerifyingKeyHex(requiredEnv(deriverBEnv, 'DERIVER_B_PEER_SIGNING_KEY')),
   );
   runtimeConfig = replaceTomlAssignment(
     runtimeConfig,

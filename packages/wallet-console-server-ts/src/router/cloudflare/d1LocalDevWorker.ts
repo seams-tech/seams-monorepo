@@ -225,8 +225,6 @@ interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
   readonly DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY?: string;
   readonly DERIVER_B_ENVELOPE_HPKE_KEY_EPOCH?: string;
   readonly DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY?: string;
-  readonly DERIVER_A_PEER_VERIFYING_KEY_HEX?: string;
-  readonly DERIVER_B_PEER_VERIFYING_KEY_HEX?: string;
   readonly SIGNING_WORKER_SERVER_OUTPUT_HPKE_KEY_EPOCH?: string;
   readonly SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY?: string;
   readonly SIGNING_SESSION_SEAL_ROOT_SECRET_B64U?: string;
@@ -2092,8 +2090,6 @@ function localRouterAbPublicKeyset(env: LocalD1DevEnv): RouterAbPublicKeysetV2 |
     env.DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
     env.DERIVER_B_ENVELOPE_HPKE_KEY_EPOCH,
     env.DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
-    env.DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    env.DERIVER_B_PEER_VERIFYING_KEY_HEX,
     env.SIGNING_WORKER_SERVER_OUTPUT_HPKE_KEY_EPOCH,
     env.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
   ];
@@ -2126,22 +2122,6 @@ function localRouterAbPublicKeyset(env: LocalD1DevEnv): RouterAbPublicKeysetV2 |
             'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
           ),
         },
-      },
-    },
-    signer_peer_verifying_keys: {
-      deriver_a: {
-        role: 'signer_a',
-        verifying_key_hex: requireLocalEnvString(
-          env.DERIVER_A_PEER_VERIFYING_KEY_HEX,
-          'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-        ),
-      },
-      deriver_b: {
-        role: 'signer_b',
-        verifying_key_hex: requireLocalEnvString(
-          env.DERIVER_B_PEER_VERIFYING_KEY_HEX,
-          'DERIVER_B_PEER_VERIFYING_KEY_HEX',
-        ),
       },
     },
     signing_worker_server_output_hpke: {

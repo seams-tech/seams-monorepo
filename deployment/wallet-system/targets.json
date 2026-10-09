@@ -185,16 +185,6 @@
                     }
                   }
                 },
-                "signer_peer_verifying_keys": {
-                  "deriver_a": {
-                    "role": "signer_a",
-                    "verifying_key_hex": "6cc5a6bbb3accb5953fbce829353199478c55cc04404c7db91649f397a9273d3"
-                  },
-                  "deriver_b": {
-                    "role": "signer_b",
-                    "verifying_key_hex": "a4a701bfa79de5b609851f0a86c7962afb27f1d685213264af2c4bd2854927c2"
-                  }
-                },
                 "signing_worker_server_output_hpke": {
                   "key_epoch": "epoch-1",
                   "public_key": "x25519:ba7a82dacb17f6c991a28285925d28608d5ee11ddfc5fcb298e159da10d7144b"
@@ -444,16 +434,6 @@
                     }
                   }
                 },
-                "signer_peer_verifying_keys": {
-                  "deriver_a": {
-                    "role": "signer_a",
-                    "verifying_key_hex": "dbb9e98631e2808294e1802eb148fe27820c8243e17e5f2815cd96292d9d5d43"
-                  },
-                  "deriver_b": {
-                    "role": "signer_b",
-                    "verifying_key_hex": "ba35626880f7749161a8c7607f8960c4603afd087e2eff52c54a9b14731ef068"
-                  }
-                },
                 "signing_worker_server_output_hpke": {
                   "key_epoch": "epoch-1",
                   "public_key": "x25519:fe85838989959c82a7ffb23dbfaff2a3967acd3be65a67126cd47dc871981855"
@@ -673,16 +653,6 @@
                       "key_epoch": "epoch-1",
                       "public_key": "x25519:ea3078d7513fbcf67227e4b37143b6a47d5ead4e53926da763187bcd43d17129"
                     }
-                  }
-                },
-                "signer_peer_verifying_keys": {
-                  "deriver_a": {
-                    "role": "signer_a",
-                    "verifying_key_hex": "59b19e1b11716e2b4b3119603d0c7b8becee8c963294f21443065c9706e8da13"
-                  },
-                  "deriver_b": {
-                    "role": "signer_b",
-                    "verifying_key_hex": "3d684a2c32562e2f97c8a82b644cbea07da8e217c57d1f14b1f3ac36071d034a"
                   }
                 },
                 "signing_worker_server_output_hpke": {

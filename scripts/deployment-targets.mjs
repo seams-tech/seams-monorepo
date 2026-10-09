@@ -359,7 +359,6 @@ export function componentSecretNames(lane, component) {
       return [
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY',
-        'DERIVER_A_PEER_SIGNING_KEY',
         'DERIVER_A_ROLE_PRIVATE_D1_KEK',
         'DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
         ...tenantRootManagedBackupSecretNames(lane, 'a'),
@@ -369,7 +368,6 @@ export function componentSecretNames(lane, component) {
       return [
         'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY',
-        'DERIVER_B_PEER_SIGNING_KEY',
         'DERIVER_B_ROLE_PRIVATE_D1_KEK',
         'DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
         ...tenantRootManagedBackupSecretNames(lane, 'b'),

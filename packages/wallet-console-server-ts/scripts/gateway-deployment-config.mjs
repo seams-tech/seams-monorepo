@@ -3,7 +3,6 @@ const D1_DATABASE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}
 const TENANT_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,126}[A-Za-z0-9])?$/;
 const X25519_PUBLIC_KEY_PATTERN = /^x25519:[0-9a-f]{64}$/;
 const ED25519_PUBLIC_KEY_PATTERN = /^ed25519:[1-9A-HJ-NP-Za-km-z]+$/;
-const ED25519_VERIFYING_KEY_PATTERN = /^[0-9a-f]{64}$/;
 const UNSIGNED_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 
 export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 5;
@@ -477,12 +476,7 @@ function parsePublicKeyset(value) {
   const keyset = requireObject(value, 'routerAb.publicKeyset');
   requireExactKeys(
     keyset,
-    [
-      'keyset_version',
-      'signer_envelope_hpke',
-      'signer_peer_verifying_keys',
-      'signing_worker_server_output_hpke',
-    ],
+    ['keyset_version', 'signer_envelope_hpke', 'signing_worker_server_output_hpke'],
     'routerAb.publicKeyset',
   );
   if (keyset.keyset_version !== 'router_ab_keyset_v2') {
@@ -501,15 +495,6 @@ function parsePublicKeyset(value) {
     current,
     ['deriver_a', 'deriver_b'],
     'routerAb.publicKeyset.signer_envelope_hpke.current',
-  );
-  const peerKeys = requireObject(
-    keyset.signer_peer_verifying_keys,
-    'routerAb.publicKeyset.signer_peer_verifying_keys',
-  );
-  requireExactKeys(
-    peerKeys,
-    ['deriver_a', 'deriver_b'],
-    'routerAb.publicKeyset.signer_peer_verifying_keys',
   );
   const workerOutput = requireObject(
     keyset.signing_worker_server_output_hpke,
@@ -536,18 +521,6 @@ function parsePublicKeyset(value) {
         ),
       },
     },
-    signer_peer_verifying_keys: {
-      deriver_a: parsePeerVerifyingKey(
-        peerKeys.deriver_a,
-        'signer_a',
-        'routerAb.publicKeyset.signer_peer_verifying_keys.deriver_a',
-      ),
-      deriver_b: parsePeerVerifyingKey(
-        peerKeys.deriver_b,
-        'signer_b',
-        'routerAb.publicKeyset.signer_peer_verifying_keys.deriver_b',
-      ),
-    },
     signing_worker_server_output_hpke: {
       key_epoch: requireEpoch(
         workerOutput.key_epoch,
@@ -573,20 +546,6 @@ function parseEnvelopeKey(value, expectedRole, path) {
       key.public_key,
       X25519_PUBLIC_KEY_PATTERN,
       `${path}.public_key`,
-    ),
-  };
-}
-
-function parsePeerVerifyingKey(value, expectedRole, path) {
-  const key = requireObject(value, path);
-  requireExactKeys(key, ['role', 'verifying_key_hex'], path);
-  requireExactString(key.role, expectedRole, `${path}.role`);
-  return {
-    role: expectedRole,
-    verifying_key_hex: requireNonZeroHexPattern(
-      key.verifying_key_hex,
-      ED25519_VERIFYING_KEY_PATTERN,
-      `${path}.verifying_key_hex`,
     ),
   };
 }

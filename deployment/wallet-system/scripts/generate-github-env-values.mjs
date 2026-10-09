@@ -1011,10 +1011,6 @@ function buildGatewayEnvironment(input) {
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
       },
@@ -1149,10 +1145,6 @@ function buildMpcRouterEnvironment(input) {
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON:
           variables.ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON,
         ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON: manual(
@@ -1224,7 +1216,6 @@ function buildDeriverAEnvironment(input) {
   );
   secrets.DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY;
-  secrets.DERIVER_A_PEER_SIGNING_KEY = input.deployment.secrets.DERIVER_A_PEER_SIGNING_KEY;
   secrets.DERIVER_A_ROLE_PRIVATE_D1_KEK = input.deployment.secrets.DERIVER_A_ROLE_PRIVATE_D1_KEK;
   secrets.DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY;
@@ -1245,10 +1236,6 @@ function buildDeriverAEnvironment(input) {
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF:
           variables.ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF,
         ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY:
@@ -1288,7 +1275,6 @@ function buildDeriverBEnvironment(input) {
   );
   secrets.DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY;
-  secrets.DERIVER_B_PEER_SIGNING_KEY = input.deployment.secrets.DERIVER_B_PEER_SIGNING_KEY;
   secrets.DERIVER_B_ROLE_PRIVATE_D1_KEK = input.deployment.secrets.DERIVER_B_ROLE_PRIVATE_D1_KEK;
   secrets.DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY;
@@ -1309,10 +1295,6 @@ function buildDeriverBEnvironment(input) {
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF:
           variables.ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF,
         ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY:
@@ -1455,16 +1437,6 @@ function buildPublicKeyset(deployment) {
           key_epoch: 'epoch-1',
           public_key: variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         },
-      },
-    },
-    signer_peer_verifying_keys: {
-      deriver_a: {
-        role: 'signer_a',
-        verifying_key_hex: variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-      },
-      deriver_b: {
-        role: 'signer_b',
-        verifying_key_hex: variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
       },
     },
     signing_worker_server_output_hpke: {
@@ -2177,13 +2149,11 @@ function validateRoleSecretIsolation(outputDocument) {
       .secrets;
   assertAbsent(deriverA, [
     'DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY',
-    'DERIVER_B_PEER_SIGNING_KEY',
     'DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
     'DERIVER_B_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY',
   ]);
   assertAbsent(deriverB, [
     'DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY',
-    'DERIVER_A_PEER_SIGNING_KEY',
     'DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
     'DERIVER_A_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY',
   ]);
@@ -2250,16 +2220,6 @@ function validateRouterPublicIdentityConsistency(outputDocument) {
     signingWorker.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
     router.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
     'SigningWorker output public key',
-  );
-  assertGeneratedValueEqual(
-    deriverA.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    router.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    'Deriver A peer verifying key',
-  );
-  assertGeneratedValueEqual(
-    deriverB.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
-    router.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
-    'Deriver B peer verifying key',
   );
 }
 

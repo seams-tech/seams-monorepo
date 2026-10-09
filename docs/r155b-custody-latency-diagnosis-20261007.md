@@ -1949,12 +1949,9 @@ All thirteen original Worker versions and placement settings were restored and
 read back. Restoration activation `37831446437` succeeded. Tail processes stopped.
 No new Cloudflare resources were provisioned.
 
-The next candidate should remove a setup round trip between A and B. Evaluate
-carrying B preparation on the authenticated peer connection, with independent
-B admission and signed readiness checks before protocol execution. Keep fresh
-root checks and durable replay. The earlier eager-connection experiment remains
-rejected. Compare the combined exchange against both baseline arms before keeping
-its code. Registration-to-verified-signature time remains the acceptance metric.
+The proposed follow-up that relayed B preparation through A is withdrawn.
+R155C instead dispatches B preparation and A execution concurrently. Its
+implementation and measurements belong in the revised R155C plan.
 
 [Sanitized timings, version audit, proofs and restoration evidence](evidence/r155b-near-early-deriver-execution-20261009.json).
 
@@ -2521,13 +2518,10 @@ physical-colocation guarantees.
 Across this comparison, pair-preparation medians are 0.781–0.845 seconds.
 A-execution medians are 1.495–1.883 seconds. The nested A/B Yao protocol
 medians range from 0.358 to 0.701 seconds. Do not add these nested spans or treat them as isolated CPU time.
-The next structural candidate is to combine A's preparation and execution in its
-existing wallet DO. That would remove the return to Router between these stages.
-A and B must keep independent authenticated root checks, readiness proofs,
-ownership fences, replay handling, and burn-on-failure rules. Compare the exact
-round-trip count and full registration time before retaining a transport change.
-Phase 6AN below implements and measures this candidate. Its structural saving and
-latency result are reported separately.
+Phase 6AN below implemented combined A preparation and execution in its existing
+wallet DO. It removed the return to Router between those stages. Its structural
+saving and latency result are reported separately. R155C owns the next change
+to preparation ordering and the peer handshake.
 
 [Sanitized evidence](evidence/r155b-near-registration-shared-observation-20261009.json) retains all samples, asset and source
 hashes, version audits, HTTP counts, partial D1 counts, public signature proofs,
@@ -2620,10 +2614,9 @@ An earlier baseline-only attempt stopped at an obsolete local test capture befor
 candidate deployment. The test now reads A's genuine persisted receipt. That earlier
 attempt restored staging and is excluded from this complete three-arm comparison.
 
-Next, target the remaining A-to-B connection and forwarding boundaries. Preserve
-independent role authentication, admission, and readiness proofs. Compare accumulated
-accepted changes against a frozen earlier baseline. Reconsider the serial admission
-tradeoff if repeated measurements establish a material regression.
+R155C replaces this serial ordering with concurrent A/B dispatch and removes
+peer readiness proofs. Service authentication, local admission, ownership, and
+durable execution guarantees remain. No parallel R155B transport task remains.
 
 [Sanitized evidence](evidence/r155b-near-registration-combined-deriver-preparation-20261009.json) retains all samples, request counts, partial D1 counts, local validation,
 public signature proofs, exact versions, hashes, and the retention decision. Repeatable
@@ -2730,3 +2723,9 @@ readiness and start-acceptance handshake. Durable claims, exact operation bindin
 cancellation, ownership checks, and protocol proofs remain. R155C implementation
 and hosted measurements remain pending. The Phase 6AO evidence above measures
 the current implementation.
+
+R155B's remaining optimization candidates concern Gateway, Console, and SDK work:
+registration completion calls, avoidable session-status requests, and repeated
+directory reads. Keep custody fixed during those comparisons. R155C owns A/B
+preparation, peer receipts and keys, connection changes, and their affected tests.
+Historical receipt checks in this record do not add requirements to R155C.

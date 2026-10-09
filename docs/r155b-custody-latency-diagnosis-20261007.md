@@ -2720,9 +2720,11 @@ arrangements require authenticated communication and role-private secrets.
 
 The plan overlaps B preparation with A execution and removes the extra signed
 readiness and start-acceptance handshake. Durable claims, exact operation binding,
-cancellation, ownership checks, and protocol proofs remain. R155C implementation
-and hosted measurements remain pending. The Phase 6AO evidence above measures
-the current implementation.
+cancellation, ownership checks, and protocol proofs remain. R155C is implemented
+and verified locally on public `dev` at
+`580cb508017f21fafbc69ab28aebf48bffda0dbf`. Its hosted measurement has not run,
+and no staging version changed. The Phase 6AO evidence above still measures the
+deployed implementation.
 
 R155B's remaining optimization candidates concern Gateway, Console, and SDK work:
 registration completion calls, avoidable session-status requests, and repeated

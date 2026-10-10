@@ -126,7 +126,7 @@ Decision rules — classify before fixing:
 - `pnpm test:source-guards` — the source-guard chain
 - `pnpm check` — private lint, type-check, Console-core boundary checks, and the
   script tests
-- `pnpm test:deploy-scripts` — the script tests alone (every
+- `pnpm test:scripts` — the script tests alone (every
   `tests/unit/*.script.unit.test.ts`: deployment, D1 staging, and local scripts); run it
   after a change to `scripts/`, `packages/wallet-console-server-ts/scripts/`,
   `deployment/`, or `.github/workflows/deploy-*.yml`. It is offline and takes seconds;

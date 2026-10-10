@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, '../..');
 const wallet = resolve(root, '../seams-wallet');
 const output = resolve(root, '.artifacts/r155b/local-session-routing');
 await mkdir(output, { recursive: true });
-const { seedExecutionGeneration } = await import(
+const { establishRegistrationHome, seedExecutionGeneration } = await import(
   pathToFileURL(resolve(wallet, 'tests/e2e/execution-generation.scenario.mjs'))
 );
 const bundle = await build({
@@ -149,6 +149,12 @@ class UncertainRegistrationCompletion {
   }
 }
 
+function completeRegistration(authority, database, identity, outcome) {
+  return outcome === 'cancelled'
+    ? authority.cancel(identity)
+    : establishRegistrationHome(authority, database, identity);
+}
+
 async function verifyRegistrationTerminalDecision(database, scope, fixture, outcome, binding) {
   const walletId = fixture.authority.walletId;
   const directory = new UncertainRegistrationCompletion();
@@ -202,7 +208,7 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
      WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4 AND wallet_id = ?5`,
   ).bind(scope.namespace, scope.orgId, scope.projectId, scope.envId, walletId, Date.now() + 60_000);
   await insertCeremony.run();
-  await assert.rejects(authority.complete({ ...identity, outcome }), /reply lost/u);
+  await assert.rejects(completeRegistration(authority, database, identity, outcome), /reply lost/u);
   if (outcome === 'cancelled') {
     await assert.rejects(database.prepare(
       `UPDATE registration_ceremony_records SET version = version + 1
@@ -231,7 +237,7 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   assert.equal(row.state, outcome === 'cancelled' ? 'retired' : 'registering');
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, false);
   const conflict = outcome === 'cancelled' ? 'established' : 'cancelled';
-  await assert.rejects(authority.complete({ ...identity, outcome: conflict }));
+  await assert.rejects(completeRegistration(authority, database, identity, conflict));
   assert.equal(directory.calls, 1);
   directory.loseReply = false;
   const reconciled = await resumed.admitHome(identity);
@@ -239,12 +245,12 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   assert.equal(directory.calls, outcome === 'established' ? 1 : 2);
   if (outcome === 'established') {
     assert.equal((await authority.admitEstablishedHome({ walletId })).ok, false);
-    assert.deepEqual(await resumed.complete({ ...identity, outcome }), { ok: true });
+    assert.deepEqual(await establishRegistrationHome(resumed, database, identity), { ok: true });
     assert.equal(directory.calls, 2);
     directory.loseReply = true;
-    assert.deepEqual(await resumed.complete({ ...identity, outcome }), { ok: true });
+    assert.deepEqual(await establishRegistrationHome(resumed, database, identity), { ok: true });
     assert.equal(directory.calls, 2, 'Published completion retry must remain local');
-    await assert.rejects(resumed.complete({ ...identity, outcome: 'cancelled' }));
+    await assert.rejects(resumed.cancel(identity));
     assert.equal(directory.calls, 2, 'Conflicting terminal retry must not reach the directory');
   }
   assert.equal((await authority.admitEstablishedHome({ walletId })).ok, outcome === 'established');

@@ -360,8 +360,9 @@ function isRegistrationStatus(request: { stage: string; path: string }): boolean
 
 /**
  * The most Gateway database round trips each request may make. A change that
- * adds one must raise its ceiling here and say why. Finalize's last read is
- * cleanup, which may finish after the response.
+ * adds one must raise its ceiling here and say why. Finalize ends with its
+ * cleanup, one read and one delete. They run after the response, and the trace
+ * holds those that finish before it is read. The ceiling includes both.
  *
  * Setup reads and stores the wallet's object addresses: one read and one
  * write. Every other request takes them from the Gateway's admission query.

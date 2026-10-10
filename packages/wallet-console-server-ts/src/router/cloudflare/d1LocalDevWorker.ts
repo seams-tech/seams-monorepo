@@ -579,6 +579,7 @@ function localEcdsaStrictPorts(env: LocalD1DevEnv, orgId: string): LocalEcdsaStr
   const tokenIssuer = localEcdsaCeremonyTokenIssuer(env, privateJwk);
   const config = {
     router: env.MPC_ROUTER,
+    internalServiceAuthSecret: localGatewayToRouterAuthSecret(env),
     tokenIssuer,
     tokenScope: {
       orgId,

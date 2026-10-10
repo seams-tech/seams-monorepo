@@ -6,8 +6,6 @@ import type { WalletRegistrationSetupDispatcher } from '@seams/wallet-server/clo
 import { digestOpaqueValue, parseWalletId } from '@seams/wallet-server/cloud-host';
 import { SessionLocator } from './sessionLocators';
 import { WalletOwnershipKey, type WalletHomeAssignment } from './home';
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
 import type { WalletHome } from './home';
 import { ConsoleRegistrationHomeAdmission } from './registrationAdmission';
 
@@ -91,47 +89,41 @@ export class ConsoleRegistrationSetupDispatcher implements WalletRegistrationSet
   }
 }
 
-export async function resolveLocalRegistrationContinuation(input: {
-  readonly request: Request;
-  readonly database: D1DatabaseLike;
-  readonly tenant: TenantDeploymentBindingV1['tenant'];
-  readonly session: SessionHomeResolution;
-}): Promise<
+export type RegistrationContinuationLocator =
   | { readonly kind: 'absent' }
-  | { readonly kind: 'local' }
-  | { readonly kind: 'rejected'; readonly response: Response }
-> {
-  const pathname = new URL(input.request.url).pathname;
-  if (input.request.method !== 'POST' || !isRegistrationContinuation(pathname)) {
+  | { readonly kind: 'invalid' }
+  | { readonly kind: 'ceremony'; readonly ceremonyId: string };
+
+export async function readRegistrationContinuationLocator(
+  request: Request,
+): Promise<RegistrationContinuationLocator> {
+  const pathname = new URL(request.url).pathname;
+  if (request.method !== 'POST' || !isRegistrationContinuation(pathname)) {
     return { kind: 'absent' };
   }
-  if (input.session.kind === 'rejected') return input.session;
-  const body: unknown = await input.request.clone().json().catch(invalidJsonBody);
+  const body: unknown = await request.clone().json().catch(invalidJsonBody);
   const ceremonyId = registrationCeremonyId(pathname, body);
-  if (ceremonyId === null) {
+  return ceremonyId === null ? { kind: 'invalid' } : { kind: 'ceremony', ceremonyId };
+}
+
+export function resolveLocalRegistrationContinuation(input: {
+  readonly locator: RegistrationContinuationLocator;
+  readonly wallet: WalletOwnershipKey | null;
+  readonly session: SessionHomeResolution;
+}):
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'local' }
+  | { readonly kind: 'rejected'; readonly response: Response } {
+  if (input.locator.kind === 'absent') return { kind: 'absent' };
+  if (input.session.kind === 'rejected') return input.session;
+  if (input.locator.kind === 'invalid') {
     return {
       kind: 'rejected',
       response: Response.json({ ok: false, code: 'invalid_body' }, { status: 400 }),
     };
   }
-  const tenant = input.tenant;
-  const row = await input.database
-    .prepare(
-      `SELECT wallet_id FROM wallet_execution_generations
-     WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4
-       AND origin = 'registration' AND origin_id = ?5`,
-    )
-    .bind(
-      tenant.namespace,
-      tenant.organizationId,
-      tenant.projectId,
-      tenant.environmentId,
-      ceremonyId,
-    )
-    .first<{ readonly wallet_id: unknown }>();
-  if (!row) return { kind: 'absent' };
-  const wallet = WalletOwnershipKey.parse({ ...tenant, walletId: row.wallet_id });
-  if (!sessionMatchesWallet(input.session, wallet)) {
+  if (input.wallet === null) return { kind: 'absent' };
+  if (!sessionMatchesWallet(input.session, input.wallet)) {
     return {
       kind: 'rejected',
       response: Response.json(
@@ -180,9 +172,7 @@ export async function dispatchKnownWalletHome(
     authentication.kind === 'absent' ? await recoveryHome(request, authority) : authentication;
   if (scopedHome.kind === 'rejected') return scopedHome.response;
   if (scopedHome.kind === 'resolved') {
-    if (
-      !sessionMatchesWallet(session, scopedHome.assignment.wallet)
-    ) {
+    if (!sessionMatchesWallet(session, scopedHome.assignment.wallet)) {
       return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
     }
     return authority.isLocal(scopedHome.assignment.home)
@@ -243,10 +233,7 @@ export async function dispatchKnownWalletHome(
     if (!walletId.ok) {
       return Response.json({ ok: false, code: 'invalid_body' }, { status: 400 });
     }
-    if (
-      session.kind === 'local' &&
-      pathname === '/router-ab/ecdsa-derivation/operation-step-up'
-    ) {
+    if (session.kind === 'local' && pathname === '/router-ab/ecdsa-derivation/operation-step-up') {
       if (session.wallet.walletId !== walletId.value) {
         return Response.json({ ok: false, code: 'wallet_session_scope_mismatch' }, { status: 403 });
       }
@@ -271,7 +258,8 @@ export async function dispatchKnownWalletHome(
         session.kind === 'absent' ||
         session.kind === 'local' ||
         authority.isLocal(session.assignment.home)
-      ) return null;
+      )
+        return null;
       return transport.forward(session.assignment.home, request);
     }
     let walletId: string;
@@ -296,7 +284,8 @@ export async function dispatchKnownWalletHome(
       session.kind === 'absent' ||
       session.kind === 'local' ||
       authority.isLocal(session.assignment.home)
-    ) return null;
+    )
+      return null;
     return transport.forward(session.assignment.home, request);
   }
   if (!assignment || assignment.state === 'cancelled') {

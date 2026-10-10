@@ -7,6 +7,7 @@ import {
   dispatchKnownWalletHome,
   readRequestSessionLocator,
   resolveLocalRegistrationContinuation,
+  readRegistrationContinuationLocator,
   ConsoleRegistrationSetupDispatcher,
   WalletRegionalDispatch,
   type RegionalGatewayBindings,
@@ -90,10 +91,12 @@ async function handleGatewayRequest(
     );
     return locator.response;
   }
+  const continuationLocator = await readRegistrationContinuationLocator(request);
   const admission = await local.resolveGatewayBinding(
     env.SEAMS_TENANT_DEPLOYMENT_LANE,
     writer,
     locator.kind === 'locator' ? locator.locator : null,
+    continuationLocator,
   );
   if (!admission) {
     const unavailable = Response.json(
@@ -169,10 +172,9 @@ async function handleGatewayRequest(
   });
   const sessionHome = authority.home();
   const transport = new WalletRegionalDispatch(env);
-  const continuation = await resolveLocalRegistrationContinuation({
-    request,
-    database: boundEnv.SIGNER_DB,
-    tenant: binding.tenant,
+  const continuation = resolveLocalRegistrationContinuation({
+    locator: continuationLocator,
+    wallet: admission.registrationWallet,
     session,
   });
   let forwarded: Response | null = null;

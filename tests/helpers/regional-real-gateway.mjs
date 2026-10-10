@@ -55,7 +55,7 @@ export async function createRegionalRealGateway({
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
-        export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, readRequestSessionLocator, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+        export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, readRegistrationContinuationLocator, readRequestSessionLocator, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
         export { relocationWriterVersion, relocationResourceVerification, relocationCustodyNamespaces } from './tests/fixtures/tenant-deployment/walletRelocationResources';
         export { fourRegionBinding, regionalResourceProof } from './tests/helpers/tenantDeploymentFixtures';
@@ -418,8 +418,9 @@ class RealRegionalGateway {
     const writer = this.api.parseTenantRuntimeWriterV1('gateway', this.writerVersion, resource);
     const locator = await this.api.readRequestSessionLocator(request);
     if (locator.kind === 'rejected') return locator.response;
+    const continuationLocator = await this.api.readRegistrationContinuationLocator(request);
     const admission = await this.localAdmission.resolveGatewayBinding(
-      'test', writer, locator.kind === 'locator' ? locator.locator : null,
+      'test', writer, locator.kind === 'locator' ? locator.locator : null, continuationLocator,
     );
     if (!admission) {
       return Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, { status: 503 });
@@ -453,7 +454,7 @@ class RealRegionalGateway {
       forwarded = resolution.response;
     } else {
       const continuation = await this.api.resolveLocalRegistrationContinuation({
-        request, database: fencedDatabase, tenant: this.scope, session: resolution.session,
+        locator: continuationLocator, wallet: admission.registrationWallet, session: resolution.session,
       });
       if (continuation.kind === 'rejected') forwarded = continuation.response;
       else if (continuation.kind === 'absent') {

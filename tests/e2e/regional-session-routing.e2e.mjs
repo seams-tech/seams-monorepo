@@ -115,7 +115,7 @@ class GatewayBridge {
     const locator = await api.readRequestSessionLocator(request);
     if (locator.kind === 'rejected') return locator.response;
     const admission = await this.admission.resolveGatewayBinding(
-      'test', this.writer, locator.kind === 'locator' ? locator.locator : null,
+      'test', this.writer, locator.kind === 'locator' ? locator.locator : null, { kind: 'absent' },
     );
     assert.ok(admission);
     const resolution = await api.resolveGatewayDeployment({
@@ -804,7 +804,12 @@ try {
   const rows = await authorityDatabase
     .prepare('SELECT kind, digest, wallet_id, expires_at_ms FROM wallet_session_locators')
     .all();
-  assert.ok(rows.results.length >= bridges.size * 4 && rows.results.length <= bridges.size * 5);
+  for (const bridge of bridges.values()) {
+    const digest = await api.digestOpaqueValue(bridge.issued.operationCredential.token);
+    const locator = rows.results.find((row) => row.kind === 'credential' && row.digest === digest);
+    assert.ok(locator, 'The issued session must have a directory locator');
+    assert.equal(locator.wallet_id, bridge.issued.session.walletId);
+  }
   const serialized = JSON.stringify(rows.results);
   for (const bridge of bridges.values())
     assert.ok(!serialized.includes(bridge.issued.operationCredential.token));

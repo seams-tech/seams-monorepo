@@ -32,7 +32,7 @@ const bundle = await build({
     resolveDir: wallet,
     contents: `
     export { resolveGatewayDeployment } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-    export { WalletRegionalDispatch, resolveLocalRegistrationContinuation, readRequestSessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+    export { WalletRegionalDispatch, resolveLocalRegistrationContinuation, readRegistrationContinuationLocator, readRequestSessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
     export { WalletOwnershipKey } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/home';
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
     export { fourRegionBinding, activateRegionalGatewayFixture } from '${root}/tests/helpers/tenantDeploymentFixtures';
@@ -149,7 +149,7 @@ class UncertainRegistrationCompletion {
   }
 }
 
-async function verifyRegistrationTerminalDecision(database, scope, fixture, outcome) {
+async function verifyRegistrationTerminalDecision(database, scope, fixture, outcome, binding) {
   const walletId = fixture.authority.walletId;
   const directory = new UncertainRegistrationCompletion();
   const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
@@ -171,12 +171,18 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
     method: 'POST',
     body: JSON.stringify({ registrationCeremonyId: identity.ceremonyId }),
   });
-  const routing = { request, database, tenant, session: { kind: 'absent' } };
+  const writer = { role: 'gateway', versionId: crypto.randomUUID(), resource: binding.resources[0] };
+  const local = await api.activateRegionalGatewayFixture(database, binding, writer);
+  const locator = await api.readRegistrationContinuationLocator(request);
+  const admission = await local.resolveGatewayBinding(binding.deploymentLane, writer, null, locator);
+  assert.ok(admission);
+  assert.equal(admission.registrationWallet.walletId, walletId);
+  const routing = { locator, wallet: admission.registrationWallet, session: { kind: 'absent' } };
   assert.deepEqual(await api.resolveLocalRegistrationContinuation(routing), { kind: 'local' });
   assert.deepEqual(
     await api.resolveLocalRegistrationContinuation({
       ...routing,
-      tenant: { ...tenant, namespace: `${tenant.namespace}-wrong` },
+      wallet: null,
     }),
     { kind: 'absent' },
   );
@@ -292,13 +298,14 @@ async function resolveGateway(input) {
   if (locator.kind === 'rejected') return locator;
   const admission = await input.admission.resolveGatewayBinding(
     input.deploymentLane, input.writer, locator.kind === 'locator' ? locator.locator : null,
+    await api.readRegistrationContinuationLocator(input.request),
   );
   assert.ok(admission);
   return api.resolveGatewayDeployment({ ...input, binding: admission.binding, session: admission.session });
 }
 
 async function localWallet(routing, locator) {
-  const admission = await routing.admission.resolveGatewayBinding(routing.deploymentLane, routing.writer, locator);
+  const admission = await routing.admission.resolveGatewayBinding(routing.deploymentLane, routing.writer, locator, { kind: 'absent' });
   assert.ok(admission);
   return admission.session.kind === 'local' ? admission.session.wallet : null;
 }
@@ -346,6 +353,8 @@ try {
     tenantId: scope.orgId,
     expiresAtMs: Date.now() + 3_600_000,
   });
+  const writer = { role: 'gateway', versionId: crypto.randomUUID(), resource: binding.resources[0] };
+  const localAdmission = await api.activateRegionalGatewayFixture(database, binding, writer);
   for (const outcome of ['established', 'cancelled']) {
     const terminalFixture = await api.buildLinkedDeviceManagementAuthorityFixture({
       label: `terminal-${outcome}`,
@@ -355,11 +364,15 @@ try {
       tenantId: scope.orgId,
       expiresAtMs: Date.now() + 3_600_000,
     });
+    const terminalBinding = await api.fourRegionBinding(Date.now(), `terminal-${outcome}`, {
+      ...tenant, namespace: `${tenant.namespace}-${outcome}`,
+    });
     await verifyRegistrationTerminalDecision(
       database,
-      { ...scope, namespace: `${scope.namespace}-${outcome}` },
+      { ...scope, namespace: terminalBinding.tenant.namespace },
       terminalFixture,
       outcome,
+      terminalBinding,
     );
   }
   await seedExecutionGeneration({ api, database, scope, walletId: fixture.authority.walletId });
@@ -418,7 +431,7 @@ try {
   const routing = {
     database,
     binding,
-    writer: { role: 'gateway', versionId: crypto.randomUUID(), resource: binding.resources[0] },
+    writer,
     deploymentLane: binding.deploymentLane,
     service: consoleService,
     catalogJson: JSON.stringify(
@@ -429,7 +442,7 @@ try {
     ),
     timingHeaders: new Headers(),
   };
-  routing.admission = await api.activateRegionalGatewayFixture(database, binding, routing.writer);
+  routing.admission = localAdmission;
   const request = new Request('https://gateway.test/router-ab/ecdsa-derivation/sign/prepare', {
     method: 'POST',
     headers: { Authorization: `Bearer ${issued.operationCredential.token}` },

@@ -1,4 +1,4 @@
-import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import type { D1DatabaseLike, D1ResultLike } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import type { WalletOwnershipKey } from './home';
 
@@ -21,7 +21,7 @@ export async function claimPasskeyCredential(input: {
     writer.resource.accountId,
     writer.resource.databaseId,
   ];
-  await input.database
+  const insert = input.database
     .prepare(
       `INSERT INTO wallet_passkey_claims
     (namespace, organization_id, project_id, environment_id, rp_id, credential_id, wallet_id)
@@ -32,9 +32,8 @@ export async function claimPasskeyCredential(input: {
       AND database_id = ?9 AND state IN ('reserved', 'established') AND placement_state = 'active'
     ON CONFLICT DO NOTHING`,
     )
-    .bind(...values)
-    .run();
-  const claimed = await input.database
+    .bind(...values);
+  const verify = input.database
     .prepare(
       `SELECT 1 AS claimed
     FROM wallet_passkey_claims AS claim JOIN wallet_homes AS home
@@ -46,7 +45,7 @@ export async function claimPasskeyCredential(input: {
       AND claim.wallet_id = ?7 AND home.account_id = ?8 AND home.database_id = ?9
       AND home.state IN ('reserved', 'established') AND home.placement_state = 'active'`,
     )
-    .bind(...values)
-    .first<number>('claimed');
-  return claimed === 1;
+    .bind(...values);
+  const results = await input.database.batch<D1ResultLike<{ claimed: number }>>([insert, verify]);
+  return results[1]?.results?.[0]?.claimed === 1;
 }

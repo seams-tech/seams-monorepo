@@ -126,7 +126,9 @@ export async function createRegionalRealGateway({
     );
     const consoleAuthentication = api.createStaticWalletConsoleBindingV1(config);
     consoleService.context = api.createWalletConsoleOpsClient(consoleAuthentication).registrationContext;
-    consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
+    if (databaseState?.mode !== 'reopen') {
+      consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
+    }
     const router = new LocalRoleTransport(
       `http://127.0.0.1:${4102 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,
     );
@@ -172,6 +174,18 @@ export async function createRegionalRealGateway({
         };
         await localAdmission.prepare(admission);
         await localAdmission.activate(admission);
+      } else {
+        const writer = api.parseTenantRuntimeWriterV1('gateway', home.databaseId, {
+          accountId: home.accountId,
+          databaseId: home.databaseId,
+        });
+        const persistedBinding = await localAdmission.resolveRuntimeBinding('test', writer);
+        assert.ok(persistedBinding, 'Restart must reopen an active deployment');
+        if (consoleService.binding) {
+          assert.equal(consoleService.binding.revision, persistedBinding.revision);
+        } else {
+          consoleService.binding = persistedBinding;
+        }
       }
       const gateway = new RealRegionalGateway({
         emailDelivery,

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { buildPasskeyCredentialBindingFixture } from '../helpers/regional-authentication.fixtures.mjs';
 
 async function insertBinding(store, record) {
@@ -157,12 +158,21 @@ async function verifyTerminalClaims(input) {
     assert.equal(await bridge.publisher.claim(credential), true);
     await assert.rejects(
       bridge.publisher.complete({ ...claimedHome, outcome: 'cancelled' }),
-      /Wallet home completion failed: HTTP 409/,
+      { code: 'home_conflict' },
     );
     assert.equal((await input.directory.find(claimedHome.wallet)).state, 'reserved');
     assert.equal(await bridge.publisher.claim(credential), true);
     assert.equal(
-      (await bridge.publisher.complete({ ...claimedHome, outcome: 'established' })).state,
+      (await bridge.publisher.complete({
+        ...claimedHome,
+        outcome: 'established',
+        session: {
+          kind: 'credential',
+          walletId: claimedHome.wallet.walletId,
+          digest: createHash('sha256').update(`terminal-session-${index}`).digest('base64url'),
+          expiresAtMs: Date.now() + 60_000,
+        },
+      })).state,
       'established',
     );
 
@@ -191,7 +201,7 @@ async function verifyTerminalClaims(input) {
     const assignment = await input.directory.find(racingHome.wallet);
     if (claim.value) {
       assert.equal(cancel.status, 'rejected');
-      assert.match(cancel.reason.message, /Wallet home completion failed: HTTP 409/);
+      assert.equal(cancel.reason.code, 'home_conflict');
       assert.equal(assignment.state, 'reserved');
     } else {
       assert.equal(cancel.status, 'fulfilled');

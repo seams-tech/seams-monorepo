@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { GoogleOidcFixture } from '../helpers/google-oidc.fixtures.mjs';
 import { buildGoogleEnrollmentFixture } from '../helpers/regional-authentication.fixtures.mjs';
 
@@ -597,7 +598,16 @@ async function verifySharedRegistrationOffers({
     bridges.get('APAC').publisher.complete({ ...terminalInput, outcome: 'established' }),
   );
   assert.equal(
-    (await bridges.get('US').publisher.complete({ ...terminalInput, outcome: 'established' }))
+    (await bridges.get('US').publisher.complete({
+      ...terminalInput,
+      outcome: 'established',
+      session: {
+        kind: 'credential',
+        walletId: wallet.walletId,
+        digest: createHash('sha256').update(`google-session-${wallet.walletId}`).digest('base64url'),
+        expiresAtMs: Date.now() + 60_000,
+      },
+    }))
       .state,
     'established',
   );

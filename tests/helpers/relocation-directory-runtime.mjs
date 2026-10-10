@@ -144,6 +144,7 @@ export async function loadRelocationApi({ root, candidate, output }) {
       export { WalletPlacementConsoleBinding } from './packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
       export { D1WalletHomeDirectory } from './packages/wallet-console-server-ts/src/walletPlacement/d1';
+      export { registrationCompletionSession } from './tests/fixtures/tenant-deployment/registrationHomeAdmission';
       export { D1WalletRelocations } from './packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
       export { WalletRelocationRequest } from './packages/wallet-console-server-ts/src/walletPlacement/relocation';
       export { WalletRegionalDispatch } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';

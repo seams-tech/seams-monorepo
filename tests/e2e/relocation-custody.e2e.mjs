@@ -86,6 +86,7 @@ async function verifyCoordinatorBindings(custody) {
       home: catalog.select('WEUR'),
       ceremonyId: reservation.assignment.registrationAllocation.ceremonyId,
       outcome: 'established',
+      session: await api.registrationCompletionSession(wallet.walletId),
       nowMs: now + 1,
     });
     const move = api.WalletRelocationRequest.parse({

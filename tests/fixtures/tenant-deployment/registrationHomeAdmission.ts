@@ -12,6 +12,7 @@ import {
   type WalletRegion,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
+import { SessionLocator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
 
 const scope = {
   namespace: 'shared',
@@ -163,4 +164,9 @@ export async function registrationSessionLocator(wallet: string) {
     // Exact retries retain the expiry of the original committed session.
     expiresAtMs: 4_102_444_800_000,
   };
+}
+
+export async function registrationCompletionSession(wallet: string) {
+  const session = await registrationSessionLocator(wallet);
+  return { locator: SessionLocator.credential(session.digest), expiresAtMs: session.expiresAtMs };
 }

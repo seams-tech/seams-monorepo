@@ -1,4 +1,5 @@
 import { relocationCustodyNamespaces } from './walletRelocationResources';
+import { registrationCompletionSession } from './registrationHomeAdmission';
 import { StrictPlacementDirectory } from './walletPlacementDirectory';
 import { WalletPlacementConsoleBinding } from '../../../packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
 import { WalletRelocationCoordinator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';
@@ -113,6 +114,7 @@ export default {
             home: assignment.home,
             ceremonyId: assignment.registrationAllocation.ceremonyId,
             outcome: 'established',
+            session: await registrationCompletionSession(assignment.wallet.walletId),
             nowMs: relocationTimestamp(body.nowMs),
           }),
         );

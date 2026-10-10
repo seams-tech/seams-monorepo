@@ -2,6 +2,7 @@ import { parseTenantRuntimeWriterV1 } from '../../../packages/wallet-console-ser
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { reserveFromGateway, registrationLifecycleFromGateway } from './registrationHomeAdmission';
 import { D1WalletHomeDirectory } from '../../../packages/wallet-console-server-ts/src/walletPlacement/d1';
+import { SessionLocator } from '../../../packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
 import { handleWalletHomeServiceRequest } from '../../../packages/wallet-console-server-ts/src/walletPlacement/service';
 import {
   RegistrationSetupAllocation,
@@ -119,7 +120,15 @@ export default {
             wallet,
             home,
             ceremonyId: body.ceremonyId,
-            outcome: body.outcome,
+            ...(body.outcome === 'established'
+              ? {
+                  outcome: 'established' as const,
+                  session: {
+                    locator: SessionLocator.credential(body.session.digest),
+                    expiresAtMs: body.session.expiresAtMs,
+                  },
+                }
+              : { outcome: 'cancelled' as const }),
             nowMs: Date.now(),
           }),
         );

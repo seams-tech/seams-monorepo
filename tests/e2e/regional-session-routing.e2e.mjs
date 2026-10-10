@@ -304,6 +304,7 @@ const bundle = await build({
       export { buildFullOwnerPermissionsV1, buildFullOwnerDelegatedWalletAuthorityV1 } from ${JSON.stringify(resolve(publicRoot, 'packages/shared-ts/src/authorization/delegatedAuthority.ts'))};
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
       export { D1WalletHomeDirectory } from './packages/wallet-console-server-ts/src/walletPlacement/d1';
+      export { registrationCompletionSession } from './tests/fixtures/tenant-deployment/registrationHomeAdmission';
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
       export { WalletHomeServiceClient } from './packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
       export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
@@ -479,6 +480,7 @@ try {
       home: catalog.select(region),
       ceremonyId: bridge.ceremonyId,
       outcome: 'established',
+      session: await api.registrationCompletionSession(wallet.walletId),
       nowMs: now + 1,
     });
     await database.batch([

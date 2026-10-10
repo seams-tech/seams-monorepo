@@ -8,6 +8,8 @@ import {
   type WalletHomeReservationInput,
   type WalletRegion,
 } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import type { D1WalletHomeDirectory } from '../../packages/wallet-console-server-ts/src/walletPlacement/d1';
+import type { SessionLocator } from '../../packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
 
 declare const home: WalletHome;
 declare const catalog: WalletHomeCatalog;
@@ -98,3 +100,38 @@ const oceania: WalletRegion = 'OC';
 const city: WalletRegion = 'Sydney';
 void oceania;
 void city;
+
+type CompletionInput = Parameters<D1WalletHomeDirectory['complete']>[0];
+declare const establishedCompletion: CompletionInput & { readonly outcome: 'established' };
+declare const exchangeLocator: SessionLocator<'exchange'>;
+
+// @ts-expect-error An established home requires its session publication.
+const missingSession: CompletionInput = {
+  wallet,
+  home,
+  ceremonyId: 'ceremony',
+  nowMs: 1,
+  outcome: 'established',
+};
+// @ts-expect-error A spread cannot publish a session while cancelling registration.
+const cancelledWithSession: CompletionInput = { ...establishedCompletion, outcome: 'cancelled' };
+const exchangeCompletion: CompletionInput = {
+  ...establishedCompletion,
+  session: {
+    // @ts-expect-error Completion publishes the issued credential, never an exchange token.
+    locator: exchangeLocator,
+    expiresAtMs: 1,
+  },
+};
+const uncheckedSession: CompletionInput = {
+  ...establishedCompletion,
+  session: {
+    // @ts-expect-error A spread cannot bypass session-locator validation.
+    locator: { ...establishedCompletion.session.locator },
+    expiresAtMs: 1,
+  },
+};
+void missingSession;
+void cancelledWithSession;
+void exchangeCompletion;
+void uncheckedSession;

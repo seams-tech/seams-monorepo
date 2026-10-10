@@ -591,6 +591,14 @@ test('wallet homes are independent within a tenant and durable across competing 
       outcome: 'established' as const,
       session: await registrationSessionLocator(projectionFailure.wallet.walletId),
     };
+    const foreignSession = await registrationSessionLocator(serviceReservation.wallet.walletId);
+    await expect(
+      homeClient.complete({
+        ...projectionCompletion,
+        session: { ...projectionCompletion.session, digest: foreignSession.digest },
+      }),
+    ).rejects.toMatchObject({ code: 'home_conflict' });
+    expect((await homeClient.find(projectionFailure.wallet))?.state).toBe('reserved');
     await database
       .prepare(
         `CREATE TRIGGER reject_registration_projection BEFORE INSERT ON wallet_index
@@ -602,6 +610,12 @@ test('wallet homes are independent within a tenant and durable across competing 
     expect((await homeClient.find(projectionFailure.wallet))?.state).toBe('reserved');
     expect(
       await database
+        .prepare('SELECT wallet_id FROM wallet_session_locators WHERE digest = ?')
+        .bind(projectionCompletion.session.digest)
+        .first(),
+    ).toBeNull();
+    expect(
+      await database
         .prepare('SELECT id FROM wallet_index WHERE id = ?')
         .bind(projectionFailure.wallet.walletId)
         .first(),
@@ -609,6 +623,33 @@ test('wallet homes are independent within a tenant and durable across competing 
     await database.prepare('DROP TRIGGER reject_registration_projection').run();
     const projectionRecovered = await homeClient.complete(projectionCompletion);
     expect(projectionRecovered.state).toBe('established');
+    const publishedSession = await database
+      .prepare('SELECT wallet_id, expires_at_ms FROM wallet_session_locators WHERE digest = ?')
+      .bind(projectionCompletion.session.digest)
+      .first();
+    expect(publishedSession).toEqual({
+      wallet_id: projectionFailure.wallet.walletId,
+      expires_at_ms: projectionCompletion.session.expiresAtMs,
+    });
+    await expect(
+      homeClient.complete({
+        ...projectionCompletion,
+        session: {
+          ...projectionCompletion.session,
+          expiresAtMs: projectionCompletion.session.expiresAtMs + 1,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'home_conflict' });
+    const originalAfterConflict = await homeClient.find(projectionFailure.wallet);
+    expect(originalAfterConflict).toEqual(projectionRecovered);
+    observations.push({
+      stage: 'atomic_session_home_completion',
+      foreignSessionCannotCompleteHome: true,
+      projectionFailureRollsBackSession: true,
+      retryPublishesOriginalSession: true,
+      changedExpiryRejected: true,
+      publishedSession,
+    });
     const recoveredProjection = await database
       .prepare('SELECT created_at_ms, updated_at_ms FROM wallet_index WHERE id = ?')
       .bind(projectionFailure.wallet.walletId)

@@ -3,6 +3,7 @@ import {
   parseRecoveryCodeLocatorV1,
   parseWalletRecoveryOperationId,
   type D1DatabaseLike,
+  type D1ResultLike,
 } from '@seams/wallet-server/cloud-host';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
 import { walletHomeAssignmentFromRow } from './d1';
@@ -112,7 +113,7 @@ export class D1WalletRoutes {
       writer.resource.accountId,
       writer.resource.databaseId,
     ];
-    await this.database
+    const insert = this.database
       .prepare(
         `INSERT INTO wallet_routes
       (namespace, organization_id, project_id, environment_id, kind, value, wallet_id)
@@ -133,9 +134,8 @@ export class D1WalletRoutes {
             AND route.value = json_extract(item.value, '$.value'))
       ON CONFLICT DO NOTHING`,
       )
-      .bind(...bindings)
-      .run();
-    const count = await this.database
+      .bind(...bindings);
+    const verify = this.database
       .prepare(
         `SELECT COUNT(*) AS matched
       FROM json_each(?5) AS item JOIN wallet_routes AS route
@@ -148,8 +148,9 @@ export class D1WalletRoutes {
         AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')
         AND home.placement_state = 'active'`,
       )
-      .bind(...bindings)
-      .first<number>('matched');
+      .bind(...bindings);
+    const results = await this.database.batch<D1ResultLike<{ matched: number }>>([insert, verify]);
+    const count = results[1]?.results?.[0]?.matched;
     return count === locators.length;
   }
 }

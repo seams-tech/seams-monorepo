@@ -15,6 +15,7 @@ import {
   type WalletHomeReservation,
   type WalletHomeReservationInput,
 } from './home';
+import type { SessionLocator } from './sessionLocators';
 
 function registrationIdentity(raw: string): string {
   if (!raw || raw.trim() !== raw) {
@@ -266,21 +267,42 @@ export class D1WalletHomeDirectory {
     };
   }
 
-  async complete(input: {
-    readonly wallet: WalletOwnershipKey;
-    readonly home: WalletHome;
-    readonly ceremonyId: string;
-    readonly outcome: 'established' | 'cancelled';
-    readonly nowMs: number;
-  }): Promise<WalletHomeAssignment> {
+  async complete(
+    input: {
+      readonly wallet: WalletOwnershipKey;
+      readonly home: WalletHome;
+      readonly ceremonyId: string;
+      readonly nowMs: number;
+    } & (
+      | {
+          readonly outcome: 'established';
+          readonly session: {
+            readonly locator: SessionLocator<'credential'>;
+            readonly expiresAtMs: number;
+          };
+        }
+      | { readonly outcome: 'cancelled'; readonly session?: never }
+    ),
+  ): Promise<WalletHomeAssignment> {
     const nowMs = timestamp(input.nowMs);
+    const session = input.outcome === 'established' ? input.session : null;
+    if (session && (!Number.isSafeInteger(session.expiresAtMs) || session.expiresAtMs <= 0)) {
+      throw new WalletPlacementError('invalid_input', 'Session locator expiry is invalid');
+    }
     const completion = this.database
       .prepare(
-        `UPDATE wallet_homes SET state = ?10, completed_at_ms = ?11
+        `UPDATE wallet_homes SET state = ?10,
+           completed_at_ms = CASE WHEN state = 'reserved' THEN ?11 ELSE completed_at_ms END
        WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
          AND wallet_id = ?5 AND ceremony_id = ?6 AND region = ?7 AND account_id = ?8
-         AND database_id = ?9 AND state = 'reserved' AND reserved_at_ms <= ?11
+         AND database_id = ?9 AND (state = 'reserved' OR (?10 = 'established' AND state = 'established'))
+         AND reserved_at_ms <= ?11
          AND placement_state = 'active'
+         AND (?10 != 'established' OR EXISTS (
+           SELECT 1 FROM wallet_session_locators locator
+           WHERE locator.namespace = ?1 AND locator.organization_id = ?2 AND locator.project_id = ?3
+             AND locator.environment_id = ?4 AND locator.wallet_id = ?5
+             AND locator.kind = 'credential' AND locator.digest = ?12 AND locator.expires_at_ms = ?13))
          AND (?10 != 'cancelled' OR NOT EXISTS (
            SELECT 1 FROM wallet_passkey_claims claim
            WHERE claim.namespace = ?1 AND claim.organization_id = ?2 AND claim.project_id = ?3
@@ -296,12 +318,40 @@ export class D1WalletHomeDirectory {
         input.home.databaseId,
         input.outcome,
         nowMs,
+        session?.locator.digest ?? null,
+        session?.expiresAtMs ?? null,
       );
     let row: Record<string, unknown> | null;
     if (input.outcome === 'established') {
-      // The home and its Console display row commit together. Exact retries
-      // preserve the original completion time and any later display updates.
+      // Publication, home completion, and the Console display row commit together.
+      // Exact retries retain the original expiry, completion time, and display updates.
       const results = await this.database.batch<D1ResultLike<Record<string, unknown>>>([
+        this.database
+          .prepare(
+            `INSERT INTO wallet_session_locators
+              (namespace, organization_id, project_id, environment_id, kind, digest, wallet_id, expires_at_ms)
+             SELECT namespace, organization_id, project_id, environment_id, 'credential', ?10, wallet_id, ?11
+             FROM wallet_homes
+             WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+               AND wallet_id = ?5 AND ceremony_id = ?6 AND region = ?7 AND account_id = ?8
+               AND database_id = ?9 AND state IN ('reserved', 'established')
+               AND placement_state = 'active' AND reserved_at_ms <= ?12
+               AND NOT EXISTS (SELECT 1 FROM wallet_session_locators
+                 WHERE namespace = ?1 AND organization_id = ?2 AND project_id = ?3 AND environment_id = ?4
+                   AND kind = 'credential' AND digest = ?10)
+             ON CONFLICT DO NOTHING`,
+          )
+          .bind(
+            ...scopeBindings(input.wallet),
+            input.wallet.walletId,
+            input.ceremonyId,
+            input.home.region,
+            input.home.accountId,
+            input.home.databaseId,
+            input.session.locator.digest,
+            input.session.expiresAtMs,
+            nowMs,
+          ),
         completion,
         this.database
           .prepare(
@@ -318,6 +368,7 @@ export class D1WalletHomeDirectory {
               AND environment_id = ?4 AND wallet_id = ?5 AND ceremony_id = ?6
               AND region = ?7 AND account_id = ?8 AND database_id = ?9
               AND state = 'established' AND placement_state = 'active'
+              AND changes() = 1
             ON CONFLICT (namespace, org_id, project_id, environment_id, id) DO NOTHING`,
           )
           .bind(
@@ -329,13 +380,19 @@ export class D1WalletHomeDirectory {
             input.home.databaseId,
           ),
       ]);
-      row = results[0]?.results?.[0] ?? null;
+      row = results[1]?.results?.[0] ?? null;
     } else {
       row = await completion.first<Record<string, unknown>>();
     }
-    const assignment = row ? walletHomeAssignmentFromRow(row) : await this.find(input.wallet);
+    let assignment: WalletHomeAssignment | null = null;
+    if (row) {
+      assignment = walletHomeAssignmentFromRow(row);
+    } else {
+      assignment = await this.find(input.wallet);
+    }
     if (
       !assignment ||
+      (input.outcome === 'established' && !row) ||
       assignment.registrationAllocation.ceremonyId !== input.ceremonyId ||
       !assignment.home.matches(input.home) ||
       assignment.state !== input.outcome

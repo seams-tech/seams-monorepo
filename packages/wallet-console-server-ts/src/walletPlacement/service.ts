@@ -597,12 +597,18 @@ export async function handleWalletHomeServiceRequest(
               'Registration session expiry is required',
             );
           }
-          await sessions.publish({
-            locator: SessionLocator.credential(session.digest),
+          const assignment = await directory.complete({
             wallet,
-            expiresAtMs: session.expiresAtMs,
-            writer: options.writer,
+            home,
+            ceremonyId,
+            outcome,
+            nowMs: Date.now(),
+            session: {
+              locator: SessionLocator.credential(session.digest),
+              expiresAtMs: session.expiresAtMs,
+            },
           });
+          return json({ ok: true, assignment });
         }
         const assignment = await directory.complete({
           wallet,

@@ -1083,31 +1083,31 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       readonly incrementEndpointUsage: boolean;
     },
   ): Promise<StoredApiKey | null> {
-    const current = await this.findApiKey(input.orgId, input.id);
-    if (!current) return null;
-    const endpointUsageCounts = { ...current.endpointUsageCounts };
-    if (options.incrementEndpointUsage && options.endpoint) {
-      const currentCount = Number(endpointUsageCounts[options.endpoint] || 0);
-      endpointUsageCounts[options.endpoint] =
-        Number.isFinite(currentCount) && currentCount > 0 ? Math.floor(currentCount) + 1 : 1;
-    }
-    await this.state.database
+    // Update telemetry against the current row without reading it twice.
+    // The endpoint increment stays atomic when authentication calls overlap.
+    const row = await this.state.database
       .prepare(
         `UPDATE api_keys
-            SET last_used_at_ms = ?,
-                endpoint_usage_counts_json = ?,
-                updated_at_ms = ?
-          WHERE namespace = ? AND org_id = ? AND id = ?`,
+            SET last_used_at_ms = ?1,
+                updated_at_ms = ?1,
+                endpoint_usage_counts_json = CASE WHEN ?2 = 1 AND ?3 <> '' THEN
+                  json_patch(endpoint_usage_counts_json, json_object(?3,
+                    MAX(0, CAST(COALESCE(
+                      (SELECT value FROM json_each(endpoint_usage_counts_json) WHERE key = ?3),
+                      0) AS INTEGER)) + 1))
+                  ELSE endpoint_usage_counts_json END
+          WHERE namespace = ?4 AND org_id = ?5 AND id = ?6
+          RETURNING *`,
       )
       .bind(
         options.nowMsValue,
-        jsonObjectText(endpointUsageCounts),
-        options.nowMsValue,
+        options.incrementEndpointUsage ? 1 : 0,
+        options.endpoint,
         this.state.namespace,
-        current.orgId,
-        current.id,
+        input.orgId,
+        input.id,
       )
-      .run();
-    return await this.findApiKey(current.orgId, current.id);
+      .first<D1Row>();
+    return row ? parseApiKeyRow(row, this.state.scopeValidation) : null;
   }
 }

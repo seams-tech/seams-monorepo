@@ -250,6 +250,32 @@ test('production Console service bindings enforce durable credential changes and
     });
     observations.push({ stage: 'environments', count: environments.length });
 
+    const serverCredential = await keys.createApiKey(context, {
+      kind: 'secret_key',
+      name: 'Concurrent service use',
+      environmentId,
+      scopes: ['accounts.create'],
+    });
+    const endpoint = '/wallets/register/setup';
+    const authentications = [];
+    for (let index = 0; index < 8; index += 1) {
+      authentications.push(
+        client.apiKeyAuth.authenticate({
+          secret: serverCredential.secret,
+          endpoint,
+          environmentId,
+          requiredScopes: ['accounts.create'],
+        }),
+      );
+    }
+    for (const result of await Promise.all(authentications)) expect(result.ok).toBe(true);
+    const recordedUses = await database
+      .prepare('SELECT endpoint_usage_counts_json FROM api_keys WHERE namespace = ? AND id = ?')
+      .bind(namespace, serverCredential.apiKey.id)
+      .first<string>('endpoint_usage_counts_json');
+    expect(JSON.parse(recordedUses || '{}')).toEqual({ [endpoint]: 8 });
+    observations.push({ stage: 'concurrent_authenticated_use', calls: 8, recordedUses: 8 });
+
     const lineage = await client.tenantRootActiveLineage.resolveActiveLineage({
       orgId: context.orgId,
       projectId,

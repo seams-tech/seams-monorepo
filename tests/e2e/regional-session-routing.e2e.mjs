@@ -112,10 +112,16 @@ class GatewayBridge {
     }
     request = await nativeRequest(request);
     const transport = new api.WalletRegionalDispatch(this.bindings);
+    const locator = await api.readRequestSessionLocator(request);
+    if (locator.kind === 'rejected') return locator.response;
+    const admission = await this.admission.resolveGatewayBinding(
+      'test', this.writer, locator.kind === 'locator' ? locator.locator : null,
+    );
+    assert.ok(admission);
     const resolution = await api.resolveGatewayDeployment({
       request,
-      database: this.database,
-      binding: this.binding,
+      session: admission.session,
+      binding: admission.binding,
       writer: this.writer,
       deploymentLane: 'test',
       service: this.consoleService,
@@ -301,11 +307,11 @@ const bundle = await build({
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
       export { WalletHomeServiceClient } from './packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
       export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
-      export { WalletRegionalDispatch, dispatchKnownWalletHome } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+      export { WalletRegionalDispatch, dispatchKnownWalletHome, readRequestSessionLocator } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
       export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       export { D1WalletExecutionAuthority } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/registration/d1WalletExecutionAuthority.ts'))};
       export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-      export { fourRegionBinding } from './tests/helpers/tenantDeploymentFixtures';
+      export { fourRegionBinding, activateRegionalGatewayFixture } from './tests/helpers/tenantDeploymentFixtures';
     `,
   },
 });
@@ -429,6 +435,7 @@ try {
     bridge.database = database;
     bridge.writer = writer;
     bridge.binding = await api.fourRegionBinding(1_791_000_000_000, 'test', scope);
+    bridge.admission = await api.activateRegionalGatewayFixture(database, bridge.binding, writer);
     bridge.consoleService = consoleService;
     bridge.bindings = regionalBindings;
     bridge.service = service;

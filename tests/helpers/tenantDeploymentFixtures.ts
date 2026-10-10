@@ -1,3 +1,5 @@
+import { D1RegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
+import type { TenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   buildTenantDeploymentBindingV1,
@@ -438,4 +440,32 @@ export async function fourRegionBinding(
   });
   if (!result.ok) throw new Error(result.message);
   return result.value;
+}
+
+export async function activateRegionalGatewayFixture(
+  database: D1DatabaseLike,
+  binding: TenantDeploymentBindingV1,
+  writer: TenantRuntimeWriterV1,
+) {
+  const resource = TenantDeploymentD1ResourceIdentityV1.parse({
+    namespace: binding.tenant.namespace,
+    accountId: writer.resource.accountId,
+    databaseId: writer.resource.databaseId,
+  });
+  const local = new D1RegionalDeploymentAdmission(database, resource);
+  const proof = regionalResourceProof(
+    binding,
+    resource.databaseId,
+    writer.versionId,
+    crypto.randomUUID(),
+    Date.now(),
+  );
+  const admission = {
+    binding,
+    activationSequence: 1,
+    resourceVerificationsJson: JSON.stringify([proof]),
+  };
+  await local.prepare(admission);
+  await local.activate(admission);
+  return local;
 }

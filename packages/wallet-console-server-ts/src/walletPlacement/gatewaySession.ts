@@ -1,18 +1,16 @@
-import { findLocalSessionWallet } from './localSessionRouting';
+import type { LocalGatewaySession } from './localSessionRouting';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from '../tenantDeployment/types';
 import type { TenantRuntimeWriterV1 } from '../tenantDeployment/resourceVerification';
-import {
-  type TenantDeploymentServiceBindingV1,
-} from '../tenantDeployment/runtimeBinding';
+import { type TenantDeploymentServiceBindingV1 } from '../tenantDeployment/runtimeBinding';
 import { forwardTenantDeploymentD1Timing } from '../tenantDeployment/bindingTiming';
 import { D1WalletHomeDirectory } from './d1';
 import { WalletHomeCatalog, type WalletHome } from './home';
 import { D1WalletSessionLocators, SessionLocator } from './sessionLocators';
 import { assignmentFromResponse } from './serviceClient';
 import { WALLET_HOME_SERVICE_BASE_PATH, WALLET_HOME_SERVICE_ORIGIN } from './service';
-import { readRequestSessionLocator, type SessionHomeResolution } from './regionalDispatch';
+import { type SessionHomeResolution } from './regionalDispatch';
 
 export const GATEWAY_SESSION_PATH = `${WALLET_HOME_SERVICE_BASE_PATH}/gateway-session`;
 
@@ -67,7 +65,7 @@ function rejected(
 
 export async function resolveGatewayDeployment(input: {
   readonly request: Request;
-  readonly database: D1DatabaseLike;
+  readonly session: LocalGatewaySession;
   readonly binding: TenantDeploymentBindingV1;
   readonly writer: TenantRuntimeWriterV1;
   readonly deploymentLane: string;
@@ -75,8 +73,7 @@ export async function resolveGatewayDeployment(input: {
   readonly catalogJson: string;
   readonly timingHeaders: Headers;
 }): Promise<GatewayDeploymentResolution> {
-  const session = await readRequestSessionLocator(input.request);
-  if (session.kind === 'rejected') return session;
+  const session = input.session;
   try {
     const region = input.request.headers.get('x-seams-wallet-region');
     if (region !== null) {
@@ -98,12 +95,8 @@ export async function resolveGatewayDeployment(input: {
         return { kind: 'forward', home };
       }
     }
-    if (session.kind === 'absent') {
+    if (session.kind === 'absent' || session.kind === 'local') {
       return { kind: 'ready', binding: input.binding, session };
-    }
-    const wallet = await findLocalSessionWallet(input.database, input.binding.tenant, session.locator);
-    if (wallet) {
-      return { kind: 'ready', binding: input.binding, session: { kind: 'local', wallet } };
     }
     // A selected home must authenticate locally. Route misses require explicit
     // discovery; they must not turn an ordinary request into region probing.

@@ -5,6 +5,7 @@ import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/dep
 /// <reference types="@cloudflare/workers-types" />
 import {
   dispatchKnownWalletHome,
+  readRequestSessionLocator,
   resolveLocalRegistrationContinuation,
   ConsoleRegistrationSetupDispatcher,
   WalletRegionalDispatch,
@@ -72,21 +73,43 @@ async function handleGatewayRequest(
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
-  const local = new D1RegionalDeploymentAdmission(env.SIGNER_DB,
+  const local = new D1RegionalDeploymentAdmission(
+    env.SIGNER_DB,
     TenantDeploymentD1ResourceIdentityV1.parse({
       namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
       accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
       databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
-    }));
-  const localBinding = await local.resolveRuntimeBinding(env.SEAMS_TENANT_DEPLOYMENT_LANE, writer);
-  if (!localBinding) {
-    const unavailable = Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, { status: 503 });
-    withCors(unavailable.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    }),
+  );
+  const locator = await readRequestSessionLocator(request);
+  if (locator.kind === 'rejected') {
+    withCors(
+      locator.response.headers,
+      { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) },
+      request,
+    );
+    return locator.response;
+  }
+  const admission = await local.resolveGatewayBinding(
+    env.SEAMS_TENANT_DEPLOYMENT_LANE,
+    writer,
+    locator.kind === 'locator' ? locator.locator : null,
+  );
+  if (!admission) {
+    const unavailable = Response.json(
+      { ok: false, code: 'tenant_deployment_unavailable' },
+      { status: 503 },
+    );
+    withCors(
+      unavailable.headers,
+      { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) },
+      request,
+    );
     return unavailable;
   }
   const deployment = await resolveGatewayDeployment({
-    binding: localBinding,
-    database: new DeploymentFencedDatabase(env.SIGNER_DB, localBinding, writer),
+    binding: admission.binding,
+    session: admission.session,
     request,
     catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
     writer,
@@ -97,7 +120,11 @@ async function handleGatewayRequest(
   if (deployment.kind === 'forward') {
     const forwarded = await new WalletRegionalDispatch(env).forward(deployment.home, request);
     const response = new Response(forwarded.body, forwarded);
-    withCors(response.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    withCors(
+      response.headers,
+      { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) },
+      request,
+    );
     return response;
   }
   if (deployment.kind === 'rejected') {
@@ -121,8 +148,11 @@ async function handleGatewayRequest(
     });
   }
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(
-    { ...env, SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
-      WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer) },
+    {
+      ...env,
+      SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+      WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer),
+    },
     binding,
   );
   const authority = new ConsoleRegistrationHomeAdmission({
@@ -168,8 +198,18 @@ async function handleGatewayRequest(
   }
   const custodyEnv = {
     ...boundEnv,
-    MPC_ROUTER: new WalletHomeCustodyBinding(boundEnv.MPC_ROUTER, sessionHome.region, boundEnv.SIGNER_DB, boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE),
-    SIGNING_WORKER: new WalletHomeCustodyBinding(boundEnv.SIGNING_WORKER, sessionHome.region, boundEnv.SIGNER_DB, boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE),
+    MPC_ROUTER: new WalletHomeCustodyBinding(
+      boundEnv.MPC_ROUTER,
+      sessionHome.region,
+      boundEnv.SIGNER_DB,
+      boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE,
+    ),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(
+      boundEnv.SIGNING_WORKER,
+      sessionHome.region,
+      boundEnv.SIGNER_DB,
+      boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE,
+    ),
   };
   const handled = await handleSplitGatewayRequest(request, custodyEnv, ctx, {
     sessionRouting: authority,
@@ -201,7 +241,11 @@ async function handleGatewayRequest(
   if (!response.headers.has('X-Seams-Wallet-Region')) {
     response.headers.set('X-Seams-Wallet-Region', sessionHome.region);
   }
-  withCors(response.headers, { corsOrigins: readEnvironmentCsv(boundEnv.RELAY_CORS_ORIGINS) }, request);
+  withCors(
+    response.headers,
+    { corsOrigins: readEnvironmentCsv(boundEnv.RELAY_CORS_ORIGINS) },
+    request,
+  );
   if (!pathname.startsWith('/router-ab/ecdsa-derivation/') && pathname !== '/wallet/session/status')
     return response;
   const result = new Response(response.body, response);
@@ -237,11 +281,18 @@ async function fetch(
     return await handleGatewayRequest(request, env, ctx);
   } catch (error) {
     if (!(error instanceof TenantDeploymentStoreError)) throw error;
-    const response = Response.json({ ok: false, code: 'tenant_deployment_unavailable' }, {
-      status: error.code === 'activation_conflict' ? 403 : 503,
-      headers: { 'Cache-Control': 'no-store' },
-    });
-    withCors(response.headers, { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) }, request);
+    const response = Response.json(
+      { ok: false, code: 'tenant_deployment_unavailable' },
+      {
+        status: error.code === 'activation_conflict' ? 403 : 503,
+        headers: { 'Cache-Control': 'no-store' },
+      },
+    );
+    withCors(
+      response.headers,
+      { corsOrigins: readEnvironmentCsv(env.RELAY_CORS_ORIGINS) },
+      request,
+    );
     return response;
   }
 }

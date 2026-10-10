@@ -24,16 +24,18 @@ const bundle = await build({
   format: 'esm',
   tsconfig: resolve(wallet, 'packages/wallet-server/tsconfig.json'),
   loader: { '.wasm': 'binary' },
-  alias: { '@': resolve(wallet, 'packages/wallet/src') },
+  alias: {
+    '@': resolve(wallet, 'packages/wallet/src'),
+    '@seams/wallet-server/cloud-host': resolve(wallet, 'packages/wallet-server/dist/esm/cloud-host.js'),
+  },
   stdin: {
     resolveDir: wallet,
     contents: `
-    export { findLocalSessionWallet } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/localSessionRouting';
     export { resolveGatewayDeployment } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-    export { WalletRegionalDispatch, resolveLocalRegistrationContinuation } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
+    export { WalletRegionalDispatch, resolveLocalRegistrationContinuation, readRequestSessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
     export { WalletOwnershipKey } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/home';
     export { SessionLocator } from '${root}/packages/wallet-console-server-ts/src/walletPlacement/sessionLocators';
-    export { fourRegionBinding } from '${root}/tests/helpers/tenantDeploymentFixtures';
+    export { fourRegionBinding, activateRegionalGatewayFixture } from '${root}/tests/helpers/tenantDeploymentFixtures';
     export { lifecycleWriteFenceStatements } from './packages/wallet-server/src/router/cloudflare/d1/ed25519Yao/d1Ed25519YaoStateWriteFence';
     export { D1WalletExecutionAuthority } from './packages/wallet-server/src/router/cloudflare/d1/registration/d1WalletExecutionAuthority';
     export { withCors } from './packages/wallet-server/src/router/framework/http';
@@ -228,8 +230,11 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   directory.loseReply = false;
   const reconciled = await resumed.admitHome(identity);
   assert.equal(reconciled.ok, outcome === 'established');
-  assert.equal(directory.calls, 2);
+  assert.equal(directory.calls, outcome === 'established' ? 1 : 2);
   if (outcome === 'established') {
+    assert.equal((await authority.admitEstablishedHome({ walletId })).ok, false);
+    assert.deepEqual(await resumed.complete({ ...identity, outcome }), { ok: true });
+    assert.equal(directory.calls, 2);
     directory.loseReply = true;
     assert.deepEqual(await resumed.complete({ ...identity, outcome }), { ok: true });
     assert.equal(directory.calls, 2, 'Published completion retry must remain local');
@@ -282,6 +287,22 @@ class RegionalSessionPublication {
   async publish() {}
 }
 
+async function resolveGateway(input) {
+  const locator = await api.readRequestSessionLocator(input.request);
+  if (locator.kind === 'rejected') return locator;
+  const admission = await input.admission.resolveGatewayBinding(
+    input.deploymentLane, input.writer, locator.kind === 'locator' ? locator.locator : null,
+  );
+  assert.ok(admission);
+  return api.resolveGatewayDeployment({ ...input, binding: admission.binding, session: admission.session });
+}
+
+async function localWallet(routing, locator) {
+  const admission = await routing.admission.resolveGatewayBinding(routing.deploymentLane, routing.writer, locator);
+  assert.ok(admission);
+  return admission.session.kind === 'local' ? admission.session.wallet : null;
+}
+
 class RegionalDestination {
   calls = 0;
   constructor(routing) {
@@ -291,7 +312,7 @@ class RegionalDestination {
     this.calls += 1;
     assert.equal(request.headers.get('x-seams-wallet-forwarded'), '1');
     assert.equal(request.headers.has('x-seams-wallet-region'), false);
-    const result = await api.resolveGatewayDeployment({ ...this.routing, request });
+    const result = await resolveGateway({ ...this.routing, request });
     assert.equal(result.kind, 'ready');
     assert.equal(result.session.kind, 'local');
     return Response.json({ walletId: result.session.wallet.walletId });
@@ -408,11 +429,12 @@ try {
     ),
     timingHeaders: new Headers(),
   };
+  routing.admission = await api.activateRegionalGatewayFixture(database, binding, routing.writer);
   const request = new Request('https://gateway.test/router-ab/ecdsa-derivation/sign/prepare', {
     method: 'POST',
     headers: { Authorization: `Bearer ${issued.operationCredential.token}` },
   });
-  assert.equal((await api.resolveGatewayDeployment({ ...routing, request })).session.kind, 'local');
+  assert.equal((await resolveGateway({ ...routing, request })).session.kind, 'local');
   const credential = {
     tenantId: issued.session.tenantId,
     token: issued.operationCredential.token,
@@ -446,9 +468,8 @@ try {
   );
   assert.equal(
     (
-      await api.findLocalSessionWallet(
-        database,
-        tenant,
+      await localWallet(
+        routing,
         api.SessionLocator.exchange(digest(exchange.exchangeCode)),
       )
     ).walletId,
@@ -465,18 +486,18 @@ try {
   assert.deepEqual(hosted.operationCredential.home, issued.operationCredential.home);
   assert.equal(
     (
-      await api.findLocalSessionWallet(
-        database,
-        tenant,
+      await localWallet(
+        routing,
         api.SessionLocator.credential(digest(hosted.operationCredential.token)),
       )
     ).walletId,
     issued.session.walletId,
   );
+  const otherBinding = await api.fourRegionBinding(Date.now(), 'other-scope', { ...tenant, projectId: 'proj_other', environmentId: 'proj_other:dev' });
+  const otherAdmission = await api.activateRegionalGatewayFixture(database, otherBinding, routing.writer);
   assert.equal(
-    await api.findLocalSessionWallet(
-      database,
-      { ...tenant, environmentId: 'other' },
+    await localWallet(
+      { ...routing, admission: otherAdmission, deploymentLane: otherBinding.deploymentLane },
       api.SessionLocator.credential(digest(issued.operationCredential.token)),
     ),
     null,
@@ -487,7 +508,7 @@ try {
     walletAuthMethodId: fixture.authMethod.walletAuthMethodId,
     nowMs: nowMs + 2,
   });
-  assert.equal((await api.resolveGatewayDeployment({ ...routing, request })).session.kind, 'local');
+  assert.equal((await resolveGateway({ ...routing, request })).session.kind, 'local');
   assert.equal(
     await service.readWalletSessionAdmissionSnapshotByOperationCredential({
       ...credential,
@@ -500,7 +521,7 @@ try {
     headers: { Authorization: `Bearer wst_${'B'.repeat(43)}` },
   });
   assert.equal(
-    (await api.resolveGatewayDeployment({ ...routing, request: unknown })).kind,
+    (await resolveGateway({ ...routing, request: unknown })).kind,
     'rejected',
   );
   assert.equal(consoleService.calls, 1);
@@ -510,13 +531,13 @@ try {
       'x-seams-wallet-region': 'WEUR',
     },
   });
-  const travel = await api.resolveGatewayDeployment({ ...routing, request: hinted });
+  const travel = await resolveGateway({ ...routing, request: hinted });
   assert.equal(travel.kind, 'forward');
   assert.equal(travel.home.region, 'WEUR');
   const continuation = new Request('https://gateway.test/wallets/register/activate', {
     method: 'POST', headers: { 'X-Seams-Wallet-Region': 'WEUR' },
   });
-  assert.equal((await api.resolveGatewayDeployment({ ...routing, request: continuation })).kind, 'forward');
+  assert.equal((await resolveGateway({ ...routing, request: continuation })).kind, 'forward');
   const destination = new RegionalDestination(routing);
   const transport = new api.WalletRegionalDispatch({
     WALLET_GATEWAY_US: destination,
@@ -535,7 +556,7 @@ try {
     },
   });
   assert.equal(
-    (await api.resolveGatewayDeployment({ ...routing, request: loop })).response.status,
+    (await resolveGateway({ ...routing, request: loop })).response.status,
     409,
   );
   const missingAtHome = new Request(unknown, {
@@ -544,7 +565,7 @@ try {
       'x-seams-wallet-region': 'US',
     },
   });
-  const missing = await api.resolveGatewayDeployment({ ...routing, request: missingAtHome });
+  const missing = await resolveGateway({ ...routing, request: missingAtHome });
   assert.equal(missing.response.status, 409);
   assert.equal((await missing.response.json()).code, 'wallet_home_discovery_required');
   const invalidHint = new Request(request, {
@@ -554,7 +575,7 @@ try {
     },
   });
   assert.equal(
-    (await api.resolveGatewayDeployment({ ...routing, request: invalidHint })).response.status,
+    (await resolveGateway({ ...routing, request: invalidHint })).response.status,
     400,
   );
   assert.equal(consoleService.calls, 1);

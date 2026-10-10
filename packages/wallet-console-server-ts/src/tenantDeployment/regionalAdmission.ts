@@ -1,3 +1,9 @@
+import { WalletOwnershipKey } from '../walletPlacement/home';
+import type { SessionLocator } from '../walletPlacement/sessionLocators';
+import {
+  localSessionWalletProjection,
+  type LocalGatewaySession,
+} from '../walletPlacement/localSessionRouting';
 import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
@@ -85,7 +91,44 @@ export class D1RegionalDeploymentAdmission implements RegionalDeploymentInstalle
     deploymentLane: string,
     writer: TenantRuntimeWriterV1,
   ): Promise<TenantDeploymentBindingV1 | null> {
-    const row = await this.read(deploymentLane);
+    return this.runtimeBinding(await this.read(deploymentLane), writer);
+  }
+
+  async resolveGatewayBinding(
+    deploymentLane: string,
+    writer: TenantRuntimeWriterV1,
+    locator: SessionLocator | null,
+  ): Promise<{
+    readonly binding: TenantDeploymentBindingV1;
+    readonly session: LocalGatewaySession;
+  } | null> {
+    const values: unknown[] = [
+      deploymentLane,
+      this.resource.namespace,
+      this.resource.accountId,
+      this.resource.databaseId,
+    ];
+    if (locator !== null) values.push(locator.digest);
+    const row = await queryD1One(
+      this.database,
+      `SELECT state, activation_sequence, binding_json, resource_verifications_json,
+         ${localSessionWalletProjection(locator)} AS local_wallet_id
+       FROM regional_deployment_admissions AS admission
+       WHERE deployment_lane = ?1 AND namespace = ?2 AND account_id = ?3 AND database_id = ?4`,
+      values,
+    );
+    const binding = this.runtimeBinding(await this.decode(row, deploymentLane), writer);
+    if (!binding) return null;
+    if (locator === null) return { binding, session: { kind: 'absent' } };
+    if (row?.local_wallet_id == null) return { binding, session: { kind: 'missing', locator } };
+    const wallet = WalletOwnershipKey.parse({ ...binding.tenant, walletId: row.local_wallet_id });
+    return { binding, session: { kind: 'local', wallet } };
+  }
+
+  private runtimeBinding(
+    row: RegionalDeploymentState,
+    writer: TenantRuntimeWriterV1,
+  ): TenantDeploymentBindingV1 | null {
     if (row.kind !== 'active') return null;
     if (
       writer.resource.accountId !== this.resource.accountId ||
@@ -142,6 +185,13 @@ export class D1RegionalDeploymentAdmission implements RegionalDeploymentInstalle
         WHERE deployment_lane = ?1 AND namespace = ?2 AND account_id = ?3 AND database_id = ?4`,
       [deploymentLane, this.resource.namespace, this.resource.accountId, this.resource.databaseId],
     );
+    return this.decode(row, deploymentLane);
+  }
+
+  private async decode(
+    row: Readonly<Record<string, unknown>> | null,
+    deploymentLane: string,
+  ): Promise<RegionalDeploymentState> {
     if (!row) return { kind: 'missing' };
     if (
       (row.state !== 'prepared' && row.state !== 'active') ||

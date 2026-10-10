@@ -1,3 +1,8 @@
+import {
+  unavailableRegistrationContext,
+  type WalletRegistrationContextResult,
+  type WalletRegistrationContextResolver,
+} from '@seams/wallet-server/cloud-host';
 import { RegistrationOfferClient } from './registrationOfferClient';
 import type { WalletLifecycleRoutingPublisher } from '@seams/wallet-server/cloud-host';
 import type { WalletRecoveryRoutingPublication } from '@seams/wallet-server/cloud-host';
@@ -93,6 +98,26 @@ export class ConsoleRegistrationHomeAdmission implements WalletRegistrationReser
 
   async publish(input: WalletSessionLocatorPublication): Promise<void> {
     await this.client().publish(input);
+  }
+
+  async resolveContext(
+    input: Parameters<WalletRegistrationContextResolver['resolve']>[0],
+  ): Promise<WalletRegistrationContextResult> {
+    try {
+      const result = await this.client().reserveAuthenticated(input, this.options.ingressRegion);
+      if (!result.ok) return result.context;
+      const reservation = result.reservation;
+      this.lastReservation = {
+        operationId: input.registration.registrationOperationId,
+        digest: result.digest,
+        result: reservation.ok
+          ? { ok: true, assignment: reservation.assignment }
+          : { ok: false, code: reservation.code, message: 'Registration reservation was rejected' },
+      };
+      return result.context;
+    } catch {
+      return unavailableRegistrationContext();
+    }
   }
 
   async resolveSetup(input: SetupInput): Promise<ResolvedSetupHome> {

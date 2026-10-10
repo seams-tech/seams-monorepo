@@ -1,3 +1,9 @@
+import {
+  parseWalletRegistrationContextResponse,
+  walletRegistrationSetupRequestDigest,
+  type WalletRegistrationContextResolver,
+  type WalletRegistrationContextResult,
+} from '@seams/wallet-server/cloud-host';
 import { WalletExecutionAuthority } from './executionAuthority';
 import { WalletPlacementConsoleBinding } from './consoleBinding';
 import {
@@ -644,6 +650,71 @@ export class WalletHomeServiceClient
       );
     }
     return { assignment, admission };
+  }
+
+  async reserveAuthenticated(
+    input: Parameters<WalletRegistrationContextResolver['resolve']>[0],
+    ingressRegion: WalletRegion,
+  ): Promise<
+    | {
+        readonly ok: false;
+        readonly context: Extract<WalletRegistrationContextResult, { ok: false }>;
+        readonly reservation?: never;
+        readonly digest?: never;
+      }
+    | {
+        readonly ok: true;
+        readonly context: Extract<WalletRegistrationContextResult, { ok: true }>;
+        readonly reservation: WalletHomeReservation;
+        readonly digest: string;
+      }
+  > {
+    const response = await this.post('registration-setup', { ...input, ingressRegion });
+    const raw = record(response.body);
+    const context = parseWalletRegistrationContextResponse(
+      input,
+      response.status,
+      response.status === 200 ? raw.context : raw,
+    );
+    if (!context.ok) return { ok: false, context };
+    if (
+      context.principal.orgId !== this.scope.organizationId ||
+      context.environment.projectId !== this.scope.projectId ||
+      context.environment.id !== this.scope.environmentId
+    ) {
+      throw new WalletPlacementError(
+        'scope_conflict',
+        'Registration context belongs to another deployment',
+      );
+    }
+    const digest = await walletRegistrationSetupRequestDigest(this.scope.namespace, {
+      request: input.registration,
+      orgId: context.principal.orgId,
+      expectedOrigin: input.origin,
+      runtimePolicyScope: {
+        orgId: context.principal.orgId,
+        projectId: context.environment.projectId,
+        envId: context.environment.key,
+        signingRootVersion: context.environment.signingRootVersion,
+      },
+    });
+    const reservation = reservationFromResponse(raw.reservation, this.scope, this.catalog);
+    if (reservation.ok) {
+      const assignment = reservation.assignment;
+      const wallet = input.registration.wallet;
+      if (
+        assignment.registrationId !== input.registration.registrationOperationId ||
+        assignment.requestDigest !== digest ||
+        assignment.allocation !== (wallet?.kind === 'provided' ? 'provided' : 'server_allocated') ||
+        (wallet?.kind === 'provided' && assignment.wallet.walletId !== wallet.walletId)
+      ) {
+        throw new WalletPlacementError(
+          'invalid_record',
+          'Registration reservation belongs to another operation',
+        );
+      }
+    }
+    return { ok: true, context, reservation, digest };
   }
 
   async reserve(input: WalletHomeServiceReservationInput): Promise<WalletHomeReservation> {

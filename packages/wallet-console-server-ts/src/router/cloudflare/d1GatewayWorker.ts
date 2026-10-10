@@ -226,6 +226,7 @@ async function handleGatewayRequest(
     recoveryRouting: authority,
     lifecycleRouting: authority,
     registrationAuthority: authority,
+    registrationContext: { resolve: authority.resolveContext.bind(authority) },
     registrationSetupDispatcher:
       pathname === '/wallets/register/setup'
         ? new ConsoleRegistrationSetupDispatcher(

@@ -1,3 +1,5 @@
+import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
+import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../walletPlacement/relocationAdmission';
 import { RelocationResourceVerifier } from '../../tenantDeployment/relocationResourceVerification';
 import { handleWalletRelocationAdvance, resumeWalletRelocations, runWalletRelocation, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
@@ -752,6 +754,21 @@ async function fetch(
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       );
     }
+    if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
+      const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+      if (!catalog.matchesResources(active.resources)) {
+        return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
+      }
+      const handler = await consoleHandler(env);
+      return handleRegistrationSetupRequest(request, {
+        database: env.CONSOLE_DB,
+        catalog,
+        scope: active.tenant,
+        environmentKey: active.mode.environment === 'development' ? 'dev' : 'prod',
+        deploymentLane,
+        context: createWalletConsoleOpsClient({ fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx) }).registrationContext,
+      });
+    }
     if (new URL(request.url).pathname === GATEWAY_SESSION_PATH) {
       const response = await gatewaySessionResponse(
         request,
@@ -1011,4 +1028,13 @@ function relocationRuntimeVerifier(
       OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
     },
   });
+}
+
+function dispatchConsoleOperation(
+  handler: FetchHandler,
+  env: CloudflareD1ConsoleStagingEnv,
+  ctx: CfExecutionContext,
+  request: Request,
+): Promise<Response> {
+  return handler(request, env, ctx);
 }

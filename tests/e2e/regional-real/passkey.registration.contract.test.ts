@@ -854,6 +854,18 @@ class LostRegistrationSetupReply {
       body: browserRequest.postDataBuffer(),
     });
     const ingress = this.attempts === 1 ? 'US' : 'APAC';
+    if (this.attempts === 1) {
+      const rejectedHeaders = new Headers(request.headers);
+      rejectedHeaders.set('Authorization', 'Bearer invalid-registration-credential');
+      const rejected = await this.scenario.gateways.get(ingress).handle(
+        new Request(request.clone(), { headers: rejectedHeaders }), 'ingress',
+      );
+      assert.equal(rejected.status, 401);
+      const row = await this.scenario.consoleService.database.prepare(
+        'SELECT count(*) AS count FROM wallet_homes',
+      ).first();
+      assert.equal(row.count, 0, 'Failed authentication must not reserve a wallet');
+    }
     const response = await this.scenario.gateways.get(ingress).handle(request, 'ingress');
     this.statuses.push(response.status);
     assert.equal(response.status, 200);
@@ -904,6 +916,10 @@ for (const signerSet of ['mixed', 'near-only']) {
         'SELECT region, state FROM wallet_homes',
       ).all();
       assert.deepEqual(placement.results, [{ region: 'US', state: 'established' }]);
+      const setupCalls = scenario.consoleService.requests.filter(isRegistrationSetupCall);
+      assert.equal(setupCalls.length, 4, 'One combined call per attempt and forwarded request');
+      assert.ok(!scenario.consoleService.requests.includes('/internal/wallet-placement/v1/reserve'));
+      assert.ok(!scenario.consoleService.requests.includes('/internal/wallet-console/v1/registration-context'));
       scenario.beginConsoleOutage();
       const curve = signerSet === 'near-only' ? 'ed25519' : 'ecdsa';
       for (const ingress of ['WEUR', 'APAC', 'OC']) {
@@ -913,7 +929,8 @@ for (const signerSet of ['mixed', 'near-only']) {
       }
       await scenario.verifyConsoleOutage(curve);
       await writeFile(path.join(output, 'setup-retry.json'), JSON.stringify({
-        signerSet, statuses: fault.statuses,
+        signerSet, statuses: fault.statuses, setupConsoleCalls: setupCalls.length,
+        invalidCredentialReservedNoWallet: true,
         lostReplyBeforeClientAcceptance: true,
         browserReloaded: true,
         identicalOperationWalletAndCeremony: true,
@@ -1232,3 +1249,7 @@ async function verifyCompetingCredentialOwnership(
 test('NEAR registration combines session publication and completion before foreign-region signing', verifyRegistrationCompletion);
 test('NEAR registration recovers a lost combined completion reply with the original session', verifyLostRegistrationCompletion);
 test('NEAR registration retries a credential claim failure after Router consumption', verifyClaimFailureAfterConsume);
+
+function isRegistrationSetupCall(pathname: string): boolean {
+  return pathname === '/internal/wallet-placement/v1/registration-setup';
+}

@@ -65,6 +65,8 @@ export async function createRegionalRealGateway({
         export { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from './packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
         export { WalletPlacementConsoleBinding } from './packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
         export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
+        export { handleRegistrationSetupRequest } from './packages/wallet-console-server-ts/src/walletPlacement/registrationSetup';
+        export { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
         export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       `,
     },
@@ -122,6 +124,8 @@ export async function createRegionalRealGateway({
       catalog,
       config.deployment.environmentKey,
     );
+    const consoleAuthentication = api.createStaticWalletConsoleBindingV1(config);
+    consoleService.context = api.createWalletConsoleOpsClient(consoleAuthentication).registrationContext;
     consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
     const router = new LocalRoleTransport(
       `http://127.0.0.1:${4102 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,
@@ -133,7 +137,7 @@ export async function createRegionalRealGateway({
       ...variables,
       ...secrets,
       ...(emailDelivery ? { EMAIL_OTP_DELIVERY_MODE: 'email_provider' } : {}),
-      WALLET_CONSOLE: new ObservableConsoleTransport(api.createStaticWalletConsoleBindingV1(config), consoleService),
+      WALLET_CONSOLE: new ObservableConsoleTransport(consoleAuthentication, consoleService),
       MPC_ROUTER: routerFault,
       SIGNING_WORKER: new LocalRoleTransport(
         `http://127.0.0.1:${4105 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,
@@ -283,6 +287,16 @@ class RealHomeConsole {
         deploymentLane: 'test', bindings: this.relocationAdmission.bindings,
         verifyResources: this.relocationAdmission.verifyResources,
         onAdmitted: this.relocationAdmission.onAdmitted, clock: Date.now,
+      });
+    }
+    if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
+      return this.api.handleRegistrationSetupRequest(request, {
+        database: this.database,
+        catalog: this.catalog,
+        scope: this.scope,
+        environmentKey: this.environmentKey,
+        deploymentLane: 'test',
+        context: this.context,
       });
     }
     return this.api.handleWalletHomeServiceRequest(request, {
@@ -495,6 +509,7 @@ class RealRegionalGateway {
           lifecycleRouting: authority,
           recoveryRouting: authority,
           registrationAuthority: authority,
+          registrationContext: { resolve: authority.resolveContext.bind(authority) },
           registrationSetupDispatcher:
             new URL(request.url).pathname === '/wallets/register/setup'
               ? new this.api.ConsoleRegistrationSetupDispatcher(

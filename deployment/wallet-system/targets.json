@@ -53,6 +53,7 @@
           },
           "signingWorker": {
             "workerName": "router-ab-signing-worker-staging",
+            "d1PrimaryColo": "HKG",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
             "deploymentEnvironment": {
               "kind": "named",

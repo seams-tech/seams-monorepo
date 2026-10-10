@@ -35,6 +35,7 @@
           },
           "deriverA": {
             "workerName": "router-ab-deriver-a-staging",
+            "d1PrimaryColo": "HKG",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
             "deploymentEnvironment": {
               "kind": "named",
@@ -43,6 +44,7 @@
           },
           "deriverB": {
             "workerName": "router-ab-deriver-b-staging",
+            "d1PrimaryColo": "HKG",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
             "deploymentEnvironment": {
               "kind": "named",

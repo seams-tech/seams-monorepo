@@ -358,19 +358,19 @@ test('email provider delivery validates provider-specific configuration', async 
   );
 });
 
-test('production workflows supply selectable provider credentials as protected secrets', () => {
-  for (const workflowName of [
-    'deploy-production-testnet-backend.yml',
-    'deploy-production-mainnet-backend.yml',
-  ]) {
+test('production workflows supply every required Gateway secret as a protected secret', async () => {
+  const module = await deploymentTargetsModule;
+  for (const [laneId, workflowName] of [
+    ['production-testnet', 'deploy-production-testnet-backend.yml'],
+    ['production-mainnet', 'deploy-production-mainnet-backend.yml'],
+  ] as const) {
     const workflow = readFileSync(path.join(repoRoot, '.github/workflows', workflowName), 'utf8');
-    expect(workflow).toContain('RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}');
-    expect(workflow).toContain(
-      'EMAIL_OTP_SES_ACCESS_KEY_ID: ${{ secrets.EMAIL_OTP_SES_ACCESS_KEY_ID }}',
-    );
-    expect(workflow).toContain(
-      'EMAIL_OTP_SES_SECRET_ACCESS_KEY: ${{ secrets.EMAIL_OTP_SES_SECRET_ACCESS_KEY }}',
-    );
+    // The names follow the lane, so they include the selected email provider's credentials.
+    const secretNames = module.componentSecretNames(module.readBackendLane(laneId), 'gateway');
+    expect(secretNames).toContain('RESEND_API_KEY');
+    for (const name of secretNames) {
+      expect(workflow).toContain(`${name}: \${{ secrets.${name} }}`);
+    }
     expect(workflow).not.toContain('CONSOLE_SESSION_HMAC_SECRET:');
   }
   const consoleWorkflow = readFileSync(

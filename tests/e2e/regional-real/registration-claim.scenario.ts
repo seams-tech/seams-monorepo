@@ -60,6 +60,8 @@ class ClaimFailureAfterConsume {
   }
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     const incoming = route.request();
     const request = new Request(incoming.url(), {
       method: incoming.method(),

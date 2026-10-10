@@ -127,6 +127,8 @@ class CompletionReplyLoss {
   }
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     const request = route.request();
     this.request = new Request(request.url(), {
       method: request.method(),

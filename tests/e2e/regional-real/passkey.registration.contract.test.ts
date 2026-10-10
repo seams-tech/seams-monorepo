@@ -506,6 +506,8 @@ class RegistrationProvisioningReplyLoss {
   constructor(private readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     this.attempts += 1;
     assert.equal(this.attempts, 1);
     const request = route.request();
@@ -641,6 +643,8 @@ class ForeignNearRegistrationProtocol {
   constructor(private readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     const browserRequest = route.request();
     const headers = await browserRequest.allHeaders();
     assert.equal(headers['x-seams-wallet-region'], 'US');
@@ -844,6 +848,8 @@ class LostRegistrationSetupReply {
   constructor(readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     this.attempts += 1;
     assert.ok(this.attempts <= 2, 'Setup recovery must remain bounded');
     const browserRequest = route.request();
@@ -1055,6 +1061,8 @@ class ConcurrentRegistrationSetup {
   constructor(readonly scenario: Awaited<ReturnType<typeof createRegionalRealGateway>>) {}
 
   async intercept(route: Route): Promise<void> {
+    // An SDK preflight warm-up carries no operation. Only the POST is observed.
+    if (route.request().method() !== 'POST') return await route.fallback();
     this.attempts += 1;
     assert.equal(this.attempts, 1);
     const browserRequest = route.request();

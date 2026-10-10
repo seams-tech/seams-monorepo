@@ -15,6 +15,7 @@ import {
   relativeToRepo,
   requireSuccessfulCommandResult,
   sha256String,
+  signerD1MigrationsDir,
   writeD1StagingManifest,
   wranglerCommand,
 } from './d1-staging-config.mjs';
@@ -36,7 +37,7 @@ const migrationTargets = Object.freeze([
     profile: 'gateway',
     databaseName: 'seams-signer-staging-nrt',
     configField: 'gatewayConfigPath',
-    migrationsDir: 'node_modules/@seams/wallet-server/migrations/d1-signer',
+    migrationsDir: signerD1MigrationsDir,
   }),
 ]);
 

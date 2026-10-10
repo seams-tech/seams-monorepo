@@ -1,11 +1,27 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const require = createRequire(import.meta.url);
+
 export const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const repoRoot = path.resolve(packageRoot, '../..');
+// Signer migrations ship in the installed @seams/wallet-server package. The value is
+// relative to this package, because Wrangler resolves `migrations_dir` from the config
+// file and the staging configs live in the package root.
+export const signerD1MigrationsDir = path
+  .relative(
+    packageRoot,
+    path.join(
+      path.dirname(require.resolve('@seams/wallet-server/package.json')),
+      'migrations/d1-signer',
+    ),
+  )
+  .split(path.sep)
+  .join('/');
 export const defaultD1StagingConsoleConfigPath = path.join(
   packageRoot,
   'wrangler.d1-staging-console.toml',

@@ -18,6 +18,7 @@ import {
   resolveRequiredPackagePath,
   sha256String,
   shellArg,
+  signerD1MigrationsDir,
   writeD1StagingManifest,
   wranglerCommand,
 } from './d1-staging-config.mjs';
@@ -43,9 +44,7 @@ const fixtureTargets = Object.freeze([
     databaseName: 'seams-signer-staging-nrt',
     configField: 'gatewayConfigPath',
     fixtureField: 'signerFixturePath',
-    allowedTableNames: readD1MigrationTableNames(
-      'node_modules/@seams/wallet-server/migrations/d1-signer',
-    ),
+    allowedTableNames: readD1MigrationTableNames(signerD1MigrationsDir),
   }),
 ]);
 

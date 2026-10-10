@@ -15,6 +15,7 @@ import {
   relativeToRepo,
   rootBody,
   selectEnvironmentSource,
+  signerD1MigrationsDir,
   stagingReadinessFailureMessage,
   tableBody,
   valueLooksPlaceholder,
@@ -34,7 +35,7 @@ const consoleD1Database = Object.freeze({
 const signerD1Database = Object.freeze({
   binding: 'SIGNER_DB',
   databaseName: 'seams-signer-staging-nrt',
-  migrationsDir: 'node_modules/@seams/wallet-server/migrations/d1-signer',
+  migrationsDir: signerD1MigrationsDir,
 });
 const requiredD1DatabasesByProfile = Object.freeze({
   console: Object.freeze([consoleD1Database]),

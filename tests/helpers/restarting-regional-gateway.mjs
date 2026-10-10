@@ -214,7 +214,10 @@ class GatewayProcess {
     if (!this.child.connected) throw new Error('Regional Gateway process is disconnected');
     const id = this.nextId++;
     const result = Promise.withResolvers();
-    const timeout = setTimeout(this.failRequest.bind(this, id), 30_000);
+    const timeout = setTimeout(
+      this.failRequest.bind(this, id),
+      message.kind === 'start' ? 120_000 : 30_000,
+    );
     this.pending.set(id, { ...result, timeout });
     this.child.send({ ...message, id });
     return result.promise;

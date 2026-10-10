@@ -35,7 +35,7 @@
     "type-check:router-server": "pnpm -C packages/console-server-ts build:types && pnpm -C packages/wallet-console-server-ts type-check && pnpm -C packages/wallet-console-server-ts build:types",
     "type-check:app": "pnpm -C packages/console-shared-ts type-check && pnpm -C packages/wallet-console-shared-ts type-check && pnpm -C apps/seams-site typecheck && pnpm -C apps/wallet-console typecheck",
     "type-check": "pnpm type-check:router-server && pnpm type-check:app",
-    "check": "pnpm lint && pnpm type-check && pnpm -C tests type-check:fixtures && pnpm -C tests check:console-core-wallet-import-boundaries",
+    "check": "pnpm lint && pnpm type-check && pnpm -C tests type-check:fixtures && pnpm -C tests check:console-core-wallet-import-boundaries && pnpm test:deploy-scripts",
     "router": "node ./scripts/local-wallet/dev-local-workers.mjs --mode logs",
     "router:multiplex": "node ./scripts/local-wallet/dev-local-workers.mjs --mode multiplex",
     "router:init": "seams-wallet-server-local-init --root .",
@@ -46,6 +46,7 @@
     "docs:preview": "pnpm -C apps/seams-site exec vite preview --outDir ../../.artifacts/wallet-docs --host 127.0.0.1 --port 4006",
     "test": "pnpm test:console",
     "test:unit": "pnpm -C tests test:unit",
+    "test:deploy-scripts": "pnpm -C tests test:deploy-scripts",
     "test:console": "pnpm -C tests test:console",
     "test:relayer": "pnpm -C tests test:relayer"
   },

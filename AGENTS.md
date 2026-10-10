@@ -124,6 +124,10 @@ Decision rules — classify before fixing:
 - Public Wallet lifecycle contracts and formal verification run in `seams-wallet`.
 - `pnpm test:unit` / `pnpm test:relayer` / `pnpm test:wallet-iframe` / `pnpm test:lit-components`
 - `pnpm test:source-guards` — the source-guard chain
-- `pnpm check` — private lint, type-check, and Console-core boundary checks
+- `pnpm check` — private lint, type-check, Console-core boundary checks, and the
+  deployment script tests
+- `pnpm test:deploy-scripts` — the deployment script tests alone; run it after a change
+  to `scripts/deploy-*.mjs`, `scripts/deployment-targets.mjs`, `deployment/`, or
+  `.github/workflows/deploy-*.yml`. It is offline and takes seconds.
 - Run Rust builds and formal verification from `seams-wallet`, never from this private repository.
 - Full suite documentation: `tests/README.md`

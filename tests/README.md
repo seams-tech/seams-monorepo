@@ -9,8 +9,12 @@ private Console composition and deployed product flows.
 - `pnpm test` runs the Console operating E2E cases on a fresh managed local stack.
 - `pnpm test:console` runs the same browser suite directly.
 - `pnpm test:relayer` runs focused private Console service and D1 checks.
-- `pnpm check` runs lint, application and private fixture type checks, and the
-  Console-core import boundary.
+- `pnpm check` runs lint, application and private fixture type checks, the
+  Console-core import boundary, and the deployment script tests.
+- `pnpm test:deploy-scripts` runs the deployment script tests alone
+  (`unit/deployCommands.script.unit.test.ts` and
+  `unit/deploymentTargets.script.unit.test.ts`). They are offline. The unit run
+  ignores `*.script.unit.test.ts`, so this command is how they stay visible.
 - `pnpm -C tests test:unit` remains available for existing focused private invariants.
   Do not add new unit tests. Prefer a medium-to-hard product E2E scenario that leaves
   repeatable evidence.

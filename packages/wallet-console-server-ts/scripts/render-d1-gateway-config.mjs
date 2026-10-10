@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import {
@@ -24,8 +25,13 @@ import { isDirectInvocation } from './d1-staging-config.mjs';
 
 const VALID_LANES = new Set(['staging-testnet', 'production-testnet', 'production-mainnet']);
 
-function walletServerMigrationsDirectory(packageRoot) {
-  return path.join(packageRoot, '../wallet-server/migrations/d1-signer');
+const require = createRequire(import.meta.url);
+
+function walletServerMigrationsDirectory() {
+  return path.join(
+    path.dirname(require.resolve('@seams/wallet-server/package.json')),
+    'migrations/d1-signer',
+  );
 }
 
 function main() {
@@ -283,7 +289,7 @@ function buildWalletRuntimeConfig(
         binding: 'SIGNER_DB',
         database_name: resources.signerD1.name,
         database_id: resources.signerD1.id,
-        migrations_dir: walletServerMigrationsDirectory(packageRoot),
+        migrations_dir: walletServerMigrationsDirectory(),
       },
     ],
     services: [
@@ -349,7 +355,7 @@ function buildConfig(
         binding: 'SIGNER_DB',
         database_name: resources.signerD1.name,
         database_id: resources.signerD1.id,
-        migrations_dir: walletServerMigrationsDirectory(packageRoot),
+        migrations_dir: walletServerMigrationsDirectory(),
       },
     ],
     services: [

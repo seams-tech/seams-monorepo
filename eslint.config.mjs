@@ -25,6 +25,7 @@ export default [
       '**/.turbo/**',
       '**/.vitepress/cache/**',
       '**/.lake/**',
+      '**/.claude/**',
       '**/.playwright-cli/**',
       '**/.runtime/**',
       '**/.local/**',

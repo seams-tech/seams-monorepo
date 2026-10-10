@@ -430,49 +430,53 @@ test('backend commands reject a lane branch mismatch before deployment work', ()
   expectFailure(result, /lane staging-testnet requires branch dev/u);
 });
 
+// The Router owns no private D1, so its preflight reads only checked-in files
+// and the supplied environment. The Signing Worker and Deriver preflights also
+// probe their D1 primary through a remote Wrangler command.
+function stagingRouterPreflightEnvironment(secretValue: string): NodeJS.ProcessEnv {
+  return {
+    ...environmentWithoutDeploymentSecrets(),
+    // The lane requires its branch; an inherited CI ref must not decide the result.
+    GITHUB_REF: 'refs/heads/dev',
+    CLOUDFLARE_API_TOKEN: secretValue,
+    CLOUDFLARE_ACCOUNT_ID: secretValue,
+    ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
+    ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
+    ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: secretValue,
+    ROUTER_AB_JWT_JWKS_JSON: 'inventory-jwks',
+    DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: 'inventory-deriver-a-public-key',
+    DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: 'inventory-deriver-b-public-key',
+    SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-signing-worker-public-key',
+    TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON: 'inventory-issuer-keys',
+    TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON: 'inventory-grant-authority-keys',
+    ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON: 'inventory-role-keys',
+  };
+}
+
 test('backend preflight validates one custody environment from explicit inputs', () => {
   const secretValue = 'inventory-secret-value';
   const result = runCommand(
     backendScript,
-    ['preflight', '--lane', 'staging-testnet', '--component', 'signing-worker'],
-    {
-      ...environmentWithoutDeploymentSecrets(),
-      CLOUDFLARE_API_TOKEN: secretValue,
-      CLOUDFLARE_ACCOUNT_ID: secretValue,
-      ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
-      ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET: secretValue,
-      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY: secretValue,
-      SIGNING_WORKER_PRIVATE_D1_KEK: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-public-value',
-      SIGNING_WORKER_PRIVATE_D1_ID: 'inventory-database-id',
-      SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY: 'inventory-kek-public-key',
-      SIGNING_WORKER_PRIVATE_D1_KEK_VERSION: 'inventory-kek-version',
-    },
+    ['preflight', '--lane', 'staging-testnet', '--component', 'router'],
+    stagingRouterPreflightEnvironment(secretValue),
   );
 
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain('Preflight passed: staging-testnet/signing-worker');
+  expect(result.stdout).toContain('Preflight passed: staging-testnet/router');
   expect(`${result.stdout}${result.stderr}`).not.toContain(secretValue);
 });
 
 test('backend preflight rejects a missing required secret without printing values', () => {
   const secretValue = 'inventory-secret-value';
+  const environment = stagingRouterPreflightEnvironment(secretValue);
+  delete environment.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
   const result = runCommand(
     backendScript,
-    ['preflight', '--lane', 'staging-testnet', '--component', 'signing-worker'],
-    {
-      ...environmentWithoutDeploymentSecrets(),
-      CLOUDFLARE_API_TOKEN: secretValue,
-      CLOUDFLARE_ACCOUNT_ID: secretValue,
-      ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
-      ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET: secretValue,
-      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-public-value',
-    },
+    ['preflight', '--lane', 'staging-testnet', '--component', 'router'],
+    environment,
   );
 
-  expectFailure(result, /SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY is required/u);
+  expectFailure(result, /ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET is required/u);
   expect(`${result.stdout}${result.stderr}`).not.toContain(secretValue);
 });
 

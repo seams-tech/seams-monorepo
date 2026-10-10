@@ -347,6 +347,7 @@ function relocationBindings(api, scenario, scope, faults) {
         region,
         gateway.database,
         scope.namespace,
+        null,
       );
     }
     runtimes[region] = new RuntimeBinding(api, gateway.database, scope.namespace, writer, {

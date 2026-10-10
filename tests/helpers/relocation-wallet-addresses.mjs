@@ -38,6 +38,7 @@ export class StoredWalletTopology {
       destination ? 'APAC' : 'WEUR',
       destination ? this.destinationDatabase : this.sourceDatabase,
       'composed-relocation',
+      null,
     );
     return new StoredWalletWorker(binding, this.api.walletObjectIdentityHeaders(identity));
   }

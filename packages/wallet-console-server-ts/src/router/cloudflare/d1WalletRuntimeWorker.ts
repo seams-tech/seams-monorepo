@@ -64,10 +64,10 @@ async function fetch(
     });
   env = {
     ...env,
-    DERIVER_A: new WalletHomeCustodyBinding(env.DERIVER_A, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
-    DERIVER_B: new WalletHomeCustodyBinding(env.DERIVER_B, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
-    MPC_ROUTER: new WalletHomeCustodyBinding(env.MPC_ROUTER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
-    SIGNING_WORKER: new WalletHomeCustodyBinding(env.SIGNING_WORKER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE),
+    DERIVER_A: new WalletHomeCustodyBinding(env.DERIVER_A, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE, null),
+    DERIVER_B: new WalletHomeCustodyBinding(env.DERIVER_B, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE, null),
+    MPC_ROUTER: new WalletHomeCustodyBinding(env.MPC_ROUTER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE, null),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(env.SIGNING_WORKER, home.region, env.SIGNER_DB, env.SEAMS_TENANT_STORAGE_NAMESPACE, null),
   };
   const inspectionResponse = await createTenantDeploymentRuntimeInspectionHandlerV1({
     database: env.SIGNER_DB,

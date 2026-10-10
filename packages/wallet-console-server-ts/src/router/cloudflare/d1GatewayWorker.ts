@@ -205,12 +205,14 @@ async function handleGatewayRequest(
       sessionHome.region,
       boundEnv.SIGNER_DB,
       boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE,
+      admission.objectAddresses,
     ),
     SIGNING_WORKER: new WalletHomeCustodyBinding(
       boundEnv.SIGNING_WORKER,
       sessionHome.region,
       boundEnv.SIGNER_DB,
       boundEnv.SEAMS_TENANT_STORAGE_NAMESPACE,
+      admission.objectAddresses,
     ),
   };
   const handled = await handleSplitGatewayRequest(request, custodyEnv, ctx, {

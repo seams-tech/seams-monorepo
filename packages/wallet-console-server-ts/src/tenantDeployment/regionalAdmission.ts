@@ -5,7 +5,11 @@ import {
   localSessionWalletProjection,
   type LocalGatewaySession,
 } from '../walletPlacement/localSessionRouting';
-import { queryD1One, type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  queryD1One,
+  WalletObjectAddressSnapshot,
+  type D1DatabaseLike,
+} from '@seams/wallet-server/cloud-host';
 import { decodeTenantDeploymentBindingV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import type { TenantDeploymentBindingV1 } from './types';
 import { TenantDeploymentD1ResourceIdentityV1 } from './deploymentResource';
@@ -104,6 +108,7 @@ export class D1RegionalDeploymentAdmission implements RegionalDeploymentInstalle
     readonly binding: TenantDeploymentBindingV1;
     readonly session: LocalGatewaySession;
     readonly registrationWallet: WalletOwnershipKey | null;
+    readonly objectAddresses: WalletObjectAddressSnapshot | null;
   } | null> {
     const values: unknown[] = [
       deploymentLane,
@@ -115,7 +120,8 @@ export class D1RegionalDeploymentAdmission implements RegionalDeploymentInstalle
     values.push(continuation.kind === 'ceremony' ? continuation.ceremonyId : null);
     const row = await queryD1One(
       this.database,
-      `SELECT state, activation_sequence, binding_json, resource_verifications_json,
+      `WITH routed AS (
+       SELECT admission.namespace AS route_namespace, state, activation_sequence, binding_json, resource_verifications_json,
          ${localSessionWalletProjection(locator)} AS local_wallet_id,
          (SELECT wallet_id FROM wallet_execution_generations
           WHERE namespace = admission.namespace
@@ -124,20 +130,53 @@ export class D1RegionalDeploymentAdmission implements RegionalDeploymentInstalle
             AND env_id = json_extract(admission.binding_json, '$.tenant.environmentId')
             AND origin = 'registration' AND origin_id = ?6) AS registration_wallet_id
        FROM regional_deployment_admissions AS admission
-       WHERE deployment_lane = ?1 AND namespace = ?2 AND account_id = ?3 AND database_id = ?4`,
+       WHERE deployment_lane = ?1 AND namespace = ?2 AND account_id = ?3 AND database_id = ?4)
+       SELECT routed.*,
+         (SELECT json_object('wallet_id', addresses.wallet_id,
+                   'ownership_generation', addresses.ownership_generation,
+                   'router', addresses.router, 'deriver_a', addresses.deriver_a,
+                   'deriver_b', addresses.deriver_b, 'signing_worker', addresses.signing_worker)
+          FROM wallet_object_addresses AS addresses
+          JOIN wallet_execution_generations AS execution
+            USING (namespace, org_id, project_id, env_id, wallet_id)
+          WHERE addresses.namespace = routed.route_namespace
+            AND addresses.org_id = json_extract(routed.binding_json, '$.tenant.organizationId')
+            AND addresses.project_id = json_extract(routed.binding_json, '$.tenant.projectId')
+            AND addresses.env_id = json_extract(routed.binding_json, '$.tenant.environmentId')
+            AND addresses.wallet_id = COALESCE(routed.local_wallet_id, routed.registration_wallet_id)
+            AND addresses.ownership_generation = execution.generation) AS object_addresses_json
+       FROM routed`,
       values,
     );
     const binding = this.runtimeBinding(await this.decode(row, deploymentLane), writer);
     if (!binding) return null;
+    const objectAddresses =
+      typeof row?.object_addresses_json === 'string'
+        ? WalletObjectAddressSnapshot.parse(
+            JSON.parse(row.object_addresses_json),
+            binding.tenant.namespace,
+            {
+              orgId: binding.tenant.organizationId,
+              projectId: binding.tenant.projectId,
+              envId: binding.tenant.environmentId,
+            },
+          )
+        : null;
     const registrationWallet =
       row?.registration_wallet_id == null
         ? null
         : WalletOwnershipKey.parse({ ...binding.tenant, walletId: row.registration_wallet_id });
-    if (locator === null) return { binding, registrationWallet, session: { kind: 'absent' } };
+    if (locator === null)
+      return { binding, registrationWallet, objectAddresses, session: { kind: 'absent' } };
     if (row?.local_wallet_id == null)
-      return { binding, registrationWallet, session: { kind: 'missing', locator } };
+      return {
+        binding,
+        registrationWallet,
+        objectAddresses,
+        session: { kind: 'missing', locator },
+      };
     const wallet = WalletOwnershipKey.parse({ ...binding.tenant, walletId: row.local_wallet_id });
-    return { binding, registrationWallet, session: { kind: 'local', wallet } };
+    return { binding, registrationWallet, objectAddresses, session: { kind: 'local', wallet } };
   }
 
   private runtimeBinding(

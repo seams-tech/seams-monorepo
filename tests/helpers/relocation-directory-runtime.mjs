@@ -233,6 +233,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
             region,
             regionalDatabase,
             scope.namespace,
+            null,
           ),
         ),
         DERIVER_A: new CustodyBinding(
@@ -241,6 +242,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
             region,
             regionalDatabase,
             scope.namespace,
+            null,
           ),
         ),
         DERIVER_B: new CustodyBinding(
@@ -249,6 +251,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
             region,
             regionalDatabase,
             scope.namespace,
+            null,
           ),
         ),
         ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'private-d1-integration-auth',

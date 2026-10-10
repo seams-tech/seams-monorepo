@@ -480,8 +480,8 @@ class RealRegionalGateway {
         request,
         {
           ...this.environment,
-          MPC_ROUTER: new this.api.WalletHomeCustodyBinding(this.environment.MPC_ROUTER, authority.home().region, database, this.environment.SEAMS_TENANT_STORAGE_NAMESPACE),
-          SIGNING_WORKER: new this.api.WalletHomeCustodyBinding(this.environment.SIGNING_WORKER, authority.home().region, database, this.environment.SEAMS_TENANT_STORAGE_NAMESPACE),
+          MPC_ROUTER: new this.api.WalletHomeCustodyBinding(this.environment.MPC_ROUTER, authority.home().region, database, this.environment.SEAMS_TENANT_STORAGE_NAMESPACE, admission.objectAddresses),
+          SIGNING_WORKER: new this.api.WalletHomeCustodyBinding(this.environment.SIGNING_WORKER, authority.home().region, database, this.environment.SEAMS_TENANT_STORAGE_NAMESPACE, admission.objectAddresses),
           SIGNER_DB: database,
           WALLET_CONSOLE: new this.api.WalletPlacementConsoleBinding(
             this.environment.WALLET_CONSOLE, writer,

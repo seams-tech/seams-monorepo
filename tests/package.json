@@ -20,7 +20,7 @@
     "test:intended:external": "pnpm run type-check:intended && pnpm run ensure:intended-google-token && SEAMS_LINKED_DEVICE_E2E=1 playwright test -c playwright.intended.config.ts --reporter=line",
     "test:console": "pnpm run type-check:console && playwright test -c playwright.console.config.ts --reporter=line",
     "test:unit": "playwright test -c playwright.unit.config.ts",
-    "test:deploy-scripts": "playwright test -c playwright.config.ts unit/deployCommands.script.unit.test.ts unit/deploymentTargets.script.unit.test.ts --reporter=line",
+    "test:deploy-scripts": "playwright test -c playwright.config.ts 'unit/.*\\.script\\.unit\\.test\\.ts$' --reporter=line",
     "test:source-guards": "pnpm run check:console-core-wallet-import-boundaries",
     "test:relayer": "playwright test -c playwright.relayer.config.ts --reporter=line",
     "show-report": "playwright show-report"

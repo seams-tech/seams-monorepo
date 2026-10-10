@@ -125,9 +125,11 @@ Decision rules — classify before fixing:
 - `pnpm test:unit` / `pnpm test:relayer` / `pnpm test:wallet-iframe` / `pnpm test:lit-components`
 - `pnpm test:source-guards` — the source-guard chain
 - `pnpm check` — private lint, type-check, Console-core boundary checks, and the
-  deployment script tests
-- `pnpm test:deploy-scripts` — the deployment script tests alone; run it after a change
-  to `scripts/deploy-*.mjs`, `scripts/deployment-targets.mjs`, `deployment/`, or
-  `.github/workflows/deploy-*.yml`. It is offline and takes seconds.
+  script tests
+- `pnpm test:deploy-scripts` — the script tests alone (every
+  `tests/unit/*.script.unit.test.ts`: deployment, D1 staging, and local scripts); run it
+  after a change to `scripts/`, `packages/wallet-console-server-ts/scripts/`,
+  `deployment/`, or `.github/workflows/deploy-*.yml`. It is offline and takes seconds;
+  a new script test file joins it by name, so keep each one offline.
 - Run Rust builds and formal verification from `seams-wallet`, never from this private repository.
 - Full suite documentation: `tests/README.md`

@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, '../..');
 const wallet = resolve(root, '../seams-wallet');
 const output = resolve(root, '.artifacts/r155b/local-session-routing');
 await mkdir(output, { recursive: true });
-const { establishRegistrationHome, seedExecutionGeneration } = await import(
+const { establishRegistrationHome, seedExecutionGeneration, seedRegistrationHome } = await import(
   pathToFileURL(resolve(wallet, 'tests/e2e/execution-generation.scenario.mjs'))
 );
 const bundle = await build({
@@ -139,8 +139,7 @@ class UncertainRegistrationCompletion {
   loseReply = true;
   async admitHome() {
     this.admissionCalls += 1;
-    if (this.admissionCalls > 1) throw new Error('Unexpected registration directory lookup');
-    return { ok: true, purpose: 'registration', ownershipGeneration: 1 };
+    throw new Error('Registration continuation must use the home saved by setup');
   }
   async complete() {
     this.calls += 1;
@@ -160,12 +159,13 @@ async function verifyRegistrationTerminalDecision(database, scope, fixture, outc
   const directory = new UncertainRegistrationCompletion();
   const authority = new api.D1WalletExecutionAuthority(database, scope, directory);
   const identity = { walletId, ceremonyId: `wrc_${digest(outcome)}` };
+  await seedRegistrationHome({ database, scope, ...identity });
   assert.equal((await authority.admitHome(identity)).ok, true);
   const resumed = new api.D1WalletExecutionAuthority(database, scope, directory);
   assert.deepEqual(await resumed.admitHome(identity), {
     ok: true, purpose: 'registration', ownershipGeneration: 1,
   });
-  assert.equal(directory.admissionCalls, 1);
+  assert.equal(directory.admissionCalls, 0);
 
   const tenant = {
     namespace: scope.namespace,
@@ -389,11 +389,11 @@ try {
     ceremonyId: 'fixture-execution-registration',
   }), { ok: true, purpose: 'ordinary', ownershipGeneration: 1 });
   assert.equal(registrationDirectory.calls, 0);
-  await assert.rejects(localRegistration.admitHome({
+  assert.equal((await localRegistration.admitHome({
     walletId: fixture.authority.walletId,
     ceremonyId: 'different-registration',
-  }), /Registration directory unavailable/u);
-  assert.equal(registrationDirectory.calls, 1);
+  })).ok, false);
+  assert.equal(registrationDirectory.calls, 0);
   await database.batch([
     api.prepareD1WalletAuthorityPutStatement({ database, scope, authority: fixture.authority }),
     api.prepareD1WalletAuthMethodV2PutStatement({ database, scope, record: fixture.authMethod }),

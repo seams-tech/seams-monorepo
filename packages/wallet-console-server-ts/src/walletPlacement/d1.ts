@@ -189,7 +189,8 @@ export class D1WalletHomeDirectory {
            AND (wallet_id = ?5 OR registration_id = ?6))
          AND NOT EXISTS (SELECT 1 FROM wallet_homes WHERE namespace = ?1 AND ceremony_id = ?13)
          AND NOT EXISTS (SELECT 1 FROM tenant_deployment_cutovers
-           WHERE deployment_lane = ?18 AND state_kind IN ('awaiting_browser_credential', 'ready'))`,
+           WHERE deployment_lane = ?18 AND state_kind IN ('awaiting_browser_credential', 'ready'))
+       RETURNING *, 0 AS setup_paused`,
       )
       .bind(
         ...scopeBindings(wallet),
@@ -208,10 +209,12 @@ export class D1WalletHomeDirectory {
         input.proposedRegistrationAllocation.walletAuthMethodId,
         deploymentLane,
       )
-      .run();
-    const row = await queryD1One(
-      this.database,
-      `SELECT wallet_homes.*,
+      .first<Record<string, unknown>>();
+    const row =
+      inserted ??
+      (await queryD1One(
+        this.database,
+        `SELECT wallet_homes.*,
               EXISTS (SELECT 1 FROM tenant_deployment_cutovers
                 WHERE deployment_lane = ?7
                   AND state_kind IN ('awaiting_browser_credential', 'ready')) AS setup_paused
@@ -219,8 +222,8 @@ export class D1WalletHomeDirectory {
        AND project_id = ?3 AND environment_id = ?4
        AND (wallet_id = ?5 OR registration_id = ?6)
        ORDER BY CASE WHEN registration_id = ?6 THEN 0 ELSE 1 END LIMIT 1`,
-      [...scopeBindings(wallet), wallet.walletId, registrationId, deploymentLane],
-    );
+        [...scopeBindings(wallet), wallet.walletId, registrationId, deploymentLane],
+      ));
     if (row?.setup_paused === 1) {
       throw new WalletPlacementError('registration_paused', 'Wallet registration is paused');
     }
@@ -258,7 +261,7 @@ export class D1WalletHomeDirectory {
     // A retry from another region retains the first committed home.
     return {
       ok: true,
-      disposition: d1ChangedRows(inserted) === 1 ? 'reserved' : 'reused',
+      disposition: inserted ? 'reserved' : 'reused',
       assignment,
     };
   }

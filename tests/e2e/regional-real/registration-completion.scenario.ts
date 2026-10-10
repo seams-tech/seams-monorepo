@@ -369,9 +369,9 @@ function isRegistrationStatus(request: { stage: string; path: string }): boolean
  */
 const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
   '/wallets/register/setup': 4,
-  '/wallets/register/respond': 6,
+  '/wallets/register/respond': 5,
   '/router-ab/ed25519/yao/registration/execute': 1,
-  '/wallets/register/near-provisioning': 16,
+  '/wallets/register/near-provisioning': 15,
   '/router-ab/ed25519/sign/prepare': 2,
   '/router-ab/ed25519/sign': 3,
 };

@@ -1790,8 +1790,8 @@ async function resolveLocalTenantRoot(
         context.env,
         context.orgId,
         context.tenantRootCustodyLineage,
-        input.admissionRequest.application_binding,
-        input.admissionRequest.scope.root_share_epoch,
+        input,
+        input.root_share_epoch,
       );
     case 'recovery':
       return await context.resolveActiveTenantRoot({

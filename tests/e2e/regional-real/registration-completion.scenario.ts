@@ -363,16 +363,16 @@ function isRegistrationStatus(request: { stage: string; path: string }): boolean
  * adds one must raise its ceiling here and say why. Finalize's last read is
  * cleanup, which may finish after the response.
  *
- * Each ceiling includes one read of the wallet's object addresses for the
- * request's custody dispatch. Setup also stores them: one read and one write.
+ * Setup reads and stores the wallet's object addresses: one read and one
+ * write. Every other request takes them from the Gateway's admission query.
  */
 const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
   '/wallets/register/setup': 4,
-  '/wallets/register/respond': 7,
-  '/router-ab/ed25519/yao/registration/execute': 2,
-  '/wallets/register/near-provisioning': 21,
-  '/router-ab/ed25519/sign/prepare': 4,
-  '/router-ab/ed25519/sign': 5,
+  '/wallets/register/respond': 6,
+  '/router-ab/ed25519/yao/registration/execute': 1,
+  '/wallets/register/near-provisioning': 16,
+  '/router-ab/ed25519/sign/prepare': 2,
+  '/router-ab/ed25519/sign': 3,
 };
 
 function assertRoundTripCeilings(work: readonly GatewayD1Work[]): void {

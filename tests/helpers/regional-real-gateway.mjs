@@ -281,7 +281,8 @@ class RealHomeConsole {
       return this.api.handleWalletRelocationAdmission(request, {
         database: this.database, catalog: this.catalog, scope: this.scope, writer,
         deploymentLane: 'test', bindings: this.relocationAdmission.bindings,
-        verifyResources: this.relocationAdmission.verifyResources, clock: Date.now,
+        verifyResources: this.relocationAdmission.verifyResources,
+        onAdmitted: this.relocationAdmission.onAdmitted, clock: Date.now,
       });
     }
     return this.api.handleWalletHomeServiceRequest(request, {

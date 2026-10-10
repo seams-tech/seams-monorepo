@@ -63,7 +63,11 @@ export class BrowserWalletRelocation {
     const faults = { activationReplyLost: false, cleanupFailed: false };
     const bindings = relocationBindings(api, scenario, signerScope, faults, this.completedCleanups);
     const verifier = new BrowserMoveResourceProofs(directory.api, scope.namespace);
-    directory.relocationAdmission = { bindings, verifyResources: verifier.verify.bind(verifier) };
+    directory.relocationAdmission = {
+      bindings,
+      verifyResources: verifier.verify.bind(verifier),
+      onAdmitted: preserveManualExecution,
+    };
     const journal = new api.D1WalletRelocations(database, catalog);
     const preparationFailure = await page.evaluate(requestSdkMove, intent);
     assert.deepEqual(preparationFailure, { ok: false, code: 'transport_unavailable' });
@@ -353,8 +357,19 @@ function relocationBindings(api, scenario, scope, faults, completedCleanups) {
       completedCleanups,
       region,
     );
+    // The production Runtime binds each custody role to the wallet home and its stored object addresses.
+    const custody = {};
+    for (const role of ['MPC_ROUTER', 'DERIVER_A', 'DERIVER_B', 'SIGNING_WORKER']) {
+      custody[role] = new gateway.api.WalletHomeCustodyBinding(
+        gateway.environment[role],
+        region,
+        gateway.database,
+        scope.namespace,
+      );
+    }
     runtimes[region] = new RuntimeBinding(api, gateway.database, scope.namespace, writer, {
       ...gateway.environment,
+      ...custody,
       WALLET_CONSOLE: new api.WalletPlacementConsoleBinding(scenario.consoleService, writer),
       CF_VERSION_METADATA: { id: writer.versionId },
       SEAMS_D1_HOME_ACCOUNT_ID: home.accountId,
@@ -363,6 +378,9 @@ function relocationBindings(api, scenario, scope, faults, completedCleanups) {
   }
   return { gateways: new api.WalletRegionalDispatch(gateways), runtimes };
 }
+
+// This scenario advances each stage explicitly to inject faults.
+async function preserveManualExecution() {}
 
 async function requestSdkMove(request) {
   if (!window.__seamsIntendedE2EMoveWallet) throw new Error('SDK move helper is unavailable');

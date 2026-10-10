@@ -21,6 +21,7 @@ class ClaimFailureAfterConsume {
   readonly consumed = Promise.withResolvers<void>();
   readonly consumers: unknown[] = [];
   readonly claims: unknown[] = [];
+  readonly routes: unknown[] = [];
   readonly statuses: number[] = [];
   walletId = '';
   private request: Request | null = null;
@@ -42,6 +43,9 @@ class ClaimFailureAfterConsume {
   }
 
   async console(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname.endsWith('/publish-routes')) {
+      this.routes.push(await request.clone().json());
+    }
     if (new URL(request.url).pathname.endsWith('/claim-passkey')) {
       const body = await request.clone().json();
       this.walletId = body.wallet.walletId;
@@ -68,6 +72,9 @@ class ClaimFailureAfterConsume {
     this.statuses.push(first.status);
     assert.equal(first.ok, false);
     assert.equal(this.consumers.length, 1);
+    // The recovery-code routes are claimed beside the consumption and the
+    // credential claim, before any local wallet record exists.
+    assert.equal(this.routes.length, 1);
     assert.ok(this.walletId);
     const wallet = await home.database
       .prepare('SELECT wallet_id FROM wallets WHERE wallet_id = ?')
@@ -88,6 +95,8 @@ class ClaimFailureAfterConsume {
     assert.equal(this.consumers.length, 2);
     assert.deepEqual(this.consumers[1], this.consumers[0]);
     assert.deepEqual(this.claims[1], this.claims[0]);
+    assert.equal(this.routes.length, 2);
+    assert.deepEqual(this.routes[1], this.routes[0]);
     const body = await retry.json();
     return {
       nearAccountId: body.ed25519.nearAccountId,

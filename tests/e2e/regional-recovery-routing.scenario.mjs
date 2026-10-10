@@ -61,12 +61,17 @@ export async function verifyRegionalRecoveryRouting({
     bridge.recoveryCode = fixture.codes[0];
     bridge.recoveryDigest = fixture.commit.recoveryCodeLocators[0].locatorB64u;
     consoleBridge.available = false;
-    await assert.rejects(store.commitRegistration(fixture.commit));
+    await assert.rejects(store.reserveRegistration(fixture.commit));
     assert.equal(await store.readRecoveryEnvelopeSet(walletId), null);
     consoleBridge.available = true;
-    const committed = await store.commitRegistration(fixture.commit);
-    assert.equal(committed.kind, 'committed');
-    assert.equal((await store.commitRegistration(fixture.commit)).kind, 'already_exists');
+    const reserved = await store.reserveRegistration(fixture.commit);
+    assert.equal(reserved.kind, 'reserved');
+    // The route claim stores no custody. The records arrive with the commit.
+    assert.equal(await store.readRecoveryEnvelopeSet(walletId), null);
+    assert.equal((await reserved.commit()).kind, 'committed');
+    const repeated = await store.reserveRegistration(fixture.commit);
+    assert.equal(repeated.kind, 'reserved');
+    assert.equal((await repeated.commit()).kind, 'already_exists');
   }
   for (const [region, bridge] of bridges) {
     const ingress = await runtime.getWorker(region === 'US' ? 'APAC' : 'US');

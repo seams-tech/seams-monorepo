@@ -222,7 +222,7 @@ export async function verifyRegistrationCompletion(
     const consoleRequests = [...scenario.consoleService.requests];
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
-    assert.equal(consoleRequests.filter(isRegistrationHome).length, 1);
+    assert.equal(consoleRequests.filter(isRegistrationHome).length, 0);
     scenario.beginConsoleOutage();
     await scenario.routeContext(context, 'OC');
     evidence.stage = 'first_signature';

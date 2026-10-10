@@ -264,6 +264,8 @@ test('required secrets are derived from enabled capabilities', async () => {
   const staging = targets.backendLanes['staging-testnet'];
   expect(module.componentSecretNames(staging, 'gateway')).toEqual([
     'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
+    'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
+    'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET',
     'LINKED_DEVICE_TARGET_DESCRIPTOR_HMAC_SECRET',
     'ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK',
     'SIGNING_SESSION_SEAL_ROOT_SECRET_B64U',

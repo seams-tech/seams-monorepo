@@ -166,6 +166,16 @@ function environmentWithoutDeploymentSecrets(): NodeJS.ProcessEnv {
   return env;
 }
 
+function pendingSignerD1Regions(laneId: string): readonly string[] {
+  const lane = readBackendLane(laneId);
+  if (lane.provisioning.kind !== 'provisioned') throw new Error(`${laneId} must be provisioned`);
+  const regions: Readonly<Record<string, { readonly signerD1: { readonly kind: string } }>> =
+    lane.provisioning.gatewayDeploymentConfig.resources.regions;
+  return Object.entries(regions)
+    .filter(([, region]) => region.signerD1.kind !== 'allocated')
+    .map(([region]) => region);
+}
+
 function expectFailure(result: CommandResult, message: RegExp): void {
   expect(result.status).not.toBe(0);
   expect(`${result.stdout}\n${result.stderr}`).toMatch(message);
@@ -429,6 +439,8 @@ test('backend preflight validates one custody environment from explicit inputs',
       ...environmentWithoutDeploymentSecrets(),
       CLOUDFLARE_API_TOKEN: secretValue,
       CLOUDFLARE_ACCOUNT_ID: secretValue,
+      ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
+      ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET: secretValue,
       ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
       SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY: secretValue,
       SIGNING_WORKER_PRIVATE_D1_KEK: secretValue,
@@ -453,6 +465,8 @@ test('backend preflight rejects a missing required secret without printing value
       ...environmentWithoutDeploymentSecrets(),
       CLOUDFLARE_API_TOKEN: secretValue,
       CLOUDFLARE_ACCOUNT_ID: secretValue,
+      ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
+      ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET: secretValue,
       ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
       SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-public-value',
     },
@@ -511,6 +525,21 @@ test('deployment key generation provisions distinct role-local tenant-root provi
 });
 
 test('production manifests use external KMS backups and distribute both envelope public keys', () => {
+  const apply = runCommand(deploymentKeyGeneratorScript, [
+    '--lane',
+    'production-mainnet',
+    '--apply',
+  ]);
+  expectFailure(apply, /per-Worker manifests/u);
+
+  // The generator refuses a lane until every regional signer D1 is allocated,
+  // so the manifest content is observable only after that.
+  const pendingRegions = pendingSignerD1Regions('production-mainnet');
+  test.skip(
+    pendingRegions.length > 0,
+    `production-mainnet signer D1 allocation is pending for ${pendingRegions.join(', ')}`,
+  );
+
   const generationEnvironment = environmentWithoutDeploymentSecrets();
   delete generationEnvironment.GATEWAY_RUNTIME_PROFILE;
   delete generationEnvironment.EMAIL_OTP_DELIVERY_MODE;
@@ -542,12 +571,6 @@ test('production manifests use external KMS backups and distribute both envelope
       expect(environment.variables[name]).toMatch(/^x25519:[0-9a-f]{64}$/u);
     }
   }
-  const apply = runCommand(deploymentKeyGeneratorScript, [
-    '--lane',
-    'production-mainnet',
-    '--apply',
-  ]);
-  expectFailure(apply, /per-Worker manifests/u);
 });
 
 test('deployment key generation provisions one tenant-root control-plane issuer key', () => {
@@ -932,6 +955,10 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
     { id: 'production-testnet', workflow: 'deploy-production-testnet-backend.yml' },
     { id: 'production-mainnet', workflow: 'deploy-production-mainnet-backend.yml' },
   ] as const;
+  const liveDemoWorkflowSource = readFileSync(
+    path.join(repoRoot, '.github/workflows/deploy-live-demo.yml'),
+    'utf8',
+  );
 
   for (const lane of lanes) {
     const result = runCommand(
@@ -959,18 +986,30 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       return Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
     };
 
-    const cleanupJob =
-      lane.id === 'staging-testnet' ? 'cleanup_build_artifact' : 'cleanup_build_cache';
-    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, cleanupJob]);
+    // Staging also carries the activation-only job for an already deployed candidate.
+    const trailingJobs =
+      lane.id === 'staging-testnet'
+        ? ['cleanup_build_artifact', 'activate']
+        : ['cleanup_build_cache'];
+    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, ...trailingJobs]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);
     expect(workflowSource).not.toContain('--target');
     expect(workflowSource).toContain(
       'deploy:backend build --lane "$DEPLOY_LANE" --component wallet-system',
     );
-    expect(workflowSource).toContain(
-      'deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system',
-    );
+    // The live-demo workflow calls the production-testnet workflow, activates
+    // the tenant, and only then runs the smoke.
+    if (lane.id === 'production-testnet') {
+      expect(liveDemoWorkflowSource).toContain(`uses: ./.github/workflows/${lane.workflow}`);
+      expect(liveDemoWorkflowSource).toContain(
+        'deploy:backend smoke --lane production-testnet --component wallet-system',
+      );
+    } else {
+      expect(workflowSource).toContain(
+        'deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system',
+      );
+    }
     expect(workflowSource).toContain(
       `test "$GITHUB_REF" = refs/heads/${lane.id === 'staging-testnet' ? 'dev' : 'main'}`,
     );

@@ -7,7 +7,7 @@ import {
   isD1DatabaseLike,
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -16,6 +16,18 @@ import { fileURLToPath } from 'node:url';
 import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
 import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../packages/wallet-console-shared-ts/src/apiKeyScopes';
+import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
+import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
+import {
+  deploymentResource,
+  fourRegionBinding,
+  readyActivation,
+  regionalResourceProof,
+} from '../helpers/tenantDeploymentFixtures';
+import { gatewaySetupInput } from '../fixtures/tenant-deployment/registrationHomeAdmission';
+import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRelocationResources';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const namespace = 'console-service-auth-e2e';
@@ -90,6 +102,12 @@ test('production Console service bindings enforce durable credential changes and
       : {},
   });
   const guard = new ExternalRequestGuard();
+  const consoleEnvironment = consoleWorkerEnvironment({
+    namespace,
+    deploymentLane: 'console-preflight',
+    accountId: '0123456789abcdef0123456789abcdef',
+    databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  });
   const runtime = new Miniflare({
     host: '127.0.0.1',
     port: 0,
@@ -111,12 +129,7 @@ test('production Console service bindings enforce durable credential changes and
         scriptPath: path.join(output, 'console.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
-        bindings: consoleWorkerEnvironment({
-          namespace,
-          deploymentLane: 'console-preflight',
-          accountId: '0123456789abcdef0123456789abcdef',
-          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        }),
+        bindings: consoleEnvironment,
         d1Databases: { CONSOLE_DB: 'console-service-auth-e2e' },
         serviceBindings: { WALLET_RUNTIME: guard.fetch.bind(guard) },
         outboundService: guard.fetch.bind(guard),
@@ -184,6 +197,86 @@ test('production Console service bindings enforce durable credential changes and
       stage: 'accepted',
       ok: accepted.ok,
       consoleRequests: service.requests.length,
+    });
+
+    const nowMs = Date.now();
+    const deployments = createD1TenantDeploymentServiceV1({ database });
+    const deployment = await deployments.putBinding(
+      await fourRegionBinding(nowMs, 'console-preflight', {
+        namespace,
+        organizationId: context.orgId,
+        projectId,
+        environmentId,
+      }),
+    );
+    const resource = deploymentResource(namespace, deployment.resources[0].databaseId);
+    const activation = await readyActivation(
+      deployments,
+      deployment,
+      resource,
+      'tco_console_setup',
+      null,
+      nowMs,
+    );
+    const resourceVerifications = [];
+    for (const resource of deployment.resources) {
+      resourceVerifications.push(
+        regionalResourceProof(
+          deployment,
+          resource.databaseId,
+          resource.databaseId,
+          relocationWriterVersion(resource.databaseId, 'walletRuntime'),
+          nowMs,
+        ),
+      );
+    }
+    await deployments.activateBinding({
+      ...activation,
+      resourceVerifications,
+    });
+    const catalog = WalletHomeCatalog.parse(
+      JSON.parse(consoleEnvironment.SEAMS_WALLET_HOME_CATALOG_JSON),
+    );
+    const homes = new WalletHomeServiceClient(
+      service,
+      parseTenantRuntimeWriterV1('gateway', resource.databaseId, {
+        accountId: resource.accountId,
+        databaseId: resource.databaseId,
+      }),
+      deployment.tenant,
+      catalog,
+    );
+    const setup = {
+      secret: credential.secret,
+      origin,
+      environmentId,
+      registration: gatewaySetupInput({
+        operationId: `wreg_${randomBytes(32).toString('base64url')}`,
+        origin,
+      }).request,
+    };
+    const reserved = await homes.reserveAuthenticated(setup, 'APAC');
+    expect(reserved).toMatchObject({ ok: true });
+    if (!reserved.ok || !reserved.reservation.ok) throw new Error('Combined Console setup failed');
+    expect(reserved.reservation.assignment.home.region).toBe('APAC');
+    const retried = await homes.reserveAuthenticated(setup, 'WEUR');
+    expect(retried).toMatchObject({
+      ok: true,
+      reservation: { ok: true, disposition: 'reused', assignment: reserved.reservation.assignment },
+    });
+    const refused = await homes.reserveAuthenticated(
+      { ...setup, origin: 'https://untrusted.example.test' },
+      'US',
+    );
+    expect(refused).toMatchObject({
+      ok: false,
+      context: { code: 'publishable_key_origin_blocked' },
+    });
+    observations.push({
+      stage: 'combined_setup_and_foreign_retry',
+      home: reserved.reservation.assignment.home.region,
+      serviceRequests: service.requests.slice(-3),
+      invalidOriginRefused: !refused.ok,
     });
 
     const newVersion = `${accepted.environment.signingRootVersion}-updated`;

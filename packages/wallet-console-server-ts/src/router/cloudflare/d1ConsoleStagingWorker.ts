@@ -1034,7 +1034,8 @@ function dispatchConsoleOperation(
   handler: FetchHandler,
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
-  request: Request,
+  input: Request | string,
+  init?: RequestInit,
 ): Promise<Response> {
-  return handler(request, env, ctx);
+  return handler(new Request(input, init), env, ctx);
 }

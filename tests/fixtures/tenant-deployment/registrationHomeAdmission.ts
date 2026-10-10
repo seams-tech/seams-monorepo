@@ -93,7 +93,7 @@ export function gatewaySetupInput(input: {
               accountIdSource: 'ed25519_public_key',
             },
             participantIds: [1, 2],
-            signerSlot: 0,
+            signerSlot: 1,
             derivationVersion: 1,
           },
         ],

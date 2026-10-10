@@ -57,8 +57,7 @@ export async function handleRegistrationSetupRequest(
     principal.orgId !== options.scope.organizationId ||
     environment.projectId !== options.scope.projectId ||
     environment.id !== options.scope.environmentId ||
-    environment.key !== options.environmentKey ||
-    !principal.scopes.includes('accounts.create')
+    environment.key !== options.environmentKey
   ) {
     return Response.json(
       {

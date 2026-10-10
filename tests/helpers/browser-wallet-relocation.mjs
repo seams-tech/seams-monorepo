@@ -11,7 +11,6 @@ import {
 
 export class BrowserWalletRelocation {
   ownerRequest = null;
-  completedCleanups = [];
 
   constructor(options) {
     Object.assign(this, options);
@@ -61,7 +60,7 @@ export class BrowserWalletRelocation {
       expectedGeneration,
     };
     const faults = { activationReplyLost: false, cleanupFailed: false };
-    const bindings = relocationBindings(api, scenario, signerScope, faults, this.completedCleanups);
+    const bindings = relocationBindings(api, scenario, signerScope, faults);
     const verifier = new BrowserMoveResourceProofs(directory.api, scope.namespace);
     directory.relocationAdmission = {
       bindings,
@@ -202,20 +201,6 @@ export class BrowserWalletRelocation {
             /linked_device_relocation_fenced/,
           );
         }
-        let priorCleanupRejections = 0;
-        for (const cleanup of this.completedCleanups) {
-          if (cleanup.region !== destinationRegion) continue;
-          const replay = await cleanup.binding.fetch(cleanup.request.clone());
-          assert.equal(replay.status, 403);
-          assert.equal((await replay.json()).code, 'relocation_command_denied');
-          priorCleanupRejections += 1;
-        }
-        assert.deepEqual(
-          await authenticationRecords(scenario.gateways.get(destinationRegion), wallet.walletId),
-          destinationRecords,
-          'An old cleanup retry must preserve the returned wallet',
-        );
-        if (expectedGeneration > 1) assert.ok(priorCleanupRejections > 0);
         const cleaned = await authenticationRecords(source, wallet.walletId);
         for (const record of Object.values(cleaned)) assert.equal(record.count, 0);
         await writeFile(
@@ -229,7 +214,6 @@ export class BrowserWalletRelocation {
               linkedHistoryImmutable:
                 destinationRecords.linked_device_authority_installations.count > 0,
               faults,
-              priorCleanupRejections,
             },
             null,
             2,
@@ -333,7 +317,7 @@ async function authenticationRecords(gateway, walletId) {
   return records;
 }
 
-function relocationBindings(api, scenario, scope, faults, completedCleanups) {
+function relocationBindings(api, scenario, scope, faults) {
   const gateways = {};
   const runtimes = {};
   for (const [region, gateway] of scenario.gateways) {
@@ -354,8 +338,6 @@ function relocationBindings(api, scenario, scope, faults, completedCleanups) {
         }),
       ),
       faults,
-      completedCleanups,
-      region,
     );
     // The production Runtime binds each custody role to the wallet home and its stored object addresses.
     const custody = {};
@@ -403,8 +385,8 @@ class BrowserMoveResourceProofs {
 }
 
 class RelocationGatewayFaults {
-  constructor(binding, faults, completedCleanups, region) {
-    Object.assign(this, { binding, faults, completedCleanups, region });
+  constructor(binding, faults) {
+    Object.assign(this, { binding, faults });
   }
 
   async fetch(request) {
@@ -413,16 +395,10 @@ class RelocationGatewayFaults {
       this.faults.cleanupFailed = true;
       return new Response('Injected cleanup outage', { status: 503 });
     }
-    const cleanupRequest = pathname.endsWith('/authorization/cleanup') ? request.clone() : null;
     const response = await this.binding.fetch(request);
-    if (cleanupRequest && response.status === 200) {
+    if (pathname.endsWith('/authorization/cleanup') && response.status === 200) {
       const result = await response.clone().json();
       assert.equal(result.progress.state, 'cleaned');
-      this.completedCleanups.push({
-        binding: this.binding,
-        region: this.region,
-        request: cleanupRequest,
-      });
     }
     if (
       pathname.endsWith('/authorization/activate') &&

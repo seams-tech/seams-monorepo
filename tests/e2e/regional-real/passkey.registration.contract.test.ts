@@ -149,7 +149,6 @@ for (const curve of ['ecdsa', 'ed25519']) {
       );
       if (curve === 'ecdsa') {
         scenario.consoleService.available = true;
-        context.on('request', observe);
         await harness.recoverPasskeyWalletFromFreshBrowser();
         scenario.beginConsoleOutage();
         await harness.signTempoTransaction('post_unlock');
@@ -169,42 +168,8 @@ for (const curve of ['ecdsa', 'ed25519']) {
             2,
           ),
         );
-        scenario.consoleService.available = true;
-        while (Date.now() <= moved.nextMoveAtMs) {
-          await page.waitForTimeout(Math.min(30_000, moved.nextMoveAtMs - Date.now() + 1));
-        }
-        const returned = await relocation.move(page, {
-          sourceRegion: 'APAC',
-          destinationRegion: 'US',
-          expectedGeneration: 2,
-        });
-        context.off('request', observe);
-        await harness.unlockPasskeyWallet();
-        scenario.beginConsoleOutage();
-        await harness.signTempoTransaction('post_unlock');
-        await harness.signNearTransactionAfterRefresh();
-        assert.equal(scenario.consoleService.requests.length, 0);
-        const returnedHome = await scenario.consoleService.database
-          .prepare('SELECT region, state FROM wallet_homes WHERE wallet_id = ?')
-          .bind(returned.walletId)
-          .first();
-        assert.deepEqual(returnedHome, { region: 'US', state: 'established' });
-        await writeFile(
-          path.join(scenario.output, 'return-relocation.json'),
-          JSON.stringify(
-            {
-              ...returned,
-              source: 'APAC',
-              destination: 'US',
-              expectedGeneration: 2,
-              freshUnlockAfterMove: true,
-              signingCurves: ['ecdsa', 'ed25519'],
-              consoleRequestsDuringSigning: 0,
-            },
-            null,
-            2,
-          ),
-        );
+        // No return move: a local stack observes one datacenter, and admission accepts a
+        // custody destination only inside its region. The hosted relocation test returns the wallet.
       }
     } finally {
       if (linkedContext) await linkedContext.close();

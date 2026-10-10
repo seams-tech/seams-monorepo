@@ -65,7 +65,16 @@ outcomes and the final exhausted quota. The existing
 `refill-session.test.ts` checks live retirement: old credentials must fail refill,
 prepare and finalize while a newly unlocked session can still sign.
 
-`near-signing-latency.test.ts` has three main NEAR-only samples. Each case verifies
+`near-signing-latency.test.ts` serves the candidate site from a local HTTPS
+server and maps the staging application and wallet hosts to it in Chromium. It
+does not intercept requests. A routed context cannot measure latency: Playwright
+answers every CORS preflight itself and turns the HTTP cache off, so the six
+preflights of a registration and its first signature cost nothing. The server
+uses port 8443, or `SEAMS_HOSTED_CANDIDATE_PORT`, and needs `openssl` for its
+self-signed certificate. The other hosted tests keep the routed assets because
+they inject faults.
+
+The test has three main NEAR-only samples. Each case verifies
 the first signature, two warm signatures, unlock and its first signature, then a
 three-signature sequence. The test rejects ECDSA signer assets. The SDK timer
 excludes independent signature verification. Registration and unlock phase timers

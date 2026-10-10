@@ -10,7 +10,7 @@ import type {
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { installCandidateAssets } from './candidate-assets';
+import { CandidateAssetServer } from './candidate-assets';
 
 const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
@@ -41,6 +41,7 @@ class NearEvidence {
     for (const entry of this.responses) {
       if (entry.at < startedAt || entry.at > endedAt) continue;
       if (new URL(entry.response.url()).origin !== process.env.SEAMS_INTENDED_ROUTER_URL) continue;
+      if (entry.response.request().method() !== 'POST') continue;
       const value = await entry.response.headerValue('X-Benchmark-Console-Calls');
       if (value === null) return null;
       observed = true;
@@ -151,6 +152,12 @@ function isOtherSigner(asset: string): boolean {
   );
 }
 
+// Latency samples run without request interception, so they pay real CORS preflights.
+const candidateAssets = new CandidateAssetServer();
+test.use({ launchOptions: { args: candidateAssets.browserArguments } });
+test.beforeAll(candidateAssets.start.bind(candidateAssets));
+test.afterAll(candidateAssets.stop.bind(candidateAssets));
+
 for (let sample = 1; sample <= 3; sample += 1) {
   test(
     `hosted NEAR-only sample ${sample}: registration, unlock, warm and three signatures`,
@@ -168,7 +175,6 @@ async function runNearRegistrationBenchmark(
 ): Promise<void> {
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
   if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
-  await installCandidateAssets(context);
   const harness = new IntendedBehaviourHarness({
     context,
     page,
@@ -243,6 +249,8 @@ async function registrationResponseEvidence(observations: NearEvidence) {
   for (const entry of observations.responses) {
     const pathname = new URL(entry.response.url()).pathname;
     if (!pathname.startsWith('/wallets/register/')) continue;
+    // Only the operation's POST has a body. An SDK preflight warm-up does not.
+    if (entry.response.request().method() !== 'POST') continue;
     const body = await entry.response.json();
     responses.push({
       path: pathname,
@@ -273,7 +281,6 @@ async function runNearBenchmark(
   test.setTimeout(300_000);
   const output = process.env.SEAMS_TEST_ARTIFACT_DIR;
   if (!output) throw new Error('SEAMS_TEST_ARTIFACT_DIR is required');
-  await installCandidateAssets(context);
   const harness = new IntendedBehaviourHarness({
     context,
     page,

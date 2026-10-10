@@ -110,8 +110,7 @@ test('D1 staging resource inventory records config-derived resource IDs', async 
       binding: 'SIGNER_DB',
       databaseName: 'seams-signer-staging-nrt',
       databaseId: '22222222-2222-4222-8222-222222222222',
-      migrationsDir:
-        'node_modules/@seams/wallet-server/migrations/d1-signer',
+      migrationsDir: '../../node_modules/@seams/wallet-server/migrations/d1-signer',
     },
   ]);
   expect(plan.resources.gatewayWorker.durableObjects).toEqual([]);

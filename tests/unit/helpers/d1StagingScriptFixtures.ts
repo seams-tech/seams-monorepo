@@ -191,7 +191,7 @@ compatibility_flags = ["nodejs_compat"]
 binding = "SIGNER_DB"
 database_name = "seams-signer-staging-nrt"
 database_id = "22222222-2222-4222-8222-222222222222"
-migrations_dir = "node_modules/@seams/wallet-server/migrations/d1-signer"
+migrations_dir = "../../node_modules/@seams/wallet-server/migrations/d1-signer"
 
 
 [[services]]

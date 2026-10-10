@@ -405,7 +405,7 @@ function applyRuntimePaths(source, repoRoot, outputConfigPath) {
       'migrations_dir = "migrations/d1-console"',
       `migrations_dir = ${JSON.stringify(consoleMigrationsPath)}`,
     ),
-    'migrations_dir = "node_modules/@seams/wallet-server/migrations/d1-signer"',
+    'migrations_dir = "../../node_modules/@seams/wallet-server/migrations/d1-signer"',
     `migrations_dir = ${JSON.stringify(signerMigrationsPath)}`,
   );
 }

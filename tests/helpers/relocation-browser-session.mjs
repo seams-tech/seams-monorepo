@@ -1,3 +1,4 @@
+/* global relocationSdk -- the esbuild IIFE bundle below defines it in the page */
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { chromium } from '@playwright/test';

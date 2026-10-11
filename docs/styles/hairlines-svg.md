@@ -149,11 +149,11 @@ The fixed frame and dense perforations dominate the 240px view. The automated ch
 
 ## Combination interlock
 
-The policy interlock uses three slotted discs on a common axis. A vintage key enters from the rear through the centers of the discs. Three raised teeth fill their radial gaps when the key seats. Its wide circular bow has a large ring opening. The shaft, teeth, and bow form one solid outline.
+The policy interlock uses three slotted discs on a common axis. A vintage key enters from the rear through the centers of the discs. Three compact teeth seat in enclosed radial keyways. Its wide scalloped bow has a large oval opening. The shaft, teeth, and bow form one solid outline.
 
 Hover or Enter inserts the key by 76 world units, then turns the key and all three discs together through 60 degrees. Pointer exit or another Enter reverses the turn before withdrawing the key. Space also toggles the sequence. One reversible Hairline tween preserves this ordering during interruptions. The insertion boundary is the shared easing curve evaluated at 45% of the duration. The slider sets the full sequence to 900, 1200, or 1500 milliseconds.
 
-Each tooth leaves 0.2 units of axial clearance inside its seven-unit disc. The key is eleven units thick inside thirteen-unit slots. Slotted hollow sleeves support the discs and turn with them. The rear bearing has an open entry channel for the raised teeth. The key's circular bow has a radius of fifteen units and an 8.5-unit opening. The stationary supports clear the rotating shaft.
+Each tooth leaves 0.2 units of axial clearance inside its seven-unit disc. The key is eleven units thick inside thirteen-unit slots. Slotted hollow sleeves support the discs and turn with them. The rear bearing has an open entry channel for the raised teeth. Each tooth rises 14.5 units above the blade, with one unit of clearance under its keyway roof. The bow uses a sixteen-by-twenty-two-unit oval with a ten-percent scallop and a nine-by-fourteen-unit opening. The stationary supports clear the rotating shaft.
 
 The key draws in sections at disc boundaries. Slot backs draw before each key section. Near disc walls and faces draw above it. Section boundaries have no artificial end caps. The key outline is the single accent. Radial ticks, circular grooves, base mounting holes, and the front retaining cap use lighter detail strokes. The figure keeps the existing Hairline camera, palette, runtime, and bench. As with the other extended mechanical figures, its readable geometry exceeds the standalone skill's 200-line limit.
 
@@ -169,7 +169,7 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
 
 Review at `/dashboard-static/showcase/motion/interlock/`. Use `?w=240&theme=dark&at=200,166&intensity=1` for the compact dark view at the longest duration. Set intensity to zero for the shortest duration.
 
-The browser review evidence is in `.artifacts/combination-interlock/key-turn/`: rest and turned screenshots, the compact dark view, and `review.json` with sampled motion states. Repeat the review by inserting with Enter, reversing after the completed turn, then interrupting another turn with Enter. During every sample with a nonzero turn, insertion must equal one. Both directions must reach their endpoint without invalid SVG coordinates. Inspect the teeth inside the slots and the key's bore in both themes. The standard Hairline runtime provides reduced-motion handling; this review did not change the host's motion preference.
+The browser review evidence is in `.artifacts/combination-interlock/key-redesign/`: rest and turned screenshots, the compact dark view, and `review.json` with sampled motion states. Repeat the review by inserting with Enter, reversing after the completed turn, then interrupting another turn with Enter. During every sample with a nonzero turn, insertion must equal one. Both directions must reach their endpoint without invalid SVG coordinates. Inspect the teeth inside the slots and the key's bore in both themes. The standard Hairline runtime provides reduced-motion handling; this review did not change the host's motion preference.
 
 ## Self-hostable example
 

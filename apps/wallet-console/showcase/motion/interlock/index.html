@@ -725,21 +725,21 @@ const INSERT_END = HL.EASE_LIFT(0.45);
 const TURN_ANGLE = -60;
 const KEY_PROFILE = keyProfile();
 function keyProfile() {
-  const neckAngle = Math.asin(3 / 15);
-  const neck = -68 + 15 * Math.cos(neckAngle);
+  const neckAngle = Math.asin(3 / 24.2);
+  const neck = bowPoint(-neckAngle)[0];
   const outline = [
     [neck, 3],
     [-17.8, 3],
-    [-17.8, 29.5],
-    [-11.2, 29.5],
+    [-17.8, 17.5],
+    [-11.2, 17.5],
     [-11.2, 3],
     [9.2, 3],
-    [9.2, 29.5],
-    [15.8, 29.5],
+    [9.2, 17.5],
+    [15.8, 17.5],
     [15.8, 3],
     [36.2, 3],
-    [36.2, 29.5],
-    [42.8, 29.5],
+    [36.2, 17.5],
+    [42.8, 17.5],
     [42.8, 3],
     [49, 3],
     [51, 1],
@@ -748,9 +748,13 @@ function keyProfile() {
   ];
   for (let step = 1; step < 64; step++) {
     const angle = HL.lerp(-neckAngle, -Math.PI * 2 + neckAngle, step / 64);
-    outline.push([-68 + 15 * Math.cos(angle), 15 * Math.sin(angle)]);
+    outline.push(bowPoint(angle));
   }
   return HL.fillet(outline, Array(outline.length).fill(0.5), 4);
+}
+function bowPoint(angle) {
+  const scallop = 1 + 0.1 * Math.cos(4 * angle);
+  return [-68 + 16 * scallop * Math.cos(angle), 22 * scallop * Math.sin(angle)];
 }
 function path(parent, classes) {
   return HL.mk('path', { class: classes }, parent);
@@ -768,39 +772,47 @@ function project(P, x, center, angle, point) {
   const z = point[1] * Math.cos(angle) - point[0] * Math.sin(angle);
   return P(x, y, z + center);
 }
-function body(svg, x, depth, profile, center = 43) {
+function body(svg, x, depth, profile, center = 43, hole = []) {
   const wall = path(svg, 'fo');
   const back = path(svg, 'sil nf');
   const frontWall = path(svg, 'fo');
   const face = path(svg, 'sil');
   const detail = path(svg, 'lo nf');
-  return { x, depth, profile, center, wall, back, frontWall, face, detail };
+  return { x, depth, profile, hole, center, wall, back, frontWall, face, detail };
 }
 function drawBody(P, part, angle, detail = '') {
-  const far = part.profile.map(project.bind(null, P, part.x, part.center, angle));
-  const near = part.profile.map(project.bind(null, P, part.x + part.depth, part.center, angle));
+  let farFaces = '';
+  let nearFaces = '';
   let walls = '';
   let edges = '';
   let frontWalls = '';
   let frontEdges = '';
-  const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
-  for (let i = 0; i < far.length; i++) {
-    const next = (i + 1) % far.length;
-    const before = (i + far.length - 1) % far.length;
-    const visible = sideVisible(far[i], far[next], direction);
-    const wall = HL.poly([far[i], far[next], near[next], near[i]]);
-    const inSlot = Math.abs(part.profile[i][0]) <= 6.501 && part.profile[i][1] >= 0;
-    if (visible) walls += wall;
-    if (visible && !inSlot) frontWalls += wall;
-    let edge = visible ? HL.seg(far[i], far[next]) : '';
-    if (visible !== sideVisible(far[before], far[i], direction)) edge += HL.seg(far[i], near[i]);
-    if (inSlot) edges += edge;
-    else frontEdges += edge;
+  for (const profile of [part.profile, part.hole]) {
+    if (profile.length === 0) continue;
+    const far = profile.map(project.bind(null, P, part.x, part.center, angle));
+    const near = profile.map(project.bind(null, P, part.x + part.depth, part.center, angle));
+    farFaces += HL.poly(far);
+    nearFaces += HL.poly(near);
+    const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
+    for (let i = 0; i < far.length; i++) {
+      const next = (i + 1) % far.length;
+      const before = (i + far.length - 1) % far.length;
+      const visible = sideVisible(far[i], far[next], direction);
+      const wall = HL.poly([far[i], far[next], near[next], near[i]]);
+      const inSlot =
+        profile === part.hole || (Math.abs(profile[i][0]) <= 6.501 && profile[i][1] >= 0);
+      if (visible) walls += wall;
+      if (visible && !inSlot) frontWalls += wall;
+      let edge = visible ? HL.seg(far[i], far[next]) : '';
+      if (visible !== sideVisible(far[before], far[i], direction)) edge += HL.seg(far[i], near[i]);
+      if (inSlot) edges += edge;
+      else frontEdges += edge;
+    }
   }
-  part.wall.setAttribute('d', HL.poly(far) + walls);
+  part.wall.setAttribute('d', farFaces + walls);
   part.back.setAttribute('d', edges);
   part.frontWall.setAttribute('d', frontWalls);
-  part.face.setAttribute('d', HL.poly(near) + frontEdges);
+  part.face.setAttribute('d', nearFaces + frontEdges);
   part.detail.setAttribute('d', detail);
 }
 function sideVisible(a, b, direction) {
@@ -813,13 +825,14 @@ function slottedRing(outerRadius, innerRadius) {
   contour.push(...circle(innerRadius, Math.PI * 2 - innerAngle, innerAngle));
   return contour;
 }
-function discProfile() {
-  const contour = slottedRing(31, 9);
+function discKeyway() {
+  const angle = Math.asin(6.5 / 9);
+  const contour = [[-6.5, 18.5], ...circle(9, Math.PI * 2 - angle, angle), [6.5, 18.5]];
   return HL.fillet(contour, Array(contour.length).fill(0.3), 3);
 }
 function discDetail(P, disc, angle) {
   const map = project.bind(null, P, disc.x + disc.depth, 43, angle);
-  let d = HL.open(circle(26, 0.29, Math.PI * 2 - 0.29).map(map));
+  let d = HL.poly(circle(26).map(map));
   d += HL.open(circle(11, 0.66, Math.PI * 2 - 0.66).map(map));
   for (let i = 1; i < 24; i++) {
     const theta = (i * Math.PI) / 12;
@@ -857,7 +870,7 @@ function keyPoint(P, offset, angle, thickness, point) {
   return project(P, point[0] + offset, 43, angle, [thickness, point[1]]);
 }
 function holePoint(point) {
-  return [point[0] - 68, point[1]];
+  return [point[0] * (9 / 8.5) - 68, point[1] * (14 / 8.5)];
 }
 function drawKey(P, part, offset, angle) {
   const low = part.low - offset;
@@ -889,7 +902,7 @@ function drawKey(P, part, offset, angle) {
         edges += HL.seg(far[index], near[index]);
       }
     }
-    if (low < -77 && high > -59) {
+    if (low < -78 && high > -58) {
       const hole = circle(8.5).map(holePoint);
       bore = HL.poly(hole.map(mapNear));
     }
@@ -981,7 +994,7 @@ function mount({ stage, svg, read }, duration) {
   HL.fit(
     C,
     [
-      [-159, -5.5, 58],
+      [-164, -5.5, 67.2],
       [66, -38, 3],
       [-60, 38, 9],
       [66, 38, 9],
@@ -991,13 +1004,13 @@ function mount({ stage, svg, read }, duration) {
   );
   const P = HL.proj(C);
   base(svg, P, HL.facing(C));
-  const keys = [keySection(svg, -160, -36, pedestal(svg, P, -44, true))];
+  const keys = [keySection(svg, -180, -36, pedestal(svg, P, -44, true))];
   const discs = [];
   const sleeves = [];
   let previous = -36;
   for (const x of [-18, 9, 36]) {
     sleeves.push(body(svg, previous, x - previous, slottedRing(8, 7)));
-    const disc = body(svg, x, 7, discProfile());
+    const disc = body(svg, x, 7, circle(31), 43, discKeyway());
     keys.push(keySection(svg, x === -18 ? -36 : x - 20, x + 7, disc));
     discs.push(disc);
     previous = x + 7;

@@ -5,10 +5,6 @@ import { unstable_splitSqlQuery } from 'wrangler';
 import {
   createWalletConsoleOpsClient,
   isD1DatabaseLike,
-  type RouterApiProjectEnvironmentResolver,
-  type RouterApiPublishableKeyAuthAdapter,
-  type RouterApiPublishableKeyAuthRequest,
-  type WalletConsoleOpsClient,
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
 import { createHash, randomBytes } from 'node:crypto';
@@ -24,7 +20,6 @@ import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
-import { handleRegistrationSetupRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/registrationSetup';
 import {
   deploymentResource,
   fourRegionBinding,
@@ -55,17 +50,29 @@ class ExternalRequestGuard {
 
 class LocalConsoleService implements WalletConsoleServiceBinding {
   readonly requests: { path: string; status: number }[] = [];
+  lastDatabaseWork: { calls: number; statements: number } | null = null;
+  failNextBatch = false;
 
   constructor(private readonly worker: Awaited<ReturnType<Miniflare['getWorker']>>) {}
 
   async fetch(input: Request | string, init?: RequestInit): Promise<Response> {
     const request = new Request(input, init);
+    if (this.failNextBatch) {
+      request.headers.set('x-test-fail-d1-batch', 'true');
+      this.failNextBatch = false;
+    }
     const response = await this.worker.fetch(request.url, {
       method: request.method,
       headers: Array.from(request.headers.entries()),
       body: request.body === null ? undefined : await request.arrayBuffer(),
     });
     this.requests.push({ path: new URL(request.url).pathname, status: response.status });
+    const calls = response.headers.get('x-test-d1-calls');
+    const statements = response.headers.get('x-test-d1-statements');
+    this.lastDatabaseWork =
+      calls === null || statements === null
+        ? null
+        : { calls: Number(calls), statements: Number(statements) };
     return new Response(await response.arrayBuffer(), {
       status: response.status,
       headers: Array.from(response.headers.entries()),
@@ -77,39 +84,6 @@ function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
-class ObservedSetupServices
-  implements RouterApiPublishableKeyAuthAdapter, RouterApiProjectEnvironmentResolver
-{
-  readonly events: string[] = [];
-
-  constructor(
-    private readonly client: WalletConsoleOpsClient,
-    private readonly environmentRead: 'available' | 'failed',
-  ) {}
-
-  private environmentStarted(): boolean {
-    return this.events.includes('environment_started');
-  }
-
-  async authenticate(input: RouterApiPublishableKeyAuthRequest) {
-    const result = await this.client.publishableKeyAuth.authenticate(input);
-    await expect.poll(this.environmentStarted.bind(this)).toBe(true);
-    this.events.push('authentication_finished');
-    return result;
-  }
-
-  async listEnvironments(
-    context: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[0],
-    filters: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[1],
-  ) {
-    this.events.push('environment_started');
-    const result = await this.client.projectEnvironments.listEnvironments(context, filters);
-    if (this.environmentRead === 'failed') throw new Error('Injected environment read failure');
-    this.events.push('environment_finished');
-    return result;
-  }
-}
-
 test('production Console service bindings enforce durable credential changes and resolve environments', async () => {
   test.setTimeout(120_000);
   const testInfo = test.info();
@@ -117,10 +91,7 @@ test('production Console service bindings enforce durable credential changes and
   await mkdir(output, { recursive: true });
   await build({
     entryPoints: {
-      console: path.join(
-        repoRoot,
-        'packages/wallet-console-server-ts/src/router/cloudflare/d1ConsoleStagingWorker.ts',
-      ),
+      console: path.join(repoRoot, 'tests/fixtures/tenant-deployment/observedConsoleWorker.ts'),
       consumer: path.join(repoRoot, 'tests/fixtures/tenant-deployment/consoleOpsConsumer.ts'),
     },
     outdir: output,
@@ -295,6 +266,8 @@ test('production Console service bindings enforce durable credential changes and
       }).request,
     };
     const reserved = await homes.reserveAuthenticated(setup, 'APAC');
+    expect(service.lastDatabaseWork).toEqual({ calls: 4, statements: 5 });
+    observations.push({ stage: 'fresh_setup_database_work', ...service.lastDatabaseWork });
     expect(reserved).toMatchObject({ ok: true });
     if (!reserved.ok || !reserved.reservation.ok) throw new Error('Combined Console setup failed');
     expect(reserved.reservation.assignment.home.region).toBe('APAC');
@@ -322,69 +295,31 @@ test('production Console service bindings enforce durable credential changes and
       .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
       .bind(namespace)
       .first<number>('count');
-    for (const scenario of [
-      {
-        name: 'overlap',
-        secret: credential.secret,
-        environmentRead: 'available',
-        status: 200,
-        code: null,
-      },
-      {
-        name: 'environment_read_failure',
-        secret: credential.secret,
-        environmentRead: 'failed',
-        status: 500,
-        code: 'registration_environment_unavailable',
-      },
-      {
-        name: 'authentication_failure_precedes_read_failure',
-        secret: 'pk_invalid',
-        environmentRead: 'failed',
-        status: 401,
-        code: 'publishable_key_invalid',
-      },
-    ] as const) {
-      const services = new ObservedSetupServices(client, scenario.environmentRead);
-      const registration = scenario.code
-        ? gatewaySetupInput({
-            operationId: `wreg_${randomBytes(32).toString('base64url')}`,
-            origin,
-          }).request
-        : setup.registration;
-      const response = await handleRegistrationSetupRequest(
-        new Request(
-          'https://wallet-placement.internal/internal/wallet-placement/v1/registration-setup',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              ...setup,
-              registration,
-              secret: scenario.secret,
-              ingressRegion: 'WEUR',
-            }),
-          },
-        ),
-        {
-          database,
-          catalog,
-          scope: deployment.tenant,
-          environmentKey: 'dev',
-          deploymentLane: 'console-preflight',
-          publishableKeyAuth: services,
-          projectEnvironments: services,
-        },
-      );
-      expect(response.status).toBe(scenario.status);
-      const result = await response.json();
-      if (scenario.code) expect(result.code).toBe(scenario.code);
-      else expect(result.reservation).toMatchObject({ ok: true, disposition: 'reused' });
-      expect(services.events.indexOf('environment_started')).toBeLessThan(
-        services.events.indexOf('authentication_finished'),
-      );
-      observations.push({ stage: scenario.name, status: response.status, events: services.events });
-    }
+    const faultSetup = {
+      ...setup,
+      registration: gatewaySetupInput({
+        operationId: `wreg_${randomBytes(32).toString('base64url')}`,
+        origin,
+      }).request,
+    };
+    service.failNextBatch = true;
+    await expect(homes.reserveAuthenticated(faultSetup, 'WEUR')).rejects.toThrow();
+    observations.push({ stage: 'deployment_environment_batch_failure', accepted: false });
+    const retiredHomes = new WalletHomeServiceClient(
+      service,
+      parseTenantRuntimeWriterV1('gateway', 'ffffffff-ffff-4fff-8fff-ffffffffffff', {
+        accountId: resource.accountId,
+        databaseId: resource.databaseId,
+      }),
+      deployment.tenant,
+      catalog,
+    );
+    expect(await retiredHomes.reserveAuthenticated(faultSetup, 'APAC')).toMatchObject({
+      ok: false,
+    });
+    expect(service.requests.at(-1)?.status).toBe(403);
+    expect(service.lastDatabaseWork).toEqual({ calls: 1, statements: 2 });
+    observations.push({ stage: 'retired_writer', accepted: false, ...service.lastDatabaseWork });
     expect(
       await database
         .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
@@ -640,6 +575,7 @@ test('production Console service bindings enforce durable credential changes and
     ).toMatchObject({
       ok: true,
       reservation: { ok: true, assignment: { home: { region: 'OC' } } },
+      context: { environment: { signingRootVersion: newVersion } },
     });
     observations.push({ stage: 'rotation', oldAccepted: replaced.ok, newAccepted: replacement.ok });
 
@@ -689,6 +625,18 @@ test('production Console service bindings enforce durable credential changes and
       context: { code: 'registration_environment_unavailable' },
     });
     observations.push({ stage: 'archived_environment', ok: archived.ok, status: archived.status });
+    await database
+      .prepare('DELETE FROM active_tenant_deployment_bindings WHERE deployment_lane = ?')
+      .bind('console-preflight')
+      .run();
+    expect(await homes.reserveAuthenticated(setup, 'APAC')).toMatchObject({ ok: false });
+    expect(service.requests.at(-1)?.status).toBe(503);
+    expect(service.lastDatabaseWork).toEqual({ calls: 1, statements: 2 });
+    observations.push({
+      stage: 'missing_deployment',
+      accepted: false,
+      ...service.lastDatabaseWork,
+    });
     expect(guard.requests).toEqual([]);
 
     const evidence = {

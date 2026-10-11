@@ -6,7 +6,7 @@ import {
   walletRegistrationContext,
   walletRegistrationSetupRequestDigest,
   type D1DatabaseLike,
-  type RouterApiProjectEnvironmentResolver,
+  type RouterApiProjectEnvironment,
   type RouterApiPublishableKeyAuthAdapter,
   type RouterApiPublishableKeyAuthRequest,
   type WalletRegistrationContextResult,
@@ -26,7 +26,7 @@ interface RegistrationSetupOptions {
   readonly environmentKey: string;
   readonly deploymentLane: string;
   readonly publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
-  readonly projectEnvironments: RouterApiProjectEnvironmentResolver;
+  readonly environment: RouterApiProjectEnvironment | null;
 }
 
 /** Authenticate the browser and reserve its wallet in one Console invocation. */
@@ -114,23 +114,9 @@ async function resolveRegistrationSetupContext(
   input: RouterApiPublishableKeyAuthRequest,
 ): Promise<WalletRegistrationContextResult> {
   try {
-    // The admitted deployment supplies the read scope before key authentication completes.
-    const [authentication, environments] = await Promise.allSettled([
-      options.publishableKeyAuth.authenticate(input),
-      options.projectEnvironments.listEnvironments(
-        {
-          orgId: options.scope.organizationId,
-          projectId: options.scope.projectId,
-          environmentId: options.scope.environmentId,
-          actorUserId: 'runtime-scope-bootstrap',
-          roles: ['system'],
-        },
-        { status: 'ACTIVE' },
-      ),
-    ]);
-    if (authentication.status === 'rejected') return unavailableRegistrationContext();
-    if (!authentication.value.ok) return authentication.value;
-    const { principal } = authentication.value;
+    const authentication = await options.publishableKeyAuth.authenticate(input);
+    if (!authentication.ok) return authentication;
+    const { principal } = authentication;
     if (
       principal.orgId !== options.scope.organizationId ||
       principal.environmentId !== options.scope.environmentId
@@ -142,13 +128,8 @@ async function resolveRegistrationSetupContext(
         message: 'Registration credential cannot create a wallet in this deployment',
       };
     }
-    if (environments.status === 'rejected') return unavailableRegistrationContext();
-    for (const environment of environments.value) {
-      if (environment.id === options.scope.environmentId) {
-        return walletRegistrationContext(input, principal, environment);
-      }
-    }
-    return unavailableRegistrationContext();
+    if (!options.environment) return unavailableRegistrationContext();
+    return walletRegistrationContext(input, principal, options.environment);
   } catch {
     return unavailableRegistrationContext();
   }

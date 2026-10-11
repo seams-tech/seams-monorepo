@@ -282,7 +282,7 @@ function parseProjectRow(row: D1Row): ConsoleProject {
   };
 }
 
-function parseEnvironmentRow(row: D1Row): ConsoleEnvironment {
+export function parseEnvironmentRow(row: D1Row): ConsoleEnvironment {
   return {
     id: String(row.id || ''),
     orgId: String(row.org_id || ''),

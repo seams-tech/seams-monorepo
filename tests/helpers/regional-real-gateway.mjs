@@ -280,7 +280,7 @@ class RealHomeConsole {
     return this.catalog.select(region);
   }
 
-  fetch(request) {
+  async fetch(request) {
     this.requests.push(new URL(request.url).pathname);
     if (!this.available) return Promise.resolve(new Response(null, { status: 503 }));
     if (new URL(request.url).pathname === this.api.GATEWAY_SESSION_PATH) {
@@ -304,6 +304,16 @@ class RealHomeConsole {
       });
     }
     if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
+      const environments = await this.operations.projectEnvironments.listEnvironments(
+        {
+          orgId: this.scope.organizationId,
+          projectId: this.scope.projectId,
+          environmentId: this.scope.environmentId,
+          actorUserId: 'runtime-scope-bootstrap',
+          roles: ['system'],
+        },
+        { status: 'ACTIVE' },
+      );
       return this.api.handleRegistrationSetupRequest(request, {
         database: this.database,
         catalog: this.catalog,
@@ -311,7 +321,7 @@ class RealHomeConsole {
         environmentKey: this.environmentKey,
         deploymentLane: 'test',
         publishableKeyAuth: this.operations.publishableKeyAuth,
-        projectEnvironments: this.operations.projectEnvironments,
+        environment: environments.find(this.isSetupEnvironment.bind(this)) ?? null,
       });
     }
     return this.api.handleWalletHomeServiceRequest(request, {
@@ -323,6 +333,10 @@ class RealHomeConsole {
       deploymentLane: 'test',
       writer,
     });
+  }
+
+  isSetupEnvironment(environment) {
+    return environment.id === this.scope.environmentId;
   }
 }
 

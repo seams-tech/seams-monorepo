@@ -8,7 +8,10 @@ import {
   queryD1One,
   type D1DatabaseLike,
   type D1Row,
+  type D1ResultLike,
 } from '@seams/wallet-server/cloud-host';
+import { parseEnvironmentRow } from '@seams-internal/console-server/orgProjectEnv/d1';
+import type { ConsoleEnvironment } from '@seams-internal/console-server/orgProjectEnv/types';
 import {
   decodeTenantDeploymentBindingV1,
   decodeTenantDeploymentCutoverV1,
@@ -751,17 +754,73 @@ export function createD1TenantDeploymentServiceV1(
   };
 }
 
+type BindingReadAccess =
+  | { readonly kind: 'inspection' }
+  | { readonly kind: 'writer'; readonly writer: TenantRuntimeWriterV1 };
+
 async function resolveActiveBindingRecord(
   options: D1TenantDeploymentBindingReaderOptionsV1,
   rawLane: string,
-  access:
-    | { readonly kind: 'inspection' }
-    | { readonly kind: 'writer'; readonly writer: TenantRuntimeWriterV1 },
+  access: BindingReadAccess,
 ): Promise<TenantDeploymentBindingV1 | null> {
   const database = options.database;
   const deploymentLane = requiredText(rawLane, 'deploymentLane');
   const startedAt = performance.now();
-  const result = await database
+  const result = await prepareActiveBindingRead(database, deploymentLane).all<D1Row>();
+  if (options.timingHeaders) {
+    appendTenantDeploymentD1Timing(
+      options.timingHeaders,
+      performance.now() - startedAt,
+      result.meta,
+    );
+  }
+  return activeBindingFromResult(result, access);
+}
+
+/** Read setup's deployment and exact environment in one database snapshot. */
+export async function resolveD1RegistrationSetupBinding(
+  options: D1TenantDeploymentBindingReaderOptionsV1,
+  rawLane: string,
+  writer: TenantRuntimeWriterV1,
+): Promise<{
+  readonly binding: TenantDeploymentBindingV1;
+  readonly environment: ConsoleEnvironment | null;
+} | null> {
+  const deploymentLane = requiredText(rawLane, 'deploymentLane');
+  const startedAt = performance.now();
+  const results = await options.database.batch<D1ResultLike<D1Row>>([
+    prepareActiveBindingRead(options.database, deploymentLane),
+    options.database
+      .prepare(
+        `SELECT environment.* FROM active_tenant_deployment_bindings AS active
+       JOIN tenant_deployment_bindings AS binding
+         ON binding.deployment_lane = active.deployment_lane AND binding.revision = active.revision
+       JOIN environments AS environment
+         ON environment.namespace = binding.namespace AND environment.org_id = binding.org_id
+        AND environment.project_id = binding.project_id AND environment.id = binding.environment_id
+       WHERE active.deployment_lane = ?1`,
+      )
+      .bind(deploymentLane),
+  ]);
+  const [deployment, environments] = results;
+  if (!deployment || !environments || !environments.success) {
+    throw new TenantDeploymentStoreError('invalid_record', 'registration deployment query failed');
+  }
+  if (options.timingHeaders) {
+    appendTenantDeploymentD1Timing(
+      options.timingHeaders,
+      performance.now() - startedAt,
+      deployment.meta,
+    );
+  }
+  const binding = await activeBindingFromResult(deployment, { kind: 'writer', writer });
+  if (!binding) return null;
+  const environmentRow = environments.results?.[0];
+  return { binding, environment: environmentRow ? parseEnvironmentRow(environmentRow) : null };
+}
+
+function prepareActiveBindingRead(database: D1DatabaseLike, deploymentLane: string) {
+  return database
     .prepare(
       `SELECT active.deployment_lane AS active_deployment_lane,
                 active.revision AS active_revision,
@@ -777,15 +836,13 @@ async function resolveActiveBindingRecord(
             AND activation.binding_revision = active.revision
           WHERE active.deployment_lane = ?1`,
     )
-    .bind(deploymentLane)
-    .all<D1Row>();
-  if (options.timingHeaders) {
-    appendTenantDeploymentD1Timing(
-      options.timingHeaders,
-      performance.now() - startedAt,
-      result.meta,
-    );
-  }
+    .bind(deploymentLane);
+}
+
+async function activeBindingFromResult(
+  result: D1ResultLike<D1Row>,
+  access: BindingReadAccess,
+): Promise<TenantDeploymentBindingV1 | null> {
   if (!result.success) {
     throw new TenantDeploymentStoreError('invalid_record', 'active tenant deployment query failed');
   }

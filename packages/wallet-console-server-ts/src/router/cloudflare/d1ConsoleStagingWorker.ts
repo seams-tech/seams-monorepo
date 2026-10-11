@@ -38,7 +38,10 @@ import {
   resolveSponsoredEvmWorkerExecutionAdapter,
 } from '../../sponsorship/evmWorkerExecutionAdapter';
 import { resolveSponsoredExecutionPricingFromEnv } from '../../sponsorship/pricing';
-import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
+import {
+  createWalletProjectEnvironmentResolver,
+  walletProjectEnvironment,
+} from '../projectEnvironmentAdapter';
 import {
   createRouterApiBillingUsageMeterAdapter,
   createRouterApiKeyAuthAdapter,
@@ -102,6 +105,7 @@ import {
   createD1TenantDeploymentBindingReaderV1,
   createD1TenantDeploymentServiceV1,
   createD1TenantDeploymentSetupAdmissionReaderV1,
+  resolveD1RegistrationSetupBinding,
 } from '../../tenantDeployment/d1';
 import { createTenantDeploymentInternalBindingHandlerV1 } from '../../tenantDeployment/runtimeBinding';
 import {
@@ -121,7 +125,10 @@ import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provi
 import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
-import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
+import {
+  parseTenantRuntimeWriterV1,
+  type TenantRuntimeWriterV1,
+} from '../../tenantDeployment/resourceVerification';
 import { isTenantDeploymentStoreError } from '../../tenantDeployment/service';
 import {
   handleWalletHomeServiceRequest,
@@ -740,6 +747,9 @@ async function fetch(
           databaseId: request.headers.get('x-seams-writer-database'),
         },
       );
+      if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
+        return await registrationSetupResponse(request, env, ctx, deploymentLane, writer);
+      }
       active = await tenantDeploymentReader.resolveRuntimeBinding(deploymentLane, writer);
     } catch (error) {
       if (!isTenantDeploymentStoreError(error)) throw error;
@@ -753,25 +763,6 @@ async function fetch(
         { ok: false, code: 'tenant_deployment_unavailable' },
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       );
-    }
-    if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
-      const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
-      if (!catalog.matchesResources(active.resources)) {
-        return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
-      }
-      const handler = await consoleHandler(env);
-      const operations = createWalletConsoleOpsClient({
-        fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
-      });
-      return handleRegistrationSetupRequest(request, {
-        database: env.CONSOLE_DB,
-        catalog,
-        scope: active.tenant,
-        environmentKey: active.mode.environment === 'development' ? 'dev' : 'prod',
-        deploymentLane,
-        publishableKeyAuth: operations.publishableKeyAuth,
-        projectEnvironments: operations.projectEnvironments,
-      });
     }
     if (new URL(request.url).pathname === GATEWAY_SESSION_PATH) {
       const response = await gatewaySessionResponse(
@@ -1031,6 +1022,43 @@ function relocationRuntimeVerifier(
       APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
       OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
     },
+  });
+}
+
+async function registrationSetupResponse(
+  request: Request,
+  env: CloudflareD1ConsoleStagingEnv,
+  ctx: CfExecutionContext,
+  deploymentLane: string,
+  writer: TenantRuntimeWriterV1,
+): Promise<Response> {
+  const setup = await resolveD1RegistrationSetupBinding(
+    { database: env.CONSOLE_DB },
+    deploymentLane,
+    writer,
+  );
+  if (!setup) {
+    return Response.json(
+      { ok: false, code: 'tenant_deployment_unavailable' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+  if (!catalog.matchesResources(setup.binding.resources)) {
+    return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
+  }
+  const handler = await consoleHandler(env);
+  const operations = createWalletConsoleOpsClient({
+    fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
+  });
+  return handleRegistrationSetupRequest(request, {
+    database: env.CONSOLE_DB,
+    catalog,
+    scope: setup.binding.tenant,
+    environmentKey: setup.binding.mode.environment === 'development' ? 'dev' : 'prod',
+    deploymentLane,
+    publishableKeyAuth: operations.publishableKeyAuth,
+    environment: setup.environment ? walletProjectEnvironment(setup.environment) : null,
   });
 }
 

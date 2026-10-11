@@ -326,7 +326,7 @@ test('regional deployment renewal preserves the browser key and retires previous
         )
       )?.status,
     ).toBe(404);
-    const oldDatabase = new DeploymentFencedDatabase(usDatabase, initialBinding, oldWriter);
+    const oldDatabase = DeploymentFencedDatabase.forRegionalWriter(usDatabase, initialBinding, oldWriter);
     await usDatabase.prepare('CREATE TABLE deployment_write_probe (value TEXT NOT NULL)').run();
     await oldDatabase
       .prepare('INSERT INTO deployment_write_probe VALUES (?1)')
@@ -471,7 +471,7 @@ test('regional deployment renewal preserves the browser key and retires previous
       versionId: nextUsProof.authority.gateway.versionId,
       resource: nextUsProof.resource,
     };
-    const currentDatabase = new DeploymentFencedDatabase(
+    const currentDatabase = DeploymentFencedDatabase.forRegionalWriter(
       usDatabase,
       currentAdmission.binding,
       currentWriter,

@@ -18,7 +18,7 @@ import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-serv
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../packages/wallet-console-shared-ts/src/apiKeyScopes';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import { WalletHomeCatalog, type WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
 import {
   deploymentResource,
@@ -82,6 +82,107 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+async function verifyRegistrationMutationTransactions(
+  service: LocalConsoleService,
+  database: Parameters<typeof createD1TenantDeploymentServiceV1>[0]['database'],
+  assignment: WalletHomeAssignment,
+) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-seams-writer-role': 'gateway',
+    'x-seams-writer-version': assignment.home.databaseId,
+    'x-seams-writer-account': assignment.home.accountId,
+    'x-seams-writer-database': assignment.home.databaseId,
+  };
+  const wallet = assignment.wallet;
+  const mutations = [
+    {
+      path: 'claim-passkey',
+      body: {
+        wallet,
+        rpId: 'wallet.example.test',
+        credentialIdB64u: randomBytes(32).toString('base64url'),
+      },
+    },
+    {
+      path: 'publish-routes',
+      body: { wallet, locators: [{ kind: 'code', value: randomBytes(32).toString('base64url') }] },
+    },
+    {
+      path: 'complete',
+      body: {
+        wallet,
+        home: assignment.home,
+        ceremonyId: assignment.registrationAllocation.ceremonyId,
+        outcome: 'established',
+        session: {
+          kind: 'credential',
+          walletId: wallet.walletId,
+          digest: randomBytes(32).toString('base64url'),
+          expiresAtMs: Date.now() + 60_000,
+        },
+      },
+    },
+  ];
+  const observations = [];
+  for (const mutation of mutations) {
+    const url = `https://wallet-placement.internal/internal/wallet-placement/v1/${mutation.path}`;
+    const body = JSON.stringify(mutation.body);
+    const before = await registrationMutationState(database, wallet.namespace, wallet.walletId);
+    const refused = await service.fetch(url, {
+      method: 'POST',
+      headers: { ...headers, 'x-seams-writer-version': 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+      body,
+    });
+    expect(refused.status).toBe(403);
+    expect(service.lastDatabaseWork?.calls).toBe(1);
+    expect(await registrationMutationState(database, wallet.namespace, wallet.walletId)).toEqual(
+      before,
+    );
+    const accepted = await service.fetch(url, { method: 'POST', headers, body });
+    expect(accepted.status, await accepted.text()).toBe(200);
+    expect(service.lastDatabaseWork?.calls).toBe(1);
+    observations.push({ operation: mutation.path, ...service.lastDatabaseWork });
+    const replay = await service.fetch(url, { method: 'POST', headers, body });
+    expect(replay.status, await replay.text()).toBe(200);
+    expect(service.lastDatabaseWork?.calls).toBe(1);
+  }
+  expect(
+    await database
+      .prepare('SELECT COUNT(*) AS count FROM console_deployment_write_checks')
+      .first<number>('count'),
+  ).toBe(0);
+  expect(
+    await database
+      .prepare('SELECT state FROM wallet_homes WHERE namespace = ? AND wallet_id = ?')
+      .bind(wallet.namespace, wallet.walletId)
+      .first<string>('state'),
+  ).toBe('established');
+  return {
+    stage: 'registration_mutation_transactions',
+    retiredWriterRejected: true,
+    exactReplay: true,
+    operations: observations,
+  };
+}
+
+function registrationMutationState(
+  database: Parameters<typeof createD1TenantDeploymentServiceV1>[0]['database'],
+  namespace: string,
+  walletId: string,
+) {
+  return database
+    .prepare(
+      `SELECT state,
+    (SELECT COUNT(*) FROM wallet_passkey_claims WHERE namespace = ?1 AND wallet_id = ?2) AS claims,
+    (SELECT COUNT(*) FROM wallet_routes WHERE namespace = ?1 AND wallet_id = ?2) AS routes,
+    (SELECT COUNT(*) FROM wallet_session_locators WHERE namespace = ?1 AND wallet_id = ?2) AS sessions
+    FROM wallet_homes WHERE namespace = ?1 AND wallet_id = ?2`,
+    )
+    .bind(namespace, walletId)
+    .first();
 }
 
 test('production Console service bindings enforce durable credential changes and resolve environments', async () => {
@@ -290,6 +391,7 @@ test('production Console service bindings enforce durable credential changes and
       serviceRequests: service.requests.slice(-3),
       invalidOriginRefused: !refused.ok,
     });
+    observations.push(await verifyRegistrationMutationTransactions(service, database, reserved.reservation.assignment));
 
     const homeCountBeforeFaults = await database
       .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
@@ -526,9 +628,11 @@ test('production Console service bindings enforce durable credential changes and
       )
       .bind(namespace, context.orgId)
       .all();
-    expect(projection.results).toEqual([
+    expect(projection.results).toHaveLength(2);
+    expect(projection.results).toEqual(expect.arrayContaining([
+      { id: reserved.reservation.assignment.wallet.walletId, project_id: projectId, environment_id: environmentId },
       { id: 'console-preflight-wallet', project_id: projectId, environment_id: environmentId },
-    ]);
+    ]));
     const usage = await database
       .prepare(
         'SELECT COUNT(*) AS count FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ?',

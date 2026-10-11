@@ -149,19 +149,15 @@ The fixed frame and dense perforations dominate the 240px view. The automated ch
 
 ## Combination interlock
 
-The user selected the combination interlock for **Policy engine** on 2026-10-07 and requested more mechanical detail. Three independently rotated discs share an axle. Each disc has a radial slot. All three slots must align before a rigid bar can pass through the assembly. Each disc represents a required policy condition.
+The policy interlock uses three slotted discs on a common axis. A vintage key enters from the rear through the centers of the discs. Three raised teeth fill their radial gaps when the key seats. Its wide circular bow has a large ring opening. The shaft, teeth, and bow form one solid outline.
 
-The wheels use the original circular grooves and radial tick marks requested in the reference screenshot. Raised axle collars, rounded bearing supports, a slotted retaining cap, and four mounting holes give the assembly depth. Rounded slot corners leave clearance around the bar.
+Hover or Enter inserts the key by 76 world units, then turns the key and all three discs together through 60 degrees. Pointer exit or another Enter reverses the turn before withdrawing the key. Space also toggles the sequence. One reversible Hairline tween preserves this ordering during interruptions. The insertion boundary is the shared easing curve evaluated at 45% of the duration. The slider sets the full sequence to 900, 1200, or 1500 milliseconds.
 
-Hovering the figure aligns the discs, then advances the bar. Pointer exit withdraws the bar before the discs rotate back. One reversible timeline controls both actions. The discs finish rotating at progress 0.58. The bar starts moving at 0.64. This gap preserves clearance when the pointer changes direction during motion.
+Each tooth leaves 0.2 units of axial clearance inside its seven-unit disc. The key is eleven units thick inside thirteen-unit slots. Slotted hollow sleeves support the discs and turn with them. The rear bearing has an open entry channel for the raised teeth. The key's circular bow has a radius of fifteen units and an 8.5-unit opening. The stationary supports clear the rotating shaft.
 
-The bar outline comes from the projected rounded cross-sections at both ends. Its long edges therefore meet the rounded ends exactly. A faint longitudinal crease separates the top and side faces, and meets the rounded end profile. The bar draws in sections between the discs, without artificial end caps at those divisions. Rear slot walls draw behind each bar section. Exterior walls and front faces draw above it. This order hides rear construction lines while preserving the visible thickness of each wheel. Three-unit axle collars keep the wheels separated.
+The key draws in sections at disc boundaries. Slot backs draw before each key section. Near disc walls and faces draw above it. Section boundaries have no artificial end caps. The key outline is the single accent. Radial ticks, circular grooves, base mounting holes, and the front retaining cap use lighter detail strokes. The figure keeps the existing Hairline camera, palette, runtime, and bench. As with the other extended mechanical figures, its readable geometry exceeds the standalone skill's 200-line limit.
 
-The center disc starts first. The two outer discs follow together. The resting angles are 65, −48, and 110 degrees. Slots measure 13 units across. The bar measures eight units across and six units high, and travels 75 units. Its height stays fixed throughout the animation.
-
-The intensity slider controls the complete sequence duration at 900, 1200, or 1500 milliseconds. The longer duration makes both mechanical phases visible. The kernel supplies its standard ease curve, reduced-motion behavior, and frame-loop sleep. Changing the slider preserves the current pose. The fixed stage is the hover target. One highlighted outline moves from the center disc to the bar.
-
-Keep the refined interlock on its review page until the user approves the additional detail. This example shows a conjunction: every required condition must permit passage. It does not represent threshold signing or an actual wallet authorization decision.
+This figure illustrates mechanical engagement. It does not execute policy checks or show threshold signing. The threshold-signing diagram remains a separate figure.
 
 Edit `apps/wallet-console/showcase/motion/interlock/combination-interlock.js`, then rebuild:
 
@@ -171,15 +167,9 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
   apps/wallet-console/showcase/motion/interlock/index.html
 ```
 
-Review it at `/dashboard-static/showcase/motion/interlock/`. From `.artifacts/combination-interlock`, run:
+Review at `/dashboard-static/showcase/motion/interlock/`. Use `?w=240&theme=dark&at=200,166&intensity=1` for the compact dark view at the longest duration. Set intensity to zero for the shortest duration.
 
-```sh
-node "$HOME/.codex/skills/hairline-create/look.mjs" \
-  ../../apps/wallet-console/showcase/motion/interlock/combination-interlock.js \
-  --answer 9,0,68 --edge 43,20,43 --zoom answer
-```
-
-Inspect `hairline-interlock-look.png`, `hairline-interlock-motion.png`, and `hairline-interlock-answer.png`. Check the radial markings, slot walls, axle collars, bearing thickness, and connected bar ends. Look closely for rear lines crossing the bar or gaps at its rounded corners. Enter and leave during movement. Confirm the bar retracts before the discs turn. Check both themes, 240px width, and both slider extremes. The automated review passed frame bounds, readouts, console checks, and settling. Browser interaction also confirmed return to rest and repeated interruptions.
+The browser review evidence is in `.artifacts/combination-interlock/key-turn/`: rest and turned screenshots, the compact dark view, and `review.json` with sampled motion states. Repeat the review by inserting with Enter, reversing after the completed turn, then interrupting another turn with Enter. During every sample with a nonzero turn, insertion must equal one. Both directions must reach their endpoint without invalid SVG coordinates. Inspect the teeth inside the slots and the key's bore in both themes. The standard Hairline runtime provides reduced-motion handling; this review did not change the host's motion preference.
 
 ## Self-hostable example
 

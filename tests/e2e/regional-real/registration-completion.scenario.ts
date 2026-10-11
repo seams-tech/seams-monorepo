@@ -102,7 +102,9 @@ function statementLabel(statement: { query: { kind: string; tables: string[] } }
 // catches a serial seal without using wall-clock latency as the assertion.
 class RegistrationSealOverlap {
   private readonly completed = Promise.withResolvers<void>();
+  private completionRequested = false;
   sealCalls = 0;
+  completionRequestedBeforeSeal = false;
   sealCompletedBeforeReply = false;
 
   constructor(
@@ -112,12 +114,14 @@ class RegistrationSealOverlap {
 
   async apply(request: unknown, auth: unknown): Promise<unknown> {
     this.sealCalls += 1;
+    this.completionRequestedBeforeSeal = this.completionRequested;
     const sealed = await this.applyServerSeal(request, auth);
     this.completed.resolve();
     return sealed;
   }
 
   async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname.endsWith('/complete')) this.completionRequested = true;
     const response = await this.consoleFetch(request);
     if (new URL(request.url).pathname.endsWith('/complete') && response.ok) {
       const timeout = setTimeout(
@@ -271,6 +275,7 @@ export async function verifyRegistrationCompletion(
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
     assert.equal(consoleRequests.filter(isRegistrationHome).length, 0);
     assert.equal(sealOverlap.sealCalls, 1);
+    assert.equal(sealOverlap.completionRequestedBeforeSeal, true);
     assert.equal(sealOverlap.sealCompletedBeforeReply, true);
     sealService.applyServerSeal = applyServerSeal;
     scenario.consoleService.fetch = consoleFetch;
@@ -315,6 +320,7 @@ export async function verifyRegistrationCompletion(
           },
           sessionSealing: {
             computationsDuringRegistration: sealOverlap.sealCalls,
+            completionRequestedBeforeSeal: sealOverlap.completionRequestedBeforeSeal,
             completedBeforeDirectoryReply: sealOverlap.sealCompletedBeforeReply,
           },
           gatewayRequests: evidence.requests,

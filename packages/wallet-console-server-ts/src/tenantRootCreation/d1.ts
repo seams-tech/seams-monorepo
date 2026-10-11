@@ -10,7 +10,6 @@ import {
   type TenantRootCreationGrantServiceV1,
 } from './service';
 import type {
-  TenantRootActiveLineageLookupV1,
   TenantRootCreationGrantIssueV1,
   TenantRootCreationGrantReadyInputV1,
   TenantRootCreationGrantReadyV1,
@@ -133,6 +132,18 @@ function sameIdentity(left: TenantRootIdentityV1, right: TenantRootIdentityV1): 
     left.signingRootId === right.signingRootId &&
     left.signingRootVersion === right.signingRootVersion
   );
+}
+
+export function parseD1ActiveTenantRootCreationV1(row: D1Row, identity: TenantRootIdentityV1) {
+  const record = parseRecord(row);
+  if (!sameIdentity(record.identity, normalizeIdentity(identity))) {
+    throw new TenantRootCreationGrantStoreError(
+      'invalid_record',
+      'tenant-root active identity digest resolves to different canonical fields',
+    );
+  }
+  if (record.status !== 'ACTIVE') throw new Error('Creation lookup returned an inactive root');
+  return record;
 }
 
 function sameOperationScope(
@@ -340,28 +351,6 @@ export function createD1TenantRootCreationGrantServiceV1(
         );
       }
       return stored;
-    },
-
-    async findActiveLineageByIdentity(rawInput: TenantRootActiveLineageLookupV1) {
-      const input = {
-        identity: normalizeIdentity(rawInput.identity),
-        identityDigestB64u: requiredText(rawInput.identityDigestB64u, 'identityDigestB64u'),
-      };
-      const row = await queryD1One(
-        database,
-        `SELECT * FROM tenant_root_creation_grants
-         WHERE namespace = ?1 AND identity_digest_b64u = ?2 AND status = 'ACTIVE'`,
-        [namespace, input.identityDigestB64u],
-      );
-      if (!row) return null;
-      const record = parseRecord(row);
-      if (!sameIdentity(record.identity, input.identity)) {
-        throw new TenantRootCreationGrantStoreError(
-          'invalid_record',
-          'tenant-root active identity digest resolves to different canonical fields',
-        );
-      }
-      return record;
     },
   };
 }

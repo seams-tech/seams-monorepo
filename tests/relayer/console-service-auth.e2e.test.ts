@@ -25,6 +25,7 @@ import {
   fourRegionBinding,
   readyActivation,
   regionalResourceProof,
+  seedAdoptionRoot,
 } from '../helpers/tenantDeploymentFixtures';
 import { gatewaySetupInput } from '../fixtures/tenant-deployment/registrationHomeAdmission';
 import { relocationWriterVersion } from '../fixtures/tenant-deployment/walletRelocationResources';
@@ -369,15 +370,45 @@ test('production Console service bindings enforce durable credential changes and
     expect(JSON.parse(recordedUses || '{}')).toEqual({ [endpoint]: 8 });
     observations.push({ stage: 'concurrent_authenticated_use', calls: 8, recordedUses: 8 });
 
-    const lineage = await client.tenantRootActiveLineage.resolveActiveLineage({
+    const lineageIdentity = {
       orgId: context.orgId,
       projectId,
       envId: environmentId,
       signingRootId: 'unprovisioned-root',
       signingRootVersion: environments[0].signingRootVersion,
-    });
+    };
+    const lineage = await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
     expect(lineage).toBeNull();
     observations.push({ stage: 'unprovisioned_root', result: lineage });
+
+    const createdRoot = await seedAdoptionRoot(database, namespace, lineageIdentity);
+    const createdLineage =
+      await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
+    expect(createdLineage).toEqual({
+      identityDigestB64u: createdRoot.identityDigestB64u,
+      custodyLineageB64u: createdRoot.custodyLineageId,
+    });
+    observations.push({ stage: 'created_root', result: createdLineage });
+
+    await database
+      .prepare(
+        'UPDATE tenant_root_creation_grants SET org_id = ? WHERE namespace = ? AND identity_digest_b64u = ?',
+      )
+      .bind('different-organization', namespace, createdRoot.identityDigestB64u)
+      .run();
+    await expect(
+      client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity),
+    ).rejects.toThrow();
+    observations.push({ stage: 'conflicting_root_identity', rejected: true });
+    await database
+      .prepare(
+        'UPDATE tenant_root_creation_grants SET org_id = ? WHERE namespace = ? AND identity_digest_b64u = ?',
+      )
+      .bind(context.orgId, namespace, createdRoot.identityDigestB64u)
+      .run();
+    expect(await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity)).toEqual(
+      createdLineage,
+    );
 
     for (let delivery = 0; delivery < 2; delivery += 1) {
       await client.usageMeter.recordEvent({

@@ -50,18 +50,10 @@ export type TenantRootCreationGrantReadyInputV1 = {
   readonly ready: TenantRootCreationGrantReadyV1;
 };
 
-export type TenantRootActiveLineageLookupV1 = {
-  readonly identity: TenantRootIdentityV1;
-  readonly identityDigestB64u: string;
-};
-
 export interface TenantRootCreationGrantStoreV1 {
   findGrantByOperationId(operationId: string): Promise<TenantRootCreationGrantRecordV1 | null>;
   putOrGetGrant(input: TenantRootCreationGrantIssueV1): Promise<TenantRootCreationGrantRecordV1>;
   markActiveFromReady(
     input: TenantRootCreationGrantReadyInputV1,
   ): Promise<TenantRootCreationGrantRecordV1>;
-  findActiveLineageByIdentity(
-    input: TenantRootActiveLineageLookupV1,
-  ): Promise<TenantRootCreationGrantRecordV1 | null>;
 }

@@ -2756,23 +2756,11 @@ export function createD1TenantRootRestoreStoreV1(
 }
 
 /** Resolves only a fully activated restore; partial cleanup cannot select a signing lineage. */
-export async function findD1RestoredTenantRootActiveLineageV1(input: {
-  readonly database: D1DatabaseLike;
-  readonly namespace: string;
-  readonly orgId: string;
-  readonly identityDigestB64u: string;
-}): Promise<{
+export function parseD1RestoredTenantRootActiveLineageV1(rows: readonly D1Row[]): {
   readonly custodyLineageB64u: string;
   readonly rootCommitmentB64u: string;
   readonly restore: Extract<TenantRootRestoreSessionV1, { status: 'active' }>;
-} | null> {
-  const rows = await queryD1All(
-    input.database,
-    `SELECT session_json, destination_lineage_b64u FROM tenant_root_security_restore_state
-     WHERE namespace = ?1 AND org_id = ?2 AND identity_digest_b64u = ?3
-       AND json_extract(session_json, '$.status') = 'active' LIMIT 2`,
-    [input.namespace, input.orgId, input.identityDigestB64u],
-  );
+} | null {
   if (rows.length === 0) return null;
   if (rows.length !== 1) throw new Error('Tenant identity has multiple active restored lineages');
   const row = rows[0];

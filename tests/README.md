@@ -12,7 +12,7 @@ private Console composition and deployed product flows.
 - `pnpm check` runs lint, application and private fixture type checks, the
   Console-core import boundary, and the script tests.
 - `pnpm test:scripts` runs the script tests alone: every
-  `unit/*.script.unit.test.ts` file (deployment, D1 staging, and local scripts).
+  `unit/*.script.unit.test.ts` file (deployment and local scripts).
   They are offline. The unit run ignores `*.script.unit.test.ts`, so this command
   is how they stay visible. A new script test file joins the command by name.
 - `pnpm -C tests test:unit` remains available for existing focused private invariants.

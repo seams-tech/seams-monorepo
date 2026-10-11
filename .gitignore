@@ -12,8 +12,6 @@ target/
 .local/
 sqlite/
 apps/seams-site/.caddy.log
-packages/wallet-console-server-ts/wrangler.d1-staging-console.toml
-packages/wallet-console-server-ts/wrangler.d1-staging-gateway.toml
 
 # Test, browser, and release artifacts
 playwright-report/

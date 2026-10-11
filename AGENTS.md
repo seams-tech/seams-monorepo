@@ -127,7 +127,7 @@ Decision rules — classify before fixing:
 - `pnpm check` — private lint, type-check, Console-core boundary checks, and the
   script tests
 - `pnpm test:scripts` — the script tests alone (every
-  `tests/unit/*.script.unit.test.ts`: deployment, D1 staging, and local scripts); run it
+  `tests/unit/*.script.unit.test.ts`: deployment and local scripts); run it
   after a change to `scripts/`, `packages/wallet-console-server-ts/scripts/`,
   `deployment/`, or `.github/workflows/deploy-*.yml`. It is offline and takes seconds;
   a new script test file joins it by name, so keep each one offline.

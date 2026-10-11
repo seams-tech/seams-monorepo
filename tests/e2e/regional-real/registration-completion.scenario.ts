@@ -187,11 +187,15 @@ async function verifyCompletedReplayAfterCleanup(
   assert.equal(remaining.count, 0);
   const response = await gateway.handle(request.clone(), 'ingress');
   assert.equal(response.status, 200);
+  const trace = response.headers.get('x-benchmark-d1');
+  assert.ok(trace);
+  const d1 = JSON.parse(trace);
+  assert.equal(d1.dropped, 0);
   const replay = await response.json();
   assert.equal(replay.registrationEstablishedSession.kind, 'already_committed');
   assert.equal(replay.registrationEstablishedSession.session.walletSessionId, sessionId);
   assert.equal('operationCredential' in replay.registrationEstablishedSession.session, false);
-  return { ceremonyRecords: remaining.count, replayStatus: response.status, sameSession: true };
+  return { ceremonyRecords: remaining.count, replayStatus: response.status, sameSession: true, d1 };
 }
 
 async function verifyFencedFinalizationReplay(

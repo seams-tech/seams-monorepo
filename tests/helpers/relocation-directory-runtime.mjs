@@ -141,6 +141,7 @@ export async function loadRelocationApi({ root, candidate, output }) {
       export { buildFullOwnerPermissionsV1 } from ${JSON.stringify(resolve(candidate, '../shared-ts/src/authorization/delegatedAuthority.ts'))};
       export { handleWalletRelocationAdvance, WALLET_RELOCATION_ADVANCE_URL } from './packages/wallet-console-server-ts/src/walletPlacement/relocationService';
       export { handleWalletHomeServiceRequest } from './packages/wallet-console-server-ts/src/walletPlacement/service';
+      export { activateConsoleDeploymentFixture, fourRegionBinding } from './tests/helpers/tenantDeploymentFixtures';
       export { WalletPlacementConsoleBinding } from './packages/wallet-console-server-ts/src/walletPlacement/consoleBinding';
       export { WalletHomeCatalog, WalletOwnershipKey, RegistrationSetupAllocation } from './packages/wallet-console-server-ts/src/walletPlacement/home';
       export { D1WalletHomeDirectory } from './packages/wallet-console-server-ts/src/walletPlacement/d1';
@@ -194,6 +195,10 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
       { region: 'APAC', accountId, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
     ]);
     const wallet = api.WalletOwnershipKey.parse({ ...scope, walletId: delivery.scope.wallet_id });
+    await api.activateConsoleDeploymentFixture(
+      database,
+      await api.fourRegionBinding(Date.now(), 'test', scope),
+    );
     const directory = new DirectoryBinding(api, database, catalog, scope);
     const runtimes = {};
     const gateways = {};

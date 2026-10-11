@@ -33,7 +33,7 @@ export class StrictPlacementDirectory {
         namespace: 'shared',
         organizationId: 'owner',
         projectId: 'project',
-        environmentId: 'test',
+        environmentId: 'project:dev',
       },
       environmentKey: 'test',
       deploymentLane: 'test',

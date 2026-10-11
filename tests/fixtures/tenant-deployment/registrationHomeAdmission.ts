@@ -18,7 +18,7 @@ const scope = {
   namespace: 'shared',
   organizationId: 'owner',
   projectId: 'project',
-  environmentId: 'test',
+  environmentId: 'project:dev',
 };
 
 class ConsoleBinding {
@@ -29,12 +29,18 @@ class ConsoleBinding {
 
   async fetch(request: Request): Promise<Response> {
     const response = await handleWalletHomeServiceRequest(request, {
-      writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
-        accountId:
-          request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
-        databaseId:
-          request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      }),
+      writer: parseTenantRuntimeWriterV1(
+        'gateway',
+        request.headers.get('x-seams-writer-version') ??
+          request.headers.get('x-seams-writer-database') ??
+          'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        {
+          accountId:
+            request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
+          databaseId:
+            request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+      ),
       database: this.database,
       catalogJson: this.catalogJson,
       admittedResources: WalletHomeCatalog.parse(
@@ -116,7 +122,7 @@ function gatewayAdmission(input: GatewayAdmissionInput): ConsoleRegistrationHome
   );
   return new ConsoleRegistrationHomeAdmission({
     service: new ConsoleBinding(input.database, input.catalogJson),
-    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+    writer: parseTenantRuntimeWriterV1('gateway', localResource.databaseId, {
       accountId: localResource.accountId,
       databaseId: localResource.databaseId,
     }),

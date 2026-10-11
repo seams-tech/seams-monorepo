@@ -1,3 +1,4 @@
+import { activateConsoleDeploymentFixture, fourRegionBinding } from '../helpers/tenantDeploymentFixtures';
 import { verifyRegionalWalletDispatch } from './regional-wallet-dispatch.scenario';
 import { registrationSessionLocator } from '../fixtures/tenant-deployment/registrationHomeAdmission';
 import { expect, test } from '@playwright/test';
@@ -49,7 +50,7 @@ function walletKey(walletId: string, projectId = 'project'): WalletOwnershipKey 
     namespace: 'shared',
     organizationId: 'owner',
     projectId,
-    environmentId: 'test',
+    environmentId: 'project:dev',
     walletId,
   });
 }
@@ -304,6 +305,15 @@ test('wallet homes are independent within a tenant and durable across competing 
       for (const sql of unstable_splitSqlQuery(source)) await database.prepare(sql).run();
       appliedMigrations.push({ name, sha256: createHash('sha256').update(source).digest('hex') });
     }
+    await activateConsoleDeploymentFixture(
+      database,
+      await fourRegionBinding(Date.now(), 'test', {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'project:dev',
+      }),
+    );
     const missing = await request.post(String(await runtime.ready), {
       data: { action: 'find', wallet: walletKey('missing') },
     });
@@ -485,7 +495,7 @@ test('wallet homes are independent within a tenant and durable across competing 
         namespace: 'shared',
         organizationId: 'owner',
         projectId: 'project',
-        environmentId: 'test',
+        environmentId: 'project:dev',
       },
       WalletHomeCatalog.parse(homes),
     );
@@ -515,7 +525,7 @@ test('wallet homes are independent within a tenant and durable across competing 
     ).toBe(true);
     const homeClient = new WalletHomeServiceClient(
       clientBinding,
-      parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+      parseTenantRuntimeWriterV1('gateway', homes[2].databaseId, {
         accountId: homes[2].accountId,
         databaseId: homes[2].databaseId,
       }),
@@ -523,7 +533,7 @@ test('wallet homes are independent within a tenant and durable across competing 
         namespace: 'shared',
         organizationId: 'owner',
         projectId: 'project',
-        environmentId: 'test',
+        environmentId: 'project:dev',
       },
       WalletHomeCatalog.parse(homes),
     );

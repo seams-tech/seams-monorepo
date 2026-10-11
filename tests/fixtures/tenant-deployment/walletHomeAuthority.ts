@@ -45,12 +45,18 @@ const catalogJson = JSON.stringify([
 export default {
   async fetch(request: Request, env: { CONSOLE_DB: D1DatabaseLike }): Promise<Response> {
     const serviceResponse = await handleWalletHomeServiceRequest(request, {
-      writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
-        accountId:
-          request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
-        databaseId:
-          request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      }),
+      writer: parseTenantRuntimeWriterV1(
+        'gateway',
+        request.headers.get('x-seams-writer-version') ??
+          request.headers.get('x-seams-writer-database') ??
+          'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        {
+          accountId:
+            request.headers.get('x-seams-writer-account') ?? '0123456789abcdef0123456789abcdef',
+          databaseId:
+            request.headers.get('x-seams-writer-database') ?? 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+      ),
       database: env.CONSOLE_DB,
       catalogJson,
       admittedResources: catalog.deploymentResources(),
@@ -58,7 +64,7 @@ export default {
         namespace: 'shared',
         organizationId: 'owner',
         projectId: 'project',
-        environmentId: 'test',
+        environmentId: 'project:dev',
       },
       environmentKey: 'test',
       deploymentLane: 'test',

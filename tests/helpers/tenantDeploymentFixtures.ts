@@ -1,4 +1,5 @@
 import { D1RegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
+import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import type { TenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
@@ -468,4 +469,35 @@ export async function activateRegionalGatewayFixture(
   await local.prepare(admission);
   await local.activate(admission);
   return local;
+}
+
+/** Install the same regional writer identities used by the directory fixtures. */
+export async function activateConsoleDeploymentFixture(
+  database: D1DatabaseLike,
+  binding: TenantDeploymentBindingV1,
+) {
+  const store = createD1TenantDeploymentServiceV1({ database });
+  await store.putBinding(binding);
+  const nowMs = Date.now();
+  const activation = await readyActivation(
+    store,
+    binding,
+    deploymentResource(binding.tenant.namespace, binding.resources[0].databaseId),
+    'tco_directory_fixture',
+    null,
+    nowMs,
+  );
+  const resourceVerifications = [];
+  for (const resource of binding.resources) {
+    resourceVerifications.push(
+      regionalResourceProof(
+        binding,
+        resource.databaseId,
+        resource.databaseId,
+        resource.databaseId.replace(/^[^-]+/u, 'eeeeeeee'),
+        nowMs,
+      ),
+    );
+  }
+  await store.activateBinding({ ...activation, resourceVerifications });
 }

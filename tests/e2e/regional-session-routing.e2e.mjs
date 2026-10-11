@@ -312,7 +312,7 @@ const bundle = await build({
       export { parseTenantRuntimeWriterV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
       export { D1WalletExecutionAuthority } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/registration/d1WalletExecutionAuthority.ts'))};
       export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
-      export { fourRegionBinding, activateRegionalGatewayFixture } from './tests/helpers/tenantDeploymentFixtures';
+      export { fourRegionBinding, activateRegionalGatewayFixture, activateConsoleDeploymentFixture } from './tests/helpers/tenantDeploymentFixtures';
     `,
   },
 });
@@ -383,6 +383,10 @@ try {
     authorityDatabase,
     resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
   );
+  await api.activateConsoleDeploymentFixture(
+    authorityDatabase,
+    await api.fourRegionBinding(Date.now(), 'test', scope),
+  );
   consoleBridge.database = authorityDatabase;
   const consoleService = new WorkerTransport(await runtime.getWorker('console'));
   const directory = new api.D1WalletHomeDirectory(authorityDatabase, catalog);
@@ -398,13 +402,17 @@ try {
     await migrate(database, resolve(candidate, 'migrations/d1-signer'));
     const writer = api.parseTenantRuntimeWriterV1(
       'gateway',
-      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      catalog.select(region).databaseId,
       { accountId, databaseId: catalog.select(region).databaseId },
     );
     const publisher = new api.WalletHomeServiceClient(consoleService, writer, scope, catalog);
     bridge.runtimeHomeDirectory = new api.WalletHomeServiceClient(
       consoleService,
-      api.parseTenantRuntimeWriterV1('walletRuntime', writer.versionId, writer.resource),
+      api.parseTenantRuntimeWriterV1(
+        'walletRuntime',
+        writer.versionId.replace(/^[^-]+/u, 'eeeeeeee'),
+        writer.resource,
+      ),
       scope,
       catalog,
     );

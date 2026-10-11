@@ -59,8 +59,7 @@ export async function createRegionalRealGateway({
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, readRegistrationContinuationLocator, readRequestSessionLocator, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
         export { relocationWriterVersion, relocationResourceVerification, relocationCustodyNamespaces } from './tests/fixtures/tenant-deployment/walletRelocationResources';
-        export { fourRegionBinding, regionalResourceProof, readyActivation, deploymentResource } from './tests/helpers/tenantDeploymentFixtures';
-        export { createD1TenantDeploymentServiceV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/d1';
+        export { fourRegionBinding, regionalResourceProof, activateConsoleDeploymentFixture } from './tests/helpers/tenantDeploymentFixtures';
         export { D1RegionalDeploymentAdmission } from './packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
         export { DeploymentFencedDatabase } from './packages/wallet-console-server-ts/src/tenantDeployment/fencedDatabase';
         export { TenantDeploymentD1ResourceIdentityV1 } from './packages/wallet-console-server-ts/src/tenantDeployment/deploymentResource';
@@ -130,20 +129,7 @@ export async function createRegionalRealGateway({
     consoleService.operations = api.createWalletConsoleOpsClient(consoleAuthentication);
     if (databaseState?.mode !== 'reopen') {
       consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
-      const deployments = api.createD1TenantDeploymentServiceV1({ database: consoleDatabase });
-      await deployments.putBinding(consoleService.binding);
-      const activation = await api.readyActivation(
-        deployments,
-        consoleService.binding,
-        api.deploymentResource(scope.namespace, catalog.select('US').databaseId),
-        'tco_regional_real',
-        null,
-        Date.now(),
-      );
-      await deployments.activateBinding({
-        ...activation,
-        resourceVerifications: regionalDeploymentProofs(api, consoleService.binding),
-      });
+      await api.activateConsoleDeploymentFixture(consoleDatabase, consoleService.binding);
     }
     const router = new LocalRoleTransport(
       `http://127.0.0.1:${4102 + Number(process.env.SEAMS_LOCAL_PORT_OFFSET || 0)}`,

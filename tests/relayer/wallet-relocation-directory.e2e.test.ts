@@ -1,3 +1,4 @@
+import { activateConsoleDeploymentFixture, fourRegionBinding } from '../helpers/tenantDeploymentFixtures';
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationAdmission';
 import { WalletRelocationDriver } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationDriver';
 import { WalletRelocationCapacity } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCapacity';
@@ -80,7 +81,7 @@ function wallet(walletId: string): WalletOwnershipKey {
     namespace: 'shared',
     organizationId: 'owner',
     projectId: 'project',
-    environmentId: 'test',
+    environmentId: 'project:dev',
     walletId,
   });
 }
@@ -789,6 +790,15 @@ test('relocation directory serializes competing moves and survives lost replies 
       }
       migrations.push({ name, sha256: createHash('sha256').update(sql).digest('hex') });
     }
+    await activateConsoleDeploymentFixture(
+      database,
+      await fourRegionBinding(Date.now(), 'test', {
+        namespace: 'shared',
+        organizationId: 'owner',
+        projectId: 'project',
+        environmentId: 'project:dev',
+      }),
+    );
     observations.push(await verifyCapacityRecovery(runtime));
     await establish(runtime, 'response-status');
     const responseMove = relocation('response-status', destination);
@@ -829,7 +839,7 @@ test('relocation directory serializes competing moves and survives lost replies 
       namespace: 'shared',
       organizationId: 'another-owner',
       projectId: 'project',
-      environmentId: 'test',
+      environmentId: 'project:dev',
       walletId: 'traveller',
     });
     expect((await placementStatus(runtime, foreignWallet)).status).toBe(403);

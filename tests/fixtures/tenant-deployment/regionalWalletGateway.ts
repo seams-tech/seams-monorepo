@@ -28,7 +28,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const home = WalletHome.parse(JSON.parse(env.HOME_JSON));
   const authority = new ConsoleRegistrationHomeAdmission({
     service: env.CONSOLE,
-    writer: parseTenantRuntimeWriterV1('gateway', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', {
+    writer: parseTenantRuntimeWriterV1('gateway', home.databaseId, {
       accountId: home.accountId,
       databaseId: home.databaseId,
     }),
@@ -36,7 +36,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       namespace: 'shared',
       organizationId: 'owner',
       projectId: 'project',
-      environmentId: 'test',
+      environmentId: 'project:dev',
     },
     localResource: home,
     environmentKey: 'test',

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -103,14 +104,21 @@ function statementLabel(statement: { query: { kind: string; tables: string[] } }
 
 type ReadQuery = { kind: string; tables: readonly string[] };
 
-class RegistrationInitialReadOverlap extends TracedD1Database {
+class RegistrationInitialReadBatch extends TracedD1Database {
   private armed = false;
-  private homePending = false;
-  private readonly journalStarted = Promise.withResolvers<void>();
-  journalStartedBeforeHomeReply = false;
+  batchedReads = 0;
+  request: Request | null = null;
 
   async intercept(route: Route): Promise<void> {
-    if (route.request().method() === 'POST') this.armed = true;
+    const request = route.request();
+    if (request.method() === 'POST') {
+      this.armed = true;
+      this.request = new Request(request.url(), {
+        method: request.method(),
+        headers: await request.allHeaders(),
+        body: request.postDataBuffer(),
+      });
+    }
     await route.fallback();
   }
 
@@ -121,28 +129,11 @@ class RegistrationInitialReadOverlap extends TracedD1Database {
   ): Promise<T> {
     if (this.armed && queries.some(isInitialHomeRead)) {
       this.armed = false;
-      this.homePending = true;
-      const result = await super.measure(method, queries, execute);
-      const timeout = setTimeout(
-        this.journalStarted.reject,
-        5_000,
-        new Error('Registration journal read waited for the home reply'),
-      );
-      try {
-        await this.journalStarted.promise;
-        this.journalStartedBeforeHomeReply = true;
-        return result;
-      } finally {
-        clearTimeout(timeout);
-        this.homePending = false;
-      }
-    }
-    if (this.homePending) {
-      assert.ok(
-        queries.every(isReadOrDeploymentCheck),
-        'Registration must not write before home admission',
-      );
-      if (queries.some(isOperationRead)) this.journalStarted.resolve();
+      assert.equal(method, 'batch');
+      assert.ok(queries.every(isReadOrDeploymentCheck));
+      assert.ok(queries.some(isOperationRead));
+      assert.ok(queries.some(isCeremonyRead));
+      this.batchedReads += 1;
     }
     return super.measure(method, queries, execute);
   }
@@ -162,15 +153,82 @@ function isReadOrDeploymentCheck(query: ReadQuery): boolean {
 }
 
 function isInitialHomeRead(query: ReadQuery): boolean {
-  return (
-    isReadQuery(query) &&
-    query.tables.length === 1 &&
-    query.tables[0] === 'wallet_execution_generations'
-  );
+  return isReadQuery(query) && query.tables.includes('wallet_execution_generations');
 }
 
 function isOperationRead(query: ReadQuery): boolean {
   return isReadQuery(query) && query.tables.includes('router_ab_yao_versioned_json_records');
+}
+
+function isCeremonyRead(query: ReadQuery): boolean {
+  return isReadQuery(query) && query.tables.includes('registration_ceremony_records');
+}
+
+async function verifyCompletedReplayAfterCleanup(
+  scenario: Scenario,
+  request: Request,
+  sessionId: string,
+) {
+  const gateway = scenario.gateways.get('US');
+  const body = await request.clone().json();
+  const recordId = `gateway-registration:${body.registrationCeremonyId}`;
+  await gateway.database
+    .prepare(
+      "DELETE FROM registration_ceremony_records WHERE record_scope = 'ceremony' AND record_id = ?",
+    )
+    .bind(recordId)
+    .run();
+  const remaining = await gateway.database
+    .prepare(
+      "SELECT count(*) AS count FROM registration_ceremony_records WHERE record_scope = 'ceremony' AND record_id = ?",
+    )
+    .bind(recordId)
+    .first();
+  assert.equal(remaining.count, 0);
+  const response = await gateway.handle(request.clone(), 'ingress');
+  assert.equal(response.status, 200);
+  const replay = await response.json();
+  assert.equal(replay.registrationEstablishedSession.kind, 'already_committed');
+  assert.equal(replay.registrationEstablishedSession.session.walletSessionId, sessionId);
+  assert.equal('operationCredential' in replay.registrationEstablishedSession.session, false);
+  return { ceremonyRecords: remaining.count, replayStatus: response.status, sameSession: true };
+}
+
+async function verifyFencedFinalizationReplay(
+  scenario: Scenario,
+  request: Request,
+  walletId: string,
+) {
+  const gateway = scenario.gateways.get('US');
+  const wallet = await gateway.database
+    .prepare('SELECT generation FROM wallet_execution_generations WHERE wallet_id = ?')
+    .bind(walletId)
+    .first();
+  assert.ok(wallet);
+  const source = gateway.api.WalletRelocationSessionSource.parse({
+    walletId,
+    sourceGeneration: wallet.generation,
+    moveId: `wmove_${createHash('sha256').update(walletId).digest('base64url')}`,
+    requestDigestHex: createHash('sha256').update(walletId).digest('hex'),
+  });
+  const scope = {
+    namespace: gateway.scope.namespace,
+    orgId: gateway.scope.organizationId,
+    projectId: gateway.scope.projectId,
+    envId: gateway.scope.environmentId,
+  };
+  const block = new gateway.api.D1WalletRelocationWriteBlock(gateway.database, scope);
+  assert.equal(await block.check(source, Date.now()), 'ready');
+  const blocked = await gateway.handle(request.clone(), 'ingress');
+  assert.equal(blocked.ok, false);
+  assert.equal((await blocked.json()).code, 'wallet_home_unavailable');
+  await block.release(source, Date.now());
+  const sessions = new gateway.api.D1WalletRelocationSessions(gateway.database, scope);
+  await sessions.retire(source, Date.now());
+  const retired = await gateway.handle(request.clone(), 'ingress');
+  assert.equal(retired.ok, false);
+  assert.equal((await retired.json()).code, 'wallet_home_unavailable');
+  return { relocationBlockStatus: blocked.status, retiredHomeStatus: retired.status };
 }
 
 // Hold Console's completion reply until the real server seal finishes. This
@@ -313,7 +371,7 @@ export async function verifyRegistrationCompletion(
   const record = evidence.record.bind(evidence);
   const gateway = scenario.gateways.get('US');
   const originalDatabase = gateway.database;
-  const initialReads = new RegistrationInitialReadOverlap(originalDatabase);
+  const initialReads = new RegistrationInitialReadBatch(originalDatabase);
   gateway.database = initialReads;
   const sealService = gateway.api.stagingSigningSessionSealOptions(gateway.environment).service;
   const applyServerSeal = sealService.applyServerSeal.bind(sealService);
@@ -336,7 +394,7 @@ export async function verifyRegistrationCompletion(
     assert.ok(trace);
     const finalizationD1 = JSON.parse(trace);
     assert.equal(finalizationD1.dropped, 0);
-    assert.equal(initialReads.journalStartedBeforeHomeReply, true);
+    assert.equal(initialReads.batchedReads, 1);
     const finalizationTiming = await finalization.headerValue('server-timing');
     const pageRoot = page.getByTestId('intended-e2e-page');
     await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_in');
@@ -362,6 +420,13 @@ export async function verifyRegistrationCompletion(
     assert.equal(sealOverlap.sealCompletedBeforeReply, true);
     sealService.applyServerSeal = applyServerSeal;
     scenario.consoleService.fetch = consoleFetch;
+    assert.ok(initialReads.request);
+    const original = await finalization.json();
+    const completedReplay = await verifyCompletedReplayAfterCleanup(
+      scenario,
+      initialReads.request,
+      original.registrationEstablishedSession.session.walletSessionId,
+    );
     scenario.beginConsoleOutage();
     await scenario.routeContext(context, 'OC');
     evidence.stage = 'first_signature';
@@ -376,6 +441,11 @@ export async function verifyRegistrationCompletion(
     await harness.assertWalletLocked();
     await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_out');
     assert.deepEqual(scenario.consoleService.requests, []);
+    const fencedReplay = await verifyFencedFinalizationReplay(
+      scenario,
+      initialReads.request,
+      walletId,
+    );
     const databaseWork = await evidence.databaseWork();
     assertRoundTripCeilings(databaseWork);
     await writeFile(
@@ -386,7 +456,9 @@ export async function verifyRegistrationCompletion(
           finalizationD1,
           finalizationTiming,
           initialReads: {
-            journalStartedBeforeHomeReply: initialReads.journalStartedBeforeHomeReply,
+            batchedReads: initialReads.batchedReads,
+            completedReplay,
+            fencedReplay,
           },
           signature,
           signingIngress: 'OC',
@@ -521,7 +593,7 @@ const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
   '/wallets/register/setup': 4,
   '/wallets/register/respond': 5,
   '/router-ab/ed25519/yao/registration/execute': 1,
-  '/wallets/register/near-provisioning': 15,
+  '/wallets/register/near-provisioning': 13,
   '/router-ab/ed25519/sign/prepare': 2,
   '/router-ab/ed25519/sign': 3,
 };

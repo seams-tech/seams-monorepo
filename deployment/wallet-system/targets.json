@@ -102,8 +102,8 @@
               "workerName": "seams-sdk-d1-gateway-staging",
               "ingressRegion": "APAC",
               "consoleD1": {
-                "name": "seams-console-staging-nrt",
-                "id": "f77260ef-0f8a-4063-9cab-ab648536f473"
+                "name": "seams-console-staging-hkg",
+                "id": "73ae681c-3937-474b-91db-5161d2f25f90"
               },
               "regions": {
                 "US": {

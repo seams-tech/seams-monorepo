@@ -151,7 +151,7 @@ test('deployment topology preserves staging operational identities', async () =>
   if (lane.provisioning.kind !== 'provisioned') throw new Error('staging must be provisioned');
 
   expect(lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id).toBe(
-    'f77260ef-0f8a-4063-9cab-ab648536f473',
+    '73ae681c-3937-474b-91db-5161d2f25f90',
   );
   expect(lane.provisioning.gatewayDeploymentConfig.resources.regions.APAC.signerD1.id).toBe(
     'c1c85721-6a76-4b60-8f08-5a574f97cb8f',

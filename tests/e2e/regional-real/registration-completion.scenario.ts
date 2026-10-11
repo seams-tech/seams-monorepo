@@ -22,6 +22,9 @@ const { expect } = await import(
 const { IntendedBehaviourHarness, signAndVerifyNearMessage } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
+const { TracedD1Database } = await import(
+  pathToFileURL(path.join(publicRoot, 'tests/r150-hosted/gateway/d1Trace.ts')).href
+);
 
 type Scenario = Awaited<ReturnType<typeof createRegionalRealGateway>>;
 type BrowserFixture = {
@@ -96,6 +99,78 @@ async function gatewayD1Work(
 
 function statementLabel(statement: { query: { kind: string; tables: string[] } }): string {
   return `${statement.query.kind} ${statement.query.tables.join('+')}`;
+}
+
+type ReadQuery = { kind: string; tables: readonly string[] };
+
+class RegistrationInitialReadOverlap extends TracedD1Database {
+  private armed = false;
+  private homePending = false;
+  private readonly journalStarted = Promise.withResolvers<void>();
+  journalStartedBeforeHomeReply = false;
+
+  async intercept(route: Route): Promise<void> {
+    if (route.request().method() === 'POST') this.armed = true;
+    await route.fallback();
+  }
+
+  async measure<T>(
+    method: string,
+    queries: readonly ReadQuery[],
+    execute: () => Promise<T>,
+  ): Promise<T> {
+    if (this.armed && queries.some(isInitialHomeRead)) {
+      this.armed = false;
+      this.homePending = true;
+      const result = await super.measure(method, queries, execute);
+      const timeout = setTimeout(
+        this.journalStarted.reject,
+        5_000,
+        new Error('Registration journal read waited for the home reply'),
+      );
+      try {
+        await this.journalStarted.promise;
+        this.journalStartedBeforeHomeReply = true;
+        return result;
+      } finally {
+        clearTimeout(timeout);
+        this.homePending = false;
+      }
+    }
+    if (this.homePending) {
+      assert.ok(
+        queries.every(isReadOrDeploymentCheck),
+        'Registration must not write before home admission',
+      );
+      if (queries.some(isOperationRead)) this.journalStarted.resolve();
+    }
+    return super.measure(method, queries, execute);
+  }
+}
+
+function isReadQuery(query: ReadQuery): boolean {
+  return query.kind === 'SELECT';
+}
+
+function isReadOrDeploymentCheck(query: ReadQuery): boolean {
+  return (
+    isReadQuery(query) ||
+    (query.kind === 'INSERT' &&
+      query.tables.length === 1 &&
+      query.tables[0] === 'regional_deployment_write_checks')
+  );
+}
+
+function isInitialHomeRead(query: ReadQuery): boolean {
+  return (
+    isReadQuery(query) &&
+    query.tables.length === 1 &&
+    query.tables[0] === 'wallet_execution_generations'
+  );
+}
+
+function isOperationRead(query: ReadQuery): boolean {
+  return isReadQuery(query) && query.tables.includes('router_ab_yao_versioned_json_records');
 }
 
 // Hold Console's completion reply until the real server seal finishes. This
@@ -237,6 +312,9 @@ export async function verifyRegistrationCompletion(
   const evidence = new RegistrationRequestEvidence();
   const record = evidence.record.bind(evidence);
   const gateway = scenario.gateways.get('US');
+  const originalDatabase = gateway.database;
+  const initialReads = new RegistrationInitialReadOverlap(originalDatabase);
+  gateway.database = initialReads;
   const sealService = gateway.api.stagingSigningSessionSealOptions(gateway.environment).service;
   const applyServerSeal = sealService.applyServerSeal.bind(sealService);
   const consoleFetch = scenario.consoleService.fetch.bind(scenario.consoleService);
@@ -246,6 +324,10 @@ export async function verifyRegistrationCompletion(
   context.on('request', record);
   try {
     await scenario.routeContext(context, 'US');
+    await context.route(
+      '**/wallets/register/near-provisioning',
+      initialReads.intercept.bind(initialReads),
+    );
     const [finalization] = await Promise.all([
       page.waitForResponse(isNearFinalizationResponse),
       harness.registerPasskeyEd25519YaoWallet(),
@@ -254,6 +336,7 @@ export async function verifyRegistrationCompletion(
     assert.ok(trace);
     const finalizationD1 = JSON.parse(trace);
     assert.equal(finalizationD1.dropped, 0);
+    assert.equal(initialReads.journalStartedBeforeHomeReply, true);
     const finalizationTiming = await finalization.headerValue('server-timing');
     const pageRoot = page.getByTestId('intended-e2e-page');
     await expect(pageRoot).toHaveAttribute('data-login-state', 'logged_in');
@@ -302,6 +385,9 @@ export async function verifyRegistrationCompletion(
           consoleRequests,
           finalizationD1,
           finalizationTiming,
+          initialReads: {
+            journalStartedBeforeHomeReply: initialReads.journalStartedBeforeHomeReply,
+          },
           signature,
           signingIngress: 'OC',
           signingConsoleCalls: 0,
@@ -330,6 +416,7 @@ export async function verifyRegistrationCompletion(
       ),
     );
   } finally {
+    gateway.database = originalDatabase;
     sealService.applyServerSeal = applyServerSeal;
     scenario.consoleService.fetch = consoleFetch;
     context.off('request', record);

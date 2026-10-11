@@ -1023,7 +1023,7 @@ test('Console verifies both regional writer bindings against a fresh challenge',
         ]) {
           const rejected = staleWriter.fetch(`https://wallet.example.test${pathname}`, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '2' },
+            headers: { 'content-type': 'application/json', 'x-seams-wallet-protocol': '3' },
             body: '{',
           });
           if (name === 'gateway-changed') expect((await rejected).status).toBe(403);

@@ -5,6 +5,10 @@ import { unstable_splitSqlQuery } from 'wrangler';
 import {
   createWalletConsoleOpsClient,
   isD1DatabaseLike,
+  type RouterApiProjectEnvironmentResolver,
+  type RouterApiPublishableKeyAuthAdapter,
+  type RouterApiPublishableKeyAuthRequest,
+  type WalletConsoleOpsClient,
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
 import { createHash, randomBytes } from 'node:crypto';
@@ -20,6 +24,7 @@ import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { WalletHomeCatalog } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
+import { handleRegistrationSetupRequest } from '../../packages/wallet-console-server-ts/src/walletPlacement/registrationSetup';
 import {
   deploymentResource,
   fourRegionBinding,
@@ -70,6 +75,39 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+class ObservedSetupServices
+  implements RouterApiPublishableKeyAuthAdapter, RouterApiProjectEnvironmentResolver
+{
+  readonly events: string[] = [];
+
+  constructor(
+    private readonly client: WalletConsoleOpsClient,
+    private readonly environmentRead: 'available' | 'failed',
+  ) {}
+
+  private environmentStarted(): boolean {
+    return this.events.includes('environment_started');
+  }
+
+  async authenticate(input: RouterApiPublishableKeyAuthRequest) {
+    const result = await this.client.publishableKeyAuth.authenticate(input);
+    await expect.poll(this.environmentStarted.bind(this)).toBe(true);
+    this.events.push('authentication_finished');
+    return result;
+  }
+
+  async listEnvironments(
+    context: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[0],
+    filters: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[1],
+  ) {
+    this.events.push('environment_started');
+    const result = await this.client.projectEnvironments.listEnvironments(context, filters);
+    if (this.environmentRead === 'failed') throw new Error('Injected environment read failure');
+    this.events.push('environment_finished');
+    return result;
+  }
 }
 
 test('production Console service bindings enforce durable credential changes and resolve environments', async () => {
@@ -280,6 +318,120 @@ test('production Console service bindings enforce durable credential changes and
       invalidOriginRefused: !refused.ok,
     });
 
+    const homeCountBeforeFaults = await database
+      .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
+      .bind(namespace)
+      .first<number>('count');
+    for (const scenario of [
+      {
+        name: 'overlap',
+        secret: credential.secret,
+        environmentRead: 'available',
+        status: 200,
+        code: null,
+      },
+      {
+        name: 'environment_read_failure',
+        secret: credential.secret,
+        environmentRead: 'failed',
+        status: 500,
+        code: 'registration_environment_unavailable',
+      },
+      {
+        name: 'authentication_failure_precedes_read_failure',
+        secret: 'pk_invalid',
+        environmentRead: 'failed',
+        status: 401,
+        code: 'publishable_key_invalid',
+      },
+    ] as const) {
+      const services = new ObservedSetupServices(client, scenario.environmentRead);
+      const registration = scenario.code
+        ? gatewaySetupInput({
+            operationId: `wreg_${randomBytes(32).toString('base64url')}`,
+            origin,
+          }).request
+        : setup.registration;
+      const response = await handleRegistrationSetupRequest(
+        new Request(
+          'https://wallet-placement.internal/internal/wallet-placement/v1/registration-setup',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              ...setup,
+              registration,
+              secret: scenario.secret,
+              ingressRegion: 'WEUR',
+            }),
+          },
+        ),
+        {
+          database,
+          catalog,
+          scope: deployment.tenant,
+          environmentKey: 'dev',
+          deploymentLane: 'console-preflight',
+          publishableKeyAuth: services,
+          projectEnvironments: services,
+        },
+      );
+      expect(response.status).toBe(scenario.status);
+      const result = await response.json();
+      if (scenario.code) expect(result.code).toBe(scenario.code);
+      else expect(result.reservation).toMatchObject({ ok: true, disposition: 'reused' });
+      expect(services.events.indexOf('environment_started')).toBeLessThan(
+        services.events.indexOf('authentication_finished'),
+      );
+      observations.push({ stage: scenario.name, status: response.status, events: services.events });
+    }
+    expect(
+      await database
+        .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
+        .bind(namespace)
+        .first<number>('count'),
+    ).toBe(homeCountBeforeFaults);
+    const usageTimestamp = await database
+      .prepare('SELECT last_used_at_ms FROM api_keys WHERE namespace = ? AND id = ?')
+      .bind(namespace, credential.apiKey.id)
+      .first<number>('last_used_at_ms');
+    expect(usageTimestamp).toBeGreaterThan(nowMs);
+    observations.push({
+      stage: 'setup_accounting',
+      usageRecorded: true,
+      faultReservationsCreated: 0,
+    });
+
+    const foreignContext = { orgId: 'org_foreign_setup', actorUserId: context.actorUserId };
+    const foreignProjectId = 'foreign_setup';
+    await organizations.upsertOrganization(foreignContext, { name: 'Other deployment' });
+    await organizations.createProject(foreignContext, {
+      id: foreignProjectId,
+      name: 'Other deployment',
+    });
+    const foreignCredential = await keys.createApiKey(foreignContext, {
+      kind: 'publishable_key',
+      name: 'Other deployment',
+      environmentId: `${foreignProjectId}:dev`,
+      allowedOrigins: [origin],
+      rateLimitBucket: 'default',
+      quotaBucket: 'default',
+    });
+    expect(
+      await homes.reserveAuthenticated(
+        {
+          ...setup,
+          secret: foreignCredential.secret,
+          environmentId: foreignCredential.apiKey.environmentId,
+        },
+        'APAC',
+      ),
+    ).toMatchObject({
+      ok: false,
+      context: { code: 'publishable_key_environment_mismatch' },
+    });
+    observations.push({ stage: 'foreign_deployment_key', accepted: false });
+
     const newVersion = `${accepted.environment.signingRootVersion}-updated`;
     await organizations.updateEnvironment(context, environmentId, { runtimeVersion: newVersion });
     const refreshed = await client.registrationContext.resolve({
@@ -323,6 +475,16 @@ test('production Console service bindings enforce durable credential changes and
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error('Console admitted a mismatched credential');
       expect(result.code).toBe(scenario.code);
+      const setupResult = await homes.reserveAuthenticated(
+        {
+          ...setup,
+          secret: scenario.secret,
+          origin: scenario.origin,
+          environmentId: scenario.environmentId,
+        },
+        'APAC',
+      );
+      expect(setupResult).toMatchObject({ ok: false, context: { code: scenario.code } });
       observations.push({ stage: scenario.code, ok: result.ok, status: result.status });
     }
 
@@ -453,12 +615,32 @@ test('production Console service bindings enforce durable credential changes and
     expect(replaced.ok).toBe(false);
     if (replaced.ok) throw new Error('Console admitted a replaced credential');
     expect(replaced.code).toBe('publishable_key_invalid');
+    expect(await homes.reserveAuthenticated(setup, 'APAC')).toMatchObject({
+      ok: false,
+      context: { code: 'publishable_key_invalid' },
+    });
     const replacement = await client.registrationContext.resolve({
       secret: rotated.secret,
       origin,
       environmentId,
     });
     expect(replacement.ok).toBe(true);
+    expect(
+      await homes.reserveAuthenticated(
+        {
+          ...setup,
+          secret: rotated.secret,
+          registration: gatewaySetupInput({
+            operationId: `wreg_${randomBytes(32).toString('base64url')}`,
+            origin,
+          }).request,
+        },
+        'OC',
+      ),
+    ).toMatchObject({
+      ok: true,
+      reservation: { ok: true, assignment: { home: { region: 'OC' } } },
+    });
     observations.push({ stage: 'rotation', oldAccepted: replaced.ok, newAccepted: replacement.ok });
 
     await keys.revokeApiKey(context, rotated.apiKey.id, { reason: 'Preflight revocation' });
@@ -470,6 +652,12 @@ test('production Console service bindings enforce durable credential changes and
     expect(revoked.ok).toBe(false);
     if (revoked.ok) throw new Error('Console admitted a revoked credential');
     expect(revoked.code).toBe('publishable_key_revoked');
+    expect(
+      await homes.reserveAuthenticated({ ...setup, secret: rotated.secret }, 'APAC'),
+    ).toMatchObject({
+      ok: false,
+      context: { code: 'publishable_key_revoked' },
+    });
     observations.push({ stage: 'revoked', ok: revoked.ok, status: revoked.status });
     const archiveCredential = await keys.createApiKey(context, {
       kind: 'publishable_key',
@@ -494,6 +682,12 @@ test('production Console service bindings enforce durable credential changes and
     expect(archived.ok).toBe(false);
     if (archived.ok) throw new Error('Console admitted an archived environment');
     expect(archived.code).toBe('registration_environment_unavailable');
+    expect(
+      await homes.reserveAuthenticated({ ...setup, secret: archiveCredential.secret }, 'APAC'),
+    ).toMatchObject({
+      ok: false,
+      context: { code: 'registration_environment_unavailable' },
+    });
     observations.push({ stage: 'archived_environment', ok: archived.ok, status: archived.status });
     expect(guard.requests).toEqual([]);
 

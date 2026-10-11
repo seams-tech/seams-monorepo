@@ -760,13 +760,17 @@ async function fetch(
         return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
       }
       const handler = await consoleHandler(env);
+      const operations = createWalletConsoleOpsClient({
+        fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
+      });
       return handleRegistrationSetupRequest(request, {
         database: env.CONSOLE_DB,
         catalog,
         scope: active.tenant,
         environmentKey: active.mode.environment === 'development' ? 'dev' : 'prod',
         deploymentLane,
-        context: createWalletConsoleOpsClient({ fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx) }).registrationContext,
+        publishableKeyAuth: operations.publishableKeyAuth,
+        projectEnvironments: operations.projectEnvironments,
       });
     }
     if (new URL(request.url).pathname === GATEWAY_SESSION_PATH) {

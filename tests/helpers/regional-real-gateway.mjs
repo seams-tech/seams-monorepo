@@ -125,7 +125,7 @@ export async function createRegionalRealGateway({
       config.deployment.environmentKey,
     );
     const consoleAuthentication = api.createStaticWalletConsoleBindingV1(config);
-    consoleService.context = api.createWalletConsoleOpsClient(consoleAuthentication).registrationContext;
+    consoleService.operations = api.createWalletConsoleOpsClient(consoleAuthentication);
     if (databaseState?.mode !== 'reopen') {
       consoleService.binding = await api.fourRegionBinding(Date.now(), 'test', scope);
     }
@@ -310,7 +310,8 @@ class RealHomeConsole {
         scope: this.scope,
         environmentKey: this.environmentKey,
         deploymentLane: 'test',
-        context: this.context,
+        publishableKeyAuth: this.operations.publishableKeyAuth,
+        projectEnvironments: this.operations.projectEnvironments,
       });
     }
     return this.api.handleWalletHomeServiceRequest(request, {

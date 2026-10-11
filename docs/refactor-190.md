@@ -44,6 +44,17 @@ Both hosts execute the same released application code and WASM artifacts.
 Provider-specific configuration supplies bindings, resources, secrets, ingress,
 and process management. Core wallet code does not select a hosting provider.
 
+Google Cloud must be a straightforward, documented deployment target. Use Compute
+Engine VMs, attached disks, Cloud Storage, and HTTPS ingress with the same application
+release. Celld supplies D1 and KV APIs, so this deployment requires no separate
+Postgres or Redis service. The topology must preserve the role-isolation gates below.
+
+The same release should also run on a supported Google Confidential VM configuration
+without a wallet-specific hosting adapter. Verify this compatibility during implementation.
+Attestation-controlled key release and protection from the deployment operator are
+separate security work, outside R190. Confidential VM compatibility alone establishes
+neither claim. See [Google Confidential VMs](https://docs.cloud.google.com/confidential-computing/confidential-vm/docs/confidential-vm-overview).
+
 The final supported deployment model excludes embedding this backend in Express
 or starting the classic Node/native VM backend. Node remains available for build
 tools, the CLI, browser automation, and independent signature verification.
@@ -225,6 +236,8 @@ host path that currently provides it.
 ## Phase 4 — Make self-hosted operation repeatable
 
 - [ ] Document and verify Linux VM deployment on AWS and Google Cloud using the same application package.
+- [ ] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
+- [ ] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
 - [ ] Use multiple celld nodes, persistent disks, and a qualified regional S3/GCS bucket for the distributed acceptance runs.
 - [ ] Configure TLS ingress, trusted forwarded headers, private peer access, and network confidentiality.
 - [ ] Document fleet administrator access separately from application role permissions.

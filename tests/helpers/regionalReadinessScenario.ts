@@ -36,6 +36,7 @@ function runtimeWorker(output: string, name: string, databaseId: string) {
   return {
     name,
     modules: true,
+    modulesRoot: output,
     scriptPath: path.join(output, 'runtime.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],

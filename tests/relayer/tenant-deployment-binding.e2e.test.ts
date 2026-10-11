@@ -126,6 +126,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       {
         name: 'consumer',
         modules: true,
+        modulesRoot: output,
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
@@ -141,6 +142,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       {
         name: 'wrong-lane',
         modules: true,
+        modulesRoot: output,
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
@@ -156,6 +158,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       {
         name: 'console',
         modules: true,
+        modulesRoot: output,
         scriptPath: path.join(output, 'console.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
@@ -168,6 +171,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       {
         name: 'wrong-home',
         modules: true,
+        modulesRoot: output,
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
@@ -480,6 +484,7 @@ function regionalConsumer(
   return {
     name,
     modules: true,
+    modulesRoot: output,
     scriptPath: path.join(output, 'consumer.js'),
     compatibilityDate: '2026-04-17',
     compatibilityFlags: ['nodejs_compat'],

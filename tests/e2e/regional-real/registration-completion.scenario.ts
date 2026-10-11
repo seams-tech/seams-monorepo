@@ -98,6 +98,44 @@ function statementLabel(statement: { query: { kind: string; tables: string[] } }
   return `${statement.query.kind} ${statement.query.tables.join('+')}`;
 }
 
+// Hold Console's completion reply until the real server seal finishes. This
+// catches a serial seal without using wall-clock latency as the assertion.
+class RegistrationSealOverlap {
+  private readonly completed = Promise.withResolvers<void>();
+  sealCalls = 0;
+  sealCompletedBeforeReply = false;
+
+  constructor(
+    private readonly applyServerSeal: (request: unknown, auth: unknown) => Promise<unknown>,
+    private readonly consoleFetch: (request: Request) => Promise<Response>,
+  ) {}
+
+  async apply(request: unknown, auth: unknown): Promise<unknown> {
+    this.sealCalls += 1;
+    const sealed = await this.applyServerSeal(request, auth);
+    this.completed.resolve();
+    return sealed;
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const response = await this.consoleFetch(request);
+    if (new URL(request.url).pathname.endsWith('/complete') && response.ok) {
+      const timeout = setTimeout(
+        this.completed.reject,
+        5_000,
+        new Error('Session sealing waited for Console completion'),
+      );
+      try {
+        await this.completed.promise;
+        this.sealCompletedBeforeReply = true;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    return response;
+  }
+}
+
 class CompletionReplyLoss {
   readonly completions: unknown[] = [];
   readonly statuses: number[] = [];
@@ -194,6 +232,13 @@ export async function verifyRegistrationCompletion(
   });
   const evidence = new RegistrationRequestEvidence();
   const record = evidence.record.bind(evidence);
+  const gateway = scenario.gateways.get('US');
+  const sealService = gateway.api.stagingSigningSessionSealOptions(gateway.environment).service;
+  const applyServerSeal = sealService.applyServerSeal.bind(sealService);
+  const consoleFetch = scenario.consoleService.fetch.bind(scenario.consoleService);
+  const sealOverlap = new RegistrationSealOverlap(applyServerSeal, consoleFetch);
+  sealService.applyServerSeal = sealOverlap.apply.bind(sealOverlap);
+  scenario.consoleService.fetch = sealOverlap.fetch.bind(sealOverlap);
   context.on('request', record);
   try {
     await scenario.routeContext(context, 'US');
@@ -225,6 +270,10 @@ export async function verifyRegistrationCompletion(
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
     assert.equal(consoleRequests.filter(isRegistrationHome).length, 0);
+    assert.equal(sealOverlap.sealCalls, 1);
+    assert.equal(sealOverlap.sealCompletedBeforeReply, true);
+    sealService.applyServerSeal = applyServerSeal;
+    scenario.consoleService.fetch = consoleFetch;
     scenario.beginConsoleOutage();
     await scenario.routeContext(context, 'OC');
     evidence.stage = 'first_signature';
@@ -264,6 +313,10 @@ export async function verifyRegistrationCompletion(
             nearIdentityPublished: true,
             lockClearsAuthentication: true,
           },
+          sessionSealing: {
+            computationsDuringRegistration: sealOverlap.sealCalls,
+            completedBeforeDirectoryReply: sealOverlap.sealCompletedBeforeReply,
+          },
           gatewayRequests: evidence.requests,
         },
         null,
@@ -271,6 +324,8 @@ export async function verifyRegistrationCompletion(
       ),
     );
   } finally {
+    sealService.applyServerSeal = applyServerSeal;
+    scenario.consoleService.fetch = consoleFetch;
     context.off('request', record);
     await harness.attachTrace(testInfo);
     await scenario.close();

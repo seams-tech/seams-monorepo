@@ -50,7 +50,7 @@ export async function createRegionalRealGateway({
         export { parseEmailOtpRegistrationVerificationReceiptV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/emailOtp/d1EmailOtpRecords.ts'))};
         export { LocalIntendedLinkExecuteFaultControllerV1 } from ${JSON.stringify(resolve(candidate, 'src/localIntendedLinkExecuteFault.ts'))};
         export { parseLinkedDeviceRequestProofV1 } from ${JSON.stringify(resolve(candidate, 'src/core/deviceLinking/requestProof.ts'))};
-        export { handleSplitGatewayRequest } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
+        export { handleSplitGatewayRequest, stagingSigningSessionSealOptions } from ${JSON.stringify(resolve(candidate, 'src/hosted-wallet-gateway.ts'))};
         export { WalletHomeCustodyBinding } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/routerAbServiceBindings.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';

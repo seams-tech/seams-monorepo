@@ -153,7 +153,7 @@ async function handleGatewayRequest(
   const boundEnv = bindTenantDeploymentToRuntimeEnvironmentV1(
     {
       ...env,
-      SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+      SIGNER_DB: DeploymentFencedDatabase.forRegionalWriter(env.SIGNER_DB, binding, writer),
       WALLET_CONSOLE: new WalletPlacementConsoleBinding(env.WALLET_CONSOLE, writer),
     },
     binding,

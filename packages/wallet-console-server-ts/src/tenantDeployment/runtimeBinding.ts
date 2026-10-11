@@ -261,6 +261,6 @@ export async function resolveBoundTenantDeploymentRuntimeEnvironmentV1<
   if (!binding) return null;
   return {
     ...bindTenantDeploymentToRuntimeEnvironmentV1(env, binding),
-    SIGNER_DB: new DeploymentFencedDatabase(env.SIGNER_DB, binding, writer),
+    SIGNER_DB: DeploymentFencedDatabase.forRegionalWriter(env.SIGNER_DB, binding, writer),
   };
 }

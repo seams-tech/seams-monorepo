@@ -1,3 +1,4 @@
+import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
 import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
 import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
 import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../walletPlacement/relocationAdmission';
@@ -750,6 +751,13 @@ async function fetch(
       if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
         return await registrationSetupResponse(request, env, ctx, deploymentLane, writer);
       }
+      const mutation = await handleWalletRegistrationMutation(request, {
+        database: env.CONSOLE_DB,
+        writer,
+        catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+        deploymentLane,
+      });
+      if (mutation) return mutation;
       active = await tenantDeploymentReader.resolveRuntimeBinding(deploymentLane, writer);
     } catch (error) {
       if (!isTenantDeploymentStoreError(error)) throw error;

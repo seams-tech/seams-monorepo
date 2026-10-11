@@ -5,14 +5,66 @@ import type {
 } from '@seams/wallet-server/cloud-host';
 import type { TenantDeploymentBindingV1 } from './types';
 import type { TenantRuntimeWriterV1 } from './resourceVerification';
+import type { WalletHomeCatalog, WalletOwnershipKey } from '../walletPlacement/home';
 
 // Bind once at request admission. Deferred work retains this exact writer and binding.
 export class DeploymentFencedDatabase implements D1DatabaseLike {
-  constructor(
+  private constructor(
     private readonly database: D1DatabaseLike,
-    private readonly binding: TenantDeploymentBindingV1,
-    private readonly writer: TenantRuntimeWriterV1,
+    private readonly guard: D1PreparedStatementLike,
   ) {}
+
+  static forRegionalWriter(
+    database: D1DatabaseLike,
+    binding: TenantDeploymentBindingV1,
+    writer: TenantRuntimeWriterV1,
+  ): DeploymentFencedDatabase {
+    const guard = database
+      .prepare(
+        `INSERT INTO regional_deployment_write_checks
+       (deployment_lane, namespace, account_id, database_id, binding_revision, writer_role, writer_version)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+      )
+      .bind(
+        binding.deploymentLane,
+        binding.tenant.namespace,
+        writer.resource.accountId,
+        writer.resource.databaseId,
+        binding.revision,
+        writer.role,
+        writer.versionId,
+      );
+    return new DeploymentFencedDatabase(database, guard);
+  }
+
+  static forConsoleWriter(
+    database: D1DatabaseLike,
+    deploymentLane: string,
+    wallet: WalletOwnershipKey,
+    catalog: WalletHomeCatalog,
+    writer: TenantRuntimeWriterV1,
+  ): DeploymentFencedDatabase {
+    const guard = database
+      .prepare(
+        `INSERT INTO console_deployment_write_checks
+       (deployment_lane, namespace, organization_id, project_id, environment_id,
+        account_id, database_id, writer_role, writer_version, resources_json)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`,
+      )
+      .bind(
+        deploymentLane,
+        wallet.namespace,
+        wallet.organizationId,
+        wallet.projectId,
+        wallet.environmentId,
+        writer.resource.accountId,
+        writer.resource.databaseId,
+        writer.role,
+        writer.versionId,
+        JSON.stringify(catalog.deploymentResources()),
+      );
+    return new DeploymentFencedDatabase(database, guard);
+  }
 
   async exec(): Promise<never> {
     throw new Error('Runtime deployment access requires prepared statements');
@@ -34,22 +86,7 @@ export class DeploymentFencedDatabase implements D1DatabaseLike {
   }
 
   async execute<T>(statements: readonly D1PreparedStatementLike[]): Promise<readonly T[]> {
-    const guard = this.database
-      .prepare(
-        `INSERT INTO regional_deployment_write_checks
-       (deployment_lane, namespace, account_id, database_id, binding_revision, writer_role, writer_version)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-      )
-      .bind(
-        this.binding.deploymentLane,
-        this.binding.tenant.namespace,
-        this.writer.resource.accountId,
-        this.writer.resource.databaseId,
-        this.binding.revision,
-        this.writer.role,
-        this.writer.versionId,
-      );
-    const results = await this.database.batch<T>([guard, ...statements]);
+    const results = await this.database.batch<T>([this.guard, ...statements]);
     return results.slice(1);
   }
 }

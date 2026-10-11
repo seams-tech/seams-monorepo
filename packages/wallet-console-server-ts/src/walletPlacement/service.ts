@@ -1,3 +1,4 @@
+import { DeploymentFencedDatabase } from '../tenantDeployment/fencedDatabase';
 import { authorizePresignSource, authorizePresignTransfer, parsePresignSourceRequest, parsePresignTransferRequest, recordPresignSnapshot } from './presignRelocationCommand';
 import { authorizeEcdsaTransfer, parseEcdsaTransferRequest, recordEcdsaActivation, recordEcdsaSnapshot } from './ecdsaRelocationReceipt';
 import { authorizeEd25519Transfer, parseEd25519TransferRequest, recordEd25519Activation, recordEd25519Snapshot } from './ed25519RelocationReceipt';
@@ -109,17 +110,17 @@ export async function handleWalletHomeServiceRequest(
     readonly deploymentLane: string;
   },
 ): Promise<Response | null> {
+  const mutation = await handleWalletRegistrationMutation(request, options);
+  if (mutation) return mutation;
   const url = new URL(request.url);
   if (!isWalletHomeServiceRequest(request)) return null;
   if (
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-bootstrap` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/device-proof-nonce` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/sync-challenge` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-offer` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/identity` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find-route` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-exchanged-session` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/find` &&
@@ -150,8 +151,7 @@ export async function handleWalletHomeServiceRequest(
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-command` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/relocation-authorization-manifest` &&
     url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/registration-home` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve` &&
-    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/reserve`
   ) {
     return json({ ok: false, code: 'not_found' }, 404);
   }
@@ -504,23 +504,6 @@ export async function handleWalletHomeServiceRequest(
     if (!inScope(wallet, options.scope)) {
       throw new WalletPlacementError('scope_conflict', 'Wallet belongs to another tenant scope');
     }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey`) {
-      const claimed = await claimPasskeyCredential({
-        database: options.database,
-        wallet,
-        writer: options.writer,
-        rpId: requiredString(body.rpId, 'rpId'),
-        credentialIdB64u: requiredString(body.credentialIdB64u, 'credentialIdB64u'),
-      });
-      return claimed ? json({ ok: true }) : json({ ok: false, code: 'credential_conflict' }, 409);
-    }
-    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes`) {
-      if (!Array.isArray(body.locators) || body.locators.length < 1)
-        throw new WalletPlacementError('invalid_input', 'Wallet route locators are required');
-      const locators = body.locators.map(WalletRouteLocator.parse);
-      const published = await routes.publish(wallet, locators, options.writer);
-      return published ? json({ ok: true }) : json({ ok: false, code: 'locator_conflict' }, 409);
-    }
     if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-session`) {
       if (typeof body.expiresAtMs !== 'number')
         throw new WalletPlacementError('invalid_input', 'Session expiry is required');
@@ -566,72 +549,143 @@ export async function handleWalletHomeServiceRequest(
         });
         return json(outcome, outcome.ok ? 200 : 409);
       }
-      case `${WALLET_HOME_SERVICE_BASE_PATH}/complete`: {
-        const home = WalletHome.parse(body.home);
-        if (
-          home.accountId !== options.writer.resource.accountId ||
-          home.databaseId !== options.writer.resource.databaseId
-        ) {
-          throw new WalletPlacementError(
-            'scope_conflict',
-            'Only the assigned home writer can complete registration',
-          );
-        }
-        const outcome = completionOutcome(body.outcome);
-        const ceremonyId = requiredString(body.ceremonyId, 'ceremonyId');
-        if (outcome === 'established') {
-          const session = record(body.session);
-          const sessionWallet = WalletOwnershipKey.parse({
-            ...options.scope,
-            walletId: session.walletId,
-          });
-          if (session.kind !== 'credential' || !sessionWallet.matches(wallet)) {
-            throw new WalletPlacementError(
-              'invalid_input',
-              'Registration session belongs to another wallet',
-            );
-          }
-          if (typeof session.expiresAtMs !== 'number') {
-            throw new WalletPlacementError(
-              'invalid_input',
-              'Registration session expiry is required',
-            );
-          }
-          const assignment = await directory.complete({
-            wallet,
-            home,
-            ceremonyId,
-            outcome,
-            nowMs: Date.now(),
-            session: {
-              locator: SessionLocator.credential(session.digest),
-              expiresAtMs: session.expiresAtMs,
-            },
-          });
-          return json({ ok: true, assignment });
-        }
-        const assignment = await directory.complete({
-          wallet,
-          home,
-          ceremonyId,
-          outcome,
-          nowMs: Date.now(),
-        });
-        return json({ ok: true, assignment });
-      }
       default:
         return json({ ok: false, code: 'not_found' }, 404);
     }
   } catch (error) {
-    if (error instanceof WalletPlacementError) {
-      let status = 409;
-      if (error.code === 'invalid_input') status = 400;
-      if (error.code === 'scope_conflict') status = 403;
-      if (error.code === 'registration_paused' || error.code === 'wallet_relocation_in_progress') {
-        status = 503;
-      }
-      return json({ ok: false, code: error.code }, status);
-    }
+    const response = walletPlacementErrorResponse(error);
+    if (response) return response;
     throw error;
   }
+}
+
+/** These mutations admit the writer inside their first required D1 transaction. */
+export async function handleWalletRegistrationMutation(
+  request: Request,
+  options: {
+    readonly database: D1DatabaseLike;
+    readonly writer: TenantRuntimeWriterV1;
+    readonly catalogJson: unknown;
+    readonly deploymentLane: string;
+  },
+): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (!isWalletHomeServiceRequest(request)) return null;
+  if (
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes` &&
+    url.pathname !== `${WALLET_HOME_SERVICE_BASE_PATH}/complete`
+  ) {
+    return null;
+  }
+  if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
+  try {
+    const body = record(await request.json());
+    const wallet = WalletOwnershipKey.parse(body.wallet);
+    if (typeof options.catalogJson !== 'string' || options.catalogJson.length === 0) {
+      return json({ ok: false, code: 'wallet_home_catalog_unavailable' }, 503);
+    }
+    const catalog = WalletHomeCatalog.parse(JSON.parse(options.catalogJson));
+    const database = DeploymentFencedDatabase.forConsoleWriter(
+      options.database,
+      options.deploymentLane,
+      wallet,
+      catalog,
+      options.writer,
+    );
+    const directory = new D1WalletHomeDirectory(database, catalog);
+    const routes = new D1WalletRoutes(database, wallet);
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/claim-passkey`) {
+      const claimed = await claimPasskeyCredential({
+        database,
+        wallet,
+        writer: options.writer,
+        rpId: requiredString(body.rpId, 'rpId'),
+        credentialIdB64u: requiredString(body.credentialIdB64u, 'credentialIdB64u'),
+      });
+      return claimed ? json({ ok: true }) : json({ ok: false, code: 'credential_conflict' }, 409);
+    }
+    if (url.pathname === `${WALLET_HOME_SERVICE_BASE_PATH}/publish-routes`) {
+      if (!Array.isArray(body.locators) || body.locators.length < 1)
+        throw new WalletPlacementError('invalid_input', 'Wallet route locators are required');
+      const locators = body.locators.map(WalletRouteLocator.parse);
+      const published = await routes.publish(wallet, locators, options.writer);
+      return published ? json({ ok: true }) : json({ ok: false, code: 'locator_conflict' }, 409);
+    }
+
+    const home = WalletHome.parse(body.home);
+    if (
+      home.accountId !== options.writer.resource.accountId ||
+      home.databaseId !== options.writer.resource.databaseId
+    ) {
+      throw new WalletPlacementError(
+        'scope_conflict',
+        'Only the assigned home writer can complete registration',
+      );
+    }
+    const outcome = completionOutcome(body.outcome);
+    const ceremonyId = requiredString(body.ceremonyId, 'ceremonyId');
+    if (outcome === 'established') {
+      const session = record(body.session);
+      if (session.kind !== 'credential' || session.walletId !== wallet.walletId) {
+        throw new WalletPlacementError(
+          'invalid_input',
+          'Registration session belongs to another wallet',
+        );
+      }
+      if (typeof session.expiresAtMs !== 'number') {
+        throw new WalletPlacementError(
+          'invalid_input',
+          'Registration session expiry is required',
+        );
+      }
+      const assignment = await directory.complete({
+        wallet,
+        home,
+        ceremonyId,
+        outcome,
+        nowMs: Date.now(),
+        session: {
+          locator: SessionLocator.credential(session.digest),
+          expiresAtMs: session.expiresAtMs,
+        },
+      });
+      return json({ ok: true, assignment });
+    }
+    const assignment = await directory.complete({
+      wallet,
+      home,
+      ceremonyId,
+      outcome,
+      nowMs: Date.now(),
+    });
+    return json({ ok: true, assignment });
+  } catch (error) {
+    const response = walletPlacementErrorResponse(error);
+    if (response) return response;
+    throw error;
+  }
+}
+
+function walletPlacementErrorResponse(error: unknown): Response | null {
+  if (error instanceof Error && error.message.includes('console_deployment_unavailable')) {
+    return json({ ok: false, code: 'tenant_deployment_unavailable' }, 503);
+  }
+  if (error instanceof Error && error.message.includes('console_deployment_writer_unauthorized')) {
+    return json({ ok: false, code: 'wallet_home_writer_unauthorized' }, 403);
+  }
+  if (error instanceof Error && error.message.includes('console_deployment_resources_unverified')) {
+    return json({ ok: false, code: 'wallet_home_resources_unverified' }, 503);
+  }
+  if (error instanceof WalletPlacementError) {
+    let status = 409;
+    if (error.code === 'invalid_input') status = 400;
+    if (error.code === 'scope_conflict') status = 403;
+    if (error.code === 'registration_paused' || error.code === 'wallet_relocation_in_progress') {
+      status = 503;
+    }
+    return json({ ok: false, code: error.code }, status);
+  }
+  if (error instanceof SyntaxError) return json({ ok: false, code: 'invalid_input' }, 400);
+  return null;
 }

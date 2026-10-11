@@ -206,7 +206,6 @@ export default [
       'tests/unit/addWalletSigner.orchestration.unit.test.ts',
       'tests/unit/seamsWeb.chainSigners.integration.test.ts',
       'tests/unit/nonceCoordinator.unit.test.ts',
-      'tests/unit/d1StagingEvidenceVerify.script.unit.test.ts',
       'tests/unit/cloudflareD1RouterApiServiceSurface.unit.test.ts',
       'tests/unit/warmSessionStore.concurrency.unit.test.ts',
       'tests/unit/warmEd25519SigningSessionAuthorization.unit.test.ts',

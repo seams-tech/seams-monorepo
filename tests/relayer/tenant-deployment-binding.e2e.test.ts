@@ -2,6 +2,7 @@ import {
   gatewaySessionCatalog,
   verifyGatewaySessionLookup,
 } from './gateway-session-lookup.scenario';
+import { MiniflareServiceBinding } from '../helpers/miniflareServiceBinding';
 import { createRequire } from 'node:module';
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
@@ -425,7 +426,12 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
       }
     }
     const consoleWorker = await runtime.getWorker('console');
-    gatewaySessionLookup = await verifyGatewaySessionLookup(database, signerDatabase, consoleWorker, second);
+    gatewaySessionLookup = await verifyGatewaySessionLookup(
+      database,
+      signerDatabase,
+      new MiniflareServiceBinding(consoleWorker),
+      second,
+    );
     await database.prepare('DELETE FROM active_tenant_deployment_bindings').run();
     const removed = await reader.fetch('https://consumer.test/');
     expect(removed.status).toBe(503);

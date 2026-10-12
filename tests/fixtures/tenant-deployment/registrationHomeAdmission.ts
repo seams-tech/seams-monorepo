@@ -140,7 +140,7 @@ export async function registrationLifecycleFromGateway(
     walletId: string;
     operation: { kind: 'assert' } | { kind: 'complete'; outcome: 'established' | 'cancelled' };
   },
-): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome']>>> {
+): Promise<Awaited<ReturnType<WalletRegistrationReservationAuthority['admitHome' | 'complete']>>> {
   const walletId = parseWalletId(input.walletId);
   if (!walletId.ok) throw new Error(walletId.error.message);
   const authority = gatewayAdmission(input);

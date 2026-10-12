@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
 import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../packages/wallet-console-shared-ts/src/apiKeyScopes';
+import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '../../packages/wallet-console-shared-ts/src/tenant-root';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { WalletHomeCatalog, type WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
@@ -25,6 +26,7 @@ import {
   fourRegionBinding,
   readyActivation,
   regionalResourceProof,
+  regionalResourceProofs,
   seedAdoptionRoot,
 } from '../helpers/tenantDeploymentFixtures';
 import { gatewaySetupInput } from '../fixtures/tenant-deployment/registrationHomeAdmission';
@@ -288,11 +290,17 @@ test('production Console service bindings enforce durable credential changes and
     const consumer = await runtime.getWorker('consumer');
     const service = new LocalConsoleService(consumer);
     const client = createWalletConsoleOpsClient(service);
+    // The Gateway sends its setup request with every registration-context call.
+    const registration = gatewaySetupInput({
+      operationId: `wreg_${randomBytes(32).toString('base64url')}`,
+      origin,
+    }).request;
 
     const accepted = await client.registrationContext.resolve({
       secret: credential.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(accepted.ok).toBe(true);
     if (!accepted.ok) throw new Error(`Console authentication failed: ${accepted.code}`);
@@ -329,18 +337,15 @@ test('production Console service bindings enforce durable credential changes and
       null,
       nowMs,
     );
-    const resourceVerifications = [];
-    for (const resource of deployment.resources) {
-      resourceVerifications.push(
-        regionalResourceProof(
-          deployment,
-          resource.databaseId,
-          resource.databaseId,
-          relocationWriterVersion(resource.databaseId, 'walletRuntime'),
-          nowMs,
-        ),
-      );
-    }
+    const resourceVerifications = regionalResourceProofs(deployment, (resource) =>
+      regionalResourceProof(
+        deployment,
+        resource.databaseId,
+        resource.databaseId,
+        relocationWriterVersion(resource.databaseId, 'walletRuntime'),
+        nowMs,
+      ),
+    );
     await deployments.activateBinding({
       ...activation,
       resourceVerifications,
@@ -475,6 +480,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: credential.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(refreshed.ok).toBe(true);
     if (!refreshed.ok) throw new Error('Updated environment was unavailable');
@@ -508,6 +514,7 @@ test('production Console service bindings enforce durable credential changes and
         secret: scenario.secret,
         origin: scenario.origin,
         environmentId: scenario.environmentId,
+        registration,
       });
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error('Console admitted a mismatched credential');
@@ -580,7 +587,9 @@ test('production Console service bindings enforce durable credential changes and
     expect(lineage).toBeNull();
     observations.push({ stage: 'unprovisioned_root', result: lineage });
 
-    const createdRoot = await seedAdoptionRoot(database, namespace, lineageIdentity);
+    const lineageRoot = buildTenantRootIdentityFromAuthenticatedDeploymentV1(lineageIdentity);
+    if (!lineageRoot.ok) throw new Error('Invalid tenant-root identity fixture');
+    const createdRoot = await seedAdoptionRoot(database, namespace, lineageRoot.value);
     const createdLineage =
       await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
     expect(createdLineage).toEqual({
@@ -650,6 +659,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: credential.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(replaced.ok).toBe(false);
     if (replaced.ok) throw new Error('Console admitted a replaced credential');
@@ -662,6 +672,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: rotated.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(replacement.ok).toBe(true);
     expect(
@@ -688,6 +699,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: rotated.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(revoked.ok).toBe(false);
     if (revoked.ok) throw new Error('Console admitted a revoked credential');
@@ -711,6 +723,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: archiveCredential.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(beforeArchive.ok).toBe(true);
     await organizations.archiveEnvironment(context, environmentId);
@@ -718,6 +731,7 @@ test('production Console service bindings enforce durable credential changes and
       secret: archiveCredential.secret,
       origin,
       environmentId,
+      registration,
     });
     expect(archived.ok).toBe(false);
     if (archived.ok) throw new Error('Console admitted an archived environment');

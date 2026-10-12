@@ -1,7 +1,10 @@
 import { D1RegionalDeploymentAdmission } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import type { TenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import {
+  TenantResourceVerificationV1,
+  type TenantDeploymentResourceVerificationsV1,
+} from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   buildTenantDeploymentBindingV1,
   encodeTenantDeploymentJsonValueV1,
@@ -92,10 +95,16 @@ export async function seedHistoricalActiveBinding(
   return historical;
 }
 
+// A development binding pairs a `:dev` environment with `ak_dev_`/`pk_dev_` credentials.
+type DevelopmentBindingTenant = Extract<
+  TenantDeploymentBindingBodyV1,
+  { readonly mode: { readonly environment: 'development' } }
+>['tenant'];
+
 export function developmentBindingBody(
   createdAtMs: number,
   deploymentLane: string,
-  tenant?: TenantDeploymentBindingV1['tenant'],
+  tenant?: DevelopmentBindingTenant,
 ): TenantDeploymentBindingBodyV1 {
   return {
     kind: 'tenant_deployment_binding_v1',
@@ -407,6 +416,17 @@ export function regionalResourceProof(
   );
 }
 
+/** One proof for each bound resource. Activation takes a non-empty proof set. */
+export function regionalResourceProofs(
+  candidate: TenantDeploymentBindingV1,
+  proofFor: (
+    resource: TenantDeploymentBindingV1['resources'][number],
+  ) => TenantResourceVerificationV1,
+): TenantDeploymentResourceVerificationsV1 {
+  const [first, ...rest] = candidate.resources;
+  return [proofFor(first), ...rest.map((resource) => proofFor(resource))];
+}
+
 export async function bindingForResourceSet(
   nowMs: number,
   lane: string,
@@ -426,7 +446,7 @@ export async function bindingForResourceSet(
 export async function fourRegionBinding(
   createdAtMs: number,
   deploymentLane: string,
-  tenant?: TenantDeploymentBindingV1['tenant'],
+  tenant?: DevelopmentBindingTenant,
 ) {
   const existing = await regionalBinding(createdAtMs, deploymentLane);
   const result = await buildTenantDeploymentBindingV1({
@@ -487,17 +507,14 @@ export async function activateConsoleDeploymentFixture(
     null,
     nowMs,
   );
-  const resourceVerifications = [];
-  for (const resource of binding.resources) {
-    resourceVerifications.push(
-      regionalResourceProof(
-        binding,
-        resource.databaseId,
-        resource.databaseId,
-        resource.databaseId.replace(/^[^-]+/u, 'eeeeeeee'),
-        nowMs,
-      ),
-    );
-  }
+  const resourceVerifications = regionalResourceProofs(binding, (resource) =>
+    regionalResourceProof(
+      binding,
+      resource.databaseId,
+      resource.databaseId,
+      resource.databaseId.replace(/^[^-]+/u, 'eeeeeeee'),
+      nowMs,
+    ),
+  );
   await store.activateBinding({ ...activation, resourceVerifications });
 }

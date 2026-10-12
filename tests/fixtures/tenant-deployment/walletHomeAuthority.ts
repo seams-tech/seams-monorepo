@@ -11,7 +11,50 @@ import {
   WalletOwnershipKey,
   WalletPlacementError,
   regionForRegistrationIngress,
+  type WalletRegion,
 } from '../../../packages/wallet-console-server-ts/src/walletPlacement/home';
+
+/* The commands that wallet-home-directory.e2e.test.ts posts to this fixture.
+   The production parsers below validate `wallet`, `home` and the allocation. */
+type DirectoryCommand =
+  | {
+      readonly action: 'registration-lifecycle';
+      readonly region: WalletRegion;
+      readonly localRegion: WalletRegion;
+      readonly ceremonyId: string;
+      readonly walletId: string;
+      readonly operation: Parameters<typeof registrationLifecycleFromGateway>[0]['operation'];
+    }
+  | {
+      readonly action: 'admit';
+      readonly region: WalletRegion;
+      readonly localRegion: WalletRegion;
+      readonly operationId: string;
+      readonly origin: string;
+    }
+  | { readonly action: 'select' }
+  | { readonly action: 'find'; readonly wallet: unknown }
+  | ({
+      readonly action: 'complete';
+      readonly wallet: unknown;
+      readonly home: unknown;
+      readonly ceremonyId: string;
+    } & (
+      | {
+          readonly outcome: 'established';
+          readonly session: { readonly digest: string; readonly expiresAtMs: number };
+        }
+      | { readonly outcome: 'cancelled' }
+    ))
+  | {
+      readonly action: 'reserve';
+      readonly wallet: unknown;
+      readonly home: unknown;
+      readonly allocation: string;
+      readonly registrationAllocation: unknown;
+      readonly registrationId: string;
+      readonly requestDigest: string;
+    };
 
 const catalog = WalletHomeCatalog.parse([
   {
@@ -71,14 +114,13 @@ export default {
     });
     if (serviceResponse) return serviceResponse;
     const directory = new D1WalletHomeDirectory(env.CONSOLE_DB, catalog);
-    const body = await request.json();
+    const body: DirectoryCommand = await request.json();
     try {
       if (body.action === 'registration-lifecycle') {
         try {
           const result = await registrationLifecycleFromGateway({
             database: env.CONSOLE_DB,
             catalogJson,
-            admittedResources: catalog.deploymentResources(),
             region: body.region,
             localRegion: body.localRegion,
             ceremonyId: body.ceremonyId,
@@ -100,7 +142,6 @@ export default {
         const result = await reserveFromGateway({
           database: env.CONSOLE_DB,
           catalogJson,
-          admittedResources: catalog.deploymentResources(),
           region: body.region,
           localRegion: body.localRegion,
           operationId: body.operationId,

@@ -19,6 +19,7 @@ import { promisify } from 'node:util';
 import { candidatePackageAliases } from '../helpers/walletServerCandidate';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
+import { MiniflareServiceBinding } from '../helpers/miniflareServiceBinding';
 import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import {
   deploymentResource,
@@ -1270,20 +1271,20 @@ async function verifyRelocationResources(
       deploymentLane: lane,
       writers: {
         US: {
-          gateway: await runtime.getWorker('gateway-second-resource'),
-          walletRuntime: await runtime.getWorker('runtime-second-resource'),
+          gateway: new MiniflareServiceBinding(await runtime.getWorker('gateway-second-resource')),
+          walletRuntime: new MiniflareServiceBinding(await runtime.getWorker('runtime-second-resource')),
         },
         WEUR: {
-          gateway: await runtime.getWorker('gateway'),
-          walletRuntime: await runtime.getWorker('runtime-good'),
+          gateway: new MiniflareServiceBinding(await runtime.getWorker('gateway')),
+          walletRuntime: new MiniflareServiceBinding(await runtime.getWorker('runtime-good')),
         },
         APAC: {
-          gateway: await runtime.getWorker('gateway-third-resource'),
-          walletRuntime: await runtime.getWorker('runtime-third-resource'),
+          gateway: new MiniflareServiceBinding(await runtime.getWorker('gateway-third-resource')),
+          walletRuntime: new MiniflareServiceBinding(await runtime.getWorker('runtime-third-resource')),
         },
         OC: {
-          gateway: await runtime.getWorker('gateway-oceania-resource'),
-          walletRuntime: await runtime.getWorker('runtime-oceania-resource'),
+          gateway: new MiniflareServiceBinding(await runtime.getWorker('gateway-oceania-resource')),
+          walletRuntime: new MiniflareServiceBinding(await runtime.getWorker('runtime-oceania-resource')),
         },
       },
     }),

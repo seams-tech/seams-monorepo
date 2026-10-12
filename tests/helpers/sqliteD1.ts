@@ -104,15 +104,13 @@ export function cleanupTemporaryD1Database(tempDir: string): void {
   rmSync(tempDir, { recursive: true, force: true });
 }
 
-export type D1MigrationDirectoryName = 'd1-console-core' | 'd1-console' | 'd1-signer';
+export type D1MigrationDirectoryName = 'd1-console-core' | 'd1-console';
 
 export function listD1MigrationFiles(directoryName: D1MigrationDirectoryName): readonly string[] {
   const packageRoot =
     directoryName === 'd1-console-core'
       ? 'packages/console-server-ts'
-      : directoryName === 'd1-console'
-        ? 'packages/wallet-console-server-ts'
-        : 'packages/wallet-server';
+      : 'packages/wallet-console-server-ts';
   const migrationsDir = path.join(repoRoot, packageRoot, 'migrations', directoryName);
   const files: string[] = [];
   for (const fileName of readdirSync(migrationsDir)) {

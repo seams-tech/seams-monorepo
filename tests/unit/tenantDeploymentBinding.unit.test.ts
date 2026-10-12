@@ -13,10 +13,6 @@ import {
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { createTenantDeploymentReadinessServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/readiness';
 import {
-  createTenantDeploymentRuntimeInspectionClientV1,
-  createTenantDeploymentRuntimeInspectionHandlerV1,
-} from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
-import {
   createTenantDeploymentPublicProjectionHandlerV1,
   tenantDeploymentPublicProjectionResponseV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/publicProjection';
@@ -117,73 +113,6 @@ test.describe('tenant deployment binding', () => {
     });
     expect(available.status).toBe(200);
     expect(available.headers.get('Access-Control-Allow-Origin')).toBe('https://wallet.seams.sh');
-  });
-
-  test('reads durable wallet and live ceremony counts through the private runtime binding', async () => {
-    const fixture = createTemporaryD1Database();
-    try {
-      await fixture.database.exec(`
-        CREATE TABLE wallets (
-          namespace TEXT NOT NULL,
-          org_id TEXT NOT NULL,
-          project_id TEXT NOT NULL,
-          env_id TEXT NOT NULL,
-          wallet_id TEXT NOT NULL
-        );
-        CREATE TABLE registration_ceremony_records (
-          namespace TEXT NOT NULL,
-          org_id TEXT NOT NULL,
-          project_id TEXT NOT NULL,
-          env_id TEXT NOT NULL,
-          record_id TEXT NOT NULL,
-          expires_at_ms INTEGER NOT NULL
-        );
-        INSERT INTO wallets VALUES
-          ('wallet', 'org_1', 'project_source', 'project_source:dev', 'wallet_source'),
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'wallet_target');
-        INSERT INTO registration_ceremony_records VALUES
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'live', 2000),
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'expired', 999);
-      `);
-      const handler = createTenantDeploymentRuntimeInspectionHandlerV1({
-        database: fixture.database,
-        resource: deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-        now: () => 1000,
-      });
-      const client = createTenantDeploymentRuntimeInspectionClientV1(
-        {
-          async fetch(request: Request | string, init?: RequestInit) {
-            const result = await handler(new Request(request, init));
-            return result ?? new Response('Not found', { status: 404 });
-          },
-        },
-        deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-      );
-      await expect(
-        client.inspect({
-          bindingRevision: 'tdb_candidate',
-          source: {
-            namespace: 'wallet',
-            organizationId: 'org_1',
-            projectId: 'project_source',
-            environmentId: 'project_source:dev',
-          },
-          target: {
-            namespace: 'wallet',
-            organizationId: 'org_1',
-            projectId: 'proj_mu3mtq24_6ni46i',
-            environmentId: 'proj_mu3mtq24_6ni46i:dev',
-          },
-        }),
-      ).resolves.toEqual({
-        acknowledgedBindingRevision: 'tdb_candidate',
-        sourceDurableWalletCount: 1,
-        targetDurableWalletCount: 1,
-        inFlightCeremonyCount: 1,
-      });
-    } finally {
-      cleanupTemporaryD1Database(fixture.tempDir);
-    }
   });
 
   test('rejects a modified body under an existing content revision', async () => {

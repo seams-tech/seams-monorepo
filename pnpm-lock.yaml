@@ -310,8 +310,8 @@ importers:
   tests/intended-app:
     dependencies:
       '@seams/wallet':
-        specifier: 0.7.3
-        version: 0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
+        specifier: 0.9.0
+        version: 0.9.0(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -1468,23 +1468,6 @@ packages:
   '@seams/wallet-server@0.9.0':
     resolution: {integrity: sha512-0+CgQc2NTyTawar4GrgZXxEG+ukqtKy1+gp5UqX3L7YFupOmYSVFkGJx+7Ox5gfncwxMD00mZR5ljMICpiRk6A==}
     hasBin: true
-
-  '@seams/wallet@0.7.3':
-    resolution: {integrity: sha512-ZgWyYwizIa57KWTDwh/uY8vj+Vk35teBMtWdDta99zv3XcAJFKlBM08NEjncHp0sYJUZ/9x4ociu84WHi6RVHA==}
-    peerDependencies:
-      jsqr: '>=1.4.0'
-      qrcode: '>=1.3.0'
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      jsqr:
-        optional: true
-      qrcode:
-        optional: true
-      react:
-        optional: true
-      react-dom:
-        optional: true
 
   '@seams/wallet@0.9.0':
     resolution: {integrity: sha512-/xhMGiAX3kXWqTPaR8UvYuOCNoOyd7h0v35K6tIeViv5l0PmnorFkVEhGm5Ms6xzN/KSbqQVmZK+6RuZN1LVBA==}
@@ -3895,27 +3878,6 @@ snapshots:
       express: 4.21.2
     transitivePeerDependencies:
       - supports-color
-
-  '@seams/wallet@0.7.3(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
-    dependencies:
-      '@near-js/types': 2.5.1
-      '@noble/hashes': 2.0.1
-      bs58: 6.0.0
-      idb: 8.0.3
-      preact: 10.29.8
-      tslib: 2.8.1
-      viem: 2.46.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)
-    optionalDependencies:
-      jsqr: 1.4.0
-      qrcode: 1.5.4
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-    transitivePeerDependencies:
-      - bufferutil
-      - preact-render-to-string
-      - typescript
-      - utf-8-validate
-      - zod
 
   '@seams/wallet@0.9.0(bufferutil@4.0.9)(jsqr@1.4.0)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.3)':
     dependencies:

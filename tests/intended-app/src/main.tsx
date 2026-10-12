@@ -54,7 +54,7 @@ if (!root) throw new Error('Missing #root');
 
 createRoot(root).render(
   <React.StrictMode>
-    <SeamsWebProvider eager config={config}>
+    <SeamsWebProvider config={config}>
       <IntendedBehaviourE2EPage />
     </SeamsWebProvider>
   </React.StrictMode>,

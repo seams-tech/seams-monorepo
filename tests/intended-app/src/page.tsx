@@ -129,10 +129,6 @@ type IntendedPasskeyEcdsaTargetProfile =
   | { kind: 'tempo' }
   | { kind: 'tempo_arc' };
 
-type IntendedEcdsaSignerProvisioningDefaults = ReturnType<
-  typeof useSeams
->['seams']['configs']['signing']['thresholdEcdsa']['provisioningDefaults'];
-
 type IntendedEcdsaSessionSummary =
   | {
       ecdsaTargetProfile: 'none';
@@ -472,8 +468,8 @@ type IntendedPageControllerArgs = {
   passkeyEcdsaTargetProfile: IntendedPasskeyEcdsaTargetProfile;
   emailOtpEcdsaTargetProfile: IntendedEmailOtpEcdsaTargetProfile;
   seams: ReturnType<typeof useSeams>['seams'];
-  registerPasskey: ReturnType<typeof useSeams>['registerPasskey'];
-  refreshLoginState: ReturnType<typeof useSeams>['refreshLoginState'];
+  registerWallet: ReturnType<typeof useSeams>['registerWallet'];
+  refreshSession: ReturnType<typeof useSeams>['refreshSession'];
   dispatch: React.Dispatch<IntendedPageAction>;
 };
 
@@ -484,7 +480,7 @@ async function resolveIntendedGoogleExternalAuth(
   idToken: string,
   request: HostedAuthMenuExternalAuthRequest,
 ): Promise<void> {
-  await seams.resolveHostedAuthMenuExternalAuth({
+  await seams.authMenu.resolveExternalAuth({
     kind: 'hosted_auth_menu_external_auth_resolution_v1',
     authMenuSessionId: request.authMenuSessionId,
     externalAuthRequestId: request.externalAuthRequestId,
@@ -612,8 +608,8 @@ export const IntendedBehaviourE2EPage: React.FC = () => {
     passkeyEcdsaTargetProfile: query.passkeyEcdsaTargetProfile,
     emailOtpEcdsaTargetProfile: query.emailOtpEcdsaTargetProfile,
     seams: seamsContext.seams,
-    registerPasskey: seamsContext.registerPasskey,
-    refreshLoginState: seamsContext.refreshLoginState,
+    registerWallet: seamsContext.registerWallet,
+    refreshSession: seamsContext.refreshSession,
     dispatch,
   });
   const snapshot = JSON.stringify(state, null, 2);
@@ -870,9 +866,9 @@ class IntendedPageController {
 
   private readonly seams: ReturnType<typeof useSeams>['seams'];
 
-  private readonly registerPasskey: ReturnType<typeof useSeams>['registerPasskey'];
+  private readonly registerWallet: ReturnType<typeof useSeams>['registerWallet'];
 
-  private readonly refreshLoginState: ReturnType<typeof useSeams>['refreshLoginState'];
+  private readonly refreshSession: ReturnType<typeof useSeams>['refreshSession'];
 
   private readonly dispatch: React.Dispatch<IntendedPageAction>;
 
@@ -884,8 +880,8 @@ class IntendedPageController {
     this.passkeyEcdsaTargetProfile = args.passkeyEcdsaTargetProfile;
     this.emailOtpEcdsaTargetProfile = args.emailOtpEcdsaTargetProfile;
     this.seams = args.seams;
-    this.registerPasskey = args.registerPasskey;
-    this.refreshLoginState = args.refreshLoginState;
+    this.registerWallet = args.registerWallet;
+    this.refreshSession = args.refreshSession;
     this.dispatch = args.dispatch;
   }
 
@@ -979,13 +975,13 @@ class IntendedPageController {
 
   lockWalletForIntendedTest = async (): Promise<void> => {
     await this.seams.auth.lock();
-    await this.refreshLoginState(this.walletId);
+    await this.refreshSession(this.walletId);
   };
 
   readWalletLockStateForIntendedTest = async (): Promise<{
     authenticationKind: WalletSession['authentication']['kind'];
   }> => {
-    const session = await this.seams.auth.getWalletSession(this.walletId);
+    const session = await this.seams.auth.getSession(this.walletId);
     return { authenticationKind: session.authentication.kind };
   };
 
@@ -993,17 +989,17 @@ class IntendedPageController {
     const action: IntendedActionName = 'registerPasskeyWallet';
     this.dispatch({ kind: 'action_started', action });
     try {
-      const result = await this.registerPasskey({
+      const result = await this.registerWallet({
         wallet: {
           kind: 'provided',
           walletId: toWalletId(this.walletId),
         },
-        signerOptions: passkeySignerOptionsForProfile({
-          defaults: this.seams.configs.signing.thresholdEcdsa.provisioningDefaults,
-          profile: this.passkeyEcdsaTargetProfile,
-        }),
-        recoveryCodeBackup: { kind: 'show_builtin_dialog' },
-        onEvent: this.recordLifecycleEvent,
+        authMethod: { kind: 'passkey', rpId: intendedRegistrationRpId() },
+        signerSelection: intendedPasskeySignerSelection(this.passkeyEcdsaTargetProfile),
+        options: {
+          recoveryCodeBackup: { kind: 'show_builtin_dialog' },
+          onEvent: this.recordLifecycleEvent,
+        },
       });
       const registration = assertPasskeyRegistrationSucceeded({
         result,
@@ -1168,7 +1164,7 @@ class IntendedPageController {
     const action: IntendedActionName = 'addPasskeyEd25519YaoWalletSigner';
     this.dispatch({ kind: 'action_started', action });
     try {
-      const result = await this.seams.registration.addWalletSigner({
+      const result = await this.seams.registration.addSigner({
         walletId: toWalletId(this.walletId),
         rpId: intendedRegistrationRpId(),
         signerSelection: {
@@ -1210,7 +1206,7 @@ class IntendedPageController {
       if (!walletId) throw new Error('add-email-code requires a registered wallet');
       const emailAddress = intendedGoogleEmailAddress(requireGoogleIdToken(this.googleIdToken));
       intendedEmailOtpChallengeSubjectOverride = emailAddress;
-      const result = await this.seams.registration.addEmailOtp({
+      const result = await this.seams.registration.addEmail({
         walletId: toWalletId(walletId),
         emailAddress,
         options: { onEvent: this.recordLifecycleEvent },
@@ -1244,7 +1240,7 @@ class IntendedPageController {
     try {
       const walletId = this.walletId;
       if (!walletId) throw new Error('revoke requires a registered wallet');
-      const session = await this.seams.auth.getWalletSession(walletId);
+      const session = await this.seams.auth.getSession(walletId);
       if (session.appIdentity.kind !== 'resolved') {
         throw new Error(`revoke wallet identity is ${session.appIdentity.kind}`);
       }
@@ -1268,7 +1264,7 @@ class IntendedPageController {
           `revoke needs exactly one sibling to remove, found ${siblings.length} beside the added method`,
         );
       }
-      const result = await this.seams.registration.revokeAuthMethod({
+      const result = await this.seams.registration.removeAuthMethod({
         walletId: toWalletId(walletId),
         walletAuthMethodId: String(target.walletAuthMethodId),
       });
@@ -1303,7 +1299,7 @@ class IntendedPageController {
       intendedEmailOtpChallengeSubjectOverride = emailAddress;
       /* Read before locking: the unlock names the exact method it opens, and
          once the wallet is locked there is no session left to ask. */
-      const openSession = await this.seams.auth.getWalletSession(walletId);
+      const openSession = await this.seams.auth.getSession(walletId);
       if (openSession.appIdentity.kind !== 'resolved') {
         throw new Error(`added email-code unlock identity is ${openSession.appIdentity.kind}`);
       }
@@ -1317,8 +1313,8 @@ class IntendedPageController {
       }
       await this.seams.auth.lock();
       await this.unlockEmailOtpWalletWithHostedMenu('intended-unlock-added-email-otp');
-      await this.refreshLoginState(walletId);
-      const unlockedSession = await this.seams.auth.getWalletSession(walletId);
+      await this.refreshSession(walletId);
+      const unlockedSession = await this.seams.auth.getSession(walletId);
       this.dispatch({
         kind: 'action_succeeded',
         action,
@@ -1478,7 +1474,7 @@ class IntendedPageController {
         registration: this.seams.registration,
         walletId: this.walletId,
       });
-      const session = await this.seams.auth.getWalletSession(this.walletId);
+      const session = await this.seams.auth.getSession(this.walletId);
       if (session.appIdentity.kind !== 'resolved') {
         throw new Error(`NEAR readiness wallet identity is ${session.appIdentity.kind}`);
       }
@@ -1490,7 +1486,7 @@ class IntendedPageController {
         throw new Error('NEAR provisioning completed without a matching wallet session identity');
       }
       this.nearAccountId = nearAccountId;
-      await this.refreshLoginState(this.walletId);
+      await this.refreshSession(this.walletId);
       this.dispatch({
         kind: 'action_succeeded',
         action,
@@ -1530,7 +1526,7 @@ class IntendedPageController {
         '[data-testid="intended-unlock-passkey"]',
       );
       if (!anchorElement) throw new Error('Passkey unlock anchor is unavailable');
-      const outcome = await this.seams.openHostedAuthMenu(
+      const outcome = await this.seams.authMenu.open(
         buildHostedAuthMenuOpenRequest({
           authMenuSessionId,
           initialMode: 'login',
@@ -1550,9 +1546,9 @@ class IntendedPageController {
       }
       /* R109C: which credential the session names is the point of an added
          method - the family alone cannot tell it from the method that added it. */
-      const unlockedSession = await this.seams.auth.getWalletSession(this.walletId);
+      const unlockedSession = await this.seams.auth.getSession(this.walletId);
       const summary = assertPasskeyUnlockSucceeded(unlockedSession, this.walletId);
-      await this.refreshLoginState(summary.walletId);
+      await this.refreshSession(summary.walletId);
       this.dispatch({ kind: 'action_succeeded', action, result: summary });
     } catch (error) {
       this.dispatch({ kind: 'action_failed', action, error: errorMessage(error) });
@@ -1571,7 +1567,7 @@ class IntendedPageController {
         '[data-testid="intended-sync-passkey"]',
       );
       if (!anchorElement) throw new Error('Passkey sync anchor is unavailable');
-      const outcome = await this.seams.openHostedAuthMenu(
+      const outcome = await this.seams.authMenu.open(
         buildHostedAuthMenuOpenRequest({
           authMenuSessionId,
           initialMode: 'login',
@@ -1589,7 +1585,7 @@ class IntendedPageController {
       if (String(outcome.walletId) !== this.walletId) {
         throw new Error(`Passkey sync wallet mismatch: ${String(outcome.walletId)}`);
       }
-      const session = await this.seams.auth.getWalletSession(String(outcome.walletId));
+      const session = await this.seams.auth.getSession(String(outcome.walletId));
       if (session.appIdentity.kind !== 'resolved') {
         throw new Error(`Passkey sync wallet identity is ${session.appIdentity.kind}`);
       }
@@ -1601,7 +1597,7 @@ class IntendedPageController {
         throw new Error('Passkey sync omitted its NEAR signer identity');
       }
       this.nearAccountId = nearAccountId;
-      await this.refreshLoginState(String(outcome.walletId));
+      await this.refreshSession(String(outcome.walletId));
       this.dispatch({
         kind: 'action_succeeded',
         action,
@@ -1629,7 +1625,7 @@ class IntendedPageController {
         '[data-testid="intended-recover-passkey"]',
       );
       if (!anchorElement) throw new Error('Passkey recovery anchor is unavailable');
-      const outcome = await this.seams.openHostedAuthMenu(
+      const outcome = await this.seams.authMenu.open(
         buildHostedAuthMenuOpenRequest({
           authMenuSessionId,
           initialMode: 'login',
@@ -1647,8 +1643,8 @@ class IntendedPageController {
       if (String(outcome.walletId) !== this.walletId || outcome.method !== 'passkey') {
         throw new Error('Passkey recovery returned the wrong wallet or auth method');
       }
-      await this.refreshLoginState(String(outcome.walletId));
-      const recoveryStatus = await this.seams.recovery.getWalletRecoveryCodeStatus({
+      await this.refreshSession(String(outcome.walletId));
+      const recoveryStatus = await this.seams.recovery.getCodeStatus({
         walletId: String(outcome.walletId),
       });
       if (recoveryStatus.kind !== 'ready') {
@@ -1684,12 +1680,12 @@ class IntendedPageController {
       );
       if (!anchorElement) throw new Error('Google Email OTP recovery anchor is unavailable');
       const idToken = requireGoogleIdToken(this.googleIdToken);
-      const unsubscribeExternalAuth = this.seams.onHostedAuthMenuExternalAuthRequest(
+      const unsubscribeExternalAuth = this.seams.authMenu.onExternalAuthRequest(
         resolveIntendedGoogleExternalAuth.bind(null, this.seams, idToken),
       );
       let outcome: HostedAuthMenuOutcome;
       try {
-        outcome = await this.seams.openHostedAuthMenu(
+        outcome = await this.seams.authMenu.open(
           buildHostedAuthMenuOpenRequest({
             authMenuSessionId,
             initialMode: 'login',
@@ -1710,8 +1706,8 @@ class IntendedPageController {
       if (String(outcome.walletId) !== this.walletId || outcome.method !== 'google_email_otp') {
         throw new Error('Google Email OTP recovery returned the wrong wallet or auth method');
       }
-      await this.refreshLoginState(String(outcome.walletId));
-      const recoveryStatus = await this.seams.recovery.getWalletRecoveryCodeStatus({
+      await this.refreshSession(String(outcome.walletId));
+      const recoveryStatus = await this.seams.recovery.getCodeStatus({
         walletId: String(outcome.walletId),
       });
       if (recoveryStatus.kind !== 'ready') {
@@ -1738,8 +1734,8 @@ class IntendedPageController {
     try {
       await this.seams.auth.lock();
       const unlock = await this.unlockEmailOtpWalletWithHostedMenu('intended-unlock-email-otp');
-      await this.refreshLoginState(unlock.walletId);
-      const ecdsaTargetKeys = await this.readEcdsaTargetKeys(this.emailOtpEcdsaTargetProfile.kind);
+      await this.refreshSession(unlock.walletId);
+      const ecdsaTargetKeys = registrationEcdsaTargetKeys(unlock);
       const ecdsa = assertEcdsaTargetKeysForSession({
         session: unlock,
         ecdsaTargetKeys,
@@ -1803,65 +1799,9 @@ class IntendedPageController {
     }
   }
 
-  private async readEcdsaTargetKeys(
-    profile: IntendedEcdsaTargetProfileName,
-  ): Promise<IntendedEcdsaTargetKeysSummary> {
-    const walletSession = walletSessionRefFromSession({
-      walletId: this.walletId,
-      walletSessionUserId: this.walletId,
-    });
-    switch (profile) {
-      case 'none':
-        return { kind: 'none' };
-      case 'tempo': {
-        const tempo = await this.resolveEcdsaTargetKey({
-          chain: 'tempo',
-          walletSession,
-        });
-        return { kind: 'tempo', tempo };
-      }
-      case 'tempo_arc': {
-        const tempo = await this.resolveEcdsaTargetKey({
-          chain: 'tempo',
-          walletSession,
-        });
-        const arcEvm = await this.resolveEcdsaTargetKey({
-          chain: 'arc_evm',
-          walletSession,
-        });
-        return { kind: 'tempo_arc', tempo, arcEvm };
-      }
-      default:
-        return assertNever(profile);
-    }
-  }
-
-  private async resolveEcdsaTargetKey(input: {
-    chain: 'tempo' | 'arc_evm';
-    walletSession: ReturnType<typeof walletSessionRefFromSession>;
-  }): Promise<IntendedEcdsaTargetKeySummary> {
-    const chainTarget = intendedEcdsaChainTarget(input.chain);
-    const resolved = await this.seams.keys.resolveExactKeyExportLane({
-      kind: 'ecdsa',
-      walletSession: input.walletSession,
-      chainTarget,
-    });
-    if (resolved.kind !== 'ecdsa') {
-      throw new Error(`ECDSA target key returned unexpected kind: ${resolved.kind}`);
-    }
-    return {
-      chain: input.chain,
-      chainId: chainTarget.chainId,
-      thresholdOwnerAddress: requireNonEmptyString(
-        resolved.laneIdentity.signer.key.thresholdOwnerAddress,
-        `${input.chain} thresholdOwnerAddress`,
-      ),
-    };
-  }
-
   private async signNearTransactionWithPublicSdk(): Promise<NearSigningResultSummary> {
     const nearAccountId = requireNearAccountId(this.nearAccountId);
-    const result = await this.seams.near.signTransactionWithActions({
+    const result = await this.seams.near.signTransaction({
       walletSession: walletSessionRefFromSession({
         walletId: this.walletId,
         walletSessionUserId: this.walletId,
@@ -1912,7 +1852,7 @@ class IntendedPageController {
       signerSelection && !signerSelection.signers.some(isEvmFamilyEcdsaSigner)
         ? { kind: 'none', sdkTargets: { kind: 'none' }, chainTargets: [] }
         : this.emailOtpEcdsaTargetProfile;
-    const flowResult = await this.seams.auth.beginGoogleEmailOtpWalletAuth({
+    const flowResult = await this.seams.auth.startGoogleSignIn({
       idToken,
       mode: 'register',
       // The harness registers a fresh wallet per run against a persistent
@@ -1940,7 +1880,7 @@ class IntendedPageController {
     if (!completed.ok) {
       throw new Error(completed.error.message);
     }
-    const nearProvisioning = await this.seams.registration.getNearProvisioningState({
+    const nearProvisioning = await this.seams.registration.getNearAccountState({
       walletId: completed.value.walletId,
     });
     const session = await resolveEmailOtpRegistrationSession({
@@ -1972,12 +1912,12 @@ class IntendedPageController {
     const anchorElement = document.querySelector<HTMLElement>(`[data-testid="${anchorTestId}"]`);
     if (!anchorElement) throw new Error('Google Email OTP unlock anchor is unavailable');
     const idToken = requireGoogleIdToken(this.googleIdToken);
-    const unsubscribeExternalAuth = this.seams.onHostedAuthMenuExternalAuthRequest(
+    const unsubscribeExternalAuth = this.seams.authMenu.onExternalAuthRequest(
       resolveIntendedGoogleExternalAuth.bind(null, this.seams, idToken),
     );
     let outcome: HostedAuthMenuOutcome;
     try {
-      outcome = await this.seams.openHostedAuthMenu(
+      outcome = await this.seams.authMenu.open(
         buildHostedAuthMenuOpenRequest({
           authMenuSessionId,
           initialMode: 'login',
@@ -1998,7 +1938,7 @@ class IntendedPageController {
     if (String(outcome.walletId) !== this.walletId || outcome.method !== 'google_email_otp') {
       throw new Error('Google Email OTP unlock returned the wrong wallet or auth method');
     }
-    const session = await this.seams.auth.getWalletSession(this.walletId);
+    const session = await this.seams.auth.getSession(this.walletId);
     return assertEmailOtpUnlockSucceeded({
       result: { walletId: String(outcome.walletId), session },
       expectedWalletId: this.walletId,
@@ -2047,7 +1987,7 @@ class IntendedPageController {
   };
 
   private async signTempoTransactionWithPublicSdk(): Promise<TempoSigningResultSummary> {
-    const result = await this.seams.tempo.signTempo({
+    const result = await this.seams.tempo.signTransaction({
       walletSession: walletSessionRefFromSession({
         walletId: this.walletId,
         walletSessionUserId: this.walletId,
@@ -2100,24 +2040,16 @@ class IntendedPageController {
       walletSessionUserId: this.walletId,
     });
     const chainTarget = INTENDED_ARC_EVM_CHAIN_TARGET;
-    const resolvedLane = await this.seams.keys.resolveExactKeyExportLane({
+    const result = await this.seams.keys.exportKey({
       kind: 'ecdsa',
       walletSession,
       chainTarget,
-    });
-    if (resolvedLane.kind !== 'ecdsa') {
-      throw new Error(`ECDSA export lane returned unexpected kind: ${resolvedLane.kind}`);
-    }
-    await this.seams.keys.exportKeypairWithUI({
-      kind: 'ecdsa',
-      walletSession,
-      chainTarget,
-      laneIdentity: resolvedLane.laneIdentity,
       options: {
         variant: 'drawer',
         onEvent: this.recordLifecycleEvent,
       },
     });
+    if (result.kind !== 'exported') throw new Error('ECDSA export requires wallet relinking');
     return {
       kind: 'ecdsa_export_success',
       walletId: this.walletId,
@@ -2132,25 +2064,16 @@ class IntendedPageController {
       walletSessionUserId: this.walletId,
     });
     const nearAccount = nearAccountRefFromAccountId(nearAccountId);
-    const resolvedLane = await this.seams.keys.resolveExactKeyExportLane({
+    const result = await this.seams.keys.exportKey({
       kind: 'ed25519',
       walletSession,
       nearAccount,
-    });
-    if (resolvedLane.kind !== 'ed25519') {
-      throw new Error(`Ed25519 export lane returned unexpected kind: ${resolvedLane.kind}`);
-    }
-    await this.seams.keys.exportKeypairWithUI({
-      kind: 'ed25519',
-      walletSession,
-      nearAccount,
-      laneIdentity: resolvedLane.laneIdentity,
-      materialActivation: resolvedLane.materialActivation,
       options: {
         variant: 'drawer',
         onEvent: this.recordLifecycleEvent,
       },
     });
+    if (result.kind !== 'exported') throw new Error('Ed25519 export requires wallet relinking');
     return {
       kind: 'ed25519_export_success',
       walletId: this.walletId,
@@ -2441,47 +2364,27 @@ function parseEcdsaTargetProfileName(value: string, label: string): IntendedEcds
   }
 }
 
-function passkeySignerOptionsForProfile(args: {
-  defaults: IntendedEcdsaSignerProvisioningDefaults;
-  profile: IntendedPasskeyEcdsaTargetProfile;
-}): IntendedEcdsaSignerProvisioningDefaults {
-  switch (args.profile.kind) {
+function intendedPasskeySignerSelection(
+  profile: IntendedPasskeyEcdsaTargetProfile,
+): RegistrationSignerSetSelection {
+  const near = intendedEd25519YaoSignerSelection();
+  let chainTargets: ThresholdEcdsaChainTarget[];
+  switch (profile.kind) {
     case 'none':
-      return {
-        tempo: {
-          ...args.defaults.tempo,
-          enabled: false,
-        },
-        evm: {
-          ...args.defaults.evm,
-          enabled: false,
-        },
-      };
+      return near;
     case 'tempo':
-      return {
-        tempo: {
-          ...args.defaults.tempo,
-          enabled: true,
-        },
-        evm: {
-          ...args.defaults.evm,
-          enabled: false,
-        },
-      };
+      chainTargets = [INTENDED_TEMPO_CHAIN_TARGET];
+      break;
     case 'tempo_arc':
-      return {
-        tempo: {
-          ...args.defaults.tempo,
-          enabled: true,
-        },
-        evm: {
-          ...args.defaults.evm,
-          enabled: true,
-        },
-      };
+      chainTargets = [INTENDED_TEMPO_CHAIN_TARGET, INTENDED_ARC_EVM_CHAIN_TARGET];
+      break;
     default:
-      return assertNever(args.profile);
+      return assertNever(profile);
   }
+  return {
+    kind: 'signer_set',
+    signers: [...near.signers, { kind: 'evm_family_ecdsa', chainTargets, participantIds: [1, 2] }],
+  };
 }
 
 function stringParam(params: URLSearchParams, key: string, fallback: string): string {
@@ -2925,7 +2828,7 @@ async function awaitWalletNearReady(args: {
   registration: ReturnType<typeof useSeams>['seams']['registration'];
   walletId: string;
 }): Promise<IntendedNearProvisioningReadyState> {
-  const current = await args.registration.getNearProvisioningState({ walletId: args.walletId });
+  const current = await args.registration.getNearAccountState({ walletId: args.walletId });
   const settled = settleNearProvisioningState(current);
   if (settled) return settled;
 
@@ -2948,13 +2851,13 @@ async function awaitWalletNearReady(args: {
         reject(error);
       }
     };
-    unsubscribe = args.registration.onNearProvisioningStateChanged(
+    unsubscribe = args.registration.onNearAccountChange(
       (event: NearProvisioningStateChangedEvent) => {
         if (String(event.walletId) === args.walletId) settle(event.state);
       },
     );
     void args.registration
-      .getNearProvisioningState({ walletId: args.walletId })
+      .getNearAccountState({ walletId: args.walletId })
       .then(settle)
       .catch(reject);
   });
@@ -3168,14 +3071,6 @@ function requireWalletIdString(walletId: string): string {
     throw new Error('walletId is required');
   }
   return value;
-}
-
-function requireNonEmptyString(value: unknown, label: string): string {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    throw new Error(`${label} is required`);
-  }
-  return normalized;
 }
 
 function requireRelayerUrl(relayerUrl: string | undefined): string {

@@ -12,7 +12,7 @@ test('Email OTP registration rereads the exact session when NEAR is already read
     completedSession,
     nearProvisioning: { status: 'near_ready' },
     auth: {
-      getWalletSession: async (walletId) => {
+      getSession: async (walletId) => {
         walletIds.push(walletId);
         return readySession;
       },

@@ -24,6 +24,8 @@ class ClaimFailureAfterConsume {
   readonly routes: unknown[] = [];
   readonly statuses: number[] = [];
   walletId = '';
+  /** Claim requests that arrived before the finalization request. */
+  earlyClaims = 0;
   private request: Request | null = null;
   private replay: Response | null = null;
 
@@ -50,7 +52,13 @@ class ClaimFailureAfterConsume {
       const body = await request.clone().json();
       this.walletId = body.wallet.walletId;
       this.claims.push(body);
-      if (this.claims.length === 1) {
+      if (!this.request) {
+        // Respond claims early, before finalization exists. With the directory
+        // down it records nothing, so finalization must claim for itself.
+        this.earlyClaims += 1;
+        return Response.json({ ok: false, code: 'injected_directory_outage' }, { status: 503 });
+      }
+      if (this.claims.length === this.earlyClaims + 1) {
         // Refuse only after the real Router committed its consumption.
         await this.consumed.promise;
         return Response.json({ ok: false, code: 'injected_directory_outage' }, { status: 503 });
@@ -96,7 +104,11 @@ class ClaimFailureAfterConsume {
     const retry = this.replay;
     assert.equal(this.consumers.length, 2);
     assert.deepEqual(this.consumers[1], this.consumers[0]);
+    // Respond's early claim, the failed finalization and its retry name one owner.
+    assert.equal(this.earlyClaims, 1);
+    assert.equal(this.claims.length, 3);
     assert.deepEqual(this.claims[1], this.claims[0]);
+    assert.deepEqual(this.claims[2], this.claims[0]);
     assert.equal(this.routes.length, 2);
     assert.deepEqual(this.routes[1], this.routes[0]);
     const body = await retry.json();
@@ -183,6 +195,7 @@ export async function verifyClaimFailureAfterConsume(
           originalPasskeyUnlockedAfterRetry: true,
           identicalConsumerRetries: fault.consumers.length,
           identicalCredentialClaims: fault.claims.length,
+          earlyClaimRefusedBeforeFinalization: fault.earlyClaims === 1,
           signature,
           signingConsoleCalls: 0,
         },

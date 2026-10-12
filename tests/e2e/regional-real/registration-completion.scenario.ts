@@ -417,6 +417,13 @@ export async function verifyRegistrationCompletion(
     assert.ok(startups[0].atMs <= respond.atMs, 'Wallet startup must precede respond');
     const consoleRequests = [...scenario.consoleService.requests];
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
+    // Respond claims the passkey while the Yao execution runs. Finalization
+    // reads the recorded claim and sends no second request.
+    assert.equal(consoleRequests.filter(isPasskeyClaim).length, 1);
+    assert.ok(
+      consoleRequests.findIndex(isPasskeyClaim) < consoleRequests.findIndex(isRouteClaim),
+      'The passkey claim must precede finalization',
+    );
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
     assert.equal(consoleRequests.filter(isRegistrationHome).length, 0);
     assert.equal(sealOverlap.sealCalls, 1);
@@ -564,6 +571,13 @@ export async function verifyLostRegistrationCompletion(
 
 function isCompletion(pathname: string): boolean {
   return pathname.endsWith('/complete');
+}
+function isPasskeyClaim(pathname: string): boolean {
+  return pathname.endsWith('/claim-passkey');
+}
+// Finalization claims the recovery-code routes of its custody commit.
+function isRouteClaim(pathname: string): boolean {
+  return pathname.endsWith('/publish-routes');
 }
 function isStandaloneSessionPublication(pathname: string): boolean {
   return pathname.endsWith('/publish-session');

@@ -69,6 +69,13 @@ To finish:
 1. **Owner:** sign in at `https://staging.wallet.seams.sh`, create the
    organisation and one project. The project step ends with an error that
    asks for operator verification; that is expected.
+   Google sign-in fails there today with `origin_mismatch`. The Google client
+   "Seams Web (Staging)" lists `https://wallet.staging.seams.sh` as an
+   authorized JavaScript origin, a host that does not exist; the dashboard
+   runs at `https://staging.wallet.seams.sh`. The fault is older than the
+   switch: the client was last used on September 13, and the switch only
+   ended the old sessions. Add the right origin to the client, or sign in
+   with GitHub, which is configured for this origin.
 2. Run the protected activation with the new `dev` environment id:
    `deploy-staging-backend.yml` with `activation_only=true` and
    `environment_id=<projectId>:dev`. It creates the tenant root, the

@@ -32,9 +32,9 @@ The owner signed in and created organisation `org_4hyqbnyqbco7` and project
 `/healthz` and the tenant projection answer 200.
 
 Proof: twelve fresh NEAR registrations with a first signature each passed
-through the hosted product test. The three signatures of the first group
-were verified independently with Node's Ed25519 and a separate NEP-413
-encoding, and altered fields were rejected (`proof-verification.json`).
+through the hosted product test. All twelve signatures were verified
+independently with Node's Ed25519 and a separate NEP-413 encoding, and
+altered fields were rejected (`proof-verification.json`).
 
 First measurement, nine wallets after one discarded group, client in Tokyo,
 published 0.9.0 code. It has no control arm: the Hong Kong lane no longer

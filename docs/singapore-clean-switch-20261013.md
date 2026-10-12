@@ -24,7 +24,43 @@ are expected in Singapore and Malaysia. The record is
   script after a lane is verified.
 - Run artifacts: `.artifacts/r155h-singapore-anchor/` (ignored by git).
 
-## Staging: deployed on the new databases, waiting for a tenant
+## Staging: live on Singapore since October 13, 01:10 JST
+
+The owner signed in and created organisation `org_4hyqbnyqbco7` and project
+`proj_mv5fzezy_4ztf60`. Activation run `38274905238` passed with environment
+`proj_mv5fzezy_4ztf60:dev`, including its readiness check. `/readyz`,
+`/healthz` and the tenant projection answer 200.
+
+Proof: twelve fresh NEAR registrations with a first signature each passed
+through the hosted product test. The three signatures of the first group
+were verified independently with Node's Ed25519 and a separate NEP-413
+encoding, and altered fields were rejected (`proof-verification.json`).
+
+First measurement, nine wallets after one discarded group, client in Tokyo,
+published 0.9.0 code. It has no control arm: the Hong Kong lane no longer
+serves. The Hong Kong column is the control side of October 12.
+
+| | Singapore p50 | Hong Kong p50 |
+| --- | ---: | ---: |
+| Finalization, server total | 265 ms | 602 ms |
+| Wallet commit | 63 ms | 187 ms |
+| Custody commit | 19 ms | 61 ms |
+| Session issue | 28 ms | 68 ms |
+| Finalization, browser | 562 ms | 842 ms |
+| Yao execute, browser | 1,444 ms | 1,608 ms |
+| Registration after the passkey step | 2,671 ms | 2,988 ms |
+
+The 90th percentiles are wide on the new lane: setup 1,193 ms and Yao
+execute 2,596 ms. Nine wallets on a lane deployed an hour earlier do not
+settle that. A Tokyo client is also farther from Singapore than from Hong
+Kong, so a user in Singapore sees less than these figures.
+
+The hosted test's prebuilt site carried the old tenant's publishable key and
+failed with `publishable_key_invalid`. The proof used a copy of that site
+with the new key and environment id. Every hosted driver prepared before the
+switch needs a rebuilt site and the new projection.
+
+The steps below record how the lane got here.
 
 | New database | Id | Primary | Replaces |
 | --- | --- | --- | --- |
@@ -64,7 +100,7 @@ State now: Console answers 200. The Gateway answers 503
 without an activated tenant. The backend run's final smoke step fails for
 that reason.
 
-To finish:
+Steps after the deployment, all done except the last:
 
 1. **Owner:** sign in at `https://staging.wallet.seams.sh`, create the
    organisation and one project. The project step ends with an error that

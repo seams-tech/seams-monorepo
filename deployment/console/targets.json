@@ -6,10 +6,10 @@
       "origin": "https://staging.wallet.seams.sh",
       "siteOrigin": "https://staging.wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-staging",
-      "placementRegion": "aws:ap-east-1",
+      "placementRegion": "aws:ap-southeast-1",
       "database": {
-        "name": "seams-console-staging-hkg",
-        "id": "73ae681c-3937-474b-91db-5161d2f25f90"
+        "name": "seams-console-staging-sin",
+        "id": "802fa155-b740-4fc5-87fa-3c30e864d1f5"
       },
       "emailDelivery": {
         "kind": "capture"

@@ -151,10 +151,10 @@ test('deployment topology preserves staging operational identities', async () =>
   if (lane.provisioning.kind !== 'provisioned') throw new Error('staging must be provisioned');
 
   expect(lane.provisioning.gatewayDeploymentConfig.resources.consoleD1.id).toBe(
-    '73ae681c-3937-474b-91db-5161d2f25f90',
+    '802fa155-b740-4fc5-87fa-3c30e864d1f5',
   );
   expect(lane.provisioning.gatewayDeploymentConfig.resources.regions.APAC.signerD1.id).toBe(
-    'c1c85721-6a76-4b60-8f08-5a574f97cb8f',
+    '0b77e7a5-4668-4df9-8c2d-c8846804f542',
   );
   expect(lane.provisioning.gatewayDeploymentConfig.tenant.namespace).toBe('seams-staging');
   expect(lane.provisioning.gatewayDeploymentConfig.session.issuer).toBe('seams-gateway-staging');

@@ -1,8 +1,8 @@
 # R155F staging review and deployment preparation
 
 Date: October 12, 2026, Asia/Tokyo.
-Status: reviewed and built locally; staging configuration synchronization is pending.
-This preparation changed no live resources or GitHub environment values.
+Status: deployed and activated on staging; fresh NEAR registration and signing verified.
+The preparation below preceded the deployment record at the end of this document.
 
 ## Reviewed candidate
 
@@ -90,3 +90,42 @@ must pair a compatible Worker version with its schema and current database bindi
 4. Activate the existing staging tenant. Verify fresh NEAR registration, an
    independently checked first signature, regional routing, and exact retry.
    Record the actual serving versions and database bindings after activation.
+
+## Deployment and acceptance — October 12
+
+The verified custody values were synchronized: 13 GitHub secrets and 29 public
+variables across six staging environments. All deployed public key bindings match
+the verified set. Unrelated secrets and database IDs were preserved.
+
+The coordinated backend uses private revision `bc5a42b` and published Wallet
+packages **0.9.0**. The 0.9.1 packaging release completed separately. No frontend
+or production deployment was performed here.
+
+- [Console deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/38207543434): passed.
+- [Backend deployment](https://github.com/seams-tech/seams-monorepo/actions/runs/38207556313):
+  all components deployed. Its final readiness check failed before tenant activation
+  because the Gateway returned `tenant_deployment_unavailable`.
+- [Tenant activation](https://github.com/seams-tech/seams-monorepo/actions/runs/38208005317):
+  passed, including the subsequent readiness check.
+- All 14 Workers serve their new versions. Both Deriver databases contain migration
+  `0019_wallet_object_addresses.sql`. Every database binding retains its prior ID.
+- Three fresh NEAR-only implicit wallets registered and signed without funding.
+  Independent Node Ed25519 verification accepted all three NEP-413 signatures.
+  Changes to the message, recipient, nonce or callback URL invalidated each signature.
+
+| Acceptance workload, three wallets | Median | Range |
+| --- | ---: | ---: |
+| Registration, including automation | 5.399 s | 5.349–6.189 s |
+| Registration to verified signature, including automation | 6.862 s | 6.820–8.453 s |
+
+These are deployment acceptance samples, without a discarded warm-up or control.
+They do not establish a performance gain or regression. R155G owns the next controlled
+comparison. The current built SDK uses the 0.9.2 packaging candidate and the same wire
+protocol. Browser assets were served locally under staging origins. An initial attempt
+with an older frozen SDK failed at setup with `wallet_protocol_mismatch`; that attempt
+created no wallet and is excluded from the timings.
+
+Evidence: `.artifacts/r155f-staging-deploy-20261012/`. It includes the configuration
+update journal, before/after Worker versions and bindings, migration readback, workflow
+results, browser artifacts, independent proof verifier and `acceptance-summary.json`.
+The deployed state replaces the old comparison restore targets. Do not run old restore drivers.

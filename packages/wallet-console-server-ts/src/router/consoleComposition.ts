@@ -56,6 +56,7 @@ export interface ConsoleOnlyRouterComposition {
   readonly core: ConsoleCoreRouterServices;
   readonly walletConsole: WalletConsoleRouterServices;
   readonly auth: ConsoleAuthAdapter;
+  readonly session: SessionAdapter;
   readonly readyCheck: () => Promise<void> | void;
   readonly billingStripeWebhookSigningSecret: string;
 }
@@ -124,6 +125,7 @@ export function composeConsoleOnlyRouterOptions(
     healthz: true,
     readyz: true,
     auth: input.auth,
+    session: input.session,
     readyCheck: input.readyCheck,
     corsOrigins: input.corsOrigins,
     billingStripeWebhookSigningSecret: input.billingStripeWebhookSigningSecret,

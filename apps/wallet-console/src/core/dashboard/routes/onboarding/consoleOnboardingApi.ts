@@ -73,6 +73,7 @@ export interface DashboardOnboardingTelemetrySnapshot {
 
 export interface DashboardCreateOnboardingProjectInput {
   project: {
+    id: string;
     name: string;
   };
 }

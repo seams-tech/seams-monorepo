@@ -1,6 +1,8 @@
 import React from 'react';
 import { CircleCheck, ShieldCheck } from 'lucide-react';
+import { decodeTenantDeploymentPublicProjectionV1 } from '@seams-internal/wallet-console-shared/tenant-deployment';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
+import { DashboardPageActions } from '@core/dashboard/components/DashboardPageActions';
 import {
   useDashboardSelectedContext,
   useDashboardSelectedContextDisplay,
@@ -12,6 +14,12 @@ import './tenantDeployment.css';
 type DeploymentStatus =
   | { readonly kind: 'loading' }
   | { readonly kind: 'error'; readonly message: string }
+  | { readonly kind: 'awaiting_activation'; readonly environmentId: string }
+  | {
+      readonly kind: 'unbound';
+      readonly environmentId: string;
+      readonly activeEnvironmentId: string;
+    }
   | {
       readonly kind: 'ready';
       readonly revision: string;
@@ -26,11 +34,6 @@ type DeploymentStatus =
       readonly canaryDigest: string | null;
     };
 
-function textField(source: Record<string, unknown>, name: string): string {
-  const value = source[name];
-  return typeof value === 'string' ? value : '';
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -40,40 +43,51 @@ async function loadDeploymentStatus(input: {
   readonly environmentId: string;
 }): Promise<DeploymentStatus> {
   const deployment = getActiveFrontendDeployment();
-  const [projectionResponse, auditEvents] = await Promise.all([
-    fetch(`${deployment.relayerUrl}/.well-known/seams-tenant-deployment.json`, {
-      cache: 'no-store',
-    }),
-    listDashboardAuditEvents({
-      projectId: input.projectId,
-      environmentId: input.environmentId,
-      category: 'SYSTEM',
-      q: 'tenant_deployment.activate',
-      limit: 10,
-    }),
-  ]);
+  const projectionResponse = await fetch(
+    `${deployment.relayerUrl}/.well-known/seams-tenant-deployment.json`,
+    { cache: 'no-store' },
+  );
   const raw: unknown = await projectionResponse.json().catch(() => null);
-  if (!projectionResponse.ok || !isRecord(raw)) {
+  if (
+    projectionResponse.status === 503 &&
+    isRecord(raw) &&
+    raw.code === 'tenant_deployment_unavailable'
+  ) {
+    return { kind: 'awaiting_activation', environmentId: input.environmentId };
+  }
+  if (!projectionResponse.ok) {
     throw new Error('The active deployment projection is unavailable.');
   }
-  const projection = raw;
-  if (textField(projection, 'environmentId') !== input.environmentId) {
-    throw new Error('This environment does not have an active deployment binding.');
+  const decoded = decodeTenantDeploymentPublicProjectionV1(raw);
+  if (!decoded.ok) throw new Error('The active deployment projection is invalid.');
+  const projection = decoded.value;
+  if (projection.environmentId !== input.environmentId) {
+    return {
+      kind: 'unbound',
+      environmentId: input.environmentId,
+      activeEnvironmentId: projection.environmentId,
+    };
   }
+  const auditEvents = await listDashboardAuditEvents({
+    projectId: input.projectId,
+    environmentId: input.environmentId,
+    category: 'SYSTEM',
+    q: 'tenant_deployment.activate',
+    limit: 10,
+  });
   const latestActivation = auditEvents.find(
     (event) => event.action === 'tenant_deployment.activate' && event.outcome === 'SUCCESS',
   );
   const metadata = latestActivation?.metadata ?? {};
-  const mode = projection.mode;
   return {
     kind: 'ready',
-    revision: textField(projection, 'revision'),
-    environmentId: textField(projection, 'environmentId'),
-    mode: isRecord(mode) ? textField(mode, 'kind') : '',
-    applicationOrigin: textField(projection, 'applicationOrigin'),
-    hostedWalletOrigin: textField(projection, 'hostedWalletOrigin'),
-    gatewayOrigin: textField(projection, 'gatewayOrigin'),
-    relyingPartyId: textField(projection, 'relyingPartyId'),
+    revision: projection.revision,
+    environmentId: projection.environmentId,
+    mode: projection.mode.kind,
+    applicationOrigin: projection.applicationOrigin,
+    hostedWalletOrigin: projection.hostedWalletOrigin,
+    gatewayOrigin: projection.gatewayOrigin,
+    relyingPartyId: projection.relyingPartyId,
     activatedAt: latestActivation?.createdAt ?? null,
     activationSequence:
       typeof metadata.activationSequence === 'number' ? metadata.activationSequence : null,
@@ -93,11 +107,66 @@ function StatusValue(props: { readonly label: string; readonly value: string }):
   );
 }
 
+function assertNeverStatus(status: never): never {
+  throw new Error(`Unexpected deployment status: ${status}`);
+}
+
+function DeploymentStatusNotice({
+  status,
+}: {
+  readonly status: DeploymentStatus;
+}): React.JSX.Element | null {
+  switch (status.kind) {
+    case 'loading':
+      return <p role="status">Loading deployment evidence…</p>;
+    case 'error':
+      return <p role="alert">{status.message}</p>;
+    case 'awaiting_activation':
+      return (
+        <section className="tenant-deployment-section" aria-label="Awaiting activation">
+          <h2>Awaiting activation</h2>
+          <p>Project created. Wallet deployment is awaiting operator activation.</p>
+          <p>
+            Environment ID: <code>{status.environmentId}</code>
+          </p>
+          <p>
+            An operator must activate this environment through the protected deployment workflow.
+          </p>
+        </section>
+      );
+    case 'unbound':
+      return (
+        <section className="tenant-deployment-section" aria-label="Environment not deployed">
+          <h2>Environment not deployed</h2>
+          <p>
+            This gateway serves a different environment. Ask an operator to check the deployment
+            assignment.
+          </p>
+          <p>
+            Selected environment: <code>{status.environmentId}</code>
+          </p>
+          <p>
+            Active environment: <code>{status.activeEnvironmentId}</code>
+          </p>
+        </section>
+      );
+    case 'ready':
+      return null;
+    default:
+      return assertNeverStatus(status);
+  }
+}
+
+function incrementRefreshSequence(sequence: number): number {
+  return sequence + 1;
+}
+
 export function TenantDeploymentPage(): React.JSX.Element {
   const session = useDashboardConsoleSession();
   const selectedContext = useDashboardSelectedContext();
   const selectedContextDisplay = useDashboardSelectedContextDisplay();
   const [status, setStatus] = React.useState<DeploymentStatus>({ kind: 'loading' });
+  const [refreshSequence, refresh] = React.useReducer(incrementRefreshSequence, 0);
   const isOwner = session.claims?.role === 'OWNER';
 
   React.useEffect(() => {
@@ -122,7 +191,7 @@ export function TenantDeploymentPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [isOwner, selectedContext.environment, selectedContext.project]);
+  }, [isOwner, selectedContext.environment, selectedContext.project, refreshSequence]);
 
   if (!isOwner) {
     return (
@@ -144,8 +213,17 @@ export function TenantDeploymentPage(): React.JSX.Element {
         </p>
       </header>
 
-      {status.kind === 'loading' ? <p role="status">Loading deployment evidence…</p> : null}
-      {status.kind === 'error' ? <p role="alert">{status.message}</p> : null}
+      <DashboardPageActions>
+        <button
+          type="button"
+          className="dashboard-pagination-button dashboard-pagination-button--secondary"
+          onClick={refresh}
+          disabled={status.kind === 'loading'}
+        >
+          Refresh deployment status
+        </button>
+      </DashboardPageActions>
+      <DeploymentStatusNotice status={status} />
       {status.kind === 'ready' ? (
         <>
           <div className="tenant-deployment-summary">

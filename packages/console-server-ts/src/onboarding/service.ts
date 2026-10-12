@@ -62,7 +62,6 @@ export interface InMemoryConsoleOnboardingServiceOptions {
   organizationAccess: ConsoleOrganizationAccessService;
   welcomeEmail?: ConsoleOnboardingWelcomeEmailPort | null;
   billing?: ConsoleBillingService | null;
-  environmentProvisioner?: ConsoleOnboardingEnvironmentProvisioner | null;
   logger?: Logger | null;
   telemetry?: {
     windowMinutes?: number;
@@ -70,15 +69,6 @@ export interface InMemoryConsoleOnboardingServiceOptions {
     p95LatencyMs?: Partial<Record<ConsoleOnboardingTelemetryOperation, number>>;
     errorRatePercentThreshold?: number;
   };
-}
-
-export interface ConsoleOnboardingEnvironmentProvisioner {
-  provision(input: {
-    readonly orgId: string;
-    readonly actorUserId: string;
-    readonly project: ConsoleProject;
-    readonly environment: ConsoleEnvironment;
-  }): Promise<void>;
 }
 
 interface ResolveProjectInput {
@@ -368,7 +358,6 @@ export function createInMemoryConsoleOnboardingService(
   const billing = opts.billing ?? null;
   const organizationAccess = opts.organizationAccess;
   const welcomeEmail = opts.welcomeEmail ?? null;
-  const environmentProvisioner = opts.environmentProvisioner ?? null;
   const logger = normalizeLogger(opts.logger);
   const telemetryWindowMinutes = coerceIntegerInRange({
     value: opts.telemetry?.windowMinutes,
@@ -915,14 +904,6 @@ export function createInMemoryConsoleOnboardingService(
               ...(request.environment?.name ? { name: request.environment.name } : {}),
             },
           );
-          if (environmentProvisioner) {
-            await environmentProvisioner.provision({
-              orgId: ctx.orgId,
-              actorUserId: ctx.actorUserId,
-              project,
-              environment,
-            });
-          }
           const state = (await resolveState(ctx)).state;
           if (state.onboardingComplete && welcomeEmail) {
             await welcomeEmail.enqueue({

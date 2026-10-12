@@ -145,7 +145,6 @@ import { createTenantRootSecurityConsoleRouteV1 } from '../../tenantRootSecurity
 import { createCloudflareCron, type TenantRootRefreshResumptionRunner } from './cron';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams/wallet-server/cloud-host';
 import { decodeTenantRootIdentityWireV1 } from '@seams-internal/wallet-console-shared/tenant-root';
-import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 import {
   createD1TenantDeploymentBindingReaderV1,
   createD1TenantDeploymentServiceV1,
@@ -973,23 +972,6 @@ function createLocalReadyCheck(env: LocalD1DevEnv): () => Promise<void> {
   return readyCheck.check.bind(readyCheck);
 }
 
-class LocalTenantDeploymentOnboardingProvisioner implements ConsoleOnboardingEnvironmentProvisioner {
-  private provisioner: TenantDeploymentProvisionerV1 | null = null;
-
-  attach(provisioner: TenantDeploymentProvisionerV1): void {
-    this.provisioner = provisioner;
-  }
-
-  async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
-    if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
-    await this.provisioner.provision({
-      authorization: { kind: 'reuse_active' },
-      deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
-      environmentId: input.environment.id,
-    });
-  }
-}
-
 type LocalConsoleComposition = {
   readonly handler: FetchHandler;
   readonly tenantDeployment: {
@@ -1027,7 +1009,6 @@ async function provisionLocalTenantDeployment(
 async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalConsoleComposition> {
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const billingProviders = localBillingProviderAdapters(env);
-  const onboardingDeployment = new LocalTenantDeploymentOnboardingProvisioner();
   const bundle = await createCloudflareD1ConsoleServiceBundle({
     bindings: {
       consoleDatabase: env.CONSOLE_DB,
@@ -1044,7 +1025,6 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       billingEmailConsoleBaseUrl:
         String(env.CONSOLE_BASE_URL || '').trim() || 'http://localhost:4001',
       webhookSecretCipher: localConsoleWebhookSecretCipher(env),
-      onboardingEnvironmentProvisioner: onboardingDeployment,
     },
   });
   const session = localConsoleSession(env);
@@ -1243,7 +1223,6 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const tenantDeploymentProvisioner: TenantDeploymentProvisionerV1 = {
     provision: provisionLocalTenantDeployment.bind(null, home, provisioner),
   };
-  onboardingDeployment.attach(tenantDeploymentProvisioner);
   const handlerWithTenantRootCreation = createLocalConsoleTenantRootHandler({
     handler,
     tenantRootRoutes: [

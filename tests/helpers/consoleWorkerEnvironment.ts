@@ -1,4 +1,16 @@
 import { randomBytes } from 'node:crypto';
+import { createHmacSessionAdapter } from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+
+export async function consoleIdentityCookie(secret: string, userId: string): Promise<string> {
+  const session = createHmacSessionAdapter({ secret });
+  const token = await session.signJwt(userId, {
+    kind: 'console_identity_v1',
+    email: `${userId}@example.test`,
+    name: 'Onboarding owner',
+    provider: 'github',
+  });
+  return session.buildSetCookie(token).split(';')[0]!;
+}
 
 export function consoleWorkerEnvironment(input: {
   readonly namespace: string;

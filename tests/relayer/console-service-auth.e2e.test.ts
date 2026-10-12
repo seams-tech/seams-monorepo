@@ -10,6 +10,7 @@ import {
 import { createHash, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
+import { verifyUnactivatedConsoleOnboarding } from './console-onboarding.scenario';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -266,6 +267,15 @@ test('production Console service bindings enforce durable credential changes and
       }
       migrations.push({ name, sha256: sha256(sql) });
     }
+    const sessionSecret = consoleEnvironment.CONSOLE_SESSION_HMAC_SECRET;
+    if (!sessionSecret) throw new Error('Console fixture is missing its session secret');
+    observations.push(
+      await verifyUnactivatedConsoleOnboarding({
+        service: new LocalConsoleService(await runtime.getWorker('console')),
+        database,
+        sessionSecret,
+      }),
+    );
     const organizations = await createD1ConsoleOrgProjectEnvService({
       database,
       namespace,

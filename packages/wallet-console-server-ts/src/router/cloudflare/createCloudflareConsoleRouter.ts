@@ -1923,6 +1923,12 @@ async function handleConsoleAccount(ctx: CloudflareConsoleContext): Promise<Resp
 
 async function handleConsoleOnboarding(ctx: CloudflareConsoleContext): Promise<Response | null> {
   if (!isConsoleOnboardingPath(ctx.pathname)) return null;
+  if (ctx.pathname === '/console/onboarding/project' && ctx.method !== 'POST') {
+    return json(
+      { ok: false, code: 'method_not_allowed', message: 'Project creation requires POST' },
+      { status: 405, headers: { Allow: 'POST' } },
+    );
+  }
 
   const auth = await requireConsoleAuth(ctx);
   if (!auth.ok) return auth.response;

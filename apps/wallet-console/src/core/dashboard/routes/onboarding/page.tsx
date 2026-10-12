@@ -37,6 +37,7 @@ type OnboardingDraft = {
   orgNameInput: string;
   orgNameExplicitlySelected: boolean;
   projectNameInput: string;
+  projectId: string;
 };
 
 type OnboardingStepperStatus = 'current' | 'done' | 'locked';
@@ -92,6 +93,10 @@ function resolveCurrentStep(
   return 'project';
 }
 
+function createOnboardingProjectId(): string {
+  return `proj_${crypto.randomUUID().replaceAll('-', '')}`;
+}
+
 function readOnboardingDraft(storageKey: string): OnboardingDraft | null {
   if (typeof window === 'undefined') return null;
   if (!storageKey) return null;
@@ -105,6 +110,10 @@ function readOnboardingDraft(storageKey: string): OnboardingDraft | null {
       orgNameInput: String(row.orgNameInput || '').trim(),
       orgNameExplicitlySelected: row.orgNameExplicitlySelected === true,
       projectNameInput: String(row.projectNameInput || '').trim(),
+      projectId:
+        typeof row.projectId === 'string' && /^proj_[a-f0-9]{32}$/.test(row.projectId)
+          ? row.projectId
+          : createOnboardingProjectId(),
     };
   } catch {
     return null;
@@ -221,6 +230,7 @@ export function DashboardOnboardingPage({
   const [orgNameInput, setOrgNameInput] = React.useState<string>('');
   const [orgNameExplicitlySelected, setOrgNameExplicitlySelected] = React.useState<boolean>(false);
   const [projectNameInput, setProjectNameInput] = React.useState<string>('');
+  const [projectId, setProjectId] = React.useState(createOnboardingProjectId);
   const [orgNameTouched, setOrgNameTouched] = React.useState<boolean>(false);
   const [projectNameTouched, setProjectNameTouched] = React.useState<boolean>(false);
   const [organizationSubmitAttempted, setOrganizationSubmitAttempted] =
@@ -322,6 +332,7 @@ export function DashboardOnboardingPage({
   React.useEffect(() => {
     setOrgNameInput('');
     setProjectNameInput('');
+    setProjectId(createOnboardingProjectId());
     setOrgNameExplicitlySelected(false);
     setOrganizationResult(null);
     setProjectResult(null);
@@ -344,6 +355,7 @@ export function DashboardOnboardingPage({
       setOrgNameInput(draft.orgNameInput);
       setOrgNameExplicitlySelected(draft.orgNameExplicitlySelected);
       setProjectNameInput(draft.projectNameInput);
+      setProjectId(draft.projectId);
     }
     setLoadedDraftStorageKey(draftStorageKey);
   }, [draftStorageKey, loadedDraftStorageKey]);
@@ -465,14 +477,22 @@ export function DashboardOnboardingPage({
       setMutationError(projectNameValidationMessage);
       return;
     }
+    if (!draftStorageKey || loadedDraftStorageKey !== draftStorageKey) return;
 
     const projectName = String(projectNameInput || '').trim();
+    writeOnboardingDraft(draftStorageKey, {
+      orgNameInput,
+      orgNameExplicitlySelected,
+      projectNameInput: projectName,
+      projectId,
+    });
 
     setSubmitting(true);
     setMutationError('');
     try {
       const next = await createDashboardOnboardingProject({
         project: {
+          id: projectId,
           name: projectName,
         },
       });
@@ -489,7 +509,11 @@ export function DashboardOnboardingPage({
     }
   }, [
     loadState,
+    draftStorageKey,
+    loadedDraftStorageKey,
+    orgNameInput,
     orgNameExplicitlySelected,
+    projectId,
     projectNameInput,
     projectNameValidationMessage,
     session.claims,
@@ -548,6 +572,7 @@ export function DashboardOnboardingPage({
       orgNameInput: String(orgNameInput || '').trim(),
       orgNameExplicitlySelected,
       projectNameInput: String(projectNameInput || '').trim(),
+      projectId,
     });
   }, [
     draftStorageKey,
@@ -556,6 +581,7 @@ export function DashboardOnboardingPage({
     orgNameExplicitlySelected,
     orgNameInput,
     projectNameInput,
+    projectId,
   ]);
 
   const currentStep = resolveCurrentStep(state, orgNameExplicitlySelected);

@@ -150,16 +150,10 @@ async function selfServiceOrganizationCreation(): Promise<void> {
   const apiKeys = createInMemoryConsoleApiKeyService({
     scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
   });
-  const provisionedEnvironmentIds: string[] = [];
   const onboarding = createInMemoryConsoleOnboardingService({
     orgProjectEnv,
     organizationAccess,
     apiKeys,
-    environmentProvisioner: {
-      async provision(input) {
-        provisionedEnvironmentIds.push(input.environment.id);
-      },
-    },
   });
   const router = createCloudflareConsoleRouter({
     auth,
@@ -224,7 +218,7 @@ async function selfServiceOrganizationCreation(): Promise<void> {
   const {
     result: { project, environment },
   } = await provisioned.json();
-  expect(provisionedEnvironmentIds).toEqual([environment.id]);
+  expect(environment.id).toBe(`${project.id}:dev`);
   const selected = await handler.fetch(
     environmentRequest(ownerCookie, project.id, `${project.id}:dev`),
   );

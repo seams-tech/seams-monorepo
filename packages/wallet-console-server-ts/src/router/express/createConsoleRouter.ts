@@ -1824,6 +1824,14 @@ function registerConsoleAccountRoutes(router: ExpressRouter, ctx: ExpressConsole
   );
 }
 
+function sendOnboardingProjectMethodNotAllowed(_req: Request, res: Response): void {
+  res.set('Allow', 'POST').status(405).json({
+    ok: false,
+    code: 'method_not_allowed',
+    message: 'Project creation requires POST',
+  });
+}
+
 function registerConsoleOnboardingRoutes(router: ExpressRouter, ctx: ExpressConsoleContext): void {
   router.get('/console/onboarding/state', async (req: Request, res: Response) => {
     const claims = await requireConsoleAuth(req, res, ctx);
@@ -1948,6 +1956,7 @@ function registerConsoleOnboardingRoutes(router: ExpressRouter, ctx: ExpressCons
       sendOnboardingError(res, error);
     }
   });
+  router.all('/console/onboarding/project', sendOnboardingProjectMethodNotAllowed);
 }
 
 function registerConsoleOpsCockpitRoutes(router: ExpressRouter, ctx: ExpressConsoleContext): void {

@@ -122,8 +122,6 @@ import {
 import { createTenantDeploymentAutomationRouteV1 } from '../../tenantDeployment/automationRoute';
 import { createTenantD1ResourceVerifierV1 } from '../../tenantDeployment/resourceChallenge';
 import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment/productionReadiness';
-import type { TenantDeploymentProvisionerV1 } from '../../tenantDeployment/provisioning';
-import type { ConsoleOnboardingEnvironmentProvisioner } from '@seams-internal/console-server/onboarding/service';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 import {
@@ -237,25 +235,6 @@ function parseTenantDeploymentSurfaces(raw: string): TenantDeploymentCandidateSu
   };
 }
 
-class DeferredTenantDeploymentOnboardingProvisioner implements ConsoleOnboardingEnvironmentProvisioner {
-  private provisioner: TenantDeploymentProvisionerV1 | null = null;
-
-  constructor(private readonly deploymentLane: string) {}
-
-  attach(provisioner: TenantDeploymentProvisionerV1): void {
-    this.provisioner = provisioner;
-  }
-
-  async provision(input: { readonly environment: { readonly id: string } }): Promise<void> {
-    if (!this.provisioner) throw new Error('tenant deployment provisioner is unavailable');
-    await this.provisioner.provision({
-      authorization: { kind: 'reuse_active' },
-      deploymentLane: this.deploymentLane,
-      environmentId: input.environment.id,
-    });
-  }
-}
-
 function consoleGithubOAuthConfig(
   env: CloudflareD1ConsoleStagingEnv,
 ): ConsoleGithubOAuthConfig | undefined {
@@ -305,7 +284,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
-  const onboardingDeployment = new DeferredTenantDeploymentOnboardingProvisioner(deploymentLane);
   const walletHomeCatalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
   const regionalIdentities = new RegionalWalletIdentities(
     namespace,
@@ -353,7 +331,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
       walletBalanceReader: {
         resolveWalletIdentities: regionalIdentities.read.bind(regionalIdentities),
       },
-      onboardingEnvironmentProvisioner: onboardingDeployment,
     },
   });
   const session = createHmacSessionAdapterFromEnv({
@@ -373,6 +350,7 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
     auth,
+    session,
     readyCheck: async () => {
       await createConsoleReadyCheck(env)();
       if (tenantDeploymentReadyCheck) await tenantDeploymentReadyCheck();
@@ -589,7 +567,6 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
   });
-  onboardingDeployment.attach(tenantDeploymentProvisioner);
   const resourceVerifier = relocationRuntimeVerifier(env, namespace, deploymentLane, walletHomeCatalog);
 
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({

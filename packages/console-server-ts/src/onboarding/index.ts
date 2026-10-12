@@ -20,7 +20,6 @@ export type {
   ConsoleOnboardingContext,
   ConsoleOnboardingService,
   InMemoryConsoleOnboardingServiceOptions,
-  ConsoleOnboardingEnvironmentProvisioner,
 } from './service';
 export { createInMemoryConsoleOnboardingService } from './service';
 

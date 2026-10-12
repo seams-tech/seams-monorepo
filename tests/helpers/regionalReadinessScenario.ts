@@ -11,6 +11,7 @@ import {
 import { candidatePackageAliases } from './walletServerCandidate';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
 
 class RuntimeTransport {
   available = true;
@@ -32,6 +33,14 @@ class RuntimeTransport {
   }
 }
 
+// The Runtime resolves its own home from this catalog before it serves a request.
+const HOME_CATALOG_JSON = JSON.stringify([
+  { region: 'US', accountId: ACCOUNT_ID, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+  { region: 'WEUR', accountId: ACCOUNT_ID, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+  { region: 'APAC', accountId: ACCOUNT_ID, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+  { region: 'OC', accountId: ACCOUNT_ID, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
+]);
+
 function runtimeWorker(output: string, name: string, databaseId: string) {
   return {
     name,
@@ -43,8 +52,9 @@ function runtimeWorker(output: string, name: string, databaseId: string) {
     bindings: {
       SEAMS_TENANT_STORAGE_NAMESPACE: 'wallet',
       SEAMS_TENANT_DEPLOYMENT_LANE: 'renewal',
-      SEAMS_D1_HOME_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
+      SEAMS_D1_HOME_ACCOUNT_ID: ACCOUNT_ID,
       SEAMS_D1_HOME_DATABASE_ID: databaseId,
+      SEAMS_WALLET_HOME_CATALOG_JSON: HOME_CATALOG_JSON,
     },
     d1Databases: { SIGNER_DB: databaseId },
   };
@@ -53,7 +63,7 @@ function runtimeWorker(output: string, name: string, databaseId: string) {
 function resource(databaseId: string) {
   return TenantDeploymentD1ResourceIdentityV1.parse({
     namespace: 'wallet',
-    accountId: '0123456789abcdef0123456789abcdef',
+    accountId: ACCOUNT_ID,
     databaseId,
   });
 }

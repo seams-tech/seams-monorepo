@@ -42,7 +42,7 @@ export function useDemoThresholdAccountState(args: UseDemoThresholdAccountStateA
         return { ok: false, reason: 'not_logged_in' };
       }
       try {
-        const session = await seams.auth.getWalletSession(walletId);
+        const session = await seams.auth.getSession(walletId);
         const address =
           session.appIdentity.kind === 'resolved'
             ? String(session.appIdentity.thresholdEcdsaEthereumAddress || '').trim()

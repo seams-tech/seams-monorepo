@@ -99,7 +99,7 @@ function WalletDemoContent({
 
   React.useEffect(() => {
     try {
-      seams.setAppearance(demoIframeAppearance(activePreset));
+      seams.config.setAppearance(demoIframeAppearance(activePreset));
     } catch {}
   }, [seams, activePreset, loginState?.isLoggedIn, activeWalletId]);
 
@@ -193,7 +193,6 @@ export default function WalletDemo(props: WalletDemoProps): React.JSX.Element {
   return (
     <FrontendRuntimeProvider>
       <FrontendSdkProvider
-        eager
         appearance={SITE_APPEARANCE}
         theme={{ theme, tokens: SITE_THEME_TOKEN_OVERRIDES }}
       >

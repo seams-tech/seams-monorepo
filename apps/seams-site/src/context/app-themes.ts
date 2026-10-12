@@ -436,7 +436,7 @@ export function demoReactTokens(preset: DemoThemePreset): ThemeProps['tokens'] {
     : { light: { colors: preset.colors, shadows, shape } };
 }
 
-/** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.setAppearance. */
+/** Build the wallet-iframe appearance (colors + shape) for a preset — fed to seams.config.setAppearance. */
 export function demoIframeAppearance(preset: DemoThemePreset): SdkAppearance {
   return {
     theme: {

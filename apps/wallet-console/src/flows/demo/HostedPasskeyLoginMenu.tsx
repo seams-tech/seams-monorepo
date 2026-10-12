@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 
 import './PasskeyLoginMenu.css';
 import { FRONTEND_CONFIG } from '@/config';
-import { showCopiedDemoEmailOtpToast } from './demoEmailOtpToast';
 import {
   cancelGoogleIdTokenRequest,
   ensureGoogleIdentityScriptLoaded,
@@ -145,20 +144,20 @@ function outcomeMessage(outcome: Extract<HostedAuthMenuOutcome, { kind: 'failed'
 
 function handleHostedAuthMenuOutcome(
   outcome: HostedAuthMenuOutcome,
-  refreshLoginState: (walletId?: string) => Promise<void>,
+  refreshSession: (walletId?: string) => Promise<void>,
 ): void {
   switch (outcome.kind) {
     case 'authenticated':
       toast.success(`Logged in as ${outcome.walletId}`, { id: 'login' });
-      void refreshLoginState(String(outcome.walletId)).catch(() => {});
+      void refreshSession(String(outcome.walletId)).catch(() => {});
       return;
     case 'registered':
       toast.success(`Registration completed: ${outcome.walletId}`, { id: 'registration' });
-      void refreshLoginState(String(outcome.walletId)).catch(() => {});
+      void refreshSession(String(outcome.walletId)).catch(() => {});
       return;
     case 'account_synced':
       toast.success(`Account synced: ${outcome.walletId}`, { id: 'sync' });
-      void refreshLoginState(String(outcome.walletId)).catch(() => {});
+      void refreshSession(String(outcome.walletId)).catch(() => {});
       return;
     case 'cancelled':
       toast.info('Wallet authentication cancelled', { id: 'login' });
@@ -173,11 +172,11 @@ function handleHostedAuthMenuOutcome(
 }
 
 function handleHostedAuthMenuOutcomeAndCancelGoogleRequest(
-  refreshLoginState: (walletId?: string) => Promise<void>,
+  refreshSession: (walletId?: string) => Promise<void>,
   outcome: HostedAuthMenuOutcome,
 ): void {
   cancelGoogleIdTokenRequest();
-  handleHostedAuthMenuOutcome(outcome, refreshLoginState);
+  handleHostedAuthMenuOutcome(outcome, refreshSession);
 }
 
 function providerUnavailableEvidence(message: string): HostedAuthMenuExternalAuthEvidence {
@@ -186,14 +185,6 @@ function providerUnavailableEvidence(message: string): HostedAuthMenuExternalAut
 
 function providerErrorEvidence(message: string): HostedAuthMenuExternalAuthEvidence {
   return { kind: 'failed', code: 'provider_error', message };
-}
-
-function showHostedDemoEmailOtp(delivery: { otpCode: string }): void {
-  void showCopiedDemoEmailOtpToast({
-    otpCode: delivery.otpCode,
-    toastId: 'google-email-otp-code',
-    unavailableDescription: 'Email delivery is not configured for this live demo.',
-  });
 }
 
 function registerGoogleIdTokenRequestCancellation(): () => void {
@@ -218,7 +209,7 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
     () => normalizeBaseUrl(FRONTEND_CONFIG.relayerUrl || FRONTEND_CONFIG.consoleBaseUrl),
     [],
   );
-  const { refreshLoginState, walletLockState } = useSeams();
+  const { refreshSession, walletLockState } = useSeams();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(
     syncAuthMenuContainerLock.bind(null, authMenuContainerRef, walletLockState.kind),
@@ -284,11 +275,7 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
             register: { subtitle: 'Continue with Passkey or Google SSO' },
           }}
           externalAuthBroker={externalAuthBroker}
-          onDemoEmailOtp={showHostedDemoEmailOtp}
-          onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(
-            null,
-            refreshLoginState,
-          )}
+          onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
         />
       ) : null}
     </div>

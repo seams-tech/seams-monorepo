@@ -143,7 +143,6 @@ type FrontendSdkProviderProps = {
   children: React.ReactNode;
   network?: FrontendNetwork;
   theme?: SeamsWebProviderProps['theme'];
-  eager?: boolean;
   appearance?: SeamsConfigsInput['appearance'];
 };
 
@@ -151,7 +150,6 @@ export function FrontendSdkProvider({
   children,
   network,
   theme,
-  eager,
   appearance,
 }: FrontendSdkProviderProps): React.JSX.Element {
   const runtime = useFrontendRuntime();
@@ -166,7 +164,7 @@ export function FrontendSdkProvider({
     [appearance, deployment],
   );
   return (
-    <SeamsWebProvider eager={eager} theme={theme} config={sdkConfig}>
+    <SeamsWebProvider theme={theme} config={sdkConfig}>
       {children}
     </SeamsWebProvider>
   );

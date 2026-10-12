@@ -1,5 +1,4 @@
 import {
-  buildTempoSetUserTokenRequest as buildSdkTempoSetUserTokenRequest,
   createEvmClient,
   parseEvmRpcHexQuantity,
   readTempoFeeTokenPreference,
@@ -438,19 +437,6 @@ export function buildTempoTransactionGreetingRequest(greeting: string, feeCaps: 
       aaAuthorizationList: [],
     },
   };
-}
-
-export function buildTempoSetUserTokenRequest(args: {
-  feeCaps: Eip1559FeeCaps;
-  feeToken: `0x${string}`;
-}) {
-  return buildSdkTempoSetUserTokenRequest({
-    chainId: 42431,
-    feeToken: args.feeToken,
-    maxPriorityFeePerGas: args.feeCaps.maxPriorityFeePerGas,
-    maxFeePerGas: args.feeCaps.maxFeePerGas,
-    gasLimit: TEMPO_SET_USER_TOKEN_GAS_LIMIT,
-  });
 }
 
 export function buildDemoEip1559Request(greeting: string, feeCaps: Eip1559FeeCaps) {

@@ -146,7 +146,7 @@ export function H2DemoHero({
 
   React.useEffect(() => {
     try {
-      seams.setAppearance(demoIframeAppearance(activePreset));
+      seams.config.setAppearance(demoIframeAppearance(activePreset));
     } catch {}
   }, [seams, activePreset, loginState?.isLoggedIn, activeWalletId]);
 

@@ -449,9 +449,11 @@ for (const directory of ['d1-console-core', 'd1-console'] as const) {
     const temporary = createTemporaryD1Database();
     try {
       const migrations = listD1MigrationFiles(directory);
-      const migration = migrations.at(-1);
-      if (!migration?.endsWith('refund_ledger_debits.sql')) throw new Error('Expected refund migration');
-      await applyD1MigrationFiles(temporary.database, migrations.slice(0, -1));
+      // Later migrations follow this one in d1-console, so it is selected by name.
+      const refundIndex = migrations.findIndex((file) => file.endsWith('refund_ledger_debits.sql'));
+      const migration = migrations[refundIndex];
+      if (!migration) throw new Error('Expected refund migration');
+      await applyD1MigrationFiles(temporary.database, migrations.slice(0, refundIndex));
       const billing = await createD1ConsoleBillingService({ database: temporary.database, namespace: BILLING_NAMESPACE });
       const checkout = await billing.createStripeCheckoutSession(SUPPORT_CONTEXT, { creditPackId: 'usd_25' });
       const settlement = await billing.reconcileStripeCheckoutSession(SUPPORT_CONTEXT, { checkoutSessionId: checkout.id });

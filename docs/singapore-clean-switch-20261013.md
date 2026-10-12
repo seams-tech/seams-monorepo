@@ -119,11 +119,8 @@ Steps after the deployment, all done except the last:
 3. Verify: the smoke routes, one fresh registration and one independently
    checked signature.
 4. **Owner:** run `.artifacts/r155h-singapore-anchor/delete-old-staging-databases.sh`.
-   It removes nine old databases after an id check and a typed confirmation.
-
-Rollback before the deletion: revert `281e48f`, restore the three variables
-from `staging-rollback-state.json`, run the Console and backend workflows,
-then activate the old environment again.
+   Done on October 13: the nine old databases are deleted. The rollback to
+   the Hong Kong databases no longer exists.
 
 Left in place, by design or for the owner:
 
@@ -137,6 +134,72 @@ Left in place, by design or for the owner:
 - Every Worker version from before this switch binds an old database. After
   the deletion none of them may serve again. Old hosted comparison drivers
   must not restore their snapshots.
+
+## Staging: release 0.9.3 since October 13, 03:26 JST
+
+Release 0.9.3 of the Wallet packages carries the registration latency work
+of R155G and R155H: the early passkey claim, the table-frame yield, the SIMD
+build, the start-up ceremony of the Derivers and the stripped Workers. It
+adds Gateway migration `0078`.
+
+Deployment:
+
+1. Private `5115cd3` pins 0.9.3. `pnpm check` and `pnpm build` pass. The
+   repository validation passes for the first time since the 0.9.0 pins,
+   because the console and the site build again.
+2. Before the deployment the latest upload of each of the 14 Workers was its
+   serving version (`serving-before-093.json`).
+3. Console run `38289350037` passed. Backend run `38289630699` migrated the
+   four Gateway databases and deployed every component. Its last step, the
+   smoke test, failed by design: a newly deployed Gateway version answers
+   403 `tenant_deployment_unavailable` until the activation verifies it.
+4. Activation run `38290821236` passed with `proj_mv5fzezy_4ztf60:dev`.
+   The publishable key and the environment did not change; only the
+   projection's revision did.
+5. Read back: 14 new serving versions, each the latest upload
+   (`serving-after-093.json`); table `registration_passkey_claims` and its
+   trigger on all four Gateway databases.
+
+**Every deployment of the staging backend needs the activation afterwards.**
+Between the Gateway's deployment and the activation the lane refuses every
+request, here for about five minutes.
+
+Measurement, client in Tokyo, 198 wallets on 0.9.0 between 01:15 and 03:09
+and 164 wallets on 0.9.3 between 03:28 and 03:46:
+
+| | 0.9.0 p50 | 0.9.3 p50 | 0.9.0 p90 | 0.9.3 p90 |
+| --- | ---: | ---: | ---: | ---: |
+| Registration after the passkey step | 2,332 ms | 1,734 ms | 3,044 ms | 2,221 ms |
+| Respond | 235 ms | 192 ms | 435 ms | 258 ms |
+| Yao execute | 1,286 ms | 862 ms | 1,836 ms | 1,293 ms |
+| Finalize | 602 ms | 477 ms | 947 ms | 678 ms |
+| Finalization, Gateway total | 306 ms | 228 ms | 595 ms | 434 ms |
+| Router execute request | 1,100 ms | 669 ms | 1,625 ms | 1,113 ms |
+| First signature | 454 ms | 326 ms | 857 ms | 560 ms |
+
+On 0.9.3, 80% of the wallets finish in less than 2.0 s after the passkey
+step; on 0.9.0, 12% did. The nine-wallet figure of 2,671 ms above was high
+for 0.9.0. All 164 signatures of the 0.9.3 runs verify independently
+(`proof-verification-release-093.json`). The public record is
+`docs/evidence/refactor-155h-release-093-staging.md` in `seams-wallet`.
+
+Found during the runs:
+
+- One of 165 samples failed at setup with HTTP 400 and
+  `D1_ERROR: Network connection lost.` Classified
+  `environment_or_infrastructure_failure`. Setup does not retry a transient
+  database fault and returns the driver's message with a client-error
+  status.
+- The start-up ceremony costs about 0.3 s of CPU per Deriver at every
+  wallet start, also for a setup that nobody finishes. Setup has no rate
+  limit of its own.
+- One wallet in about a hundred waits about 3 s for its Deriver A object on
+  both releases.
+
+Measurement kit in the artifacts folder: `measure.py <label> <groups>`,
+`analyze.py`, `report.py <before> <after>`, `verify-runs.mjs <label>`,
+`serving.py <name>`. They change nothing on staging. `site-093/` is the
+test site built from the published 0.9.3 package.
 
 ## Production testnet and mainnet: databases ready, deployment blocked
 

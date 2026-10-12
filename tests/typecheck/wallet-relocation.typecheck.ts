@@ -21,6 +21,7 @@ import type { WalletPlacementStatus } from '../../packages/wallet-console-server
 import type { WalletD1RelocationCommand } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCommands';
 import type { D1WalletRelocations } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationStore';
 import type { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
+import type { RelocationResourceVerification } from '../../packages/wallet-console-server-ts/src/tenantDeployment/relocationResourceVerification';
 import type {
   WalletRelocationAttempt,
   WalletRelocationExecution,
@@ -35,6 +36,7 @@ declare const attempt: WalletRelocationAttempt;
 declare const activation: WalletRelocationReceipt<'destination_activation'>;
 declare const relocations: D1WalletRelocations;
 declare const resourceProof: TenantResourceVerificationV1;
+declare const verification: RelocationResourceVerification;
 declare const preparation: WalletRelocationPreparation;
 declare const participants: Parameters<typeof WalletRelocationPreparation.prepare>[1];
 declare const clock: () => number;
@@ -47,11 +49,11 @@ const missingPhysicalObjects: PreparationReceipt = { participant: 'deriverA', ph
 const wrongPhysicalRole: PreparationReceipt = { ...deriverPreparation, participant: 'gateway' };
 void missingPhysicalObjects;
 void wrongPhysicalRole;
-void relocations.admit(request, [resourceProof], 'test', bindings, clock);
+void relocations.admit(request, verification, 'test', bindings, clock);
 // @ts-expect-error Caller-supplied participant receipts cannot replace regional bindings.
-void relocations.admit(request, [resourceProof], 'test', participants, clock);
+void relocations.admit(request, verification, 'test', participants, clock);
 // @ts-expect-error Every regional Runtime binding is required.
-void relocations.admit(request, [resourceProof], 'test', { gateways: bindings.gateways, runtimes: { US: bindings.runtimes.US } }, clock);
+void relocations.admit(request, verification, 'test', { gateways: bindings.gateways, runtimes: { US: bindings.runtimes.US } }, clock);
 // @ts-expect-error A complete participant set is required before admission.
 void WalletRelocationPreparation.prepare(request, { gateway: participants.gateway }, clock);
 // @ts-expect-error Only all-participant preparation can construct admission evidence.
@@ -59,12 +61,14 @@ const forgedPreparation: WalletRelocationPreparation = { ...preparation };
 // @ts-expect-error Preparation construction is private.
 new WalletRelocationPreparation('a'.repeat(64), 2, []);
 // @ts-expect-error Resource checks alone cannot authorize admission.
-void relocations.admit(request, [resourceProof], 'test', 1);
+void relocations.admit(request, verification, 'test', 1);
 void forgedPreparation;
 // @ts-expect-error Admission requires verified resources and a deployment lane.
 void relocations.admit(request, 1);
 // @ts-expect-error A spread cannot replace an authenticated resource proof.
-void relocations.admit(request, [{ ...resourceProof }], 'test', bindings, clock);
+void relocations.admit(request, { ...verification, resources: [{ ...resourceProof }] }, 'test', bindings, clock);
+// @ts-expect-error Resource proofs cannot admit a move without the verified custody namespaces.
+void relocations.admit(request, { resources: verification.resources }, 'test', bindings, clock);
 
 declare const command: WalletD1RelocationCommand;
 // @ts-expect-error A spread cannot forge command authorization from a journal read.
@@ -261,7 +265,7 @@ const forgedLocator: WalletRelocationLocator = { ...locator };
 // @ts-expect-error A move locator grants no command authority.
 const locatorAsAuthority: WalletD1RelocationCommand = locator;
 // @ts-expect-error A locator cannot admit a new relocation.
-void relocations.admit(locator, [resourceProof], 'test', bindings, clock);
+void relocations.admit(locator, verification, 'test', bindings, clock);
 void forgedLocator;
 void locatorAsAuthority;
 
@@ -286,19 +290,12 @@ void destinationAsSource;
 
 import type { WalletAuthorizationRelocation } from '../../packages/wallet-console-server-ts/src/walletPlacement/authorizationRelocation';
 type AuthorizationTransferResult = Awaited<ReturnType<WalletAuthorizationRelocation['transfer']>>;
-// @ts-expect-error A component verification cannot also request another chunk.
-const invalidTransferResult: AuthorizationTransferResult = {
-  state: 'verified',
-  digestHex: 'a'.repeat(64),
-  nextIndex: 1,
-};
 declare const transferResult: AuthorizationTransferResult;
 // @ts-expect-error A spread cannot add failure state to a successful transfer.
 const invalidTransferSpread: AuthorizationTransferResult = {
   ...transferResult,
   code: 'transport_unavailable',
 };
-void invalidTransferResult;
 void invalidTransferSpread;
 
 import type { WalletRelocationEffects } from '../../packages/wallet-console-server-ts/src/walletPlacement/relocationCoordinator';

@@ -1,5 +1,4 @@
 import type {
-  TenantRootActiveLineageLookupV1,
   TenantRootCreationGrantIssueV1,
   TenantRootCreationGrantReadyInputV1,
   TenantRootCreationGrantRecordV1,
@@ -57,7 +56,4 @@ export interface TenantRootCreationGrantServiceV1 extends TenantRootCreationGran
   markActiveFromReady(
     input: TenantRootCreationGrantReadyInputV1,
   ): Promise<TenantRootCreationGrantRecordV1>;
-  findActiveLineageByIdentity(
-    input: TenantRootActiveLineageLookupV1,
-  ): Promise<TenantRootCreationGrantRecordV1 | null>;
 }

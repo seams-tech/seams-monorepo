@@ -224,7 +224,7 @@ export function useDemoTempoSigningActions(args: UseDemoTempoSigningActionsArgs)
       });
 
     try {
-      const execution = await seams.tempo.executeEvmFamilyTransaction({
+      const execution = await seams.tempo.signAndSendTransaction({
         walletSession: walletSessionRefFromSession({
           walletId,
           walletSessionUserId: walletId,

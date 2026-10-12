@@ -1,4 +1,5 @@
 import { ConsoleWalletError } from './errors';
+import type { ConsoleWalletKey } from '@seams-internal/wallet-console-shared';
 import {
   readOptionalQueryPositiveIntegerField as readOptionalQueryInteger,
   readOptionalQueryStringField as readOptionalQueryString,
@@ -30,6 +31,21 @@ const WALLET_SORT_ORDER: Set<ConsoleWalletSortOrder> = new Set(['asc', 'desc']);
 
 function createParseError(code: string, status: number, message: string): ConsoleWalletError {
   return new ConsoleWalletError(code, status, message);
+}
+
+export function parseConsoleWalletKey(raw: unknown): ConsoleWalletKey {
+  const obj = requireQueryObject(raw, createParseError);
+  const id = readOptionalQueryString(obj, 'id');
+  const projectId = readOptionalQueryString(obj, 'projectId');
+  const environmentId = readOptionalQueryString(obj, 'environmentId');
+  if (!id || !projectId || !environmentId) {
+    throw new ConsoleWalletError(
+      'invalid_query',
+      400,
+      'Wallet id, projectId and environmentId are required',
+    );
+  }
+  return { id, projectId, environmentId };
 }
 
 function parseWalletChain(value: string | undefined): ConsoleWalletChain | undefined {

@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { ArrowRightAnim } from '../ArrowRightAnim';
 import SeamsWordmark from '../icons/SeamsWordmark';
-import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { isModifiedClick, useSiteRouter } from '@/app/router/useSiteRouter';
+import { blinkMenuItem } from './menuItemBlink';
 import './Navbar.css';
 
 type DropdownId = 'products' | 'documentation' | 'about' | 'pricing';
@@ -430,6 +431,26 @@ export function NavbarStatic({
     [linkProps, closeMenus],
   );
 
+  // Dropdown items blink once, then navigate as the menu closes. Modified
+  // clicks still open a new tab straight away.
+  const getMenuItemProps = React.useCallback(
+    (to: string) => ({
+      href: linkProps(to).href,
+      onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (isModifiedClick(e)) {
+          closeMenus();
+          return;
+        }
+        e.preventDefault();
+        void blinkMenuItem(e.currentTarget)?.then(() => {
+          go(to);
+          closeMenus();
+        });
+      },
+    }),
+    [linkProps, closeMenus, go],
+  );
+
   const openDropdownFromKeyboard = React.useCallback(
     (id: DropdownId, focusTarget: DropdownFocusTarget = 'first') => {
       clearDropdownTimers();
@@ -614,7 +635,7 @@ export function NavbarStatic({
     const isActive = pane.id === openDropdown;
     const paneClassName = `navbar-static__access-pane ${paneVisualClass(pane.id, openDropdown)}`;
 
-    const highlightProps = pane.highlight ? getNavLinkProps(pane.highlight.to) : null;
+    const highlightProps = pane.highlight ? getMenuItemProps(pane.highlight.to) : null;
 
     return (
       <div
@@ -632,7 +653,7 @@ export function NavbarStatic({
             <div className="navbar-static__menu-col">
               <p className="navbar-static__menu-kicker">{pane.kicker}</p>
               {pane.rows.map((row) => {
-                const rowProps = getNavLinkProps(row.to);
+                const rowProps = getMenuItemProps(row.to);
                 const Icon = row.icon;
                 return (
                   <a
@@ -678,7 +699,7 @@ export function NavbarStatic({
           </div>
           <div className="navbar-static__menu-footer">
             {pane.footerLinks.map((link) => {
-              const linkNavProps = getNavLinkProps(link.to);
+              const linkNavProps = getMenuItemProps(link.to);
               return (
                 <a
                   key={link.label}

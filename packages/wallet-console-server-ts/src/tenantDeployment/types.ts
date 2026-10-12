@@ -1,3 +1,4 @@
+import type { RegionalDeploymentAdmission } from './regionalAdmission';
 import type {
   ActiveTenantDeploymentBindingV1,
   TenantDeploymentActivationReceiptV1,
@@ -7,6 +8,11 @@ import type {
   TenantDeploymentCutoverV1,
   TenantDeploymentReadinessReceiptV1,
 } from '@seams-internal/wallet-console-shared/tenant-deployment';
+import type {
+  TenantDeploymentResourceVerificationsV1,
+  TenantRuntimeWriterV1,
+} from './resourceVerification';
+import type { TenantDeploymentRuntimeScopeV1 } from './runtimeInspection';
 
 export type {
   ActiveTenantDeploymentBindingV1,
@@ -24,6 +30,7 @@ export type ExpectedActiveTenantDeploymentBindingV1 = {
 };
 
 export type ActivateTenantDeploymentBindingInputV1 = {
+  readonly resourceVerifications: TenantDeploymentResourceVerificationsV1;
   readonly operationId: TenantDeploymentCutoverId;
   readonly expectedCutoverRecordRevision: number;
   readonly deploymentLane: string;
@@ -50,6 +57,11 @@ export type TenantDeploymentCutoverTransitionStateV1 = Exclude<
 >;
 
 export interface TenantDeploymentBindingReaderV1 {
+  resolveRuntimeBinding(
+    deploymentLane: string,
+    writer: TenantRuntimeWriterV1,
+  ): Promise<TenantDeploymentBindingV1 | null>;
+  readActiveScope(deploymentLane: string): Promise<TenantDeploymentRuntimeScopeV1 | null>;
   findBinding(
     deploymentLane: string,
     revision: TenantDeploymentBindingRevision,
@@ -59,6 +71,7 @@ export interface TenantDeploymentBindingReaderV1 {
 }
 
 export interface TenantDeploymentBindingStoreV1 extends TenantDeploymentBindingReaderV1 {
+  readActiveRegionalAdmission(deploymentLane: string): Promise<RegionalDeploymentAdmission | null>;
   putBinding(binding: TenantDeploymentBindingV1): Promise<TenantDeploymentBindingV1>;
   activateBinding(
     input: ActivateTenantDeploymentBindingInputV1,

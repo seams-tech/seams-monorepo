@@ -22,7 +22,10 @@ import {
   unstable_readConfig,
   unstable_splitSqlQuery,
 } from 'wrangler';
-import { prepareRouterAbD1LocalRuntimeConfig } from './d1-local-runtime-config.mjs';
+import {
+  bindRouterAbD1LocalGatewayAuthSecrets,
+  prepareRouterAbD1LocalRuntimeConfig,
+} from './d1-local-runtime-config.mjs';
 import { prepareRouterAbStrictLocalRuntimeConfigs } from '@seams/wallet-server/local-runtime';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -260,6 +263,10 @@ async function main() {
     repoRoot,
     outputRoot: configDirectory,
     ceremonyJwksJson: consoleConfig.ceremonyJwksJson,
+  });
+  bindRouterAbD1LocalGatewayAuthSecrets({
+    outputConfigPath: consoleConfig.outputConfigPath,
+    strictConfigs: strict.configs,
   });
   const consoleWorker = workerOptions(consoleConfig.outputConfigPath);
   consoleWorker.worker.outboundService = {

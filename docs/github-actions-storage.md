@@ -1,5 +1,59 @@
 # GitHub Actions storage and deployment recovery
 
+## OC allocation and possible account change (2026-10-05)
+
+The development catalog requires US, WEUR, APAC and OC wallet homes. Staging uses
+the current Cloudflare account `ba924da36f2ffc3839e8d323000b66b4`. Its OC signer
+database is `053da1ac-afa9-4f88-8e2b-b78b49c2310e`. A primary query reports
+`served_by_region = OC`, `served_by_colo = SYD` and `served_by_primary = true`.
+The two production lanes retain pending OC allocations in
+`deployment/wallet-system/targets.json`. Rendering rejects pending allocations.
+
+OC Gateway and Wallet Runtime Workers target Sydney using
+`placement.region = "aws:ap-southeast-2"`. Allocate new OC databases with
+the D1 `oc` location hint. D1 and Durable
+Object hints are best effort; verify actual placement before recording latency.
+Containers have limited OC capacity. An OC-only allowed-region list requires
+dedicated capacity; otherwise Cloudflare requires another allowed region.
+See [D1 location](https://developers.cloudflare.com/d1/configuration/data-location/),
+[Worker placement](https://developers.cloudflare.com/workers/configuration/placement/)
+and [Container placement](https://developers.cloudflare.com/containers/concepts/placement/).
+
+Protected staging activation [37290571181](https://github.com/seams-tech/seams-monorepo/actions/runs/37290571181)
+verified all four databases and both writer versions per database. It preserved
+the existing browser key. Additions require fresh operator proofs and activation;
+cutover rejects removal or replacement of an existing database. Migration `0072`
+preserves populated routing records and pending moves, then removes its temporary
+copy tables. Local acceptance and the hosted migration pass foreign-key checks.
+
+The Cloudflare budget remains **$25 total**. The October 5 probe test reserves
+$1 within that cap. Its access expires after one hour and idle Containers stop
+after ten minutes. Account analytics, storage reserves and cleanup evidence remain
+in `.artifacts/oc/live-20261005/`. The hosted test passed in 6.9 minutes, with
+15 timed travel signatures plus NEAR and concurrent Tempo/Arc signing. Median
+prepare + execute times were 3.661s from Sydney, 3.412s from Tokyo, 3.657s from
+Madrid and 3.824s from Atlanta. These measurements exclude the browser-to-probe
+hop and retain the existing custody-role placement. All 44 existing wallet-home
+records were unchanged. The failed first probe attempt and five background refill
+401 responses remain in the failure ledger.
+
+Cleanup deleted the temporary Worker, five Container applications and five DO
+namespaces. Follow-up inventories verified zero remaining probe resources. The
+OC staging database and its Gateway/Runtime remain active. Reported probe usage
+was $0.0242 at cleanup, with direct-policy Sydney usage absent from current
+analytics. Budget checking uses the conservative $0.3454 compute bound and $1
+test reserve. Analytics estimates can lag billing. Full timings and source
+identities are recorded in the public Wallet repository
+`docs/refactor-152-results.md`, under the October 5 OC cohort.
+
+The possible account switch remains deferred. If the account changes, create
+fresh D1 databases, Workers, DO namespaces and Container applications there.
+Replace account and resource identities through the existing deployment targets
+and environment workflow. Regenerate the deployment manifests and credentials
+for that account before verifying bindings. Existing database IDs and manifests
+remain tied to the current account. Keep current deployments intact until the
+replacement deployment passes acceptance.
+
 ## Findings on 2026-09-19
 
 The mainnet build in run `35437596819` failed during artifact upload with

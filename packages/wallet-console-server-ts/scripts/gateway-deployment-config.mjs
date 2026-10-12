@@ -3,10 +3,9 @@ const D1_DATABASE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}
 const TENANT_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,126}[A-Za-z0-9])?$/;
 const X25519_PUBLIC_KEY_PATTERN = /^x25519:[0-9a-f]{64}$/;
 const ED25519_PUBLIC_KEY_PATTERN = /^ed25519:[1-9A-HJ-NP-Za-km-z]+$/;
-const ED25519_VERIFYING_KEY_PATTERN = /^[0-9a-f]{64}$/;
 const UNSIGNED_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 
-export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 4;
+export const GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION = 5;
 export const DEFAULT_NEAR_INITIAL_BALANCE_YOCTO = '30000000000000000000000';
 export const DEFAULT_RELAY_SESSION_AUDIENCE = 'seams-wallet-session';
 export const DEFAULT_SESSION_COOKIE_NAME = 'seams-jwt';
@@ -263,14 +262,83 @@ function knownNearNetworkForRpcUrl(rpcUrl) {
   return null;
 }
 
+export const WALLET_REGIONS = Object.freeze(['US', 'WEUR', 'APAC', 'OC']);
+
 function parseResources(value) {
   const resources = requireObject(value, 'resources');
-  requireExactKeys(resources, ['workerName', 'placementRegion', 'consoleD1', 'signerD1'], 'resources');
+  requireExactKeys(
+    resources,
+    ['workerName', 'ingressRegion', 'consoleD1', 'regions'],
+    'resources',
+  );
+  const rawRegions = requireObject(resources.regions, 'resources.regions');
+  requireExactKeys(rawRegions, WALLET_REGIONS, 'resources.regions');
+  const regions = {};
+  const names = new Set();
+  const consoleD1 = parseD1Resource(resources.consoleD1, 'resources.consoleD1');
+  const ids = new Set([consoleD1.id]);
+  names.add(consoleD1.name);
+  for (const region of WALLET_REGIONS) {
+    const label = `resources.regions.${region}`;
+    const raw = requireObject(rawRegions[region], label);
+    requireExactKeys(raw, ['workerName', 'placementRegion', 'signerD1'], label);
+    const signerD1 = parseD1Allocation(raw.signerD1, `${label}.signerD1`);
+    const { name } = signerD1;
+    const workerName = requirePattern(raw.workerName, RESOURCE_NAME_PATTERN, `${label}.workerName`);
+    if (!workerName.includes('gateway'))
+      throw new Error(`${label}.workerName must contain gateway`);
+    if (names.has(name) || names.has(workerName))
+      throw new Error('Regional resource names must be distinct');
+    names.add(name);
+    names.add(workerName);
+    if (signerD1.kind === 'allocated') {
+      if (ids.has(signerD1.id))
+        throw new Error('Console, OTP counter, and regional signer D1 identities must be distinct');
+      ids.add(signerD1.id);
+    }
+    regions[region] = {
+      workerName,
+      placementRegion: requireString(raw.placementRegion, `${label}.placementRegion`),
+      signerD1,
+    };
+  }
+  const ingressRegion = requireString(resources.ingressRegion, 'resources.ingressRegion');
+  if (!WALLET_REGIONS.includes(ingressRegion)) throw new Error('Unknown ingress region');
+  const workerName = requirePattern(
+    resources.workerName,
+    RESOURCE_NAME_PATTERN,
+    'resources.workerName',
+  );
+  if (regions[ingressRegion].workerName !== workerName)
+    throw new Error('Ingress worker must match its regional Gateway');
+  return { workerName, ingressRegion, consoleD1, regions };
+}
+
+export function requireAllocatedWalletRegions(deployment) {
+  for (const region of WALLET_REGIONS) {
+    if (deployment.resources.regions[region].signerD1.kind !== 'allocated') {
+      throw new Error(`${deployment.lane}: ${region} signer D1 allocation is pending`);
+    }
+  }
+  return deployment.resources.regions;
+}
+
+function parseD1Allocation(value, label) {
+  const allocation = requireObject(value, label);
+  const kind = allocation.kind;
+  if (kind !== 'allocated' && kind !== 'pending')
+    throw new Error(`${label}.kind must be allocated or pending`);
+  requireExactKeys(
+    allocation,
+    kind === 'allocated' ? ['kind', 'name', 'id'] : ['kind', 'name'],
+    label,
+  );
+  const name = requirePattern(allocation.name, RESOURCE_NAME_PATTERN, `${label}.name`);
+  if (kind === 'pending') return { kind, name };
   return {
-    workerName: requirePattern(resources.workerName, RESOURCE_NAME_PATTERN, 'resources.workerName'),
-    placementRegion: requireString(resources.placementRegion, 'resources.placementRegion'),
-    consoleD1: parseD1Resource(resources.consoleD1, 'resources.consoleD1'),
-    signerD1: parseD1Resource(resources.signerD1, 'resources.signerD1'),
+    kind,
+    name,
+    id: requireNonZeroHexPattern(allocation.id, D1_DATABASE_ID_PATTERN, `${label}.id`),
   };
 }
 
@@ -408,12 +476,7 @@ function parsePublicKeyset(value) {
   const keyset = requireObject(value, 'routerAb.publicKeyset');
   requireExactKeys(
     keyset,
-    [
-      'keyset_version',
-      'signer_envelope_hpke',
-      'signer_peer_verifying_keys',
-      'signing_worker_server_output_hpke',
-    ],
+    ['keyset_version', 'signer_envelope_hpke', 'signing_worker_server_output_hpke'],
     'routerAb.publicKeyset',
   );
   if (keyset.keyset_version !== 'router_ab_keyset_v2') {
@@ -432,15 +495,6 @@ function parsePublicKeyset(value) {
     current,
     ['deriver_a', 'deriver_b'],
     'routerAb.publicKeyset.signer_envelope_hpke.current',
-  );
-  const peerKeys = requireObject(
-    keyset.signer_peer_verifying_keys,
-    'routerAb.publicKeyset.signer_peer_verifying_keys',
-  );
-  requireExactKeys(
-    peerKeys,
-    ['deriver_a', 'deriver_b'],
-    'routerAb.publicKeyset.signer_peer_verifying_keys',
   );
   const workerOutput = requireObject(
     keyset.signing_worker_server_output_hpke,
@@ -467,18 +521,6 @@ function parsePublicKeyset(value) {
         ),
       },
     },
-    signer_peer_verifying_keys: {
-      deriver_a: parsePeerVerifyingKey(
-        peerKeys.deriver_a,
-        'signer_a',
-        'routerAb.publicKeyset.signer_peer_verifying_keys.deriver_a',
-      ),
-      deriver_b: parsePeerVerifyingKey(
-        peerKeys.deriver_b,
-        'signer_b',
-        'routerAb.publicKeyset.signer_peer_verifying_keys.deriver_b',
-      ),
-    },
     signing_worker_server_output_hpke: {
       key_epoch: requireEpoch(
         workerOutput.key_epoch,
@@ -504,20 +546,6 @@ function parseEnvelopeKey(value, expectedRole, path) {
       key.public_key,
       X25519_PUBLIC_KEY_PATTERN,
       `${path}.public_key`,
-    ),
-  };
-}
-
-function parsePeerVerifyingKey(value, expectedRole, path) {
-  const key = requireObject(value, path);
-  requireExactKeys(key, ['role', 'verifying_key_hex'], path);
-  requireExactString(key.role, expectedRole, `${path}.role`);
-  return {
-    role: expectedRole,
-    verifying_key_hex: requireNonZeroHexPattern(
-      key.verifying_key_hex,
-      ED25519_VERIFYING_KEY_PATTERN,
-      `${path}.verifying_key_hex`,
     ),
   };
 }

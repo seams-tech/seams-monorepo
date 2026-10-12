@@ -1,4 +1,5 @@
 import React from 'react';
+import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from '../../components/DashboardMenu';
 import { formatDashboardTimestamp } from '../../utils/timestamps';
 import {
   CalendarIcon,
@@ -69,13 +70,11 @@ function AuditRangePicker(props: {
   onStepRange(direction: -1 | 1): void;
 }): React.JSX.Element {
   const { range, nowMs, canStepForward, onPresetChange, onStepRange } = props;
-  const [open, setOpen] = React.useState<boolean>(false);
-  const dismiss = React.useCallback(() => setOpen(false), []);
-  const rootRef = useDismissable(open, dismiss);
+  const menu = useDashboardMenu();
   const activePresetId = auditRangeSpanPreset(range)?.id || null;
 
   return (
-    <div className="dashboard-audit-range" ref={rootRef}>
+    <div className="dashboard-audit-range" ref={menu.rootRef}>
       <button
         type="button"
         className="dashboard-audit-range__step"
@@ -89,8 +88,8 @@ function AuditRangePicker(props: {
         type="button"
         className="dashboard-audit-range__preset"
         aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        aria-expanded={menu.open}
+        onClick={menu.toggle}
       >
         <CalendarIcon size={15} strokeWidth={1.75} />
         <span className="dashboard-audit-range__label">
@@ -110,30 +109,24 @@ function AuditRangePicker(props: {
         <ChevronRightIcon size={15} strokeWidth={1.75} />
       </button>
 
-      {open ? (
-        <div className="dashboard-context-menu dashboard-audit-range__menu" role="menu">
-          {AUDIT_RANGE_PRESETS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="menuitemradio"
-              aria-checked={entry.id === activePresetId}
-              className={[
-                'dashboard-context-menu__item',
-                entry.id === activePresetId ? 'is-selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => {
-                setOpen(false);
-                onPresetChange(entry.id);
-              }}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <DashboardMenu menu={menu} className="dashboard-context-menu dashboard-audit-range__menu">
+        {AUDIT_RANGE_PRESETS.map((entry) => (
+          <DashboardMenuItem
+            key={entry.id}
+            role="menuitemradio"
+            aria-checked={entry.id === activePresetId}
+            className={[
+              'dashboard-context-menu__item',
+              entry.id === activePresetId ? 'is-selected' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onSelect={() => onPresetChange(entry.id)}
+          >
+            {entry.label}
+          </DashboardMenuItem>
+        ))}
+      </DashboardMenu>
     </div>
   );
 }

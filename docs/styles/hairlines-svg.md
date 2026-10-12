@@ -1,0 +1,297 @@
+# Hairline SVG direction
+
+Use one detailed, interactive illustration at a time. Start from an existing wallet image and preserve its meaning.
+
+The first example develops the wallet security section's **Audit log** image into four layered paper records. The folded corner, binding holes, ruled entries, and thin paper edges identify the object without words inside the drawing.
+
+The second example develops **Scoped credentials** into four cut metal keys on a shared ring. The user approved this animation on 2026-10-07. Preserve its geometry and interaction as the reference for the remaining examples. Each example has its own review page.
+
+## Replacement status
+
+The security section contains four custody illustrations and one threshold-signing illustration. Review each replacement separately before frontpage integration.
+
+| Existing asset     | Replacement status                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| Scoped credentials | Keychain approved.                                                                          |
+| Audit log          | Replaced as a selling point by Self-hostable. Server-cartridge mockup available for review. |
+| Policy engine      | Interlock and three-layer sieve animations approved.                                        |
+| Split-key custody  | Not started.                                                                                |
+| Threshold signing  | Not started.                                                                                |
+
+## Reference and engine
+
+- [Hairline figures](https://hairline.lucasmarkes.com/figures)
+- [Official creation skill](https://hairline.lucasmarkes.com/skill)
+- [Upstream source](https://github.com/lucasmarkes/hairline)
+
+Use the `hairline-create` skill. Its unchanged kernel supplies projection, springs, pointer handling, drawing primitives, and theme styles. Its unchanged bench supplies the review page. The source figure contains the wallet-specific geometry and interaction.
+
+The kernel and bench use the MIT license. Keep `HAIRLINE-LICENSE.txt` beside the generated page.
+
+## Drawing
+
+- Use the engine's 400 × 320 coordinate system and isometric camera.
+- Build recognizable objects from rounded outlines and specific physical details.
+- Keep outer outlines stronger than internal rules and creases.
+- Use opaque surfaces. Paint from back to front so nearer sheets cover farther sheets.
+- Use the engine's stroke classes. Keep color, line weight, and theme behavior in the shared engine.
+- Highlight one object. Transfer the outline highlight to the selected record.
+- Keep words, numbers, arrows, and interface controls outside the SVG drawing.
+- Compose a complete resting pose that remains recognizable at 240px.
+
+Retain the wallet site's typography and spacing when integrating approved artwork. Keep the current example isolated on its review page until its appearance and movement are accepted.
+
+## Audit log interaction
+
+Moving horizontally separates the sheets. Each sheet moves around the stack's center, so the composition remains centered as it opens. Moving over an exposed sheet transfers the highlighted outline and updates the short record readout.
+
+Pointer exit returns the stack to its resting spacing. The intensity slider controls the maximum separation. Its low, middle, and high values are 18, 26, and 34 world units.
+
+The shared spring follows continuous pointer input. Its default stiffness is 100, damping is 18, and mass is 1. The engine stops its frame loop when the spring settles and respects the operating system's reduced-motion preference.
+
+Hit testing uses the target position, from the front sheet to the back sheet. It excludes covered sheets and the cut corner. Testing a moving sheet's current position can cause unstable selection, so use the target geometry consistently.
+
+The figure updates paths only when the sheet spacing changes. Theme and outline transitions come from the shared engine.
+
+## Source and rebuild
+
+The source image lives in `apps/wallet-console/src/components/h2/sections.tsx`, in `H2Security` under **Audit log**.
+
+The replacement review page has these files:
+
+- `apps/wallet-console/showcase/motion/audit-log.js` — editable figure.
+- `apps/wallet-console/showcase/motion/index.html` — generated, self-contained page.
+- `apps/wallet-console/showcase/motion/HAIRLINE-LICENSE.txt` — upstream license.
+
+Edit only the figure when changing the artwork. Rebuild with the installed skill:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/audit-log.js \
+  apps/wallet-console/showcase/motion/index.html
+```
+
+Do not format or manually edit the generated HTML. The validator checks that its kernel and bench remain unchanged.
+
+The local review URL is `/dashboard-static/showcase/motion/`. The page contains one figure with intensity and theme controls.
+
+## Scoped credentials example
+
+The keychain uses four house keys with solid rounded heads, small circular ring holes, shallow edge cuts, and recessed blade grooves. Each head has a 27-unit radius. Four cut patterns distinguish the keys. The complete head and blade share one outline, with a 2.2-unit metal thickness. Each handle has a shallow inset edge at radius 24, drawn only along the far half in the light-grey detail stroke. The near half stays hidden. The visible arc follows the camera direction as each key rotates and sits 0.6 units below the face. A blank rounded nameplate sits on the face. A collar rises 0.45 units above the face around the ring hole. All marks follow the key plane and remain behind nearer keys and ring sections.
+
+Hovering a key fans it out around its fixed ring hole. Nearby keys rotate slightly away, with a 35ms delay per key of distance. Pointer exit restores the resting fan. The bright outline follows selection, and the readout names the selected key.
+
+The shared ring is a torus: a circular metal tube with a round cross-section. Its centreline radius is 34 world units, and its tube radius is 2.6. Projected surface contours show its depth. Ring sections sit between the key layers, so each opaque face hides the metal beneath it.
+
+The ring passes through 6.2-unit-radius openings near the back of each head. Each key rotates about that opening, keeping it centred on the ring throughout motion. An even-odd fill rule leaves a real hole through each face.
+
+The intensity slider sets fan rotation to 6, 10, or 14 degrees. Selection uses the resting key angles, so a moving key cannot change its own hover target. The shared 700ms tween handles selection changes and reverses from the current pose.
+
+This is an illustration of distinct credentials. Selecting a key does not grant permission or represent a signing ceremony.
+
+Edit `apps/wallet-console/showcase/motion/credentials/scoped-credentials.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/credentials/scoped-credentials.js \
+  apps/wallet-console/showcase/motion/credentials/index.html
+```
+
+Review it at `/dashboard-static/showcase/motion/credentials/`. From `.artifacts/scoped-credentials`, run the repeatable visual check:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/credentials/scoped-credentials.js \
+  --answer 0,90,9 --edge 70,100,3 --zoom answer
+```
+
+Inspect the tooth contours, ring, and openings at full size. Select each key, switch quickly between keys, and leave the figure. Check that the selected key stays attached and all keys remain inside the frame at maximum fan rotation.
+
+## Three-layer sieve example
+
+The graded sieve replaces the rejected single-plate shape sorter. Three circular screens sit on four slender support rods above a collection plate. Dense perforations, machined rims, hexagonal fasteners, and thin screen material give it the form of a laboratory screening assembly.
+
+The particles are thin, unbranded metal tokens. Each token has a beveled rim. The three larger sizes also have one faint inset ring. Small starting tilts settle level before the tokens reach the upper screen.
+
+The screens have progressively smaller round openings. Their aperture radii are 9, 4.6, and 2.4 world units. The token radii are 10.5, 7, 3.8, and 2 units. The largest pair has one unit of clearance between their rims. Thickness is 0.3 times the radius. The upper 30% of the thickness tapers to 90% of the full radius.
+
+Twelve tokens form four groups: two large tokens stop at the upper screen, three medium tokens stop at the middle screen, two small tokens stop at the lower screen, and five smallest tokens reach the collector. The smallest token positions sit toward the front so their final positions remain visible.
+
+Hovering lowers each token continuously to its final layer. Tokens pass through intermediate screens without pausing or tracing. A token stops when its size exceeds the next opening. The smallest tokens stop on the collector. The frame stays rigid.
+
+Once a token reaches its terminal position, a dark stroke traces its actual outer contour once. The completed outline holds briefly, then clears. Tokens trace independently, including those on the collector. Pointer exit removes the traces and reverses the same path from its current position.
+
+The 3500ms tween gives the fall and terminal trace time to read. Deeper destinations have later arrival points within that tween. The intensity slider controls the outward stagger at 30, 60, or 90 milliseconds per grid step. The stationary stage is the hover target. The kernel supplies its standard easing, reduced motion, and offscreen sleep. Token geometry updates only when its height changes. A separate outline path reveals successive contour points after landing. It updates only when the visible point count changes. Reduced motion goes directly to the sorted pose without tracing.
+
+Each screen combines a five-unit structural rim with a 0.8-unit perforated sheet. The visible bore is the intersection of the projected upper and lower openings. Each token draws in separate vertical bands between screens. This keeps the opaque plates in front of the material beneath them. The rods and their fasteners also follow the back-to-front order.
+
+The user approved the sieve assembly and selected machined tokens to replace its fragments. The sieve remains a review alternative alongside the selected interlock. Its metaphor is successive filtering: each layer applies a tighter condition. Review this direction before frontpage integration.
+
+Edit `apps/wallet-console/showcase/motion/policy/graded-sieve.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/policy/graded-sieve.js \
+  apps/wallet-console/showcase/motion/policy/index.html
+```
+
+Review it at `/dashboard-static/showcase/motion/policy/`. From `.artifacts/graded-sieve`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/policy/graded-sieve.js \
+  --answer 0,0,136 --edge 43,20,83 --zoom answer
+```
+
+Inspect the contact sheet, motion sheet, and enlarged answer. Follow a small token through all three screens without intermediate pauses or traces. Capture intermediate frames to check that each outline starts only after its token lands, including the collector. Check that larger tokens stay on their correct screen. Enter and leave during motion to check reversal. Inspect the rod connections, aperture walls, both themes, and both slider extremes.
+
+The fixed frame and dense perforations dominate the 240px view. The automated changed-ink metric therefore reports a small response. This is deliberate: the tokens carry the motion while the machine stays fixed. Inspect the smallest tokens at full size when judging the filtering sequence.
+
+## Combination interlock
+
+The policy interlock uses three slotted discs on a common axis. A vintage key enters from the rear through the centers of the discs. Three compact teeth seat in enclosed radial keyways. Its wide scalloped bow has a large oval opening. The shaft, teeth, and bow form one solid outline.
+
+Hover or Enter inserts the key by 76 world units, then turns the key and all three discs together through 60 degrees. Pointer exit or another Enter reverses the turn before withdrawing the key. Space also toggles the sequence. One reversible Hairline tween preserves this ordering during interruptions. The insertion boundary is the shared easing curve evaluated at 45% of the duration. The slider sets the full sequence to 900, 1200, or 1500 milliseconds.
+
+Each tooth leaves 0.2 units of axial clearance inside its seven-unit disc. The key is eleven units thick inside thirteen-unit slots. Slotted hollow sleeves support the discs and turn with them. The rear bearing has an open entry channel for the raised teeth. Each tooth rises 14.5 units above the blade, with one unit of clearance under its keyway roof. The bow uses a sixteen-by-twenty-two-unit oval with a ten-percent scallop and a nine-by-fourteen-unit opening. The stationary supports clear the rotating shaft.
+
+The key draws in sections at disc boundaries. Slot backs draw before each key section. Near disc walls and faces draw above it. Section boundaries have no artificial end caps. The key outline is the single accent. Radial ticks, circular grooves, base mounting holes, and the front retaining cap use lighter detail strokes. The figure keeps the existing Hairline camera, palette, runtime, and bench. As with the other extended mechanical figures, its readable geometry exceeds the standalone skill's 200-line limit.
+
+This figure illustrates mechanical engagement. It does not execute policy checks or show threshold signing. The threshold-signing diagram remains a separate figure.
+
+Edit `apps/wallet-console/showcase/motion/interlock/combination-interlock.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/interlock/combination-interlock.js \
+  apps/wallet-console/showcase/motion/interlock/index.html
+```
+
+Review at `/dashboard-static/showcase/motion/interlock/`. Use `?w=240&theme=dark&at=200,166&intensity=1` for the compact dark view at the longest duration. Set intensity to zero for the shortest duration.
+
+The browser review evidence is in `.artifacts/combination-interlock/key-redesign/`: rest and turned screenshots, the compact dark view, and `review.json` with sampled motion states. Repeat the review by inserting with Enter, reversing after the completed turn, then interrupting another turn with Enter. During every sample with a nonzero turn, insertion must equal one. Both directions must reach their endpoint without invalid SVG coordinates. Inspect the teeth inside the slots and the key's bore in both themes. The standard Hairline runtime provides reduced-motion handling; this review did not change the host's motion preference.
+
+## Self-hostable example
+
+The fourth example replaces Audit log as a frontpage selling point. The approved copy is:
+
+> **Your infrastructure. Your control.**
+> Run threshold signing on your own serverless infrastructure.
+
+A compact datacenter rack holds six closely stacked, closed server units. The third server from the top rests partly withdrawn. Simple pull handles, three indicator outlines, three ventilation slots, and mounting posts supply the detail. The short cabinet has a solid side panel, top, base, and small feet. The supplied reference sets the camera: a mirrored 60-degree azimuth and 0.28 elevation factor show the wider front and the side panel on the right. This intentionally replaces the default isometric view to match that reference. Thirteen-unit server faces sit on a fourteen-unit pitch, leaving narrow gaps. Recessed handles and small mounting fasteners add restrained detail.
+
+Hovering the fixed stage runs a 1800ms deployment sequence. The third server seats on its rails, then its three indicators start in order. Its recessed pull handle stays fixed. Leaving reverses this sequence: the lights switch off, then the server withdraws. One reversible kernel tween preserves the current position when interrupted. The slider changes withdrawal distance from 20 through 26 to 32 world units. Only the selected server group translates; all other geometry stays fixed. Server geometry stops updating after settling. The shared loop continues only for visible activity lights and sleeps offscreen.
+
+The rack draws lower bays before upper bays, then the near side wall and top. Opaque surfaces hide parts inside the cabinet. The selected front panel and handle carry the accent stroke. The small motion affects one of six servers, so the rest of the rack remains visually stable. The five installed servers have steady power lights and two activity lights each. The withdrawn server stays dark until it seats. Its three indicators then start in order before joining normal activity. Activity pulses last 340 milliseconds, with distinct periods and phase offsets across bays. Lamps use the existing monochrome dot palette, with no glow. Only lamp classes change during idle activity. Reduced-motion mode applies the final pose immediately, keeps enabled lights steady, and stops the ambient loop. A shallow top-panel seam and telescoping rails add detail to the withdrawn unit.
+
+Edit `apps/wallet-console/showcase/motion/self-hostable/server-rack.js`, then rebuild:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/build.mjs" \
+  apps/wallet-console/showcase/motion/self-hostable/server-rack.js \
+  apps/wallet-console/showcase/motion/self-hostable/index.html
+```
+
+Review at `/dashboard-static/showcase/motion/self-hostable/`. From `.artifacts/self-hostable`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/self-hostable/server-rack.js \
+  --answer 42,0,56 --edge 42,30,56 --zoom rest
+```
+
+Inspect the six occupied bays, rail alignment, and cabinet occlusion during insertion. Check both themes, 240px width, slider extremes, and interrupted hover transitions. Verify that the selected lamps start only after insertion. Check the reverse order on exit. Installed power lights stay steady, activity lights blink independently, and reduced-motion mode freezes enabled lamps. The reference camera makes the sliding motion more compact; the single-server movement remains intentional. This preview remains separate from frontpage integration.
+
+## Visual verification
+
+Run the skill's browser review after each figure change. From `.artifacts/audit-log`, run:
+
+```sh
+node "$HOME/.codex/skills/hairline-create/look.mjs" \
+  ../../apps/wallet-console/showcase/motion/audit-log.js \
+  --answer 245,170 --edge 310,160 --zoom answer
+```
+
+Inspect the contact sheet, the 240px views, and the motion sequence. Confirm all of these conditions:
+
+- The folded paper and printed rows remain recognizable at 240px.
+- Rest and expanded poses remain centered and inside the frame.
+- Near sheets hide farther sheets throughout movement.
+- Only the selected record has the highlighted outline.
+- Pointer movement settles without flicker or repeated animation.
+- The readout identifies the exposed record under the pointer.
+- Both themes preserve the geometry and visual hierarchy.
+- Slider extremes remain inside the frame.
+- The browser console contains no errors or warnings.
+
+The review script saves repeatable visual artifacts. Its automatic checks cover bounds, readout, console errors, and settling. Human visual review still determines whether the illustration feels right.
+
+Before production integration, check keyboard access, reduced motion, and physical touch behavior in the host component. Keep essential explanations in adjacent HTML. Decorative motion must never determine wallet authentication, signing, or transaction state.
+
+## Infrastructure array: glass doors and sliding servers
+
+Preview: `/dashboard-static/showcase/motion/infrastructure-array/`.
+
+Three adjoining racks hold six server modules each. The larger camera scale keeps the doors and server details readable in the small frontpage card. Each cabinet is 40 world units wide, with a framed glass door, three hinges on its far edge, and a handle on the opposite edge. Mounting posts, rails, recessed handles, ventilation slots, and status dots detail the servers. All modules remain inside their cabinets at rest. The mirrored 45-degree camera uses the same 2:1 isometric projection as the interlock.
+
+Hovering a cabinet opens its door through 90 degrees with a 340 ms tween. Once the door clears, nearby modules extend up to 22 world units with 180 ms tweens. A Gaussian falloff distributes the extension vertically around the pointer. The slider sets its radius to 18, 30, or 44 world units. Only the selected rack extends. Switching racks retracts the previous rack's modules before the next rack extends. Leaving retracts the modules before the door closes. The nearest closed door accents only its outer perimeter. The accent stays on the opening door, then transfers to the nearest server. Leaving clears the server accent during retraction and accents the closing door. A two-unit boundary margin prevents pointer jitter from switching racks.
+
+Pointer selection projects onto the fixed rack face. Moving doors and server fronts never change the hit areas. The door moves behind the server units in draw order after it passes its edge-on pose. Rack groups draw from far to near, and server groups draw from bottom to top. Near walls, mounting posts, and top panels mask the chassis inside each cabinet. Each server's geometry stays fixed; only its group translates. Settled tweens stop updating, and reduced motion lands at the target immediately.
+
+The glass uses a translucent pane and faint reflection strokes. These details and the coordinated door sequence extend Hairline's palette and 200-line conventions. Edit `apps/wallet-console/showcase/motion/infrastructure-array/infrastructure-array.js`, then generate that directory's `index.html` with Hairline's `build.mjs`.
+
+Run `node .artifacts/infrastructure-array/check-doors.mjs` to check all three racks, door clearance, exclusive extension, pointer height, rapid switches, reduced motion, themes, and compact bounds. The script saves screenshots and `doors-check.json` in the same artifact directory. The original single-rack preview remains available separately.
+
+## Signing assembly: rod keys, iris, and transaction output
+
+Preview: `/dashboard-static/showcase/motion/signing-assembly/`.
+
+Three cylindrical rod keys stand above matching sockets on an indexed disk. Each socket opening combines a circular bore with a square side cutout for the key bit. The outline follows the circle to the notch shoulders, then follows three straight edges around the cutout. Cylinder tops use their actual rim edges, without inset guide rings. Each rod has a narrow recessed collar and a small lateral key bit near the middle of its shaft. The lower shaft radius is 3.5 units, below the upper shaft radius of 4.5 units. The button cap is 4 units tall with a 6.5-unit radius. The socket notch leaves clearance around the bit. An index mark on the grip makes its quarter-turn visible. Two keys insert and lock. The third remains withdrawn.
+
+The base has an inset annular scale bounded by two engraved circles. Long and short index marks rotate with six recessed slotted fasteners. A fine seam follows only the visible half of the base sidewall. All details sit behind the raised mechanisms and use the lighter detail stroke.
+
+Three Hairline tweens control the sequence. Insertion takes 350ms. The keys lock while the disk rotates, sharing one 500ms motion. A 400ms release combines the central cylinder lift, iris opening, and transaction cylinder launch. Six straight blade edges pivot around a rotating hexagonal aperture. The opening grows while the cylinder rises. Ejection starts once the opening clears the transaction cylinder, during the same release stroke. There is no pause between stages. The three stages take approximately 1.25 seconds, followed by the transaction cylinder spring settling into its hover. Hover interruptions resume from the current pose.
+
+The transaction cylinder rises 54 world units above the raised platform, with a spring overshoot. Its spring uses stiffness 100, damping 10, and mass 1. Small vertical, lateral, and rotational oscillations keep it hovering. The signed transaction cylinder has a 16-unit height and diameter, with 1.1-unit bevels along its upper and lower rims. Five engraved text lines cover its circular top and curve around its front wall. Varied line lengths and a gap after the first line suggest a transaction heading and body. The top has an inset circular border. Only the visible front halves of the lower rim edges are drawn. Every structural edge uses the dark accent stroke; engraved text lines use the softer silhouette stroke. The body and every engraving clip at the aperture surface during emergence and retraction. Its maximum footprint radius is 8 units, within the open aperture's 10.22-unit inscribed radius. Only the transaction cylinder continues moving after the mechanism settles. The shared loop sleeps offscreen.
+
+Leaving lowers the central housing and retracts the transaction cylinder together. The exposed transaction cylinder height tapers to zero before the iris closes during the same release stroke. The disk and keys then turn back together before the keys withdraw. Reduced motion lands all stages and disables the hover oscillation. The slider sets key insertion depth to 22, 23, or 24 world units.
+
+The shutter uses one opaque face with a real hexagonal cutout and six shared seams. Its closed leaves meet at the centre. Each straight seam connects an aperture vertex to a fixed rim pivot as the aperture rotates approximately 47 degrees. A raised retaining bezel surrounds the recessed leaves, with six small slotted screws aligned to the pivots. A fixed mounting collar supports the sliding barrel. Four narrow grooves follow the visible cylinder wall and emerge above the collar as it rises. The bezel covers the outer leaf edges, and the barrel hides the collar beneath it. No lower ellipse shows through the leaves. Inserted rod sections stop at the socket entrance. The transaction remains hidden until the iris opens. Its exposed geometry starts at the platform surface. Object groups reorder by depth during rotation. The transaction cylinder is the accent.
+
+Edit `apps/wallet-console/showcase/motion/signing-assembly/signing-assembly.js`, then run the Hairline `build.mjs` into that directory's `index.html`. This extended figure uses the unchanged Hairline runtime but exceeds the standalone skill's 200-line figure limit. Review it in the browser with both themes, a 240px preview, both slider extremes, rapid hover reversals, and reduced motion. The repeatable local check is `.artifacts/signing-assembly/check-iris.mjs`; its screenshots and JSON report record the stage order, output visibility, hover, interrupted reverse, and reduced motion.
+
+## Threshold signing: two shares, policy check, signature
+
+Preview: `/dashboard-static/showcase/motion/threshold-signing/`.
+
+This fifth illustration follows the approved two-source diagram. Two keys lie on separate thin rectangular slabs, labelled “User’s device” and “Your infrastructure”. Each house key has a solid rounded head with a small ring hole and a straight blade with four shallow cuts. The head and blade share one continuous outline and a two-unit thickness. A narrow lengthwise groove follows the blade. A shallow embossed border follows each handle. Each ring hole has one opening edge, a light chamfer, and only the far inner wall edge. The handle face hides the near inner wall. Key outlines use 0.65px strokes, with lighter 0.5px engraving strokes, as requested for this figure. Visible sidewalls follow the concave tooth profile, and the opening shows the inner edge of the hole. Both paths meet a simple shield. A transaction plate receives the outgoing signal and an engraved signature.
+
+Every solid uses the same `Cam(45, 0.5, 1.45)` projection and world coordinate system. The keys rest directly on the 2.6-unit slab surfaces. Each slab has a rounded perimeter and two short engraved lines near its front corner. The shield lies flat in the x/y plane, with a two-unit side edge, a light inset border, and a larger check engraved on its top. Its outer edge uses the same silhouette weight as the key slabs. Connections stay light after a signal passes. One accent follows the input signals, then the policy check, outgoing signal, and signature. Completed marks return to gray, leaving the signature as the final accent. The transaction plate follows the same ground axes as the slabs. Both keys share x=0, with y=-50 and y=50 placing them beside each other on the isometric plane. The shield at x=110 and transaction at x=220 share their centre axis, y=0. The composition uses a wider 560×280 frame, with a 2:1 aspect ratio in the preview and frontpage. At widths of 480px or less, a 420×270 frame removes empty margins and enlarges the drawing by one third. Compact labels use 10-unit text, and the transaction caption becomes “Signed”. The standalone compact preview reserves extra space for its header. Resize observation restores the full frame and captions when space increases, without restarting the animation. Rounded source connectors follow the projected x/y axes. Two mirrored curves meet with a shared tangent before the shield’s centred inlet. The static shared stem is drawn once. The outgoing connector continues along the same x-axis to the transaction slab. Shield ports sit at the middle of its opposing side edges. Signal positions use the distance along those curves, so the dots follow the rounded wires without speed changes caused by sample spacing. The head and shaft meet without a seam or overlapping disk. Labels remain horizontal for reading and follow their objects. Labels use a larger 6.8-unit font in the preview and 8.2 units in the frontpage. Their gaps come from each object’s projected outline coordinates, so label placement does not depend on SVG measurements during loading. Both source connectors leave front ports. Their base lines draw beneath every animated signal, so a shared segment cannot hide the first arrival. The shield covers the incoming and outgoing endpoints.
+
+Hover or Enter starts one continuous 1800ms tween. Incoming signals use the first 40% of the duration, the policy check continues to 56%, the outgoing signal continues to 72%, and the signature completes the sequence. These boundaries use the same easing as the shared tween. Each stage hands motion directly to the next, without starting another clock. The intensity slider varies the separation between incoming arrivals. The first arrival remains visible just outside the shield until the second arrives. The check waits for both arrivals and keeps its strong stroke after approval. The signature waits for the outgoing signal. Its stroke uses an ease-out curve on the existing clock, so the pen slows gently at the end and reverses along the same path. Keys remain stationary throughout. Leaving reverses the sequence; returning resumes from the current pose. Enter and Space toggle the animation from keyboard focus. Reduced motion lands at the final pose, and the shared loop sleeps once settled or offscreen.
+
+Stroke tracing reveals sampled geometry instead of using dash offsets. This avoids gaps when non-scaling strokes render at different preview sizes. The labels, shield/check symbol, and signature are explicit parts of the approved mock. This diagram therefore extends the standalone Hairline no-label convention and 200-line limit, while keeping its kernel and bench unchanged.
+
+Edit `apps/wallet-console/showcase/motion/threshold-signing/threshold-signing.js`, then rebuild its `index.html` with the Hairline `build.mjs`. Run `.artifacts/threshold-signing/check.mjs` for a repeatable browser check. It records independent arrivals, stage ordering, partial signature strokes, interrupted reversal, keyboard control, reduced motion, alignment, both themes, slider extremes, and frame bounds. Screenshots and `check.json` are saved beside the check script.
+
+## Linked devices: scan to pair
+
+Preview: `/dashboard-static/showcase/motion/delegation/`.
+
+Two isometric phones begin beside each other. The first phone has a scanner frame. The second shows its complete pairing QR code from the resting state. On hover or keyboard activation, both phones move equal distances toward their scanning positions. The first moves forward and across while the second moves back and across. Their screens align on the isometric ground plane, and the pair’s center stays fixed. Its rear camera faces the second screen. The foreground phone leaves the pairing code visible beside its right edge. Slim bezels, rounded display corners, pill-shaped camera cutouts, and side buttons give both phones a modern iPhone silhouette.
+
+One reversible 1900ms Hairline tween drives four stages. Positioning completes at 400ms with a smooth acceleration and a soft stop. Each phone travels half of the relative approach distance. The scanner preview builds by rows through 700ms, while the receiver keeps its complete 17-by-17 QR pattern visible. Three nested finder squares, clear separators, and connected data blocks keep it recognizable at small sizes. A scan line passes downward through 1350ms, with a matching camera preview on the first phone. The QR rests at 55% opacity and rises to 70% during scanning. Short scanner brackets and a soft gray sweep keep the screens balanced against the phone outlines. The scan content fades out completely before the confirmation marks appear. The circle traces clockwise before the tick draws over 250 ms. The Apple Pay–inspired finish uses a compact check with clear space inside its soft gray ring. The check and circle use the standard Hairline strokes. One accent passes from the scanner outline to its scan line, then to its confirmation. The receiver confirmation uses the standard silhouette stroke. The screens contain no text. The marks settle from 96% to full size, then remain still. Ring tracing uses sampled geometry to keep non-scaling strokes continuous at every preview size. All screen geometry uses each phone’s isometric screen plane. The QR pattern is illustrative. It contains no pairing data.
+
+Leaving reverses the same sequence. Re-entering resumes from the current pose. Enter and Space toggle the sequence. Reduced motion lands directly at the linked pose. The intensity slider changes the final depth separation from 40 to 48 world units. Both the code and the success marks remain visible across that range.
+
+Edit `apps/wallet-console/showcase/motion/delegation/device-linking.js`, then rebuild its `index.html`. This requested multi-stage scene extends the standalone skill’s 200-line limit and uses opacity for screen-content transitions. The kernel and bench remain unchanged. The browser check `.artifacts/device-linking/check-scan.mjs` verifies stage order, QR visibility, synchronized success, stable completion, interrupted reversal, keyboard control, reduced motion, both themes, and frame bounds. It saves screenshots for each phase and `scan-check.json` beside the script.
+
+## Wallet frontpage integration
+
+The custody section at `/wallet` uses five approved figures. The capability grid contains the keychain, combination interlock, linked phones, and server-rack wall. The linked phones and rack wall use the interlock’s 45-degree, 2:1 isometric perspective. Arrow-and-dot pagination cycles between the capability grid and the threshold-signing diagram. A six-second progress line advances the view when it completes. Hovering or focusing an illustration pauses the timer. The dot pill toggles a persistent pause. Manual navigation resets the progress line. Both views share one grid cell to keep the section height stable. The inactive view is hidden and cannot receive focus. Reduced-motion mode keeps manual navigation and disables automatic cycling.
+
+`src/components/h2/WalletFigure.tsx` imports each generated preview HTML from the Wallet Console showcase. It extracts the unchanged kernel and figure scripts into a sandboxed iframe. The small host in `src/components/h2/hairline/embed.js` replaces the preview controls. Frontpage embeds enlarge the four capability illustrations to 122% and the desktop signing diagram to 144%. Taller frames keep the artwork and labels visible. The compact signing view uses 105% to fit narrow screens. The capability grid sits 28px higher. Rebuild the relevant showcase HTML after changing a figure; the frontpage consumes that same artifact.
+
+Hover explores each figure. Enter, Space, or a touch tap toggles its animation. A second activation resets it. Figures retain their reduced-motion and offscreen suspension behavior. Essential descriptions remain in the surrounding HTML. These illustrations never control wallet state.
+
+Browser verification covers all five figures, keyboard and touch activation, timed and manual view selection, reduced motion, and desktop/mobile layout. Local artifacts are in `.artifacts/wallet-frontpage/`. The pagination check `node tests/e2e/wallet-custody-pagination.e2e.mjs` saves timer, pause, reduced-motion, and stable mobile-layout evidence under `.artifacts/wallet-custody-pagination/`. The integration check uses a validated public deployment-discovery fixture because the installed local Wallet server schema lacks a table required by deployment discovery. It does not verify wallet operations.

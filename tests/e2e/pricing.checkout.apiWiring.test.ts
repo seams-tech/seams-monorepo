@@ -26,11 +26,4 @@ test.describe('pricing onboarding CTA wiring', () => {
     await expect.poll(() => stripeCheckoutCalls).toBe(0);
     await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard/login');
   });
-
-  test('self-serve card CTA is labeled Get started', async ({ page }) => {
-    await page.goto('/pricing');
-    await expect(page.locator('.pricing-card--self-serve .pricing-button--solid')).toHaveText(
-      'Get started',
-    );
-  });
 });

@@ -52,8 +52,6 @@ const deriverBTenantRootOnline = generateX25519KeyPair();
 const deriverBTenantRootManagedBackup = managedBackupUsesHpke ? generateX25519KeyPair() : null;
 const signingWorkerServerOutput = generateX25519KeyPair();
 const signingWorkerPrivateD1Kek = generateX25519KeyPair();
-const deriverAPeer = generateEd25519KeyPair();
-const deriverBPeer = generateEd25519KeyPair();
 // R120: one versioned issuer key per deployment environment. The private seed
 // is held only by the tenant-root control-plane Worker; the public keyset is
 // the trust anchor for Router, Deriver A, and Deriver B. The id carries the
@@ -62,9 +60,8 @@ const deriverBPeer = generateEd25519KeyPair();
 const controlPlaneIssuer = generateEd25519KeyPair();
 const controlPlaneIssuerKeyId = `control-plane-issuer-${controlPlaneIssuer.publicKeyHex}`;
 // R120 Deriver role creation signing keys: each Deriver signs its own public
-// commitments and installation evidence. Distinct from the A/B peer signing
-// keys (the Rust loader rejects reuse) and role-local: A's seed reaches only
-// the deriver-a environment, B's only deriver-b.
+// commitments and installation evidence. Role-local: A's seed reaches only the
+// deriver-a environment, B's only deriver-b.
 const deriverATenantRootCreation = generateEd25519KeyPair();
 const deriverBTenantRootCreation = generateEd25519KeyPair();
 const deriverATenantRootCreationKeyId = `deriver-a-tenant-root-creation-${deriverATenantRootCreation.publicKeyHex}`;
@@ -104,8 +101,6 @@ const variables = {
   ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: signingWorkerServerOutput.publicKey,
   ROUTER_AB_SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY: signingWorkerPrivateD1Kek.publicKey,
   ROUTER_AB_SIGNING_WORKER_PRIVATE_D1_KEK_VERSION: 'epoch-1',
-  ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX: deriverAPeer.publicKeyHex,
-  ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX: deriverBPeer.publicKeyHex,
   ROUTER_AB_DERIVER_A_TENANT_ROOT_CREATION_SIGNING_KEY_ID: deriverATenantRootCreationKeyId,
   ROUTER_AB_DERIVER_B_TENANT_ROOT_CREATION_SIGNING_KEY_ID: deriverBTenantRootCreationKeyId,
   // Exact wire shape of TenantRootCreationRoleVerifyingKeySetWireV1 (deny_unknown_fields).
@@ -140,7 +135,6 @@ const variables = {
 const secrets = {
   DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY: `hpke-x25519-private-v1:${deriverAEnvelope.privateKeyHex}`,
   DERIVER_A_ROLE_PRIVATE_D1_KEK: `hpke-x25519-role-private-d1-private-v1:${deriverARolePrivateD1Kek.privateKeyHex}`,
-  DERIVER_A_PEER_SIGNING_KEY: deriverAPeer.signingSeedB64u,
   DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY: `hpke-x25519-private-v1:${deriverATenantRootOnline.privateKeyHex}`,
   ...(deriverATenantRootManagedBackup
     ? {
@@ -149,7 +143,6 @@ const secrets = {
     : {}),
   DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY: `hpke-x25519-private-v1:${deriverBEnvelope.privateKeyHex}`,
   DERIVER_B_ROLE_PRIVATE_D1_KEK: `hpke-x25519-role-private-d1-private-v1:${deriverBRolePrivateD1Kek.privateKeyHex}`,
-  DERIVER_B_PEER_SIGNING_KEY: deriverBPeer.signingSeedB64u,
   DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY: `hpke-x25519-private-v1:${deriverBTenantRootOnline.privateKeyHex}`,
   ...(deriverBTenantRootManagedBackup
     ? {
@@ -158,7 +151,7 @@ const secrets = {
     : {}),
   SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY: `hpke-x25519-server-output-private-v1:${signingWorkerServerOutput.privateKeyHex}`,
   SIGNING_WORKER_PRIVATE_D1_KEK: `hpke-x25519-server-output-private-v1:${signingWorkerPrivateD1Kek.privateKeyHex}`,
-  // base64url 32-byte Ed25519 seeds, the same encoding as the peer signing keys.
+  // base64url 32-byte Ed25519 seeds.
   DERIVER_A_TENANT_ROOT_CREATION_SIGNING_KEY: deriverATenantRootCreation.signingSeedB64u,
   DERIVER_B_TENANT_ROOT_CREATION_SIGNING_KEY: deriverBTenantRootCreation.signingSeedB64u,
   TENANT_ROOT_CONTROL_PLANE_ISSUER_SIGNING_KEY: controlPlaneIssuer.signingSeedB64u,

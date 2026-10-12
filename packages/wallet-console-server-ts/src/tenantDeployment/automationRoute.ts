@@ -1,13 +1,40 @@
+import {
+  parseDeploymentResourceVerifications,
+  type TenantDeploymentResourceVerificationsV1,
+} from './resourceVerification';
 import type { TenantDeploymentProvisionerV1 } from './provisioning';
+import { isTenantDeploymentStoreError } from './service';
+import {
+  parseTenantD1ResourceChallengeRequestV1,
+  type TenantD1ResourceVerifierV1,
+} from './resourceChallenge';
 
 const AUTOMATION_PATH = '/internal/tenant-deployment/v1/cutover';
+const VERIFY_RESOURCE_PATH = '/internal/tenant-deployment/v1/verify-resource';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_JWKS = `${GITHUB_OIDC_ISSUER}/.well-known/jwks`;
 const EXPECTED_AUDIENCE = 'seams-tenant-cutover';
-const EXPECTED_SUBJECT =
-  'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo';
-const EXPECTED_WORKFLOW =
-  'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main';
+function deploymentAutomationScope(deploymentLane: string) {
+  switch (deploymentLane) {
+    case 'staging-testnet':
+      return {
+        subject: 'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:staging-gateway',
+        ref: 'refs/heads/dev',
+        workflow:
+          'seams-tech/seams-monorepo/.github/workflows/deploy-staging-backend.yml@refs/heads/dev',
+      };
+    case 'production-testnet':
+      return {
+        subject:
+          'repo:seams-tech@282445520/seams-monorepo@1366871528:environment:production-live-demo',
+        ref: 'refs/heads/main',
+        workflow:
+          'seams-tech/seams-monorepo/.github/workflows/deploy-live-demo.yml@refs/heads/main',
+      };
+    default:
+      throw new Error('Automated tenant activation is unavailable for this lane');
+  }
+}
 
 type GithubOidcClaims = {
   readonly iss: string;
@@ -69,14 +96,15 @@ function parseClaims(value: Record<string, unknown>): GithubOidcClaims {
   };
 }
 
-function assertClaims(claims: GithubOidcClaims, nowSeconds: number): void {
+function assertClaims(claims: GithubOidcClaims, nowSeconds: number, deploymentLane: string): void {
+  const scope = deploymentAutomationScope(deploymentLane);
   if (
     claims.iss !== GITHUB_OIDC_ISSUER ||
     claims.aud !== EXPECTED_AUDIENCE ||
-    claims.sub !== EXPECTED_SUBJECT ||
+    claims.sub !== scope.subject ||
     claims.repository !== 'seams-tech/seams-monorepo' ||
-    claims.ref !== 'refs/heads/main' ||
-    claims.workflow_ref !== EXPECTED_WORKFLOW ||
+    claims.ref !== scope.ref ||
+    claims.workflow_ref !== scope.workflow ||
     claims.nbf > nowSeconds + 30 ||
     claims.exp <= nowSeconds - 30
   ) {
@@ -95,7 +123,7 @@ async function readGithubKey(kid: string): Promise<JsonWebKeyWithId> {
   return { ...key, kid: key.kid };
 }
 
-async function authenticate(request: Request): Promise<void> {
+async function authenticate(request: Request, deploymentLane: string): Promise<void> {
   const authorization = request.headers.get('authorization') ?? '';
   if (!authorization.startsWith('Bearer ')) throw new Error('GitHub OIDC bearer token is required');
   const segments = authorization.slice(7).split('.');
@@ -123,16 +151,29 @@ async function authenticate(request: Request): Promise<void> {
     new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`),
   );
   if (!verified) throw new Error('GitHub OIDC token signature is invalid');
-  assertClaims(parseClaims(decodeJsonPart(encodedPayload)), Math.floor(Date.now() / 1_000));
+  assertClaims(
+    parseClaims(decodeJsonPart(encodedPayload)),
+    Math.floor(Date.now() / 1_000),
+    deploymentLane,
+  );
 }
 
 async function parseRequest(request: Request): Promise<{
   readonly deploymentLane: string;
   readonly environmentId: string;
+  readonly authorization: {
+    readonly kind: 'activate';
+    readonly verifications: TenantDeploymentResourceVerificationsV1;
+  };
 }> {
   const body: unknown = await request.json().catch(() => null);
-  if (!isRecord(body) || Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId') {
-    throw new Error('cutover request must contain only deploymentLane and environmentId');
+  if (
+    !isRecord(body) ||
+    Object.keys(body).sort().join(',') !== 'deploymentLane,environmentId,resourceCheckpoints'
+  ) {
+    throw new Error(
+      'cutover request must contain deploymentLane, environmentId and resourceCheckpoints',
+    );
   }
   if (
     typeof body.deploymentLane !== 'string' ||
@@ -142,18 +183,27 @@ async function parseRequest(request: Request): Promise<{
   ) {
     throw new Error('cutover request is invalid');
   }
-  return { deploymentLane: body.deploymentLane, environmentId: body.environmentId };
+  return {
+    deploymentLane: body.deploymentLane,
+    environmentId: body.environmentId,
+    authorization: {
+      kind: 'activate',
+      verifications: parseDeploymentResourceVerifications(body.resourceCheckpoints, Date.now()),
+    },
+  };
 }
 
 export function createTenantDeploymentAutomationRouteV1(input: {
+  readonly deploymentLane: string;
   readonly provisioner: TenantDeploymentProvisionerV1;
+  readonly resourceVerifier: TenantD1ResourceVerifierV1;
 }): (request: Request) => Promise<Response | null> {
   return async function handleTenantDeploymentAutomation(request) {
     const url = new URL(request.url);
-    if (url.pathname !== AUTOMATION_PATH) return null;
+    if (url.pathname !== AUTOMATION_PATH && url.pathname !== VERIFY_RESOURCE_PATH) return null;
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     try {
-      await authenticate(request);
+      await authenticate(request, input.deploymentLane);
     } catch (error) {
       return json(
         {
@@ -165,13 +215,25 @@ export function createTenantDeploymentAutomationRouteV1(input: {
       );
     }
     try {
-      const result = await input.provisioner.provision(await parseRequest(request));
+      if (url.pathname === VERIFY_RESOURCE_PATH) {
+        const challenge = parseTenantD1ResourceChallengeRequestV1(
+          await request.json().catch(() => null),
+        );
+        return json({ ok: true, result: await input.resourceVerifier.verify(challenge) });
+      }
+      const command = await parseRequest(request);
+      if (command.deploymentLane !== input.deploymentLane) {
+        throw new Error('Tenant activation targets a different deployment lane');
+      }
+      const result = await input.provisioner.provision(command);
       return json({ ok: true, result });
     } catch (error) {
       return json(
         {
           ok: false,
-          code: 'tenant_deployment_cutover_failed',
+          code: isTenantDeploymentStoreError(error)
+            ? error.code
+            : 'tenant_deployment_cutover_failed',
           message: error instanceof Error ? error.message : 'tenant deployment cutover failed',
         },
         409,

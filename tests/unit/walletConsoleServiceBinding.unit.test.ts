@@ -69,6 +69,8 @@ const UNREACHABLE_D1 = {
   exec: unexpectedD1Operation,
 };
 
+const RUNTIME_HOME_ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
+
 const WORKER_CONTEXT = {
   waitUntil() {},
   passThroughOnException() {},
@@ -444,52 +446,6 @@ test('Wallet runtime operations reject public Gateway origins', async () => {
   expect(response).toBeNull();
 });
 
-test('Wallet runtime returns only the public identities requested by balance refresh', async () => {
-  const handler = createWalletRuntimeOpsHandler(async () => ({
-    async executeSignedDelegate() {
-      return { ok: true };
-    },
-    async getRelayerAccount() {
-      return { accountId: 'relayer.testnet', publicKey: 'ed25519:test' };
-    },
-    async getWalletIdentities(input) {
-      expect(input).toEqual({
-        orgId: 'org-wallet',
-        wallets: [{ walletId: 'wallet-1', projectId: 'project-1' }],
-      });
-      return {
-        identities: [
-          {
-            walletId: 'wallet-1',
-            nearAccountId: 'alice.testnet',
-            evmAddress: '0x1111111111111111111111111111111111111111',
-          },
-        ],
-      };
-    },
-  }));
-  const response = await handler(
-    new Request('https://wallet-runtime.internal/internal/wallet-runtime/v1/wallet-identities', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        orgId: 'org-wallet',
-        wallets: [{ walletId: 'wallet-1', projectId: 'project-1' }],
-      }),
-    }),
-  );
-  expect(response?.status).toBe(200);
-  await expect(response?.json()).resolves.toEqual({
-    identities: [
-      {
-        walletId: 'wallet-1',
-        nearAccountId: 'alice.testnet',
-        evmAddress: '0x1111111111111111111111111111111111111111',
-      },
-    ],
-  });
-});
-
 test('Wallet runtime accepts the generated signed-delegate action shape', async () => {
   let received: unknown;
   const handler = createWalletRuntimeOpsHandler(async () => ({
@@ -736,6 +692,17 @@ test('Wallet Runtime routes private control operations before an active tenant b
       ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'wallet-owned-secret',
       ROUTER_AB_PREWARM_ENABLED: 'true',
       SEAMS_TENANT_DEPLOYMENT_LANE: 'production-testnet',
+      // A deployed Runtime always carries its storage namespace, home and catalog.
+      SEAMS_TENANT_STORAGE_NAMESPACE: 'wallet',
+      SEAMS_D1_HOME_ACCOUNT_ID: RUNTIME_HOME_ACCOUNT_ID,
+      SEAMS_D1_HOME_DATABASE_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      SEAMS_WALLET_HOME_CATALOG_JSON: JSON.stringify([
+        { region: 'US', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+        { region: 'WEUR', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
+        { region: 'APAC', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
+        { region: 'OC', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
+      ]),
+      CF_VERSION_METADATA: { id: '11111111-1111-4111-8111-111111111111' },
     },
     WORKER_CONTEXT,
   );

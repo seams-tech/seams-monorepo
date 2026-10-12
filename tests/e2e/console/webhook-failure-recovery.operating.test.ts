@@ -1,6 +1,7 @@
 import type { Route } from '@playwright/test';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { readFile } from 'node:fs/promises';
 import { expect, readConsoleSuccess, test } from './harness';
 
 type WebhookEventPayload = {
@@ -55,6 +56,7 @@ type WebhookReceiver = {
   readonly url: string;
   readonly observations: readonly WebhookObservation[];
   setSecret(secret: string): void;
+  recover(): void;
   waitForRequest(index: number): Promise<WebhookObservation>;
   close(): Promise<void>;
 };
@@ -293,7 +295,6 @@ function handleReceiverRequest(
       state.observations.push(observation);
       resolveReceiverWaiters(state, observation);
       response.statusCode = responseStatus;
-      state.responseStatus = 200;
       response.setHeader('content-type', 'text/plain');
       response.end(responseStatus === 200 ? 'accepted' : 'failed');
     })
@@ -327,6 +328,9 @@ async function createWebhookReceiver(): Promise<WebhookReceiver> {
     },
     setSecret(secret: string): void {
       state.secret.value = secret;
+    },
+    recover(): void {
+      state.responseStatus = 200;
     },
     waitForRequest(index: number): Promise<WebhookObservation> {
       const existing = state.observations[index];
@@ -394,9 +398,7 @@ class DelayedWebhookRead {
   }
 }
 
-test('webhook delivery verifies HMAC, records a dead letter, and recovers on replay', async ({
-  console,
-}) => {
+test('Operator diagnoses and recovers a failed webhook', async ({ console }, testInfo) => {
   const receiver = await createWebhookReceiver();
   try {
     const { page, api, tenant } = console;
@@ -499,8 +501,32 @@ test('webhook delivery verifies HMAC, records a dead letter, and recovers on rep
     expect(deadLetter.failedAttempts).toBe(1);
     expect(deadLetter.lastResponseStatus).toBe(500);
     expect(deadLetter.resolvedAt).toBeNull();
+    await testInfo.attach('failed-webhook-delivery', {
+      body: JSON.stringify({ endpointId, failedDelivery, deadLetter }, null, 2),
+      contentType: 'application/json',
+    });
 
-    await page.reload();
+    await page.goto('/dashboard/observability');
+    await page.getByLabel('Time window for all observability data').selectOption('24h');
+    await page.getByLabel('Filter observability events by level').selectOption('ERROR');
+    await page.getByLabel('Search observability events').fill(deliveryId);
+    const incidents = page.getByRole('table', { name: 'Observability events', exact: true });
+    const incidentRow = incidents
+      .getByRole('row')
+      .filter({ hasText: 'webhook.delivery.dead_letter' });
+    await expect(incidentRow).toContainText(deliveryId);
+    await incidentRow.getByRole('button', { name: 'View', exact: true }).click();
+    await expect(incidents).toContainText(endpointId);
+    await testInfo.attach('webhook-incident', {
+      body: await incidents.screenshot(),
+      contentType: 'image/png',
+    });
+    await page.getByLabel('Search observability events').fill(`missing-${deliveryId}`);
+    await expect(incidents).toContainText('No observability incidents match the current filters.');
+    await page.getByLabel('Search observability events').fill(deliveryId);
+    await expect(incidentRow).toBeVisible();
+
+    await page.goto(`/dashboard/webhooks?endpointId=${encodeURIComponent(endpointId)}`);
     const deliveriesTable = page.getByRole('table', { name: 'Webhook deliveries table' });
     const failedRow = deliveriesTable
       .getByRole('row')
@@ -510,6 +536,7 @@ test('webhook delivery verifies HMAC, records a dead letter, and recovers on rep
     await expect(failedRow).toContainText('500');
     await expect(failedRow).toContainText('1');
 
+    receiver.recover();
     const replayRequest = receiver.waitForRequest(1);
     await failedRow.getByRole('button', { name: 'Replay', exact: true }).click();
     const replayObservation = await replayRequest;
@@ -518,6 +545,7 @@ test('webhook delivery verifies HMAC, records a dead letter, and recovers on rep
     expect(replayObservation.eventType).toBe(failedObservation.eventType);
     expect(replayObservation.signatureValid).toBe(true);
     expect(replayObservation.responseStatus).toBe(200);
+    expect(replayObservation.body).toBe(failedObservation.body);
     await expect(failedRow).toContainText('Succeeded');
     await expect(failedRow).toContainText('2');
 
@@ -544,13 +572,54 @@ test('webhook delivery verifies HMAC, records a dead letter, and recovers on rep
     await expect(persistedRow).toContainText('Succeeded');
     await expect(persistedRow).toContainText('2');
 
+    await page.goto('/dashboard/audit');
+    await page.getByLabel('Search events').fill(deliveryId);
+    const replayAuditRow = page
+      .getByRole('row')
+      .filter({ hasText: `Requested replay for webhook delivery ${deliveryId}` });
+    await expect(replayAuditRow).toBeVisible();
+    await replayAuditRow.getByRole('button', { name: /^View/ }).click();
+    const deliveryLink = page.getByRole('link', { name: deliveryId, exact: true });
+    await expect(deliveryLink).toHaveAttribute(
+      'href',
+      new RegExp(`endpointId=${endpointId}.*deliveryId=${deliveryId}`),
+    );
+    const exportDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export shown events', exact: true }).click();
+    const downloaded = await exportDownload;
+    const csvPath = testInfo.outputPath('webhook-recovery-audit.csv');
+    await downloaded.saveAs(csvPath);
+    const csv = await readFile(csvPath, 'utf8');
+    expect(csv).toContain(deliveryId);
+    expect(csv).toContain('webhook.delivery.replay');
+    await testInfo.attach('webhook-recovery-audit', { path: csvPath, contentType: 'text/csv' });
+    await deliveryLink.click();
+    await expect(page).toHaveURL(new RegExp(`endpointId=${endpointId}.*deliveryId=${deliveryId}`));
+    await expect(persistedRow).toContainText('Succeeded');
+    await testInfo.attach('webhook-recovery', {
+      body: JSON.stringify(
+        {
+          endpointId,
+          deliveryId,
+          failedDelivery,
+          recoveredDeadLetter,
+          observations: receiver.observations,
+        },
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    });
+
     const otherUrl = `${receiver.url}/other`;
     const addedEndpoint = await api.post('/console/webhooks', {
       data: { url: otherUrl, eventCategories: ['billing'], status: 'ACTIVE' },
     });
     expect(addedEndpoint.ok()).toBe(true);
     const allEndpoints = await readConsoleSuccess(
-      await api.get('/console/webhooks'), 'Endpoint selection fixtures', parseWebhookEndpointListResponse,
+      await api.get('/console/webhooks'),
+      'Endpoint selection fixtures',
+      parseWebhookEndpointListResponse,
     );
     const otherEndpoint = findWebhookEndpoint(allEndpoints, otherUrl);
     const delayed = new DelayedWebhookRead();

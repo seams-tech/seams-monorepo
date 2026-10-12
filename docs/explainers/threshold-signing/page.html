@@ -1,0 +1,105 @@
+<header class="intro">
+  <p class="eyebrow">SEAMS / PROTOCOL ANATOMY</p>
+  <h1>Two holders.<br />One signature.</h1>
+  <p class="lede">
+    The client and SigningWorker each hold private lane material. They cooperate to sign. The two
+    Derivers prepare that lane earlier.
+  </p>
+</header>
+<div class="toolbar" aria-label="Illustration controls">
+  <div class="curve-picker" role="group" aria-label="Signing family">
+    <button type="button" data-curve="ed25519" aria-pressed="true">
+      Ed25519 <span>NEAR</span>
+    </button>
+    <button type="button" data-curve="ecdsa" aria-pressed="false">
+      ECDSA <span>EVM family</span>
+    </button>
+  </div>
+  <button type="button" id="theme">Dark theme</button>
+</div>
+<div class="explanation">
+  <section class="instrument" aria-label="Interactive signing press">
+    <!-- FIGURE -->
+    <div class="transport">
+      <button type="button" id="previous" aria-label="Previous explanation step">← Back</button>
+      <span id="position">1 / 7</span>
+      <button type="button" id="next">Next step →</button>
+      <button type="button" id="play" aria-pressed="false">Play tour</button>
+    </div>
+    <div class="parts" role="group" aria-label="Inspect a part">
+      <button type="button" data-inspect="derivers">Rear pair · Derivers</button>
+      <button type="button" data-inspect="client">Left · Client</button>
+      <button type="button" data-inspect="worker">Right · SigningWorker</button>
+      <button type="button" data-inspect="gateway">Front · Gateway</button>
+    </div>
+  </section>
+  <section class="reading" aria-label="Current protocol step">
+    <p class="eyebrow" id="phase">01 / PROVISION THE LANE</p>
+    <h2 id="step-title">Two separate derivation roles</h2>
+    <p id="step-copy"></p>
+    <div class="fact">
+      <span id="fact-label">Provisioning protocol</span
+      ><strong id="fact-value">Streaming Yao</strong>
+    </div>
+    <p id="boundary"></p>
+    <label class="scenario-label" for="scenario">Explore a failure</label>
+    <select id="scenario">
+      <option value="success">Both holders available</option>
+      <option value="worker-offline">SigningWorker unavailable</option>
+      <option value="denied">Gateway refuses authorization</option>
+      <option value="lost-response">Response lost after consumption</option>
+    </select>
+    <button type="button" id="reuse" hidden>Try the same presignature again</button>
+    <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </section>
+</div>
+<section class="notes" aria-label="Model boundaries">
+  <div>
+    <h3>Separate secrets stay separate</h3>
+    <p>
+      The press combines signing contributions. It never represents a complete private key assembled
+      at Router. Sealed cartridges remain in their own holders.
+    </p>
+  </div>
+  <div>
+    <h3>Two different origins</h3>
+    <p>
+      The client’s wallet custody seed derives its owner signing roots. The server’s tenant
+      derivation root has A/B role shares. Lane material comes from the curve-specific provisioning
+      protocol.
+    </p>
+  </div>
+  <div>
+    <h3>The trust assumption</h3>
+    <p>
+      One trusted organization operates both Derivers. Role separation assumes their secrets remain
+      separate. An authority that controls both roles falls outside that guarantee.
+    </p>
+  </div>
+</section>
+<footer>
+  <p>
+    Mechanical analogy · no cryptography, wallet calls, or real secret material. Motion shows
+    protocol stages. The ECDSA tray shows three example pool entries. Each entry has separately held
+    client and server material.
+  </p>
+  <details>
+    <summary>Sources and scope</summary>
+    <p>Checked against seams-wallet commit <code>235a37ae</code>, 11 October 2026.</p>
+    <ul>
+      <li><code>docs/router-ab/protocol.md</code></li>
+      <li><code>docs/router-ab/ed25519-yao.md</code></li>
+      <li><code>docs/threshold-ecdsa/ecdsa-threshold-signing.md</code></li>
+      <li><code>crates/signer-core/src/near_threshold_ed25519.rs</code></li>
+      <li><code>crates/router-ab-cloudflare/src/ecdsa_pool_lifecycle.rs</code></li>
+    </ul>
+    <p>
+      Recovery, refresh, explicit export, and tenant-root administration are outside this figure’s
+      scope.
+    </p>
+  </details>
+  <p>
+    Drawn with <a href="https://github.com/wheresryan22/anatomy">Anatomy by Ryan</a> · MIT license
+    included.
+  </p>
+</footer>

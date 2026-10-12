@@ -12,6 +12,7 @@ import {
   GATEWAY_RUNTIME_PROFILE_KINDS,
   gatewayRuntimeProfileNearNetwork,
   parseGatewayDeploymentConfig as parseStrictGatewayDeploymentConfig,
+  requireAllocatedWalletRegions,
 } from '../../../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
 import {
   gatewaySecretNames,
@@ -498,7 +499,13 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const checkedInRuntimeProfile = checkedInGatewayConfig?.runtimeProfile;
   const checkedInOrigins = checkedInGatewayConfig?.origins;
   const checkedInTenant = checkedInGatewayConfig?.tenant;
-  const checkedInResources = checkedInGatewayConfig?.resources;
+  if (!checkedInGatewayConfig) {
+    throw new Error(
+      `Provision regional Gateway resources for ${lane.id} before generating deployment keys`,
+    );
+  }
+  requireAllocatedWalletRegions(checkedInGatewayConfig);
+  const checkedInResources = checkedInGatewayConfig.resources;
   const checkedInRouter = checkedInGatewayConfig?.routerAb;
   const gatewayEnvironment = `${environmentPrefix}-gateway`;
   const deriverAEnvironment = `${environmentPrefix}-deriver-a`;
@@ -573,24 +580,6 @@ function buildTargetConfiguration(targetName, suppliedValues) {
   const nearExplorerUrl =
     readSuppliedValue(suppliedValues, targetName, targetName, 'VITE_NEAR_EXPLORER') ||
     (nearNetwork === 'mainnet' ? 'https://nearblocks.io' : 'https://testnet.nearblocks.io');
-  const consoleDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_CONSOLE_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.consoleD1.id ||
-    manual(`${identityPrefix}-console-d1-database-id`);
-  const signerDatabaseId =
-    readSuppliedValue(
-      suppliedValues,
-      targetName,
-      gatewayEnvironment,
-      'GATEWAY_SIGNER_D1_DATABASE_ID',
-    ) ||
-    checkedInResources?.signerD1.id ||
-    manual(`${identityPrefix}-signer-d1-database-id`);
   const deriverAPrivateDatabaseId =
     readSuppliedValue(
       suppliedValues,
@@ -625,16 +614,11 @@ function buildTargetConfiguration(targetName, suppliedValues) {
     projectId,
     environmentId,
     tenantNamespace,
-    gatewayWorkerName: checkedInResources?.workerName || lane.resources.gateway.workerName,
-    gatewayPlacementRegion: checkedInResources?.placementRegion,
+    gatewayResources: checkedInResources,
     mpcRouterWorkerName: lane.resources.router.workerName,
     deriverAWorkerName: lane.resources.deriverA.workerName,
     deriverBWorkerName: lane.resources.deriverB.workerName,
     signingWorkerName: lane.resources.signingWorker.workerName,
-    consoleDatabaseName: checkedInResources?.consoleD1.name || lane.resources.gateway.consoleD1Name,
-    consoleDatabaseId,
-    signerDatabaseName: checkedInResources?.signerD1.name || lane.resources.gateway.signerD1Name,
-    signerDatabaseId,
     deriverAPrivateDatabaseId,
     deriverBPrivateDatabaseId,
     signingWorkerPrivateDatabaseId,
@@ -652,8 +636,10 @@ function buildTargetConfiguration(targetName, suppliedValues) {
 function buildGeneratedSecrets(environmentPrefix) {
   return {
     internalServiceAuth: `router-ab-internal-service-auth-v1:${randomBase64Url(32)}`,
+    routerToSigningWorkerEcdsaAuth: randomBase64Url(32),
+    gatewayToRouterAuth: randomBase64Url(32),
+    gatewayToSigningWorkerPresignAuth: randomBase64Url(32),
     relaySessionHmac: randomBase64Url(32),
-    accountIdDerivation: randomBase64Url(32),
     ceremonyPrivateJwk: generateCeremonyPrivateJwk(),
     signingSession: {
       rootSecretB64u: randomBase64Url(32),
@@ -1006,8 +992,10 @@ function buildGatewayEnvironment(input) {
     CLOUDFLARE_API_TOKEN: manual(`${environmentName}-cloudflare-worker-api-token`),
     CLOUDFLARE_ACCOUNT_ID: manual(`${input.environmentPrefix}-cloudflare-account-id`),
     RELAY_SESSION_HMAC_SECRET: input.generatedSecrets.relaySessionHmac,
-    ACCOUNT_ID_DERIVATION_SECRET: input.generatedSecrets.accountIdDerivation,
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: input.generatedSecrets.internalServiceAuth,
+    ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+    ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET:
+      input.generatedSecrets.gatewayToSigningWorkerPresignAuth,
     ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK: input.generatedSecrets.ceremonyPrivateJwk,
     RELAYER_PRIVATE_KEY: manual(`${input.environmentPrefix}-near-relayer-private-key`),
     SPONSORED_EVM_EXECUTORS_JSON: manual(`${input.environmentPrefix}-sponsored-evm-executors-json`),
@@ -1023,10 +1011,6 @@ function buildGatewayEnvironment(input) {
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
       },
@@ -1052,18 +1036,7 @@ function buildGatewayDeploymentConfig(input) {
     schemaVersion: GATEWAY_DEPLOYMENT_CONFIG_SCHEMA_VERSION,
     lane: input.laneId,
     runtimeProfile: configuration.runtimeProfile,
-    resources: {
-      workerName: configuration.gatewayWorkerName,
-      placementRegion: configuration.gatewayPlacementRegion,
-      consoleD1: {
-        name: configuration.consoleDatabaseName,
-        id: configuration.consoleDatabaseId,
-      },
-      signerD1: {
-        name: configuration.signerDatabaseName,
-        id: configuration.signerDatabaseId,
-      },
-    },
+    resources: configuration.gatewayResources,
     tenant: {
       namespace: configuration.tenantNamespace,
       orgId: configuration.orgId,
@@ -1172,10 +1145,6 @@ function buildMpcRouterEnvironment(input) {
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON:
           variables.ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON,
         ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON: manual(
@@ -1186,11 +1155,16 @@ function buildMpcRouterEnvironment(input) {
         ROUTER_AB_PROJECT_POLICY_BOOTSTRAP_JSON: JSON.stringify(input.projectPolicy),
       },
       optionalVariables: {},
-      secrets: buildWorkerDeploymentSecrets(
-        input.environmentPrefix,
-        environmentName,
-        input.generatedSecrets.internalServiceAuth,
-      ),
+      secrets: {
+        ...buildWorkerDeploymentSecrets(
+          input.environmentPrefix,
+          environmentName,
+          input.generatedSecrets.internalServiceAuth,
+        ),
+        ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET:
+          input.generatedSecrets.routerToSigningWorkerEcdsaAuth,
+        ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: input.generatedSecrets.gatewayToRouterAuth,
+      },
     },
   ];
 }
@@ -1242,7 +1216,6 @@ function buildDeriverAEnvironment(input) {
   );
   secrets.DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY;
-  secrets.DERIVER_A_PEER_SIGNING_KEY = input.deployment.secrets.DERIVER_A_PEER_SIGNING_KEY;
   secrets.DERIVER_A_ROLE_PRIVATE_D1_KEK = input.deployment.secrets.DERIVER_A_ROLE_PRIVATE_D1_KEK;
   secrets.DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY;
@@ -1263,10 +1236,6 @@ function buildDeriverAEnvironment(input) {
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF:
           variables.ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF,
         ROUTER_AB_DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY:
@@ -1306,7 +1275,6 @@ function buildDeriverBEnvironment(input) {
   );
   secrets.DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY;
-  secrets.DERIVER_B_PEER_SIGNING_KEY = input.deployment.secrets.DERIVER_B_PEER_SIGNING_KEY;
   secrets.DERIVER_B_ROLE_PRIVATE_D1_KEK = input.deployment.secrets.DERIVER_B_ROLE_PRIVATE_D1_KEK;
   secrets.DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY =
     input.deployment.secrets.DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY;
@@ -1327,10 +1295,6 @@ function buildDeriverBEnvironment(input) {
           variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:
           variables.ROUTER_AB_DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY,
-        ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-        ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX:
-          variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
         ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF:
           variables.ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF,
         ROUTER_AB_DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY:
@@ -1423,6 +1387,10 @@ function buildSigningWorkerEnvironment(input) {
     environmentName,
     input.generatedSecrets.internalServiceAuth,
   );
+  secrets.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET =
+    input.generatedSecrets.routerToSigningWorkerEcdsaAuth;
+  secrets.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET =
+    input.generatedSecrets.gatewayToSigningWorkerPresignAuth;
   secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY =
     input.deployment.secrets.SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY;
   secrets.SIGNING_WORKER_PRIVATE_D1_KEK = input.deployment.secrets.SIGNING_WORKER_PRIVATE_D1_KEK;
@@ -1469,16 +1437,6 @@ function buildPublicKeyset(deployment) {
           key_epoch: 'epoch-1',
           public_key: variables.ROUTER_AB_DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY,
         },
-      },
-    },
-    signer_peer_verifying_keys: {
-      deriver_a: {
-        role: 'signer_a',
-        verifying_key_hex: variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-      },
-      deriver_b: {
-        role: 'signer_b',
-        verifying_key_hex: variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
       },
     },
     signing_worker_server_output_hpke: {
@@ -1638,13 +1596,6 @@ function loadValuesFile(valuesFilePath) {
 
 async function discoverCloudflareValues(lane, environmentPrefix, suppliedValues, progressLogger) {
   const accountId = discoverCloudflareAccountId(environmentPrefix, suppliedValues, progressLogger);
-  ensureD1Database({
-    environmentPrefix,
-    suppliedValues,
-    progressLogger,
-    variableName: 'GATEWAY_SIGNER_D1_DATABASE_ID',
-    databaseName: lane.resources.gateway.signerD1Name,
-  });
   ensureD1Database({
     environmentPrefix,
     suppliedValues,
@@ -2160,6 +2111,30 @@ function validateSharedInternalServiceAuth(outputDocument) {
   if (new Set(values).size !== 1) {
     throw new Error('Router A/B and Gateway internal service authentication must match');
   }
+  const gateway =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-gateway`].secrets;
+  const router =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-mpc-router`].secrets;
+  const signingWorker =
+    outputDocument.environments[`${outputDocument.environmentPrefix}-signing-worker`].secrets;
+  const routerAuth = gateway.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
+  const presignAuth = gateway.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET;
+  if (
+    routerAuth !== router.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET ||
+    presignAuth !== signingWorker.ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET ||
+    router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET !==
+      signingWorker.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET ||
+    new Set([
+      values[0],
+      routerAuth,
+      presignAuth,
+      router.ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET,
+    ]).size !== 4
+  ) {
+    throw new Error(
+      'Dedicated Gateway credentials must match their receiving role and remain distinct',
+    );
+  }
 }
 
 function validateRoleSecretIsolation(outputDocument) {
@@ -2174,13 +2149,11 @@ function validateRoleSecretIsolation(outputDocument) {
       .secrets;
   assertAbsent(deriverA, [
     'DERIVER_B_ENVELOPE_HPKE_PRIVATE_KEY',
-    'DERIVER_B_PEER_SIGNING_KEY',
     'DERIVER_B_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
     'DERIVER_B_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY',
   ]);
   assertAbsent(deriverB, [
     'DERIVER_A_ENVELOPE_HPKE_PRIVATE_KEY',
-    'DERIVER_A_PEER_SIGNING_KEY',
     'DERIVER_A_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY',
     'DERIVER_A_TENANT_ROOT_MANAGED_BACKUP_HPKE_PRIVATE_KEY',
   ]);
@@ -2247,16 +2220,6 @@ function validateRouterPublicIdentityConsistency(outputDocument) {
     signingWorker.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
     router.ROUTER_AB_SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY,
     'SigningWorker output public key',
-  );
-  assertGeneratedValueEqual(
-    deriverA.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    router.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    'Deriver A peer verifying key',
-  );
-  assertGeneratedValueEqual(
-    deriverB.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
-    router.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
-    'Deriver B peer verifying key',
   );
 }
 

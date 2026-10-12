@@ -1,0 +1,30 @@
+/* Let the wheel pass through to the homepage, as in showcase.css. */
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overscroll-behavior: auto;
+}
+
+/* The SDK's modal is a scroll container that stops chaining as well, so the
+   wheel would stall over the card. */
+.seams-confirmation-modal--hosted {
+  overscroll-behavior: auto;
+}
+
+/* The checkout page sends the widths it gives this frame and sizes the
+   frame's height from the card's. Laying the card out at those widths, rather
+   than the frame's current one, keeps it from reflowing while the dialog
+   animates between the toast and the full receipt. */
+.seams-confirmation-surface {
+  inline-size: var(--checkout-dialog-width, 100%);
+}
+
+.seams-confirmation-surface[data-receipt-view='toast'] {
+  inline-size: var(--checkout-toast-width, 100%);
+}
+
+/* The container takes opening focus; its controls keep their own rings. */
+.seams-confirmation-modal--hosted:focus {
+  outline: none;
+}

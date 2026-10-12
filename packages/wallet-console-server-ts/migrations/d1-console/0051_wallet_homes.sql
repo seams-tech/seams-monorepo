@@ -1,0 +1,70 @@
+CREATE TABLE wallet_homes (
+  namespace TEXT NOT NULL CHECK (length(namespace) > 0 AND trim(namespace) = namespace),
+  organization_id TEXT NOT NULL CHECK (length(organization_id) > 0 AND trim(organization_id) = organization_id),
+  project_id TEXT NOT NULL CHECK (length(project_id) > 0 AND trim(project_id) = project_id),
+  environment_id TEXT NOT NULL CHECK (length(environment_id) > 0 AND trim(environment_id) = environment_id),
+  wallet_id TEXT NOT NULL CHECK (length(wallet_id) > 0 AND trim(wallet_id) = wallet_id),
+  registration_id TEXT NOT NULL CHECK (length(registration_id) > 0 AND trim(registration_id) = registration_id),
+  request_digest TEXT NOT NULL CHECK (length(request_digest) = 64 AND request_digest NOT GLOB '*[^a-f0-9]*'),
+  allocation TEXT NOT NULL CHECK (allocation IN ('provided', 'server_allocated')),
+  ceremony_id TEXT NOT NULL CHECK (ceremony_id GLOB 'wrc_*'),
+  preparation_id TEXT NOT NULL CHECK (preparation_id GLOB 'regprep_*'),
+  wallet_authority_id TEXT NOT NULL CHECK (wallet_authority_id GLOB 'wallet-authority:*'),
+  device_id TEXT NOT NULL CHECK (device_id GLOB 'device:*'),
+  wallet_auth_method_id TEXT NOT NULL CHECK (wallet_auth_method_id GLOB 'wallet-auth-method:*'),
+  region TEXT NOT NULL CHECK (region IN ('US', 'WEUR', 'APAC')),
+  account_id TEXT NOT NULL CHECK (length(account_id) = 32),
+  database_id TEXT NOT NULL CHECK (length(database_id) = 36),
+  state TEXT NOT NULL CHECK (state IN ('reserved', 'established', 'cancelled')),
+  reserved_at_ms INTEGER NOT NULL CHECK (reserved_at_ms > 0),
+  completed_at_ms INTEGER,
+  PRIMARY KEY (namespace, organization_id, project_id, environment_id, wallet_id),
+  UNIQUE (namespace, organization_id, project_id, environment_id, registration_id),
+  UNIQUE (namespace, ceremony_id),
+  CHECK ((state = 'reserved' AND completed_at_ms IS NULL) OR
+         (state IN ('established', 'cancelled') AND completed_at_ms >= reserved_at_ms AND completed_at_ms IS NOT NULL))
+);
+
+CREATE TRIGGER wallet_homes_identity_immutable
+BEFORE UPDATE ON wallet_homes
+WHEN NEW.namespace != OLD.namespace OR NEW.organization_id != OLD.organization_id OR
+     NEW.project_id != OLD.project_id OR NEW.environment_id != OLD.environment_id OR
+     NEW.wallet_id != OLD.wallet_id OR NEW.registration_id != OLD.registration_id OR
+     NEW.request_digest != OLD.request_digest OR NEW.allocation != OLD.allocation OR
+     NEW.ceremony_id != OLD.ceremony_id OR NEW.preparation_id != OLD.preparation_id OR
+     NEW.wallet_authority_id != OLD.wallet_authority_id OR NEW.device_id != OLD.device_id OR
+     NEW.wallet_auth_method_id != OLD.wallet_auth_method_id OR
+     NEW.region != OLD.region OR NEW.account_id != OLD.account_id OR
+     NEW.database_id != OLD.database_id OR NEW.reserved_at_ms != OLD.reserved_at_ms
+BEGIN
+  SELECT RAISE(ABORT, 'wallet home identity is immutable');
+END;
+
+CREATE TRIGGER wallet_homes_terminal_state
+BEFORE UPDATE ON wallet_homes
+WHEN OLD.state != 'reserved' OR NEW.state = 'reserved'
+BEGIN
+  SELECT RAISE(ABORT, 'wallet home transition is invalid');
+END;
+
+CREATE TRIGGER wallet_homes_no_delete
+BEFORE DELETE ON wallet_homes
+BEGIN
+  SELECT RAISE(ABORT, 'wallet home identity is immutable');
+END;
+
+CREATE TRIGGER wallet_homes_no_replace
+BEFORE INSERT ON wallet_homes
+WHEN EXISTS (
+  SELECT 1 FROM wallet_homes
+  WHERE namespace = NEW.namespace AND (
+    ceremony_id = NEW.ceremony_id OR (
+      organization_id = NEW.organization_id AND project_id = NEW.project_id
+      AND environment_id = NEW.environment_id
+      AND (wallet_id = NEW.wallet_id OR registration_id = NEW.registration_id)
+    )
+  )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'wallet home identity is immutable');
+END;

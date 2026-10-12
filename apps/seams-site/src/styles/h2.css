@@ -150,8 +150,14 @@ body:has(.h2-page) {
   color: #ffffff;
 }
 
-.h2-page .h2-btn--primary:hover {
+.h2-page .h2-btn--primary:active {
   background: #262626;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-page .h2-btn--primary:hover {
+    background: #262626;
+  }
 }
 
 .h2-page .h2-btn--outline {
@@ -160,9 +166,16 @@ body:has(.h2-page) {
   border-color: var(--h2-stone);
 }
 
-.h2-page .h2-btn--outline:hover {
+.h2-page .h2-btn--outline:active {
   border-color: var(--h2-ash);
   background: var(--h2-taupe);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-page .h2-btn--outline:hover {
+    border-color: var(--h2-ash);
+    background: var(--h2-taupe);
+  }
 }
 
 /* Kept 4px taller than the base button, as before: hero CTAs pair an --lg
@@ -192,7 +205,7 @@ body:has(.h2-page) {
 }
 
 .h2-page .navbar-static:not(.navbar-static--compact) {
-  top: 0;
+  --navbar-top-space: 0px;
   padding: 0;
   /* let the shell's track fill the viewport instead of centering max-content */
   grid-template-columns: 1fr;
@@ -208,7 +221,13 @@ body:has(.h2-page) {
   justify-content: space-between;
   /* Align the nav chrome to the content-column rails; the brand's negative
      margin already cancels its own hover-pill padding */
-  padding: 8px max(24px, calc((100vw - var(--h2-col-max)) / 2));
+  padding: 8px
+    max(
+      24px,
+      env(safe-area-inset-left, 0px),
+      env(safe-area-inset-right, 0px),
+      calc((100vw - var(--h2-col-max)) / 2)
+    );
   background: color-mix(in srgb, var(--h2-bg) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--h2-line);
@@ -228,13 +247,20 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-page .navbar-static__pill--ghost:hover {
+.h2-page .navbar-static__pill--ghost:active {
   color: var(--h2-ink);
   background: var(--h2-taupe);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .h2-page .navbar-static__pill--ghost:hover {
+    color: var(--h2-ink);
+    background: var(--h2-taupe);
+  }
+}
+
 .h2-page .navbar-static--compact {
-  top: 0.5rem;
+  --navbar-top-space: 0.5rem;
 }
 
 /* The dropdown panel is content-width and self-anchored in Navbar.css; the
@@ -652,15 +678,18 @@ body:has(.h2-page) {
     padding 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.h2-agent-card:hover,
 .h2-agent-card:focus-visible {
   border-color: rgba(255, 255, 255, 0.48);
   filter: saturate(1.04);
-}
-
-.h2-agent-card:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.84);
   outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-agent-card:hover {
+    border-color: rgba(255, 255, 255, 0.48);
+    filter: saturate(1.04);
+  }
 }
 
 .h2-agent-card.is-active {
@@ -966,13 +995,17 @@ body:has(.h2-page) {
   transition: background-color 150ms ease;
 }
 
-.h2-heroscene__stage:hover {
-  background-color: color-mix(in srgb, var(--h2-taupe) 62%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__stage:hover {
+    background-color: color-mix(in srgb, var(--h2-taupe) 62%, transparent);
+  }
 }
 
-.h2-heroscene__stage:hover .h2-fork,
-.h2-heroscene__aside:hover .h2-fork {
-  color: var(--h2-ink);
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__stage:hover .h2-fork,
+  .h2-heroscene__aside:hover .h2-fork {
+    color: var(--h2-ink);
+  }
 }
 
 .h2-heroscene__intro {
@@ -1047,11 +1080,13 @@ body:has(.h2-page) {
   transition: background-color 150ms ease;
 }
 
-.h2-heroscene__aside:hover {
-  /* hover just deepens the panel's own warm tint to full taupe (base is
-     taupe 55% / bg 45%) rather than mixing in stone, so it lifts a touch
-     without reading dark grey */
-  background-color: var(--h2-taupe);
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__aside:hover {
+    /* hover just deepens the panel's own warm tint to full taupe (base is
+       taupe 55% / bg 45%) rather than mixing in stone, so it lifts a touch
+       without reading dark grey */
+    background-color: var(--h2-taupe);
+  }
 }
 
 .h2-heroscene__aside-body {
@@ -1211,8 +1246,10 @@ body:has(.h2-page) {
   transition: background-color 350ms ease;
 }
 
-.h2-heroscene__aside:hover .h2-heroscene__aside-appback::after {
-  background: color-mix(in srgb, #efedea 58%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .h2-heroscene__aside:hover .h2-heroscene__aside-appback::after {
+    background: color-mix(in srgb, #efedea 58%, transparent);
+  }
 }
 
 /* panel header and body stack above the backdrop */
@@ -1731,8 +1768,10 @@ body:has(.h2-page) {
   transition: background 150ms ease;
 }
 
-.h2-duo__panel:hover {
-  background: var(--h2-stone);
+@media (hover: hover) and (pointer: fine) {
+  .h2-duo__panel:hover {
+    background: var(--h2-stone);
+  }
 }
 
 .h2-duo__title {
@@ -1781,8 +1820,10 @@ body:has(.h2-page) {
   transition: color 150ms ease;
 }
 
-.h2-duo__panel:hover .h2-duo__cta {
-  color: var(--h2-ink);
+@media (hover: hover) and (pointer: fine) {
+  .h2-duo__panel:hover .h2-duo__cta {
+    color: var(--h2-ink);
+  }
 }
 
 @media (max-width: 900px) {
@@ -1862,8 +1903,10 @@ body:has(.h2-page) {
   transition: color 150ms ease;
 }
 
-.h2-fork:hover {
-  color: var(--h2-ink);
+@media (hover: hover) and (pointer: fine) {
+  .h2-fork:hover {
+    color: var(--h2-ink);
+  }
 }
 
 .h2-fork__chip {
@@ -2039,9 +2082,11 @@ body:has(.h2-page) {
     background-color 150ms ease;
 }
 
-.h2-themeswitch__btn:hover {
-  color: var(--h2-ink);
-  border-color: var(--h2-ash);
+@media (hover: hover) and (pointer: fine) {
+  .h2-themeswitch__btn:hover {
+    color: var(--h2-ink);
+    border-color: var(--h2-ash);
+  }
 }
 
 .h2-themeswitch__btn.is-active {
@@ -2079,8 +2124,8 @@ body:has(.h2-page) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 9999px;
   border: 1px solid var(--h2-stone);
   background: var(--h2-bg);
@@ -2097,9 +2142,17 @@ body:has(.h2-page) {
   height: 14px;
 }
 
-.h2-pager__btn:hover:not(:disabled) {
+.h2-pager__btn:active:not(:disabled) {
+  background: var(--h2-taupe);
   color: var(--h2-ink);
   border-color: var(--h2-ash);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-pager__btn:hover:not(:disabled) {
+    color: var(--h2-ink);
+    border-color: var(--h2-ash);
+  }
 }
 
 /* muted but fully opaque: translucent chrome reads as a rendering glitch
@@ -2330,8 +2383,10 @@ body:has(.h2-page) {
     background-color 150ms ease;
 }
 
-.h2-pillar:hover {
-  color: var(--h2-graphite);
+@media (hover: hover) and (pointer: fine) {
+  .h2-pillar:hover {
+    color: var(--h2-graphite);
+  }
 }
 
 .h2-pillar.is-active {
@@ -3629,8 +3684,10 @@ body:has(.h2-page) {
 /* The selected row is carried mostly by its ink stepping up to full weight;
    the fill is only a hint behind it, well short of the pillar tabs' solid
    taupe, which reads as a block at this row's width. */
-.h2-consoleband__tab:hover {
-  background: color-mix(in srgb, var(--h2-taupe) 30%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .h2-consoleband__tab:hover {
+    background: color-mix(in srgb, var(--h2-taupe) 30%, transparent);
+  }
 }
 
 .h2-consoleband__tab.is-active {
@@ -3653,9 +3710,14 @@ body:has(.h2-page) {
   transition: color 150ms ease;
 }
 
-.h2-consoleband__tab.is-active .h2-consoleband__tab-copy strong,
-.h2-consoleband__tab:hover .h2-consoleband__tab-copy strong {
+.h2-consoleband__tab.is-active .h2-consoleband__tab-copy strong {
   color: var(--h2-ink);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .h2-consoleband__tab:hover .h2-consoleband__tab-copy strong {
+    color: var(--h2-ink);
+  }
 }
 
 .h2-startrow__notes .h2-consoleband__tab-copy span {
@@ -4020,8 +4082,10 @@ body:has(.h2-page) {
   color: var(--h2-ink);
 }
 
-.h2-footer__col a:hover {
-  color: var(--h2-smoke);
+@media (hover: hover) and (pointer: fine) {
+  .h2-footer__col a:hover {
+    color: var(--h2-smoke);
+  }
 }
 
 @media (max-width: 860px) {

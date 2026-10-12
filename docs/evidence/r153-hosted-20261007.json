@@ -1,0 +1,117 @@
+{
+  "status": "blocked_before_admission",
+  "date": "2026-10-07",
+  "candidate": {
+    "public": "a5129d396537e6f4982e9638fe81aedf4108d2c9",
+    "privateBase": "c0719a8e",
+    "privateFixes": [
+      "458b4f3",
+      "17ba36f",
+      "5c93fba"
+    ]
+  },
+  "deployment": {
+    "lane": "staging-testnet",
+    "consoleWorkflow": 37570096077,
+    "activationWorkflow": 37570333311,
+    "existingCredentialBinding": "CLOUDFLARE_API_TOKEN",
+    "versions": {
+      "deploy-wallet-runtime-WEUR": "e344927a-fd4c-4e04-a6ac-f3e85e95652e",
+      "deploy-gateway-WEUR": "1c4b151b-6c78-4fca-9452-9f72249f6ca3",
+      "deploy-wallet-runtime-US": "4d6b6ac0-7ec3-4373-8e4e-364ed86a85db",
+      "deploy-gateway-OC": "4a31f0f7-3f89-4710-8814-c46eb582a42b",
+      "deploy-console-scheduler": "74b6b039-44c2-4bf2-b3b4-b11e3c353dbd",
+      "deploy-wallet-runtime-OC": "ab7f80eb-043d-49b4-99c9-8787437faa65",
+      "deploy-gateway-US": "5e506eea-961a-4eb4-bd99-acaf06bd38c4",
+      "deploy-custody-deriver-a": "a1a220af-29bf-4112-ba04-14c24d453247",
+      "deploy-wallet-runtime-APAC": "3bdbfdb6-dbd1-4197-a642-fb74edeec56b",
+      "deploy-custody-deriver-b": "9d5d1bd6-1e8a-427b-9c14-34440b21d0eb",
+      "deploy-console-provider": "ec6de9b6-62dd-4efd-b43d-e51b037ae75c",
+      "deploy-gateway-APAC": "d8722114-63e7-4b11-877b-33adc1485eb1",
+      "deploy-console": "5942fb95-5c01-4ed9-a6b9-b663ef86c35c"
+    }
+  },
+  "verified": {
+    "migration0075Regions": [
+      "US",
+      "WEUR",
+      "APAC",
+      "OC"
+    ],
+    "d1PrimaryLocations": {
+      "US": "IAD",
+      "WEUR": "LHR",
+      "APAC": "HKG",
+      "OC": "SYD"
+    },
+    "sourceSignedAfterRejectedAdmission": true,
+    "directoryE2E": "passed",
+    "resourceVerificationE2E": "passed",
+    "consoleTypes": "passed",
+    "hostedTestTypes": "passed"
+  },
+  "signingSamples": [
+    {
+      "stage": "before_0",
+      "publicSdkCallMs": 900.8799999952316,
+      "automationTotalMs": 1485.0232079999987
+    },
+    {
+      "stage": "before_1",
+      "publicSdkCallMs": 2041.1849999427795,
+      "automationTotalMs": 2283.447874999998
+    },
+    {
+      "stage": "source_after_rejected_admission",
+      "publicSdkCallMs": 1454.9950000047684,
+      "automationTotalMs": 2236.444125000002
+    }
+  ],
+  "timingScope": "One local browser in Japan. SDK durations include automated confirmation and signing diagnostics. These samples do not measure post-relocation performance.",
+  "blockingEvidence": {
+    "runtimeServices": {
+      "US": {
+        "SIGNING_WORKER": "router-ab-signing-worker-staging",
+        "MPC_ROUTER": "router-ab-mpc-router-staging",
+        "DERIVER_A": "router-ab-deriver-a-staging",
+        "DERIVER_B": "router-ab-deriver-b-staging"
+      },
+      "APAC": {
+        "SIGNING_WORKER": "router-ab-signing-worker-staging",
+        "MPC_ROUTER": "router-ab-mpc-router-staging",
+        "DERIVER_A": "router-ab-deriver-a-staging",
+        "DERIVER_B": "router-ab-deriver-b-staging"
+      }
+    },
+    "runtimePreparationStatus": 200,
+    "routerPreparationStatus": 200,
+    "deriverAPreparationStatus": 500,
+    "deriverException": "Deriver destination preparation conflicts",
+    "reason": "Both regional runtimes select the same custody Workers. Deriver A/B and SigningWorker physical lookup uses a stable wallet name in the shared namespace. The destination therefore reaches existing source custody state."
+  },
+  "unverified": [
+    "post-relocation signing latency",
+    "relocation pause duration",
+    "destination first-signature refill",
+    "transferred bytes",
+    "unrelated-wallet interference",
+    "actual destination custody-object placement"
+  ],
+  "artifactRoot": ".artifacts/r153/hosted-20261007",
+  "artifacts": {
+    "browser/relocation.json": "48e39b943c36ca791754ee07d43f7d3e0f0df87877561a7bb83fa29a50bbad38",
+    "regional-d1-placement.json": "099c16523d2fa7133310b4ba9f342f8d3abac903a3207b21dc876b59c6518631",
+    "deriver-preparation-failure.json": "bf448623108c1eff04e9ba41f4113ada513b89dfe1f4fa296b488d4cc4273291",
+    "source-placement.json": "f40da389871f74d762d5b5dbf5e0c3c78f80d101ed4f846c4ec6de6c56ae890d",
+    "scheduler-e2e.log": "2e84f3ddf3068eaaa6d40d536c7f796b410f6002a88c9f2f49cfe4fde4f6fc35",
+    "provider-e2e.log": "1a38ffdfe19557999b730b8458fbfb15d3da963566f84c9d08cf7276e0a1c5fe",
+    "browser-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "console-types.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+  },
+  "nextImplementation": [
+    "Separate physical custody destination locators from stable logical wallet identities.",
+    "Resolve ordinary calls and transfer commands through the same admitted locators.",
+    "Pin and verify role namespaces, physical object IDs and regional placement before source pause.",
+    "Rerun the hosted scenario before closing hosted suitability."
+  ]
+}

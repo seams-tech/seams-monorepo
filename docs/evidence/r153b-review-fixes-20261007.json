@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-07",
+  "scope": "R153B driver exclusion and current admission status; capacity race remains open pending behavior choice",
+  "e2e": {
+    "command": "SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server pnpm -C tests test:relayer wallet-relocation-directory.e2e.test.ts --output=/tmp/r153b-fixes-e2e",
+    "result": "passed",
+    "artifact": "/tmp/r153b-fixes-e2e/relayer-wallet-relocation--210c4-es-lost-replies-and-restart/wallet-relocation-directory-evidence.json",
+    "sha256": "a14546e71eb2e2ffdb685a9ead851440a81c089ad1dc783c24054e6e6c24e964"
+  },
+  "checks": {
+    "changed_module_typecheck": "passed",
+    "changed_file_eslint": "passed",
+    "full_type_build": "blocked by existing WalletHomeCustodyBinding export errors in d1GatewayWorker.ts and d1WalletRuntimeWorker.ts"
+  },
+  "deployment": "Not deployed. Apply Console migration 0089 before deploying these driver changes."
+}

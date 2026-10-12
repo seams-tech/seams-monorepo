@@ -189,7 +189,7 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
       return;
     }
 
-    const walletSession = await seams.auth.getWalletSession(walletId!);
+    const walletSession = await seams.auth.getSession(walletId!);
 
     setDelegateLoading(true);
     try {
@@ -258,7 +258,7 @@ export function useDemoNearActions(args: UseDemoNearActionsArgs) {
       });
 
       toast.loading('Submitting delegate to relayer…', { id: 'delegate-relay' });
-      const relayResult = await seams.near.sendDelegateActionViaRelayer({
+      const relayResult = await seams.near.sendDelegateAction({
         relayerUrl,
         hash: result.hash,
         signedDelegate: result.signedDelegate,

@@ -30,7 +30,7 @@ async function initializeWalletIframe(args: {
   readonly setReadiness: (readiness: DemoWalletSessionLifecycleReadiness) => void;
 }): Promise<void> {
   try {
-    await args.seams.initWalletIframe();
+    await args.seams.connection.connect();
     if (!args.lifecycle.disposed) args.setReadiness({ kind: 'ready' });
   } catch (error: unknown) {
     if (!args.lifecycle.disposed) args.setReadiness({ kind: 'initialization_failed' });

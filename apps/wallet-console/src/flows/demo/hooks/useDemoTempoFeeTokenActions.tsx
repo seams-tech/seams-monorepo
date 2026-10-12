@@ -8,8 +8,8 @@ import {
   EVM_SET_USER_TOKEN_FINALITY_TIMEOUT_MS,
   EVM_SET_USER_TOKEN_POLL_INTERVAL_MS,
   TEMPO_ALPHA_USD_FEE_TOKEN,
+  TEMPO_SET_USER_TOKEN_GAS_LIMIT,
   buildEvmExplorerTxUrl,
-  buildTempoSetUserTokenRequest,
   compactHex,
   isUserCancellationError,
   parseInsufficientFundsError,
@@ -74,24 +74,11 @@ export function useDemoTempoFeeTokenActions(args: UseDemoTempoFeeTokenActionsArg
           rpcUrl: FRONTEND_CONFIG.tempoRpcUrl,
           fallbackFeeCaps: tempoEip1559FeeCaps,
         });
-        const request = buildTempoSetUserTokenRequest({
-          feeCaps,
-          feeToken: tempoFeeToken,
-        });
-        const payloadExpectation = {
-          kind: 'evm_eip1559' as const,
-          to: request.tx.to ?? null,
-          input: request.tx.data || '0x',
-        };
-        const thresholdOwnerAddressPromise = resolveThresholdOwnerAddressForEvmFamily()
-          .then((ownerAddress) => {
-            thresholdOwnerAddressForAttempt = ownerAddress;
-            return ownerAddress;
-          })
-          .catch(() => null);
+        /* setFeeToken names the account whose preference it writes and then
+           verifies on-chain, so the owner address is resolved before signing. */
+        const thresholdOwnerAddress = await resolveThresholdOwnerAddressForEvmFamily();
+        thresholdOwnerAddressForAttempt = thresholdOwnerAddress;
         const diagnosticsPromise = (async () => {
-          const thresholdOwnerAddress = await thresholdOwnerAddressPromise;
-          if (!thresholdOwnerAddress) return;
           selectedFeeTokenBalanceRaw = await readTempoTokenBalanceRaw({
             rpcUrl: FRONTEND_CONFIG.tempoRpcUrl,
             userAddress: thresholdOwnerAddress,
@@ -103,18 +90,20 @@ export function useDemoTempoFeeTokenActions(args: UseDemoTempoFeeTokenActionsArg
             blockTag: 'latest',
           }).catch(() => null);
         })().catch(() => undefined);
-        const execution = await seams.tempo.executeEvmFamilyTransaction({
+        const execution = await seams.tempo.setFeeToken({
           walletSession: walletSessionRefFromSession({
             walletId,
             walletSessionUserId: walletId,
           }),
-          request,
           chainTarget: resolveDemoThresholdEcdsaChainTarget('tempo', FRONTEND_CONFIG.chains),
+          account: thresholdOwnerAddress,
+          feeToken: tempoFeeToken,
+          feeCaps,
+          gasLimit: TEMPO_SET_USER_TOKEN_GAS_LIMIT,
           finalization: {
             timeoutMs: EVM_SET_USER_TOKEN_FINALITY_TIMEOUT_MS,
             pollIntervalMs: EVM_SET_USER_TOKEN_POLL_INTERVAL_MS,
           },
-          payloadExpectation,
           options: {
             onEvent: (event: SigningFlowEvent) =>
               handleSigningToastEvent(event, {
@@ -123,32 +112,16 @@ export function useDemoTempoFeeTokenActions(args: UseDemoTempoFeeTokenActionsArg
                 successMessage: 'Tempo fee-token transaction complete',
               }),
           },
-          postFinalizationCheck: async () => {
-            const thresholdOwnerAddress = await thresholdOwnerAddressPromise;
-            const refreshedFeeToken = thresholdOwnerAddress
-              ? await refreshTempoUserFeeToken({
-                  silent: true,
-                  userAddress: thresholdOwnerAddress,
-                })
-              : null;
-            if (thresholdOwnerAddress) {
-              await refreshTempoUserFeeTokenBalance({
-                silent: true,
-                userAddress: thresholdOwnerAddress,
-                feeToken: tempoFeeToken,
-              });
-            }
-            const refreshedMatchesTarget =
-              !!refreshedFeeToken &&
-              refreshedFeeToken.toLowerCase() === tempoFeeToken.toLowerCase();
-            if (thresholdOwnerAddress && !refreshedMatchesTarget) {
-              throw new Error(
-                `setUserToken transaction finalized, but refreshed userTokens(address) reports ${refreshedFeeToken ? compactHex(refreshedFeeToken) : 'not set'} instead of ${compactHex(tempoFeeToken)}.`,
-              );
-            }
-          },
         });
         executedTxHash = execution.txHash;
+        /* The SDK verified userTokens(account) before it resolved; these reads
+           only bring the demo's displayed fee token and balance up to date. */
+        await refreshTempoUserFeeToken({ silent: true, userAddress: thresholdOwnerAddress });
+        await refreshTempoUserFeeTokenBalance({
+          silent: true,
+          userAddress: thresholdOwnerAddress,
+          feeToken: tempoFeeToken,
+        });
         await diagnosticsPromise;
         const txUrl = buildEvmExplorerTxUrl({
           explorerBaseUrl: FRONTEND_CONFIG.tempoExplorerUrl,

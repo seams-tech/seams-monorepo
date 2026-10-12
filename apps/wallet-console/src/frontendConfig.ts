@@ -378,12 +378,20 @@ function buildDeployment(
   };
 }
 
-function buildSiteConfig(source: ImportMetaEnv): FrontendConfigCandidate {
-  const siteKind = source.VITE_SITE_ID === 'production' ? 'production' : 'staging';
+export function readFrontendSiteLinks(source: ImportMetaEnv): {
+  baseUrl: string;
+  docsOrigin: string;
+} {
   const docsOrigin = stripTrailingSlash(
     toTrimmedString(source.VITE_DOCS_ORIGIN) || DEFAULT_DOCS_ORIGIN,
   );
   const baseUrl = stripTrailingSlash(toTrimmedString(source.BASE_URL || '/')) || '/';
+  return { baseUrl, docsOrigin };
+}
+
+function buildSiteConfig(source: ImportMetaEnv): FrontendConfigCandidate {
+  const siteKind = source.VITE_SITE_ID === 'production' ? 'production' : 'staging';
+  const { baseUrl, docsOrigin } = readFrontendSiteLinks(source);
   const siteOrigin =
     toTrimmedString(source.VITE_SITE_ORIGIN) ||
     (siteKind === 'production' ? 'https://seams.sh' : 'https://staging.seams.sh');

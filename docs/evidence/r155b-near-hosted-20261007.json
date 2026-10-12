@@ -1,0 +1,1104 @@
+{
+  "freeze": {
+    "revisions": {
+      "public": "2bee39abb947a6524a42e8c74c6ff7b89c1a7acb",
+      "private": "c0719a8e2f5467c70dd7052369bf87e6bac65a72"
+    },
+    "reusedArtifactRevision": "298ffc602aa6775b54ca0325d585b4a76e9c2c62",
+    "verifiedArtifactFiles": 3645,
+    "unchangedSourcePaths": ["wasm", "crates", "packages/wallet"],
+    "readinessFix": {
+      "commit": "458b4f3",
+      "path": "packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection.ts",
+      "sha256": "17558125654ebdfc87f333e361e499d69ae94b37352e664b6bf87539c9c9d741",
+      "scope": "Runtime readiness inspection only; clean browser baseline preceded this fix"
+    }
+  },
+  "baseline": {
+    "registration_to_first_verified": {
+      "sdkSigningMs": {
+        "samples": 3,
+        "median": 7749,
+        "minimum": 6642.194999933243,
+        "maximum": 9047.125
+      },
+      "phaseToVerifiedMs": {
+        "samples": 3,
+        "median": 20411.049124999998,
+        "minimum": 19752.373917,
+        "maximum": 23908.916875000003
+      },
+      "gatewayPostRequests": {
+        "samples": 3,
+        "median": 16,
+        "minimum": 16,
+        "maximum": 16
+      }
+    },
+    "warm_signing": {
+      "sdkSigningMs": {
+        "samples": 6,
+        "median": 2735.3424999713898,
+        "minimum": 1998.905000090599,
+        "maximum": 4535.045000076294
+      },
+      "phaseToVerifiedMs": {
+        "samples": 6,
+        "median": 3409.9325629999967,
+        "minimum": 2246.587790999998,
+        "maximum": 5315.963542000001
+      },
+      "gatewayPostRequests": {
+        "samples": 6,
+        "median": 6.0,
+        "minimum": 6,
+        "maximum": 6
+      }
+    },
+    "unlock_to_first_verified": {
+      "sdkSigningMs": {
+        "samples": 3,
+        "median": 2135.180000066757,
+        "minimum": 2036.0349999666214,
+        "maximum": 2179.4749999046326
+      },
+      "phaseToVerifiedMs": {
+        "samples": 3,
+        "median": 5704.528124999997,
+        "minimum": 4973.279333000002,
+        "maximum": 5733.837792000006
+      },
+      "gatewayPostRequests": {
+        "samples": 3,
+        "median": 11,
+        "minimum": 11,
+        "maximum": 11
+      }
+    },
+    "three_consecutive": {
+      "sdkSigningMs": {
+        "samples": 9,
+        "median": 1860.5199999809265,
+        "minimum": 1531.5449999570847,
+        "maximum": 2530.914999961853
+      },
+      "phaseToVerifiedMs": {
+        "samples": 9,
+        "median": 2281.7233329999945,
+        "minimum": 2226.2363750000077,
+        "maximum": 3064.1199169999963
+      },
+      "gatewayPostRequests": {
+        "samples": 9,
+        "median": 6,
+        "minimum": 6,
+        "maximum": 6
+      }
+    }
+  },
+  "diagnostic": [
+    {
+      "workload": "registration_to_first_verified",
+      "gatewayPostRequests": 17,
+      "gatewayD1Calls": 129,
+      "observedGatewayD1Calls": 129,
+      "gatewayConsoleCalls": 15,
+      "sdkStages": [
+        {
+          "at": 15804.311459,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 8.300000071525574
+        },
+        {
+          "at": 15944.825542,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 140.60000002384186
+        },
+        {
+          "at": 16282.823042,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 337.89999997615814
+        },
+        {
+          "at": 16431.0015,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 147.89999997615814
+        },
+        {
+          "at": 16433.834417,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 2.399999976158142
+        },
+        {
+          "at": 16732.789792,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 298.90000009536743
+        },
+        {
+          "at": 16732.869125,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 16733.038542,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 22016.318209,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 5283.199999928474
+        },
+        {
+          "at": 22018.18825,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1.600000023841858
+        },
+        {
+          "at": 23375.873125,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 1344.3999999761581
+        },
+        {
+          "at": 23380.602792,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 3.399999976158142
+        },
+        {
+          "at": 23794.603584,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 414
+        },
+        {
+          "at": 23794.626625,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 1763.2000000476837
+        },
+        {
+          "at": 23796.461,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.5
+        },
+        {
+          "at": 23796.512667,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0.10000002384185791
+        },
+        {
+          "at": 23796.626209,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 7063.899999976158
+        }
+      ]
+    },
+    {
+      "workload": "warm_signing",
+      "gatewayPostRequests": 6,
+      "gatewayD1Calls": 39,
+      "observedGatewayD1Calls": 39,
+      "gatewayConsoleCalls": 0,
+      "sdkStages": [
+        {
+          "at": 24180.58625,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 1.5
+        },
+        {
+          "at": 24316.745959,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 136.20000004768372
+        },
+        {
+          "at": 24600.889584,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 284.1999999284744
+        },
+        {
+          "at": 24722.721667,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 121.80000007152557
+        },
+        {
+          "at": 24724.405459,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 1.6999999284744263
+        },
+        {
+          "at": 25343.084084,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 618.6000000238419
+        },
+        {
+          "at": 25343.146834,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 25343.157667,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 25343.203459,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0
+        },
+        {
+          "at": 25344.281667,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1
+        },
+        {
+          "at": 26148.188084,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 801.5
+        },
+        {
+          "at": 26150.550834,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 1.399999976158142
+        },
+        {
+          "at": 26482.600167,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 331.89999997615814
+        },
+        {
+          "at": 26482.616959,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 1136.1000000238419
+        },
+        {
+          "at": 26483.591167,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.40000009536743164
+        },
+        {
+          "at": 26483.689834,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0
+        },
+        {
+          "at": 26483.708459,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 1140.6000000238419
+        }
+      ]
+    },
+    {
+      "workload": "warm_signing",
+      "gatewayPostRequests": 6,
+      "gatewayD1Calls": 40,
+      "observedGatewayD1Calls": 40,
+      "gatewayConsoleCalls": 0,
+      "sdkStages": [
+        {
+          "at": 27229.891084,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 1.5999999046325684
+        },
+        {
+          "at": 27440.6045,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 210.70000004768372
+        },
+        {
+          "at": 27706.232542,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 264.5
+        },
+        {
+          "at": 27869.119125,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 163.20000004768372
+        },
+        {
+          "at": 27872.993125,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 3.100000023841858
+        },
+        {
+          "at": 28511.83175,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 640
+        },
+        {
+          "at": 28780.096959,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 268.2000000476837
+        },
+        {
+          "at": 28780.19525,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 28780.212459,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0
+        },
+        {
+          "at": 28781.600875,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1.2000000476837158
+        },
+        {
+          "at": 29814.588,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 1032.0999999046326
+        },
+        {
+          "at": 29816.490459,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 1.100000023841858
+        },
+        {
+          "at": 30157.009667,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 340.5
+        },
+        {
+          "at": 30157.068959,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 1374.7999999523163
+        },
+        {
+          "at": 30159.849959,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.5
+        },
+        {
+          "at": 30159.928875,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0.10000002384185791
+        },
+        {
+          "at": 30159.940584,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 1648.1999999284744
+        }
+      ]
+    },
+    {
+      "workload": "unlock_to_first_verified",
+      "gatewayPostRequests": 11,
+      "gatewayD1Calls": 80,
+      "observedGatewayD1Calls": 80,
+      "gatewayConsoleCalls": 4,
+      "sdkStages": [
+        {
+          "at": 34017.045209,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 5.399999976158142
+        },
+        {
+          "at": 34163.378042,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 146.39999997615814
+        },
+        {
+          "at": 34620.941625,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 454.5
+        },
+        {
+          "at": 34781.663334,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 163.39999997615814
+        },
+        {
+          "at": 34786.414292,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 3.8000000715255737
+        },
+        {
+          "at": 35075.605667,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 289.40000009536743
+        },
+        {
+          "at": 35075.662375,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 35075.733792,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 35075.785084,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0
+        },
+        {
+          "at": 35077.877042,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1.7999999523162842
+        },
+        {
+          "at": 35489.490167,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 398.89999997615814
+        },
+        {
+          "at": 35494.131959,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 3.399999976158142
+        },
+        {
+          "at": 36534.443875,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 1040.0999999046326
+        },
+        {
+          "at": 36534.465875,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 1443.7999999523163
+        },
+        {
+          "at": 36536.272334,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.6000000238418579
+        },
+        {
+          "at": 36536.383917,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0.10000002384185791
+        },
+        {
+          "at": 36536.402,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 1460.6999999284744
+        }
+      ]
+    },
+    {
+      "workload": "three_consecutive",
+      "gatewayPostRequests": 6,
+      "gatewayD1Calls": 39,
+      "observedGatewayD1Calls": 39,
+      "gatewayConsoleCalls": 0,
+      "sdkStages": [
+        {
+          "at": 40117.380959,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 5.299999952316284
+        },
+        {
+          "at": 40260.450334,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 143.39999997615814
+        },
+        {
+          "at": 40546.457959,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 285.89999997615814
+        },
+        {
+          "at": 40680.287584,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 133.89999997615814
+        },
+        {
+          "at": 40682.554459,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 1.899999976158142
+        },
+        {
+          "at": 41777.989375,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 1095.2999999523163
+        },
+        {
+          "at": 41778.04425,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 41778.078792,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 41778.121875,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0.10000002384185791
+        },
+        {
+          "at": 41780.018875,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1.600000023841858
+        },
+        {
+          "at": 42157.334375,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 364.1999999284744
+        },
+        {
+          "at": 42161.756084,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 3.399999976158142
+        },
+        {
+          "at": 42541.093959,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 379
+        },
+        {
+          "at": 42541.110625,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 748
+        },
+        {
+          "at": 42542.994792,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.6000000238418579
+        },
+        {
+          "at": 42543.134042,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0
+        },
+        {
+          "at": 42543.151542,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 765.1000000238419
+        }
+      ]
+    },
+    {
+      "workload": "three_consecutive",
+      "gatewayPostRequests": 6,
+      "gatewayD1Calls": 39,
+      "observedGatewayD1Calls": 39,
+      "gatewayConsoleCalls": 0,
+      "sdkStages": [
+        {
+          "at": 43163.234834,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 1.600000023841858
+        },
+        {
+          "at": 43289.162084,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 125.89999997615814
+        },
+        {
+          "at": 43567.35125,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 278.2999999523163
+        },
+        {
+          "at": 43703.924959,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 136.60000002384186
+        },
+        {
+          "at": 43705.669875,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 1.600000023841858
+        },
+        {
+          "at": 44267.809125,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 562.2999999523163
+        },
+        {
+          "at": 44267.861375,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 44267.94675,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 44267.96275,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0
+        },
+        {
+          "at": 44269.024042,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1
+        },
+        {
+          "at": 45053.491542,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 783.7999999523163
+        },
+        {
+          "at": 45055.65475,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 1.2000000476837158
+        },
+        {
+          "at": 45426.058875,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 370.2999999523163
+        },
+        {
+          "at": 45426.074459,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 1156.3999999761581
+        },
+        {
+          "at": 45426.892542,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.3999999761581421
+        },
+        {
+          "at": 45427.037167,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0.10000002384185791
+        },
+        {
+          "at": 45427.055584,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 1159.1000000238419
+        }
+      ]
+    },
+    {
+      "workload": "three_consecutive",
+      "gatewayPostRequests": 6,
+      "gatewayD1Calls": 40,
+      "observedGatewayD1Calls": 40,
+      "gatewayConsoleCalls": 0,
+      "sdkStages": [
+        {
+          "at": 46212.953375,
+          "event": "ed25519_signing_timing",
+          "stage": "preparation_modal",
+          "durationMs": 1.399999976158142
+        },
+        {
+          "at": 46357.060459,
+          "event": "ed25519_signing_timing",
+          "stage": "authorization_probe",
+          "durationMs": 144.10000002384186
+        },
+        {
+          "at": 46655.850334,
+          "event": "ed25519_signing_timing",
+          "stage": "lane_preparation",
+          "durationMs": 297.7999999523163
+        },
+        {
+          "at": 46839.795875,
+          "event": "ed25519_signing_timing",
+          "stage": "execution_setup",
+          "durationMs": 184.5
+        },
+        {
+          "at": 46842.742875,
+          "event": "ed25519_signing_timing",
+          "stage": "pre_confirmation",
+          "durationMs": 2.6999999284744263
+        },
+        {
+          "at": 47384.967584,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmation",
+          "durationMs": 542.6000000238419
+        },
+        {
+          "at": 47682.144959,
+          "event": "ed25519_signing_timing",
+          "stage": "durable_lease_recovery_wait",
+          "durationMs": 297.3000000715256
+        },
+        {
+          "at": 47682.215417,
+          "event": "ed25519_signing_timing",
+          "stage": "material_resolution_wait",
+          "durationMs": 0
+        },
+        {
+          "at": 47682.226167,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_context",
+          "durationMs": 0
+        },
+        {
+          "at": 47683.309209,
+          "event": "ed25519_signing_timing",
+          "stage": "wallet_session_authorization",
+          "durationMs": 1.100000023841858
+        },
+        {
+          "at": 48142.254,
+          "event": "ed25519_signing_timing",
+          "stage": "prepare",
+          "durationMs": 458.5
+        },
+        {
+          "at": 48144.57925,
+          "event": "ed25519_signing_timing",
+          "stage": "client_share",
+          "durationMs": 1.100000023841858
+        },
+        {
+          "at": 48574.410167,
+          "event": "ed25519_signing_timing",
+          "stage": "finalize",
+          "durationMs": 429.7999999523163
+        },
+        {
+          "at": 48574.426625,
+          "event": "ed25519_signing_timing",
+          "stage": "signature_total",
+          "durationMs": 890.6999999284744
+        },
+        {
+          "at": 48575.507334,
+          "event": "ed25519_signing_timing",
+          "stage": "nonce_lease_commit",
+          "durationMs": 0.3999999761581421
+        },
+        {
+          "at": 48575.603,
+          "event": "ed25519_signing_timing",
+          "stage": "transaction_assembly",
+          "durationMs": 0
+        },
+        {
+          "at": 48575.620084,
+          "event": "ed25519_signing_timing",
+          "stage": "confirmed_to_signed",
+          "durationMs": 1190.7000000476837
+        }
+      ]
+    }
+  ],
+  "firstTravelSignature": {
+    "region": "apac",
+    "browserWithProbeMs": 7546.918999999998,
+    "sumRegionalHttpMs": 4093.017543999944
+  },
+  "travel": {
+    "apac": {
+      "browserWithProbeMs": {
+        "samples": 5,
+        "median": 3047.079207999999,
+        "minimum": 2242.0469999999914,
+        "maximum": 3055.514500000001
+      },
+      "sumRegionalHttpMs": {
+        "samples": 5,
+        "median": 740.3723950000021,
+        "minimum": 716.575707,
+        "maximum": 811.1729810000397
+      },
+      "locations": ["hkg13"],
+      "walletHomes": ["APAC"],
+      "gatewayPostRequests": {
+        "samples": 5,
+        "median": 6,
+        "minimum": 6,
+        "maximum": 6
+      },
+      "gatewayD1Calls": null,
+      "gatewayConsoleCalls": null
+    },
+    "weur": {
+      "browserWithProbeMs": {
+        "samples": 3,
+        "median": 5388.84575,
+        "minimum": 5333.437958000002,
+        "maximum": 6133.104833000005
+      },
+      "sumRegionalHttpMs": {
+        "samples": 3,
+        "median": 2524.269640999999,
+        "minimum": 2207.8229480000045,
+        "maximum": 3275.678226000002
+      },
+      "locations": ["lhr01"],
+      "walletHomes": ["APAC"],
+      "gatewayPostRequests": {
+        "samples": 3,
+        "median": 6,
+        "minimum": 6,
+        "maximum": 6
+      },
+      "gatewayD1Calls": null,
+      "gatewayConsoleCalls": null
+    },
+    "enam": {
+      "browserWithProbeMs": {
+        "samples": 3,
+        "median": 4616.180082999999,
+        "minimum": 4571.288041000007,
+        "maximum": 6150.026958999995
+      },
+      "sumRegionalHttpMs": {
+        "samples": 3,
+        "median": 2301.4538189999985,
+        "minimum": 2148.3636739999965,
+        "maximum": 3518.1615769999953
+      },
+      "locations": ["ord12"],
+      "walletHomes": ["APAC"],
+      "gatewayPostRequests": {
+        "samples": 3,
+        "median": 6,
+        "minimum": 6,
+        "maximum": 6
+      },
+      "gatewayD1Calls": null,
+      "gatewayConsoleCalls": null
+    }
+  },
+  "scope": {
+    "gatewayD1Only": true,
+    "systemWideD1Measured": false,
+    "regionalTransport": "Local browser through physical regional proxy; not native remote browser latency",
+    "workerColdStartsControlled": false,
+    "frontend": "Frozen candidate assets intercepted at staging origins",
+    "verifiedSignatures": {
+      "clean": 21,
+      "diagnostic": 7,
+      "travel": 12
+    }
+  },
+  "cleanup": {
+    "probeStops": [
+      {
+        "region": "apac",
+        "status": 200,
+        "body": "{\"stopped\":true}"
+      },
+      {
+        "region": "weur",
+        "status": 200,
+        "body": "{\"stopped\":true}"
+      },
+      {
+        "region": "enam",
+        "status": 200,
+        "body": "{\"stopped\":true}"
+      }
+    ],
+    "probeAccessStatus": 403,
+    "probeOriginalImagesRestored": true,
+    "temporaryGatewayObserversRemoved": true,
+    "ownedTailsStopped": true
+  },
+  "deployments": {
+    "seams-sdk-d1-console-staging": [
+      {
+        "version_id": "c92c3b1a-b043-401a-82fc-db6ace5b4391",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-us": [
+      {
+        "version_id": "6441c8b8-159a-41d7-bd99-0edd4470d6d2",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-us": [
+      {
+        "version_id": "e69337cd-1ad7-4f68-b7ff-2bcc7751d6f2",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-weur": [
+      {
+        "version_id": "a7b5a57e-3346-4493-a8d9-c1870dec8da5",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-weur": [
+      {
+        "version_id": "e913763d-1e98-43b1-a234-53fc8d81787f",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging": [
+      {
+        "version_id": "03d81916-afe9-4ee8-b7b3-a3f146d3eb06",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging": [
+      {
+        "version_id": "303e1a45-5544-4963-a32e-a9149fb6a7b5",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-gateway-staging-oc": [
+      {
+        "version_id": "d6e41a29-c635-47fc-ba47-79a3819086b9",
+        "percentage": 100
+      }
+    ],
+    "seams-sdk-d1-wallet-runtime-staging-oc": [
+      {
+        "version_id": "b47fc67f-a749-4499-8c72-4e52f0e9c9e4",
+        "percentage": 100
+      }
+    ],
+    "router-ab-mpc-router-staging": [
+      {
+        "version_id": "e61be767-5b2f-4c4c-9612-8bfd90c50da4",
+        "percentage": 100
+      }
+    ],
+    "router-ab-deriver-a-staging": [
+      {
+        "version_id": "f5efc69e-2030-4334-9e9c-274026924f48",
+        "percentage": 100
+      }
+    ],
+    "router-ab-deriver-b-staging": [
+      {
+        "version_id": "3924e4d0-39c6-4de8-9888-15595a3d21ae",
+        "percentage": 100
+      }
+    ],
+    "router-ab-signing-worker-staging": [
+      {
+        "version_id": "20ce45d4-3579-471e-a08d-7d96ccfe037d",
+        "percentage": 100
+      }
+    ],
+    "router-ab-tenant-root-control-plane-staging": [
+      {
+        "version_id": "8f24cb79-404b-4115-a717-b1a5f86a39a3",
+        "percentage": 100
+      }
+    ]
+  },
+  "activation": {
+    "runId": 37568838587,
+    "conclusion": "success"
+  },
+  "rawEvidenceSha256": {
+    "near-rollout-verified/near-1.json": "e8916d26ba92061abf73570647dcafa677d87a64618b77ec3244f0a1c1a394b9",
+    "near-rollout-verified/near-2.json": "24ffaefa522b1f4b121f547520d7ee89868e6116ae970b40e68570e55dbd6b32",
+    "near-rollout-verified/near-3.json": "0ff0b36d9955726c11a131e68d46999409893d42d7ffa75f1b77a9f88bb7b5d6",
+    "near-counts/near-1.json": "75cff8b1ec9e13faaaee751acda100f56cfd7cbb48b1d09102f2b65df8966d8a",
+    "near-travel-complete/regional-travel-apac.json": "e0c4e24e7bf979c2a81ee84734b37ec1da4f1c8c84de1c4e9c6a9728ab60b231",
+    "readiness-e2e-evidence.json": "917033cc3c7864661be0bb321a7b7485d6af04622af62ef7f26900353194af5b"
+  },
+  "finalRuntimeSha256": "09f3f6c681085a92cd17ecf16b7185c3be029234b7f6fedef0ea7cbbcf33a0f7",
+  "finalReadiness": {
+    "ok": true,
+    "thresholdEd25519": {
+      "configured": true
+    },
+    "cors": {
+      "allowedOrigins": [
+        "https://staging.seams.sh",
+        "https://staging.wallet.seams.sh",
+        "https://staging.sign.seams.sh"
+      ]
+    }
+  }
+}

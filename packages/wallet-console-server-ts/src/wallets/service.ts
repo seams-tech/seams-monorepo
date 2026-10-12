@@ -1,4 +1,9 @@
+import {
+  consoleWalletKeyString,
+  type ConsoleWalletKey,
+} from '@seams-internal/wallet-console-shared';
 import { ConsoleWalletError } from './errors';
+import { parseConsoleWalletKey } from './requests';
 import {
   normalizeWalletLimit as normalizeLimit,
   normalizeWalletSortBy as normalizeSortBy,
@@ -38,18 +43,18 @@ export interface ConsoleWalletsContext {
 }
 
 export interface RefreshConsoleWalletBalancesRequest {
-  readonly walletIds: readonly string[];
+  readonly wallets: readonly ConsoleWalletKey[];
 }
 
 export interface ConsoleWalletBalanceRefreshFailure {
-  readonly walletId: string;
+  readonly wallet: ConsoleWalletKey;
   readonly message: string;
 }
 
 export interface ConsoleWalletBalanceRefreshResult {
   readonly wallets: readonly ConsoleWallet[];
-  readonly refreshedWalletIds: readonly string[];
-  readonly freshWalletIds: readonly string[];
+  readonly refreshedWallets: readonly ConsoleWalletKey[];
+  readonly freshWallets: readonly ConsoleWalletKey[];
   readonly failures: readonly ConsoleWalletBalanceRefreshFailure[];
 }
 
@@ -62,7 +67,7 @@ export interface ConsoleWalletService {
     ctx: ConsoleWalletsContext,
     request: SearchConsoleWalletsRequest,
   ): Promise<ConsoleWalletPage>;
-  getWallet(ctx: ConsoleWalletsContext, walletId: string): Promise<ConsoleWallet | null>;
+  getWallet(ctx: ConsoleWalletsContext, key: ConsoleWalletKey): Promise<ConsoleWallet | null>;
   upsertWallet?(
     ctx: ConsoleWalletsContext,
     request: UpsertConsoleWalletRequest,
@@ -81,11 +86,10 @@ interface OrgWalletStore {
   wallets: Map<string, ConsoleWallet>;
 }
 
-interface WalletCursorPayload {
+interface WalletCursorPayload extends ConsoleWalletKey {
   sortBy: ConsoleWalletSortBy;
   sortOrder: ConsoleWalletSortOrder;
   sortValue: number;
-  id: string;
 }
 
 function toMs(iso: string | null | undefined): number {
@@ -133,16 +137,22 @@ function decodeCursor(input: string): WalletCursorPayload {
     const sortBy = String(parsed?.sortBy || '') as ConsoleWalletSortBy;
     const sortOrder = String(parsed?.sortOrder || '') as ConsoleWalletSortOrder;
     const sortValue = Number(parsed?.sortValue);
-    const id = String(parsed?.id || '').trim();
+    const key = parseConsoleWalletKey(parsed);
     if (
       (sortBy !== 'createdAt' && sortBy !== 'balance' && sortBy !== 'lastActivity') ||
       (sortOrder !== 'asc' && sortOrder !== 'desc') ||
-      !Number.isFinite(sortValue) ||
-      !id
+      !Number.isFinite(sortValue)
     ) {
       throw new Error('invalid_payload');
     }
-    return { sortBy, sortOrder, sortValue, id };
+    return {
+      sortBy,
+      sortOrder,
+      sortValue,
+      id: key.id,
+      projectId: key.projectId,
+      environmentId: key.environmentId,
+    };
   } catch {
     throw new ConsoleWalletError('invalid_query', 400, 'Invalid cursor value');
   }
@@ -152,6 +162,14 @@ function sortValueFor(wallet: ConsoleWallet, sortBy: ConsoleWalletSortBy): numbe
   if (sortBy === 'balance') return wallet.balanceMinor;
   if (sortBy === 'lastActivity') return toMs(wallet.lastActivityAt);
   return toMs(wallet.createdAt);
+}
+
+function compareWalletKeys(a: ConsoleWalletKey, b: ConsoleWalletKey): number {
+  for (const field of ['projectId', 'environmentId', 'id'] as const) {
+    if (a[field] < b[field]) return -1;
+    if (a[field] > b[field]) return 1;
+  }
+  return 0;
 }
 
 function compareWallets(
@@ -165,7 +183,7 @@ function compareWallets(
   if (av !== bv) {
     return sortOrder === 'asc' ? av - bv : bv - av;
   }
-  const idCompare = a.id.localeCompare(b.id);
+  const idCompare = compareWalletKeys(a, b);
   return sortOrder === 'asc' ? idCompare : -idCompare;
 }
 
@@ -261,11 +279,11 @@ function applyPage(
         if (sortOrder === 'asc') {
           if (walletSortValue > cursor.sortValue) return true;
           if (walletSortValue < cursor.sortValue) return false;
-          return wallet.id.localeCompare(cursor.id) > 0;
+          return compareWalletKeys(wallet, cursor) > 0;
         }
         if (walletSortValue < cursor.sortValue) return true;
         if (walletSortValue > cursor.sortValue) return false;
-        return wallet.id.localeCompare(cursor.id) < 0;
+        return compareWalletKeys(wallet, cursor) < 0;
       })
     : sorted;
 
@@ -280,6 +298,8 @@ function applyPage(
           sortOrder,
           sortValue: sortValueFor(last, sortBy),
           id: last.id,
+          projectId: last.projectId,
+          environmentId: last.environmentId,
         })
       : undefined;
   return { items, ...(nextCursor ? { nextCursor } : {}) };
@@ -300,7 +320,7 @@ export function createInMemoryConsoleWalletService(
       store = { wallets: new Map<string, ConsoleWallet>() };
       stores.set(orgId, store);
     }
-    store.wallets.set(walletId, cloneWallet(seed));
+    store.wallets.set(consoleWalletKeyString(seed), cloneWallet(seed));
   }
 
   function getOrgStore(ctx: ConsoleWalletsContext): OrgWalletStore | undefined {
@@ -332,10 +352,13 @@ export function createInMemoryConsoleWalletService(
       return applyPage(filtered, request);
     },
 
-    async getWallet(ctx: ConsoleWalletsContext, walletId: string): Promise<ConsoleWallet | null> {
+    async getWallet(
+      ctx: ConsoleWalletsContext,
+      key: ConsoleWalletKey,
+    ): Promise<ConsoleWallet | null> {
       const store = getOrgStore(ctx);
       if (!store) return null;
-      const wallet = store.wallets.get(walletId);
+      const wallet = store.wallets.get(consoleWalletKeyString(key));
       return wallet ? cloneWallet(wallet) : null;
     },
 
@@ -348,9 +371,9 @@ export function createInMemoryConsoleWalletService(
         store = { wallets: new Map<string, ConsoleWallet>() };
         stores.set(ctx.orgId, store);
       }
-      const existing = store.wallets.get(String(request.id || '').trim()) || null;
+      const existing = store.wallets.get(consoleWalletKeyString(request)) || null;
       const normalized = normalizeUpsertRequest(ctx, request, existing);
-      store.wallets.set(normalized.id, cloneWallet(normalized));
+      store.wallets.set(consoleWalletKeyString(normalized), cloneWallet(normalized));
       return cloneWallet(normalized);
     },
   };

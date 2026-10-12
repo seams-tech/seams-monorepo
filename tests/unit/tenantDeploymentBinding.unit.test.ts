@@ -1,3 +1,4 @@
+import { TenantResourceVerificationV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -5,17 +6,12 @@ import {
   buildTenantDeploymentBindingV1,
   decodeTenantDeploymentBindingV1,
   decodeTenantDeploymentCutoverV1,
-  type TenantDeploymentBindingBodyV1,
 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
 import {
   createD1TenantDeploymentServiceV1,
   createD1TenantDeploymentSetupAdmissionReaderV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { createTenantDeploymentReadinessServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/readiness';
-import {
-  createTenantDeploymentRuntimeInspectionClientV1,
-  createTenantDeploymentRuntimeInspectionHandlerV1,
-} from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import {
   createTenantDeploymentPublicProjectionHandlerV1,
   tenantDeploymentPublicProjectionResponseV1,
@@ -27,53 +23,12 @@ import {
   resolveTenantDeploymentSetupAdmissionFromServiceV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeBinding';
 import { cleanupTemporaryD1Database, createTemporaryD1Database } from '../helpers/sqliteD1';
-
-function developmentBindingBody(createdAtMs: number): TenantDeploymentBindingBodyV1 {
-  return {
-    kind: 'tenant_deployment_binding_v1',
-    schemaVersion: 1,
-    deploymentLane: 'live-demo',
-    mode: { kind: 'development_testnet_v1', environment: 'development', network: 'testnet' },
-    tenant: {
-      namespace: 'wallet',
-      organizationId: 'org_1',
-      projectId: 'proj_mu3mtq24_6ni46i',
-      environmentId: 'proj_mu3mtq24_6ni46i:dev',
-    },
-    tenantRoot: {
-      identityDigestB64u: 'root-digest',
-      custodyLineageId: 'lineage-1',
-      signingRootId: 'signing-root-1',
-      signingRootVersion: '1',
-    },
-    browserCredential: {
-      credentialId: 'ak_dev_fixture',
-      publishableKey: 'pk_dev_fixture',
-      expiresAtMs: null,
-      allowedOrigins: ['https://test.sign.seams.sh', 'https://wallet.seams.sh'],
-      quotaPolicy: {
-        rateLimitBucket: 'managed-registration',
-        quotaBucket: 'included',
-        riskPolicy: {},
-        paymentPolicy: {},
-      },
-    },
-    surfaces: {
-      applicationOrigin: 'https://wallet.seams.sh',
-      hostedWalletOrigin: 'https://test.sign.seams.sh',
-      gatewayOrigin: 'https://test.api.wallet.seams.sh',
-      relyingPartyId: 'test.sign.seams.sh',
-    },
-    runtimePolicyDigestB64u: 'policy-digest',
-    createdAtMs,
-  };
-}
-
-async function binding(createdAtMs: number) {
-  const result = await buildTenantDeploymentBindingV1(developmentBindingBody(createdAtMs));
-  if (!result.ok) throw new Error(result.message);
-  return result.value;
-}
+import {
+  binding,
+  developmentBindingBody,
+  deploymentResource,
+  operatorResourceCheckpoint,
+} from '../helpers/tenantDeploymentFixtures';
 
 test.describe('tenant deployment binding', () => {
   test('resolves the current binding from one snapshot and rejects a dangling pointer', async () => {
@@ -84,6 +39,21 @@ test.describe('tenant deployment binding', () => {
         'packages/wallet-console-server-ts/migrations/d1-console/0046_tenant_deployment_bindings.sql',
       );
       await fixture.database.exec(readFileSync(migration, 'utf8'));
+      for (const name of [
+        '0047_namespace_d1_homes.sql',
+        '0048_tenant_deployment_activation_homes.sql',
+        '0049_tenant_deployment_binding_homes.sql',
+        '0050_tenant_deployment_home_verification.sql',
+        '0052_drop_namespace_placement.sql',
+        '0054_deployment_resource_sets.sql',
+      ]) {
+        await fixture.database.exec(
+          readFileSync(
+            path.resolve('..', 'packages/wallet-console-server-ts/migrations/d1-console', name),
+            'utf8',
+          ),
+        );
+      }
       const service = createD1TenantDeploymentServiceV1({ database: fixture.database });
       const first = await service.putBinding(await binding(1_700_000_000_000));
       const second = await service.putBinding(await binding(1_700_000_000_001));
@@ -145,69 +115,6 @@ test.describe('tenant deployment binding', () => {
     expect(available.headers.get('Access-Control-Allow-Origin')).toBe('https://wallet.seams.sh');
   });
 
-  test('reads durable wallet and live ceremony counts through the private runtime binding', async () => {
-    const fixture = createTemporaryD1Database();
-    try {
-      await fixture.database.exec(`
-        CREATE TABLE wallets (
-          namespace TEXT NOT NULL,
-          org_id TEXT NOT NULL,
-          project_id TEXT NOT NULL,
-          env_id TEXT NOT NULL,
-          wallet_id TEXT NOT NULL
-        );
-        CREATE TABLE registration_ceremony_records (
-          namespace TEXT NOT NULL,
-          org_id TEXT NOT NULL,
-          project_id TEXT NOT NULL,
-          env_id TEXT NOT NULL,
-          record_id TEXT NOT NULL,
-          expires_at_ms INTEGER NOT NULL
-        );
-        INSERT INTO wallets VALUES
-          ('wallet', 'org_1', 'project_source', 'project_source:dev', 'wallet_source'),
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'wallet_target');
-        INSERT INTO registration_ceremony_records VALUES
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'live', 2000),
-          ('wallet', 'org_1', 'proj_mu3mtq24_6ni46i', 'proj_mu3mtq24_6ni46i:dev', 'expired', 999);
-      `);
-      const handler = createTenantDeploymentRuntimeInspectionHandlerV1({
-        database: fixture.database,
-        now: () => 1000,
-      });
-      const client = createTenantDeploymentRuntimeInspectionClientV1({
-        async fetch(request: Request | string, init?: RequestInit) {
-          const result = await handler(new Request(request, init));
-          return result ?? new Response('Not found', { status: 404 });
-        },
-      });
-      await expect(
-        client.inspect({
-          bindingRevision: 'tdb_candidate',
-          source: {
-            namespace: 'wallet',
-            organizationId: 'org_1',
-            projectId: 'project_source',
-            environmentId: 'project_source:dev',
-          },
-          target: {
-            namespace: 'wallet',
-            organizationId: 'org_1',
-            projectId: 'proj_mu3mtq24_6ni46i',
-            environmentId: 'proj_mu3mtq24_6ni46i:dev',
-          },
-        }),
-      ).resolves.toEqual({
-        acknowledgedBindingRevision: 'tdb_candidate',
-        sourceDurableWalletCount: 1,
-        targetDurableWalletCount: 1,
-        inFlightCeremonyCount: 1,
-      });
-    } finally {
-      cleanupTemporaryD1Database(fixture.tempDir);
-    }
-  });
-
   test('rejects a modified body under an existing content revision', async () => {
     const original = await binding(1_700_000_000_000);
     const decoded = await decodeTenantDeploymentBindingV1({
@@ -221,7 +128,7 @@ test.describe('tenant deployment binding', () => {
   });
 
   test('enforces credential environment prefixes and canonical origin order', async () => {
-    const wrongCredential = developmentBindingBody(1_700_000_000_000);
+    const wrongCredential = developmentBindingBody(1_700_000_000_000, 'live-demo');
     expect(
       (
         await buildTenantDeploymentBindingV1({
@@ -255,6 +162,22 @@ test.describe('tenant deployment binding', () => {
         'packages/wallet-console-server-ts/migrations/d1-console/0046_tenant_deployment_bindings.sql',
       );
       await fixture.database.exec(readFileSync(migration, 'utf8'));
+      for (const name of [
+        '0047_namespace_d1_homes.sql',
+        '0048_tenant_deployment_activation_homes.sql',
+        '0049_tenant_deployment_binding_homes.sql',
+        '0050_tenant_deployment_home_verification.sql',
+        '0052_drop_namespace_placement.sql',
+        '0054_deployment_resource_sets.sql',
+      ]) {
+        await fixture.database.exec(
+          readFileSync(
+            path.resolve('..', 'packages/wallet-console-server-ts/migrations/d1-console', name),
+            'utf8',
+          ),
+        );
+      }
+      const home = deploymentResource('wallet', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
       const service = createD1TenantDeploymentServiceV1({
         database: fixture.database,
         now: () => new Date(1_800_000_000_000),
@@ -350,6 +273,12 @@ test.describe('tenant deployment binding', () => {
         }),
       ).rejects.toMatchObject({ code: 'invalid_input' });
       const input = {
+        resourceVerifications: [
+          TenantResourceVerificationV1.fromOperatorCheckpoint(
+            operatorResourceCheckpoint(home, first.deploymentLane, 1_800_000_000_000),
+            1_800_000_000_000,
+          ),
+        ] as const,
         operationId: 'tco_first' as const,
         expectedCutoverRecordRevision: readyFirst.recordRevision,
         deploymentLane: first.deploymentLane,
@@ -382,6 +311,11 @@ test.describe('tenant deployment binding', () => {
       };
       expect(
         await resolveActiveTenantDeploymentFromServiceV1({
+          writer: {
+            role: 'gateway',
+            versionId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            resource: first.resources[0],
+          },
           deploymentLane: first.deploymentLane,
           service: serviceBinding,
         }),
@@ -397,6 +331,8 @@ test.describe('tenant deployment binding', () => {
           {
             WALLET_CONSOLE: serviceBinding,
             SEAMS_TENANT_DEPLOYMENT_LANE: first.deploymentLane,
+            SEAMS_D1_HOME_ACCOUNT_ID: first.resources[0].accountId,
+            SEAMS_D1_HOME_DATABASE_ID: first.resources[0].databaseId,
           },
           first,
         ),
@@ -428,6 +364,12 @@ test.describe('tenant deployment binding', () => {
         activationSequence: activated.active.activationSequence,
       };
       const secondInput = {
+        resourceVerifications: [
+          TenantResourceVerificationV1.fromOperatorCheckpoint(
+            operatorResourceCheckpoint(home, second.deploymentLane, 1_800_000_000_000),
+            1_800_000_000_000,
+          ),
+        ] as const,
         operationId: 'tco_second' as const,
         expectedCutoverRecordRevision: 4,
         deploymentLane: second.deploymentLane,

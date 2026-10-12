@@ -166,6 +166,16 @@ function environmentWithoutDeploymentSecrets(): NodeJS.ProcessEnv {
   return env;
 }
 
+function pendingSignerD1Regions(laneId: string): readonly string[] {
+  const lane = readBackendLane(laneId);
+  if (lane.provisioning.kind !== 'provisioned') throw new Error(`${laneId} must be provisioned`);
+  const regions: Readonly<Record<string, { readonly signerD1: { readonly kind: string } }>> =
+    lane.provisioning.gatewayDeploymentConfig.resources.regions;
+  return Object.entries(regions)
+    .filter(([, region]) => region.signerD1.kind !== 'allocated')
+    .map(([region]) => region);
+}
+
 function expectFailure(result: CommandResult, message: RegExp): void {
   expect(result.status).not.toBe(0);
   expect(`${result.stdout}\n${result.stderr}`).toMatch(message);
@@ -233,8 +243,6 @@ function gatewayRouterAbEnvironment(): NodeJS.ProcessEnv {
   return {
     DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
     DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
-    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
-    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
     SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
       keyset.signing_worker_server_output_hpke.public_key,
   };
@@ -422,45 +430,53 @@ test('backend commands reject a lane branch mismatch before deployment work', ()
   expectFailure(result, /lane staging-testnet requires branch dev/u);
 });
 
+// The Router owns no private D1, so its preflight reads only checked-in files
+// and the supplied environment. The Signing Worker and Deriver preflights also
+// probe their D1 primary through a remote Wrangler command.
+function stagingRouterPreflightEnvironment(secretValue: string): NodeJS.ProcessEnv {
+  return {
+    ...environmentWithoutDeploymentSecrets(),
+    // The lane requires its branch; an inherited CI ref must not decide the result.
+    GITHUB_REF: 'refs/heads/dev',
+    CLOUDFLARE_API_TOKEN: secretValue,
+    CLOUDFLARE_ACCOUNT_ID: secretValue,
+    ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET: secretValue,
+    ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
+    ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET: secretValue,
+    ROUTER_AB_JWT_JWKS_JSON: 'inventory-jwks',
+    DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: 'inventory-deriver-a-public-key',
+    DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: 'inventory-deriver-b-public-key',
+    SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-signing-worker-public-key',
+    TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON: 'inventory-issuer-keys',
+    TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON: 'inventory-grant-authority-keys',
+    ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON: 'inventory-role-keys',
+  };
+}
+
 test('backend preflight validates one custody environment from explicit inputs', () => {
   const secretValue = 'inventory-secret-value';
   const result = runCommand(
     backendScript,
-    ['preflight', '--lane', 'staging-testnet', '--component', 'signing-worker'],
-    {
-      ...environmentWithoutDeploymentSecrets(),
-      CLOUDFLARE_API_TOKEN: secretValue,
-      CLOUDFLARE_ACCOUNT_ID: secretValue,
-      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY: secretValue,
-      SIGNING_WORKER_PRIVATE_D1_KEK: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-public-value',
-      SIGNING_WORKER_PRIVATE_D1_ID: 'inventory-database-id',
-      SIGNING_WORKER_PRIVATE_D1_KEK_PUBLIC_KEY: 'inventory-kek-public-key',
-      SIGNING_WORKER_PRIVATE_D1_KEK_VERSION: 'inventory-kek-version',
-    },
+    ['preflight', '--lane', 'staging-testnet', '--component', 'router'],
+    stagingRouterPreflightEnvironment(secretValue),
   );
 
   expect(result.status).toBe(0);
-  expect(result.stdout).toContain('Preflight passed: staging-testnet/signing-worker');
+  expect(result.stdout).toContain('Preflight passed: staging-testnet/router');
   expect(`${result.stdout}${result.stderr}`).not.toContain(secretValue);
 });
 
 test('backend preflight rejects a missing required secret without printing values', () => {
   const secretValue = 'inventory-secret-value';
+  const environment = stagingRouterPreflightEnvironment(secretValue);
+  delete environment.ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET;
   const result = runCommand(
     backendScript,
-    ['preflight', '--lane', 'staging-testnet', '--component', 'signing-worker'],
-    {
-      ...environmentWithoutDeploymentSecrets(),
-      CLOUDFLARE_API_TOKEN: secretValue,
-      CLOUDFLARE_ACCOUNT_ID: secretValue,
-      ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: secretValue,
-      SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY: 'inventory-public-value',
-    },
+    ['preflight', '--lane', 'staging-testnet', '--component', 'router'],
+    environment,
   );
 
-  expectFailure(result, /SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY is required/u);
+  expectFailure(result, /ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET is required/u);
   expect(`${result.stdout}${result.stderr}`).not.toContain(secretValue);
 });
 
@@ -513,6 +529,21 @@ test('deployment key generation provisions distinct role-local tenant-root provi
 });
 
 test('production manifests use external KMS backups and distribute both envelope public keys', () => {
+  const apply = runCommand(deploymentKeyGeneratorScript, [
+    '--lane',
+    'production-mainnet',
+    '--apply',
+  ]);
+  expectFailure(apply, /per-Worker manifests/u);
+
+  // The generator refuses a lane until every regional signer D1 is allocated,
+  // so the manifest content is observable only after that.
+  const pendingRegions = pendingSignerD1Regions('production-mainnet');
+  test.skip(
+    pendingRegions.length > 0,
+    `production-mainnet signer D1 allocation is pending for ${pendingRegions.join(', ')}`,
+  );
+
   const generationEnvironment = environmentWithoutDeploymentSecrets();
   delete generationEnvironment.GATEWAY_RUNTIME_PROFILE;
   delete generationEnvironment.EMAIL_OTP_DELIVERY_MODE;
@@ -544,12 +575,6 @@ test('production manifests use external KMS backups and distribute both envelope
       expect(environment.variables[name]).toMatch(/^x25519:[0-9a-f]{64}$/u);
     }
   }
-  const apply = runCommand(deploymentKeyGeneratorScript, [
-    '--lane',
-    'production-mainnet',
-    '--apply',
-  ]);
-  expectFailure(apply, /per-Worker manifests/u);
 });
 
 test('deployment key generation provisions one tenant-root control-plane issuer key', () => {
@@ -681,13 +706,10 @@ test('deployment key generation provisions role-local Deriver creation signing k
       ),
     ).not.toThrow();
   }
-  // Role keys are distinct from each other, from the A/B peer keys (the Rust
-  // loader rejects reuse), and from the issuer key.
+  // Role keys are distinct from each other and from the issuer key.
   const allPublic = new Set([
     keySet.keys[0].verifying_key_hex,
     keySet.keys[1].verifying_key_hex,
-    output.variables.ROUTER_AB_DERIVER_A_PEER_VERIFYING_KEY_HEX,
-    output.variables.ROUTER_AB_DERIVER_B_PEER_VERIFYING_KEY_HEX,
     (
       JSON.parse(
         output.variables.ROUTER_AB_TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON,
@@ -696,7 +718,7 @@ test('deployment key generation provisions role-local Deriver creation signing k
       }
     ).keys[0].verifying_key_hex,
   ]);
-  expect(allPublic.size).toBe(5);
+  expect(allPublic.size).toBe(3);
   // A's key cannot be selected as B's active role key.
   expect(() =>
     assertEd25519RoleKeySet(
@@ -937,6 +959,10 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
     { id: 'production-testnet', workflow: 'deploy-production-testnet-backend.yml' },
     { id: 'production-mainnet', workflow: 'deploy-production-mainnet-backend.yml' },
   ] as const;
+  const liveDemoWorkflowSource = readFileSync(
+    path.join(repoRoot, '.github/workflows/deploy-live-demo.yml'),
+    'utf8',
+  );
 
   for (const lane of lanes) {
     const result = runCommand(
@@ -964,18 +990,30 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       return Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
     };
 
-    const cleanupJob =
-      lane.id === 'staging-testnet' ? 'cleanup_build_artifact' : 'cleanup_build_cache';
-    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, cleanupJob]);
+    // Staging also carries the activation-only job for an already deployed candidate.
+    const trailingJobs =
+      lane.id === 'staging-testnet'
+        ? ['cleanup_build_artifact', 'activate']
+        : ['cleanup_build_cache'];
+    expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, ...trailingJobs]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);
     expect(workflowSource).not.toContain('--target');
     expect(workflowSource).toContain(
       'deploy:backend build --lane "$DEPLOY_LANE" --component wallet-system',
     );
-    expect(workflowSource).toContain(
-      'deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system',
-    );
+    // The live-demo workflow calls the production-testnet workflow, activates
+    // the tenant, and only then runs the smoke.
+    if (lane.id === 'production-testnet') {
+      expect(liveDemoWorkflowSource).toContain(`uses: ./.github/workflows/${lane.workflow}`);
+      expect(liveDemoWorkflowSource).toContain(
+        'deploy:backend smoke --lane production-testnet --component wallet-system',
+      );
+    } else {
+      expect(workflowSource).toContain(
+        'deploy:backend smoke --lane "$DEPLOY_LANE" --component wallet-system',
+      );
+    }
     expect(workflowSource).toContain(
       `test "$GITHUB_REF" = refs/heads/${lane.id === 'staging-testnet' ? 'dev' : 'main'}`,
     );

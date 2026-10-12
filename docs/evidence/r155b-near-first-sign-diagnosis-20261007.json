@@ -1,0 +1,1254 @@
+{
+  "sourceRevision": "2bee39abb947a6524a42e8c74c6ff7b89c1a7acb",
+  "cleanSamples": [
+    {
+      "artifact": "near-1.json",
+      "workload": "registration_to_first_verified",
+      "phaseToVerifiedMs": 23908.916875000003,
+      "sdkSigningMs": 9047.125,
+      "signingAutomation": {
+        "pageSetupMs": 0.0024159999993571546,
+        "clickAndStartObservationMs": 16.25787500000115,
+        "actionCompletionObservedMs": 9062.514625,
+        "automationDrainMs": 624.1037079999987,
+        "confirmationSettlementMs": 145.59791700000278,
+        "totalMs": 9832.216250000001,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 257,
+          "clickDispatchMs": 297,
+          "clickDurationMs": 37
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallets/register/setup",
+          "requestObservedOffsetMs": 399.1951670000003,
+          "completedOffsetMs": 1110.2305000000001,
+          "browserRequestElapsedMs": 711.456
+        },
+        {
+          "path": "/wallets/register/respond",
+          "requestObservedOffsetMs": 1450.818875,
+          "completedOffsetMs": 2114.7490420000004,
+          "browserRequestElapsedMs": 675.273
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/admit",
+          "requestObservedOffsetMs": 2117.2974999999997,
+          "completedOffsetMs": 2585.2625829999997,
+          "browserRequestElapsedMs": 468.781
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/execute",
+          "requestObservedOffsetMs": 2629.034708,
+          "completedOffsetMs": 10104.076292,
+          "browserRequestElapsedMs": 7474.944
+        },
+        {
+          "path": "/wallets/register/activate",
+          "requestObservedOffsetMs": 10113.525625,
+          "completedOffsetMs": 10819.816708,
+          "browserRequestElapsedMs": 706.413
+        },
+        {
+          "path": "/wallets/register/near-provisioning",
+          "requestObservedOffsetMs": 10822.719292,
+          "completedOffsetMs": 13611.32525,
+          "browserRequestElapsedMs": 2789.608
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 13696.720375,
+          "completedOffsetMs": 13888.782708,
+          "browserRequestElapsedMs": 192.079
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 13697.350167,
+          "completedOffsetMs": 13839.04375,
+          "browserRequestElapsedMs": 141.528
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 13847.032333000001,
+          "completedOffsetMs": 13969.87775,
+          "browserRequestElapsedMs": 122.914
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 14115.876083000001,
+          "completedOffsetMs": 14231.455542000002,
+          "browserRequestElapsedMs": 115.674
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 14237.907833,
+          "completedOffsetMs": 14390.322375000002,
+          "browserRequestElapsedMs": 145.725
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 14393.365167000002,
+          "completedOffsetMs": 14514.41125,
+          "browserRequestElapsedMs": 121.22
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 14519.292125000002,
+          "completedOffsetMs": 14658.372708,
+          "browserRequestElapsedMs": 139.452
+        },
+        {
+          "path": "/wallets/dusky-nebula-9rpdq5/near/implicit-account/fund",
+          "requestObservedOffsetMs": 15497.122042,
+          "completedOffsetMs": 19588.030375000002,
+          "browserRequestElapsedMs": 4091.034
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 21555.111083000003,
+          "completedOffsetMs": 22682.795292000003,
+          "browserRequestElapsedMs": 1127.77
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 22688.585042,
+          "completedOffsetMs": 23119.419292,
+          "browserRequestElapsedMs": 431.141
+        }
+      ]
+    },
+    {
+      "artifact": "near-1.json",
+      "workload": "unlock_to_first_verified",
+      "phaseToVerifiedMs": 5733.837792000006,
+      "sdkSigningMs": 2135.180000066757,
+      "signingAutomation": {
+        "pageSetupMs": 0.0014999999984866008,
+        "clickAndStartObservationMs": 15.210832999997365,
+        "actionCompletionObservedMs": 2163.220291999998,
+        "automationDrainMs": 667.2093329999989,
+        "confirmationSettlementMs": 134.9230000000025,
+        "totalMs": 2965.3526249999995,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 257,
+          "clickDispatchMs": 281,
+          "clickDurationMs": 22
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallet/unlock/challenge",
+          "requestObservedOffsetMs": 497.6355420000036,
+          "completedOffsetMs": 932.8352090000044,
+          "browserRequestElapsedMs": 435.545
+        },
+        {
+          "path": "/wallet/unlock/verify",
+          "requestObservedOffsetMs": 943.6784590000025,
+          "completedOffsetMs": 1827.783792000002,
+          "browserRequestElapsedMs": 884.389
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 1829.9533340000053,
+          "completedOffsetMs": 1975.8293340000018,
+          "browserRequestElapsedMs": 146.198
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2021.6055000000051,
+          "completedOffsetMs": 2145.9875840000022,
+          "browserRequestElapsedMs": 124.481
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2152.3965420000022,
+          "completedOffsetMs": 2283.0408340000067,
+          "browserRequestElapsedMs": 130.613
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2820.3227920000063,
+          "completedOffsetMs": 2955.279875,
+          "browserRequestElapsedMs": 134.893
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 2963.0236250000016,
+          "completedOffsetMs": 3119.676750000006,
+          "browserRequestElapsedMs": 157.368
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 3122.361125000003,
+          "completedOffsetMs": 3256.753834000003,
+          "browserRequestElapsedMs": 134.372
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 3260.860584000002,
+          "completedOffsetMs": 3391.4506670000046,
+          "browserRequestElapsedMs": 130.716
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 4206.151417000001,
+          "completedOffsetMs": 4507.936334000005,
+          "browserRequestElapsedMs": 302.026
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 4513.803792000006,
+          "completedOffsetMs": 4910.835792000005,
+          "browserRequestElapsedMs": 397.424
+        }
+      ]
+    },
+    {
+      "artifact": "near-2.json",
+      "workload": "registration_to_first_verified",
+      "phaseToVerifiedMs": 19752.373917,
+      "sdkSigningMs": 6642.194999933243,
+      "signingAutomation": {
+        "pageSetupMs": 0.0027500000014697434,
+        "clickAndStartObservationMs": 14.94695899999897,
+        "actionCompletionObservedMs": 6662.178709,
+        "automationDrainMs": 741.1765000000014,
+        "confirmationSettlementMs": 146.976749999998,
+        "totalMs": 7550.331958999999,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 257,
+          "clickDispatchMs": 299,
+          "clickDurationMs": 40
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallets/register/setup",
+          "requestObservedOffsetMs": 243.14412500000003,
+          "completedOffsetMs": 938.577458,
+          "browserRequestElapsedMs": 695.489
+        },
+        {
+          "path": "/wallets/register/respond",
+          "requestObservedOffsetMs": 1303.654125,
+          "completedOffsetMs": 1920.7244580000001,
+          "browserRequestElapsedMs": 624.849
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/admit",
+          "requestObservedOffsetMs": 1921.998833,
+          "completedOffsetMs": 2446.20525,
+          "browserRequestElapsedMs": 524.192
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/execute",
+          "requestObservedOffsetMs": 2466.7784580000002,
+          "completedOffsetMs": 8866.733667,
+          "browserRequestElapsedMs": 6399.94
+        },
+        {
+          "path": "/wallets/register/activate",
+          "requestObservedOffsetMs": 8875.780542,
+          "completedOffsetMs": 9614.171833,
+          "browserRequestElapsedMs": 738.576
+        },
+        {
+          "path": "/wallets/register/near-provisioning",
+          "requestObservedOffsetMs": 9616.633,
+          "completedOffsetMs": 11911.818083,
+          "browserRequestElapsedMs": 2295.404
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 11998.154542,
+          "completedOffsetMs": 12132.11875,
+          "browserRequestElapsedMs": 134.196
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 11998.848917,
+          "completedOffsetMs": 12115.655708,
+          "browserRequestElapsedMs": 117.033
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 12122.431458,
+          "completedOffsetMs": 12252.708792,
+          "browserRequestElapsedMs": 130.302
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 12237.802292,
+          "completedOffsetMs": 12365.019125,
+          "browserRequestElapsedMs": 127.299
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 12373.360958,
+          "completedOffsetMs": 12511.664,
+          "browserRequestElapsedMs": 126.861
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 12514.618292,
+          "completedOffsetMs": 12673.252292,
+          "browserRequestElapsedMs": 158.841
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 12678.473958,
+          "completedOffsetMs": 12811.824417,
+          "browserRequestElapsedMs": 133.355
+        },
+        {
+          "path": "/wallets/keen-sequoia-kbgrv5/near/implicit-account/fund",
+          "requestObservedOffsetMs": 13201.71975,
+          "completedOffsetMs": 16215.9365,
+          "browserRequestElapsedMs": 3014.398
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 17581.4505,
+          "completedOffsetMs": 18488.417125,
+          "browserRequestElapsedMs": 907.08
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 18497.786083,
+          "completedOffsetMs": 18835.594208,
+          "browserRequestElapsedMs": 338.668
+        }
+      ]
+    },
+    {
+      "artifact": "near-2.json",
+      "workload": "unlock_to_first_verified",
+      "phaseToVerifiedMs": 4973.279333000002,
+      "sdkSigningMs": 2036.0349999666214,
+      "signingAutomation": {
+        "pageSetupMs": 0.0017919999991136137,
+        "clickAndStartObservationMs": 14.31395799999882,
+        "actionCompletionObservedMs": 2063.6876249999987,
+        "automationDrainMs": 24.211332999999286,
+        "confirmationSettlementMs": 143.35745900000256,
+        "totalMs": 2231.2564170000005,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 259,
+          "clickDispatchMs": 297,
+          "clickDurationMs": 36
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallet/unlock/challenge",
+          "requestObservedOffsetMs": 471.15550000000076,
+          "completedOffsetMs": 862.5720410000031,
+          "browserRequestElapsedMs": 391.983
+        },
+        {
+          "path": "/wallet/unlock/verify",
+          "requestObservedOffsetMs": 873.2716660000006,
+          "completedOffsetMs": 1756.0617500000008,
+          "browserRequestElapsedMs": 883.08
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 1757.9024580000005,
+          "completedOffsetMs": 1866.5983750000014,
+          "browserRequestElapsedMs": 108.615
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 1911.6499580000018,
+          "completedOffsetMs": 2046.0877910000017,
+          "browserRequestElapsedMs": 134.643
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2052.7226660000015,
+          "completedOffsetMs": 2194.991000000002,
+          "browserRequestElapsedMs": 142.701
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2792.994625000003,
+          "completedOffsetMs": 2902.5086660000015,
+          "browserRequestElapsedMs": 109.475
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 2909.6411660000012,
+          "completedOffsetMs": 3024.3820000000014,
+          "browserRequestElapsedMs": 114.949
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 3026.955041000001,
+          "completedOffsetMs": 3155.982,
+          "browserRequestElapsedMs": 128.727
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 3159.6947910000017,
+          "completedOffsetMs": 3299.0078329999997,
+          "browserRequestElapsedMs": 139.183
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 3596.518666,
+          "completedOffsetMs": 4409.679916000001,
+          "browserRequestElapsedMs": 813.385
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 4416.160291,
+          "completedOffsetMs": 4784.654125000001,
+          "browserRequestElapsedMs": 368.81
+        }
+      ]
+    },
+    {
+      "artifact": "near-3.json",
+      "workload": "registration_to_first_verified",
+      "phaseToVerifiedMs": 20411.049124999998,
+      "sdkSigningMs": 7749,
+      "signingAutomation": {
+        "pageSetupMs": 0.0020409999997355044,
+        "clickAndStartObservationMs": 9.254084000000148,
+        "actionCompletionObservedMs": 7757.356874999998,
+        "automationDrainMs": 398.60145799999736,
+        "confirmationSettlementMs": 137.08208300000115,
+        "totalMs": 8293.040415999996,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 258,
+          "clickDispatchMs": 298,
+          "clickDurationMs": 38
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallets/register/setup",
+          "requestObservedOffsetMs": 214.4143750000003,
+          "completedOffsetMs": 854.9959170000002,
+          "browserRequestElapsedMs": 641.103
+        },
+        {
+          "path": "/wallets/register/respond",
+          "requestObservedOffsetMs": 1227.889959,
+          "completedOffsetMs": 1900.8400000000038,
+          "browserRequestElapsedMs": 680.042
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/admit",
+          "requestObservedOffsetMs": 1902.2766669999983,
+          "completedOffsetMs": 2298.886875000004,
+          "browserRequestElapsedMs": 396.689
+        },
+        {
+          "path": "/router-ab/ed25519/yao/registration/execute",
+          "requestObservedOffsetMs": 2319.301083999999,
+          "completedOffsetMs": 8071.048084000002,
+          "browserRequestElapsedMs": 5752.134
+        },
+        {
+          "path": "/wallets/register/activate",
+          "requestObservedOffsetMs": 8080.003834000003,
+          "completedOffsetMs": 8778.517208999998,
+          "browserRequestElapsedMs": 698.664
+        },
+        {
+          "path": "/wallets/register/near-provisioning",
+          "requestObservedOffsetMs": 8781.381916999999,
+          "completedOffsetMs": 11220.933250000002,
+          "browserRequestElapsedMs": 2439.981
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 11302.540874999999,
+          "completedOffsetMs": 11433.447709,
+          "browserRequestElapsedMs": 131.185
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 11302.711834000002,
+          "completedOffsetMs": 11433.445083999999,
+          "browserRequestElapsedMs": 130.83
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 11443.143458999999,
+          "completedOffsetMs": 11572.051208999997,
+          "browserRequestElapsedMs": 128.928
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 12164.601917,
+          "completedOffsetMs": 12296.908667000003,
+          "browserRequestElapsedMs": 132.599
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 12304.275291999998,
+          "completedOffsetMs": 12450.1345,
+          "browserRequestElapsedMs": 145.956
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 12453.613083999997,
+          "completedOffsetMs": 12562.201874999999,
+          "browserRequestElapsedMs": 108.942
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 12569.257792000004,
+          "completedOffsetMs": 12690.085250000004,
+          "browserRequestElapsedMs": 122.223
+        },
+        {
+          "path": "/wallets/silver-grove-3e35ej/near/implicit-account/fund",
+          "requestObservedOffsetMs": 12982.452292000002,
+          "completedOffsetMs": 17088.557375000004,
+          "browserRequestElapsedMs": 4105.875
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 18850.099542000004,
+          "completedOffsetMs": 19493.250459000003,
+          "browserRequestElapsedMs": 643.474
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 19499.278459,
+          "completedOffsetMs": 19867.737500000003,
+          "browserRequestElapsedMs": 368.667
+        }
+      ]
+    },
+    {
+      "artifact": "near-3.json",
+      "workload": "unlock_to_first_verified",
+      "phaseToVerifiedMs": 5704.528124999997,
+      "sdkSigningMs": 2179.4749999046326,
+      "signingAutomation": {
+        "pageSetupMs": 0.0017090000037569553,
+        "clickAndStartObservationMs": 19.17500000000291,
+        "actionCompletionObservedMs": 2198.8101250000036,
+        "automationDrainMs": 645.3914590000059,
+        "confirmationSettlementMs": 140.03874999999243,
+        "totalMs": 2984.240334000002,
+        "confirmationAutomation": {
+          "clock": "milliseconds since confirmation loop start",
+          "buttonVisibleMs": 256,
+          "clickDispatchMs": 297,
+          "clickDurationMs": 38
+        }
+      },
+      "requests": [
+        {
+          "path": "/wallet/unlock/challenge",
+          "requestObservedOffsetMs": 452.21195799999987,
+          "completedOffsetMs": 925.9415000000008,
+          "browserRequestElapsedMs": 473.792
+        },
+        {
+          "path": "/wallet/unlock/verify",
+          "requestObservedOffsetMs": 936.7452919999923,
+          "completedOffsetMs": 1769.770875000002,
+          "browserRequestElapsedMs": 833.082
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 1771.6383329999953,
+          "completedOffsetMs": 1900.3800829999964,
+          "browserRequestElapsedMs": 128.706
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 1945.5250830000004,
+          "completedOffsetMs": 2060.963917000001,
+          "browserRequestElapsedMs": 115.584
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2067.444082999995,
+          "completedOffsetMs": 2198.83425,
+          "browserRequestElapsedMs": 131.464
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 2775.576749999993,
+          "completedOffsetMs": 2889.142666999993,
+          "browserRequestElapsedMs": 113.603
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 2896.433791999996,
+          "completedOffsetMs": 3014.8848330000037,
+          "browserRequestElapsedMs": 118.541
+        },
+        {
+          "path": "/wallet/session/status",
+          "requestObservedOffsetMs": 3017.9415420000005,
+          "completedOffsetMs": 3146.555957999997,
+          "browserRequestElapsedMs": 128.881
+        },
+        {
+          "path": "/wallet/execution-lane/owner",
+          "requestObservedOffsetMs": 3151.0552079999907,
+          "completedOffsetMs": 3270.5902919999935,
+          "browserRequestElapsedMs": 119.918
+        },
+        {
+          "path": "/router-ab/ed25519/sign/prepare",
+          "requestObservedOffsetMs": 3572.1576249999925,
+          "completedOffsetMs": 4235.390583,
+          "browserRequestElapsedMs": 663.743
+        },
+        {
+          "path": "/router-ab/ed25519/sign",
+          "requestObservedOffsetMs": 4241.441624999992,
+          "completedOffsetMs": 4910.650750000001,
+          "browserRequestElapsedMs": 669.513
+        }
+      ]
+    }
+  ],
+  "custodySpans": [
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.parse_and_authorize",
+      "duration_ms": 885,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_a",
+      "duration_ms": 1502,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_b",
+      "duration_ms": 1773,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair",
+      "duration_ms": 1773,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.verify_readiness_receipts",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute.http",
+      "duration_ms": 3327,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute",
+      "duration_ms": 3327,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.signing_worker_delivery",
+      "duration_ms": 1130,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:25:49.513000+00:00",
+      "operation": "registration",
+      "span": "router.yao_execute",
+      "duration_ms": 6351,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.parse_and_authorize",
+      "duration_ms": 749,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_b",
+      "duration_ms": 1461,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_a",
+      "duration_ms": 1643,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair",
+      "duration_ms": 1643,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.verify_readiness_receipts",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute.http",
+      "duration_ms": 2877,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute",
+      "duration_ms": 2877,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.signing_worker_delivery",
+      "duration_ms": 911,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:06.138000+00:00",
+      "operation": "registration",
+      "span": "router.yao_execute",
+      "duration_ms": 5450,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.parse_and_authorize",
+      "duration_ms": 946,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_a",
+      "duration_ms": 1363,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair.deriver_b",
+      "duration_ms": 1642,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.prepare_pair",
+      "duration_ms": 1642,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.verify_readiness_receipts",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute.http",
+      "duration_ms": 2319,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.deriver_a_execute",
+      "duration_ms": 2319,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.signing_worker_delivery",
+      "duration_ms": 627,
+      "outcome": "success"
+    },
+    {
+      "role": "router",
+      "requestTimestamp": "2026-10-07T03:27:49.244000+00:00",
+      "operation": "registration",
+      "span": "router.yao_execute",
+      "duration_ms": 4604,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:25:52.167000+00:00",
+      "operation": "websocket",
+      "span": "deriver_a.websocket_connect",
+      "duration_ms": 848,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:25:52.167000+00:00",
+      "operation": "activation",
+      "span": "deriver_a.yao_protocol",
+      "duration_ms": 1414,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:27:08.330000+00:00",
+      "operation": "websocket",
+      "span": "deriver_a.websocket_connect",
+      "duration_ms": 836,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:27:08.330000+00:00",
+      "operation": "activation",
+      "span": "deriver_a.yao_protocol",
+      "duration_ms": 353,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:27:51.756000+00:00",
+      "operation": "websocket",
+      "span": "deriver_a.websocket_connect",
+      "duration_ms": 692,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-a",
+      "requestTimestamp": "2026-10-07T03:27:51.756000+00:00",
+      "operation": "activation",
+      "span": "deriver_a.yao_protocol",
+      "duration_ms": 184,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:50.646000+00:00",
+      "operation": "prepare_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 1450,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "begin_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 626,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.input_private_key",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.transport",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "activation",
+      "span": "deriver_b.yao_protocol",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.output_serialization",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "complete_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 1343,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:25:52.603000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.role_execution",
+      "duration_ms": 1770,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:06.902000+00:00",
+      "operation": "prepare_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 1444,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "begin_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 588,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.input_private_key",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.transport",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "activation",
+      "span": "deriver_b.yao_protocol",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.output_serialization",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "complete_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 253,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:08.778000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.role_execution",
+      "duration_ms": 748,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:50.246000+00:00",
+      "operation": "prepare_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 1370,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "begin_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 542,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.input_private_key",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.transport",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "activation",
+      "span": "deriver_b.yao_protocol",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.output_serialization",
+      "duration_ms": 0,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "complete_pair",
+      "span": "deriver_b.session_do",
+      "duration_ms": 103,
+      "outcome": "success"
+    },
+    {
+      "role": "deriver-b",
+      "requestTimestamp": "2026-10-07T03:27:52.143000+00:00",
+      "operation": "yao",
+      "span": "deriver_b.role_execution",
+      "duration_ms": 486,
+      "outcome": "success"
+    }
+  ],
+  "custodyRequestsForSample3": [
+    {
+      "role": "router",
+      "path": "/router-wallet/v1/command",
+      "wallMs": 281,
+      "cpuMs": 21
+    },
+    {
+      "role": "router",
+      "path": "/router-ab/internal/tenant-root/creation/v1/active-state",
+      "wallMs": 6,
+      "cpuMs": 4
+    },
+    {
+      "role": "router",
+      "path": "/router-wallet/v1/command",
+      "wallMs": 42,
+      "cpuMs": 2
+    },
+    {
+      "role": "router",
+      "path": "/router-ab/router/ed25519-yao/execute",
+      "wallMs": 5595,
+      "cpuMs": 83
+    },
+    {
+      "role": "deriver-a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/prepare-work",
+      "wallMs": 755,
+      "cpuMs": 163
+    },
+    {
+      "role": "deriver-a",
+      "path": "/router-ab/deriver-a/ed25519-yao/prepare-pair",
+      "wallMs": 1315,
+      "cpuMs": 16
+    },
+    {
+      "role": "deriver-a",
+      "path": "/router-ab/deriver-a/ed25519-yao/execute-pair",
+      "wallMs": 2302,
+      "cpuMs": 6
+    },
+    {
+      "role": "deriver-a",
+      "path": "/router-ab/internal/deriver-a/wallet-pair/execute-work",
+      "wallMs": 2289,
+      "cpuMs": 318
+    },
+    {
+      "role": "deriver-b",
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "wallMs": 622,
+      "cpuMs": 168
+    },
+    {
+      "role": "deriver-b",
+      "path": "/router-ab/deriver-b/ed25519-yao/prepare-pair",
+      "wallMs": 1409,
+      "cpuMs": 113
+    },
+    {
+      "role": "deriver-b",
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "wallMs": 52,
+      "cpuMs": 8
+    },
+    {
+      "role": "deriver-b",
+      "path": "/router-ab/internal/deriver-b/wallet-pair",
+      "wallMs": 49,
+      "cpuMs": 8
+    },
+    {
+      "role": "deriver-b",
+      "path": "/router-ab/deriver-b/ed25519-yao/duplex",
+      "wallMs": 1557,
+      "cpuMs": 508
+    }
+  ],
+  "custodyD1ReadOnlyProbe": [
+    {
+      "worker": "router-ab-deriver-a-staging",
+      "metadata": {
+        "uuid": "d3c9913a-dde7-4d49-a1a4-6cd233feb871",
+        "name": "router-ab-deriver-a-staging-private",
+        "read_replication": {
+          "mode": "disabled"
+        },
+        "jurisdiction": null
+      },
+      "readOnlyProbeMeta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "KIX",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.1846
+        },
+        "duration": 0.1846,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 2822144,
+        "rows_read": 0,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "worker": "router-ab-deriver-b-staging",
+      "metadata": {
+        "uuid": "28a7088b-dc6e-433f-a87f-5719e2d111d6",
+        "name": "router-ab-deriver-b-staging-private",
+        "read_replication": {
+          "mode": "disabled"
+        },
+        "jurisdiction": null
+      },
+      "readOnlyProbeMeta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.5743
+        },
+        "duration": 0.5743,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 1982464,
+        "rows_read": 0,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "worker": "router-ab-signing-worker-staging",
+      "metadata": {
+        "uuid": "7954025b-3ca9-43e7-beba-86b19160397c",
+        "name": "router-ab-signing-worker-staging-private",
+        "read_replication": {
+          "mode": "disabled"
+        },
+        "jurisdiction": null
+      },
+      "readOnlyProbeMeta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "ICN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.4977
+        },
+        "duration": 0.4977,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 20615168,
+        "rows_read": 0,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ],
+  "limitations": [
+    "Custody spans nest and overlap. Do not sum them indiscriminately.",
+    "The Yao protocol span includes peer I/O; it does not isolate cryptographic CPU.",
+    "DO caller duration minus handler wall time does not isolate network, scheduling, or startup individually.",
+    "The read-only D1 probe reports current primary service locations, not historical Worker or DO locations.",
+    "Five queries per bound-root load is a static count for the active-epoch success path, not measured custody D1 telemetry."
+  ]
+}

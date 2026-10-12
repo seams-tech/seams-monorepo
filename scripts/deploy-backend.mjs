@@ -21,6 +21,8 @@ import {
   runReadinessChecks,
 } from './deployment-smoke.mjs';
 import {
+  WALLET_REGIONS,
+  requireAllocatedWalletRegions,
   GATEWAY_WORKER_COMPATIBILITY_DATE,
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
 } from '../packages/wallet-console-server-ts/scripts/gateway-deployment-config.mjs';
@@ -87,8 +89,6 @@ const BACKEND_SMOKE_PATHS = Object.freeze([
 const GATEWAY_ROUTER_AB_PUBLIC_ENVIRONMENT_NAMES = Object.freeze([
   'DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY',
   'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
-  'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-  'DERIVER_B_PEER_VERIFYING_KEY_HEX',
   'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
 ]);
 const PRIVATE_D1_DEPLOYMENTS = Object.freeze({
@@ -292,18 +292,24 @@ function printPlan(lane, component) {
     );
     return;
   }
+  const signerD1Names =
+    lane.provisioning.kind === 'provisioned'
+      ? Object.values(lane.provisioning.gatewayDeploymentConfig.resources.regions)
+          .map(signerDatabaseName)
+          .join(', ')
+      : 'pending allocation';
   const lines = [
     ...header,
     `Gateway: ${lane.resources.gateway.workerName}`,
     `Gateway origin: ${lane.gatewayOrigin}`,
     `Wallet origin: ${lane.walletOrigin}`,
     `Site origin: ${lane.site.origin}`,
-    `Signer D1: ${lane.resources.gateway.signerD1Name}`,
+    `Signer D1: ${signerD1Names}`,
     `Capabilities: ${formatCapabilities(lane)}`,
     '',
     'Order:',
     '  1. build the Wallet-system artifacts once and require the lane branch',
-    `  2. migrate ${lane.resources.gateway.signerD1Name} (signer D1)`,
+    `  2. migrate ${signerD1Names} (signer D1)`,
     '  3. migrate and deploy signing-worker, deriver-a, and deriver-b concurrently',
     // Upgrade order for an EXISTING environment. Cloudflare requires a service
     // binding's target to exist before deploying the caller, so the control
@@ -507,6 +513,9 @@ function writeWalletRuntimeBuildConfig(laneId) {
 
 function preflightBackend(lane, component, environment = process.env) {
   assertLaneResourceBindings(lane, component);
+  if (['gateway', 'wallet-runtime', 'console'].includes(component)) {
+    requireAllocatedWalletRegions(requireProvisionedLane(lane));
+  }
   const requiredNames = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'];
   requiredNames.push(...componentSecretNames(lane, component));
   for (const name of componentRuntimeRequirements(lane, component)) {
@@ -671,7 +680,12 @@ export function assertExpectedDurableObjectBindings(lane, component, section) {
   // Only the owning Router may declare the class migration. Wrangler declares
   // [[migrations]] once at the top level and named environments inherit it, so
   // this is a "must not" for non-owners rather than a "must" for the Router.
-  if (expected.scriptName && /^new_sqlite_classes\s*=/mu.test(section)) {
+  if (
+    expected.scriptName &&
+    /^(?:new_sqlite_classes|new_classes)\s*=\s*\[[^\]]*"RouterAbTenantRootCreationDurableObject"/mu.test(
+      section,
+    )
+  ) {
     throw new Error(
       `${lane.id}/${component} must not declare a Durable Object migration it does not own`,
     );
@@ -823,8 +837,6 @@ function componentRuntimeRequirements(lane, component) {
         'DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY',
         'DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY',
         'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY',
-        'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-        'DERIVER_B_PEER_VERIFYING_KEY_HEX',
         'TENANT_ROOT_CONTROL_PLANE_ISSUER_VERIFYING_KEYS_JSON',
         'TENANT_ROOT_CONTROL_PLANE_GRANT_AUTHORITY_VERIFYING_KEYS_JSON',
         'ROUTER_TENANT_ROOT_CREATION_ROLE_VERIFYING_KEYS_JSON',
@@ -863,8 +875,6 @@ export function validateGatewayRouterAbPublicConfiguration(lane, environment = p
   const expectedValues = {
     DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_a.public_key,
     DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY: keyset.signer_envelope_hpke.current.deriver_b.public_key,
-    DERIVER_A_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_a.verifying_key_hex,
-    DERIVER_B_PEER_VERIFYING_KEY_HEX: keyset.signer_peer_verifying_keys.deriver_b.verifying_key_hex,
     SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:
       keyset.signing_worker_server_output_hpke.public_key,
   };
@@ -886,8 +896,6 @@ function deriverRuntimeRequirements(lane, role) {
     `${prefix}_ROLE_PRIVATE_D1_KEK_VERSION`,
     `${prefix}_ENVELOPE_HPKE_PUBLIC_KEY`,
     `${peerPrefix}_ENVELOPE_HPKE_PUBLIC_KEY`,
-    'DERIVER_A_PEER_VERIFYING_KEY_HEX',
-    'DERIVER_B_PEER_VERIFYING_KEY_HEX',
     `${prefix}_TENANT_ROOT_ONLINE_EPOCH_WRAPPING_KEY_REF`,
     `${prefix}_TENANT_ROOT_ONLINE_HPKE_PUBLIC_KEY`,
     managedBackup.providerIdEnvironmentName,
@@ -902,9 +910,22 @@ function deriverRuntimeRequirements(lane, role) {
   ];
 }
 
+function signerDatabaseName(resource) {
+  return resource.signerD1.name;
+}
+
 function migrateBackend(lane, component) {
+  requireAllocatedWalletRegions(requireProvisionedLane(lane));
+  if (component === 'console') {
+    migrateRegionalBackend(lane, component, null);
+    return;
+  }
+  for (const region of WALLET_REGIONS) migrateRegionalBackend(lane, component, region);
+}
+
+function migrateRegionalBackend(lane, component, region) {
   requireEnvironmentValues(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']);
-  const gatewayConfig = gatewayConfigPath(lane.id);
+  const gatewayConfig = gatewayConfigPath(lane.id, region);
   const consoleConfig = consoleConfigPath(lane.id);
   const migrations = {
     console: {
@@ -928,9 +949,12 @@ function migrateBackend(lane, component) {
   if (component === 'console') {
     renderConsoleConfig(lane.id, consoleConfig);
   } else {
-    renderGatewayConfig(lane.id, gatewayConfig);
+    renderGatewayConfig(lane.id, region, gatewayConfig);
   }
-  const migration = migrations[component];
+  applyBackendMigration(migrations[component]);
+}
+
+function applyBackendMigration(migration) {
   const fingerprint =
     migration.expectedFingerprint ?? readMigrationSet(migration.directory).fingerprint;
   const migrationArgs = [
@@ -1275,6 +1299,8 @@ function deriveX25519PublicKey(privateKeyHex) {
 
 function deploySigningWorker(lane) {
   const resource = lane.resources.signingWorker;
+  putWorkerSecret(resource, 'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET');
+  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_SIGNING_WORKER_PRESIGN_AUTH_SECRET');
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   putWorkerSecret(resource, 'SIGNING_WORKER_SERVER_OUTPUT_HPKE_PRIVATE_KEY');
   putWorkerSecret(resource, 'SIGNING_WORKER_PRIVATE_D1_KEK');
@@ -1300,7 +1326,6 @@ function deployDeriver(lane, role) {
   const managedBackup = tenantRootManagedBackupConfig(lane, role);
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   putWorkerSecret(resource, `${prefix}_ENVELOPE_HPKE_PRIVATE_KEY`);
-  putWorkerSecret(resource, `${prefix}_PEER_SIGNING_KEY`);
   putWorkerSecret(resource, `${prefix}_ROLE_PRIVATE_D1_KEK`);
   putWorkerSecret(resource, `${prefix}_TENANT_ROOT_ONLINE_HPKE_PRIVATE_KEY`);
   putWorkerSecret(
@@ -1319,10 +1344,6 @@ function deployDeriver(lane, role) {
     `DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY')}`,
     '--var',
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY')}`,
-    '--var',
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_A_PEER_VERIFYING_KEY_HEX')}`,
-    '--var',
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_B_PEER_VERIFYING_KEY_HEX')}`,
     '--var',
     `DERIVER_ROLE_PRIVATE_D1_KEK_PUBLIC_KEY:${requireEnvironmentValue(`${prefix}_ROLE_PRIVATE_D1_KEK_PUBLIC_KEY`)}`,
     '--var',
@@ -1408,6 +1429,8 @@ function deployTenantRootControlPlane(lane) {
 
 function deployMpcRouter(lane) {
   const resource = lane.resources.router;
+  putWorkerSecret(resource, 'ROUTER_AB_ROUTER_TO_SIGNING_WORKER_ECDSA_AUTH_SECRET');
+  putWorkerSecret(resource, 'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET');
   putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   const args = workerDeployArguments(resource);
   args.push(
@@ -1421,10 +1444,6 @@ function deployMpcRouter(lane) {
     `DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_A_ENVELOPE_HPKE_PUBLIC_KEY')}`,
     '--var',
     `DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY:${requireEnvironmentValue('DERIVER_B_ENVELOPE_HPKE_PUBLIC_KEY')}`,
-    '--var',
-    `DERIVER_A_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_A_PEER_VERIFYING_KEY_HEX')}`,
-    '--var',
-    `DERIVER_B_PEER_VERIFYING_KEY_HEX:${requireEnvironmentValue('DERIVER_B_PEER_VERIFYING_KEY_HEX')}`,
     '--var',
     `SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY:${requireEnvironmentValue('SIGNING_WORKER_SERVER_OUTPUT_HPKE_PUBLIC_KEY')}`,
     '--var',
@@ -1451,16 +1470,15 @@ function consoleSecretsPath(laneId) {
   return path.join(GATEWAY_GENERATED_ROOT, `console-secrets.${laneId}.json`);
 }
 
-function walletRuntimeConfigPath(laneId) {
-  return path.join(GATEWAY_GENERATED_ROOT, `wallet-runtime.${laneId}.jsonc`);
+function walletRuntimeConfigPath(laneId, region) {
+  return path.join(GATEWAY_GENERATED_ROOT, `wallet-runtime.${laneId}.${region}.jsonc`);
 }
 
 function walletRuntimeSecretsPath(laneId) {
   return path.join(GATEWAY_GENERATED_ROOT, `wallet-runtime-secrets.${laneId}.json`);
 }
 
-// Wallet Runtime deploys before Console, and Console deploys before Gateway,
-// so each service-binding target exists before its caller is uploaded.
+// All regional service targets must exist before updating their callers.
 function deployConsole(lane) {
   const consoleConfig = consoleConfigPath(lane.id);
   const consoleSecrets = consoleSecretsPath(lane.id);
@@ -1502,9 +1520,14 @@ function deployConsole(lane) {
 }
 
 function deployWalletRuntime(lane) {
-  const runtimeConfig = walletRuntimeConfigPath(lane.id);
+  requireAllocatedWalletRegions(requireProvisionedLane(lane));
+  for (const region of WALLET_REGIONS) deployRegionalWalletRuntime(lane, region);
+}
+
+function deployRegionalWalletRuntime(lane, region) {
+  const runtimeConfig = walletRuntimeConfigPath(lane.id, region);
   const runtimeSecrets = walletRuntimeSecretsPath(lane.id);
-  renderWalletRuntimeConfig(lane.id, runtimeConfig);
+  renderWalletRuntimeConfig(lane.id, region, runtimeConfig);
   assertFile(WALLET_RUNTIME_BUNDLE, 'Wallet Runtime build entry');
   runCommand('node', ['scripts/write-wallet-system-secrets-file.mjs', '--output', runtimeSecrets], {
     cwd: GATEWAY_ROOT,
@@ -1530,9 +1553,14 @@ function deployWalletRuntime(lane) {
 }
 
 function deployGateway(lane) {
-  const gatewayConfig = gatewayConfigPath(lane.id);
+  requireAllocatedWalletRegions(requireProvisionedLane(lane));
+  for (const region of WALLET_REGIONS) deployRegionalGateway(lane, region);
+}
+
+function deployRegionalGateway(lane, region) {
+  const gatewayConfig = gatewayConfigPath(lane.id, region);
   const gatewaySecrets = gatewaySecretsPath(lane.id);
-  renderGatewayConfig(lane.id, gatewayConfig);
+  renderGatewayConfig(lane.id, region, gatewayConfig);
   assertFile(GATEWAY_BUNDLE, 'Gateway build entry');
   runCommand('node', ['scripts/write-wallet-system-secrets-file.mjs', '--output', gatewaySecrets], {
     cwd: GATEWAY_ROOT,
@@ -1734,18 +1762,22 @@ function isDashboardConsoleCorsPreflight(dashboardOrigin, response) {
   );
 }
 
-function gatewayConfigPath(laneId) {
-  return path.join(GATEWAY_GENERATED_ROOT, `gateway.${laneId}.jsonc`);
+function gatewayConfigPath(laneId, region) {
+  return path.join(GATEWAY_GENERATED_ROOT, `gateway.${laneId}.${region}.jsonc`);
 }
 
 function gatewaySecretsPath(laneId) {
   return path.join(GATEWAY_GENERATED_ROOT, `gateway-secrets.${laneId}.json`);
 }
 
-function renderGatewayConfig(laneId, outputPath) {
-  runCommand('node', [RENDER_WALLET_SYSTEM_CONFIG, '--lane', laneId, '--output', outputPath], {
-    cwd: GATEWAY_ROOT,
-  });
+function renderGatewayConfig(laneId, region, outputPath) {
+  runCommand(
+    'node',
+    [RENDER_WALLET_SYSTEM_CONFIG, '--lane', laneId, '--region', region, '--output', outputPath],
+    {
+      cwd: GATEWAY_ROOT,
+    },
+  );
 }
 
 function renderConsoleConfig(laneId, outputPath) {
@@ -1756,7 +1788,7 @@ function renderConsoleConfig(laneId, outputPath) {
   );
 }
 
-function renderWalletRuntimeConfig(laneId, outputPath) {
+function renderWalletRuntimeConfig(laneId, region, outputPath) {
   runCommand(
     'node',
     [
@@ -1765,6 +1797,8 @@ function renderWalletRuntimeConfig(laneId, outputPath) {
       laneId,
       '--worker',
       'wallet-runtime',
+      '--region',
+      region,
       '--output',
       outputPath,
     ],

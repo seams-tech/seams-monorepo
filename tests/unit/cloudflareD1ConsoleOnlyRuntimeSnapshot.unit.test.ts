@@ -145,17 +145,17 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
       },
     },
     bindings: {
-      async findBinding() {
-        return null;
-      },
-      async findActiveBinding() {
-        return null;
-      },
-      async resolveActiveBinding() {
+      async readActiveScope() {
         return null;
       },
     },
     walletRuntime: {
+      resources: [
+        {
+          accountId: '0123456789abcdef0123456789abcdef',
+          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+      ],
       async inspect() {
         throw new Error('candidate creation must not inspect the Wallet runtime');
       },
@@ -164,6 +164,13 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
   });
 
   const binding = await adapter.buildCandidate({
+    namespace: 'candidate-snapshot',
+    resources: [
+      {
+        accountId: '0123456789abcdef0123456789abcdef',
+        databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      },
+    ],
     identity: identity.value,
     activeTenantRoot: {
       identityDigestB64u: 'root-digest',

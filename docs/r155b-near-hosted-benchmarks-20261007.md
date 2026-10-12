@@ -1,0 +1,484 @@
+# R155B: NEAR-only hosted benchmarks, 2026-10-07
+
+For the later A/B execution and Durable Object location measurements, see
+[the custody location report](r155b-custody-location-20261007.md).
+It records a separate candidate and an uninstrumented latency control.
+
+The clean browser run used passkey registration and unlock. It verified 21 NEAR
+signatures across three new wallets. No
+ECDSA signer worker or ECDSA operation WASM loaded. A separate diagnostic run
+verified seven signatures and collected Gateway database counters.
+
+These measurements use the public SDK against the real staging Gateway, Runtime,
+Console and custody Workers. Candidate frontend assets were served locally under
+the staging application and wallet origins. The frontend itself was not published.
+
+## Candidate and rollout
+
+- Public source: `2bee39abb947a6524a42e8c74c6ff7b89c1a7acb`.
+- Private source: `c0719a8e2f5467c70dd7052369bf87e6bac65a72`.
+- The SDK and custody sources matched the audited `298ffc602aa6775b54ca0325d585b4a76e9c2c62`
+  build. All 3,645 reused artifact files passed their recorded SHA-256 checks.
+- Server, Gateway, Runtime and Console builds used the frozen sources.
+- All four signer databases migrated through `0074_email_otp_relocation.sql`.
+  Console migrated through `0087_wallet_relocation_dispatch.sql`.
+- Custody deployment required the declared `DERIVER_B_WALLET_DO` and
+  `SIGNING_WORKER_WALLET_DO` bindings. Their omission caused the initial registration
+  failures. Those failed attempts are excluded from the latency tables.
+- Runtime readiness fix `458b4f3` excludes terminal registration replay records from
+  the in-flight count. The composed renewal E2E verifies pending-work rejection,
+  terminal-record handling, regional failure and writer retirement. Its evidence
+  digest is `917033cc3c7864661be0bb321a7b7485d6af04622af62ef7f26900353194af5b`.
+  This fix changes deployment inspection only. The clean timing run preceded it.
+
+Concurrent work remained outside the frozen candidate. No production deployment
+or package publication occurred.
+
+## Clean SDK signing measurements
+
+The SDK timer includes automated confirmation and ends when the SDK returns the
+assembled signature. The harness independently verifies the signature afterward.
+The test does not broadcast the signed transfer or wait for its confirmation.
+
+| Workload                                  | Signatures |  Median | Minimum–maximum |
+| ----------------------------------------- | ---------: | ------: | --------------: |
+| First signing call after registration     |          3 | 7.749 s |   6.642–9.047 s |
+| Warm signing after registration           |          6 | 2.735 s |   1.999–4.535 s |
+| First signing call after unlock           |          3 | 2.135 s |   2.036–2.179 s |
+| Three consecutive signatures after unlock |          9 | 1.861 s |   1.532–2.531 s |
+
+The first signing call includes implicit-account funding. Its funding request took
+3.014–4.106 seconds. This onboarding measurement is not a pure MPC timing. Do not
+subtract request durations from the SDK total to invent a measured MPC result.
+
+Each registration used a fresh browser context and wallet. These are client-cold
+onboarding samples. Worker and DO cold-start state was not independently controlled.
+Warm samples reuse the wallet and session. NEAR uses an authorized signing lane;
+these samples do not use an ECDSA presignature pool.
+
+## Complete workflow measurements
+
+These timers include browser automation, the registration or unlock operation,
+and independent verification of the first signature.
+
+| Workflow                                | Samples |   Median | Minimum–maximum | Gateway POST requests |
+| --------------------------------------- | ------: | -------: | --------------: | --------------------: |
+| Registration → first verified signature |       3 | 20.411 s | 19.752–23.909 s |                    16 |
+| Unlock → first verified signature       |       3 |  5.705 s |   4.973–5.734 s |                    11 |
+
+The maximum in each table is the upper end of its range. These small samples do
+not establish production percentiles or latency guarantees.
+
+## Separate diagnostic run
+
+Temporary staging observers recorded D1 calls and Gateway-to-Console fetches.
+Diagnostic timings are excluded from the clean tables. The database count covers
+Gateway database access at response time, including forwarded Gateway access. It
+excludes D1 access inside custody Workers, Runtime and Console. Browser HTTP counts
+cover Gateway POST requests, excluding RPC requests to the NEAR network.
+
+| Diagnostic workload                     | Samples | Gateway POST requests | Gateway D1 calls | Gateway-to-Console calls |
+| --------------------------------------- | ------: | --------------------: | ---------------: | -----------------------: |
+| Registration → first verified signature |       1 |                    17 |              129 |                       15 |
+| Unlock → first verified signature       |       1 |                    11 |               80 |                        4 |
+| Warm/consecutive signing                |       5 |                     6 |            39–40 |                        0 |
+
+Registration status polling accounts for the differing clean and diagnostic HTTP
+counts. Do not combine the two populations. Total system-wide D1 counts remain
+unmeasured.
+
+Every observed routine signature made two session-status calls and two owner-lane
+calls. Each status call used four Gateway D1 calls. Each owner-lane call used six.
+Prepare used eight. Final signing used 11–12. Thus the repeated status and lane
+requests account for 20 of the 39–40 Gateway D1 calls per signature.
+
+Seven diagnostic signatures recorded these SDK stages. Stages can overlap.
+
+| Stage                    | Median | Minimum–maximum |
+| ------------------------ | -----: | --------------: |
+| Authorization probe      | 143 ms |      126–211 ms |
+| Lane preparation         | 286 ms |      265–455 ms |
+| Material-resolution wait |   0 ms |          0–0 ms |
+| Prepare                  | 784 ms |    364–1,344 ms |
+| Final signing            | 379 ms |    332–1,040 ms |
+
+## Regional verification
+
+The existing probe reports Hong Kong (`hkg13`), London (`lhr01`) and Chicago
+(`ord12`). It forwards only staging Gateway traffic. Browser execution remains
+local. Browser elapsed time includes the extra probe hop; regional HTTP durations
+exclude that hop. Their sum is request work, not an independently measured native
+browser signing latency.
+
+The completed travel run verified 12 signatures from one APAC-home wallet. Every
+observed home header remained `APAC`. The first signature included funding and is
+excluded from this warm travel table.
+
+| Client proxy | Signatures | Browser median | Browser minimum–maximum | Regional HTTP sum median | Regional HTTP sum minimum–maximum |
+| ------------ | ---------: | -------------: | ----------------------: | -----------------------: | --------------------------------: |
+| Hong Kong    |          5 |        3.047 s |           2.242–3.056 s |                  0.740 s |                     0.717–0.811 s |
+| London       |          3 |        5.389 s |           5.333–6.133 s |                  2.524 s |                     2.208–3.276 s |
+| Chicago      |          3 |        4.616 s |           4.571–6.150 s |                  2.301 s |                     2.148–3.518 s |
+
+The first funded APAC signature took 7.547 seconds through the probe. Its summed
+regional HTTP time was 4.093 seconds. These proxy measurements verify fixed-home
+routing and expose travel overhead. They do not replace the clean SDK measurements.
+Each warm travel signature made six Gateway POST requests. D1 and Console counters
+were disabled for this clean travel run and remain null in its evidence.
+
+## Cleanup and deployment evidence
+
+Final staging activation passed in GitHub Actions run `37568838587`. All four
+regional Gateways use the clean candidate after diagnostic observers were removed.
+All three benchmark Containers returned `stopped: true`. Their original pinned
+images were restored. Probe access was expired and returned HTTP 403. Owned Worker
+tails were stopped. No new Worker, D1 database or Container application was created.
+
+An activation canary left pending registration state with a ten-minute expiry.
+The next activation waited for expiry. No pending records were deleted or bypassed.
+
+The committed [JSON evidence](evidence/r155b-near-hosted-20261007.json) records
+summary distributions, deployment versions, cleanup and hashes of raw results.
+
+## First-sign diagnosis
+
+Funding is a separate user step for the intended application. Exclude it from
+the MPC optimization target. Keep its original measurement above for provenance.
+The accepted NEAR provisioning budget is approximately two to three seconds.
+The immediate optimization target is the hosted Yao setup path.
+
+Earlier [local custody measurements](https://github.com/seams-tech/seams-wallet/blob/2bee39abb947a6524a42e8c74c6ff7b89c1a7acb/docs/near-custody-profiling.md)
+recorded a 316 ms median Router execution and 325–327 ms custody join.
+Those runs used local Workers and stubbed chain RPCs. They establish a useful
+local reference, but do not establish hosted transport or storage latency.
+
+The three clean hosted registrations produced the following spans. Rows nest;
+the protocol and WebSocket rows are part of Deriver A execution.
+
+| Yao setup stage                         |    Run 1 |    Run 2 |    Run 3 |
+| --------------------------------------- | -------: | -------: | -------: |
+| Browser execute request                 | 7,475 ms | 6,400 ms | 5,752 ms |
+| Router authorization and root admission |   885 ms |   749 ms |   946 ms |
+| Prepare both parties, in parallel       | 1,773 ms | 1,643 ms | 1,642 ms |
+| Deriver A execution HTTP                | 3,327 ms | 2,877 ms | 2,319 ms |
+| A-to-B WebSocket establishment          |   848 ms |   836 ms |   692 ms |
+| Deriver A protocol span                 | 1,414 ms |   353 ms |   184 ms |
+| Signing-worker delivery                 | 1,130 ms |   911 ms |   627 ms |
+
+In run 3, authorization, pair preparation, execution and delivery account for
+5,534 ms of the 5,752 ms browser request. Only 184 ms lies inside the named
+Deriver A protocol span. That span includes peer I/O and is not a CPU-only timer.
+The first run's slower protocol span means cold-state effects remain possible.
+The current evidence does not isolate Worker startup, DO startup and network delay.
+
+Code inspection identifies repeated storage work around the protocol:
+
+- Each party loads its bound root share during preparation, then loads it again
+  during execution. Preparation opens the share and then drops it.
+- The active-epoch success path in `TenantRootRoleShareStoreV1::load_bound`
+  executes five sequential D1 calls: read the epoch, admit the attempt, read the
+  admission, reread the epoch, and read the active share. This is 20 calls across
+  two loads per party, before other custody persistence. This is a static count;
+  the earlier Gateway counters exclude these custody calls.
+- Router authorization includes wallet-DO admission and a tenant-root activation
+  receipt lookup. Signing-worker delivery follows execution and persists its result.
+- Deriver B's run-3 preparation call took 1,370 ms; its DO handler took 622 ms.
+  The later begin call took 542 ms; its handler took 52 ms. These boundaries expose
+  substantial overhead outside the handlers. They do not identify network,
+  scheduling and startup costs separately.
+
+A read-only D1 probe returned primary locations KIX for Deriver A, SIN for
+Deriver B, and ICN for the signing worker. All report APAC. These current locations
+do not prove where the Workers or DOs ran during the benchmark. The wallet DO call
+sites use `get_by_name` without a location hint. Regional labels alone therefore
+do not establish physical colocation for this custody path.
+
+Unlock has a separate source of overhead. Each clean sample made a challenge
+request, a verification request, five session-status requests, two owner-lane
+requests, prepare and final signing. Challenge plus verification took
+1.275–1.320 seconds. The four signing preflight requests took 0.481–0.557 seconds
+in summed browser request time. They ran before prepare. The diagnostic verify
+request made 25 Gateway D1 calls, and unlock still made four Console calls.
+
+The median-total unlock sample illustrates the 5.705-second measurement:
+
+| Phase                                                   | Approximate duration |
+| ------------------------------------------------------- | -------------------: |
+| Harness runtime reset, unlock and checks before signing |              2.720 s |
+| Signing action through SDK completion                   |              2.199 s |
+| Automation drain and confirmation settlement            |              0.785 s |
+
+The SDK signing timer itself was 2.179 seconds in that sample. The first phase
+includes a full page reload because `unlockPasskeyWallet` resets runtime state.
+Its first network request starts 452 ms into the measured window. Registration
+and unlock SDK-only durations were not retained by this observer. Do not present
+the workflow timer as either SDK duration, or subtract all unexplained gaps as
+test overhead.
+
+The next targeted change should consolidate bound-root admission and retrieval
+while preserving epoch retirement, cancellation and replay checks. Measure this
+against the same hosted setup spans. Then address DO call overhead and signer
+delivery with separate handler and caller timings. For unlock, remove repeated
+session/lane resolution within one signing operation while preserving fresh
+authorization. A 250–500 ms hosted setup remains an unverified target.
+
+The [diagnostic evidence](evidence/r155b-near-first-sign-diagnosis-20261007.json)
+contains sanitized request timelines, custody spans, handler durations and the
+read-only database probe. No live deployment changed during this diagnosis.
+
+## Optimization plan: hosted Yao setup
+
+Scope: reduce the hosted registration setup request. Treat user funding separately.
+Keep NEAR provisioning as a separate measurement. Preserve the frozen baseline and
+concurrent relocation changes. Use existing staging resources within the $25 budget.
+
+The repeated root reads come from composing individually defensive helpers.
+`load_bound` calls `admit_bound`, rereads the epoch, then calls `load_active`.
+Admission itself reads the epoch, conditionally inserts an admission and reads it
+back. These checks protect rotation, cancellation, exact retries and active-root
+uniqueness. Their current composition incurs five remote calls per load and opens
+the encrypted share row repeatedly. Preparation and execution each repeat this
+sequence for both parties. The SQL adapter already provides atomic `batch`.
+
+The DO delay has two components: work inside its handler and overhead outside it.
+Deriver preparation awaits role-private D1 from inside the wallet DO. That cost
+is included in the handler duration. Stub routing, scheduling, startup and response
+transport occur outside the measured handler. Their individual costs remain unknown.
+The slow subsequent begin call shows that first-use startup alone is insufficient
+to explain the measured path. There is no evidence here of a general Cloudflare
+outage or a cryptographic algorithm regression.
+
+1. **Consolidate the root-store operation.**
+   - [x] Keep an authenticated initial row read. Batch conditional admission and
+         the dependent reads into one transaction using the existing SQL adapter.
+   - [x] Target at most two D1 round trips per bound-root load: eight across the
+         four loads, versus twenty today. Count SQL statements separately from trips.
+   - [x] Validate the transaction's results as one precise lifecycle outcome.
+         Preserve active-root uniqueness, exact binding checks, retired-epoch access
+         for admitted work, cancellation, erasure and conflicting-attempt rejection.
+   - [x] Remove superseded reread/fallback helpers. Extract this operation from
+         the oversized store module along its existing domain boundary.
+   - [x] Then remove repeated row decryption and redundant SQL where the same
+         transaction snapshot proves the required facts. Do not introduce a global
+         plaintext-share cache or weaken per-execution checks.
+
+2. **Measure and reduce the remaining DO boundary cost.**
+   - [ ] Extend existing spans with a shared attempt identifier, constructor
+         occurrence, handler duration and role-private D1 duration/counts. Record
+         request ingress and database serving locations with their correct scope.
+   - [ ] Compare first and subsequent commands on the exact same wallet objects.
+         Separate new-object, existing-object and post-idle cohorts. Do not call an
+         unexplained caller/handler gap a cold start.
+   - [ ] Audit first-touch routing against the wallet's authenticated home. Compare
+         fresh-object placement hints where supported. Hints cannot move existing
+         objects or guarantee an exact data center.
+   - [ ] Remove repeated admission/status fetches inside one operation where an
+         already verified result provides the same authority. Retain the durable
+         claim before protocol messages and durable completion before success.
+   - [ ] Prewarm the exact required wallet objects at the earliest authorized
+         registration point only if constructor evidence shows a material benefit.
+         Use bounded preparation; no permanent warm pool or keepalive loop.
+
+3. **Shorten output delivery.**
+   - [ ] Split signing-worker delivery into transport, authentication, cryptographic
+         combination, database and wallet-DO persistence spans.
+   - [ ] Batch its dependent writes and eliminate repeated same-attempt reads.
+         Keep delivery durable and idempotent before reporting setup success.
+
+4. **Verify and retain only measured improvements.**
+   - [ ] Exercise existing custody integration and E2E flows with refresh during
+         setup, cancellation, exact retry after a lost reply, and verified NEAR signing.
+   - [ ] Alternate baseline/candidate runs with matching SDK and role builds.
+         Report median, range, maximum, D1 trips/statements and each setup stage.
+   - [ ] Repeat fresh registration and unlock-to-first-signature without funding
+         inside the MPC timer. Record SDK completion before harness cleanup.
+   - [ ] Use an initial hosted Yao setup median below two seconds as the first
+         performance gate. Pursue 0.5–1 second after the call-count reduction. These
+         are engineering targets, not measured gains or guarantees.
+
+[Cloudflare D1 batching](https://developers.cloudflare.com/d1/worker-api/d1-database/#batch)
+reduces network trips and executes the batch as a transaction. The repository's
+`RoleSqlSessionV1::batch` already exposes this behavior.
+[DO location hints](https://developers.cloudflare.com/durable-objects/reference/data-location/)
+influence initial placement; they do not guarantee physical colocation.
+
+## Reproduction and evidence
+
+Use [the hosted benchmark instructions](../tests/e2e/hosted-product/README.md).
+Run `near-signing-latency.test.ts` for the clean comparison. Use
+`SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1` for stage diagnostics. Use
+`SEAMS_HOSTED_NEAR_ONLY=1` and select `regional-travel --grep 'apac home:'` for travel.
+
+The local evidence directory is `.artifacts/r155b-near-hosted-20261007/`. It contains
+frozen sources, build hashes, deployment and migration logs, workflow results,
+raw benchmark samples and `analyze.py`. Failed diagnostic attempts remain separate.
+Protected probe credentials and raw Worker tails are not published in this report.
+
+
+## Phase 6A controlled comparison — 2026-10-07
+
+The final custody candidate reduces the Yao execute median by 0.75–0.90 seconds
+against controls run before and after it. The two-second target remains unmet.
+Each main arm used three new NEAR-only wallets and verified 21 signatures.
+
+| Arm | Yao execute median | Range / maximum |
+| --- | ---: | ---: |
+| Original source, before | 6.316 s | 5.314–6.638 s |
+| Admission/read batching only | 6.457 s | 5.834–6.460 s |
+| Final candidate | **5.414 s** | **5.278–5.653 s** |
+| Original source, after | 6.165 s | 5.279–7.012 s |
+
+The measured reduction is approximately 12–14%. These small samples overlap.
+They establish an observed improvement, with no population latency guarantee.
+The batching-only arm did not improve total setup. The final candidate also
+removes a repeated row decryption and adds diagnostics and lifecycle error mapping.
+The experiment cannot attribute the full improvement to any single subchange.
+Yao execute excludes user funding and NEAR provisioning.
+
+The four bound-root loads now use **8 remote D1 trips instead of 20** per setup.
+They still execute **20 SQL statements**. Twelve hosted load events across the
+three final wallets recorded 24 trips and 60 statements. Each load opens two
+encrypted rows instead of three. These counts exclude other custody and Gateway D1.
+
+The final Router spans identify the remaining work:
+
+| Stage | Median | Range |
+| --- | ---: | ---: |
+| Parse and authorize | 662 ms | 620–715 ms |
+| Parallel preparation of A and B | 1,537 ms | 1,240–1,662 ms |
+| Deriver A execution | 2,296 ms | 2,200–2,396 ms |
+| Signing-worker delivery | 719 ms | 711–860 ms |
+
+These spans have nested work. Do not add them to nested protocol measurements.
+Cloudflare reports signing-worker delivery handlers of 85–153 ms wall time.
+The remainder of the caller span is unresolved. Worker clock spans can omit
+synchronous CPU time. Use platform wall/CPU measurements for handler comparisons.
+The difference between caller and handler spans does not prove network or startup cost.
+
+Delivery already uses one wallet-DO transaction. It has no repeated D1 write
+sequence to batch. Deriver B already returns sealed durable completion through
+its protocol WebSocket. There is no extra completion-status request to remove.
+Keep the durable claim and completion writes when reducing further boundaries.
+
+### Routine signing and idle comparison
+
+| Final candidate workload | Count | SDK median | Range / maximum |
+| --- | ---: | ---: | ---: |
+| Warm signing after registration | 6 | 2.726 s | 1.840–2.963 s |
+| First signing after unlock | 3 | 1.645 s | 1.587–1.684 s |
+| Three consecutive signatures | 9 | 1.979 s | 1.574–2.645 s |
+
+The root-store change affects registration. Routine signing changes only include
+diagnostics, so these signing differences are not attributed to that optimization.
+Every ordinary signature still used six Gateway POSTs: two status reads, two owner
+lane reads, prepare and finalize. Current Gateway headers omit D1 and Console
+counters. The evidence records those measurements as unavailable, not zero.
+
+A separate wallet supplied nine verified signatures, including a 65-second idle
+comparison. A fresh grant kept both measured signatures away from budget step-up.
+The warm SDK call took 1.721 seconds. The post-idle call took 2.617 seconds.
+Both used six Gateway POSTs. The signing DO was reconstructed after idle.
+Its first handler took 46 ms, versus 44 ms while warm. Its second handler took
+48 ms in both cases. This sample does not justify a keepalive or warm pool.
+The extra SDK time remains only partly attributed by the recorded HTTP timeline.
+
+### Correctness, sources and cleanup
+
+The custody E2E scenarios passed for admission races, replay after erasure,
+DO admission settlement, and ECDSA across refresh. The admission-race scenario
+exposed a lifecycle refusal that Deriver A converted to generic HTTP 500.
+The candidate preserves the existing typed recoverable failure at that boundary.
+A release-build claimed-recovery invocation lacked its development-only fault.
+It is excluded from acceptance evidence.
+
+The controlled arms and idle case verified **93 signatures** in total.
+All five role release builds, focused checks, SDK-independent bloat checks and
+benchmark type checks passed. The public implementation is on `dev` in commits
+`9d4e3388` and `3690a15d`. The frozen source starts at `2bee39ab`; its own file
+hashes identify the exact deployed candidate, independently of concurrent R153 edits.
+
+Only existing staging A, B and signing-worker deployments changed during the
+comparison. Original WASM and all bindings were restored and verified afterward.
+Router, Gateway, Runtime and Console deployments remained unchanged.
+No resource or keepalive was created. This experiment remains within the existing
+$25 budget constraint; these timings are not a Cloudflare billing audit.
+
+[Sanitized comparison and raw sample hashes](./evidence/r155b-near-phase6a-20261007.json).
+Local frozen builds, raw tails, deployment records, restoration verification and
+`analyze.py` remain in `.artifacts/r155b-near-phase6a/`. Raw tails are protected.
+The public custody E2E artifact is
+`seams-wallet/docs/evidence/r155b-root-admission-20261007.json`.
+
+Phase 6A remains open. The principal remaining work is authenticated first-touch
+placement, reducing the measured DO boundaries, and safe NEAR preflight consolidation.
+
+
+### Same-operation NEAR material reuse
+
+A separate SDK change passes transaction planning's existing material preparation
+and executor into execution. It removes the second material preparation call.
+Prepare still reconciles fresh session authority before producing the client share.
+This removes one owner-lane read. It preserves both current status reads.
+
+One hosted wallet verified seven signatures against the restored custody deployments.
+Ordinary signing used **5 Gateway POSTs instead of 6**: two status reads, one owner
+lane read, prepare and finalize. Warm signing took 2.056 and 2.232 seconds.
+The three-signature sequence took 1.690, 1.772 and 1.964 seconds.
+First signing after unlock took 1.895 seconds. This single-wallet sample establishes
+the request reduction, with no controlled latency improvement claimed.
+
+Composed acceptance passed linked Ed25519 revocation and shared-budget exhaustion
+with successful NEAR and ECDSA step-up during Console outage. The earlier rejected
+status-cache experiment remains rejected. This change reuses one transaction's
+prepared material and adds no authority cache.
+
+[SDK request-count evidence](./evidence/r155b-near-material-reuse-20261007.json).
+The local artifacts are `.artifacts/r155b-near-phase6a/sdk-*`.
+
+The three focused public contracts also passed: transaction signing after reload,
+message verification across reload, and changed prepare authority rejected before
+finalize followed by a valid operation. The final run took 43.8 seconds.
+The SDK build and bloat check passed. Two setup failures (missing initializer and
+wrong app origin) were classified as test infrastructure failures and excluded.
+
+
+### Single-status NEAR transaction planning
+
+The SDK now reuses authenticated preparation readiness in transaction planning.
+It keeps the first status read and all fresh prepare/finalize enforcement. This
+removes the second status request and deletes its obsolete implementation.
+
+Six new wallets verified 42 signatures across the previous SDK and candidate.
+Ordinary signing used **4 Gateway POSTs instead of 5** in every warm and consecutive
+sample. This combines with material reuse to reduce the original six requests to four.
+
+| SDK signing workload | Samples per arm | Control median / range | Candidate median / range |
+| --- | ---: | --- | --- |
+| Warm | 6 | 2.772s / 2.193–3.084s | 2.551s / 2.161–3.472s |
+| Three-signature sequences | 9 | 2.138s / 1.575–3.635s | 1.952s / 1.503–3.071s |
+| First after unlock | 3 | 1.721s / 1.694–2.493s | 2.177s / 1.344–2.558s |
+| First after registration | 3 | 7.293s / 6.909–8.048s | 8.047s / 7.672–8.323s |
+
+The candidate ran first. Local correctness tests overlapped part of that arm.
+Backend version snapshots were not captured. Treat these timings as exploratory:
+the ranges overlap and the first-sign medians increased. The request-count reduction
+is firm. SDK signing time excludes preceding registration, funding and unlock work;
+it also excludes test cleanup. It is not the Yao setup duration.
+
+The SDK build, type check, bloat check and five correctness scenarios pass. The
+scenarios cover linked-device revocation, shared-budget step-up on both curves,
+transaction and message signing across reload, and changed prepare authority.
+No deployment or resources changed. Browser Console calls were zero; backend
+Console calls and D1 counts remain unavailable.
+
+[Samples, source and artifact hashes](./evidence/r155b-near-single-status-20261007.json).
+Raw samples and logs are in `.artifacts/r155b-near-phase6a-next/` in each repository.
+The public frozen SDK source remains `.artifacts/r155b-near-phase6a/source-traced/`.
+Reproduce the hosted comparison with `tests/playwright.hosted-product.config.mjs`
+and `near-signing-latency.test.ts --grep 'sample [1-3]:'`, selecting each frozen
+site with `SEAMS_HOSTED_CANDIDATE_SITE`. The artifact records the site manifests.
+
+Authenticated initial placement and the remaining DO delay are still open. The
+private Gateway already has a validated regional home after dispatch/admission;
+propagate that value to generation-specific custody object creation. This SDK
+change does not implement placement or meet the two-second setup target.

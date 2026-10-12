@@ -2,6 +2,7 @@ import type { ConsoleWalletService, ConsoleWalletsContext } from '../wallets/ser
 import type { ConsoleWallet, ConsoleWalletPage } from '../wallets/types';
 import { isConsoleWalletError } from '../wallets/errors';
 import {
+  parseConsoleWalletKey,
   parseListConsoleWalletsRequest,
   parseSearchConsoleWalletsRequest,
 } from '../wallets/requests';
@@ -51,7 +52,7 @@ interface RouterApiWalletQueryInput extends RouterApiWalletInput {
   query?: Record<string, string | string[] | undefined>;
 }
 
-interface RouterApiWalletGetInput extends RouterApiWalletInput {
+interface RouterApiWalletGetInput extends RouterApiWalletQueryInput {
   walletId?: string;
 }
 
@@ -288,7 +289,11 @@ export async function handleRouterApiWalletGet(
   try {
     const wallet = await resolved.context.services.wallets!.getWallet(
       toApiWalletContext(principal.principal),
-      walletId,
+      parseConsoleWalletKey({
+        id: walletId,
+        projectId: input.query?.projectId,
+        environmentId: principal.principal.environmentId,
+      }),
     );
     if (!wallet || wallet.environmentId !== principal.principal.environmentId) {
       return routeJson(404, {

@@ -1,3 +1,5 @@
+import type { ConsoleWalletKey } from '@seams-internal/wallet-console-shared';
+import { parseConsoleWalletKey } from './requests';
 import {
   d1Integer as toNumber,
   formatD1ExecStatement,
@@ -42,11 +44,10 @@ interface D1ConsoleWalletState {
   readonly balanceReader: D1ConsoleWalletBalanceReaderOptions | null;
 }
 
-interface WalletCursorPayload {
+interface WalletCursorPayload extends ConsoleWalletKey {
   readonly sortBy: ConsoleWalletSortBy;
   readonly sortOrder: ConsoleWalletSortOrder;
   readonly sortValue: number;
-  readonly id: string;
 }
 
 interface WalletQueryParts {
@@ -87,6 +88,8 @@ const WALLET_INDEX_SELECT_SQL = `wallet_index.*,
         FROM wallet_balance_snapshots
        WHERE wallet_balance_snapshots.namespace = wallet_index.namespace
          AND wallet_balance_snapshots.org_id = wallet_index.org_id
+         AND wallet_balance_snapshots.project_id = wallet_index.project_id
+         AND wallet_balance_snapshots.environment_id = wallet_index.environment_id
          AND wallet_balance_snapshots.wallet_id = wallet_index.id
     ),
     CASE WHEN wallet_index.balance_minor > 0 THEN 1 ELSE 0 END
@@ -103,6 +106,8 @@ const WALLET_INDEX_SELECT_SQL = `wallet_index.*,
       FROM wallet_balance_snapshots
      WHERE wallet_balance_snapshots.namespace = wallet_index.namespace
        AND wallet_balance_snapshots.org_id = wallet_index.org_id
+       AND wallet_balance_snapshots.project_id = wallet_index.project_id
+       AND wallet_balance_snapshots.environment_id = wallet_index.environment_id
        AND wallet_balance_snapshots.wallet_id = wallet_index.id
   ) AS gas_balances_json`;
 
@@ -149,8 +154,8 @@ export const CONSOLE_WALLETS_D1_SCHEMA_SQL = Object.freeze([
       last_activity_at_ms INTEGER,
       created_at_ms INTEGER NOT NULL,
       updated_at_ms INTEGER NOT NULL,
-      PRIMARY KEY (namespace, org_id, id),
-      UNIQUE (namespace, org_id, address),
+      PRIMARY KEY (namespace, org_id, project_id, environment_id, id),
+      UNIQUE (namespace, org_id, project_id, environment_id, address),
       CHECK (chain IN ('Multichain', 'Ethereum', 'Base', 'Tempo', 'Arc Circle', 'NEAR')),
       CHECK (wallet_type IN ('EOA', 'SMART')),
       CHECK (status IN ('ACTIVE', 'FROZEN', 'ARCHIVED'))
@@ -158,7 +163,7 @@ export const CONSOLE_WALLETS_D1_SCHEMA_SQL = Object.freeze([
   `,
   `
     CREATE INDEX IF NOT EXISTS wallet_index_org_created_idx
-      ON wallet_index (namespace, org_id, created_at_ms DESC, id DESC)
+      ON wallet_index (namespace, org_id, created_at_ms DESC, project_id DESC, environment_id DESC, id DESC)
   `,
   `
     CREATE INDEX IF NOT EXISTS wallet_index_org_project_env_idx
@@ -170,11 +175,11 @@ export const CONSOLE_WALLETS_D1_SCHEMA_SQL = Object.freeze([
   `,
   `
     CREATE INDEX IF NOT EXISTS wallet_index_org_balance_idx
-      ON wallet_index (namespace, org_id, balance_minor DESC, id DESC)
+      ON wallet_index (namespace, org_id, balance_minor DESC, project_id DESC, environment_id DESC, id DESC)
   `,
   `
     CREATE INDEX IF NOT EXISTS wallet_index_org_last_activity_idx
-      ON wallet_index (namespace, org_id, COALESCE(last_activity_at_ms, 0) DESC, id DESC)
+      ON wallet_index (namespace, org_id, COALESCE(last_activity_at_ms, 0) DESC, project_id DESC, environment_id DESC, id DESC)
   `,
   `
     CREATE INDEX IF NOT EXISTS wallet_index_org_user_idx
@@ -188,6 +193,8 @@ export const CONSOLE_WALLETS_D1_SCHEMA_SQL = Object.freeze([
     CREATE TABLE IF NOT EXISTS wallet_balance_snapshots (
       namespace TEXT NOT NULL,
       org_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      environment_id TEXT NOT NULL,
       wallet_id TEXT NOT NULL,
       near_account_id TEXT NOT NULL,
       evm_address TEXT NOT NULL,
@@ -197,9 +204,9 @@ export const CONSOLE_WALLETS_D1_SCHEMA_SQL = Object.freeze([
       stablecoin_balance_minor INTEGER NOT NULL,
       funded INTEGER NOT NULL,
       observed_at_ms INTEGER NOT NULL,
-      PRIMARY KEY (namespace, org_id, wallet_id),
-      FOREIGN KEY (namespace, org_id, wallet_id)
-        REFERENCES wallet_index(namespace, org_id, id)
+      PRIMARY KEY (namespace, org_id, project_id, environment_id, wallet_id),
+      FOREIGN KEY (namespace, org_id, project_id, environment_id, wallet_id)
+        REFERENCES wallet_index(namespace, org_id, project_id, environment_id, id)
         ON DELETE CASCADE,
       CHECK (funded IN (0, 1)),
       CHECK (observed_at_ms > 0)
@@ -451,15 +458,17 @@ function parseCursorJson(json: string): WalletCursorPayload {
     const sortBy = parseCursorSortBy(row.sortBy);
     const sortOrder = parseCursorSortOrder(row.sortOrder);
     const sortValue = Number(row.sortValue);
-    const id = normalizeString(row.id);
-    if (!Number.isFinite(sortValue) || !id) {
+    const key = parseConsoleWalletKey(row);
+    if (!Number.isFinite(sortValue)) {
       throw new Error('invalid_payload');
     }
     return {
       sortBy,
       sortOrder,
       sortValue: Math.trunc(sortValue),
-      id,
+      id: key.id,
+      projectId: key.projectId,
+      environmentId: key.environmentId,
     };
   } catch {
     throw new ConsoleWalletError('invalid_query', 400, 'Invalid cursor value');
@@ -540,9 +549,14 @@ function appendCursorFilter(input: {
   }
   const op = input.sortOrder === 'desc' ? '<' : '>';
   input.accumulator.clauses.push(
-    `(${input.column} ${op} ? OR (${input.column} = ? AND id ${op} ?))`,
+    `(${input.column}, project_id, environment_id, id) ${op} (?, ?, ?, ?)`,
   );
-  input.accumulator.values.push(input.cursor.sortValue, input.cursor.sortValue, input.cursor.id);
+  input.accumulator.values.push(
+    input.cursor.sortValue,
+    input.cursor.projectId,
+    input.cursor.environmentId,
+    input.cursor.id,
+  );
 }
 
 function buildWalletQuery(input: {
@@ -579,7 +593,7 @@ function buildWalletQuery(input: {
   return {
     whereSql: accumulator.clauses.join(' AND '),
     values: accumulator.values,
-    orderBySql: `${column} ${direction}, id ${direction}`,
+    orderBySql: `${column} ${direction}, project_id ${direction}, environment_id ${direction}, id ${direction}`,
     limit,
     sortBy,
     sortOrder,
@@ -606,6 +620,8 @@ function buildWalletPage(input: {
           sortOrder: input.sortOrder,
           sortValue: walletSortValue(last, input.sortBy),
           id: last.id,
+          projectId: last.projectId,
+          environmentId: last.environmentId,
         })
       : undefined;
   return {
@@ -689,16 +705,19 @@ class D1ConsoleWalletServiceImpl implements ConsoleWalletService {
     return await this.queryWalletPage(ctx, request, request.q);
   }
 
-  async getWallet(ctx: ConsoleWalletsContext, walletId: string): Promise<ConsoleWallet | null> {
+  async getWallet(
+    ctx: ConsoleWalletsContext,
+    key: ConsoleWalletKey,
+  ): Promise<ConsoleWallet | null> {
     const row = await this.state.database
       .prepare(
         `SELECT ${WALLET_INDEX_SELECT_SQL}
            FROM wallet_index
           WHERE namespace = ?
             AND org_id = ?
-            AND id = ?`,
+            AND project_id = ? AND environment_id = ? AND id = ?`,
       )
-      .bind(this.state.namespace, ctx.orgId, walletId)
+      .bind(this.state.namespace, ctx.orgId, key.projectId, key.environmentId, key.id)
       .first<D1Row>();
     return row ? parseD1ConsoleWalletRow(row) : null;
   }
@@ -730,10 +749,8 @@ class D1ConsoleWalletServiceImpl implements ConsoleWalletService {
              updated_at_ms
            )
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (namespace, org_id, id)
+           ON CONFLICT (namespace, org_id, project_id, environment_id, id)
            DO UPDATE SET
-             project_id = EXCLUDED.project_id,
-             environment_id = EXCLUDED.environment_id,
              user_id = EXCLUDED.user_id,
              external_ref_id = EXCLUDED.external_ref_id,
              address = EXCLUDED.address,
@@ -775,7 +792,7 @@ class D1ConsoleWalletServiceImpl implements ConsoleWalletService {
       }
       throw error;
     }
-    const wallet = await this.getWallet(ctx, normalized.id);
+    const wallet = await this.getWallet(ctx, normalized);
     if (!wallet) {
       throw new ConsoleWalletError('internal', 500, 'Failed to upsert wallet');
     }
@@ -794,7 +811,7 @@ class D1ConsoleWalletServiceImpl implements ConsoleWalletService {
       );
     }
     const requestedWallets = await Promise.all(
-      request.walletIds.map((walletId) => this.getWallet(ctx, walletId)),
+      request.wallets.map((key) => this.getWallet(ctx, key)),
     );
     const wallets = requestedWallets.filter(
       (wallet): wallet is ConsoleWallet =>

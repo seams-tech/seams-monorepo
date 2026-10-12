@@ -1,3 +1,5 @@
+import type { ConsoleWalletKey } from '@seams-internal/wallet-console-shared';
+
 export type ConsoleWalletChain =
   | 'Multichain'
   | 'Ethereum'
@@ -26,11 +28,8 @@ export interface ConsoleWalletGasBalances {
   };
 }
 
-export interface ConsoleWallet {
-  id: string;
+export interface ConsoleWallet extends ConsoleWalletKey {
   orgId: string;
-  projectId: string;
-  environmentId: string;
   userId: string;
   externalRefId: string;
   address: string;

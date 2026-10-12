@@ -50,6 +50,7 @@ import {
 import {
   hasWalletBalanceRefresh,
   isConsoleWalletError,
+  parseConsoleWalletKey,
   parseListConsoleWalletsRequest,
   parseRefreshConsoleWalletBalancesRequest,
   parseSearchConsoleWalletsRequest,
@@ -3001,7 +3002,14 @@ function registerConsoleWalletRoutes(router: ExpressRouter, ctx: ExpressConsoleC
       return;
     }
     try {
-      const wallet = await wallets.getWallet(toWalletContext(claims), walletId);
+      const wallet = await wallets.getWallet(
+        toWalletContext(claims),
+        parseConsoleWalletKey({
+          id: walletId,
+          projectId: req.query.projectId,
+          environmentId: req.query.environmentId,
+        }),
+      );
       if (!wallet) {
         res.status(404).json({
           ok: false,

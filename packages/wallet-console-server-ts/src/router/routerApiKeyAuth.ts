@@ -18,8 +18,6 @@ import type {
   RouterApiPublishableKeyAuthResult,
   RouterApiUsageMeterAdapter,
   RouterApiUsageMeterEvent,
-  RouterApiWalletProjectionAdapter,
-  RouterApiWalletProjectionEvent,
 } from '@seams/wallet-server/cloud-host';
 
 function toPrincipal(apiKey: ConsoleApiKey): RouterApiKeyPrincipal {
@@ -188,40 +186,6 @@ class ConsoleRouterApiBillingUsageMeterAdapter implements RouterApiUsageMeterAda
   }
 }
 
-class ConsoleRouterApiWalletProjectionAdapter implements RouterApiWalletProjectionAdapter {
-  constructor(
-    private readonly orgProjectEnv: ConsoleOrgProjectEnvService,
-    private readonly wallets: ConsoleWalletService,
-  ) {}
-
-  async recordCreatedWallet(input: RouterApiWalletProjectionEvent): Promise<void> {
-    const environments = await this.orgProjectEnv.listEnvironments({
-      orgId: input.orgId,
-      actorUserId: 'wallet-registration-projection',
-      projectId: input.runtimePolicyScope.projectId,
-    });
-    const environment = environments.find(
-      (entry) =>
-        entry.projectId === input.runtimePolicyScope.projectId &&
-        entry.key === input.runtimePolicyScope.envId,
-    );
-    if (!environment) {
-      throw new Error(
-        `Wallet projection environment ${input.runtimePolicyScope.projectId}:${input.runtimePolicyScope.envId} was not found`,
-      );
-    }
-    await upsertProjectedWallet({
-      wallets: this.wallets,
-      orgId: input.orgId,
-      actorUserId: 'wallet-registration-projection',
-      projectId: environment.projectId,
-      environmentId: environment.id,
-      walletId: input.walletId,
-      occurredAt: input.occurredAt,
-    });
-  }
-}
-
 export function createRouterApiKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
 ): RouterApiKeyAuthAdapter {
@@ -242,11 +206,4 @@ export function createRouterApiBillingUsageMeterAdapter(
   } = {},
 ): RouterApiUsageMeterAdapter {
   return new ConsoleRouterApiBillingUsageMeterAdapter(billing, options);
-}
-
-export function createRouterApiWalletProjectionAdapter(
-  orgProjectEnv: ConsoleOrgProjectEnvService,
-  wallets: ConsoleWalletService,
-): RouterApiWalletProjectionAdapter {
-  return new ConsoleRouterApiWalletProjectionAdapter(orgProjectEnv, wallets);
 }

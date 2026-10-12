@@ -1,81 +1,20 @@
-# tests/ — agent instructions (detail)
+# tests/ — agent instructions
 
-Root `AGENTS.md` has the short policy. This file is the operational detail for work under
-`tests/`.
+Public Wallet lifecycle contracts and their normative specification live in the
+separate `seams-wallet` repository. Tests retained here own private Console
+composition, persistence, and deployed product flows.
 
-## Suite map
+Do not add unit tests. Prefer a medium-to-hard E2E scenario that verifies intended
+product behavior and writes repeatable evidence. Keep existing focused private tests
+only where the invariant cannot be observed through a product E2E flow, such as a
+wire vector, type constraint, D1 migration, or transactional race.
 
-- Public Wallet intended-behaviour contracts and their normative specifications live
-  in [`seams-wallet`](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md).
-  Tests retained here cover private Console composition and deployed product flows.
-- `unit/` (`pnpm test:unit`) — fast regression coverage. Trustworthy only insofar as its
-  fixtures come from the shared factories below.
-- `relayer/`, `wallet-iframe/`, `lit-components/`, `yaos-local/` — integration surfaces
-  (`pnpm test:relayer`, etc.).
-- `scripts/check-*.mjs` — narrow private-repository architecture guards. Wallet-owned
-  guards belong in `seams-wallet`.
+Before changing code for a failing test, identify the invariant and compare it to
+current domain types and the owning specification. Classify the failure as
+`production_regression`, `valid_test_needs_update`, `obsolete_test_or_fixture`, or
+`environment_or_infrastructure_failure`. Fix production regressions in production;
+remove obsolete tests, fixtures, mocks, and guards. Do not restore retired source paths
+to satisfy a test.
 
-Do not add lifecycle coverage as broad mocked unit tests (refactor-88 rule), and do not
-use `setupBasicPasskeyTest` as a lifecycle oracle.
-
-## Fixture rules — factories only
-
-Build domain records exclusively through the shared factories. When a domain type changes,
-update the factory once; tests override only the fields they exercise.
-
-- `unit/helpers/signingSessionRecord.fixtures.ts` — ThresholdEd25519/Ecdsa session
-  records, warm/wallet sessions (constructed via the real `upsert*` production paths)
-- `helpers/ed25519YaoCapabilityFixtures.ts` — Ed25519-Yao capability records (via the real
-  parse/build production functions)
-- `unit/helpers/ecdsaBootstrap.fixtures.ts`, `unit/helpers/ecdsaChainTarget.fixtures.ts`
-- `unit/helpers/accountAuth.fixtures.ts`, `unit/helpers/availableSigningLanes.fixtures.ts`,
-  `unit/helpers/cloudflareD1RouterApiAuthService.fixtures.ts`,
-  `unit/helpers/warmSessionTestServices.fixtures.ts`,
-  `unit/helpers/warmSessionUiConfirm.fixtures.ts`
-- Cross-suite utilities: `helpers/routerAbSigningRuntimeTestUtils.ts`,
-  `helpers/emailOtpDerivation.ts`, `helpers/sqliteD1.ts`
-
-Rules:
-
-- Complex domain-state records (session, auth/capability, signing, persistence) come
-  only from the factories — no inline `satisfies SomeRecord` / typed object literals for
-  these. Simple value objects, request params, and small DTOs may stay inline.
-- Every new unit test file that builds complex domain state must import the relevant
-  factory from `unit/helpers/` or `helpers/`. A newly introduced inline fixture over
-  100 lines is a review defect and should be extracted before the test lands.
-- If no factory covers the type, add a branch-specific builder in `unit/helpers/`
-  (prefer constructing through the production parser/builder — those cannot drift
-  silently), then use it. Builders produce valid current-domain objects and expose only
-  meaningful variations — no universal mega-factory with broad optional fields; keep
-  passkey/email-OTP and ECDSA/Ed25519 branches separate. Deliberately-invalid records
-  (rejection-path tests) are built as factory output plus a visible corrupting override
-  at the call site.
-- Do not copy record shapes from other tests; they may predate the current types.
-
-## Stale-test triage (a test fails after a refactor)
-
-Classify before fixing: identify the invariant, then its authority — only then decide
-test-fix vs code-fix.
-
-1. What does the failing test own? Lifecycle behaviour (intended contract), a
-   crypto/wire invariant (vector test), a component invariant (factory-based unit test),
-   or a snapshot of an old type shape / source text (inline fixture, source guard)?
-2. Is that invariant still intended? Check the current private domain types and the
-   owning Console/product specification. Check public Wallet lifecycle and architecture
-   claims in the canonical
-   [`seams-wallet` specification](https://github.com/seams-tech/seams-wallet/blob/main/docs/intended-behaviours.md).
-   Classify the failure:
-   `production_regression`, `valid_test_needs_update`, `obsolete_test_or_fixture`, or
-   `environment_or_infrastructure_failure` (Redis/Upstash, NEAR RPC, Safari, faucet 429
-   gate several suites — don't touch fixtures or code for those). State the
-   classification before repairing.
-3. Invariant still intended ⇒ real regression: fix the code, not the test. If one
-   repair attempt on a lower-authority test fails, stop and reassess staleness before
-   changing more code.
-4. Invariant obsolete ⇒ stale test: update the fixture in its shared factory (list
-   above), or delete the test/fixture/mock/helper if it encodes retired behaviour.
-   Never copy the old shape back into product code, and never change production
-   behaviour solely to satisfy a stale fixture.
-5. Source-guard failure (`scripts/check-*.mjs`): decide whether the guarded boundary is
-   still private repository policy. Retire guards for source or authority moved to
-   `seams-wallet`.
+Complex domain-state records in retained tests come from shared branch-specific
+factories. Do not use handwritten session, auth, signing, or persistence literals.

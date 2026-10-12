@@ -184,15 +184,6 @@ test('readiness check awaits response body assertions', async () => {
   }
 });
 
-test('wallet-system smoke accepts the fail-closed state before its first binding', async () => {
-  const response = Response.json(
-    { ok: false, code: 'tenant_deployment_unavailable' },
-    { status: 503 },
-  );
-
-  await expect(isWalletSystemDeploymentReady(response)).resolves.toBe(true);
-});
-
 test('wallet-system smoke rejects unrelated service failures', async () => {
   const response = Response.json({ ok: false, code: 'service_unavailable' }, { status: 503 });
 

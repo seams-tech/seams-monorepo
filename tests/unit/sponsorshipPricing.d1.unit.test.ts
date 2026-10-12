@@ -29,7 +29,7 @@ async function seedEnvironment(database: ReturnType<typeof createTemporaryD1Data
       'seams-test', 'proj_test', 'org_test', 'Test Project', 'test-project', 'ACTIVE', 1, 1
     );
     INSERT INTO environments (
-      namespace, id, org_id, project_id, env_key, signing_root_version, name, status, created_at_ms, updated_at_ms
+      namespace, id, org_id, project_id, env_key, runtime_version, name, status, created_at_ms, updated_at_ms
     ) VALUES (
       'seams-test', 'env_test', 'org_test', 'proj_test', 'dev', 'default', 'Development', 'ACTIVE', 1, 1
     );

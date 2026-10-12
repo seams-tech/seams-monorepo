@@ -415,10 +415,10 @@ export function ApiKeyManagementPage({
   const selectedProjectName =
     String(selectedContextDisplay.project || '').trim() || String(selectedContext.project).trim();
   const registrationOriginHint = React.useMemo(readBrowserOrigin, []);
-  const defaultPublishableOrigins = React.useMemo(
-    () => parseEditableList([registrationOriginHint]),
-    [registrationOriginHint],
-  );
+  const defaultPublishableOrigins = parseEditableList([
+    registrationOriginHint,
+    deployment.walletOrigin,
+  ]);
   const [apiKeys, setApiKeys] = React.useState<DashboardConsoleApiKey[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');

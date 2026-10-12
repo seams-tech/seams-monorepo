@@ -1,4 +1,9 @@
-import { d1Integer, type D1DatabaseLike, type D1Row } from '@seams/wallet-server/cloud-host';
+import {
+  consoleWalletKeyString,
+  type ConsoleWalletKey,
+} from '@seams-internal/wallet-console-shared';
+import { parseConsoleWalletKey } from './requests';
+import { type D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type {
   WalletRuntimeWalletIdentitiesResult,
   WalletRuntimeWalletIdentityRequest,
@@ -31,7 +36,7 @@ type WalletSignerIdentity = {
 };
 
 type WalletBalanceSnapshot = {
-  readonly walletId: string;
+  readonly wallet: ConsoleWalletKey;
   readonly nearAccountId: string;
   readonly evmAddress: `0x${string}`;
   readonly nearBalanceYocto: string;
@@ -49,7 +54,7 @@ type WalletRefreshOutcome =
     }
   | {
       readonly kind: 'failed';
-      readonly walletId: string;
+      readonly wallet: ConsoleWalletKey;
       readonly message: string;
     };
 
@@ -123,36 +128,29 @@ function jsonRpcRequestError(raw: unknown, method: string): JsonRpcRequestError 
   return new JsonRpcRequestError(message, String(cause?.name || '').trim());
 }
 
-function uniqueWalletIds(raw: readonly string[]): readonly string[] {
-  const walletIds = raw.map((value) => String(value || '').trim()).filter(Boolean);
-  const unique = [...new Set(walletIds)];
-  if (unique.length === 0) {
-    throw new ConsoleWalletError(
-      'invalid_body',
-      400,
-      'walletIds must contain at least one wallet id',
-    );
-  }
-  if (unique.length > MAX_REFRESH_WALLETS) {
-    throw new ConsoleWalletError(
-      'invalid_body',
-      400,
-      `walletIds cannot contain more than ${MAX_REFRESH_WALLETS} wallet ids`,
-    );
-  }
-  return unique;
-}
-
 export function parseRefreshConsoleWalletBalancesRequest(
   raw: unknown,
 ): RefreshConsoleWalletBalancesRequest {
-  if (!isJsonRecord(raw) || !Array.isArray(raw.walletIds)) {
-    throw new ConsoleWalletError('invalid_body', 400, 'walletIds must be an array');
+  if (!isJsonRecord(raw) || !Array.isArray(raw.wallets)) {
+    throw new ConsoleWalletError(
+      'invalid_body',
+      400,
+      'wallets must be an array of scoped wallet keys',
+    );
   }
-  if (raw.walletIds.some((value) => typeof value !== 'string')) {
-    throw new ConsoleWalletError('invalid_body', 400, 'walletIds must contain only strings');
+  if (raw.wallets.length === 0 || raw.wallets.length > MAX_REFRESH_WALLETS) {
+    throw new ConsoleWalletError(
+      'invalid_body',
+      400,
+      `wallets must contain 1 to ${MAX_REFRESH_WALLETS} scoped wallet keys`,
+    );
   }
-  return { walletIds: uniqueWalletIds(raw.walletIds) };
+  const wallets = new Map<string, ConsoleWalletKey>();
+  for (const rawWallet of raw.wallets) {
+    const wallet = parseConsoleWalletKey(rawWallet);
+    wallets.set(consoleWalletKeyString(wallet), wallet);
+  }
+  return { wallets: [...wallets.values()] };
 }
 
 async function postJsonRpc(input: {
@@ -251,7 +249,7 @@ async function readArcBalance(input: {
 }
 
 async function readWalletBalanceSnapshot(input: {
-  readonly walletId: string;
+  readonly wallet: ConsoleWalletKey;
   readonly identity: WalletSignerIdentity;
   readonly observedAtMs: number;
   readonly reader: D1ConsoleWalletBalanceReaderOptions;
@@ -278,7 +276,7 @@ async function readWalletBalanceSnapshot(input: {
     tempoAlphaUsdRaw / TEMPO_ALPHA_USD_MINOR_DIVISOR + arcBalanceWei / ARC_NATIVE_MINOR_DIVISOR,
   );
   return {
-    walletId: input.walletId,
+    wallet: input.wallet,
     nearAccountId: input.identity.nearAccountId,
     evmAddress: input.identity.evmAddress,
     nearBalanceYocto: nearBalanceYocto.toString(),
@@ -290,31 +288,89 @@ async function readWalletBalanceSnapshot(input: {
   };
 }
 
-async function loadFreshSnapshotWalletIds(input: {
+async function loadFreshSnapshotKeys(input: {
   readonly database: D1DatabaseLike;
   readonly namespace: string;
   readonly orgId: string;
-  readonly walletIds: readonly string[];
+  readonly wallets: readonly ConsoleWalletKey[];
   readonly staleBeforeMs: number;
 }): Promise<ReadonlySet<string>> {
-  if (input.walletIds.length === 0) return new Set();
-  const placeholders = input.walletIds.map(() => '?').join(', ');
+  if (input.wallets.length === 0) return new Set();
+  const selectors = input.wallets.map(
+    () => '(project_id = ? AND environment_id = ? AND wallet_id = ?)',
+  );
   const out = await input.database
     .prepare(
-      `SELECT wallet_id, observed_at_ms
-         FROM wallet_balance_snapshots
-        WHERE namespace = ?
-          AND org_id = ?
-          AND wallet_id IN (${placeholders})`,
+      `SELECT project_id, environment_id, wallet_id
+       FROM wallet_balance_snapshots
+      WHERE namespace = ? AND org_id = ? AND observed_at_ms >= ?
+        AND (${selectors.join(' OR ')})`,
     )
-    .bind(input.namespace, input.orgId, ...input.walletIds)
-    .all<D1Row>();
-  return new Set(
-    (out.results || [])
-      .filter((row) => d1Integer(row.observed_at_ms) >= input.staleBeforeMs)
-      .map((row) => String(row.wallet_id || '').trim())
-      .filter(Boolean),
-  );
+    .bind(
+      input.namespace,
+      input.orgId,
+      input.staleBeforeMs,
+      ...input.wallets.flatMap((wallet) => [wallet.projectId, wallet.environmentId, wallet.id]),
+    )
+    .all<{ project_id: string; environment_id: string; wallet_id: string }>();
+  const keys = new Set<string>();
+  for (const row of out.results || []) {
+    keys.add(
+      consoleWalletKeyString({
+        id: row.wallet_id,
+        projectId: row.project_id,
+        environmentId: row.environment_id,
+      }),
+    );
+  }
+  return keys;
+}
+
+async function loadWalletIdentities(
+  input: RefreshD1ConsoleWalletBalancesInput,
+  wallets: readonly ConsoleWallet[],
+): Promise<ReadonlyMap<string, WalletSignerIdentity>> {
+  if (wallets.length === 0) return new Map();
+  const selectors = wallets.map(() => '(project_id = ? AND id = ?)');
+  const environments = await input.consoleDatabase
+    .prepare(
+      `SELECT project_id, id, env_key FROM environments
+      WHERE namespace = ? AND org_id = ? AND (${selectors.join(' OR ')})`,
+    )
+    .bind(
+      input.namespace,
+      input.ctx.orgId,
+      ...wallets.flatMap((wallet) => [wallet.projectId, wallet.environmentId]),
+    )
+    .all<{ project_id: string; id: string; env_key: string }>();
+  const environmentKeys = new Map<string, string>();
+  for (const row of environments.results || []) {
+    environmentKeys.set(JSON.stringify([row.project_id, row.id]), row.env_key);
+  }
+  // Console persists environment IDs; signer scope uses the environment's runtime key.
+  const requested = new Map<string, ConsoleWallet>();
+  const runtimeWallets: WalletRuntimeWalletIdentityRequest['wallets'][number][] = [];
+  for (const wallet of wallets) {
+    const envId = environmentKeys.get(JSON.stringify([wallet.projectId, wallet.environmentId]));
+    if (!envId) throw new Error('Wallet environment was not found in its project');
+    requested.set(JSON.stringify([wallet.projectId, envId, wallet.id]), wallet);
+    runtimeWallets.push({ walletId: wallet.id, projectId: wallet.projectId, envId });
+  }
+  const result = await input.reader.resolveWalletIdentities({
+    orgId: input.ctx.orgId,
+    wallets: runtimeWallets,
+  });
+  const identities = new Map<string, WalletSignerIdentity>();
+  for (const identity of result.identities) {
+    const wallet = requested.get(
+      JSON.stringify([identity.projectId, identity.envId, identity.walletId]),
+    );
+    if (!wallet || identities.has(consoleWalletKeyString(wallet))) {
+      throw new Error('Wallet Runtime returned an unexpected or duplicate wallet identity');
+    }
+    identities.set(consoleWalletKeyString(wallet), identity);
+  }
+  return identities;
 }
 
 async function refreshWallet(input: {
@@ -326,7 +382,11 @@ async function refreshWallet(input: {
   try {
     if (!input.identity) throw new Error('wallet signer identities are incomplete');
     const snapshot = await readWalletBalanceSnapshot({
-      walletId: input.wallet.id,
+      wallet: {
+        id: input.wallet.id,
+        projectId: input.wallet.projectId,
+        environmentId: input.wallet.environmentId,
+      },
       identity: input.identity,
       observedAtMs: input.observedAtMs,
       reader: input.reader,
@@ -335,7 +395,11 @@ async function refreshWallet(input: {
   } catch (error: unknown) {
     return {
       kind: 'failed',
-      walletId: input.wallet.id,
+      wallet: {
+        id: input.wallet.id,
+        projectId: input.wallet.projectId,
+        environmentId: input.wallet.environmentId,
+      },
       message: error instanceof Error ? error.message : String(error),
     };
   }
@@ -354,6 +418,8 @@ function snapshotStatements(input: {
         `INSERT INTO wallet_balance_snapshots (
            namespace,
            org_id,
+           project_id,
+           environment_id,
            wallet_id,
            near_account_id,
            evm_address,
@@ -364,8 +430,8 @@ function snapshotStatements(input: {
            funded,
            observed_at_ms
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT (namespace, org_id, wallet_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (namespace, org_id, project_id, environment_id, wallet_id)
          DO UPDATE SET
            near_account_id = EXCLUDED.near_account_id,
            evm_address = EXCLUDED.evm_address,
@@ -379,7 +445,9 @@ function snapshotStatements(input: {
       .bind(
         input.namespace,
         input.orgId,
-        snapshot.walletId,
+        snapshot.wallet.projectId,
+        snapshot.wallet.environmentId,
+        snapshot.wallet.id,
         snapshot.nearAccountId,
         snapshot.evmAddress,
         snapshot.nearBalanceYocto,
@@ -396,14 +464,16 @@ function snapshotStatements(input: {
                 updated_at_ms = ?
           WHERE namespace = ?
             AND org_id = ?
-            AND id = ?`,
+            AND project_id = ? AND environment_id = ? AND id = ?`,
       )
       .bind(
         snapshot.stablecoinBalanceMinor,
         snapshot.observedAtMs,
         input.namespace,
         input.orgId,
-        snapshot.walletId,
+        snapshot.wallet.projectId,
+        snapshot.wallet.environmentId,
+        snapshot.wallet.id,
       ),
   ];
 }
@@ -412,9 +482,11 @@ function applySnapshots(
   wallets: readonly ConsoleWallet[],
   snapshots: readonly WalletBalanceSnapshot[],
 ): ConsoleWallet[] {
-  const snapshotsByWalletId = new Map(snapshots.map((snapshot) => [snapshot.walletId, snapshot]));
+  const snapshotsByKey = new Map(
+    snapshots.map((snapshot) => [consoleWalletKeyString(snapshot.wallet), snapshot]),
+  );
   return wallets.map((wallet) => {
-    const snapshot = snapshotsByWalletId.get(wallet.id);
+    const snapshot = snapshotsByKey.get(consoleWalletKeyString(wallet));
     if (!snapshot) return wallet;
     return {
       ...wallet,
@@ -449,29 +521,20 @@ export async function refreshD1ConsoleWalletBalances(
 ): Promise<ConsoleWalletBalanceRefreshResult> {
   const wallets = input.wallets;
   const observedAtMs = input.now().getTime();
-  const freshWalletIds = await loadFreshSnapshotWalletIds({
+  const freshKeys = await loadFreshSnapshotKeys({
     database: input.consoleDatabase,
     namespace: input.namespace,
     orgId: input.ctx.orgId,
-    walletIds: wallets.map((wallet) => wallet.id),
+    wallets,
     staleBeforeMs: observedAtMs - BALANCE_CACHE_TTL_MS,
   });
-  const staleWallets = wallets.filter((wallet) => !freshWalletIds.has(wallet.id));
-  const identityResult = await input.reader.resolveWalletIdentities({
-    orgId: input.ctx.orgId,
-    wallets: staleWallets.map((wallet) => ({
-      walletId: wallet.id,
-      projectId: wallet.projectId,
-    })),
-  });
-  const identities = new Map(
-    identityResult.identities.map((identity) => [identity.walletId, identity]),
-  );
+  const staleWallets = wallets.filter((wallet) => !freshKeys.has(consoleWalletKeyString(wallet)));
+  const identities = await loadWalletIdentities(input, staleWallets);
   const outcomes = await Promise.all(
     staleWallets.map((wallet) =>
       refreshWallet({
         wallet,
-        identity: identities.get(wallet.id),
+        identity: identities.get(consoleWalletKeyString(wallet)),
         observedAtMs,
         reader: input.reader,
       }),
@@ -491,10 +554,16 @@ export async function refreshD1ConsoleWalletBalances(
   if (statements.length > 0) await input.consoleDatabase.batch(statements);
   return {
     wallets: applySnapshots(wallets, snapshots),
-    refreshedWalletIds: snapshots.map((snapshot) => snapshot.walletId),
-    freshWalletIds: [...freshWalletIds],
+    refreshedWallets: snapshots.map((snapshot) => snapshot.wallet),
+    freshWallets: wallets
+      .filter((wallet) => freshKeys.has(consoleWalletKeyString(wallet)))
+      .map((wallet) => ({
+        id: wallet.id,
+        projectId: wallet.projectId,
+        environmentId: wallet.environmentId,
+      })),
     failures: outcomes.flatMap((outcome) =>
-      outcome.kind === 'failed' ? [{ walletId: outcome.walletId, message: outcome.message }] : [],
+      outcome.kind === 'failed' ? [{ wallet: outcome.wallet, message: outcome.message }] : [],
     ),
   };
 }

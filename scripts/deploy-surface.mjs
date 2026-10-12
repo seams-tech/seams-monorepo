@@ -34,27 +34,29 @@ function isDirectInvocation() {
 async function main(args) {
   const options = parseArguments(args);
   const site = readFrontendSite(options.site);
+  const walletLanes = selectWalletLanes(site, options);
   if (options.operation !== 'plan') assertDeploymentBranch(site);
   if (options.component === 'all') {
-    for (const surface of SURFACES) await runOperation(options.operation, site, surface);
+    for (const surface of SURFACES)
+      await runOperation(options.operation, site, surface, walletLanes);
     return;
   }
-  await runOperation(options.operation, site, options.component);
+  await runOperation(options.operation, site, options.component, walletLanes);
 }
 
-async function runOperation(operation, site, component) {
+async function runOperation(operation, site, component, walletLanes) {
   switch (operation) {
     case 'plan':
-      printPlan(site, component);
+      printPlan(site, component, walletLanes);
       return;
     case 'build':
-      buildFrontend(site, component);
+      buildFrontend(site, component, walletLanes);
       return;
     case 'deploy':
-      await deployFrontend(site, component);
+      await deployFrontend(site, component, walletLanes);
       return;
     case 'smoke':
-      await smokeFrontend(site, component);
+      await smokeFrontend(site, component, walletLanes);
       return;
     default:
       throw new Error(`Unsupported frontend operation: ${operation}`);
@@ -65,6 +67,7 @@ function parseArguments(args) {
   const operation = String(args[0] || '').trim();
   let site = '';
   let component = '';
+  let lane = '';
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--site') {
@@ -77,17 +80,40 @@ function parseArguments(args) {
       index += 1;
       continue;
     }
+    if (argument === '--lane') {
+      if (lane) throw new Error('--lane may only be provided once');
+      lane = requireArgumentValue(args, index, argument);
+      index += 1;
+      continue;
+    }
     throw new Error(usage());
   }
   if (!['plan', 'build', 'deploy', 'smoke'].includes(operation) || !site) throw new Error(usage());
   if (!COMPONENTS.includes(component)) {
     throw new Error(`--component must be ${COMPONENTS.join(', ')}`);
   }
-  return { operation, site, component };
+  if (lane && component !== 'wallet-host') {
+    throw new Error('--lane requires --component wallet-host');
+  }
+  return { operation, site, component, lane };
 }
 
 function usage() {
-  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-site|wallet-host>';
+  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-site|wallet-host> [--lane <lane>]';
+}
+
+function selectWalletLanes(site, options) {
+  if (!options.lane) return site.lanes;
+  for (const lane of site.lanes) {
+    if (lane.id === options.lane) return [lane];
+  }
+  throw new Error(`Lane ${options.lane} does not belong to site ${site.id}`);
+}
+
+function walletHostOutput(site, walletLanes) {
+  const [lane] = walletLanes;
+  const scope = walletLanes.length === 1 ? lane.id : `${site.id}-all`;
+  return path.join(WALLET_HOST_OUTPUT, scope);
 }
 
 function requireArgumentValue(args, index, name) {
@@ -96,7 +122,7 @@ function requireArgumentValue(args, index, name) {
   return value;
 }
 
-function printPlan(site, component) {
+function printPlan(site, component, walletLanes) {
   const lines = {
     company: [
       `Origin: ${site.origin}`,
@@ -110,7 +136,7 @@ function printPlan(site, component) {
       `Pages project environment: ${site.walletSitePagesProjectEnv}`,
       'Artifact: wallet landing page, dashboard, and exact public Wallet docs',
     ],
-    'wallet-host': site.lanes.flatMap((lane) => [
+    'wallet-host': walletLanes.flatMap((lane) => [
       `Hosted wallet (${lane.network}): ${lane.walletOrigin}`,
       `Pages project environment (${lane.network}): ${lane.walletPagesProjectEnv}`,
     ]),
@@ -120,7 +146,7 @@ function printPlan(site, component) {
   );
 }
 
-function buildFrontend(site, component) {
+function buildFrontend(site, component, walletLanes) {
   if (component === 'company') {
     runCommand('pnpm', ['-C', 'apps/seams-site', 'exec', 'vite', 'build'], {
       env: buildFrontendEnvironment(site, site.origin),
@@ -139,6 +165,7 @@ function buildFrontend(site, component) {
     assertFile(path.join(WALLET_SITE_OUTPUT, 'docs', 'index.html'), 'Wallet docs entry');
     return;
   }
+  const output = walletHostOutput(site, walletLanes);
   assertWalletSettingsExport();
   runCommand(
     'pnpm',
@@ -150,18 +177,17 @@ function buildFrontend(site, component) {
       'build',
       '--config',
       'wallet-host/vite.config.ts',
+      '--outDir',
+      output,
     ],
     {
       env: buildFrontendEnvironment(site, site.walletSiteOrigin),
     },
   );
-  copySdkAssets(WALLET_HOST_OUTPUT);
-  assertFile(path.join(WALLET_HOST_OUTPUT, 'index.html'), 'Wallet settings entry');
-  fs.writeFileSync(
-    path.join(WALLET_HOST_OUTPUT, '_redirects'),
-    '/wallet-settings /index.html 200\n',
-  );
-  assertFile(path.join(WALLET_HOST_OUTPUT, 'wallet-service', 'index.html'), 'wallet-service entry');
+  copySdkAssets(output);
+  assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
+  fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
+  assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
 }
 
 function writeCompanyCutoverFiles(site) {
@@ -245,7 +271,7 @@ export function buildFrontendEnvironment(site, frontendOrigin, sourceEnvironment
   return environment;
 }
 
-async function deployFrontend(site, component) {
+async function deployFrontend(site, component, walletLanes) {
   requireEnvironmentValues(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'], process.env);
   if (component === 'company') {
     requireEnvironmentValues([site.pagesProjectEnv], process.env);
@@ -258,11 +284,12 @@ async function deployFrontend(site, component) {
     deployPagesProject(WALLET_SITE_OUTPUT, site, project);
     await ensurePagesCustomDomain(site.walletSiteOrigin, project);
   } else {
-    const projectEnvironments = [...new Set(site.lanes.map((lane) => lane.walletPagesProjectEnv))];
+    const output = walletHostOutput(site, walletLanes);
+    const projectEnvironments = [...new Set(walletLanes.map((lane) => lane.walletPagesProjectEnv))];
     requireEnvironmentValues(projectEnvironments, process.env);
-    assertDirectory(WALLET_HOST_OUTPUT, 'Hosted wallet Pages output');
-    for (const lane of site.lanes) {
-      deployPagesProject(WALLET_HOST_OUTPUT, site, process.env[lane.walletPagesProjectEnv]);
+    assertDirectory(output, 'Hosted wallet Pages output');
+    for (const lane of walletLanes) {
+      deployPagesProject(output, site, process.env[lane.walletPagesProjectEnv]);
     }
   }
   process.stdout.write(`Frontend deploy completed: ${site.id}/${component}\n`);
@@ -313,8 +340,8 @@ async function requestCloudflareApi(apiPath, apiToken, method, expectedStatuses,
   );
 }
 
-async function smokeFrontend(site, component) {
-  const checks = buildSmokeChecks(site, component);
+async function smokeFrontend(site, component, walletLanes) {
+  const checks = buildSmokeChecks(site, component, walletLanes);
   const results = await runReadinessChecks(checks);
   const failed = results.filter(isFailedCheck);
   process.stdout.write(`${JSON.stringify({ results })}\n`);
@@ -323,7 +350,7 @@ async function smokeFrontend(site, component) {
   }
 }
 
-function buildSmokeChecks(site, component) {
+function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'company') return smokeChecks('company', site.origin, ['/']);
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
@@ -334,7 +361,7 @@ function buildSmokeChecks(site, component) {
       '/sdk/workers/near-signer.worker.js',
     ]);
   }
-  return site.lanes.flatMap((lane) =>
+  return walletLanes.flatMap((lane) =>
     smokeChecks(`wallet-${lane.network}`, lane.walletOrigin, [
       { path: '/', isReady: walletSettingsApplicationIsReady },
       { path: '/wallet-settings', isReady: walletSettingsApplicationIsReady },

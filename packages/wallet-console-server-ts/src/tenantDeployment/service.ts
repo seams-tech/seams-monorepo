@@ -3,6 +3,7 @@ import type { TenantDeploymentBindingStoreV1 } from './types';
 export type TenantDeploymentStoreErrorCodeV1 =
   | 'invalid_input'
   | 'invalid_record'
+  | 'deployment_resource_conflict'
   | 'binding_conflict'
   | 'binding_not_found'
   | 'activation_conflict'
@@ -33,6 +34,7 @@ function tenantDeploymentStoreErrorStatus(
     case 'cutover_not_found':
       return 404;
     case 'binding_conflict':
+    case 'deployment_resource_conflict':
     case 'activation_conflict':
     case 'cutover_conflict':
       return 409;

@@ -138,7 +138,7 @@ export function useDemoArcSigningActions(args: UseDemoArcSigningActionsArgs) {
       });
 
     try {
-      const execution = await seams.tempo.executeEvmFamilyTransaction({
+      const execution = await seams.evm.signAndSendTransaction({
         walletSession: walletSessionRefFromSession({
           walletId,
           walletSessionUserId: walletId,

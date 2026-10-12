@@ -772,6 +772,9 @@ export async function dispatchTenantRootRefreshOperationV1(
       'tenant_root_refresh_not_due',
     );
   } else {
+    // Another operation holds the Router lock, so this one was not admitted.
+    // It stays pending: a replay of this exact request is admitted once the
+    // lock frees, or the Router refuses it by its own revision and expiry.
     try {
       await writeTenantRootRefreshAuditEventV1(input, {
         action: 'rotation_requested',
@@ -783,12 +786,6 @@ export async function dispatchTenantRootRefreshOperationV1(
     } catch (error: unknown) {
       return { kind: 'unknown', error };
     }
-  }
-  if (refreshed.kind === 'in_progress') {
-    await input.dependencies.operations.markFailed(
-      input.entry.operationId,
-      'tenant_root_refresh_in_progress',
-    );
   }
   return refreshed;
 }

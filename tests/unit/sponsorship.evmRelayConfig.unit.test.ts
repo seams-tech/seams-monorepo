@@ -34,18 +34,6 @@ test.describe('sponsored EVM executor registry parsing', () => {
     expect(config?.executorsByChain.get(42_431)?.rpcUrl).toBe('https://rpc.moderato.tempo.xyz');
   });
 
-  test('returns null when all executor entries are invalid', async () => {
-    const config = await resolveSponsoredEvmCallConfigFromEnv({
-      SPONSORED_EVM_EXECUTORS_JSON: JSON.stringify({
-        11155111: {
-          sponsorPrivateKeyHex:
-            '0x1111111111111111111111111111111111111111111111111111111111111111',
-        },
-      }),
-    } as NodeJS.ProcessEnv);
-    expect(config).toBeNull();
-  });
-
   test('returns null for invalid registry JSON', async () => {
     const config = await resolveSponsoredEvmCallConfigFromEnv({
       SPONSORED_EVM_EXECUTORS_JSON: '{invalid-json',

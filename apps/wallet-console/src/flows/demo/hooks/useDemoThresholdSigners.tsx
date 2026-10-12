@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import { walletSessionRefFromSession } from '@seams/wallet/advanced';
+import { useCallback, useState } from 'react';
 import { useSeams } from '@seams/wallet/react';
 
-import { FRONTEND_CONFIG, type FrontendConfig } from '@/config';
+import type { FrontendConfig } from '@/config';
 import { isTempoAlphaUsdFeeToken } from '../demoEvmHelpers';
-import { resolveDemoThresholdEcdsaChainTarget } from '../demoChainTargets';
 import { useDemoArcSigningActions } from './useDemoArcSigningActions';
 import { useDemoEip1559FeeCaps } from './useDemoEip1559FeeCaps';
 import { useDemoEvmGreetings } from './useDemoEvmGreetings';
@@ -57,25 +55,6 @@ export function useDemoThresholdSigners(args: UseDemoThresholdSignersArgs) {
   } = args;
   const tempoEnabled = args.tempoEnabled ?? true;
   const arcEnabled = args.arcEnabled ?? true;
-
-  useEffect(() => {
-    if (!isLoggedIn || !walletId) return;
-    const walletSession = walletSessionRefFromSession({
-      walletId,
-      walletSessionUserId: walletId,
-    });
-    const chains = frontendConfig?.chains ?? FRONTEND_CONFIG.chains;
-    void Promise.all([
-      seams.auth.prefillRouterAbEcdsaDerivationPresignaturePool({
-        walletSession,
-        chainTarget: resolveDemoThresholdEcdsaChainTarget('tempo', chains),
-      }),
-      seams.auth.prefillRouterAbEcdsaDerivationPresignaturePool({
-        walletSession,
-        chainTarget: resolveDemoThresholdEcdsaChainTarget('evm', chains),
-      }),
-    ]).catch(() => undefined);
-  }, [frontendConfig?.chains, isLoggedIn, seams, walletId]);
 
   const { tempoEip1559FeeCaps, arcEip1559FeeCaps } = useDemoEip1559FeeCaps({
     tempoEnabled,

@@ -46,7 +46,7 @@ function localSiteEnvironment(environment) {
     ]),
     VITE_CONSOLE_BASE_URL: firstNonEmptyString([
       environment.VITE_CONSOLE_BASE_URL,
-      'https://localhost:4101',
+      'http://localhost:4001',
     ]),
     VITE_WALLET_ORIGIN: firstNonEmptyString([
       environment.VITE_WALLET_ORIGIN,

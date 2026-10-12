@@ -1099,6 +1099,10 @@ function isGasSponsorshipPolicyEnabled(policy: DashboardGasSponsorshipPolicy): b
   return policy.publicationStatus === 'PUBLISHED' && policy.enabled;
 }
 
+function closePolicyView(modal: GasSponsorshipModalKind | null): GasSponsorshipModalKind | null {
+  return modal === 'view' ? null : modal;
+}
+
 export function GasSponsorshipPage(): React.JSX.Element {
   const { go } = useSiteRouter();
   const session = useDashboardConsoleSession();
@@ -1407,7 +1411,34 @@ export function GasSponsorshipPage(): React.JSX.Element {
     setActiveModal(null);
     setMutationError('');
     setModalInitialForm(createInitialFormState(selectedProjectId, selectedEnvironmentId));
-  }, [selectedEnvironmentId, selectedProjectId]);
+    if (new URLSearchParams(window.location.search).has('policyId')) {
+      go('/dashboard/gas-sponsorship');
+    }
+  }, [go, selectedEnvironmentId, selectedProjectId]);
+
+  const openPolicyFromRoute = React.useCallback(() => {
+    if (window.location.pathname !== '/dashboard/gas-sponsorship') return;
+    const policyId = new URLSearchParams(window.location.search).get('policyId')?.trim();
+    if (!policyId) {
+      setActiveModal(closePolicyView);
+      return;
+    }
+    setEditingPolicyId('');
+    setSelectedPolicyId(policyId);
+    setModalScope(null);
+    setActiveModal('view');
+    setMutationError('');
+  }, []);
+
+  React.useEffect(() => {
+    openPolicyFromRoute();
+    window.addEventListener('popstate', openPolicyFromRoute);
+    window.addEventListener('site:navigate', openPolicyFromRoute);
+    return () => {
+      window.removeEventListener('popstate', openPolicyFromRoute);
+      window.removeEventListener('site:navigate', openPolicyFromRoute);
+    };
+  }, [openPolicyFromRoute]);
 
   const openCreateModal = React.useCallback(() => {
     setEditingPolicyId('');
@@ -2185,7 +2216,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
                 </>
               ) : (
                 <p className="dashboard-pagination-note">
-                  This sponsorship policy is no longer available.
+                  {loading
+                    ? 'Loading sponsorship policy...'
+                    : errorMessage || 'This sponsorship policy is no longer available.'}
                 </p>
               )}
               <div className="dashboard-form-actions">

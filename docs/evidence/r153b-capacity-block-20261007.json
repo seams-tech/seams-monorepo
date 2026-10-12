@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-07",
+  "scope": "Wallet-local final relocation capacity block after destination preparation",
+  "verification": {
+    "public": "node tests/e2e/authorization-storage-transfer.e2e.mjs",
+    "private": "SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server pnpm -C tests test:relayer wallet-relocation-directory.e2e.test.ts --output=/tmp/r153b-capacity-private",
+    "result": "passed",
+    "wallet_server_typecheck": "passed",
+    "changed_console_module_typecheck": "passed",
+    "changed_private_files_eslint": "passed",
+    "wallet_bloat_check": "passed"
+  },
+  "artifacts": [
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet/.artifacts/r153/authorization-storage-transfer/evidence.json",
+      "sha256": "75eb7297a193bb40ecd1e09818e9b0f89e9dc96cd8c4362a90919e636050004e"
+    },
+    {
+      "path": "/tmp/r153b-capacity-private/relayer-wallet-relocation--210c4-es-lost-replies-and-restart/wallet-relocation-directory-evidence.json",
+      "sha256": "d22403c4a2a4053d1ef84f1e47f55aa6ec1880d36455787d72e677b008f70b1d"
+    }
+  ],
+  "deployment": {
+    "state": "deployed_staging",
+    "signer_migration": "0076_wallet_relocation_write_block.sql",
+    "console_migration": "0090_wallet_relocation_capacity.sql",
+    "console_prerequisite": "0089_wallet_relocation_driver.sql",
+    "requirement": "Deploy matching Gateway and Console candidates after applying migrations. No new environment variables.",
+    "hosted_receipt": "r153b-capacity-hosted-20261007.json"
+  },
+  "recovery": "A 30-second admission deadline permits existing cron to release unadmitted blocks. Admitted moves keep their fence and resume forward. Hosted signing and cleanup completed in both directions; the return exceeded the 60-second pause requirement.",
+  "wallet_commit": "35415be9ccf6a2143a0ba3ff639a81166d41aadb"
+}

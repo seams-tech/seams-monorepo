@@ -1,6 +1,6 @@
 # SaaS DB Schema Plan
 
-Date updated: July 26, 2026
+Date updated: October 3, 2026
 
 Related implementation plan:
 
@@ -52,6 +52,79 @@ Use Cloudflare D1 plus Durable Objects for local development and first staging:
   - signer rows include the narrowest required custody identity,
   - every query and mutation binds tenant scope in SQL predicates,
   - route-policy middleware validates caller scope before store calls.
+
+### Wallet projection identity
+
+Console migration `0053_wallet_projection_identity.sql` keys `wallet_index` by
+`(namespace, org_id, project_id, environment_id, id)`. Its address uniqueness and
+`wallet_balance_snapshots` foreign key use the same scope. Equal wallet IDs and
+addresses in different projects/environments remain separate rows. The migration
+preserves wallet metadata, resets the derived balance and invalidates the old
+cache; subsequent scoped refreshes repopulate it.
+
+Console `environment_id` is the environment's database ID. Signer `env_id` is its
+runtime key (`dev`, `staging`, or `prod`). The balance reader resolves this mapping
+through the exact Console namespace/organization/project before querying Runtime;
+Runtime requests and responses retain `projectId`, `envId`, and `walletId`.
+Namespace comes from the Runtime deployment; organization comes from the Console
+service request. Neither identifier is inferred from a wallet ID.
+
+`GET /console/wallets/:id` requires `projectId` and `environmentId` query fields.
+The API-key wallet lookup requires `projectId` and takes the environment from the
+credential. Balance refresh accepts
+`{ wallets: [{ id, projectId, environmentId }] }` (1–10 keys); results identify
+`refreshedWallets`, `freshWallets` and failed `wallet` entries by the same key.
+Old ID-only requests and cursors have no compatibility path. Pagination and
+frontend merge/expansion keys use the complete scoped identity.
+
+The repeatable acceptance scenario is
+`tests/relayer/wallet-identity-scope.e2e.test.ts`, run with
+`SEAMS_WALLET_SERVER_CANDIDATE` pointing at an extracted Wallet Server candidate.
+It attaches `wallet-identity-evidence.json`, containing migration and candidate
+hashes, scoped results and database readback. These are local correctness checks;
+regional dispatch and geographic latency verification remain separate R152 work.
+
+### Wallet placement authority
+
+`wallet_homes` retains the wallet's full scope and immutable founding-registration
+allocation. Migration `0070_wallet_relocations.sql` adds a required
+`ownership_generation` and `placement_state` (`active` or `paused`). Registration
+completion remains a separate lifecycle transition.
+
+`wallet_relocations` journals each admitted move under the wallet scope and move
+ID. It binds a canonical request digest, initiating authority, source/destination
+resources, consecutive generations, admission time, role receipt digests and
+progress. One pending move and a five-minute admission interval apply across the
+wallet. Exact retries reuse that journal; selecting the active current home causes
+no transfer. The initiating authority may belong to a linked owner device and is
+distinct from the founding allocation.
+
+Admission pauses the directory atomically. Ordinary home/session/lifecycle
+resolution and home-owned locator publication respect this pause. Conditional
+progress requires source-fence and destination-verification receipts before the
+atomic home/generation switch. Identity, recorded receipts and move history remain
+immutable. An interrupted move stays at its durable phase for reconciliation.
+
+Migration `0071_wallet_relocation_execution.sql` adds durable stage attempts,
+revision-based claims, retry deadlines and explicit blocked recovery. Each stage
+allows six attempts; transient failures back off by 1, 2, 4, 8 and 16 seconds.
+Conflicts block immediately. Restart and status reads preserve the budget; an
+internal recovery action advances the recorded recovery run. A claimed running
+attempt is resumed by its identity rather than expiring into a second writer.
+Phase transitions require that current attempt. Completion requires destination
+activation and source cleanup receipts bound to the same manifest as the source
+fence and destination verification, with ordered timestamps. A timestamp alone
+cannot complete a move. Exact admission replay precedes new catalog validation.
+
+The migration requires an empty relocation journal under the planned disposable
+wallet reset; it does not infer missing evidence for old journal rows. Retirement
+and completion evidence remain immutable. Receipt parsing validates structure and
+bindings; production issuer authentication is still required in orchestration.
+
+This storage primitive is currently internal to implementation; no owner move
+endpoint is enabled. Actual owner authentication, per-writer fencing, transfer,
+receipt production and cleanup must be connected before relocation is executable.
+The directory E2E's synthetic receipts validate journal behavior only.
 
 ### Enterprise isolation tier
 

@@ -1,0 +1,1660 @@
+{
+  "status": "passed",
+  "date": "2026-10-07",
+  "candidate": {
+    "public": "7d9956879187ae410518d9ec02de96fb5056a52b",
+    "private": "2e597ab2cd38df9dce30d69367ed10db3becd23d",
+    "hostedTest": "d825fdf9b86ef7e307a5e6907692f682c9053350"
+  },
+  "activation": {
+    "conclusion": "success",
+    "status": "completed",
+    "updatedAt": "2026-10-07T08:46:37Z",
+    "url": "https://github.com/seams-tech/seams-monorepo/actions/runs/37595927309"
+  },
+  "deployments": {
+    "observedAt": "2026-10-07T08:45:51.121292+00:00",
+    "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+    "workers": [
+      {
+        "worker": "seams-sdk-d1-console-staging",
+        "deployment": {
+          "id": "5a26501a-18cf-4d2f-9f56-0cc08b33d769",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "ffe8e062-b10c-4702-a64d-538a101a09ff",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:41:38.479756Z"
+        },
+        "versionId": "ffe8e062-b10c-4702-a64d-538a101a09ff",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 12,
+              "region": "aws:ap-northeast-1",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "database_id": "f77260ef-0f8a-4063-9cab-ab648536f473",
+            "id": "f77260ef-0f8a-4063-9cab-ab648536f473",
+            "name": "CONSOLE_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_APAC",
+            "service": "seams-sdk-d1-gateway-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_OC",
+            "service": "seams-sdk-d1-gateway-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_US",
+            "service": "seams-sdk-d1-gateway-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_WEUR",
+            "service": "seams-sdk-d1-gateway-staging-weur",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_RUNTIME",
+            "service": "seams-sdk-d1-wallet-runtime-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_RUNTIME_APAC",
+            "service": "seams-sdk-d1-wallet-runtime-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_RUNTIME_OC",
+            "service": "seams-sdk-d1-wallet-runtime-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_RUNTIME_US",
+            "service": "seams-sdk-d1-wallet-runtime-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_RUNTIME_WEUR",
+            "service": "seams-sdk-d1-wallet-runtime-staging-weur",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-deriver-a-staging",
+        "deployment": {
+          "id": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets cf37b54a with authenticated placement daa32409",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:04:25.549751Z"
+        },
+        "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+        "placement": null,
+        "bindings": [
+          {
+            "class_name": "RouterAbDeriverAWalletDurableObject",
+            "name": "DERIVER_A_WALLET_DO",
+            "namespace_id": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "type": "durable_object_namespace"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "d3c9913a-dde7-4d49-a1a4-6cd233feb871",
+            "id": "d3c9913a-dde7-4d49-a1a4-6cd233feb871",
+            "name": "DERIVER_ROLE_PRIVATE_DB",
+            "type": "d1"
+          },
+          {
+            "class_name": "RouterAbTenantRootCreationDurableObject",
+            "name": "ROUTER_TENANT_ROOT_CREATION_DO",
+            "namespace_id": "7ea0fdbe64494ca19a3aec3d8aa965a8",
+            "script_name": "router-ab-mpc-router-staging",
+            "type": "durable_object_namespace"
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-deriver-b-staging",
+        "deployment": {
+          "id": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets cf37b54a with authenticated placement daa32409",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:04:34.468973Z"
+        },
+        "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+        "placement": null,
+        "bindings": [
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "class_name": "RouterAbDeriverBWalletDurableObject",
+            "name": "DERIVER_B_WALLET_DO",
+            "namespace_id": "a540cd6703c346739e5ce723b0ad102b",
+            "type": "durable_object_namespace"
+          },
+          {
+            "database_id": "28a7088b-dc6e-433f-a87f-5719e2d111d6",
+            "id": "28a7088b-dc6e-433f-a87f-5719e2d111d6",
+            "name": "DERIVER_ROLE_PRIVATE_DB",
+            "type": "d1"
+          },
+          {
+            "class_name": "RouterAbTenantRootCreationDurableObject",
+            "name": "ROUTER_TENANT_ROOT_CREATION_DO",
+            "namespace_id": "7ea0fdbe64494ca19a3aec3d8aa965a8",
+            "script_name": "router-ab-mpc-router-staging",
+            "type": "durable_object_namespace"
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-mpc-router-staging",
+        "deployment": {
+          "id": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets cf37b54a with authenticated placement daa32409",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:04:16.238026Z"
+        },
+        "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+        "placement": null,
+        "bindings": [
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "class_name": "RouterAbTenantRootCreationDurableObject",
+            "name": "ROUTER_TENANT_ROOT_CREATION_DO",
+            "namespace_id": "7ea0fdbe64494ca19a3aec3d8aa965a8",
+            "type": "durable_object_namespace"
+          },
+          {
+            "class_name": "RouterAbRouterWalletDurableObject",
+            "name": "ROUTER_WALLET_DO",
+            "namespace_id": "2b81eb9d65b14ed68740c71439af60cf",
+            "type": "durable_object_namespace"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "TENANT_ROOT_CONTROL_PLANE",
+            "service": "router-ab-tenant-root-control-plane-staging",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "router-ab-signing-worker-staging",
+        "deployment": {
+          "id": "59f13071-eb39-4b83-b017-82515f1b66f8",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "c18b2202-8063-4c96-9772-fb1a268494fc",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:44:39.957938Z"
+        },
+        "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+        "placement": null,
+        "bindings": [
+          {
+            "class_name": "RouterAbSigningWorkerPresignSessionDurableObject",
+            "name": "SIGNING_WORKER_PRESIGN_SESSION_DO",
+            "namespace_id": "dcb359bcb071454a9f2c97d37813b8c4",
+            "type": "durable_object_namespace"
+          },
+          {
+            "database_id": "7954025b-3ca9-43e7-beba-86b19160397c",
+            "id": "7954025b-3ca9-43e7-beba-86b19160397c",
+            "name": "SIGNING_WORKER_PRIVATE_DB",
+            "type": "d1"
+          },
+          {
+            "class_name": "RouterAbSigningWorkerWalletDurableObject",
+            "name": "SIGNING_WORKER_WALLET_DO",
+            "namespace_id": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "type": "durable_object_namespace"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging",
+        "deployment": {
+          "id": "5962e063-8620-4078-8115-513fb2103f71",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "6bcf635e-a9ac-46fe-8981-3145136a49d0",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:44:59.763851Z"
+        },
+        "versionId": "6bcf635e-a9ac-46fe-8981-3145136a49d0",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 24,
+              "region": "aws:ap-east-1",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f",
+            "id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_APAC",
+            "service": "seams-sdk-d1-gateway-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_OC",
+            "service": "seams-sdk-d1-gateway-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_US",
+            "service": "seams-sdk-d1-gateway-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_WEUR",
+            "service": "seams-sdk-d1-gateway-staging-weur",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-oc",
+        "deployment": {
+          "id": "7e0ba785-7c65-4a51-a0ae-bbc8c3eb30e5",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "2f555f9a-bca7-43b1-87e8-f50d9ffcd18c",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:45:13.121671Z"
+        },
+        "versionId": "2f555f9a-bca7-43b1-87e8-f50d9ffcd18c",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 31,
+              "region": "aws:ap-southeast-2",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e",
+            "id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_APAC",
+            "service": "seams-sdk-d1-gateway-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_OC",
+            "service": "seams-sdk-d1-gateway-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_US",
+            "service": "seams-sdk-d1-gateway-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_WEUR",
+            "service": "seams-sdk-d1-gateway-staging-weur",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-us",
+        "deployment": {
+          "id": "a538f975-bc85-44a4-b513-ccdbf63549b0",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "4fb33bc0-3e64-424e-ad1e-b5fc81ccd4cb",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:44:46.815784Z"
+        },
+        "versionId": "4fb33bc0-3e64-424e-ad1e-b5fc81ccd4cb",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 1,
+              "region": "aws:us-east-1",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe",
+            "id": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_APAC",
+            "service": "seams-sdk-d1-gateway-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_OC",
+            "service": "seams-sdk-d1-gateway-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_US",
+            "service": "seams-sdk-d1-gateway-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_WEUR",
+            "service": "seams-sdk-d1-gateway-staging-weur",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-gateway-staging-weur",
+        "deployment": {
+          "id": "570d487d-1502-4767-b850-8604092e1ab2",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "19cb5a5b-a00a-46b5-beff-7dd0096a506b",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:44:54.253284Z"
+        },
+        "versionId": "19cb5a5b-a00a-46b5-beff-7dd0096a506b",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 43,
+              "region": "aws:eu-west-2",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037",
+            "id": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_APAC",
+            "service": "seams-sdk-d1-gateway-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_OC",
+            "service": "seams-sdk-d1-gateway-staging-oc",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_US",
+            "service": "seams-sdk-d1-gateway-staging-us",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_GATEWAY_WEUR",
+            "service": "seams-sdk-d1-gateway-staging-weur",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging",
+        "deployment": {
+          "id": "0302b3a2-5e58-4a8d-972e-3a9db6632857",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets 464a0d5",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "ba435195-8e73-4aad-8fe2-fe4233d50092",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:06:47.868792Z"
+        },
+        "versionId": "ba435195-8e73-4aad-8fe2-fe4233d50092",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 24,
+              "region": "aws:ap-east-1",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f",
+            "id": "c1c85721-6a76-4b60-8f08-5a574f97cb8f",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "TENANT_ROOT_CONTROL_PLANE",
+            "service": "router-ab-tenant-root-control-plane-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-oc",
+        "deployment": {
+          "id": "e2ed148b-a014-4176-bcfe-670605c1f0c4",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets 464a0d5",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "d43c21e9-3c86-469e-8755-c5745fcb49a7",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:06:53.496432Z"
+        },
+        "versionId": "d43c21e9-3c86-469e-8755-c5745fcb49a7",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 31,
+              "region": "aws:ap-southeast-2",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e",
+            "id": "053da1ac-afa9-4f88-8e2b-b78b49c2310e",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "TENANT_ROOT_CONTROL_PLANE",
+            "service": "router-ab-tenant-root-control-plane-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-us",
+        "deployment": {
+          "id": "e2d52923-0a57-43e9-8e9c-9a017d103f68",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets 464a0d5",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "27675e94-13a6-4c2d-9c83-cc746af61387",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:06:37.21041Z"
+        },
+        "versionId": "27675e94-13a6-4c2d-9c83-cc746af61387",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 1,
+              "region": "aws:us-east-1",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe",
+            "id": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "TENANT_ROOT_CONTROL_PLANE",
+            "service": "router-ab-tenant-root-control-plane-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          }
+        ]
+      },
+      {
+        "worker": "seams-sdk-d1-wallet-runtime-staging-weur",
+        "deployment": {
+          "id": "23303eca-7c7f-44c4-8a1e-7022458ce793",
+          "source": "wrangler",
+          "strategy": "percentage",
+          "author_email": "n6378056@gmail.com",
+          "annotations": {
+            "workers/message": "R153 custody targets 464a0d5",
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "3879a02b-1f34-4541-8983-96f1998d9a0a",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-10-07T08:06:42.757857Z"
+        },
+        "versionId": "3879a02b-1f34-4541-8983-96f1998d9a0a",
+        "placement": {
+          "mode": "targeted",
+          "target": [
+            {
+              "id": 43,
+              "region": "aws:eu-west-2",
+              "type": "region"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "name": "CF_VERSION_METADATA",
+            "type": "version_metadata"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_A",
+            "service": "router-ab-deriver-a-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "DERIVER_B",
+            "service": "router-ab-deriver-b-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "MPC_ROUTER",
+            "service": "router-ab-mpc-router-staging",
+            "type": "service"
+          },
+          {
+            "database_id": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037",
+            "id": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037",
+            "name": "SIGNER_DB",
+            "type": "d1"
+          },
+          {
+            "environment": "production",
+            "name": "SIGNING_WORKER",
+            "service": "router-ab-signing-worker-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "TENANT_ROOT_CONTROL_PLANE",
+            "service": "router-ab-tenant-root-control-plane-staging",
+            "type": "service"
+          },
+          {
+            "environment": "production",
+            "name": "WALLET_CONSOLE",
+            "service": "seams-sdk-d1-console-staging",
+            "type": "service"
+          }
+        ]
+      }
+    ]
+  },
+  "regionalD1Placement": {
+    "observedAt": "2026-10-07T08:53:27.881607+00:00",
+    "databases": [
+      {
+        "region": "US",
+        "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+        "databaseId": "fa0c40a1-42b0-41ea-b7dd-852e2e403abe",
+        "migration0075": true,
+        "servedByPrimary": true,
+        "primaryColo": "IAD",
+        "primaryRegion": "ENAM"
+      },
+      {
+        "region": "WEUR",
+        "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+        "databaseId": "2b8416ab-68f9-4b26-a9b3-cff12d8c2037",
+        "migration0075": true,
+        "servedByPrimary": true,
+        "primaryColo": "LHR",
+        "primaryRegion": "WEUR"
+      },
+      {
+        "region": "APAC",
+        "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+        "databaseId": "c1c85721-6a76-4b60-8f08-5a574f97cb8f",
+        "migration0075": true,
+        "servedByPrimary": true,
+        "primaryColo": "HKG",
+        "primaryRegion": "APAC"
+      },
+      {
+        "region": "OC",
+        "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+        "databaseId": "053da1ac-afa9-4f88-8e2b-b78b49c2310e",
+        "migration0075": true,
+        "servedByPrimary": true,
+        "primaryColo": "SYD",
+        "primaryRegion": "OC"
+      }
+    ]
+  },
+  "moves": [
+    {
+      "walletId": "warm-pebble-c3fvtk",
+      "moveId": "wmove_IklcnkGKd_V4hXnaJUcoXntWfn9Jnj211WrsN4Av9is",
+      "sourceRegion": "APAC",
+      "destinationRegion": "US",
+      "sourceGeneration": 1,
+      "destinationGeneration": 2,
+      "state": "completed",
+      "pauseMs": 513190,
+      "admissionThroughCleanupMs": 670515,
+      "custodyTargets": {
+        "router": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject",
+            "region": "APAC",
+            "generation": 1,
+            "objectName": "router-wallet-e75719b5ea2f92335a37ea10f65867317afc527da5b07e3e779abe750be38980",
+            "objectId": "972905140f498414b922225bfe484b6b15989a47cfaa36d9733332b12f860d15",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "router-wallet-a236c7337993cb4580a4a9b45103b1c0a67ac5d7dfca1d8ebda6596a136a4a95",
+            "objectId": "08839f7a27f4dde51165d770b9ce7e4dc96ddef2d6b78c292f1fa9afd89523f5",
+            "observedLocation": {
+              "colo": "ORD",
+              "country": "US"
+            }
+          }
+        },
+        "deriverA": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject",
+            "region": "APAC",
+            "generation": 1,
+            "objectName": "deriver-a-wallet-0b02e2f090eab022f29bba9c112672f64695cf3f8398746f321a5781df802090",
+            "objectId": "e2a368fae58edda0b8415ca61312ae6ebfeee22a9a298b5cb79d3d40b59e6b62",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "deriver-a-wallet-0b02e2f090eab022f29bba9c112672f64695cf3f8398746f321a5781df802090/generation/2",
+            "objectId": "7585599bb79dedad8935570a0880049e49d13ecd925992b0cdd178cda9b41824",
+            "observedLocation": {
+              "colo": "ATL",
+              "country": "US"
+            }
+          }
+        },
+        "deriverB": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject",
+            "region": "APAC",
+            "generation": 1,
+            "objectName": "deriver-b-wallet-450c51d4c1b0a451343c6a752138cd31a8baaae6e371177cdc917e9b0c2d1088",
+            "objectId": "dcdec44161f4b10b4e63a71343cdea121240c7944f189f720c7c44339a340487",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "deriver-b-wallet-450c51d4c1b0a451343c6a752138cd31a8baaae6e371177cdc917e9b0c2d1088/generation/2",
+            "objectId": "0fa249d0bb5889f8c64656177fda055429b9dbac8ba70af26e1e5ed394942f23",
+            "observedLocation": {
+              "colo": "ATL",
+              "country": "US"
+            }
+          }
+        },
+        "signingWorker": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject",
+            "region": "APAC",
+            "generation": 1,
+            "objectName": "signing-worker-wallet-dc84c1527523881e1348f9803272cba28b18601b08a4412a2544ba508f1c4306",
+            "objectId": "6850fabf42b996d7cc93bdbc8185c1f680741e77499059ee664b9520e09c5b1b",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "signing-worker-wallet-dc84c1527523881e1348f9803272cba28b18601b08a4412a2544ba508f1c4306/generation/2",
+            "objectId": "fc5259a6f485294dbc0cb2a0c9bfdbd482e4562fb08fded31a3380f7dad8dd60",
+            "observedLocation": {
+              "colo": "IAD",
+              "country": "US"
+            }
+          }
+        },
+        "presignSessions": []
+      },
+      "custodyNamespaces": {
+        "source": {
+          "router": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject"
+          },
+          "deriverA": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject"
+          },
+          "deriverB": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject"
+          },
+          "signingWorker": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject"
+          },
+          "presignSessions": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "dcb359bcb071454a9f2c97d37813b8c4",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerPresignSessionDurableObject",
+            "objectNamePrefix": "signing-worker-presign-session"
+          }
+        },
+        "destination": {
+          "router": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject"
+          },
+          "deriverA": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject"
+          },
+          "deriverB": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject"
+          },
+          "signingWorker": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject"
+          },
+          "presignSessions": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "dcb359bcb071454a9f2c97d37813b8c4",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerPresignSessionDurableObject",
+            "objectNamePrefix": "signing-worker-presign-session"
+          }
+        }
+      }
+    },
+    {
+      "walletId": "warm-pebble-c3fvtk",
+      "moveId": "wmove_IemIodB2vk1whbIms--QK_odmAPkFUbxRK5rs88OCgI",
+      "sourceRegion": "US",
+      "destinationRegion": "APAC",
+      "sourceGeneration": 2,
+      "destinationGeneration": 3,
+      "state": "completed",
+      "pauseMs": 744056,
+      "admissionThroughCleanupMs": 922834,
+      "custodyTargets": {
+        "router": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "router-wallet-a236c7337993cb4580a4a9b45103b1c0a67ac5d7dfca1d8ebda6596a136a4a95",
+            "objectId": "08839f7a27f4dde51165d770b9ce7e4dc96ddef2d6b78c292f1fa9afd89523f5",
+            "observedLocation": {
+              "colo": "ORD",
+              "country": "US"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject",
+            "region": "APAC",
+            "generation": 3,
+            "objectName": "router-wallet-6deca4bad7daf59e01aa0cee668e68764c5cfd48a473b8aff211cfbec9bd43ec",
+            "objectId": "27d85a386d6f3d8af8a15347dcf94b44c34d4aadf9d050be01aa31e3ec86cc50",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          }
+        },
+        "deriverA": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "deriver-a-wallet-0b02e2f090eab022f29bba9c112672f64695cf3f8398746f321a5781df802090/generation/2",
+            "objectId": "7585599bb79dedad8935570a0880049e49d13ecd925992b0cdd178cda9b41824",
+            "observedLocation": {
+              "colo": "ATL",
+              "country": "US"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject",
+            "region": "APAC",
+            "generation": 3,
+            "objectName": "deriver-a-wallet-0b02e2f090eab022f29bba9c112672f64695cf3f8398746f321a5781df802090/generation/3",
+            "objectId": "dc09ceb314a47520f1077907b4c89dfbfafe0b21e4a0fa0d6b9fa5111840ddf8",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          }
+        },
+        "deriverB": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "deriver-b-wallet-450c51d4c1b0a451343c6a752138cd31a8baaae6e371177cdc917e9b0c2d1088/generation/2",
+            "objectId": "0fa249d0bb5889f8c64656177fda055429b9dbac8ba70af26e1e5ed394942f23",
+            "observedLocation": {
+              "colo": "ATL",
+              "country": "US"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject",
+            "region": "APAC",
+            "generation": 3,
+            "objectName": "deriver-b-wallet-450c51d4c1b0a451343c6a752138cd31a8baaae6e371177cdc917e9b0c2d1088/generation/3",
+            "objectId": "bba7082b48c091c4a3fc55512535e511e69013f0a7fc9c3bb2f03b24be4dfb56",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          }
+        },
+        "signingWorker": {
+          "source": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject",
+            "region": "US",
+            "generation": 2,
+            "objectName": "signing-worker-wallet-dc84c1527523881e1348f9803272cba28b18601b08a4412a2544ba508f1c4306/generation/2",
+            "objectId": "fc5259a6f485294dbc0cb2a0c9bfdbd482e4562fb08fded31a3380f7dad8dd60",
+            "observedLocation": {
+              "colo": "IAD",
+              "country": "US"
+            }
+          },
+          "destination": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject",
+            "region": "APAC",
+            "generation": 3,
+            "objectName": "signing-worker-wallet-dc84c1527523881e1348f9803272cba28b18601b08a4412a2544ba508f1c4306/generation/3",
+            "objectId": "bc84fd951a12369e289fe616382e1ee401d660a33a5e16f62d384e18961a6787",
+            "observedLocation": {
+              "colo": "HKG",
+              "country": "HK"
+            }
+          }
+        },
+        "presignSessions": []
+      },
+      "custodyNamespaces": {
+        "source": {
+          "router": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject"
+          },
+          "deriverA": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject"
+          },
+          "deriverB": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject"
+          },
+          "signingWorker": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject"
+          },
+          "presignSessions": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "dcb359bcb071454a9f2c97d37813b8c4",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerPresignSessionDurableObject",
+            "objectNamePrefix": "signing-worker-presign-session"
+          }
+        },
+        "destination": {
+          "router": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "2b81eb9d65b14ed68740c71439af60cf",
+            "workerName": "router-ab-mpc-router-staging",
+            "deploymentId": "ab059f6b-6983-4cc7-ad26-fe690507f0dc",
+            "versionId": "cff2b41d-1fa2-4311-a8ce-56364c7ddf1a",
+            "className": "RouterAbRouterWalletDurableObject"
+          },
+          "deriverA": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "7d9b6c02a3124bcba7f43dd5ae1ae212",
+            "workerName": "router-ab-deriver-a-staging",
+            "deploymentId": "d0626a67-7fc9-4f7d-8448-da8ad7c41ceb",
+            "versionId": "eaa0b80f-47bf-44a9-b9b5-4f73a70abcd0",
+            "className": "RouterAbDeriverAWalletDurableObject"
+          },
+          "deriverB": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "a540cd6703c346739e5ce723b0ad102b",
+            "workerName": "router-ab-deriver-b-staging",
+            "deploymentId": "0c4ec74c-209e-413e-bdd1-75e4a81e7023",
+            "versionId": "c700bbc1-b87f-4182-9f64-ff2bf33eead8",
+            "className": "RouterAbDeriverBWalletDurableObject"
+          },
+          "signingWorker": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "d4783b60b4bc4d54bb49c9a352ba89e9",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerWalletDurableObject"
+          },
+          "presignSessions": {
+            "accountId": "ba924da36f2ffc3839e8d323000b66b4",
+            "namespaceId": "dcb359bcb071454a9f2c97d37813b8c4",
+            "workerName": "router-ab-signing-worker-staging",
+            "deploymentId": "59f13071-eb39-4b83-b017-82515f1b66f8",
+            "versionId": "c18b2202-8063-4c96-9772-fb1a268494fc",
+            "className": "RouterAbSigningWorkerPresignSessionDurableObject",
+            "objectNamePrefix": "signing-worker-presign-session"
+          }
+        }
+      }
+    }
+  ],
+  "signingSamples": [
+    {
+      "stage": "before_0",
+      "publicSdkCallMs": 1755.4249999523163,
+      "commitMs": 726.2999999523163,
+      "refillWaitMs": null,
+      "foregroundRefillMs": null
+    },
+    {
+      "stage": "before_1",
+      "publicSdkCallMs": 2613.985000014305,
+      "commitMs": 2071.2000000476837,
+      "refillWaitMs": 965.5999999046326,
+      "foregroundRefillMs": null
+    },
+    {
+      "stage": "first_after",
+      "publicSdkCallMs": 2255.4199999570847,
+      "commitMs": 1896.7999999523163,
+      "refillWaitMs": null,
+      "foregroundRefillMs": null
+    },
+    {
+      "stage": "steady_after_1",
+      "publicSdkCallMs": 2783.024999976158,
+      "commitMs": 2465.8000000715256,
+      "refillWaitMs": 974.7999999523163,
+      "foregroundRefillMs": null
+    },
+    {
+      "stage": "steady_after_2",
+      "publicSdkCallMs": 2882.6749999523163,
+      "commitMs": 2439.2000000476837,
+      "refillWaitMs": 1020.4000000953674,
+      "foregroundRefillMs": null
+    },
+    {
+      "stage": "first_after_return",
+      "publicSdkCallMs": 1154.8799999952316,
+      "commitMs": 833.0999999046326,
+      "refillWaitMs": null,
+      "foregroundRefillMs": null
+    }
+  ],
+  "refillResults": [
+    {
+      "receivedAtMs": 13031.351833,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 29373.599917,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 31269.094958,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 32755.176333,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 34324.619792,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 36181.108417,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 575962.17875,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    },
+    {
+      "receivedAtMs": 735956.184667,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 739183.431292,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 742356.304042,
+      "outcome": "available",
+      "code": null,
+      "depth": 2,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 745984.58775,
+      "outcome": "available",
+      "code": null,
+      "depth": 3,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 749129.48825,
+      "outcome": "available",
+      "code": null,
+      "depth": 4,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 752310.033583,
+      "outcome": "available",
+      "code": null,
+      "depth": 5,
+      "targetDepth": 5
+    },
+    {
+      "receivedAtMs": 1528301.895292,
+      "outcome": "available",
+      "code": null,
+      "depth": 1,
+      "targetDepth": 1
+    }
+  ],
+  "scope": "One browser in Japan, hosted staging services, frozen candidate browser assets. SDK durations include automated confirmation. Datacenter probes originate inside the four transferred wallet Durable Objects.",
+  "checks": {
+    "directoryE2E": "passed",
+    "providerBindingsE2E": "passed",
+    "releaseEd25519TransferE2E": "passed",
+    "releaseEcdsaTransferE2E": "passed",
+    "releaseOwnerPresignE2E": "passed: eight signatures, concurrent work, expiry and eviction",
+    "walletServerBuild": "passed",
+    "hostedTestTypes": "passed",
+    "publicBloat": "passed",
+    "privateTypes": "six pre-existing errors remain"
+  },
+  "limitations": [
+    "The sample is not a percentile benchmark.",
+    "Broad regions do not guarantee city-level co-location.",
+    "Owner presign contents are invalidated rather than transferred; their fresh regional hint is not an independent hosted location observation.",
+    "Total transferred bytes and hosted unrelated-wallet interference are not measured by this scenario."
+  ],
+  "artifactRoot": ".artifacts/r153/custody-targets",
+  "artifactSha256": {
+    "source.json": "37d3b71d2fb8350d15fd07c24e9f8cedd0aa5df74f4629a8c2521d905dbc40af",
+    "worker-hashes.json": "a607b6abf03c5a5746f20ff6d9e6eb472c002799ac9c684dfc25dfef3c0826b7",
+    "deployments-candidate.json": "f0a63ed2667a09936f22144c822efd9e913bd4f5890545d32abd5da31118f705",
+    "regional-d1-placement.json": "0a8ef6e9add02722311043448d763d257cf6bc9760fd5af55725db2ef5881a20",
+    "activation.json": "ffd0ff49c2eb2509931a513684516ede80ccf0a71fe20e23a1829d12cf491309",
+    "hosted/relocation.json": "2e625caa160686f8170bd2f5c4039cd7fe7e1d1539dfc1b108b3906e4d4a7170",
+    "hosted/relocation-progress.json": "c3d257774b7288105370ecaa1bccbdf4582f50ee9cc1556938baf2c57171f7c7",
+    "hosted/custody-journal.json": "a6bc83fe73de3823ae4b7d791dfc0a363c3044dc4b6599b1a648c3d0bcfcf0d4",
+    "owner-presign-worker-e2e.json": "ff3f25010b0544b6531b0a4981bdcdb973b5e10a1ab7945fd27dc44d59760c86",
+    "ed25519-worker-e2e.json": "eae2f2857ccce8db69d5c3961e2351339f2f596098600df78a4d399e85e4f27f",
+    "ecdsa-worker-e2e.json": "974cb440b57e0b471d2d5cab7cbd51bcafbb2ffa70f10739d95bb2e57bc7a694"
+  },
+  "reproduce": "SEAMS_WALLET_SERVER_CANDIDATE=/Users/pta/Dev/rust/seams-wallet/packages/wallet-server SEAMS_HOSTED_PROJECTION=.artifacts/r153/hosted-20261007/projection.json SEAMS_HOSTED_CANDIDATE_SITE=.artifacts/r155b-near-phase6a-next/site SEAMS_TEST_ARTIFACT_DIR=.artifacts/r153/custody-targets/hosted node /Users/pta/Dev/rust/seams-wallet/node_modules/@playwright/test/cli.js test --config tests/playwright.hosted-product.config.mjs wallet-relocation.test.ts"
+}

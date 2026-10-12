@@ -1,4 +1,8 @@
 import {
+  consoleWalletKeyString,
+  type ConsoleWalletKey,
+} from '@seams-internal/wallet-console-shared';
+import {
   buildConsoleAcceptHeaders,
   buildConsoleJsonHeaders,
   consoleErrorMessage,
@@ -7,8 +11,7 @@ import {
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
 
-export interface DashboardConsoleWallet {
-  id: string;
+export interface DashboardConsoleWallet extends ConsoleWalletKey {
   address: string;
   chain: DashboardConsoleWalletChain;
   walletType: DashboardConsoleWalletType;
@@ -73,13 +76,6 @@ interface ConsoleWalletPageResponse {
   message?: string;
   wallets?: unknown;
   nextCursor?: unknown;
-}
-
-interface ConsoleWalletResponse {
-  ok?: boolean;
-  code?: string;
-  message?: string;
-  wallet?: unknown;
 }
 
 function asRecord(raw: unknown): Record<string, unknown> | null {
@@ -149,13 +145,17 @@ function decodeWallet(raw: unknown): DashboardConsoleWallet | null {
   const row = asRecord(raw);
   if (!row) return null;
   const id = String(row.id || '').trim();
+  const projectId = String(row.projectId || '').trim();
+  const environmentId = String(row.environmentId || '').trim();
   const address = String(row.address || '').trim();
   const chain = decodeWalletChain(row.chain);
   const walletType = decodeWalletType(row.walletType);
-  if (!id || !address || !chain || !walletType) return null;
+  if (!id || !projectId || !environmentId || !address || !chain || !walletType) return null;
   const balanceMinor = Number(row.balanceMinor || 0);
   return {
     id,
+    projectId,
+    environmentId,
     address,
     chain,
     walletType,
@@ -209,35 +209,6 @@ async function fetchWalletPage(pathWithQuery: string): Promise<DashboardConsoleW
   return decodeWalletPage(body);
 }
 
-export async function getDashboardWallet(walletId: string): Promise<DashboardConsoleWallet | null> {
-  const trimmedId = String(walletId || '').trim();
-  if (!trimmedId) throw new Error('Wallet id is required');
-
-  const base = requireConsoleBaseUrl();
-
-  const walletPath = `/console/wallets/${encodeURIComponent(trimmedId)}`;
-  const response = await fetchConsoleEndpoint(
-    `${base}${walletPath}`,
-    {
-      method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
-      credentials: 'include',
-      cache: 'no-store',
-    },
-    {
-      baseUrl: base,
-      path: walletPath,
-      operation: 'Console wallet request',
-    },
-  );
-  const body = (await parseConsoleJson(response)) as ConsoleWalletResponse | null;
-  if (response.status === 404) return null;
-  if (!response.ok || body?.ok !== true) {
-    throw new Error(consoleErrorMessage(response, body, 'Console wallet request failed'));
-  }
-  return decodeWallet(body.wallet);
-}
-
 export async function listDashboardWallets(
   input: DashboardConsoleWalletListInput = {},
 ): Promise<DashboardConsoleWalletPage> {
@@ -274,12 +245,14 @@ export async function searchDashboardWallets(
 }
 
 export async function refreshDashboardWalletBalances(
-  walletIds: readonly string[],
+  wallets: readonly ConsoleWalletKey[],
 ): Promise<DashboardConsoleWallet[]> {
-  const normalizedWalletIds = [
-    ...new Set(walletIds.map((walletId) => walletId.trim()).filter(Boolean)),
-  ];
-  if (normalizedWalletIds.length === 0) return [];
+  if (wallets.length === 0) return [];
+  const requestedWallets = wallets.slice(0, 10).map((wallet) => ({
+    id: wallet.id,
+    projectId: wallet.projectId,
+    environmentId: wallet.environmentId,
+  }));
   const base = requireConsoleBaseUrl();
   const path = '/console/wallets/balances/refresh';
   const response = await fetchConsoleEndpoint(
@@ -289,7 +262,7 @@ export async function refreshDashboardWalletBalances(
       headers: buildConsoleJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
-      body: JSON.stringify({ walletIds: normalizedWalletIds.slice(0, 10) }),
+      body: JSON.stringify({ wallets: requestedWallets }),
     },
     {
       baseUrl: base,
@@ -312,24 +285,24 @@ export function formatWalletBalanceMinor(balanceMinor: number): string {
   })}`;
 }
 
-export function mergeDashboardWalletsById(
+export function mergeDashboardWallets(
   current: DashboardConsoleWallet[],
   incoming: DashboardConsoleWallet[],
 ): DashboardConsoleWallet[] {
-  const seen = new Set(current.map((wallet) => wallet.id));
+  const seen = new Set(current.map(consoleWalletKeyString));
   const merged = [...current];
   for (const wallet of incoming) {
-    if (seen.has(wallet.id)) continue;
+    if (seen.has(consoleWalletKeyString(wallet))) continue;
     merged.push(wallet);
-    seen.add(wallet.id);
+    seen.add(consoleWalletKeyString(wallet));
   }
   return merged;
 }
 
-export function replaceDashboardWalletsById(
+export function replaceDashboardWallets(
   current: DashboardConsoleWallet[],
   incoming: DashboardConsoleWallet[],
 ): DashboardConsoleWallet[] {
-  const replacements = new Map(incoming.map((wallet) => [wallet.id, wallet]));
-  return current.map((wallet) => replacements.get(wallet.id) || wallet);
+  const replacements = new Map(incoming.map((wallet) => [consoleWalletKeyString(wallet), wallet]));
+  return current.map((wallet) => replacements.get(consoleWalletKeyString(wallet)) || wallet);
 }

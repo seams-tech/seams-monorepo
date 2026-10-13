@@ -1,0 +1,275 @@
+{
+  "recordedAt": "2026-10-13T08:55:39.337Z",
+  "sourceCommit": "fff88bb33e52d6e8f43e1d4ad4dc810313dbd7bf",
+  "node": "v26.4.0",
+  "platform": "darwin-arm64",
+  "celld": "celld 0.6.2-seams.5 (debug)",
+  "celldSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "baselineCelld": "celld 0.6.2",
+  "baselineSha256": "92ededd2bcfebeb1e78cc2d97219f00214a79eb6606f0eef48208fca3f98c15a",
+  "miniflare": "4.20260710.0",
+  "workerd": "1.20260710.1",
+  "harnessSha256": "5f0d1e530756710c005137f6260929f0e250190fdd2783aaf0f1858b250cbe64",
+  "fixtureHashes": {
+    "owner": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+    "caller": "c6bcbc32e90305495c8a076cc07ab723d54f26bb9f6dd508cb43d7f87ebb5050"
+  },
+  "status": "passed",
+  "stage": "celld-downgrade-refusal",
+  "reference": {
+    "throughService": {
+      "owner": "router",
+      "count": 1,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "throughObject": {
+      "owner": "router",
+      "count": 2,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "readThroughService": {
+      "owner": "router",
+      "count": 2,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "streamClone": {
+      "originalText": "alpha\nβeta\nomega",
+      "copyText": "alpha\nβeta\nomega",
+      "originalStatus": 206,
+      "copyStatus": 206,
+      "originalHeader": "router",
+      "copyHeader": "router",
+      "rejectsConsumed": true,
+      "rejectsLocked": true,
+      "rejectsDisturbed": false
+    },
+    "rawEcPublicKeys": {
+      "generatorImported": true,
+      "curves": [
+        {
+          "namedCurve": "P-256",
+          "size": 65,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-384",
+          "size": 97,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-521",
+          "size": 133,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        }
+      ],
+      "secureCurves": [
+        {
+          "name": "Ed25519",
+          "size": 32,
+          "roundTrip": true
+        },
+        {
+          "name": "X25519",
+          "size": 32,
+          "roundTrip": true
+        }
+      ]
+    }
+  },
+  "owner": [
+    {
+      "owner": "router",
+      "count": 1,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "serviceControl": [
+    {
+      "owner": "router",
+      "count": 2,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    {
+      "owner": "router",
+      "count": 2,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "streamClone": {
+    "originalText": "alpha\nβeta\nomega",
+    "copyText": "alpha\nβeta\nomega",
+    "originalStatus": 206,
+    "copyStatus": 206,
+    "originalHeader": "router",
+    "copyHeader": "router",
+    "rejectsConsumed": true,
+    "rejectsLocked": true,
+    "rejectsDisturbed": true
+  },
+  "streamCloneDifference": {
+    "releasedPartiallyReadBody": {
+      "workerdRejects": false,
+      "celldRejects": true
+    }
+  },
+  "rawEcPublicKeys": {
+    "generatorImported": true,
+    "curves": [
+      {
+        "namedCurve": "P-256",
+        "size": 65,
+        "prefix": 4,
+        "roundTrip": true,
+        "ecdsaRoundTrip": true,
+        "plaintext": "synthetic-linked-device-credential",
+        "changedAadError": "OperationError",
+        "shortPointError": "DataError",
+        "offCurveError": "DataError",
+        "infinityError": "DataError",
+        "wrongCurveError": "DataError",
+        "publicUsageError": "SyntaxError",
+        "signingUsageError": "SyntaxError",
+        "nonextractableError": "InvalidAccessError",
+        "privateExportError": "InvalidAccessError"
+      },
+      {
+        "namedCurve": "P-384",
+        "size": 97,
+        "prefix": 4,
+        "roundTrip": true,
+        "ecdsaRoundTrip": true,
+        "plaintext": "synthetic-linked-device-credential",
+        "changedAadError": "OperationError",
+        "shortPointError": "DataError",
+        "offCurveError": "DataError",
+        "infinityError": "DataError",
+        "wrongCurveError": "DataError",
+        "publicUsageError": "SyntaxError",
+        "signingUsageError": "SyntaxError",
+        "nonextractableError": "InvalidAccessError",
+        "privateExportError": "InvalidAccessError"
+      },
+      {
+        "namedCurve": "P-521",
+        "size": 133,
+        "prefix": 4,
+        "roundTrip": true,
+        "ecdsaRoundTrip": true,
+        "plaintext": "synthetic-linked-device-credential",
+        "changedAadError": "OperationError",
+        "shortPointError": "DataError",
+        "offCurveError": "DataError",
+        "infinityError": "DataError",
+        "wrongCurveError": "DataError",
+        "publicUsageError": "SyntaxError",
+        "signingUsageError": "SyntaxError",
+        "nonextractableError": "InvalidAccessError",
+        "privateExportError": "InvalidAccessError"
+      }
+    ],
+    "secureCurves": [
+      {
+        "name": "Ed25519",
+        "size": 32,
+        "roundTrip": true
+      },
+      {
+        "name": "X25519",
+        "size": 32,
+        "roundTrip": true
+      }
+    ]
+  },
+  "crossScript": [
+    {
+      "owner": "router",
+      "count": 3,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    {
+      "owner": "router",
+      "count": 3,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    {
+      "owner": "router",
+      "count": 3,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "restart": [
+    {
+      "owner": "router",
+      "count": 3,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "objectOnly": [
+    {
+      "owner": "router",
+      "count": 3,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "routerCycle": [
+    {
+      "owner": "router",
+      "count": 4,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    {
+      "owner": "router",
+      "count": 4,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "wrongOwner": "Error: celld exited before readiness: <jemalloc>: option background_thread currently supports pthread only\n2026-10-13T08:55:43.995597Z  WARN celld::memory: the allocator will not run a background thread, so freed pages return only when a thread allocates again error=`name` or `mib` specifies an unknown/invalid value.\ncelld dev\n  Project  /Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-SW0rG0/wrong-owner.json\n  State    /Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-SW0rG0/.celld/dev\n  Watch    disabled\n  ● opening the local storage\n  ● building the application\n celld 0.6.2-seams.5\n───────────────────────────────────────────────\nTotal Upload: 6.55 KiB / gzip: 1.85 KiB\nYour Worker has access to the following bindings:\nBinding                           Resource\nenv.TENANT_ROOT (TenantRoot)      Durable Object\nenv.ROUTER (Service)              owner\nenv.OWNER_LABEL (Text)            Environment Variable\nBundled caller (0.00 sec)\n<jemalloc>: option background_thread currently supports pthread only\n2026-10-13T08:55:44.013579Z  WARN celld::memory: the allocator will not run a background thread, so freed pages return only when a thread allocates again error=`name` or `mib` specifies an unknown/invalid value.\n2026-10-13T08:55:44.013624Z  INFO celld: host runtime initialized event=\"host_runtime\" worker_count=14\nError: object binding TENANT_ROOT targets class TenantRoot not owned by script other\nError: the local node exited before it announced its operator listener\n",
+  "missingOwner": "Error: celld exited before readiness: <jemalloc>: option background_thread currently supports pthread only\n2026-10-13T08:55:44.097644Z  WARN celld::memory: the allocator will not run a background thread, so freed pages return only when a thread allocates again error=`name` or `mib` specifies an unknown/invalid value.\ncelld dev\n  Project  /Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-SW0rG0/missing-owner.json\n  State    /Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-SW0rG0/.celld/dev\n  Watch    disabled\n  ● opening the local storage\n  ● building the application\n celld 0.6.2-seams.5\n───────────────────────────────────────────────\nTotal Upload: 6.55 KiB / gzip: 1.85 KiB\nYour Worker has access to the following bindings:\nBinding                           Resource\nenv.TENANT_ROOT (TenantRoot)      Durable Object\nenv.ROUTER (Service)              owner\nenv.OWNER_LABEL (Text)            Environment Variable\nBundled caller (0.00 sec)\n<jemalloc>: option background_thread currently supports pthread only\n2026-10-13T08:55:44.122307Z  WARN celld::memory: the allocator will not run a background thread, so freed pages return only when a thread allocates again error=`name` or `mib` specifies an unknown/invalid value.\n2026-10-13T08:55:44.122349Z  INFO celld: host runtime initialized event=\"host_runtime\" worker_count=14\nError: load Worker binding target missing\n\nCaused by:\n    read dev:///Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-SW0rG0/.celld/dev/objects.sqlite3/deploy/missing/current.json: no such key\nError: the local node exited before it announced its operator listener\n",
+  "recovery": [
+    {
+      "owner": "router",
+      "count": 4,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "downgradeRefusal": {
+    "exitCode": 1,
+    "output": "2026-10-13T08:55:44.671641Z  WARN celld::memory: the allocator will not run a background thread, so freed pages return only when a thread allocates again error=`name` or `mib` specifies an unknown/invalid value.\n2026-10-13T08:55:44.671679Z  INFO celld: host runtime initialized event=\"host_runtime\" worker_count=14\n<jemalloc>: option background_thread currently supports pthread only\nError: deployment requires feature \"external-durable-objects-v1\" this celld build does not support; upgrade celld\n"
+  }
+}

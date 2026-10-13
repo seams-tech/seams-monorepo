@@ -1,0 +1,177 @@
+{
+  "status": "in-progress; host deletion gates remain open",
+  "completionRequirement": "aggregate netLines must be strictly negative after all R190 work; count tests, deployment code, and complete private patch text",
+  "count": "physical text lines, including comments and blank lines; moves have zero net credit",
+  "extensions": [
+    ".cjs",
+    ".css",
+    ".html",
+    ".js",
+    ".json",
+    ".mjs",
+    ".patch",
+    ".py",
+    ".rs",
+    ".scss",
+    ".sh",
+    ".sql",
+    ".svelte",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".yaml",
+    ".yml"
+  ],
+  "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
+  "repositories": {
+    "seams-wallet": {
+      "baseRevision": "12d17e5b8671bafdf033fc49f2bc23d715aab844",
+      "comparison": "current dev merge base versus R190 branch plus its own working files",
+      "netLines": 1103,
+      "files": [
+        {
+          "path": "packages/wallet-server/src/localHostedWalletGatewayHandler.ts",
+          "beforeLines": 761,
+          "afterLines": 773,
+          "netLines": 12
+        },
+        {
+          "path": "packages/wallet-server/src/localIntendedYaoFault.ts",
+          "beforeLines": 237,
+          "afterLines": 254,
+          "netLines": 17
+        },
+        {
+          "path": "packages/wallet-server/src/localIntendedYaoRecoveryFault.ts",
+          "beforeLines": 175,
+          "afterLines": 171,
+          "netLines": -4
+        },
+        {
+          "path": "packages/wallet-server/src/localIntendedYaoSigningFault.ts",
+          "beforeLines": 155,
+          "afterLines": 172,
+          "netLines": 17
+        },
+        {
+          "path": "tests/e2e/celld-bindings.e2e.mjs",
+          "beforeLines": 0,
+          "afterLines": 438,
+          "netLines": 438
+        },
+        {
+          "path": "tests/e2e/celld-bindings/caller.mjs",
+          "beforeLines": 0,
+          "afterLines": 195,
+          "netLines": 195
+        },
+        {
+          "path": "tests/e2e/celld-bindings/owner.mjs",
+          "beforeLines": 0,
+          "afterLines": 42,
+          "netLines": 42
+        },
+        {
+          "path": "tests/e2e/celld-storage.e2e.mjs",
+          "beforeLines": 0,
+          "afterLines": 320,
+          "netLines": 320
+        },
+        {
+          "path": "tests/e2e/celld-storage/role.mjs",
+          "beforeLines": 0,
+          "afterLines": 55,
+          "netLines": 55
+        },
+        {
+          "path": "tests/e2e/celld-storage/router.mjs",
+          "beforeLines": 0,
+          "afterLines": 11,
+          "netLines": 11
+        }
+      ]
+    },
+    "seams-monorepo": {
+      "baseRevision": "99ff1e750f273c881dffc17ffa435f75a7295c28",
+      "comparison": "current dev merge base versus R190 branch plus its own working files",
+      "netLines": 2260,
+      "files": [
+        {
+          "path": "deployment/celld/build.mjs",
+          "beforeLines": 0,
+          "afterLines": 92,
+          "netLines": 92
+        },
+        {
+          "path": "deployment/celld/workers-runtime.patch",
+          "beforeLines": 0,
+          "afterLines": 1097,
+          "netLines": 1097
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/router/express-adaptor.ts",
+          "beforeLines": 51,
+          "afterLines": 0,
+          "netLines": -51
+        },
+        {
+          "path": "tests/e2e/celld/linux-runtime.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 186,
+          "netLines": 186
+        },
+        {
+          "path": "tests/e2e/celld/packaged-wallet.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 792,
+          "netLines": 792
+        },
+        {
+          "path": "tests/e2e/celld/prepare-gateway.mjs",
+          "beforeLines": 0,
+          "afterLines": 66,
+          "netLines": 66
+        },
+        {
+          "path": "tests/e2e/celld/prepare-wallet.mjs",
+          "beforeLines": 0,
+          "afterLines": 64,
+          "netLines": 64
+        },
+        {
+          "path": "tests/relayer/console-account-router.test.ts",
+          "beforeLines": 506,
+          "afterLines": 512,
+          "netLines": 6
+        },
+        {
+          "path": "tests/relayer/console-observability.ingestion.test.ts",
+          "beforeLines": 122,
+          "afterLines": 122,
+          "netLines": 0
+        },
+        {
+          "path": "tests/relayer/console-sponsored-calls.history.test.ts",
+          "beforeLines": 498,
+          "afterLines": 500,
+          "netLines": 2
+        },
+        {
+          "path": "tests/relayer/console-sponsorship-spend-caps.test.ts",
+          "beforeLines": 107,
+          "afterLines": 107,
+          "netLines": 0
+        },
+        {
+          "path": "tests/relayer/tenant-deployment-binding.e2e.test.ts",
+          "beforeLines": 546,
+          "afterLines": 552,
+          "netLines": 6
+        }
+      ]
+    }
+  },
+  "aggregateNetLines": 3363,
+  "netReductionAchieved": false
+}

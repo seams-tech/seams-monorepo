@@ -1,0 +1,67 @@
+{
+  "recordedAt": "2026-10-13T06:25:26.709Z",
+  "sourceCommit": "adb8d83fa01a09f20dad42ac8d643799aa56bcb0",
+  "node": "v26.4.0",
+  "platform": "darwin-arm64",
+  "celld": "celld 0.6.2-seams.3 (debug)",
+  "celldSha256": "2d799446e82c2f4a90251afb5fd63f7dd9109fac0d48a15bf4e8d7b7485e873e",
+  "baselineCelld": "celld 0.6.2",
+  "baselineSha256": "92ededd2bcfebeb1e78cc2d97219f00214a79eb6606f0eef48208fca3f98c15a",
+  "miniflare": "4.20260710.0",
+  "workerd": "1.20260710.1",
+  "harnessSha256": "e19be3aa24950d584c5e433454cfc88d204a6b6d9fbf4f21064937696b93d850",
+  "fixtureHashes": {
+    "owner": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+    "caller": "29c845d6b985263aa684d28cab06bf8cdebb871987df3b18371eb4dc5019aa8b"
+  },
+  "status": "failed",
+  "stage": "celld-streaming-response-clone",
+  "reference": {
+    "throughService": {
+      "owner": "router",
+      "count": 1,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "throughObject": {
+      "owner": "router",
+      "count": 2,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "readThroughService": {
+      "owner": "router",
+      "count": 2,
+      "id": "ea558518439bd5b15db12420e768dfc8f2a9fef1e811bcc165debce7383adb9f"
+    },
+    "streamClone": {
+      "originalText": "alpha\nβeta\nomega",
+      "copyText": "alpha\nβeta\nomega",
+      "originalStatus": 206,
+      "copyStatus": 206,
+      "originalHeader": "router",
+      "copyHeader": "router",
+      "rejectsConsumed": true,
+      "rejectsLocked": true,
+      "rejectsDisturbed": false
+    }
+  },
+  "owner": [
+    {
+      "owner": "router",
+      "count": 1,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "serviceControl": [
+    {
+      "owner": "router",
+      "count": 2,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    {
+      "owner": "router",
+      "count": 2,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    }
+  ],
+  "error": "AssertionError [ERR_ASSERTION]: Worker failed: rejected: TypeError: Cannot clone a streaming response before consumption [at Response.clone (<anonymous>:364:13) <- at streamClone (worker.js:12:25)]\n\n500 !== 200\n"
+}

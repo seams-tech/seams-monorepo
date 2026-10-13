@@ -1,0 +1,166 @@
+{
+  "status": "passed",
+  "scope": "all 16 selected unchanged Wallet contracts, local test-hook candidate, workerd reference",
+  "stage": "browser-device-contract",
+  "inputs": {
+    "kind": "local-test-hook-candidate",
+    "basePackage": "@seams/wallet-server@0.9.4",
+    "sourceCommit": "1595d91b78f9edf16d54dd781fc12c9f9f82dd87",
+    "retained": "all released Worker/WASM artifacts and all other release modules; rebuilt validation module exports assertString for the changed hooks",
+    "files": {
+      "dist/esm/localHostedWalletGatewayHandler.js": {
+        "baseSha256": "2805e0c6320ce1356c346fc87c041a1af244b75c3ade0f99e317929dcb8babdc",
+        "candidateSha256": "7a5ad2a30d34953f5a96baa21a440fb222e0f16a7aa932f84b9ae05cfedade1a"
+      },
+      "dist/types/wallet-server/src/localHostedWalletGatewayHandler.d.ts": {
+        "baseSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca",
+        "candidateSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca"
+      },
+      "dist/esm/localIntendedYaoFault.js": {
+        "baseSha256": "9a0ea6940cbf83047a7c72580efb6d4b72558e878ab81fa543b1e5f564e1ee72",
+        "candidateSha256": "2f20d7532c19d4d080a5321b07da46abf00d615409f77c164b8f81b493563e33"
+      },
+      "dist/types/wallet-server/src/localIntendedYaoFault.d.ts": {
+        "baseSha256": "26108cfd2789a3e6a686e66faf8f33920e930ec9925e6640530193b3f93fe3f6",
+        "candidateSha256": "0b06fe282cb8f29432db69af3085d98c4cb83211b650c7b1482bc6c9618a52bc"
+      },
+      "dist/esm/localIntendedYaoRecoveryFault.js": {
+        "baseSha256": "b3653334c197109ddc44dfe54f053aa24de5f82ed276303530296ef406c3585b",
+        "candidateSha256": "449c9395baef5dfdd76d6ad138f91de686f70be5da9f8117e88bd6fb4cff86dd"
+      },
+      "dist/types/wallet-server/src/localIntendedYaoRecoveryFault.d.ts": {
+        "baseSha256": "2f84b47fa5501d98d75550e3fd6471e0b60665073f56e4acffc43181cf330382",
+        "candidateSha256": "5eefa2db94e870057ac91c19edabdf4dfe15c44f343449aa5e7fe042de62801d"
+      },
+      "dist/esm/localIntendedYaoSigningFault.js": {
+        "baseSha256": "52f470716972e7555b08191d8b7346ba2725ce47b95d33e82a582a70fa5c5b33",
+        "candidateSha256": "129be9c20beae5f106e0558c0b44a7eb11a2b233b8dc1b6e34da2590ed4d8002"
+      },
+      "dist/types/wallet-server/src/localIntendedYaoSigningFault.d.ts": {
+        "baseSha256": "bafeb56c62b29e7c2b8b605985e9c06796ed6f5af125c2d1f423a14a24ff9d7c",
+        "candidateSha256": "92603a1db7374c9618d7bc83bd7b33ad7ef23a38998f06b93ccaf7e6f15d47d8"
+      },
+      "dist/esm/shared-ts/src/utils/validation.js": {
+        "baseSha256": "0cd0f47c02219c5333abc5b1c6dd83521dc1621c522b6d30c360c627c9c7f654",
+        "candidateSha256": "39261e427ed03af8c043c40ecd324777918ee3f3eb9fcc0f2f9de8258e45aa26"
+      }
+    },
+    "sourcePatchSha256": "00a1b327a4bc30ed4b5ef72c29b9359103023d5a21a37faa4edb839020531854"
+  },
+  "manifestSha256": "1ff567b48e7f96785b29c4f70172860eef228eb5cf37e9b97942d7573acd5db6",
+  "browserOutcomes": [
+    {
+      "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "EVM registration and signatures complete while NEAR execution is held",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "lock retains durable presignatures across a fresh unlock",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh unlock survives a delayed restoration response from another tab",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "passkey unlock restores immediate export and shared-budget signing",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    }
+  ],
+  "browserReportSha256": "f92d9d8381593485958decd43d28404593f29fffcb8aea61a1ba1209c4f020df"
+}

@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: local compatibility proof. This build is not approved for Wallet production deployment.
+Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. Full cloud Wallet, distributed-state, and cutover qualification continue.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -9,10 +9,12 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 
 - Upstream: `https://github.com/denoland/celld.git`.
 - Base: `90b43017241f81189453d326d05948f388b34652` (`v0.6.2`).
-- Private version: `0.6.2-seams.2`.
+- Private version: `0.6.2-seams.5`.
 - Patch: [workers-runtime.patch](workers-runtime.patch).
-- Patch SHA-256: `3a4215a42282e6e83ae313df2c192e3cf9e68469712edb766bb1c9907a1957fe`.
-- Tested build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
+- Patch SHA-256: `c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4`.
+- Wallet lifecycle build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
+- Current Linux release: x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
+- Historical Linux release: `.4`, ARM64, Debian Bookworm, upstream Dockerfile. See its separate qualification record below.
 - Historical object-only build identity: [original build record](evidence/runtime-build.json).
 
 The patch applies to a clean archive of the pinned source. The build command verifies the patch hash before applying it.
@@ -31,6 +33,17 @@ It introduces no Router forwarding endpoint and no Wallet provider branch.
 Deployments with external references require `external-durable-objects-v1` through celld's existing manifest feature mechanism.
 An older runtime rejects those deployments before serving traffic.
 
+The service and R2 bindings expose the `Fetcher` and `R2Bucket` constructor names that workers-rs validates.
+The existing service Proxy and RPC dispatch remain in use. These deployments require `workers-rs-binding-brands-v1`.
+Streaming `Response.clone()` uses the existing stream split operation. Both response bodies remain readable.
+Locked and disturbed bodies reject cloning. Status, headers, type, URL, and redirect state remain attached to the copy.
+New deployments require `streaming-response-clone-v1`. The preceding private runtime refuses that feature before loading the application.
+
+Raw ECDH/ECDSA public-key import and export use the existing P-256, P-384, and P-521 point decoders.
+Malformed points fail validation. Public keys export as uncompressed SEC1 points. Private and nonextractable keys refuse raw export.
+Ed25519 and X25519 raw round trips remain supported. New deployments require `raw-ec-public-keys-v1`.
+The preceding `.4` runtime refuses that feature before serving traffic. No cryptographic dependency was added.
+
 ## Deliberate limit
 
 Each application Durable Object class must still have one owner in a fleet.
@@ -38,9 +51,14 @@ Two independent Workers exporting the same class name remain unsupported and fai
 Our current Router, Deriver A, Deriver B, and SigningWorker classes have distinct names.
 The patch adds external references within this constraint. It does not implement all Cloudflare namespace semantics.
 
-The five packaged role Workers and their release WASM pass the load check below. Successful wallet operations remain unverified.
-Managed upload paths, live reload, distributed relocation, crash recovery, and remote bucket durability remain unverified.
-Local physical bucket separation passes the storage scenario described below. Cloud bucket access and distributed behavior remain unverified. Linux, AWS, Google Cloud, and Confidential VMs remain untested.
+The five packaged role Workers, release WASM, and Gateway pass the local acceptance scenario below.
+The historical `.4` run passes six contracts with Wallet Server and Wallet SDK 0.9.3.
+The current `.5` run passes all 16 selected contracts with frozen SDK 0.9.4 and a Server 0.9.4 local test-hook candidate.
+A forced node kill also preserves the tenant-root result after lease expiry and exact grant replay.
+The browser run uses one process and an S3 emulator. It does not establish distributed takeover.
+Separate real-GCS primitive checks pass on Google ordinary and Confidential VMs. They also cover denied bucket access.
+Broader factor, revocation, relocation, refresh, and retirement behavior remains open.
+AWS is outside the current scope. Full cloud Wallet, managed uploads, and distributed deployment remain open.
 No latency benefit or production security claim follows from this local proof.
 
 ## Build
@@ -106,7 +124,7 @@ The acceptance record identifies Wallet revision `8c12c9eb2516a7c2585b001f6a3a5d
 The private branch already contains local `dev` revision `26f9d01c3497365adacd261bff32bfe2d469abda`.
 The existing deployment-script suite passed: 53 tests passed and one was skipped.
 The build script also passed syntax, lint, and formatting checks.
-Linux and release-profile builds remain unverified.
+That original record covers the object-only debug build. The [current Linux x86-64 Google record](evidence/google-runtime.json) identifies the `.5` executable.
 
 ## Separate physical backup buckets
 
@@ -142,7 +160,7 @@ It verifies role bindings, distinct bucket contents, conditional writes, streame
 missing and changed mappings, duplicate destinations, fleet-bucket reuse, old-runtime refusal, and failed writes after bucket removal.
 The peer role remains readable after the failure. This is emulator evidence, not cloud durability qualification.
 
-## Current acceptance evidence
+## Earlier physical-storage evidence
 
 - [Pristine-source build identity](evidence/physical-build.json).
 - [Object binding and upgrade checks](evidence/physical-bindings.json).
@@ -154,36 +172,153 @@ An independent review found no blocking defect within the measured scope.
 Each Deriver test Worker receives only its own R2 binding. Shared host credentials remain under the trusted operator model.
 This does not establish protection against runtime compromise, cloud IAM isolation, or distributed durability.
 
-Run the packaged graph check from the private repository:
+## Current Wallet acceptance
+
+- [Pristine-source build identity](evidence/workers-build.json).
+- [Object bindings and streamed response copies](evidence/workers-bindings.json).
+- [Physical bucket behavior](evidence/workers-storage.json).
+- [Packaged Wallet lifecycle result](evidence/packaged-wallet.json).
+- [Current Google Linux x86-64 runtime results](evidence/google-runtime.json).
+- [Historical Linux ARM64 release identity](evidence/linux-release.json).
+- [Linux object and stream behavior](evidence/linux-runtime.json).
+
+Run the Wallet scenario from the private repository:
 
 ```sh
-python3 tests/e2e/celld/packaged-role-graph.py \
+python3 tests/e2e/celld/packaged-wallet.e2e.py \
   /absolute/path/to/candidate \
   /absolute/path/to/installed/@seams/wallet-server \
   /tmp/celld-storage-test/bin/python \
-  /absolute/path/to/esbuild
+  /absolute/path/to/esbuild \
+  /absolute/path/to/private-celld-0.6.2-seams.4 \
+  /absolute/path/to/seams-wallet-checkout \
+  /absolute/path/to/installed/@seams/wallet
 ```
 
-The successful run uses esbuild 0.28.1 and the exact installed Wallet Server 0.9.3 package.
-It verifies all Worker artifact hashes, derives bindings from the packaged manifests, deploys to an isolated S3 emulator,
-and loads all five roles. Router rejects GET with 405; the four private roles reject missing service authentication with 403.
-No real secrets or wallet records enter the scenario. Runtime and emulator processes stop after the run.
-This scenario excludes the Gateway, private Console composition, successful signing, and lifecycle persistence.
+The preceding `.4` private version is reproducible from commit `4aaeb6bc` and its build command.
+The current run uses esbuild 0.28.1, frozen SDK 0.9.4, and the recorded Server 0.9.4 local test-hook candidate.
+It verifies the role artifact hashes before deployment. It derives configuration from the packaged preparation scripts.
+Generated secrets and grants stay in a private temporary directory. Commit only the result record, never configuration or browser traces.
+The result records the SDK distribution digest, contract source hashes, exact test names, and each passing outcome.
+The harness requires all 16 named contracts to pass without skips. It stops the process groups that it starts.
+Set `GOOGLE_OIDC_CLIENT_ID` and `SEAMS_INTENDED_GOOGLE_ID_TOKEN` for the Email OTP contract. Never store the token in Git.
+The harness snapshots both packages and records their hashes. It preserves the existing local port-offset guard.
+It adopts the Gateway deployment on the running node through celld's supported pointer polling. This avoids an unrelated ownership takeover during browser setup.
+
+The scenario applies real role and Gateway D1 migrations. It provisions a tenant root, kills the owning process,
+starts a fresh node, and retries the saved grant while the former lease remains authoritative.
+Every refused attempt is retained. The successful replay must preserve identity, lineage, revision, and commitment.
+The initial response also says `replayed: true`: the coordinator calls creation again after activation.
+Fresh emulator buckets establish initial creation. That response field does not establish an earlier external request.
+
+The unchanged browser contracts verify mixed registration and NEAR/Tempo/Arc signing, concurrent signing retries,
+last-quota contention, Router stored-signature replay, unlock/export/shared-budget signing, and recovery after response loss.
+The recovery test resets the browser runtime. It does not kill a celld process during recovery.
+The original Workers test branch omits VM-only direct SigningWorker ledger counts. Those internal counts remain an acceptance gap.
+Private Console composition and the complete intended-behavior suite remain open.
+
+For the local emulator, set both `AWS_ENDPOINT_URL` and `S3_ENDPOINT`.
+The pinned celld bucket client uses the first variable, while the LTX replica uploader uses the second.
+An omitted `S3_ENDPOINT` caused durability timeouts by sending replica writes to AWS with synthetic credentials.
+The control reproduces that failure on stock and patched runtimes. With both variables, each control commits its durable marker.
+This is a probe environment failure. No Wallet or runtime change was required.
+
+### Workers compatibility diagnosis
+
+| Fact                                        | Instrument and result                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Released Rust service binding fails on `.2` | Tenant-root bootstrap reports that `DERIVER_A` is `Object` instead of `Fetcher`.                                 |
+| workers-rs checks the constructor name      | worker 0.8.4 `EnvBinding` validates `binding.constructor.name`; its R2 binding requires `R2Bucket`.              |
+| Binding identities unblock bootstrap        | `.3` provisions the tenant root and serves the Gateway without application changes.                              |
+| Browser signing fails on `.3`               | Registration succeeds; the first ECDSA signature returns `Cannot clone a streaming response before consumption`. |
+| Focused clone control reproduces the signal | Identical Worker fixtures fail on `.3` at unread stream cloning and pass on `.4`.                                |
+| Real lifecycle passes on `.4`               | All six named browser contracts pass on the same released application artifacts.                                 |
+
+| Cause                                                           | Assessment                                                                              |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Celld bindings lack workers-rs constructor identities           | Fits the cast error and the `.3` bootstrap control.                                     |
+| Celld rejects unread streamed response copies                   | Fits the browser error, focused old-runtime failure, and fixed-runtime result.          |
+| Wallet needs a provider-specific application adapter            | Contradicted within these scenarios by unchanged artifacts passing after runtime fixes. |
+| The test reports success without running the selected contracts | Excluded in the final run by exact JSON-report title and outcome checks.                |
+
+The focused reference has one recorded difference. The pinned workerd permits cloning after a partial read and reader release.
+The patched celld rejects that disturbed body, as the [Fetch body rule](https://fetch.spec.whatwg.org/#body-unusable) requires.
+Both runtimes preserve the complete unread stream in the original and copy, and reject locked or fully consumed bodies.
+This establishes the measured behavior only. It does not establish general API parity.
+
+## Historical ARM64 Linux release qualification
+
+The following commands reproduce `.4` from its recorded patched-source archive and matching fixture revision.
+Use the `.4` source referenced by [its build record](evidence/workers-build-seams4.json). The current `.5` source has a separate build identity.
+
+```sh
+docker build --platform linux/arm64 \
+  --build-arg RUST_VERSION=1.97.1 \
+  --build-arg CELLD_PROFILE=release \
+  --build-arg CELLD_COMMIT=90b43017241f81189453d326d05948f388b34652 \
+  --build-arg CELLD_VERSION=0.6.2-seams.4 \
+  --tag seams-celld-r190:0.6.2-seams.4-linux-arm64-runtime \
+  /absolute/path/to/seams4-candidate/source
+python3 tests/e2e/celld/linux-runtime.e2e.py \
+  seams-celld-r190:0.6.2-seams.4-linux-arm64-runtime \
+  /absolute/path/to/seams-wallet-checkout \
+  /absolute/path/to/passed-celld-bindings-result.json
+```
+
+The upstream image build runs locked release compilation and Clippy with warnings denied.
+Its default Cargo test commands discover zero tests in this source configuration. Their exit status is not behavioral coverage.
+The Linux scenario reuses the public Worker fixtures and their measured stream result.
+It checks one container, external object ownership, binding aliases, service calls, persistence after restart, and streaming copies.
+It does not run the six browser lifecycle contracts on Linux or establish a distributed deployment.
+ARM64 evidence does not qualify an x86-64 Google Confidential VM. Build and run acceptance on the selected VM architecture.
+The current `.5` x86-64 Google results are separate from this historical ARM64 record.
+See the [provider runbook](provider-runbook.md) for the current cloud qualification.
 
 ### Module-loading diagnosis
 
-| Fact | Instrument and result |
-| --- | --- |
-| Unbundled entry fails | The original probe uploads the packaged shim and receives `instantiate: <none>` before listening. |
-| Imported JS is absent | Pinned celld `deploy.rs` reads one JS entry plus sibling WASM in `no_bundle` mode. The shim imports another JS file. |
-| Old bundler fails before upload | esbuild 0.21.5 rejects celld's required `es2024` target. |
-| Normal bundle loads | esbuild 0.28.1 includes the imported module. The five packaged roles return their source-defined rejection responses. |
+| Fact                            | Instrument and result                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Unbundled entry fails           | The original probe uploads the packaged shim and receives `instantiate: <none>` before listening.                     |
+| Imported JS is absent           | Pinned celld `deploy.rs` reads one JS entry plus sibling WASM in `no_bundle` mode. The shim imports another JS file.  |
+| Old bundler fails before upload | esbuild 0.21.5 rejects celld's required `es2024` target.                                                              |
+| Normal bundle loads             | esbuild 0.28.1 includes the imported module. The five packaged roles return their source-defined rejection responses. |
 
-| Cause | Assessment |
-| --- | --- |
-| Missing imported JS in the probe configuration | Fits the unbundled failure and the successful bundled control. |
-| Release WASM cannot execute on celld | Contradicted for these request-rejection paths by the successful responses. Other operations remain unverified. |
-| Wallet requires application code changes to load | Contradicted by unchanged packaged artifacts passing the load check. |
-| Probe response expectation is wrong | Confirmed for the initial 404/401 assumptions. Source defines 405 for Router GET and 403 for missing private service authentication. |
+| Cause                                            | Assessment                                                                                                                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Missing imported JS in the probe configuration   | Fits the unbundled failure and the successful bundled control.                                                                       |
+| Release WASM cannot execute on celld             | Contradicted for these request-rejection paths by the successful responses. Other operations remain unverified.                      |
+| Wallet requires application code changes to load | Contradicted by unchanged packaged artifacts passing the load check.                                                                 |
+| Probe response expectation is wrong              | Confirmed for the initial 404/401 assumptions. Source defines 405 for Router GET and 403 for missing private service authentication. |
 
 The earlier module-instantiation error was a probe configuration defect. It is not evidence of wallet lifecycle parity or a required application rewrite.
+
+## Raw EC and delayed-request diagnostics
+
+The `.4` runtime failed linked-device credential sealing at raw P-256 public-key import with `NotSupportedError`.
+The same released packages completed that contract under workerd. The focused raw-key fixture reproduced the same error on `.4`.
+The `.5` fixture passes three curves, invalid-point rejection, usage checks, extractability checks, and authenticated peer decryption.
+Both linked-device contracts and Email OTP revocation now pass in the 16-contract run.
+
+The broader run also found a local fault hook that retained requests in module-global Maps.
+A diagnostic labeled each Worker instance and hashed each fault token. It recorded these events:
+
+| Observation | Checked evidence |
+| --- | --- |
+| Two requests were captured in instance A | Both hashes had capture events and `found: true`. |
+| One release ran in instance A | The same hash had `found: true`, which provides a positive control. |
+| The other release ran in instance B | Its captured hash had `found: false` and returned the hook's 404 before calling Router. |
+| The fixed hooks preserve the lifecycle assertions | Both unchanged delayed-recovery contracts pass on celld and workerd. |
+
+The failure is `valid_test_needs_update`. The hook required cross-request instance affinity that Workers do not promise.
+The fix removes both Maps and reuses the existing tenant-scoped D1 ceremony store.
+The first captured request wins. A versioned delete permits one release. Stored requests are parsed once when read.
+The ten-minute expiry blocks later reads. It does not guarantee proactive erasure of abandoned rows.
+Loopback guards remain in force. No wallet protocol or authorization behavior changed.
+An independent reviewer checked the measurements and the four-file fix.
+
+A separate setup run failed registration with `owner_unreachable` immediately after the harness restarted the Gateway node.
+That run never reached the recovery hook. It is `environment_or_infrastructure_failure`.
+The harness now adopts the Gateway deployment on the running node. The subsequent complete run passes all 16 contracts.
+
+Remaining gates include full Google Wallet and private Console composition, multiple-node failures,
+relocation, tenant-root retirement/restore, active-deployment inventory, host deletion, and a negative final source delta.

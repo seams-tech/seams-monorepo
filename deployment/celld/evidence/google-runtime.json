@@ -1,0 +1,372 @@
+{
+  "build": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+    "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+    "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "version": "celld 0.6.2-seams.5",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld"
+    ],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "ordinary": {
+    "status": "passed",
+    "phase": "ordinary",
+    "project": "seams-501403",
+    "zone": "us-central1-a",
+    "instance": "r190q-20261013-e7f9b0-ordinary",
+    "machineType": "n2d-standard-4",
+    "runtimeSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "runtime": "celld 0.6.2-seams.5",
+    "fixtureHashes": {
+      "owner.mjs": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+      "caller.mjs": "c6bcbc32e90305495c8a076cc07ab723d54f26bb9f6dd508cb43d7f87ebb5050",
+      "role.mjs": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb"
+    },
+    "scope": "remote GCS object and stream primitives; not full Wallet lifecycle or TEE attestation",
+    "ownerIncrement": {
+      "owner": "router",
+      "count": 5,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "externalRead": {
+      "owner": "router",
+      "count": 5,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "aliasRead": {
+      "owner": "router",
+      "count": 5,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "rawEcPublicKeys": {
+      "generatorImported": true,
+      "curves": [
+        {
+          "namedCurve": "P-256",
+          "size": 65,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-384",
+          "size": 97,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-521",
+          "size": 133,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        }
+      ],
+      "secureCurves": [
+        {
+          "name": "Ed25519",
+          "size": 32,
+          "roundTrip": true
+        },
+        {
+          "name": "X25519",
+          "size": 32,
+          "roundTrip": true
+        }
+      ]
+    },
+    "streamClone": {
+      "originalText": "alpha\n\u03b2eta\nomega",
+      "copyText": "alpha\n\u03b2eta\nomega",
+      "originalStatus": 206,
+      "copyStatus": 206,
+      "originalHeader": "router",
+      "copyHeader": "router",
+      "rejectsConsumed": true,
+      "rejectsLocked": true,
+      "rejectsDisturbed": true
+    },
+    "writes": [
+      {
+        "written": "a"
+      },
+      {
+        "written": "b"
+      }
+    ],
+    "streams": [
+      {
+        "size": 9437184
+      },
+      {
+        "size": 9437184
+      }
+    ],
+    "multipart": [
+      {
+        "value": "a"
+      },
+      {
+        "value": "b"
+      }
+    ],
+    "conditionalWrite": [
+      {
+        "accepted": true,
+        "refused": true
+      },
+      {
+        "accepted": true,
+        "refused": true
+      }
+    ],
+    "directBuckets": {
+      "a": "a-updated",
+      "b": "b-updated"
+    },
+    "afterCrash": {
+      "owner": "router",
+      "count": 5,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "takeoverRefusals": 0,
+    "cleanup": "runtime stopped; task-owned Google resources retained for next qualification stage"
+  },
+  "confidential": {
+    "status": "passed",
+    "phase": "confidential",
+    "project": "seams-501403",
+    "zone": "us-central1-c",
+    "instance": "r190q-20261013-e7f9b0-snp",
+    "machineType": "n2d-standard-2",
+    "runtimeSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "runtime": "celld 0.6.2-seams.5",
+    "fixtureHashes": {
+      "owner.mjs": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+      "caller.mjs": "c6bcbc32e90305495c8a076cc07ab723d54f26bb9f6dd508cb43d7f87ebb5050",
+      "role.mjs": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb"
+    },
+    "scope": "remote GCS object and stream primitives; not full Wallet lifecycle or TEE attestation",
+    "ownerIncrement": {
+      "owner": "router",
+      "count": 6,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "externalRead": {
+      "owner": "router",
+      "count": 6,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "aliasRead": {
+      "owner": "router",
+      "count": 6,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "rawEcPublicKeys": {
+      "generatorImported": true,
+      "curves": [
+        {
+          "namedCurve": "P-256",
+          "size": 65,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-384",
+          "size": 97,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        },
+        {
+          "namedCurve": "P-521",
+          "size": 133,
+          "prefix": 4,
+          "roundTrip": true,
+          "ecdsaRoundTrip": true,
+          "plaintext": "synthetic-linked-device-credential",
+          "changedAadError": "OperationError",
+          "shortPointError": "DataError",
+          "offCurveError": "DataError",
+          "infinityError": "DataError",
+          "wrongCurveError": "DataError",
+          "publicUsageError": "SyntaxError",
+          "signingUsageError": "SyntaxError",
+          "nonextractableError": "InvalidAccessError",
+          "privateExportError": "InvalidAccessError"
+        }
+      ],
+      "secureCurves": [
+        {
+          "name": "Ed25519",
+          "size": 32,
+          "roundTrip": true
+        },
+        {
+          "name": "X25519",
+          "size": 32,
+          "roundTrip": true
+        }
+      ]
+    },
+    "streamClone": {
+      "originalText": "alpha\n\u03b2eta\nomega",
+      "copyText": "alpha\n\u03b2eta\nomega",
+      "originalStatus": 206,
+      "copyStatus": 206,
+      "originalHeader": "router",
+      "copyHeader": "router",
+      "rejectsConsumed": true,
+      "rejectsLocked": true,
+      "rejectsDisturbed": true
+    },
+    "writes": [
+      {
+        "written": "a"
+      },
+      {
+        "written": "b"
+      }
+    ],
+    "streams": [
+      {
+        "size": 9437184
+      },
+      {
+        "size": 9437184
+      }
+    ],
+    "multipart": [
+      {
+        "value": "a"
+      },
+      {
+        "value": "b"
+      }
+    ],
+    "conditionalWrite": [
+      {
+        "accepted": true,
+        "refused": true
+      },
+      {
+        "accepted": true,
+        "refused": true
+      }
+    ],
+    "directBuckets": {
+      "a": "a-updated",
+      "b": "b-updated"
+    },
+    "afterCrash": {
+      "owner": "router",
+      "count": 6,
+      "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+    },
+    "takeoverRefusals": 0,
+    "cleanup": "runtime stopped; task-owned Google resources retained for next qualification stage"
+  },
+  "permissionFailure": {
+    "status": "passed",
+    "phase": "permission-failure",
+    "project": "seams-501403",
+    "zone": "us-central1-a",
+    "runtimeSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "runtime": "celld 0.6.2-seams.5",
+    "fixtureHashes": {},
+    "scope": "Google IAM denied B bucket access; application refuses success; independent A bucket remains writable",
+    "beforeB": {
+      "value": "b-updated"
+    },
+    "deniedApplicationStatus": 500,
+    "deniedApplicationBodySha256": "f2c620d80cf1094694d7d80ec0eb32024e9820fb6d8692a433934c6aad50d226",
+    "deniedPhysicalBucketStatus": 403,
+    "independentRoleWrite": {
+      "written": "a"
+    },
+    "cleanup": "runtime stopped; operator must restore task-owned bucket grant"
+  },
+  "status": "runtime primitives passed; full Wallet and distributed qualification open",
+  "project": "seams-501403",
+  "bucketGrantRestored": true,
+  "restoredBucketPolicySha256": "35fa06bc4c60d14b1d9e310cc2fab2346e481ec0ec8930b7de19e2570fa1a4a5",
+  "resourceCleanup": "task-owned VMs, buckets and service account retained for ongoing Wallet qualification",
+  "scope": "single-node runtime/storage/crypto compatibility; no full Wallet, distributed state, production ingress, or TEE attestation claim"
+}

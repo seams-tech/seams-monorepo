@@ -26,10 +26,286 @@
   "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
   "repositories": {
     "seams-wallet": {
-      "baseRevision": "12d17e5b8671bafdf033fc49f2bc23d715aab844",
+      "baseRevision": "c84636a530a907066240ad7f23124e30907d142a",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 1103,
+      "netLines": -32600,
       "files": [
+        {
+          "path": "crates/router-ab-dev/Cargo.toml",
+          "beforeLines": 51,
+          "afterLines": 38,
+          "netLines": -13
+        },
+        {
+          "path": "crates/router-ab-dev/scripts/start-vm-wallet-system.mjs",
+          "beforeLines": 472,
+          "afterLines": 0,
+          "netLines": -472
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/dev_seed_router_ab_sqlite.rs",
+          "beforeLines": 81,
+          "afterLines": 0,
+          "netLines": -81
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/local_dev_process/mod.rs",
+          "beforeLines": 421,
+          "afterLines": 0,
+          "netLines": -421
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/local_initializer/mod.rs",
+          "beforeLines": 0,
+          "afterLines": 17,
+          "netLines": 17
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_down.rs",
+          "beforeLines": 87,
+          "afterLines": 0,
+          "netLines": -87
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_init.rs",
+          "beforeLines": 140,
+          "afterLines": 134,
+          "netLines": -6
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_release_evidence.rs",
+          "beforeLines": 305,
+          "afterLines": 0,
+          "netLines": -305
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_tenant_root_control_plane.rs",
+          "beforeLines": 67,
+          "afterLines": 0,
+          "netLines": -67
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_up.rs",
+          "beforeLines": 87,
+          "afterLines": 0,
+          "netLines": -87
+        },
+        {
+          "path": "crates/router-ab-dev/src/bin/router_ab_local_worker.rs",
+          "beforeLines": 376,
+          "afterLines": 0,
+          "netLines": -376
+        },
+        {
+          "path": "crates/router-ab-dev/src/lib.rs",
+          "beforeLines": 1896,
+          "afterLines": 484,
+          "netLines": -1412
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_cloudflare_bindings.rs",
+          "beforeLines": 127,
+          "afterLines": 0,
+          "netLines": -127
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_deployment_check.rs",
+          "beforeLines": 589,
+          "afterLines": 0,
+          "netLines": -589
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_dev_http.rs",
+          "beforeLines": 541,
+          "afterLines": 0,
+          "netLines": -541
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_api.rs",
+          "beforeLines": 138,
+          "afterLines": 80,
+          "netLines": -58
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_pair_sqlite.rs",
+          "beforeLines": 898,
+          "afterLines": 0,
+          "netLines": -898
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_refresh.rs",
+          "beforeLines": 365,
+          "afterLines": 344,
+          "netLines": -21
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_signing_worker.rs",
+          "beforeLines": 2413,
+          "afterLines": 0,
+          "netLines": -2413
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_sqlite_host.rs",
+          "beforeLines": 704,
+          "afterLines": 0,
+          "netLines": -704
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_stream.rs",
+          "beforeLines": 1310,
+          "afterLines": 0,
+          "netLines": -1310
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_ed25519_yao_worker.rs",
+          "beforeLines": 3467,
+          "afterLines": 0,
+          "netLines": -3467
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_router_ab_ecdsa.rs",
+          "beforeLines": 1177,
+          "afterLines": 0,
+          "netLines": -1177
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_router_coordinator.rs",
+          "beforeLines": 1534,
+          "afterLines": 0,
+          "netLines": -1534
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_router_ed25519_yao_http.rs",
+          "beforeLines": 324,
+          "afterLines": 0,
+          "netLines": -324
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_router_normal_signing.rs",
+          "beforeLines": 182,
+          "afterLines": 0,
+          "netLines": -182
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_router_wallet.rs",
+          "beforeLines": 184,
+          "afterLines": 0,
+          "netLines": -184
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_service_http.rs",
+          "beforeLines": 416,
+          "afterLines": 0,
+          "netLines": -416
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_signing_worker_near_sqlite.rs",
+          "beforeLines": 418,
+          "afterLines": 0,
+          "netLines": -418
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_signing_worker_wallet_sqlite.rs",
+          "beforeLines": 127,
+          "afterLines": 0,
+          "netLines": -127
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_tenant_root.rs",
+          "beforeLines": 1774,
+          "afterLines": 0,
+          "netLines": -1774
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_tenant_root_env.rs",
+          "beforeLines": 165,
+          "afterLines": 156,
+          "netLines": -9
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_tenant_root_http.rs",
+          "beforeLines": 816,
+          "afterLines": 0,
+          "netLines": -816
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_tenant_root_role_sql.rs",
+          "beforeLines": 365,
+          "afterLines": 0,
+          "netLines": -365
+        },
+        {
+          "path": "crates/router-ab-dev/src/local_worker_topology.rs",
+          "beforeLines": 178,
+          "afterLines": 0,
+          "netLines": -178
+        },
+        {
+          "path": "crates/router-ab-dev/tests/cloudflare_parity.rs",
+          "beforeLines": 370,
+          "afterLines": 0,
+          "netLines": -370
+        },
+        {
+          "path": "crates/router-ab-dev/tests/ed25519_yao_stream.rs",
+          "beforeLines": 250,
+          "afterLines": 0,
+          "netLines": -250
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_role_private_sqlite.rs",
+          "beforeLines": 38,
+          "afterLines": 0,
+          "netLines": -38
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_worker_env.rs",
+          "beforeLines": 541,
+          "afterLines": 148,
+          "netLines": -393
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_worker_http.rs",
+          "beforeLines": 8183,
+          "afterLines": 0,
+          "netLines": -8183
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_worker_http/ed25519_fence.rs",
+          "beforeLines": 87,
+          "afterLines": 0,
+          "netLines": -87
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_worker_http/pair_start.rs",
+          "beforeLines": 276,
+          "afterLines": 0,
+          "netLines": -276
+        },
+        {
+          "path": "crates/router-ab-dev/tests/local_worker_http/router_wallet.rs",
+          "beforeLines": 1694,
+          "afterLines": 0,
+          "netLines": -1694
+        },
+        {
+          "path": "crates/router-ab-dev/tests/sqlite_seed.rs",
+          "beforeLines": 126,
+          "afterLines": 0,
+          "netLines": -126
+        },
+        {
+          "path": "packages/wallet-server/package.json",
+          "beforeLines": 133,
+          "afterLines": 126,
+          "netLines": -7
+        },
+        {
+          "path": "packages/wallet-server/rolldown.config.ts",
+          "beforeLines": 139,
+          "afterLines": 125,
+          "netLines": -14
+        },
         {
           "path": "packages/wallet-server/src/localHostedWalletGatewayHandler.ts",
           "beforeLines": 761,
@@ -53,6 +329,102 @@
           "beforeLines": 155,
           "afterLines": 172,
           "netLines": 17
+        },
+        {
+          "path": "packages/wallet-server/src/router/auth/routerApiKeyAuth.ts",
+          "beforeLines": 77,
+          "afterLines": 57,
+          "netLines": -20
+        },
+        {
+          "path": "packages/wallet-server/src/router/cloudflare-adaptor.ts",
+          "beforeLines": 281,
+          "afterLines": 280,
+          "netLines": -1
+        },
+        {
+          "path": "packages/wallet-server/src/router/express-adaptor.ts",
+          "beforeLines": 198,
+          "afterLines": 0,
+          "netLines": -198
+        },
+        {
+          "path": "packages/wallet-server/src/router/framework/routeResponses.ts",
+          "beforeLines": 64,
+          "afterLines": 53,
+          "netLines": -11
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/nodeHostedWalletGateway.ts",
+          "beforeLines": 125,
+          "afterLines": 0,
+          "netLines": -125
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/nodeHostedWalletGatewayCheck.ts",
+          "beforeLines": 176,
+          "afterLines": 0,
+          "netLines": -176
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/nodeHostedWalletGatewayMain.ts",
+          "beforeLines": 140,
+          "afterLines": 0,
+          "netLines": -140
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/nodeHttp.ts",
+          "beforeLines": 92,
+          "afterLines": 0,
+          "netLines": -92
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/nodeSqlite.ts",
+          "beforeLines": 65,
+          "afterLines": 0,
+          "netLines": -65
+        },
+        {
+          "path": "packages/wallet-server/src/router/node/signerSqlMigrations.ts",
+          "beforeLines": 86,
+          "afterLines": 0,
+          "netLines": -86
+        },
+        {
+          "path": "packages/wallet-server/src/storage/syncSqlite.ts",
+          "beforeLines": 114,
+          "afterLines": 0,
+          "netLines": -114
+        },
+        {
+          "path": "packages/wallet-server/src/threshold/session/signingSessionSeal/index.ts",
+          "beforeLines": 93,
+          "afterLines": 95,
+          "netLines": 2
+        },
+        {
+          "path": "packages/wallet-server/src/threshold/session/signingSessionSeal/transport/express.ts",
+          "beforeLines": 106,
+          "afterLines": 0,
+          "netLines": -106
+        },
+        {
+          "path": "packages/wallet-server/tsconfig.json",
+          "beforeLines": 45,
+          "afterLines": 44,
+          "netLines": -1
+        },
+        {
+          "path": "packages/wallet/tsconfig.json",
+          "beforeLines": 62,
+          "afterLines": 61,
+          "netLines": -1
+        },
+        {
+          "path": "scripts/bloat-report.mjs",
+          "beforeLines": 512,
+          "afterLines": 512,
+          "netLines": 0
         },
         {
           "path": "tests/e2e/celld-bindings.e2e.mjs",
@@ -89,13 +461,91 @@
           "beforeLines": 0,
           "afterLines": 11,
           "netLines": 11
+        },
+        {
+          "path": "tests/e2e/intended-behaviours/harness.ts",
+          "beforeLines": 8824,
+          "afterLines": 8819,
+          "netLines": -5
+        },
+        {
+          "path": "tests/e2e/intended-behaviours/linked-device-source-evidence.ts",
+          "beforeLines": 86,
+          "afterLines": 95,
+          "netLines": 9
+        },
+        {
+          "path": "tests/e2e/intended-behaviours/local-gateway-database.ts",
+          "beforeLines": 74,
+          "afterLines": 128,
+          "netLines": 54
+        },
+        {
+          "path": "tests/e2e/intended-behaviours/passkey.ed25519-yao-local.contract.test.ts",
+          "beforeLines": 1031,
+          "afterLines": 1031,
+          "netLines": 0
+        },
+        {
+          "path": "tests/e2e/node-http-body-limit.e2e.mjs",
+          "beforeLines": 85,
+          "afterLines": 0,
+          "netLines": -85
+        },
+        {
+          "path": "tests/e2e/sponsored-account-ownership.e2e.mjs",
+          "beforeLines": 191,
+          "afterLines": 184,
+          "netLines": -7
+        },
+        {
+          "path": "tests/e2e/step-up-expiry.e2e.mjs",
+          "beforeLines": 823,
+          "afterLines": 658,
+          "netLines": -165
+        },
+        {
+          "path": "tests/fixtures/signer-d1.mjs",
+          "beforeLines": 0,
+          "afterLines": 46,
+          "netLines": 46
+        },
+        {
+          "path": "tests/r150-hosted/gateway/admissionPolicy.e2e.mjs",
+          "beforeLines": 189,
+          "afterLines": 166,
+          "netLines": -23
+        },
+        {
+          "path": "tests/scripts/start-wallet-intended-services.mjs",
+          "beforeLines": 354,
+          "afterLines": 328,
+          "netLines": -26
+        },
+        {
+          "path": "tests/tsconfig.wallet-intended.json",
+          "beforeLines": 57,
+          "afterLines": 54,
+          "netLines": -3
+        },
+        {
+          "path": "tests/unit/githubOAuth.unit.test.ts",
+          "beforeLines": 87,
+          "afterLines": 102,
+          "netLines": 15
+        },
+        {
+          "path": "tests/unit/registrationSetupTransientD1.unit.test.ts",
+          "beforeLines": 246,
+          "afterLines": 247,
+          "netLines": 1
         }
       ]
     },
     "seams-monorepo": {
       "baseRevision": "cd04fa1cab052d8b3e77e5ffe369885fa0d68840",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -3257,
+      "netLines": -3258,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -119,6 +569,12 @@
           "path": "packages/wallet-console-server-ts/rolldown.config.ts",
           "beforeLines": 102,
           "afterLines": 101,
+          "netLines": -1
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/router/cloudflare-adaptor.ts",
+          "beforeLines": 115,
+          "afterLines": 114,
           "netLines": -1
         },
         {
@@ -220,6 +676,6 @@
       ]
     }
   },
-  "aggregateNetLines": -2154,
+  "aggregateNetLines": -35858,
   "netReductionAchieved": true
 }

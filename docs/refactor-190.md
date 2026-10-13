@@ -1,6 +1,6 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. Full cloud Wallet, distributed-state, and cutover qualification continue.
+Status: all 16 selected Wallet contracts pass locally on celld and workerd, and on ordinary and Confidential Google VMs. Express, Node Gateway, and native VM host removal progressed. Final package, Console on celld, distributed Wallet, and cutover qualification remain open.
 Updated: October 13, 2026. Existing hosting support remains intact.
 
 ## Decision and purpose
@@ -99,13 +99,13 @@ name does not identify a classic-server host. Preserve those functions where use
 
 Paths in this table are relative to `seams-monorepo`.
 
-| Area                  | Current files                                                                                                              | Planned treatment                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Removed. Existing Worker/fetch composition owns the retained behavior |
-| Hosted composition    | `packages/wallet-console-server-ts/src/router/cloudflare/`                                                                 | Keep Gateway, Runtime, and Console behavior shared across hosts                                     |
-| Deployment            | `scripts/deploy-backend.mjs`, `deployment/wallet-system/targets.json`                                                      | Extend existing deployment boundaries only as needed for celld                                      |
-| Local runtime         | `scripts/local-wallet/`                                                                                                    | Consume exact packaged Worker releases and the selected runtime configuration                       |
-| Private tests         | `tests/relayer/`, `tests/e2e/hosted-product/`, `tests/e2e/regional-real/`                                                  | Preserve Console/product invariants while removing dependency on Express hosting                    |
+| Area                  | Current files                                                                                                              | Planned treatment                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Removed. Existing Worker/fetch composition owns the retained behavior            |
+| Hosted composition    | `packages/wallet-console-server-ts/src/router/cloudflare/`                                                                 | Keep Gateway, Runtime, and Console behavior shared across hosts                  |
+| Deployment            | `scripts/deploy-backend.mjs`, `deployment/wallet-system/targets.json`                                                      | Extend existing deployment boundaries only as needed for celld                   |
+| Local runtime         | `scripts/local-wallet/`                                                                                                    | Consume exact packaged Worker releases and the selected runtime configuration    |
+| Private tests         | `tests/relayer/`, `tests/e2e/hosted-product/`, `tests/e2e/regional-real/`                                                  | Preserve Console/product invariants while removing dependency on Express hosting |
 
 Some tests import domain services through Express re-exports. Move those imports
 to their owning modules. An import through an adapter does not prove that the
@@ -507,7 +507,6 @@ The task-owned B grant was restored. These are runtime primitives, so full Walle
 The implementation still requires classic-host removal and a net reduction in maintained lines.
 No reduction from concurrent SDK work counts toward R190. The later Console deletion makes the current aggregate negative.
 
-
 ## October 13 Console host removal
 
 The private Wallet Console now has one Worker/fetch implementation.
@@ -530,3 +529,26 @@ A later full run lost the remote runtime listener after seven successful contrac
 Kernel logs show no OOM event. The SSH session record does not establish the process exit cause.
 The next run uses systemd with automatic restart disabled, warning logs enabled, and recorded exit status.
 No application failure has been dismissed because a repeat run passed.
+
+## October 13 Google Wallet and object ownership checkpoint
+
+All 16 selected unchanged browser contracts pass on an ordinary Google VM and a SEV-SNP VM.
+Each run uses real GCS, the same private `.5` executable, and the frozen 0.9.4 candidate described above.
+Systemd disables automatic restart and records process state and shutdown.
+These passes do not qualify the final R190 package.
+
+The two-VM object scenario preserves counter 1 across ownership epochs 1, 2, and 3.
+A paused owner is replaced. The resumed process exits with status 3.
+A peer partition refuses the sampled request, and the healed connection reads the same state.
+After the current owner is killed, the survivor takes ownership, increments to 2, and reads the same value through an alias.
+This checks one object with sequential requests. Wallet one-use material, concurrent writes, and restore remain open.
+
+The review found a stale initial provider hash and an omitted replacement-controller hash.
+A separate record hashes both actual deployment archives and the effective controller.
+The ordinary runtime log was unavailable after the scheduled VM stop. Google zone capacity prevented its restart.
+The measured process status does not establish the precise exit reason.
+Both task VMs are stopped. Task-owned disks, buckets, and the service account remain recorded.
+
+The earlier export error, unmanaged listener loss, and local browser HTTP error remain unexplained.
+The later successful runs do not identify those causes.
+See [Google Wallet and object evidence](../deployment/celld/evidence/google-wallet.json).

@@ -1,12 +1,13 @@
 # Celld provider qualification runbook
 
-Status: Google runtime and real-GCS primitive checks pass in project `seams-501403`, region `us-central1`.
+Status: Google runtime primitives and all 16 selected Wallet contracts pass in project `seams-501403`, region `us-central1`.
 The native `.5` x86-64 release passes on an ordinary `n2d-standard-4` VM in `us-central1-a`
 and a SEV-SNP `n2d-standard-2` VM in `us-central1-c`, using the pinned Ubuntu 24.04 image.
 The kernel confirms active SEV-SNP operation. The source build and Clippy pass with locked dependencies.
 External objects, raw EC operations, A/B streams, conditional writes, direct buckets, and forced-kill recovery pass.
 A Google IAM denial test observes B failure while A remains writable. The B grant was restored.
-Full cloud Wallet, private Console, distributed behavior, and production ingress remain open.
+The two-VM object ownership scenario also passes. Final package, private Console, distributed Wallet, and production ingress checks remain open.
+See [Google Wallet evidence and limitations](evidence/google-wallet.json).
 AWS qualification is outside the current scope. The deleted project `eigen-413918` must not be used.
 Qualification resources remain task-owned and tracked under the private `.artifacts` directory.
 

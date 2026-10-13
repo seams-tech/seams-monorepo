@@ -1,0 +1,839 @@
+{
+  "status": "selected Wallet contracts and object-ownership checks passed; final release and remaining acceptance gates open",
+  "project": "seams-501403",
+  "ordinary": {
+    "status": "passed",
+    "scope": "all 16 selected unchanged Wallet contracts, one Google VM and real GCS, uninstrumented candidate; no distributed or Console claim",
+    "project": "seams-501403",
+    "zone": "us-central1-a",
+    "runtime": {
+      "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+      "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+      "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+      "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+      "version": "celld 0.6.2-seams.5",
+      "platform": "Linux",
+      "architecture": "x86_64",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+      "clippyCommand": [
+        "cargo",
+        "clippy",
+        "--release",
+        "--locked",
+        "-p",
+        "celld",
+        "--bin",
+        "celld",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "packageSnapshotHashes": {
+      "wallet-server": "a5ea313ccc22ea7620532055c77dfbb7d5033e46041d8c1f5f9003e484f0422f",
+      "wallet": "9957454c44374c011981aa433aba3a28e0adc809b6685bed8466c1dd39282698"
+    },
+    "candidate": {
+      "kind": "local-test-hook-candidate",
+      "basePackage": "@seams/wallet-server@0.9.4",
+      "sourceCommit": "1595d91b78f9edf16d54dd781fc12c9f9f82dd87",
+      "retained": "all released Worker/WASM artifacts and all other release modules; rebuilt validation module exports assertString for the changed hooks",
+      "files": {
+        "dist/esm/localHostedWalletGatewayHandler.js": {
+          "baseSha256": "2805e0c6320ce1356c346fc87c041a1af244b75c3ade0f99e317929dcb8babdc",
+          "candidateSha256": "7a5ad2a30d34953f5a96baa21a440fb222e0f16a7aa932f84b9ae05cfedade1a"
+        },
+        "dist/types/wallet-server/src/localHostedWalletGatewayHandler.d.ts": {
+          "baseSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca",
+          "candidateSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca"
+        },
+        "dist/esm/localIntendedYaoFault.js": {
+          "baseSha256": "9a0ea6940cbf83047a7c72580efb6d4b72558e878ab81fa543b1e5f564e1ee72",
+          "candidateSha256": "2f20d7532c19d4d080a5321b07da46abf00d615409f77c164b8f81b493563e33"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoFault.d.ts": {
+          "baseSha256": "26108cfd2789a3e6a686e66faf8f33920e930ec9925e6640530193b3f93fe3f6",
+          "candidateSha256": "0b06fe282cb8f29432db69af3085d98c4cb83211b650c7b1482bc6c9618a52bc"
+        },
+        "dist/esm/localIntendedYaoRecoveryFault.js": {
+          "baseSha256": "b3653334c197109ddc44dfe54f053aa24de5f82ed276303530296ef406c3585b",
+          "candidateSha256": "449c9395baef5dfdd76d6ad138f91de686f70be5da9f8117e88bd6fb4cff86dd"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoRecoveryFault.d.ts": {
+          "baseSha256": "2f84b47fa5501d98d75550e3fd6471e0b60665073f56e4acffc43181cf330382",
+          "candidateSha256": "5eefa2db94e870057ac91c19edabdf4dfe15c44f343449aa5e7fe042de62801d"
+        },
+        "dist/esm/localIntendedYaoSigningFault.js": {
+          "baseSha256": "52f470716972e7555b08191d8b7346ba2725ce47b95d33e82a582a70fa5c5b33",
+          "candidateSha256": "129be9c20beae5f106e0558c0b44a7eb11a2b233b8dc1b6e34da2590ed4d8002"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoSigningFault.d.ts": {
+          "baseSha256": "bafeb56c62b29e7c2b8b605985e9c06796ed6f5af125c2d1f423a14a24ff9d7c",
+          "candidateSha256": "92603a1db7374c9618d7bc83bd7b33ad7ef23a38998f06b93ccaf7e6f15d47d8"
+        },
+        "dist/esm/shared-ts/src/utils/validation.js": {
+          "baseSha256": "0cd0f47c02219c5333abc5b1c6dd83521dc1621c522b6d30c360c627c9c7f654",
+          "candidateSha256": "39261e427ed03af8c043c40ecd324777918ee3f3eb9fcc0f2f9de8258e45aa26"
+        }
+      },
+      "sourcePatchSha256": "00a1b327a4bc30ed4b5ef72c29b9359103023d5a21a37faa4edb839020531854"
+    },
+    "processManager": "systemd; Restart=no; warn,cell_console=info",
+    "readinessMeasurements": [
+      {
+        "path": "",
+        "status": 404,
+        "seconds": 0.3530215409118682
+      },
+      {
+        "path": "/readyz",
+        "status": 200,
+        "seconds": 0.3362604998983443
+      },
+      {
+        "path": "/__intended-e2e",
+        "status": 200,
+        "seconds": 0.012336332816630602
+      },
+      {
+        "path": "/wallet-service",
+        "status": 200,
+        "seconds": 0.005754915997385979
+      }
+    ],
+    "gatewayArchiveSha256": "3f1ae39ea8e9f14c69f79103ffe53d53993ee83fa109e08307b75596981671a2",
+    "browserSourceHashes": {
+      "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+      "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+      "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+      "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+      "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+    },
+    "browserOutcomes": [
+      {
+        "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "EVM registration and signatures complete while NEAR execution is held",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "lock retains durable presignatures across a fresh unlock",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh unlock survives a delayed restoration response from another tab",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "passkey unlock restores immediate export and shared-budget signing",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ],
+    "remoteRuntimeCleanup": "stopped",
+    "cleanup": "local browser tools and SSH tunnel stopped; task-owned Google resources retained",
+    "sourceRecordSha256": "1d3ea77ce124bb417658e03670c5b241ff01c2b8a27c0786b2c33256730af223",
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/wallet-gcp-managed-xs34rm2a"
+  },
+  "confidential": {
+    "status": "passed",
+    "scope": "all 16 selected unchanged Wallet contracts, one Google VM and real GCS, uninstrumented candidate; no distributed or Console claim",
+    "project": "seams-501403",
+    "zone": "us-central1-c",
+    "runtime": {
+      "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+      "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+      "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+      "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+      "version": "celld 0.6.2-seams.5",
+      "platform": "Linux",
+      "architecture": "x86_64",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+      "clippyCommand": [
+        "cargo",
+        "clippy",
+        "--release",
+        "--locked",
+        "-p",
+        "celld",
+        "--bin",
+        "celld",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "packageSnapshotHashes": {
+      "wallet-server": "a5ea313ccc22ea7620532055c77dfbb7d5033e46041d8c1f5f9003e484f0422f",
+      "wallet": "9957454c44374c011981aa433aba3a28e0adc809b6685bed8466c1dd39282698"
+    },
+    "candidate": {
+      "kind": "local-test-hook-candidate",
+      "basePackage": "@seams/wallet-server@0.9.4",
+      "sourceCommit": "1595d91b78f9edf16d54dd781fc12c9f9f82dd87",
+      "retained": "all released Worker/WASM artifacts and all other release modules; rebuilt validation module exports assertString for the changed hooks",
+      "files": {
+        "dist/esm/localHostedWalletGatewayHandler.js": {
+          "baseSha256": "2805e0c6320ce1356c346fc87c041a1af244b75c3ade0f99e317929dcb8babdc",
+          "candidateSha256": "7a5ad2a30d34953f5a96baa21a440fb222e0f16a7aa932f84b9ae05cfedade1a"
+        },
+        "dist/types/wallet-server/src/localHostedWalletGatewayHandler.d.ts": {
+          "baseSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca",
+          "candidateSha256": "eb71e70fb7eff396d7714e3c80c0840b3fe59b40c10db0166d55caf4e60135ca"
+        },
+        "dist/esm/localIntendedYaoFault.js": {
+          "baseSha256": "9a0ea6940cbf83047a7c72580efb6d4b72558e878ab81fa543b1e5f564e1ee72",
+          "candidateSha256": "2f20d7532c19d4d080a5321b07da46abf00d615409f77c164b8f81b493563e33"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoFault.d.ts": {
+          "baseSha256": "26108cfd2789a3e6a686e66faf8f33920e930ec9925e6640530193b3f93fe3f6",
+          "candidateSha256": "0b06fe282cb8f29432db69af3085d98c4cb83211b650c7b1482bc6c9618a52bc"
+        },
+        "dist/esm/localIntendedYaoRecoveryFault.js": {
+          "baseSha256": "b3653334c197109ddc44dfe54f053aa24de5f82ed276303530296ef406c3585b",
+          "candidateSha256": "449c9395baef5dfdd76d6ad138f91de686f70be5da9f8117e88bd6fb4cff86dd"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoRecoveryFault.d.ts": {
+          "baseSha256": "2f84b47fa5501d98d75550e3fd6471e0b60665073f56e4acffc43181cf330382",
+          "candidateSha256": "5eefa2db94e870057ac91c19edabdf4dfe15c44f343449aa5e7fe042de62801d"
+        },
+        "dist/esm/localIntendedYaoSigningFault.js": {
+          "baseSha256": "52f470716972e7555b08191d8b7346ba2725ce47b95d33e82a582a70fa5c5b33",
+          "candidateSha256": "129be9c20beae5f106e0558c0b44a7eb11a2b233b8dc1b6e34da2590ed4d8002"
+        },
+        "dist/types/wallet-server/src/localIntendedYaoSigningFault.d.ts": {
+          "baseSha256": "bafeb56c62b29e7c2b8b605985e9c06796ed6f5af125c2d1f423a14a24ff9d7c",
+          "candidateSha256": "92603a1db7374c9618d7bc83bd7b33ad7ef23a38998f06b93ccaf7e6f15d47d8"
+        },
+        "dist/esm/shared-ts/src/utils/validation.js": {
+          "baseSha256": "0cd0f47c02219c5333abc5b1c6dd83521dc1621c522b6d30c360c627c9c7f654",
+          "candidateSha256": "39261e427ed03af8c043c40ecd324777918ee3f3eb9fcc0f2f9de8258e45aa26"
+        }
+      },
+      "sourcePatchSha256": "00a1b327a4bc30ed4b5ef72c29b9359103023d5a21a37faa4edb839020531854"
+    },
+    "confidentialVm": true,
+    "processManager": "systemd; Restart=no; warn,cell_console=info",
+    "readinessMeasurements": [
+      {
+        "path": "",
+        "status": 404,
+        "seconds": 0.32430204190313816
+      },
+      {
+        "path": "/readyz",
+        "status": 200,
+        "seconds": 0.3239569589495659
+      },
+      {
+        "path": "/__intended-e2e",
+        "status": 200,
+        "seconds": 0.01706708292476833
+      },
+      {
+        "path": "/wallet-service",
+        "status": 200,
+        "seconds": 0.009245207998901606
+      }
+    ],
+    "gatewayArchiveSha256": "11a0fc658e77b2e37f0208052a3b0a885bd1d8455ea22bd7d2ff846f4bdcf5a1",
+    "browserSourceHashes": {
+      "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+      "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+      "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+      "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+      "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+    },
+    "browserOutcomes": [
+      {
+        "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "EVM registration and signatures complete while NEAR execution is held",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "lock retains durable presignatures across a fresh unlock",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh unlock survives a delayed restoration response from another tab",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "passkey unlock restores immediate export and shared-budget signing",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ],
+    "remoteRuntimeCleanup": "state and stop outcome saved in remote-stop.log",
+    "cleanup": "local browser tools and SSH tunnel stopped; task-owned Google resources retained",
+    "sourceRecordSha256": "9cfa77aa597f14864030ece172043c5e272e10db35e99da2bfdc74e78541ffd5",
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/wallet-gcp-confidential-http-j082mtjg"
+  },
+  "objectOwnership": {
+    "status": "passed",
+    "scope": "two-node celld object ownership, state recovery, peer partition and stale-process fencing; no Wallet one-use-material or restore claim",
+    "project": "seams-501403",
+    "fleetPrefix": "multinode-125106",
+    "events": [
+      {
+        "kind": "ordinary",
+        "action": "initialize",
+        "at": 1791898753.9577,
+        "result": {
+          "started": {
+            "unit": "r190-celld-multi-watch-7_11fyiv.service",
+            "watch": "/tmp/r190-gcp-multinode/watch-7_11fyiv",
+            "logOffsetBytes": 0,
+            "pid": 28658
+          },
+          "state": {
+            "MainPID": "28658",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:11 UTC",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "28658",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-7_11fyiv.service",
+            "ActiveState": "active",
+            "SubState": "running"
+          }
+        }
+      },
+      {
+        "kind": "confidential",
+        "action": "start",
+        "at": 1791898769.477759,
+        "result": {
+          "started": {
+            "unit": "r190-celld-multi-watch-vxd3nu5b.service",
+            "watch": "/tmp/r190-gcp-multinode/watch-vxd3nu5b",
+            "logOffsetBytes": 0,
+            "pid": 5975
+          },
+          "state": {
+            "MainPID": "5975",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:26 UTC",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "5975",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-vxd3nu5b.service",
+            "ActiveState": "active",
+            "SubState": "running"
+          }
+        }
+      },
+      {
+        "kind": "ordinary",
+        "action": "pause",
+        "at": 1791898778.079843,
+        "result": {
+          "MainPID": "28658",
+          "Result": "success",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:11 UTC",
+          "ExecMainExitTimestamp": "",
+          "ExecMainPID": "28658",
+          "ExecMainCode": "0",
+          "ExecMainStatus": "0",
+          "Id": "r190-celld-multi-watch-7_11fyiv.service",
+          "ActiveState": "active",
+          "SubState": "running"
+        }
+      },
+      {
+        "kind": "ordinary",
+        "action": "resume",
+        "at": 1791898821.292502,
+        "result": {
+          "MainPID": "28658",
+          "Result": "success",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:11 UTC",
+          "ExecMainExitTimestamp": "",
+          "ExecMainPID": "28658",
+          "ExecMainCode": "0",
+          "ExecMainStatus": "0",
+          "Id": "r190-celld-multi-watch-7_11fyiv.service",
+          "ActiveState": "active",
+          "SubState": "running"
+        }
+      },
+      {
+        "kind": "ordinary",
+        "action": "status",
+        "at": 1791898825.637783,
+        "result": {
+          "MainPID": "0",
+          "Result": "exit-code",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:11 UTC",
+          "ExecMainExitTimestamp": "Tue 2026-10-13 13:40:21 UTC",
+          "ExecMainPID": "28658",
+          "ExecMainCode": "1",
+          "ExecMainStatus": "3",
+          "Id": "r190-celld-multi-watch-7_11fyiv.service",
+          "ActiveState": "failed",
+          "SubState": "failed"
+        }
+      },
+      {
+        "kind": "ordinary",
+        "action": "start",
+        "at": 1791898831.637423,
+        "result": {
+          "started": {
+            "unit": "r190-celld-multi-watch-n0orys2z.service",
+            "watch": "/tmp/r190-gcp-multinode/watch-n0orys2z",
+            "logOffsetBytes": 519,
+            "pid": 29042
+          },
+          "state": {
+            "MainPID": "29042",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:40:29 UTC",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "29042",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-n0orys2z.service",
+            "ActiveState": "active",
+            "SubState": "running"
+          }
+        }
+      },
+      {
+        "kind": "confidential",
+        "action": "kill",
+        "at": 1791898884.253688,
+        "result": {
+          "beforeStop": {
+            "MainPID": "5975",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:26 UTC",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "5975",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-vxd3nu5b.service",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "afterStop": {
+            "MainPID": "0",
+            "Result": "signal",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:26 UTC",
+            "ExecMainExitTimestamp": "Tue 2026-10-13 13:41:23 UTC",
+            "ExecMainPID": "5975",
+            "ExecMainCode": "2",
+            "ExecMainStatus": "9",
+            "Id": "r190-celld-multi-watch-vxd3nu5b.service",
+            "ActiveState": "failed",
+            "SubState": "failed"
+          }
+        }
+      },
+      {
+        "kind": "ordinary",
+        "action": "stop",
+        "at": 1791898925.985396,
+        "result": {
+          "beforeStop": {
+            "MainPID": "29042",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:40:29 UTC",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "29042",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-n0orys2z.service",
+            "ActiveState": "active",
+            "SubState": "running"
+          },
+          "afterStop": {
+            "MainPID": "0",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "",
+            "ExecMainExitTimestamp": "",
+            "ExecMainPID": "0",
+            "ExecMainCode": "0",
+            "ExecMainStatus": "0",
+            "Id": "r190-celld-multi-watch-n0orys2z.service",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          }
+        }
+      },
+      {
+        "kind": "confidential",
+        "action": "stop",
+        "at": 1791898930.305106,
+        "result": {
+          "beforeStop": {
+            "MainPID": "0",
+            "Result": "signal",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:26 UTC",
+            "ExecMainExitTimestamp": "Tue 2026-10-13 13:41:23 UTC",
+            "ExecMainPID": "5975",
+            "ExecMainCode": "2",
+            "ExecMainStatus": "9",
+            "Id": "r190-celld-multi-watch-vxd3nu5b.service",
+            "ActiveState": "failed",
+            "SubState": "failed"
+          },
+          "afterStop": {
+            "MainPID": "0",
+            "Result": "signal",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:26 UTC",
+            "ExecMainExitTimestamp": "Tue 2026-10-13 13:41:23 UTC",
+            "ExecMainPID": "5975",
+            "ExecMainCode": "2",
+            "ExecMainStatus": "9",
+            "Id": "r190-celld-multi-watch-vxd3nu5b.service",
+            "ActiveState": "failed",
+            "SubState": "failed"
+          }
+        }
+      }
+    ],
+    "initial": {
+      "status": 200,
+      "body": {
+        "owner": "router",
+        "count": 1,
+        "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+      }
+    },
+    "initialOwner": {
+      "node": "b215596c8faf4d14bacfe12fc9070a2a",
+      "epoch": 1
+    },
+    "crossNodeExternalObjectRead": {
+      "status": 200,
+      "body": {
+        "owner": "router",
+        "count": 1,
+        "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+      }
+    },
+    "pausedOwnerTakeover": {
+      "reads": [
+        {
+          "at": 1791898806.591535,
+          "result": {
+            "status": 0,
+            "error": "TimeoutError"
+          }
+        },
+        {
+          "at": 1791898812.6632378,
+          "result": {
+            "status": 200,
+            "body": {
+              "owner": "router",
+              "count": 1,
+              "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+            }
+          }
+        }
+      ],
+      "owner": {
+        "node": "76ee096d695c982b124233ba31ccd19b",
+        "epoch": 2
+      }
+    },
+    "staleProcessFence": {
+      "MainPID": "0",
+      "Result": "exit-code",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Tue 2026-10-13 13:39:11 UTC",
+      "ExecMainExitTimestamp": "Tue 2026-10-13 13:40:21 UTC",
+      "ExecMainPID": "28658",
+      "ExecMainCode": "1",
+      "ExecMainStatus": "3",
+      "Id": "r190-celld-multi-watch-7_11fyiv.service",
+      "ActiveState": "failed",
+      "SubState": "failed"
+    },
+    "peerPositiveControl": {
+      "status": 404,
+      "body": "{\"error\":\"not_found\"}"
+    },
+    "blockedPeerControl": {
+      "status": 0,
+      "error": "URLError"
+    },
+    "partition": {
+      "beforeOwner": {
+        "node": "76ee096d695c982b124233ba31ccd19b",
+        "epoch": 2
+      },
+      "read": {
+        "status": 500,
+        "body": "Worker failed: rejected: Error: rejected: DurableObjectRoutingError: The Durable Object owner is currently unreachable [at __durableObjectRoutingError (<anonymous>:2055:12) <- at invoke (<anonymous>:5196:30) <- at async Proxy.doFetch (<anonymous>:5246:30)]"
+      },
+      "afterOwner": {
+        "node": "76ee096d695c982b124233ba31ccd19b",
+        "epoch": 2
+      },
+      "disposition": "request refused while the owner was unreachable"
+    },
+    "healedRead": {
+      "status": 200,
+      "body": {
+        "owner": "router",
+        "count": 1,
+        "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+      }
+    },
+    "killedOwnerTakeover": {
+      "reads": [
+        {
+          "at": 1791898888.924129,
+          "result": {
+            "status": 500,
+            "body": "Worker failed: rejected: Error: rejected: DurableObjectRoutingError: The Durable Object owner is currently unreachable [at __durableObjectRoutingError (<anonymous>:2055:12) <- at invoke (<anonymous>:5196:30) <- at async Proxy.doFetch (<anonymous>:5246:30)]"
+          }
+        },
+        {
+          "at": 1791898894.221885,
+          "result": {
+            "status": 200,
+            "body": {
+              "owner": "router",
+              "count": 1,
+              "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+            }
+          }
+        }
+      ],
+      "owner": {
+        "node": "b215596c8faf4d14bacfe12fc9070a2a",
+        "epoch": 3
+      }
+    },
+    "survivorIncrement": {
+      "status": 200,
+      "body": {
+        "owner": "router",
+        "count": 2,
+        "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+      }
+    },
+    "survivorAliasRead": {
+      "status": 200,
+      "body": {
+        "owner": "router",
+        "count": 2,
+        "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+      }
+    },
+    "cleanup": {
+      "ordinary": "runtime state captured and stop command completed",
+      "confidential": "runtime state captured and stop command completed"
+    },
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/multinode-125106",
+    "sourceRecordSha256": "e066f804954094eac3deb84e8b161055041fbdb5b97da3967c2bfef5fb3820de",
+    "verifiedSourceIdentities": {
+      "scope": "post-run verification of the deployment archives and effective controller retained for this run",
+      "initialHashRecord": "source-hashes.json was created before the per-host provider.json substitutions and omitted the replacement controller",
+      "deploymentArchives": {
+        "ordinary": {
+          "sha256": "26c8ae4e96a65835ad7d81fdeb17e5572349a2d4cb6c069b7015b35e3c8d55e5",
+          "files": {
+            "r190-gcp-multinode/a.json": "e64d153f7adb21310364351dbe54687e190a9b1929a6c62ac75ac5a47d29cfbd",
+            "r190-gcp-multinode/b.json": "622fcd5e9953f5fa732ec349063f9023fd0115cac26977cbc60ae9a1b5f25dac",
+            "r190-gcp-multinode/caller.json": "6858c21ad6f733d82b6cff4802e653b4772af432fc8c83a8f56b3a0a0e9c4d7f",
+            "r190-gcp-multinode/caller.mjs": "c6bcbc32e90305495c8a076cc07ab723d54f26bb9f6dd508cb43d7f87ebb5050",
+            "r190-gcp-multinode/ingress.json": "aec1c7f8eebdedc51d0ac0e840602145f8c6f5d8f1763866618c5601b9cd04ad",
+            "r190-gcp-multinode/ingress.mjs": "1c70577f08ffc5ffe5ecf88dba6369eca24e33edf8d96c191c5e8870f33661c1",
+            "r190-gcp-multinode/owner.json": "a5bcbfa9ab95eed8ed4a9078d4d723a3d51c5e2fe7e227c0e880ec9dcb99844c",
+            "r190-gcp-multinode/owner.mjs": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+            "r190-gcp-multinode/probe.py": "da40bc50dd58bddccd1dbb5f6731d2dc550b0cba020419a04456ba51106b7794",
+            "r190-gcp-multinode/provider.json": "6e4174f85196713bc4a7880c4a3dad0dbe0f2dc72c94b718df4498fecf5ae4c6",
+            "r190-gcp-multinode/reference.json": "0a107e358107199d21dd6ca685e0bb077c6dc86f98ba8ba76a1e8a954981ec7d",
+            "r190-gcp-multinode/remote.py": "963ffa40deef9a61a535c9732f439ca01c8c5bde73a38b16c5667209b0445119",
+            "r190-gcp-multinode/resources.json": "e2542643ce6e83d0abcbcf85755b9bb4faf796a276f181b5e8cc598d61c5ed02",
+            "r190-gcp-multinode/role.mjs": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb"
+          }
+        },
+        "confidential": {
+          "sha256": "91c768830a02610fa06bfa73b95bf479bf3a21e6ec2dda322dc1422490dad239",
+          "files": {
+            "r190-gcp-multinode/a.json": "e64d153f7adb21310364351dbe54687e190a9b1929a6c62ac75ac5a47d29cfbd",
+            "r190-gcp-multinode/b.json": "622fcd5e9953f5fa732ec349063f9023fd0115cac26977cbc60ae9a1b5f25dac",
+            "r190-gcp-multinode/caller.json": "6858c21ad6f733d82b6cff4802e653b4772af432fc8c83a8f56b3a0a0e9c4d7f",
+            "r190-gcp-multinode/caller.mjs": "c6bcbc32e90305495c8a076cc07ab723d54f26bb9f6dd508cb43d7f87ebb5050",
+            "r190-gcp-multinode/ingress.json": "aec1c7f8eebdedc51d0ac0e840602145f8c6f5d8f1763866618c5601b9cd04ad",
+            "r190-gcp-multinode/ingress.mjs": "1c70577f08ffc5ffe5ecf88dba6369eca24e33edf8d96c191c5e8870f33661c1",
+            "r190-gcp-multinode/owner.json": "a5bcbfa9ab95eed8ed4a9078d4d723a3d51c5e2fe7e227c0e880ec9dcb99844c",
+            "r190-gcp-multinode/owner.mjs": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+            "r190-gcp-multinode/probe.py": "da40bc50dd58bddccd1dbb5f6731d2dc550b0cba020419a04456ba51106b7794",
+            "r190-gcp-multinode/provider.json": "0a578db3a07df13482bf771d2933c194d4dbcbcd4c591e9c5743bafe6f915eed",
+            "r190-gcp-multinode/reference.json": "0a107e358107199d21dd6ca685e0bb077c6dc86f98ba8ba76a1e8a954981ec7d",
+            "r190-gcp-multinode/remote.py": "963ffa40deef9a61a535c9732f439ca01c8c5bde73a38b16c5667209b0445119",
+            "r190-gcp-multinode/resources.json": "e2542643ce6e83d0abcbcf85755b9bb4faf796a276f181b5e8cc598d61c5ed02",
+            "r190-gcp-multinode/role.mjs": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb"
+          }
+        }
+      },
+      "effectiveController": {
+        "path": "managed-multi.py",
+        "sha256": "4217173928e26a9399a58868411d6459e0f002c1ccaa89378175ef3003bbd370",
+        "change": "adds the kill command used by the recorded crash step"
+      },
+      "runController": {
+        "path": "/tmp/seams-r190-multinode-run.py",
+        "sha256": "694622fb82f6bc360b82791ae16d180459ba8f033332bbc120c7d00ebbac1d66"
+      }
+    }
+  },
+  "limitations": [
+    "Wallet runs use the frozen 0.9.4 release with rebuilt local delayed-request hooks, not the final 0.10.0 R190 package.",
+    "The multi-node test observes one object and sequential requests. It does not establish concurrent or in-flight write recovery, Wallet one-use safety, restore, or tenant cutover.",
+    "The resumed original process exits with status 3. Its runtime log was not recovered before the scheduled VM stop. A restart failed because Google zone capacity was exhausted, so the precise exit reason remains unverified.",
+    "The initial source-hashes record predates per-host provider substitutions and omits the effective replacement controller. The verified archive record preserves both actual deployment archives and the controller hash without replacing the original record.",
+    "Earlier Ed25519 export failure, unmanaged listener loss, and local browser HTTP failure remain unexplained. Later passes do not identify their causes.",
+    "Private Console on celld, final release acceptance, Wallet distributed failure scenarios, production HTTPS ingress, and live classic-host inventory remain open.",
+    "SEV-SNP evidence establishes execution compatibility. Attestation-controlled key release is outside this proof."
+  ],
+  "resourceCleanup": "Both task-owned VMs stopped. Disks, buckets, and service account remain recorded for the remaining qualification."
+}

@@ -109,7 +109,6 @@ export type ConsoleBillingD1Service = ConsoleBillingService & {
 
 export interface D1ConsoleBillingServiceOptions {
   database: D1DatabaseLike;
-  ensureSchema?: boolean;
   namespace?: string;
   ensureSchema?: boolean;
   now?: () => Date;

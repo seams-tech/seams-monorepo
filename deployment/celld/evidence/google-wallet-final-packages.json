@@ -456,5 +456,32 @@
     "fact": "The local 0.3-second readiness helper timed out before provisioning. The native process remained active until cleanup.",
     "control": "The repeated cloud probe allows 10 seconds per HTTP response and records response times. The complete suite then passes.",
     "limit": "The original HTTP timings were not recorded. This control does not establish their exact duration or sole cause."
+  },
+  "resourceCleanup": {
+    "checkedAtUtc": "2026-10-13T17:41:22.066076+00:00",
+    "project": "seams-501403",
+    "instances": [
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-ordinary",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/e2-standard-4",
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      }
+    ],
+    "peerFirewallRules": [],
+    "retained": "Task-owned attached disks, synthetic test buckets and service account remain tracked. All qualification VMs are stopped.",
+    "earlierCleanupRepair": "Removed r190-wallet-peer-yn09rw51-allow and r190-wallet-peer-yn09rw51-deny after final audit found them left by the earlier controller cleanup failure."
   }
 }

@@ -8,7 +8,8 @@ External objects, raw EC operations, A/B streams, conditional writes, direct buc
 A Google IAM denial test observes B failure while A remains writable. The B grant was restored.
 The two-VM object ownership scenario also passes. Local 0.11.0 Wallet and Console checks pass on both runtimes.
 The final 0.11.0 archives pass the same 16 contracts on both Google VM types.
-Distributed Wallet, release promotion, and live cutover checks remain open.
+The [one-node Wallet failure check](evidence/google-wallet-one-node-failure.json) and [Google Console onboarding](evidence/google-console.json) also pass.
+The broader distributed lifecycle matrix, release promotion, and live cutover checks remain open.
 See [final Google package evidence](evidence/google-wallet-final-packages.json) and [earlier evidence and limitations](evidence/google-wallet.json).
 AWS qualification is outside the current scope. The deleted project `eigen-413918` must not be used.
 Qualification resources remain task-owned and tracked under the private `.artifacts` directory.

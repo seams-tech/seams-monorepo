@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. The service, HTTPS, and restart check passes on an ordinary VM. The final 0.11.0 archives pass all 16 selected Wallet contracts on both Google VM types. Distributed-state, release promotion, and cutover qualification continue.
+Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. The service, HTTPS, and restart check passes on an ordinary VM. The final 0.11.0 archives pass all 16 selected Wallet contracts on both Google VM types. A two-node ingress-loss scenario and Google Console onboarding also pass. Broader distributed lifecycle, release promotion, and cutover qualification continue.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -109,7 +109,7 @@ The local proof checks:
 - Recovery after rejected deployments.
 - Stock-runtime refusal of the patched manifest without rebuilding it.
 
-The private Console Express host is removed after its Worker behavior checks passed. Public classic-host deletion still requires the remaining R190 gates. A production rollout needs a separately validated build and maintenance procedure.
+The private Console Express host and public classic hosts are removed. The final package candidates pass selected Wallet contracts on both runtimes and both Google VM types. Distributed lifecycle, package promotion and live cutover gates remain open.
 
 ## Repeatable build verification
 

@@ -1,7 +1,7 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
 Status: the classic Wallet hosts are removed. The local 0.11.0 candidate passes all 16 selected Wallet contracts on celld and workerd. Console composition also passes. The same candidate passes on ordinary and SEV-SNP Google VMs. Distributed Wallet, release promotion, and live cutover gates remain open.
-Updated: October 14,2026. Production rollout remains pending.
+Updated: October 14, 2026. Production rollout remains pending.
 
 ## Decision and purpose
 
@@ -481,7 +481,7 @@ No application host was removed in this checkpoint.
 The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
 This excludes concurrent SDK work from R190's reduction claim.
 It includes the complete maintained patch file, including diff context, and the added acceptance code.
-The checkpoint currently removes 34,963 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
+The checkpoint currently removes 34,936 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
 The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
 Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
 
@@ -595,5 +595,21 @@ They still verify quota contention, stored signing replies, wrong-wallet refusal
 Private `pnpm check` passes, including 53 deployment-script checks and one existing skip.
 The public package boundary and bloat gates also pass.
 
-A separate two-node Wallet process-loss scenario is under qualification.
+The two-node Wallet process-loss scenario passes its three-contract control and three-contract fault run.
+The fault interrupts the ingress node after a committed reply and preserves the survivor process and storage.
+Stored reply replay and wrong-wallet refusal pass across that fault. Quota contention and Router replay pass afterward.
+Signer owner placement and signing-effect counts were not measured.
+See [one-node failure evidence and limits](../deployment/celld/evidence/google-wallet-one-node-failure.json).
+
+Production Console onboarding and all 75 migrations also pass on the Confidential VM with real GCS.
+See [Google Console evidence](../deployment/celld/evidence/google-console.json).
 Release promotion, live consumer inventory, state-safe cutover, and the remaining distributed restore/lifecycle matrix remain open.
+
+## Remaining rollout gates
+
+1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, Yao interruption, relocation, tenant-root retirement, and authorized restore.
+2. Confirm deployed classic-host consumers and their stored state before any live cutover. The source deletion does not establish that inventory.
+3. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
+4. Complete state-safe cutover and rollback procedures for the confirmed consumers. Preserve consumed material and ownership generations.
+
+The branch implementation and selected qualification checks are committed. Production rollout remains pending.

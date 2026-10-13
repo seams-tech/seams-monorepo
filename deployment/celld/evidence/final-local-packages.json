@@ -244,13 +244,13 @@
     "runtimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
     "harnessSha256": "0c3f158f371ad95ede90398a7cb9814ac1aa19fd6af1ec4857dbca3b82fbdbec",
     "driverSha256": "1c66a07e096aeba6103bf78ded277b2d3f7681e844362e1b302a83c93a9b6812",
-    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-cjss2350",
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-stvrdf9q",
     "walletServerCandidate": "/private/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server",
     "stage": "unchanged-onboarding-scenario",
     "moto": "5.1.14",
     "runtime": "celld 0.6.2-seams.5 (debug)",
     "rendererSha256": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
-    "deployedConsoleBundleSha256": "b46d6d0f6fd514abaecc7fe03826d33340af8cc5ade2118f833e9ba446053601",
+    "deployedConsoleBundleSha256": "ad71b195aedffb41779418a272e3d0e4c83620afa47a4898c2696e84eb6c2fd0",
     "initialSchema": {
       "count": 0
     },
@@ -260,7 +260,7 @@
     },
     "preparation": {
       "scope": "production Console Worker through a service binding; onboarding replay and unauthorized activation",
-      "consoleBundleSha256": "46b89766ce766164ced666bb8799f9d38102d58a2a5de3bdba2047f64f1f92ea",
+      "consoleBundleSha256": "776b650f2992148f9da83abdd2f3c609bc30057c0358efc97d0cae18a7203a1b",
       "migrations": [
         {
           "name": "0001_console_d1_initial.sql",
@@ -557,6 +557,10 @@
         {
           "name": "0097_service_access.sql",
           "sha256": "9a1c210bfb7f2763b0bcd570f53a1f6443ecc157dccc92c3a30e76004c026839"
+        },
+        {
+          "name": "0098_account_delivery.sql",
+          "sha256": "927d75191fe5c7d8be759899083c8ae4a36abbd94fe2cf2719e604c251e06e4e"
         }
       ]
     },
@@ -607,13 +611,13 @@
       ]
     },
     "cleanup": "runtime and emulator stopped; synthetic local evidence retained",
-    "sourceRecordSha256": "6cedea371aca74cde8eeb43d2b9066503f1f72378d29d034c132b94bd4dda468"
+    "sourceRecordSha256": "28ed93ebc50b39bfa85f17875aa6a83cdcbffcec693adcd0e1d3dbd9dc7c0a04"
   },
   "consoleWorkerd": {
     "status": "passed",
     "testCount": 2,
     "command": "SEAMS_WALLET_SERVER_CANDIDATE=/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server pnpm -C tests exec playwright test -c playwright.relayer.config.ts relayer/console-service-auth.e2e.test.ts relayer/tenant-deployment-binding.e2e.test.ts --reporter=line",
-    "logSha256": "e134d5f4fad802aa211d4edfdb43338ebbc0ea96fac1eef54d4a22e0bf37f2b5"
+    "logSha256": "2322956ef6213f1145db38bb094c3dbae45daf2c371ce527c94381d87f19685d"
   },
   "packageBoundaries": {
     "status": "passed",
@@ -631,7 +635,7 @@
     "command": "pnpm check",
     "scriptTestsPassed": 53,
     "scriptTestsSkipped": 1,
-    "logSha256": "2e9b77d9858c3d28108e08ddbb871669a53696695a518c39e68f097f2d9e03f8"
+    "logSha256": "5ce27a92677cfc26c729b25e4318883d705aaa9460ee24914b7df60087036820"
   },
   "setupFailures": [
     {
@@ -640,5 +644,8 @@
       "artifacts": ["celld-wallet-xnxfep2z", "workerd-rebased-011-fbaunto7"]
     }
   ],
-  "googleFinalPackages": "google-wallet-final-packages.json"
+  "googleFinalPackages": "google-wallet-final-packages.json",
+  "privateSourceBase": "e904a04456fbea8de7a5e47796f02f55680416be",
+  "googleConsole": "google-console.json",
+  "googleOneNodeFailure": "google-wallet-one-node-failure.json"
 }

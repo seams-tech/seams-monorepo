@@ -533,7 +533,9 @@ class AccountWorkerFixture {
   }
 
   private async setup(input: FixtureSetup): Promise<Record<string, unknown>> {
-    // A test host can empty the database between tests while this runtime stays alive.
+    // A test host keeps this runtime across tests. It empties the database before some tests
+    // and keeps it before others, so each setup starts from an empty database itself.
+    await empty(this.bindings.ACCOUNT_DB);
     await migrate(this.bindings.ACCOUNT_DB);
     this.faults.clear();
     const owner = await this.verifyMember(input.primary.owner);
@@ -934,6 +936,48 @@ async function migrate(database: D1DatabaseLike): Promise<void> {
     for (const statement of migration.statements) statements.push(database.prepare(statement));
     await database.batch(statements);
   }
+}
+
+async function empty(database: D1DatabaseLike): Promise<void> {
+  // D1 refuses each query that reads its internal tables, so both queries leave them out.
+  const objects = await queryD1All(
+    database,
+    `SELECT type, name FROM sqlite_master
+    WHERE type IN ('view', 'table') AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*'`,
+    [],
+  );
+  if (objects.length === 0) return;
+  const references = await queryD1All(
+    database,
+    `SELECT child.name AS child, reference."table" AS parent
+    FROM sqlite_master AS child JOIN pragma_foreign_key_list(child.name) AS reference
+    WHERE child.type = 'table' AND child.name NOT GLOB 'sqlite_*' AND child.name NOT GLOB '_cf_*'
+      AND reference."table" <> child.name AND reference.on_delete NOT IN ('NO ACTION', 'RESTRICT')`,
+    [],
+  );
+  const statements = [database.prepare('PRAGMA defer_foreign_keys = ON')];
+  const tables = new Set<string>();
+  for (const object of objects) {
+    const name = textValue(object.name, 'name');
+    if (object.type === 'table') tables.add(name);
+    else statements.push(database.prepare(`DROP VIEW "${name}"`));
+  }
+  // A dropped table deletes its rows, and SQLite compiles each delete action that this starts
+  // in a child table. The compile fails when a parent of that child is gone, so a table goes
+  // after each table that it acts on. The other references wait for the end of the batch.
+  while (tables.size > 0) {
+    const referenced = new Set<unknown>();
+    for (const reference of references)
+      if (tables.has(textValue(reference.child, 'child'))) referenced.add(reference.parent);
+    const before = tables.size;
+    for (const name of [...tables]) {
+      if (referenced.has(name)) continue;
+      tables.delete(name);
+      statements.push(database.prepare(`DROP TABLE "${name}"`));
+    }
+    if (tables.size === before) throw new Error('Account schema has a cycle of delete actions');
+  }
+  await database.batch(statements);
 }
 
 async function googleJwks(publicKey: JsonWebKey, input: RequestInfo | URL): Promise<Response> {

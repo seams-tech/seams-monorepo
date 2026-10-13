@@ -20,7 +20,7 @@ jobs:
   validate:
     name: Check private applications and deployment composition
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -42,3 +42,16 @@ jobs:
 
       - name: Build private applications
         run: pnpm build
+
+      - name: Shared account acceptance
+        run: pnpm -C tests exec playwright test -c playwright.config.ts 'e2e/console/shared-account-.*\.e2e\.test\.ts' e2e/console/shared-wallet-settlement.e2e.test.ts --reporter=line
+
+      - name: Build native service acceptance authority
+        run: pnpm -C tests exec node helpers/buildSharedAccountPlatformWorker.mjs
+
+      - name: Publish native service acceptance authority
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-account-authority-${{ github.sha }}
+          path: .artifacts/shared-account-platform/account-worker/index.mjs
+          if-no-files-found: error

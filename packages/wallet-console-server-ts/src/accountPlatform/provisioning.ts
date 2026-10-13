@@ -91,6 +91,7 @@ function rejected(
 }
 
 export class WalletServiceProvisioningAdapter implements AccountServiceProvisioningAdapterV1 {
+  readonly consoleHref = '/dashboard/overview';
   readonly authority: ServiceProducerAuthorityV1;
 
   constructor(private readonly options: WalletServiceProvisioningOptions) {

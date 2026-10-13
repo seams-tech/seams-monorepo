@@ -54,6 +54,26 @@ function provisioningAdapter(
   }
 }
 
+interface ServiceCatalogEntry {
+  readonly serviceId: PlatformServiceIdV1;
+  readonly availability:
+    | { readonly kind: 'available'; readonly consoleHref: string }
+    | { readonly kind: 'unavailable'; readonly consoleHref?: never };
+}
+
+function serviceCatalog(context: AccountConsoleContext): readonly ServiceCatalogEntry[] {
+  const entries: ServiceCatalogEntry[] = [];
+  for (const serviceId of ['wallet', 'satyr'] as const) {
+    const adapter = provisioningAdapter(context, serviceId);
+    entries.push(
+      adapter
+        ? { serviceId, availability: { kind: 'available', consoleHref: adapter.consoleHref } }
+        : { serviceId, availability: { kind: 'unavailable' } },
+    );
+  }
+  return entries;
+}
+
 async function changeService(
   context: AccountConsoleContext,
   claims: ConsoleAuthClaims,
@@ -124,7 +144,7 @@ export async function handleAccountPlatformRoutes(
       projectId,
     );
     return instances.kind === 'accepted'
-      ? json({ ok: true, instances: instances.value })
+      ? json({ ok: true, services: serviceCatalog(context), instances: instances.value })
       : platformFailure(instances.error);
   }
   if (

@@ -6,6 +6,7 @@ import type { D1AccountPlatformService } from './d1';
 import type { ServiceProvisionAdapterV1, ServiceProvisionDeliveryV1 } from './types';
 
 export interface AccountServiceProvisioningAdapterV1 extends ServiceProvisionAdapterV1 {
+  readonly consoleHref: string;
   createBinding(scope: PlatformScopeV1): ServiceBindingRequestV1;
 }
 

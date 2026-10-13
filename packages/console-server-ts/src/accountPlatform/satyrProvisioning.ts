@@ -169,6 +169,10 @@ export class SatyrServiceProvisioningAdapterV1 implements AccountServiceProvisio
   readonly authority: ServiceProducerAuthorityV1;
   private readonly clock: () => Date;
 
+  get consoleHref(): string {
+    return `${this.origin}/portal`;
+  }
+
   private constructor(
     private readonly options: SatyrProvisioningAdapterOptionsV1,
     private readonly origin: string,

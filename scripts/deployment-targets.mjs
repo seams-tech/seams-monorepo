@@ -64,6 +64,37 @@ const AMAZON_SES_SECRET_NAMES = Object.freeze([
   'EMAIL_OTP_SES_SECRET_ACCESS_KEY',
 ]);
 
+export const CONSOLE_SERVICE_ENVIRONMENT_NAMES = Object.freeze([
+  'SATYR_DEPLOYMENT_ID',
+  'SATYR_ACCOUNT_SERVICE_TOKEN',
+  'SATYR_ACCOUNT_ASSERTION_ISSUER',
+  'SATYR_ACCOUNT_ASSERTION_AUDIENCE',
+  'SATYR_ACCOUNT_USER_ASSERTION_KEY_ID',
+  'SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON',
+  'SATYR_GOOGLE_OIDC_CLIENT_ID',
+  'SATYR_SERVICE_ORIGIN',
+  'SATYR_PROVISION_PLACEMENT_CELL_ID',
+  'SATYR_PROVISION_ENVIRONMENT',
+  'SATYR_PROVISION_TOKEN',
+  'ACCOUNT_PROVISION_ASSERTION_ISSUER',
+  'ACCOUNT_PROVISION_ASSERTION_AUDIENCE',
+  'ACCOUNT_PROVISION_ASSERTION_KEY_ID',
+  'ACCOUNT_PROVISION_ASSERTION_PRIVATE_JWK_JSON',
+]);
+
+export function readConsoleServiceEnvironment(environment) {
+  const values = {};
+  for (const name of CONSOLE_SERVICE_ENVIRONMENT_NAMES) {
+    const value = String(environment[name] || '').trim();
+    if (value) values[name] = value;
+  }
+  if (Object.keys(values).length === 0) return values;
+  for (const name of CONSOLE_SERVICE_ENVIRONMENT_NAMES) {
+    if (!values[name]) throw new Error(`The Satyr connection requires ${name}`);
+  }
+  return values;
+}
+
 export function backendLaneIds() {
   return BACKEND_LANE_IDS;
 }

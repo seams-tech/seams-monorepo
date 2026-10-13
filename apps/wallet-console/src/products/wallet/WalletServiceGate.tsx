@@ -5,24 +5,25 @@ import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { DASHBOARD_ENVIRONMENTS_UPDATED_EVENT } from '@core/dashboard/consoleContextApi';
 import { useDashboardSelectedContext } from '@core/dashboard/selectedContext';
 import {
-  enableWalletService,
-  getWalletServiceStatus,
-  type EnableableWalletService,
-  type WalletEnableOperation,
-  type WalletServiceStatus,
-} from './consoleWalletServiceApi';
+  changeProjectService,
+  getServiceStatus,
+  isEnableableService,
+  type EnableableService,
+  type ServiceOperation,
+  type ServiceStatus,
+} from '@core/dashboard/routes/services/consoleServicesApi';
 
 type SetupState =
   | { kind: 'loading' }
-  | { kind: 'ready'; service: WalletServiceStatus }
-  | { kind: 'enabling'; operation: WalletEnableOperation }
+  | { kind: 'ready'; service: ServiceStatus }
+  | { kind: 'enabling'; operation: ServiceOperation }
   | { kind: 'failed'; message: string };
 
 function operationStorageKey(organizationId: string, projectId: string): string {
   return `seams:wallet-enable:${JSON.stringify([requireConsoleBaseUrl(), organizationId, projectId])}`;
 }
 
-function readStoredOperation(key: string): WalletEnableOperation | null {
+function readStoredOperation(key: string): ServiceOperation | null {
   try {
     const value: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? 'null');
     if (
@@ -43,7 +44,7 @@ function readStoredOperation(key: string): WalletEnableOperation | null {
   }
 }
 
-function retainPendingOperation(key: string, service: WalletServiceStatus): void {
+function retainPendingOperation(key: string, service: ServiceStatus): void {
   if (service.kind === 'absent') return;
   if (service.kind === 'provisioning') {
     writeStoredOperation(key, {
@@ -57,7 +58,7 @@ function retainPendingOperation(key: string, service: WalletServiceStatus): void
   } catch {}
 }
 
-function writeStoredOperation(key: string, operation: WalletEnableOperation): void {
+function writeStoredOperation(key: string, operation: ServiceOperation): void {
   try {
     window.sessionStorage.setItem(key, JSON.stringify(operation));
   } catch {
@@ -75,7 +76,7 @@ async function loadWalletService(
 ): Promise<void> {
   setState({ kind: 'loading' });
   try {
-    const service = await getWalletServiceStatus(organizationId, projectId);
+    const service = await getServiceStatus(organizationId, projectId, 'wallet');
     retainPendingOperation(key, service);
     setState({ kind: 'ready', service });
     if (service.kind === 'active') {
@@ -103,7 +104,7 @@ async function submitWalletEnable(
   organizationId: string,
   projectId: string,
   key: string,
-  service: EnableableWalletService,
+  service: EnableableService,
   setState: React.Dispatch<React.SetStateAction<SetupState>>,
 ): Promise<void> {
   try {
@@ -113,7 +114,13 @@ async function submitWalletEnable(
     };
     writeStoredOperation(key, operation);
     setState({ kind: 'enabling', operation });
-    const nextService = await enableWalletService(organizationId, projectId, operation);
+    const nextService = await changeProjectService(
+      organizationId,
+      projectId,
+      'wallet',
+      'enable',
+      operation,
+    );
     retainPendingOperation(key, nextService);
     setState({ kind: 'ready', service: nextService });
     if (nextService.kind === 'active') {
@@ -130,7 +137,7 @@ async function submitWalletEnable(
   }
 }
 
-function setupDescription(service: WalletServiceStatus): string {
+function setupDescription(service: ServiceStatus): string {
   switch (service.kind) {
     case 'absent':
       return 'Enable Wallet for this project to create its environments and configure wallet operations.';
@@ -194,7 +201,7 @@ export function WalletServiceGate({ children }: { children: React.ReactNode }): 
         <section className="dashboard-view__section">
           <h2>Set up Wallet</h2>
           <p>{setupDescription(state.service)}</p>
-          {canEnable && state.service.kind !== 'active' && state.service.kind !== 'archived' ? (
+          {canEnable && isEnableableService(state.service) ? (
             <button
               type="button"
               className="dashboard-pagination-button"

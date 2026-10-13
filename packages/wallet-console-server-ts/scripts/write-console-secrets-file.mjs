@@ -3,7 +3,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { consoleSecretNames, readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import {
+  consoleSecretNames,
+  readBackendLane,
+  readConsoleServiceEnvironment,
+} from '../../../scripts/deployment-targets.mjs';
 
 const OPTIONAL_SECRET_NAMES = [
   'CLOUDFLARE_API_TOKEN',
@@ -19,6 +23,7 @@ function main() {
   requireProvisionedLane(laneId, lane.provisioning);
   const secrets = readRequiredSecrets(consoleSecretNames(lane));
   addOptionalSecrets(secrets);
+  Object.assign(secrets, readConsoleServiceEnvironment(process.env));
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(secrets)}\n`, {
     encoding: 'utf8',

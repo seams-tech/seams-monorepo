@@ -7,7 +7,13 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { parseEnv } from 'node:util';
-import { readBackendLane, readConsoleTarget, consoleSecretNames } from './deployment-targets.mjs';
+import {
+  readBackendLane,
+  readConsoleTarget,
+  consoleSecretNames,
+  CONSOLE_SERVICE_ENVIRONMENT_NAMES,
+  readConsoleServiceEnvironment,
+} from './deployment-targets.mjs';
 
 const MODES = new Set(['prepare', 'apply', 'update']);
 const OPTIONAL_SECRET_INPUTS = Object.freeze([
@@ -115,6 +121,7 @@ function prepareManifest(input) {
     secrets.RESEND_API_KEY = requireValue(externalValues, 'RESEND_API_KEY');
   }
   addOptionalMappedValues(secrets, externalValues, OPTIONAL_SECRET_INPUTS);
+  Object.assign(secrets, readConsoleServiceEnvironment(externalValues));
   assertOwnedSecretNames(input.lane, secrets);
   const variables = buildVariables(input, generationId, generatedAt, externalValues);
   const manifest = {
@@ -204,6 +211,7 @@ function assertOwnedSecretNames(lane, secrets) {
     'CLOUDFLARE_API_TOKEN',
     'CLOUDFLARE_ACCOUNT_ID',
     ...consoleSecretNames(lane),
+    ...CONSOLE_SERVICE_ENVIRONMENT_NAMES,
     ...OPTIONAL_SECRET_INPUTS.map(([name]) => name),
   ]);
   for (const name of Object.keys(secrets)) {
@@ -273,6 +281,7 @@ function updateExternalValues(input) {
     secrets.RESEND_API_KEY = requireValue(values, 'RESEND_API_KEY');
   }
   addOptionalMappedValues(secrets, values, OPTIONAL_SECRET_INPUTS);
+  Object.assign(secrets, readConsoleServiceEnvironment(values));
   if (RECOVERY_CERTIFICATE_LANES.has(input.lane.id)) {
     variables.TENANT_ROOT_RECOVERY_CERTIFICATES_JSON = requireValue(
       values,

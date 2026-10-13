@@ -4,6 +4,7 @@ export type SidebarGroupKey = 'overview' | 'administration' | 'billing' | 'platf
 
 export type DashboardRoute =
   | '/dashboard/account-settings'
+  | '/dashboard/services'
   | '/dashboard/onboarding'
   | '/dashboard/overview'
   | '/dashboard/observability'

@@ -133,6 +133,7 @@ function ownerIdentity(): ConsoleAccountIdentityContext {
 }
 
 class InterruptibleProvisioningAdapter implements AccountServiceProvisioningAdapterV1 {
+  readonly consoleHref = '/dashboard/overview';
   private connection: 'online' | 'offline' = 'online';
 
   constructor(private readonly adapter: WalletServiceProvisioningAdapter) {}

@@ -8,6 +8,8 @@ Implementation evidence: [Phase 1 contracts and inventory](shared-account-platfo
 Account composition evidence: [Phase 2 implementation](shared-account-platform/phase-2.md).
 Shared billing scope: [Phase 3 implementation](shared-account-platform/phase-3.md).
 Satyr integration scope: [Phase 4 implementation](shared-account-platform/phase-4.md).
+Interface and cutover evidence: [Phase 5 implementation](shared-account-platform/phase-5.md).
+Future integrations: [Service addition procedure](shared-account-platform/add-service.md).
 
 ## Implementation rules
 

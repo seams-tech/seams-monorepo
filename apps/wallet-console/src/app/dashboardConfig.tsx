@@ -2,6 +2,7 @@ import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
 import type { ApiCredentialScopeCatalog } from '@core/dashboard/routes/api-keys/apiKeyScopeCatalog';
 import { BillingAccountPage } from '@core/dashboard/routes/billing/page';
 import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
+import { ServicesPage } from '@core/dashboard/routes/services/page';
 import { AuditLogsPage, type AuditApprovalIntegration } from '@core/dashboard/routes/audit/page';
 import { GasSponsorshipPage } from '@wallet-product/gas-sponsorship/page';
 import { InvoicesPage } from '@core/dashboard/routes/invoices/page';
@@ -358,6 +359,14 @@ const sidebarGroups: ComposedSidebarGroup[] = [
     key: 'administration',
     label: 'Administration',
     items: [
+      {
+        key: 'services',
+        label: 'Project services',
+        path: '/dashboard/services',
+        icon: ServerIcon,
+        component: ServicesPage,
+        context: 'account',
+      },
       {
         key: 'account-settings',
         label: 'Account settings',

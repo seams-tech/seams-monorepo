@@ -1,9 +1,9 @@
 import type { DashboardConsoleSessionClaims } from '../../apps/wallet-console/src/core/dashboard/consoleSession';
 import type { DashboardOnboardingState } from '../../apps/wallet-console/src/core/dashboard/routes/onboarding/consoleOnboardingApi';
 import type {
-  EnableableWalletService,
-  WalletServiceStatus,
-} from '../../apps/wallet-console/src/products/wallet/consoleWalletServiceApi';
+  EnableableService,
+  ServiceStatus,
+} from '../../apps/wallet-console/src/core/dashboard/routes/services/consoleServicesApi';
 import type {
   DashboardBillingCostsState,
   DashboardBillingUsageCharge,
@@ -13,7 +13,7 @@ import type { DashboardWorkspaceNavigation } from '../../apps/wallet-console/src
 
 declare const owner: Extract<DashboardConsoleSessionClaims, { role: 'OWNER' }>;
 declare const completed: Extract<DashboardOnboardingState, { currentStep: 'complete' }>;
-declare const activeWallet: Extract<WalletServiceStatus, { kind: 'active' }>;
+declare const activeWallet: Extract<ServiceStatus, { kind: 'active' }>;
 
 // @ts-expect-error A member requires assigned project access.
 const memberWithAllProjects: DashboardConsoleSessionClaims = {
@@ -45,7 +45,7 @@ const missingSelectedProject: DashboardOnboardingState = { ...completed, selecte
 void missingSelectedProject;
 
 // @ts-expect-error An active Wallet instance cannot start an enable operation.
-const duplicateActivation: EnableableWalletService = activeWallet;
+const duplicateActivation: EnableableService = activeWallet;
 void duplicateActivation;
 
 declare const historicalCharge: Extract<
@@ -89,3 +89,11 @@ const mixedWorkspace: DashboardWorkspaceNavigation = {
   environmentValue: 'wallet:dev',
 };
 void mixedWorkspace;
+
+// @ts-expect-error Active instances cannot retain shutdown state through a spread.
+const activeWithShutdown: ServiceStatus = { ...activeWallet, shutdown: 'pending' };
+void activeWithShutdown;
+
+// @ts-expect-error Absent instances cannot carry an operation identity.
+const absentWithOperation: ServiceStatus = { kind: 'absent', operationId: 'operation' };
+void absentWithOperation;

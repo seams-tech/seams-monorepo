@@ -112,7 +112,10 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
     ConsoleApiKeyService['authenticatePublishableKey']
   >;
 
-  constructor(apiKeys: ConsoleApiKeyService) {
+  constructor(
+    apiKeys: ConsoleApiKeyService,
+    private readonly deferUsageWrite?: (write: Promise<unknown>) => void,
+  ) {
     const authenticatePublishableKey = apiKeys.authenticatePublishableKey;
     if (typeof authenticatePublishableKey !== 'function') {
       throw new Error(
@@ -127,6 +130,7 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
   ): Promise<RouterApiPublishableKeyAuthResult> {
     return toRouterApiPublishableAuthResult(
       await this.authenticatePublishableKey({
+        deferUsageWrite: this.deferUsageWrite,
         secret: input.secret,
         origin: input.origin,
         environmentId: input.environmentId,
@@ -194,8 +198,9 @@ export function createRouterApiKeyAuthAdapter(
 
 export function createRouterApiPublishableKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
+  deferUsageWrite?: (write: Promise<unknown>) => void,
 ): RouterApiPublishableKeyAuthAdapter {
-  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys);
+  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, deferUsageWrite);
 }
 
 export function createRouterApiBillingUsageMeterAdapter(

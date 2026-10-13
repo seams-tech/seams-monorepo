@@ -280,7 +280,10 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'tenant_deployment_activations',
 ]);
 
-async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
+async function createConsoleHandler(
+  env: CloudflareD1ConsoleStagingEnv,
+  ctx: CfExecutionContext,
+): Promise<FetchHandler> {
   let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
@@ -367,7 +370,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
         billing: bundle.billing,
         ledger: bundle.sponsoredCalls,
         runtimeSnapshots: bundle.runtimeSnapshots,
-        publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(bundle.apiKeys),
+        publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
+          bundle.apiKeys,
+          ctx.waitUntil.bind(ctx),
+        ),
         observabilityIngestion: bundle.observabilityIngestion,
         prepaidReservations: bundle.prepaidReservations,
         pricing: bundle.sponsorshipPricing,
@@ -378,7 +384,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
         ? {
             sponsoredEvmCall: {
               route: DEFAULT_SPONSORED_EVM_CALL_ROUTE,
-              publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(bundle.apiKeys),
+              publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
+                bundle.apiKeys,
+                ctx.waitUntil.bind(ctx),
+              ),
               billing: bundle.billing,
               ledger: bundle.sponsoredCalls,
               runtimeSnapshots: bundle.runtimeSnapshots,
@@ -578,7 +587,10 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   // operations, served ahead of the console router.
   const opsHandler = createWalletConsoleOpsHandler({
     apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
-    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(bundle.apiKeys),
+    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
+      bundle.apiKeys,
+      ctx.waitUntil.bind(ctx),
+    ),
     usageMeter: createRouterApiBillingUsageMeterAdapter(bundle.billing, {
       orgProjectEnv: bundle.orgProjectEnv,
       wallets: bundle.wallets,
@@ -649,8 +661,11 @@ async function createConsoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise
   );
 }
 
-function consoleHandler(env: CloudflareD1ConsoleStagingEnv): Promise<FetchHandler> {
-  return createConsoleHandler(env);
+function consoleHandler(
+  env: CloudflareD1ConsoleStagingEnv,
+  ctx: CfExecutionContext,
+): Promise<FetchHandler> {
+  return createConsoleHandler(env, ctx);
 }
 
 function createConsoleReadyCheck(env: CloudflareD1ConsoleStagingEnv): () => Promise<void> {
@@ -838,7 +853,7 @@ async function fetch(
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
     return response;
   }
-  const handler = await consoleHandler(env);
+  const handler = await consoleHandler(env, ctx);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
   withCors(result.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
@@ -1032,7 +1047,7 @@ async function registrationSetupResponse(
   if (!catalog.matchesResources(setup.binding.resources)) {
     return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
   }
-  const handler = await consoleHandler(env);
+  const handler = await consoleHandler(env, ctx);
   const operations = createWalletConsoleOpsClient({
     fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
   });

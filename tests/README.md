@@ -239,3 +239,15 @@ a separate case.
 Temporary databases are removed when the scenario closes.
 After the consumed-code UI check, the recovered method unlocks again and signs
 NEAR plus concurrent Tempo/Arc, retaining the budget-exhaustion assertion.
+
+### Console publishable-key authentication with delayed telemetry
+
+Run `node tests/e2e/console-publishable-auth.scenario.mjs` from the repository root.
+This local composition scenario uses the Console operation handler, production key
+service and real Miniflare D1. It holds usage writes while authentication returns,
+completes writes out of order, revokes the key, and checks wrong-origin and
+wrong-environment rejection. A failed telemetry write remains observable without
+rejecting successful authentication.
+
+Evidence: `.artifacts/console-publishable-auth/evidence.json`. The artifact contains
+principal identifiers and results, with no API-key secrets.

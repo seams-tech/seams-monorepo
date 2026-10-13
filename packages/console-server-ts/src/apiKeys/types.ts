@@ -133,6 +133,8 @@ export type AuthenticateConsoleApiKeyResult =
   | AuthenticateConsoleApiKeyFailure;
 
 export interface AuthenticateConsolePublishableKeyRequest {
+  /** Keep usage telemetry alive after authentication returns. */
+  deferUsageWrite?: (write: Promise<unknown>) => void;
   secret: string;
   origin: string;
   environmentId?: string;

@@ -894,11 +894,16 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
-    const refreshed = await this.recordApiKeyUse(keyRow, {
+    const usageWrite = this.recordApiKeyUse(keyRow, {
       endpoint: '',
       nowMsValue: currentNowMs,
       incrementEndpointUsage: false,
     });
+    if (request.deferUsageWrite) {
+      request.deferUsageWrite(usageWrite);
+      return { ok: true, apiKey: toPublicApiKey(keyRow) };
+    }
+    const refreshed = await usageWrite;
     return {
       ok: true,
       apiKey: toPublicApiKey(refreshed || keyRow),
@@ -1088,8 +1093,8 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     const row = await this.state.database
       .prepare(
         `UPDATE api_keys
-            SET last_used_at_ms = ?1,
-                updated_at_ms = ?1,
+            SET last_used_at_ms = MAX(COALESCE(last_used_at_ms, 0), ?1),
+                updated_at_ms = MAX(updated_at_ms, ?1),
                 endpoint_usage_counts_json = CASE WHEN ?2 = 1 AND ?3 <> '' THEN
                   json_patch(endpoint_usage_counts_json, json_object(?3,
                     MAX(0, CAST(COALESCE(

@@ -3,6 +3,25 @@
 Status: planned. Implementation and production migration have not started.
 Date: October 13, 2026.
 
+## Implementation rules
+
+This document specifies the first release. Requirements below take precedence over
+illustrative examples. Implement one phase at a time and satisfy its exit conditions
+before the next phase. Keep changes committed on `dev` in each owning repository.
+
+Do not introduce a plugin framework, universal metadata schema, new identity
+provider, shared service database, subscription engine, or replacement Satyr project
+model. Do not rename packages merely to match the platform terminology.
+
+Use existing factories, authentication, request parsers, durable delivery, and D1
+transaction patterns. Choose local implementation details within these boundaries.
+If an existing invariant conflicts with this specification, record the exact
+conflict before changing behaviour. Do not weaken the invariant to complete a phase.
+
+Production Satyr prices and customer account merges remain product decisions.
+Use isolated test prices and separate customer accounts until those decisions exist.
+These decisions do not block contract, migration, or E2E implementation.
+
 ## Purpose and decisions
 
 Build one account platform for Seams, Satyr, and future services. Reuse the
@@ -98,13 +117,38 @@ billing, project transfers, and multiple currencies remain outside this release.
 - Include the current Seams storage namespace when resolving an existing identity.
   An ID string alone does not establish ownership.
 - Enforce unique tenant bindings within each service deployment. Reject attempts
-  to bind the same tenant to another project.
+  to bind the same service resource scope to another instance. Apply the
+  service-specific scope rules below.
 - Link existing users through verified identity-provider subjects or an explicit
   authenticated account-link flow. An email match alone cannot merge accounts.
 - Keep service-specific fields in typed service tables. Avoid a shared metadata
   object containing optional fields for every product.
 - Give every replicated field one authoritative owner. Local access projections
   carry an authority revision and cannot become independent membership writers.
+
+### Binding keys and cardinality
+
+The first release permits one instance per `(platformProjectId, serviceId)`.
+Disable and re-enable reuse that instance and binding. Archived bindings remain
+reserved for historical attribution. Rebinding and project transfer are unsupported.
+
+| Service | Native resource scope                                            | Uniqueness constraint                          |
+| ------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Wallet  | Deployment, namespace, native organisation ID, native project ID | One instance per complete native project scope |
+| Satyr   | Deployment and native organisation ID                            | One instance per native tenant                 |
+
+Wallet already has several projects under one native organisation. The same
+native organisation can therefore appear in several Wallet bindings. Every binding
+must resolve its own project and environments. A native organisation-only uniqueness
+constraint would break this existing model.
+
+Store these bindings as distinct typed variants. Do not use nullable native project
+fields to distinguish services. Resolve native environment and resource ownership
+inside the Wallet adapter before accepting an operation or usage event.
+
+Create one platform organisation for each unmapped source organisation. Import
+Satyr into a dedicated platform project. Import Seams projects individually.
+Keep account identities separate unless an explicit, verified mapping joins them.
 
 ### Environments and lifecycle
 
@@ -115,6 +159,18 @@ keys, status semantics, and signing metadata during this move.
 Move the Console environment `runtimeVersion` field into wallet-owned configuration.
 The wallet adapter currently interprets this field as `signingRootVersion`.
 Preserve stored signing identifiers and wire contracts exactly.
+
+Complete the environment separation across `account`, `onboarding`, `apiKeys`,
+session context, route definitions, persistence, and Console UI. These currently
+carry environment fields or readiness checks. Moving project creation alone is insufficient.
+
+Account onboarding completes after organisation and platform project creation.
+It requires no Wallet environment or API key. Wallet setup separately provisions
+environments and preserves its existing live-environment billing gate.
+
+Keep environment-scoped Wallet credentials and their wire behaviour in the Wallet
+composition. Account authentication uses platform sessions. Satyr retains its current
+service authentication. This release introduces no universal credential scope language.
 
 Satyr keeps its organisation onboarding environment. Do not introduce a shared
 `environmentId` until services have a demonstrated common isolation requirement.
@@ -155,6 +211,32 @@ the service already requires live access. Define and verify projection freshness
 before release. If current authority cannot be established, reject new protected work.
 Asynchronous membership delivery alone is insufficient proof of current access.
 
+For the first release, check current platform eligibility synchronously before
+protected service admission and before each existing Satyr disclosure boundary.
+Do not cache positive eligibility between requests. An authority outage returns
+`authority_unavailable` and releases no protected content or new execution.
+
+Already accepted work follows its existing service lifecycle. Financial settlement
+uses authenticated service authority and remains independent of the removed user's
+session. Restore and replay must recheck authority before protected disclosure.
+
+### Role translation
+
+| Source role or permission                          | Platform grant                                                 | Service grant                                               |
+| -------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| Seams OWNER                                        | Organisation owner                                             | Preserve existing Wallet authority within imported projects |
+| Seams ADMIN                                        | Preserve explicit administrative permissions and project scope | Preserve existing Wallet authority                          |
+| Seams MEMBER                                       | Membership plus existing project assignments                   | Preserve assigned Wallet access                             |
+| Satyr owner, in a separately imported organisation | Organisation owner                                             | Satyr owner on the bound instance                           |
+| Satyr admin                                        | Membership and access to its imported platform project         | Satyr admin on that instance                                |
+| Satyr operator or viewer                           | Membership and access to its imported platform project         | Preserve the corresponding Satyr role                       |
+| Existing billing permission                        | Same platform billing permission                               | No additional service content access                        |
+
+Platform ownership does not automatically create Satyr tenant or project ownership.
+Only the migration mapping preserves existing owners. New service grants follow
+the owning service's authorisation rules. Preserve its last-owner constraints.
+An explicit account merge requires its own role mapping before migration.
+
 The platform owns organisation invitations and membership revocation. Satyr owns
 instance roles and work project invitations. Adapt its existing invitation flows
 to these owners without silently granting access to another service.
@@ -170,6 +252,50 @@ its stable `serviceId`, display information, contract version, supported usage
 measures, and integration endpoints. Use ordinary typed functions and existing
 transport helpers. A dynamic plugin loader or schema framework is unnecessary.
 
+The initial catalogue contains `wallet` and `satyr`. Use version `1` for the
+integration envelope. Reject unknown versions and unsupported operations at ingress.
+Authenticate the producer separately from payload parsing.
+
+### Required operation payloads
+
+These are semantic field names for the shared contract. Reuse existing types for
+their validated values. Keep service-specific fields in explicit union branches.
+
+| Operation                  | Required payload fields                                                                     | Required outcome                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Provision or change state  | `version`, `operationId`, `instanceId`, `desiredRevision`, `command`, `binding`             | Accepted operation receipt or typed rejection                  |
+| Report provisioning result | `version`, `operationId`, `instanceId`, `desiredRevision`, `result`                         | Matching revision applied, stale receipt recorded, or conflict |
+| Check eligibility          | `version`, `instanceId`, `principal`, `action`                                              | Current authority revision and allowed scope, or denial        |
+| Record usage               | `version`, `eventId`, `instanceId`, `meterId`, `occurredAt`, `quantity`, `unit`, `evidence` | Durable original charge outcome or typed rejection             |
+| Reserve                    | `version`, `operationId`, `instanceId`, `executionId`, `requestedMinor`, `priceVersion`     | Reservation receipt or insufficient funds                      |
+| Settle                     | `version`, `operationId`, `reservationId`, `executionId`, `settledMinor`, `evidence`        | Atomic charge and hold release, or conflict                    |
+| Release                    | `version`, `operationId`, `reservationId`, `executionId`, `noChargeEvidence`                | Hold release or conflict                                       |
+
+The authenticated producer supplies its authority through the transport. The server
+resolves account and project scope from the instance or reservation. It does not
+accept caller-selected billing accounts. Use UTC timestamps and validated integer
+quantities for the initial meters.
+
+Use separate principal variants for users and service automation. User requests
+require verified identity and active eligibility. Automation requires an explicit
+grant for its instance and action. Preserve Satyr's initiating actor and delegated
+authority. A service credential cannot impersonate an arbitrary organisation member.
+
+Evidence identifies a durable source record and its immutable digest. Satyr evidence
+requires `sessionId`, `turnId`, terminal outcome, and the pinned funding selection.
+Wallet execution evidence requires its execution reference and quote version.
+Do not transport provider credentials, prompts, or private source text.
+
+Keep an operation's receipt, canonical payload digest, and immutable scope together.
+In-place changes to a reservation's account, instance, execution, or price are invalid.
+Wire route names may follow the existing router conventions. Their methods, payloads,
+error mapping, and authentication must be recorded before adapter implementation.
+
+Provisioning uses a binding request union: `create_native_scope` or `attach_existing_scope`.
+Creation requires the verified parent scope and service configuration. Attachment
+requires the complete native scope and evidence of authority over that existing tenant.
+Only the accepted service receipt supplies the final binding for a new scope.
+
 ### Provisioning and status
 
 Provision commands carry an instance ID, verified scope, operation ID, and desired
@@ -184,6 +310,22 @@ Distinguish desired state from observed service state. Report an instance as rea
 only after the service confirms its operational readiness. A service outage must
 not convert an unknown state into a successful activation or archive.
 
+| Command                | Allowed source state            | Required result                                                        |
+| ---------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| Enable                 | No instance                     | Create provisioning state and an operation receipt                     |
+| Enable                 | Disabled instance               | Provision the existing binding under a new desired revision            |
+| Retry failed operation | Failed instance                 | Retry the recorded target and binding under a new operation            |
+| Disable                | Provisioning or active instance | Deny new admission immediately and await the matching shutdown receipt |
+| Archive                | Disabled instance               | Require completed service cleanup admission and preserve its binding   |
+| Enable                 | Archived instance               | Reject with `instance_archived`                                        |
+
+Keep desired revision and observed revision explicit in the lifecycle union.
+An active receipt grants access only if it matches the latest desired revision.
+Ignore stale receipts for state advancement and retain them for audit.
+Repeated operation IDs with the same canonical payload return the original result.
+The same ID with different contents returns `operation_conflict`.
+Account or project suspension takes precedence over every instance state.
+
 ### Usage and pricing
 
 A usage event identifies its producer, event ID, instance, meter, quantity, unit,
@@ -197,6 +339,27 @@ invalid quantities, and producers without authority for that instance.
 Deduplicate by producer, instance, and event identity. Reject conflicting reuse of
 an event ID. Repeated delivery must not create another charge.
 
+Persist an event receipt and its canonical payload digest with the charge outcome
+in one account database transaction. The same transaction owns meter deduplication,
+ledger postings, and any reservation settlement. A durable receipt cannot precede
+the money mutation it acknowledges. Return the original result after a lost response.
+
+Persist service usage in an outbox with its accepted execution evidence. Retry
+delivery until the account platform records a terminal receipt. If execution and
+outbox records use different stores, derive replay from the durable execution ID.
+Never generate a fresh event ID after a worker restart.
+
+Prepaid usage evidence includes its reservation ID. Usage delivery and explicit
+settlement converge on one charge identified by instance, meter, and execution.
+They cannot create separate debits for the same work. A settled reservation returns
+its existing charge when the matching usage event arrives later. Monthly resource
+charges use their existing organisation/month/resource key and require no reservation.
+
+Use `accepted` and `rejected` Result branches. Accepted outcomes distinguish
+`charged` from `recorded_without_charge`. Rejections include `scope_forbidden`,
+`meter_unknown`, `event_conflict`, and `price_unavailable`. Transient availability
+failures remain retryable and cannot mark an event as permanently processed.
+
 The service owns billable activity semantics. Shared billing applies a registered,
 immutable price version and records the charge. A service can supply a trusted
 execution quote through a separate typed contract for variable execution costs.
@@ -205,6 +368,11 @@ End-user requests cannot submit authoritative charge amounts.
 Preserve quantity, unit, price version, charge scope, source evidence, and amount on
 each usage charge. Define fixed-precision arithmetic and rounding at the billing
 boundary. Usage rates can require greater precision than final USD cents.
+
+The first release uses USD and integer cents for posted charges. Keep Wallet's
+existing quote calculation and rounding unchanged. Reject unsupported fractional
+quantities and currencies at the new ingress. Add finer pricing precision only
+with a separately specified meter and rounding rule.
 
 Keep metering policy separate from charge attribution. Seams currently counts
 active resources across an organisation and month. Preserve that scope during
@@ -220,6 +388,23 @@ mechanism only when Seams or the selected Satyr plan requires it. The first
 acceptance journey uses two actual mechanisms, including fixed-price measured usage
 and quoted execution usage. It does not require speculative seat or tier engines.
 
+### Initial meter specification
+
+| Meter                                | Billable fact                                             | Scope and amount                                                             |
+| ------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Wallet monthly active resource       | Existing successful billable Wallet action rules          | Existing organisation/month/resource scope, 300 USD cents once per UTC month |
+| Wallet execution                     | Existing accepted execution receipt and pricing quote     | Preserve quote version, execution identity, and actual charge semantics      |
+| Satyr completed turn, test plan only | A durable accepted terminal turn with outcome `completed` | One unit per instance/session/turn, one USD cent per unit                    |
+
+For the Satyr test meter, failed or cancelled turns produce no completed-turn charge.
+Internal retries, continuation deliveries, and replay of the same accepted turn
+cannot produce another unit. Use the durable terminal acceptance timestamp and
+session/turn identity. Model usage remains separate evidence with its funding source.
+
+The test price is a Satyr service fee. It does not reimburse provider token cost.
+Enable it only in isolated E2E accounts and never in customer accounts. Do not
+add customer subscriptions or token pass-through prices as part of this release.
+
 ### Payment and execution controls
 
 Shared billing owns prepaid funds, balanced ledger postings, reservations, refunds,
@@ -229,6 +414,30 @@ and token/time/tool limits inside the service.
 Reserve funds atomically before admitting prepaid execution. Account-wide available
 funds must include reservations from every service. Settlement and release must
 survive retries, worker restarts, and ambiguous execution outcomes.
+
+Read posted balance and outstanding reservations inside the account transaction.
+Remove `postedBalanceMinor` from reservation request authority. A value supplied
+by a caller cannot authorise another reservation.
+
+Admission requires `postedBalanceMinor - reservedMinor >= requestedMinor`.
+Keep every balance mutation and reservation mutation in that same authority,
+including refunds and manual debits. Settlement debits the account and removes
+the hold atomically. Release removes the hold without a debit.
+
+Reservations govern prepaid execution admission. The existing monthly Wallet
+charge remains a metered debit and can exhaust the balance. Preserve that
+behaviour. Do not promise that all recorded balances stay nonnegative.
+
+An actual execution cost above its estimate still represents a financial obligation.
+Preserve existing Wallet settlement behaviour and record the actual charge once.
+Reject new reservations when available funds are insufficient. The fixed Satyr
+test fee reserves one cent, so its settlement cannot exceed the accepted hold.
+
+Use reservation states `reserved`, `indeterminate`, `settled`, and `released`.
+Only reserved or reconciled indeterminate work can settle or release. A matching
+terminal retry returns its receipt. A different terminal amount or outcome conflicts.
+Preserve unresolved holds during outages. A terminal failure can still incur provider
+cost, so failure alone is insufficient evidence for release.
 
 Do not release a reservation solely because a timer elapsed when execution may
 already have incurred cost. Reconcile the outcome before settlement or release.
@@ -278,8 +487,8 @@ billing events and documents. Use stable references where needed for reconciliat
   usage events, and billing attribution in the existing shared packages.
 - Define migration mappings and invariants before changing schemas. Preserve
   balances, open reservations, memberships, signing identifiers, and tenant placement.
-- Select one Satyr usage measure and its non-production test price. Identify the
-  existing flow that will emit authoritative usage.
+- Identify the accepted Satyr terminal-turn record that supplies the specified
+  test meter. Document its exact fields and durable delivery path before coding.
 
 Exit: reviewed contracts, exact ownership rules, and an executable migration design.
 Resolve any account identity ambiguity without automatic customer merges.
@@ -290,6 +499,8 @@ Resolve any account identity ambiguity without automatic customer merges.
 - Add billing account identity, project billing bindings, service instances, and
   provisioning delivery through the existing persistence patterns.
 - Move Wallet environment creation and signing configuration to Wallet ownership.
+- Remove Wallet environment dependencies from account onboarding and sessions.
+  Keep Wallet credentials and readiness inside the Wallet composition.
 - Introduce the Wallet service adapter and bind existing projects and environments.
 
 Exit: Seams works through the new composition with unchanged pricing and wallet
@@ -303,7 +514,7 @@ behaviour. An account-only deployment starts without wallet runtime dependencies
 - Preserve payment references, refunds, disputes, open reservations, and historical
   documents. Add project and service breakdowns for attributable charges.
 
-Exit: two concurrent service producers cannot overspend the same available balance.
+Exit: concurrent reservations cannot admit work beyond the available balance.
 Replayed events and payment callbacks create no duplicate money entries.
 
 ### Phase 4 Connect Satyr
@@ -384,7 +595,7 @@ project users. It must verify these behaviours:
 
 | Scenario                                                                   | Required evidence                                                             |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Enable both services and retry provisioning after restart                  | One tenant binding per instance and accepted provisioning receipts            |
+| Enable both services and retry provisioning after restart                  | One binding per native resource scope and accepted provisioning receipts      |
 | Execute Wallet usage and Satyr work with different pricing mechanisms      | Raw usage, price versions, attributed charges, and a consolidated statement   |
 | Deliver duplicate and conflicting usage events                             | One accepted charge and an explicit conflict result                           |
 | Race reservations from both services against limited funds                 | Accepted reservations remain within available funds                           |
@@ -395,6 +606,27 @@ project users. It must verify these behaviours:
 | Disable Satyr while Wallet remains active                                  | New Satyr work stops and accepted work settles under its lifecycle rules      |
 | Attempt cross-organisation instance or usage substitution                  | Authorisation rejects the foreign scope                                       |
 | Migrate existing balances, refunds, reservations, and unattributed history | Before/after reconciliation preserves money and historical meaning            |
+
+Also require these targeted cases in the owning phase's journey:
+
+- Import two Wallet projects under the same native organisation and resolve both bindings.
+- Complete account onboarding with no Wallet service, environment, or API key.
+- Deliver an old activation receipt after disable and confirm that admission stays denied.
+- Interrupt billing after commit but before acknowledgement, then replay the same event.
+- Race a refund or debit with reservations and check the transactional admission result.
+- Deny protected Satyr access during an account authority outage while preserving pending usage.
+- Preserve Satyr private content when a platform owner lacks the service grant.
+
+### Handoff gates
+
+Before each phase, list the exact files, schema changes, and existing behaviour
+that the phase will affect. Use this document's ownership table to limit scope.
+After each phase, report the changed behaviour, actual validation commands, evidence
+paths, and remaining failures. Do not mark a phase complete from type checks alone.
+
+Before production cutover, record the final wire schemas, transaction boundaries,
+role mappings, and restart procedures next to the implementation. Any deviation
+from this plan needs an explicit rationale and review before dependent work proceeds.
 
 Each run produces a machine-readable report, usage event records, ledger and
 reservation reconciliation, and the resulting billing document. Record exact

@@ -6,6 +6,8 @@ import {
   requireConsoleBaseUrl,
 } from './consoleHttp';
 
+export const DASHBOARD_ENVIRONMENTS_UPDATED_EVENT = 'dashboard:wallet-environments-updated';
+
 export interface DashboardConsoleOrganization {
   id: string;
   name: string;
@@ -20,7 +22,6 @@ export interface DashboardConsoleProject {
   name: string;
   slug: string;
   status: string;
-  environmentCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,16 +85,11 @@ function decodeProject(raw: unknown): DashboardConsoleProject | null {
   const row = raw as Record<string, unknown>;
   const id = String(row.id || '').trim();
   if (!id) return null;
-  const environmentCountRaw = Number(row.environmentCount ?? row.environment_count ?? 0);
   return {
     id,
     name: String(row.name || '').trim() || id,
     slug: String(row.slug || '').trim(),
     status: String(row.status || '').trim() || 'ACTIVE',
-    environmentCount:
-      Number.isFinite(environmentCountRaw) && environmentCountRaw > 0
-        ? Math.floor(environmentCountRaw)
-        : 0,
     createdAt: String(row.createdAt || '').trim(),
     updatedAt: String(row.updatedAt || '').trim(),
   };

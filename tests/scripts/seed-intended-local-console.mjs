@@ -2,6 +2,8 @@
 import https from 'node:https';
 import http from 'node:http';
 import { writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { setTimeout } from 'node:timers/promises';
 
 const baseUrl = requiredEnvironment('SEAMS_INTENDED_ROUTER_URL');
 const outputPath = requiredEnvironment('SEAMS_INTENDED_CONSOLE_FIXTURE_PATH');
@@ -20,23 +22,36 @@ if (created.organization)
   await callConsole(`/console/account/organizations/${organizationId}/switch-context`, {});
 const project = await callConsole('/console/onboarding/project', {
   project: { id: 'local-smoke-project', name: 'Test project' },
-  environment: { id: environmentId, name: 'Test environment' },
 });
-await callConsole('/console/auth/environment', {
-  projectId: project.result.project.id,
-  environmentId: project.result.environment.id,
-});
-const credential = await callConsole('/console/api-keys', {
-  kind: 'publishable_key',
-  name: 'Test application',
-  environmentId: project.result.environment.id,
-  allowedOrigins: [
-    requiredEnvironment('SEAMS_INTENDED_APP_URL'),
-    requiredEnvironment('SEAMS_INTENDED_WALLET_ORIGIN'),
-  ],
-  rateLimitBucket: 'default',
-  quotaBucket: 'default',
-});
+const projectId = project.result.project.id;
+await enableWallet(projectId);
+const selectionHeaders = {
+  'X-Console-Project-Id': projectId,
+  'X-Console-Environment-Id': environmentId,
+};
+const environments = await callConsole(
+  `/console/environments?projectId=${encodeURIComponent(projectId)}`,
+  undefined,
+  selectionHeaders,
+);
+if (!environments.environments.some(matchesActiveEnvironment)) {
+  throw new Error('Wallet activation did not create the requested development environment');
+}
+const credential = await callConsole(
+  '/console/api-keys',
+  {
+    kind: 'publishable_key',
+    name: 'Test application',
+    environmentId,
+    allowedOrigins: [
+      requiredEnvironment('SEAMS_INTENDED_APP_URL'),
+      requiredEnvironment('SEAMS_INTENDED_WALLET_ORIGIN'),
+    ],
+    rateLimitBucket: 'default',
+    quotaBucket: 'default',
+  },
+  selectionHeaders,
+);
 const current = await callConsole('/console/session');
 writeFileSync(
   outputPath,
@@ -44,15 +59,55 @@ writeFileSync(
     userId: current.claims.userId,
     cookie,
     organizationId,
-    projectId: project.result.project.id,
-    environmentId: project.result.environment.id,
+    projectId,
+    environmentId,
     publishableKey: credential.secret,
   }),
   { mode: 0o600 },
 );
 console.log(
-  '[intended-console] created organization, project, environment and key through Console APIs',
+  '[intended-console] created account and project, enabled Wallet, and created its application key',
 );
+
+function matchesActiveEnvironment(environment) {
+  return (
+    environment.id === environmentId &&
+    environment.projectId === projectId &&
+    environment.status === 'ACTIVE'
+  );
+}
+
+async function enableWallet(projectId) {
+  const path = `/console/projects/${encodeURIComponent(projectId)}/services`;
+  const initial = await callConsole(path);
+  const existing = initial.instances.find(isWallet);
+  if (existing?.state.kind === 'active') return;
+  if (existing?.state.kind === 'archived')
+    throw new Error('The isolated Wallet instance is archived');
+  const operation =
+    existing?.state.kind === 'provisioning'
+      ? {
+          operationId: existing.command.operationId,
+          desiredRevision: existing.command.desiredRevision,
+        }
+      : {
+          operationId: randomUUID(),
+          desiredRevision: existing ? existing.command.desiredRevision + 1 : 1,
+        };
+  await callConsole(`${path}/wallet/enable`, operation);
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const observed = await callConsole(path);
+    const instance = observed.instances.find(isWallet);
+    if (instance?.state.kind === 'active') return;
+    if (instance?.state.kind === 'failed') throw new Error('Isolated Wallet provisioning failed');
+    await setTimeout(1000);
+  }
+  throw new Error('Isolated Wallet provisioning did not finish');
+}
+
+function isWallet(instance) {
+  return instance.serviceId === 'wallet';
+}
 
 function requiredEnvironment(name) {
   const value = String(process.env[name] || '').trim();
@@ -60,8 +115,8 @@ function requiredEnvironment(name) {
   return value;
 }
 
-async function callConsole(path, body) {
-  const response = await sendRequest(new URL(path, baseUrl), body);
+async function callConsole(path, body, headers = {}) {
+  const response = await sendRequest(new URL(path, baseUrl), body, headers);
   const parsed = JSON.parse(response.body);
   if (response.status < 200 || response.status >= 300 || parsed.ok !== true) {
     throw new Error(
@@ -72,11 +127,11 @@ async function callConsole(path, body) {
   return parsed;
 }
 
-function sendRequest(url, body) {
-  return new Promise(sendRequestExecutor.bind(null, url, body));
+function sendRequest(url, body, headers) {
+  return new Promise(sendRequestExecutor.bind(null, url, body, headers));
 }
 
-function sendRequestExecutor(url, body, resolve, reject) {
+function sendRequestExecutor(url, body, headers, resolve, reject) {
   const encoded = body === undefined ? '' : JSON.stringify(body);
   const transport = url.protocol === 'https:' ? https : http;
   const request = transport.request(
@@ -87,6 +142,7 @@ function sendRequestExecutor(url, body, resolve, reject) {
       timeout: 180_000,
       headers: {
         cookie,
+        ...headers,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(encoded),
       },

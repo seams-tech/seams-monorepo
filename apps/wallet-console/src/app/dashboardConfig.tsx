@@ -18,6 +18,7 @@ import {
 } from '@core/dashboard/routes/ops-cockpit/page';
 import { ObservabilityPage } from '@core/dashboard/routes/observability/page';
 import { UserWalletsListPage } from '@wallet-product/wallets-list/page';
+import { WalletServiceGate } from '@wallet-product/WalletServiceGate';
 import { WebhooksPage } from '@core/dashboard/routes/webhooks/page';
 import type { WebhookEventCategoryOption } from '@core/dashboard/routes/webhooks/webhookEventCatalog';
 import {
@@ -151,11 +152,59 @@ const walletWebhookEventCategoryOptions: readonly WebhookEventCategoryOption[] =
   }));
 
 function WalletApiKeyManagementPage(): React.JSX.Element {
-  return <ApiKeyManagementPage scopeCatalog={walletApiKeyScopeCatalog} />;
+  return (
+    <WalletServiceGate>
+      <ApiKeyManagementPage scopeCatalog={walletApiKeyScopeCatalog} />
+    </WalletServiceGate>
+  );
 }
 
 function WalletWebhooksPage(): React.JSX.Element {
-  return <WebhooksPage eventCategoryOptions={walletWebhookEventCategoryOptions} />;
+  return (
+    <WalletServiceGate>
+      <WebhooksPage eventCategoryOptions={walletWebhookEventCategoryOptions} />
+    </WalletServiceGate>
+  );
+}
+
+function WalletGasSponsorshipPage(): React.JSX.Element {
+  return (
+    <WalletServiceGate>
+      <GasSponsorshipPage />
+    </WalletServiceGate>
+  );
+}
+
+function WalletUserWalletsListPage(): React.JSX.Element {
+  return (
+    <WalletServiceGate>
+      <UserWalletsListPage />
+    </WalletServiceGate>
+  );
+}
+
+function WalletDerivationRootSecurityPage(): React.JSX.Element {
+  return (
+    <WalletServiceGate>
+      <DerivationRootSecurityPage />
+    </WalletServiceGate>
+  );
+}
+
+function WalletPolicyEnginePage(): React.JSX.Element {
+  return (
+    <WalletServiceGate>
+      <PolicyEnginePage />
+    </WalletServiceGate>
+  );
+}
+
+function WalletTenantDeploymentPage(): React.JSX.Element {
+  return (
+    <WalletServiceGate>
+      <TenantDeploymentPage />
+    </WalletServiceGate>
+  );
 }
 
 function walletAuditPolicyPath({
@@ -212,12 +261,14 @@ function WalletAuditLogsPage(): React.JSX.Element {
 
 function WalletOpsCockpitPage(): React.JSX.Element {
   return (
-    <OpsCockpitPage
-      approvalActions={walletOpsCockpitApprovalActions}
-      productQuickActions={walletOpsCockpitQuickActions}
-      heroTitle="Manage your wallets"
-      creditsDescription="Prepaid balance for gas sponsorship. Add credits to keep transactions covered."
-    />
+    <WalletServiceGate>
+      <OpsCockpitPage
+        approvalActions={walletOpsCockpitApprovalActions}
+        productQuickActions={walletOpsCockpitQuickActions}
+        heroTitle="Manage your wallets"
+        creditsDescription="Prepaid balance for gas sponsorship. Add credits to keep transactions covered."
+      />
+    </WalletServiceGate>
   );
 }
 
@@ -226,7 +277,7 @@ const gasSponsorshipItem: ComposedSidebarItem = {
   label: 'Gas sponsorship',
   path: '/dashboard/gas-sponsorship',
   icon: FuelIcon,
-  component: GasSponsorshipPage,
+  component: WalletGasSponsorshipPage,
   createLabel: 'New gas sponsorship policy',
 };
 
@@ -235,7 +286,7 @@ const walletsListItem: ComposedSidebarItem = {
   label: 'User wallets list',
   path: '/dashboard/wallets-list',
   icon: WalletCardsIcon,
-  component: UserWalletsListPage,
+  component: WalletUserWalletsListPage,
 };
 
 const derivationRootItem: ComposedSidebarItem = {
@@ -243,7 +294,7 @@ const derivationRootItem: ComposedSidebarItem = {
   label: 'Threshold Keys',
   path: '/dashboard/derivation-root',
   icon: KeyRoundIcon,
-  component: DerivationRootSecurityPage,
+  component: WalletDerivationRootSecurityPage,
 };
 
 const securityControlItems: ComposedSidebarItem[] = [
@@ -252,7 +303,7 @@ const securityControlItems: ComposedSidebarItem[] = [
     label: 'Policy engine',
     path: '/dashboard/policy-engine',
     icon: ScaleIcon,
-    component: PolicyEnginePage,
+    component: WalletPolicyEnginePage,
     createLabel: 'New policy',
   },
   ...(derivationRootRoutesEnabled ? [derivationRootItem] : []),
@@ -326,7 +377,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         label: 'Deployment status',
         path: '/dashboard/deployment-status',
         icon: ServerIcon,
-        component: TenantDeploymentPage,
+        component: WalletTenantDeploymentPage,
         access: 'owner',
       },
       {

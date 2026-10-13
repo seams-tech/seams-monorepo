@@ -1,13 +1,14 @@
 import { isApiCredentialScope } from '@seams-internal/wallet-console-shared/apiKeyScopes';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
-import type {
-  AuthenticateConsoleApiKeyResult,
-  AuthenticateConsolePublishableKeyResult,
-  ConsoleApiKey,
-} from '@seams-internal/console-server/apiKeys/index';
+import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
+import type { ConsoleApiKey } from '@seams-internal/wallet-console-server/apiKeys/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/index';
+import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/index';
 import type { ConsoleWalletService } from '../wallets';
+import type { ConsoleWalletEnvironment } from '../environments/types';
+import {
+  isWalletProjectAdmitted,
+  type WalletOperationAdmissionV1,
+} from './projectEnvironmentAdapter';
 import type {
   RouterApiKeyAuthAdapter,
   RouterApiKeyAuthRequest,
@@ -20,35 +21,38 @@ import type {
   RouterApiUsageMeterEvent,
 } from '@seams/wallet-server/cloud-host';
 
-function toPrincipal(apiKey: ConsoleApiKey): RouterApiKeyPrincipal {
+export interface WalletApiCredentialAdmissionV1 extends WalletOperationAdmissionV1 {
+  readonly environments: ConsoleWalletEnvironmentService;
+}
+
+function toPrincipal(
+  apiKey: ConsoleApiKey,
+  environment: ConsoleWalletEnvironment,
+): RouterApiKeyPrincipal {
   return {
     apiKeyId: apiKey.id,
     orgId: apiKey.orgId,
     environmentId: apiKey.environmentId,
+    projectId: environment.projectId,
     scopes: (apiKey.scopes || []).filter(isApiCredentialScope),
   };
 }
 
-function toRouterApiAuthResult(result: AuthenticateConsoleApiKeyResult): RouterApiKeyAuthResult {
-  if (result.ok) {
-    return {
-      ok: true,
-      principal: toPrincipal(result.apiKey),
-    };
+async function admittedCredentialEnvironment(
+  apiKey: ConsoleApiKey,
+  admission: WalletApiCredentialAdmissionV1,
+): Promise<ConsoleWalletEnvironment | null> {
+  const environments = await admission.environments.listEnvironments({
+    orgId: apiKey.orgId,
+    actorUserId: 'relay-api-key',
+  });
+  for (const environment of environments) {
+    if (environment.id !== apiKey.environmentId) continue;
+    return (await isWalletProjectAdmitted(admission, apiKey.orgId, environment.projectId))
+      ? environment
+      : null;
   }
-  return result;
-}
-
-function toRouterApiPublishableAuthResult(
-  result: AuthenticateConsolePublishableKeyResult,
-): RouterApiPublishableKeyAuthResult {
-  if (result.ok) {
-    return {
-      ok: true,
-      principal: toPrincipal(result.apiKey),
-    };
-  }
-  return result;
+  return null;
 }
 
 async function upsertProjectedWallet(input: {
@@ -92,7 +96,10 @@ async function upsertProjectedWallet(input: {
 class ConsoleRouterApiKeyAuthAdapter implements RouterApiKeyAuthAdapter {
   private readonly authenticateApiKey: NonNullable<ConsoleApiKeyService['authenticateApiKey']>;
 
-  constructor(apiKeys: ConsoleApiKeyService) {
+  constructor(
+    apiKeys: ConsoleApiKeyService,
+    private readonly admission: WalletApiCredentialAdmissionV1,
+  ) {
     const authenticateApiKey = apiKeys.authenticateApiKey;
     if (typeof authenticateApiKey !== 'function') {
       throw new Error(
@@ -103,7 +110,17 @@ class ConsoleRouterApiKeyAuthAdapter implements RouterApiKeyAuthAdapter {
   }
 
   async authenticate(input: RouterApiKeyAuthRequest): Promise<RouterApiKeyAuthResult> {
-    return toRouterApiAuthResult(await this.authenticateApiKey(input));
+    const result = await this.authenticateApiKey(input);
+    if (!result.ok) return result;
+    const environment = await admittedCredentialEnvironment(result.apiKey, this.admission);
+    if (!environment)
+      return {
+        ok: false,
+        status: 403,
+        code: 'secret_key_environment_mismatch',
+        message: 'Wallet service is unavailable for this environment',
+      };
+    return { ok: true, principal: toPrincipal(result.apiKey, environment) };
   }
 }
 
@@ -114,6 +131,7 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
 
   constructor(
     apiKeys: ConsoleApiKeyService,
+    private readonly admission: WalletApiCredentialAdmissionV1,
     private readonly deferUsageWrite?: (write: Promise<unknown>) => void,
   ) {
     const authenticatePublishableKey = apiKeys.authenticatePublishableKey;
@@ -128,14 +146,22 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
   async authenticate(
     input: RouterApiPublishableKeyAuthRequest,
   ): Promise<RouterApiPublishableKeyAuthResult> {
-    return toRouterApiPublishableAuthResult(
-      await this.authenticatePublishableKey({
-        deferUsageWrite: this.deferUsageWrite,
-        secret: input.secret,
-        origin: input.origin,
-        environmentId: input.environmentId,
-      }),
-    );
+    const result = await this.authenticatePublishableKey({
+      deferUsageWrite: this.deferUsageWrite,
+      secret: input.secret,
+      origin: input.origin,
+      environmentId: input.environmentId,
+    });
+    if (!result.ok) return result;
+    const environment = await admittedCredentialEnvironment(result.apiKey, this.admission);
+    if (!environment)
+      return {
+        ok: false,
+        status: 403,
+        code: 'publishable_key_environment_mismatch',
+        message: 'Wallet service is unavailable for this environment',
+      };
+    return { ok: true, principal: toPrincipal(result.apiKey, environment) };
   }
 }
 
@@ -143,7 +169,7 @@ class ConsoleRouterApiBillingUsageMeterAdapter implements RouterApiUsageMeterAda
   constructor(
     private readonly billing: ConsoleBillingService,
     private readonly options: {
-      orgProjectEnv?: ConsoleOrgProjectEnvService | null;
+      walletEnvironments?: ConsoleWalletEnvironmentService | null;
       wallets?: ConsoleWalletService | null;
     },
   ) {}
@@ -167,13 +193,12 @@ class ConsoleRouterApiBillingUsageMeterAdapter implements RouterApiUsageMeterAda
   }
 
   private async recordWalletProjection(input: RouterApiUsageMeterEvent): Promise<void> {
-    const orgProjectEnv = this.options.orgProjectEnv || null;
+    const walletEnvironments = this.options.walletEnvironments || null;
     const walletService = this.options.wallets || null;
-    if (!orgProjectEnv || !walletService?.upsertWallet) return;
-    const envs = await orgProjectEnv.listEnvironments({
+    if (!walletEnvironments || !walletService?.upsertWallet) return;
+    const envs = await walletEnvironments.listEnvironments({
       orgId: input.orgId,
       actorUserId: 'relay-api-key',
-      environmentId: input.environmentId,
     });
     const environment = envs.find((entry) => entry.id === input.environmentId) || null;
     if (!environment) return;
@@ -192,21 +217,23 @@ class ConsoleRouterApiBillingUsageMeterAdapter implements RouterApiUsageMeterAda
 
 export function createRouterApiKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
+  admission: WalletApiCredentialAdmissionV1,
 ): RouterApiKeyAuthAdapter {
-  return new ConsoleRouterApiKeyAuthAdapter(apiKeys);
+  return new ConsoleRouterApiKeyAuthAdapter(apiKeys, admission);
 }
 
 export function createRouterApiPublishableKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
+  admission: WalletApiCredentialAdmissionV1,
   deferUsageWrite?: (write: Promise<unknown>) => void,
 ): RouterApiPublishableKeyAuthAdapter {
-  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, deferUsageWrite);
+  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, admission, deferUsageWrite);
 }
 
 export function createRouterApiBillingUsageMeterAdapter(
   billing: ConsoleBillingService,
   options: {
-    orgProjectEnv?: ConsoleOrgProjectEnvService | null;
+    walletEnvironments?: ConsoleWalletEnvironmentService | null;
     wallets?: ConsoleWalletService | null;
   } = {},
 ): RouterApiUsageMeterAdapter {

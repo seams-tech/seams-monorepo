@@ -232,16 +232,12 @@ class ConsoleSessionAuthAdapter implements ConsoleAuthAdapter {
       authorization.role === 'MEMBER'
         ? resolveMemberProjectId(authorization, claimedProjectId)
         : claimedProjectId;
-    const claimedEnvironmentId = normalizeSessionString(claims.environmentId);
-    const environmentId =
-      authorization.role === 'MEMBER' && projectId !== claimedProjectId ? '' : claimedEnvironmentId;
     const email = normalizeSessionString(claims.email).toLowerCase();
     const identity = {
       userId,
       orgId,
       platformSupport: this.platformSupportEmails.includes(email),
       ...(projectId ? { projectId } : {}),
-      ...(environmentId ? { environmentId } : {}),
       ...(email ? { email } : {}),
       ...(normalizeSessionString(claims.name) ? { name: normalizeSessionString(claims.name) } : {}),
       ...(normalizeSessionString(claims.provider)

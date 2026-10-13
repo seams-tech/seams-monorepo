@@ -1,5 +1,8 @@
+import type { ConsoleWalletEnvironmentService } from '../environments';
+import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
+import type { AccountServiceProvisioningAdapterV1 } from '@seams-internal/console-server/accountPlatform/provisioning';
 import type { ConsoleAccountService } from '@seams-internal/console-server/account/index';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
+import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
 import type { ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/index';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
@@ -9,7 +12,7 @@ import type {
   ConsoleObservabilityService,
 } from '@seams-internal/console-server/observability/index';
 import type { ConsoleOnboardingService } from '@seams-internal/console-server/onboarding/index';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/index';
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/index';
 import type { ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/index';
 import type { ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/index';
 import type { ConsoleRuntimeSnapshotService } from '@seams-internal/wallet-console-server/runtimeSnapshots/index';
@@ -29,13 +32,12 @@ import type { TenantStorageRouteResolver } from './cloudflare/tenantStorageRoute
 // The core/walletConsole grouping is the R105 Phase 2 package split.
 
 export interface ConsoleCoreRouterServices {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjects: ConsoleOrgProjectService;
+  readonly accountPlatform: D1AccountPlatformService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
-  readonly apiKeys: ConsoleApiKeyService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
   readonly webhooks: ConsoleWebhookService | null;
   readonly observability: ConsoleObservabilityService;
   readonly observabilityIngestion: ConsoleObservabilityIngestionService;
@@ -43,6 +45,9 @@ export interface ConsoleCoreRouterServices {
 }
 
 export interface WalletConsoleRouterServices {
+  readonly apiKeys: ConsoleApiKeyService;
+  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly policies: ConsolePolicyService;
   readonly wallets: ConsoleWalletService;
   readonly approvals: ConsoleApprovalService;
@@ -52,6 +57,8 @@ export interface WalletConsoleRouterServices {
 }
 
 export interface ConsoleOnlyRouterComposition {
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1 | null;
+  readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly corsOrigins?: string[];
   readonly core: ConsoleCoreRouterServices;
   readonly walletConsole: WalletConsoleRouterServices;
@@ -62,6 +69,8 @@ export interface ConsoleOnlyRouterComposition {
 }
 
 export interface HostedConsoleRouterComposition {
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1 | null;
+  readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly core: ConsoleCoreRouterServices;
   readonly walletConsole: WalletConsoleRouterServices;
   readonly tenantStorage: {
@@ -80,13 +89,15 @@ function spreadBranchServices(
   walletConsole: WalletConsoleRouterServices,
 ) {
   return {
-    orgProjectEnv: core.orgProjectEnv,
+    orgProjects: core.orgProjects,
+    accountPlatform: core.accountPlatform,
+    walletEnvironments: walletConsole.walletEnvironments,
     organizationAccess: core.organizationAccess,
     account: core.account,
-    apiKeys: core.apiKeys,
+    apiKeys: walletConsole.apiKeys,
     audit: core.audit,
     billing: core.billing,
-    prepaidReservations: core.prepaidReservations,
+    prepaidReservations: walletConsole.prepaidReservations,
     webhooks: core.webhooks,
     observability: core.observability,
     observabilityIngestion: core.observabilityIngestion,
@@ -122,6 +133,8 @@ export function composeConsoleOnlyRouterOptions(
 ): ConsoleRouterOptions {
   return {
     ...spreadBranchServices(input.core, input.walletConsole),
+    walletProvisioning: input.walletProvisioning,
+    satyrProvisioning: input.satyrProvisioning,
     healthz: true,
     readyz: true,
     auth: input.auth,
@@ -137,6 +150,8 @@ export function composeHostedConsoleRouterOptions(
 ): ConsoleRouterOptions {
   return {
     ...spreadBranchServices(input.core, input.walletConsole),
+    walletProvisioning: input.walletProvisioning,
+    satyrProvisioning: input.satyrProvisioning,
     tenantStorageRouteResolver: input.tenantStorage.resolver,
     tenantStorageNamespace: input.tenantStorage.namespace,
     healthz: true,

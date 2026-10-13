@@ -232,7 +232,7 @@ export class TenantRootCustodyWorkerRouteV1 implements TenantRootSecurityStateRe
       return handleBackupAccess(
         {
           auth: this.options.auth,
-          orgProjectEnv: this.options.orgProjectEnv,
+          walletEnvironments: this.options.walletEnvironments,
           stepUp: this.options.stepUp,
           database: this.options.database,
           namespace: this.options.namespace,
@@ -250,7 +250,7 @@ export class TenantRootCustodyWorkerRouteV1 implements TenantRootSecurityStateRe
       return handleCliEnrollment(
         {
           auth: this.options.auth,
-          orgProjectEnv: this.options.orgProjectEnv,
+          walletEnvironments: this.options.walletEnvironments,
           stepUp: this.options.stepUp,
           database: this.options.database,
           namespace: this.options.namespace,
@@ -288,7 +288,7 @@ export class TenantRootCustodyWorkerRouteV1 implements TenantRootSecurityStateRe
       });
       const handler = createAuthorizedTenantRootCustodyHandlerV1({
         auth: this.options.auth,
-        orgProjectEnv: this.options.orgProjectEnv,
+        walletEnvironments: this.options.walletEnvironments,
         stepUp: this.options.stepUp,
         custody,
         controlPlane,

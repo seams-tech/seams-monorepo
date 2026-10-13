@@ -4,5 +4,9 @@
     "types": ["node"]
   },
   "include": ["typecheck/*.typecheck.ts"],
-  "exclude": ["node_modules", "typecheck/dashboard-rotation-outcome.typecheck.ts"]
+  "exclude": [
+    "node_modules",
+    "typecheck/dashboard-rotation-outcome.typecheck.ts",
+    "typecheck/dashboard-account-state.typecheck.ts"
+  ]
 }

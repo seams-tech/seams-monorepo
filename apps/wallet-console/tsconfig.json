@@ -24,5 +24,10 @@
       "@wallet-ui/*": ["../../node_modules/@seams/wallet/dist/types/wallet/src/*"]
     }
   },
-  "include": ["src", "vite-env.d.ts", "../../tests/typecheck/dashboard-rotation-outcome.typecheck.ts"]
+  "include": [
+    "src",
+    "vite-env.d.ts",
+    "../../tests/typecheck/dashboard-rotation-outcome.typecheck.ts",
+    "../../tests/typecheck/dashboard-account-state.typecheck.ts"
+  ]
 }

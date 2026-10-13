@@ -1,21 +1,12 @@
-import type { ConsoleApiKeyService } from '../apiKeys/service';
-import type { ConsoleApiKey } from '../apiKeys/types';
-import type { ConsoleBillingService } from '../billing/service';
-import { getBillingLiveEnvironmentReadiness } from '../billing/readiness';
 import { normalizeLogger, type Logger } from '../boundary';
-import type {
-  ConsoleEnvironment,
-  ConsoleOrganization,
-  ConsoleProject,
-} from '../orgProjectEnv/types';
-import type { ConsoleOrgProjectEnvService } from '../orgProjectEnv/service';
+import type { ConsoleOrganization, ConsoleProject } from '../orgProjectEnv/types';
+import type { ConsoleOrgProjectService } from '../orgProjectEnv/service';
 import type { ConsoleOrganizationAccessService } from '../teamRbac/service';
 import { isConsoleOrganizationAccessError } from '../teamRbac/errors';
 import { ConsoleOnboardingError } from './errors';
 import type { ConsoleOnboardingWelcomeEmailPort } from './welcomeEmail';
 import type {
   ConsoleOnboardingState,
-  ConsoleOnboardingStep,
   ConsoleOnboardingTelemetryAlert,
   ConsoleOnboardingTelemetryOperation,
   ConsoleOnboardingTelemetrySnapshot,
@@ -34,7 +25,7 @@ export interface ConsoleOnboardingContext {
   readonly actorEmail: string;
   readonly actorDisplayName: string | null;
   readonly projectId: string | null;
-  readonly environmentId: string | null;
+  readonly environmentId?: never;
 }
 
 export interface ConsoleOnboardingService {
@@ -57,11 +48,9 @@ export interface ConsoleOnboardingService {
 }
 
 export interface InMemoryConsoleOnboardingServiceOptions {
-  orgProjectEnv: ConsoleOrgProjectEnvService;
-  apiKeys: ConsoleApiKeyService;
+  orgProjectEnv: ConsoleOrgProjectService;
   organizationAccess: ConsoleOrganizationAccessService;
   welcomeEmail?: ConsoleOnboardingWelcomeEmailPort | null;
-  billing?: ConsoleBillingService | null;
   logger?: Logger | null;
   telemetry?: {
     windowMinutes?: number;
@@ -76,13 +65,6 @@ interface ResolveProjectInput {
   name: string;
 }
 
-interface ResolveEnvironmentInput {
-  id?: string;
-  projectId?: string;
-  key: 'dev' | 'staging' | 'prod';
-  name?: string;
-}
-
 function normalizeString(raw: unknown): string {
   return String(raw || '').trim();
 }
@@ -91,35 +73,11 @@ function toOrgProjectEnvContext(ctx: ConsoleOnboardingContext): {
   orgId: string;
   actorUserId: string;
   projectId?: string;
-  environmentId?: string;
 } {
   return {
     orgId: ctx.orgId,
     actorUserId: ctx.actorUserId,
     ...(ctx.projectId ? { projectId: ctx.projectId } : {}),
-    ...(ctx.environmentId ? { environmentId: ctx.environmentId } : {}),
-  };
-}
-
-function toApiKeyContext(ctx: ConsoleOnboardingContext): {
-  orgId: string;
-  actorUserId: string;
-} {
-  return {
-    orgId: ctx.orgId,
-    actorUserId: ctx.actorUserId,
-  };
-}
-
-function toBillingContext(ctx: ConsoleOnboardingContext): {
-  orgId: string;
-  actorUserId: string;
-  roles: string[];
-} {
-  return {
-    orgId: ctx.orgId,
-    actorUserId: ctx.actorUserId,
-    roles: [],
   };
 }
 
@@ -127,19 +85,91 @@ function isActiveStatus(value: unknown): boolean {
   return normalizeString(value).toUpperCase() === 'ACTIVE';
 }
 
+function isActiveProject(project: ConsoleProject): boolean {
+  return isActiveStatus(project.status);
+}
+
+function findProject(
+  projects: readonly ConsoleProject[],
+  projectId: string | null,
+): ConsoleProject | undefined {
+  for (const project of projects) {
+    if (project.id === projectId) return project;
+  }
+  return undefined;
+}
+
+function buildOrganizationOnboardingState(orgId: string): ConsoleOnboardingState {
+  return {
+    orgId,
+    organization: null,
+    activeProjectCount: 0,
+    hasOrganization: false,
+    hasProject: false,
+    accountReady: true,
+    organizationReady: false,
+    projectReady: false,
+    onboardingComplete: false,
+    currentStep: 'organization',
+    complete: false,
+    selectedProjectId: null,
+  };
+}
+
+function buildProjectOnboardingState(organization: ConsoleOrganization): ConsoleOnboardingState {
+  return {
+    orgId: organization.id,
+    organization,
+    activeProjectCount: 0,
+    hasOrganization: true,
+    hasProject: false,
+    accountReady: true,
+    organizationReady: true,
+    projectReady: false,
+    onboardingComplete: false,
+    currentStep: 'project',
+    complete: false,
+    selectedProjectId: null,
+  };
+}
+
+function buildCompleteOnboardingState(
+  organization: ConsoleOrganization,
+  project: ConsoleProject,
+  activeProjectCount: number,
+): ConsoleOnboardingState {
+  return {
+    orgId: organization.id,
+    organization,
+    activeProjectCount,
+    hasOrganization: true,
+    hasProject: true,
+    accountReady: true,
+    organizationReady: true,
+    projectReady: true,
+    onboardingComplete: true,
+    currentStep: 'complete',
+    complete: true,
+    selectedProjectId: project.id,
+  };
+}
+
+function buildOnboardingState(
+  orgId: string,
+  organization: ConsoleOrganization | null,
+  activeProjects: readonly ConsoleProject[],
+  requestedProjectId: string | null,
+): ConsoleOnboardingState {
+  if (!organization) return buildOrganizationOnboardingState(orgId);
+  const project = findProject(activeProjects, requestedProjectId) ?? activeProjects[0];
+  if (!project) return buildProjectOnboardingState(organization);
+  return buildCompleteOnboardingState(organization, project, activeProjects.length);
+}
+
 function readErrorCode(error: unknown): string {
   if (!error || typeof error !== 'object') return '';
   if (!('code' in error)) return '';
   return normalizeString((error as { code?: unknown }).code);
-}
-
-function resolveCurrentStep(input: {
-  organizationReady: boolean;
-  projectReady: boolean;
-}): ConsoleOnboardingStep {
-  if (!input.organizationReady) return 'organization';
-  if (!input.projectReady) return 'project';
-  return 'complete';
 }
 
 function requireActiveProject(
@@ -161,27 +191,6 @@ function requireActiveProject(
     );
   }
   return project;
-}
-
-function requireActiveEnvironment(
-  environment: ConsoleEnvironment | undefined,
-  environmentId: string,
-): ConsoleEnvironment {
-  if (!environment) {
-    throw new ConsoleOnboardingError(
-      'environment_not_found',
-      404,
-      `Environment ${environmentId} was not found for onboarding`,
-    );
-  }
-  if (!isActiveStatus(environment.status)) {
-    throw new ConsoleOnboardingError(
-      'environment_archived',
-      409,
-      `Environment ${environmentId} is archived and cannot be used for onboarding`,
-    );
-  }
-  return environment;
 }
 
 const DEFAULT_TELEMETRY_WINDOW_MINUTES = 15;
@@ -236,6 +245,10 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function compareNumbers(left: number, right: number): number {
+  return left - right;
+}
+
 function percentileFromSorted(sorted: number[], percentile: number): number {
   if (sorted.length === 0) return 0;
   if (sorted.length === 1) return sorted[0];
@@ -272,17 +285,21 @@ function buildOperationTelemetrySnapshot(input: {
 }): ConsoleOnboardingOperationTelemetrySnapshot {
   const windowMs = input.windowMinutes * 60_000;
   const floorMs = input.nowMs - windowMs;
-  const windowSamples = input.samples.filter((entry) => entry.atMs >= floorMs);
-  const requestCount = windowSamples.length;
-  const successCount = windowSamples.filter((entry) => entry.ok).length;
+  const latencies: number[] = [];
+  let successCount = 0;
+  let totalLatencyMs = 0;
+  for (const sample of input.samples) {
+    if (sample.atMs < floorMs) continue;
+    latencies.push(sample.durationMs);
+    totalLatencyMs += sample.durationMs;
+    if (sample.ok) successCount += 1;
+  }
+  const requestCount = latencies.length;
   const errorCount = requestCount - successCount;
   const errorRatePercent = requestCount > 0 ? round2((errorCount / requestCount) * 100) : 0;
-  const latencies = windowSamples.map((entry) => entry.durationMs).sort((a, b) => a - b);
+  latencies.sort(compareNumbers);
   const latencyMaxMs = latencies.length > 0 ? latencies[latencies.length - 1] : 0;
-  const latencyAvgMs =
-    latencies.length > 0
-      ? round2(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
-      : 0;
+  const latencyAvgMs = latencies.length > 0 ? round2(totalLatencyMs / latencies.length) : 0;
   const latencyP50Ms = round2(percentileFromSorted(latencies, 0.5));
   const latencyP95Ms = round2(percentileFromSorted(latencies, 0.95));
   const p95LatencyOk = latencyP95Ms <= input.p95LatencyMsThreshold;
@@ -343,116 +360,114 @@ function buildSloAlerts(input: {
 }
 
 function alertSignature(alerts: ConsoleOnboardingTelemetryAlert[]): string {
-  if (alerts.length === 0) return '';
-  return alerts
-    .map((entry) => `${entry.code}:${entry.operation}:${entry.severity}`)
-    .sort()
-    .join('|');
+  const entries: string[] = [];
+  for (const alert of alerts) entries.push(`${alert.code}:${alert.operation}:${alert.severity}`);
+  return entries.sort().join('|');
 }
 
-export function createInMemoryConsoleOnboardingService(
-  opts: InMemoryConsoleOnboardingServiceOptions,
-): ConsoleOnboardingService {
-  const orgProjectEnv = opts.orgProjectEnv;
-  const apiKeys = opts.apiKeys;
-  const billing = opts.billing ?? null;
-  const organizationAccess = opts.organizationAccess;
-  const welcomeEmail = opts.welcomeEmail ?? null;
-  const logger = normalizeLogger(opts.logger);
-  const telemetryWindowMinutes = coerceIntegerInRange({
-    value: opts.telemetry?.windowMinutes,
-    fallback: DEFAULT_TELEMETRY_WINDOW_MINUTES,
-    min: MIN_TELEMETRY_WINDOW_MINUTES,
-    max: MAX_TELEMETRY_WINDOW_MINUTES,
-  });
-  const telemetryRetentionMinutes = coerceIntegerInRange({
-    value: opts.telemetry?.retentionMinutes,
-    fallback: DEFAULT_TELEMETRY_RETENTION_MINUTES,
-    min: telemetryWindowMinutes,
-    max: MAX_TELEMETRY_WINDOW_MINUTES,
-  });
-  const telemetryErrorRatePercentThreshold = coercePositiveNumber(
-    opts.telemetry?.errorRatePercentThreshold,
-    DEFAULT_TELEMETRY_ERROR_RATE_THRESHOLD_PERCENT,
-  );
-  const telemetryP95LatencyMsThresholds: Record<ConsoleOnboardingTelemetryOperation, number> = {
-    state: coercePositiveNumber(
-      opts.telemetry?.p95LatencyMs?.state,
-      DEFAULT_TELEMETRY_P95_TARGETS.state,
-    ),
-    organization: coercePositiveNumber(
-      opts.telemetry?.p95LatencyMs?.organization,
-      DEFAULT_TELEMETRY_P95_TARGETS.organization,
-    ),
-    project: coercePositiveNumber(
-      opts.telemetry?.p95LatencyMs?.project,
-      DEFAULT_TELEMETRY_P95_TARGETS.project,
-    ),
-  };
-  const telemetryByOrg = new Map<string, OrgOnboardingTelemetryStore>();
-  if (!orgProjectEnv) {
-    throw new Error('Missing orgProjectEnv dependency for onboarding service');
-  }
-  if (!apiKeys) {
-    throw new Error('Missing apiKeys dependency for onboarding service');
+class InMemoryConsoleOnboardingService implements ConsoleOnboardingService {
+  readonly #orgProjectEnv: ConsoleOrgProjectService;
+  readonly #organizationAccess: ConsoleOrganizationAccessService;
+  readonly #welcomeEmail: ConsoleOnboardingWelcomeEmailPort | null;
+  readonly #logger: ReturnType<typeof normalizeLogger>;
+  readonly #telemetryWindowMinutes: number;
+  readonly #telemetryRetentionMinutes: number;
+  readonly #telemetryErrorRatePercentThreshold: number;
+  readonly #telemetryP95LatencyMsThresholds: Record<ConsoleOnboardingTelemetryOperation, number>;
+  readonly #telemetryByOrg = new Map<string, OrgOnboardingTelemetryStore>();
+
+  constructor(options: InMemoryConsoleOnboardingServiceOptions) {
+    this.#orgProjectEnv = options.orgProjectEnv;
+    this.#organizationAccess = options.organizationAccess;
+    this.#welcomeEmail = options.welcomeEmail ?? null;
+    this.#logger = normalizeLogger(options.logger);
+    this.#telemetryWindowMinutes = coerceIntegerInRange({
+      value: options.telemetry?.windowMinutes,
+      fallback: DEFAULT_TELEMETRY_WINDOW_MINUTES,
+      min: MIN_TELEMETRY_WINDOW_MINUTES,
+      max: MAX_TELEMETRY_WINDOW_MINUTES,
+    });
+    this.#telemetryRetentionMinutes = coerceIntegerInRange({
+      value: options.telemetry?.retentionMinutes,
+      fallback: DEFAULT_TELEMETRY_RETENTION_MINUTES,
+      min: this.#telemetryWindowMinutes,
+      max: MAX_TELEMETRY_WINDOW_MINUTES,
+    });
+    this.#telemetryErrorRatePercentThreshold = coercePositiveNumber(
+      options.telemetry?.errorRatePercentThreshold,
+      DEFAULT_TELEMETRY_ERROR_RATE_THRESHOLD_PERCENT,
+    );
+    this.#telemetryP95LatencyMsThresholds = {
+      state: coercePositiveNumber(
+        options.telemetry?.p95LatencyMs?.state,
+        DEFAULT_TELEMETRY_P95_TARGETS.state,
+      ),
+      organization: coercePositiveNumber(
+        options.telemetry?.p95LatencyMs?.organization,
+        DEFAULT_TELEMETRY_P95_TARGETS.organization,
+      ),
+      project: coercePositiveNumber(
+        options.telemetry?.p95LatencyMs?.project,
+        DEFAULT_TELEMETRY_P95_TARGETS.project,
+      ),
+    };
   }
 
-  function resolveTelemetryWindowMinutes(
+  #resolveTelemetryWindowMinutes(
     request: GetConsoleOnboardingTelemetryRequest | undefined,
   ): number {
     const requestedWindow = request?.windowMinutes;
     return coerceIntegerInRange({
       value: requestedWindow,
-      fallback: telemetryWindowMinutes,
+      fallback: this.#telemetryWindowMinutes,
       min: MIN_TELEMETRY_WINDOW_MINUTES,
       max: MAX_TELEMETRY_WINDOW_MINUTES,
     });
   }
 
-  function resolveOrgTelemetryStore(orgId: string): OrgOnboardingTelemetryStore {
-    const existing = telemetryByOrg.get(orgId);
+  #resolveOrgTelemetryStore(orgId: string): OrgOnboardingTelemetryStore {
+    const existing = this.#telemetryByOrg.get(orgId);
     if (existing) return existing;
     const created: OrgOnboardingTelemetryStore = {
       samples: createEmptyTelemetrySamples(),
       lastAlertSignature: '',
     };
-    telemetryByOrg.set(orgId, created);
+    this.#telemetryByOrg.set(orgId, created);
     return created;
   }
 
-  function pruneTelemetrySamples(store: OrgOnboardingTelemetryStore, nowMs: number): void {
-    const retentionFloorMs = nowMs - telemetryRetentionMinutes * 60_000;
+  #pruneTelemetrySamples(store: OrgOnboardingTelemetryStore, nowMs: number): void {
+    const retentionFloorMs = nowMs - this.#telemetryRetentionMinutes * 60_000;
     for (const operation of ONBOARDING_TELEMETRY_OPERATIONS) {
-      store.samples[operation] = store.samples[operation].filter(
-        (entry) => entry.atMs >= retentionFloorMs,
-      );
+      const retained: OnboardingTelemetrySample[] = [];
+      for (const sample of store.samples[operation]) {
+        if (sample.atMs >= retentionFloorMs) retained.push(sample);
+      }
+      store.samples[operation] = retained;
     }
   }
 
-  function buildTelemetrySnapshot(input: {
+  #buildTelemetrySnapshot(input: {
     orgId: string;
     nowMs: number;
     windowMinutes: number;
   }): ConsoleOnboardingTelemetrySnapshot {
-    const store = resolveOrgTelemetryStore(input.orgId);
-    pruneTelemetrySamples(store, input.nowMs);
-    const operations: ConsoleOnboardingOperationTelemetrySnapshot[] =
-      ONBOARDING_TELEMETRY_OPERATIONS.map((operation) =>
-        buildOperationTelemetrySnapshot({
-          operation,
-          samples: store.samples[operation],
-          nowMs: input.nowMs,
-          windowMinutes: input.windowMinutes,
-          p95LatencyMsThreshold: telemetryP95LatencyMsThresholds[operation],
-          errorRatePercentThreshold: telemetryErrorRatePercentThreshold,
-        }),
-      );
-    const alerts = operations.flatMap((snapshot) =>
-      buildSloAlerts({
-        operation: snapshot.operation,
-        snapshot,
-      }),
-    );
+    const store = this.#resolveOrgTelemetryStore(input.orgId);
+    this.#pruneTelemetrySamples(store, input.nowMs);
+    const operations: ConsoleOnboardingOperationTelemetrySnapshot[] = [];
+    const alerts: ConsoleOnboardingTelemetryAlert[] = [];
+    for (const operation of ONBOARDING_TELEMETRY_OPERATIONS) {
+      const snapshot = buildOperationTelemetrySnapshot({
+        operation,
+        samples: store.samples[operation],
+        nowMs: input.nowMs,
+        windowMinutes: input.windowMinutes,
+        p95LatencyMsThreshold: this.#telemetryP95LatencyMsThresholds[operation],
+        errorRatePercentThreshold: this.#telemetryErrorRatePercentThreshold,
+      });
+      operations.push(snapshot);
+      alerts.push(...buildSloAlerts({ operation, snapshot }));
+    }
     return {
       orgId: input.orgId,
       generatedAt: new Date(input.nowMs).toISOString(),
@@ -462,7 +477,7 @@ export function createInMemoryConsoleOnboardingService(
     };
   }
 
-  function logTelemetryAlerts(input: {
+  #logTelemetryAlerts(input: {
     orgId: string;
     snapshot: ConsoleOnboardingTelemetrySnapshot;
     store: OrgOnboardingTelemetryStore;
@@ -471,7 +486,7 @@ export function createInMemoryConsoleOnboardingService(
     if (nextSignature === input.store.lastAlertSignature) return;
 
     if (!nextSignature && input.store.lastAlertSignature) {
-      logger.info('[console-onboarding][telemetry] onboarding SLO alerts resolved', {
+      this.#logger.info('[console-onboarding][telemetry] onboarding SLO alerts resolved', {
         orgId: input.orgId,
       });
       input.store.lastAlertSignature = '';
@@ -479,7 +494,7 @@ export function createInMemoryConsoleOnboardingService(
     }
 
     for (const alert of input.snapshot.alerts) {
-      logger.warn('[console-onboarding][telemetry] onboarding SLO alert', {
+      this.#logger.warn('[console-onboarding][telemetry] onboarding SLO alert', {
         orgId: input.orgId,
         code: alert.code,
         operation: alert.operation,
@@ -490,7 +505,7 @@ export function createInMemoryConsoleOnboardingService(
     input.store.lastAlertSignature = nextSignature;
   }
 
-  function recordTelemetrySample(input: {
+  #recordTelemetrySample(input: {
     ctx: ConsoleOnboardingContext;
     operation: ConsoleOnboardingTelemetryOperation;
     startedAtMs: number;
@@ -498,27 +513,27 @@ export function createInMemoryConsoleOnboardingService(
     ok: boolean;
     errorCode?: string;
   }): void {
-    const store = resolveOrgTelemetryStore(input.ctx.orgId);
-    pruneTelemetrySamples(store, input.endedAtMs);
+    const store = this.#resolveOrgTelemetryStore(input.ctx.orgId);
+    this.#pruneTelemetrySamples(store, input.endedAtMs);
     store.samples[input.operation].push({
       atMs: input.endedAtMs,
       durationMs: telemetryDurationMs(input.startedAtMs, input.endedAtMs),
       ok: input.ok,
       ...(input.errorCode ? { errorCode: input.errorCode } : {}),
     });
-    const snapshot = buildTelemetrySnapshot({
+    const snapshot = this.#buildTelemetrySnapshot({
       orgId: input.ctx.orgId,
       nowMs: input.endedAtMs,
-      windowMinutes: telemetryWindowMinutes,
+      windowMinutes: this.#telemetryWindowMinutes,
     });
-    logTelemetryAlerts({
+    this.#logTelemetryAlerts({
       orgId: input.ctx.orgId,
       snapshot,
       store,
     });
   }
 
-  async function withTelemetry<T>(input: {
+  async #withTelemetry<T>(input: {
     ctx: ConsoleOnboardingContext;
     operation: ConsoleOnboardingTelemetryOperation;
     run: () => Promise<T>;
@@ -526,7 +541,7 @@ export function createInMemoryConsoleOnboardingService(
     const startedAtMs = Date.now();
     try {
       const result = await input.run();
-      recordTelemetrySample({
+      this.#recordTelemetrySample({
         ctx: input.ctx,
         operation: input.operation,
         startedAtMs,
@@ -535,7 +550,7 @@ export function createInMemoryConsoleOnboardingService(
       });
       return result;
     } catch (error: unknown) {
-      recordTelemetrySample({
+      this.#recordTelemetrySample({
         ctx: input.ctx,
         operation: input.operation,
         startedAtMs,
@@ -547,16 +562,16 @@ export function createInMemoryConsoleOnboardingService(
     }
   }
 
-  async function ensureOwner(ctx: ConsoleOnboardingContext): Promise<{ created: boolean }> {
+  async #ensureOwner(ctx: ConsoleOnboardingContext): Promise<{ created: boolean }> {
     try {
-      const authorization = await organizationAccess.lookupAuthorization({
+      const authorization = await this.#organizationAccess.lookupAuthorization({
         orgId: ctx.orgId,
         userId: ctx.actorUserId,
       });
       if (authorization?.kind === 'authorized' && authorization.role === 'OWNER') {
         return { created: false };
       }
-      await organizationAccess.bootstrapInitialOwner({
+      await this.#organizationAccess.bootstrapInitialOwner({
         orgId: ctx.orgId,
         userId: ctx.actorUserId,
         email: ctx.actorEmail,
@@ -576,7 +591,7 @@ export function createInMemoryConsoleOnboardingService(
     }
   }
 
-  async function upsertOrganizationProfile(
+  async #upsertOrganizationProfile(
     ctx: ConsoleOnboardingContext,
     request: {
       name?: string;
@@ -586,116 +601,49 @@ export function createInMemoryConsoleOnboardingService(
     const orgCtx = toOrgProjectEnvContext(ctx);
     let existing: ConsoleOrganization | null = null;
     try {
-      existing = await orgProjectEnv.getOrganization(orgCtx);
+      existing = await this.#orgProjectEnv.getOrganization(orgCtx);
     } catch (error: unknown) {
       if (readErrorCode(error) !== 'organization_not_found') {
         throw error;
       }
     }
-    const organization = await orgProjectEnv.upsertOrganization(orgCtx, request);
+    const organization = await this.#orgProjectEnv.upsertOrganization(orgCtx, request);
     return {
       organization,
       created: existing == null,
     };
   }
 
-  async function resolveState(ctx: ConsoleOnboardingContext): Promise<{
+  async #resolveState(ctx: ConsoleOnboardingContext): Promise<{
     organization: ConsoleOrganization | null;
-    activeProjects: ConsoleProject[];
-    activeEnvironments: ConsoleEnvironment[];
-    activeApiKeys: ConsoleApiKey[];
     state: ConsoleOnboardingState;
   }> {
     const orgCtx = toOrgProjectEnvContext(ctx);
-    const apiCtx = toApiKeyContext(ctx);
     let organization: ConsoleOrganization | null = null;
     try {
-      organization = await orgProjectEnv.getOrganization(orgCtx);
+      organization = await this.#orgProjectEnv.getOrganization(orgCtx);
     } catch (error: unknown) {
       if (readErrorCode(error) !== 'organization_not_found') {
         throw error;
       }
     }
-
-    const projects = await orgProjectEnv.listProjects(orgCtx);
-    const environments = await orgProjectEnv.listEnvironments(orgCtx);
-    const keyRows = await apiKeys.listApiKeys(apiCtx);
-    const billingReadiness = billing
-      ? await getBillingLiveEnvironmentReadiness(billing, toBillingContext(ctx))
-      : null;
-
-    const activeProjects = projects.filter((entry) => isActiveStatus(entry.status));
-    const activeEnvironments = environments.filter((entry) => isActiveStatus(entry.status));
-    const activeApiKeys = keyRows.filter((entry) => isActiveStatus(entry.status));
-
-    const requestedProjectId = normalizeString(ctx.projectId);
-    const requestedEnvironmentId = normalizeString(ctx.environmentId);
-    const selectedProjectId =
-      activeProjects.find((entry) => entry.id === requestedProjectId)?.id ||
-      activeProjects[0]?.id ||
-      null;
-    const selectedEnvironmentId =
-      activeEnvironments.find((entry) => entry.id === requestedEnvironmentId)?.id ||
-      (selectedProjectId
-        ? activeEnvironments.find((entry) => entry.projectId === selectedProjectId)?.id
-        : undefined) ||
-      activeEnvironments[0]?.id ||
-      null;
-
-    const hasOrganization = Boolean(normalizeString(organization?.id));
-    const hasProject = activeProjects.length > 0;
-    const hasEnvironment = activeEnvironments.length > 0;
-    const hasApiKey = activeApiKeys.length > 0;
-
-    const accountReady = true;
-    const organizationReady = hasOrganization;
-    const billingReady = billingReadiness?.canUseLiveEnvironments === true;
-    const projectReady = hasProject && hasEnvironment;
-    const onboardingComplete = accountReady && organizationReady && projectReady;
-    const currentStep = resolveCurrentStep({
-      organizationReady,
-      projectReady,
-    });
-
-    const state: ConsoleOnboardingState = {
-      orgId: ctx.orgId,
-      organization,
-      activeProjectCount: activeProjects.length,
-      activeEnvironmentCount: activeEnvironments.length,
-      activeApiKeyCount: activeApiKeys.length,
-      hasOrganization,
-      hasProject,
-      hasEnvironment,
-      hasApiKey,
-      accountReady,
-      organizationReady,
-      billingReady,
-      projectReady,
-      onboardingComplete,
-      currentStep,
-      complete: hasOrganization && hasProject && hasEnvironment && hasApiKey,
-      selectedProjectId,
-      selectedEnvironmentId,
-    };
-
+    const projects = await this.#orgProjectEnv.listProjects(orgCtx);
+    const activeProjects = projects.filter(isActiveProject);
     return {
       organization,
-      activeProjects,
-      activeEnvironments,
-      activeApiKeys,
-      state,
+      state: buildOnboardingState(ctx.orgId, organization, activeProjects, ctx.projectId),
     };
   }
 
-  async function ensureProject(
+  async #ensureProject(
     ctx: ConsoleOnboardingContext,
     request: ResolveProjectInput,
   ): Promise<{ project: ConsoleProject; created: boolean }> {
     const orgCtx = toOrgProjectEnvContext(ctx);
     const requestedProjectId = normalizeString(request.id);
-    const existingProjects = await orgProjectEnv.listProjects(orgCtx);
+    const existingProjects = await this.#orgProjectEnv.listProjects(orgCtx);
     if (requestedProjectId) {
-      const existing = existingProjects.find((entry) => entry.id === requestedProjectId);
+      const existing = findProject(existingProjects, requestedProjectId);
       if (existing) {
         return {
           project: requireActiveProject(existing, requestedProjectId),
@@ -704,16 +652,10 @@ export function createInMemoryConsoleOnboardingService(
       }
     }
 
-    const liveEnvironmentsEnabled = billing
-      ? (await getBillingLiveEnvironmentReadiness(billing, toBillingContext(ctx)))
-          .canUseLiveEnvironments
-      : false;
-
     try {
-      const createdProject = await orgProjectEnv.createProject(orgCtx, {
+      const createdProject = await this.#orgProjectEnv.createProject(orgCtx, {
         ...(requestedProjectId ? { id: requestedProjectId } : {}),
         name: request.name,
-        liveEnvironmentsEnabled,
       });
       return {
         project: createdProject,
@@ -722,8 +664,8 @@ export function createInMemoryConsoleOnboardingService(
     } catch (error: unknown) {
       const code = readErrorCode(error);
       if (code === 'project_already_exists' && requestedProjectId) {
-        const projects = await orgProjectEnv.listProjects(orgCtx);
-        const existing = projects.find((entry) => entry.id === requestedProjectId);
+        const projects = await this.#orgProjectEnv.listProjects(orgCtx);
+        const existing = findProject(projects, requestedProjectId);
         return {
           project: requireActiveProject(existing, requestedProjectId),
           created: false,
@@ -733,199 +675,94 @@ export function createInMemoryConsoleOnboardingService(
     }
   }
 
-  async function ensureEnvironment(
-    ctx: ConsoleOnboardingContext,
-    project: ConsoleProject,
-    request: ResolveEnvironmentInput,
-  ): Promise<{ environment: ConsoleEnvironment; created: boolean }> {
-    const orgCtx = toOrgProjectEnvContext(ctx);
-    const requestedProjectId = normalizeString(request.projectId);
-    if (requestedProjectId && requestedProjectId !== project.id) {
-      throw new ConsoleOnboardingError(
-        'invalid_body',
-        400,
-        'environment.projectId must match the resolved onboarding project',
-      );
-    }
-
-    const requestedEnvironmentId = normalizeString(request.id);
-    const existingEnvironments = await orgProjectEnv.listEnvironments(orgCtx, {
-      projectId: project.id,
-    });
-    if (requestedEnvironmentId) {
-      const existing = existingEnvironments.find((entry) => entry.id === requestedEnvironmentId);
-      if (existing) {
-        return {
-          environment: requireActiveEnvironment(existing, requestedEnvironmentId),
-          created: false,
-        };
-      }
-      const existingByKey = existingEnvironments.find(
-        (entry) => entry.key === request.key && isActiveStatus(entry.status),
-      );
-      if (existingByKey) {
-        return {
-          environment: existingByKey,
-          created: false,
-        };
-      }
-    } else {
-      const existingByKey = existingEnvironments.find(
-        (entry) => entry.key === request.key && isActiveStatus(entry.status),
-      );
-      if (existingByKey) {
-        return {
-          environment: existingByKey,
-          created: false,
-        };
-      }
-    }
-
-    try {
-      const createdEnvironment = await orgProjectEnv.createEnvironment(orgCtx, {
-        ...(requestedEnvironmentId ? { id: requestedEnvironmentId } : {}),
-        projectId: project.id,
-        key: request.key,
-        ...(request.name ? { name: request.name } : {}),
-      });
-      return {
-        environment: createdEnvironment,
-        created: true,
-      };
-    } catch (error: unknown) {
-      const code = readErrorCode(error);
-      if (code === 'environment_already_exists' || code === 'environment_key_conflict') {
-        const environments = await orgProjectEnv.listEnvironments(orgCtx, {
-          projectId: project.id,
-        });
-        if (requestedEnvironmentId) {
-          const existing = environments.find((entry) => entry.id === requestedEnvironmentId);
-          if (existing) {
-            return {
-              environment: requireActiveEnvironment(existing, requestedEnvironmentId),
-              created: false,
-            };
-          }
-          const existingByKey = environments.find(
-            (entry) => entry.key === request.key && isActiveStatus(entry.status),
-          );
-          if (existingByKey) {
-            return {
-              environment: existingByKey,
-              created: false,
-            };
-          }
-        }
-        const existingByKey = environments.find(
-          (entry) => entry.key === request.key && isActiveStatus(entry.status),
-        );
-        if (existingByKey) {
-          return {
-            environment: existingByKey,
-            created: false,
-          };
-        }
-      }
-      throw error;
-    }
+  async #readState(ctx: ConsoleOnboardingContext): Promise<ConsoleOnboardingState> {
+    return (await this.#resolveState(ctx)).state;
   }
 
-  return {
-    async getOnboardingState(
-      ctx: ConsoleOnboardingContext,
-      _request: GetConsoleOnboardingStateRequest = {},
-    ): Promise<ConsoleOnboardingState> {
-      return withTelemetry({
-        ctx,
-        operation: 'state',
-        run: async () => (await resolveState(ctx)).state,
-      });
-    },
+  async #createOrganization(
+    ctx: ConsoleOnboardingContext,
+    request: CreateConsoleOnboardingOrganizationRequest,
+  ): Promise<CreateConsoleOnboardingOrganizationResult> {
+    const { organization, created } = await this.#upsertOrganizationProfile(ctx, request.org);
+    const owner = await this.#ensureOwner(ctx);
+    return {
+      organization,
+      created: { organization: created, owner: owner.created },
+      state: (await this.#resolveState(ctx)).state,
+    };
+  }
 
-    async getOnboardingTelemetry(
-      ctx: ConsoleOnboardingContext,
-      request: GetConsoleOnboardingTelemetryRequest = {},
-    ): Promise<ConsoleOnboardingTelemetrySnapshot> {
-      const nowMs = Date.now();
-      return buildTelemetrySnapshot({
+  async #createProject(
+    ctx: ConsoleOnboardingContext,
+    request: CreateConsoleOnboardingProjectRequest,
+  ): Promise<CreateConsoleOnboardingProjectResult> {
+    const current = await this.#resolveState(ctx);
+    if (!current.organization) {
+      throw new ConsoleOnboardingError(
+        'organization_required',
+        409,
+        'Organization step must be completed before creating a project',
+      );
+    }
+    await this.#ensureOwner(ctx);
+    const { project, created } = await this.#ensureProject(ctx, request.project);
+    const state = (await this.#resolveState(ctx)).state;
+    if (state.onboardingComplete && this.#welcomeEmail) {
+      await this.#welcomeEmail.enqueue({
         orgId: ctx.orgId,
-        nowMs,
-        windowMinutes: resolveTelemetryWindowMinutes(request),
+        userId: ctx.actorUserId,
+        recipientEmail: ctx.actorEmail,
+        recipientDisplayName: ctx.actorDisplayName || ctx.actorEmail,
+        organizationName: current.organization.name,
+        projectName: project.name,
       });
-    },
+    }
+    return { project, created: { project: created }, state };
+  }
 
-    async createOnboardingOrganization(
-      ctx: ConsoleOnboardingContext,
-      request: CreateConsoleOnboardingOrganizationRequest,
-    ): Promise<CreateConsoleOnboardingOrganizationResult> {
-      return withTelemetry({
-        ctx,
-        operation: 'organization',
-        run: async () => {
-          const { organization, created } = await upsertOrganizationProfile(ctx, request.org);
-          const owner = await ensureOwner(ctx);
-          return {
-            organization,
-            created: {
-              organization: created,
-              owner: owner.created,
-            },
-            state: (await resolveState(ctx)).state,
-          };
-        },
-      });
-    },
+  async getOnboardingState(
+    ctx: ConsoleOnboardingContext,
+    _request: GetConsoleOnboardingStateRequest = {},
+  ): Promise<ConsoleOnboardingState> {
+    return this.#withTelemetry({ ctx, operation: 'state', run: this.#readState.bind(this, ctx) });
+  }
 
-    async createOnboardingProject(
-      ctx: ConsoleOnboardingContext,
-      request: CreateConsoleOnboardingProjectRequest,
-    ): Promise<CreateConsoleOnboardingProjectResult> {
-      return withTelemetry({
-        ctx,
-        operation: 'project',
-        run: async () => {
-          const current = await resolveState(ctx);
-          if (!current.organization) {
-            throw new ConsoleOnboardingError(
-              'organization_required',
-              409,
-              'Organization step must be completed before creating a project',
-            );
-          }
-          await ensureOwner(ctx);
-          const { project, created: createdProject } = await ensureProject(ctx, request.project);
-          const { environment, created: createdEnvironment } = await ensureEnvironment(
-            ctx,
-            project,
-            {
-              ...(request.environment?.id ? { id: request.environment.id } : {}),
-              projectId: project.id,
-              key: 'dev',
-              ...(request.environment?.name ? { name: request.environment.name } : {}),
-            },
-          );
-          const state = (await resolveState(ctx)).state;
-          if (state.onboardingComplete && welcomeEmail) {
-            await welcomeEmail.enqueue({
-              orgId: ctx.orgId,
-              userId: ctx.actorUserId,
-              recipientEmail: ctx.actorEmail,
-              recipientDisplayName: ctx.actorDisplayName || ctx.actorEmail,
-              organizationName: current.organization.name,
-              projectName: project.name,
-            });
-          }
-          return {
-            project,
-            environment,
-            created: {
-              project: createdProject,
-              environment: createdEnvironment,
-            },
-            state,
-          };
-        },
-      });
-    },
-  };
+  async getOnboardingTelemetry(
+    ctx: ConsoleOnboardingContext,
+    request: GetConsoleOnboardingTelemetryRequest = {},
+  ): Promise<ConsoleOnboardingTelemetrySnapshot> {
+    return this.#buildTelemetrySnapshot({
+      orgId: ctx.orgId,
+      nowMs: Date.now(),
+      windowMinutes: this.#resolveTelemetryWindowMinutes(request),
+    });
+  }
+
+  async createOnboardingOrganization(
+    ctx: ConsoleOnboardingContext,
+    request: CreateConsoleOnboardingOrganizationRequest,
+  ): Promise<CreateConsoleOnboardingOrganizationResult> {
+    return this.#withTelemetry({
+      ctx,
+      operation: 'organization',
+      run: this.#createOrganization.bind(this, ctx, request),
+    });
+  }
+
+  async createOnboardingProject(
+    ctx: ConsoleOnboardingContext,
+    request: CreateConsoleOnboardingProjectRequest,
+  ): Promise<CreateConsoleOnboardingProjectResult> {
+    return this.#withTelemetry({
+      ctx,
+      operation: 'project',
+      run: this.#createProject.bind(this, ctx, request),
+    });
+  }
+}
+
+export function createInMemoryConsoleOnboardingService(
+  options: InMemoryConsoleOnboardingServiceOptions,
+): ConsoleOnboardingService {
+  return new InMemoryConsoleOnboardingService(options);
 }

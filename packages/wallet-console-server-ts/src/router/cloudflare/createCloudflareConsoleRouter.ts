@@ -1,27 +1,40 @@
+import {
+  handleConsoleBillingRoutes,
+  sendBillingError,
+  type BillingRouteBalanceChange,
+  type BillingRouteFailure,
+} from '@seams-internal/console-server/router/cloudflare/billingRoutes';
+import type { ConsoleAuthClaims as AccountAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+import type { BillingOverview } from '@seams-internal/console-server/billing/types';
+import { buildWalletConsoleAuthClaims } from '../walletConsoleAuth';
+import { handleConsoleAuditRoutes } from '@seams-internal/console-server/router/cloudflare/auditRoutes';
+import {
+  authenticateWalletConsoleRequest,
+  type WalletConsoleAuthClaims as ConsoleAuthClaims,
+} from '../walletConsoleAuth';
+import type { AccountConsoleContext } from '@seams-internal/console-server/router/cloudflare/context';
+import { handleAccountPlatformRoutes } from '@seams-internal/console-server/router/cloudflare/accountPlatformRoutes';
+import {
+  handleConsoleHealth,
+  handleConsoleReady,
+  handleConsoleSession,
+  handleConsoleAccount,
+  handleConsoleOnboarding,
+  handleConsoleOrganizationAccess,
+  handleConsoleProjects,
+  requireConsoleRoutePolicy,
+  sendOnboardingError,
+} from '@seams-internal/console-server/router/cloudflare/accountRoutes';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
 import { buildCorsOrigins, normalizeCorsOrigin } from '@seams/wallet-server/cloud-host';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
 import {
-  buildConsoleBillingInvoicePdf,
-  buildConsoleBillingInvoicePdfFilename,
-  CONSOLE_BILLING_INVOICE_PDF_EXPORT_POLICY,
-} from '@seams-internal/console-server/billing/pdf';
-import {
   LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
   ensureBillingReadyForLiveEnvironment,
-  getBillingLiveEnvironmentReadiness,
-} from '@seams-internal/console-server/billing/readiness';
-import {
-  parseBillingAccountActivityRequest,
-  parseBillingInvoiceListRequest,
-  parseBillingManualAdjustmentRequest,
-  parseStripeCheckoutSessionReconcileRequest,
-  parseGenerateMonthlyInvoiceRequest,
-  parseStripeCheckoutSessionRequest,
-} from '@seams-internal/console-server/billing/requests';
+  resolveBillingLiveEnvironmentState,
+} from '@seams-internal/wallet-console-server/environments/readiness';
 import { parseWalletBillingUsageEventRequest } from '../walletBillingUsage';
-import { verifyAndParseStripeWebhookRequest } from '@seams-internal/console-server/billing/stripeWebhook';
 import {
   ConsoleBillingError,
   isConsoleBillingError,
@@ -31,24 +44,24 @@ import type { ConsoleSponsoredCallService } from '@seams-internal/wallet-console
 import { isConsoleSponsoredCallError } from '@seams-internal/wallet-console-server/sponsoredCalls/errors';
 import { listConsoleSponsoredCallReconciliationPage } from '@seams-internal/wallet-console-server/sponsoredCalls/reconciliation';
 import { parseListConsoleSponsoredCallRecordsRequest } from '@seams-internal/wallet-console-server/sponsoredCalls/requests';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/service';
-import { isConsoleApiKeyError } from '@seams-internal/console-server/apiKeys/errors';
+import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/service';
+import { isConsoleApiKeyError } from '@seams-internal/wallet-console-server/apiKeys/errors';
 import {
   parseCreateConsoleApiKeyRequest,
   parseRevokeConsoleApiKeyRequest,
   parseRotateConsoleApiKeyRequest,
   parseUpdateConsoleApiKeyRequest,
-} from '@seams-internal/console-server/apiKeys/requests';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
-import { isConsoleOrgProjectEnvError } from '@seams-internal/console-server/orgProjectEnv/errors';
+} from '@seams-internal/wallet-console-server/apiKeys/requests';
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/service';
+import { isConsoleOrgProjectError } from '@seams-internal/console-server/orgProjectEnv/errors';
 import {
-  parseCreateConsoleEnvironmentRequest,
-  parseCreateConsoleProjectRequest,
-  parseListConsoleProjectsRequest,
-  parseListConsoleEnvironmentsRequest,
-  parseUpdateConsoleEnvironmentRequest,
-  parseUpdateConsoleProjectRequest,
-} from '@seams-internal/console-server/orgProjectEnv/requests';
+  type ConsoleWalletEnvironmentService,
+  isConsoleWalletEnvironmentError,
+  parseCreateConsoleWalletEnvironmentRequest,
+  parseListConsoleWalletEnvironmentsRequest,
+  parseUpdateConsoleWalletEnvironmentRequest,
+  serializeWalletEnvironment,
+} from '@seams-internal/wallet-console-server/environments';
 import type { ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/service';
 import { isConsoleWalletError } from '@seams-internal/wallet-console-server/wallets/errors';
 import {
@@ -95,17 +108,7 @@ import {
   parsePublishCurrentConsoleRuntimeSnapshotRequest,
   parsePublishConsoleRuntimeSnapshotRequest,
 } from '@seams-internal/wallet-console-server/runtimeSnapshots/requests';
-import {
-  isConsoleOrganizationAccessError,
-  parseChangeOrganizationMembershipRoleRequest,
-  parseInviteOrganizationMemberRequest,
-  parseListOrganizationInvitationsRequest,
-  parseListOrganizationMembershipsRequest,
-  parseRedeemOrganizationInvitationRequest,
-  parseSetOrganizationAdminPermissionsRequest,
-  parseSetProjectMemberAccessRequest,
-  type ConsoleOrganizationAccessService,
-} from '@seams-internal/console-server/teamRbac/index';
+import type { ConsoleOrganizationAccessService } from '@seams-internal/console-server/teamRbac/index';
 import type {
   CreateConsoleApprovalRequest,
   ConsoleApprovalOperationType,
@@ -119,12 +122,8 @@ import {
   parseRejectConsoleApprovalRequest,
 } from '@seams-internal/wallet-console-server/approvals/requests';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
-import { isConsoleAuditError } from '@seams-internal/console-server/audit/errors';
-import {
-  CONSOLE_AUDIT_QUERY_CATEGORIES,
-  parseListConsoleAuditEventsRequest,
-  parseListConsoleAuditEvidenceRequest,
-} from '@seams-internal/console-server/audit/requests';
+import type { ConsoleAuditEvent } from '@seams-internal/console-server/audit/types';
+import { CONSOLE_AUDIT_QUERY_CATEGORIES } from '@seams-internal/console-server/audit/requests';
 import { WALLET_CONSOLE_AUDIT_CATEGORIES } from '../../audit';
 import type { ConsoleAuditExportsService } from '@seams-internal/console-server/auditExports/service';
 import { isConsoleAuditExportsError } from '@seams-internal/console-server/auditExports/errors';
@@ -138,36 +137,13 @@ import {
   parseGetConsoleEnterpriseIsolationRequest,
   parseTriggerConsoleEnterpriseIsolationRequest,
 } from '@seams-internal/console-server/enterpriseIsolation/requests';
-import type {
-  ConsoleOnboardingContext,
-  ConsoleOnboardingService,
-} from '@seams-internal/console-server/onboarding/service';
-import { isConsoleOnboardingError } from '@seams-internal/console-server/onboarding/errors';
-import {
-  parseCreateConsoleOnboardingOrganizationRequest,
-  parseCreateConsoleOnboardingProjectRequest,
-  parseGetConsoleOnboardingStateRequest,
-  parseGetConsoleOnboardingTelemetryRequest,
-} from '@seams-internal/console-server/onboarding/requests';
-import type {
-  ConsoleAccountContext,
-  ConsoleAccountService,
-} from '@seams-internal/console-server/account/service';
-import { isConsoleAccountError } from '@seams-internal/console-server/account/errors';
-import {
-  parseCreateConsoleAccountOrganizationRequest,
-  parsePatchConsoleAccountProfileRequest,
-  parseUpdateConsoleAccountOrganizationRequest,
-} from '@seams-internal/console-server/account/requests';
+import type { ConsoleOnboardingService } from '@seams-internal/console-server/onboarding/service';
+import { parseGetConsoleOnboardingTelemetryRequest } from '@seams-internal/console-server/onboarding/requests';
+import type { ConsoleAccountService } from '@seams-internal/console-server/account/service';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/ingestionService';
 import type { ConsoleObservabilityService } from '@seams-internal/console-server/observability/service';
 import { isConsoleObservabilityError } from '@seams-internal/console-server/observability/errors';
 import type { ConsoleRouterOptions } from '@seams-internal/wallet-console-server/router/console';
-import {
-  authenticateConsoleRequest,
-  type ConsoleAuthClaims,
-  type ConsoleAuthResult,
-} from '@seams-internal/console-server/router/consoleAuth';
 import {
   emitConsoleApprovalFailureObservabilityEvent,
   emitConsoleBillingFailureObservabilityEvent,
@@ -175,10 +151,6 @@ import {
   observeConsoleRequestMetric,
   readConsoleStripeWebhookFailureMetadata,
 } from '../consoleObservabilityHooks';
-import {
-  buildConsoleContextSwitchSessionClaims,
-  parseConsoleSessionForContextSwitch,
-} from '@seams-internal/console-server/router/consoleSessionContext';
 import {
   buildConsoleExportGovernanceView,
   buildConsoleGasReadinessView,
@@ -192,8 +164,6 @@ import {
   resolveConsolePolicyPresentation,
 } from '../policyPresentation';
 import {
-  buildConsoleBillingInvoiceGeneratedAuditEvent,
-  buildConsoleBillingCreditPurchaseSettledAuditEvent,
   buildConsolePolicyAssignmentAuditEvent,
   buildConsolePolicyAuditEvent,
   buildConsoleWebhookEndpointAuditEvent,
@@ -217,10 +187,6 @@ import {
   readSponsorshipBillingBalanceSnapshot,
 } from '@seams-internal/wallet-console-server/router/sponsorshipBillingEvents';
 import { attachConsoleRouteSurface } from '@seams-internal/console-server/router/consoleRouteSurface';
-import {
-  authorizeConsoleRouteRequest,
-  hasConsoleProjectAccess,
-} from '@seams-internal/console-server/router/consoleRoutePolicy';
 import type { ConsoleRouteDefinition } from '@seams-internal/console-server/router/consoleRouteDefinitions';
 import { resolveWalletConsoleRouteSurface } from '../walletConsoleRouteDefinitions';
 import { handleConsoleObservabilityRoutes } from './consoleObservabilityRoutes';
@@ -233,9 +199,9 @@ import {
 } from './tenantStorageRoute';
 import type { TenantStorageRouteDiagnostic } from '@seams/wallet-server/cloud-host';
 import { parseOrgId } from '@seams/wallet-server/cloud-host';
-import { dispatchBillingStripePostProcessingEvent } from '@seams-internal/console-server/router/stripePostProcessing';
 
-export interface CloudflareConsoleContext {
+export interface CloudflareConsoleContext extends Omit<AccountConsoleContext, 'authorizeTenant'> {
+  authorizeTenant: AccountConsoleContext['authorizeTenant'];
   request: Request;
   url: URL;
   pathname: string;
@@ -249,7 +215,8 @@ export interface CloudflareConsoleContext {
   billing: ConsoleBillingService | null;
   prepaidReservations: ConsoleBillingPrepaidReservationService | null;
   sponsoredCalls: ConsoleSponsoredCallService | null;
-  orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  orgProjects: ConsoleOrgProjectService | null;
+  walletEnvironments: ConsoleWalletEnvironmentService | null;
   wallets: ConsoleWalletService | null;
   policies: ConsolePolicyService | null;
   apiKeys: ConsoleApiKeyService | null;
@@ -269,17 +236,10 @@ export interface CloudflareConsoleContext {
   tenantStorageNamespace: string | null;
   tenantStorageRoute?: CloudflareTenantStorageRoute;
   tenantStorageRouteDiagnostic?: TenantStorageRouteDiagnostic;
-  authClaims?: ConsoleAuthClaims;
 }
 
 const CONSOLE_CORS_ALLOW_HEADERS =
   'Content-Type,Authorization,X-Console-Org-Id,X-Console-User-Id,X-Console-Roles,X-Console-Project-Id,X-Console-Environment-Id';
-
-function toArrayBufferCopy(bytes: Uint8Array): ArrayBuffer {
-  const out = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(out).set(bytes);
-  return out;
-}
 
 function withConsoleCors(headers: Headers, opts?: ConsoleRouterOptions, request?: Request): void {
   if (!opts?.corsOrigins) return;
@@ -311,28 +271,21 @@ function readOptionalRequestHeader(request: Request, header: string): string | u
   return value || undefined;
 }
 
-function requireConsoleRoutePolicy(
-  ctx: CloudflareConsoleContext,
-  claims: ConsoleAuthClaims,
-): Response | null {
-  const authz = authorizeConsoleRouteRequest({
-    claims,
-    definitions: ctx.routeDefinitions,
-    method: ctx.method,
-    pathname: ctx.pathname,
-    projectId: ctx.url.searchParams.get('projectId') || claims.projectId,
-  });
-  if (authz.ok) return null;
-  return json(authz.body, { status: authz.status });
-}
-
 async function emitRouterTimingObservabilityEvent(
   ctx: CloudflareConsoleContext,
   startedAtMs: number,
   statusCode: number,
 ): Promise<void> {
+  let claims: ConsoleAuthClaims | undefined;
+  if (ctx.authClaims) {
+    claims = buildWalletConsoleAuthClaims(
+      ctx.authClaims,
+      ctx.authClaims.projectId ?? null,
+      ctx.request.headers.get('X-Console-Environment-Id'),
+    );
+  }
   await observeConsoleRequestMetric(ctx, {
-    claims: ctx.authClaims,
+    claims,
     route: ctx.pathname,
     method: ctx.method,
     statusCode,
@@ -412,40 +365,6 @@ async function emitApprovalFailureObservabilityEvent(
   });
 }
 
-function sendAuthFailure(auth: Extract<ConsoleAuthResult, { ok: false }>): Response {
-  return json(
-    {
-      ok: false,
-      code: auth.code,
-      message: auth.message,
-    },
-    { status: auth.status },
-  );
-}
-
-function sendBillingError(error: unknown): Response {
-  if (isConsoleBillingError(error)) {
-    return json(
-      {
-        ok: false,
-        code: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
-      },
-      { status: error.status },
-    );
-  }
-
-  return json(
-    {
-      ok: false,
-      code: 'internal',
-      message: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 },
-  );
-}
-
 function sendSponsoredCallError(error: unknown): Response {
   if (isConsoleSponsoredCallError(error)) {
     return json(
@@ -490,14 +409,14 @@ function sendApiKeyError(error: unknown): Response {
   );
 }
 
-function sendOrgProjectEnvError(error: unknown): Response {
-  if (isConsoleOrgProjectEnvError(error)) {
+function sendOrganizationMetadataError(error: unknown): Response {
+  if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
     return json(
       {
         ok: false,
         code: error.code,
         message: error.message,
-        ...(error.details ? { details: error.details } : {}),
+        ...(isConsoleOrgProjectError(error) && error.details ? { details: error.details } : {}),
       },
       { status: error.status },
     );
@@ -628,54 +547,8 @@ function sendRuntimeSnapshotError(error: unknown): Response {
   );
 }
 
-function sendOrganizationAccessError(error: unknown): Response {
-  if (isConsoleOrganizationAccessError(error)) {
-    return json(
-      {
-        ok: false,
-        code: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
-      },
-      { status: error.status },
-    );
-  }
-
-  return json(
-    {
-      ok: false,
-      code: 'internal',
-      message: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 },
-  );
-}
-
 function sendApprovalError(error: unknown): Response {
   if (isConsoleApprovalsError(error)) {
-    return json(
-      {
-        ok: false,
-        code: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
-      },
-      { status: error.status },
-    );
-  }
-
-  return json(
-    {
-      ok: false,
-      code: 'internal',
-      message: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 },
-  );
-}
-
-function sendAuditError(error: unknown): Response {
-  if (isConsoleAuditError(error)) {
     return json(
       {
         ok: false,
@@ -743,29 +616,6 @@ function sendEnterpriseIsolationError(error: unknown): Response {
   );
 }
 
-function sendOnboardingError(error: unknown): Response {
-  if (isConsoleOnboardingError(error)) {
-    return json(
-      {
-        ok: false,
-        code: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
-      },
-      { status: error.status },
-    );
-  }
-
-  return json(
-    {
-      ok: false,
-      code: 'internal',
-      message: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 },
-  );
-}
-
 function sendObservabilityError(error: unknown): Response {
   if (isConsoleObservabilityError(error)) {
     return json(
@@ -789,51 +639,32 @@ function sendObservabilityError(error: unknown): Response {
   );
 }
 
-function sendAccountError(error: unknown): Response {
-  if (isConsoleAccountError(error)) {
-    return json(
-      {
-        ok: false,
-        code: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
-      },
-      { status: error.status },
-    );
-  }
-  return json(
-    {
-      ok: false,
-      code: 'internal',
-      message: error instanceof Error ? error.message : String(error),
-    },
-    { status: 500 },
-  );
-}
-
 async function requireConsoleAuth(
   ctx: CloudflareConsoleContext,
 ): Promise<{ ok: true; claims: ConsoleAuthClaims } | { ok: false; response: Response }> {
-  const auth = await authenticateConsoleRequest(
+  const result = await authenticateWalletConsoleRequest(
     headersToRecord(ctx.request.headers),
-    ctx.opts.auth,
+    ctx.auth,
   );
-  if (!auth.ok) {
-    return { ok: false, response: sendAuthFailure(auth) };
-  }
-  const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-  if (routePolicy) return { ok: false, response: routePolicy };
-  ctx.authClaims = auth.claims;
-  const routeResolutionFailure = resolveTenantStorageRouteForConsoleRequest(ctx, auth.claims);
-  if (routeResolutionFailure) {
-    return { ok: false, response: routeResolutionFailure };
-  }
-  return { ok: true, claims: auth.claims };
+  if (!result.ok)
+    return {
+      ok: false,
+      response: json(
+        { ok: false, code: result.code, message: result.message },
+        { status: result.status },
+      ),
+    };
+  const policyFailure = requireConsoleRoutePolicy(ctx, result.claims);
+  if (policyFailure) return { ok: false, response: policyFailure };
+  const storageFailure = resolveTenantStorageRouteForConsoleRequest(ctx, result.claims);
+  if (storageFailure) return { ok: false, response: storageFailure };
+  ctx.authClaims = result.claims;
+  return { ok: true, claims: result.claims };
 }
 
 function resolveTenantStorageRouteForConsoleRequest(
   ctx: CloudflareConsoleContext,
-  claims: ConsoleAuthClaims,
+  claims: { readonly orgId: string },
 ): Response | null {
   if (!ctx.tenantStorageRouteResolver) return null;
   if (!ctx.tenantStorageNamespace) {
@@ -891,11 +722,10 @@ function requireBillingService(ctx: CloudflareConsoleContext): ConsoleBillingSer
 
 async function buildConsoleBillingOverviewResponse(
   ctx: CloudflareConsoleContext,
-  claims: ConsoleAuthClaims,
-  billing: ConsoleBillingService,
+  claims: AccountAuthClaims,
+  overview: BillingOverview,
 ): Promise<Record<string, unknown>> {
   const billingCtx = toBillingContext(claims);
-  const overview = await billing.getOverview(billingCtx);
   const prepaidSummary = ctx.prepaidReservations
     ? await ctx.prepaidReservations.getSummary(billingCtx)
     : null;
@@ -943,10 +773,24 @@ function requireApiKeyService(ctx: CloudflareConsoleContext): ConsoleApiKeyServi
   );
 }
 
-function requireOrgProjectEnvService(
+function requireWalletEnvironmentService(
   ctx: CloudflareConsoleContext,
-): ConsoleOrgProjectEnvService | Response {
-  if (ctx.orgProjectEnv) return ctx.orgProjectEnv;
+): ConsoleWalletEnvironmentService | Response {
+  if (ctx.walletEnvironments) return ctx.walletEnvironments;
+  return json(
+    {
+      ok: false,
+      code: 'wallet_environments_not_configured',
+      message: 'Wallet environment service is not configured on this server',
+    },
+    { status: 501 },
+  );
+}
+
+function requireOrgProjectService(
+  ctx: CloudflareConsoleContext,
+): ConsoleOrgProjectService | Response {
+  if (ctx.orgProjects) return ctx.orgProjects;
   return json(
     {
       ok: false,
@@ -1021,20 +865,6 @@ function requireRuntimeSnapshotService(
   );
 }
 
-function requireOrganizationAccessService(
-  ctx: CloudflareConsoleContext,
-): ConsoleOrganizationAccessService | Response {
-  if (ctx.organizationAccess) return ctx.organizationAccess;
-  return json(
-    {
-      ok: false,
-      code: 'organization_access_not_configured',
-      message: 'Organization access service is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
 function requireApprovalService(ctx: CloudflareConsoleContext): ConsoleApprovalService | Response {
   if (ctx.approvals) return ctx.approvals;
   return json(
@@ -1042,18 +872,6 @@ function requireApprovalService(ctx: CloudflareConsoleContext): ConsoleApprovalS
       ok: false,
       code: 'approvals_not_configured',
       message: 'Approvals service is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
-function requireAuditService(ctx: CloudflareConsoleContext): ConsoleAuditService | Response {
-  if (ctx.audit) return ctx.audit;
-  return json(
-    {
-      ok: false,
-      code: 'audit_not_configured',
-      message: 'Audit service is not configured on this server',
     },
     { status: 501 },
   );
@@ -1087,46 +905,6 @@ function requireEnterpriseIsolationService(
   );
 }
 
-function requireOnboardingService(
-  ctx: CloudflareConsoleContext,
-): ConsoleOnboardingService | Response {
-  if (ctx.onboarding) return ctx.onboarding;
-  return json(
-    {
-      ok: false,
-      code: 'onboarding_not_configured',
-      message: 'Onboarding service is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
-function requireAccountService(ctx: CloudflareConsoleContext): ConsoleAccountService | Response {
-  if (ctx.account) return ctx.account;
-  return json(
-    {
-      ok: false,
-      code: 'account_not_configured',
-      message: 'Account service is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
-function requireSessionAdapter(
-  ctx: CloudflareConsoleContext,
-): NonNullable<ConsoleRouterOptions['session']> | Response {
-  if (ctx.opts.session) return ctx.opts.session;
-  return json(
-    {
-      ok: false,
-      code: 'session_not_configured',
-      message: 'Session adapter is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
 function requireObservabilityService(
   ctx: CloudflareConsoleContext,
 ): ConsoleObservabilityService | Response {
@@ -1141,22 +919,7 @@ function requireObservabilityService(
   );
 }
 
-function requireStripeWebhookSigningSecret(ctx: CloudflareConsoleContext): string | Response {
-  const configured = String(ctx.opts.billingStripeWebhookSigningSecret || '').trim();
-  if (!configured) {
-    return json(
-      {
-        ok: false,
-        code: 'stripe_webhook_not_configured',
-        message: 'Stripe webhook signing secret is not configured on this server',
-      },
-      { status: 501 },
-    );
-  }
-  return configured;
-}
-
-function toBillingContext(claims: ConsoleAuthClaims): {
+function toBillingContext(claims: { readonly orgId: string; readonly userId: string }): {
   orgId: string;
   actorUserId: string;
 } {
@@ -1166,7 +929,7 @@ function toBillingContext(claims: ConsoleAuthClaims): {
   };
 }
 
-function toOrgProjectEnvContext(claims: ConsoleAuthClaims): {
+function toWalletEnvironmentContext(claims: ConsoleAuthClaims): {
   orgId: string;
   actorUserId: string;
   projectId?: string;
@@ -1194,16 +957,6 @@ function toWalletContext(claims: ConsoleAuthClaims): {
   };
 }
 
-function toOrganizationAccessContext(claims: ConsoleAuthClaims): {
-  orgId: string;
-  actorUserId: string;
-} {
-  return {
-    orgId: claims.orgId,
-    actorUserId: claims.userId,
-  };
-}
-
 function toApprovalContext(claims: ConsoleAuthClaims): {
   orgId: string;
   actorUserId: string;
@@ -1222,7 +975,7 @@ interface ConsoleAuditActorScope {
   readonly orgId: string;
   readonly userId: string;
   readonly projectId?: string;
-  readonly environmentId?: string;
+  readonly environmentId?: string | null;
 }
 
 function toAuditContext(claims: ConsoleAuditActorScope): {
@@ -1318,15 +1071,11 @@ async function enrichPolicyApprovalCreateRequest(
   };
 }
 
-async function projectAuditEventResponses<
-  T extends {
-    metadata: Record<string, unknown>;
-  },
->(
+async function projectAuditEventResponses(
   ctx: CloudflareConsoleContext,
-  claims: ConsoleAuthClaims,
-  rows: readonly T[],
-): Promise<Array<T & ConsolePolicyPresentation>> {
+  claims: { readonly orgId: string; readonly userId: string },
+  rows: readonly ConsoleAuditEvent[],
+): Promise<Array<ConsoleAuditEvent & ConsolePolicyPresentation>> {
   const policyPresentationLookup = await listConsolePolicyPresentationLookup(
     ctx.policies,
     toBillingContext(claims),
@@ -1378,70 +1127,6 @@ async function resolveWalletPolicyPresentationByWalletId(
     };
   }
   return out;
-}
-
-function consoleClaimsEmail(claims: ConsoleAuthClaims): string {
-  const claimed = String(claims.email ?? '')
-    .trim()
-    .toLowerCase();
-  if (claimed) return claimed;
-  const emailUser = claims.userId.toLowerCase().replace(/[^a-z0-9._+-]/gu, '_');
-  return `${emailUser || 'user'}@console.local`;
-}
-
-function toOnboardingContext(claims: ConsoleAuthClaims): ConsoleOnboardingContext {
-  return {
-    orgId: claims.orgId,
-    actorUserId: claims.userId,
-    actorEmail: consoleClaimsEmail(claims),
-    actorDisplayName: String(claims.name ?? '').trim() || null,
-    projectId: claims.projectId ?? null,
-    environmentId: claims.environmentId ?? null,
-  };
-}
-
-function toAccountContext(claims: ConsoleAuthClaims): ConsoleAccountContext {
-  const identity = {
-    userId: claims.userId,
-    orgId: claims.orgId,
-    email: consoleClaimsEmail(claims),
-    name: String(claims.name ?? '').trim() || null,
-    provider: String(claims.provider ?? '').trim() || null,
-    projectId: claims.projectId ?? null,
-    environmentId: claims.environmentId ?? null,
-    platformSupport: claims.platformSupport,
-    membershipId: claims.membershipId,
-    authorizationVersion: claims.authorizationVersion,
-  };
-  switch (claims.role) {
-    case 'OWNER':
-      return {
-        ...identity,
-        role: 'OWNER',
-        adminPermissions: [...claims.adminPermissions],
-        projectAccess: { kind: 'all' },
-      };
-    case 'ADMIN':
-      return {
-        ...identity,
-        role: 'ADMIN',
-        adminPermissions: [...claims.adminPermissions],
-        projectAccess: { kind: 'all' },
-      };
-    case 'MEMBER':
-      return {
-        ...identity,
-        role: 'MEMBER',
-        adminPermissions: [],
-        projectAccess: {
-          kind: 'assigned',
-          assignments: claims.projectAccess.assignments.map((assignment) => ({
-            projectId: assignment.projectId,
-            accessLevel: assignment.accessLevel,
-          })),
-        },
-      };
-  }
 }
 
 function readApprovalIdFromBody(body: unknown): string {
@@ -1571,11 +1256,11 @@ async function requireActiveApiKeyEnvironmentForCreate(
   claims: ConsoleAuthClaims,
   environmentId: string,
 ): Promise<Response | null> {
-  const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-  if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
+  const environmentsOrResponse = requireWalletEnvironmentService(ctx);
+  if (environmentsOrResponse instanceof Response) return environmentsOrResponse;
   try {
-    const environments = await orgProjectEnvOrResponse.listEnvironments(
-      toOrgProjectEnvContext(claims),
+    const environments = await environmentsOrResponse.listEnvironments(
+      toWalletEnvironmentContext(claims),
     );
     const environment = environments.find((entry) => entry.id === environmentId);
     if (!environment) {
@@ -1600,39 +1285,7 @@ async function requireActiveApiKeyEnvironmentForCreate(
     }
     return null;
   } catch (error: unknown) {
-    return sendOrgProjectEnvError(error);
-  }
-}
-
-async function emitBillingWebhookEvent(
-  ctx: CloudflareConsoleContext,
-  input: {
-    orgId: string;
-    actorUserId: string;
-    eventType: string;
-    payload: Record<string, unknown>;
-    eventId?: string;
-  },
-): Promise<void> {
-  if (!ctx.webhooks) return;
-  try {
-    await ctx.webhooks.emitEvent(
-      {
-        orgId: input.orgId,
-        actorUserId: input.actorUserId,
-      },
-      {
-        eventId: input.eventId,
-        eventType: input.eventType,
-        payload: input.payload,
-      },
-    );
-  } catch (error: unknown) {
-    ctx.logger.warn('[console][webhooks] failed to emit billing event', {
-      eventType: input.eventType,
-      orgId: input.orgId,
-      message: error instanceof Error ? error.message : String(error),
-    });
+    return sendOrganizationMetadataError(error);
   }
 }
 
@@ -1724,323 +1377,6 @@ function decodePathPart(part: string): string {
   }
 }
 
-async function handleConsoleHealth(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!ctx.opts.healthz || ctx.method !== 'GET' || ctx.pathname !== '/console/healthz') return null;
-
-  return json(
-    {
-      ok: true,
-      service: 'console',
-    },
-    { status: 200 },
-  );
-}
-
-async function handleConsoleReady(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!ctx.opts.readyz || ctx.method !== 'GET' || ctx.pathname !== '/console/readyz') return null;
-  try {
-    if (ctx.opts.readyCheck) {
-      await ctx.opts.readyCheck();
-    }
-    return json(
-      {
-        ok: true,
-        service: 'console',
-      },
-      { status: 200 },
-    );
-  } catch (error: unknown) {
-    return json(
-      {
-        ok: false,
-        code: 'console_not_ready',
-        message: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 },
-    );
-  }
-}
-
-async function handleConsoleSession(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (ctx.method !== 'GET' || ctx.pathname !== '/console/session') return null;
-
-  const auth = await requireConsoleAuth(ctx);
-  if (!auth.ok) return auth.response;
-
-  return json(
-    {
-      ok: true,
-      claims: auth.claims,
-    },
-    { status: 200 },
-  );
-}
-
-async function handleConsoleAccount(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!isConsoleAccountPath(ctx.pathname)) return null;
-
-  const auth = await requireConsoleAuth(ctx);
-  if (!auth.ok) return auth.response;
-
-  const accountOrResponse = requireAccountService(ctx);
-  if (accountOrResponse instanceof Response) return accountOrResponse;
-  const account = accountOrResponse;
-
-  try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/account/profile') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const profile = await account.getProfile(toAccountContext(auth.claims));
-      return json({ ok: true, profile }, { status: 200 });
-    }
-
-    if (ctx.method === 'PATCH' && ctx.pathname === '/console/account/profile') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parsePatchConsoleAccountProfileRequest(await readJson(ctx.request));
-      const profile = await account.updateProfile(toAccountContext(auth.claims), request);
-      return json({ ok: true, profile }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/account/organizations') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const organizations = await account.listOrganizations(toAccountContext(auth.claims));
-      return json({ ok: true, organizations }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/account/organizations') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseCreateConsoleAccountOrganizationRequest(await readJson(ctx.request));
-      const organization = await account.createOrganization(toAccountContext(auth.claims), request);
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'ORG_PROJECT_ENV',
-        action: 'organization.create',
-        summary: `Created organization ${organization.name || organization.id} from account settings`,
-        metadata: {
-          organizationId: organization.id,
-          organizationName: organization.name,
-          organizationSlug: organization.slug,
-          source: 'account_settings',
-        },
-      });
-      return json({ ok: true, organization }, { status: 201 });
-    }
-
-    const orgMatch = ctx.pathname.match(
-      /^\/console\/account\/organizations\/([^/]+?)(?:\/(switch-context))?$/,
-    );
-    const orgId = orgMatch?.[1] ? decodePathPart(orgMatch[1]) : '';
-    const action = String(orgMatch?.[2] || '').trim();
-
-    if (!orgId) {
-      return new Response('Not Found', { status: 404 });
-    }
-
-    if (ctx.method === 'PATCH' && !action) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseUpdateConsoleAccountOrganizationRequest(await readJson(ctx.request));
-      const organization = await account.updateOrganization(
-        toAccountContext(auth.claims),
-        orgId,
-        request,
-      );
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'ORG_PROJECT_ENV',
-        action: 'organization.update',
-        summary: `Updated organization ${organization.name || organization.id} from account settings`,
-        metadata: {
-          organizationId: organization.id,
-          organizationName: organization.name,
-          organizationSlug: organization.slug,
-          source: 'account_settings',
-        },
-      });
-      return json({ ok: true, organization }, { status: 200 });
-    }
-
-    if (ctx.method === 'DELETE' && !action) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const deleted = await account.deleteOrganization(toAccountContext(auth.claims), orgId);
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'ORG_PROJECT_ENV',
-        action: 'organization.delete',
-        summary: `Deleted organization ${deleted.organizationName || deleted.orgId} from account settings`,
-        metadata: {
-          organizationId: deleted.orgId,
-          organizationName: deleted.organizationName,
-          source: 'account_settings',
-        },
-      });
-      return json({ ok: true, deleted }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && action === 'switch-context') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const sessionOrResponse = requireSessionAdapter(ctx);
-      if (sessionOrResponse instanceof Response) return sessionOrResponse;
-      const session = sessionOrResponse;
-      const nextContext = await account.switchOrganizationContext(
-        toAccountContext(auth.claims),
-        orgId,
-      );
-      const parsedSession = await parseConsoleSessionForContextSwitch(
-        session,
-        headersToRecord(ctx.request.headers),
-      );
-      if (!parsedSession) {
-        return json(
-          {
-            ok: false,
-            code: 'unauthorized',
-            message: 'A valid app session is required to switch organization context',
-          },
-          { status: 401 },
-        );
-      }
-      const jwt = await session.signJwt(
-        parsedSession.userId,
-        buildConsoleContextSwitchSessionClaims(parsedSession.claims, nextContext),
-      );
-      return json(
-        { ok: true, context: nextContext },
-        {
-          status: 200,
-          headers: { 'Set-Cookie': session.buildSetCookie(jwt) },
-        },
-      );
-    }
-  } catch (error: unknown) {
-    return sendAccountError(error);
-  }
-
-  return new Response('Not Found', { status: 404 });
-}
-
-async function handleConsoleOnboarding(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!isConsoleOnboardingPath(ctx.pathname)) return null;
-  if (ctx.pathname === '/console/onboarding/project' && ctx.method !== 'POST') {
-    return json(
-      { ok: false, code: 'method_not_allowed', message: 'Project creation requires POST' },
-      { status: 405, headers: { Allow: 'POST' } },
-    );
-  }
-
-  const auth = await requireConsoleAuth(ctx);
-  if (!auth.ok) return auth.response;
-
-  const onboardingOrResponse = requireOnboardingService(ctx);
-  if (onboardingOrResponse instanceof Response) return onboardingOrResponse;
-  const onboarding = onboardingOrResponse;
-
-  try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/onboarding/state') {
-      const request = parseGetConsoleOnboardingStateRequest({});
-      const state = await onboarding.getOnboardingState(toOnboardingContext(auth.claims), request);
-      return json({ ok: true, state }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/onboarding/telemetry') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseGetConsoleOnboardingTelemetryRequest({
-        windowMinutes: ctx.url.searchParams.get('windowMinutes') || undefined,
-      });
-      const telemetry = await onboarding.getOnboardingTelemetry(
-        toOnboardingContext(auth.claims),
-        request,
-      );
-      return json({ ok: true, telemetry }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/onboarding/organization') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseCreateConsoleOnboardingOrganizationRequest(await readJson(ctx.request));
-      const result = await onboarding.createOnboardingOrganization(
-        toOnboardingContext(auth.claims),
-        request,
-      );
-      if (result.created.owner) {
-        await emitConsoleAuditEvent(ctx, auth.claims, {
-          category: 'TEAM',
-          action: 'member.owner.bootstrap',
-          summary: `Bootstrapped owner membership for user ${auth.claims.userId} during onboarding organization step`,
-          metadata: {
-            onboarding: true,
-            onboardingStep: 'organization',
-            userId: auth.claims.userId,
-          },
-        });
-      }
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'ORG_PROJECT_ENV',
-        action: 'organization.configure',
-        summary: `Configured organization ${result.organization.id} via onboarding organization step`,
-        metadata: {
-          onboarding: true,
-          onboardingStep: 'organization',
-          organizationId: result.organization.id,
-          organizationName: result.organization.name,
-          organizationSlug: result.organization.slug,
-          created: result.created.organization,
-        },
-      });
-      const status = result.created.organization || result.created.owner ? 201 : 200;
-      return json({ ok: true, result }, { status });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/onboarding/project') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseCreateConsoleOnboardingProjectRequest(await readJson(ctx.request));
-      const result = await onboarding.createOnboardingProject(
-        toOnboardingContext(auth.claims),
-        request,
-      );
-      if (result.created.project) {
-        await emitConsoleAuditEvent(ctx, auth.claims, {
-          category: 'ORG_PROJECT_ENV',
-          action: 'project.create',
-          summary: `Created project ${result.project.id} via onboarding project step`,
-          projectId: result.project.id,
-          metadata: {
-            onboarding: true,
-            projectId: result.project.id,
-            onboardingStep: 'project',
-          },
-        });
-      }
-      if (result.created.environment) {
-        await emitConsoleAuditEvent(ctx, auth.claims, {
-          category: 'ORG_PROJECT_ENV',
-          action: 'environment.create',
-          summary: `Created environment ${result.environment.id} via onboarding project step`,
-          projectId: result.environment.projectId,
-          environmentId: result.environment.id,
-          metadata: {
-            onboarding: true,
-            projectId: result.environment.projectId,
-            environmentId: result.environment.id,
-            environmentKey: result.environment.key,
-            onboardingStep: 'project',
-          },
-        });
-      }
-      const status = result.created.project || result.created.environment ? 201 : 200;
-      return json({ ok: true, result }, { status });
-    }
-  } catch (error: unknown) {
-    return sendOnboardingError(error);
-  }
-
-  return new Response('Not Found', { status: 404 });
-}
-
 async function handleConsoleOpsCockpit(ctx: CloudflareConsoleContext): Promise<Response | null> {
   if (!isConsoleOpsCockpitPath(ctx.pathname)) return null;
 
@@ -2089,21 +1425,6 @@ function isConsoleBillingPath(pathname: string): boolean {
   );
 }
 
-function isConsoleAccountPath(pathname: string): boolean {
-  return (
-    pathname === '/console/account/profile' || pathname.startsWith('/console/account/organizations')
-  );
-}
-
-function isConsoleOnboardingPath(pathname: string): boolean {
-  return (
-    pathname === '/console/onboarding/state' ||
-    pathname === '/console/onboarding/telemetry' ||
-    pathname === '/console/onboarding/organization' ||
-    pathname === '/console/onboarding/project'
-  );
-}
-
 function isConsoleOpsCockpitPath(pathname: string): boolean {
   return pathname === '/console/ops-cockpit/summary';
 }
@@ -2117,34 +1438,8 @@ function isConsoleObservabilityPath(pathname: string): boolean {
   );
 }
 
-function isConsoleOrgProjectEnvPath(pathname: string): boolean {
-  return (
-    pathname === '/console/org' ||
-    pathname === '/console/projects' ||
-    pathname === '/console/environments' ||
-    pathname.startsWith('/console/projects/') ||
-    pathname.startsWith('/console/environments/')
-  );
-}
-
-function isConsoleOrganizationAccessPath(pathname: string): boolean {
-  return (
-    pathname === '/console/organization/memberships' ||
-    pathname === '/console/organization/invitations' ||
-    pathname === '/console/organization/leave' ||
-    pathname.startsWith('/console/organization/memberships/') ||
-    pathname.startsWith('/console/organization/invitations/') ||
-    pathname.startsWith('/console/organization/projects/') ||
-    pathname.startsWith('/console/account/invitations/')
-  );
-}
-
 function isConsoleApprovalPath(pathname: string): boolean {
   return pathname === '/console/approvals' || pathname.startsWith('/console/approvals/');
-}
-
-function isConsoleAuditPath(pathname: string): boolean {
-  return pathname === '/console/audit/events' || pathname === '/console/audit/evidence';
 }
 
 function isConsoleAuditExportsPath(pathname: string): boolean {
@@ -2565,105 +1860,40 @@ async function handleConsoleApiKeys(ctx: CloudflareConsoleContext): Promise<Resp
   return new Response('Not Found', { status: 404 });
 }
 
-async function handleConsoleOrgProjectEnv(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!isConsoleOrgProjectEnvPath(ctx.pathname)) return null;
+async function handleConsoleEnvironments(ctx: CloudflareConsoleContext): Promise<Response | null> {
+  if (
+    ctx.pathname !== '/console/environments' &&
+    !ctx.pathname.startsWith('/console/environments/')
+  )
+    return null;
 
   const auth = await requireConsoleAuth(ctx);
   if (!auth.ok) return auth.response;
 
-  const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-  if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
-  const orgProjectEnv = orgProjectEnvOrResponse;
-  const orgProjectEnvCtx = toOrgProjectEnvContext(auth.claims);
-  const projectPatchMatch = ctx.pathname.match(/^\/console\/projects\/([^/]+)$/);
-  const projectArchiveMatch = ctx.pathname.match(/^\/console\/projects\/([^/]+)\/archive$/);
+  const environmentsOrResponse = requireWalletEnvironmentService(ctx);
+  if (environmentsOrResponse instanceof Response) return environmentsOrResponse;
+  const walletEnvironments = environmentsOrResponse;
+  const environmentContext = toWalletEnvironmentContext(auth.claims);
   const environmentPatchMatch = ctx.pathname.match(/^\/console\/environments\/([^/]+)$/);
   const environmentArchiveMatch = ctx.pathname.match(/^\/console\/environments\/([^/]+)\/archive$/);
 
   try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/org') {
-      const org = await orgProjectEnv.getOrganization(orgProjectEnvCtx);
-      return json({ ok: true, org }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/projects') {
-      const request = parseListConsoleProjectsRequest({
-        status: ctx.url.searchParams.get('status') || undefined,
-      });
-      const projects = await orgProjectEnv.listProjects(orgProjectEnvCtx, request);
-      const visibleProjects = projects.filter((project) =>
-        hasConsoleProjectAccess(auth.claims, project.id, 'viewer'),
-      );
-      return json({ ok: true, projects: visibleProjects }, { status: 200 });
-    }
-
     if (ctx.method === 'GET' && ctx.pathname === '/console/environments') {
-      const request = parseListConsoleEnvironmentsRequest({
+      const request = parseListConsoleWalletEnvironmentsRequest({
         projectId: ctx.url.searchParams.get('projectId') || undefined,
         status: ctx.url.searchParams.get('status') || undefined,
       });
-      const environments = await orgProjectEnv.listEnvironments(orgProjectEnvCtx, request);
-      return json({ ok: true, environments }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/projects') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseCreateConsoleProjectRequest(await readJson(ctx.request));
-      const liveEnvironmentsEnabled = ctx.opts.allowLiveEnvironmentBillingBypass
-        ? true
-        : ctx.billing
-          ? (await getBillingLiveEnvironmentReadiness(ctx.billing, toBillingContext(auth.claims)))
-              .canUseLiveEnvironments
-          : false;
-      const project = await orgProjectEnv.createProject(orgProjectEnvCtx, {
-        ...request,
-        liveEnvironmentsEnabled,
-      });
-      return json({ ok: true, project }, { status: 201 });
-    }
-
-    if (ctx.method === 'PATCH' && projectPatchMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectId = decodePathPart(projectPatchMatch[1]);
-      const request = parseUpdateConsoleProjectRequest(await readJson(ctx.request));
-      const project = await orgProjectEnv.updateProject(orgProjectEnvCtx, projectId, request);
-      if (!project) {
-        return json(
-          {
-            ok: false,
-            code: 'project_not_found',
-            message: `Project ${projectId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      return json({ ok: true, project }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && projectArchiveMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectId = decodePathPart(projectArchiveMatch[1]);
-      const project = await orgProjectEnv.archiveProject(orgProjectEnvCtx, projectId);
-      if (!project) {
-        return json(
-          {
-            ok: false,
-            code: 'project_not_found',
-            message: `Project ${projectId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      return json({ ok: true, project }, { status: 200 });
+      const environments = await walletEnvironments.listEnvironments(environmentContext, request);
+      return json(
+        { ok: true, environments: environments.map(serializeWalletEnvironment) },
+        { status: 200 },
+      );
     }
 
     if (ctx.method === 'POST' && ctx.pathname === '/console/environments') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
-      const request = parseCreateConsoleEnvironmentRequest(await readJson(ctx.request));
+      const request = parseCreateConsoleWalletEnvironmentRequest(await readJson(ctx.request));
       if (request.key !== 'dev' && !ctx.opts.allowLiveEnvironmentBillingBypass) {
         if (!ctx.billing) {
           return sendBillingError(
@@ -2676,17 +1906,20 @@ async function handleConsoleOrgProjectEnv(ctx: CloudflareConsoleContext): Promis
         }
         await ensureBillingReadyForLiveEnvironment(ctx.billing, toBillingContext(auth.claims));
       }
-      const environment = await orgProjectEnv.createEnvironment(orgProjectEnvCtx, request);
-      return json({ ok: true, environment }, { status: 201 });
+      const environment = await walletEnvironments.createEnvironment(environmentContext, request);
+      return json(
+        { ok: true, environment: serializeWalletEnvironment(environment) },
+        { status: 201 },
+      );
     }
 
     if (ctx.method === 'PATCH' && environmentPatchMatch) {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const environmentId = decodePathPart(environmentPatchMatch[1]);
-      const request = parseUpdateConsoleEnvironmentRequest(await readJson(ctx.request));
-      const environment = await orgProjectEnv.updateEnvironment(
-        orgProjectEnvCtx,
+      const request = parseUpdateConsoleWalletEnvironmentRequest(await readJson(ctx.request));
+      const environment = await walletEnvironments.updateEnvironment(
+        environmentContext,
         environmentId,
         request,
       );
@@ -2700,14 +1933,20 @@ async function handleConsoleOrgProjectEnv(ctx: CloudflareConsoleContext): Promis
           { status: 404 },
         );
       }
-      return json({ ok: true, environment }, { status: 200 });
+      return json(
+        { ok: true, environment: serializeWalletEnvironment(environment) },
+        { status: 200 },
+      );
     }
 
     if (ctx.method === 'POST' && environmentArchiveMatch) {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
       const environmentId = decodePathPart(environmentArchiveMatch[1]);
-      const environment = await orgProjectEnv.archiveEnvironment(orgProjectEnvCtx, environmentId);
+      const environment = await walletEnvironments.archiveEnvironment(
+        environmentContext,
+        environmentId,
+      );
       if (!environment) {
         return json(
           {
@@ -2718,205 +1957,14 @@ async function handleConsoleOrgProjectEnv(ctx: CloudflareConsoleContext): Promis
           { status: 404 },
         );
       }
-      return json({ ok: true, environment }, { status: 200 });
+      return json(
+        { ok: true, environment: serializeWalletEnvironment(environment) },
+        { status: 200 },
+      );
     }
   } catch (error: unknown) {
     if (isConsoleBillingError(error)) return sendBillingError(error);
-    return sendOrgProjectEnvError(error);
-  }
-
-  return new Response('Not Found', { status: 404 });
-}
-
-function verifiedInvitationAccountOrResponse(
-  claims: ConsoleAuthClaims,
-): { userId: string; verifiedEmail: string } | Response {
-  const verifiedEmail = String(claims.email ?? '')
-    .trim()
-    .toLowerCase();
-  if (!verifiedEmail) {
-    return json(
-      {
-        ok: false,
-        code: 'verified_email_required',
-        message: 'A verified account email is required to redeem an organization invitation',
-      },
-      { status: 403 },
-    );
-  }
-  return { userId: claims.userId, verifiedEmail };
-}
-
-async function handleConsoleOrganizationAccess(
-  ctx: CloudflareConsoleContext,
-): Promise<Response | null> {
-  if (!isConsoleOrganizationAccessPath(ctx.pathname)) return null;
-
-  const auth = await requireConsoleAuth(ctx);
-  if (!auth.ok) return auth.response;
-
-  const organizationAccessOrResponse = requireOrganizationAccessService(ctx);
-  if (organizationAccessOrResponse instanceof Response) return organizationAccessOrResponse;
-  const organizationAccess = organizationAccessOrResponse;
-  const accessContext = toOrganizationAccessContext(auth.claims);
-  const query = Object.fromEntries(ctx.url.searchParams.entries());
-
-  const invitationResendMatch = ctx.pathname.match(
-    /^\/console\/organization\/invitations\/([^/]+)\/resend$/,
-  );
-  const invitationMatch = ctx.pathname.match(/^\/console\/organization\/invitations\/([^/]+)$/);
-  const invitationRedemptionMatch = ctx.pathname.match(
-    /^\/console\/account\/invitations\/([^/]+)\/(accept|decline)$/,
-  );
-  const membershipActionMatch = ctx.pathname.match(
-    /^\/console\/organization\/memberships\/([^/]+)\/(change-role|admin-permissions|suspend|reactivate)$/,
-  );
-  const membershipMatch = ctx.pathname.match(/^\/console\/organization\/memberships\/([^/]+)$/);
-  const projectMemberMatch = ctx.pathname.match(
-    /^\/console\/organization\/projects\/([^/]+)\/members\/([^/]+)$/,
-  );
-
-  try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/organization/memberships') {
-      const memberships = await organizationAccess.listMemberships(
-        accessContext,
-        parseListOrganizationMembershipsRequest(query),
-      );
-      return json({ ok: true, memberships }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/organization/invitations') {
-      const invitations = await organizationAccess.listInvitations(
-        accessContext,
-        parseListOrganizationInvitationsRequest(query),
-      );
-      return json({ ok: true, invitations }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/organization/invitations') {
-      const issued = await organizationAccess.invite(
-        accessContext,
-        parseInviteOrganizationMemberRequest(await readJson(ctx.request)),
-      );
-      return json({ ok: true, invitation: issued.invitation }, { status: 201 });
-    }
-
-    if (ctx.method === 'POST' && invitationResendMatch?.[1]) {
-      const issued = await organizationAccess.resendInvitation(
-        accessContext,
-        decodePathPart(invitationResendMatch[1]),
-      );
-      return json({ ok: true, invitation: issued.invitation }, { status: 200 });
-    }
-
-    if (ctx.method === 'DELETE' && invitationMatch?.[1]) {
-      const invitation = await organizationAccess.revokeInvitation(
-        accessContext,
-        decodePathPart(invitationMatch[1]),
-      );
-      return json({ ok: true, invitation }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && invitationRedemptionMatch?.[1]) {
-      const account = verifiedInvitationAccountOrResponse(auth.claims);
-      if (account instanceof Response) return account;
-      const request = parseRedeemOrganizationInvitationRequest(await readJson(ctx.request));
-      const invitationId = decodePathPart(invitationRedemptionMatch[1]);
-      if (invitationRedemptionMatch[2] === 'accept') {
-        const membership = await organizationAccess.acceptInvitation(
-          account,
-          invitationId,
-          request,
-        );
-        return json({ ok: true, membership }, { status: 200 });
-      }
-      const invitation = await organizationAccess.declineInvitation(account, invitationId, request);
-      return json({ ok: true, invitation }, { status: 200 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      membershipActionMatch?.[1] &&
-      membershipActionMatch[2] === 'change-role'
-    ) {
-      const membership = await organizationAccess.changeRole(
-        accessContext,
-        decodePathPart(membershipActionMatch[1]),
-        parseChangeOrganizationMembershipRoleRequest(await readJson(ctx.request)),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (
-      ctx.method === 'PATCH' &&
-      membershipActionMatch?.[1] &&
-      membershipActionMatch[2] === 'admin-permissions'
-    ) {
-      const membership = await organizationAccess.setAdminPermissions(
-        accessContext,
-        decodePathPart(membershipActionMatch[1]),
-        parseSetOrganizationAdminPermissionsRequest(await readJson(ctx.request)),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      membershipActionMatch?.[1] &&
-      membershipActionMatch[2] === 'suspend'
-    ) {
-      const membership = await organizationAccess.suspendMembership(
-        accessContext,
-        decodePathPart(membershipActionMatch[1]),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      membershipActionMatch?.[1] &&
-      membershipActionMatch[2] === 'reactivate'
-    ) {
-      const membership = await organizationAccess.reactivateMembership(
-        accessContext,
-        decodePathPart(membershipActionMatch[1]),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (ctx.method === 'DELETE' && membershipMatch?.[1]) {
-      const membership = await organizationAccess.removeMembership(
-        accessContext,
-        decodePathPart(membershipMatch[1]),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (ctx.method === 'PUT' && projectMemberMatch?.[1] && projectMemberMatch[2]) {
-      const membership = await organizationAccess.setProjectAccess(
-        accessContext,
-        decodePathPart(projectMemberMatch[1]),
-        decodePathPart(projectMemberMatch[2]),
-        parseSetProjectMemberAccessRequest(await readJson(ctx.request)),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (ctx.method === 'DELETE' && projectMemberMatch?.[1] && projectMemberMatch[2]) {
-      const membership = await organizationAccess.removeProjectAccess(
-        accessContext,
-        decodePathPart(projectMemberMatch[1]),
-        decodePathPart(projectMemberMatch[2]),
-      );
-      return json({ ok: true, membership }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/organization/leave') {
-      const membership = await organizationAccess.leaveOrganization(accessContext);
-      return json({ ok: true, membership }, { status: 200 });
-    }
-  } catch (error: unknown) {
-    return sendOrganizationAccessError(error);
+    return sendOrganizationMetadataError(error);
   }
 
   return new Response('Not Found', { status: 404 });
@@ -3155,57 +2203,10 @@ async function handleConsoleApprovals(ctx: CloudflareConsoleContext): Promise<Re
 }
 
 async function handleConsoleAudit(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!isConsoleAuditPath(ctx.pathname)) return null;
-
-  const auth = await requireConsoleAuth(ctx);
-  if (!auth.ok) return auth.response;
-  const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-  if (routePolicy) return routePolicy;
-
-  const auditOrResponse = requireAuditService(ctx);
-  if (auditOrResponse instanceof Response) return auditOrResponse;
-  const audit = auditOrResponse;
-
-  try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/audit/events') {
-      const request = parseListConsoleAuditEventsRequest(
-        {
-          projectId: ctx.url.searchParams.get('projectId') || undefined,
-          environmentId: ctx.url.searchParams.get('environmentId') || undefined,
-          category: ctx.url.searchParams.get('category') || undefined,
-          actorUserId: ctx.url.searchParams.get('actorUserId') || undefined,
-          outcome: ctx.url.searchParams.get('outcome') || undefined,
-          q: ctx.url.searchParams.get('q') || undefined,
-          from: ctx.url.searchParams.get('from') || undefined,
-          to: ctx.url.searchParams.get('to') || undefined,
-          limit: ctx.url.searchParams.get('limit') || undefined,
-        },
-        [...CONSOLE_AUDIT_QUERY_CATEGORIES, ...WALLET_CONSOLE_AUDIT_CATEGORIES],
-      );
-      const events = await audit.listEvents(toAuditContext(auth.claims), request);
-      return json(
-        { ok: true, events: await projectAuditEventResponses(ctx, auth.claims, events) },
-        { status: 200 },
-      );
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/audit/evidence') {
-      const request = parseListConsoleAuditEvidenceRequest({
-        projectId: ctx.url.searchParams.get('projectId') || undefined,
-        environmentId: ctx.url.searchParams.get('environmentId') || undefined,
-        domain: ctx.url.searchParams.get('domain') || undefined,
-        from: ctx.url.searchParams.get('from') || undefined,
-        to: ctx.url.searchParams.get('to') || undefined,
-        limit: ctx.url.searchParams.get('limit') || undefined,
-      });
-      const evidence = await audit.listEvidence(toAuditContext(auth.claims), request);
-      return json({ ok: true, evidence }, { status: 200 });
-    }
-  } catch (error: unknown) {
-    return sendAuditError(error);
-  }
-
-  return new Response('Not Found', { status: 404 });
+  return handleConsoleAuditRoutes(ctx, {
+    categories: [...CONSOLE_AUDIT_QUERY_CATEGORIES, ...WALLET_CONSOLE_AUDIT_CATEGORIES],
+    projectEvents: projectAuditEventResponses.bind(null, ctx),
+  });
 }
 
 async function handleConsoleAuditExports(ctx: CloudflareConsoleContext): Promise<Response | null> {
@@ -3698,7 +2699,7 @@ async function handleConsoleInsights(ctx: CloudflareConsoleContext): Promise<Res
         projectIdRaw: ctx.url.searchParams.get('projectId') || undefined,
         environmentIdRaw: ctx.url.searchParams.get('environmentId') || undefined,
         claimsProjectId: auth.claims.projectId,
-        claimsEnvironmentId: auth.claims.environmentId,
+        claimsEnvironmentId: auth.claims.environmentId ?? undefined,
       });
       const coverage = await buildConsolePolicyCoverageView({
         wallets: walletsOrResponse,
@@ -3721,7 +2722,7 @@ async function handleConsoleInsights(ctx: CloudflareConsoleContext): Promise<Res
         projectIdRaw: ctx.url.searchParams.get('projectId') || undefined,
         environmentIdRaw: ctx.url.searchParams.get('environmentId') || undefined,
         claimsProjectId: auth.claims.projectId,
-        claimsEnvironmentId: auth.claims.environmentId,
+        claimsEnvironmentId: auth.claims.environmentId ?? undefined,
       });
       const readiness = await buildConsoleGasReadinessView({
         wallets: walletsOrResponse,
@@ -4025,84 +3026,61 @@ async function handleConsoleWebhooks(ctx: CloudflareConsoleContext): Promise<Res
   return new Response('Not Found', { status: 404 });
 }
 
+async function observeWalletBillingBalanceChange(
+  ctx: CloudflareConsoleContext,
+  change: BillingRouteBalanceChange,
+): Promise<void> {
+  await emitSponsorshipBalanceTransitionEvents({
+    services: {
+      logger: ctx.logger,
+      webhooks: ctx.webhooks,
+      observabilityIngestion: ctx.observabilityIngestion,
+    },
+    ctx: change.context,
+    before: {
+      creditBalanceMinor: change.before.creditBalanceMinor,
+      lowBalanceThresholdMinor: change.before.lowBalanceThresholdMinor,
+      state: resolveBillingLiveEnvironmentState(change.before),
+    },
+    billing: ctx.billing,
+    trigger: change.trigger,
+  });
+}
+async function observeWalletBillingFailure(
+  ctx: CloudflareConsoleContext,
+  claims: AccountAuthClaims,
+  failure: BillingRouteFailure,
+): Promise<void> {
+  const walletClaims = buildWalletConsoleAuthClaims(
+    claims,
+    claims.projectId ?? null,
+    ctx.request.headers.get('X-Console-Environment-Id'),
+  );
+  await emitBillingFailureObservabilityEvent(ctx, walletClaims, failure);
+}
+async function handleSharedConsoleBilling(ctx: CloudflareConsoleContext): Promise<Response | null> {
+  return handleConsoleBillingRoutes(ctx, {
+    overview: buildConsoleBillingOverviewResponse.bind(null, ctx),
+    balanceChanged: observeWalletBillingBalanceChange.bind(null, ctx),
+    failure: observeWalletBillingFailure.bind(null, ctx),
+    stripeWebhookFailure: emitStripeWebhookFailureObservabilityEvent.bind(null, ctx),
+  });
+}
+
 async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Response | null> {
   if (!isConsoleBillingPath(ctx.pathname)) return null;
 
-  if (ctx.method === 'POST' && ctx.pathname === '/console/billing/stripe/webhook') {
-    const signingSecret = requireStripeWebhookSigningSecret(ctx);
-    if (signingSecret instanceof Response) return signingSecret;
-    const rawBody = new Uint8Array(await ctx.request.arrayBuffer());
-    const billingOrResponse = requireBillingService(ctx);
-    if (billingOrResponse instanceof Response) return billingOrResponse;
-    try {
-      const request = await verifyAndParseStripeWebhookRequest({
-        rawBody,
-        signatureHeader: ctx.request.headers.get('Stripe-Signature') || '',
-        secret: signingSecret,
-      });
-      if (!request) {
-        return json({ ok: true, accepted: false, ignored: true }, { status: 200 });
-      }
-      const result = await billingOrResponse.processStripeWebhookEvent(request);
-      const postProcessing = await dispatchBillingStripePostProcessingEvent(
-        {
-          billing: billingOrResponse,
-          audit: ctx.audit,
-          webhooks: ctx.webhooks,
-          logger: ctx.logger,
-        },
-        request.eventId,
-      );
-      if (!postProcessing.completed) {
-        return json(
-          {
-            ok: false,
-            code: 'stripe_post_processing_pending',
-            message: 'Stripe event committed; post-processing remains pending',
-          },
-          { status: 503 },
-        );
-      }
-      return json({ ok: true, ...result }, { status: 200 });
-    } catch (error: unknown) {
-      await emitStripeWebhookFailureObservabilityEvent(ctx, {
-        rawBody,
-        eventType:
-          isConsoleBillingError(error) && error.code === 'invalid_stripe_signature'
-            ? 'billing.stripe_webhook.invalid_signature'
-            : 'billing.stripe_webhook.processing.failed',
-        failureCode: isConsoleBillingError(error) ? error.code : 'internal',
-        failureMessage: error instanceof Error ? error.message : String(error),
-      });
-      return sendBillingError(error);
-    }
-  }
-
   const auth = await requireConsoleAuth(ctx);
   if (!auth.ok) return auth.response;
-
-  const invoiceMatch = ctx.pathname.match(/^\/console\/billing\/invoices\/([^/]+)$/);
-  const invoicePdfMatch = ctx.pathname.match(/^\/console\/billing\/invoices\/([^/]+)\/pdf$/);
-  const invoiceActivityMatch = ctx.pathname.match(
-    /^\/console\/billing\/invoices\/([^/]+)\/activity$/,
-  );
-  const invoiceLineItemsMatch = ctx.pathname.match(
-    /^\/console\/billing\/invoices\/([^/]+)\/line-items$/,
-  );
-  let billingFailureEvent: {
-    operation: 'INVOICE_FINALIZATION' | 'PAYMENT_RECONCILE';
-    invoiceId?: string;
-    providerRef?: string;
-  } | null = null;
 
   try {
     if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/search') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
-      const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-      if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
+      const projectsOrResponse = requireOrgProjectService(ctx);
+      if (projectsOrResponse instanceof Response) return projectsOrResponse;
       const organizations = await searchPlatformBillingOrganizations({
-        orgProjectEnv: orgProjectEnvOrResponse,
+        orgProjects: projectsOrResponse,
         request: parsePlatformBillingSearchRequest(
           Object.fromEntries(ctx.url.searchParams.entries()),
         ),
@@ -4149,40 +3127,15 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
     const billingOrResponse = requireBillingService(ctx);
     if (billingOrResponse instanceof Response) return billingOrResponse;
     const billing = billingOrResponse;
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/billing/overview') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const overview = await buildConsoleBillingOverviewResponse(ctx, auth.claims, billing);
-      return json({ ok: true, overview }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/billing/refunds') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const refunds = await billing.listRefunds(billingCtx);
-      return json({ ok: true, refunds }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/billing/account/activity') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseBillingAccountActivityRequest(
-        Object.fromEntries(ctx.url.searchParams.entries()),
-      );
-      const activity = await billing.listAccountActivity(billingCtx, request);
-      return json({ ok: true, activity }, { status: 200 });
-    }
-
     if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/account') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
-      const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-      if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
+      const projectsOrResponse = requireOrgProjectService(ctx);
+      if (projectsOrResponse instanceof Response) return projectsOrResponse;
       const result = await resolvePlatformBillingLookup({
         claims: auth.claims,
         billing,
-        orgProjectEnv: orgProjectEnvOrResponse,
+        orgProjects: projectsOrResponse,
         request: parsePlatformBillingLookupRequest(
           Object.fromEntries(ctx.url.searchParams.entries()),
         ),
@@ -4207,89 +3160,17 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       return json({ ok: true, result }, { status: 200 });
     }
 
-    if (ctx.method === 'POST' && ctx.pathname === '/console/billing/invoices/generate') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseGenerateMonthlyInvoiceRequest(await readJson(ctx.request));
-      billingFailureEvent = {
-        operation: 'INVOICE_FINALIZATION',
-        invoiceId: `monthly:${request.periodMonthUtc}`,
-      };
-      const generation = await billing.generateMonthlyInvoice(billingCtx, request);
-      await emitBillingWebhookEvent(ctx, {
-        orgId: auth.claims.orgId,
-        actorUserId: auth.claims.userId,
-        eventType: 'billing.invoice.generated',
-        payload: {
-          invoiceId: generation.invoice.id,
-          periodMonthUtc: generation.invoice.periodMonthUtc,
-          generated: generation.generated,
-          monthlyActiveResources: generation.monthlyActiveResources,
-          amountDueMinor: generation.invoice.amountDueMinor,
-          lineItemCount: generation.lineItems.length,
-        },
-      });
-      const auditEvent = buildConsoleBillingInvoiceGeneratedAuditEvent({ generation });
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'BILLING',
-        action: 'billing.invoice.generated',
-        summary: auditEvent.summary,
-        metadata: auditEvent.metadata,
-      });
-      return json({ ok: true, generation }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/billing/adjustments/support-credit') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseBillingManualAdjustmentRequest(await readJson(ctx.request));
-      const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(billing, billingCtx);
-      const result = await billing.grantManualSupportCredit(billingCtx, request);
-      await emitSponsorshipBalanceTransitionEvents({
-        services: {
-          logger: ctx.logger,
-          webhooks: ctx.webhooks,
-          observabilityIngestion: ctx.observabilityIngestion,
-        },
-        ctx: billingCtx,
-        before: beforeBalanceState,
-        billing,
-        trigger: {
-          kind: 'manual_support_credit',
-          adjustmentId: result.adjustment.id,
-          sourceEventId: result.adjustment.idempotencyKey,
-        },
-      });
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'BILLING',
-        action: 'billing.adjustment.support_credit',
-        summary: `Appended manual support credit for org ${auth.claims.orgId}`,
-        metadata: {
-          organizationId: auth.claims.orgId,
-          adjustmentId: result.adjustment.id,
-          amountMinor: result.adjustment.amountMinor,
-          resultingBalanceMinor: result.creditBalanceMinor,
-          reasonCode: result.adjustment.reasonCode,
-          note: result.adjustment.note,
-          relatedInvoiceId: result.adjustment.relatedInvoiceId,
-          idempotencyKey: result.adjustment.idempotencyKey,
-          created: result.created,
-        },
-      });
-      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
-    }
-
     if (
       ctx.method === 'POST' &&
       ctx.pathname === '/console/platform/billing/adjustments/support-credit'
     ) {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
-      const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-      if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
+      const projectsOrResponse = requireOrgProjectService(ctx);
+      if (projectsOrResponse instanceof Response) return projectsOrResponse;
       const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
       const { orgId, ...adjustmentRequest } = request;
-      const organization = await orgProjectEnvOrResponse.getOrganization({
+      const organization = await projectsOrResponse.getOrganization({
         orgId,
         actorUserId: auth.claims.userId,
         ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
@@ -4347,57 +3228,17 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       return json({ ok: true, result }, { status: result.created ? 201 : 200 });
     }
 
-    if (ctx.method === 'POST' && ctx.pathname === '/console/billing/adjustments/admin-debit') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseBillingManualAdjustmentRequest(await readJson(ctx.request));
-      const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(billing, billingCtx);
-      const result = await billing.appendManualAdminDebit(billingCtx, request);
-      await emitSponsorshipBalanceTransitionEvents({
-        services: {
-          logger: ctx.logger,
-          webhooks: ctx.webhooks,
-          observabilityIngestion: ctx.observabilityIngestion,
-        },
-        ctx: billingCtx,
-        before: beforeBalanceState,
-        billing,
-        trigger: {
-          kind: 'manual_admin_debit',
-          adjustmentId: result.adjustment.id,
-          sourceEventId: result.adjustment.idempotencyKey,
-        },
-      });
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'BILLING',
-        action: 'billing.adjustment.admin_debit',
-        summary: `Appended manual admin debit for org ${auth.claims.orgId}`,
-        metadata: {
-          organizationId: auth.claims.orgId,
-          adjustmentId: result.adjustment.id,
-          amountMinor: result.adjustment.amountMinor,
-          resultingBalanceMinor: result.creditBalanceMinor,
-          reasonCode: result.adjustment.reasonCode,
-          note: result.adjustment.note,
-          relatedInvoiceId: result.adjustment.relatedInvoiceId,
-          idempotencyKey: result.adjustment.idempotencyKey,
-          created: result.created,
-        },
-      });
-      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
-    }
-
     if (
       ctx.method === 'POST' &&
       ctx.pathname === '/console/platform/billing/adjustments/admin-debit'
     ) {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
-      const orgProjectEnvOrResponse = requireOrgProjectEnvService(ctx);
-      if (orgProjectEnvOrResponse instanceof Response) return orgProjectEnvOrResponse;
+      const projectsOrResponse = requireOrgProjectService(ctx);
+      if (projectsOrResponse instanceof Response) return projectsOrResponse;
       const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
       const { orgId, ...adjustmentRequest } = request;
-      const organization = await orgProjectEnvOrResponse.getOrganization({
+      const organization = await projectsOrResponse.getOrganization({
         orgId,
         actorUserId: auth.claims.userId,
         ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
@@ -4527,203 +3368,9 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       );
       return json({ ok: true, result }, { status: 200 });
     }
-
-    if (ctx.method === 'GET' && ctx.pathname === '/console/billing/invoices') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseBillingInvoiceListRequest(
-        Object.fromEntries(ctx.url.searchParams.entries()),
-      );
-      const page = await billing.listInvoicesPage(billingCtx, request);
-      return json(
-        {
-          ok: true,
-          invoices: page.invoices,
-          nextCursor: page.nextCursor,
-          totalCount: page.totalCount,
-          summary: page.summary,
-        },
-        { status: 200 },
-      );
-    }
-
-    if (ctx.method === 'GET' && invoiceMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const invoiceId = decodePathPart(invoiceMatch[1]);
-      const invoice = await billing.getInvoice(billingCtx, invoiceId);
-      if (!invoice) {
-        return json(
-          {
-            ok: false,
-            code: 'invoice_not_found',
-            message: `Invoice ${invoiceId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      return json({ ok: true, invoice }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && invoicePdfMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const invoiceId = decodePathPart(invoicePdfMatch[1]);
-      const invoice = await billing.getInvoice(billingCtx, invoiceId);
-      if (!invoice) {
-        return json(
-          {
-            ok: false,
-            code: 'invoice_not_found',
-            message: `Invoice ${invoiceId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      const lineItems = await billing.listInvoiceLineItems(billingCtx, invoiceId);
-      await emitConsoleAuditEvent(ctx, auth.claims, {
-        category: 'BILLING',
-        action: 'billing.invoice.pdf_export',
-        summary: `Exported billing document PDF for ${invoice.id}`,
-        metadata: {
-          invoiceId: invoice.id,
-          invoiceStatus: invoice.status,
-          periodMonthUtc: invoice.periodMonthUtc,
-          exportPolicy: CONSOLE_BILLING_INVOICE_PDF_EXPORT_POLICY,
-        },
-      });
-      const headers = new Headers({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${buildConsoleBillingInvoicePdfFilename(invoice)}"`,
-      });
-      const pdfBytes = buildConsoleBillingInvoicePdf({
-        orgId: auth.claims.orgId,
-        invoice,
-        lineItems,
-      });
-      return new Response(toArrayBufferCopy(pdfBytes), {
-        status: 200,
-        headers,
-      });
-    }
-
-    if (ctx.method === 'GET' && invoiceActivityMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const invoiceId = decodePathPart(invoiceActivityMatch[1]);
-      const activity = await billing.getInvoiceActivity(billingCtx, invoiceId);
-      if (!activity) {
-        return json(
-          {
-            ok: false,
-            code: 'invoice_not_found',
-            message: `Invoice ${invoiceId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      return json({ ok: true, activity }, { status: 200 });
-    }
-
-    if (ctx.method === 'GET' && invoiceLineItemsMatch) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const invoiceId = decodePathPart(invoiceLineItemsMatch[1]);
-      const invoice = await billing.getInvoice(billingCtx, invoiceId);
-      if (!invoice) {
-        return json(
-          {
-            ok: false,
-            code: 'invoice_not_found',
-            message: `Invoice ${invoiceId} was not found`,
-          },
-          { status: 404 },
-        );
-      }
-      const lineItems = await billing.listInvoiceLineItems(billingCtx, invoiceId);
-      return json({ ok: true, lineItems }, { status: 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/billing/stripe/checkout-session') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseStripeCheckoutSessionRequest(await readJson(ctx.request));
-      const checkoutSession = await billing.createStripeCheckoutSession(billingCtx, request);
-      return json({ ok: true, checkoutSession }, { status: 201 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      ctx.pathname === '/console/billing/stripe/checkout-session/reconcile'
-    ) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseStripeCheckoutSessionReconcileRequest(await readJson(ctx.request));
-      billingFailureEvent = {
-        operation: 'PAYMENT_RECONCILE',
-        providerRef: request.checkoutSessionId,
-      };
-      const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(billing, billingCtx);
-      const result = await billing.reconcileStripeCheckoutSession(billingCtx, request);
-      if (result.settledNow) {
-        await emitSponsorshipBalanceTransitionEvents({
-          services: {
-            logger: ctx.logger,
-            webhooks: ctx.webhooks,
-            observabilityIngestion: ctx.observabilityIngestion,
-          },
-          ctx: billingCtx,
-          before: beforeBalanceState,
-          billing,
-          trigger: {
-            kind: 'credit_purchase_settled',
-            purchaseId: result.purchase?.id || null,
-            sourceEventId: request.checkoutSessionId,
-          },
-        });
-      }
-      if (result.settledNow && result.purchase && result.orgId) {
-        await emitBillingWebhookEvent(ctx, {
-          orgId: result.orgId,
-          actorUserId: 'system-stripe-checkout-reconcile',
-          eventType: 'billing.credit_purchase.settled',
-          eventId: `stripe_checkout_reconcile:${request.checkoutSessionId}`,
-          payload: {
-            purchaseId: result.purchase.id,
-            creditPackId: result.purchase.creditPackId,
-            amountMinor: result.purchase.amountMinor,
-            receiptId: result.invoice?.id || null,
-            source: 'stripe_checkout_reconcile',
-          },
-        });
-        const auditEvent = buildConsoleBillingCreditPurchaseSettledAuditEvent({
-          purchase: result.purchase,
-          invoice: result.invoice,
-          source: 'stripe_checkout_reconcile',
-          settlementEventId: `stripe_checkout_reconcile:${request.checkoutSessionId}`,
-        });
-        await emitConsoleAuditEvent(ctx, auth.claims, {
-          category: 'BILLING',
-          action: 'billing.credit_purchase.settled',
-          summary: auditEvent.summary,
-          metadata: auditEvent.metadata,
-        });
-      }
-      return json({ ok: true, result }, { status: 200 });
-    }
   } catch (error: unknown) {
-    if (billingFailureEvent) {
-      await emitBillingFailureObservabilityEvent(ctx, auth.claims, {
-        operation: billingFailureEvent.operation,
-        ...(billingFailureEvent.invoiceId ? { invoiceId: billingFailureEvent.invoiceId } : {}),
-        ...(billingFailureEvent.providerRef
-          ? { providerRef: billingFailureEvent.providerRef }
-          : {}),
-        error,
-      });
-    }
-    if (isConsoleOrgProjectEnvError(error)) {
-      return sendOrgProjectEnvError(error);
+    if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
+      return sendOrganizationMetadataError(error);
     }
     if (isConsoleSponsoredCallError(error)) {
       return sendSponsoredCallError(error);
@@ -4743,7 +3390,8 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
   const prepaidReservations =
     opts.prepaidReservations === undefined ? null : opts.prepaidReservations;
   const sponsoredCalls = opts.sponsoredCalls === undefined ? null : opts.sponsoredCalls;
-  const orgProjectEnv = opts.orgProjectEnv === undefined ? null : opts.orgProjectEnv;
+  const orgProjects = opts.orgProjects ?? null;
+  const walletEnvironments = opts.walletEnvironments ?? null;
   const wallets = opts.wallets === undefined ? null : opts.wallets;
   const policies = opts.policies === undefined ? null : opts.policies;
   const apiKeys = opts.apiKeys === undefined ? null : opts.apiKeys;
@@ -4772,9 +3420,11 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
     handleConsoleSession,
     handleConsoleAccount,
     handleConsoleOnboarding,
+    handleAccountPlatformRoutes,
     handleConsoleOpsCockpit,
     handleConsoleObservability,
-    handleConsoleOrgProjectEnv,
+    handleConsoleProjects,
+    handleConsoleEnvironments,
     handleConsoleOrganizationAccess,
     handleConsoleApprovals,
     handleConsoleAudit,
@@ -4787,6 +3437,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
     handleConsoleRuntimeSnapshots,
     handleConsoleApiKeys,
     handleConsoleWebhooks,
+    handleSharedConsoleBilling,
     handleConsoleBilling,
   ];
 
@@ -4816,10 +3467,21 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       opts,
       logger,
       routeDefinitions,
+      auth: opts.auth ?? null,
+      session: opts.session ?? null,
+      healthz: opts.healthz ?? false,
+      readyz: opts.readyz ?? false,
+      readyCheck: opts.readyCheck ?? null,
+      authorizeTenant: null,
+      billingStripeWebhookSigningSecret: opts.billingStripeWebhookSigningSecret ?? null,
+      accountPlatform: opts.accountPlatform ?? null,
+      walletProvisioning: opts.walletProvisioning ?? null,
+      satyrProvisioning: opts.satyrProvisioning ?? null,
       billing,
       prepaidReservations,
       sponsoredCalls,
-      orgProjectEnv,
+      orgProjects,
+      walletEnvironments,
       wallets,
       policies,
       apiKeys,
@@ -4838,6 +3500,8 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       tenantStorageRouteResolver,
       tenantStorageNamespace,
     };
+
+    ctx.authorizeTenant = resolveTenantStorageRouteForConsoleRequest.bind(null, ctx);
 
     try {
       for (const fn of handlers) {

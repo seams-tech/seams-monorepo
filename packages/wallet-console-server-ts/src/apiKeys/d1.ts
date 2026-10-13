@@ -1,4 +1,4 @@
-import { normalizeCorsOrigin } from '../boundary';
+import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary';
 import {
   d1Integer as toNumber,
   d1ChangedRows,
@@ -6,8 +6,8 @@ import {
   parseD1JsonArrayColumn as parseJsonArray,
   parseD1JsonObjectColumn as parseJsonObject,
   type D1Row,
-} from '../boundary';
-import type { D1DatabaseLike } from '../boundary';
+} from '@seams-internal/console-server/boundary';
+import type { D1DatabaseLike } from '@seams-internal/console-server/boundary';
 
 import { ConsoleApiKeyError } from './errors';
 import { isIpAllowlistMatch } from './ipAllowlist';

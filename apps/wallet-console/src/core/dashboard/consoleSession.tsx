@@ -1,5 +1,9 @@
 import React from 'react';
 import {
+  parseOrganizationAccess,
+  type DashboardAccountOrganizationAccess,
+} from './routes/account-settings/consoleAccountApi';
+import {
   buildConsoleAcceptHeaders,
   consoleErrorMessage,
   normalizeConsoleFetchError,
@@ -7,23 +11,17 @@ import {
   requireConsoleBaseUrl,
 } from './consoleHttp';
 
-export interface DashboardConsoleSessionClaims {
+interface DashboardConsoleSessionIdentity {
   userId: string;
   orgId: string;
-  membershipId: string;
-  authorizationVersion: number;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER';
-  adminPermissions: Array<'members.manage' | 'projects.manage' | 'billing.view' | 'billing.manage'>;
-  projectAccess: Array<{
-    projectId: string;
-    accessLevel: 'viewer' | 'editor';
-  }>;
   platformSupport: boolean;
   email?: string;
   name?: string;
-  projectId?: string;
-  environmentId?: string;
+  projectId: string | null;
 }
+
+export type DashboardConsoleSessionClaims = DashboardConsoleSessionIdentity &
+  DashboardAccountOrganizationAccess;
 
 interface DashboardConsoleSessionResponse {
   ok?: boolean;
@@ -54,7 +52,7 @@ export function canDashboardEditProject(
 ): boolean {
   if (!claims) return false;
   if (claims.role === 'OWNER' || claims.role === 'ADMIN') return true;
-  return claims.projectAccess.some(
+  return claims.projectAccess.assignments.some(
     (assignment) => assignment.projectId === projectId && assignment.accessLevel === 'editor',
   );
 }
@@ -94,81 +92,65 @@ function parseClaims(raw: unknown): DashboardConsoleSessionClaims | null {
   const row = raw as Record<string, unknown>;
   const userId = String(row.userId || '').trim();
   const orgId = String(row.orgId || '').trim();
-  const membershipId = String(row.membershipId || '').trim();
-  const authorizationVersion = Number(row.authorizationVersion);
-  const roleRaw = String(row.role || '')
-    .trim()
-    .toUpperCase();
-  const role = roleRaw === 'OWNER' || roleRaw === 'ADMIN' || roleRaw === 'MEMBER' ? roleRaw : null;
-  if (
-    !userId ||
-    !orgId ||
-    !membershipId ||
-    !role ||
-    !Number.isSafeInteger(authorizationVersion) ||
-    authorizationVersion < 1
-  ) {
-    return null;
-  }
-  const permissionSet = new Set<
-    'members.manage' | 'projects.manage' | 'billing.view' | 'billing.manage'
-  >();
-  if (Array.isArray(row.adminPermissions)) {
-    for (const entry of row.adminPermissions) {
-      const permission = String(entry || '').trim();
-      if (
-        permission === 'members.manage' ||
-        permission === 'projects.manage' ||
-        permission === 'billing.view' ||
-        permission === 'billing.manage'
-      ) {
-        permissionSet.add(permission);
-      }
-    }
-  }
-  if (permissionSet.has('billing.manage')) permissionSet.add('billing.view');
-  const projectAccess = Array.isArray(row.projectAccess)
-    ? row.projectAccess.flatMap((entry) => {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-        const access = entry as Record<string, unknown>;
-        const accessProjectId = String(access.projectId || '').trim();
-        const accessLevel = String(access.accessLevel || '')
-          .trim()
-          .toLowerCase();
-        if (!accessProjectId || (accessLevel !== 'viewer' && accessLevel !== 'editor')) {
-          return [];
-        }
-        const normalizedAccessLevel: 'viewer' | 'editor' = accessLevel;
-        return [{ projectId: accessProjectId, accessLevel: normalizedAccessLevel }];
-      })
-    : [];
+  const access = parseOrganizationAccess(row);
+  if (!userId || !orgId || !access) return null;
   const email = String(row.email || '').trim();
   const name = String(row.name || '').trim();
-  const projectId = String(row.projectId || '').trim();
-  const environmentId = String(row.environmentId || '').trim();
-  return {
-    userId,
-    orgId,
-    membershipId,
-    authorizationVersion,
-    role,
-    adminPermissions: [
-      'members.manage',
-      'projects.manage',
-      'billing.view',
-      'billing.manage',
-    ].filter((permission) =>
-      permissionSet.has(
-        permission as 'members.manage' | 'projects.manage' | 'billing.view' | 'billing.manage',
-      ),
-    ) as DashboardConsoleSessionClaims['adminPermissions'],
-    projectAccess,
-    platformSupport: row.platformSupport === true,
-    ...(email ? { email } : {}),
-    ...(name ? { name } : {}),
-    ...(projectId ? { projectId } : {}),
-    ...(environmentId ? { environmentId } : {}),
-  };
+  const projectId = typeof row.projectId === 'string' ? row.projectId.trim() : null;
+  return buildDashboardSessionClaims(
+    {
+      userId,
+      orgId,
+      platformSupport: row.platformSupport === true,
+      email: email || undefined,
+      name: name || undefined,
+      projectId: projectId || null,
+    },
+    access,
+  );
+}
+
+function buildDashboardSessionClaims(
+  identity: DashboardConsoleSessionIdentity,
+  access: DashboardAccountOrganizationAccess,
+): DashboardConsoleSessionClaims {
+  switch (access.role) {
+    case 'OWNER':
+    case 'ADMIN':
+      return {
+        userId: identity.userId,
+        orgId: identity.orgId,
+        projectId: identity.projectId,
+        platformSupport: identity.platformSupport,
+        email: identity.email,
+        name: identity.name,
+        membershipId: access.membershipId,
+        authorizationVersion: access.authorizationVersion,
+        role: access.role,
+        adminPermissions: access.adminPermissions,
+        projectAccess: access.projectAccess,
+      };
+    case 'MEMBER':
+      return {
+        userId: identity.userId,
+        orgId: identity.orgId,
+        projectId: identity.projectId,
+        platformSupport: identity.platformSupport,
+        email: identity.email,
+        name: identity.name,
+        membershipId: access.membershipId,
+        authorizationVersion: access.authorizationVersion,
+        role: 'MEMBER',
+        adminPermissions: [],
+        projectAccess: access.projectAccess,
+      };
+    default:
+      return assertNeverAccess(access);
+  }
+}
+
+function assertNeverAccess(access: never): never {
+  throw new Error(`Unknown Console access state: ${String(access)}`);
 }
 
 export async function fetchDashboardConsoleSession(): Promise<DashboardConsoleSessionClaims> {
@@ -341,19 +323,4 @@ export function useDashboardConsoleSession(): DashboardConsoleSessionState {
     errorStatus: null,
     refresh: () => {},
   };
-}
-
-export async function selectDashboardConsoleEnvironment(
-  projectId: string,
-  environmentId: string,
-): Promise<void> {
-  const response = await fetch(`${requireConsoleBaseUrl()}/console/auth/environment`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ projectId, environmentId }),
-  });
-  const body = await parseConsoleJson(response);
-  if (!response.ok || body?.ok !== true)
-    throw new Error(consoleErrorMessage(response, body, 'Environment selection failed'));
 }

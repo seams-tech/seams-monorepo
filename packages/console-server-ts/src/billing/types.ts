@@ -7,7 +7,6 @@ export type BillingInvoiceLineItemType =
   | 'PRODUCT_EXECUTION_DEBIT'
   | 'MANUAL_ADJUSTMENT';
 export type BillingCreditPackId = 'usd_10' | 'usd_25' | 'usd_50';
-export type BillingLiveEnvironmentState = 'HEALTHY' | 'LOW_BALANCE' | 'BLOCKED';
 export type BillingLedgerEntryType =
   | 'CREDIT_PURCHASE'
   | 'USAGE_DEBIT'
@@ -124,7 +123,6 @@ export interface BillingOverview {
   monthlyActiveResources: number;
   creditBalanceMinor: number;
   lowBalanceThresholdMinor: number;
-  liveEnvironmentState: BillingLiveEnvironmentState;
   recentUsageDebitMinor: number;
   recentCreditPurchasedMinor: number;
   documentCount: number;

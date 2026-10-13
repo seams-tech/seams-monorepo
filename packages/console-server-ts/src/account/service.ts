@@ -1,8 +1,7 @@
 import { generateConsoleOrganizationId } from '@seams-internal/console-shared/organizationIdentity';
-import type { ConsoleOnboardingService } from '../onboarding';
 import type {
-  ConsoleOrgProjectEnvContext,
-  ConsoleOrgProjectEnvService,
+  ConsoleOrgProjectContext,
+  ConsoleOrgProjectService,
   ConsoleOrganization,
 } from '../orgProjectEnv';
 import type {
@@ -22,16 +21,8 @@ import type {
   UpdateConsoleAccountOrganizationRequest,
 } from './types';
 
-/**
- * Structural subset of the Wallet Console inventory service. Core only checks
- * emptiness before organization deletion; the composed product supplies the
- * implementation.
- */
-export interface AccountWalletInventoryPort {
-  listWallets(
-    ctx: { orgId: string; actorUserId: string },
-    request?: { limit?: number },
-  ): Promise<{ items: readonly unknown[] }>;
+export interface AccountOrganizationDeletionPort {
+  assertOrganizationCanBeDeleted(ctx: { orgId: string; actorUserId: string }): Promise<void>;
 }
 
 interface ConsoleAccountIdentity {
@@ -40,15 +31,15 @@ interface ConsoleAccountIdentity {
   readonly name: string | null;
   readonly provider: string | null;
   readonly platformSupport: boolean;
+  readonly environmentId?: never;
 }
 
 export type ConsoleAccountIdentityContext = ConsoleAccountIdentity &
   (
-    | { readonly orgId: null; readonly projectId: null; readonly environmentId: null }
+    | { readonly orgId: null; readonly projectId: null }
     | {
         readonly orgId: string;
         readonly projectId: string | null;
-        readonly environmentId: string | null;
       }
   );
 
@@ -85,10 +76,9 @@ export interface ConsoleAccountService {
 }
 
 export interface InMemoryConsoleAccountServiceOptions {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
-  readonly onboarding?: ConsoleOnboardingService | null;
-  readonly wallets?: AccountWalletInventoryPort | null;
+  readonly deletion: AccountOrganizationDeletionPort;
   readonly now?: () => Date;
 }
 
@@ -109,7 +99,6 @@ interface BackupEmailRecord {
 interface AccountOrganizationScope {
   readonly orgId: string;
   readonly projectId: string | null;
-  readonly environmentId: string | null;
   readonly onboardingComplete: boolean;
 }
 
@@ -147,12 +136,11 @@ function canEditPrimaryEmail(ctx: ConsoleAccountIdentityContext): boolean {
 function toOrgProjectEnvContext(
   ctx: ConsoleAccountIdentityContext,
   orgId: string,
-): ConsoleOrgProjectEnvContext {
+): ConsoleOrgProjectContext {
   return {
     orgId,
     actorUserId: ctx.userId,
     ...(ctx.projectId ? { projectId: ctx.projectId } : {}),
-    ...(ctx.environmentId ? { environmentId: ctx.environmentId } : {}),
   };
 }
 
@@ -228,80 +216,37 @@ async function requireAuthorization(input: {
 async function resolveOrganizationScope(input: {
   readonly ctx: ConsoleAccountIdentityContext;
   readonly orgId: string;
-  readonly onboarding: ConsoleOnboardingService | null;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
 }): Promise<AccountOrganizationScope> {
-  if (input.onboarding) {
-    try {
-      const state = await input.onboarding.getOnboardingState(
-        {
-          orgId: input.orgId,
-          actorUserId: input.ctx.userId,
-          actorEmail: input.ctx.email,
-          actorDisplayName: input.ctx.name,
-          projectId: input.ctx.projectId,
-          environmentId: input.ctx.environmentId,
-        },
-        {},
-      );
-      return {
-        orgId: input.orgId,
-        projectId: state.selectedProjectId,
-        environmentId: state.selectedEnvironmentId,
-        onboardingComplete: state.onboardingComplete,
-      };
-    } catch {
-      // Derive the scope directly when onboarding dependencies are unavailable.
-    }
-  }
-
   const targetCtx = toOrgProjectEnvContext(input.ctx, input.orgId);
   const projects = await input.orgProjectEnv.listProjects(targetCtx, { status: 'ACTIVE' });
-  const environments = await input.orgProjectEnv.listEnvironments(targetCtx, {
-    status: 'ACTIVE',
-  });
-  const projectId = projects[0]?.id ?? null;
-  const environmentId =
-    (projectId
-      ? environments.find((environment) => environment.projectId === projectId)?.id
-      : undefined) ??
-    environments[0]?.id ??
-    null;
+  const projectId =
+    projects.find((project) => project.id === input.ctx.projectId)?.id ?? projects[0]?.id ?? null;
   return {
     orgId: input.orgId,
     projectId,
-    environmentId,
-    onboardingComplete: Boolean(projectId && environmentId),
+    onboardingComplete: Boolean(projectId),
   };
 }
 
 async function resolveSelectedScopeLabels(input: {
   readonly ctx: ConsoleAccountIdentityContext;
   readonly orgId: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly projectId: string | null;
-  readonly environmentId: string | null;
-}): Promise<{ readonly projectName: string | null; readonly environmentName: string | null }> {
+}): Promise<{ readonly projectName: string | null }> {
   const targetCtx = toOrgProjectEnvContext(input.ctx, input.orgId);
   let projects = [];
-  let environments = [];
   try {
-    [projects, environments] = await Promise.all([
-      input.orgProjectEnv.listProjects(targetCtx, { status: 'ACTIVE' }),
-      input.orgProjectEnv.listEnvironments(targetCtx, { status: 'ACTIVE' }),
-    ]);
+    projects = await input.orgProjectEnv.listProjects(targetCtx, { status: 'ACTIVE' });
   } catch {
-    return { projectName: null, environmentName: null };
+    return { projectName: null };
   }
   const project = input.projectId
     ? (projects.find((entry) => entry.id === input.projectId) ?? null)
     : null;
-  const environment = input.environmentId
-    ? (environments.find((entry) => entry.id === input.environmentId) ?? null)
-    : null;
   return {
     projectName: normalizeString(project?.name) || null,
-    environmentName: normalizeString(environment?.name) || null,
   };
 }
 
@@ -469,13 +414,11 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
     const scope = await resolveOrganizationScope({
       ctx,
       orgId,
-      onboarding: this.#options.onboarding ?? null,
       orgProjectEnv: this.#options.orgProjectEnv,
     });
     return {
       orgId,
       projectId: scope.projectId,
-      environmentId: scope.environmentId,
       onboardingComplete: scope.onboardingComplete,
       platformSupport: ctx.platformSupport,
       ...toOrganizationAccess(authorization),
@@ -532,7 +475,6 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
     const scope = await resolveOrganizationScope({
       ctx,
       orgId,
-      onboarding: this.#options.onboarding ?? null,
       orgProjectEnv: this.#options.orgProjectEnv,
     });
     const labels = await resolveSelectedScopeLabels({
@@ -540,7 +482,6 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
       orgId,
       orgProjectEnv: this.#options.orgProjectEnv,
       projectId: scope.projectId,
-      environmentId: scope.environmentId,
     });
     return {
       id: organization.id,
@@ -553,8 +494,6 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
       onboardingComplete: scope.onboardingComplete,
       selectedProjectId: scope.projectId,
       selectedProjectName: labels.projectName,
-      selectedEnvironmentId: scope.environmentId,
-      selectedEnvironmentName: labels.environmentName,
       ...toOrganizationAccess(authorization),
     };
   }
@@ -585,24 +524,7 @@ class InMemoryConsoleAccountService implements ConsoleAccountService {
         'Remove all other organization members before deleting this organization',
       );
     }
-    if (!this.#options.wallets) {
-      throw accountError(
-        'wallets_not_configured',
-        503,
-        'Wallet service is required to evaluate organization deletion',
-      );
-    }
-    const walletPage = await this.#options.wallets.listWallets(
-      { orgId, actorUserId: ctx.userId },
-      { limit: 1 },
-    );
-    if (walletPage.items.length > 0) {
-      throw accountError(
-        'organization_delete_has_wallets',
-        409,
-        'Organizations cannot be deleted after wallets have been created',
-      );
-    }
+    await this.#options.deletion.assertOrganizationCanBeDeleted({ orgId, actorUserId: ctx.userId });
     return current;
   }
 }

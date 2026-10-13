@@ -1,6 +1,11 @@
-import { ConsoleBillingError } from './errors';
-import type { ConsoleBillingContext, ConsoleBillingService } from './service';
-import type { BillingLiveEnvironmentState, BillingOverview } from './types';
+import { ConsoleBillingError } from '@seams-internal/console-server/billing/errors';
+import type {
+  ConsoleBillingContext,
+  ConsoleBillingService,
+} from '@seams-internal/console-server/billing/service';
+import type { BillingOverview } from '@seams-internal/console-server/billing/types';
+
+export type BillingLiveEnvironmentState = 'HEALTHY' | 'LOW_BALANCE' | 'BLOCKED';
 
 export const LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE =
   'A positive prepaid credit balance is required before creating staging or production environments';

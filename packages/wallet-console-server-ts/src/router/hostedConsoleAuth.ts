@@ -1,4 +1,3 @@
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
 import type { CfExecutionContext, FetchHandler } from '@seams/wallet-server/cloud-host';
 import { withCors } from '@seams/wallet-server/cloud-host';
 import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
@@ -76,7 +75,6 @@ export interface HostedConsoleAuthHandlerOptions {
   readonly providers: HostedConsoleProviderOptions;
   readonly session: SessionAdapter;
   readonly account: ConsoleAccountService;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
   readonly corsOrigins: readonly string[];
 }
 
@@ -176,8 +174,6 @@ export class HostedConsoleAuthHandler {
     if (request.method === 'POST' && pathname === '/console/auth/github/options') {
       return consoleAuthJson({ ok: true, ...this.options.providers.github }, 200);
     }
-    if (request.method === 'POST' && pathname === '/console/auth/environment')
-      return this.selectEnvironment(request);
     if (request.method === 'GET' && pathname === '/console/auth/session') {
       const account = await this.readIdentitySession(request);
       return account
@@ -287,7 +283,6 @@ export class HostedConsoleAuthHandler {
       provider: identity.kind,
       orgId: null,
       projectId: null,
-      environmentId: null,
       platformSupport: false,
     };
     const organizations = await this.options.account.listOrganizations(account);
@@ -301,87 +296,6 @@ export class HostedConsoleAuthHandler {
     });
     return consoleAuthJson(
       { ok: true, session: { kind: 'console_identity_v1' } },
-      200,
-      this.options.session.buildSetCookie(token),
-    );
-  }
-
-  private async selectEnvironment(request: Request): Promise<Response> {
-    const parsed = await this.options.session.parse(Object.fromEntries(request.headers.entries()));
-    if (!parsed.ok || parsed.claims.kind !== 'console_session_v1') {
-      return consoleAuthJson(
-        { ok: false, code: 'unauthorized', message: 'Sign in to continue' },
-        401,
-      );
-    }
-    const raw = await readJsonOrNull(request);
-    if (
-      !raw ||
-      typeof raw !== 'object' ||
-      Array.isArray(raw) ||
-      Object.keys(raw).length !== 2 ||
-      !('projectId' in raw) ||
-      !('environmentId' in raw) ||
-      typeof raw.projectId !== 'string' ||
-      typeof raw.environmentId !== 'string' ||
-      !raw.projectId.trim() ||
-      !raw.environmentId.trim()
-    ) {
-      return consoleAuthJson(
-        { ok: false, code: 'invalid_body', message: 'Select a project and environment' },
-        400,
-      );
-    }
-    const projectId = raw.projectId.trim();
-    const environmentId = raw.environmentId.trim();
-    const userId = normalizeString(parsed.claims.sub);
-    const orgId = normalizeString(parsed.claims.orgId);
-    if (!userId || !orgId)
-      return consoleAuthJson(
-        { ok: false, code: 'unauthorized', message: 'Invalid console session' },
-        401,
-      );
-    const account: ConsoleAccountIdentityContext = {
-      userId,
-      orgId,
-      projectId: null,
-      environmentId: null,
-      email: normalizeConsoleLoginEmail(parsed.claims.email),
-      name: normalizeString(parsed.claims.name),
-      provider: normalizeString(parsed.claims.provider),
-      platformSupport: false,
-    };
-    const authorization = await this.options.account.switchOrganizationContext(account, orgId);
-    if (
-      authorization.projectAccess.kind === 'assigned' &&
-      !authorization.projectAccess.assignments.some(hasProjectAccess.bind(null, projectId))
-    ) {
-      return consoleAuthJson(
-        { ok: false, code: 'forbidden', message: 'No access to this project' },
-        403,
-      );
-    }
-    const environments = await this.options.orgProjectEnv.listEnvironments(
-      { orgId, actorUserId: userId },
-      { projectId, status: 'ACTIVE' },
-    );
-    if (!environments.some(matchesEnvironment.bind(null, projectId, environmentId))) {
-      return consoleAuthJson(
-        { ok: false, code: 'forbidden', message: 'Environment is not active in this organization' },
-        403,
-      );
-    }
-    const token = await this.options.session.signJwt(userId, {
-      kind: 'console_session_v1',
-      orgId,
-      projectId,
-      environmentId,
-      email: account.email,
-      name: account.name,
-      provider: account.provider,
-    });
-    return consoleAuthJson(
-      { ok: true, session: { kind: 'console_session_v1' } },
       200,
       this.options.session.buildSetCookie(token),
     );
@@ -403,7 +317,6 @@ export class HostedConsoleAuthHandler {
       provider,
       orgId: null,
       projectId: null,
-      environmentId: null,
       platformSupport: false,
     };
   }
@@ -447,7 +360,6 @@ export class HostedConsoleAuthHandler {
       kind: 'console_session_v1',
       orgId: scope.orgId,
       ...(scope.projectId ? { projectId: scope.projectId } : {}),
-      ...(scope.environmentId ? { environmentId: scope.environmentId } : {}),
       provider: account.provider,
       email: account.email,
       name: account.name,
@@ -458,15 +370,4 @@ export class HostedConsoleAuthHandler {
       this.options.session.buildSetCookie(token),
     );
   }
-}
-
-function hasProjectAccess(projectId: string, assignment: { readonly projectId: string }): boolean {
-  return assignment.projectId === projectId;
-}
-function matchesEnvironment(
-  projectId: string,
-  environmentId: string,
-  environment: { readonly projectId: string; readonly id: string },
-): boolean {
-  return environment.projectId === projectId && environment.id === environmentId;
 }

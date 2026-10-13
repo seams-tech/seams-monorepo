@@ -1,5 +1,6 @@
 import {
   contractResult,
+  digestValue,
   exactKeys,
   integer,
   invalidContract,
@@ -11,8 +12,9 @@ import {
 } from './boundary';
 import {
   ServiceTenantBindingV1,
+  PlatformScopeV1,
+  readNativeTenantScope,
   type NativeTenantScopeV1,
-  type PlatformScopeV1,
   type PlatformServiceIdV1,
 } from './scope';
 
@@ -54,6 +56,115 @@ export interface DurableSourceEvidenceV1 {
   readonly sourceDigest: string;
 }
 
+export function readServiceBindingRequest(input: unknown): ServiceBindingRequestV1 {
+  const record = object(input, 'binding');
+  switch (record.kind) {
+    case 'attach_existing_scope': {
+      exactKeys(record, ['kind', 'nativeScope', 'authorityEvidence']);
+      const evidence = object(record.authorityEvidence, 'authorityEvidence');
+      exactKeys(evidence, ['sourceRecordId', 'sourceDigest']);
+      return Object.freeze({
+        kind: record.kind,
+        nativeScope: readNativeTenantScope(record.nativeScope),
+        authorityEvidence: Object.freeze({
+          sourceRecordId: textValue(evidence.sourceRecordId, 'sourceRecordId'),
+          sourceDigest: digestValue(evidence.sourceDigest, 'sourceDigest'),
+        }),
+      });
+    }
+    case 'create_native_scope': {
+      exactKeys(record, ['kind', 'serviceId', 'parent', 'configuration']);
+      const parent = PlatformScopeV1.parse(record.parent);
+      if (parent.kind === 'rejected') return invalidContract(`parent.${parent.error.field}`);
+      const configuration = object(record.configuration, 'configuration');
+      switch (record.serviceId) {
+        case 'wallet':
+          exactKeys(configuration, ['deploymentId', 'namespace', 'signingRootVersion']);
+          return Object.freeze({
+            kind: record.kind,
+            serviceId: record.serviceId,
+            parent: parent.value,
+            configuration: Object.freeze({
+              deploymentId: textValue(configuration.deploymentId, 'deploymentId'),
+              namespace: textValue(configuration.namespace, 'namespace'),
+              signingRootVersion: textValue(configuration.signingRootVersion, 'signingRootVersion'),
+            }),
+          });
+        case 'satyr':
+          exactKeys(configuration, ['deploymentId', 'placementCellId', 'environment']);
+          if (configuration.environment !== 'development' && configuration.environment !== 'production') {
+            return invalidContract('environment');
+          }
+          return Object.freeze({
+            kind: record.kind,
+            serviceId: record.serviceId,
+            parent: parent.value,
+            configuration: Object.freeze({
+              deploymentId: textValue(configuration.deploymentId, 'deploymentId'),
+              placementCellId: textValue(configuration.placementCellId, 'placementCellId'),
+              environment: configuration.environment,
+            }),
+          });
+        default:
+          return invalidContract('serviceId');
+      }
+    }
+    default:
+      return invalidContract('binding.kind');
+  }
+}
+
+export class ServiceProvisionCommandV1 {
+  readonly version = 1;
+
+  private constructor(
+    readonly operationId: string,
+    readonly instanceId: string,
+    readonly desiredRevision: number,
+    readonly command: 'enable' | 'disable' | 'archive',
+    readonly binding: ServiceBindingRequestV1 | ServiceTenantBindingV1,
+  ) {
+    this.seal();
+  }
+
+  private seal(): void {
+    Object.freeze(this);
+  }
+
+  static parse(input: unknown): PlatformResult<ServiceProvisionCommandV1, PlatformContractError> {
+    return contractResult(ServiceProvisionCommandV1.read, input);
+  }
+
+  private static read(input: unknown): ServiceProvisionCommandV1 {
+    const record = object(input, 'command');
+    exactKeys(record, ['version', 'operationId', 'instanceId', 'desiredRevision', 'command', 'binding']);
+    versionOne(record.version);
+    if (record.command !== 'enable' && record.command !== 'disable' && record.command !== 'archive') {
+      return invalidContract('command');
+    }
+    const rawBinding = object(record.binding, 'binding');
+    let binding: ServiceBindingRequestV1 | ServiceTenantBindingV1;
+    if (Object.hasOwn(rawBinding, 'kind')) {
+      binding = readServiceBindingRequest(rawBinding);
+    } else {
+      const parsed = ServiceTenantBindingV1.parse(rawBinding);
+      if (parsed.kind === 'rejected') return invalidContract(`binding.${parsed.error.field}`);
+      binding = parsed.value;
+    }
+    const instanceId = textValue(record.instanceId, 'instanceId');
+    if (binding instanceof ServiceTenantBindingV1 && binding.instanceId !== instanceId) {
+      return invalidContract('binding.instanceId');
+    }
+    return new ServiceProvisionCommandV1(
+      textValue(record.operationId, 'operationId'),
+      instanceId,
+      integer(record.desiredRevision, 'desiredRevision', 1),
+      record.command,
+      binding,
+    );
+  }
+}
+
 export type ServiceObservedStateV1 =
   | { readonly kind: 'unknown'; readonly revision?: never; readonly status?: never }
   | {
@@ -75,7 +186,7 @@ export type ProvisioningServiceStateV1 = {
   readonly kind: 'provisioning';
   readonly desiredRevision: number;
   readonly operationId: string;
-  readonly target: ServiceBindingRequestV1;
+  readonly target: ServiceBindingRequestV1 | ServiceTenantBindingV1;
   readonly observed: ServiceObservedStateV1;
   readonly binding?: never;
   readonly receipt?: never;
@@ -231,6 +342,12 @@ function readMatchingReceipt(
   if (receipt.operationId !== operationId) return invalidContract('receipt.operationId');
   if (receipt.desiredRevision !== revision) return invalidContract('receipt.desiredRevision');
   return receipt;
+}
+
+export function parseServiceProvisionReceiptV1(
+  input: unknown,
+): PlatformResult<AcceptedServiceReceiptV1, PlatformContractError> {
+  return contractResult(readBoundReceipt, input);
 }
 
 function readBoundReceipt(input: unknown): AcceptedServiceReceiptV1 {

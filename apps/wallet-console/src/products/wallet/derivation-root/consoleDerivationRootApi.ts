@@ -1,12 +1,11 @@
 import { recoveryBackupConflictMessage } from './derivationRootPresentation';
 import {
-  buildConsoleAcceptHeaders,
-  buildConsoleJsonHeaders,
   consoleErrorMessage,
   fetchConsoleEndpoint,
   parseConsoleJson,
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import type {
   TenantRootRecoveryBackupV1,
   TenantRootRecoveryGovernanceV1,
@@ -66,7 +65,7 @@ async function rotationPost(path: string, body: unknown): Promise<Response> {
     `${base}${path}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify(body),
@@ -183,7 +182,7 @@ export async function readOperationalShareRotation(
     `${base}${ROTATION_STATUS_PATH}?operationId=${encodeURIComponent(operationId)}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -234,7 +233,7 @@ export async function readDerivationRootSecurityStatus(): Promise<DashboardDeriv
     `${base}${STATUS_PATH}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -444,7 +443,7 @@ async function requestRecoveryArtifact(
     `${base}${path}`,
     {
       method: isManifest ? 'GET' : 'POST',
-      headers: isManifest ? buildConsoleAcceptHeaders() : buildConsoleJsonHeaders(),
+      headers: isManifest ? buildWalletAcceptHeaders() : buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       ...(isManifest
@@ -504,7 +503,7 @@ export async function createDerivationRoot(operationId: string): Promise<void> {
     `${base}${path}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({ operationId }),

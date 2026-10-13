@@ -15,6 +15,7 @@ export type {
   ConsoleAccountContext,
   ConsoleAccountIdentityContext,
   ConsoleAccountService,
+  AccountOrganizationDeletionPort,
   InMemoryConsoleAccountServiceOptions,
 } from './service';
 export { createInMemoryConsoleAccountService } from './service';

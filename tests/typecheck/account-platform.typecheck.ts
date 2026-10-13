@@ -10,16 +10,20 @@ import type {
   SatyrFundingSelectionV1,
   SatyrTenantScopeV1,
   ServiceTenantBindingV1,
+  ServiceProvisionCommandV1,
   SettleableFundsReservationV1,
   WalletTenantScopeV1,
 } from '../../packages/console-shared-ts/src/accountPlatform';
 import type { AccountMigrationCohortV1 } from '../../packages/console-server-ts/src/accountPlatform/migration';
+import type { AccountServiceInstanceV1 } from '../../packages/console-server-ts/src/accountPlatform/types';
 
 declare const scope: PlatformScopeV1;
 declare const binding: ServiceTenantBindingV1;
 declare const active: BoundServiceInstanceV1<ActiveServiceStateV1>;
 declare const usage: PlatformUsageEventV1;
 declare const cohort: AccountMigrationCohortV1;
+declare const provisionCommand: ServiceProvisionCommandV1;
+declare const storedInstance: AccountServiceInstanceV1;
 declare const unsettled: Extract<FundsReservationV1, { readonly kind: 'indeterminate' }>;
 declare const linkedIdentity: PlatformIdentityLinkV1;
 
@@ -41,6 +45,10 @@ const spreadInstance: BoundServiceInstanceV1<ActiveServiceStateV1> = { ...active
 const spreadUsage: PlatformUsageEventV1 = { ...usage };
 // @ts-expect-error Migration input must enter through its parser.
 const spreadCohort: AccountMigrationCohortV1 = { ...cohort };
+// @ts-expect-error A command requires boundary validation.
+const spreadCommand: ServiceProvisionCommandV1 = { ...provisionCommand };
+// @ts-expect-error A stored instance requires its authoritative storage parser.
+const spreadStoredInstance: AccountServiceInstanceV1 = { ...storedInstance };
 
 // @ts-expect-error An active instance requires its accepted receipt.
 const incompleteActive: ActiveServiceStateV1 = { kind: 'active', desiredRevision: 1, binding };
@@ -94,6 +102,8 @@ void spreadBinding;
 void spreadInstance;
 void spreadUsage;
 void spreadCohort;
+void spreadCommand;
+void spreadStoredInstance;
 void incompleteActive;
 void incompleteWallet;
 void invalidSatyrScope;

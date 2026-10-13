@@ -2,9 +2,8 @@ import type { PlatformResult } from './boundary';
 import type {
   AcceptedServiceReceiptV1,
   DurableSourceEvidenceV1,
-  ServiceBindingRequestV1,
 } from './instances';
-import type { PlatformScopeV1, PlatformServiceIdV1, ServiceTenantBindingV1 } from './scope';
+import type { PlatformScopeV1, PlatformServiceIdV1 } from './scope';
 import type { PlatformMeterIdV1 } from './usage';
 
 export type PlatformIdentityLinkV1 = {
@@ -77,15 +76,6 @@ export interface DelegatedPlatformAssertionV1 {
   readonly action: ServiceAdmissionActionV1;
   readonly expiresAt: string;
   readonly authorityRevision: number;
-}
-
-export interface ServiceProvisionCommandV1 {
-  readonly version: 1;
-  readonly operationId: string;
-  readonly instanceId: string;
-  readonly desiredRevision: number;
-  readonly command: 'enable' | 'disable' | 'archive';
-  readonly binding: ServiceBindingRequestV1 | ServiceTenantBindingV1;
 }
 
 export type ServiceProvisionResultV1 = PlatformResult<

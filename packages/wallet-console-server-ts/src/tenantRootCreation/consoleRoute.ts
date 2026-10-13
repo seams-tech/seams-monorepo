@@ -1,8 +1,8 @@
 import { TenantRootSecurityStateUnavailableError } from '../tenantRootSecurity/stateReader';
 import type { TenantRootSecurityStateReaderV1 } from '../tenantRootSecurity/consoleRoute';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
+import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/service';
 import type { ConsoleAuthAdapter } from '@seams-internal/console-server/router/consoleAuth';
-import { authenticateConsoleRequest } from '@seams-internal/console-server/router/consoleAuth';
+import { authenticateWalletConsoleRequest as authenticateConsoleRequest } from '../router/walletConsoleAuth';
 import {
   verifyFreshStepUpForRequestV1,
   type TenantRootStepUpReaderV1,
@@ -48,7 +48,7 @@ const INTERNAL_SERVICE_AUTH_HEADER = 'x-router-ab-internal-service-auth';
 
 export interface TenantRootCreationConsoleRouteDependenciesV1 {
   readonly auth: ConsoleAuthAdapter;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly grants: TenantRootCreationGrantServiceV1;
   readonly router: { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
   readonly internalServiceAuthSecret: string;
@@ -59,7 +59,7 @@ export interface TenantRootCreationConsoleRouteDependenciesV1 {
 
 export interface TenantRootRefreshConsoleRouteDependenciesV1 {
   readonly auth: ConsoleAuthAdapter;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly state: TenantRootSecurityStateReaderV1;
   readonly router: { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
   readonly internalServiceAuthSecret: string;
@@ -207,7 +207,7 @@ function parseRouterCreationReadyResponse(value: unknown): RouterCreationReadyRe
 }
 
 async function resolveIdentity(
-  dependencies: Pick<TenantRootCreationConsoleRouteDependenciesV1, 'orgProjectEnv'>,
+  dependencies: Pick<TenantRootCreationConsoleRouteDependenciesV1, 'walletEnvironments'>,
   claims: Extract<
     Awaited<ReturnType<typeof authenticateConsoleRequest>>,
     { readonly ok: true }
@@ -216,12 +216,10 @@ async function resolveIdentity(
   const orgId = requiredText(claims.orgId, 'authenticated orgId');
   const projectId = requiredText(claims.projectId, 'authenticated projectId');
   const environmentId = requiredText(claims.environmentId, 'authenticated environmentId');
-  const environments = await dependencies.orgProjectEnv.listEnvironments(
+  const environments = await dependencies.walletEnvironments.listEnvironments(
     {
       orgId: claims.orgId,
       actorUserId: claims.userId,
-      projectId,
-      environmentId,
     },
     { projectId, status: 'ACTIVE' },
   );
@@ -236,7 +234,7 @@ async function resolveIdentity(
     projectId,
     envId: environment.id,
     signingRootId: `${projectId}:${environment.key}`,
-    signingRootVersion: environment.runtimeVersion,
+    signingRootVersion: environment.signingRootVersion,
   });
   if (!identity.ok) {
     throw new Error('Authenticated Console tenant-root identity is not canonical');

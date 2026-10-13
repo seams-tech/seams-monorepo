@@ -8,9 +8,6 @@ import {
   buildConsoleBillingInvoicePdfFilename,
   CONSOLE_BILLING_INVOICE_PDF_EXPORT_POLICY,
   ConsoleBillingError,
-  LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
-  ensureBillingReadyForLiveEnvironment,
-  getBillingLiveEnvironmentReadiness,
   isConsoleBillingError,
   parseBillingAccountActivityRequest,
   parseBillingInvoiceListRequest,
@@ -21,7 +18,13 @@ import {
   verifyAndParseStripeWebhookRequest,
   type ConsoleBillingService,
 } from '@seams-internal/console-server/billing/index';
+import {
+  LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
+  ensureBillingReadyForLiveEnvironment,
+} from '../../environments/readiness';
 import { parseWalletBillingUsageEventRequest } from '../walletBillingUsage';
+import { buildConsoleBillingInvoiceGeneratedAuditEvent } from '@seams-internal/console-server/billing/auditMetadata';
+import { buildConsoleBillingCreditPurchaseSettledAuditEvent } from '@seams-internal/console-server/billing/stripePostProcessing';
 import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/index';
 import {
   isConsoleSponsoredCallError,
@@ -36,17 +39,22 @@ import {
   parseRotateConsoleApiKeyRequest,
   parseUpdateConsoleApiKeyRequest,
   type ConsoleApiKeyService,
-} from '@seams-internal/console-server/apiKeys/index';
+} from '@seams-internal/wallet-console-server/apiKeys/index';
 import {
-  isConsoleOrgProjectEnvError,
-  parseCreateConsoleEnvironmentRequest,
+  isConsoleOrgProjectError,
   parseCreateConsoleProjectRequest,
   parseListConsoleProjectsRequest,
-  parseListConsoleEnvironmentsRequest,
-  parseUpdateConsoleEnvironmentRequest,
   parseUpdateConsoleProjectRequest,
-  type ConsoleOrgProjectEnvService,
+  type ConsoleOrgProjectService,
 } from '@seams-internal/console-server/orgProjectEnv/index';
+import {
+  isConsoleWalletEnvironmentError,
+  parseCreateConsoleWalletEnvironmentRequest,
+  parseListConsoleWalletEnvironmentsRequest,
+  parseUpdateConsoleWalletEnvironmentRequest,
+  serializeWalletEnvironment,
+  type ConsoleWalletEnvironmentService,
+} from '../../environments';
 import {
   hasWalletBalanceRefresh,
   isConsoleWalletError,
@@ -155,11 +163,11 @@ import {
   type ConsoleObservabilityService,
 } from '@seams-internal/console-server/observability/index';
 import type { ConsoleRouterOptions } from '@seams-internal/wallet-console-server/router/console';
+import { type ConsoleAuthResult } from '@seams-internal/console-server/router/consoleAuth';
 import {
-  authenticateConsoleRequest,
-  type ConsoleAuthClaims,
-  type ConsoleAuthResult,
-} from '@seams-internal/console-server/router/consoleAuth';
+  authenticateWalletConsoleRequest as authenticateConsoleRequest,
+  type WalletConsoleAuthClaims as ConsoleAuthClaims,
+} from '../walletConsoleAuth';
 import {
   emitConsoleApprovalFailureObservabilityEvent,
   emitConsoleBillingFailureObservabilityEvent,
@@ -184,8 +192,6 @@ import {
   resolveConsolePolicyPresentation,
 } from '../policyPresentation';
 import {
-  buildConsoleBillingInvoiceGeneratedAuditEvent,
-  buildConsoleBillingCreditPurchaseSettledAuditEvent,
   buildConsolePolicyAssignmentAuditEvent,
   buildConsolePolicyAuditEvent,
   buildConsoleWebhookEndpointAuditEvent,
@@ -226,7 +232,8 @@ export interface ExpressConsoleContext {
   billing: ConsoleBillingService | null;
   prepaidReservations: ConsoleBillingPrepaidReservationService | null;
   sponsoredCalls: ConsoleSponsoredCallService | null;
-  orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  orgProjects: ConsoleOrgProjectService | null;
+  walletEnvironments: ConsoleWalletEnvironmentService | null;
   wallets: ConsoleWalletService | null;
   policies: ConsolePolicyService | null;
   apiKeys: ConsoleApiKeyService | null;
@@ -422,7 +429,7 @@ function sendBillingError(res: Response, error: unknown): void {
       ok: false,
       code: error.code,
       message: error.message,
-      ...(error.details ? { details: error.details } : {}),
+      ...('details' in error && error.details ? { details: error.details } : {}),
     });
     return;
   }
@@ -468,13 +475,13 @@ function sendApiKeyError(res: Response, error: unknown): void {
   });
 }
 
-function sendOrgProjectEnvError(res: Response, error: unknown): void {
-  if (isConsoleOrgProjectEnvError(error)) {
+function sendProjectScopeError(res: Response, error: unknown): void {
+  if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
     res.status(error.status).json({
       ok: false,
       code: error.code,
       message: error.message,
-      ...(error.details ? { details: error.details } : {}),
+      ...('details' in error && error.details ? { details: error.details } : {}),
     });
     return;
   }
@@ -805,15 +812,28 @@ function requireApiKeyService(
   return null;
 }
 
-function requireOrgProjectEnvService(
+function requireOrgProjectService(
   res: Response,
   ctx: ExpressConsoleContext,
-): ConsoleOrgProjectEnvService | null {
-  if (ctx.orgProjectEnv) return ctx.orgProjectEnv;
+): ConsoleOrgProjectService | null {
+  if (ctx.orgProjects) return ctx.orgProjects;
   res.status(501).json({
     ok: false,
-    code: 'org_project_env_not_configured',
-    message: 'Org/project/environment service is not configured on this server',
+    code: 'org_projects_not_configured',
+    message: 'Organization and project service is not configured on this server',
+  });
+  return null;
+}
+
+function requireWalletEnvironmentService(
+  res: Response,
+  ctx: ExpressConsoleContext,
+): ConsoleWalletEnvironmentService | null {
+  if (ctx.walletEnvironments) return ctx.walletEnvironments;
+  res.status(501).json({
+    ok: false,
+    code: 'wallet_environments_not_configured',
+    message: 'Wallet environment service is not configured on this server',
   });
   return null;
 }
@@ -1023,17 +1043,15 @@ function toBillingContext(claims: ConsoleAuthClaims): {
   };
 }
 
-function toOrgProjectEnvContext(claims: ConsoleAuthClaims): {
+function toOrgProjectContext(claims: ConsoleAuthClaims): {
   orgId: string;
   actorUserId: string;
   projectId?: string;
-  environmentId?: string;
 } {
   return {
     orgId: claims.orgId,
     actorUserId: claims.userId,
     ...(claims.projectId ? { projectId: claims.projectId } : {}),
-    ...(claims.environmentId ? { environmentId: claims.environmentId } : {}),
   };
 }
 
@@ -1079,7 +1097,7 @@ interface ConsoleAuditActorScope {
   readonly orgId: string;
   readonly userId: string;
   readonly projectId?: string;
-  readonly environmentId?: string;
+  readonly environmentId?: string | null;
 }
 
 function toAuditContext(claims: ConsoleAuditActorScope): {
@@ -1253,7 +1271,6 @@ function toOnboardingContext(claims: ConsoleAuthClaims): ConsoleOnboardingContex
     actorEmail: consoleClaimsEmail(claims),
     actorDisplayName: String(claims.name ?? '').trim() || null,
     projectId: claims.projectId ?? null,
-    environmentId: claims.environmentId ?? null,
   };
 }
 
@@ -1265,7 +1282,6 @@ function toAccountContext(claims: ConsoleAuthClaims): ConsoleAccountContext {
     name: String(claims.name ?? '').trim() || null,
     provider: String(claims.provider ?? '').trim() || null,
     projectId: claims.projectId ?? null,
-    environmentId: claims.environmentId ?? null,
     platformSupport: claims.platformSupport,
     membershipId: claims.membershipId,
     authorizationVersion: claims.authorizationVersion,
@@ -1454,10 +1470,10 @@ async function requireActiveApiKeyEnvironmentForCreate(
   claims: ConsoleAuthClaims,
   environmentId: string,
 ): Promise<boolean> {
-  const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-  if (!orgProjectEnv) return false;
+  const walletEnvironments = requireWalletEnvironmentService(res, ctx);
+  if (!walletEnvironments) return false;
   try {
-    const environments = await orgProjectEnv.listEnvironments(toOrgProjectEnvContext(claims));
+    const environments = await walletEnvironments.listEnvironments(toOrgProjectContext(claims));
     const environment = environments.find((entry) => entry.id === environmentId);
     if (!environment) {
       res.status(400).json({
@@ -1477,7 +1493,7 @@ async function requireActiveApiKeyEnvironmentForCreate(
     }
     return true;
   } catch (error: unknown) {
-    sendOrgProjectEnvError(res, error);
+    sendProjectScopeError(res, error);
     return false;
   }
 }
@@ -1934,23 +1950,7 @@ function registerConsoleOnboardingRoutes(router: ExpressRouter, ctx: ExpressCons
           },
         });
       }
-      if (result.created.environment) {
-        await emitConsoleAuditEvent(ctx, claims, {
-          category: 'ORG_PROJECT_ENV',
-          action: 'environment.create',
-          summary: `Created environment ${result.environment.id} via onboarding project step`,
-          projectId: result.environment.projectId,
-          environmentId: result.environment.id,
-          metadata: {
-            onboarding: true,
-            projectId: result.environment.projectId,
-            environmentId: result.environment.id,
-            environmentKey: result.environment.key,
-            onboardingStep: 'project',
-          },
-        });
-      }
-      const status = result.created.project || result.created.environment ? 201 : 200;
+      const status = result.created.project ? 201 : 200;
       res.status(status).json({ ok: true, result });
     } catch (error: unknown) {
       sendOnboardingError(res, error);
@@ -1986,37 +1986,34 @@ function registerConsoleOpsCockpitRoutes(router: ExpressRouter, ctx: ExpressCons
   });
 }
 
-function registerConsoleOrgProjectEnvRoutes(
-  router: ExpressRouter,
-  ctx: ExpressConsoleContext,
-): void {
+function registerConsoleOrgProjectRoutes(router: ExpressRouter, ctx: ExpressConsoleContext): void {
   router.get('/console/org', async (req: Request, res: Response) => {
     const claims = await requireConsoleAuth(req, res, ctx);
     if (!claims) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     try {
-      const org = await orgProjectEnv.getOrganization(toOrgProjectEnvContext(claims));
+      const org = await orgProjects.getOrganization(toOrgProjectContext(claims));
       res.status(200).json({ ok: true, org });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
   router.get('/console/projects', async (req: Request, res: Response) => {
     const claims = await requireConsoleAuth(req, res, ctx);
     if (!claims) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     try {
       const request = parseListConsoleProjectsRequest((req as any).query || {});
-      const projects = await orgProjectEnv.listProjects(toOrgProjectEnvContext(claims), request);
+      const projects = await orgProjects.listProjects(toOrgProjectContext(claims), request);
       const visibleProjects = projects.filter((project) =>
         hasConsoleProjectAccess(claims, project.id, 'viewer'),
       );
       res.status(200).json({ ok: true, projects: visibleProjects });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2025,27 +2022,18 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     try {
       const request = parseCreateConsoleProjectRequest((req as any).body || {});
-      const liveEnvironmentsEnabled = ctx.opts.allowLiveEnvironmentBillingBypass
-        ? true
-        : ctx.billing
-          ? (await getBillingLiveEnvironmentReadiness(ctx.billing, toBillingContext(claims)))
-              .canUseLiveEnvironments
-          : false;
-      const project = await orgProjectEnv.createProject(toOrgProjectEnvContext(claims), {
-        ...request,
-        liveEnvironmentsEnabled,
-      });
+      const project = await orgProjects.createProject(toOrgProjectContext(claims), request);
       res.status(201).json({ ok: true, project });
     } catch (error: unknown) {
       if (isConsoleBillingError(error)) {
         sendBillingError(res, error);
         return;
       }
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2054,8 +2042,8 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     const projectId = readPathParam(req, 'id');
     if (!projectId) {
       res.status(400).json({ ok: false, code: 'invalid_path', message: 'Missing project id' });
@@ -2063,8 +2051,8 @@ function registerConsoleOrgProjectEnvRoutes(
     }
     try {
       const request = parseUpdateConsoleProjectRequest((req as any).body || {});
-      const project = await orgProjectEnv.updateProject(
-        toOrgProjectEnvContext(claims),
+      const project = await orgProjects.updateProject(
+        toOrgProjectContext(claims),
         projectId,
         request,
       );
@@ -2078,7 +2066,7 @@ function registerConsoleOrgProjectEnvRoutes(
       }
       res.status(200).json({ ok: true, project });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2087,15 +2075,15 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     const projectId = readPathParam(req, 'id');
     if (!projectId) {
       res.status(400).json({ ok: false, code: 'invalid_path', message: 'Missing project id' });
       return;
     }
     try {
-      const project = await orgProjectEnv.archiveProject(toOrgProjectEnvContext(claims), projectId);
+      const project = await orgProjects.archiveProject(toOrgProjectContext(claims), projectId);
       if (!project) {
         res.status(404).json({
           ok: false,
@@ -2106,24 +2094,31 @@ function registerConsoleOrgProjectEnvRoutes(
       }
       res.status(200).json({ ok: true, project });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
+}
 
+function registerConsoleWalletEnvironmentRoutes(
+  router: ExpressRouter,
+  ctx: ExpressConsoleContext,
+): void {
   router.get('/console/environments', async (req: Request, res: Response) => {
     const claims = await requireConsoleAuth(req, res, ctx);
     if (!claims) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const walletEnvironments = requireWalletEnvironmentService(res, ctx);
+    if (!walletEnvironments) return;
     try {
-      const request = parseListConsoleEnvironmentsRequest((req as any).query || {});
-      const environments = await orgProjectEnv.listEnvironments(
-        toOrgProjectEnvContext(claims),
+      const request = parseListConsoleWalletEnvironmentsRequest((req as any).query || {});
+      const environments = await walletEnvironments.listEnvironments(
+        toOrgProjectContext(claims),
         request,
       );
-      res.status(200).json({ ok: true, environments });
+      res
+        .status(200)
+        .json({ ok: true, environments: environments.map(serializeWalletEnvironment) });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2132,10 +2127,10 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const walletEnvironments = requireWalletEnvironmentService(res, ctx);
+    if (!walletEnvironments) return;
     try {
-      const request = parseCreateConsoleEnvironmentRequest((req as any).body || {});
+      const request = parseCreateConsoleWalletEnvironmentRequest((req as any).body || {});
       if (request.key !== 'dev' && !ctx.opts.allowLiveEnvironmentBillingBypass) {
         if (!ctx.billing) {
           sendBillingError(
@@ -2150,17 +2145,17 @@ function registerConsoleOrgProjectEnvRoutes(
         }
         await ensureBillingReadyForLiveEnvironment(ctx.billing, toBillingContext(claims));
       }
-      const environment = await orgProjectEnv.createEnvironment(
-        toOrgProjectEnvContext(claims),
+      const environment = await walletEnvironments.createEnvironment(
+        toOrgProjectContext(claims),
         request,
       );
-      res.status(201).json({ ok: true, environment });
+      res.status(201).json({ ok: true, environment: serializeWalletEnvironment(environment) });
     } catch (error: unknown) {
       if (isConsoleBillingError(error)) {
         sendBillingError(res, error);
         return;
       }
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2169,17 +2164,17 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const walletEnvironments = requireWalletEnvironmentService(res, ctx);
+    if (!walletEnvironments) return;
     const environmentId = readPathParam(req, 'id');
     if (!environmentId) {
       res.status(400).json({ ok: false, code: 'invalid_path', message: 'Missing environment id' });
       return;
     }
     try {
-      const request = parseUpdateConsoleEnvironmentRequest((req as any).body || {});
-      const environment = await orgProjectEnv.updateEnvironment(
-        toOrgProjectEnvContext(claims),
+      const request = parseUpdateConsoleWalletEnvironmentRequest((req as any).body || {});
+      const environment = await walletEnvironments.updateEnvironment(
+        toOrgProjectContext(claims),
         environmentId,
         request,
       );
@@ -2191,9 +2186,9 @@ function registerConsoleOrgProjectEnvRoutes(
         });
         return;
       }
-      res.status(200).json({ ok: true, environment });
+      res.status(200).json({ ok: true, environment: serializeWalletEnvironment(environment) });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 
@@ -2202,16 +2197,16 @@ function registerConsoleOrgProjectEnvRoutes(
     if (!claims) return;
     const routePolicy = requireConsoleRoutePolicy(req, res, ctx, claims);
     if (!routePolicy) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const walletEnvironments = requireWalletEnvironmentService(res, ctx);
+    if (!walletEnvironments) return;
     const environmentId = readPathParam(req, 'id');
     if (!environmentId) {
       res.status(400).json({ ok: false, code: 'invalid_path', message: 'Missing environment id' });
       return;
     }
     try {
-      const environment = await orgProjectEnv.archiveEnvironment(
-        toOrgProjectEnvContext(claims),
+      const environment = await walletEnvironments.archiveEnvironment(
+        toOrgProjectContext(claims),
         environmentId,
       );
       if (!environment) {
@@ -2222,9 +2217,9 @@ function registerConsoleOrgProjectEnvRoutes(
         });
         return;
       }
-      res.status(200).json({ ok: true, environment });
+      res.status(200).json({ ok: true, environment: serializeWalletEnvironment(environment) });
     } catch (error: unknown) {
-      sendOrgProjectEnvError(res, error);
+      sendProjectScopeError(res, error);
     }
   });
 }
@@ -3374,7 +3369,7 @@ function registerConsoleInsightsRoutes(router: ExpressRouter, ctx: ExpressConsol
       projectIdRaw: (req as any)?.query?.projectId,
       environmentIdRaw: (req as any)?.query?.environmentId,
       claimsProjectId: claims.projectId,
-      claimsEnvironmentId: claims.environmentId,
+      claimsEnvironmentId: claims.environmentId ?? undefined,
     });
     try {
       const coverage = await buildConsolePolicyCoverageView({
@@ -3403,7 +3398,7 @@ function registerConsoleInsightsRoutes(router: ExpressRouter, ctx: ExpressConsol
       projectIdRaw: (req as any)?.query?.projectId,
       environmentIdRaw: (req as any)?.query?.environmentId,
       claimsProjectId: claims.projectId,
-      claimsEnvironmentId: claims.environmentId,
+      claimsEnvironmentId: claims.environmentId ?? undefined,
     });
     try {
       const readiness = await buildConsoleGasReadinessView({
@@ -4312,11 +4307,11 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
     const claims = await requireConsoleAuth(req, res, ctx);
     if (!claims) return;
     if (!requireConsoleRoutePolicy(req, res, ctx, claims)) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     try {
       const organizations = await searchPlatformBillingOrganizations({
-        orgProjectEnv,
+        orgProjects,
         request: parsePlatformBillingSearchRequest((req as any).query),
       });
       res.status(200).json({ ok: true, organizations });
@@ -4331,20 +4326,20 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
     if (!requireConsoleRoutePolicy(req, res, ctx, claims)) return;
     const billing = requireBillingService(res, ctx);
     if (!billing) return;
-    const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-    if (!orgProjectEnv) return;
+    const orgProjects = requireOrgProjectService(res, ctx);
+    if (!orgProjects) return;
     try {
       const request = parsePlatformBillingLookupRequest((req as any).query);
       const result = await resolvePlatformBillingLookup({
         claims,
         billing,
-        orgProjectEnv,
+        orgProjects,
         request,
       });
       res.status(200).json({ ok: true, result });
     } catch (error: unknown) {
-      if (isConsoleOrgProjectEnvError(error)) {
-        sendOrgProjectEnvError(res, error);
+      if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
+        sendProjectScopeError(res, error);
         return;
       }
       sendBillingError(res, error);
@@ -4486,12 +4481,12 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
       if (!requireConsoleRoutePolicy(req, res, ctx, claims)) return;
       const billing = requireBillingService(res, ctx);
       if (!billing) return;
-      const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-      if (!orgProjectEnv) return;
+      const orgProjects = requireOrgProjectService(res, ctx);
+      if (!orgProjects) return;
       try {
         const request = parsePlatformBillingManualAdjustmentRequest((req as any).body);
         const { orgId, ...adjustmentRequest } = request;
-        const organization = await orgProjectEnv.getOrganization({
+        const organization = await orgProjects.getOrganization({
           orgId,
           actorUserId: claims.userId,
           ...(claims.projectId ? { projectId: claims.projectId } : {}),
@@ -4545,8 +4540,8 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
         );
         res.status(result.created ? 201 : 200).json({ ok: true, result });
       } catch (error: unknown) {
-        if (isConsoleOrgProjectEnvError(error)) {
-          sendOrgProjectEnvError(res, error);
+        if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
+          sendProjectScopeError(res, error);
           return;
         }
         sendBillingError(res, error);
@@ -4610,12 +4605,12 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
       if (!requireConsoleRoutePolicy(req, res, ctx, claims)) return;
       const billing = requireBillingService(res, ctx);
       if (!billing) return;
-      const orgProjectEnv = requireOrgProjectEnvService(res, ctx);
-      if (!orgProjectEnv) return;
+      const orgProjects = requireOrgProjectService(res, ctx);
+      if (!orgProjects) return;
       try {
         const request = parsePlatformBillingManualAdjustmentRequest((req as any).body);
         const { orgId, ...adjustmentRequest } = request;
-        const organization = await orgProjectEnv.getOrganization({
+        const organization = await orgProjects.getOrganization({
           orgId,
           actorUserId: claims.userId,
           ...(claims.projectId ? { projectId: claims.projectId } : {}),
@@ -4669,8 +4664,8 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
         );
         res.status(result.created ? 201 : 200).json({ ok: true, result });
       } catch (error: unknown) {
-        if (isConsoleOrgProjectEnvError(error)) {
-          sendOrgProjectEnvError(res, error);
+        if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
+          sendProjectScopeError(res, error);
           return;
         }
         sendBillingError(res, error);
@@ -5021,7 +5016,8 @@ export function createConsoleRouter(opts: ConsoleRouterOptions = {}): ExpressRou
   const prepaidReservations =
     opts.prepaidReservations === undefined ? null : opts.prepaidReservations;
   const sponsoredCalls = opts.sponsoredCalls === undefined ? null : opts.sponsoredCalls;
-  const orgProjectEnv = opts.orgProjectEnv === undefined ? null : opts.orgProjectEnv;
+  const orgProjects = opts.orgProjects === undefined ? null : opts.orgProjects;
+  const walletEnvironments = opts.walletEnvironments ?? null;
   const wallets = opts.wallets === undefined ? null : opts.wallets;
   const policies = opts.policies === undefined ? null : opts.policies;
   const apiKeys = opts.apiKeys === undefined ? null : opts.apiKeys;
@@ -5049,7 +5045,8 @@ export function createConsoleRouter(opts: ConsoleRouterOptions = {}): ExpressRou
     billing,
     prepaidReservations,
     sponsoredCalls,
-    orgProjectEnv,
+    orgProjects,
+    walletEnvironments,
     wallets,
     policies,
     apiKeys,
@@ -5081,7 +5078,8 @@ export function createConsoleRouter(opts: ConsoleRouterOptions = {}): ExpressRou
     toAuditContext,
     sendObservabilityError,
   });
-  registerConsoleOrgProjectEnvRoutes(router, ctx);
+  registerConsoleOrgProjectRoutes(router, ctx);
+  registerConsoleWalletEnvironmentRoutes(router, ctx);
   registerConsoleOrganizationAccessRoutes(router, ctx);
   registerConsoleApprovalRoutes(router, ctx);
   registerConsoleAuditRoutes(router, ctx);

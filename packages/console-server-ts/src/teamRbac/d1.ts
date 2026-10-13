@@ -2253,17 +2253,23 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
             AND org_id = ?
             AND id = ?
             AND kind = 'ACTIVE'
-            AND role <> 'OWNER'`,
+            AND role <> 'OWNER'
+          RETURNING id`,
         )
         .bind(nowMs, nowMs, this.state.namespace, ctx.orgId, target.id),
     ];
     if (membershipEmail) statements.push(membershipEmail);
-    const results = await this.state.database.batch<D1ResultLike>(statements);
+    const results = await this.state.database.batch<D1ResultLike<{ id: string }>>(statements);
     const mutationResult = results[0];
-    if (!mutationResult || d1ChangedRows(mutationResult) !== 1) {
+    const [changedMembership] = mutationResult?.results ?? [];
+    if (!changedMembership || changedMembership.id !== target.id) {
       throw accessError('membership_not_active', 409, 'Membership is no longer active');
     }
-    return membershipWithAccess(this.state, await this.requireMembership(ctx.orgId, target.id));
+    const suspended = await this.requireMembership(ctx.orgId, target.id);
+    if (suspended.kind !== 'suspended') {
+      throw accessError('membership_state_changed', 409, 'Membership changed after suspension');
+    }
+    return membershipWithAccess(this.state, suspended);
   }
 
   async reactivateMembership(

@@ -1113,9 +1113,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
   const selectedProjectId = normalizeString(
     selectedContext.project || session.claims?.projectId || '',
   );
-  const selectedEnvironmentId = normalizeString(
-    selectedContext.environment || session.claims?.environmentId || '',
-  );
+  const selectedEnvironmentId = normalizeString(selectedContext.environment || '');
 
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
@@ -1805,9 +1803,9 @@ export function GasSponsorshipPage(): React.JSX.Element {
         label: 'Org prepaid balance',
         value: formatUsdMinor(billingOverview.creditBalanceMinor),
         hint:
-          billingOverview.liveEnvironmentState === 'BLOCKED'
+          billingOverview.creditBalanceMinor <= 0
             ? 'Sponsorship is blocked until balance is positive again'
-            : billingOverview.liveEnvironmentState === 'LOW_BALANCE'
+            : billingOverview.creditBalanceMinor <= billingOverview.lowBalanceThresholdMinor
               ? `Warning threshold ${formatUsdMinor(billingOverview.lowBalanceThresholdMinor)}`
               : 'Positive balance available for sponsorship admission',
       },
@@ -1837,14 +1835,14 @@ export function GasSponsorshipPage(): React.JSX.Element {
 
   const gasBalanceNotice = React.useMemo(() => {
     if (!billingOverview) return null;
-    if (billingOverview.liveEnvironmentState === 'BLOCKED') {
+    if (billingOverview.creditBalanceMinor <= 0) {
       return {
         tone: 'warning' as const,
         message:
           'Sponsored execution is currently blocked because org prepaid balance is depleted. Policy caps can still have room, but no new sponsored requests will be admitted until the balance is refilled.',
       };
     }
-    if (billingOverview.liveEnvironmentState === 'LOW_BALANCE') {
+    if (billingOverview.creditBalanceMinor <= billingOverview.lowBalanceThresholdMinor) {
       return {
         tone: 'info' as const,
         message: `Sponsored execution is still active, but prepaid balance is at or below the warning threshold (${formatUsdMinor(

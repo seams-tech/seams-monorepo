@@ -24,6 +24,7 @@ import {
 import { DashboardInlineModal } from '@core/dashboard/components/DashboardInlineModal';
 import { CopyButton } from '@core/components/CopyButton';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders } from '../consoleWalletHttp';
 import { formatDashboardTimestamp } from '@core/dashboard/utils/timestamps';
 import type { TenantRootSecurityStatusV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import {
@@ -133,7 +134,7 @@ async function loadRestoreAccess(
   try {
     const response = await fetch(
       `${requireConsoleBaseUrl()}/console/tenant-root/security/restore-access`,
-      { credentials: 'include', signal },
+      { credentials: 'include', signal, headers: buildWalletAcceptHeaders() },
     );
     const body: unknown = await response.json();
     if (

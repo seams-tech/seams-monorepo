@@ -6,7 +6,6 @@ import {
   type BillingProviderAdapters,
   type StripeRefundProviderOutput,
 } from './providers';
-import { resolveBillingLiveEnvironmentState } from './readiness';
 import { billingBalanceFromEntries, buildBillingBalancedPostings } from './ledger';
 import {
   normalizeManualAdjustmentRequest,
@@ -1587,10 +1586,6 @@ export function createInMemoryConsoleBillingService(
         monthlyActiveResources: store.monthlyActiveResources,
         creditBalanceMinor,
         lowBalanceThresholdMinor: store.lowBalanceThresholdMinor,
-        liveEnvironmentState: resolveBillingLiveEnvironmentState({
-          creditBalanceMinor,
-          lowBalanceThresholdMinor: store.lowBalanceThresholdMinor,
-        }),
         recentUsageDebitMinor: getCurrentMonthUsageDebitMinor(store, currentMonthUtc),
         recentCreditPurchasedMinor: getCurrentMonthPurchasedMinor(store, currentMonthUtc),
         documentCount: projectedInvoices.length,

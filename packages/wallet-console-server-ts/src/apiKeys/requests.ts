@@ -4,7 +4,7 @@ import {
   readOptionalStringField as readOptionalString,
   readRequiredStringField as readRequiredString,
   requireBodyObject as requireObject,
-} from '../shared/requestParse';
+} from '@seams-internal/console-server/shared/requestParse';
 import type {
   ApiCredentialScopeValidation,
   CreateConsoleApiKeyRequest,

@@ -1,11 +1,10 @@
 import {
-  buildConsoleAcceptHeaders,
-  buildConsoleJsonHeaders,
   consoleErrorMessage,
   fetchConsoleEndpoint,
   parseConsoleJson,
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 
 export type DashboardConsoleApprovalOperationType = 'POLICY_PUBLISH' | 'KEY_EXPORT';
 
@@ -169,7 +168,7 @@ export async function listDashboardApprovals(input?: {
     url.toString(),
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -206,7 +205,7 @@ export async function createDashboardApproval(input: {
     `${base}/console/approvals`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify(input),
@@ -239,7 +238,7 @@ export async function approveDashboardApproval(input: {
     `${base}${approvePath}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({
@@ -274,7 +273,7 @@ export async function rejectDashboardApproval(input: {
     `${base}${rejectPath}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({

@@ -3,13 +3,12 @@ import {
   type ConsoleWalletKey,
 } from '@seams-internal/wallet-console-shared';
 import {
-  buildConsoleAcceptHeaders,
-  buildConsoleJsonHeaders,
   consoleErrorMessage,
   fetchConsoleEndpoint,
   parseConsoleJson,
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 
 export interface DashboardConsoleWallet extends ConsoleWalletKey {
   address: string;
@@ -190,7 +189,7 @@ async function fetchWalletPage(pathWithQuery: string): Promise<DashboardConsoleW
     `${base}${pathWithQuery}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -259,7 +258,7 @@ export async function refreshDashboardWalletBalances(
     `${base}${path}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({ wallets: requestedWallets }),

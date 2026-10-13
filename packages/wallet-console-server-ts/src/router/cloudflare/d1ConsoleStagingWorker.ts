@@ -1,9 +1,18 @@
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
+import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
 import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
 import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
-import { handleWalletRelocationAdmission, WALLET_RELOCATION_ADMISSION_URL } from '../../walletPlacement/relocationAdmission';
+import {
+  handleWalletRelocationAdmission,
+  WALLET_RELOCATION_ADMISSION_URL,
+} from '../../walletPlacement/relocationAdmission';
 import { RelocationResourceVerifier } from '../../tenantDeployment/relocationResourceVerification';
-import { handleWalletRelocationAdvance, resumeWalletRelocations, runWalletRelocation, WALLET_RELOCATION_ADVANCE_URL } from '../../walletPlacement/relocationService';
+import {
+  handleWalletRelocationAdvance,
+  resumeWalletRelocations,
+  runWalletRelocation,
+  WALLET_RELOCATION_ADVANCE_URL,
+} from '../../walletPlacement/relocationService';
 import { WalletRegionalDispatch } from '../../walletPlacement/regionalDispatch';
 import { RegionalDeploymentServiceInstaller } from '../../tenantDeployment/regionalAdmissionTransport';
 import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacement/gatewaySession';
@@ -318,6 +327,7 @@ async function createConsoleHandler(
     },
     route: {
       namespace,
+      deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
     },
     adapters: {
       ensureSchema: false,
@@ -336,6 +346,19 @@ async function createConsoleHandler(
       },
     },
   });
+  const walletAdmission = {
+    platform: bundle.accountPlatform,
+    authority: bundle.walletProvisioning.authority,
+    namespace,
+    environments: bundle.walletEnvironments,
+  };
+  ctx.waitUntil(
+    runAccountServiceProvisioning({
+      platform: bundle.accountPlatform,
+      adapter: bundle.walletProvisioning,
+      limit: 20,
+    }),
+  );
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
@@ -352,6 +375,8 @@ async function createConsoleHandler(
     corsOrigins: consoleCorsOrigins(env),
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
+    walletProvisioning: bundle.walletProvisioning,
+    satyrProvisioning: null,
     auth,
     session,
     readyCheck: async () => {
@@ -362,7 +387,7 @@ async function createConsoleHandler(
   });
   const relayHandler = createWalletConsoleRelayHandler(
     createConsoleRouterApiRouteExtensions({
-      apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
+      apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys, walletAdmission),
       wallets: bundle.wallets,
       signedDelegate: {
         route: DEFAULT_SIGNED_DELEGATE_ROUTE,
@@ -372,6 +397,7 @@ async function createConsoleHandler(
         runtimeSnapshots: bundle.runtimeSnapshots,
         publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
           bundle.apiKeys,
+          walletAdmission,
           ctx.waitUntil.bind(ctx),
         ),
         observabilityIngestion: bundle.observabilityIngestion,
@@ -386,6 +412,7 @@ async function createConsoleHandler(
               route: DEFAULT_SPONSORED_EVM_CALL_ROUTE,
               publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
                 bundle.apiKeys,
+                walletAdmission,
                 ctx.waitUntil.bind(ctx),
               ),
               billing: bundle.billing,
@@ -419,7 +446,7 @@ async function createConsoleHandler(
   });
   const tenantRootCreationDependencies: TenantRootCreationConsoleRouteDependenciesV1 = {
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     grants: tenantRootGrants,
     router: {
       fetch: (input, init) => walletControl.router.fetch(new Request(input, init)),
@@ -460,7 +487,7 @@ async function createConsoleHandler(
   });
   const tenantRootCustody = new TenantRootCustodyWorkerRouteV1({
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     stepUp: tenantRootStepUp,
     database: env.CONSOLE_DB,
     namespace: namespace,
@@ -482,14 +509,14 @@ async function createConsoleHandler(
       namespace: namespace,
       isOwner: tenantRootCustody.isOrganizationOwner.bind(tenantRootCustody),
       auth,
-      orgProjectEnv: bundle.orgProjectEnv,
+      walletEnvironments: bundle.walletEnvironments,
       stepUp: tenantRootStepUp,
     },
     env.TENANT_ROOT_RESTORE_ACCESS_JSON,
   );
   const tenantRootSecurityReadRoute = createTenantRootSecurityConsoleRouteV1({
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     stepUp: tenantRootStepUp,
     state: tenantRootCustody,
     operations: (scope) =>
@@ -508,7 +535,7 @@ async function createConsoleHandler(
         ...scope,
       }),
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     state: tenantRootCustody,
     router: {
       fetch: (input, init) => walletControl.router.fetch(new Request(input, init)),
@@ -522,7 +549,7 @@ async function createConsoleHandler(
   const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace,
     deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     apiKeys: bundle.apiKeys,
     policies: bundle.policies,
     runtimeSnapshots: bundle.runtimeSnapshots,
@@ -561,7 +588,7 @@ async function createConsoleHandler(
     resources: walletHomeCatalog.deploymentResources(),
     deploymentLane,
     surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     apiKeys: bundle.apiKeys,
     audit: bundle.audit,
     tenantRootCreation: tenantRootCreationDependencies,
@@ -570,13 +597,20 @@ async function createConsoleHandler(
     readiness: tenantDeploymentReadiness,
     store: tenantDeploymentStore,
     regionalAdmission: new RegionalDeploymentServiceInstaller(walletHomeCatalog, {
-      US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR,
-      APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC,
+      US: env.WALLET_RUNTIME_US,
+      WEUR: env.WALLET_RUNTIME_WEUR,
+      APAC: env.WALLET_RUNTIME_APAC,
+      OC: env.WALLET_RUNTIME_OC,
     }),
     canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
     browserCredential: { kind: 'create_managed_publishable_key' },
   });
-  const resourceVerifier = relocationRuntimeVerifier(env, namespace, deploymentLane, walletHomeCatalog);
+  const resourceVerifier = relocationRuntimeVerifier(
+    env,
+    namespace,
+    deploymentLane,
+    walletHomeCatalog,
+  );
 
   const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
     deploymentLane,
@@ -586,16 +620,20 @@ async function createConsoleHandler(
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.
   const opsHandler = createWalletConsoleOpsHandler({
-    apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
+    apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys, walletAdmission),
     publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
       bundle.apiKeys,
+      walletAdmission,
       ctx.waitUntil.bind(ctx),
     ),
     usageMeter: createRouterApiBillingUsageMeterAdapter(bundle.billing, {
-      orgProjectEnv: bundle.orgProjectEnv,
+      walletEnvironments: bundle.walletEnvironments,
       wallets: bundle.wallets,
     }),
-    projectEnvironments: createWalletProjectEnvironmentResolver(bundle.orgProjectEnv),
+    projectEnvironments: createWalletProjectEnvironmentResolver(
+      bundle.walletEnvironments,
+      walletAdmission,
+    ),
     tenantRootActiveLineage: new D1TenantRootActiveLineageResolverV1(env.CONSOLE_DB, namespace),
   });
   const routerWithOps: FetchHandler = async (request, workerEnv, ctx) => {
@@ -652,7 +690,6 @@ async function createConsoleHandler(
     },
     session,
     account: bundle.account,
-    orgProjectEnv: bundle.orgProjectEnv,
     corsOrigins: consoleCorsOrigins(env),
   });
   return attachConsoleRouteSurface(
@@ -777,7 +814,12 @@ async function fetch(
     }
     if (request.url === WALLET_RELOCATION_ADMISSION_URL) {
       const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
-      const runtimeVerifier = relocationRuntimeVerifier(env, active.tenant.namespace, deploymentLane, catalog);
+      const runtimeVerifier = relocationRuntimeVerifier(
+        env,
+        active.tenant.namespace,
+        deploymentLane,
+        catalog,
+      );
       const verifier = new RelocationResourceVerifier(
         env.CONSOLE_DB,
         active.tenant.namespace,
@@ -868,7 +910,7 @@ async function runConsoleTenantRootRefreshResumptionV1(
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
   const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
     bindings: { consoleDatabase: env.CONSOLE_DB },
-    route: { namespace },
+    route: { namespace, deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') },
     adapters: { ensureSchema: false },
   });
   const resumption = createD1TenantRootOperationResumptionStoreV1({
@@ -997,8 +1039,12 @@ function relocationResumptionOptions(env: CloudflareD1ConsoleStagingEnv) {
     namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
     bindings: {
       gateways: new WalletRegionalDispatch(env),
-      runtimes: { US: env.WALLET_RUNTIME_US, WEUR: env.WALLET_RUNTIME_WEUR,
-        APAC: env.WALLET_RUNTIME_APAC, OC: env.WALLET_RUNTIME_OC },
+      runtimes: {
+        US: env.WALLET_RUNTIME_US,
+        WEUR: env.WALLET_RUNTIME_WEUR,
+        APAC: env.WALLET_RUNTIME_APAC,
+        OC: env.WALLET_RUNTIME_OC,
+      },
     },
     clock: Date.now,
   };

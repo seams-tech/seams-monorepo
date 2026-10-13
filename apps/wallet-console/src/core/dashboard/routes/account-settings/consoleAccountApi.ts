@@ -35,7 +35,7 @@ export interface DashboardAccountProjectAccessAssignment {
   accessLevel: 'viewer' | 'editor';
 }
 
-type DashboardAccountOrganizationAccess =
+export type DashboardAccountOrganizationAccess =
   | {
       membershipId: string;
       authorizationVersion: number;
@@ -72,8 +72,6 @@ interface DashboardAccountOrganizationIdentity {
   onboardingComplete: boolean;
   selectedProjectId: string | null;
   selectedProjectName: string | null;
-  selectedEnvironmentId: string | null;
-  selectedEnvironmentName: string | null;
 }
 
 export type DashboardAccountOrganization = DashboardAccountOrganizationIdentity &
@@ -82,7 +80,6 @@ export type DashboardAccountOrganization = DashboardAccountOrganizationIdentity 
 interface DashboardSwitchOrganizationContextIdentity {
   orgId: string;
   projectId: string | null;
-  environmentId: string | null;
   onboardingComplete: boolean;
   platformSupport: boolean;
 }
@@ -142,14 +139,11 @@ const ACCOUNT_ORGANIZATION_FIELDS = [
   'onboardingComplete',
   'selectedProjectId',
   'selectedProjectName',
-  'selectedEnvironmentId',
-  'selectedEnvironmentName',
   ...ACCOUNT_ACCESS_FIELDS,
 ] as const;
 const ACCOUNT_SWITCH_CONTEXT_FIELDS = [
   'orgId',
   'projectId',
-  'environmentId',
   'onboardingComplete',
   'platformSupport',
   ...ACCOUNT_ACCESS_FIELDS,
@@ -295,7 +289,7 @@ function parseProjectAssignments(raw: unknown): DashboardAccountProjectAccessAss
   return assignments;
 }
 
-function parseOrganizationAccess(raw: object): DashboardAccountOrganizationAccess | null {
+export function parseOrganizationAccess(raw: object): DashboardAccountOrganizationAccess | null {
   const membershipId = accountReadString(accountOwnValue(raw, 'membershipId'));
   const authorizationVersion = accountOwnValue(raw, 'authorizationVersion');
   const role = accountReadString(accountOwnValue(raw, 'role'));
@@ -365,12 +359,6 @@ function parseOrganization(raw: unknown): DashboardAccountOrganization | null {
   const selectedProjectName = accountReadNullableString(
     accountOwnValue(organization, 'selectedProjectName'),
   );
-  const selectedEnvironmentId = accountReadNullableString(
-    accountOwnValue(organization, 'selectedEnvironmentId'),
-  );
-  const selectedEnvironmentName = accountReadNullableString(
-    accountOwnValue(organization, 'selectedEnvironmentName'),
-  );
   const access = parseOrganizationAccess(organization);
   if (
     !id ||
@@ -383,8 +371,6 @@ function parseOrganization(raw: unknown): DashboardAccountOrganization | null {
     onboardingComplete === null ||
     selectedProjectId === undefined ||
     selectedProjectName === undefined ||
-    selectedEnvironmentId === undefined ||
-    selectedEnvironmentName === undefined ||
     !access
   ) {
     return null;
@@ -400,8 +386,6 @@ function parseOrganization(raw: unknown): DashboardAccountOrganization | null {
     onboardingComplete,
     selectedProjectId,
     selectedProjectName,
-    selectedEnvironmentId,
-    selectedEnvironmentName,
     ...access,
   };
 }
@@ -411,14 +395,12 @@ function parseSwitchContext(raw: unknown): DashboardSwitchOrganizationContextRes
   if (!context) return null;
   const orgId = accountReadString(accountOwnValue(context, 'orgId'));
   const projectId = accountReadNullableString(accountOwnValue(context, 'projectId'));
-  const environmentId = accountReadNullableString(accountOwnValue(context, 'environmentId'));
   const onboardingComplete = accountReadBoolean(accountOwnValue(context, 'onboardingComplete'));
   const platformSupport = accountReadBoolean(accountOwnValue(context, 'platformSupport'));
   const access = parseOrganizationAccess(context);
   if (
     !orgId ||
     projectId === undefined ||
-    environmentId === undefined ||
     onboardingComplete === null ||
     platformSupport === null ||
     !access
@@ -428,7 +410,6 @@ function parseSwitchContext(raw: unknown): DashboardSwitchOrganizationContextRes
   return {
     orgId,
     projectId,
-    environmentId,
     onboardingComplete,
     platformSupport,
     ...access,

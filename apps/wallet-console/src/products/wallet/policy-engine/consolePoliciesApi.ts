@@ -3,13 +3,12 @@ import {
   type DashboardConsoleEnvironment,
 } from '@core/dashboard/consoleContextApi';
 import {
-  buildConsoleAcceptHeaders,
-  buildConsoleJsonHeaders,
   consoleErrorMessage,
   fetchConsoleEndpoint,
   parseConsoleJson,
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 
 export interface DashboardConsolePolicy {
   id: string;
@@ -318,7 +317,7 @@ export async function listDashboardPolicies(
     `${base}${listPath}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -349,7 +348,7 @@ export async function listDashboardPolicyVersions(
     `${base}${versionsPath}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -384,7 +383,7 @@ export async function createDashboardPolicy(input: {
     `${base}/console/policies`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify(input),
@@ -418,7 +417,7 @@ export async function updateDashboardPolicy(input: {
     `${base}${updatePath}`,
     {
       method: 'PATCH',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({
@@ -454,7 +453,7 @@ export async function deleteDashboardPolicy(input: {
     `${base}${deletePath}`,
     {
       method: 'DELETE',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },
@@ -489,7 +488,7 @@ export async function publishDashboardPolicy(input: {
     `${base}${publishPath}`,
     {
       method: 'POST',
-      headers: requestBody ? buildConsoleJsonHeaders() : buildConsoleAcceptHeaders(),
+      headers: requestBody ? buildWalletJsonHeaders() : buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
       ...(requestBody ? { body: requestBody } : {}),
@@ -533,7 +532,7 @@ export async function publishCurrentDashboardRuntimeSnapshot(input: {
     `${base}${path}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({ environmentId, ...(projectId ? { projectId } : {}) }),
@@ -569,7 +568,7 @@ export async function simulateDashboardPolicy(input: {
     `${base}${simulatePath}`,
     {
       method: 'POST',
-      headers: buildConsoleJsonHeaders(),
+      headers: buildWalletJsonHeaders(),
       credentials: 'include',
       cache: 'no-store',
       body: JSON.stringify({
@@ -612,7 +611,7 @@ export async function listDashboardPolicyAssignments(
     `${base}${assignmentsPath}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },

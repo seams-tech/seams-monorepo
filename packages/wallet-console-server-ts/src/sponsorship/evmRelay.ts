@@ -1,6 +1,5 @@
 import type { Request, Response, Router as ExpressRouter } from 'express';
 import { createEvmClient, parseRpcHexQuantity as parseEvmRpcHexQuantity } from './evmRpcClient';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
 import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/index';
@@ -17,7 +16,7 @@ import {
   encodeEip1559SignedTxFromSignature65,
 } from '@seams/wallet-server/cloud-host';
 import type { SponsorshipSpendPricingService } from './spendCaps';
-import { createRouterApiPublishableKeyAuthAdapter } from '../router/routerApiKeyAuth';
+import type { RouterApiPublishableKeyAuthAdapter } from '@seams/wallet-server/cloud-host';
 import { coerceRouterLogger, type RouterLogger } from '@seams/wallet-server/cloud-host';
 import { handleRouterApiSponsoredEvmCall } from '../router/routerApiSponsoredEvmCall';
 import type { RouteDefinition } from '@seams/wallet-server/cloud-host';
@@ -37,7 +36,7 @@ export { DEFAULT_SPONSORED_EVM_CALL_ROUTE, DEFAULT_SPONSORED_EVM_CALL_ROUTE_ID }
 
 export type RegisterSponsoredEvmCallRouteArgs = {
   router: Pick<ExpressRouter, 'post' | 'options'>;
-  apiKeys: ConsoleApiKeyService;
+  publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
   billing: ConsoleBillingService;
   ledger: ConsoleSponsoredCallService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
@@ -308,7 +307,6 @@ export function registerSponsoredEvmCallRoute(args: RegisterSponsoredEvmCallRout
     requiredServices: ['routerApiSponsoredEvmCall'],
     summary: 'Execute a sponsored EVM call',
   };
-  const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(args.apiKeys);
 
   args.router.options(route.path, (_req: Request, res: Response) => {
     res.status(204).send();
@@ -328,7 +326,7 @@ export function registerSponsoredEvmCallRoute(args: RegisterSponsoredEvmCallRout
           resolveExecutionAdapter: resolveSponsoredEvmExecutionAdapterForRoute,
           observabilityIngestion: args.observabilityIngestion || null,
           prepaidReservations: args.prepaidReservations || null,
-          publishableKeyAuth,
+          publishableKeyAuth: args.publishableKeyAuth,
           pricing: args.pricing || null,
           runtimeSnapshots: args.runtimeSnapshots,
           spendCaps: args.spendCaps || null,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import { verifyCustodyStepUp } from './consoleDerivationRootApi';
 
 type Details = {
@@ -60,7 +61,7 @@ async function load(id: string, setState: React.Dispatch<React.SetStateAction<St
   try {
     const response = await fetch(
       `${requireConsoleBaseUrl()}${path}/request?id=${encodeURIComponent(id)}`,
-      { credentials: 'include' },
+      { credentials: 'include', headers: buildWalletAcceptHeaders() },
     );
     if (!response.ok)
       throw new Error(
@@ -85,7 +86,7 @@ async function decide(
     const response = await fetch(`${requireConsoleBaseUrl()}${path}/${action}`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json' },
+      headers: buildWalletJsonHeaders(),
       body: JSON.stringify({ id: details.id }),
     });
     if (!response.ok) {

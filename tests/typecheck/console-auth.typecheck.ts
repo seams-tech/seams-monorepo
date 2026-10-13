@@ -71,7 +71,6 @@ const accountWithoutAuthorization: ConsoleAccountContext = {
   name: 'Owner',
   provider: 'oidc',
   projectId: null,
-  environmentId: null,
   platformSupport: false,
 };
 void accountWithoutAuthorization;
@@ -84,7 +83,6 @@ const verifiedAccount: ConsoleAccountIdentityContext = {
   platformSupport: false,
   orgId: null,
   projectId: null,
-  environmentId: null,
 };
 // @ts-expect-error Verified identity alone grants no organization authorization.
 const unscopedAuthorization: ConsoleAccountContext = verifiedAccount;

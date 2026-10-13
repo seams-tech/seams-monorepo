@@ -12,7 +12,6 @@ export interface DashboardBillingOverview {
   monthlyActiveResources: number;
   creditBalanceMinor: number;
   lowBalanceThresholdMinor: number;
-  liveEnvironmentState: 'HEALTHY' | 'LOW_BALANCE' | 'BLOCKED';
   reservedSponsorshipMinor: number;
   activeSponsorshipReservationCount: number;
   trailing30DaySponsoredSpendMinor: number;
@@ -530,23 +529,12 @@ function decodeOverview(raw: unknown): DashboardBillingOverview | null {
   if (!currentMonthUtc) return null;
   const creditBalanceMinor = Number(row.creditBalanceMinor || 0);
   const lowBalanceThresholdMinor = Number(row.lowBalanceThresholdMinor || 0);
-  const liveEnvironmentStateRaw = String(row.liveEnvironmentState || '')
-    .trim()
-    .toUpperCase();
   return {
     usageMetricVersion: String(row.usageMetricVersion || '').trim() || 'active_resource_v1',
     currentMonthUtc,
     monthlyActiveResources: Number(row.monthlyActiveResources || 0),
     creditBalanceMinor,
     lowBalanceThresholdMinor,
-    liveEnvironmentState:
-      liveEnvironmentStateRaw === 'BLOCKED' || liveEnvironmentStateRaw === 'LOW_BALANCE'
-        ? liveEnvironmentStateRaw
-        : creditBalanceMinor <= 0
-          ? 'BLOCKED'
-          : creditBalanceMinor <= lowBalanceThresholdMinor
-            ? 'LOW_BALANCE'
-            : 'HEALTHY',
     reservedSponsorshipMinor: Number(row.reservedSponsorshipMinor || 0),
     activeSponsorshipReservationCount: Number(row.activeSponsorshipReservationCount || 0),
     trailing30DaySponsoredSpendMinor: Number(row.trailing30DaySponsoredSpendMinor || 0),

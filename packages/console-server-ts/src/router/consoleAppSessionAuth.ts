@@ -1,8 +1,5 @@
 import type { ConsoleAuditService } from '../audit/service';
-import type {
-  ConsoleOrgProjectEnvContext,
-  ConsoleOrgProjectEnvService,
-} from '../orgProjectEnv/service';
+import type { ConsoleOrgProjectContext, ConsoleOrgProjectService } from '../orgProjectEnv/service';
 import type {
   ActiveOrganizationAuthorization,
   ConsoleOrganizationAccessService,
@@ -11,7 +8,7 @@ import type { SessionAdapter } from '../boundary';
 import type { ConsoleAuthAdapter, ConsoleAuthClaims, HeaderRecord } from './consoleAuth';
 
 export interface ConsoleSsoProvisioningOptions {
-  readonly orgProjectEnv?: ConsoleOrgProjectEnvService | null;
+  readonly orgProjectEnv?: ConsoleOrgProjectService | null;
   readonly audit?: ConsoleAuditService | null;
   readonly logger?: { warn(message?: unknown, ...optionalParams: unknown[]): void } | null;
 }
@@ -21,7 +18,6 @@ export interface AppSessionConsoleAuthAdapterOptions {
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly defaultOrgId?: string;
   readonly defaultProjectId?: string;
-  readonly defaultEnvironmentId?: string;
   readonly initialOwnerEmail?: string;
   readonly platformSupportEmails?: ReadonlyArray<unknown> | string;
   readonly provisioning?: ConsoleSsoProvisioningOptions | null;
@@ -30,7 +26,6 @@ export interface AppSessionConsoleAuthAdapterOptions {
 interface ReconciledConsoleScope {
   readonly orgId: string;
   readonly projectId: string;
-  readonly environmentId: string;
   readonly derivedOrganization: boolean;
 }
 
@@ -167,14 +162,6 @@ function matchesInitialOwnerEmail(input: {
   );
 }
 
-function readEnvironmentKeyCandidate(environmentId: string): 'dev' | 'staging' | 'prod' | null {
-  const candidate = normalizeString(environmentId).split(':').pop()?.toLowerCase();
-  if (candidate === 'dev' || candidate === 'staging' || candidate === 'prod') {
-    return candidate;
-  }
-  return null;
-}
-
 function deriveConsoleSsoOrganizationId(input: {
   readonly userId: string;
   readonly claims: Record<string, unknown>;
@@ -204,18 +191,16 @@ function createConsoleScopeReadContext(input: {
   readonly orgId: string;
   readonly userId: string;
   readonly projectId?: string;
-  readonly environmentId?: string;
-}): ConsoleOrgProjectEnvContext {
+}): ConsoleOrgProjectContext {
   return {
     orgId: input.orgId,
     actorUserId: input.userId,
     ...(input.projectId ? { projectId: input.projectId } : {}),
-    ...(input.environmentId ? { environmentId: input.environmentId } : {}),
   };
 }
 
 async function organizationExists(input: {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly orgId: string;
   readonly userId: string;
 }): Promise<boolean> {
@@ -232,7 +217,7 @@ async function organizationExists(input: {
 
 async function resolveDefaultConsoleOrgId(input: {
   readonly defaultOrgId: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  readonly orgProjectEnv: ConsoleOrgProjectService | null;
 }): Promise<string> {
   if (input.defaultOrgId || !input.orgProjectEnv) return input.defaultOrgId;
   try {
@@ -243,13 +228,12 @@ async function resolveDefaultConsoleOrgId(input: {
 }
 
 async function reconcileConsoleScopeClaims(input: {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  readonly orgProjectEnv: ConsoleOrgProjectService | null;
   readonly userId: string;
   readonly claims: Record<string, unknown>;
   readonly defaultOrgId: string;
   readonly orgId: string;
   readonly projectId: string;
-  readonly environmentId: string;
 }): Promise<ReconciledConsoleScope> {
   if (!input.orgProjectEnv) {
     const derivedOrganization = !input.orgId && normalizeString(input.claims.provider) === 'oidc';
@@ -258,7 +242,6 @@ async function reconcileConsoleScopeClaims(input: {
         ? deriveConsoleSsoOrganizationId({ userId: input.userId, claims: input.claims })
         : input.orgId,
       projectId: input.projectId,
-      environmentId: input.environmentId,
       derivedOrganization,
     };
   }
@@ -276,10 +259,9 @@ async function reconcileConsoleScopeClaims(input: {
     ) {
       orgId = '';
     }
-    if (!orgId) {
-      const organization = await input.orgProjectEnv.findOrganizationForScope({
-        ...(input.projectId ? { projectId: input.projectId } : {}),
-        ...(input.environmentId ? { environmentId: input.environmentId } : {}),
+    if (!orgId && input.projectId) {
+      const organization = await input.orgProjectEnv.findOrganizationForProject({
+        projectId: input.projectId,
       });
       orgId = normalizeString(organization?.id);
     }
@@ -305,7 +287,6 @@ async function reconcileConsoleScopeClaims(input: {
       return {
         orgId,
         projectId: input.projectId,
-        environmentId: input.environmentId,
         derivedOrganization,
       };
     }
@@ -314,48 +295,21 @@ async function reconcileConsoleScopeClaims(input: {
       orgId,
       userId: input.userId,
       projectId: input.projectId,
-      environmentId: input.environmentId,
     });
-    const [projects, environments] = await Promise.all([
-      input.orgProjectEnv.listProjects(readCtx, { status: 'ACTIVE' }),
-      input.orgProjectEnv.listEnvironments(readCtx, { status: 'ACTIVE' }),
-    ]);
+    const projects = await input.orgProjectEnv.listProjects(readCtx, { status: 'ACTIVE' });
     let projectId = input.projectId;
-    let environmentId = input.environmentId;
-    const exactEnvironment = environments.find((environment) => environment.id === environmentId);
-    if (exactEnvironment) {
-      projectId = exactEnvironment.projectId;
-      environmentId = exactEnvironment.id;
-    } else {
-      const environmentKey = readEnvironmentKeyCandidate(environmentId);
-      const environment =
-        (projectId && environmentKey
-          ? environments.find(
-              (entry) => entry.projectId === projectId && entry.key === environmentKey,
-            )
-          : undefined) ??
-        (projectId ? environments.find((entry) => entry.projectId === projectId) : undefined) ??
-        (environmentKey ? environments.find((entry) => entry.key === environmentKey) : undefined) ??
-        environments[0];
-      if (environment) {
-        projectId = environment.projectId;
-        environmentId = environment.id;
-      }
-    }
     if (!projectId || !projects.some((project) => project.id === projectId)) {
       projectId = projects[0]?.id ?? '';
     }
     return {
       orgId,
       projectId,
-      environmentId,
       derivedOrganization: false,
     };
   } catch {
     return {
       orgId: input.orgId,
       projectId: input.projectId,
-      environmentId: input.environmentId,
       derivedOrganization: false,
     };
   }
@@ -400,7 +354,7 @@ async function provisionInitialOidcOwner(input: {
   readonly userId: string;
   readonly profile: ConsoleIdentityProfile;
   readonly organizationAccess: ConsoleOrganizationAccessService;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly audit: ConsoleAuditService | null;
   readonly logger: { warn(message?: unknown, ...optionalParams: unknown[]): void };
 }): Promise<void> {
@@ -452,7 +406,7 @@ async function restrictScopeToAuthorization(input: {
   readonly scope: ReconciledConsoleScope;
   readonly authorization: ActiveOrganizationAuthorization;
   readonly userId: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  readonly orgProjectEnv: ConsoleOrgProjectService | null;
 }): Promise<ReconciledConsoleScope> {
   if (input.authorization.role !== 'MEMBER') return input.scope;
   const assignments = input.authorization.projectAccess.assignments;
@@ -464,7 +418,6 @@ async function restrictScopeToAuthorization(input: {
     return {
       orgId: input.scope.orgId,
       projectId,
-      environmentId: projectId === input.scope.projectId ? input.scope.environmentId : '',
       derivedOrganization: input.scope.derivedOrganization,
     };
   }
@@ -472,32 +425,14 @@ async function restrictScopeToAuthorization(input: {
     orgId: input.scope.orgId,
     userId: input.userId,
   });
-  const [projects, environments] = await Promise.all([
-    input.orgProjectEnv.listProjects(readCtx, { status: 'ACTIVE' }),
-    input.orgProjectEnv.listEnvironments(readCtx, { status: 'ACTIVE' }),
-  ]);
+  const projects = await input.orgProjectEnv.listProjects(readCtx, { status: 'ACTIVE' });
   const accessibleProjects = projects.filter((project) => assignedProjectIds.has(project.id));
-  const exactEnvironment = environments.find(
-    (environment) =>
-      environment.id === input.scope.environmentId && assignedProjectIds.has(environment.projectId),
-  );
-  if (exactEnvironment) {
-    return {
-      orgId: input.scope.orgId,
-      projectId: exactEnvironment.projectId,
-      environmentId: exactEnvironment.id,
-      derivedOrganization: input.scope.derivedOrganization,
-    };
-  }
   const projectId = assignedProjectIds.has(input.scope.projectId)
     ? input.scope.projectId
     : (accessibleProjects[0]?.id ?? '');
-  const environmentId =
-    environments.find((environment) => environment.projectId === projectId)?.id ?? '';
   return {
     orgId: input.scope.orgId,
     projectId,
-    environmentId,
     derivedOrganization: input.scope.derivedOrganization,
   };
 }
@@ -516,7 +451,6 @@ function buildConsoleAuthClaims(input: {
     name: input.profile.displayName,
     provider: input.profile.provider,
     ...(input.scope.projectId ? { projectId: input.scope.projectId } : {}),
-    ...(input.scope.environmentId ? { environmentId: input.scope.environmentId } : {}),
   };
   switch (input.authorization.role) {
     case 'OWNER':
@@ -559,10 +493,9 @@ interface AppSessionConsoleAuthRuntime {
   readonly options: AppSessionConsoleAuthAdapterOptions;
   readonly defaultOrgId: string;
   readonly defaultProjectId: string;
-  readonly defaultEnvironmentId: string;
   readonly initialOwnerEmail: string | null;
   readonly platformSupportEmails: readonly string[];
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService | null;
+  readonly orgProjectEnv: ConsoleOrgProjectService | null;
   readonly audit: ConsoleAuditService | null;
   readonly logger: { warn(message?: unknown, ...optionalParams: unknown[]): void };
 }
@@ -575,7 +508,6 @@ class AppSessionConsoleAuthAdapter implements ConsoleAuthAdapter {
       options,
       defaultOrgId: normalizeString(options.defaultOrgId),
       defaultProjectId: normalizeString(options.defaultProjectId),
-      defaultEnvironmentId: normalizeString(options.defaultEnvironmentId),
       initialOwnerEmail: normalizeInitialOwnerEmail(options.initialOwnerEmail),
       platformSupportEmails: normalizeConsoleEmailList(options.platformSupportEmails ?? []),
       orgProjectEnv: options.provisioning?.orgProjectEnv ?? null,
@@ -618,7 +550,6 @@ class AppSessionConsoleAuthAdapter implements ConsoleAuthAdapter {
       defaultOrgId: resolvedDefaultOrgId,
       orgId: normalizeString(claims.orgId) || resolvedDefaultOrgId,
       projectId: normalizeString(claims.projectId) || this.#runtime.defaultProjectId,
-      environmentId: normalizeString(claims.environmentId) || this.#runtime.defaultEnvironmentId,
     });
     if (!scope.orgId) {
       return {

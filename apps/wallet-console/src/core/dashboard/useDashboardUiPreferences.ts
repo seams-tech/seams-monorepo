@@ -55,6 +55,7 @@ function resolveContextValue(
   defaults: TopbarContextState,
 ): string {
   const options = dropdownOptions[menu];
+  if (menu === 'environment' && options.length === 0) return '';
   const rawValue = String(input?.[menu] || '').trim();
   if (rawValue && (options.length === 0 || hasTopbarOption(menu, rawValue, dropdownOptions))) {
     return rawValue;
@@ -529,7 +530,7 @@ export function useDashboardUiPreferences<GroupKey extends string>(
     });
   }, [defaultContext, dropdownOptions, pathname]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!preferencesHydrated) return;
     const nextState: PersistedUiState = {
       isSidebarExpanded,

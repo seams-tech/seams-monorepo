@@ -6,7 +6,7 @@ import {
   parseListConsoleObservabilityServicesRequest,
   type ConsoleObservabilityService,
 } from '@seams-internal/console-server/observability/index';
-import type { ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+import type { WalletConsoleAuthClaims as ConsoleAuthClaims } from '../walletConsoleAuth';
 
 export interface ExpressConsoleObservabilityRouteContext {
   observability: ConsoleObservabilityService | null;

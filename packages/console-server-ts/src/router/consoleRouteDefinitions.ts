@@ -121,9 +121,9 @@ const PROJECTS_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_projects_create', 'POST', '/console/projects'],
   ['console_projects_update', 'PATCH', '/console/projects/:id'],
   ['console_projects_archive', 'POST', '/console/projects/:id/archive'],
-  ['console_environments_create', 'POST', '/console/environments'],
-  ['console_environments_update', 'PATCH', '/console/environments/:id'],
-  ['console_environments_archive', 'POST', '/console/environments/:id/archive'],
+  ['console_services_enable', 'POST', '/console/projects/:projectId/services/:serviceId/enable'],
+  ['console_services_disable', 'POST', '/console/projects/:projectId/services/:serviceId/disable'],
+  ['console_services_archive', 'POST', '/console/projects/:projectId/services/:serviceId/archive'],
   [
     'console_organization_project_member_access_set',
     'PUT',
@@ -137,7 +137,6 @@ const PROJECTS_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
 ];
 
 const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
-  ['console_environments_list', 'GET', '/console/environments'],
   ['console_audit_events_list', 'GET', '/console/audit/events'],
   ['console_audit_evidence_list', 'GET', '/console/audit/evidence'],
   ['console_audit_exports_list', 'GET', '/console/audit/exports'],
@@ -151,11 +150,11 @@ const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_webhooks_deliveries_list', 'GET', '/console/webhooks/:id/deliveries'],
   ['console_webhooks_attempts_list', 'GET', '/console/webhooks/:id/attempts'],
   ['console_webhooks_dead_letters_list', 'GET', '/console/webhooks/:id/dead-letters'],
-  ['console_api_keys_list', 'GET', '/console/api-keys'],
 ];
 
 const PROJECT_LIST_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_projects_list', 'GET', '/console/projects'],
+  ['console_services_list', 'GET', '/console/projects/:projectId/services'],
 ];
 
 const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -166,11 +165,6 @@ const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_webhooks_replay', 'POST', '/console/webhooks/:id/replay'],
   ['console_webhooks_test', 'POST', '/console/webhooks/:id/test'],
   ['console_webhooks_rotate_secret', 'POST', '/console/webhooks/:id/rotate-secret'],
-  ['console_api_keys_create', 'POST', '/console/api-keys'],
-  ['console_api_keys_revoke', 'DELETE', '/console/api-keys/:id'],
-  ['console_api_keys_purge', 'DELETE', '/console/api-keys/:id/purge'],
-  ['console_api_keys_update', 'PATCH', '/console/api-keys/:id'],
-  ['console_api_keys_rotate', 'POST', '/console/api-keys/:id/rotate'],
 ];
 
 const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -199,7 +193,6 @@ const BILLING_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
 
 const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_onboarding_telemetry_get', 'GET', '/console/onboarding/telemetry'],
-  ['console_ops_cockpit_summary_get', 'GET', '/console/ops-cockpit/summary'],
   ['console_platform_billing_search_get', 'GET', '/console/platform/billing/search'],
   ['console_platform_billing_account_get', 'GET', '/console/platform/billing/account'],
   ['console_billing_usage_events_record', 'POST', '/console/billing/usage/events'],

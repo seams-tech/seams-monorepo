@@ -18,7 +18,8 @@ import {
   reconcileAccountMigration,
 } from '../../../packages/console-server-ts/src/accountPlatform/migration';
 import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
-import { createD1ConsoleOrgProjectEnvService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
 import { createD1ConsoleBillingService } from '../../../packages/console-server-ts/src/billing/d1';
 import { createD1ConsoleOrganizationAccessService } from '../../../packages/console-server-ts/src/teamRbac/d1';
 import { buildConsoleBillingInvoicePdf } from '../../../packages/console-server-ts/src/billing/pdf';
@@ -76,7 +77,7 @@ async function migrateSource(
 }
 
 async function seedSource(database: D1DatabaseLike): Promise<void> {
-  const projects = await createD1ConsoleOrgProjectEnvService({ database, namespace, now });
+  const projects = await createD1ConsoleOrgProjectService({ database, namespace, now });
   await projects.upsertOrganization(context, { name: 'Migration rehearsal' });
   const access = await createD1ConsoleOrganizationAccessService({ database, namespace, now });
   await access.bootstrapInitialOwner({
@@ -87,6 +88,15 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
   });
   await projects.createProject(context, { id: 'native-project-a', name: 'Wallet A' });
   await projects.createProject(context, { id: 'native-project-b', name: 'Wallet B' });
+  const environments = await createD1ConsoleWalletEnvironmentService({ database, namespace, now });
+  await environments.provisionProjectEnvironments(context, {
+    projectId: 'native-project-a',
+    liveAccess: 'disabled',
+  });
+  await environments.provisionProjectEnvironments(context, {
+    projectId: 'native-project-b',
+    liveAccess: 'disabled',
+  });
   const billing = await createD1ConsoleBillingService({ database, namespace, now });
   await billing.grantManualSupportCredit(context, {
     amountMinor: 2500,

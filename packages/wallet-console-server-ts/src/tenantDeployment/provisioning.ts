@@ -1,8 +1,8 @@
 import type { RegionalDeploymentInstaller } from './regionalAdmission';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/service';
+import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/service';
 import { base64UrlEncode } from '@seams/wallet-server/cloud-host';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
+import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/service';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import type {
   TenantDeploymentCutoverId,
@@ -95,7 +95,7 @@ export type TenantDeploymentProvisionerOptionsV1 = {
   readonly resources: TenantDeploymentD1ResourcesV1;
   readonly deploymentLane: string;
   readonly surfaces: TenantDeploymentCandidateSurfacesV1;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly apiKeys: ConsoleApiKeyService;
   readonly audit: ConsoleAuditService;
   readonly tenantRootCreation: TenantRootCreationConsoleRouteDependenciesV1;
@@ -280,10 +280,12 @@ async function resolveIdentity(
   options: TenantDeploymentProvisionerOptionsV1,
   environmentId: string,
 ): Promise<TenantRootIdentityV1> {
-  const organization = await options.orgProjectEnv.findOrganizationForScope({ environmentId });
+  const organization = await options.walletEnvironments.findOrganizationForEnvironment({ environmentId });
   if (!organization) throw new Error('tenant deployment environment was not found');
   const context = { orgId: organization.id, actorUserId: SYSTEM_ACTOR_USER_ID };
-  const environments = await options.orgProjectEnv.listEnvironments(context, { status: 'ACTIVE' });
+  const environments = await options.walletEnvironments.listEnvironments(context, {
+    status: 'ACTIVE',
+  });
   const environment = environments.find((candidate) => candidate.id === environmentId);
   if (!environment) throw new Error('tenant deployment environment is not active');
   const identity = buildTenantRootIdentityFromAuthenticatedDeploymentV1({
@@ -291,7 +293,7 @@ async function resolveIdentity(
     projectId: environment.projectId,
     envId: environment.id,
     signingRootId: `${environment.projectId}:${environment.key}`,
-    signingRootVersion: environment.runtimeVersion,
+    signingRootVersion: environment.signingRootVersion,
   });
   if (!identity.ok) throw new Error('tenant deployment environment identity is invalid');
   return identity.value;
@@ -368,9 +370,15 @@ export function createTenantDeploymentProvisionerV1(
         bindingMatchesRequest({ binding: activeBinding, identity, surfaces: options.surfaces });
       if (matchesActive && request.authorization.kind === 'reuse_active') {
         const regional = await options.store.readActiveRegionalAdmission(deploymentLane);
-        if (!regional || regional.binding.revision !== active.revision ||
-            regional.activationSequence !== active.activationSequence) {
-          throw new TenantDeploymentStoreError('activation_conflict', 'Active regional admission differs');
+        if (
+          !regional ||
+          regional.binding.revision !== active.revision ||
+          regional.activationSequence !== active.activationSequence
+        ) {
+          throw new TenantDeploymentStoreError(
+            'activation_conflict',
+            'Active regional admission differs',
+          );
         }
         await options.regionalAdmission.activate(regional);
         return reuseActiveBinding({ active, binding: activeBinding });

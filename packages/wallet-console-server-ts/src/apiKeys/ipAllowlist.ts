@@ -46,4 +46,4 @@ export function isIpAllowlistMatch(input: { allowlist: string[]; sourceIp?: stri
   }
   return false;
 }
-import { normalizeSourceIp } from '../boundary';
+import { normalizeSourceIp } from '@seams-internal/console-server/boundary';

@@ -142,19 +142,17 @@ class RestoreAccessRoute {
   ) {}
   async ownerStillActive(identity: TenantRootIdentityV1, actorUserId: string): Promise<boolean> {
     if (!(await this.deps.isOwner({ orgId: identity.orgId, userId: actorUserId }))) return false;
-    const environments = await this.deps.orgProjectEnv.listEnvironments(
+    const environments = await this.deps.walletEnvironments.listEnvironments(
       {
         orgId: identity.orgId,
         actorUserId,
-        projectId: identity.projectId,
-        environmentId: identity.envId,
-      },
+          },
       { projectId: identity.projectId, status: 'ACTIVE' },
     );
     for (const environment of environments) {
       if (
         environment.id === identity.envId &&
-        environment.runtimeVersion === identity.signingRootVersion
+        environment.signingRootVersion === identity.signingRootVersion
       )
         return true;
     }

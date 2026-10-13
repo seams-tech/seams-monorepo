@@ -17,7 +17,6 @@ import type {
 } from './types';
 import {
   DashboardConsoleSessionProvider,
-  selectDashboardConsoleEnvironment,
   markDashboardConsoleSignOut,
   revokeDashboardConsoleSession,
   useDashboardConsoleSession,
@@ -26,10 +25,12 @@ import { DashboardSelectedContextProvider } from './selectedContext';
 import {
   listDashboardEnvironments,
   listDashboardProjects,
+  DASHBOARD_ENVIRONMENTS_UPDATED_EVENT,
   type DashboardConsoleEnvironment,
 } from './consoleContextApi';
 import {
   getDashboardOnboardingState,
+  buildDashboardOrganizationOnboardingState,
   isDashboardConsoleApiErrorCode,
   type DashboardOnboardingState,
 } from './routes/onboarding/consoleOnboardingApi';
@@ -63,7 +64,6 @@ const DASHBOARD_ACCOUNT_SETTINGS_ROUTE: DashboardRoute = '/dashboard/account-set
 const PLATFORM_BILLING_ROUTE: DashboardRoute = '/platform/billing';
 const DASHBOARD_LOGIN_ROUTE = '/dashboard/login';
 const DASHBOARD_ONBOARDING_STATE_UPDATED_EVENT = 'dashboard:onboarding-state-updated';
-const LOCKED_PRODUCTION_OPTION_PREFIX = '__production_locked__:';
 function isSelectableOption(option: TopbarOption): boolean {
   return option.disabled !== true;
 }
@@ -111,8 +111,6 @@ function buildFallbackOptions(value: string, label?: string | null): TopbarOptio
 function buildProjectEnvironmentOptions(input: {
   environments: DashboardConsoleEnvironment[];
   projectId: string;
-  billingReady: boolean;
-  fallbackOptions: TopbarOption[];
 }): TopbarOption[] {
   const visibleEnvironments = input.environments
     .filter((environment) => {
@@ -127,26 +125,13 @@ function buildProjectEnvironmentOptions(input: {
       if (leftDisabled === rightDisabled) return left.name.localeCompare(right.name);
       return leftDisabled ? 1 : -1;
     });
-  const hasProductionEnvironment = visibleEnvironments.some(
-    (environment) => environment.key.trim().toLowerCase() === 'prod',
-  );
-  return dedupeOptions([
-    ...visibleEnvironments.map((environment) => ({
+  return dedupeOptions(
+    visibleEnvironments.map((environment) => ({
       value: environment.id,
       label: environment.name || environment.id,
       disabled: environment.status.trim().toUpperCase() !== 'ACTIVE',
     })),
-    ...(!input.billingReady && !hasProductionEnvironment
-      ? [
-          {
-            value: `${LOCKED_PRODUCTION_OPTION_PREFIX}${input.projectId}`,
-            label: 'Production',
-            disabled: true,
-          },
-        ]
-      : []),
-    ...input.fallbackOptions,
-  ]);
+  );
 }
 
 function findPreferredOrganizationSummary(input: {
@@ -165,29 +150,6 @@ function findPreferredOrganizationSummary(input: {
     null;
   if (preferredMatch) return preferredMatch;
   return organizations.find((entry) => entry.isCurrentOrg) || organizations[0] || null;
-}
-
-function buildOrglessOnboardingState(): DashboardOnboardingState {
-  return {
-    orgId: '',
-    organization: null,
-    activeProjectCount: 0,
-    activeEnvironmentCount: 0,
-    activeApiKeyCount: 0,
-    hasOrganization: false,
-    hasProject: false,
-    hasEnvironment: false,
-    hasApiKey: false,
-    accountReady: true,
-    organizationReady: false,
-    billingReady: false,
-    projectReady: false,
-    onboardingComplete: false,
-    currentStep: 'organization',
-    complete: false,
-    selectedProjectId: null,
-    selectedEnvironmentId: null,
-  };
 }
 
 function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends string>({
@@ -237,10 +199,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const [projectOptions, setProjectOptions] = React.useState<TopbarOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>(persistedProjectId);
   const [environmentRows, setEnvironmentRows] = React.useState<DashboardConsoleEnvironment[]>([]);
+  const [environmentRefreshRevision, setEnvironmentRefreshRevision] = React.useState(0);
   const organizationRecoveryAttemptRef = React.useRef<string>('');
-  const [environmentSelection, setEnvironmentSelection] = React.useState<
-    { readonly kind: 'idle' | 'pending' } | { readonly kind: 'failed'; readonly message: string }
-  >({ kind: 'idle' });
   const hasExistingOrganization = onboardingState?.hasOrganization === true;
   const sessionForbidden =
     !consoleSession.loading &&
@@ -249,17 +209,11 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const currentOrgId = String(consoleSession.claims?.orgId || '').trim();
   const onboardingStateOrgId = String(onboardingState?.orgId || '').trim();
   const onboardingSelectedProjectId = String(onboardingState?.selectedProjectId || '').trim();
-  const onboardingSelectedEnvironmentId = String(
-    onboardingState?.selectedEnvironmentId || '',
-  ).trim();
   const onboardingSelectionMatchesCurrentOrg = Boolean(
     currentOrgId && onboardingStateOrgId === currentOrgId,
   );
   const scopedOnboardingSelectedProjectId = onboardingSelectionMatchesCurrentOrg
     ? onboardingSelectedProjectId
-    : '';
-  const scopedOnboardingSelectedEnvironmentId = onboardingSelectionMatchesCurrentOrg
-    ? onboardingSelectedEnvironmentId
     : '';
   const persistedSelectionMatchesCurrentOrg = Boolean(
     currentOrgId && persistedOrganizationId === currentOrgId,
@@ -280,12 +234,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const currentOrganizationProjectId = String(
     currentOrganizationSummary?.selectedProjectId || '',
   ).trim();
-  const currentOrganizationEnvironmentId = String(
-    currentOrganizationSummary?.selectedEnvironmentId || '',
-  ).trim();
-  const currentOrganizationEnvironmentLabel = String(
-    currentOrganizationSummary?.selectedEnvironmentName || '',
-  ).trim();
   const onboardingOrganizationName = String(onboardingState?.organization?.name || '').trim();
   const onboardingOrganizationId = String(
     onboardingState?.orgId || consoleSession.claims?.orgId || '',
@@ -298,7 +246,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     });
   const hasConfiguredOrganization =
     hasExistingOrganization && onboardingHasConfiguredOrganizationName;
-  const billingReady = onboardingState?.billingReady === true;
   const isPlatformRoute = pathname === PLATFORM_BILLING_ROUTE || pathname.startsWith('/platform/');
   const isPlatformAdmin = consoleSession.claims?.platformSupport === true;
   const isSidebarNavigationLocked =
@@ -354,7 +301,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     }
     if (!currentOrgId) {
       setOnboardingLoading(false);
-      setOnboardingState(buildOrglessOnboardingState());
+      setOnboardingState(buildDashboardOrganizationOnboardingState(''));
       setOnboardingGateEnabled(true);
       setSelectedProjectId('');
       setProjectOptions([]);
@@ -567,7 +514,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           replaceDashboardSelectedContext({
             organization: nextContext.orgId,
             project: nextContext.projectId || '',
-            environment: nextContext.environmentId || '',
+            environment: '',
           });
           setSelectedProjectId(nextContext.projectId || '');
           consoleSession.refresh();
@@ -619,6 +566,13 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   }, [consoleSession.claims, currentOrgId, pendingOrganizationContextOrgId]);
 
   React.useEffect(() => {
+    const onEnvironmentsUpdated = () => setEnvironmentRefreshRevision((revision) => revision + 1);
+    window.addEventListener(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT, onEnvironmentsUpdated);
+    return () =>
+      window.removeEventListener(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT, onEnvironmentsUpdated);
+  }, []);
+
+  React.useEffect(() => {
     const claims = consoleSession.claims;
     if (!claims || !currentOrgId) {
       setEnvironmentRows([]);
@@ -637,41 +591,15 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     return () => {
       cancelled = true;
     };
-  }, [consoleSession.claims, currentOrgId]);
+  }, [consoleSession.claims, currentOrgId, environmentRefreshRevision]);
 
   const environmentOptions = React.useMemo(
     () =>
       buildProjectEnvironmentOptions({
         environments: environmentRows,
         projectId: selectedProjectId,
-        billingReady,
-        fallbackOptions: dedupeOptions([
-          ...(scopedPersistedProjectId === selectedProjectId
-            ? buildFallbackOptions(scopedPersistedEnvironmentId)
-            : []),
-          ...(currentOrganizationProjectId === selectedProjectId
-            ? buildFallbackOptions(
-                currentOrganizationEnvironmentId,
-                currentOrganizationEnvironmentLabel,
-              )
-            : []),
-          ...(scopedOnboardingSelectedProjectId === selectedProjectId
-            ? buildFallbackOptions(scopedOnboardingSelectedEnvironmentId)
-            : []),
-        ]),
       }),
-    [
-      billingReady,
-      currentOrganizationEnvironmentId,
-      currentOrganizationEnvironmentLabel,
-      currentOrganizationProjectId,
-      environmentRows,
-      scopedOnboardingSelectedEnvironmentId,
-      scopedOnboardingSelectedProjectId,
-      scopedPersistedEnvironmentId,
-      scopedPersistedProjectId,
-      selectedProjectId,
-    ],
+    [environmentRows, selectedProjectId],
   );
 
   const dropdownOptions = React.useMemo<Record<TopbarMenuKey, TopbarOption[]>>(
@@ -691,22 +619,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
                 : []),
             ]),
       ),
-      environment: dedupeOptions(
-        environmentOptions.length > 0
-          ? environmentOptions
-          : dedupeOptions([
-              ...(scopedOnboardingSelectedEnvironmentId &&
-              selectedProjectId &&
-              scopedOnboardingSelectedProjectId === selectedProjectId
-                ? [
-                    {
-                      value: scopedOnboardingSelectedEnvironmentId,
-                      label: scopedOnboardingSelectedEnvironmentId,
-                    },
-                  ]
-                : []),
-            ]),
-      ),
+      environment: environmentOptions,
       accountSettings: DASHBOARD_ACCOUNT_SETTINGS_OPTIONS.map(
         (entry): TopbarOption => ({
           value: entry,
@@ -717,11 +630,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     [
       DASHBOARD_ACCOUNT_SETTINGS_OPTIONS,
       environmentOptions,
-      scopedOnboardingSelectedEnvironmentId,
       scopedOnboardingSelectedProjectId,
       organizationOptions,
       projectOptions,
-      selectedProjectId,
     ],
   );
 
@@ -732,35 +643,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         environments: buildProjectEnvironmentOptions({
           environments: environmentRows,
           projectId: project.value,
-          billingReady,
-          fallbackOptions: dedupeOptions([
-            ...(scopedPersistedProjectId === project.value
-              ? buildFallbackOptions(scopedPersistedEnvironmentId)
-              : []),
-            ...(currentOrganizationProjectId === project.value
-              ? buildFallbackOptions(
-                  currentOrganizationEnvironmentId,
-                  currentOrganizationEnvironmentLabel,
-                )
-              : []),
-            ...(scopedOnboardingSelectedProjectId === project.value
-              ? buildFallbackOptions(scopedOnboardingSelectedEnvironmentId)
-              : []),
-          ]),
         }),
       })),
-    [
-      billingReady,
-      currentOrganizationEnvironmentId,
-      currentOrganizationEnvironmentLabel,
-      currentOrganizationProjectId,
-      dropdownOptions.project,
-      environmentRows,
-      scopedOnboardingSelectedEnvironmentId,
-      scopedOnboardingSelectedProjectId,
-      scopedPersistedEnvironmentId,
-      scopedPersistedProjectId,
-    ],
+    [dropdownOptions.project, environmentRows],
   );
 
   const defaultTopbarContext = React.useMemo<TopbarContextState>(() => {
@@ -771,14 +656,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       dropdownOptions.project.find((entry) => entry.value === preferredProjectId)?.value ||
       dropdownOptions.project[0]?.value ||
       preferredProjectId;
-    const preferredEnvironmentId = String(
-      (projectValue && currentOrganizationProjectId === projectValue
-        ? currentOrganizationEnvironmentId || ''
-        : '') ||
-        (projectValue && scopedOnboardingSelectedProjectId === projectValue
-          ? scopedOnboardingSelectedEnvironmentId || ''
-          : ''),
-    ).trim();
+    const preferredEnvironmentId =
+      projectValue === scopedPersistedProjectId ? scopedPersistedEnvironmentId : '';
     const preferredEnvironmentOption = dropdownOptions.environment.find(
       (entry) => entry.value === preferredEnvironmentId && isSelectableOption(entry),
     );
@@ -789,18 +668,16 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       organization: dropdownOptions.organization[0]?.value || consoleSession.claims?.orgId || '',
       project: projectValue,
       environment:
-        preferredEnvironmentOption?.value ||
-        firstSelectableEnvironmentOption?.value ||
-        (dropdownOptions.environment.length === 0 ? preferredEnvironmentId : ''),
+        preferredEnvironmentOption?.value || firstSelectableEnvironmentOption?.value || '',
       accountSettings: dropdownOptions.accountSettings[0]?.value || '',
     };
   }, [
     consoleSession.claims,
-    currentOrganizationEnvironmentId,
     currentOrganizationProjectId,
     dropdownOptions,
-    scopedOnboardingSelectedEnvironmentId,
     scopedOnboardingSelectedProjectId,
+    scopedPersistedEnvironmentId,
+    scopedPersistedProjectId,
     selectedProjectId,
   ]);
 
@@ -815,36 +692,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     groupKeys: sidebarGroupKeys,
     defaultExpandedGroups: defaultExpandedSidebarGroups,
   });
-
-  const environmentScopePending = Boolean(
-    consoleSession.claims &&
-    selectedContext.organization === currentOrgId &&
-    selectedContext.project &&
-    selectedContext.environment &&
-    (consoleSession.claims.projectId !== selectedContext.project ||
-      consoleSession.claims.environmentId !== selectedContext.environment),
-  );
-  React.useEffect(() => {
-    if (!environmentScopePending || consoleSession.loading || environmentSelection.kind !== 'idle')
-      return;
-    setEnvironmentSelection({ kind: 'pending' });
-    void selectDashboardConsoleEnvironment(selectedContext.project, selectedContext.environment)
-      .then(consoleSession.refresh)
-      .then(() => setEnvironmentSelection({ kind: 'idle' }))
-      .catch((error: unknown) =>
-        setEnvironmentSelection({
-          kind: 'failed',
-          message: error instanceof Error ? error.message : 'Environment selection failed',
-        }),
-      );
-  }, [
-    environmentScopePending,
-    environmentSelection.kind,
-    consoleSession.loading,
-    consoleSession.refresh,
-    selectedContext.project,
-    selectedContext.environment,
-  ]);
 
   const selectedContextDisplay = React.useMemo<TopbarContextState>(
     () => ({
@@ -944,10 +791,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       }
       if (
         menu === 'environment' &&
-        (String(value || '')
-          .trim()
-          .startsWith(LOCKED_PRODUCTION_OPTION_PREFIX) ||
-          dropdownOptions.environment.find((entry) => entry.value === value)?.disabled === true)
+        dropdownOptions.environment.find((entry) => entry.value === value)?.disabled === true
       ) {
         go('/dashboard/billing/account?billing=production_required');
         return;
@@ -987,7 +831,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         environment: environmentId,
       });
       setSelectedProjectId(projectId);
-      setEnvironmentSelection({ kind: 'idle' });
       const network = networkForConsoleEnvironmentId(environmentId);
       if (network) frontendRuntime.selectNetwork(network);
     },
@@ -1199,22 +1042,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
           value={selectedContext}
           displayValue={selectedContextDisplay}
         >
-          {environmentScopePending ? (
-            environmentSelection.kind === 'failed' ? (
-              <div>
-                <p role="alert">{environmentSelection.message}</p>
-                <button type="button" onClick={() => setEnvironmentSelection({ kind: 'idle' })}>
-                  Try again
-                </button>
-              </div>
-            ) : (
-              <DashboardLoadingState title="Opening environment..." />
-            )
-          ) : (
-            <ActiveViewComponent
-              key={`${currentOrgId}:${selectedContext.project}:${selectedContext.environment}`}
-            />
-          )}
+          <ActiveViewComponent
+            key={`${currentOrgId}:${selectedContext.project}:${selectedContext.environment}`}
+          />
         </DashboardSelectedContextProvider>
       </section>
       <div className="dashboard-overlay-layer" aria-hidden="true" />

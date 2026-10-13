@@ -1,10 +1,11 @@
 # Shared account platform implementation plan
 
-Status: Phase 1 contracts and migration preflight implemented. Phase 2 is in progress.
+Status: Phases 1 and 2 implemented and validated. Phase 3 is next.
 Production platform migration has not started.
 Date: October 13, 2026.
 
 Implementation evidence: [Phase 1 contracts and inventory](shared-account-platform/phase-1.md).
+Account composition evidence: [Phase 2 implementation](shared-account-platform/phase-2.md).
 
 ## Implementation rules
 

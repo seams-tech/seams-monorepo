@@ -1,14 +1,15 @@
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv';
 import type {
-  ConsoleOrgProjectEnvService,
-  ConsoleOrgProjectEnvContext,
-} from '@seams-internal/console-server/orgProjectEnv/index';
+  ConsoleWalletEnvironmentService,
+  ConsoleWalletEnvironmentContext,
+} from '../environments';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
 import type { ConsolePolicyService } from '../policies';
 import { ensureTempoTestnetOnboardingPolicyForEnvironment } from './onboarding';
 import type { ConsoleGasSponsorshipPolicyProjection } from './types';
 import { resolveConsoleRuntimeSnapshotPayload } from '@seams-internal/wallet-console-server/router/runtimeSnapshotPayload';
 
-function toSnapshotContext(ctx: ConsoleOrgProjectEnvContext) {
+function toSnapshotContext(ctx: ConsoleWalletEnvironmentContext) {
   return {
     orgId: ctx.orgId,
     actorUserId: ctx.actorUserId,
@@ -16,7 +17,7 @@ function toSnapshotContext(ctx: ConsoleOrgProjectEnvContext) {
 }
 
 async function publishCurrentEnvironmentSnapshot(input: {
-  ctx: ConsoleOrgProjectEnvContext;
+  ctx: ConsoleWalletEnvironmentContext;
   environment: { id: string; projectId: string };
   runtimeSnapshots: ConsoleRuntimeSnapshotService;
   policies: ConsolePolicyService;
@@ -36,7 +37,7 @@ async function publishCurrentEnvironmentSnapshot(input: {
 }
 
 async function seedEnvironment(input: {
-  ctx: ConsoleOrgProjectEnvContext;
+  ctx: ConsoleWalletEnvironmentContext;
   environment: { id: string; projectId: string; status?: string };
   policies: ConsolePolicyService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService;
@@ -61,17 +62,16 @@ async function seedEnvironment(input: {
   return policy;
 }
 
-export function createConsoleOrgProjectEnvServiceWithTempoOnboardingSponsorship(input: {
-  base: ConsoleOrgProjectEnvService;
+export function createConsoleWalletEnvironmentServiceWithTempoOnboardingSponsorship(input: {
+  base: ConsoleWalletEnvironmentService;
   policies: ConsolePolicyService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService;
   faucetContractAddress: `0x${string}`;
-}): ConsoleOrgProjectEnvService {
+}): ConsoleWalletEnvironmentService {
   return {
     ...input.base,
-    async createProject(ctx, request) {
-      const project = await input.base.createProject(ctx, request);
-      const environments = await input.base.listEnvironments(ctx, { projectId: project.id });
+    async provisionProjectEnvironments(ctx, request) {
+      const environments = await input.base.provisionProjectEnvironments(ctx, request);
       for (const environment of environments) {
         if (environment.status === 'ARCHIVED') continue;
         await seedEnvironment({
@@ -82,7 +82,7 @@ export function createConsoleOrgProjectEnvServiceWithTempoOnboardingSponsorship(
           faucetContractAddress: input.faucetContractAddress,
         });
       }
-      return project;
+      return environments;
     },
     async createEnvironment(ctx, request) {
       const environment = await input.base.createEnvironment(ctx, request);
@@ -99,14 +99,14 @@ export function createConsoleOrgProjectEnvServiceWithTempoOnboardingSponsorship(
 }
 
 export async function ensureTempoOnboardingSponsorshipForExistingEnvironments(input: {
-  orgProjectEnv: ConsoleOrgProjectEnvService;
+  walletEnvironments: ConsoleWalletEnvironmentService;
   policies: ConsolePolicyService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService;
-  ctx: ConsoleOrgProjectEnvContext;
+  ctx: ConsoleWalletEnvironmentContext;
   faucetContractAddress: `0x${string}`;
   projectId?: string;
 }): Promise<readonly ConsoleGasSponsorshipPolicyProjection[]> {
-  const environments = await input.orgProjectEnv.listEnvironments(input.ctx, {
+  const environments = await input.walletEnvironments.listEnvironments(input.ctx, {
     ...(input.projectId ? { projectId: input.projectId } : {}),
   });
   const policies: ConsoleGasSponsorshipPolicyProjection[] = [];
@@ -126,7 +126,8 @@ export async function ensureTempoOnboardingSponsorshipForExistingEnvironments(in
 }
 
 export async function ensureTempoOnboardingSponsorshipForAllOrganizations(input: {
-  orgProjectEnv: ConsoleOrgProjectEnvService;
+  orgProjectEnv: ConsoleOrgProjectService;
+  walletEnvironments: ConsoleWalletEnvironmentService;
   policies: ConsolePolicyService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService;
   faucetContractAddress: `0x${string}`;
@@ -135,7 +136,7 @@ export async function ensureTempoOnboardingSponsorshipForAllOrganizations(input:
   const organizations = await input.orgProjectEnv.searchOrganizations({ query: '', limit: 1_000 });
   for (const organization of organizations) {
     await ensureTempoOnboardingSponsorshipForExistingEnvironments({
-      orgProjectEnv: input.orgProjectEnv,
+      walletEnvironments: input.walletEnvironments,
       policies: input.policies,
       runtimeSnapshots: input.runtimeSnapshots,
       ctx: {

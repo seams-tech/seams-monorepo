@@ -20,6 +20,7 @@ import {
   createDashboardOnboardingOrganization,
   createDashboardOnboardingProject,
   getDashboardOnboardingState,
+  buildDashboardOrganizationOnboardingState,
   DashboardConsoleApiError,
   type DashboardCreateOnboardingOrganizationResult,
   type DashboardCreateOnboardingProjectResult,
@@ -43,29 +44,6 @@ type OnboardingDraft = {
 type OnboardingStepperStatus = 'current' | 'done' | 'locked';
 type OnboardingVisibleStep = 'organization' | 'project';
 
-function buildDefaultState(orgId: string): DashboardOnboardingState {
-  return {
-    orgId,
-    organization: null,
-    activeProjectCount: 0,
-    activeEnvironmentCount: 0,
-    activeApiKeyCount: 0,
-    hasOrganization: false,
-    hasProject: false,
-    hasEnvironment: false,
-    hasApiKey: false,
-    accountReady: true,
-    organizationReady: false,
-    billingReady: false,
-    projectReady: false,
-    onboardingComplete: false,
-    currentStep: 'organization',
-    complete: false,
-    selectedProjectId: null,
-    selectedEnvironmentId: null,
-  };
-}
-
 function hasConfiguredOrganizationName(
   state: DashboardOnboardingState | null,
   orgNameExplicitlySelected: boolean,
@@ -85,9 +63,7 @@ function resolveCurrentStep(
   orgNameExplicitlySelected: boolean,
 ): DashboardOnboardingStep {
   if (!state) return 'organization';
-  const onboardingComplete =
-    state.onboardingComplete === undefined ? state.complete === true : state.onboardingComplete;
-  if (onboardingComplete) return 'complete';
+  if (state.currentStep === 'complete') return 'complete';
   if (!state.organizationReady || !hasConfiguredOrganizationName(state, orgNameExplicitlySelected))
     return 'organization';
   return 'project';
@@ -159,16 +135,13 @@ function resolveActionableMutationError(error: unknown): string {
     if (error.code === 'invalid_body') {
       return 'Invalid input format. Update the form values and retry.';
     }
-    if (error.code === 'project_already_exists' || error.code === 'environment_already_exists') {
-      return 'Name already used. Choose a different project or environment name and retry.';
-    }
-    if (error.code === 'environment_key_conflict') {
-      return 'Name already used. Development environment already exists for this project.';
+    if (error.code === 'project_already_exists') {
+      return 'Name already used. Choose a different project name and retry.';
     }
     if (error.code === 'organization_required') {
       return 'Name your organization before creating your first project.';
     }
-    if (error.code === 'project_archived' || error.code === 'environment_archived') {
+    if (error.code === 'project_archived') {
       return 'Name already used. That name belongs to an archived resource, so choose a new name.';
     }
   }
@@ -276,7 +249,7 @@ export function DashboardOnboardingPage({
       return;
     }
     if (createOrganizationIntent) {
-      setState(buildDefaultState(sessionOrgId));
+      setState(buildDashboardOrganizationOnboardingState(sessionOrgId));
       setLoading(false);
       setErrorMessage('');
       return;
@@ -308,7 +281,7 @@ export function DashboardOnboardingPage({
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setState(buildDefaultState(sessionOrgId));
+        setState(buildDashboardOrganizationOnboardingState(sessionOrgId));
         setErrorMessage(error instanceof Error ? error.message : String(error));
       })
       .finally(() => {
@@ -419,7 +392,7 @@ export function DashboardOnboardingPage({
         replaceDashboardSelectedContext({
           organization: nextContext.orgId,
           project: nextContext.projectId || '',
-          environment: nextContext.environmentId || '',
+          environment: '',
         });
         if (typeof window !== 'undefined') {
           window.location.assign('/dashboard/onboarding');
@@ -555,11 +528,7 @@ export function DashboardOnboardingPage({
     setVisibleStep('organization');
   }, [submitting]);
 
-  const onboardingComplete = state
-    ? state.onboardingComplete === undefined
-      ? state.complete === true
-      : state.onboardingComplete
-    : false;
+  const onboardingComplete = state?.currentStep === 'complete';
 
   React.useEffect(() => {
     if (!draftStorageKey) return;
@@ -593,9 +562,6 @@ export function DashboardOnboardingPage({
   const completionProjectId = String(
     state?.selectedProjectId || projectResult?.project.id || '',
   ).trim();
-  const completionEnvironmentId = String(
-    state?.selectedEnvironmentId || projectResult?.environment.id || '',
-  ).trim();
   const completionOrgId = String(state?.orgId || session.claims?.orgId || '').trim();
 
   React.useEffect(() => {
@@ -620,10 +586,10 @@ export function DashboardOnboardingPage({
     persistDashboardSelectedContext({
       organization: completionOrgId,
       project: completionProjectId,
-      environment: completionEnvironmentId,
+      environment: '',
     });
     go('/dashboard/overview');
-  }, [completionEnvironmentId, completionOrgId, completionProjectId, go, onboardingComplete]);
+  }, [completionOrgId, completionProjectId, go, onboardingComplete]);
 
   const showOrganizationStep = !onboardingComplete && visibleStep === 'organization';
   const showProjectStep = !onboardingComplete && visibleStep === 'project';
@@ -772,8 +738,8 @@ export function DashboardOnboardingPage({
             >
               <h2>Create your first project</h2>
               <p className="dashboard-onboarding-panel__lead">
-                Add your first project. A default <strong>Development</strong> environment will be
-                created automatically.
+                Add your first project. You can enable Wallet and configure its environments after
+                account setup.
               </p>
               <form
                 className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"
@@ -781,7 +747,7 @@ export function DashboardOnboardingPage({
               >
                 <fieldset
                   className="dashboard-onboarding-panel__fieldset dashboard-view-grid"
-                  disabled={projectStepLocked || state?.projectReady === true}
+                  disabled={projectStepLocked}
                 >
                   <label className="dashboard-form-field dashboard-form-field--full">
                     <span>Project name</span>
@@ -825,8 +791,7 @@ export function DashboardOnboardingPage({
               </form>
               {projectResult ? (
                 <p className="dashboard-pagination-note">
-                  Project configured: <strong>{projectResult.project.name}</strong> /{' '}
-                  <strong>{projectResult.environment.id}</strong>.
+                  Project configured: <strong>{projectResult.project.name}</strong>.
                 </p>
               ) : null}
             </section>

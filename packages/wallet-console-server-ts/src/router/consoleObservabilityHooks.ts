@@ -4,7 +4,7 @@ import {
 } from '@seams-internal/console-server/observability/adapters';
 import { buildWalletApprovalFailureObservabilityEvent } from '../observability';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/ingestionService';
-import type { ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+import type { WalletConsoleAuthClaims as ConsoleAuthClaims } from './walletConsoleAuth';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 
 type ConsoleObservabilityIngestContext = Parameters<

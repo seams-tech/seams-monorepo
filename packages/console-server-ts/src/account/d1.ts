@@ -6,9 +6,9 @@ import {
   queryD1One,
   type D1DatabaseLike,
   type D1Row,
+  type D1ResultLike,
 } from '../boundary';
-import type { ConsoleOnboardingService } from '../onboarding';
-import type { ConsoleOrgProjectEnvContext, ConsoleOrgProjectEnvService } from '../orgProjectEnv';
+import type { ConsoleOrgProjectContext, ConsoleOrgProjectService } from '../orgProjectEnv';
 import type {
   ActiveOrganizationAuthorization,
   ConsoleOrganizationAccessService,
@@ -16,7 +16,7 @@ import type {
 } from '../teamRbac';
 import { ConsoleAccountError } from './errors';
 import type {
-  AccountWalletInventoryPort,
+  AccountOrganizationDeletionPort,
   ConsoleAccountIdentityContext,
   ConsoleAccountService,
 } from './service';
@@ -53,10 +53,9 @@ export interface D1ConsoleAccountServiceOptions {
   readonly namespace?: string;
   readonly ensureSchema?: boolean;
   readonly now?: () => Date;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
-  readonly onboarding?: ConsoleOnboardingService | null;
-  readonly wallets?: AccountWalletInventoryPort | null;
+  readonly deletion: AccountOrganizationDeletionPort;
 }
 
 interface AccountOrganizationRow {
@@ -70,9 +69,21 @@ interface AccountOrganizationRow {
 
 interface AccountOrganizationScope {
   readonly projectId: string | null;
-  readonly environmentId: string | null;
   readonly onboardingComplete: boolean;
 }
+
+const OWNER_DELETE_SCOPE_SQL = `EXISTS (
+  SELECT 1 FROM organizations AS deletion_organization
+  JOIN organization_memberships AS deletion_owner
+    ON deletion_owner.namespace = deletion_organization.namespace
+   AND deletion_owner.org_id = deletion_organization.id
+  WHERE deletion_organization.namespace = ?1
+    AND deletion_organization.id = ?2
+    AND deletion_organization.authorization_version = ?3
+    AND deletion_owner.user_id = ?4
+    AND deletion_owner.kind = 'ACTIVE'
+    AND deletion_owner.role = 'OWNER'
+)`;
 
 export const CONSOLE_ACCOUNT_D1_SCHEMA_SQL = Object.freeze([
   `
@@ -140,6 +151,26 @@ function accountError(code: string, status: number, message: string): ConsoleAcc
   return new ConsoleAccountError(code, status, message);
 }
 
+function rethrowOrganizationDeletionError(error: unknown): never {
+  if (error instanceof Error) {
+    for (const code of [
+      'organization_delete_has_other_members',
+      'organization_delete_has_billing_history',
+      'organization_delete_has_wallet_obligations',
+      'organization_delete_has_service_instances',
+    ]) {
+      if (error.message.includes(code)) {
+        throw accountError(
+          code,
+          409,
+          'Organization records changed before deletion; reload the account and retry',
+        );
+      }
+    }
+  }
+  throw error;
+}
+
 function toIso(value: number): string {
   return new Date(value).toISOString();
 }
@@ -184,12 +215,11 @@ function parseBackupEmailRow(row: D1Row): ConsoleAccountBackupEmail {
 function toOrgProjectEnvContext(
   ctx: ConsoleAccountIdentityContext,
   orgId: string,
-): ConsoleOrgProjectEnvContext {
+): ConsoleOrgProjectContext {
   return {
     orgId,
     actorUserId: ctx.userId,
     ...(ctx.projectId ? { projectId: ctx.projectId } : {}),
-    ...(ctx.environmentId ? { environmentId: ctx.environmentId } : {}),
   };
 }
 
@@ -283,46 +313,15 @@ async function resolveOrganizationScope(input: {
   readonly ctx: ConsoleAccountIdentityContext;
   readonly orgId: string;
 }): Promise<AccountOrganizationScope> {
-  if (input.service.onboarding) {
-    try {
-      const state = await input.service.onboarding.getOnboardingState(
-        {
-          orgId: input.orgId,
-          actorUserId: input.ctx.userId,
-          actorEmail: input.ctx.email,
-          actorDisplayName: input.ctx.name,
-          projectId: input.ctx.projectId,
-          environmentId: input.ctx.environmentId,
-        },
-        {},
-      );
-      return {
-        projectId: state.selectedProjectId,
-        environmentId: state.selectedEnvironmentId,
-        onboardingComplete: state.onboardingComplete,
-      };
-    } catch {
-      // Derive the scope directly when onboarding dependencies are unavailable.
-    }
-  }
   const targetCtx = toOrgProjectEnvContext(input.ctx, input.orgId);
   const projects = await input.service.orgProjectEnv.listProjects(targetCtx, {
     status: 'ACTIVE',
   });
-  const environments = await input.service.orgProjectEnv.listEnvironments(targetCtx, {
-    status: 'ACTIVE',
-  });
-  const projectId = projects[0]?.id ?? null;
-  const environmentId =
-    (projectId
-      ? environments.find((environment) => environment.projectId === projectId)?.id
-      : undefined) ??
-    environments[0]?.id ??
-    null;
+  const projectId =
+    projects.find((project) => project.id === input.ctx.projectId)?.id ?? projects[0]?.id ?? null;
   return {
     projectId,
-    environmentId,
-    onboardingComplete: Boolean(projectId && environmentId),
+    onboardingComplete: Boolean(projectId),
   };
 }
 
@@ -331,28 +330,19 @@ async function resolveSelectedScopeLabels(input: {
   readonly ctx: ConsoleAccountIdentityContext;
   readonly orgId: string;
   readonly projectId: string | null;
-  readonly environmentId: string | null;
-}): Promise<{ readonly projectName: string | null; readonly environmentName: string | null }> {
+}): Promise<{ readonly projectName: string | null }> {
   const targetCtx = toOrgProjectEnvContext(input.ctx, input.orgId);
   let projects = [];
-  let environments = [];
   try {
-    [projects, environments] = await Promise.all([
-      input.service.orgProjectEnv.listProjects(targetCtx, { status: 'ACTIVE' }),
-      input.service.orgProjectEnv.listEnvironments(targetCtx, { status: 'ACTIVE' }),
-    ]);
+    projects = await input.service.orgProjectEnv.listProjects(targetCtx, { status: 'ACTIVE' });
   } catch {
-    return { projectName: null, environmentName: null };
+    return { projectName: null };
   }
   const project = input.projectId
     ? (projects.find((entry) => entry.id === input.projectId) ?? null)
     : null;
-  const environment = input.environmentId
-    ? (environments.find((entry) => entry.id === input.environmentId) ?? null)
-    : null;
   return {
     projectName: normalizeString(project?.name) || null,
-    environmentName: normalizeString(environment?.name) || null,
   };
 }
 
@@ -360,10 +350,9 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
   readonly database: D1DatabaseLike;
   readonly namespace: string;
   readonly now: () => Date;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
-  readonly onboarding: ConsoleOnboardingService | null;
-  readonly wallets: AccountWalletInventoryPort | null;
+  readonly deletion: AccountOrganizationDeletionPort;
   readonly [CONSOLE_ACCOUNT_D1_RUNTIME]: ConsoleAccountD1Runtime;
 
   constructor(options: D1ConsoleAccountServiceOptions) {
@@ -372,8 +361,7 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
     this.now = options.now ?? defaultNow;
     this.orgProjectEnv = options.orgProjectEnv;
     this.organizationAccess = options.organizationAccess;
-    this.onboarding = options.onboarding ?? null;
-    this.wallets = options.wallets ?? null;
+    this.deletion = options.deletion;
     this[CONSOLE_ACCOUNT_D1_RUNTIME] = {
       database: this.database,
       namespace: this.namespace,
@@ -560,10 +548,44 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
     orgId: string,
   ): Promise<DeleteConsoleAccountOrganizationResult> {
     const current = await this.#assertOrganizationDeletionAllowed(ctx, orgId);
-    await this.organizationAccess.purgeOrganization(orgId);
-    const deleted = await this.orgProjectEnv.deleteOrganization(toOrgProjectEnvContext(ctx, orgId));
-    if (!deleted.deleted) {
-      throw accountError('organization_not_found', 404, `Organization ${orgId} was not found`);
+    const values = [this.namespace, orgId, current.authorizationVersion, ctx.userId];
+    const results = await this.database
+      .batch<D1ResultLike<{ id: string }>>([
+        this.database
+          .prepare(
+            `DELETE FROM project_billing_bindings
+          WHERE namespace = ?1 AND org_id = ?2 AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM organization_billing_accounts
+          WHERE namespace = ?1 AND org_id = ?2 AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM billing_accounts
+          WHERE namespace = ?1 AND org_id = ?2 AND ${OWNER_DELETE_SCOPE_SQL}`,
+          )
+          .bind(...values),
+        this.database
+          .prepare(
+            `DELETE FROM organizations
+          WHERE namespace = ?1 AND id = ?2 AND ${OWNER_DELETE_SCOPE_SQL}
+          RETURNING id`,
+          )
+          .bind(...values),
+      ])
+      .catch(rethrowOrganizationDeletionError);
+    const organizationDeletion = results.at(-1);
+    const [deletedOrganization] = organizationDeletion?.results ?? [];
+    if (!deletedOrganization || deletedOrganization.id !== orgId) {
+      throw accountError(
+        'organization_delete_scope_changed',
+        409,
+        'Organization access changed before deletion; reload the account and retry',
+      );
     }
     return { orgId, organizationName: current.name };
   }
@@ -581,7 +603,6 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
     return {
       orgId,
       projectId: scope.projectId,
-      environmentId: scope.environmentId,
       onboardingComplete: scope.onboardingComplete,
       platformSupport: ctx.platformSupport,
       ...toOrganizationAccess(authorization),
@@ -607,7 +628,6 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
       ctx,
       orgId: organization.id,
       projectId: scope.projectId,
-      environmentId: scope.environmentId,
     });
     return {
       id: organization.id,
@@ -620,8 +640,6 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
       onboardingComplete: scope.onboardingComplete,
       selectedProjectId: scope.projectId,
       selectedProjectName: labels.projectName,
-      selectedEnvironmentId: scope.environmentId,
-      selectedEnvironmentName: labels.environmentName,
       ...toOrganizationAccess(authorization),
     };
   }
@@ -656,24 +674,7 @@ class D1ConsoleAccountServiceImpl implements ConsoleAccountD1Service {
         'Remove all other organization members before deleting this organization',
       );
     }
-    if (!this.wallets) {
-      throw accountError(
-        'wallets_not_configured',
-        503,
-        'Wallet service is required to evaluate organization deletion',
-      );
-    }
-    const walletPage = await this.wallets.listWallets(
-      { orgId, actorUserId: ctx.userId },
-      { limit: 1 },
-    );
-    if (walletPage.items.length > 0) {
-      throw accountError(
-        'organization_delete_has_wallets',
-        409,
-        'Organizations cannot be deleted after wallets have been created',
-      );
-    }
+    await this.deletion.assertOrganizationCanBeDeleted({ orgId, actorUserId: ctx.userId });
     return current;
   }
 }

@@ -64,6 +64,7 @@ const bundleOptions: CloudflareD1ConsoleServiceBundleOptions = {
   },
   route: {
     namespace: 'seams',
+    deploymentId: 'rehearsal-wallet',
   },
 };
 
@@ -73,6 +74,7 @@ const consoleOnlyBundleOptions: CloudflareD1ConsoleOnlyServiceBundleOptions = {
   },
   route: {
     namespace: 'seams',
+    deploymentId: 'rehearsal-wallet',
   },
 };
 
@@ -84,6 +86,7 @@ const invalidConsoleOnlySignerDatabase: CloudflareD1ConsoleOnlyServiceBundleOpti
   },
   route: {
     namespace: 'seams',
+    deploymentId: 'rehearsal-wallet',
   },
 };
 
@@ -111,6 +114,7 @@ const missingSignerBindings: CloudflareD1ConsoleServiceBundleOptions = {
   },
   route: {
     namespace: 'seams',
+    deploymentId: 'rehearsal-wallet',
   },
 };
 

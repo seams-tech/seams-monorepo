@@ -2,8 +2,8 @@ import type {
   ConsoleBillingContext,
   ConsoleBillingService,
 } from '@seams-internal/console-server/billing/service';
-import { resolveBillingLiveEnvironmentState } from '@seams-internal/console-server/billing/readiness';
-import type { BillingLiveEnvironmentState } from '@seams-internal/console-server/billing/types';
+import { resolveBillingLiveEnvironmentState } from '@seams-internal/wallet-console-server/environments/readiness';
+import type { BillingLiveEnvironmentState } from '@seams-internal/wallet-console-server/environments/readiness';
 import {
   buildWalletBillingBalanceTransitionObservabilityEvent,
   buildWalletBillingSponsorshipBlockedObservabilityEvent,

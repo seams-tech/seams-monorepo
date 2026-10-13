@@ -1,6 +1,7 @@
 import React from 'react';
 import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useDashboardConsoleSession } from '@core/dashboard/consoleSession';
+import { useDashboardSelectedContext } from '@core/dashboard/selectedContext';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
 import { createDerivationRoot } from './consoleDerivationRootApi';
 
@@ -143,7 +144,8 @@ export function CreateDerivationRoot({
   readonly refresh: () => Promise<void>;
 }): React.JSX.Element {
   const { claims } = useDashboardConsoleSession();
-  if (!claims?.projectId || !claims.environmentId)
+  const selection = useDashboardSelectedContext();
+  if (!claims || !selection.project || !selection.environment)
     return (
       <p className="derivation-root-empty-guidance">
         Select an environment to create its derivation root.
@@ -160,6 +162,6 @@ export function CreateDerivationRoot({
       </p>
     );
   }
-  const storageKey = `seams:tenant-root-creation:${JSON.stringify([requireConsoleBaseUrl(), claims.orgId, claims.projectId, claims.environmentId])}`;
+  const storageKey = `seams:tenant-root-creation:${JSON.stringify([requireConsoleBaseUrl(), claims.orgId, selection.project, selection.environment])}`;
   return <CreationButton key={storageKey} storageKey={storageKey} refresh={refresh} />;
 }

@@ -23,7 +23,7 @@ import type {
   ConsoleWebhookDeadLetter,
   ConsoleWebhookService,
 } from '@seams-internal/console-server/webhooks/index';
-import type { ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+import type { WalletConsoleAuthClaims as ConsoleAuthClaims } from './walletConsoleAuth';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 
 type ConsoleOpsCockpitSectionState = 'ok' | 'not_configured' | 'forbidden' | 'error';
@@ -170,7 +170,6 @@ function toOnboardingContext(claims: ConsoleAuthClaims): {
   actorEmail: string;
   actorDisplayName: string | null;
   projectId: string | null;
-  environmentId: string | null;
 } {
   return {
     orgId: claims.orgId,
@@ -180,7 +179,6 @@ function toOnboardingContext(claims: ConsoleAuthClaims): {
       .toLowerCase(),
     actorDisplayName: String(claims.name ?? '').trim() || null,
     projectId: claims.projectId ?? null,
-    environmentId: claims.environmentId ?? null,
   };
 }
 

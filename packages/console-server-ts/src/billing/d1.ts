@@ -21,7 +21,6 @@ import {
   type BillingProviderAdapters,
   type StripeRefundProviderOutput,
 } from './providers';
-import { resolveBillingLiveEnvironmentState } from './readiness';
 import { assertBillingEntryBalances } from './ledger';
 import {
   buildBillingStripePostProcessingPayload,
@@ -3856,10 +3855,6 @@ export async function createD1ConsoleBillingService(
         monthlyActiveResources,
         creditBalanceMinor: account.creditBalanceMinor,
         lowBalanceThresholdMinor: account.lowBalanceThresholdMinor,
-        liveEnvironmentState: resolveBillingLiveEnvironmentState({
-          creditBalanceMinor: account.creditBalanceMinor,
-          lowBalanceThresholdMinor: account.lowBalanceThresholdMinor,
-        }),
         recentUsageDebitMinor,
         recentCreditPurchasedMinor,
         documentCount: await countProjectedInvoices(state, ctx.orgId),

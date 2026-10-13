@@ -1,4 +1,5 @@
 export * from './gasSponsorship';
+export * from './environments';
 export * from './sponsorshipSpendCaps';
 export * from './billingPrepaidReservations';
 export * from './sponsoredCalls';

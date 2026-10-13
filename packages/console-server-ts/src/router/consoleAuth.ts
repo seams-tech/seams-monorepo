@@ -15,7 +15,6 @@ interface ConsoleAuthIdentityClaims {
   readonly name?: string;
   readonly provider?: string;
   readonly projectId?: string;
-  readonly environmentId?: string;
   /**
    * The console session the credential belongs to, when the adapter can name
    * it. Step-up evidence is bound to this so a proof recorded in one session
@@ -25,12 +24,10 @@ interface ConsoleAuthIdentityClaims {
 }
 
 type ConsoleAuthorizationClaims<T extends ActiveOrganizationAuthorization> =
-  T extends ActiveOrganizationAuthorization
-    ? Omit<T, 'kind' | 'orgId' | 'userId'>
-    : never;
+  T extends ActiveOrganizationAuthorization ? Omit<T, 'kind' | 'orgId' | 'userId'> : never;
 
-export type ConsoleAuthClaims =
-  ConsoleAuthIdentityClaims & ConsoleAuthorizationClaims<ActiveOrganizationAuthorization>;
+export type ConsoleAuthClaims = ConsoleAuthIdentityClaims &
+  ConsoleAuthorizationClaims<ActiveOrganizationAuthorization>;
 
 export interface ConsoleSessionResponseClaims {
   readonly userId: string;
@@ -45,7 +42,6 @@ export interface ConsoleSessionResponseClaims {
   readonly name?: string;
   readonly provider?: string;
   readonly projectId?: string;
-  readonly environmentId?: string;
 }
 
 export type ConsoleAuthAdapterResult =
@@ -112,7 +108,6 @@ function normalizeIdentityClaims(claims: ConsoleAuthClaims): ConsoleAuthIdentity
   const name = normalizeOptionalString(claims.name);
   const provider = normalizeOptionalString(claims.provider);
   const projectId = normalizeOptionalString(claims.projectId);
-  const environmentId = normalizeOptionalString(claims.environmentId);
   const sessionId = normalizeOptionalString(claims.sessionId);
   return {
     userId: normalizeRequiredString(claims.userId, 'userId'),
@@ -122,7 +117,6 @@ function normalizeIdentityClaims(claims: ConsoleAuthClaims): ConsoleAuthIdentity
     ...(name ? { name } : {}),
     ...(provider ? { provider } : {}),
     ...(projectId ? { projectId } : {}),
-    ...(environmentId ? { environmentId } : {}),
     ...(sessionId ? { sessionId } : {}),
   };
 }
@@ -191,7 +185,6 @@ export function toConsoleSessionResponseClaims(
     ...(claims.name ? { name: claims.name } : {}),
     ...(claims.provider ? { provider: claims.provider } : {}),
     ...(claims.projectId ? { projectId: claims.projectId } : {}),
-    ...(claims.environmentId ? { environmentId: claims.environmentId } : {}),
   };
   if (claims.role !== 'MEMBER') {
     return { ...common, projectAccess: [] };

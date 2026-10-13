@@ -12,31 +12,57 @@ export type DashboardOnboardingTelemetryAlertCode =
   | 'onboarding_latency_slo_breached'
   | 'onboarding_error_rate_slo_breached';
 
-export interface DashboardOnboardingState {
-  orgId: string;
-  organization: {
-    id: string;
-    name: string;
-    slug: string;
-    status: string;
-  } | null;
-  activeProjectCount: number;
-  activeEnvironmentCount: number;
-  activeApiKeyCount: number;
-  hasOrganization: boolean;
-  hasProject: boolean;
-  hasEnvironment: boolean;
-  hasApiKey: boolean;
-  accountReady: boolean;
-  organizationReady: boolean;
-  billingReady: boolean;
-  projectReady: boolean;
-  onboardingComplete: boolean;
-  currentStep: DashboardOnboardingStep;
-  complete: boolean;
-  selectedProjectId: string | null;
-  selectedEnvironmentId: string | null;
+interface DashboardOnboardingOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
 }
+
+interface DashboardOnboardingIdentity {
+  orgId: string;
+  accountReady: true;
+}
+
+export type DashboardOnboardingState = DashboardOnboardingIdentity &
+  (
+    | {
+        currentStep: 'organization';
+        organization: null;
+        activeProjectCount: 0;
+        hasOrganization: false;
+        hasProject: false;
+        organizationReady: false;
+        projectReady: false;
+        onboardingComplete: false;
+        complete: false;
+        selectedProjectId: null;
+      }
+    | {
+        currentStep: 'project';
+        organization: DashboardOnboardingOrganization;
+        activeProjectCount: 0;
+        hasOrganization: true;
+        hasProject: false;
+        organizationReady: true;
+        projectReady: false;
+        onboardingComplete: false;
+        complete: false;
+        selectedProjectId: null;
+      }
+    | {
+        currentStep: 'complete';
+        organization: DashboardOnboardingOrganization;
+        activeProjectCount: number;
+        hasOrganization: true;
+        hasProject: true;
+        organizationReady: true;
+        projectReady: true;
+        onboardingComplete: true;
+        complete: true;
+        selectedProjectId: string;
+      }
+  );
 
 export interface DashboardOnboardingTelemetryOperationSnapshot {
   operation: DashboardOnboardingTelemetryOperation;
@@ -92,16 +118,8 @@ export interface DashboardCreateOnboardingProjectResult {
     slug: string;
     status: string;
   };
-  environment: {
-    id: string;
-    projectId: string;
-    key: string;
-    name: string;
-    status: string;
-  };
   created: {
     project: boolean;
-    environment: boolean;
   };
   state: DashboardOnboardingState;
 }
@@ -174,7 +192,7 @@ function toSafeCount(raw: unknown): number {
   return Math.floor(count);
 }
 
-function decodeOrganization(raw: unknown): DashboardOnboardingState['organization'] {
+function decodeOrganization(raw: unknown): DashboardOnboardingOrganization | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
   const id = toTrimmedString(row.id);
@@ -192,49 +210,124 @@ function decodeOnboardingState(raw: unknown): DashboardOnboardingState | null {
   const row = raw as Record<string, unknown>;
   const orgId = toTrimmedString(row.orgId);
   if (!orgId) return null;
-  const hasOrganization = toSafeBoolean(row.hasOrganization);
-  const hasProject = toSafeBoolean(row.hasProject);
-  const hasEnvironment = toSafeBoolean(row.hasEnvironment);
-  const hasApiKey = toSafeBoolean(row.hasApiKey);
-  const accountReady = row.accountReady === undefined ? true : toSafeBoolean(row.accountReady);
-  const organizationReady =
-    row.organizationReady === undefined ? hasOrganization : toSafeBoolean(row.organizationReady);
-  const billingReady = toSafeBoolean(row.billingReady);
-  const projectReady =
-    row.projectReady === undefined ? hasProject && hasEnvironment : toSafeBoolean(row.projectReady);
-  const complete = toSafeBoolean(row.complete);
-  const onboardingComplete =
-    row.onboardingComplete === undefined ? complete : toSafeBoolean(row.onboardingComplete);
-  const rawCurrentStep = toTrimmedString(row.currentStep).toLowerCase();
-  const currentStep: DashboardOnboardingStep =
-    rawCurrentStep === 'organization' ||
-    rawCurrentStep === 'project' ||
-    rawCurrentStep === 'complete'
-      ? (rawCurrentStep as DashboardOnboardingStep)
-      : onboardingComplete
-        ? 'complete'
-        : !organizationReady
-          ? 'organization'
-          : 'project';
+  if (row.accountReady !== true) return null;
+  switch (row.currentStep) {
+    case 'organization':
+      if (
+        row.organization !== null ||
+        row.activeProjectCount !== 0 ||
+        row.hasOrganization !== false ||
+        row.hasProject !== false ||
+        row.organizationReady !== false ||
+        row.projectReady !== false ||
+        row.onboardingComplete !== false ||
+        row.complete !== false ||
+        row.selectedProjectId !== null
+      )
+        return null;
+      return buildDashboardOrganizationOnboardingState(orgId);
+    case 'project': {
+      const organization = decodeOrganization(row.organization);
+      if (
+        !organization ||
+        organization.id !== orgId ||
+        row.activeProjectCount !== 0 ||
+        row.hasOrganization !== true ||
+        row.hasProject !== false ||
+        row.organizationReady !== true ||
+        row.projectReady !== false ||
+        row.onboardingComplete !== false ||
+        row.complete !== false ||
+        row.selectedProjectId !== null
+      )
+        return null;
+      return buildDashboardProjectOnboardingState(orgId, organization);
+    }
+    case 'complete': {
+      const organization = decodeOrganization(row.organization);
+      const selectedProjectId = toTrimmedString(row.selectedProjectId);
+      if (
+        !organization ||
+        organization.id !== orgId ||
+        !selectedProjectId ||
+        !Number.isSafeInteger(row.activeProjectCount) ||
+        Number(row.activeProjectCount) < 1 ||
+        row.hasOrganization !== true ||
+        row.hasProject !== true ||
+        row.organizationReady !== true ||
+        row.projectReady !== true ||
+        row.onboardingComplete !== true ||
+        row.complete !== true
+      )
+        return null;
+      return buildDashboardCompleteOnboardingState(
+        orgId,
+        organization,
+        selectedProjectId,
+        Number(row.activeProjectCount),
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+export function buildDashboardOrganizationOnboardingState(orgId: string): DashboardOnboardingState {
   return {
     orgId,
-    organization: decodeOrganization(row.organization),
-    activeProjectCount: toSafeCount(row.activeProjectCount),
-    activeEnvironmentCount: toSafeCount(row.activeEnvironmentCount),
-    activeApiKeyCount: toSafeCount(row.activeApiKeyCount),
-    hasOrganization,
-    hasProject,
-    hasEnvironment,
-    hasApiKey,
-    accountReady,
-    organizationReady,
-    billingReady,
-    projectReady,
-    onboardingComplete,
-    currentStep,
-    complete,
-    selectedProjectId: toTrimmedString(row.selectedProjectId) || null,
-    selectedEnvironmentId: toTrimmedString(row.selectedEnvironmentId) || null,
+    accountReady: true,
+    currentStep: 'organization',
+    organization: null,
+    activeProjectCount: 0,
+    hasOrganization: false,
+    hasProject: false,
+    organizationReady: false,
+    projectReady: false,
+    onboardingComplete: false,
+    complete: false,
+    selectedProjectId: null,
+  };
+}
+
+function buildDashboardProjectOnboardingState(
+  orgId: string,
+  organization: DashboardOnboardingOrganization,
+): DashboardOnboardingState {
+  return {
+    orgId,
+    accountReady: true,
+    currentStep: 'project',
+    organization,
+    activeProjectCount: 0,
+    hasOrganization: true,
+    hasProject: false,
+    organizationReady: true,
+    projectReady: false,
+    onboardingComplete: false,
+    complete: false,
+    selectedProjectId: null,
+  };
+}
+
+function buildDashboardCompleteOnboardingState(
+  orgId: string,
+  organization: DashboardOnboardingOrganization,
+  selectedProjectId: string,
+  activeProjectCount: number,
+): DashboardOnboardingState {
+  return {
+    orgId,
+    accountReady: true,
+    currentStep: 'complete',
+    organization,
+    activeProjectCount,
+    hasOrganization: true,
+    hasProject: true,
+    organizationReady: true,
+    projectReady: true,
+    onboardingComplete: true,
+    complete: true,
+    selectedProjectId,
   };
 }
 
@@ -250,9 +343,10 @@ function decodeTelemetryOperationSnapshot(
 ): DashboardOnboardingTelemetryOperationSnapshot | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
-  const sloRaw = row.slo && typeof row.slo === 'object' && !Array.isArray(row.slo)
-    ? (row.slo as Record<string, unknown>)
-    : {};
+  const sloRaw =
+    row.slo && typeof row.slo === 'object' && !Array.isArray(row.slo)
+      ? (row.slo as Record<string, unknown>)
+      : {};
   return {
     operation: decodeTelemetryOperation(row.operation),
     requestCount: toSafeCount(row.requestCount),
@@ -317,18 +411,13 @@ function decodeCreateProjectResult(raw: unknown): DashboardCreateOnboardingProje
     row.project && typeof row.project === 'object' && !Array.isArray(row.project)
       ? (row.project as Record<string, unknown>)
       : null;
-  const environmentRow =
-    row.environment && typeof row.environment === 'object' && !Array.isArray(row.environment)
-      ? (row.environment as Record<string, unknown>)
-      : null;
   const createdRow =
     row.created && typeof row.created === 'object' && !Array.isArray(row.created)
       ? (row.created as Record<string, unknown>)
       : null;
-  if (!state || !projectRow || !environmentRow || !createdRow) return null;
+  if (!state || !projectRow || !createdRow) return null;
   const projectId = toTrimmedString(projectRow.id);
-  const environmentId = toTrimmedString(environmentRow.id);
-  if (!projectId || !environmentId) return null;
+  if (!projectId) return null;
   return {
     project: {
       id: projectId,
@@ -336,16 +425,8 @@ function decodeCreateProjectResult(raw: unknown): DashboardCreateOnboardingProje
       slug: toTrimmedString(projectRow.slug),
       status: toTrimmedString(projectRow.status) || 'ACTIVE',
     },
-    environment: {
-      id: environmentId,
-      projectId: toTrimmedString(environmentRow.projectId),
-      key: toTrimmedString(environmentRow.key),
-      name: toTrimmedString(environmentRow.name) || environmentId,
-      status: toTrimmedString(environmentRow.status) || 'ACTIVE',
-    },
     created: {
       project: toSafeBoolean(createdRow.project),
-      environment: toSafeBoolean(createdRow.environment),
     },
     state,
   };

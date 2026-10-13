@@ -15,7 +15,7 @@ import {
   parseBillingRefundReconcileRequest,
   parseBillingRefundRequest,
 } from '@seams-internal/console-server/billing/requests';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/service';
 import type {
   ConsoleOrganization,
   ConsoleProject,
@@ -39,13 +39,11 @@ function toPlatformLookupReadContext(
   orgId: string;
   actorUserId: string;
   projectId?: string;
-  environmentId?: string;
 } {
   return {
     orgId,
     actorUserId: claims.userId,
     ...(claims.projectId ? { projectId: claims.projectId } : {}),
-    ...(claims.environmentId ? { environmentId: claims.environmentId } : {}),
   };
 }
 
@@ -166,7 +164,7 @@ export function parsePlatformBillingRefundReconcileRequest(
 export async function resolvePlatformBillingLookup(input: {
   claims: ConsoleAuthClaims;
   billing: ConsoleBillingService;
-  orgProjectEnv: ConsoleOrgProjectEnvService;
+  orgProjects: ConsoleOrgProjectService;
   request: PlatformBillingLookupRequest;
 }): Promise<PlatformBillingLookupResult> {
   const requestedOrgId = String(input.request.orgId || '').trim();
@@ -178,7 +176,7 @@ export async function resolvePlatformBillingLookup(input: {
   let targetOrgId = requestedOrgId;
 
   if (requestedProjectId) {
-    const projectOrganization = await input.orgProjectEnv.findOrganizationForScope({
+    const projectOrganization = await input.orgProjects.findOrganizationForProject({
       projectId: requestedProjectId,
     });
     if (!projectOrganization) {
@@ -207,10 +205,10 @@ export async function resolvePlatformBillingLookup(input: {
   }
 
   const readCtx = toPlatformLookupReadContext(input.claims, targetOrgId);
-  const organization = await input.orgProjectEnv.getOrganization(readCtx);
+  const organization = await input.orgProjects.getOrganization(readCtx);
   let project: ConsoleProject | null = null;
   if (requestedProjectId) {
-    const projects = await input.orgProjectEnv.listProjects(readCtx);
+    const projects = await input.orgProjects.listProjects(readCtx);
     project = projects.find((entry) => entry.id === requestedProjectId) || null;
     if (!project) {
       throw new ConsoleBillingError(
@@ -239,8 +237,8 @@ export async function resolvePlatformBillingLookup(input: {
 }
 
 export async function searchPlatformBillingOrganizations(input: {
-  orgProjectEnv: ConsoleOrgProjectEnvService;
+  orgProjects: ConsoleOrgProjectService;
   request: PlatformBillingOrganizationSearchRequest;
 }): Promise<ConsoleOrganization[]> {
-  return input.orgProjectEnv.searchOrganizations(input.request);
+  return input.orgProjects.searchOrganizations(input.request);
 }

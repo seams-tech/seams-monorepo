@@ -7,26 +7,31 @@ import {
   type WalletRegistrationContextResolver,
 } from '@seams/wallet-server/cloud-host';
 import type { ConsoleCoreRouterServices, WalletConsoleRouterServices } from '../consoleComposition';
-import { createD1ConsoleAccountService } from '@seams-internal/console-server/account/d1';
+import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
+import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
+import type { AccountServiceProvisioningAdapterV1 } from '@seams-internal/console-server/accountPlatform/provisioning';
+import { WalletServiceProvisioningAdapter } from '../../accountPlatform/provisioning';
+import type { AccountOrganizationDeletionPort } from '@seams-internal/console-server/account/service';
+import { ConsoleAccountError } from '@seams-internal/console-server/account/errors';
+import { queryD1One } from '@seams-internal/console-server/boundary/d1';
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/service';
 import type { ConsoleAccountService } from '@seams-internal/console-server/account/service';
-import { createD1ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/d1';
+import { createD1ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/d1';
 import type {
   ConsoleApiKeysContext,
   ConsoleApiKeyService,
-} from '@seams-internal/console-server/apiKeys/service';
+} from '@seams-internal/wallet-console-server/apiKeys/service';
 import type {
   CreateConsoleApiKeyRequest,
   CreateConsoleApiKeyResult,
-} from '@seams-internal/console-server/apiKeys/types';
+} from '@seams-internal/wallet-console-server/apiKeys/types';
 import { createD1ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/d1';
 import type { ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/service';
-import { createD1ConsoleAuditService } from '@seams-internal/console-server/audit/d1';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/service';
 import {
   WALLET_CONSOLE_AUDIT_CATEGORIES,
   WALLET_CONSOLE_AUDIT_EVIDENCE_REFERENCE_KINDS,
 } from '../../audit';
-import { createD1ConsoleBillingService } from '@seams-internal/console-server/billing/d1';
 import type { BillingProviderAdapters } from '@seams-internal/console-server/billing/providers';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
 import { createD1ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/d1';
@@ -43,8 +48,10 @@ import type {
   ConsoleWebhookService,
   WebhookDispatchAdapter,
 } from '@seams-internal/console-server/webhooks/service';
-import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/d1';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
+import {
+  createD1ConsoleWalletEnvironmentService,
+  type ConsoleWalletEnvironmentService,
+} from '../../environments';
 import {
   createD1ConsoleObservabilityIngestionService,
   createD1ConsoleObservabilityService,
@@ -57,11 +64,7 @@ import {
   WALLET_CONSOLE_OBSERVABILITY_REQUEST_METRIC_POLICIES,
   WALLET_CONSOLE_OBSERVABILITY_SOURCES,
 } from '../../observability';
-import {
-  createInMemoryConsoleOnboardingService,
-  type ConsoleOnboardingService,
-} from '@seams-internal/console-server/onboarding/service';
-import { createD1ConsoleOnboardingWelcomeEmail } from '@seams-internal/console-server/onboarding/welcomeEmail';
+import type { ConsoleOnboardingService } from '@seams-internal/console-server/onboarding/service';
 import { createD1ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/d1';
 import type { ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/service';
 import { createD1ConsoleSponsoredCallService } from '@seams-internal/wallet-console-server/sponsoredCalls/d1';
@@ -73,10 +76,7 @@ import {
 } from '@seams-internal/wallet-console-server/sponsorshipPricing/d1';
 import { createD1ConsoleSponsorshipSpendCapService } from '@seams-internal/wallet-console-server/sponsorshipSpendCaps/d1';
 import type { ConsoleSponsorshipSpendCapService } from '@seams-internal/wallet-console-server/sponsorshipSpendCaps/service';
-import {
-  createD1ConsoleOrganizationAccessService,
-  type D1ConsoleOrganizationEmailOptions,
-} from '@seams-internal/console-server/teamRbac/d1';
+import type { D1ConsoleOrganizationEmailOptions } from '@seams-internal/console-server/teamRbac/d1';
 import type { ConsoleOrganizationAccessService } from '@seams-internal/console-server/teamRbac/service';
 import { createD1ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/d1';
 import type { ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/service';
@@ -88,7 +88,10 @@ import {
   DEFAULT_TEMPO_ONBOARDING_CONTRACT,
   TEMPO_TESTNET_CHAIN_ID,
 } from '@seams-internal/wallet-console-server/gasSponsorship/onboarding';
-import { ensureTempoOnboardingSponsorshipForExistingEnvironments } from '@seams-internal/wallet-console-server/gasSponsorship/seeding';
+import {
+  createConsoleWalletEnvironmentServiceWithTempoOnboardingSponsorship,
+  ensureTempoOnboardingSponsorshipForExistingEnvironments,
+} from '@seams-internal/wallet-console-server/gasSponsorship/seeding';
 import type { ConsoleGasSponsorshipPolicyProjection } from '@seams-internal/wallet-console-server/gasSponsorship/types';
 import type {
   RouterApiKeyAuthAdapter,
@@ -157,6 +160,7 @@ export interface CloudflareD1ConsoleStorageBindingNames {
 
 export interface CloudflareD1ConsoleRouteOptions {
   readonly namespace: string;
+  readonly deploymentId: string;
   readonly routeVersion?: number;
   readonly topology?: CloudflareTenantTopology;
   readonly jurisdiction?: TenantDataJurisdiction;
@@ -199,14 +203,18 @@ export interface CloudflareD1ConsoleServiceBundleOptions {
 
 export interface CloudflareD1ConsoleOnlyServiceBundleOptions {
   readonly bindings: CloudflareD1ConsoleOnlyStorageBindings;
-  readonly route: Pick<CloudflareD1ConsoleRouteOptions, 'namespace'>;
+  readonly route: Pick<CloudflareD1ConsoleRouteOptions, 'namespace' | 'deploymentId'>;
   readonly adapters?: CloudflareD1ConsoleAdapterOptions;
 }
 
 export interface CloudflareD1ConsoleRouterStorageOptions {
   readonly tenantStorageRouteResolver: TenantStorageRouteResolver;
   readonly tenantStorageNamespace: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjects: ConsoleOrgProjectService;
+  readonly accountPlatform: D1AccountPlatformService;
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
+  readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
   readonly policies: ConsolePolicyService;
@@ -238,7 +246,10 @@ export interface CloudflareD1RouterApiStorageOptions {
 export interface CloudflareD1ConsoleServiceBundle {
   readonly tenantStorageRouteResolver: TenantStorageRouteResolver;
   readonly tenantStorageNamespace: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjects: ConsoleOrgProjectService;
+  readonly accountPlatform: D1AccountPlatformService;
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
   readonly policies: ConsolePolicyService;
@@ -277,13 +288,12 @@ export function consoleCoreServicesFromBundle(
   bundle: ConsoleBranchServiceFields,
 ): ConsoleCoreRouterServices {
   return {
-    orgProjectEnv: bundle.orgProjectEnv,
+    orgProjects: bundle.orgProjects,
+    accountPlatform: bundle.accountPlatform,
     organizationAccess: bundle.organizationAccess,
     account: bundle.account,
-    apiKeys: bundle.apiKeys,
     audit: bundle.audit,
     billing: bundle.billing,
-    prepaidReservations: bundle.prepaidReservations,
     webhooks: bundle.webhooks,
     observability: bundle.observability,
     observabilityIngestion: bundle.observabilityIngestion,
@@ -295,6 +305,9 @@ export function walletConsoleServicesFromBundle(
   bundle: ConsoleBranchServiceFields,
 ): WalletConsoleRouterServices {
   return {
+    apiKeys: bundle.apiKeys,
+    prepaidReservations: bundle.prepaidReservations,
+    walletEnvironments: bundle.walletEnvironments,
     policies: bundle.policies,
     wallets: bundle.wallets,
     approvals: bundle.approvals,
@@ -335,6 +348,7 @@ interface NormalizedCloudflareD1ConsoleCommonOptions {
   readonly consoleDatabase: D1DatabaseLike;
   readonly signerMetadataDatabase?: D1DatabaseLike;
   readonly namespace: string;
+  readonly deploymentId: string;
   readonly ensureSchema: boolean;
   readonly now?: () => Date;
   readonly logger?: Logger | null;
@@ -374,7 +388,10 @@ interface NormalizedCloudflareD1ConsoleServiceBundleOptions extends NormalizedCl
 }
 
 interface CloudflareD1ConsoleCommonServices {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjects: ConsoleOrgProjectService;
+  readonly accountPlatform: D1AccountPlatformService;
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
   readonly policies: ConsolePolicyService;
@@ -404,10 +421,36 @@ const TEMPO_STATIC_SPONSORSHIP_ESTIMATE_FEE_PER_GAS_WEI = 40_000_000_000n;
 const TEMPO_STATIC_SPONSORSHIP_MINOR_PER_WEI_NUMERATOR = 1n;
 const TEMPO_STATIC_SPONSORSHIP_MINOR_PER_WEI_DENOMINATOR = 1_000_000_000_000_000n;
 
+class D1WalletOrganizationDeletion implements AccountOrganizationDeletionPort {
+  constructor(
+    private readonly database: D1DatabaseLike,
+    private readonly namespace: string,
+  ) {}
+
+  async assertOrganizationCanBeDeleted(ctx: {
+    readonly orgId: string;
+    readonly actorUserId: string;
+  }): Promise<void> {
+    const wallet = await queryD1One(
+      this.database,
+      `SELECT 1 AS retained FROM wallet_index WHERE namespace = ?1 AND org_id = ?2
+       UNION ALL SELECT 1 FROM billing_prepaid_reservations WHERE namespace = ?1 AND org_id = ?2 LIMIT 1`,
+      [this.namespace, ctx.orgId],
+    );
+    if (wallet) {
+      throw new ConsoleAccountError(
+        'organization_delete_has_wallet_records',
+        409,
+        'Wallet records retain this organization',
+      );
+    }
+  }
+}
+
 class TempoOnboardingApiKeyService implements ConsoleApiKeyService {
   constructor(
     private readonly base: ConsoleApiKeyService,
-    private readonly orgProjectEnv: ConsoleOrgProjectEnvService,
+    private readonly walletEnvironments: ConsoleWalletEnvironmentService,
     private readonly policies: ConsolePolicyService,
     private readonly runtimeSnapshots: ConsoleRuntimeSnapshotService,
     private readonly pricingSeed: TempoStaticSponsorshipPricingSeed | null,
@@ -485,18 +528,18 @@ class TempoOnboardingApiKeyService implements ConsoleApiKeyService {
     ctx: ConsoleApiKeysContext,
     environmentId: string,
   ): Promise<void> {
-    const orgProjectEnvCtx = {
+    const walletEnvironmentsCtx = {
       orgId: ctx.orgId,
       actorUserId: ctx.actorUserId,
     };
-    const environments = await this.orgProjectEnv.listEnvironments(orgProjectEnvCtx);
+    const environments = await this.walletEnvironments.listEnvironments(walletEnvironmentsCtx);
     const environment = environments.find((entry) => entry.id === environmentId);
     if (!environment) return;
     const seededPolicies = await ensureTempoOnboardingSponsorshipForExistingEnvironments({
-      orgProjectEnv: this.orgProjectEnv,
+      walletEnvironments: this.walletEnvironments,
       policies: this.policies,
       runtimeSnapshots: this.runtimeSnapshots,
-      ctx: orgProjectEnvCtx,
+      ctx: walletEnvironmentsCtx,
       faucetContractAddress: DEFAULT_TEMPO_ONBOARDING_CONTRACT,
       projectId: environment.projectId,
     });
@@ -532,14 +575,14 @@ class TempoOnboardingApiKeyService implements ConsoleApiKeyService {
 
 function createTempoOnboardingApiKeyService(input: {
   readonly apiKeys: ConsoleApiKeyService;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly policies: ConsolePolicyService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
   readonly pricingSeed: TempoStaticSponsorshipPricingSeed | null;
 }): ConsoleApiKeyService {
   return new TempoOnboardingApiKeyService(
     input.apiKeys,
-    input.orgProjectEnv,
+    input.walletEnvironments,
     input.policies,
     input.runtimeSnapshots,
     input.pricingSeed,
@@ -589,6 +632,7 @@ function normalizeCloudflareD1ConsoleServiceBundleOptions(
     consoleDatabase: options.bindings.consoleDatabase,
     signerMetadataDatabase: options.bindings.signerMetadataDatabase,
     namespace: normalizeNamespace(options.route.namespace),
+    deploymentId: normalizeNamespace(options.route.deploymentId),
     routeVersion: normalizeRouteVersion(options.route.routeVersion),
     topology: normalizeTopology(options.route.topology),
     jurisdiction: normalizeJurisdiction(options.route.jurisdiction),
@@ -644,6 +688,7 @@ function normalizeCloudflareD1ConsoleOnlyServiceBundleOptions(
   return {
     consoleDatabase: options.bindings.consoleDatabase,
     namespace: normalizeNamespace(options.route.namespace),
+    deploymentId: normalizeNamespace(options.route.deploymentId),
     ensureSchema: options.adapters?.ensureSchema !== false,
     now: options.adapters?.now,
     logger: options.adapters?.logger,
@@ -694,58 +739,6 @@ async function createCloudflareD1PrepaidReservations(
     namespace: options.namespace,
     now: options.now,
     defaultReservationTtlMs: options.defaultPrepaidReservationTtlMs,
-  });
-}
-
-async function createCloudflareD1Billing(
-  options: NormalizedCloudflareD1ConsoleCommonOptions,
-): Promise<ConsoleBillingService> {
-  return await createD1ConsoleBillingService({
-    database: options.consoleDatabase,
-    namespace: options.namespace,
-    now: options.now,
-    providers: options.billingProviders,
-    emailConsoleBaseUrl: options.billingEmailConsoleBaseUrl,
-  });
-}
-
-async function createCloudflareD1OrgProjectEnv(
-  options: NormalizedCloudflareD1ConsoleCommonOptions,
-): Promise<ConsoleOrgProjectEnvService> {
-  return await createD1ConsoleOrgProjectEnvService({
-    database: options.consoleDatabase,
-    namespace: options.namespace,
-    ensureSchema: options.ensureSchema,
-    now: options.now,
-  });
-}
-
-async function createCloudflareD1OrganizationAccess(
-  options: NormalizedCloudflareD1ConsoleCommonOptions,
-): Promise<ConsoleOrganizationAccessService> {
-  return await createD1ConsoleOrganizationAccessService({
-    database: options.consoleDatabase,
-    namespace: options.namespace,
-    ensureSchema: options.ensureSchema,
-    now: options.now,
-    email: options.organizationEmail,
-  });
-}
-
-async function createCloudflareD1Account(input: {
-  readonly options: NormalizedCloudflareD1ConsoleCommonOptions;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
-  readonly organizationAccess: ConsoleOrganizationAccessService;
-  readonly onboarding: ConsoleOnboardingService;
-}): Promise<ConsoleAccountService> {
-  return await createD1ConsoleAccountService({
-    database: input.options.consoleDatabase,
-    namespace: input.options.namespace,
-    ensureSchema: input.options.ensureSchema,
-    now: input.options.now,
-    orgProjectEnv: input.orgProjectEnv,
-    organizationAccess: input.organizationAccess,
-    onboarding: input.onboarding,
   });
 }
 
@@ -905,45 +898,6 @@ async function createCloudflareD1Webhooks(input: {
   });
 }
 
-function createCloudflareD1Onboarding(input: {
-  readonly options: NormalizedCloudflareD1ConsoleCommonOptions;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
-  readonly apiKeys: ConsoleApiKeyService;
-  readonly billing: ConsoleBillingService;
-  readonly organizationAccess: ConsoleOrganizationAccessService;
-}): ConsoleOnboardingService {
-  const welcomeEmail = input.options.onboardingEmail
-    ? createD1ConsoleOnboardingWelcomeEmail({
-        database: input.options.consoleDatabase,
-        namespace: input.options.namespace,
-        consoleBaseUrl: input.options.onboardingEmail.consoleBaseUrl,
-        docsBaseUrl: input.options.onboardingEmail.docsBaseUrl,
-        now: input.options.now,
-      })
-    : null;
-  return createInMemoryConsoleOnboardingService({
-    orgProjectEnv: input.orgProjectEnv,
-    apiKeys: input.apiKeys,
-    billing: input.billing,
-    organizationAccess: input.organizationAccess,
-    welcomeEmail,
-    logger: input.options.logger,
-  });
-}
-
-async function createCloudflareD1Audit(
-  options: NormalizedCloudflareD1ConsoleCommonOptions,
-): Promise<ConsoleAuditService> {
-  return await createD1ConsoleAuditService({
-    database: options.consoleDatabase,
-    namespace: options.namespace,
-    ensureSchema: options.ensureSchema,
-    now: options.now,
-    additionalCategories: WALLET_CONSOLE_AUDIT_CATEGORIES,
-    additionalEvidenceReferenceKinds: WALLET_CONSOLE_AUDIT_EVIDENCE_REFERENCE_KINDS,
-  });
-}
-
 async function createCloudflareD1SponsoredCalls(
   options: NormalizedCloudflareD1ConsoleCommonOptions,
 ): Promise<ConsoleSponsoredCallService> {
@@ -992,8 +946,29 @@ async function createCloudflareD1RuntimeSnapshots(
 async function createCloudflareD1ConsoleCommonServices(
   normalized: NormalizedCloudflareD1ConsoleCommonOptions,
 ): Promise<CloudflareD1ConsoleCommonServices> {
-  const orgProjectEnv = await createCloudflareD1OrgProjectEnv(normalized);
-  const organizationAccess = await createCloudflareD1OrganizationAccess(normalized);
+  const core = await createCloudflareD1AccountServiceBundle({
+    database: normalized.consoleDatabase,
+    namespace: normalized.namespace,
+    ensureSchema: normalized.ensureSchema,
+    now: normalized.now,
+    logger: normalized.logger,
+    organizationEmail: normalized.organizationEmail,
+    billingProviders: normalized.billingProviders,
+    billingEmailConsoleBaseUrl: normalized.billingEmailConsoleBaseUrl,
+    onboardingEmail: normalized.onboardingEmail,
+    auditCategories: WALLET_CONSOLE_AUDIT_CATEGORIES,
+    auditEvidenceReferenceKinds: WALLET_CONSOLE_AUDIT_EVIDENCE_REFERENCE_KINDS,
+    externalDeletionGuard: new D1WalletOrganizationDeletion(
+      normalized.consoleDatabase,
+      normalized.namespace,
+    ),
+  });
+  const baseWalletEnvironments = await createD1ConsoleWalletEnvironmentService({
+    database: normalized.consoleDatabase,
+    namespace: normalized.namespace,
+    ensureSchema: normalized.ensureSchema,
+    now: normalized.now,
+  });
   const policies = await createCloudflareD1Policies(normalized);
   const wallets = await createCloudflareD1Wallets(normalized);
   const apiKeys = await createCloudflareD1ApiKeys(normalized);
@@ -1005,29 +980,29 @@ async function createCloudflareD1ConsoleCommonServices(
     options: normalized,
     observabilityIngestion,
   });
-  const audit = await createCloudflareD1Audit(normalized);
-  const billing = await createCloudflareD1Billing(normalized);
   const prepaidReservations = await createCloudflareD1PrepaidReservations(normalized);
   const sponsoredCalls = await createCloudflareD1SponsoredCalls(normalized);
   await ensureCloudflareD1SponsorshipPricingSchema(normalized);
   const runtimeSnapshots = await createCloudflareD1RuntimeSnapshots(normalized);
-  const onboarding = createCloudflareD1Onboarding({
-    options: normalized,
-    orgProjectEnv,
-    apiKeys,
-    billing,
-    organizationAccess,
-  });
-  const account = await createCloudflareD1Account({
-    options: normalized,
-    orgProjectEnv,
-    organizationAccess,
-    onboarding,
+  const walletEnvironments = normalized.sponsoredEvmCallConfig
+    ? createConsoleWalletEnvironmentServiceWithTempoOnboardingSponsorship({
+        base: baseWalletEnvironments,
+        policies,
+        runtimeSnapshots,
+        faucetContractAddress: DEFAULT_TEMPO_ONBOARDING_CONTRACT,
+      })
+    : baseWalletEnvironments;
+  const walletProvisioning = new WalletServiceProvisioningAdapter({
+    deploymentId: normalized.deploymentId,
+    namespace: normalized.namespace,
+    environments: walletEnvironments,
+    orgProjects: core.orgProjects,
+    billing: core.billing,
   });
   return {
-    orgProjectEnv,
-    organizationAccess,
-    account,
+    ...core,
+    walletProvisioning,
+    walletEnvironments,
     policies,
     wallets,
     apiKeys,
@@ -1036,9 +1011,6 @@ async function createCloudflareD1ConsoleCommonServices(
     webhooks,
     observability,
     observabilityIngestion,
-    onboarding,
-    audit,
-    billing,
     prepaidReservations,
     sponsoredCalls,
     runtimeSnapshots,
@@ -1048,7 +1020,10 @@ async function createCloudflareD1ConsoleCommonServices(
 function createCloudflareD1ConsoleRouterStorageOptions(input: {
   readonly tenantStorageRouteResolver: TenantStorageRouteResolver;
   readonly tenantStorageNamespace: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjects: ConsoleOrgProjectService;
+  readonly accountPlatform: D1AccountPlatformService;
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
   readonly policies: ConsolePolicyService;
@@ -1069,7 +1044,11 @@ function createCloudflareD1ConsoleRouterStorageOptions(input: {
   return {
     tenantStorageRouteResolver: input.tenantStorageRouteResolver,
     tenantStorageNamespace: input.tenantStorageNamespace,
-    orgProjectEnv: input.orgProjectEnv,
+    orgProjects: input.orgProjects,
+    accountPlatform: input.accountPlatform,
+    walletProvisioning: input.walletProvisioning,
+    satyrProvisioning: null,
+    walletEnvironments: input.walletEnvironments,
     organizationAccess: input.organizationAccess,
     account: input.account,
     policies: input.policies,
@@ -1091,8 +1070,10 @@ function createCloudflareD1ConsoleRouterStorageOptions(input: {
 
 function createCloudflareD1RouterApiStorageOptions(input: {
   readonly options: NormalizedCloudflareD1ConsoleServiceBundleOptions;
+  readonly accountPlatform: D1AccountPlatformService;
+  readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
   readonly sponsorshipPricing: SponsorshipSpendPricingService | null;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly wallets: ConsoleWalletService;
   readonly apiKeys: ConsoleApiKeyService;
   readonly billing: ConsoleBillingService;
@@ -1109,18 +1090,35 @@ function createCloudflareD1RouterApiStorageOptions(input: {
     storageNamespace: options.namespace,
   });
   const sponsoredEvmCallConfig = options.sponsoredEvmCallConfig || null;
-  const apiKeyAuth = createRouterApiKeyAuthAdapter(input.apiKeys);
-  const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(input.apiKeys);
-  const orgProjectEnv = createWalletProjectEnvironmentResolver(input.orgProjectEnv);
+  const admission = {
+    platform: input.accountPlatform,
+    authority: input.walletProvisioning.authority,
+    namespace: options.namespace,
+  };
+  const apiKeyAuth = createRouterApiKeyAuthAdapter(input.apiKeys, {
+    ...admission,
+    environments: input.walletEnvironments,
+  });
+  const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(input.apiKeys, {
+    ...admission,
+    environments: input.walletEnvironments,
+  });
+  const walletEnvironments = createWalletProjectEnvironmentResolver(
+    input.walletEnvironments,
+    admission,
+  );
   return {
     apiKeyAuth,
     publishableKeyAuth,
-    registrationContext: createWalletRegistrationContextResolver(publishableKeyAuth, orgProjectEnv),
+    registrationContext: createWalletRegistrationContextResolver(
+      publishableKeyAuth,
+      walletEnvironments,
+    ),
     apiKeyUsageMeter: createRouterApiBillingUsageMeterAdapter(input.billing, {
-      orgProjectEnv: input.orgProjectEnv,
+      walletEnvironments: input.walletEnvironments,
       wallets: input.wallets,
     }),
-    orgProjectEnv,
+    orgProjectEnv: walletEnvironments,
     routeExtensions: createConsoleRouterApiRouteExtensions({
       apiKeyAuth,
       ...(sponsoredEvmCallConfig
@@ -1173,7 +1171,7 @@ export async function createCloudflareD1ConsoleServiceBundle(
   const apiKeys = normalized.sponsoredEvmCallConfig
     ? createTempoOnboardingApiKeyService({
         apiKeys: services.apiKeys,
-        orgProjectEnv: services.orgProjectEnv,
+        walletEnvironments: services.walletEnvironments,
         policies: services.policies,
         runtimeSnapshots: services.runtimeSnapshots,
         pricingSeed: {
@@ -1196,8 +1194,10 @@ export async function createCloudflareD1ConsoleServiceBundle(
   });
   const routerApiRouterOptions = createCloudflareD1RouterApiStorageOptions({
     options: normalized,
+    accountPlatform: servicesWithApiKeys.accountPlatform,
+    walletProvisioning: servicesWithApiKeys.walletProvisioning,
     sponsorshipPricing,
-    orgProjectEnv: servicesWithApiKeys.orgProjectEnv,
+    walletEnvironments: servicesWithApiKeys.walletEnvironments,
     wallets: servicesWithApiKeys.wallets,
     apiKeys: servicesWithApiKeys.apiKeys,
     billing: servicesWithApiKeys.billing,
@@ -1227,7 +1227,7 @@ export async function createCloudflareD1ConsoleOnlyServiceBundle(
   const apiKeys = normalized.sponsoredEvmCallConfig
     ? createTempoOnboardingApiKeyService({
         apiKeys: services.apiKeys,
-        orgProjectEnv: services.orgProjectEnv,
+        walletEnvironments: services.walletEnvironments,
         policies: services.policies,
         runtimeSnapshots: services.runtimeSnapshots,
         pricingSeed: {
@@ -1250,6 +1250,7 @@ export async function createCloudflareD1ConsoleOnlyServiceBundle(
     sponsorshipPricing,
     consoleRouterOptions: {
       ...servicesWithApiKeys,
+      satyrProvisioning: null,
     },
   };
 }

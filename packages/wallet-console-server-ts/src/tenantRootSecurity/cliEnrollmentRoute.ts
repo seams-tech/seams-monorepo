@@ -65,19 +65,17 @@ async function ownerStillActive(
   actorUserId: string,
 ): Promise<boolean> {
   if (!(await deps.isOwner(identity.orgId, actorUserId))) return false;
-  const environments = await deps.orgProjectEnv.listEnvironments(
+  const environments = await deps.walletEnvironments.listEnvironments(
     {
       orgId: identity.orgId,
       actorUserId,
-      projectId: identity.projectId,
-      environmentId: identity.envId,
     },
     { projectId: identity.projectId, status: 'ACTIVE' },
   );
   return environments.some(
     (environment) =>
       environment.id === identity.envId &&
-      environment.runtimeVersion === identity.signingRootVersion,
+      environment.signingRootVersion === identity.signingRootVersion,
   );
 }
 

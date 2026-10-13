@@ -639,8 +639,7 @@ export function PolicyEnginePage(): React.JSX.Element {
     String(session.claims?.orgId || '').trim();
   const projectScopeId =
     String(selectedContext.project || session.claims?.projectId || '').trim() || '';
-  const environmentScopeId =
-    String(selectedContext.environment || session.claims?.environmentId || '').trim() || '';
+  const environmentScopeId = String(selectedContext.environment || '').trim() || '';
 
   const [policiesLoading, setPoliciesLoading] = React.useState<boolean>(true);
   const [policiesErrorMessage, setPoliciesErrorMessage] = React.useState<string>('');

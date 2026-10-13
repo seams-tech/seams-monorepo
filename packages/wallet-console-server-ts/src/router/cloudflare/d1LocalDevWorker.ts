@@ -1,7 +1,8 @@
 import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
+import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
 import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
 import { TenantResourceVerificationV1 } from '../../tenantDeployment/resourceVerification';
-import { createD1ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv';
+import { createD1ConsoleWalletEnvironmentService } from '../../environments';
 import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAdapter';
 import { resolveRuntimeTenantRootLineage } from '@seams/wallet-server/cloud-host';
 import type { RuntimePolicyScope } from '@seams/wallet-server/cloud-host';
@@ -1016,6 +1017,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     },
     route: {
       namespace: localTenantStorageNamespace(env),
+      deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE,
     },
     adapters: {
       ensureSchema: false,
@@ -1036,6 +1038,8 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const handler = createHostedWalletConsoleRouter({
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
+    walletProvisioning: bundle.walletProvisioning,
+    satyrProvisioning: null,
     tenantStorage: {
       resolver: bundle.tenantStorageRouteResolver,
       namespace: bundle.tenantStorageNamespace,
@@ -1064,7 +1068,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   });
   const tenantRootCreation = {
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     grants: createD1TenantRootCreationGrantServiceV1({
       database: env.CONSOLE_DB,
       namespace: localTenantStorageNamespace(env),
@@ -1099,7 +1103,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const tenantRootCustody = new TenantRootCustodyWorkerRouteV1({
     backupIntervalMs: 60_000,
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     stepUp: localTenantStepUpStore,
     database: env.CONSOLE_DB,
     namespace: localTenantStorageNamespace(env),
@@ -1121,7 +1125,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
         ...scope,
       }),
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     state: tenantRootCustody,
     router: env.MPC_ROUTER,
     internalServiceAuthSecret: localRouterAbInternalServiceAuthSecret(env),
@@ -1153,14 +1157,14 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       namespace: localTenantStorageNamespace(env),
       isOwner: tenantRootCustody.isOrganizationOwner.bind(tenantRootCustody),
       auth,
-      orgProjectEnv: bundle.orgProjectEnv,
+      walletEnvironments: bundle.walletEnvironments,
       stepUp: localTenantStepUpStore,
     },
     env.TENANT_ROOT_RESTORE_ACCESS_JSON,
   );
   const tenantRootSecurityReadRoute = createTenantRootSecurityConsoleRouteV1({
     auth,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     stepUp: localTenantStepUpStore,
     state: tenantRootCustody,
     operations: (scope) =>
@@ -1181,7 +1185,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace: localTenantStorageNamespace(env),
     deploymentLane: LOCAL_TENANT_DEPLOYMENT_LANE,
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     apiKeys: bundle.apiKeys,
     policies: bundle.policies,
     runtimeSnapshots: bundle.runtimeSnapshots,
@@ -1204,7 +1208,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       gatewayOrigin: 'https://localhost:4101',
       relyingPartyId: 'localhost',
     },
-    orgProjectEnv: bundle.orgProjectEnv,
+    walletEnvironments: bundle.walletEnvironments,
     apiKeys: bundle.apiKeys,
     audit: bundle.audit,
     tenantRootCreation,
@@ -1263,7 +1267,6 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     },
     session,
     account: bundle.account,
-    orgProjectEnv: bundle.orgProjectEnv,
     corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
   });
   return {
@@ -1370,6 +1373,7 @@ async function createLocalRouterApiHandler(
     },
     route: {
       namespace: localTenantStorageNamespace(env),
+      deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE,
     },
     adapters: {
       ensureSchema: false,
@@ -1620,13 +1624,24 @@ async function resolveLocalRuntimeTenantRootLineage(
   roots: D1TenantRootActiveLineageResolverV1,
   scope: RuntimePolicyScope & { readonly signingRootId: string },
 ) {
-  const environments = await createD1ConsoleOrgProjectEnvService({
+  const namespace = localTenantStorageNamespace(env);
+  const account = await createCloudflareD1AccountServiceBundle({
     database: env.CONSOLE_DB,
-    namespace: localTenantStorageNamespace(env),
+    namespace,
+    ensureSchema: false,
+    externalDeletionGuard: null,
+  });
+  const environments = await createD1ConsoleWalletEnvironmentService({
+    database: env.CONSOLE_DB,
+    namespace,
     ensureSchema: false,
   });
   return resolveRuntimeTenantRootLineage(
-    createWalletProjectEnvironmentResolver(environments),
+    createWalletProjectEnvironmentResolver(environments, {
+      platform: account.accountPlatform,
+      authority: { serviceId: 'wallet', deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE },
+      namespace,
+    }),
     roots,
     scope,
   );
@@ -2349,7 +2364,7 @@ async function runLocalTenantRootRefreshResumptionV1(
   const namespace = localTenantStorageNamespace(env);
   const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
     bindings: { consoleDatabase: env.CONSOLE_DB },
-    route: { namespace },
+    route: { namespace, deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE },
     adapters: { ensureSchema: false },
   });
   const resumption = createD1TenantRootOperationResumptionStoreV1({

@@ -35,7 +35,7 @@ export {
   resolveSponsoredCallPoliciesFromProjections,
 } from './onboarding';
 export {
-  createConsoleOrgProjectEnvServiceWithTempoOnboardingSponsorship,
+  createConsoleWalletEnvironmentServiceWithTempoOnboardingSponsorship,
   ensureTempoOnboardingSponsorshipForAllOrganizations,
   ensureTempoOnboardingSponsorshipForExistingEnvironments,
 } from './seeding';

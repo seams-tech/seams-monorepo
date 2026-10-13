@@ -97,24 +97,15 @@ export function parseCreateConsoleOnboardingProjectRequest(
   body: unknown,
 ): CreateConsoleOnboardingProjectRequest {
   const source = requireBodyObject(body, createParseError);
+  if ('environment' in source) {
+    throw createParseError(
+      'invalid_body',
+      400,
+      'Account onboarding accepts a platform project only',
+    );
+  }
   const project = parseProjectInput(source);
-  const environmentRaw = source.environment;
-  if (environmentRaw === undefined || environmentRaw === null) {
-    return { project };
-  }
-  if (typeof environmentRaw !== 'object' || Array.isArray(environmentRaw)) {
-    throw createParseError('invalid_body', 400, 'Field environment must be an object');
-  }
-  const environmentRow = environmentRaw as Record<string, unknown>;
-  const environmentId = readOptionalResourceId(environmentRow, 'id');
-  const environmentName = readOptionalString(environmentRow, 'name');
-  return {
-    project,
-    environment: {
-      ...(environmentId ? { id: environmentId } : {}),
-      ...(environmentName ? { name: environmentName } : {}),
-    },
-  };
+  return { project };
 }
 
 export function parseCreateConsoleOnboardingOrganizationRequest(

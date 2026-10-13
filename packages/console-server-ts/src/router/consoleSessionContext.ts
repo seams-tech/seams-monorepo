@@ -72,9 +72,6 @@ export function buildConsoleContextSwitchSessionClaims(
   if (nextContext.projectId) {
     extraClaims.projectId = nextContext.projectId;
   }
-  if (nextContext.environmentId) {
-    extraClaims.environmentId = nextContext.environmentId;
-  }
 
   return extraClaims;
 }

@@ -1,5 +1,5 @@
 export * from '@seams-internal/console-server/account/index';
-export * from '@seams-internal/console-server/apiKeys/index';
+export * from '@seams-internal/wallet-console-server/apiKeys/index';
 export * from '../approvals';
 export * from '@seams-internal/console-server/audit/index';
 export * from '@seams-internal/console-server/auditExports/index';

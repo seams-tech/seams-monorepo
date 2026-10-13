@@ -19,6 +19,9 @@ const AUTHENTICATED_ROUTES: readonly ConsoleRouteTuple[] = [
 
 const PROJECTS_MANAGE_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_tenant_root_create', 'POST', '/console/tenant-root/creation'],
+  ['console_environments_create', 'POST', '/console/environments'],
+  ['console_environments_update', 'PATCH', '/console/environments/:id'],
+  ['console_environments_archive', 'POST', '/console/environments/:id/archive'],
 ];
 
 const PROJECTS_MANAGE_STEP_UP_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -26,6 +29,8 @@ const PROJECTS_MANAGE_STEP_UP_ROUTES: readonly ConsoleRouteTuple[] = [
 ];
 
 const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_environments_list', 'GET', '/console/environments'],
+  ['console_api_keys_list', 'GET', '/console/api-keys'],
   ['console_approvals_list', 'GET', '/console/approvals'],
   ['console_approvals_get', 'GET', '/console/approvals/:id'],
   ['console_wallets_list', 'GET', '/console/wallets'],
@@ -45,6 +50,11 @@ const PROJECT_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
 ];
 
 const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_api_keys_create', 'POST', '/console/api-keys'],
+  ['console_api_keys_revoke', 'DELETE', '/console/api-keys/:id'],
+  ['console_api_keys_purge', 'DELETE', '/console/api-keys/:id/purge'],
+  ['console_api_keys_update', 'PATCH', '/console/api-keys/:id'],
+  ['console_api_keys_rotate', 'POST', '/console/api-keys/:id/rotate'],
   ['console_approvals_create', 'POST', '/console/approvals'],
   ['console_approvals_approve', 'POST', '/console/approvals/:id/approve'],
   ['console_approvals_reject', 'POST', '/console/approvals/:id/reject'],
@@ -76,6 +86,10 @@ const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
     'GET',
     '/console/billing/usage/monthly-active-wallets',
   ],
+];
+
+const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [
+  ['console_ops_cockpit_summary_get', 'GET', '/console/ops-cockpit/summary'],
 ];
 
 const TENANT_ROOT_SECURITY_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
@@ -208,6 +222,7 @@ export function createWalletConsoleBaseRouteDefinitions(): readonly ConsoleRoute
     ...defineConsoleRoutes('project.view', PROJECT_VIEW_ROUTES),
     ...defineConsoleRoutes('project.edit', PROJECT_EDIT_ROUTES),
     ...defineConsoleRoutes('billing.view', BILLING_VIEW_ROUTES),
+    ...defineConsoleRoutes('platform.support', PLATFORM_SUPPORT_ROUTES),
   ]);
 }
 

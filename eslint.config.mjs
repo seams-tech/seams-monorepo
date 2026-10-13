@@ -14,7 +14,7 @@ const R103E_DOMAIN_CAST_RESTRICTION = {
 };
 
 const ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME =
-  '/^(?:PlatformScopeV1|ServiceTenantBindingV1|BoundServiceInstanceV1|PlatformUsageEventV1|ReserveFundsRequestV1|AccountMigrationCohortV1)$/';
+  '/^(?:PlatformScopeV1|ServiceTenantBindingV1|BoundServiceInstanceV1|ServiceProvisionCommandV1|AccountServiceInstanceV1|PlatformUsageEventV1|ReserveFundsRequestV1|AccountMigrationCohortV1|ConsoleOnboardingState|ConsoleAccountIdentityContext|ConsoleOnboardingContext)$/';
 
 const ACCOUNT_PLATFORM_DOMAIN_CAST_RESTRICTION = {
   selector: `TSAsExpression[typeAnnotation.typeName.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSAsExpression[typeAnnotation.typeName.right.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.right.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}]`,

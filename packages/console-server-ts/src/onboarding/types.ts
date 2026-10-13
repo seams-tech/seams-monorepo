@@ -1,4 +1,4 @@
-import type { ConsoleEnvironment, ConsoleOrganization, ConsoleProject } from '../orgProjectEnv';
+import type { ConsoleOrganization, ConsoleProject } from '../orgProjectEnv';
 
 export type GetConsoleOnboardingStateRequest = Readonly<Record<string, never>>;
 
@@ -25,32 +25,53 @@ export interface CreateConsoleOnboardingOrganizationRequest {
 
 export interface CreateConsoleOnboardingProjectRequest {
   project: ConsoleOnboardingProjectInput;
-  environment?: {
-    id?: string;
-    name?: string;
-  };
+  environment?: never;
 }
 
-export interface ConsoleOnboardingState {
+interface ConsoleOnboardingIdentity {
   orgId: string;
-  organization: ConsoleOrganization | null;
-  activeProjectCount: number;
-  activeEnvironmentCount: number;
-  activeApiKeyCount: number;
-  hasOrganization: boolean;
-  hasProject: boolean;
-  hasEnvironment: boolean;
-  hasApiKey: boolean;
-  accountReady: boolean;
-  organizationReady: boolean;
-  billingReady: boolean;
-  projectReady: boolean;
-  onboardingComplete: boolean;
-  currentStep: ConsoleOnboardingStep;
-  complete: boolean;
-  selectedProjectId: string | null;
-  selectedEnvironmentId: string | null;
+  accountReady: true;
 }
+
+export type ConsoleOnboardingState = ConsoleOnboardingIdentity &
+  (
+    | {
+        currentStep: 'organization';
+        organization: null;
+        activeProjectCount: 0;
+        hasOrganization: false;
+        hasProject: false;
+        organizationReady: false;
+        projectReady: false;
+        onboardingComplete: false;
+        complete: false;
+        selectedProjectId: null;
+      }
+    | {
+        currentStep: 'project';
+        organization: ConsoleOrganization;
+        activeProjectCount: 0;
+        hasOrganization: true;
+        hasProject: false;
+        organizationReady: true;
+        projectReady: false;
+        onboardingComplete: false;
+        complete: false;
+        selectedProjectId: null;
+      }
+    | {
+        currentStep: 'complete';
+        organization: ConsoleOrganization;
+        activeProjectCount: number;
+        hasOrganization: true;
+        hasProject: true;
+        organizationReady: true;
+        projectReady: true;
+        onboardingComplete: true;
+        complete: true;
+        selectedProjectId: string;
+      }
+  );
 
 export interface ConsoleOnboardingOperationTelemetrySnapshot {
   operation: ConsoleOnboardingTelemetryOperation;
@@ -91,10 +112,8 @@ export interface ConsoleOnboardingTelemetrySnapshot {
 
 export interface CreateConsoleOnboardingProjectResult {
   project: ConsoleProject;
-  environment: ConsoleEnvironment;
   created: {
     project: boolean;
-    environment: boolean;
   };
   state: ConsoleOnboardingState;
 }

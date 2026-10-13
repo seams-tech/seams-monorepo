@@ -1,5 +1,6 @@
 import React from 'react';
 import { requireConsoleBaseUrl } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders, buildWalletJsonHeaders } from '../consoleWalletHttp';
 import { VerificationMethodChoice, type VerificationMethod } from './VerificationMethodChoice';
 import { verifyCustodyStepUp } from './consoleDerivationRootApi';
 
@@ -80,7 +81,7 @@ async function loadEnrollment(
   try {
     const response = await fetch(
       `${requireConsoleBaseUrl()}${path}/request?id=${encodeURIComponent(id)}`,
-      { credentials: 'include' },
+      { credentials: 'include', headers: buildWalletAcceptHeaders() },
     );
     if (!response.ok)
       throw new Error(
@@ -105,7 +106,7 @@ async function approveEnrollment(
     const response = await fetch(`${requireConsoleBaseUrl()}${path}/${action}`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json' },
+      headers: buildWalletJsonHeaders(),
       body: JSON.stringify({ id: details.id }),
     });
     if (!response.ok) throw new Error('Approval failed. Refresh the request and try again.');

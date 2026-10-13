@@ -1,7 +1,10 @@
 import React from 'react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useDashboardConsoleSession } from '../../consoleSession';
-import { useDashboardSelectedContextDisplay } from '../../selectedContext';
+import {
+  useDashboardSelectedContext,
+  useDashboardSelectedContextDisplay,
+} from '../../selectedContext';
 import { BillingAccountView } from './BillingAccountView';
 import { BillingInvoiceDetailView } from './BillingInvoiceDetailView';
 import { BillingInvoicesView } from './BillingInvoicesView';
@@ -151,6 +154,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   const { defaultPath } = props;
   const session = useDashboardConsoleSession();
   const selectedContextDisplay = useDashboardSelectedContextDisplay();
+  const selectedContext = useDashboardSelectedContext();
   const { go } = useSiteRouter();
   const pathname = typeof window === 'undefined' ? defaultPath : window.location.pathname;
   const search = typeof window === 'undefined' ? '' : window.location.search;
@@ -232,7 +236,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     setSponsoredHistoryError('');
     setReconciliationError('');
     setRefundsError('');
-    const environmentId = String(session.claims.environmentId || '').trim();
+    const environmentId = selectedContext.environment;
     const [overviewResult, usageResult, historyResult, reconciliationResult, refundsResult] =
       await Promise.allSettled([
         getDashboardBillingOverview(),
@@ -301,7 +305,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     setSponsoredHistoryLoading(false);
     setReconciliationLoading(false);
     setRefundsLoading(false);
-  }, [session.claims, session.errorMessage]);
+  }, [selectedContext.environment, session.claims, session.errorMessage]);
 
   const loadInvoiceListPage = React.useCallback(async () => {
     if (!session.claims) return;
@@ -445,19 +449,17 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
       setBillingWarningMessage('');
       return;
     }
-    if (overview.liveEnvironmentState === 'BLOCKED') {
+    if (overview.creditBalanceMinor <= 0) {
       setBillingWarningDismissed(false);
-      setBillingWarningMessage(
-        'Prepaid balance is depleted. Add credits before creating or using staging or production environments.',
-      );
+      setBillingWarningMessage('Prepaid balance is depleted. Add credits to fund service usage.');
       return;
     }
-    if (overview.liveEnvironmentState === 'LOW_BALANCE') {
+    if (overview.creditBalanceMinor <= overview.lowBalanceThresholdMinor) {
       setBillingWarningDismissed(false);
       setBillingWarningMessage(
         `Prepaid balance is at or below the warning threshold (${formatUsdMinor(
           overview.lowBalanceThresholdMinor,
-        )}). Add credits before production usage grows further.`,
+        )}). Add credits before service usage increases.`,
       );
       return;
     }
@@ -579,15 +581,15 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
         label: 'Balance',
         value: formatUsdMinor(overview?.creditBalanceMinor || 0),
         hint:
-          overview?.liveEnvironmentState === 'BLOCKED'
-            ? 'Live environments are blocked until balance is positive'
-            : overview?.liveEnvironmentState === 'LOW_BALANCE'
+          (overview?.creditBalanceMinor ?? 0) <= 0
+            ? 'Add credits to fund service usage'
+            : (overview?.creditBalanceMinor ?? 0) <= (overview?.lowBalanceThresholdMinor ?? 0)
               ? `Warning at ${formatUsdMinor(overview?.lowBalanceThresholdMinor || 0)}`
-              : 'Live environments enabled',
+              : 'Prepaid balance is available',
         tone:
-          overview?.liveEnvironmentState === 'BLOCKED'
+          (overview?.creditBalanceMinor ?? 0) <= 0
             ? ('danger' as const)
-            : overview?.liveEnvironmentState === 'LOW_BALANCE'
+            : (overview?.creditBalanceMinor ?? 0) <= (overview?.lowBalanceThresholdMinor ?? 0)
               ? ('warning' as const)
               : ('success' as const),
       },
@@ -676,7 +678,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   );
 
   const sponsoredScopeDescription = React.useMemo(() => {
-    const environmentId = String(session.claims?.environmentId || '').trim();
+    const environmentId = selectedContext.environment;
     if (environmentId) {
       const environmentLabel =
         selectedContextDisplay.environment && selectedContextDisplay.environment !== '-'
@@ -685,7 +687,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
       return `Showing the selected environment scope (${environmentLabel}). Billing balance remains organization-scoped.`;
     }
     return 'Showing organization-scoped records for the last 90 days.';
-  }, [selectedContextDisplay.environment, session.claims?.environmentId]);
+  }, [selectedContext.environment, selectedContextDisplay.environment]);
 
   return (
     <div className="dashboard-view" aria-label="Billing page">

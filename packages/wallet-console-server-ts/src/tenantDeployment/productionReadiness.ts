@@ -1,6 +1,9 @@
-import type { ConsoleApiKey, ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
-import type { ConsoleEnvironment } from '@seams-internal/console-server/orgProjectEnv/types';
+import type {
+  ConsoleApiKey,
+  ConsoleApiKeyService,
+} from '@seams-internal/wallet-console-server/apiKeys';
+import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/service';
+import type { ConsoleWalletEnvironment } from '@seams-internal/wallet-console-server/environments/types';
 import {
   buildTenantDeploymentBindingV1,
   encodeTenantDeploymentJsonValueV1,
@@ -53,7 +56,7 @@ export type ProductionTenantDeploymentReadinessAdapterV1 = TenantDeploymentReadi
 export type ProductionTenantDeploymentReadinessOptionsV1 = {
   readonly namespace: string;
   readonly deploymentLane: string;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly apiKeys: ConsoleApiKeyService;
   readonly policies: ConsolePolicyService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
@@ -83,7 +86,7 @@ function canonicalOrigins(origins: readonly string[] | undefined): readonly [str
   return [first, ...values.slice(1)];
 }
 
-function modeForEnvironment(environment: ConsoleEnvironment): TenantDeploymentModeV1 {
+function modeForEnvironment(environment: ConsoleWalletEnvironment): TenantDeploymentModeV1 {
   switch (environment.key) {
     case 'dev':
       return { kind: 'development_testnet_v1', environment: 'development', network: 'testnet' };
@@ -97,13 +100,11 @@ function modeForEnvironment(environment: ConsoleEnvironment): TenantDeploymentMo
 async function resolveEnvironment(
   options: ProductionTenantDeploymentReadinessOptionsV1,
   identity: TenantRootIdentityV1,
-): Promise<ConsoleEnvironment> {
-  const environments = await options.orgProjectEnv.listEnvironments(
+): Promise<ConsoleWalletEnvironment> {
+  const environments = await options.walletEnvironments.listEnvironments(
     {
       orgId: identity.orgId,
       actorUserId: SYSTEM_ACTOR_USER_ID,
-      projectId: identity.projectId,
-      environmentId: identity.envId,
     },
     { projectId: identity.projectId, status: 'ACTIVE' },
   );
@@ -116,7 +117,7 @@ async function resolveEnvironment(
   if (!environment) throw new Error('tenant deployment environment is not active');
   if (
     `${identity.projectId}:${environment.key}` !== identity.signingRootId ||
-    environment.runtimeVersion !== identity.signingRootVersion
+    environment.signingRootVersion !== identity.signingRootVersion
   ) {
     throw new Error('tenant deployment identity disagrees with the active environment');
   }

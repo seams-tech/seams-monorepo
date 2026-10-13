@@ -10,8 +10,8 @@ import {
   type D1Row,
   type D1ResultLike,
 } from '@seams/wallet-server/cloud-host';
-import { parseEnvironmentRow } from '@seams-internal/console-server/orgProjectEnv/d1';
-import type { ConsoleEnvironment } from '@seams-internal/console-server/orgProjectEnv/types';
+import { parseEnvironmentRow } from '@seams-internal/wallet-console-server/environments/d1';
+import type { ConsoleWalletEnvironment } from '@seams-internal/wallet-console-server/environments/types';
 import {
   decodeTenantDeploymentBindingV1,
   decodeTenantDeploymentCutoverV1,
@@ -784,7 +784,7 @@ export async function resolveD1RegistrationSetupBinding(
   writer: TenantRuntimeWriterV1,
 ): Promise<{
   readonly binding: TenantDeploymentBindingV1;
-  readonly environment: ConsoleEnvironment | null;
+  readonly environment: ConsoleWalletEnvironment | null;
 } | null> {
   const deploymentLane = requiredText(rawLane, 'deploymentLane');
   const startedAt = performance.now();

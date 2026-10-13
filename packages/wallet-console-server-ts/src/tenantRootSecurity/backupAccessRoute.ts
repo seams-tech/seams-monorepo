@@ -80,12 +80,10 @@ async function requireCurrent(
   setId: string,
 ) {
   if (!(await deps.isOwner(identity.orgId, actor))) throw new Error('Owner access revoked');
-  const environments = await deps.orgProjectEnv.listEnvironments(
+  const environments = await deps.walletEnvironments.listEnvironments(
     {
       orgId: identity.orgId,
       actorUserId: actor,
-      projectId: identity.projectId,
-      environmentId: identity.envId,
     },
     { projectId: identity.projectId, status: 'ACTIVE' },
   );
@@ -99,10 +97,11 @@ async function requireCurrent(
 }
 function matchesEnvironment(
   identity: TenantRootIdentityV1,
-  environment: { id: string; runtimeVersion: string },
+  environment: { id: string; signingRootVersion: string },
 ): boolean {
   return (
-    environment.id === identity.envId && environment.runtimeVersion === identity.signingRootVersion
+    environment.id === identity.envId &&
+    environment.signingRootVersion === identity.signingRootVersion
   );
 }
 export async function handleBackupAccess(deps: Dependencies, request: Request): Promise<Response> {

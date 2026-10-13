@@ -18,7 +18,7 @@ import {
 } from '../../components/DashboardTable';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import { useDashboardConsoleSession } from '../../consoleSession';
-import { getDashboardEnvironmentLabel, getDashboardProjectLabel } from '../../utils/scopeLabels';
+import { getDashboardProjectLabel } from '../../utils/scopeLabels';
 import {
   clearDashboardUiState,
   replaceDashboardSelectedContext,
@@ -292,7 +292,7 @@ export function AccountSettingsPage(): React.JSX.Element {
           replaceDashboardSelectedContext({
             organization: nextContext.orgId,
             project: nextContext.projectId || '',
-            environment: nextContext.environmentId || '',
+            environment: '',
           });
           if (typeof window !== 'undefined') {
             window.location.assign(nextPath);
@@ -681,12 +681,6 @@ export function AccountSettingsPage(): React.JSX.Element {
                           projectName: organization.selectedProjectName,
                         })}
                       </strong>
-                      <span className="dashboard-pagination-note">
-                        {getDashboardEnvironmentLabel({
-                          environmentId: organization.selectedEnvironmentId,
-                          environmentName: organization.selectedEnvironmentName,
-                        })}
-                      </span>
                     </div>
                   </DashboardTableCell>
                   <DashboardTableCell>

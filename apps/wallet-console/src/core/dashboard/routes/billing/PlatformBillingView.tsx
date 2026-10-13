@@ -700,11 +700,11 @@ export function PlatformBillingView(): React.JSX.Element {
         label: 'Balance',
         value: formatUsdMinor(overview.creditBalanceMinor),
         hint:
-          overview.liveEnvironmentState === 'BLOCKED'
-            ? 'Live environments are blocked until balance is positive'
-            : overview.liveEnvironmentState === 'LOW_BALANCE'
+          overview.creditBalanceMinor <= 0
+            ? 'Add credits to fund service usage'
+            : overview.creditBalanceMinor <= overview.lowBalanceThresholdMinor
               ? `Warning at ${formatUsdMinor(overview.lowBalanceThresholdMinor)}`
-              : 'Live environments enabled',
+              : 'Prepaid balance is available',
       },
       {
         label: 'Monthly active wallets',

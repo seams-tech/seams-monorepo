@@ -1,9 +1,12 @@
+import type { ConsoleWalletEnvironmentService } from '../environments';
+import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
+import type { AccountServiceProvisioningAdapterV1 } from '@seams-internal/console-server/accountPlatform/provisioning';
 import type { RouterLogger } from '@seams-internal/console-server/boundary/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
 import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/index';
 import type { ConsoleSponsoredCallService } from '@seams-internal/wallet-console-server/sponsoredCalls/index';
-import type { ConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/index';
+import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
+import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/index';
 import type { ConsolePolicyService } from '@seams-internal/wallet-console-server/policies/index';
 import type { ConsoleWalletService } from '@seams-internal/wallet-console-server/wallets/index';
 import type { ConsoleWebhookService } from '@seams-internal/console-server/webhooks/index';
@@ -64,7 +67,11 @@ export interface ConsoleRouterBaseOptions {
   // Optional sponsored-execution history adapter for console billing/reporting endpoints.
   sponsoredCalls?: ConsoleSponsoredCallService | null;
   // Optional org/project/environment metadata adapter for console routes.
-  orgProjectEnv?: ConsoleOrgProjectEnvService | null;
+  orgProjects?: ConsoleOrgProjectService | null;
+  walletEnvironments?: ConsoleWalletEnvironmentService | null;
+  accountPlatform?: D1AccountPlatformService | null;
+  walletProvisioning?: AccountServiceProvisioningAdapterV1 | null;
+  satyrProvisioning?: AccountServiceProvisioningAdapterV1 | null;
   // Optional policy adapter for console policy lifecycle routes.
   policies?: ConsolePolicyService | null;
   // Optional wallet adapter for console wallet list/search/detail routes.

@@ -1,6 +1,6 @@
-import type { ConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/service';
+import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/service';
 import type { ConsoleAuthAdapter } from '@seams-internal/console-server/router/consoleAuth';
-import { authenticateConsoleRequest } from '@seams-internal/console-server/router/consoleAuth';
+import { authenticateWalletConsoleRequest as authenticateConsoleRequest } from '../router/walletConsoleAuth';
 import {
   consoleRouteRequiresFreshStepUpV1,
   findConsoleRouteDefinitionForRequest,
@@ -55,7 +55,7 @@ export interface TenantRootStepUpReaderV1 {
 /** What every derivation-root route needs before it can act. */
 export interface TenantRootSecurityGuardDependenciesV1 {
   readonly auth: ConsoleAuthAdapter;
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly stepUp: TenantRootStepUpReaderV1;
   readonly now?: () => number;
 }
@@ -163,18 +163,18 @@ export async function verifyFreshStepUpForRequestV1(input: {
 }
 
 async function resolveIdentity(
-  dependencies: Pick<TenantRootSecurityGuardDependenciesV1, 'orgProjectEnv'>,
+  dependencies: Pick<TenantRootSecurityGuardDependenciesV1, 'walletEnvironments'>,
   claims: {
     readonly orgId: string;
     readonly userId: string;
     readonly projectId?: string;
-    readonly environmentId?: string;
+    readonly environmentId: string | null;
   },
 ): Promise<TenantRootIdentityV1> {
   const projectId = requiredText(claims.projectId, 'authenticated projectId');
   const environmentId = requiredText(claims.environmentId, 'authenticated environmentId');
-  const environments = await dependencies.orgProjectEnv.listEnvironments(
-    { orgId: claims.orgId, actorUserId: claims.userId, projectId, environmentId },
+  const environments = await dependencies.walletEnvironments.listEnvironments(
+    { orgId: claims.orgId, actorUserId: claims.userId },
     { projectId, status: 'ACTIVE' },
   );
   const environment = environments.find(
@@ -186,7 +186,7 @@ async function resolveIdentity(
     projectId,
     envId: environment.id,
     signingRootId: `${projectId}:${environment.key}`,
-    signingRootVersion: environment.runtimeVersion,
+    signingRootVersion: environment.signingRootVersion,
   });
   if (!identity.ok) throw new Error('Authenticated Console tenant-root identity is not canonical');
   return identity.value;

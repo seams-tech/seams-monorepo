@@ -1,10 +1,10 @@
 import {
-  buildConsoleAcceptHeaders,
   consoleErrorMessage,
   fetchConsoleEndpoint,
   parseConsoleJson,
   requireConsoleBaseUrl,
 } from '@core/dashboard/consoleHttp';
+import { buildWalletAcceptHeaders } from './consoleWalletHttp';
 
 export type DashboardConsolePolicyKind = 'TRANSACTION' | 'GAS_SPONSORSHIP';
 
@@ -376,7 +376,7 @@ async function fetchJson(path: string): Promise<any> {
     `${base}${path}`,
     {
       method: 'GET',
-      headers: buildConsoleAcceptHeaders(),
+      headers: buildWalletAcceptHeaders(),
       credentials: 'include',
       cache: 'no-store',
     },

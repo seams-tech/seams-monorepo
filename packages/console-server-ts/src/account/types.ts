@@ -27,9 +27,7 @@ export interface PatchConsoleAccountProfileRequest {
 }
 
 type AccountAccessFromAuthorization<T extends ActiveOrganizationAuthorization> =
-  T extends ActiveOrganizationAuthorization
-    ? Omit<T, 'kind' | 'orgId' | 'userId'>
-    : never;
+  T extends ActiveOrganizationAuthorization ? Omit<T, 'kind' | 'orgId' | 'userId'> : never;
 
 export type ConsoleAccountOrganizationAccess =
   AccountAccessFromAuthorization<ActiveOrganizationAuthorization>;
@@ -45,12 +43,10 @@ interface ConsoleAccountOrganizationIdentity {
   readonly onboardingComplete: boolean;
   readonly selectedProjectId: string | null;
   readonly selectedProjectName: string | null;
-  readonly selectedEnvironmentId: string | null;
-  readonly selectedEnvironmentName: string | null;
 }
 
-export type ConsoleAccountOrganization =
-  ConsoleAccountOrganizationIdentity & ConsoleAccountOrganizationAccess;
+export type ConsoleAccountOrganization = ConsoleAccountOrganizationIdentity &
+  ConsoleAccountOrganizationAccess;
 
 export interface CreateConsoleAccountOrganizationRequest {
   readonly id?: string;
@@ -71,10 +67,9 @@ export interface DeleteConsoleAccountOrganizationResult {
 interface SwitchedOrganizationScope {
   readonly orgId: string;
   readonly projectId: string | null;
-  readonly environmentId: string | null;
   readonly onboardingComplete: boolean;
   readonly platformSupport: boolean;
 }
 
-export type SwitchConsoleAccountOrganizationContextResult =
-  SwitchedOrganizationScope & ConsoleAccountOrganizationAccess;
+export type SwitchConsoleAccountOrganizationContextResult = SwitchedOrganizationScope &
+  ConsoleAccountOrganizationAccess;

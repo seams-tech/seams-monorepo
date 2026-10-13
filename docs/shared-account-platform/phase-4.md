@@ -1,8 +1,8 @@
 # Phase 4: Satyr integration
 
-Status: implementation in progress. Phase 3 passed ten composed journeys,
-the repository checks, all package builds, and the finance/Wallet browser journeys.
-Its implementation is committed as `ded0ad54`; retained billing tests are committed as `99ff1e75`.
+Status: implemented and validated. The account integration is committed as `e3fc4397`.
+The native Satyr integration is committed on its `dev` branch as `cf1b8bfe7`.
+Production schema application and cohort cutover remain Phase 5 work.
 
 ## Account boundary
 
@@ -355,6 +355,7 @@ service disable, invitation acceptance, role-change replay, revocation, and rejo
 A separate automation journey verifies grant creation, revocation, stale command rejection,
 explicit regrant, and refusal to reuse the old native access revision.
 
+The organisation has separate Wallet and Satyr platform projects under one payer.
 The resulting usage statement totals 303 USD cents: three Satyr test turns and one Wallet monthly resource.
 Available credit is 1697 USD cents from the original 2000-cent credit.
 Three reservations settled and one cancelled reservation released. No active hold remains.
@@ -375,6 +376,7 @@ pnpm check
 SATYR_ACCOUNT_WORKER_ARTIFACT=/Users/pta/Dev/rust/seams-monorepo/.artifacts/shared-account-platform/account-worker/index.mjs pnpm --filter satyr-edge exec vitest run --config vitest.e2e.config.ts tests/e2e/shared-account-platform.test.ts tests/e2e/shared-account-automation.test.ts --reporter=default --reporter=json --outputFile=../../output/shared-account-platform.json
 node services/platform/tests/e2e/shared-account-platform-report.mjs output/shared-account-platform.json /Users/pta/Dev/rust/seams-monorepo/.artifacts/shared-account-platform/satyr /Users/pta/Dev/rust/seams-monorepo/.artifacts/shared-account-platform/account-worker/index.mjs
 pnpm --filter satyr-edge check:test-types
+SATYR_ACCOUNT_WORKER_ARTIFACT=/Users/pta/Dev/rust/seams-monorepo/.artifacts/shared-account-platform/account-worker/index.mjs pnpm --filter satyr-edge test
 pnpm --filter satyr-edge test:onboarding-closure
 pnpm lint:ifc-boundaries
 pnpm --filter satyr-portal build
@@ -383,8 +385,11 @@ pnpm --filter satyr-portal build
 The native command passes two journeys. The account command passes ten journeys.
 Main repository checks pass, including 53 script checks and one existing skipped check.
 Satyr source/test types, onboarding closure, IFC checks, and the Portal build pass.
-The required full Satyr suite exposed eleven older protected-access fixture files without account authority.
-Their real account fixture updates remain in progress. This gate prevents Phase 4 closure.
+The required full Satyr suite passes 2372 tests across 372 files.
+Three tests and two files retain their existing skips.
+Retained protected-access fixtures use the same built account Worker through its HTTP contract.
+The test command requires the explicit artifact path above.
+It imports no private account source into the Satyr runtime.
 No production schema or cohort cutover has started.
 
 Evidence in `.artifacts/shared-account-platform/` includes:

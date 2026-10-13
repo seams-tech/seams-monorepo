@@ -547,10 +547,15 @@ class AccountWorkerFixture {
       googleJwks.bind(null, this.googlePublicKey),
     );
     const primaryProjectId = 'project_shared_account_primary';
+    const walletProjectId = 'project_shared_account_wallet';
     const foreignProjectId = 'project_shared_account_foreign';
     await this.core.orgProjects.createProject(primary, {
       id: primaryProjectId,
       name: 'Primary platform project',
+    });
+    await this.core.orgProjects.createProject(primary, {
+      id: walletProjectId,
+      name: 'Wallet platform project',
     });
     await this.core.orgProjects.createProject(foreign, {
       id: foreignProjectId,
@@ -570,7 +575,7 @@ class AccountWorkerFixture {
     );
     const walletInstance = await this.prepareInstance(
       primary,
-      primaryProjectId,
+      walletProjectId,
       input.primary.nativeOrganisationId,
       wallet,
     );
@@ -718,26 +723,47 @@ class AccountWorkerFixture {
       }
       case 'rejoin_member': {
         exactKeys(record, ['version', 'kind', 'organisation', 'membershipId', 'instanceId']);
-        const previous = await queryD1One(this.bindings.ACCOUNT_DB,
+        const previous = await queryD1One(
+          this.bindings.ACCOUNT_DB,
           `SELECT m.user_id, p.verified_email FROM organization_memberships m
           JOIN platform_provider_identities p ON p.namespace = m.namespace AND p.user_id = m.user_id
           WHERE m.namespace = ? AND m.org_id = ? AND m.id = ? AND m.kind = 'REMOVED'`,
-          [namespace, context.orgId, textValue(record.membershipId, 'membershipId')]);
+          [namespace, context.orgId, textValue(record.membershipId, 'membershipId')],
+        );
         if (!previous) throw new Error('Rejoin requires an actually removed verified member');
         const userId = textValue(previous.user_id, 'user_id');
         const email = textValue(previous.verified_email, 'verified_email');
         const instanceId = textValue(record.instanceId, 'instanceId');
-        const instance = accepted(await this.core.accountPlatform.resolveServiceProducerInstance(satyr, instanceId));
-        if (instance.scope.organizationId !== context.orgId) throw new Error('Foreign rejoin instance');
-        const invitation = await this.core.organizationAccess.invite(context,
-          { email, role: 'MEMBER', projectAccess: [{ projectId: instance.scope.projectId, accessLevel: 'editor' }] });
+        const instance = accepted(
+          await this.core.accountPlatform.resolveServiceProducerInstance(satyr, instanceId),
+        );
+        if (instance.scope.organizationId !== context.orgId)
+          throw new Error('Foreign rejoin instance');
+        const invitation = await this.core.organizationAccess.invite(context, {
+          email,
+          role: 'MEMBER',
+          projectAccess: [{ projectId: instance.scope.projectId, accessLevel: 'editor' }],
+        });
         const membership = await this.core.organizationAccess.acceptInvitation(
-          { userId, verifiedEmail: email }, invitation.invitation.id, { token: invitation.token });
-        await this.bindings.ACCOUNT_DB.prepare(`INSERT INTO platform_instance_access
+          { userId, verifiedEmail: email },
+          invitation.invitation.id,
+          { token: invitation.token },
+        );
+        await this.bindings.ACCOUNT_DB.prepare(
+          `INSERT INTO platform_instance_access
           (namespace, org_id, instance_id, membership_id, access, granted_by_user_id, updated_at_ms)
           VALUES (?, ?, ?, ?, 'allowed', ?, ?) ON CONFLICT(namespace, instance_id, membership_id)
-          DO UPDATE SET access = 'allowed', updated_at_ms = excluded.updated_at_ms`)
-          .bind(namespace, context.orgId, instanceId, membership.id, context.actorUserId, Date.now()).run();
+          DO UPDATE SET access = 'allowed', updated_at_ms = excluded.updated_at_ms`,
+        )
+          .bind(
+            namespace,
+            context.orgId,
+            instanceId,
+            membership.id,
+            context.actorUserId,
+            Date.now(),
+          )
+          .run();
         return { membershipId: membership.id };
       }
       case 'request_service_disable': {
@@ -772,7 +798,7 @@ class AccountWorkerFixture {
         exactKeys(record, ['version', 'kind', 'organisation', 'occurredAt']);
         const projectId =
           context.orgId === primaryOrgId
-            ? 'project_shared_account_primary'
+            ? 'project_shared_account_wallet'
             : 'project_shared_account_foreign';
         const event = accepted(
           PlatformUsageEventV1.parse({

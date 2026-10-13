@@ -7,8 +7,8 @@ import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const revision = '90b43017241f81189453d326d05948f388b34652';
-const expectedPatchHash = '3a4215a42282e6e83ae313df2c192e3cf9e68469712edb766bb1c9907a1957fe';
-const privateVersion = 'celld 0.6.2-seams.2';
+const expectedPatchHash = '0585d86be0b61bdaca22bc9bdf18183dd7fd2e161b37c6e6b60f56217ffa1b75';
+const privateVersion = 'celld 0.6.2-seams.3';
 const patchPath = fileURLToPath(new URL('./workers-runtime.patch', import.meta.url));
 
 function capture(command, args, cwd) {

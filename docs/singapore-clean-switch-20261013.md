@@ -263,6 +263,75 @@ Kit additions: `SEAMS_MEASURE_PUBLIC=<clean seams-wallet tree>` gives
 `measure.py` the harness of a released commit, and `site-094/` is the test
 site built from the published 0.9.4 package.
 
+## Staging: release 0.10.0 since October 14, 00:50 JST
+
+Release 0.10.0 of the Wallet packages changes the wallet-management protocol
+to 4. It carries one request fewer after the passkey step, the pair
+preparation during the passkey prompt, a setup rate limit of 30 per minute
+per publishable key and source address, registration without the shared
+capability record, and Gateway indexes. It adds Gateway migrations `0079`
+and `0080` and Deriver migration `0020`.
+
+Deployment:
+
+1. Private `c245e0a7` pins `@seams/wallet-server` 0.10.0 and changes the two
+   protocol literals to 4 (the Console's registration canary and
+   `tests/relayer/tenant-home-challenge.e2e.test.ts`). npm released the SDK
+   package 56 minutes after its publication, so `c7ec1df3` pins
+   `@seams/wallet` afterwards. `pnpm check` and `pnpm build` pass on both.
+2. Console run `38417792320` passed. Backend run `38418189153` applied the
+   three migrations and deployed every component; its smoke step failed by
+   design.
+3. **Three activation runs failed** (`38419908767`, `38420261237`,
+   `38420676853`) with "registration canary failed with HTTP 503". Cause:
+   the canary sent a provided wallet id, `canary-<uuid>`, which is not in
+   the server-allocated format. A 0.10.0 Gateway builds the Yao admission at
+   setup and answered 500 for it; 0.9.4 answered 200. Real clients were not
+   affected, and the lane served 0.10.0 registrations in that time.
+4. Private `ade5e075` makes the canary send the request of a real client.
+   Console run `38425041847` deployed it, and activation run `38425377639`
+   passed. Public `1ae2df5b` corrects the setup defect; it is not released.
+5. Read back: 14 serving versions, each the latest upload
+   (`serving-after-0100.json`). A wallet registered and signed with the
+   0.10.0 client. The test site of the published 0.9.4 package gets HTTP 409
+   and the upgrade message.
+
+Measurement, client in Tokyo, every request through Tokyo: 99 wallets on
+0.9.4 from 23:42 to 23:53 and 197 wallets on 0.10.0 from 00:25 to 00:45.
+
+| | 0.9.4 p50 | 0.10.0 p50 | 0.9.4 p90 | 0.10.0 p90 |
+| --- | ---: | ---: | ---: | ---: |
+| Registration after the passkey step | 2,096 ms | 1,747 ms | 2,764 ms | 2,494 ms |
+| Proof and Yao execution | 1,331 ms | 1,065 ms | 1,640 ms | 1,601 ms |
+| Finalize | 680 ms | 502 ms | 1,157 ms | 905 ms |
+| Finalization, Gateway total | 372 ms | 261 ms | 781 ms | 627 ms |
+| Gateway finalize, CPU | 146 ms | 48 ms | 277 ms | 83 ms |
+| First signature | 532 ms | 362 ms | 1,027 ms | 677 ms |
+
+73% of the wallets finish in less than 2.0 s after the passkey step, against
+40% on 0.9.4 in that hour. All 197 signatures verify independently. The
+public record is `docs/evidence/refactor-155h-release-0100-staging.md` in
+`seams-wallet`.
+
+Two events of that evening changed the measurement and are not caused by
+the release:
+
+- **Evening routing.** Between about 21:30 and 23:30 JST, Cloudflare
+  received up to 63% of the test client's requests in Portland, Sydney,
+  Osaka and Boston. That adds 150 to 300 ms to each request.
+  `colo.py <label>` in the artifacts folder splits a run by entry location.
+- **The Console.** The shared-account cutover at 22:04 JST made two Console
+  calls on this path 300 ms slower: the billing service ran 16 schema
+  statements for every request. Private `32e8bc47` and `00eaecb6` corrected
+  it; the lineage call is back at about 25 ms.
+
+Open:
+
+- The staging frontends were not deployed. Their last deployment is of
+  September 16, so the hosted wallet on staging does not speak protocol 4.
+- One sample of 198 failed at respond with a transient database fault.
+  Respond does not retry it.
+
 ## Production testnet and mainnet: databases ready, deployment blocked
 
 Empty databases exist for both lanes. Nothing serves them.

@@ -1,7 +1,8 @@
 # Shared account platform implementation plan
 
-Status: Phases 1 through 4 implemented and validated. Phase 5 is in progress.
-Production platform migration has not started.
+Status: Phases 1 through 4 and Phase 5 staging are implemented and validated.
+Staging cutover and the deployed request-latency repair are complete.
+Production platform migration is deferred by the user, pending the separate Wallet rollout.
 Date: October 13, 2026.
 
 Implementation evidence: [Phase 1 contracts and inventory](shared-account-platform/phase-1.md).

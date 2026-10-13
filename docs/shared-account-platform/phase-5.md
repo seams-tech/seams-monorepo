@@ -1,7 +1,9 @@
 # Phase 5: interface, migration rehearsal, and cutover
 
-Status: interface and local migration rehearsal implemented and validated.
-Production cutover remains pending. No production schema or service writer changed.
+Status: interface, migration rehearsal, and staging cutover completed.
+The request-path regression found after cutover is fixed and deployed.
+Hosted Console traces confirm recovery to the pre-feature baseline; broader Wallet rollout remains separate.
+Production cutover is deferred by the user. No production schema or service writer changed.
 The source changes remain on `dev` in both repositories.
 
 ## Changed files and behaviour
@@ -46,17 +48,85 @@ It installs the locked dependencies and builds the same Worker in a separate che
 Native journeys consume only the built artifact and record its SHA-256 digest.
 This path needs no additional access token or repository variables.
 
+## Staging cutover
+
+Staging resumed admission on October 13, 2026, at 22:04 JST.
+The cohort contains one existing organisation, one project, and one active Wallet instance.
+Its native namespace is `seams-staging`; its project remains `proj_mv5fzezy_4ztf60`.
+
+The cutover paused new admission, captured a fresh D1 recovery bookmark and snapshot,
+and restored that snapshot locally before applying migrations `0092` through `0097`.
+The attachment operation was replayed successfully against the same existing Wallet project.
+Reconciliation checked 98 source tables and found no foreign-key violations.
+Existing owner membership, environments, credentials, and retained financial rows matched their source checkpoints.
+The initial instance grant advanced the account authorisation revision.
+
+Console version `6f366df9-79c3-4ef0-b739-e66a75e7c21f` replaced `bc4dfcaf-9a56-474b-a73d-54805138b76c`.
+The Worker retained all 43 bindings and its Singapore placement.
+The temporary pause entrypoint was removed before admission resumed.
+The frontend deployment is `897b6629.seams-wallet-site-staging.pages.dev`, also served at `staging.wallet.seams.sh`.
+Wallet backend and SDK versions remained `0.9.4` during this cutover.
+
+The actual Google owner signed in and opened the deployed services page.
+Owner access passed; an invalid session returned 401 and a foreign organisation returned 403.
+An unsigned Stripe callback returned `invalid_stripe_signature`.
+Staging has no Satyr connection, so its service page correctly prevents Satyr activation.
+The native two-service journeys remain separate evidence from the live staging cohort.
+
+Evidence is retained in `.artifacts/shared-account-platform/phase-5-staging-*.json` and matching logs.
+The deployed services screenshot is `output/playwright/shared-account-services/staging-services.png`.
+Private snapshots, recovery metadata, and the original Worker modules remain in the protected backup directory.
+
+The post-cutover performance investigation found 16 serial schema-initialisation calls during request handler construction.
+Commit `32e8bc47` makes billing respect the existing `ensureSchema: false` setting.
+The fix passes repository checks and all ten account journeys, including a migrated-runtime schema prohibition.
+CI run `38412078041` also passed.
+The schema and request-path fixes deployed together at 23:38 JST in Console version
+`3580ab34-1102-46a9-9feb-86ce042ea67f`, from source `00eaecb6`.
+The publication preserved all 43 bindings and Singapore placement. Wallet remained at `0.9.4`.
+Hosted Console verification is recorded below; source checks alone do not establish recovered latency.
+The credential fix folds service admission into the existing indexed credential lookup.
+Environment resolution uses one indexed query across projects.
+The production Worker E2E records four D1 calls and five statements for setup, matching the pre-feature baseline.
+Provisioning and monthly-usage retries run from the scheduler instead of request construction.
+The ten shared-account journeys pass with these changes.
+Hosted timing remains the release gate; matching query counts alone does not establish recovered latency.
+The first repaired run completed 30 Japan-entry registrations and verified first signatures.
+Its respond median was 341 ms, below the affected 650 ms but above the afternoon baseline of 226 ms.
+Its post-passkey median was 2,458 ms; custody and finalization were also slower than the afternoon run.
+This run therefore does not close the latency gate.
+Console CI subsequently deployed the same commit as `d3e6f3f8-5944-4fa9-8a6c-d3d071507be9`;
+the evidence separates both serving versions. Bindings and placement remained identical.
+Evidence: `.artifacts/r155h-singapore-anchor/shared-account-astra-fixed-094/console-latency.json`.
+
+Commit `2a443822` dispatches the internal active-lineage operation before full Console construction.
+The extracted handler keeps one copy of the existing wire parser and resolver.
+The Worker E2E covers missing and conflicting lineage, invalid method/body/origin, and unavailable Console configuration.
+It records one D1 call with two statements for successful lookup, and no calls for rejected requests.
+Repository checks and the Console build passed.
+Console version `607a3d66-18f4-46a3-b490-035bde05634a` deployed this change at 23:45 JST.
+Bindings and placement stayed unchanged. The attempted repeat run encountered `EADDRINUSE` on the local harness port.
+It completed no wallets and supplies no valid end-to-end comparison.
+
+The separate ongoing `pre0100-094-c` run supplies confirmation without competing for its local harness.
+Its first-fix version `d3e6f3f8` records 29 lineage spans: median 24 ms wall time and 8 ms CPU.
+The pre-feature baseline records 25.5 ms wall time and 7 ms CPU over 98 spans.
+This confirms recovery of the demonstrated Console request-path regression.
+The direct-lineage follow-up also serves successfully; its initial four spans have median 18 ms wall time and 5 ms CPU.
+These are interim server spans, not a claim that every end-to-end stage has identical latency.
+Evidence: `.artifacts/shared-account-platform/respond-claude-confirmation.json`.
+
 ## Live snapshot rehearsal
 
 Read-only captures used the actual Worker-bound databases:
 
-| Source | Database ID | Source schema | Rehearsed result |
-| --- | --- | --- | --- |
-| Seams staging | `802fa155-b740-4fc5-87fa-3c30e864d1f5` | Through `0091` | Baseline `0092`, five account migrations, one Wallet binding |
-| Seams production | `b928549b-8cd8-41db-9e66-36e95afbe295` | Through `0046` | Remaining baseline migrations, five account migrations, one Wallet binding |
-| Seams testnet | `204147dd-23a6-43b7-9f40-d4f96eb986f2` | Through `0046` | Remaining baseline migrations, five account migrations, three Wallet bindings |
-| Satyr global | `9c1e5467-2985-4ca9-8cb0-3b3b933249ef` | Current deployed schema | Shared binding, identity, receipt, and automation tables |
-| Satyr APAC | `fe8a597e-b094-4229-8a70-139fa239c168` | Current deployed schema | Native role rename and shared acceptance metadata |
+| Source           | Database ID                            | Source schema           | Rehearsed result                                                              |
+| ---------------- | -------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| Seams staging    | `802fa155-b740-4fc5-87fa-3c30e864d1f5` | Through `0091`          | Baseline `0092`, five account migrations, one Wallet binding                  |
+| Seams production | `b928549b-8cd8-41db-9e66-36e95afbe295` | Through `0046`          | Remaining baseline migrations, five account migrations, one Wallet binding    |
+| Seams testnet    | `204147dd-23a6-43b7-9f40-d4f96eb986f2` | Through `0046`          | Remaining baseline migrations, five account migrations, three Wallet bindings |
+| Satyr global     | `9c1e5467-2985-4ca9-8cb0-3b3b933249ef` | Current deployed schema | Shared binding, identity, receipt, and automation tables                      |
+| Satyr APAC       | `fe8a597e-b094-4229-8a70-139fa239c168` | Current deployed schema | Native role rename and shared acceptance metadata                             |
 
 All five local clones migrated, restarted, and restored successfully.
 All foreign keys pass after migration and restore.

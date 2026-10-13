@@ -109,6 +109,7 @@ export async function provisioningScenario(
     internalServiceAuthSecret: 'fixture',
   });
   const apiKeys = await createD1ConsoleApiKeyService({
+    deploymentId: deploymentLane,
     database,
     namespace,
     ensureSchema: false,

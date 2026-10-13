@@ -26,6 +26,7 @@ await build({
     export { createD1ConsoleWalletEnvironmentService } from './packages/wallet-console-server-ts/src/environments/d1';
     export { activateWalletProject } from './tests/helpers/accountWalletProject.fixtures';
     export { createRouterApiPublishableKeyAuthAdapter } from './packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
+    export { createWalletProjectEnvironmentResolver } from './packages/wallet-console-server-ts/src/router/projectEnvironmentAdapter';
     export { createWalletConsoleOpsHandler } from './packages/wallet-console-server-ts/src/serviceBinding/walletConsoleOpsHandler';
     export { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from './packages/wallet-console-shared-ts/src/apiKeyScopes';
     export { WALLET_CONSOLE_OP_PATHS_V1, WALLET_CONSOLE_SERVICE_ORIGIN_V1 } from '@seams/wallet-server/cloud-host';
@@ -60,10 +61,18 @@ class DelayedUsageStatement {
 }
 class DelayedUsageDatabase {
   pending = [];
+  credentialQuery = null;
+  credentialReads = 0;
+  environmentQuery = null;
   constructor(database) {
     this.database = database;
   }
   prepare(query) {
+    if (query.startsWith('SELECT k.*')) {
+      this.credentialQuery = query;
+      this.credentialReads += 1;
+    }
+    if (query.startsWith('SELECT e.*')) this.environmentQuery = query;
     const statement = this.database.prepare(query);
     return /UPDATE api_keys\s+SET last_used_at_ms/u.test(query)
       ? new DelayedUsageStatement(this, statement)
@@ -154,6 +163,7 @@ try {
     projectId: 'project',
   });
   const service = await api.createD1ConsoleApiKeyService({
+    deploymentId,
     database: delayed,
     namespace,
     now: clock.now.bind(clock),
@@ -171,12 +181,6 @@ try {
   const handler = api.createWalletConsoleOpsHandler({
     publishableKeyAuth: api.createRouterApiPublishableKeyAuthAdapter(
       service,
-      {
-        platform: core.accountPlatform,
-        authority: { serviceId: 'wallet', deploymentId },
-        namespace,
-        environments,
-      },
       lifetime.waitUntil.bind(lifetime),
     ),
     apiKeyAuth: { authenticate: unexpectedOperation },
@@ -187,6 +191,24 @@ try {
   clock.milliseconds += 1000;
   const first = await authenticate(handler, created.secret);
   assert.equal(first.status, 200);
+  assert.equal(delayed.credentialReads, 1);
+  assert.ok(delayed.credentialQuery);
+  const queryPlan = await database
+    .prepare(`EXPLAIN QUERY PLAN ${delayed.credentialQuery}`)
+    .bind(namespace, deploymentId, namespace, 'publishable_key', '', '')
+    .all();
+  const resolver = api.createWalletProjectEnvironmentResolver({
+    database: delayed,
+    namespace,
+    deploymentId,
+  });
+  const environmentsForOwner = await resolver.listEnvironments({ ...owner, roles: ['OWNER'] });
+  assert.equal(environmentsForOwner.length, 3);
+  assert.ok(delayed.environmentQuery);
+  const environmentQueryPlan = await database
+    .prepare(`EXPLAIN QUERY PLAN ${delayed.environmentQuery}`)
+    .bind(namespace, deploymentId, namespace, owner.orgId)
+    .all();
   assert.equal(delayed.pending.length, 1);
   assert.equal((await service.listApiKeys(owner))[0].lastUsedAt, null);
   clock.milliseconds += 1000;
@@ -236,6 +258,9 @@ try {
     completedOutOfOrder: true,
     telemetryFailureDidNotRejectAuthentication: true,
     activeWalletBindingRequired: true,
+    credentialLookupPlan: queryPlan.results,
+    environmentLookupPlan: environmentQueryPlan.results,
+    credentialReadsBeforeFirstResponse: 1,
   };
   await writeFile(path.join(output, 'evidence.json'), JSON.stringify(evidence, null, 2));
   console.log(

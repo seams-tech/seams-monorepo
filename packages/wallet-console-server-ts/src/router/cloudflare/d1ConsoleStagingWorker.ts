@@ -8,7 +8,6 @@ import {
   createAccountPlatformServiceIngressFromEnvironment,
   type AccountServiceIngressEnvironment,
 } from '@seams-internal/console-server/accountPlatform/serviceIngressEnvironment';
-import type { AccountPlatformServiceIngressHandler } from '@seams-internal/console-server/accountPlatform/http';
 import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
 import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
 import {
@@ -380,34 +379,6 @@ async function createConsoleHandler(
       },
     },
   });
-  const walletAdmission = {
-    platform: bundle.accountPlatform,
-    authority: bundle.walletProvisioning.authority,
-    namespace,
-    environments: bundle.walletEnvironments,
-  };
-  ctx.waitUntil(
-    runAccountServiceProvisioning({
-      platform: bundle.accountPlatform,
-      adapter: bundle.walletProvisioning,
-      limit: 20,
-    }),
-  );
-  ctx.waitUntil(bundle.walletMonthlyUsage.resumePending(20));
-  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
-    env,
-    bundle.serviceAccess,
-    globalThis.fetch.bind(globalThis),
-  );
-  if (satyrProvisioning) {
-    ctx.waitUntil(
-      runAccountServiceProvisioning({
-        platform: bundle.accountPlatform,
-        adapter: satyrProvisioning,
-        limit: 20,
-      }),
-    );
-  }
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
@@ -420,23 +391,9 @@ async function createConsoleHandler(
     organizationAccess: bundle.organizationAccess,
     platformSupportEmails: readEnvString(env, 'CONSOLE_PLATFORM_SUPPORT_EMAILS'),
   });
-  const router = createWalletConsoleRouter({
-    corsOrigins: consoleCorsOrigins(env),
-    core: consoleCoreServicesFromBundle(bundle),
-    walletConsole: walletConsoleServicesFromBundle(bundle),
-    walletProvisioning: bundle.walletProvisioning,
-    satyrProvisioning,
-    auth,
-    session,
-    readyCheck: async () => {
-      await createConsoleReadyCheck(env)();
-      if (tenantDeploymentReadyCheck) await tenantDeploymentReadyCheck();
-    },
-    billingStripeWebhookSigningSecret: requireEnvString(env, 'STRIPE_WEBHOOK_SECRET'),
-  });
   const relayHandler = createWalletConsoleRelayHandler(
     createConsoleRouterApiRouteExtensions({
-      apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys, walletAdmission),
+      apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
       wallets: bundle.wallets,
       signedDelegate: {
         route: DEFAULT_SIGNED_DELEGATE_ROUTE,
@@ -446,7 +403,6 @@ async function createConsoleHandler(
         runtimeSnapshots: bundle.runtimeSnapshots,
         publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
           bundle.apiKeys,
-          walletAdmission,
           ctx.waitUntil.bind(ctx),
         ),
         observabilityIngestion: bundle.observabilityIngestion,
@@ -461,7 +417,6 @@ async function createConsoleHandler(
               route: DEFAULT_SPONSORED_EVM_CALL_ROUTE,
               publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
                 bundle.apiKeys,
-                walletAdmission,
                 ctx.waitUntil.bind(ctx),
               ),
               billing: bundle.billing,
@@ -669,20 +624,20 @@ async function createConsoleHandler(
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.
   const opsHandler = createWalletConsoleOpsHandler({
-    apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys, walletAdmission),
+    apiKeyAuth: createRouterApiKeyAuthAdapter(bundle.apiKeys),
     publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(
       bundle.apiKeys,
-      walletAdmission,
       ctx.waitUntil.bind(ctx),
     ),
     usageMeter: createRouterApiWalletRegistrationProjectionAdapter({
       walletEnvironments: bundle.walletEnvironments,
       wallets: bundle.wallets,
     }),
-    projectEnvironments: createWalletProjectEnvironmentResolver(
-      bundle.walletEnvironments,
-      walletAdmission,
-    ),
+    projectEnvironments: createWalletProjectEnvironmentResolver({
+      database: env.CONSOLE_DB,
+      namespace,
+      deploymentId: deploymentLane,
+    }),
     tenantRootActiveLineage: new D1TenantRootActiveLineageResolverV1(env.CONSOLE_DB, namespace),
   });
   const routerWithOps: FetchHandler = async (request, workerEnv, ctx) => {
@@ -713,6 +668,25 @@ async function createConsoleHandler(
     if (tenantDeploymentAutomationResponse) return tenantDeploymentAutomationResponse;
     const relayResponse = await relayHandler(request, ctx);
     if (relayResponse) return relayResponse;
+    const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
+      env,
+      bundle.serviceAccess,
+      globalThis.fetch.bind(globalThis),
+    );
+    const router = createWalletConsoleRouter({
+      corsOrigins: consoleCorsOrigins(env),
+      core: consoleCoreServicesFromBundle(bundle),
+      walletConsole: walletConsoleServicesFromBundle(bundle),
+      walletProvisioning: bundle.walletProvisioning,
+      satyrProvisioning,
+      auth,
+      session,
+      readyCheck: async () => {
+        await createConsoleReadyCheck(env)();
+        if (tenantDeploymentReadyCheck) await tenantDeploymentReadyCheck();
+      },
+      billingStripeWebhookSigningSecret: requireEnvString(env, 'STRIPE_WEBHOOK_SECRET'),
+    });
     return await router(request, workerEnv, ctx);
   };
   // The Console Worker owns /console/auth/* end-to-end: provider verification
@@ -744,9 +718,9 @@ async function createConsoleHandler(
     account: bundle.account,
     corsOrigins: consoleCorsOrigins(env),
   });
-  const accountIngress = await createAccountPlatformServiceIngressFromEnvironment(env, bundle);
   const composed = new ConsoleWithAccountServiceIngress(
-    accountIngress,
+    env,
+    bundle,
     authHandler.fetch.bind(authHandler),
   );
   return attachConsoleRouteSurface(
@@ -757,20 +731,27 @@ async function createConsoleHandler(
 
 class ConsoleWithAccountServiceIngress {
   constructor(
-    private readonly ingress: AccountPlatformServiceIngressHandler | null,
+    private readonly environment: AccountServiceIngressEnvironment,
+    private readonly services: Parameters<
+      typeof createAccountPlatformServiceIngressFromEnvironment
+    >[1],
     private readonly fallback: FetchHandler,
   ) {}
 
   async fetch(...args: Parameters<FetchHandler>): Promise<Response> {
     const [request] = args;
     if (new URL(request.url).pathname.startsWith('/account-platform/v1/')) {
-      if (!this.ingress)
+      const ingress = await createAccountPlatformServiceIngressFromEnvironment(
+        this.environment,
+        this.services,
+      );
+      if (!ingress)
         return Response.json(
           { kind: 'rejected', error: { code: 'authority_unavailable', retryable: true } },
           { status: 503, headers: { 'Cache-Control': 'no-store' } },
         );
       return (
-        (await this.ingress(request)) ??
+        (await ingress(request)) ??
         Response.json(
           { kind: 'rejected', error: { code: 'operation_unsupported' } },
           { status: 404 },
@@ -1087,6 +1068,38 @@ async function runConsoleTenantRootRefreshResumptionV1(
   }
 }
 
+async function resumeAccountServices(env: CloudflareD1ConsoleStagingEnv): Promise<void> {
+  const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
+  const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
+    bindings: { consoleDatabase: env.CONSOLE_DB },
+    route: { namespace, deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') },
+    adapters: { ensureSchema: false },
+  });
+  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
+    env,
+    bundle.serviceAccess,
+    globalThis.fetch.bind(globalThis),
+  );
+  const pending: Promise<unknown>[] = [
+    runAccountServiceProvisioning({
+      platform: bundle.accountPlatform,
+      adapter: bundle.walletProvisioning,
+      limit: 20,
+    }),
+    bundle.walletMonthlyUsage.resumePending(20),
+  ];
+  if (satyrProvisioning) {
+    pending.push(
+      runAccountServiceProvisioning({
+        platform: bundle.accountPlatform,
+        adapter: satyrProvisioning,
+        limit: 20,
+      }),
+    );
+  }
+  await Promise.all(pending);
+}
+
 function consoleScheduledHandler(env: CloudflareD1ConsoleStagingEnv): ScheduledHandler {
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const tenantRootRefreshResumption: TenantRootRefreshResumptionRunner =
@@ -1110,6 +1123,7 @@ async function scheduled(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<void> {
+  ctx.waitUntil(resumeAccountServices(env));
   ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
   const handler = consoleScheduledHandler(env);
   await handler(event, env, ctx);

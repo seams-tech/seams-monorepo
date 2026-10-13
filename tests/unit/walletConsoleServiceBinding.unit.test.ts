@@ -143,12 +143,13 @@ async function bindingHarness() {
     environments,
   };
   const apiKeys = createInMemoryConsoleApiKeyService({
+    admission,
     scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
   });
   const recorded: RouterApiUsageMeterEvent[] = [];
   const handler = createWalletConsoleOpsHandler({
-    apiKeyAuth: createRouterApiKeyAuthAdapter(apiKeys, admission),
-    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys, admission),
+    apiKeyAuth: createRouterApiKeyAuthAdapter(apiKeys),
+    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys),
     usageMeter: {
       async recordEvent(event) {
         recorded.push(event);

@@ -119,6 +119,7 @@ export interface AuthenticateConsoleApiKeyRequest {
 export interface AuthenticateConsoleApiKeySuccess {
   ok: true;
   apiKey: ConsoleApiKey;
+  projectId: string;
 }
 
 export interface AuthenticateConsoleApiKeyFailure {
@@ -143,6 +144,7 @@ export interface AuthenticateConsolePublishableKeyRequest {
 export interface AuthenticateConsolePublishableKeySuccess {
   ok: true;
   apiKey: ConsoleApiKey;
+  projectId: string;
 }
 
 export interface AuthenticateConsolePublishableKeyFailure {

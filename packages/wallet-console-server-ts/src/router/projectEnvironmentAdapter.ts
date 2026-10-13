@@ -2,32 +2,10 @@ import type {
   RouterApiProjectEnvironment,
   RouterApiProjectEnvironmentResolver,
 } from '@seams/wallet-server/cloud-host';
-import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/service';
-import type {
-  ConsoleWalletEnvironment,
-  ConsoleWalletEnvironmentStatus,
-} from '@seams-internal/wallet-console-server/environments/types';
-import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
-import type { ServiceProducerAuthorityV1 } from '@seams-internal/console-server/accountPlatform/types';
-
-export interface WalletOperationAdmissionV1 {
-  readonly platform: Pick<D1AccountPlatformService, 'checkWalletAdmission'>;
-  readonly authority: ServiceProducerAuthorityV1;
-  readonly namespace: string;
-}
-
-export async function isWalletProjectAdmitted(
-  admission: WalletOperationAdmissionV1,
-  nativeOrganizationId: string,
-  nativeProjectId: string,
-): Promise<boolean> {
-  const result = await admission.platform.checkWalletAdmission(admission.authority, {
-    namespace: admission.namespace,
-    nativeOrganizationId,
-    nativeProjectId,
-  });
-  return result.kind === 'accepted';
-}
+import { queryD1All, type D1DatabaseLike } from '@seams-internal/console-server/boundary';
+import { ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL } from '../accountPlatform/admission';
+import { parseEnvironmentRow } from '../environments/d1';
+import type { ConsoleWalletEnvironment } from '../environments/types';
 
 export function walletProjectEnvironment(
   environment: ConsoleWalletEnvironment,
@@ -41,49 +19,59 @@ export function walletProjectEnvironment(
   };
 }
 
-function parseEnvironmentStatus(
-  value: string | undefined,
-): ConsoleWalletEnvironmentStatus | undefined {
-  if (value === 'ACTIVE' || value === 'DISABLED' || value === 'ARCHIVED') return value;
-  return undefined;
+interface WalletProjectEnvironmentResolverOptions {
+  readonly database: D1DatabaseLike;
+  readonly namespace: string;
+  readonly deploymentId: string;
 }
 
 export function createWalletProjectEnvironmentResolver(
-  service: ConsoleWalletEnvironmentService,
-  admission: WalletOperationAdmissionV1,
+  options: WalletProjectEnvironmentResolverOptions,
 ): RouterApiProjectEnvironmentResolver {
-  return new WalletProjectEnvironmentResolver(service, admission);
+  return new WalletProjectEnvironmentResolver(options);
 }
 
 class WalletProjectEnvironmentResolver implements RouterApiProjectEnvironmentResolver {
-  constructor(
-    private readonly service: ConsoleWalletEnvironmentService,
-    private readonly admission: WalletOperationAdmissionV1,
-  ) {}
+  constructor(private readonly options: WalletProjectEnvironmentResolverOptions) {}
 
   async listEnvironments(
     context: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[0],
     filters: Parameters<RouterApiProjectEnvironmentResolver['listEnvironments']>[1],
   ): Promise<RouterApiProjectEnvironment[]> {
-    const status = parseEnvironmentStatus(filters?.status);
-    const environments = await this.service.listEnvironments(
-      context,
-      status ? { status } : undefined,
-    );
-    const admitted: RouterApiProjectEnvironment[] = [];
-    const projects = new Map<string, boolean>();
-    for (const environment of environments) {
-      let projectAdmitted = projects.get(environment.projectId);
-      if (projectAdmitted === undefined) {
-        projectAdmitted = await isWalletProjectAdmitted(
-          this.admission,
-          context.orgId,
-          environment.projectId,
-        );
-        projects.set(environment.projectId, projectAdmitted);
-      }
-      if (projectAdmitted) admitted.push(walletProjectEnvironment(environment));
+    const values: unknown[] = [
+      this.options.namespace,
+      this.options.deploymentId,
+      this.options.namespace,
+      context.orgId,
+    ];
+    let scopeFilter = '';
+    if (context.projectId) {
+      values.push(context.projectId);
+      scopeFilter += ` AND e.project_id = ?${values.length}`;
     }
-    return admitted;
+    if (context.environmentId) {
+      values.push(context.environmentId);
+      scopeFilter += ` AND e.id = ?${values.length}`;
+    }
+    const status = filters?.status;
+    if (status === 'ACTIVE' || status === 'DISABLED' || status === 'ARCHIVED') {
+      values.push(status);
+      scopeFilter += ` AND e.status = ?${values.length}`;
+    }
+    const rows = await queryD1All(
+      this.options.database,
+      `SELECT e.* ${ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL}
+       AND e.org_id = ?4${scopeFilter}
+       ORDER BY CASE e.env_key WHEN 'prod' THEN 0 WHEN 'staging' THEN 1 ELSE 2 END,
+         e.updated_at_ms DESC, e.created_at_ms DESC`,
+      values,
+    );
+    return rows.map(toProjectEnvironment);
   }
+}
+
+function toProjectEnvironment(
+  row: Parameters<typeof parseEnvironmentRow>[0],
+): RouterApiProjectEnvironment {
+  return walletProjectEnvironment(parseEnvironmentRow(row));
 }

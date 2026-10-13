@@ -47,7 +47,10 @@ export async function verifyRegionalTargetPreparation({
     deliveryRecipientPublicKey65B64u: deliveryRecipient(),
   });
   assert.equal(changed.kind, 'conflict');
+  const firstBridge = bridges.values().next().value;
+  assert.ok(firstBridge);
   const apiKeys = api.createInMemoryConsoleApiKeyService({
+    admission: firstBridge.walletAdmission,
     scopeValidation: api.WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
   });
   const credential = await apiKeys.createApiKey(
@@ -62,10 +65,7 @@ export async function verifyRegionalTargetPreparation({
     },
   );
   for (const [region, bridge] of bridges) {
-    bridge.targetPublishableKeyAuth = api.createRouterApiPublishableKeyAuthAdapter(
-      apiKeys,
-      bridge.walletAdmission,
-    );
+    bridge.targetPublishableKeyAuth = api.createRouterApiPublishableKeyAuthAdapter(apiKeys);
     bridge.linkRoutes.targetCredential =
       region === 'WEUR'
         ? provider

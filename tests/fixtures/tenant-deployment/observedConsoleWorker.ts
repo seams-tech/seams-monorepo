@@ -68,16 +68,47 @@ class ObservedStatement implements D1PreparedStatementLike {
   }
 }
 
+class ScheduledLifetime {
+  readonly pending: Promise<unknown>[] = [];
+
+  waitUntil(promise: Promise<unknown>): void {
+    this.pending.push(promise);
+  }
+}
+
+function walletRequestEnvironment(
+  request: Request,
+  env: Parameters<typeof consoleWorker.fetch>[1],
+): Parameters<typeof consoleWorker.fetch>[1] {
+  if (!request.headers.has('x-test-account-keys-unavailable')) return env;
+  return {
+    ...env,
+    SATYR_SERVICE_ORIGIN: 'https://satyr.invalid',
+    SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON: 'Unavailable on Wallet routes',
+    ACCOUNT_PROVISION_ASSERTION_PRIVATE_JWK_JSON: 'Unavailable on Wallet routes',
+  };
+}
+
 async function fetch(
   request: Parameters<typeof consoleWorker.fetch>[0],
   env: Parameters<typeof consoleWorker.fetch>[1],
   ctx: Parameters<typeof consoleWorker.fetch>[2],
 ): Promise<Response> {
+  if (new URL(request.url).pathname === '/__test/scheduled') {
+    const lifetime = new ScheduledLifetime();
+    await consoleWorker.scheduled({ scheduledTime: Date.now(), cron: '* * * * *' }, env, lifetime);
+    await Promise.all(lifetime.pending);
+    return Response.json({ ok: true });
+  }
   const database = new ObservedDatabase(
     env.CONSOLE_DB,
     request.headers.has('x-test-fail-d1-batch'),
   );
-  const response = await consoleWorker.fetch(request, { ...env, CONSOLE_DB: database }, ctx);
+  const response = await consoleWorker.fetch(
+    request,
+    { ...walletRequestEnvironment(request, env), CONSOLE_DB: database },
+    ctx,
+  );
   const result = new Response(response.body, response);
   result.headers.set('x-test-d1-calls', String(database.calls));
   result.headers.set('x-test-d1-statements', String(database.statements));

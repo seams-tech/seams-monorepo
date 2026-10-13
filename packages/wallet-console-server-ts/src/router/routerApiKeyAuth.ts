@@ -4,10 +4,6 @@ import type { ConsoleApiKey } from '@seams-internal/wallet-console-server/apiKey
 import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/index';
 import type { ConsoleWalletService } from '../wallets';
 import type { ConsoleWalletEnvironment } from '../environments/types';
-import {
-  isWalletProjectAdmitted,
-  type WalletOperationAdmissionV1,
-} from './projectEnvironmentAdapter';
 import type {
   RouterApiKeyAuthAdapter,
   RouterApiKeyAuthRequest,
@@ -20,38 +16,14 @@ import type {
   RouterApiUsageMeterEvent,
 } from '@seams/wallet-server/cloud-host';
 
-export interface WalletApiCredentialAdmissionV1 extends WalletOperationAdmissionV1 {
-  readonly environments: ConsoleWalletEnvironmentService;
-}
-
-function toPrincipal(
-  apiKey: ConsoleApiKey,
-  environment: ConsoleWalletEnvironment,
-): RouterApiKeyPrincipal {
+function toPrincipal(apiKey: ConsoleApiKey, projectId: string): RouterApiKeyPrincipal {
   return {
     apiKeyId: apiKey.id,
     orgId: apiKey.orgId,
     environmentId: apiKey.environmentId,
-    projectId: environment.projectId,
+    projectId,
     scopes: (apiKey.scopes || []).filter(isApiCredentialScope),
   };
-}
-
-async function admittedCredentialEnvironment(
-  apiKey: ConsoleApiKey,
-  admission: WalletApiCredentialAdmissionV1,
-): Promise<ConsoleWalletEnvironment | null> {
-  const environments = await admission.environments.listEnvironments({
-    orgId: apiKey.orgId,
-    actorUserId: 'relay-api-key',
-  });
-  for (const environment of environments) {
-    if (environment.id !== apiKey.environmentId) continue;
-    return (await isWalletProjectAdmitted(admission, apiKey.orgId, environment.projectId))
-      ? environment
-      : null;
-  }
-  return null;
 }
 
 async function upsertProjectedWallet(input: {
@@ -92,10 +64,7 @@ async function upsertProjectedWallet(input: {
 class ConsoleRouterApiKeyAuthAdapter implements RouterApiKeyAuthAdapter {
   private readonly authenticateApiKey: NonNullable<ConsoleApiKeyService['authenticateApiKey']>;
 
-  constructor(
-    apiKeys: ConsoleApiKeyService,
-    private readonly admission: WalletApiCredentialAdmissionV1,
-  ) {
+  constructor(apiKeys: ConsoleApiKeyService) {
     const authenticateApiKey = apiKeys.authenticateApiKey;
     if (typeof authenticateApiKey !== 'function') {
       throw new Error(
@@ -108,15 +77,7 @@ class ConsoleRouterApiKeyAuthAdapter implements RouterApiKeyAuthAdapter {
   async authenticate(input: RouterApiKeyAuthRequest): Promise<RouterApiKeyAuthResult> {
     const result = await this.authenticateApiKey(input);
     if (!result.ok) return result;
-    const environment = await admittedCredentialEnvironment(result.apiKey, this.admission);
-    if (!environment)
-      return {
-        ok: false,
-        status: 403,
-        code: 'secret_key_environment_mismatch',
-        message: 'Wallet service is unavailable for this environment',
-      };
-    return { ok: true, principal: toPrincipal(result.apiKey, environment) };
+    return { ok: true, principal: toPrincipal(result.apiKey, result.projectId) };
   }
 }
 
@@ -127,7 +88,6 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
 
   constructor(
     apiKeys: ConsoleApiKeyService,
-    private readonly admission: WalletApiCredentialAdmissionV1,
     private readonly deferUsageWrite?: (write: Promise<unknown>) => void,
   ) {
     const authenticatePublishableKey = apiKeys.authenticatePublishableKey;
@@ -149,15 +109,7 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
       environmentId: input.environmentId,
     });
     if (!result.ok) return result;
-    const environment = await admittedCredentialEnvironment(result.apiKey, this.admission);
-    if (!environment)
-      return {
-        ok: false,
-        status: 403,
-        code: 'publishable_key_environment_mismatch',
-        message: 'Wallet service is unavailable for this environment',
-      };
-    return { ok: true, principal: toPrincipal(result.apiKey, environment) };
+    return { ok: true, principal: toPrincipal(result.apiKey, result.projectId) };
   }
 }
 
@@ -205,17 +157,15 @@ class ConsoleRouterApiWalletRegistrationProjectionAdapter implements RouterApiUs
 
 export function createRouterApiKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
-  admission: WalletApiCredentialAdmissionV1,
 ): RouterApiKeyAuthAdapter {
-  return new ConsoleRouterApiKeyAuthAdapter(apiKeys, admission);
+  return new ConsoleRouterApiKeyAuthAdapter(apiKeys);
 }
 
 export function createRouterApiPublishableKeyAuthAdapter(
   apiKeys: ConsoleApiKeyService,
-  admission: WalletApiCredentialAdmissionV1,
   deferUsageWrite?: (write: Promise<unknown>) => void,
 ): RouterApiPublishableKeyAuthAdapter {
-  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, admission, deferUsageWrite);
+  return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, deferUsageWrite);
 }
 
 export function createRouterApiWalletRegistrationProjectionAdapter(options: {

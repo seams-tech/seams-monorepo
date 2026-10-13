@@ -771,6 +771,7 @@ async function createCloudflareD1ApiKeys(
   options: NormalizedCloudflareD1ConsoleCommonOptions,
 ): Promise<ConsoleApiKeyService> {
   return await createD1ConsoleApiKeyService({
+    deploymentId: options.deploymentId,
     scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
     database: options.consoleDatabase,
     namespace: options.namespace,
@@ -1110,23 +1111,13 @@ function createCloudflareD1RouterApiStorageOptions(input: {
     storageNamespace: options.namespace,
   });
   const sponsoredEvmCallConfig = options.sponsoredEvmCallConfig || null;
-  const admission = {
-    platform: input.accountPlatform,
-    authority: input.walletProvisioning.authority,
+  const apiKeyAuth = createRouterApiKeyAuthAdapter(input.apiKeys);
+  const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(input.apiKeys);
+  const walletEnvironments = createWalletProjectEnvironmentResolver({
+    database: options.consoleDatabase,
     namespace: options.namespace,
-  };
-  const apiKeyAuth = createRouterApiKeyAuthAdapter(input.apiKeys, {
-    ...admission,
-    environments: input.walletEnvironments,
+    deploymentId: options.deploymentId,
   });
-  const publishableKeyAuth = createRouterApiPublishableKeyAuthAdapter(input.apiKeys, {
-    ...admission,
-    environments: input.walletEnvironments,
-  });
-  const walletEnvironments = createWalletProjectEnvironmentResolver(
-    input.walletEnvironments,
-    admission,
-  );
   return {
     apiKeyAuth,
     publishableKeyAuth,

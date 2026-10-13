@@ -1,3 +1,7 @@
+import {
+  admittedWalletCredentialProject,
+  type WalletApiCredentialAdmissionV1,
+} from '../accountPlatform/admission';
 import { ConsoleApiKeyError } from './errors';
 import { isIpAllowlistMatch } from './ipAllowlist';
 import { buildPublishableKeyOriginBlockedMessage } from './originMessage';
@@ -37,6 +41,7 @@ export interface ConsoleApiKeysContext {
 }
 
 export interface InMemoryConsoleApiKeyServiceOptions {
+  admission: WalletApiCredentialAdmissionV1;
   scopeValidation: ApiCredentialScopeValidation;
   now?: () => Date;
 }
@@ -545,6 +550,20 @@ export function createInMemoryConsoleApiKeyService(
         };
       }
 
+      const projectId = await admittedWalletCredentialProject(
+        opts.admission,
+        apiKey.orgId,
+        apiKey.environmentId,
+      );
+      if (projectId === null) {
+        return {
+          ok: false,
+          status: 403,
+          code: 'secret_key_environment_mismatch',
+          message: 'Wallet service is unavailable for this environment',
+        };
+      }
+
       const usedAt = now();
       const endpoint = String(request.endpoint || '').trim();
       apiKey.lastUsedAt = toIso(usedAt);
@@ -558,6 +577,7 @@ export function createInMemoryConsoleApiKeyService(
       return {
         ok: true,
         apiKey: cloneApiKey(apiKey),
+        projectId,
       };
     },
 
@@ -655,11 +675,26 @@ export function createInMemoryConsoleApiKeyService(
         };
       }
 
+      const projectId = await admittedWalletCredentialProject(
+        opts.admission,
+        apiKey.orgId,
+        apiKey.environmentId,
+      );
+      if (projectId === null) {
+        return {
+          ok: false,
+          status: 403,
+          code: 'publishable_key_environment_mismatch',
+          message: 'Wallet service is unavailable for this environment',
+        };
+      }
+
       apiKey.lastUsedAt = toIso(now());
       apiKey.updatedAt = apiKey.lastUsedAt;
       return {
         ok: true,
         apiKey: cloneApiKey(apiKey),
+        projectId,
       };
     },
   };

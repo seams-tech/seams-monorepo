@@ -1661,22 +1661,11 @@ async function resolveLocalRuntimeTenantRootLineage(
   scope: RuntimePolicyScope & { readonly signingRootId: string },
 ) {
   const namespace = localTenantStorageNamespace(env);
-  const account = await createCloudflareD1AccountServiceBundle({
-    database: env.CONSOLE_DB,
-    namespace,
-    ensureSchema: false,
-    externalDeletionGuard: null,
-  });
-  const environments = await createD1ConsoleWalletEnvironmentService({
-    database: env.CONSOLE_DB,
-    namespace,
-    ensureSchema: false,
-  });
   return resolveRuntimeTenantRootLineage(
-    createWalletProjectEnvironmentResolver(environments, {
-      platform: account.accountPlatform,
-      authority: { serviceId: 'wallet', deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE },
+    createWalletProjectEnvironmentResolver({
+      database: env.CONSOLE_DB,
       namespace,
+      deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE,
     }),
     roots,
     scope,

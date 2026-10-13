@@ -182,6 +182,7 @@ async function compose(database: D1DatabaseLike) {
     now,
   });
   const apiKeys = await createD1ConsoleApiKeyService({
+    deploymentId,
     database,
     namespace,
     ensureSchema: true,
@@ -211,12 +212,6 @@ async function compose(database: D1DatabaseLike) {
     billingStripeWebhookSigningSecret: 'whsec_isolated_wallet_activation_acceptance',
     corsOrigins: [origin],
   });
-  const admission = {
-    platform: core.accountPlatform,
-    authority: walletAdapter.authority,
-    namespace,
-    environments,
-  };
   return {
     core,
     environments,
@@ -224,9 +219,13 @@ async function compose(database: D1DatabaseLike) {
     delivery,
     session,
     router,
-    secretAuth: createRouterApiKeyAuthAdapter(apiKeys, admission),
-    publishableAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys, admission),
-    environmentResolver: createWalletProjectEnvironmentResolver(environments, admission),
+    secretAuth: createRouterApiKeyAuthAdapter(apiKeys),
+    publishableAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys),
+    environmentResolver: createWalletProjectEnvironmentResolver({
+      database,
+      namespace,
+      deploymentId,
+    }),
   };
 }
 

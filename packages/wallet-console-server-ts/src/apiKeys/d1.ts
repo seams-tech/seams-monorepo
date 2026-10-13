@@ -9,6 +9,7 @@ import {
 } from '@seams-internal/console-server/boundary';
 import type { D1DatabaseLike } from '@seams-internal/console-server/boundary';
 
+import { ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL } from '../accountPlatform/admission';
 import { ConsoleApiKeyError } from './errors';
 import { isIpAllowlistMatch } from './ipAllowlist';
 import { buildPublishableKeyOriginBlockedMessage } from './originMessage';
@@ -44,10 +45,20 @@ interface StoredApiKey extends ConsoleApiKey {
 }
 
 interface D1ConsoleApiKeyState {
+  readonly deploymentId: string;
   readonly database: D1DatabaseLike;
   readonly namespace: string;
   readonly now: () => Date;
   readonly scopeValidation: ApiCredentialScopeValidation;
+}
+
+type CredentialAdmission =
+  | { readonly kind: 'admitted'; readonly projectId: string }
+  | { readonly kind: 'unavailable'; readonly projectId?: never };
+
+interface MatchedApiKey {
+  readonly apiKey: StoredApiKey;
+  readonly admission: CredentialAdmission;
 }
 
 type ApiKeySecretFingerprint = {
@@ -73,6 +84,7 @@ export interface D1ConsoleApiKeysSchemaOptions {
 }
 
 export interface D1ConsoleApiKeysServiceOptions {
+  readonly deploymentId: string;
   readonly database: D1DatabaseLike;
   readonly scopeValidation: ApiCredentialScopeValidation;
   readonly namespace?: string;
@@ -170,6 +182,7 @@ export async function createD1ConsoleApiKeyService(
   options: D1ConsoleApiKeysServiceOptions,
 ): Promise<ConsoleApiKeysD1Service> {
   const state: D1ConsoleApiKeyState = {
+    deploymentId: options.deploymentId,
     database: options.database,
     namespace: ensureNamespace(options.namespace),
     now: options.now || defaultNow,
@@ -178,7 +191,7 @@ export async function createD1ConsoleApiKeyService(
   if (options.ensureSchema !== false) {
     await ensureConsoleApiKeysD1Schema({ database: state.database });
   }
-  return new D1ConsoleApiKeyServiceImpl(state) as ConsoleApiKeysD1Service;
+  return new D1ConsoleApiKeyServiceImpl(state);
 }
 
 function defaultNow(): Date {
@@ -729,12 +742,12 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
-    const keyRow = await this.findApiKeyBySecretFingerprint({
+    const match = await this.findApiKeyBySecretFingerprint({
       kind: parsed.kind,
       keyPrefix: makeApiKeyLookupPrefix(secret),
       secretHash: await hashApiKeySecret(secret),
     });
-    if (!keyRow) {
+    if (!match) {
       return {
         ok: false,
         status: 401,
@@ -743,6 +756,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
+    const keyRow = match.apiKey;
     const currentNowMs = nowMs(this.state.now());
     if (keyRow.status === 'REVOKED') {
       await this.appendAnomalyFlag(keyRow, 'auth.revoked_attempt', currentNowMs);
@@ -798,6 +812,15 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
+    if (match.admission.kind === 'unavailable') {
+      return {
+        ok: false,
+        status: 403,
+        code: 'secret_key_environment_mismatch',
+        message: 'Wallet service is unavailable for this environment',
+      };
+    }
+
     const refreshed = await this.recordApiKeyUse(keyRow, {
       endpoint: normalizeString(request.endpoint),
       nowMsValue: currentNowMs,
@@ -806,6 +829,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     return {
       ok: true,
       apiKey: toPublicApiKey(refreshed || keyRow),
+      projectId: match.admission.projectId,
     };
   }
 
@@ -832,12 +856,12 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
-    const keyRow = await this.findApiKeyBySecretFingerprint({
+    const match = await this.findApiKeyBySecretFingerprint({
       kind: parsed.kind,
       keyPrefix: makeApiKeyLookupPrefix(secret),
       secretHash: await hashApiKeySecret(secret),
     });
-    if (!keyRow) {
+    if (!match) {
       return {
         ok: false,
         status: 401,
@@ -846,6 +870,7 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
+    const keyRow = match.apiKey;
     const currentNowMs = nowMs(this.state.now());
     if (keyRow.status === 'REVOKED') {
       await this.appendAnomalyFlag(keyRow, 'auth.publishable_key_revoked_attempt', currentNowMs);
@@ -894,6 +919,15 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
       };
     }
 
+    if (match.admission.kind === 'unavailable') {
+      return {
+        ok: false,
+        status: 403,
+        code: 'publishable_key_environment_mismatch',
+        message: 'Wallet service is unavailable for this environment',
+      };
+    }
+
     const usageWrite = this.recordApiKeyUse(keyRow, {
       endpoint: '',
       nowMsValue: currentNowMs,
@@ -901,12 +935,13 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
     });
     if (request.deferUsageWrite) {
       request.deferUsageWrite(usageWrite);
-      return { ok: true, apiKey: toPublicApiKey(keyRow) };
+      return { ok: true, apiKey: toPublicApiKey(keyRow), projectId: match.admission.projectId };
     }
     const refreshed = await usageWrite;
     return {
       ok: true,
       apiKey: toPublicApiKey(refreshed || keyRow),
+      projectId: match.admission.projectId,
     };
   }
 
@@ -1035,20 +1070,33 @@ class D1ConsoleApiKeyServiceImpl implements ConsoleApiKeyService {
 
   private async findApiKeyBySecretFingerprint(
     input: ApiKeySecretFingerprint,
-  ): Promise<StoredApiKey | null> {
+  ): Promise<MatchedApiKey | null> {
     const row = await this.state.database
       .prepare(
-        `SELECT *
-           FROM api_keys
-          WHERE namespace = ?
-            AND kind = ?
-            AND key_prefix = ?
-            AND secret_hash = ?
+        `SELECT k.*, (
+             SELECT e.project_id ${ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL}
+               AND e.org_id = k.org_id AND e.id = k.environment_id
+             LIMIT 1
+           ) AS admitted_project_id
+           FROM api_keys k
+          WHERE k.namespace = ?3 AND k.kind = ?4 AND k.key_prefix = ?5 AND k.secret_hash = ?6
           LIMIT 1`,
       )
-      .bind(this.state.namespace, input.kind, input.keyPrefix, input.secretHash)
+      .bind(
+        this.state.namespace,
+        this.state.deploymentId,
+        this.state.namespace,
+        input.kind,
+        input.keyPrefix,
+        input.secretHash,
+      )
       .first<D1Row>();
-    return row ? parseApiKeyRow(row, this.state.scopeValidation) : null;
+    if (!row) return null;
+    const admission: CredentialAdmission =
+      typeof row.admitted_project_id === 'string'
+        ? { kind: 'admitted', projectId: row.admitted_project_id }
+        : { kind: 'unavailable' };
+    return { apiKey: parseApiKeyRow(row, this.state.scopeValidation), admission };
   }
 
   private async appendAnomalyFlag(

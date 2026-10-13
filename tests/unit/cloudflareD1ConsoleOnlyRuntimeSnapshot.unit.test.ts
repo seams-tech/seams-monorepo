@@ -127,6 +127,12 @@ test('tenant deployment candidate creation publishes a missing initial runtime s
       now,
     });
     const apiKeys = createInMemoryConsoleApiKeyService({
+      admission: {
+        platform: core.accountPlatform,
+        authority: { serviceId: 'wallet', deploymentId: 'candidate-snapshot' },
+        namespace: 'candidate-snapshot',
+        environments: walletEnvironments,
+      },
       scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
       now,
     });

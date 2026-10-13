@@ -69,11 +69,13 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
   readonly requests: { path: string; status: number }[] = [];
   lastDatabaseWork: { calls: number; statements: number } | null = null;
   failNextBatch = false;
+  accountKeysUnavailable = false;
 
   constructor(private readonly worker: Awaited<ReturnType<Miniflare['getWorker']>>) {}
 
   async fetch(input: Request | string, init?: RequestInit): Promise<Response> {
     const request = new Request(input, init);
+    if (this.accountKeysUnavailable) request.headers.set('x-test-account-keys-unavailable', 'true');
     if (this.failNextBatch) {
       request.headers.set('x-test-fail-d1-batch', 'true');
       this.failNextBatch = false;
@@ -148,6 +150,70 @@ async function activateWalletProject(
   expect(
     await runAccountServiceProvisioning({ platform: core.accountPlatform, adapter, limit: 100 }),
   ).toMatchObject({ delivered: 1, failed: 0, pending: 0 });
+}
+
+async function verifyScheduledWalletProvisioning(
+  database: D1DatabaseLike,
+  service: LocalConsoleService,
+  environments: ConsoleWalletEnvironmentService,
+  deploymentId: string,
+  credential: { readonly secret: string },
+): Promise<void> {
+  const core = await createCloudflareD1AccountServiceBundle({
+    database,
+    namespace,
+    ensureSchema: false,
+    externalDeletionGuard: null,
+  });
+  const retryProjectId = 'scheduled-wallet-retry';
+  await core.orgProjects.createProject(context, {
+    id: retryProjectId,
+    name: 'Scheduled Wallet retry',
+  });
+  const scope = platformAccepted(
+    await core.accountPlatform.bindProjectBilling(context, retryProjectId),
+  );
+  const adapter = new WalletServiceProvisioningAdapter({
+    deploymentId,
+    namespace,
+    environments,
+    orgProjects: core.orgProjects,
+    billing: core.billing,
+  });
+  const command = platformAccepted(
+    ServiceProvisionCommandV1.parse({
+      version: 1,
+      operationId: 'scheduled-wallet-enable',
+      instanceId: 'scheduled-wallet-instance',
+      desiredRevision: 1,
+      command: 'enable',
+      binding: adapter.createBinding(scope),
+    }),
+  );
+  platformAccepted(await core.accountPlatform.requestProvision(context, { scope, command }));
+  const client = createWalletConsoleOpsClient(service);
+  expect(
+    await client.publishableKeyAuth.authenticate({
+      secret: credential.secret,
+      origin,
+      environmentId,
+    }),
+  ).toMatchObject({ ok: true });
+  expect(service.lastDatabaseWork).toEqual({ calls: 2, statements: 2 });
+  expect(await environments.listEnvironments(context, { projectId: retryProjectId })).toHaveLength(
+    0,
+  );
+  expect(
+    (await service.fetch('https://wallet-console.internal/__test/scheduled', { method: 'POST' }))
+      .status,
+  ).toBe(200);
+  expect(await environments.listEnvironments(context, { projectId: retryProjectId })).toHaveLength(
+    3,
+  );
+  expect(
+    platformAccepted(await core.accountPlatform.getInstance(context, command.instanceId)).state
+      .kind,
+  ).toBe('active');
 }
 
 async function verifyRegistrationMutationTransactions(
@@ -358,6 +424,7 @@ test('production Console service bindings enforce durable credential changes and
       consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
     );
     const keys = await createD1ConsoleApiKeyService({
+      deploymentId: consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
       database,
       namespace,
       ensureSchema: false,
@@ -380,6 +447,7 @@ test('production Console service bindings enforce durable credential changes and
       origin,
     }).request;
 
+    service.accountKeysUnavailable = true;
     const accepted = await client.registrationContext.resolve({
       secret: credential.secret,
       origin,
@@ -400,6 +468,61 @@ test('production Console service bindings enforce durable credential changes and
       stage: 'accepted',
       ok: accepted.ok,
       consoleRequests: service.requests.length,
+    });
+
+    expect(service.lastDatabaseWork).toEqual({ calls: 3, statements: 3 });
+    observations.push({ stage: 'registration_context_database_work', ...service.lastDatabaseWork });
+    expect(
+      await client.publishableKeyAuth.authenticate({
+        secret: credential.secret,
+        origin,
+        environmentId,
+      }),
+    ).toMatchObject({ ok: true, principal: { projectId } });
+    expect(service.lastDatabaseWork).toEqual({ calls: 2, statements: 2 });
+    observations.push({ stage: 'publishable_auth_database_work', ...service.lastDatabaseWork });
+    const secretCredential = await keys.createApiKey(context, {
+      kind: 'secret_key',
+      name: 'Wallet operations',
+      environmentId,
+      scopes: ['wallets.read'],
+    });
+    expect(
+      await client.apiKeyAuth.authenticate({
+        secret: secretCredential.secret,
+        environmentId,
+        endpoint: '/wallets',
+        requiredScopes: ['wallets.read'],
+      }),
+    ).toMatchObject({ ok: true, principal: { projectId } });
+    expect(service.lastDatabaseWork).toEqual({ calls: 2, statements: 2 });
+    observations.push({ stage: 'secret_auth_database_work', ...service.lastDatabaseWork });
+    expect(
+      await client.projectEnvironments.listEnvironments({
+        orgId: context.orgId,
+        actorUserId: context.actorUserId,
+        roles: ['OWNER'],
+      }),
+    ).toHaveLength(3);
+    expect(service.lastDatabaseWork).toEqual({ calls: 1, statements: 1 });
+    observations.push({
+      stage: 'environment_resolution_database_work',
+      ...service.lastDatabaseWork,
+    });
+
+    service.accountKeysUnavailable = false;
+    observations.push({ stage: 'wallet_routes_skip_account_key_initialization', verified: true });
+    await verifyScheduledWalletProvisioning(
+      database,
+      service,
+      walletEnvironments,
+      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+      credential,
+    );
+    observations.push({
+      stage: 'scheduled_wallet_retry',
+      requestDidNotProvision: true,
+      scheduledProvisioningCompleted: true,
     });
 
     const nowMs = Date.now();
@@ -456,6 +579,7 @@ test('production Console service bindings enforce durable credential changes and
       }).request,
     };
     const reserved = await homes.reserveAuthenticated(setup, 'APAC');
+    expect(service.lastDatabaseWork).toEqual({ calls: 4, statements: 5 });
     observations.push({ stage: 'fresh_setup_database_work', ...service.lastDatabaseWork });
     expect(reserved).toMatchObject({ ok: true });
     if (!reserved.ok || !reserved.reservation.ok) throw new Error('Combined Console setup failed');
@@ -681,9 +805,15 @@ test('production Console service bindings enforce durable credential changes and
       signingRootId: 'unprovisioned-root',
       signingRootVersion: environments[0].signingRootVersion,
     };
+    service.accountKeysUnavailable = true;
     const lineage = await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
     expect(lineage).toBeNull();
-    observations.push({ stage: 'unprovisioned_root', result: lineage });
+    expect(service.lastDatabaseWork).toEqual({ calls: 1, statements: 2 });
+    observations.push({
+      stage: 'unprovisioned_root',
+      result: lineage,
+      ...service.lastDatabaseWork,
+    });
 
     const lineageRoot = buildTenantRootIdentityFromAuthenticatedDeploymentV1(lineageIdentity);
     if (!lineageRoot.ok) throw new Error('Invalid tenant-root identity fixture');

@@ -82,6 +82,12 @@ include browser automation and verification. Each `near-<sample>.json` retains
 Gateway POST requests and timing evidence. Use `SEAMS_INTENDED_SIGNING_SESSION_DEBUG=1`
 for preparation stages. Missing D1 and service-binding counters remain null.
 
+Implicit registration samples also record `setupRequests`: the explicit setup
+OPTIONS and POST responses, with browser request timing. They do not separately
+expose Chromium's automatic CORS preflight. Negative timing fields mean unavailable.
+The recorder never waits for OPTIONS completion; that wait can stall artifact
+collection after the signing flow finishes.
+
 Select `--grep 'sample [123]:'` for the three main samples. Select `--grep post-idle`
 for the separate idle case. It obtains a fresh signing grant, measures one signature,
 waits 65 seconds, and measures another signature for the same wallet. It writes

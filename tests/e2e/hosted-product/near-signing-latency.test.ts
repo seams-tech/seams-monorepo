@@ -225,6 +225,7 @@ async function runNearRegistrationBenchmark(
           nearAccessKeyCalls: observations.accessKeyCalls(startedAt, endedAt),
           gateway: await gateway.window(startedAt, endedAt),
           registrationResponses: await registrationResponseEvidence(observations),
+          setupRequests: setupRequestEvidence(observations),
           assets: [...observations.assets],
           notes: [
             'Fresh implicit account. NEP-413 signature verified against its registered key; changed message rejected.',
@@ -242,6 +243,21 @@ async function runNearRegistrationBenchmark(
 
 function isFundingRequest(request: { path: string }): boolean {
   return request.path.endsWith('/implicit-account/fund');
+}
+
+function setupRequestEvidence(observations: NearEvidence) {
+  const requests = [];
+  for (const entry of observations.responses) {
+    if (new URL(entry.response.url()).pathname !== '/wallets/register/setup') continue;
+    // OPTIONS completion waits can stall artifact collection. Retain the timing
+    // available now; a negative responseEnd means completion was not observed.
+    requests.push({
+      method: entry.response.request().method(),
+      status: entry.response.status(),
+      timing: entry.response.request().timing(),
+    });
+  }
+  return requests;
 }
 
 async function registrationResponseEvidence(observations: NearEvidence) {

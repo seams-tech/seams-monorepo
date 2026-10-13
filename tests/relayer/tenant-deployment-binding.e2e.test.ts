@@ -167,7 +167,10 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
           SEAMS_TENANT_DEPLOYMENT_LANE: 'live-demo',
           SEAMS_WALLET_HOME_CATALOG_JSON: gatewayCatalog,
         },
-        d1Databases: { CONSOLE_DB: 'isolated-console-binding-e2e', SIGNER_DB: 'isolated-session-routing-e2e' },
+        d1Databases: {
+          CONSOLE_DB: 'isolated-console-binding-e2e',
+          SIGNER_DB: 'isolated-session-routing-e2e',
+        },
       },
       {
         name: 'wrong-home',
@@ -191,15 +194,18 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
   let gatewaySessionLookup;
   try {
     const signerDatabase = await runtime.getD1Database('SIGNER_DB', 'console');
-    if (!isD1DatabaseLike(signerDatabase)) throw new Error('Local signer D1 binding is unavailable');
+    if (!isD1DatabaseLike(signerDatabase))
+      throw new Error('Local signer D1 binding is unavailable');
     const signerMigrations = path.resolve(
       process.env.SEAMS_WALLET_SERVER_CANDIDATE ??
-        path.join(repoRoot, '../seams-wallet/packages/wallet-server'),
+        path.dirname(createRequire(import.meta.url).resolve('@seams/wallet-server/package.json')),
       'migrations/d1-signer',
     );
     for (const name of (await readdir(signerMigrations)).sort()) {
       if (!name.endsWith('.sql')) continue;
-      for (const sql of unstable_splitSqlQuery(await readFile(path.join(signerMigrations, name), 'utf8'))) {
+      for (const sql of unstable_splitSqlQuery(
+        await readFile(path.join(signerMigrations, name), 'utf8'),
+      )) {
         await signerDatabase.prepare(sql).run();
       }
     }

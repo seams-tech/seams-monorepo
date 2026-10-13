@@ -13,6 +13,15 @@ const R103E_DOMAIN_CAST_RESTRICTION = {
     'Do not manufacture R103E lifecycle, authority, session, lane, or lock state with a TypeScript assertion. Use its boundary parser or branch-specific builder.',
 };
 
+const ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME =
+  '/^(?:PlatformScopeV1|ServiceTenantBindingV1|BoundServiceInstanceV1|PlatformUsageEventV1|ReserveFundsRequestV1|AccountMigrationCohortV1)$/';
+
+const ACCOUNT_PLATFORM_DOMAIN_CAST_RESTRICTION = {
+  selector: `TSAsExpression[typeAnnotation.typeName.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSAsExpression[typeAnnotation.typeName.right.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}], TSTypeAssertion[typeAnnotation.typeName.right.name=${ACCOUNT_PLATFORM_DOMAIN_TYPE_NAME}]`,
+  message:
+    'Use the account platform boundary parser or branch builder. Type assertions cannot establish validated scope or lifecycle state.',
+};
+
 export default [
   {
     ignores: [
@@ -127,7 +136,11 @@ export default [
       // Prefer `@ts-expect-error`, but don't fail the build on existing usage.
       '@typescript-eslint/ban-ts-comment': 'warn',
 
-      'no-restricted-syntax': ['error', R103E_DOMAIN_CAST_RESTRICTION],
+      'no-restricted-syntax': [
+        'error',
+        R103E_DOMAIN_CAST_RESTRICTION,
+        ACCOUNT_PLATFORM_DOMAIN_CAST_RESTRICTION,
+      ],
     },
   },
 
@@ -229,6 +242,7 @@ export default [
             'Inline domain-state record literal. Build it with a shared factory from tests/unit/helpers/ or tests/helpers/ (see tests/AGENTS.md, "Fixture rules").',
         },
         R103E_DOMAIN_CAST_RESTRICTION,
+        ACCOUNT_PLATFORM_DOMAIN_CAST_RESTRICTION,
       ],
     },
   },

@@ -7,7 +7,9 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./organizationIdentity": "./src/organizationIdentity.ts"
+    "./organizationIdentity": "./src/organizationIdentity.ts",
+    "./accountPlatform": "./src/accountPlatform/index.ts",
+    "./accountPlatform/boundary": "./src/accountPlatform/boundary.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit"

@@ -590,7 +590,7 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
           'content-type': 'application/json',
           origin: input.surfaces.hostedWalletOrigin,
           'x-seams-environment-id': input.environmentId,
-          'x-seams-wallet-protocol': '3',
+          'x-seams-wallet-protocol': '4',
         },
         body: JSON.stringify({
           registrationOperationId: `wreg_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`,

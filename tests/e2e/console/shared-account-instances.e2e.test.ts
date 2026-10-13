@@ -15,16 +15,16 @@ import {
   type PlatformScopeV1,
   type ServiceBindingRequestV1,
 } from '../../../packages/console-shared-ts/src/accountPlatform';
+import { integer } from '../../../packages/console-shared-ts/src/accountPlatform/boundary';
 import {
   createD1AccountPlatformService,
   type D1AccountPlatformService,
 } from '../../../packages/console-server-ts/src/accountPlatform/d1';
-import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
+import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { createD1ConsoleOrganizationAccessService } from '../../../packages/console-server-ts/src/teamRbac/d1';
 import type {
   ConsoleOrganizationAccessService,
-  OrganizationAccessContext,
   OrganizationAuthorizationLookup,
 } from '../../../packages/console-server-ts/src/teamRbac/service';
 
@@ -297,13 +297,128 @@ async function snapshot(database: D1DatabaseLike): Promise<unknown> {
       'SELECT instance_id, deployment_id, native_org_id FROM satyr_service_bindings ORDER BY instance_id',
     )
     .all();
+  const instanceAccess = await database
+    .prepare(
+      `SELECT a.instance_id, a.membership_id, m.user_id,
+      m.kind AS membership_kind, a.access, a.access_revision, a.revoked_authority_revision
+      FROM platform_instance_access a JOIN organization_memberships m
+        ON m.namespace = a.namespace AND m.org_id = a.org_id AND m.id = a.membership_id
+      ORDER BY a.instance_id, m.user_id, a.access_revision`,
+    )
+    .all();
   return {
     instances: instances.results,
     operations: operations.results,
     receipts: receipts.results,
     walletBindings: walletBindings.results,
     satyrBindings: satyrBindings.results,
+    instanceAccess: instanceAccess.results,
   };
+}
+
+async function setFixtureInstanceAccess(
+  database: D1DatabaseLike,
+  instanceId: string,
+  membershipId: string,
+  value: 'allowed' | 'revoked',
+): Promise<void> {
+  await database
+    .prepare(
+      `INSERT INTO platform_instance_access
+    (namespace, org_id, instance_id, membership_id, access, granted_by_user_id, updated_at_ms)
+    SELECT namespace, org_id, ?, id, ?, ?, ? FROM organization_memberships
+    WHERE namespace = ? AND org_id = ? AND id = ? AND kind = 'ACTIVE'
+    ON CONFLICT(namespace, instance_id, membership_id) DO UPDATE SET access = excluded.access,
+      updated_at_ms = excluded.updated_at_ms`,
+    )
+    .bind(
+      instanceId,
+      value,
+      owner.actorUserId,
+      now().getTime(),
+      namespace,
+      owner.orgId,
+      membershipId,
+    )
+    .run();
+}
+
+async function instanceAccessRevision(
+  database: D1DatabaseLike,
+  instanceId: string,
+  membershipId: string,
+) {
+  const row = await database
+    .prepare(
+      `SELECT access, access_revision FROM platform_instance_access
+    WHERE namespace = ? AND instance_id = ? AND membership_id = ?`,
+    )
+    .bind(namespace, instanceId, membershipId)
+    .first<D1Row>();
+  if (!row || (row.access !== 'allowed' && row.access !== 'revoked'))
+    throw new Error('Instance access receipt is unavailable');
+  return { access: row.access, revision: integer(row.access_revision, 'access_revision', 1) };
+}
+
+async function verifyRejoinedInstanceAccess(
+  database: D1DatabaseLike,
+  access: ConsoleOrganizationAccessService,
+): Promise<void> {
+  const account = {
+    userId: 'verified-rejoined-user',
+    verifiedEmail: 'rejoined@acceptance.invalid',
+  };
+  const firstInvitation = await access.invite(owner, {
+    email: account.verifiedEmail,
+    role: 'MEMBER',
+    projectAccess: [{ projectId: 'project-a', accessLevel: 'editor' }],
+  });
+  const first = await access.acceptInvitation(account, firstInvitation.invitation.id, {
+    token: firstInvitation.token,
+  });
+  await setFixtureInstanceAccess(database, 'satyr-a', first.id, 'allowed');
+  const firstGrant = await instanceAccessRevision(database, 'satyr-a', first.id);
+  expect(firstGrant.access).toBe('allowed');
+  await access.removeMembership(owner, first.id);
+  expect(await instanceAccessRevision(database, 'satyr-a', first.id)).toEqual({
+    access: 'revoked',
+    revision: firstGrant.revision,
+  });
+
+  const secondInvitation = await access.invite(owner, {
+    email: account.verifiedEmail,
+    role: 'MEMBER',
+    projectAccess: [{ projectId: 'project-a', accessLevel: 'editor' }],
+  });
+  const second = await access.acceptInvitation(account, secondInvitation.invitation.id, {
+    token: secondInvitation.token,
+  });
+  expect(second.id).not.toBe(first.id);
+  await setFixtureInstanceAccess(database, 'satyr-a', second.id, 'allowed');
+  const secondGrant = await instanceAccessRevision(database, 'satyr-a', second.id);
+  expect(secondGrant.revision).toBeGreaterThan(firstGrant.revision);
+  await setFixtureInstanceAccess(database, 'satyr-a', second.id, 'revoked');
+  await setFixtureInstanceAccess(database, 'satyr-a', second.id, 'allowed');
+  const regranted = await instanceAccessRevision(database, 'satyr-a', second.id);
+  expect(regranted.revision).toBeGreaterThan(secondGrant.revision);
+  await setFixtureInstanceAccess(database, 'wallet-second', second.id, 'allowed');
+  const otherInstance = await instanceAccessRevision(database, 'wallet-second', second.id);
+  expect(otherInstance.revision).toBeLessThan(regranted.revision);
+  await writeFile(
+    path.join(output, 'rejoined-access.json'),
+    `${JSON.stringify(
+      {
+        firstMembershipId: first.id,
+        secondMembershipId: second.id,
+        firstGrant,
+        secondGrant,
+        regranted,
+        otherInstance,
+      },
+      null,
+      2,
+    )}\n`,
+  );
 }
 
 async function platform(
@@ -420,6 +535,7 @@ test('durable service commands preserve tenant bindings and reject stale authori
     );
     expect(staleReceipt.disposition).toBe('stale');
     expect(staleReceipt.instance.state.kind).toBe('disabled');
+    await verifyRejoinedInstanceAccess(database, access);
     const beforeRestart = await snapshot(database);
     await writeFile(
       path.join(output, 'before-restart.json'),

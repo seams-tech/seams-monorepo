@@ -5,6 +5,8 @@ import {
   createD1AccountPlatformService,
   type D1AccountPlatformService,
 } from '../../accountPlatform/d1';
+import { D1AccountServiceAccess } from '../../accountPlatform/serviceAccess';
+import { D1AccountMembershipFacade } from '../../accountPlatform/membershipFacade';
 import { createD1ConsoleAuditService } from '../../audit/d1';
 import type { ConsoleAuditService } from '../../audit/service';
 import type { ConsoleAuditCategory, ConsoleAuditEvidenceReferenceKind } from '../../audit/types';
@@ -55,6 +57,8 @@ export interface CloudflareD1AccountServiceBundle {
   readonly orgProjects: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly accountPlatform: D1AccountPlatformService;
+  readonly serviceAccess: D1AccountServiceAccess;
+  readonly serviceMemberships: D1AccountMembershipFacade;
   readonly account: ConsoleAccountService;
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
@@ -133,6 +137,21 @@ export async function createCloudflareD1AccountServiceBundle(
     now: options.now,
   });
   if (options.ensureSchema !== false) await accountPlatform.ensureSchema();
+  const serviceAccess = new D1AccountServiceAccess({
+    database: options.database,
+    namespace,
+    platform: accountPlatform,
+    organizationAccess,
+    now: options.now,
+  });
+  if (options.ensureSchema !== false) await serviceAccess.ensureSchema();
+  const serviceMemberships = new D1AccountMembershipFacade({
+    database: options.database,
+    namespace,
+    organizationAccess,
+    access: serviceAccess,
+    now: options.now,
+  });
   const audit = await createD1ConsoleAuditService({
     database: options.database,
     namespace,
@@ -198,6 +217,8 @@ export async function createCloudflareD1AccountServiceBundle(
     orgProjects,
     organizationAccess,
     accountPlatform,
+    serviceAccess,
+    serviceMemberships,
     account,
     onboarding,
     audit,

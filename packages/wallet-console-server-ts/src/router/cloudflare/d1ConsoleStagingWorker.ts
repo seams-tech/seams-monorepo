@@ -1,5 +1,14 @@
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
 import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
+import {
+  createSatyrProvisioningAdapterFromEnvironment,
+  type SatyrProvisioningEnvironment,
+} from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
+import {
+  createAccountPlatformServiceIngressFromEnvironment,
+  type AccountServiceIngressEnvironment,
+} from '@seams-internal/console-server/accountPlatform/serviceIngressEnvironment';
+import type { AccountPlatformServiceIngressHandler } from '@seams-internal/console-server/accountPlatform/http';
 import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
 import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
 import {
@@ -144,7 +153,11 @@ import {
 } from '../../walletPlacement/service';
 
 interface CloudflareD1ConsoleStagingEnv
-  extends CloudflareD1StagingSessionEnv, RouterApiCloudflareConsoleWorkerEnv {
+  extends
+    CloudflareD1StagingSessionEnv,
+    RouterApiCloudflareConsoleWorkerEnv,
+    AccountServiceIngressEnvironment,
+    SatyrProvisioningEnvironment {
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly CLOUDFLARE_API_TOKEN?: string;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
@@ -298,6 +311,11 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'runtime_snapshot_outbox',
   'console_email_outbox',
   'console_email_deliveries',
+  'platform_provider_identities',
+  'platform_service_principals',
+  'platform_instance_access',
+  'platform_service_invitation_grants',
+  'platform_automation_grants',
   'tenant_root_creation_grants',
   'tenant_deployment_bindings',
   'active_tenant_deployment_bindings',
@@ -376,6 +394,20 @@ async function createConsoleHandler(
     }),
   );
   ctx.waitUntil(bundle.walletMonthlyUsage.resumePending(20));
+  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
+    env,
+    bundle.serviceAccess,
+    globalThis.fetch.bind(globalThis),
+  );
+  if (satyrProvisioning) {
+    ctx.waitUntil(
+      runAccountServiceProvisioning({
+        platform: bundle.accountPlatform,
+        adapter: satyrProvisioning,
+        limit: 20,
+      }),
+    );
+  }
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
@@ -393,7 +425,7 @@ async function createConsoleHandler(
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
     walletProvisioning: bundle.walletProvisioning,
-    satyrProvisioning: null,
+    satyrProvisioning,
     auth,
     session,
     readyCheck: async () => {
@@ -689,6 +721,9 @@ async function createConsoleHandler(
   const githubOAuth = consoleGithubOAuthConfig(env);
   const authHandler = new HostedConsoleAuthHandler({
     handler: routerWithOps,
+    recordVerifiedGoogleIdentity: bundle.serviceAccess.recordVerifiedGoogleIdentity.bind(
+      bundle.serviceAccess,
+    ),
     identity: createConsoleProviderIdentity({
       googleOidcClientId,
       githubOAuth,
@@ -709,10 +744,41 @@ async function createConsoleHandler(
     account: bundle.account,
     corsOrigins: consoleCorsOrigins(env),
   });
-  return attachConsoleRouteSurface(
+  const accountIngress = await createAccountPlatformServiceIngressFromEnvironment(env, bundle);
+  const composed = new ConsoleWithAccountServiceIngress(
+    accountIngress,
     authHandler.fetch.bind(authHandler),
+  );
+  return attachConsoleRouteSurface(
+    composed.fetch.bind(composed),
     resolveCompleteWalletConsoleRouteSurface(),
   );
+}
+
+class ConsoleWithAccountServiceIngress {
+  constructor(
+    private readonly ingress: AccountPlatformServiceIngressHandler | null,
+    private readonly fallback: FetchHandler,
+  ) {}
+
+  async fetch(...args: Parameters<FetchHandler>): Promise<Response> {
+    const [request] = args;
+    if (new URL(request.url).pathname.startsWith('/account-platform/v1/')) {
+      if (!this.ingress)
+        return Response.json(
+          { kind: 'rejected', error: { code: 'authority_unavailable', retryable: true } },
+          { status: 503, headers: { 'Cache-Control': 'no-store' } },
+        );
+      return (
+        (await this.ingress(request)) ??
+        Response.json(
+          { kind: 'rejected', error: { code: 'operation_unsupported' } },
+          { status: 404 },
+        )
+      );
+    }
+    return this.fallback(...args);
+  }
 }
 
 function consoleHandler(

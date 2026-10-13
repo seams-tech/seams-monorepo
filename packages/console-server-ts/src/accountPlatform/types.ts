@@ -49,6 +49,7 @@ export interface ServiceProvisionDeliveryV1 {
   readonly command: ServiceProvisionCommandV1;
   readonly authority: ServiceProducerAuthorityV1;
   readonly payloadDigest: string;
+  readonly requestedByUserId: string;
 }
 
 export interface ServiceProvisionAcknowledgementV1 {

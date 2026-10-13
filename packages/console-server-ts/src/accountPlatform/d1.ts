@@ -5,6 +5,7 @@ import {
   type ServiceBindingRequestV1,
   type ServiceProvisionCommandV1,
 } from '@seams-internal/console-shared/accountPlatform';
+import { textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import { secureRandomBase36 } from '../boundary';
 import {
   queryD1All,
@@ -697,6 +698,7 @@ function provisionDelivery(row: D1Row): ServiceProvisionDeliveryV1 {
     command,
     authority,
     payloadDigest: row.payload_digest,
+    requestedByUserId: textValue(row.actor_user_id, 'actor_user_id'),
   };
 }
 

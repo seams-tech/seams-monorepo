@@ -1,5 +1,10 @@
 import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
 import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
+import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
+import {
+  createSatyrProvisioningAdapterFromEnvironment,
+  type SatyrProvisioningEnvironment,
+} from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
 import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
 import { TenantResourceVerificationV1 } from '../../tenantDeployment/resourceVerification';
 import { createD1ConsoleWalletEnvironmentService } from '../../environments';
@@ -163,7 +168,7 @@ import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployme
 import type { TenantDeploymentBindingReaderV1 } from '../../tenantDeployment/types';
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 
-interface LocalD1DevEnv extends RouterAbServiceBindingEnv {
+interface LocalD1DevEnv extends RouterAbServiceBindingEnv, SatyrProvisioningEnvironment {
   readonly SEAMS_D1_HOME_ACCOUNT_ID: string;
   readonly SEAMS_D1_HOME_DATABASE_ID: string;
   readonly CONSOLE_DB: D1DatabaseLike;
@@ -1045,6 +1050,18 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     },
   });
   await bundle.walletMonthlyUsage.resumePending(20);
+  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
+    env,
+    bundle.serviceAccess,
+    globalThis.fetch.bind(globalThis),
+  );
+  if (satyrProvisioning) {
+    await runAccountServiceProvisioning({
+      platform: bundle.accountPlatform,
+      adapter: satyrProvisioning,
+      limit: 20,
+    });
+  }
   const session = localConsoleSession(env);
   const sessionAuth = createConsoleSessionAuthAdapter({
     session,
@@ -1055,7 +1072,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
     walletProvisioning: bundle.walletProvisioning,
-    satyrProvisioning: null,
+    satyrProvisioning,
     tenantStorage: {
       resolver: bundle.tenantStorageRouteResolver,
       namespace: bundle.tenantStorageNamespace,
@@ -1265,6 +1282,9 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
   const githubOAuth = localGithubOAuthConfig(env);
   const consoleAuthHandler = new HostedConsoleAuthHandler({
     handler: handlerWithTenantRootCreation,
+    recordVerifiedGoogleIdentity: bundle.serviceAccess.recordVerifiedGoogleIdentity.bind(
+      bundle.serviceAccess,
+    ),
     identity: createConsoleProviderIdentity({
       googleOidcClientId,
       githubOAuth,

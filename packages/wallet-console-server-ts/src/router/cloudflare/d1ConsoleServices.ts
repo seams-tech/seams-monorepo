@@ -1,3 +1,5 @@
+import type { D1AccountServiceAccess } from '@seams-internal/console-server/accountPlatform/serviceAccess';
+import type { D1AccountMembershipFacade } from '@seams-internal/console-server/accountPlatform/membershipFacade';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
 import {
@@ -250,6 +252,8 @@ export interface CloudflareD1ConsoleServiceBundle {
   readonly tenantStorageNamespace: string;
   readonly orgProjects: ConsoleOrgProjectService;
   readonly accountPlatform: D1AccountPlatformService;
+  readonly serviceAccess: D1AccountServiceAccess;
+  readonly serviceMemberships: D1AccountMembershipFacade;
   readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
   readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
@@ -396,6 +400,8 @@ interface NormalizedCloudflareD1ConsoleServiceBundleOptions extends NormalizedCl
 interface CloudflareD1ConsoleCommonServices {
   readonly orgProjects: ConsoleOrgProjectService;
   readonly accountPlatform: D1AccountPlatformService;
+  readonly serviceAccess: D1AccountServiceAccess;
+  readonly serviceMemberships: D1AccountMembershipFacade;
   readonly walletProvisioning: AccountServiceProvisioningAdapterV1;
   readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly organizationAccess: ConsoleOrganizationAccessService;

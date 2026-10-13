@@ -1,12 +1,13 @@
 # Shared account platform implementation plan
 
-Status: Phases 1 through 3 implemented and validated. Phase 4 is next.
+Status: Phases 1 through 3 implemented and validated. Phase 4 is in progress.
 Production platform migration has not started.
 Date: October 13, 2026.
 
 Implementation evidence: [Phase 1 contracts and inventory](shared-account-platform/phase-1.md).
 Account composition evidence: [Phase 2 implementation](shared-account-platform/phase-2.md).
 Shared billing scope: [Phase 3 implementation](shared-account-platform/phase-3.md).
+Satyr integration scope: [Phase 4 implementation](shared-account-platform/phase-4.md).
 
 ## Implementation rules
 

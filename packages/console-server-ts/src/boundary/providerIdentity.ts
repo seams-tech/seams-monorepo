@@ -237,6 +237,8 @@ class ConsoleGoogleJwksCache {
   private cache: JwksCacheEntry | null = null;
   private fetchPromise: Promise<JwksCacheEntry> | null = null;
 
+  constructor(private readonly fetchImpl: typeof fetch) {}
+
   async getGoogleJwks(): Promise<JwksCacheEntry> {
     const nowMs = Date.now();
     if (this.cache && nowMs < this.cache.expiresAtMs) return this.cache;
@@ -251,7 +253,7 @@ class ConsoleGoogleJwksCache {
 
   private async fetchGoogleJwks(nowMs: number): Promise<JwksCacheEntry> {
     if (typeof fetch !== 'function') throw new Error('fetch is unavailable in this runtime');
-    const response = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+    const response = await this.fetchImpl('https://www.googleapis.com/oauth2/v3/certs');
     const text = await response.text();
     if (!response.ok) {
       throw new Error(
@@ -459,7 +461,7 @@ export function createConsoleProviderIdentity(options: {
   readonly githubOAuth?: ConsoleGithubOAuthConfig;
   readonly fetchImpl?: typeof fetch;
 }): ConsoleProviderIdentity {
-  const jwksCache = new ConsoleGoogleJwksCache();
+  const jwksCache = new ConsoleGoogleJwksCache(options.fetchImpl ?? fetch.bind(globalThis));
   return {
     async verifyGoogleLogin(input: { idToken: string }): Promise<ConsoleGoogleLoginResult> {
       try {

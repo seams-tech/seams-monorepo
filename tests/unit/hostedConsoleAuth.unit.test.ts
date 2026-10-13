@@ -38,17 +38,24 @@ function createHandler(calls: string[]): HostedConsoleAuthHandler {
   const identity: HostedConsoleIdentityPort = {
     verifyGoogleLogin: async ({ idToken }) => {
       calls.push(idToken);
-      return { ok: false, verified: false, code: 'not_verified' };
+      return {
+        ok: false,
+        verified: false,
+        code: 'not_verified',
+        message: 'Provider verification failed',
+      };
     },
     verifyGithubOAuthCode: async () => ({
       ok: false,
       verified: false,
       code: 'not_verified',
+      message: 'Provider verification failed',
     }),
   };
   return new HostedConsoleAuthHandler({
     handler: async () => new Response('fallback'),
     identity,
+    recordVerifiedGoogleIdentity,
     providers: {
       google: { configured: true, clientId: 'google-client-id' },
       github: {
@@ -116,3 +123,5 @@ test('hosted console auth serves Console-owned provider options', async () => {
     callbackUrl: 'https://wallet.seams.sh/dashboard/login',
   });
 });
+
+async function recordVerifiedGoogleIdentity(): Promise<void> {}

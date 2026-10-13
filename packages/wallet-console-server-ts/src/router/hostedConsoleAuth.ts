@@ -7,40 +7,17 @@ import {
   type ConsoleAccountService,
   type ConsoleAccountIdentityContext,
 } from '@seams-internal/console-server/account';
-// The /console/auth/* handler, shared by the Console Worker (console-owned
-// provider identity) and the pre-cutover combined gateway (wallet identity
-// service). Moved out of the combined worker so the combined entrypoint can be
-// deleted at cutover without touching Console Worker auth.
+import type {
+  ConsoleProviderIdentity,
+  ConsoleGoogleLoginResult,
+} from '@seams-internal/console-server/boundary/providerIdentity';
+import { billingCanonicalDigest } from '@seams-internal/console-server/billing/pricing';
 
 function normalizeString(input: unknown): string {
   return String(input ?? '').trim();
 }
 
-// Structural port for /console/auth/*: exactly the two provider verifications
-// the handler performs. Satisfied by the Wallet identity service (combined
-// worker) and by the Console-owned provider identity (Console Worker).
-export interface HostedConsoleIdentityPort {
-  verifyGoogleLogin(input: { idToken: string }): Promise<{
-    readonly ok: boolean;
-    readonly verified?: boolean;
-    readonly userId?: string;
-    readonly code?: string;
-    readonly message?: string;
-    readonly email?: string;
-    readonly name?: string;
-    readonly emailVerified?: boolean;
-    readonly hostedDomain?: string;
-  }>;
-  verifyGithubOAuthCode(input: { code: string }): Promise<{
-    readonly ok: boolean;
-    readonly verified?: boolean;
-    readonly userId?: string;
-    readonly code?: string;
-    readonly message?: string;
-    readonly email?: string;
-    readonly name?: string;
-  }>;
-}
+export type HostedConsoleIdentityPort = ConsoleProviderIdentity;
 
 export type HostedConsoleProviderOptions = {
   readonly google:
@@ -72,6 +49,10 @@ type HostedConsoleLoginIdentity =
 export interface HostedConsoleAuthHandlerOptions {
   readonly handler: FetchHandler;
   readonly identity: HostedConsoleIdentityPort;
+  readonly recordVerifiedGoogleIdentity: (
+    identity: Extract<ConsoleGoogleLoginResult, { readonly ok: true }>,
+    verificationReceiptId: string,
+  ) => Promise<void>;
   readonly providers: HostedConsoleProviderOptions;
   readonly session: SessionAdapter;
   readonly account: ConsoleAccountService;
@@ -211,24 +192,29 @@ export class HostedConsoleAuthHandler {
       );
     }
     const verified = await this.options.identity.verifyGoogleLogin({ idToken });
+    if (!verified.ok) {
+      return consoleAuthJson(
+        { ok: false, code: verified.code, message: verified.message },
+        consoleAuthFailureStatus(verified.code),
+      );
+    }
     const userId = normalizeString(verified.userId);
     if (
-      !verified.ok ||
       verified.verified !== true ||
       verified.emailVerified !== true ||
       !userId ||
       !normalizeConsoleLoginEmail(verified.email)
     ) {
-      const code = normalizeString(verified.code) || 'not_verified';
       return consoleAuthJson(
-        {
-          ok: false,
-          code,
-          message: normalizeString(verified.message) || 'Google login could not be verified',
-        },
-        consoleAuthFailureStatus(code),
+        { ok: false, code: 'not_verified', message: 'Google login could not be verified' },
+        401,
       );
     }
+    await this.options.recordVerifiedGoogleIdentity(
+      verified,
+      `google:${await billingCanonicalDigest(idToken)}`,
+    );
+
     return await this.issueConsoleSession({
       kind: 'google',
       userId,
@@ -250,23 +236,20 @@ export class HostedConsoleAuthHandler {
       );
     }
     const verified = await this.options.identity.verifyGithubOAuthCode({ code });
-    const userId = normalizeString(verified.userId);
-    if (
-      !verified.ok ||
-      verified.verified !== true ||
-      !userId ||
-      !normalizeConsoleLoginEmail(verified.email)
-    ) {
-      const failureCode = normalizeString(verified.code) || 'not_verified';
+    if (!verified.ok) {
       return consoleAuthJson(
-        {
-          ok: false,
-          code: failureCode,
-          message: normalizeString(verified.message) || 'GitHub login could not be verified',
-        },
-        consoleAuthFailureStatus(failureCode),
+        { ok: false, code: verified.code, message: verified.message },
+        consoleAuthFailureStatus(verified.code),
       );
     }
+    const userId = normalizeString(verified.userId);
+    if (verified.verified !== true || !userId || !normalizeConsoleLoginEmail(verified.email)) {
+      return consoleAuthJson(
+        { ok: false, code: 'not_verified', message: 'GitHub login could not be verified' },
+        401,
+      );
+    }
+
     return await this.issueConsoleSession({
       kind: 'github',
       userId,

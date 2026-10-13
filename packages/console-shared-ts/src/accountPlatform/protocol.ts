@@ -22,11 +22,58 @@ export type PlatformIdentityLinkV1 = {
     }
 );
 
+export type PlatformUserAuthorityV1 =
+  | {
+      readonly kind: 'authenticated_session';
+      readonly nativeSessionId: string;
+      readonly acceptedExecutionId?: never;
+      readonly disclosureEvidenceId?: never;
+      readonly provider?: never;
+      readonly nativeEventId?: never;
+      readonly nativeIntegrationAccountId?: never;
+      readonly nativeWorkspaceId?: never;
+      readonly nativeExternalUserId?: never;
+    }
+  | {
+      readonly kind: 'accepted_execution';
+      readonly acceptedExecutionId: string;
+      readonly nativeSessionId?: never;
+      readonly disclosureEvidenceId?: never;
+      readonly provider?: never;
+      readonly nativeEventId?: never;
+      readonly nativeIntegrationAccountId?: never;
+      readonly nativeWorkspaceId?: never;
+      readonly nativeExternalUserId?: never;
+    }
+  | {
+      readonly kind: 'disclosure_recipient';
+      readonly disclosureEvidenceId: string;
+      readonly nativeSessionId?: never;
+      readonly acceptedExecutionId?: never;
+      readonly provider?: never;
+      readonly nativeEventId?: never;
+      readonly nativeIntegrationAccountId?: never;
+      readonly nativeWorkspaceId?: never;
+      readonly nativeExternalUserId?: never;
+    }
+  | {
+      readonly kind: 'authenticated_provider_event';
+      readonly provider: 'slack';
+      readonly nativeEventId: string;
+      readonly nativeIntegrationAccountId: string;
+      readonly nativeWorkspaceId: string;
+      readonly nativeExternalUserId: string;
+      readonly nativeSessionId?: never;
+      readonly acceptedExecutionId?: never;
+      readonly disclosureEvidenceId?: never;
+    };
+
 export type PlatformPrincipalV1 =
   | {
       readonly kind: 'user';
       readonly identity: PlatformIdentityLinkV1;
-      readonly sessionId: string;
+      readonly authority: PlatformUserAuthorityV1;
+      readonly sessionId?: never;
       readonly automationId?: never;
       readonly grantId?: never;
     }
@@ -36,21 +83,16 @@ export type PlatformPrincipalV1 =
       readonly grantId: string;
       readonly identity?: never;
       readonly sessionId?: never;
+      readonly authority?: never;
     };
 
 export type ServiceAdmissionActionV1 = 'execute' | 'disclose' | 'restore' | 'replay';
-
-export interface ServiceEligibilityRequestV1 {
-  readonly version: 1;
-  readonly instanceId: string;
-  readonly principal: PlatformPrincipalV1;
-  readonly action: ServiceAdmissionActionV1;
-}
 
 /** Check for each protected request. This result never replaces a service content grant. */
 export type ServiceEligibilityResultV1 = PlatformResult<
   {
     readonly authorityRevision: number;
+    readonly accessRevision: number;
     readonly scope: PlatformScopeV1;
     readonly instanceId: string;
     readonly principal: PlatformPrincipalV1;
@@ -62,18 +104,6 @@ export type ServiceEligibilityResultV1 = PlatformResult<
     }
   | { readonly code: 'authority_unavailable'; readonly retryable: true }
 >;
-
-export interface DelegatedPlatformAssertionV1 {
-  readonly version: 1;
-  readonly issuer: string;
-  readonly audience: string;
-  readonly principal: PlatformPrincipalV1;
-  readonly scope: PlatformScopeV1;
-  readonly instanceId: string;
-  readonly action: ServiceAdmissionActionV1;
-  readonly expiresAt: string;
-  readonly authorityRevision: number;
-}
 
 export type ServiceProvisionResultV1 = PlatformResult<
   { readonly operationId: string; readonly instanceId: string; readonly desiredRevision: number },

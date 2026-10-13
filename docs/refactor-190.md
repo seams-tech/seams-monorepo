@@ -1,7 +1,7 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: planned. No runtime migration or adapter removal has started.
-Date: October 11, 2026.
+Status: Phase 1 blocked by celld 0.6.2 cross-script Durable Object handling.
+Updated: October 13, 2026. Existing hosting support remains intact.
 
 ## Decision and purpose
 
@@ -130,7 +130,7 @@ implementation risk. It does not prove identical behavior across runtimes.
 - [ ] Classify each candidate as host-only, shared domain code, external integration, or independent tooling.
 - [ ] Record candidate file counts and non-generated source lines using the existing bloat report where available.
 - [ ] Inventory the exact Worker APIs, SQL features, migrations, and binding graph used by all roles and Console composition.
-- [ ] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
+- [x] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
 - [ ] Prove the complete role graph loads without changes to protocol or domain logic.
 
 Celld's general service support is insufficient evidence for our deployment.
@@ -168,6 +168,37 @@ Sources: [celld limitations](https://github.com/denoland/celld/blob/main/docs/li
 
 Exit: every required binding and behavior has a runnable check or a recorded
 blocker. No classic-host deletion occurs while a required gate remains blocked.
+
+### October 13 compatibility result
+
+The public branch adds `tests/e2e/celld-bindings.e2e.mjs` and an evidence record at
+`docs/evidence/celld-bindings.md`. The probe uses the verified celld 0.6.2 release
+at source revision `90b43017241f81189453d326d05948f388b34652`.
+
+Local Durable Object persistence and service calls pass on celld. Adding an
+external object binding causes startup to fail with a duplicate-class error.
+The same two-worker object-ownership contract passes under workerd through Miniflare.
+The runtime parser drops `script_name` and treats the external class as local.
+
+Our Router, control plane, and Derivers require external bindings to the same
+Router-owned namespace. This failure blocks the role-graph gate. Classify it as
+`environment_or_infrastructure_failure`, with no Wallet production regression established.
+
+The separate A/B backup-bucket gate also remains unresolved. Celld maps R2 bucket
+names to prefixes in one fleet bucket. This mapping does not establish the storage
+isolation required by our deployment contract.
+
+No application adapter, dependency, export, or launch path was removed. AWS,
+Google Cloud, and Confidential VM execution remain unverified. The straightforward
+Google Cloud target remains a requirement. It is not yet an implemented capability.
+
+Resume Phase 2 only after a supported runtime passes the external-binding gate
+and preserves storage separation. A runtime fork or changed custody boundary
+requires a separate design decision. No upstream contact was made.
+
+Implementation stays on `codex/refactor-190-workers-backend` in both repositories.
+Rebase these branches onto current `dev` before each resumed implementation checkpoint.
+Record the resulting source revisions in each new evidence run.
 
 ## Phase 2 — Run the existing application artifacts on celld
 

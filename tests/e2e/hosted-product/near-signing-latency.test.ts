@@ -228,7 +228,9 @@ async function runNearRegistrationBenchmark(
           setupRequests: setupRequestEvidence(observations),
           assets: [...observations.assets],
           notes: [
-            'Fresh implicit account. NEP-413 signature verified against its registered key; changed message rejected.',
+            outcome === 'succeeded'
+              ? 'Fresh implicit account. NEP-413 signature verified against its registered key; changed message rejected.'
+              : 'The registration and verified-signature workload did not complete. Inspect outcome and captured evidence.',
             'Message signing needs no funding or transaction context. Background prefetch may query the chain.',
             'This workload is distinct from the funded transaction benchmark.',
             'Elapsed time includes browser automation. Worker and Durable Object cold state is unproven.',

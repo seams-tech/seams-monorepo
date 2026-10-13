@@ -47,7 +47,7 @@ class DeploymentProjectionResponse {
   }
 }
 
-test('Owner recovers project creation across reload and lost replies while activation is pending', async ({
+test('Owner recovers project creation and checks deployment availability across reload and lost replies', async ({
   console,
 }, testInfo) => {
   const { page, api, tenant } = console;
@@ -93,21 +93,32 @@ test('Owner recovers project creation across reload and lost replies while activ
   );
   await page.waitForLoadState('networkidle');
   await page.goto('/dashboard/deployment-status');
-  const pending = page.getByRole('region', { name: 'Awaiting activation' });
-  await expect(pending).toContainText(resources.environment.id);
+  const unavailable = page.getByRole('region', { name: 'Deployment unavailable', exact: true });
+  await expect(unavailable).toContainText(resources.environment.id);
+  await expect(page.getByText(/awaiting operator activation/i)).toHaveCount(0);
   await page.waitForLoadState('networkidle');
   await page.reload();
-  await expect(pending).toBeVisible();
-  const screenshotPath = testInfo.outputPath('awaiting-activation.png');
+  await expect(unavailable).toBeVisible();
+  const screenshotPath = testInfo.outputPath('deployment-unavailable.png');
   await page.screenshot({ path: screenshotPath });
-  await testInfo.attach('awaiting-activation', { path: screenshotPath, contentType: 'image/png' });
+  await testInfo.attach('deployment-unavailable', {
+    path: screenshotPath,
+    contentType: 'image/png',
+  });
 
   projection.body = { ok: false, code: 'upstream_unavailable' };
   await page.getByRole('button', { name: 'Refresh deployment status' }).click();
   await expect(page.getByRole('alert')).toHaveText(
     'The active deployment projection is unavailable.',
   );
-  await expect(pending).toHaveCount(0);
+  await expect(unavailable).toHaveCount(0);
+  projection.status = 403;
+  projection.body = { ok: false, code: 'tenant_deployment_unavailable' };
+  await page.getByRole('button', { name: 'Refresh deployment status' }).click();
+  await expect(page.getByRole('alert')).toHaveText(
+    'The active deployment projection is unavailable.',
+  );
+  await expect(unavailable).toHaveCount(0);
   projection.status = 200;
   projection.body = { environmentId: resources.environment.id };
   await page.getByRole('button', { name: 'Refresh deployment status' }).click();
@@ -130,13 +141,21 @@ test('Owner recovers project creation across reload and lost replies while activ
   };
   projection.body = activeProjection;
   await page.getByRole('button', { name: 'Refresh deployment status' }).click();
-  await expect(page.getByRole('region', { name: 'Environment not deployed' })).toContainText(
+  await expect(page.getByRole('region', { name: 'Gateway environment mismatch' })).toContainText(
     'another-project:dev',
   );
   await expect(page.getByText('Active and verified', { exact: true })).toHaveCount(0);
   activeProjection.environmentId = resources.environment.id;
   await page.getByRole('button', { name: 'Refresh deployment status' }).click();
   await expect(page.getByText('Active and verified', { exact: true })).toBeVisible();
+  // The same 503 can follow an active deployment after stored admission data fails.
+  // Discovery alone cannot establish whether the selected environment needs activation.
+  projection.status = 503;
+  projection.body = { ok: false, code: 'tenant_deployment_unavailable' };
+  await page.getByRole('button', { name: 'Refresh deployment status' }).click();
+  await expect(unavailable).toBeVisible();
+  await expect(page.getByText('Active and verified', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/awaiting operator activation/i)).toHaveCount(0);
   const evidencePath = testInfo.outputPath('onboarding-recovery-evidence.json');
   await writeFile(
     evidencePath,
@@ -146,7 +165,15 @@ test('Owner recovers project creation across reload and lost replies while activ
         environmentId: resources.environment.id,
         projectCount: onboarding.state.activeProjectCount,
         wrongMethodStatus: wrongMethod.status(),
-        states: ['awaiting_activation', 'unavailable', 'invalid', 'unbound', 'ready'],
+        states: [
+          'unavailable',
+          'http_error',
+          'forbidden_gateway',
+          'invalid',
+          'environment_mismatch',
+          'ready',
+          'unavailable_after_ready',
+        ],
         gatewayProjection: 'controlled external response',
       },
       null,

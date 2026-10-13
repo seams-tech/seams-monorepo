@@ -14,9 +14,9 @@ import './tenantDeployment.css';
 type DeploymentStatus =
   | { readonly kind: 'loading' }
   | { readonly kind: 'error'; readonly message: string }
-  | { readonly kind: 'awaiting_activation'; readonly environmentId: string }
+  | { readonly kind: 'unavailable'; readonly environmentId: string }
   | {
-      readonly kind: 'unbound';
+      readonly kind: 'environment_mismatch';
       readonly environmentId: string;
       readonly activeEnvironmentId: string;
     }
@@ -53,7 +53,7 @@ async function loadDeploymentStatus(input: {
     isRecord(raw) &&
     raw.code === 'tenant_deployment_unavailable'
   ) {
-    return { kind: 'awaiting_activation', environmentId: input.environmentId };
+    return { kind: 'unavailable', environmentId: input.environmentId };
   }
   if (!projectionResponse.ok) {
     throw new Error('The active deployment projection is unavailable.');
@@ -63,7 +63,7 @@ async function loadDeploymentStatus(input: {
   const projection = decoded.value;
   if (projection.environmentId !== input.environmentId) {
     return {
-      kind: 'unbound',
+      kind: 'environment_mismatch',
       environmentId: input.environmentId,
       activeEnvironmentId: projection.environmentId,
     };
@@ -121,23 +121,21 @@ function DeploymentStatusNotice({
       return <p role="status">Loading deployment evidence…</p>;
     case 'error':
       return <p role="alert">{status.message}</p>;
-    case 'awaiting_activation':
+    case 'unavailable':
       return (
-        <section className="tenant-deployment-section" aria-label="Awaiting activation">
-          <h2>Awaiting activation</h2>
-          <p>Project created. Wallet deployment is awaiting operator activation.</p>
+        <section className="tenant-deployment-section" aria-label="Deployment unavailable">
+          <h2>Deployment unavailable</h2>
+          <p>The gateway cannot serve a verified deployment.</p>
           <p>
-            Environment ID: <code>{status.environmentId}</code>
+            Selected environment: <code>{status.environmentId}</code>
           </p>
-          <p>
-            An operator must activate this environment through the protected deployment workflow.
-          </p>
+          <p>Ask an operator to check activation, deployment data, and gateway configuration.</p>
         </section>
       );
-    case 'unbound':
+    case 'environment_mismatch':
       return (
-        <section className="tenant-deployment-section" aria-label="Environment not deployed">
-          <h2>Environment not deployed</h2>
+        <section className="tenant-deployment-section" aria-label="Gateway environment mismatch">
+          <h2>Gateway environment mismatch</h2>
           <p>
             This gateway serves a different environment. Ask an operator to check the deployment
             assignment.

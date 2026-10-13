@@ -37,10 +37,14 @@ The organization and project audit events describe the persisted changes.
 The existing Deployment status page reads the Gateway's deployment projection.
 It validates successful responses with the shared projection decoder.
 
-- HTTP 503 with `tenant_deployment_unavailable` shows **Awaiting activation** and
-  the selected environment ID. The Gateway has no admitted deployment to serve.
-- A valid projection for a different environment shows **Environment not deployed**
-  and both environment IDs. This state requires an operator to check the assignment.
+- HTTP 503 with `tenant_deployment_unavailable` shows **Deployment unavailable**
+  and the selected environment ID. This response can mean missing or prepared
+  admission, or invalid stored deployment data. It cannot establish whether the
+  selected environment needs its first activation. An operator must check activation,
+  deployment data, and Gateway configuration.
+- A valid projection for a different environment shows **Gateway environment mismatch**
+  and both environment IDs. An operator must check the assignment. This response
+  does not establish the selected environment's deployment status on other Gateways.
 - Other HTTP failures, connection failures, and invalid projections remain errors.
 - A valid projection for the selected environment shows the active deployment and
   available audit evidence.
@@ -62,5 +66,6 @@ also exercises activation and durable credential changes and writes JSON evidenc
 `tests/e2e/console/onboarding-recovery.operating.test.ts` exercises the browser with
 real Console APIs. It interrupts a request before persistence, reloads the draft,
 loses a reply after persistence, and retries with the same project ID. It checks
-saved progress and deployment status transitions and attaches JSON and screenshots.
+saved progress, unavailable discovery before and after an active projection,
+deployment status transitions, and HTTP failures. It attaches JSON and screenshots.
 Only external Gateway discovery responses are controlled in this browser scenario.

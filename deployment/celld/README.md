@@ -325,3 +325,19 @@ The current aggregate removes 2,154 maintained lines, including the complete run
 
 Remaining gates include full Google Wallet and celld Console composition, multiple-node failures,
 relocation, tenant-root retirement/restore, active-deployment inventory, host deletion, and a negative final source delta.
+
+## Yao peer-disconnect check
+
+The shared Durable Object fault proxy passes the real Yao interruption check on both runtimes.
+Celld also preserves the burned pair across a local restart.
+Use the exact qualified Wallet Server package, the public Wallet checkout and the supplied Moto Python environment:
+
+```sh
+python3 tests/e2e/celld/yao-peer-disconnect.e2e.py CELLD WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT
+```
+
+Moto supplies local synthetic S3 storage. This check uses no AWS account.
+The result records runtime/package/source hashes, the fault, pair states, retries, the independent wallet and cleanup.
+See [Yao evidence](evidence/yao-peer-disconnect.json) and [diagnosis and limits](yao-diagnostics.md).
+A Worker-created socket currently loses its handoff across the sampled celld service binding.
+The verified Wallet peer path uses object-owned sockets. General Worker WebSocket handoff remains unqualified.

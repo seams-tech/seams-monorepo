@@ -52,7 +52,7 @@ Google Cloud must be a straightforward, documented deployment target. Use Comput
 Engine VMs, attached disks, Cloud Storage, and HTTPS ingress with the same application
 release. Celld supplies D1 and KV APIs, so this deployment requires no separate
 Postgres or Redis service. The topology must preserve the role-isolation gates below.
-Use project `seams-501403`; `eigen-413918` was deleted. Qualification uses region `us-central1` and zone `us-central1-a`.
+Use project `seams-501403`; `eigen-413918` was deleted. Qualification uses region `us-central1`. Final ordinary and SEV-SNP runs use zone `us-central1-c`.
 AWS is outside the current implementation and acceptance scope.
 
 The same release should also run on a supported Google Confidential VM configuration
@@ -247,13 +247,13 @@ These are confirmed consumers, not an exhaustive deletion inventory.
 
 ## Phase 2 — Run the existing application artifacts on celld
 
-- [ ] Start with fresh test wallets and isolated test resources.
+- [x] Start with fresh test wallets and isolated test resources.
 - [ ] Build Worker artifacts in `seams-wallet` and consume an exact package release in the private repository.
-- [ ] Reuse the packaged artifact inventory and existing configuration rendering. Add no competing resource manifest or general provider framework.
-- [ ] Render the celld-supported JSON/JSONC configuration from the established configuration inputs. Keep build steps outside that configuration where required.
-- [ ] Keep secrets out of bundles, committed configuration, and evidence artifacts.
-- [ ] Verify native binding access and application authentication between roles.
-- [ ] Run the shared fetch handlers and Durable Object implementations on both runtimes.
+- [x] Reuse the packaged artifact inventory and existing configuration rendering. Add no competing resource manifest or general provider framework.
+- [x] Render the celld-supported JSON/JSONC configuration from the established configuration inputs. Keep build steps outside that configuration where required.
+- [x] Keep secrets out of bundles, committed configuration, and evidence artifacts.
+- [x] Verify native binding access and application authentication between roles.
+- [x] Run the shared fetch handlers and Durable Object implementations on both runtimes.
 - [ ] Make any necessary API change once in shared code, only when it preserves both hosts' behavior.
 
 Provider differences belong in deployment configuration or external process
@@ -312,15 +312,15 @@ host path that currently provides it.
 ## Phase 4 — Make self-hosted operation repeatable
 
 - [x] Document and verify Linux VM deployment on Google Cloud using the same application package.
-- [ ] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
+- [x] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
 - [x] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
 - [ ] Use multiple celld nodes, persistent disks, and a qualified regional S3/GCS bucket for the distributed acceptance runs.
 - [ ] Configure TLS ingress, trusted forwarded headers, private peer access, and network confidentiality.
-- [ ] Document fleet administrator access separately from application role permissions.
+- [x] Document fleet administrator access separately from application role permissions.
 - [ ] Verify startup, health checks, drain, restart, backup, restore, and runtime upgrade procedures.
 - [ ] Keep incompatible releases from serving the same lifecycle concurrently. Drain and fence them instead of adding permanent compatibility branches.
 - [ ] Define rollback using durable-state compatibility. Never restore consumed signing material or revive an old ownership generation.
-- [ ] Record the complete topology and its failure scope. Do not infer automatic regional placement from Cloudflare location hints.
+- [x] Record the complete topology and its failure scope. Do not infer automatic regional placement from Cloudflare location hints.
 
 Celld's fleet credentials control its deployment and durable state. The private
 listener includes operator capabilities. Bindings alone do not isolate a role
@@ -347,8 +347,8 @@ classic-host consumer has a verified replacement and a state-safe cutover path.
 - [x] Remove Express request/response conversion and classic-host HTTP bridges.
 - [x] Remove the Node Gateway host, its task emulation, and host-specific WASM loader.
 - [x] Remove native VM routing, persistence, scheduler, and server-startup code whose only consumer was the retired backend.
-- [ ] Remove host-selection interfaces and builders after their last alternative implementation disappears.
-- [ ] Remove obsolete package exports, build entries, environment options, scripts, dependencies, CI jobs, and documentation.
+- [x] Remove host-selection interfaces and builders after their last alternative implementation disappears.
+- [x] Remove obsolete package exports, build entries, environment options, scripts, dependencies, CI jobs, and documentation.
 - [x] Preserve domain helpers that happened to be re-exported by an adapter. Import them from their owning modules.
 - [x] Preserve CLI, cryptographic verification, and developer tools with independent consumers. Do not delete `router-ab-dev` wholesale without this check.
 - [ ] Update the public deployment contract and release notes for removed Express/Node entrypoints. Update private consumers to the exact replacement package release.
@@ -481,7 +481,7 @@ No application host was removed in this checkpoint.
 The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
 This excludes concurrent SDK work from R190's reduction claim.
 It includes the complete maintained patch file, including diff context, and the added acceptance code.
-The checkpoint currently removes 34,936 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
+The checkpoint currently removes 34,460 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
 The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
 Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
 
@@ -605,9 +605,18 @@ Production Console onboarding and all 75 migrations also pass on the Confidentia
 See [Google Console evidence](../deployment/celld/evidence/google-console.json).
 Release promotion, live consumer inventory, state-safe cutover, and the remaining distributed restore/lifecycle matrix remain open.
 
+## October 14 local Yao failure checkpoint
+
+The real Yao peer-disconnect scenario passes on workerd and celld through one shared object proxy.
+The proxy disconnects on B's second message. Both roles retain burned state, exact retry opens no new connection,
+and an independent wallet completes registration. Celld preserves the burned pair after a local restart.
+The runtime patch and application code remain unchanged.
+See [Yao evidence](../deployment/celld/evidence/yao-peer-disconnect.json) and [diagnosis and limits](../deployment/celld/yao-diagnostics.md).
+Distributed Yao recovery remains open. The sampled Worker-created WebSocket handoff also remains unqualified.
+
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, Yao interruption, relocation, tenant-root retirement, and authorized restore.
+1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed Yao interruption, relocation, tenant-root retirement, and authorized restore.
 2. Confirm deployed classic-host consumers and their stored state before any live cutover. The source deletion does not establish that inventory.
 3. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 4. Complete state-safe cutover and rollback procedures for the confirmed consumers. Preserve consumed material and ownership generations.

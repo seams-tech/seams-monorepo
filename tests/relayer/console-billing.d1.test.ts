@@ -1,7 +1,13 @@
+/// <reference lib="es2024.promise" />
 import { expect, test } from '@playwright/test';
-import { createD1BillingLedgerEntryInsertStatement, createD1ConsoleBillingService } from '../../packages/console-server-ts/src/billing/d1';
+import {
+  createD1BillingLedgerEntryInsertStatement,
+  createD1ConsoleBillingService,
+} from '../../packages/console-server-ts/src/billing/d1';
 import { createDefaultBillingProviderAdapters } from '../../packages/console-server-ts/src/billing/providers';
 import type { ConsoleBillingRefundSupportContext } from '../../packages/console-server-ts/src/billing/service';
+import { ensureAccountPlatformD1Schema } from '../../packages/console-server-ts/src/accountPlatform/schema';
+import { ensureBillingFundsD1Schema } from '../../packages/console-server-ts/src/billingPrepaidReservations/schema';
 import {
   applyD1MigrationFiles,
   cleanupTemporaryD1Database,
@@ -77,6 +83,29 @@ async function listBillingEmailRows(
   return [...(result.results || [])];
 }
 
+async function seedHistoricalUsageDebit(
+  database: Parameters<typeof createD1ConsoleBillingService>[0]['database'],
+): Promise<void> {
+  await createD1BillingLedgerEntryInsertStatement(database, {
+    namespace: BILLING_NAMESPACE,
+    orgId: SUPPORT_CONTEXT.orgId,
+    entryId: 'historical-refund-usage',
+    type: 'USAGE_DEBIT',
+    amountMinor: -300,
+    description: 'Historical usage before shared service attribution',
+    monthUtc: '2026-03',
+    relatedInvoiceId: null,
+    relatedPurchaseId: null,
+    sourceEventId: 'historical-refund-usage',
+    actorType: 'SYSTEM',
+    actorUserId: null,
+    reasonCode: null,
+    note: null,
+    idempotencyKey: null,
+    createdAtMs: Date.parse('2026-03-20T00:00:00.000Z'),
+  }).run();
+}
+
 test('D1 billing reconstructs balanced credit and persists provider-backed refunds and disputes', async () => {
   const temporary = createTemporaryD1Database();
   try {
@@ -150,11 +179,7 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
       'credit_balance_minor',
     );
 
-    await billing.recordUsageEvent(SUPPORT_CONTEXT, {
-      resourceId: 'd1-refund-wallet',
-      shouldCount: true,
-      sourceEventId: 'd1-refund-wallet-usage',
-    });
+    await seedHistoricalUsageDebit(temporary.database);
     const firstInvoicePage = await billing.listInvoicesPage(SUPPORT_CONTEXT, { limit: 1 });
     expect(firstInvoicePage.invoices).toHaveLength(1);
     expect(firstInvoicePage.nextCursor).not.toBeNull();
@@ -247,17 +272,11 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
 
 test('D1 billing reserves refund capacity before awaiting Stripe', async () => {
   const temporary = createTemporaryD1Database();
-  let releaseFirstRefund: (() => void) | null = null;
+  const firstRefundGate = Promise.withResolvers<void>();
   try {
     await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-console-core'));
     const defaults = createDefaultBillingProviderAdapters();
-    let notifyFirstRefundStarted: (() => void) | null = null;
-    const firstRefundStarted = new Promise<void>((resolve) => {
-      notifyFirstRefundStarted = resolve;
-    });
-    const firstRefundGate = new Promise<void>((resolve) => {
-      releaseFirstRefund = resolve;
-    });
+    const firstRefundStarted = Promise.withResolvers<void>();
     let refundAttempts = 0;
     const billing = await createD1ConsoleBillingService({
       database: temporary.database,
@@ -269,8 +288,8 @@ test('D1 billing reserves refund capacity before awaiting Stripe', async () => {
           createRefund: async (input) => {
             refundAttempts += 1;
             if (refundAttempts === 1) {
-              notifyFirstRefundStarted?.();
-              await firstRefundGate;
+              firstRefundStarted.resolve();
+              await firstRefundGate.promise;
             }
             return {
               id: `re_${input.refundId}`,
@@ -297,7 +316,7 @@ test('D1 billing reserves refund capacity before awaiting Stripe', async () => {
       reason: 'customer_request',
       idempotencyKey: 'd1-concurrent-refund-one',
     });
-    await firstRefundStarted;
+    await firstRefundStarted.promise;
     await expect(
       billing.createRefund(SUPPORT_CONTEXT, {
         purchaseId: settled.purchase.id,
@@ -308,12 +327,12 @@ test('D1 billing reserves refund capacity before awaiting Stripe', async () => {
     ).rejects.toMatchObject({
       code: 'refund_amount_exceeds_purchase',
     });
-    releaseFirstRefund();
+    firstRefundGate.resolve();
     const reserved = await firstRefund;
     expect(reserved.refund.status).toBe('provider_pending');
     expect(refundAttempts).toBe(1);
   } finally {
-    releaseFirstRefund?.();
+    firstRefundGate.resolve();
     cleanupTemporaryD1Database(temporary.tempDir);
   }
 });
@@ -454,36 +473,78 @@ for (const directory of ['d1-console-core', 'd1-console'] as const) {
       const migration = migrations[refundIndex];
       if (!migration) throw new Error('Expected refund migration');
       await applyD1MigrationFiles(temporary.database, migrations.slice(0, refundIndex));
-      const billing = await createD1ConsoleBillingService({ database: temporary.database, namespace: BILLING_NAMESPACE });
-      const checkout = await billing.createStripeCheckoutSession(SUPPORT_CONTEXT, { creditPackId: 'usd_25' });
-      const settlement = await billing.reconcileStripeCheckoutSession(SUPPORT_CONTEXT, { checkoutSessionId: checkout.id });
+      await ensureAccountPlatformD1Schema(temporary.database);
+      await ensureBillingFundsD1Schema(temporary.database);
+      const billing = await createD1ConsoleBillingService({
+        database: temporary.database,
+        namespace: BILLING_NAMESPACE,
+      });
+      const checkout = await billing.createStripeCheckoutSession(SUPPORT_CONTEXT, {
+        creditPackId: 'usd_25',
+      });
+      const settlement = await billing.reconcileStripeCheckoutSession(SUPPORT_CONTEXT, {
+        checkoutSessionId: checkout.id,
+      });
       if (settlement.purchase?.status !== 'SETTLED') throw new Error('Expected a settled purchase');
-      await expect(billing.createRefund(SUPPORT_CONTEXT, {
-        purchaseId: settlement.purchase.id, amountMinor: 100, reason: 'customer_request', idempotencyKey: 'migration-refund',
-      })).rejects.toThrow();
-      const refund = (await billing.listRefunds(SUPPORT_CONTEXT))[0];
-      if (!refund) throw new Error('Expected persisted refund request');
-      const entryId = `ble_${refund.id}`;
-      const providerRefundId = `re_${refund.id}`;
+      const refundId = 'historical-refund';
+      const entryId = `ble_${refundId}`;
+      const providerRefundId = `re_${refundId}`;
+      const createdAtMs = Date.now();
       await temporary.database.batch([
         createD1BillingLedgerEntryInsertStatement(temporary.database, {
-          namespace: BILLING_NAMESPACE, orgId: SUPPORT_CONTEXT.orgId, entryId,
-          type: 'REFUND', amountMinor: 100, description: 'Pre-migration refund', monthUtc: null,
-          relatedInvoiceId: null, relatedPurchaseId: settlement.purchase.id, sourceEventId: providerRefundId,
-          actorType: 'PROVIDER', actorUserId: null, reasonCode: 'customer_request', note: null,
-          idempotencyKey: `refund:${refund.id}`, createdAtMs: Date.now(),
+          namespace: BILLING_NAMESPACE,
+          orgId: SUPPORT_CONTEXT.orgId,
+          entryId,
+          type: 'REFUND',
+          amountMinor: 100,
+          description: 'Pre-migration refund',
+          monthUtc: null,
+          relatedInvoiceId: null,
+          relatedPurchaseId: settlement.purchase.id,
+          sourceEventId: providerRefundId,
+          actorType: 'PROVIDER',
+          actorUserId: null,
+          reasonCode: 'customer_request',
+          note: null,
+          idempotencyKey: `refund:${refundId}`,
+          createdAtMs,
         }),
-        temporary.database.prepare(
-          "UPDATE billing_refunds SET status = 'succeeded', provider_refund_id = ?, journal_entry_id = ? WHERE namespace = ? AND org_id = ? AND id = ?",
-        ).bind(providerRefundId, entryId, BILLING_NAMESPACE, SUPPORT_CONTEXT.orgId, refund.id),
+        temporary.database
+          .prepare(
+            `INSERT INTO billing_refunds
+              (namespace, org_id, id, purchase_id, amount_minor, currency, reason, origin,
+                requester_user_id, idempotency_key, status, provider_refund_id, failure_code,
+                journal_entry_id, created_at_ms, updated_at_ms)
+             VALUES (?, ?, ?, ?, 100, 'USD', 'customer_request', 'console', ?,
+               'migration-refund', 'succeeded', ?, NULL, ?, ?, ?)`,
+          )
+          .bind(
+            BILLING_NAMESPACE,
+            SUPPORT_CONTEXT.orgId,
+            refundId,
+            settlement.purchase.id,
+            SUPPORT_CONTEXT.actorUserId,
+            providerRefundId,
+            entryId,
+            createdAtMs,
+            createdAtMs,
+          ),
       ]);
       expect((await billing.getOverview(SUPPORT_CONTEXT)).creditBalanceMinor).toBe(2600);
       await applyD1MigrationFiles(temporary.database, [migration]);
       expect((await billing.getOverview(SUPPORT_CONTEXT)).creditBalanceMinor).toBe(2400);
-      expect((await billing.listRefunds(SUPPORT_CONTEXT))[0]).toMatchObject({ id: refund.id, status: 'succeeded' });
-      expect((await temporary.database.prepare('PRAGMA foreign_key_check').all()).results).toEqual([]);
+      expect((await billing.listRefunds(SUPPORT_CONTEXT))[0]).toMatchObject({
+        id: refundId,
+        status: 'succeeded',
+      });
+      expect((await temporary.database.prepare('PRAGMA foreign_key_check').all()).results).toEqual(
+        [],
+      );
       const next = await billing.createRefund(SUPPORT_CONTEXT, {
-        purchaseId: settlement.purchase.id, amountMinor: 100, reason: 'customer_request', idempotencyKey: 'after-migration-refund',
+        purchaseId: settlement.purchase.id,
+        amountMinor: 100,
+        reason: 'customer_request',
+        idempotencyKey: 'after-migration-refund',
       });
       expect(next.refund.status).toBe('succeeded');
       expect(next.creditBalanceMinor).toBe(2300);

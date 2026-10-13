@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 import {
-  createInMemoryConsoleBillingService,
-  createInMemoryConsoleBillingPrepaidReservationService,
   createConsoleRouter,
   createInMemoryConsoleSponsoredCallService,
   type ConsoleAuthAdapter,
@@ -11,26 +9,105 @@ import {
 } from '@seams-internal/wallet-console-server/router/express-adaptor';
 import { createCloudflareConsoleRouter } from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
 import { callCf, fetchJson, makeConsoleAuthAdapter, startExpressRouter } from './helpers';
+import { createD1BillingLedgerEntryInsertStatement } from '../../packages/console-server-ts/src/billing/d1';
+import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+import { ReserveFundsRequestV1 } from '../../packages/console-shared-ts/src/accountPlatform';
+import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments/d1';
+import { activateWalletProject } from '../helpers/accountWalletProject.fixtures';
+import { consoleAuthorizationClaims } from '../helpers/consoleAuthorization.fixtures';
+import { createInMemoryConsoleOrganizationAccessService } from '../../packages/console-server-ts/src/teamRbac/service';
+import {
+  applyD1MigrationFiles,
+  cleanupTemporaryD1Database,
+  createTemporaryD1Database,
+  listD1MigrationFiles,
+} from '../helpers/sqliteD1';
 
 const baseNow = new Date('2026-03-19T00:00:00.000Z');
 const ctx = {
   orgId: 'org-sponsored-history',
   actorUserId: 'user-sponsored-history',
 };
+const namespace = 'sponsored-history';
+const walletAuthority = { serviceId: 'wallet', deploymentId: 'sponsored-history' } as const;
+const walletProjectId = 'sponsored-history-project';
 
-function makeBillingReaderClaims(input: { userId: string; orgId: string }): ConsoleAuthClaims {
+function now(): Date {
+  return new Date(baseNow);
+}
+
+async function createHistoryBillingFixture() {
+  const temporary = createTemporaryD1Database();
+  await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-console-core'));
+  const core = await createCloudflareD1AccountServiceBundle({
+    database: temporary.database,
+    namespace,
+    externalDeletionGuard: null,
+    now,
+  });
+  await core.account.createOrganization(
+    {
+      userId: ctx.actorUserId,
+      email: 'history-owner@example.test',
+      name: 'History owner',
+      provider: 'oidc',
+      orgId: null,
+      projectId: null,
+      platformSupport: false,
+    },
+    { id: ctx.orgId, name: 'Sponsored history account' },
+  );
+  await core.orgProjects.createProject(ctx, { id: walletProjectId, name: 'Wallet history' });
+  const walletEnvironments = await createD1ConsoleWalletEnvironmentService({
+    database: temporary.database,
+    namespace,
+    now,
+  });
+  await core.billing.grantManualSupportCredit(ctx, {
+    amountMinor: 5000,
+    reasonCode: 'history_acceptance_fixture',
+    note: 'Fund Wallet history admission',
+    idempotencyKey: 'history-funding',
+  });
+  await activateWalletProject({
+    core,
+    walletEnvironments,
+    namespace,
+    deploymentId: walletAuthority.deploymentId,
+    context: ctx,
+    projectId: walletProjectId,
+  });
   return {
-    userId: input.userId,
-    orgId: input.orgId,
-    membershipId: `membership-${input.userId}`,
-    authorizationVersion: 1,
-    role: 'ADMIN',
-    adminPermissions: ['billing.view', 'billing.manage'],
-    projectAccess: { kind: 'all' },
-    platformSupport: false,
-    email: `${input.userId}@example.com`,
-    name: input.userId,
+    core,
+    funds: core.funds,
+    database: temporary.database,
+    dispose: cleanupTemporaryD1Database.bind(null, temporary.tempDir),
   };
+}
+
+async function makeBillingReaderClaims(input: {
+  userId: string;
+  orgId: string;
+}): Promise<ConsoleAuthClaims> {
+  const access = createInMemoryConsoleOrganizationAccessService();
+  await access.bootstrapInitialOwner({
+    orgId: input.orgId,
+    userId: input.userId,
+    email: 'history-reader@example.test',
+    displayName: 'History reader',
+  });
+  const authorization = await access.lookupAuthorization(input);
+  if (!authorization || authorization.kind === 'denied')
+    throw new Error('History fixture has no billing reader authorization');
+  return consoleAuthorizationClaims({
+    authorization,
+    platformSupport: false,
+    email: 'history-reader@example.test',
+    name: 'History reader',
+    provider: 'oidc',
+    projectId: null,
+    sessionId: null,
+  });
 }
 
 async function seedSponsoredCallRecord(
@@ -123,22 +200,32 @@ async function callHistoryRoute(
 }
 
 async function seedSponsoredExecutionDebit(
-  billing: ConsoleBillingService,
+  database: Parameters<typeof createD1BillingLedgerEntryInsertStatement>[0],
   input: {
     id: string;
     amountMinor: number;
   },
 ): Promise<string> {
-  const result = await billing.recordSponsoredExecutionDebit(ctx, {
-    amountMinor: input.amountMinor,
+  const entryId = `historical-execution:${input.id}`;
+  await createD1BillingLedgerEntryInsertStatement(database, {
+    namespace,
+    orgId: ctx.orgId,
+    entryId,
+    type: 'PRODUCT_EXECUTION_DEBIT',
+    amountMinor: -input.amountMinor,
+    description: 'Historical Wallet execution before shared service attribution',
+    monthUtc: '2026-03',
+    relatedInvoiceId: null,
+    relatedPurchaseId: null,
     sourceEventId: `seed:${input.id}`,
-    walletId: `wallet_${input.id}`,
-    occurredAt: baseNow.toISOString(),
-    txOrExecutionRef: `tx_${input.id}`,
-    pricingVersion: 'pricing-test-v1',
-  });
-  expect(result.ledgerEntryId).toBeTruthy();
-  return String(result.ledgerEntryId);
+    actorType: 'SYSTEM',
+    actorUserId: null,
+    reasonCode: null,
+    note: null,
+    idempotencyKey: null,
+    createdAtMs: baseNow.getTime(),
+  }).run();
+  return entryId;
 }
 
 test.describe('console sponsored call history', () => {
@@ -215,7 +302,7 @@ test.describe('console sponsored call history', () => {
       });
 
       const auth = makeConsoleAuthAdapter(
-        makeBillingReaderClaims({
+        await makeBillingReaderClaims({
           userId: ctx.actorUserId,
           orgId: ctx.orgId,
         }),
@@ -237,7 +324,7 @@ test.describe('console sponsored call history', () => {
 
     test(`console router (${mode}) rejects invalid sponsored history filters`, async () => {
       const auth = makeConsoleAuthAdapter(
-        makeBillingReaderClaims({
+        await makeBillingReaderClaims({
           userId: ctx.actorUserId,
           orgId: ctx.orgId,
         }),
@@ -255,181 +342,157 @@ test.describe('console sponsored call history', () => {
     });
 
     test(`console router (${mode}) exposes sponsored execution reconciliation`, async () => {
-      const sponsoredCalls = createInMemoryConsoleSponsoredCallService({
-        now: () => new Date(baseNow),
-      });
-      const billing = createInMemoryConsoleBillingService({
-        now: () => new Date(baseNow),
-      });
-      const matchedDebitId = await seedSponsoredExecutionDebit(billing, {
-        id: 'matched',
-        amountMinor: 60,
-      });
-      const mismatchedDebitId = await seedSponsoredExecutionDebit(billing, {
-        id: 'mismatch',
-        amountMinor: 75,
-      });
-      const unexpectedDebitId = await seedSponsoredExecutionDebit(billing, {
-        id: 'unexpected',
-        amountMinor: 60,
-      });
+      const fixture = await createHistoryBillingFixture();
+      try {
+        const sponsoredCalls = createInMemoryConsoleSponsoredCallService({
+          now: () => new Date(baseNow),
+        });
+        const billing = fixture.core.billing;
+        const matchedDebitId = await seedSponsoredExecutionDebit(fixture.database, {
+          id: 'matched',
+          amountMinor: 60,
+        });
+        const mismatchedDebitId = await seedSponsoredExecutionDebit(fixture.database, {
+          id: 'mismatch',
+          amountMinor: 75,
+        });
+        const unexpectedDebitId = await seedSponsoredExecutionDebit(fixture.database, {
+          id: 'unexpected',
+          amountMinor: 60,
+        });
 
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'matched',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        billingLedgerEntryId: matchedDebitId,
-      });
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'missing',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        billingLedgerEntryId: null,
-      });
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'mismatch',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        billingLedgerEntryId: mismatchedDebitId,
-        settledSpendMinor: 60,
-      });
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'unexpected',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        charged: false,
-        billingLedgerEntryId: unexpectedDebitId,
-      });
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'matched',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          billingLedgerEntryId: matchedDebitId,
+        });
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'missing',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          billingLedgerEntryId: null,
+        });
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'mismatch',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          billingLedgerEntryId: mismatchedDebitId,
+          settledSpendMinor: 60,
+        });
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'unexpected',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          charged: false,
+          billingLedgerEntryId: unexpectedDebitId,
+        });
 
-      const auth = makeConsoleAuthAdapter(
-        makeBillingReaderClaims({
-          userId: ctx.actorUserId,
-          orgId: ctx.orgId,
-        }),
-      );
-      const response = await callHistoryRoute(mode, {
-        auth,
-        billing,
-        sponsoredCalls,
-        path: '/console/billing/sponsored-executions/reconciliation?environmentId=env-router',
-      });
-      expect(response.status).toBe(200);
-      const page = response.json?.page as Record<string, unknown> | undefined;
-      const statusById = Object.fromEntries(
-        ((page?.items as Array<Record<string, unknown>>) || []).map((item) => [
-          String((item.record as Record<string, unknown> | undefined)?.id || ''),
-          String(item.status || ''),
-        ]),
-      );
-      expect(statusById).toEqual({
-        matched: 'matched',
-        missing: 'missing_billing_debit',
-        mismatch: 'amount_mismatch',
-        unexpected: 'unexpected_billing_debit',
-      });
-      expect(page?.summary).toEqual({
-        matchedCount: 1,
-        notChargedCount: 0,
-        missingBillingDebitCount: 1,
-        amountMismatchCount: 1,
-        unexpectedBillingDebitCount: 1,
-        mismatchCount: 3,
-      });
-    });
-
-    test(`console router (${mode}) enriches billing overview with sponsorship summary fields`, async () => {
-      const billing = createInMemoryConsoleBillingService({
-        now: () => new Date(baseNow),
-      });
-      const prepaidReservations = createInMemoryConsoleBillingPrepaidReservationService({
-        now: () => new Date(baseNow),
-      });
-      let currentNowMs = baseNow.getTime() - 40 * 24 * 60 * 60 * 1000;
-      const sponsoredCalls = createInMemoryConsoleSponsoredCallService({
-        now: () => new Date(currentNowMs),
-      });
-      await billing.grantManualSupportCredit(
-        {
-          orgId: ctx.orgId,
-          actorUserId: 'platform-admin-overview',
-        },
-        {
-          amountMinor: 5000,
-          reasonCode: 'support_credit',
-          note: 'seed credit',
-          idempotencyKey: 'overview-seed-credit',
-        },
-      );
-      await prepaidReservations.reserve(ctx, {
-        sourceEventId: 'overview-reservation',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        postedBalanceMinor: 5000,
-        estimatedSpendMinor: 800,
-      });
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'overview-90d',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        settledSpendMinor: 70,
-      });
-      currentNowMs = baseNow.getTime() - 2 * 24 * 60 * 60 * 1000;
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'overview-30d',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        settledSpendMinor: 60,
-      });
-      currentNowMs = baseNow.getTime() - 1 * 24 * 60 * 60 * 1000;
-      await seedSponsoredCallRecord(sponsoredCalls, {
-        id: 'overview-uncharged',
-        environmentId: 'env-router',
-        policyId: 'policy-router',
-        charged: false,
-      });
-
-      const auth = makeConsoleAuthAdapter(
-        makeBillingReaderClaims({
-          userId: ctx.actorUserId,
-          orgId: ctx.orgId,
-        }),
-      );
-      const response = await (async () => {
-        if (mode === 'express') {
-          const router = createConsoleRouter({
-            auth,
-            billing,
-            prepaidReservations,
-            sponsoredCalls,
-          });
-          const server = await startExpressRouter(router);
-          try {
-            const res = await fetchJson(`${server.baseUrl}/console/billing/overview`);
-            return { status: res.status, json: res.json };
-          } finally {
-            await server.close();
-          }
-        }
-        const handler = createCloudflareConsoleRouter({
+        const auth = makeConsoleAuthAdapter(
+          await makeBillingReaderClaims({
+            userId: ctx.actorUserId,
+            orgId: ctx.orgId,
+          }),
+        );
+        const response = await callHistoryRoute(mode, {
           auth,
           billing,
-          prepaidReservations,
           sponsoredCalls,
+          path: '/console/billing/sponsored-executions/reconciliation?environmentId=env-router',
         });
-        const res = await callCf(handler, {
-          method: 'GET',
+        expect(response.status).toBe(200);
+        const page = response.json?.page as Record<string, unknown> | undefined;
+        const statusById = Object.fromEntries(
+          ((page?.items as Array<Record<string, unknown>>) || []).map((item) => [
+            String((item.record as Record<string, unknown> | undefined)?.id || ''),
+            String(item.status || ''),
+          ]),
+        );
+        expect(statusById).toEqual({
+          matched: 'matched',
+          missing: 'missing_billing_debit',
+          mismatch: 'amount_mismatch',
+          unexpected: 'unexpected_billing_debit',
+        });
+        expect(page?.summary).toEqual({
+          matchedCount: 1,
+          notChargedCount: 0,
+          missingBillingDebitCount: 1,
+          amountMismatchCount: 1,
+          unexpectedBillingDebitCount: 1,
+          mismatchCount: 3,
+        });
+      } finally {
+        fixture.dispose();
+      }
+    });
+
+    test(`console router (${mode}) combines account holds with Wallet sponsorship history`, async () => {
+      const fixture = await createHistoryBillingFixture();
+      try {
+        const billing = fixture.core.billing;
+        let currentNowMs = baseNow.getTime() - 40 * 24 * 60 * 60 * 1000;
+        const sponsoredCalls = createInMemoryConsoleSponsoredCallService({
+          now: () => new Date(currentNowMs),
+        });
+        const reservation = ReserveFundsRequestV1.parse({
+          version: 1,
+          operationId: 'overview-reservation',
+          instanceId: `wallet:${walletProjectId}`,
+          executionId: 'overview-execution',
+          requestedMinor: 800,
+          priceVersion: 'history-quote-v1',
+        });
+        if (reservation.kind === 'rejected') throw new Error('History funds request is invalid');
+        expect((await fixture.funds.reserve(walletAuthority, reservation.value)).kind).toBe(
+          'accepted',
+        );
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'overview-90d',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          settledSpendMinor: 70,
+        });
+        currentNowMs = baseNow.getTime() - 2 * 24 * 60 * 60 * 1000;
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'overview-30d',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          settledSpendMinor: 60,
+        });
+        currentNowMs = baseNow.getTime() - 1 * 24 * 60 * 60 * 1000;
+        await seedSponsoredCallRecord(sponsoredCalls, {
+          id: 'overview-uncharged',
+          environmentId: 'env-router',
+          policyId: 'policy-router',
+          charged: false,
+        });
+
+        const auth = makeConsoleAuthAdapter(
+          await makeBillingReaderClaims({
+            userId: ctx.actorUserId,
+            orgId: ctx.orgId,
+          }),
+        );
+        const response = await callHistoryRoute(mode, {
+          auth,
+          billing,
+          sponsoredCalls,
           path: '/console/billing/overview',
         });
-        return { status: res.status, json: res.json };
-      })();
-      expect(response.status).toBe(200);
-      const overview = response.json?.overview as Record<string, unknown> | undefined;
-      expect(overview?.reservedSponsorshipMinor).toBe(800);
-      expect(overview?.activeSponsorshipReservationCount).toBe(1);
-      expect(overview?.trailing30DaySponsoredSpendMinor).toBe(60);
-      expect(overview?.trailing30DaySponsoredExecutionCount).toBe(1);
-      expect(overview?.trailing90DaySponsoredSpendMinor).toBe(130);
-      expect(overview?.trailing90DaySponsoredExecutionCount).toBe(2);
+        expect(response.status).toBe(200);
+        const overview = response.json?.overview as Record<string, unknown> | undefined;
+        expect(overview?.reservedMinor).toBe(800);
+        expect(overview?.activeReservationCount).toBe(1);
+        expect(overview?.pendingRefundMinor).toBe(0);
+        expect(overview?.availableBalanceMinor).toBe(4200);
+        expect(overview?.trailing30DaySponsoredSpendMinor).toBe(60);
+        expect(overview?.trailing30DaySponsoredExecutionCount).toBe(1);
+        expect(overview?.trailing90DaySponsoredSpendMinor).toBe(130);
+        expect(overview?.trailing90DaySponsoredExecutionCount).toBe(2);
+      } finally {
+        fixture.dispose();
+      }
     });
   }
 });

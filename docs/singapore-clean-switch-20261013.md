@@ -201,6 +201,68 @@ Measurement kit in the artifacts folder: `measure.py <label> <groups>`,
 `serving.py <name>`. They change nothing on staging. `site-093/` is the
 test site built from the published 0.9.3 package.
 
+## Staging: release 0.9.4 since October 13, 16:32 JST
+
+Release 0.9.4 of the Wallet packages carries the engine change of the Yao
+execution (label wipes and a four-block gate hash), the retry of a transient
+database fault in setup, and the earlier setup preflight of the SDK. It has
+no wire, schema or protocol change.
+
+Deployment:
+
+1. Private `3f4fdb45` pins 0.9.4. `pnpm check` and `pnpm build` pass.
+2. Before the deployment the five role Workers served their latest upload
+   (`serving-before-094.json`). The Console and the APAC Gateway each had a
+   newer unused upload. That does not block them: the TypeScript Workers
+   deploy with a secrets file, and only the role Workers set secrets on the
+   latest upload.
+3. Console run `38361801956` passed. Backend run `38362259221` deployed
+   every component; its smoke step failed by design with 403 until the
+   activation.
+4. Activation run `38363192264` passed with `proj_mv5fzezy_4ztf60:dev`.
+5. Read back: 14 new serving versions, each the latest upload
+   (`serving-after-094.json`). The lane refused requests from 16:27 to
+   16:32 JST.
+
+Measurement, client in Tokyo, 99 wallets on 0.9.3 from 16:06 to 16:16 and
+198 wallets on 0.9.4 from 16:33 to 16:53:
+
+| | 0.9.3 p50 | 0.9.4 p50 | 0.9.3 p90 | 0.9.4 p90 |
+| --- | ---: | ---: | ---: | ---: |
+| Registration after the passkey step | 1,915 ms | 1,876 ms | 2,455 ms | 2,468 ms |
+| Respond | 234 ms | 232 ms | 385 ms | 361 ms |
+| Yao execute | 1,007 ms | 946 ms | 1,398 ms | 1,320 ms |
+| Finalize | 567 ms | 576 ms | 888 ms | 908 ms |
+| Finalization, Gateway total | 309 ms | 308 ms | 592 ms | 627 ms |
+| Router execute request | 783 ms | 720 ms | 1,133 ms | 1,036 ms |
+| Deriver A, CPU per execution | 250 ms | 196 ms | 336 ms | 252 ms |
+| Deriver B, CPU per execution | 207 ms | 182 ms | 280 ms | 248 ms |
+| First signature | 448 ms | 443 ms | 791 ms | 692 ms |
+
+The Yao execution is about 60 ms shorter, and both 0.9.4 runs show it. The
+change of the whole interval, 39 ms, is inside the difference between two
+runs. All 198 signatures of the 0.9.4 runs verify independently. The public
+record is `docs/evidence/refactor-155h-release-094-staging.md` in
+`seams-wallet`.
+
+**The time of day matters.** Release 0.9.3 measured 1,642 ms at 03:30 JST
+and 1,915 ms at 16:06 JST with the same formula. Compare runs of the same
+hour only, and take the baseline before the deployment.
+
+Found during the runs, for R155J:
+
+- One wallet in 198 waited 8.8 s in the Gateway before its finalization
+  began: the request lasted 9,165 ms with 82 ms of CPU, and the finalization
+  itself took 278 ms. No tailed Worker ran in between.
+- One first signature took 10.2 s, nine minutes after the deployment: the
+  Gateway, the Router and the Signing Worker each used 0.75 to 1.0 s of CPU
+  in its sign-prepare chain, the pattern of a host that starts the new
+  versions.
+
+Kit additions: `SEAMS_MEASURE_PUBLIC=<clean seams-wallet tree>` gives
+`measure.py` the harness of a released commit, and `site-094/` is the test
+site built from the published 0.9.4 package.
+
 ## Production testnet and mainnet: databases ready, deployment blocked
 
 Empty databases exist for both lanes. Nothing serves them.

@@ -73,21 +73,27 @@ Historical charges without project evidence remain explicitly organisation-scope
 
 ## Wallet monthly producer
 
-`WalletMonthlyUsageAdapter` accepts the `accepted_evm_wallet_action` source branch.
-It reads a persisted successful `evm` / `evm_call` receipt and its canonical Wallet ID.
-It then verifies the native environment, Wallet resource, and immutable instance binding.
-The receipt supplies the event ID, source digest, and occurrence time.
-Wallet migration `0096_wallet_monthly_usage_outbox.sql` retains selected facts for retry.
-Production requests resume pending delivery through `waitUntil`; local composition resumes it at startup.
+Successful EVM calls capture monthly usage in the execution settlement transaction.
+The producer uses the admitted instance, canonical Wallet ID, source record, occurrence time,
+and existing execution evidence digest. Reconciliation captures usage when an unknown outcome
+becomes successful. Exact execution replays create no additional fact.
+The request adds one insert to its existing D1 batch and no database round trip or awaited hash.
+The local comparison measured 19 database calls before and after a successful zero-quote settlement.
+Statement count changes from 27 to 28. The settlement E2E enforces the 19-call budget.
+Evidence: `.artifacts/shared-account-platform/request-budget/comparison.json`.
+This count does not establish production network latency.
+
+`WalletMonthlyUsageAdapter` delivers these immutable facts from the scheduler.
+Wallet migration `0098_account_delivery.sql` indexes pending facts and removes the redundant
+outbox payload digest. Shared billing retains ownership of canonical event digests.
+Delivered history remains immutable and does not participate in pending scans.
+Retries after service disable or archive preserve the original instance and UTC month.
 
 The billable actions remain transfer, swap, approve, and contract call.
-Failed actions, simulations, internal retries, and Wallet creation remain excluded.
-The released SDK currently emits only Wallet creation for this meter.
-Its registration projection therefore creates no monthly debit.
-No new sponsorship hook automatically selects an action for monthly billing.
-NEAR monthly evidence remains unsupported until it supplies a proved canonical Wallet ID.
-The retired customer usage endpoint accepted arbitrary resource and evidence fields.
-The trusted producer replaces that writer.
+Registration, failed calls, simulations, and internal execution retries produce no new monthly fact.
+The production hook covers successful `evm` / `evm_call` settlement.
+NEAR and other execution paths remain unsupported for this meter until they supply authoritative
+success evidence and a canonical Wallet ID. The producer does not infer historical activity.
 
 ## Acceptance
 

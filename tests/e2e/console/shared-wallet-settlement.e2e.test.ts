@@ -1,3 +1,5 @@
+import { AccountDatabaseProbe } from '../../helpers/accountDatabaseProbe';
+import { WalletMonthlyUsageAdapter } from '../../../packages/wallet-console-server-ts/src/billing/usage';
 import { expect, test } from '@playwright/test';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -75,26 +77,16 @@ function runtime(): Miniflare {
   });
 }
 
-class InterruptedD1Authority implements D1DatabaseLike {
+class InterruptedD1Authority extends AccountDatabaseProbe {
   private connection: 'connected' | 'lose_next_reply' = 'connected';
   lostReplies = 0;
-
-  constructor(private readonly database: D1DatabaseLike) {}
 
   loseNextCommitReply(): void {
     this.connection = 'lose_next_reply';
   }
 
-  prepare(query: string): D1PreparedStatementLike {
-    return this.database.prepare(query);
-  }
-
-  exec(query: string): Promise<unknown> {
-    return this.database.exec(query);
-  }
-
   async batch<T = unknown>(statements: readonly D1PreparedStatementLike[]): Promise<readonly T[]> {
-    const result = await this.database.batch<T>(statements);
+    const result = await super.batch<T>(statements);
     if (this.connection === 'lose_next_reply') {
       this.connection = 'connected';
       this.lostReplies += 1;
@@ -680,6 +672,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
         await product.core.funds.getReservation(product.funds.authority, evmHandle.reservationId),
       ).kind,
     ).toBe('indeterminate');
+    expect(await rowCount(database, 'wallet_monthly_usage_outbox')).toBe(0);
     const rejectedRecord = await recordSponsoredExecution(
       recordingInput(product, rejected, rejectedHandle),
     );
@@ -718,7 +711,30 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
     expect(settled[0].settledSpendMinor).toBe(32);
     expect(settled[0].pricingVersion).toBe('wallet-evm-ceiling-v1');
     expect(database.lostReplies).toBe(1);
+    const heldBeforeCaptureFailure = accepted(
+      await product.core.funds.getReservation(product.funds.authority, zeroHandle.reservationId),
+    );
+    await database
+      .prepare(
+        `CREATE TRIGGER interrupt_monthly_capture BEFORE INSERT ON wallet_monthly_usage_outbox
+      BEGIN SELECT RAISE(ABORT, 'injected_monthly_capture_failure'); END`,
+      )
+      .run();
+    await expect(
+      recordSponsoredExecution(recordingInput(product, zero, zeroHandle)),
+    ).rejects.toThrow('injected_monthly_capture_failure');
+    expect(
+      accepted(
+        await product.core.funds.getReservation(product.funds.authority, zeroHandle.reservationId),
+      ),
+    ).toEqual(heldBeforeCaptureFailure);
+    expect(await rowCount(database, 'sponsored_call_records')).toBe(3);
+    expect(await rowCount(database, 'wallet_monthly_usage_outbox')).toBe(1);
+    await database.prepare('DROP TRIGGER interrupt_monthly_capture').run();
+    database.reset();
     const free = await recordSponsoredExecution(recordingInput(product, zero, zeroHandle));
+    const settlementDatabaseWork = { calls: database.calls, statements: database.statements };
+    expect(settlementDatabaseWork.calls).toBe(19);
     expect(free.charged).toBe(false);
     expect(free.chargedReason).toBe('settled_zero_spend');
     expect(
@@ -738,6 +754,7 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
       )
       .first<number>('count');
     expect(warningCount).toBe(1);
+    expect(await rowCount(database, 'wallet_monthly_usage_outbox')).toBe(2);
     const beforeRestart = await snapshot(database);
     await writeFile(
       path.join(output, 'before-restart.json'),
@@ -871,6 +888,33 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
         exportedAt: now(),
       }),
     );
+    const monthly = new WalletMonthlyUsageAdapter({
+      database,
+      namespace,
+      deploymentId,
+      usage: product.core.billingUsage,
+    });
+    expect(await monthly.resumePending(20)).toEqual({ delivered: 2, pending: 0 });
+    expect(await monthly.resumePending(20)).toEqual({ delivered: 0, pending: 0 });
+    expect(await rowCount(database, 'wallet_monthly_usage_outbox')).toBe(2);
+    expect((await product.core.billing.getOverview(context)).creditBalanceMinor).toBe(-320);
+    const monthlyFacts = await database.prepare('SELECT * FROM wallet_monthly_usage_outbox').all();
+    await writeFile(
+      path.join(output, 'monthly-producer.json'),
+      JSON.stringify(
+        {
+          facts: monthlyFacts.results,
+          monthlyChargeMinor: 300,
+          capturedBeforeRestart: 2,
+          excluded: ['broadcast_failed', 'rpc_rejected', 'near_delegate'],
+          replayCreatesNoNewFact: true,
+          captureSharesSettlementTransaction: true,
+          captureFailureRollsBackExecutionAndFunds: true,
+        },
+        null,
+        2,
+      ),
+    );
     const after = await snapshot(database);
     await writeFile(path.join(output, 'reconciliation.json'), JSON.stringify(after, null, 2));
     await writeFile(
@@ -879,10 +923,12 @@ test('Wallet execution settles overshoot, zero quotes, and uncertain NEAR outcom
         {
           version: 1,
           result: 'passed',
+          settlementDatabaseWork,
           command:
             'pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/shared-wallet-settlement.e2e.test.ts',
           migrations,
-          postedBalanceMinor: -20,
+          postedBalanceMinor: -320,
+          monthlyChargeMinor: 300,
           remainingHoldsMinor: 0,
           executionRecords: 4,
           canonicalExecutionCharges: 4,

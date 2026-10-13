@@ -323,7 +323,8 @@ Recovery uses persisted commands and financial evidence:
 1. Apply the reviewed forward schema before enabling the new writer for its cohort.
    Preserve instance bindings, principal mappings, membership history, grant revisions, receipts, holds, and native Actor storage.
 2. Reconstruct the account bundle and authenticated transports from the same deployment configuration.
-   Production requests resume pending provisioning with `waitUntil`; local startup runs the same dispatcher.
+   Service-change requests dispatch only their own durable operation with `waitUntil`.
+   Production and local schedulers resume pending operations. Failed deliveries receive a later retry time, so older failures cannot monopolise a batch.
 3. Retry pending provisioning under its original operation ID, desired revision, payload digest, and scope.
    Each retry obtains current verified owner authority and signs a fresh envelope.
    An unavailable delivery stays pending. An acknowledged stale receipt stays auditable without advancing current state.
@@ -418,3 +419,33 @@ An old revision-zero retry cannot undo a later revocation.
 Satyr pins the returned access revision to the native workflow or binding revision.
 A shared regrant cannot revive that old native revision.
 A new native revision requires a new explicit grant through the authenticated control boundary.
+
+## October 14 architecture corrections
+
+Service-change responses contain the persisted pending state. They do not wait for provisioning
+or drain the queue. Replaying a completed operation returns its current observed state.
+The scheduler selects current pending operations by indexed retry time.
+Core migration `0008_account_delivery.sql` and Wallet migration `0098_account_delivery.sql`
+add that index and retry time. Apply the migration before deploying the updated worker.
+
+Eligibility uses one joined D1 read for either a user or an automation principal.
+That snapshot checks identity, service deployment, active lifecycle state, access, permissions,
+and current authority revision. Principal comparison uses parsed fields without canonical hashes.
+
+Service invitations and resends commit their invitation, email outbox entry, and service grant
+in one D1 batch. A stale authority revision or unavailable instance aborts the whole batch.
+The grant statement follows the invitation email statement so the email's existing insert guard
+continues to refer to the invitation mutation.
+
+Satyr discovery and command creation use configuration metadata only.
+Signing credentials load when a Satyr operation is dispatched.
+Unrelated Console routes do not construct the Satyr adapter.
+Schedulers run Wallet provisioning, monthly delivery, and Satyr provisioning independently.
+A Satyr configuration error is reported without preventing Wallet work.
+
+Repeatable evidence is produced by `shared-account-authority.e2e.test.ts`,
+`shared-account-wallet-activation.e2e.test.ts`, `shared-account-wallet-monthly-usage.e2e.test.ts`,
+`shared-wallet-settlement.e2e.test.ts`, and `console-service-auth.e2e.test.ts`.
+These local tests establish transaction behaviour and request counts. They do not establish
+Japan-to-production network latency. These corrections require deployment and a controlled
+latency comparison before any new production performance claim.

@@ -1,3 +1,4 @@
+import type { PlatformServiceIdV1 } from '@seams-internal/console-shared/accountPlatform';
 import { secureRandomBase36 } from '../boundary';
 import {
   d1ChangedRows,
@@ -70,8 +71,34 @@ export interface ConsoleOrganizationAccessD1Runtime {
   readonly now: () => Date;
 }
 
+export type OrganizationInvitationScope =
+  | {
+      readonly kind: 'organization';
+      readonly instanceId?: never;
+      readonly serviceId?: never;
+      readonly deploymentId?: never;
+      readonly authorityRevision?: never;
+    }
+  | {
+      readonly kind: 'service';
+      readonly instanceId: string;
+      readonly serviceId: PlatformServiceIdV1;
+      readonly deploymentId: string;
+      readonly authorityRevision: number;
+    };
+
 export type ConsoleOrganizationAccessD1Service = ConsoleOrganizationAccessService & {
   readonly [CONSOLE_ORGANIZATION_ACCESS_D1_RUNTIME]: ConsoleOrganizationAccessD1Runtime;
+  inviteScoped(
+    ctx: OrganizationAccessContext,
+    request: InviteOrganizationMemberRequest,
+    scope: OrganizationInvitationScope,
+  ): Promise<IssuedOrganizationInvitation>;
+  resendInvitationScoped(
+    ctx: OrganizationAccessContext,
+    invitationId: string,
+    scope: OrganizationInvitationScope,
+  ): Promise<IssuedOrganizationInvitation>;
 };
 
 export interface D1ConsoleOrganizationAccessSchemaOptions {
@@ -210,6 +237,45 @@ function makeId(prefix: string, now: Date): string {
     10,
     'organization access IDs',
   )}`;
+}
+
+function serviceInvitationGrantStatement(
+  state: D1OrganizationAccessState,
+  ctx: OrganizationAccessContext,
+  invitationId: string,
+  scope: Extract<OrganizationInvitationScope, { readonly kind: 'service' }>,
+  nowMs: number,
+): D1PreparedStatementLike {
+  // A missing eligible instance produces NULL and aborts the entire invitation transaction.
+  return state.database
+    .prepare(
+      `INSERT INTO platform_service_invitation_grants
+    (namespace, org_id, invitation_id, instance_id, granted_by_user_id, issued_authority_revision, created_at_ms)
+    VALUES (?, ?, ?, (SELECT i.id FROM platform_service_instances i
+      JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
+      JOIN projects p ON p.namespace = i.namespace AND p.org_id = i.org_id AND p.id = i.project_id
+      JOIN organization_invitations v ON v.namespace = i.namespace AND v.org_id = i.org_id AND v.id = ? AND v.kind = 'PENDING'
+      WHERE i.namespace = ? AND i.org_id = ? AND i.id = ? AND i.service_id = ? AND i.deployment_id = ?
+        AND o.authorization_version = ? AND o.status = 'ACTIVE' AND p.status = 'ACTIVE'
+        AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active'
+        AND i.observed_revision = i.desired_revision), ?, ?, ?)
+    ON CONFLICT(namespace, invitation_id, instance_id) DO UPDATE SET issued_authority_revision = excluded.issued_authority_revision`,
+    )
+    .bind(
+      state.namespace,
+      ctx.orgId,
+      invitationId,
+      invitationId,
+      state.namespace,
+      ctx.orgId,
+      scope.instanceId,
+      scope.serviceId,
+      scope.deploymentId,
+      scope.authorityRevision,
+      ctx.actorUserId,
+      scope.authorityRevision,
+      nowMs,
+    );
 }
 
 function membershipDisplayName(membership: OrganizationMembership): string {
@@ -1612,6 +1678,14 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     ctx: OrganizationAccessContext,
     request: InviteOrganizationMemberRequest,
   ): Promise<IssuedOrganizationInvitation> {
+    return this.inviteScoped(ctx, request, { kind: 'organization' });
+  }
+
+  async inviteScoped(
+    ctx: OrganizationAccessContext,
+    request: InviteOrganizationMemberRequest,
+    scope: OrganizationInvitationScope,
+  ): Promise<IssuedOrganizationInvitation> {
     const grant = invitationGrant(request);
     const actor = await requireInvitationAuthority(this.state, ctx, grant.role);
     const email = normalizeEmail(request.email);
@@ -1687,6 +1761,8 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
     });
     const statements = [invitationStatement];
     if (invitationEmail) statements.push(invitationEmail);
+    if (scope.kind === 'service')
+      statements.push(serviceInvitationGrantStatement(this.state, ctx, invitationId, scope, nowMs));
     await this.state.database.batch(statements);
     const record = await loadInvitationByOrg(this.state, ctx.orgId, invitationId);
     if (!record) throw new Error(`Failed to create invitation ${invitationId}`);
@@ -1700,6 +1776,14 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
   async resendInvitation(
     ctx: OrganizationAccessContext,
     invitationId: string,
+  ): Promise<IssuedOrganizationInvitation> {
+    return this.resendInvitationScoped(ctx, invitationId, { kind: 'organization' });
+  }
+
+  async resendInvitationScoped(
+    ctx: OrganizationAccessContext,
+    invitationId: string,
+    scope: OrganizationInvitationScope,
   ): Promise<IssuedOrganizationInvitation> {
     await expireInvitations(this.state, ctx.orgId);
     const existing = await this.requireInvitation(ctx.orgId, invitationId);
@@ -1746,6 +1830,8 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
       now,
     });
     if (invitationEmail) statements.push(invitationEmail);
+    if (scope.kind === 'service')
+      statements.push(serviceInvitationGrantStatement(this.state, ctx, invitationId, scope, nowMs));
     const results = await this.state.database.batch<D1ResultLike>(statements);
     const updateResult = results[updateIndex];
     if (!updateResult || d1ChangedRows(updateResult) !== 1) {
@@ -2768,7 +2854,7 @@ export function getConsoleOrganizationAccessD1Runtime(
 
 export async function createD1ConsoleOrganizationAccessService(
   options: D1ConsoleOrganizationAccessServiceOptions,
-): Promise<ConsoleOrganizationAccessService> {
+): Promise<ConsoleOrganizationAccessD1Service> {
   if (options.ensureSchema) {
     await ensureConsoleOrganizationAccessD1Schema({ database: options.database });
   }

@@ -25,18 +25,26 @@ async function deliverProvisioning(
   try {
     result = await adapter.provision(delivery);
   } catch {
+    await platform.deferProvision(adapter.authority, delivery.command.operationId);
     return 'pending';
   }
   if (result.kind === 'accepted') {
     const acknowledgement = await platform.acknowledgeProvision(adapter.authority, result.value);
-    return acknowledgement.kind === 'accepted' ? 'delivered' : 'pending';
+    if (acknowledgement.kind === 'accepted') return 'delivered';
+    await platform.deferProvision(adapter.authority, delivery.command.operationId);
+    return 'pending';
   }
-  if (result.error.code === 'unavailable') return 'pending';
+  if (result.error.code === 'unavailable') {
+    await platform.deferProvision(adapter.authority, delivery.command.operationId);
+    return 'pending';
+  }
   const failure = await platform.failProvision(adapter.authority, {
     operationId: delivery.command.operationId,
     failureCode: result.error.code,
   });
-  return failure.kind === 'accepted' ? 'failed' : 'pending';
+  if (failure.kind === 'accepted') return 'failed';
+  await platform.deferProvision(adapter.authority, delivery.command.operationId);
+  return 'pending';
 }
 
 /** Each command remains durable until its matching acknowledgement or failure is recorded. */
@@ -64,4 +72,16 @@ export async function runAccountServiceProvisioning(input: {
     }
   }
   return { delivered, failed, pending };
+}
+
+export async function dispatchAccountServiceProvision(input: {
+  readonly platform: D1AccountPlatformService;
+  readonly adapter: AccountServiceProvisioningAdapterV1;
+  readonly operationId: string;
+}): Promise<void> {
+  const delivery = await input.platform.pendingProvisionOperation(
+    input.adapter.authority,
+    input.operationId,
+  );
+  if (delivery) await deliverProvisioning(input.platform, input.adapter, delivery);
 }

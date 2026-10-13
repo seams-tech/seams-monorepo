@@ -35,5 +35,6 @@ export interface AccountConsoleContext {
   readonly walletProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly authorizeTenant: ((claims: ConsoleAuthClaims) => Response | null) | null;
+  readonly waitUntil: ((work: Promise<unknown>) => void) | null;
   authClaims?: ConsoleAuthClaims;
 }

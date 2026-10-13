@@ -55,6 +55,7 @@ export interface AccountConsoleRouterOptions {
   readonly billingStripeWebhookSigningSecret: string | null;
   readonly corsOrigins?: readonly (string | undefined)[];
   readonly logger?: RouterLogger;
+  readonly waitUntil?: (work: Promise<unknown>) => void;
 }
 
 export type AccountConsoleFetchHandler = (request: Request) => Promise<Response>;
@@ -139,6 +140,7 @@ async function routeAccountRequest(
     orgProjects: options.services.orgProjects,
     organizationAccess: options.services.organizationAccess,
     authorizeTenant: null,
+    waitUntil: options.waitUntil ?? null,
   };
   try {
     for (const handle of ACCOUNT_HANDLERS) {

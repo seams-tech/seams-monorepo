@@ -1,3 +1,8 @@
+import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
+import {
+  createSatyrProvisioningAdapterFromEnvironment,
+  type SatyrProvisioningEnvironment,
+} from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
 import type { D1AccountServiceAccess } from '@seams-internal/console-server/accountPlatform/serviceAccess';
 import type { D1AccountMembershipFacade } from '@seams-internal/console-server/accountPlatform/membershipFacade';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
@@ -1006,7 +1011,6 @@ async function createCloudflareD1ConsoleCommonServices(
     database: normalized.consoleDatabase,
     namespace: normalized.namespace,
     deploymentId: normalized.deploymentId,
-    platform: core.accountPlatform,
     usage: core.billingUsage,
   });
   if (normalized.ensureSchema) await walletMonthlyUsage.ensureSchema();
@@ -1276,4 +1280,43 @@ export function asRouterApiOptions(
   input: CloudflareD1RouterApiStorageOptions,
 ): CloudflareD1RouterApiStorageOptions {
   return input;
+}
+
+async function resumeSatyrProvisioning(
+  environment: SatyrProvisioningEnvironment,
+  bundle: CloudflareD1ConsoleOnlyServiceBundle,
+): Promise<void> {
+  const adapter = createSatyrProvisioningAdapterFromEnvironment(
+    environment,
+    bundle.serviceAccess,
+    globalThis.fetch.bind(globalThis),
+  );
+  if (adapter)
+    await runAccountServiceProvisioning({ platform: bundle.accountPlatform, adapter, limit: 20 });
+}
+
+/** Scheduled work has independent service failures and never initializes schemas. */
+export async function resumeCloudflareD1AccountServices(
+  bindings: CloudflareD1ConsoleOnlyStorageBindings,
+  route: Pick<CloudflareD1ConsoleRouteOptions, 'namespace' | 'deploymentId'>,
+  environment: SatyrProvisioningEnvironment,
+): Promise<void> {
+  const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
+    bindings,
+    route,
+    adapters: { ensureSchema: false },
+  });
+  const results = await Promise.allSettled([
+    runAccountServiceProvisioning({
+      platform: bundle.accountPlatform,
+      adapter: bundle.walletProvisioning,
+      limit: 20,
+    }),
+    bundle.walletMonthlyUsage.resumePending(20),
+    resumeSatyrProvisioning(environment, bundle),
+  ]);
+  for (const result of results) {
+    if (result.status === 'rejected')
+      console.error('Account service scheduled work failed', result.reason);
+  }
 }

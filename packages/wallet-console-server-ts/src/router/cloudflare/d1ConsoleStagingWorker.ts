@@ -1,7 +1,6 @@
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
-import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
 import {
-  createSatyrProvisioningAdapterFromEnvironment,
+  satyrProvisioningForConsoleRoute,
   type SatyrProvisioningEnvironment,
 } from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
 import {
@@ -76,6 +75,7 @@ import {
 import {
   consoleCoreServicesFromBundle,
   createCloudflareD1ConsoleOnlyServiceBundle,
+  resumeCloudflareD1AccountServices,
   createConsoleWebhookSecretCipherFromEnv,
   walletConsoleServicesFromBundle,
 } from './d1ConsoleServices';
@@ -672,7 +672,8 @@ async function createConsoleHandler(
     if (tenantDeploymentAutomationResponse) return tenantDeploymentAutomationResponse;
     const relayResponse = await relayHandler(request, ctx);
     if (relayResponse) return relayResponse;
-    const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
+    const satyrProvisioning = satyrProvisioningForConsoleRoute(
+      new URL(request.url).pathname,
       env,
       bundle.serviceAccess,
       globalThis.fetch.bind(globalThis),
@@ -1083,38 +1084,6 @@ async function runConsoleTenantRootRefreshResumptionV1(
   }
 }
 
-async function resumeAccountServices(env: CloudflareD1ConsoleStagingEnv): Promise<void> {
-  const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
-  const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
-    bindings: { consoleDatabase: env.CONSOLE_DB },
-    route: { namespace, deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') },
-    adapters: { ensureSchema: false },
-  });
-  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
-    env,
-    bundle.serviceAccess,
-    globalThis.fetch.bind(globalThis),
-  );
-  const pending: Promise<unknown>[] = [
-    runAccountServiceProvisioning({
-      platform: bundle.accountPlatform,
-      adapter: bundle.walletProvisioning,
-      limit: 20,
-    }),
-    bundle.walletMonthlyUsage.resumePending(20),
-  ];
-  if (satyrProvisioning) {
-    pending.push(
-      runAccountServiceProvisioning({
-        platform: bundle.accountPlatform,
-        adapter: satyrProvisioning,
-        limit: 20,
-      }),
-    );
-  }
-  await Promise.all(pending);
-}
-
 function consoleScheduledHandler(env: CloudflareD1ConsoleStagingEnv): ScheduledHandler {
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const tenantRootRefreshResumption: TenantRootRefreshResumptionRunner =
@@ -1138,7 +1107,16 @@ async function scheduled(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<void> {
-  ctx.waitUntil(resumeAccountServices(env));
+  ctx.waitUntil(
+    resumeCloudflareD1AccountServices(
+      { consoleDatabase: env.CONSOLE_DB },
+      {
+        namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
+        deploymentId: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
+      },
+      env,
+    ),
+  );
   ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
   const handler = consoleScheduledHandler(env);
   await handler(event, env, ctx);

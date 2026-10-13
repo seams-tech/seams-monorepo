@@ -164,6 +164,25 @@ function provisionResultState(
   }
 }
 
+export function createSatyrProvisioningBinding(
+  scope: PlatformScopeV1,
+  configuration: Pick<
+    SatyrProvisioningConfigurationV1,
+    'deploymentId' | 'placementCellId' | 'environment'
+  >,
+): ServiceBindingRequestV1 {
+  return {
+    kind: 'create_native_scope',
+    serviceId: 'satyr',
+    parent: scope,
+    configuration: {
+      deploymentId: configuration.deploymentId,
+      placementCellId: configuration.placementCellId,
+      environment: configuration.environment,
+    },
+  };
+}
+
 /** Retries sign fresh owner proof around the original durable command. */
 export class SatyrServiceProvisioningAdapterV1 implements AccountServiceProvisioningAdapterV1 {
   readonly authority: ServiceProducerAuthorityV1;
@@ -214,17 +233,7 @@ export class SatyrServiceProvisioningAdapterV1 implements AccountServiceProvisio
   }
 
   createBinding(scope: PlatformScopeV1): ServiceBindingRequestV1 {
-    const configuration = this.options.configuration;
-    return {
-      kind: 'create_native_scope',
-      serviceId: 'satyr',
-      parent: scope,
-      configuration: {
-        deploymentId: configuration.deploymentId,
-        placementCellId: configuration.placementCellId,
-        environment: configuration.environment,
-      },
-    };
+    return createSatyrProvisioningBinding(scope, this.options.configuration);
   }
 
   async prepareDelivery(

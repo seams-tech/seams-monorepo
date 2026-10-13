@@ -1,3 +1,5 @@
+import { createWalletMonthlyUsageStatement } from '../billing/usage';
+import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type { D1PreparedStatementLike, RouteResponse } from '@seams/wallet-server/cloud-host';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
 import {
@@ -303,6 +305,9 @@ export async function reconcileSponsoredExecution(
 }
 
 interface SponsoredFundsCommitInput {
+  readonly database: D1DatabaseLike;
+  readonly namespace: string;
+  readonly organizationId: string;
   readonly funds: WalletExecutionFunds;
   readonly handle: SponsoredPrepaidReservationHandle;
   readonly reservation: FundsReservationV1;
@@ -353,6 +358,26 @@ async function commitSponsoredFunds(input: SponsoredFundsCommitInput): Promise<v
     ]),
   };
   const statements = [input.statement];
+  if (
+    input.request.chainFamily === 'evm' &&
+    input.request.intentKind === 'evm_call' &&
+    input.assessment.receiptStatus === 'success'
+  ) {
+    statements.push(
+      createWalletMonthlyUsageStatement({
+        database: input.database,
+        namespace: input.namespace,
+        deploymentId: input.handle.authority.deploymentId,
+        organizationId: input.organizationId,
+        instanceId: input.handle.instanceId,
+        sourceRecordId: input.recordId,
+        sourceDigest: evidence.sourceDigest,
+        environmentId: input.request.environmentId,
+        walletId: input.resourceId,
+        occurredAt: input.occurredAt,
+      }),
+    );
+  }
   if (!input.quote.released) {
     const quote = accepted(
       TrustedWalletExecutionQuoteV1.parse({
@@ -568,6 +593,9 @@ async function commitSponsoredExecution(
   const before = await readSponsorshipBillingBalanceSnapshot(input.billing, input.context);
   try {
     await commitSponsoredFunds({
+      database: calls.database,
+      namespace: calls.namespace,
+      organizationId: input.context.orgId,
       funds,
       handle,
       reservation,

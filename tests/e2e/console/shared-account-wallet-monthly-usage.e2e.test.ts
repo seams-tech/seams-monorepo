@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -20,10 +21,15 @@ import type {
 } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { WalletServiceProvisioningAdapter } from '../../../packages/wallet-console-server-ts/src/accountPlatform/provisioning';
-import { WalletBillingActivityV1 } from '../../../packages/wallet-console-server-ts/src/billing/activity';
-import { WalletMonthlyUsageAdapter } from '../../../packages/wallet-console-server-ts/src/billing/usage';
+import {
+  WalletMonthlyUsageAdapter,
+  createWalletMonthlyUsageStatement,
+} from '../../../packages/wallet-console-server-ts/src/billing/usage';
 import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
-import { createD1ConsoleSponsoredCallService } from '../../../packages/wallet-console-server-ts/src/sponsoredCalls/d1';
+import {
+  createD1ConsoleSponsoredCallRecordInsertStatement,
+  createD1ConsoleSponsoredCallService,
+} from '../../../packages/wallet-console-server-ts/src/sponsoredCalls/d1';
 import { createD1ConsoleWalletService } from '../../../packages/wallet-console-server-ts/src/wallets/d1';
 import { createRouterApiWalletRegistrationProjectionAdapter } from '../../../packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
 import { activateWalletProject } from '../../helpers/accountWalletProject.fixtures';
@@ -140,7 +146,6 @@ async function product(database: D1DatabaseLike, clock: Clock) {
     database,
     namespace,
     deploymentId,
-    platform: core.accountPlatform,
     usage: core.billingUsage,
   });
   return { core, environments, wallets, executions, monthly, requestDatabase };
@@ -192,58 +197,62 @@ async function createWallet(
   });
 }
 
-async function createReceipt(
+async function captureReceipt(
+  database: D1DatabaseLike,
   product: Product,
+  clock: Clock,
   context: typeof owner,
   projectId: string,
   walletId: string,
   label: string,
-  receiptStatus: 'success' | 'reverted' = 'success',
-) {
-  return product.executions.createRecord(context, {
-    id: `source:${label}`,
-    environmentId: `${projectId}:dev`,
-    apiKeyId: 'fixture-credential',
-    apiKeyKind: 'publishable_key',
-    route: '/evm/call',
-    policyId: 'fixture-policy',
-    chainFamily: 'evm',
-    intentKind: 'evm_call',
-    executorKind: 'evm_eoa',
-    accountRef: `near:${walletId}`,
-    targetRef: '0x1111111111111111111111111111111111111111',
-    sponsorRef: 'fixture-sponsor',
-    txOrExecutionRef: `accepted-transaction:${label}`,
-    receiptStatus,
-    feeUnit: 'wei',
-    feeAmount: '1',
-    detailsJson: JSON.stringify({ walletId }),
-    idempotencyKey: `request:${label}`,
-  });
-}
-
-function activity(
-  nativeOrganizationId: string,
-  sourceRecordId: string,
-  overrides: {
-    readonly action?: 'transfer' | 'swap' | 'approve' | 'contract_call' | 'wallet_created';
-    readonly succeeded?: boolean;
-    readonly isSimulation?: boolean;
-    readonly isInternalRetry?: boolean;
-  } = {},
-): WalletBillingActivityV1 {
-  return accepted(
-    WalletBillingActivityV1.parse({
-      version: 1,
-      kind: 'accepted_evm_wallet_action',
-      nativeOrganizationId,
-      sourceRecordId,
-      action: overrides.action ?? 'contract_call',
-      succeeded: overrides.succeeded ?? true,
-      isSimulation: overrides.isSimulation ?? false,
-      isInternalRetry: overrides.isInternalRetry ?? false,
-    }),
+): Promise<void> {
+  const binding = accepted(
+    await product.core.accountPlatform.resolveWalletBinding(
+      { serviceId: 'wallet', deploymentId },
+      { namespace, nativeOrganizationId: context.orgId, nativeProjectId: projectId },
+    ),
   );
+  const recordId = `source:${label}`;
+  const receipt = createD1ConsoleSponsoredCallRecordInsertStatement({
+    database,
+    namespace,
+    ctx: context,
+    recordId,
+    createdAtMs: clock.now().getTime(),
+    request: {
+      id: recordId,
+      environmentId: `${projectId}:dev`,
+      apiKeyId: 'fixture-credential',
+      apiKeyKind: 'publishable_key',
+      route: '/evm/call',
+      policyId: 'fixture-policy',
+      chainFamily: 'evm',
+      intentKind: 'evm_call',
+      executorKind: 'evm_eoa',
+      accountRef: `near:${walletId}`,
+      targetRef: '0x1111111111111111111111111111111111111111',
+      sponsorRef: 'fixture-sponsor',
+      txOrExecutionRef: `accepted:${label}`,
+      receiptStatus: 'success',
+      feeUnit: 'wei',
+      feeAmount: '1',
+      detailsJson: JSON.stringify({ walletId }),
+      idempotencyKey: `request:${label}`,
+    },
+  });
+  const fact = createWalletMonthlyUsageStatement({
+    database,
+    namespace,
+    deploymentId,
+    organizationId: context.orgId,
+    instanceId: binding.instanceId,
+    sourceRecordId: recordId,
+    sourceDigest: createHash('sha256').update(label).digest('hex'),
+    environmentId: `${projectId}:dev`,
+    walletId,
+    occurredAt: clock.now().toISOString(),
+  });
+  await database.batch([receipt, fact]);
 }
 
 async function changeState(
@@ -295,7 +304,7 @@ async function rows(database: D1DatabaseLike, table: string) {
   return result.results ?? [];
 }
 
-test('Wallet monthly producer retains accepted facts across lost replies, restart and archive', async () => {
+test('Wallet monthly facts survive lost replies, restart, archive and a UTC month boundary', async () => {
   await mkdir(output, { recursive: true });
   await rm(path.join(output, 'state'), { recursive: true, force: true });
   const clock = new Clock();
@@ -312,52 +321,7 @@ test('Wallet monthly producer retains accepted facts across lost replies, restar
     await createWallet(services, owner, 'wallet-a', resourceId);
     await createWallet(services, owner, 'wallet-b', resourceId);
     await createWallet(services, otherOwner, 'wallet-c', resourceId);
-    await createWallet(services, owner, 'wallet-a', 'wallet-late-accepted-resource');
-    const first = await createReceipt(services, owner, 'wallet-a', resourceId, 'first');
-    const second = await createReceipt(services, owner, 'wallet-b', resourceId, 'second');
-    const late = await createReceipt(
-      services,
-      owner,
-      'wallet-a',
-      'wallet-late-accepted-resource',
-      'late',
-    );
-    const foreign = await createReceipt(services, otherOwner, 'wallet-c', resourceId, 'foreign');
-    const failed = await createReceipt(
-      services,
-      owner,
-      'wallet-a',
-      resourceId,
-      'failed',
-      'reverted',
-    );
-    const unsupported = await createReceipt(
-      services,
-      owner,
-      'wallet-a',
-      'unknown-wallet',
-      'unsupported',
-    );
-    const exclusions = [];
-    for (const excluded of [
-      activity(owner.orgId, first.id, { action: 'wallet_created' }),
-      activity(owner.orgId, first.id, { succeeded: false }),
-      activity(owner.orgId, first.id, { isSimulation: true }),
-      activity(owner.orgId, first.id, { isInternalRetry: true }),
-    ]) {
-      const outcome = await services.monthly.recordAcceptedActivity(excluded);
-      expect(outcome.kind).toBe('accepted');
-      exclusions.push(outcome);
-    }
-    expect(await services.monthly.recordAcceptedActivity(activity(owner.orgId, failed.id))).toEqual(
-      { kind: 'rejected', error: { code: 'source_not_accepted' } },
-    );
-    expect(
-      await services.monthly.recordAcceptedActivity(activity(owner.orgId, unsupported.id)),
-    ).toEqual({ kind: 'rejected', error: { code: 'scope_forbidden' } });
-    expect(
-      await services.monthly.recordAcceptedActivity(activity(owner.orgId, foreign.id)),
-    ).toEqual({ kind: 'rejected', error: { code: 'source_not_accepted' } });
+    await createWallet(services, owner, 'wallet-a', 'late-wallet');
     const registration = createRouterApiWalletRegistrationProjectionAdapter({
       walletEnvironments: services.environments,
       wallets: services.wallets,
@@ -373,114 +337,82 @@ test('Wallet monthly producer retains accepted facts across lost replies, restar
       occurredAt: clock.now().toISOString(),
       sourceEventId: 'registration-only',
     });
-    expect(await rows(database, 'billing_usage_events')).toHaveLength(0);
     expect(await rows(database, 'wallet_monthly_usage_outbox')).toHaveLength(0);
+    await captureReceipt(database, services, clock, owner, 'wallet-a', resourceId, 'first');
     const lostReply = new WalletMonthlyUsageAdapter({
       database,
       namespace,
       deploymentId,
-      platform: services.core.accountPlatform,
       usage: new LostUsageReply(services.core.billingUsage),
     });
-    await expect(lostReply.recordAcceptedActivity(activity(owner.orgId, first.id))).rejects.toThrow(
+    await expect(lostReply.resumePending(20)).rejects.toThrow(
       'Controlled lost monthly usage response',
     );
     expect(await rows(database, 'billing_usage_events')).toHaveLength(1);
     const beforeRestart = await rows(database, 'wallet_monthly_usage_outbox');
     expect(beforeRestart[0].delivery_status).toBe('pending');
+    await captureReceipt(database, services, clock, owner, 'wallet-a', 'late-wallet', 'late');
     await changeState(services, 'wallet-a', 'disable', 2);
+    await changeState(services, 'wallet-a', 'archive', 3);
     await worker.dispose();
     worker = runtime();
     database = await databaseOf(worker);
     services = await product(database, clock);
-    expect(await services.monthly.resumePending(20)).toEqual({ delivered: 1, pending: 0 });
-    const replay = await services.monthly.recordAcceptedActivity(activity(owner.orgId, first.id));
-    expect(
-      replay.kind === 'accepted' && replay.value.kind === 'charged' && replay.value.amountMinor,
-    ).toBe(300);
-    expect(await rows(database, 'billing_usage_events')).toHaveLength(1);
-    expect(
-      await services.monthly.recordAcceptedActivity(
-        activity(owner.orgId, first.id, { action: 'swap' }),
-      ),
-    ).toEqual({ kind: 'rejected', error: { code: 'event_conflict' } });
-    const secondProject = await services.monthly.recordAcceptedActivity(
-      activity(owner.orgId, second.id, { action: 'transfer' }),
-    );
-    expect(secondProject).toEqual({
-      kind: 'accepted',
-      value: { kind: 'recorded_without_charge', reason: 'meter_already_counted' },
-    });
-    await changeState(services, 'wallet-a', 'archive', 3);
-    const lateResult = await services.monthly.recordAcceptedActivity(
-      activity(owner.orgId, late.id, { action: 'approve' }),
-    );
-    expect(
-      lateResult.kind === 'accepted' &&
-        lateResult.value.kind === 'charged' &&
-        lateResult.value.amountMinor,
-    ).toBe(300);
-    const otherAccount = await services.monthly.recordAcceptedActivity(
-      activity(otherOwner.orgId, foreign.id),
-    );
-    expect(
-      otherAccount.kind === 'accepted' &&
-        otherAccount.value.kind === 'charged' &&
-        otherAccount.value.amountMinor,
-    ).toBe(300);
+    expect(await services.monthly.resumePending(20)).toEqual({ delivered: 2, pending: 0 });
+    expect(await services.monthly.resumePending(20)).toEqual({ delivered: 0, pending: 0 });
+    await captureReceipt(database, services, clock, owner, 'wallet-b', resourceId, 'second');
+    await captureReceipt(database, services, clock, otherOwner, 'wallet-c', resourceId, 'foreign');
+    await services.monthly.resumePending(20);
     clock.at = '2026-11-01T00:00:00.000Z';
-    const november = await createReceipt(services, owner, 'wallet-b', resourceId, 'november');
-    const nextMonth = await services.monthly.recordAcceptedActivity(
-      activity(owner.orgId, november.id),
-    );
-    expect(
-      nextMonth.kind === 'accepted' &&
-        nextMonth.value.kind === 'charged' &&
-        nextMonth.value.amountMinor,
-    ).toBe(300);
+    await captureReceipt(database, services, clock, owner, 'wallet-b', resourceId, 'november');
+    await services.monthly.resumePending(20);
     const ledger = await rows(database, 'billing_ledger_entries');
     expect(ledger).toHaveLength(4);
-    const ownerBalance = await services.core.billing.getOverview(owner);
-    const otherBalance = await services.core.billing.getOverview(otherOwner);
-    expect(ownerBalance.creditBalanceMinor).toBe(-900);
-    expect(otherBalance.creditBalanceMinor).toBe(-300);
-    const usageEvents = await rows(database, 'billing_usage_events');
-    expect(usageEvents).toHaveLength(5);
+    expect((await services.core.billing.getOverview(owner)).creditBalanceMinor).toBe(-900);
+    expect((await services.core.billing.getOverview(otherOwner)).creditBalanceMinor).toBe(-300);
     const outbox = await rows(database, 'wallet_monthly_usage_outbox');
     expect(outbox).toHaveLength(5);
-    expect(outbox.every(isDelivered)).toBe(true);
+    for (const row of outbox) expect(row.delivery_status).toBe('delivered');
     await expect(
       database
         .prepare("UPDATE wallet_monthly_usage_outbox SET payload_json = '{}' WHERE event_id = ?")
         .bind(beforeRestart[0].event_id)
         .run(),
     ).rejects.toThrow('wallet_monthly_usage_fact_immutable');
+    // Retained history must not be visited by an empty retry scan.
+    await database
+      .prepare(
+        `WITH RECURSIVE history(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM history WHERE n < 10000)
+      INSERT INTO wallet_monthly_usage_outbox SELECT namespace, deployment_id, 'history:' || n, native_org_id,
+      'history:' || n, instance_id, payload_json, 'delivered' FROM wallet_monthly_usage_outbox, history
+      WHERE event_id = ?`,
+      )
+      .bind(beforeRestart[0].event_id)
+      .run();
+    const plan = await database
+      .prepare(
+        `EXPLAIN QUERY PLAN SELECT payload_json FROM wallet_monthly_usage_outbox
+      WHERE namespace = ? AND deployment_id = ? AND delivery_status = 'pending' ORDER BY event_id LIMIT ?`,
+      )
+      .bind(namespace, deploymentId, 20)
+      .all();
+    expect(JSON.stringify(plan.results)).toContain('wallet_monthly_usage_pending');
+    expect(await services.monthly.resumePending(20)).toEqual({ delivered: 0, pending: 0 });
     await writeFile(
       path.join(output, 'evidence.json'),
       JSON.stringify(
         {
-          kind: 'wallet_monthly_usage_acceptance_v1',
-          exclusions,
           beforeRestart,
-          replay,
-          secondProject,
-          lateResult,
-          otherAccount,
-          nextMonth,
           ledger,
-          postings: await rows(database, 'billing_ledger_postings'),
-          usageReceipts: await rows(database, 'billing_usage_receipts'),
-          monthlyResources: await rows(database, 'billing_monthly_active_resources'),
-          ownerBalance,
-          otherBalance,
-          runtimeSchemaRequests: services.requestDatabase.schemaRequests,
-          usageEvents,
           outbox,
-          sourceReceipts: await rows(database, 'sponsored_call_records'),
+          pendingQueryPlan: plan.results,
+          retainedHistory: 10005,
+          runtimeSchemaRequests: services.requestDatabase.schemaRequests,
+          monthlyResources: await rows(database, 'billing_monthly_active_resources'),
           repeat:
             'pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/shared-account-wallet-monthly-usage.e2e.test.ts --reporter=line',
           limits:
-            'Local Miniflare D1 and production producers. Accepted execution receipts contain synthetic execution references. No signing or live provider execution is claimed.',
+            'Local D1 receipt transactions. Production settlement integration is exercised by shared-wallet-settlement.e2e.test.ts.',
         },
         null,
         2,
@@ -490,7 +422,3 @@ test('Wallet monthly producer retains accepted facts across lost replies, restar
     await worker.dispose();
   }
 });
-
-function isDelivered(row: Record<string, unknown>): boolean {
-  return row.delivery_status === 'delivered';
-}

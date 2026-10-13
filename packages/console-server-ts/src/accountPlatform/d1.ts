@@ -464,11 +464,41 @@ export class D1AccountPlatformService {
       this.database,
       `SELECT o.* FROM platform_provision_operations o
       JOIN platform_service_instances i ON i.namespace = o.namespace AND i.operation_id = o.id
-      WHERE o.namespace = ? AND o.service_id = ? AND o.deployment_id = ? AND o.status = 'pending'
-      ORDER BY o.created_at_ms, o.id LIMIT ?`,
-      [this.namespace, authority.serviceId, authority.deploymentId, limit],
+      WHERE o.namespace = ? AND o.service_id = ? AND o.deployment_id = ? AND o.status = 'pending' AND o.next_attempt_at_ms <= ?
+      ORDER BY o.next_attempt_at_ms, o.created_at_ms, o.id LIMIT ?`,
+      [this.namespace, authority.serviceId, authority.deploymentId, this.now().getTime(), limit],
     );
     return rows.map(provisionDelivery);
+  }
+
+  async pendingProvisionOperation(
+    authority: ServiceProducerAuthorityV1,
+    operationId: string,
+  ): Promise<ServiceProvisionDeliveryV1 | null> {
+    const row = await queryD1One(
+      this.database,
+      `SELECT o.* FROM platform_provision_operations o
+       JOIN platform_service_instances i ON i.namespace = o.namespace AND i.operation_id = o.id
+       WHERE o.namespace = ? AND o.id = ? AND o.service_id = ? AND o.deployment_id = ? AND o.status = 'pending'`,
+      [this.namespace, operationId, authority.serviceId, authority.deploymentId],
+    );
+    return row ? provisionDelivery(row) : null;
+  }
+
+  async deferProvision(authority: ServiceProducerAuthorityV1, operationId: string): Promise<void> {
+    await this.database
+      .prepare(
+        `UPDATE platform_provision_operations
+      SET next_attempt_at_ms = ? WHERE namespace = ? AND id = ? AND service_id = ? AND deployment_id = ? AND status = 'pending'`,
+      )
+      .bind(
+        this.now().getTime() + 60_000,
+        this.namespace,
+        operationId,
+        authority.serviceId,
+        authority.deploymentId,
+      )
+      .run();
   }
 
   async checkWalletAdmission(

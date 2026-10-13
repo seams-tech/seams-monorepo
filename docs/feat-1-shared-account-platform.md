@@ -3,7 +3,9 @@
 Status: Phases 1 through 4 and Phase 5 staging are implemented and validated.
 Staging cutover and the deployed request-latency repair are complete.
 Production platform migration is deferred by the user, pending the separate Wallet rollout.
-Date: October 13, 2026.
+Date: October 14, 2026.
+October 14 architecture corrections are implemented locally; deployment remains pending.
+See Phase 3 monthly capture and Phase 4 architecture corrections.
 
 Implementation evidence: [Phase 1 contracts and inventory](shared-account-platform/phase-1.md).
 Account composition evidence: [Phase 2 implementation](shared-account-platform/phase-2.md).

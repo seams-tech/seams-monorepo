@@ -98,6 +98,7 @@ export const ACCOUNT_PLATFORM_D1_SCHEMA_SQL = Object.freeze([
     status TEXT NOT NULL CHECK (status IN ('pending', 'applied', 'failed')),
     actor_user_id TEXT NOT NULL,
     authority_revision INTEGER NOT NULL CHECK (authority_revision >= 0),
+    next_attempt_at_ms INTEGER NOT NULL DEFAULT 0,
     failure_code TEXT,
     created_at_ms INTEGER NOT NULL,
     PRIMARY KEY (namespace, id),
@@ -109,6 +110,8 @@ export const ACCOUNT_PLATFORM_D1_SCHEMA_SQL = Object.freeze([
     CHECK ((status = 'failed' AND failure_code IS NOT NULL)
       OR (status <> 'failed' AND failure_code IS NULL))
   )`,
+  `CREATE INDEX IF NOT EXISTS platform_provision_pending ON platform_provision_operations
+    (namespace, service_id, deployment_id, next_attempt_at_ms, created_at_ms, id) WHERE status = 'pending'`,
   `CREATE TABLE IF NOT EXISTS platform_provision_receipts (
     namespace TEXT NOT NULL,
     operation_id TEXT NOT NULL,

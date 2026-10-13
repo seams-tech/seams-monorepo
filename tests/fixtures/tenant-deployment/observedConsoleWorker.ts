@@ -99,7 +99,11 @@ async function fetch(
 ): Promise<Response> {
   if (new URL(request.url).pathname === '/__test/scheduled') {
     const lifetime = new ScheduledLifetime();
-    await consoleWorker.scheduled({ scheduledTime: Date.now(), cron: '* * * * *' }, env, lifetime);
+    await consoleWorker.scheduled(
+      { scheduledTime: Date.now(), cron: '* * * * *' },
+      walletRequestEnvironment(request, env),
+      lifetime,
+    );
     await Promise.all(lifetime.pending);
     return Response.json({ ok: true });
   }

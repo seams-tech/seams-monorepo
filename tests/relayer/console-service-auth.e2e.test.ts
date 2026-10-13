@@ -515,7 +515,13 @@ test('production Console service bindings enforce durable credential changes and
       ...service.lastDatabaseWork,
     });
 
-    service.accountKeysUnavailable = false;
+    expect(
+      (await service.fetch('https://console.example.test/console/account/profile')).status,
+    ).toBe(401);
+    expect(
+      (await service.fetch(`https://console.example.test/console/projects/${projectId}/services`))
+        .status,
+    ).toBe(401);
     observations.push({ stage: 'wallet_routes_skip_account_key_initialization', verified: true });
     await verifyScheduledWalletProvisioning(
       database,
@@ -526,10 +532,12 @@ test('production Console service bindings enforce durable credential changes and
     );
     observations.push({
       stage: 'scheduled_wallet_retry',
+      invalidSatyrConfigurationIsolated: true,
       requestDidNotProvision: true,
       scheduledProvisioningCompleted: true,
     });
 
+    service.accountKeysUnavailable = false;
     const nowMs = Date.now();
     const deployments = createD1TenantDeploymentServiceV1({ database });
     const deployment = await deployments.putBinding(

@@ -117,3 +117,22 @@ void automationSession;
 void customerTestPrice;
 void incompleteFee;
 void mismatchedTerminal;
+
+import type { OrganizationInvitationScope } from '../../packages/console-server-ts/src/teamRbac/d1';
+declare const serviceInvitationScope: Extract<
+  OrganizationInvitationScope,
+  { readonly kind: 'service' }
+>;
+// @ts-expect-error Service invitations require deployment and authority revision together.
+const incompleteInvitationScope: OrganizationInvitationScope = {
+  kind: 'service',
+  instanceId: 'instance',
+  serviceId: 'satyr',
+};
+// @ts-expect-error Spreading a service scope cannot produce an organization invitation.
+const mixedInvitationScope: OrganizationInvitationScope = {
+  ...serviceInvitationScope,
+  kind: 'organization',
+};
+void incompleteInvitationScope;
+void mixedInvitationScope;

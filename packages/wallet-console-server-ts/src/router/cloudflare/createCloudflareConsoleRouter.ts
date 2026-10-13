@@ -3150,7 +3150,6 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       return json({ ok: true, usage }, { status: 200 });
     }
 
-
     if (
       ctx.method === 'POST' &&
       ctx.pathname === '/console/platform/billing/adjustments/support-credit'
@@ -3465,6 +3464,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       readyz: opts.readyz ?? false,
       readyCheck: opts.readyCheck ?? null,
       authorizeTenant: null,
+      waitUntil: cfCtx?.waitUntil ? cfCtx.waitUntil.bind(cfCtx) : null,
       billingStripeWebhookSigningSecret: opts.billingStripeWebhookSigningSecret ?? null,
       accountPlatform: opts.accountPlatform ?? null,
       walletProvisioning: opts.walletProvisioning ?? null,

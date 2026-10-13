@@ -10,7 +10,7 @@ import {
   textValue,
 } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
-  runAccountServiceProvisioning,
+  dispatchAccountServiceProvision,
   type AccountServiceProvisioningAdapterV1,
 } from '../../accountPlatform/provisioning';
 import type { AccountPlatformError } from '../../accountPlatform/types';
@@ -112,9 +112,15 @@ async function changeService(
     command: command.value,
   });
   if (requested.kind === 'rejected') return platformFailure(requested.error);
-  if (adapter) await runAccountServiceProvisioning({ platform, adapter, limit: 20 });
-  const observed = await platform.getInstance(accessContext, command.value.instanceId);
-  if (observed.kind === 'rejected') return platformFailure(observed.error);
+  if (adapter && context.waitUntil) {
+    context.waitUntil(
+      dispatchAccountServiceProvision({
+        platform,
+        adapter,
+        operationId: command.value.operationId,
+      }),
+    );
+  }
   return json({
     ok: true,
     operation: {
@@ -122,7 +128,7 @@ async function changeService(
       instanceId: command.value.instanceId,
       desiredRevision: command.value.desiredRevision,
     },
-    instance: observed.value,
+    instance: requested.value,
   });
 }
 

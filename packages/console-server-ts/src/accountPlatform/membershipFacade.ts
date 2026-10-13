@@ -1,3 +1,7 @@
+import type {
+  ConsoleOrganizationAccessD1Service,
+  OrganizationInvitationScope,
+} from '../teamRbac/d1';
 import type { VerifiedAccountUserAssertionV1 } from './serviceIngressAuth';
 import {
   ServiceEligibilityRequestV1,
@@ -8,10 +12,7 @@ import { integer, textValue } from '@seams-internal/console-shared/accountPlatfo
 import { billingCanonicalDigest } from '../billing/pricing';
 import { queryD1All, queryD1One, type D1DatabaseLike, type D1Row } from '../boundary/d1';
 import { ConsoleOrganizationAccessError } from '../teamRbac/errors';
-import type {
-  ConsoleOrganizationAccessService,
-  OrganizationAccessContext,
-} from '../teamRbac/service';
+import type { OrganizationAccessContext } from '../teamRbac/service';
 import type {
   ActiveOrganizationMembership,
   InviteOrganizationMemberRequest,
@@ -47,7 +48,7 @@ export interface AccountInstanceAccessV1 {
 export interface D1AccountMembershipFacadeOptions {
   readonly database: D1DatabaseLike;
   readonly namespace: string;
-  readonly organizationAccess: ConsoleOrganizationAccessService;
+  readonly organizationAccess: ConsoleOrganizationAccessD1Service;
   readonly access: D1AccountServiceAccess;
   readonly now?: () => Date;
 }
@@ -158,7 +159,7 @@ function acceptedMembership(row: D1Row): ActiveOrganizationMembership {
 export class D1AccountMembershipFacade {
   private readonly database: D1DatabaseLike;
   private readonly namespace: string;
-  private readonly organizationAccess: ConsoleOrganizationAccessService;
+  private readonly organizationAccess: ConsoleOrganizationAccessD1Service;
   private readonly access: D1AccountServiceAccess;
   private readonly clock: () => Date;
 
@@ -267,9 +268,10 @@ export class D1AccountMembershipFacade {
   private async issueInvitation(
     actor: ResolvedMembershipActor,
     request: InviteOrganizationMemberRequest,
+    scope: Extract<OrganizationInvitationScope, { readonly kind: 'service' }>,
   ): Promise<IssuedOrganizationInvitation> {
     try {
-      return await this.organizationAccess.invite(actor.context, request);
+      return await this.organizationAccess.inviteScoped(actor.context, request, scope);
     } catch (error) {
       if (
         !(error instanceof ConsoleOrganizationAccessError) ||
@@ -286,7 +288,11 @@ export class D1AccountMembershipFacade {
           invitation.invitedByUserId === actor.userId &&
           (await invitationGrantMatches(invitation, request))
         ) {
-          return this.organizationAccess.resendInvitation(actor.context, invitation.id);
+          return this.organizationAccess.resendInvitationScoped(
+            actor.context,
+            invitation.id,
+            scope,
+          );
         }
       }
       throw error;
@@ -301,42 +307,13 @@ export class D1AccountMembershipFacade {
   ): Promise<AccountMembershipResultV1<IssuedOrganizationInvitation>> {
     const actor = await this.eligibleActor(authority, assertion, instanceId, 'execute');
     if (actor.kind === 'rejected') return actor;
-    const issued = await this.issueInvitation(actor.value, request);
-    await this.database
-      .prepare(
-        `INSERT INTO platform_service_invitation_grants
-        (namespace, org_id, invitation_id, instance_id, granted_by_user_id, issued_authority_revision, created_at_ms)
-       SELECT v.namespace, v.org_id, v.id, i.id, ?, ?, ? FROM organization_invitations v
-       JOIN platform_service_instances i ON i.namespace = v.namespace AND i.org_id = v.org_id AND i.id = ?
-       JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
-       JOIN projects p ON p.namespace = i.namespace AND p.org_id = i.org_id AND p.id = i.project_id
-       WHERE v.namespace = ? AND v.org_id = ? AND v.id = ? AND v.kind = 'PENDING'
-         AND o.authorization_version = ? AND o.status = 'ACTIVE' AND p.status = 'ACTIVE'
-         AND i.service_id = ? AND i.deployment_id = ?
-         AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active'
-         AND i.observed_revision = i.desired_revision
-       ON CONFLICT(namespace, invitation_id, instance_id) DO UPDATE SET issued_authority_revision = excluded.issued_authority_revision`,
-      )
-      .bind(
-        actor.value.userId,
-        assertion.authorityRevision,
-        this.clock().getTime(),
-        instanceId,
-        this.namespace,
-        actor.value.scope.organizationId,
-        issued.invitation.id,
-        assertion.authorityRevision,
-        authority.serviceId,
-        authority.deploymentId,
-      )
-      .run();
-    const saved = await queryD1One(
-      this.database,
-      `SELECT invitation_id FROM platform_service_invitation_grants
-       WHERE namespace = ? AND org_id = ? AND instance_id = ? AND invitation_id = ?`,
-      [this.namespace, actor.value.scope.organizationId, instanceId, issued.invitation.id],
-    );
-    if (!saved) return rejected('membership_ineligible');
+    const issued = await this.issueInvitation(actor.value, request, {
+      kind: 'service',
+      instanceId,
+      serviceId: authority.serviceId,
+      deploymentId: authority.deploymentId,
+      authorityRevision: assertion.authorityRevision,
+    });
     return accepted(issued);
   }
 

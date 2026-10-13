@@ -7,15 +7,20 @@ import {
   ServiceEligibilityRequestV1,
   type ServiceEligibilityResultV1,
 } from '@seams-internal/console-shared/accountPlatform';
-import { integer, textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
+import {
+  assertNever,
+  integer,
+  textValue,
+} from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { ConsoleGoogleLoginResult } from '../boundary/providerIdentity';
 import { queryD1One, type D1DatabaseLike } from '../boundary/d1';
-import { billingCanonicalDigest, SATYR_COMPLETED_TURN_TEST_PRICE_V1 } from '../billing/pricing';
+import { SATYR_COMPLETED_TURN_TEST_PRICE_V1 } from '../billing/pricing';
 import type { ConsoleOrganizationAccessService } from '../teamRbac/service';
 import type { D1AccountPlatformService } from './d1';
 import { ensureAccountServiceAccessD1Schema } from './accessSchema';
 import {
   platformScopesEqual,
+  readPlatformScopeColumns,
   type AccountServiceInstanceV1,
   type ServiceProducerAuthorityV1,
   type ServiceProvisionDeliveryV1,
@@ -98,6 +103,60 @@ function authenticatedUser(
   assertion: VerifiedAccountUserAssertionV1,
 ): Extract<PlatformPrincipalV1, { readonly kind: 'user' }> | null {
   return assertion.principal.kind === 'user' ? assertion.principal : null;
+}
+
+function principalsEqual(left: PlatformPrincipalV1, right: PlatformPrincipalV1): boolean {
+  if (left.kind === 'automation') {
+    return (
+      right.kind === 'automation' &&
+      left.automationId === right.automationId &&
+      left.grantId === right.grantId
+    );
+  }
+  if (right.kind !== 'user') return false;
+  const identity = left.identity;
+  const other = right.identity;
+  if (identity.userId !== other.userId || identity.kind !== other.kind) return false;
+  if (identity.kind === 'verified_provider_subject') {
+    if (
+      other.kind !== 'verified_provider_subject' ||
+      identity.issuer !== other.issuer ||
+      identity.subject !== other.subject ||
+      identity.verificationReceiptId !== other.verificationReceiptId
+    )
+      return false;
+  } else if (
+    other.kind !== 'authenticated_account_link' ||
+    identity.accountLinkReceiptId !== other.accountLinkReceiptId
+  )
+    return false;
+  const authority = left.authority;
+  const target = right.authority;
+  switch (authority.kind) {
+    case 'authenticated_session':
+      return target.kind === authority.kind && authority.nativeSessionId === target.nativeSessionId;
+    case 'accepted_execution':
+      return (
+        target.kind === authority.kind &&
+        authority.acceptedExecutionId === target.acceptedExecutionId
+      );
+    case 'disclosure_recipient':
+      return (
+        target.kind === authority.kind &&
+        authority.disclosureEvidenceId === target.disclosureEvidenceId
+      );
+    case 'authenticated_provider_event':
+      return (
+        target.kind === authority.kind &&
+        authority.provider === target.provider &&
+        authority.nativeEventId === target.nativeEventId &&
+        authority.nativeIntegrationAccountId === target.nativeIntegrationAccountId &&
+        authority.nativeWorkspaceId === target.nativeWorkspaceId &&
+        authority.nativeExternalUserId === target.nativeExternalUserId
+      );
+    default:
+      return assertNever(authority);
+  }
 }
 
 export class D1AccountServiceAccess {
@@ -595,91 +654,73 @@ export class D1AccountServiceAccess {
     if (
       request.instanceId !== assertion.instanceId ||
       request.action !== assertion.action ||
-      (await billingCanonicalDigest(request.principal)) !==
-        (await billingCanonicalDigest(assertion.principal))
+      !principalsEqual(request.principal, assertion.principal)
     )
       return eligibilityDenied('scope_forbidden');
-    const resolved = await this.resolveIdentity(authority, assertion);
-    if (resolved.kind === 'rejected') return eligibilityDenied('scope_forbidden');
-    if (
-      (await billingCanonicalDigest(resolved.value.principal)) !==
-      (await billingCanonicalDigest(assertion.principal))
-    )
+    const principal = assertion.principal;
+    if (principal.kind === 'user' && principal.identity.kind !== 'verified_provider_subject')
       return eligibilityDenied('scope_forbidden');
-    if (resolved.value.authorityRevision !== assertion.authorityRevision)
-      return eligibilityDenied('membership_ineligible');
-    if (assertion.principal.kind === 'automation') {
-      const grant = await queryD1One(
-        this.database,
-        `SELECT g.access_revision
-        FROM platform_automation_grants g JOIN platform_service_instances i ON i.namespace = g.namespace AND i.id = g.instance_id AND i.org_id = g.org_id
-        JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
-        JOIN projects p ON p.namespace = i.namespace AND p.org_id = i.org_id AND p.id = i.project_id
-        WHERE g.namespace = ? AND g.instance_id = ? AND g.automation_id = ? AND g.grant_id = ? AND g.native_principal_id = ? AND g.access = 'allowed'
-          AND o.authorization_version = ? AND o.status = 'ACTIVE' AND p.status = 'ACTIVE'
-          AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active' AND i.observed_revision = i.desired_revision`,
-        [
-          this.namespace,
-          assertion.instanceId,
-          assertion.principal.automationId,
-          assertion.principal.grantId,
-          assertion.nativePrincipalId,
-          assertion.authorityRevision,
-        ],
-      );
-      if (!grant) return eligibilityDenied('membership_ineligible');
-      return {
-        kind: 'accepted',
-        value: {
-          authorityRevision: resolved.value.authorityRevision,
-          accessRevision: integer(grant.access_revision, 'access_revision', 1),
-          scope: resolved.value.scope,
-          instanceId: resolved.value.instanceId,
-          principal: assertion.principal,
-          action: request.action,
-        },
-      };
-    }
-    const user = authenticatedUser(assertion);
-    if (!user) return eligibilityDenied('scope_forbidden');
-    const instance = await this.assertedInstance(authority, assertion);
-    if (!instance || instance.state.kind !== 'active')
-      return eligibilityDenied('instance_ineligible');
-    const access = await queryD1One(
+    const identityJoin =
+      principal.kind === 'automation'
+        ? `JOIN platform_automation_grants a ON a.namespace = i.namespace AND a.org_id = i.org_id AND a.instance_id = i.id
+          AND a.automation_id = ? AND a.grant_id = ? AND a.native_principal_id = ? AND a.access = 'allowed'`
+        : `JOIN platform_service_principals sp ON sp.namespace = i.namespace AND sp.instance_id = i.id AND sp.native_principal_id = ?
+         JOIN platform_provider_identities v ON v.namespace = sp.namespace AND v.user_id = sp.user_id
+           AND v.provider_issuer = sp.provider_issuer AND v.provider_subject = sp.provider_subject
+           AND v.user_id = ? AND v.provider_issuer = ? AND v.provider_subject = ? AND v.verification_receipt_id = ?
+         JOIN organization_memberships m ON m.namespace = i.namespace AND m.org_id = i.org_id AND m.user_id = v.user_id AND m.kind = 'ACTIVE'
+         JOIN platform_instance_access a ON a.namespace = i.namespace AND a.instance_id = i.id AND a.membership_id = m.id AND a.access = 'allowed'`;
+    const identityValues =
+      principal.kind === 'automation'
+        ? [principal.automationId, principal.grantId, assertion.nativePrincipalId]
+        : [
+            assertion.nativePrincipalId,
+            principal.identity.userId,
+            principal.identity.issuer,
+            principal.identity.subject,
+            principal.identity.verificationReceiptId,
+          ];
+    const permission =
+      principal.kind === 'automation'
+        ? ''
+        : `AND (m.role IN ('OWNER', 'ADMIN') OR EXISTS (
+      SELECT 1 FROM project_member_access x WHERE x.namespace = m.namespace AND x.org_id = m.org_id
+        AND x.membership_id = m.id AND x.project_id = i.project_id
+        AND (? IN ('disclose', 'replay') OR x.access_level = 'editor')))`;
+    const row = await queryD1One(
       this.database,
-      `SELECT o.authorization_version, a.access_revision FROM platform_service_instances i
-      JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
-      JOIN projects p ON p.namespace = i.namespace AND p.id = i.project_id AND p.org_id = i.org_id
-      JOIN organization_memberships m ON m.namespace = i.namespace AND m.org_id = i.org_id
-      JOIN platform_instance_access a ON a.namespace = i.namespace AND a.instance_id = i.id AND a.membership_id = m.id
-      WHERE i.namespace = ? AND i.id = ? AND i.service_id = ? AND i.deployment_id = ?
-        AND o.status = 'ACTIVE' AND p.status = 'ACTIVE' AND m.kind = 'ACTIVE' AND m.user_id = ? AND a.access = 'allowed'
-        AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active' AND i.observed_revision = i.desired_revision
-        AND o.authorization_version = ?
-        AND (m.role IN ('OWNER', 'ADMIN') OR EXISTS (SELECT 1 FROM project_member_access x
-          WHERE x.namespace = m.namespace AND x.org_id = m.org_id AND x.membership_id = m.id AND x.project_id = i.project_id
-            AND (? IN ('disclose', 'replay') OR x.access_level = 'editor')))
-        AND ((i.service_id = 'wallet' AND EXISTS (SELECT 1 FROM wallet_service_bindings b WHERE b.namespace = i.namespace AND b.instance_id = i.id AND b.deployment_id = i.deployment_id))
-          OR (i.service_id = 'satyr' AND EXISTS (SELECT 1 FROM satyr_service_bindings b WHERE b.namespace = i.namespace AND b.instance_id = i.id AND b.deployment_id = i.deployment_id)))`,
+      `SELECT i.namespace, i.org_id, i.project_id, i.billing_account_id, o.authorization_version, a.access_revision
+       FROM platform_service_instances i
+       JOIN organizations o ON o.namespace = i.namespace AND o.id = i.org_id
+       JOIN projects p ON p.namespace = i.namespace AND p.org_id = i.org_id AND p.id = i.project_id
+       ${identityJoin}
+       WHERE i.namespace = ? AND i.id = ? AND i.service_id = ? AND i.deployment_id = ?
+         AND o.status = 'ACTIVE' AND p.status = 'ACTIVE' AND o.authorization_version = ?
+         AND i.phase = 'active' AND i.desired_state = 'enabled' AND i.observed_state = 'active' AND i.observed_revision = i.desired_revision
+         ${permission}
+         AND ((i.service_id = 'wallet' AND EXISTS (SELECT 1 FROM wallet_service_bindings b WHERE b.namespace = i.namespace AND b.instance_id = i.id AND b.deployment_id = i.deployment_id))
+           OR (i.service_id = 'satyr' AND EXISTS (SELECT 1 FROM satyr_service_bindings b WHERE b.namespace = i.namespace AND b.instance_id = i.id AND b.deployment_id = i.deployment_id)))`,
       [
+        ...identityValues,
         this.namespace,
-        instance.instanceId,
+        assertion.instanceId,
         authority.serviceId,
         authority.deploymentId,
-        user.identity.userId,
         assertion.authorityRevision,
-        request.action,
+        ...(principal.kind === 'user' ? [request.action] : []),
       ],
     );
-    if (!access) return eligibilityDenied('membership_ineligible');
+    if (!row) return eligibilityDenied('membership_ineligible');
+    const scope = readPlatformScopeColumns(row);
+    if (!platformScopesEqual(scope, assertion.scope)) return eligibilityDenied('scope_forbidden');
     return {
       kind: 'accepted',
       value: {
-        authorityRevision: integer(access.authorization_version, 'authorization_version', 1),
-        accessRevision: integer(access.access_revision, 'access_revision', 1),
-        scope: instance.scope,
-        instanceId: instance.instanceId,
-        principal: user,
+        authorityRevision: integer(row.authorization_version, 'authorization_version', 1),
+        accessRevision: integer(row.access_revision, 'access_revision', 1),
+        scope,
+        instanceId: assertion.instanceId,
+        principal,
         action: request.action,
       },
     };

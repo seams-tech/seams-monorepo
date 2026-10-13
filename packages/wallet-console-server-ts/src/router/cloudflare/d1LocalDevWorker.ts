@@ -1,8 +1,8 @@
+import type { D1AccountServiceAccess } from '@seams-internal/console-server/accountPlatform/serviceAccess';
 import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
 import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
-import { runAccountServiceProvisioning } from '@seams-internal/console-server/accountPlatform/provisioning';
 import {
-  createSatyrProvisioningAdapterFromEnvironment,
+  satyrProvisioningForConsoleRoute,
   type SatyrProvisioningEnvironment,
 } from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
 import { D1RegionalDeploymentAdmission } from '../../tenantDeployment/regionalAdmission';
@@ -34,6 +34,7 @@ import { createCloudflareRouter } from '@seams/wallet-server/cloud-host';
 import {
   consoleCoreServicesFromBundle,
   createCloudflareD1ConsoleOnlyServiceBundle,
+  resumeCloudflareD1AccountServices,
   createCloudflareD1ConsoleServiceBundle,
   createCloudflareD1RouterApiRouteExtensions,
   walletConsoleServicesFromBundle,
@@ -1027,6 +1028,27 @@ async function provisionLocalTenantDeployment(
   });
 }
 
+async function routeLocalConsole(
+  env: LocalD1DevEnv,
+  access: D1AccountServiceAccess,
+  options: Parameters<typeof createHostedWalletConsoleRouter>[0],
+  request: Parameters<FetchHandler>[0],
+  workerEnv: Parameters<FetchHandler>[1],
+  ctx: Parameters<FetchHandler>[2],
+): Promise<Response> {
+  const satyrProvisioning = satyrProvisioningForConsoleRoute(
+    new URL(request.url).pathname,
+    env,
+    access,
+    globalThis.fetch.bind(globalThis),
+  );
+  return createHostedWalletConsoleRouter({ ...options, satyrProvisioning })(
+    request,
+    workerEnv,
+    ctx,
+  );
+}
+
 async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalConsoleComposition> {
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const billingProviders = localBillingProviderAdapters(env);
@@ -1049,30 +1071,17 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       webhookSecretCipher: localConsoleWebhookSecretCipher(env),
     },
   });
-  await bundle.walletMonthlyUsage.resumePending(20);
-  const satyrProvisioning = await createSatyrProvisioningAdapterFromEnvironment(
-    env,
-    bundle.serviceAccess,
-    globalThis.fetch.bind(globalThis),
-  );
-  if (satyrProvisioning) {
-    await runAccountServiceProvisioning({
-      platform: bundle.accountPlatform,
-      adapter: satyrProvisioning,
-      limit: 20,
-    });
-  }
   const session = localConsoleSession(env);
   const sessionAuth = createConsoleSessionAuthAdapter({
     session,
     organizationAccess: bundle.organizationAccess,
   });
   const auth = sessionAuth;
-  const handler = createHostedWalletConsoleRouter({
+  const handler = routeLocalConsole.bind(null, env, bundle.serviceAccess, {
     core: consoleCoreServicesFromBundle(bundle),
     walletConsole: walletConsoleServicesFromBundle(bundle),
     walletProvisioning: bundle.walletProvisioning,
-    satyrProvisioning,
+    satyrProvisioning: null,
     tenantStorage: {
       resolver: bundle.tenantStorageRouteResolver,
       namespace: bundle.tenantStorageNamespace,
@@ -2485,8 +2494,15 @@ async function runLocalTenantRootRefreshResumptionV1(
 async function scheduled(
   event: CfScheduledEvent,
   env: LocalD1DevEnv,
-  _ctx: CfExecutionContext,
+  ctx: CfExecutionContext,
 ): Promise<void> {
+  ctx.waitUntil(
+    resumeCloudflareD1AccountServices(
+      { consoleDatabase: env.CONSOLE_DB },
+      { namespace: localTenantStorageNamespace(env), deploymentId: LOCAL_TENANT_DEPLOYMENT_LANE },
+      env,
+    ),
+  );
   const runner: TenantRootRefreshResumptionRunner = runLocalTenantRootRefreshResumptionV1.bind(
     undefined,
     env,

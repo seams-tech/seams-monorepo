@@ -12,7 +12,11 @@ import type {
   PlatformScopeV1,
   ServiceBindingRequestV1,
 } from '../../../packages/console-shared-ts/src/accountPlatform';
-import type { AccountServiceProvisioningAdapterV1 } from '../../../packages/console-server-ts/src/accountPlatform/provisioning';
+import {
+  dispatchAccountServiceProvision,
+  runAccountServiceProvisioning,
+  type AccountServiceProvisioningAdapterV1,
+} from '../../../packages/console-server-ts/src/accountPlatform/provisioning';
 import type { ServiceProvisionDeliveryV1 } from '../../../packages/console-server-ts/src/accountPlatform/types';
 import type { ConsoleAccountIdentityContext } from '../../../packages/console-server-ts/src/account/service';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
@@ -135,6 +139,7 @@ function ownerIdentity(): ConsoleAccountIdentityContext {
 class InterruptibleProvisioningAdapter implements AccountServiceProvisioningAdapterV1 {
   readonly consoleHref = '/dashboard/overview';
   private connection: 'online' | 'offline' = 'online';
+  calls = 0;
 
   constructor(private readonly adapter: WalletServiceProvisioningAdapter) {}
 
@@ -162,6 +167,7 @@ class InterruptibleProvisioningAdapter implements AccountServiceProvisioningAdap
       { readonly code: 'unavailable' | 'provisioning_failed' }
     >
   > {
+    this.calls += 1;
     if (this.connection === 'offline') return { kind: 'rejected', error: { code: 'unavailable' } };
     return await this.adapter.provision(delivery);
   }
@@ -369,7 +375,12 @@ test('Wallet activation API controls native credentials across delayed shutdown 
     expect(activation.status).toBe(200);
     expect(await activation.json()).toMatchObject({
       ok: true,
-      instance: { state: { kind: 'active', desiredRevision: 1, observedRevision: 1 } },
+      instance: { state: { kind: 'provisioning', desiredRevision: 1 } },
+    });
+    await dispatchAccountServiceProvision({
+      platform: product.core.accountPlatform,
+      adapter: product.delivery,
+      operationId: 'enable-a-1',
     });
     expect(await environmentCount(database, 'wallet-project-a')).toBe(3);
     expect(await environmentCount(database, 'wallet-project-b')).toBe(0);
@@ -407,6 +418,11 @@ test('Wallet activation API controls native credentials across delayed shutdown 
       (await changeService(product.router, token, 'wallet-project-b', 'enable', 'enable-b-1', 1))
         .status,
     ).toBe(200);
+    await dispatchAccountServiceProvision({
+      platform: product.core.accountPlatform,
+      adapter: product.delivery,
+      operationId: 'enable-b-1',
+    });
     const keyB = await credentials(product.apiKeys, 'wallet-project-b');
     await product.environments.provisionProjectEnvironments(owner, {
       projectId: 'unbound-wallet-project',
@@ -509,7 +525,12 @@ test('Wallet activation API controls native credentials across delayed shutdown 
     expect(resumedShutdown.status).toBe(200);
     expect(await resumedShutdown.json()).toMatchObject({
       ok: true,
-      instance: { state: { kind: 'disabled', shutdown: { kind: 'confirmed' } } },
+      instance: { state: { kind: 'disabled', shutdown: { kind: 'pending' } } },
+    });
+    await dispatchAccountServiceProvision({
+      platform: product.core.accountPlatform,
+      adapter: product.delivery,
+      operationId: 'disable-a-2',
     });
     const reenabled = await changeService(
       product.router,
@@ -520,6 +541,11 @@ test('Wallet activation API controls native credentials across delayed shutdown 
       3,
     );
     expect(reenabled.status).toBe(200);
+    await dispatchAccountServiceProvision({
+      platform: product.core.accountPlatform,
+      adapter: product.delivery,
+      operationId: 'enable-a-3',
+    });
     expect(await environmentCount(database, 'wallet-project-a')).toBe(3);
     expect(
       (
@@ -545,9 +571,44 @@ test('Wallet activation API controls native credentials across delayed shutdown 
       path.join(output, 'after-restart.json'),
       `${JSON.stringify(afterRestart, null, 2)}\n`,
     );
+    product.delivery.disconnect();
+    const provisionCalls = product.delivery.calls;
+    for (let index = 0; index < 21; index += 1) {
+      const projectId = `queued-${index.toString().padStart(2, '0')}`;
+      await product.core.orgProjects.createProject(owner, { id: projectId, name: projectId });
+      const response = await changeService(
+        product.router,
+        token,
+        projectId,
+        'enable',
+        projectId,
+        1,
+      );
+      expect(response.status).toBe(200);
+    }
+    expect(product.delivery.calls).toBe(provisionCalls);
+    expect(
+      await runAccountServiceProvisioning({
+        platform: product.core.accountPlatform,
+        adapter: product.delivery,
+        limit: 20,
+      }),
+    ).toEqual({ delivered: 0, failed: 0, pending: 20 });
+    product.delivery.reconnect();
+    expect(
+      await runAccountServiceProvisioning({
+        platform: product.core.accountPlatform,
+        adapter: product.delivery,
+        limit: 1,
+      }),
+    ).toEqual({ delivered: 1, failed: 0, pending: 0 });
+    expect(await environmentCount(database, 'queued-20')).toBe(3);
     const report = {
       version: 1,
       passed: true,
+      requestProvisionCalls: 0,
+      unavailableOlderOperations: 20,
+      laterOperationDelivered: true,
       command:
         'pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/shared-account-wallet-activation.e2e.test.ts',
       migrations,

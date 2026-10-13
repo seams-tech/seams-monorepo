@@ -1,7 +1,7 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: all 16 selected Wallet contracts pass locally on celld and workerd, and on ordinary and Confidential Google VMs. Express, Node Gateway, and native VM host removal progressed. Final package, Console on celld, distributed Wallet, and cutover qualification remain open.
-Updated: October 13, 2026. Existing hosting support remains intact.
+Status: the classic Wallet hosts are removed. The local 0.11.0 candidate passes all 16 selected Wallet contracts on celld and workerd. Console composition also passes. The same candidate passes on ordinary and SEV-SNP Google VMs. Distributed Wallet, release promotion, and live cutover gates remain open.
+Updated: October 14,2026. Production rollout remains pending.
 
 ## Decision and purpose
 
@@ -134,7 +134,7 @@ implementation risk. It does not prove identical behavior across runtimes.
 - [x] Record current commits, released package versions, runtime versions, and artifact hashes in the acceptance records.
 - [ ] Trace active production, local-development, CLI, package-export, and test callers of each host adapter.
 - [ ] Classify each candidate as host-only, shared domain code, external integration, or independent tooling.
-- [x] Record initial candidate file counts and non-generated source lines below. The native crate still needs selective ownership classification.
+- [x] Record initial candidate file counts and non-generated source lines below. The native hosting modules are removed. Independent initializer and protocol helpers remain.
 - [ ] Inventory the exact Worker APIs, SQL features, migrations, and binding graph used by all roles and Console composition.
 - [x] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
 - [x] Prove the five-role graph loads without changes to protocol or domain logic. Exact package `@seams/wallet-server@0.9.3` passes the load check; lifecycle acceptance remains open.
@@ -311,9 +311,9 @@ host path that currently provides it.
 
 ## Phase 4 — Make self-hosted operation repeatable
 
-- [ ] Document and verify Linux VM deployment on Google Cloud using the same application package.
+- [x] Document and verify Linux VM deployment on Google Cloud using the same application package.
 - [ ] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
-- [ ] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
+- [x] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
 - [ ] Use multiple celld nodes, persistent disks, and a qualified regional S3/GCS bucket for the distributed acceptance runs.
 - [ ] Configure TLS ingress, trusted forwarded headers, private peer access, and network confidentiality.
 - [ ] Document fleet administrator access separately from application role permissions.
@@ -344,15 +344,15 @@ classic-host consumer has a verified replacement and a state-safe cutover path.
 ## Phase 5 — Delete the classic-host implementation
 
 - [ ] Move all supported callers and test launchers to the shared Worker path.
-- [ ] Remove Express request/response conversion and classic-host HTTP bridges.
-- [ ] Remove the Node Gateway host, its task emulation, and host-specific WASM loader.
-- [ ] Remove native VM routing, persistence, scheduler, and server-startup code whose only consumer was the retired backend.
+- [x] Remove Express request/response conversion and classic-host HTTP bridges.
+- [x] Remove the Node Gateway host, its task emulation, and host-specific WASM loader.
+- [x] Remove native VM routing, persistence, scheduler, and server-startup code whose only consumer was the retired backend.
 - [ ] Remove host-selection interfaces and builders after their last alternative implementation disappears.
 - [ ] Remove obsolete package exports, build entries, environment options, scripts, dependencies, CI jobs, and documentation.
-- [ ] Preserve domain helpers that happened to be re-exported by an adapter. Import them from their owning modules.
-- [ ] Preserve CLI, cryptographic verification, and developer tools with independent consumers. Do not delete `router-ab-dev` wholesale without this check.
+- [x] Preserve domain helpers that happened to be re-exported by an adapter. Import them from their owning modules.
+- [x] Preserve CLI, cryptographic verification, and developer tools with independent consumers. Do not delete `router-ab-dev` wholesale without this check.
 - [ ] Update the public deployment contract and release notes for removed Express/Node entrypoints. Update private consumers to the exact replacement package release.
-- [ ] Delete the replaced paths in the same change set that completes their replacement. Add no deprecated aliases or compatibility packages.
+- [x] Delete the replaced paths in the same change set that completes their replacement. Add no deprecated aliases or compatibility packages.
 
 Recompute the inventory after deletion. Report removed and added files, source
 lines, runtime dependencies, build targets, and host-specific branches. Exclude
@@ -379,10 +379,10 @@ Record any new runtime launch command beside its evidence.
 Completion requires all of the following:
 
 - [ ] One released set of handlers and WASM artifacts serves both hosting models.
-- [ ] Google Cloud deployment requires no Node/Express application backend.
+- [x] Google Cloud deployment requires no Node/Express application backend.
 - [ ] Existing lifecycle and custody guarantees pass on both runtime implementations.
 - [ ] Role isolation, persistence, failover, and cutover gates have evidence.
-- [ ] Classic-host code and its exclusive dependencies are removed.
+- [x] Classic-host code and its exclusive dependencies are removed.
 - [ ] The final inventory shows a net reduction in maintained code across both repositories, including tests, deployment code, configuration, and the celld patch.
 - [ ] Public specs, package exports, local commands, and private deployment docs agree.
 - [ ] E2E evidence is independently verifiable and repeatable from the recorded inputs.
@@ -481,7 +481,7 @@ No application host was removed in this checkpoint.
 The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
 This excludes concurrent SDK work from R190's reduction claim.
 It includes the complete maintained patch file, including diff context, and the added acceptance code.
-The checkpoint currently removes 2,154 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
+The checkpoint currently removes 34,963 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
 The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
 Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
 
@@ -552,3 +552,48 @@ Both task VMs are stopped. Task-owned disks, buckets, and the service account re
 The earlier export error, unmanaged listener loss, and local browser HTTP error remain unexplained.
 The later successful runs do not identify those causes.
 See [Google Wallet and object evidence](../deployment/celld/evidence/google-wallet.json).
+
+## October 14 final local package checkpoint
+
+The implementation branch prepares Wallet Server and SDK version 0.11.0. Version 0.10.0 is already published.
+Both packages build from the rebased source and fresh release WASM. The package boundary checks pass.
+All 16 selected unchanged Wallet contracts pass without skips on celld and workerd using the exact packed archives.
+The preceding private `.4` runtime refuses the `.5` raw-EC requirement before serving.
+The private Console passes its onboarding/replay scenario through celld and both production composition E2Es through workerd.
+See [final local package evidence](../deployment/celld/evidence/final-local-packages.json).
+
+The native Rust HTTP servers, SQLite hosts, scheduler, controller and host-specific tests are removed.
+The retained initializer and independent Cloudflare fixture builder execute successfully.
+All 18 retained helper tests, 10 client registration tests and 209 Workers binding/ownership checks pass.
+All 38 Cargo locks pass, and the public bloat gate passes.
+
+Console qualification exposed an initialization bug shared by both hosts.
+The account bundle disabled schema creation, but billing still created dependent schema.
+The shared constructor now honors that setting. All 74 unchanged migrations and onboarding pass afterward.
+See the [measured diagnosis](../deployment/celld/console-diagnostics.md).
+
+The deployment renderer consumes the existing Wrangler configuration and explicit protected per-Worker secret values.
+It bundles Worker code and copies unchanged SQL into one protected deployment directory.
+The production Console E2E exercises this renderer. It adds no resource authority manifest.
+The single-VM unit and HTTPS example pass operational qualification on Google Cloud.
+The ordinary-VM proof verifies a fresh acknowledged counter write across SIGKILL and automatic restart.
+See [single-VM evidence and limits](../deployment/celld/evidence/google-single-vm.json).
+Version 0.11.0 remains unpublished, and the private production package pins remain unchanged until release promotion.
+
+## October 14 final Google package checkpoint
+
+The rebased 0.11.0 archives pass all 16 selected Wallet contracts on an ordinary Google VM and an AMD SEV-SNP VM.
+Both runs use the same Linux runtime digest and production deployment renderer. They require no application host branch.
+The ordinary VM uses `e2-standard-4` in `us-central1-c` after repeated AMD capacity failures in zone a.
+The Confidential VM retains `n2d-standard-2` with SEV-SNP in zone c.
+Each process remains active without automatic restart until recorded cleanup.
+The evidence verifies the exact package and contract source hashes for each run.
+See [final Google package evidence](../deployment/celld/evidence/google-wallet-final-packages.json).
+
+The retired native-VM SQLite test inspections are removed. Their three Workers signing contracts pass on both local runtimes.
+They still verify quota contention, stored signing replies, wrong-wallet refusal, and exact replay.
+Private `pnpm check` passes, including 53 deployment-script checks and one existing skip.
+The public package boundary and bloat gates also pass.
+
+A separate two-node Wallet process-loss scenario is under qualification.
+Release promotion, live consumer inventory, state-safe cutover, and the remaining distributed restore/lifecycle matrix remain open.

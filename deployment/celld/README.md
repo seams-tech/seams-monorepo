@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. Full cloud Wallet, distributed-state, and cutover qualification continue.
+Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. The service, HTTPS, and restart check passes on an ordinary VM. The final 0.11.0 archives pass all 16 selected Wallet contracts on both Google VM types. Distributed-state, release promotion, and cutover qualification continue.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -302,12 +302,12 @@ Both linked-device contracts and Email OTP revocation now pass in the 16-contrac
 The broader run also found a local fault hook that retained requests in module-global Maps.
 A diagnostic labeled each Worker instance and hashed each fault token. It recorded these events:
 
-| Observation | Checked evidence |
-| --- | --- |
-| Two requests were captured in instance A | Both hashes had capture events and `found: true`. |
-| One release ran in instance A | The same hash had `found: true`, which provides a positive control. |
-| The other release ran in instance B | Its captured hash had `found: false` and returned the hook's 404 before calling Router. |
-| The fixed hooks preserve the lifecycle assertions | Both unchanged delayed-recovery contracts pass on celld and workerd. |
+| Observation                                       | Checked evidence                                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Two requests were captured in instance A          | Both hashes had capture events and `found: true`.                                       |
+| One release ran in instance A                     | The same hash had `found: true`, which provides a positive control.                     |
+| The other release ran in instance B               | Its captured hash had `found: false` and returned the hook's 404 before calling Router. |
+| The fixed hooks preserve the lifecycle assertions | Both unchanged delayed-recovery contracts pass on celld and workerd.                    |
 
 The failure is `valid_test_needs_update`. The hook required cross-request instance affinity that Workers do not promise.
 The fix removes both Maps and reuses the existing tenant-scoped D1 ceremony store.

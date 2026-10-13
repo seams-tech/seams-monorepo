@@ -6,8 +6,10 @@ and a SEV-SNP `n2d-standard-2` VM in `us-central1-c`, using the pinned Ubuntu 24
 The kernel confirms active SEV-SNP operation. The source build and Clippy pass with locked dependencies.
 External objects, raw EC operations, A/B streams, conditional writes, direct buckets, and forced-kill recovery pass.
 A Google IAM denial test observes B failure while A remains writable. The B grant was restored.
-The two-VM object ownership scenario also passes. Final package, private Console, distributed Wallet, and production ingress checks remain open.
-See [Google Wallet evidence and limitations](evidence/google-wallet.json).
+The two-VM object ownership scenario also passes. Local 0.11.0 Wallet and Console checks pass on both runtimes.
+The final 0.11.0 archives pass the same 16 contracts on both Google VM types.
+Distributed Wallet, release promotion, and live cutover checks remain open.
+See [final Google package evidence](evidence/google-wallet-final-packages.json) and [earlier evidence and limitations](evidence/google-wallet.json).
 AWS qualification is outside the current scope. The deleted project `eigen-413918` must not be used.
 Qualification resources remain task-owned and tracked under the private `.artifacts` directory.
 
@@ -31,8 +33,17 @@ Add a second VM before testing peer acknowledgement, partitions, or distributed 
 Use the pinned private build from [README.md](README.md). Build for the VM's actual CPU architecture.
 Use the exact released Worker and WASM files already qualified locally. Verify the package artifact manifest before deployment.
 Use the established deployment inputs for role bindings and application secrets.
-The local acceptance preparation scripts are test fixtures; they do not define a production configuration renderer.
-Production Console composition and configuration rendering remain implementation gates.
+Use [render.mjs](render.mjs) to consume the existing Wrangler configuration and a protected per-Worker JSON secrets file.
+The renderer bundles the Worker, copies unchanged SQL, and writes a protected deployment directory.
+It rejects binding types outside the supported Wallet scope. It adds no resource authority manifest.
+
+```sh
+node deployment/celld/render.mjs PATH_TO_EXISTING_WRANGLER_CONFIG WORKER_SECRETS_JSON NEW_DEPLOYMENT_DIRECTORY
+```
+
+Append the existing Wrangler environment name when deploying its staging or production section.
+Use the established per-role deployment inputs for Gateway, Router, A, B, SigningWorker, tenant-root control plane, and Console.
+The local acceptance preparation scripts generate synthetic test inputs only.
 
 For a Google qualification fleet, an operator-owned environment file can contain:
 
@@ -46,16 +57,32 @@ Use the same physical mapping during deployment and on every node. Do not map bo
 The sample logical names come from the released role configuration. Confirm them against the selected package.
 Keep emulator credentials and endpoint variables out of provider runs.
 
-Install the verified executable as `/opt/seams/celld`. Run it under a dedicated account with access to `/var/lib/celld`.
-For a one-node qualification run behind local HTTPS ingress, the process command is:
+Install the verified executable as `/opt/seams/celld`. Create the dedicated `celld` system account.
+Install [celld.service](celld.service) in `/etc/systemd/system/` and the protected environment file at `/etc/seams/celld.env`.
+The unit creates `/var/lib/celld`, restricts filesystem access, and restarts a failed runtime.
+Both runtime listeners bind to loopback. The Gateway accepts traffic through the local HTTPS proxy.
 
 ```sh
-/opt/seams/celld --no-control-plane \
-  --listen 127.0.0.1:8080 \
-  --internal-listen 127.0.0.1:8081
+sudo useradd --system --home-dir /var/lib/celld --shell /usr/sbin/nologin celld
+sudo install -D -m 755 VERIFIED_CELLD /opt/seams/celld
+sudo install -D -m 600 OPERATOR_ENVIRONMENT_FILE /etc/seams/celld.env
+sudo install -m 644 deployment/celld/celld.service /etc/systemd/system/celld.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now celld.service
 ```
 
-Load the environment file through the existing process manager. Keep its permissions restricted.
+Install Nginx and adapt [nginx.conf.example](nginx.conf.example) for the Gateway domain and its TLS certificate.
+Use a certificate trusted by the application's clients. The acceptance certificate is synthetic and locally trusted only.
+The proxy replaces the forwarded host and protocol fields and buffers request bodies before forwarding.
+Its body limit accepts 1 MiB and rejects larger requests with `413`.
+These settings follow Nginx's [body limit](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)
+and [request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering) documentation.
+The native runtime also receives the existing body-limit setting through its unit.
+The recorded ingress test measures the proxy boundary. It does not independently qualify the native body limit.
+
+Restrict public access to HTTPS. Keep the operator listener private.
+Enable trusted forwarded headers only with these loopback bindings and the controlled local proxy.
+One VM per acceptance invocation is required. The driver uses fixed service names, configuration paths, and ports.
 Use the existing `celld deploy` and `celld d1 migrations apply` commands for each released role and the Gateway.
 Deploy the Gateway as the public entrypoint and verify the effective manifest before opening ingress.
 The private listener includes operator capabilities. Keep it on loopback for one VM.
@@ -64,13 +91,16 @@ Verify the peer transport and ingress rules before allowing signing traffic.
 
 ## Google Cloud
 
-Use project `seams-501403`, region `us-central1`, and zone `us-central1-a`.
+Use project `seams-501403` and region `us-central1`. The final ordinary and Confidential checks use `us-central1-c`.
 Qualification resources use unique task-owned names and a dedicated service account.
 Record resource identities and cleanup under the private `.artifacts` directory.
-The ordinary candidate uses `n2d-standard-4`, AMD Milan, and the pinned Ubuntu 24.04 x86-64 image.
+The initial ordinary proof used `n2d-standard-4` in zone a. Later starts lacked capacity for four and two vCPUs.
+The final ordinary candidate uses `e2-standard-4` in zone c and the same pinned Ubuntu 24.04 x86-64 image.
 The Confidential candidate uses `n2d-standard-2` in `us-central1-c` with AMD SEV-SNP.
 The requested four-vCPU configurations in zones a and b lacked capacity. The two-vCPU candidate in zone c succeeded.
-Use an SSH tunnel for initial loopback-only qualification; production HTTPS ingress remains a separate gate.
+Use an SSH tunnel for initial loopback-only Wallet qualification.
+The separate [single-VM check](evidence/google-single-vm.json) verifies TLS, proxy limits, private operator access, and supervised restarts.
+Public certificate issuance and external ingress reachability remain deployment-specific work.
 Use Compute Engine, an attached persistent disk, and regional Cloud Storage buckets in the selected location.
 Grant the VM service account only the bucket operations needed by this qualification fleet.
 Use Application Default Credentials from the attached service account.
@@ -85,6 +115,46 @@ Use an OS image supported by the selected machine type. Install the private runt
 Route HTTPS to the Gateway listener. Restrict the operator and peer listeners to their intended private access paths.
 Run the local acceptance scenarios against this fresh fleet. Record resource IDs, runtime and package hashes, and cleanup.
 No Wallet request handler should change for this target. An unsupported runtime behavior must fail qualification visibly.
+
+## Minimal Google resource setup
+
+Use unique bucket names. Keep the deployment service account and each bucket within project `seams-501403`.
+The commands below create a fresh ordinary VM and its three storage boundaries.
+Use the verified runtime build, package artifacts, renderer, service unit, and HTTPS configuration described above.
+
+```sh
+gcloud iam service-accounts create wallet-celld --project=seams-501403
+
+for seams_bucket in FLEET_BUCKET BACKUP_A_BUCKET BACKUP_B_BUCKET; do
+  gcloud storage buckets create "gs://${seams_bucket}" \
+    --project=seams-501403 --location=us-central1 \
+    --uniform-bucket-level-access --public-access-prevention
+  gcloud storage buckets add-iam-policy-binding "gs://${seams_bucket}" \
+    --member=serviceAccount:wallet-celld@seams-501403.iam.gserviceaccount.com \
+    --role=roles/storage.objectAdmin
+done
+
+gcloud compute instances create wallet-celld \
+  --project=seams-501403 --zone=us-central1-c \
+  --machine-type=e2-standard-4 \
+  --image-project=ubuntu-os-cloud \
+  --image=ubuntu-2404-noble-amd64-v20261009 \
+  --boot-disk-size=50GB --boot-disk-type=pd-balanced \
+  --service-account=wallet-celld@seams-501403.iam.gserviceaccount.com \
+  --scopes=cloud-platform \
+  --metadata=block-project-ssh-keys=true \
+  --tags=wallet-celld-https
+
+gcloud compute firewall-rules create wallet-celld-https \
+  --project=seams-501403 --network=default \
+  --allow=tcp:443 --source-ranges=0.0.0.0/0 \
+  --target-tags=wallet-celld-https
+```
+
+The VM command uses the image and ordinary machine type from qualification.
+Adapt disk capacity to measured application needs. Use the operator's existing controlled SSH access.
+The firewall permits only public HTTPS for that tag. Inspect other project rules before opening production traffic.
+Do not expose port 8081 publicly. Keep application secrets in the protected per-Worker deployment inputs.
 
 ## Google Confidential VM
 
@@ -114,3 +184,18 @@ Qualify backup and restore through the application's authorized flow. Do not rol
 Before retiring any classic host, identify its deployed consumers and durable state.
 Give each consumer a verified replacement and a state-safe cutover procedure.
 After adapter deletion, repeat acceptance with the final packaged release on both supported hosting models.
+
+## Repeat the single-VM operational check
+
+Use a task-owned VM from the qualification resource ledger. Run one check per VM at a time.
+The resource directory contains `resources.json`, `runtime-build.json`, `native-release.tar.gz`, and a restricted `ssh-key`.
+
+```sh
+python3 tests/e2e/celld/google-single-vm.e2e.py RESOURCE_DIRECTORY ordinary
+```
+
+Use `confidential` for the ledger's SEV-SNP VM. The driver records input hashes, journals, listeners, and the result.
+It trusts its synthetic certificate explicitly and removes the synthetic private key after the test.
+It stops both owned test services. The VM and task buckets remain available for the next qualification.
+The final ordinary proof checks a fresh acknowledged counter write immediately before SIGKILL.
+Its successful read after automatic restart establishes single-node continuity only.

@@ -1,10 +1,12 @@
 {
-  "status": "in-progress; host deletion gates remain open",
+  "status": "in-progress; classic host code removed; final release and deployment gates remain open",
   "completionRequirement": "aggregate netLines must be strictly negative after all R190 work; count tests, deployment code, and complete private patch text",
   "count": "physical text lines, including comments and blank lines; moves have zero net credit",
   "extensions": [
     ".cjs",
+    ".conf",
     ".css",
+    ".example",
     ".html",
     ".js",
     ".json",
@@ -13,6 +15,7 @@
     ".py",
     ".rs",
     ".scss",
+    ".service",
     ".sh",
     ".sql",
     ".svelte",
@@ -26,15 +29,39 @@
   "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
   "repositories": {
     "seams-wallet": {
-      "baseRevision": "c84636a530a907066240ad7f23124e30907d142a",
+      "baseRevision": "6dd8fc8976b5ab0f5185f3a1d6d14af728490679",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -32600,
+      "netLines": -32689,
       "files": [
         {
           "path": "crates/router-ab-dev/Cargo.toml",
           "beforeLines": 51,
           "afterLines": 38,
           "netLines": -13
+        },
+        {
+          "path": "crates/router-ab-dev/env/deriver-a.local.example",
+          "beforeLines": 11,
+          "afterLines": 7,
+          "netLines": -4
+        },
+        {
+          "path": "crates/router-ab-dev/env/deriver-b.local.example",
+          "beforeLines": 11,
+          "afterLines": 7,
+          "netLines": -4
+        },
+        {
+          "path": "crates/router-ab-dev/env/router.local.example",
+          "beforeLines": 19,
+          "afterLines": 16,
+          "netLines": -3
+        },
+        {
+          "path": "crates/router-ab-dev/env/signing-worker.local.example",
+          "beforeLines": 14,
+          "afterLines": 13,
+          "netLines": -1
         },
         {
           "path": "crates/router-ab-dev/scripts/start-vm-wallet-system.mjs",
@@ -415,6 +442,12 @@
           "netLines": -1
         },
         {
+          "path": "packages/wallet/package.json",
+          "beforeLines": 198,
+          "afterLines": 198,
+          "netLines": 0
+        },
+        {
           "path": "packages/wallet/tsconfig.json",
           "beforeLines": 62,
           "afterLines": 61,
@@ -487,6 +520,12 @@
           "netLines": 0
         },
         {
+          "path": "tests/e2e/intended-behaviours/passkey.presign-pool.contract.test.ts",
+          "beforeLines": 1670,
+          "afterLines": 1593,
+          "netLines": -77
+        },
+        {
           "path": "tests/e2e/node-http-body-limit.e2e.mjs",
           "beforeLines": 85,
           "afterLines": 0,
@@ -543,15 +582,33 @@
       ]
     },
     "seams-monorepo": {
-      "baseRevision": "cd04fa1cab052d8b3e77e5ffe369885fa0d68840",
+      "baseRevision": "6794533a22fd4f41ea72fca0a8e5462cbc1c4856",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -3258,
+      "netLines": -2274,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
           "beforeLines": 0,
           "afterLines": 92,
           "netLines": 92
+        },
+        {
+          "path": "deployment/celld/celld.service",
+          "beforeLines": 0,
+          "afterLines": 27,
+          "netLines": 27
+        },
+        {
+          "path": "deployment/celld/nginx.conf.example",
+          "beforeLines": 0,
+          "afterLines": 20,
+          "netLines": 20
+        },
+        {
+          "path": "deployment/celld/render.mjs",
+          "beforeLines": 0,
+          "afterLines": 130,
+          "netLines": 130
         },
         {
           "path": "deployment/celld/workers-runtime.patch",
@@ -612,6 +669,36 @@
           "beforeLines": 76,
           "afterLines": 72,
           "netLines": -4
+        },
+        {
+          "path": "tests/e2e/celld/console.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 203,
+          "netLines": 203
+        },
+        {
+          "path": "tests/e2e/celld/console.e2e.ts",
+          "beforeLines": 0,
+          "afterLines": 262,
+          "netLines": 262
+        },
+        {
+          "path": "tests/e2e/celld/google-single-vm.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 98,
+          "netLines": 98
+        },
+        {
+          "path": "tests/e2e/celld/google-single-vm.remote.py",
+          "beforeLines": 0,
+          "afterLines": 217,
+          "netLines": 217
+        },
+        {
+          "path": "tests/e2e/celld/google-single-vm.worker.mjs",
+          "beforeLines": 0,
+          "afterLines": 27,
+          "netLines": 27
         },
         {
           "path": "tests/e2e/celld/linux-runtime.e2e.py",
@@ -676,6 +763,6 @@
       ]
     }
   },
-  "aggregateNetLines": -35858,
+  "aggregateNetLines": -34963,
   "netReductionAchieved": true
 }

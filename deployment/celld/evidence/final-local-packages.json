@@ -1,0 +1,644 @@
+{
+  "status": "passed",
+  "scope": "rebased locally packed 0.11.0 candidate; all 16 selected unchanged Wallet contracts on both runtimes and private Console composition",
+  "publicBuildRevision": "128de796beb92707bb286e377feb1cf396a47cef",
+  "candidate": {
+    "kind": "local-packed-release-candidate",
+    "status": "built; qualification pending",
+    "version": "0.11.0",
+    "sourceParentRevision": "128de796beb92707bb286e377feb1cf396a47cef",
+    "packages": {
+      "wallet-server": {
+        "archive": "/tmp/seams-r190-rebased-packages/seams-wallet-server-0.11.0.tgz",
+        "archiveSha256": "78f2586bf4f7c71ea89dd0e1dbf6101576f9b96d093bcc97e9faad78ed71d26f",
+        "directory": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server"
+      },
+      "wallet": {
+        "archive": "/tmp/seams-r190-rebased-packages/seams-wallet-0.11.0.tgz",
+        "archiveSha256": "53bb488dc34256edab4c597b25fd177fafdea2f672154ab5b9fb1792e8fb8806",
+        "directory": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet"
+      }
+    }
+  },
+  "celld": {
+    "status": "passed",
+    "stage": "raw-ec-public-keys-downgrade-refusal",
+    "scope": "packaged roles, tenant-root provisioning, crash replay, Gateway, and mixed-wallet browser signing",
+    "runtime": "celld 0.6.2-seams.5 (debug)",
+    "runtimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+    "previousRuntime": "celld 0.6.2-seams.4 (debug)",
+    "previousRuntimeSha256": "bd678035c263be78f0b663c6a7731f9aac462cea372e14774625e2a61599c564",
+    "packageSnapshotHashes": {
+      "wallet-server": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+      "wallet": "40d087ee930283654368847bd5f4c4d8bb55217774a9d261436a5c5c4eedcac4"
+    },
+    "package": {
+      "name": "@seams/wallet-server",
+      "version": "0.11.0"
+    },
+    "sdkPackage": "0.11.0",
+    "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+    "fingerprints": {
+      "router": "b615e91af5946b6b4de41200c5ec3cab1151562abda2a017adfd3388e3ef15bc",
+      "deriver-a": "a2d8b95d930ca7f5aa761d69461a171371e77db18bdf9293b28fdbe8641ee4e2",
+      "deriver-b": "e44d2bed91616af6ed45f85daaaec13e67c1c770f65379ed0e8bd2c493da5e4d",
+      "signing-worker": "3ba9dbb27758b207b6dfb9c047f006a60e12917c00b9fc2e4c606b346b8588f1",
+      "tenant-root-control-plane": "0a1437213c7c7136b478d527725a3bfc2af6a93a7aa7402ce78000f49d094eef"
+    },
+    "takeoverSeconds": 9.343585041817278,
+    "takeoverRefusals": 7,
+    "browserSourceHashes": {
+      "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+      "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+      "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+      "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+      "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+    },
+    "browserOutcomes": [
+      {
+        "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "EVM registration and signatures complete while NEAR execution is held",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "lock retains durable presignatures across a fresh unlock",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh unlock survives a delayed restoration response from another tab",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "passkey unlock restores immediate export and shared-budget signing",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ],
+    "runtimeFeatureDowngrade": {
+      "exitCode": 1,
+      "output": "<jemalloc>: option background_thread currently supports pthread only\nError: deployment requires feature \"raw-ec-public-keys-v1\" this celld build does not support; upgrade celld\n"
+    },
+    "cleanup": "runtime and temporary emulator stopped; evidence retained",
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-epmx_340",
+    "sourceRecordSha256": "82fca9521012c292bacb62650bf09e850b5651a381c4c375b0b089168d5035ea"
+  },
+  "workerd": {
+    "status": "passed",
+    "stage": "browser-device-contract",
+    "scope": "all 16 selected unchanged Wallet contracts against the rebased packed 0.11.0 Workers-only candidate on workerd",
+    "packageSnapshotHashes": {
+      "wallet-server": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+      "wallet": "40d087ee930283654368847bd5f4c4d8bb55217774a9d261436a5c5c4eedcac4"
+    },
+    "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+    "browserOutcomes": [
+      {
+        "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "EVM registration and signatures complete while NEAR execution is held",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "lock retains durable presignatures across a fresh unlock",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "a fresh unlock survives a delayed restoration response from another tab",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "passkey unlock restores immediate export and shared-budget signing",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ],
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-rebased-011-9hi9garq",
+    "sourceRecordSha256": "98e15fc7fd8ee43e874f70f3d8daf95775ccb9b4606bca939d3413620d209ee4"
+  },
+  "consoleCelld": {
+    "status": "passed",
+    "scope": "production Console onboarding, exact replay, service binding and D1 persistence; no Wallet activation or Google claim",
+    "runtimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+    "harnessSha256": "0c3f158f371ad95ede90398a7cb9814ac1aa19fd6af1ec4857dbca3b82fbdbec",
+    "driverSha256": "1c66a07e096aeba6103bf78ded277b2d3f7681e844362e1b302a83c93a9b6812",
+    "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-cjss2350",
+    "walletServerCandidate": "/private/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server",
+    "stage": "unchanged-onboarding-scenario",
+    "moto": "5.1.14",
+    "runtime": "celld 0.6.2-seams.5 (debug)",
+    "rendererSha256": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+    "deployedConsoleBundleSha256": "b46d6d0f6fd514abaecc7fe03826d33340af8cc5ade2118f833e9ba446053601",
+    "initialSchema": {
+      "count": 0
+    },
+    "premigrationApplicationStatus": 404,
+    "schemaAfterPremigrationRequest": {
+      "count": 0
+    },
+    "preparation": {
+      "scope": "production Console Worker through a service binding; onboarding replay and unauthorized activation",
+      "consoleBundleSha256": "46b89766ce766164ced666bb8799f9d38102d58a2a5de3bdba2047f64f1f92ea",
+      "migrations": [
+        {
+          "name": "0001_console_d1_initial.sql",
+          "sha256": "ec0328968189153ec94e5158d25fc1ca551cb7052e7e0ce827721fa3572d94c5"
+        },
+        {
+          "name": "0026_console_canonical_baseline_bridge.sql",
+          "sha256": "f1af83b17116f5ea583f13030f7000932dac05fa1478b82e284755da56a75e7f"
+        },
+        {
+          "name": "0027_console_runtime_isolation.sql",
+          "sha256": "a6dc7450cdb601adab83693430050983d69908163684841b9fc38ffdc1f02419"
+        },
+        {
+          "name": "0028_wallet_balance_snapshots.sql",
+          "sha256": "c5561aeb29d6e42587cd28998388191a84f010574a7293245d921f20882849c5"
+        },
+        {
+          "name": "0029_multichain_wallet_projection.sql",
+          "sha256": "5685698f9c98d802b8a96789e5b8a730aa3a1d71930870b7d70c978a33ecfb99"
+        },
+        {
+          "name": "0030_tenant_root_creation_grants.sql",
+          "sha256": "eb7c0291b215106fce89bf893b73df5d092ab624553e289ad249de0ec3676a6c"
+        },
+        {
+          "name": "0031_tenant_root_security_operations.sql",
+          "sha256": "ea1ed49818b12d18065d7c6eea08303fd40cc11585585cc0b556b5f57c204f15"
+        },
+        {
+          "name": "0032_tenant_root_step_up.sql",
+          "sha256": "7f6e63c09d01a1734180507f8ae4789e65edae849e5be0ed54b648695e6be5cb"
+        },
+        {
+          "name": "0033_tenant_root_approval_requests.sql",
+          "sha256": "66784a30fbc7279f20aac6134d0a2ee7291b10450f727657bfe4b01991adb379"
+        },
+        {
+          "name": "0034_console_step_up_credentials.sql",
+          "sha256": "0bd84ec7a1f898488821355679db72507ab87072dcacbbf8b33761d9be3cbd4e"
+        },
+        {
+          "name": "0035_tenant_root_dispatch_uncertainty.sql",
+          "sha256": "cc50b217038c0750bbc6e9fc45844e84b30fc45c17d82f827afe102f14761c1a"
+        },
+        {
+          "name": "0036_tenant_root_refresh_trigger.sql",
+          "sha256": "6523fe18ca68ac93f8f6521f17ee9e797ef2ec7680e50ba8e03a8aa863edb7b6"
+        },
+        {
+          "name": "0037_tenant_root_security_restore.sql",
+          "sha256": "3d751d55214305534f3a38c36fa8bf226b6c5f33c3c542d5aaf2895f1b2cb2ff"
+        },
+        {
+          "name": "0038_tenant_root_security_custody.sql",
+          "sha256": "cd3c7321e994137735e8cead55ffc1c27ebb1471a44c56f5ec15b262f107151a"
+        },
+        {
+          "name": "0039_tenant_root_restore_refresh_grants.sql",
+          "sha256": "df701e5d801d5c7e97ba783f5f6bfab1c0f0057a2ff26c501b434be833e7cb06"
+        },
+        {
+          "name": "0040_tenant_root_restore_identity.sql",
+          "sha256": "620d1a80e3a21ee5d6278c7a1240457f3eb9770356d04485922ba67b647306ce"
+        },
+        {
+          "name": "0041_refund_ledger_debits.sql",
+          "sha256": "dbf7e145168c6e353d53b859d6ce706f65f6eff336aa75897e1f75a62c594b86"
+        },
+        {
+          "name": "0041_tenant_root_recipient_verifier.sql",
+          "sha256": "fdd0f029f2d8e481ebc08ea558eec0310e55dbfa50feb33f7c30ac20c0fc8415"
+        },
+        {
+          "name": "0042_tenant_root_recovery_generation.sql",
+          "sha256": "1c5d7e4766583fffe269a39c04374492948c0379cb4f32c71080563abb5be03f"
+        },
+        {
+          "name": "0043_tenant_root_cli_enrollment.sql",
+          "sha256": "5da9ba0fcdda3d12a08706fe15d4e8e46c7516a76feacc1c500b23b15d09bd9b"
+        },
+        {
+          "name": "0044_tenant_root_cli_restore_access.sql",
+          "sha256": "7ec6ba1ff721bb7b39034c1603036ec0d90008e9cd23d5e4be0a4f237837576f"
+        },
+        {
+          "name": "0045_tenant_root_backup_access.sql",
+          "sha256": "83e40bd158eccfb1160762095e85145ab50e4480b62c1104f9149e75516ccd49"
+        },
+        {
+          "name": "0046_tenant_deployment_bindings.sql",
+          "sha256": "d28eccdec724628dd203be9e9a1a7690019279683682a42db1c2526823cbc43e"
+        },
+        {
+          "name": "0047_namespace_d1_homes.sql",
+          "sha256": "8a54a6a6cd0b5af1fe9ca5facb2e902b050eeebb970f73037feafb580e05d7c2"
+        },
+        {
+          "name": "0048_tenant_deployment_activation_homes.sql",
+          "sha256": "83e1c540f64a1bb695b0a41f01245b4f3d1036c758a40b7084069aa68775cf63"
+        },
+        {
+          "name": "0049_tenant_deployment_binding_homes.sql",
+          "sha256": "280d8e03ccbe9a45df38685cdd174558697376cba00e53504fcbba5c6b0e9314"
+        },
+        {
+          "name": "0050_tenant_deployment_home_verification.sql",
+          "sha256": "0cb8ae502a33d8a4bca5a19f9f6c5a2816a449922c6d7476cf7fef6a0842af2d"
+        },
+        {
+          "name": "0051_wallet_homes.sql",
+          "sha256": "48c5bb3e9d55f682245d7cf1faa32156e214ef0d887af996d161a50cccebc856"
+        },
+        {
+          "name": "0052_drop_namespace_placement.sql",
+          "sha256": "bb4bc0e213f6346004b078124ec7396d620b8f6b811f873e4c1905598e2954ec"
+        },
+        {
+          "name": "0053_wallet_projection_identity.sql",
+          "sha256": "c71420b7655da9246a2cb91aae72b954ff57760a935977763a5bc66da7744e3c"
+        },
+        {
+          "name": "0054_deployment_resource_sets.sql",
+          "sha256": "dcda2ba0b9873b3dc8ed3bfd95287525cf73b830543815cd00bfab5ff09e7b50"
+        },
+        {
+          "name": "0055_wallet_session_locators.sql",
+          "sha256": "b13247cdb9e993261edca1834eeda6cbd324995d2292362c2e0a8d1c15196d02"
+        },
+        {
+          "name": "0056_wallet_recovery_routes.sql",
+          "sha256": "4e345d587fcfff1894c47cde745272593ffa32dc579c7a8bbc4cbdcd3b141727"
+        },
+        {
+          "name": "0057_wallet_routes.sql",
+          "sha256": "f4add554d91e3bef133cc7d59f76fa6ea07782b292c11074b6ecf8251b8fb11e"
+        },
+        {
+          "name": "0058_passkey_challenge_routes.sql",
+          "sha256": "c878aff841ba59d21bdd76f001c5ccd7b83e843aa78d10090efdd6404da9acf6"
+        },
+        {
+          "name": "0059_wallet_shared_identity.sql",
+          "sha256": "ad7ddb9ee1df605f160715411accc9d2665c7ef842a84f51c7e171d8d5913e69"
+        },
+        {
+          "name": "0060_wallet_google_registration_offers.sql",
+          "sha256": "f5a2cb3987d27b83b7d1d14fecc4d9b070d73dcdc6d2cf9a4eddbb5afbd510ff"
+        },
+        {
+          "name": "0061_wallet_google_candidate_claim.sql",
+          "sha256": "90dca6417fc39d4652f390fa8d90bd7acc94700d4f2641210ae26a4457592d91"
+        },
+        {
+          "name": "0062_wallet_registration_terminal_cleanup.sql",
+          "sha256": "544febb1cae96fb80ca483c9e9a620242bc6e61eb13971e102adbc481e5be550"
+        },
+        {
+          "name": "0063_wallet_shared_email_rate_limits.sql",
+          "sha256": "d8d483921b32a9b729ab8aa4c38f54761131478decf119eeba350902aa0f9217"
+        },
+        {
+          "name": "0064_wallet_passkey_claims.sql",
+          "sha256": "31a0042a8e23e658767a282ff675eb6a68d0179d4e7b6ad638829b5e11593bf9"
+        },
+        {
+          "name": "0065_wallet_passkey_terminal_guard.sql",
+          "sha256": "597c43031f20218343355d2ec433cb7300a11fda1d6edf7054d7a4d6c16938ae"
+        },
+        {
+          "name": "0066_wallet_sync_challenges.sql",
+          "sha256": "3c247a0ca957065b4dd074c2731bde61712e47867f12376369027758fce99b3c"
+        },
+        {
+          "name": "0067_linked_device_proof_nonces.sql",
+          "sha256": "60a9512b666e8070352018af85b8d16952a810218e9562196d11397cc98d1df7"
+        },
+        {
+          "name": "0068_linked_device_routes.sql",
+          "sha256": "650ce39eb29ff1325ae564be7c86d8399ab8047a594c5ddd1cc6379f200a3996"
+        },
+        {
+          "name": "0069_linked_device_bootstrap.sql",
+          "sha256": "1e83328eb341e62fb5a30fd11c12dc8b1e375a2a172ce8fcf3aaadc12ad2d099"
+        },
+        {
+          "name": "0070_wallet_relocations.sql",
+          "sha256": "3b4f764dcdecca00a60becebca4c4c11e6e04fd4b7929d375b711e65f35b7cf6"
+        },
+        {
+          "name": "0071_wallet_relocation_execution.sql",
+          "sha256": "6f8caeae14ce094aff3f6d25064f998c48e87f49913c1e10c4a58a8969869e79"
+        },
+        {
+          "name": "0072_wallet_oceania.sql",
+          "sha256": "822db6492713184656e1cbedee9c4f95529e6bf8c13fa73773e6620cc0c067c1"
+        },
+        {
+          "name": "0073_wallet_relocation_activation.sql",
+          "sha256": "66273ef6e94ed43a7124f30b7d15ff3708a6b2374d151c07362801e4ddeecacc"
+        },
+        {
+          "name": "0074_wallet_relocation_activation_gate.sql",
+          "sha256": "e862aca748bb0c29144a487693cca5abc9f037826ae0b6d7b4c1412bebe5bf78"
+        },
+        {
+          "name": "0075_wallet_relocation_resources.sql",
+          "sha256": "3fa0cf93b188b345530adae796a6ff62138b77ca0b2748c93840a7f7a1f5329a"
+        },
+        {
+          "name": "0076_wallet_relocation_preparation.sql",
+          "sha256": "027b483e91fe2dbf66c3e4008b5aa822af02484f1990a774e6299710629e7aa4"
+        },
+        {
+          "name": "0077_wallet_relocation_authorization_manifest.sql",
+          "sha256": "bf05b8584b2c9ed5d7776d27c3a5df7722386fab09a7240dd859edc54cee2d08"
+        },
+        {
+          "name": "0078_wallet_relocation_router_receipt.sql",
+          "sha256": "16f9880469a0d21ad5993911cb660ad1b99b4d1945151537b62e37ddd9e31c56"
+        },
+        {
+          "name": "0079_wallet_router_activation.sql",
+          "sha256": "899d9e8ba9efb3082e0cb579f62f3956d24699bedc75150089666914f4d95dec"
+        },
+        {
+          "name": "0080_wallet_deriver_snapshots.sql",
+          "sha256": "826c43e95d235279fa2176b052b8a54ac16943fc14ad854b8f21a3b11da6ef39"
+        },
+        {
+          "name": "0081_wallet_deriver_activations.sql",
+          "sha256": "66ac1b9dd595ec4ae135553efa4430074260db74979eace89b432e75ecb7cb29"
+        },
+        {
+          "name": "0082_wallet_ed25519_snapshots.sql",
+          "sha256": "ca1581d97ed7e5212b557155ba9925095845e122850167b7b34eefc2ba6e9276"
+        },
+        {
+          "name": "0083_wallet_ed25519_activations.sql",
+          "sha256": "f4b3b54fe35f311c14833cbf7c9aefe06bf3cb9fe6260aa41a18c8f668b59375"
+        },
+        {
+          "name": "0084_wallet_ecdsa_relocation.sql",
+          "sha256": "bc466705f548a70ab341de7d7045fc3455cee670a4cb1bc4ca91672e092e3f8d"
+        },
+        {
+          "name": "0085_wallet_presign_snapshots.sql",
+          "sha256": "4c3a48cfb2c47a1b502ef8e5a8455e606de433295aaa1508012de8f890cd5bd9"
+        },
+        {
+          "name": "0086_wallet_relocation_stage_receipts.sql",
+          "sha256": "f4994b8a777355e2bc04110d3c95cf10250ec092771fc6dcb0d3eaba12ec5e6b"
+        },
+        {
+          "name": "0087_wallet_relocation_dispatch.sql",
+          "sha256": "0dbbe93c55bd90d621cf95838896f4c4c7f1fa22f37490530ab106af29328bf7"
+        },
+        {
+          "name": "0088_wallet_presign_custody_targets.sql",
+          "sha256": "68773be12ae1e89cebfd6b62c6f1b33fcd4f5c133d8b1638bb6cdd918da43720"
+        },
+        {
+          "name": "0089_wallet_relocation_driver.sql",
+          "sha256": "88bc696cd4da67eb3f63035c522f083dce6b2a2630004372b825b1bc54abd9be"
+        },
+        {
+          "name": "0090_wallet_relocation_capacity.sql",
+          "sha256": "4907ab89b2450d0322c231b180101bee4f7e299ae0a23c9eee8c9318e84bb90e"
+        },
+        {
+          "name": "0091_console_deployment_write_checks.sql",
+          "sha256": "aada1638efb6f9cc4b7674fe0da1555759e3bf474952e212a88881d6e02c25ba"
+        },
+        {
+          "name": "0092_organization_deletion.sql",
+          "sha256": "9337991a237cb01838fa1ac1c3cb7753d607afbc13de564772edc5f832e97097"
+        },
+        {
+          "name": "0093_account_platform.sql",
+          "sha256": "e70f8835c933169ff13b22ccd192290678226273c317e25571a251ffc806eb6a"
+        },
+        {
+          "name": "0094_funds_authority.sql",
+          "sha256": "2622d36812f9a153692553f9a6577b3de49922cc2bffd7b367c2bbb7bc8539ed"
+        },
+        {
+          "name": "0095_billing_usage_attribution.sql",
+          "sha256": "3888e21929668d062930e2a83dabaa1c44616ce0c387b462bb519c02b90d042b"
+        },
+        {
+          "name": "0096_wallet_monthly_usage_outbox.sql",
+          "sha256": "f27c42fe586ac79a8fb560f21603b61a5a65003bddb79b472d4807476f41616b"
+        },
+        {
+          "name": "0097_service_access.sql",
+          "sha256": "9a1c210bfb7f2763b0bcd570f53a1f6443ecc157dccc92c3a30e76004c026839"
+        }
+      ]
+    },
+    "onboarding": {
+      "status": "passed",
+      "proof": {
+        "stage": "onboarding_before_activation",
+        "projectId": "proj_onboarding_replay",
+        "createStatus": 201,
+        "replayStatus": 200,
+        "wrongMethodStatus": 405,
+        "unauthorizedActivationStatus": 401,
+        "organizationSelectionStatus": 200,
+        "projectCount": 1,
+        "activationCount": 0,
+        "walletEnvironmentCount": 0,
+        "serviceInstanceCount": 0
+      },
+      "requests": [
+        {
+          "path": "/console/account/organizations",
+          "status": 200
+        },
+        {
+          "path": "/console/onboarding/project",
+          "status": 405
+        },
+        {
+          "path": "/console/onboarding/project",
+          "status": 201
+        },
+        {
+          "path": "/console/account/organizations/org_aabbccddeeff/switch-context",
+          "status": 200
+        },
+        {
+          "path": "/console/onboarding/project",
+          "status": 200
+        },
+        {
+          "path": "/console/onboarding/state",
+          "status": 200
+        },
+        {
+          "path": "/internal/tenant-deployment/v1/cutover",
+          "status": 401
+        }
+      ]
+    },
+    "cleanup": "runtime and emulator stopped; synthetic local evidence retained",
+    "sourceRecordSha256": "6cedea371aca74cde8eeb43d2b9066503f1f72378d29d034c132b94bd4dda468"
+  },
+  "consoleWorkerd": {
+    "status": "passed",
+    "testCount": 2,
+    "command": "SEAMS_WALLET_SERVER_CANDIDATE=/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server pnpm -C tests exec playwright test -c playwright.relayer.config.ts relayer/console-service-auth.e2e.test.ts relayer/tenant-deployment-binding.e2e.test.ts --reporter=line",
+    "logSha256": "e134d5f4fad802aa211d4edfdb43338ebbc0ea96fac1eef54d4a22e0bf37f2b5"
+  },
+  "packageBoundaries": {
+    "status": "passed",
+    "command": "pnpm check:packed-wallet",
+    "logSha256": "25fa7ff997de2ac27a0750da79a313937e944b10b24d51062e59edfefdf62f79"
+  },
+  "limitations": [
+    "These are local package archives. Version 0.11.0 is prepared on the implementation branch and has not been published.",
+    "The final packages pass the selected Google single-node contracts. Distributed Wallet qualification remains separate.",
+    "Console celld proof covers onboarding before deployment activation, exact replay, auth refusal and selected durable counts. Full activation/restore/cutover remains open.",
+    "The earlier local 0.10.0 candidate passed all 16 browser cases but its overall celld run failed after those cases because stock 0.6.2 was supplied as the preceding runtime. The 0.11.0 run uses the required preceding private .seams.4 binary and passes the raw-EC downgrade refusal."
+  ],
+  "privateChecks": {
+    "status": "passed",
+    "command": "pnpm check",
+    "scriptTestsPassed": 53,
+    "scriptTestsSkipped": 1,
+    "logSha256": "2e9b77d9858c3d28108e08ddbb871669a53696695a518c39e68f097f2d9e03f8"
+  },
+  "setupFailures": [
+    {
+      "classification": "environment_or_infrastructure_failure",
+      "scope": "The first rebased local runs loaded an expired synthetic Google identity while its refresh was still pending. Both runtimes passed after the refresh completed.",
+      "artifacts": ["celld-wallet-xnxfep2z", "workerd-rebased-011-fbaunto7"]
+    }
+  ],
+  "googleFinalPackages": "google-wallet-final-packages.json"
+}

@@ -533,6 +533,9 @@ class AccountWorkerFixture {
   }
 
   private async setup(input: FixtureSetup): Promise<Record<string, unknown>> {
+    // A test host can empty the database between tests while this runtime stays alive.
+    await migrate(this.bindings.ACCOUNT_DB);
+    this.faults.clear();
     const owner = await this.verifyMember(input.primary.owner);
     const foreignOwner = await this.verifyMember(input.foreign.owner);
     const finance = await this.verifyMember(input.finance);

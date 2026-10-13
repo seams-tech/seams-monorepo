@@ -162,6 +162,7 @@ export async function createCloudflareD1AccountServiceBundle(
   });
   const billing = await createD1ConsoleBillingService({
     database: options.database,
+    ensureSchema: options.ensureSchema,
     namespace,
     ensureSchema: options.ensureSchema,
     now: options.now,

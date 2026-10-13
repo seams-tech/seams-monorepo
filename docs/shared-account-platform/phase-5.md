@@ -36,10 +36,10 @@ A partial group fails before the secrets file can be written.
 No second configuration file or billing deployment was introduced.
 
 Seams repository validation publishes the built acceptance Worker after its checks and account journeys pass.
-Satyr CI downloads one explicitly pinned successful run.
-It checks the source commit and SHA-256 before running native journeys.
-The required Actions read token and source run variables remain operator configuration.
-They are separate from production service credentials.
+Satyr CI checks out one exact commit from the public Seams repository.
+It installs the locked dependencies and builds the same Worker in a separate checkout.
+Native journeys consume only the built artifact and record its SHA-256 digest.
+This path needs no additional access token or repository variables.
 
 ## Live snapshot rehearsal
 

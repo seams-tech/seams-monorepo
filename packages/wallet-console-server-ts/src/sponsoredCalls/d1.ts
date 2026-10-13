@@ -474,6 +474,49 @@ export function createD1ConsoleSponsoredCallRecordInsertStatement(input: {
     );
 }
 
+/** Terminal service evidence replaces the uncertain outcome in the funds transaction. */
+export function createD1ConsoleSponsoredCallRecordReconciliationStatement(input: {
+  database: D1DatabaseLike;
+  namespace: string;
+  ctx: ConsoleSponsoredCallContext;
+  recordId: string;
+  request: CreateConsoleSponsoredCallRecordRequest;
+  updatedAtMs: number;
+}): D1PreparedStatementLike {
+  return input.database
+    .prepare(
+      `UPDATE sponsored_call_records SET
+      tx_or_execution_ref = ?, receipt_status = ?, fee_unit = ?, fee_amount = ?,
+      details_json = ?, estimated_spend_minor = ?, settled_spend_minor = ?,
+      pricing_version = ?, pricing_source = ?, billing_ledger_entry_id = ?,
+      prepaid_reservation_id = ?, charged = ?, charged_reason = ?, settled_at_iso = ?,
+      error_code = ?, error_message = ?, updated_at_ms = ?
+     WHERE namespace = ? AND org_id = ? AND id = ? AND receipt_status = 'broadcast_failed'`,
+    )
+    .bind(
+      normalizeString(input.request.txOrExecutionRef),
+      input.request.receiptStatus,
+      input.request.feeUnit,
+      normalizeRequiredString(input.request.feeAmount) || '0',
+      normalizeRequiredString(input.request.detailsJson) || '{}',
+      normalizeInteger(input.request.estimatedSpendMinor),
+      normalizeInteger(input.request.settledSpendMinor),
+      normalizeString(input.request.pricingVersion),
+      normalizeString(input.request.pricingSource),
+      normalizeString(input.request.billingLedgerEntryId),
+      normalizeString(input.request.prepaidReservationId),
+      input.request.charged ? 1 : 0,
+      normalizeString(input.request.chargedReason),
+      normalizeString(input.request.settledAt),
+      normalizeString(input.request.errorCode),
+      normalizeString(input.request.errorMessage),
+      input.updatedAtMs,
+      input.namespace,
+      input.ctx.orgId,
+      input.recordId,
+    );
+}
+
 function d1SponsoredCallRecordInsertSourceSql(
   insertGuard: D1SponsoredCallInsertGuard | undefined,
 ): string {

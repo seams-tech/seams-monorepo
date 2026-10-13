@@ -1,19 +1,24 @@
-import { secureRandomBase36 } from '@seams/wallet-server/cloud-host';
+import type { D1PreparedStatementLike, RouteResponse } from '@seams/wallet-server/cloud-host';
+import { isPlainObject } from '@seams/wallet-server/cloud-host';
+import {
+  MarkFundsIndeterminateRequestV1,
+  PlatformUsageEventV1,
+  ReconcileFundsRequestV1,
+  ReleaseFundsRequestV1,
+  SettleFundsRequestV1,
+  type DurableSourceEvidenceV1,
+  type FundsReservationV1,
+  type PlatformResult,
+} from '@seams-internal/console-shared/accountPlatform';
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
-import type { ConsoleBillingD1Runtime } from '@seams-internal/console-server/billing/d1';
+import { TrustedWalletExecutionQuoteV1 } from '@seams-internal/console-server/billing/pricing';
+import { getConsoleBillingD1Runtime } from '@seams-internal/console-server/billing/d1';
 import {
-  createProductExecutionDebitD1Statements,
-  getConsoleBillingD1Runtime,
-} from '@seams-internal/console-server/billing/d1';
-import type { ConsoleBillingPrepaidReservation } from '../billingPrepaidReservations/types';
-import type { ConsoleBillingPrepaidReservationD1Runtime } from '../billingPrepaidReservations/d1';
-import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations/service';
-import {
-  createReleaseConsoleBillingPrepaidReservationD1Statement,
-  createSettleConsoleBillingPrepaidReservationD1Statement,
+  fundsChargeId,
   getConsoleBillingPrepaidReservationD1Runtime,
-} from '../billingPrepaidReservations/d1';
-import { ConsoleBillingPrepaidReservationError } from '../billingPrepaidReservations/errors';
+} from '@seams-internal/console-server/billingPrepaidReservations/d1';
+import type { WalletExecutionFunds } from '../sponsorship/funds';
 import type {
   ConsoleSponsoredCallExecutorKind,
   ConsoleSponsoredCallFeeUnit,
@@ -22,18 +27,13 @@ import type {
   CreateConsoleSponsoredCallRecordRequest,
 } from '../sponsoredCalls/types';
 import type { ConsoleSponsoredCallService } from '../sponsoredCalls/service';
-import type { ConsoleSponsoredCallD1Runtime } from '../sponsoredCalls/d1';
 import {
   createD1ConsoleSponsoredCallRecordInsertStatement,
+  createD1ConsoleSponsoredCallRecordReconciliationStatement,
   getConsoleSponsoredCallD1Runtime,
   loadD1ConsoleSponsoredCallRecordById,
   loadD1ConsoleSponsoredCallRecordByIdempotencyKey,
 } from '../sponsoredCalls/d1';
-import type { ConsoleBillingContext } from '@seams-internal/console-server/billing/service';
-import type { ConsoleBillingPrepaidReservationContext } from '../billingPrepaidReservations/service';
-import type { ConsoleSponsoredCallContext } from '../sponsoredCalls/service';
-import type { D1PreparedStatementLike, D1ResultLike } from '@seams/wallet-server/cloud-host';
-import type { RouteResponse } from '@seams/wallet-server/cloud-host';
 import type { SponsorshipSpendPricingService } from '../sponsorship/spendCaps';
 import type {
   SponsoredPrepaidReservationHandle,
@@ -65,64 +65,46 @@ export interface SponsoredExecutionBillingContext {
   actorUserId: string;
 }
 
+type SponsoredRecordDraft = Omit<
+  CreateConsoleSponsoredCallRecordRequest,
+  | 'txOrExecutionRef'
+  | 'receiptStatus'
+  | 'feeUnit'
+  | 'feeAmount'
+  | 'executorKind'
+  | 'errorCode'
+  | 'errorMessage'
+>;
+
 export interface RecordSponsoredExecutionInput {
   billing: ConsoleBillingService;
   balanceEvents?: SponsorshipBillingEventServices | null;
-  billingSourceEventIdPrefix: string;
+  billingSourceEventIdPrefix: 'sponsored_evm_call_debit' | 'signed_delegate_debit';
   context: SponsoredExecutionBillingContext;
   ledger: ConsoleSponsoredCallService;
   occurredAt?: string;
   buildRecord: (input: {
     prepaidSettlement: FinalizedSponsoredPrepaidSettlement | null;
     billingLedgerEntryId: string | null;
-  }) => Omit<
-    CreateConsoleSponsoredCallRecordRequest,
-    | 'txOrExecutionRef'
-    | 'receiptStatus'
-    | 'feeUnit'
-    | 'feeAmount'
-    | 'executorKind'
-    | 'errorCode'
-    | 'errorMessage'
-  >;
+  }) => SponsoredRecordDraft;
   assessment: SponsorshipExecutionAssessment;
   walletId: string;
-  prepaidSettlementInput?: SponsoredExecutionPrepaidSettlementInput | null;
-}
-
-interface FinalizedSponsoredPrepaidSettlementD1 {
-  billingLedgerEntryId: string | null;
-  settlement: FinalizedSponsoredPrepaidSettlement | null;
-  statements: D1PreparedStatementLike[];
-  notificationStatements: D1PreparedStatementLike[];
-  reservationTransition: D1ReservationTransition;
+  prepaidSettlementInput: SponsoredExecutionPrepaidSettlementInput;
 }
 
 export interface SponsoredExecutionPrepaidSettlementInput {
   reservation: SponsoredPrepaidReservationHandle | null;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null | undefined;
+  executionFunds: WalletExecutionFunds | null | undefined;
   pricing: SponsorshipSpendPricingService | null | undefined;
-  ctx: ConsoleBillingPrepaidReservationContext;
-  chainFamily: CreateConsoleSponsoredCallRecordRequest['chainFamily'];
-  intentKind: CreateConsoleSponsoredCallRecordRequest['intentKind'];
-  executorKind: ConsoleSponsoredCallExecutorKind;
-  environmentId: string;
-  policyId: string;
-  accountRef: string | null;
-  targetRef: string;
   chainId: number;
-  txOrExecutionRef: string | null;
-  receiptStatus: ConsoleSponsoredCallReceiptStatus;
-  feeUnit: ConsoleSponsoredCallFeeUnit;
-  feeAmount: string;
   requestDetails: Record<string, unknown>;
 }
 
-export interface FinalizedSponsoredPrepaidSettlement extends SponsoredPrepaidReservationSettlement {
-  sourceEventId: string;
-  estimatedSpendMinor: number;
-  billingLedgerEntryId: string | null;
-}
+export type FinalizedSponsoredPrepaidSettlement = SponsoredPrepaidReservationSettlement & {
+  readonly sourceEventId: string;
+  readonly estimatedSpendMinor: number;
+  readonly billingLedgerEntryId: string | null;
+};
 
 export interface RunSponsorshipExecutionOnResultInput<
   TResult,
@@ -155,62 +137,6 @@ export interface RunSponsorshipExecutionInput<
   ) => Promise<RouteResponse<TResponseBody>> | RouteResponse<TResponseBody>;
 }
 
-export async function recordSponsoredExecution(
-  input: RecordSponsoredExecutionInput,
-): Promise<ConsoleSponsoredCallRecord> {
-  const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(
-    input.billing,
-    input.context,
-  );
-  const prepaidSettlementInput = input.prepaidSettlementInput;
-  if (!prepaidSettlementInput?.reservation) {
-    throw new Error(
-      'D1 sponsored settlement requires an active prepaid reservation handle on recordSponsoredExecution input',
-    );
-  }
-  const billingD1Runtime = getConsoleBillingD1Runtime(input.billing);
-  const prepaidD1Runtime = getConsoleBillingPrepaidReservationD1Runtime(
-    prepaidSettlementInput.prepaidReservations || null,
-  );
-  const sponsoredCallsD1Runtime = getConsoleSponsoredCallD1Runtime(input.ledger);
-  const canUseAtomicD1Path = Boolean(
-    billingD1Runtime &&
-    prepaidD1Runtime &&
-    sponsoredCallsD1Runtime &&
-    billingD1Runtime.database === prepaidD1Runtime.database &&
-    billingD1Runtime.database === sponsoredCallsD1Runtime.database &&
-    billingD1Runtime.namespace === prepaidD1Runtime.namespace &&
-    billingD1Runtime.namespace === sponsoredCallsD1Runtime.namespace,
-  );
-  if (!canUseAtomicD1Path || !billingD1Runtime || !prepaidD1Runtime || !sponsoredCallsD1Runtime) {
-    throw new Error(
-      'D1 sponsored settlement requires D1-backed billing, prepaidReservations, and sponsoredCalls services sharing one database and namespace',
-    );
-  }
-  const record = await recordSponsoredExecutionD1({
-    input,
-    billingRuntime: billingD1Runtime,
-    prepaidRuntime: prepaidD1Runtime,
-    sponsoredCallsRuntime: sponsoredCallsD1Runtime,
-  });
-  if (input.balanceEvents) {
-    await emitSponsorshipBalanceTransitionEvents({
-      services: input.balanceEvents,
-      ctx: input.context,
-      before: beforeBalanceState,
-      billing: input.billing,
-      trigger: {
-        kind: 'sponsored_execution_debit',
-        ...(record.environmentId ? { environmentId: record.environmentId } : {}),
-        ...(record.route ? { routeId: record.route } : {}),
-        ...(record.billingLedgerEntryId ? { ledgerEntryId: record.billingLedgerEntryId } : {}),
-        sourceEventId: record.idempotencyKey,
-      },
-    });
-  }
-  return record;
-}
-
 export async function runSponsorshipExecution<
   TResult,
   TAssessment extends SponsorshipExecutionAssessment,
@@ -218,513 +144,472 @@ export async function runSponsorshipExecution<
 >(
   input: RunSponsorshipExecutionInput<TResult, TAssessment, TResponseBody>,
 ): Promise<RouteResponse<TResponseBody>> {
+  let result: TResult;
   try {
-    const result = await input.execute();
-    const assessment = input.assessResult(result);
-    return await input.onResult({
-      result,
-      assessment,
-    });
+    result = await input.execute();
   } catch (error: unknown) {
-    if (!input.assessThrownError || !input.onThrownError) {
-      throw error;
-    }
-    const assessment = input.assessThrownError(error);
-    return await input.onThrownError({
-      error,
-      assessment,
-    });
+    if (!input.assessThrownError || !input.onThrownError) throw error;
+    return await input.onThrownError({ error, assessment: input.assessThrownError(error) });
   }
+  return await input.onResult({ result, assessment: input.assessResult(result) });
 }
 
-interface RecordSponsoredExecutionD1Input {
-  input: RecordSponsoredExecutionInput;
-  billingRuntime: ConsoleBillingD1Runtime;
-  prepaidRuntime: ConsoleBillingPrepaidReservationD1Runtime;
-  sponsoredCallsRuntime: ConsoleSponsoredCallD1Runtime;
-}
-
-interface BuildD1SponsoredCallRecordRequestInput {
-  input: RecordSponsoredExecutionInput;
-  recordId: string;
-  prepaidSettlement: FinalizedSponsoredPrepaidSettlement | null;
-  billingLedgerEntryId: string | null;
-}
-
-interface D1PrepaidSettlementBuildInput {
-  billingRuntime: ConsoleBillingD1Runtime;
-  prepaidRuntime: ConsoleBillingPrepaidReservationD1Runtime;
-  billingContext: ConsoleBillingContext &
-    ConsoleBillingPrepaidReservationContext &
-    ConsoleSponsoredCallContext;
-  billingSourceEventIdPrefix: string;
-  walletId: string;
-  occurredAt?: string;
-  recordId: string;
-  settledAtMs: number;
-  prepaidSettlementInput: SponsoredExecutionPrepaidSettlementInput;
-}
-
-interface D1SettledReservationInput extends D1PrepaidSettlementBuildInput {
-  reservationHandle: SponsoredPrepaidReservationHandle;
-  reservation: ConsoleBillingPrepaidReservation;
-  quote: SponsoredPrepaidSettlementQuote;
-}
-
-interface D1ReleasedReservationInput extends D1PrepaidSettlementBuildInput {
-  reservationHandle: SponsoredPrepaidReservationHandle;
-  reservation: ConsoleBillingPrepaidReservation;
-  quote: SponsoredPrepaidSettlementQuote;
-}
-
-type D1ReservationTransition =
-  | {
-      readonly kind: 'none';
-    }
-  | {
-      readonly kind: 'required';
-      readonly action: 'settle' | 'release';
-      readonly statementIndex: number;
-      readonly sourceEventId: string;
-    };
-
-type D1PreviousStatementInsertGuard = {
-  readonly kind: 'previous_statement_changed_one';
-};
-
-const NO_D1_RESERVATION_TRANSITION: D1ReservationTransition = {
-  kind: 'none',
-};
-
-const D1_PREVIOUS_STATEMENT_CHANGED_ONE_INSERT_GUARD: D1PreviousStatementInsertGuard = {
-  kind: 'previous_statement_changed_one',
-};
-
-function normalizeRequiredSponsoredRecordIdempotencyKey(request: {
-  idempotencyKey: string;
-}): string {
-  const idempotencyKey = request.idempotencyKey.trim();
-  if (!idempotencyKey) {
-    throw new Error('Atomic D1 sponsored settlement requires a sponsored-call idempotency key');
+function accepted<T, E>(result: PlatformResult<T, E>): T {
+  if (result.kind === 'rejected') {
+    throw new Error(`Sponsored execution funds rejected: ${JSON.stringify(result.error)}`);
   }
-  return idempotencyKey;
+  return result.value;
 }
 
-function makeSponsoredCallRecordId(now: Date): string {
-  return `scr_${now.getTime().toString(36)}_${secureRandomBase36(8, 'sponsored call record IDs')}`;
+async function evidenceDigest(value: unknown): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(value)),
+  );
+  let hex = '';
+  for (const byte of new Uint8Array(digest)) hex += byte.toString(16).padStart(2, '0');
+  return hex;
 }
 
-function buildD1SponsoredCallRecordRequest(
-  input: BuildD1SponsoredCallRecordRequestInput,
-): CreateConsoleSponsoredCallRecordRequest {
-  return {
-    ...input.input.buildRecord({
-      prepaidSettlement: input.prepaidSettlement,
-      billingLedgerEntryId: input.billingLedgerEntryId,
-    }),
-    id: input.recordId,
-    txOrExecutionRef: input.input.assessment.txOrExecutionRef,
-    receiptStatus: input.input.assessment.receiptStatus,
-    feeUnit: input.input.assessment.feeUnit,
-    feeAmount: input.input.assessment.feeAmount,
-    executorKind: input.input.assessment.executorKind,
-    errorCode: input.input.assessment.recordErrorCode,
-    errorMessage: input.input.assessment.recordErrorMessage,
-  };
-}
-
-function parseD1SponsoredDebitOccurredAtMs(
-  occurredAt: string | undefined,
-  fallbackMs: number,
-): number {
-  if (!occurredAt) return fallbackMs;
-  const parsed = Date.parse(occurredAt);
-  if (!Number.isFinite(parsed)) {
-    throw new Error('Invalid occurredAt value for D1 sponsored execution debit');
+function executionDetails(detailsJson: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(detailsJson);
+  if (!isPlainObject(parsed)) throw new Error('Sponsored execution details must be an object');
+  const execution: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (key !== 'billing' && key !== 'policySpendCap' && key !== 'execution')
+      execution[key] = value;
   }
-  return parsed;
+  return execution;
 }
 
-function isD1ConstraintError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error || '');
-  return message.includes('UNIQUE constraint failed') || message.includes('constraint failed');
+function recordIdentity(request: SponsoredRecordDraft) {
+  return [
+    request.environmentId,
+    request.apiKeyId,
+    request.apiKeyKind,
+    request.route,
+    request.policyId,
+    request.chainFamily,
+    request.intentKind,
+    request.accountRef,
+    request.targetRef,
+    request.sponsorRef,
+    request.idempotencyKey,
+    executionDetails(request.detailsJson),
+  ];
 }
 
-function assertNeverReservationStatus(status: never): never {
-  throw new Error(`Unhandled prepaid reservation status: ${status}`);
-}
-
-function assertNeverD1ReservationTransition(transition: never): never {
-  throw new Error(`Unhandled D1 reservation transition: ${JSON.stringify(transition)}`);
-}
-
-function d1ReservationTransitionInsertGuard(
-  transition: D1ReservationTransition,
-): D1PreviousStatementInsertGuard | undefined {
-  switch (transition.kind) {
-    case 'none':
-      return undefined;
-    case 'required':
-      return D1_PREVIOUS_STATEMENT_CHANGED_ONE_INSERT_GUARD;
-    default:
-      return assertNeverD1ReservationTransition(transition);
+function assertMatchingExecution(
+  input: RecordSponsoredExecutionInput,
+  existing: ConsoleSponsoredCallRecord,
+  request: SponsoredRecordDraft,
+  mode: 'record' | 'reconcile',
+): void {
+  if (JSON.stringify(recordIdentity(existing)) !== JSON.stringify(recordIdentity(request))) {
+    throw new Error('operation_conflict: Sponsored execution identity has changed');
   }
-}
-
-function d1BatchResultChanges(result: D1ResultLike<unknown> | undefined): number | null {
-  const changes = Number(result?.meta?.changes);
-  if (!Number.isFinite(changes)) return null;
-  return Math.max(0, Math.trunc(changes));
-}
-
-function d1ReservationTransitionFailed(input: {
-  transition: D1ReservationTransition;
-  batchResults: readonly D1ResultLike<unknown>[];
-}): boolean {
-  switch (input.transition.kind) {
-    case 'none':
-      return false;
-    case 'required': {
-      const changes = d1BatchResultChanges(input.batchResults[input.transition.statementIndex]);
-      return changes !== null && changes !== 1;
-    }
-    default:
-      return assertNeverD1ReservationTransition(input.transition);
-  }
-}
-
-function d1ReservationTransitionFailureError(
-  transition: D1ReservationTransition,
-): ConsoleBillingPrepaidReservationError {
-  switch (transition.kind) {
-    case 'none':
-      return new ConsoleBillingPrepaidReservationError(
-        'settlement_failed',
-        500,
-        'Failed to insert D1 sponsored-call settlement record',
-      );
-    case 'required':
-      return new ConsoleBillingPrepaidReservationError(
-        'invalid_state',
-        409,
-        `Prepaid reservation ${transition.sourceEventId} could not be ${transition.action === 'settle' ? 'settled' : 'released'} from RESERVED state`,
-      );
-    default:
-      return assertNeverD1ReservationTransition(transition);
-  }
-}
-
-async function loadExistingD1SponsoredRecordByIdempotency(input: {
-  runtime: ConsoleSponsoredCallD1Runtime;
-  ctx: ConsoleSponsoredCallContext;
-  idempotencyKey: string;
-}): Promise<ConsoleSponsoredCallRecord | null> {
-  return await loadD1ConsoleSponsoredCallRecordByIdempotencyKey({
-    database: input.runtime.database,
-    namespace: input.runtime.namespace,
-    orgId: input.ctx.orgId,
-    idempotencyKey: input.idempotencyKey,
-  });
-}
-
-async function recordSponsoredExecutionD1(
-  input: RecordSponsoredExecutionD1Input,
-): Promise<ConsoleSponsoredCallRecord> {
-  const prepaidSettlementInput = input.input.prepaidSettlementInput;
-  if (!prepaidSettlementInput?.reservation) {
-    throw new Error('Atomic D1 sponsored settlement requires an active prepaid reservation handle');
-  }
-  const initialRequest = input.input.buildRecord({
-    prepaidSettlement: null,
-    billingLedgerEntryId: null,
-  });
-  const idempotencyKey = normalizeRequiredSponsoredRecordIdempotencyKey(initialRequest);
-  const existing = await loadExistingD1SponsoredRecordByIdempotency({
-    runtime: input.sponsoredCallsRuntime,
-    ctx: input.input.context,
-    idempotencyKey,
-  });
-  if (existing) return existing;
-
-  const createdAt = input.billingRuntime.now();
-  const createdAtMs = createdAt.getTime();
-  const recordId = makeSponsoredCallRecordId(createdAt);
-  const finalized = await finalizeSponsoredPrepaidSettlementD1({
-    billingRuntime: input.billingRuntime,
-    prepaidRuntime: input.prepaidRuntime,
-    billingContext: input.input.context,
-    billingSourceEventIdPrefix: input.input.billingSourceEventIdPrefix,
-    walletId: input.input.walletId,
-    occurredAt: input.input.occurredAt,
-    recordId,
-    settledAtMs: createdAtMs,
-    prepaidSettlementInput,
-  });
-  const request = buildD1SponsoredCallRecordRequest({
-    input: input.input,
-    recordId,
-    prepaidSettlement: finalized.settlement,
-    billingLedgerEntryId: finalized.billingLedgerEntryId,
-  });
-  const recordInsert = createD1ConsoleSponsoredCallRecordInsertStatement({
-    database: input.sponsoredCallsRuntime.database,
-    namespace: input.sponsoredCallsRuntime.namespace,
-    ctx: input.input.context,
-    recordId,
-    request,
-    createdAtMs,
-    insertGuard: d1ReservationTransitionInsertGuard(finalized.reservationTransition),
-  });
-
-  try {
-    const batchResults = await input.billingRuntime.database.batch<D1ResultLike<unknown>>([
-      ...finalized.statements,
-      recordInsert,
-      ...finalized.notificationStatements,
-    ]);
+  if (mode === 'reconcile' && existing.receiptStatus === 'broadcast_failed') {
     if (
-      d1ReservationTransitionFailed({
-        transition: finalized.reservationTransition,
-        batchResults,
-      })
+      existing.txOrExecutionRef !== null &&
+      existing.txOrExecutionRef !== input.assessment.txOrExecutionRef
     ) {
-      const duplicate = await loadExistingD1SponsoredRecordByIdempotency({
-        runtime: input.sponsoredCallsRuntime,
-        ctx: input.input.context,
-        idempotencyKey,
-      });
-      if (duplicate) return duplicate;
-      throw d1ReservationTransitionFailureError(finalized.reservationTransition);
+      throw new Error('operation_conflict: Reconciliation execution reference has changed');
     }
-  } catch (error: unknown) {
-    if (!isD1ConstraintError(error)) throw error;
-    const duplicate = await loadExistingD1SponsoredRecordByIdempotency({
-      runtime: input.sponsoredCallsRuntime,
-      ctx: input.input.context,
-      idempotencyKey,
-    });
-    if (duplicate) return duplicate;
-    throw error;
+    return;
   }
-
-  const record = await loadD1ConsoleSponsoredCallRecordById({
-    database: input.sponsoredCallsRuntime.database,
-    namespace: input.sponsoredCallsRuntime.namespace,
-    orgId: input.input.context.orgId,
-    recordId,
-  });
-  if (!record) {
-    const duplicate = await loadExistingD1SponsoredRecordByIdempotency({
-      runtime: input.sponsoredCallsRuntime,
-      ctx: input.input.context,
-      idempotencyKey,
-    });
-    if (duplicate) return duplicate;
-    throw d1ReservationTransitionFailureError(finalized.reservationTransition);
+  if (
+    existing.receiptStatus !== input.assessment.receiptStatus ||
+    existing.txOrExecutionRef !== input.assessment.txOrExecutionRef ||
+    existing.feeUnit !== input.assessment.feeUnit ||
+    existing.feeAmount !== input.assessment.feeAmount
+  ) {
+    throw new Error('operation_conflict: Sponsored execution outcome has changed');
   }
-  return record;
 }
 
-async function finalizeSponsoredPrepaidSettlementD1(
-  input: D1PrepaidSettlementBuildInput,
-): Promise<FinalizedSponsoredPrepaidSettlementD1> {
-  const reservationHandle = input.prepaidSettlementInput.reservation;
-  if (!reservationHandle) {
-    return {
-      settlement: null,
-      billingLedgerEntryId: null,
-      statements: [],
-      notificationStatements: [],
-      reservationTransition: NO_D1_RESERVATION_TRANSITION,
-    };
+function sponsoredExecutionChargeReason(quote: SponsoredPrepaidSettlementQuote): string {
+  switch (quote.kind) {
+    case 'indeterminate':
+      return 'execution_indeterminate';
+    case 'released':
+      return 'released_zero_spend';
+    case 'settled':
+      if (quote.settledSpendMinor === 0) return 'settled_zero_spend';
+      return 'sponsored_execution_debit';
+    default:
+      return assertNever(quote);
   }
-  if (!input.prepaidSettlementInput.prepaidReservations) {
-    throw new ConsoleBillingPrepaidReservationError(
-      'unavailable',
-      503,
-      'Sponsored prepaid reservations are not configured',
+}
+
+function finalizedSettlement(
+  handle: SponsoredPrepaidReservationHandle,
+  quote: SponsoredPrepaidSettlementQuote,
+  occurredAt: string,
+  billingLedgerEntryId: string | null,
+): FinalizedSponsoredPrepaidSettlement | null {
+  switch (quote.kind) {
+    case 'indeterminate':
+      return null;
+    case 'released':
+      return Object.freeze({
+        kind: 'released',
+        reservationId: handle.reservationId,
+        sourceEventId: handle.sourceEventId,
+        estimatedSpendMinor: handle.estimatedSpendMinor,
+        settledSpendMinor: 0,
+        pricingVersion: quote.pricingVersion,
+        usedEstimatedFallback: false,
+        released: true,
+        settledAt: occurredAt,
+        billingLedgerEntryId: null,
+      });
+    case 'settled':
+      return Object.freeze({
+        kind: 'settled',
+        reservationId: handle.reservationId,
+        sourceEventId: handle.sourceEventId,
+        estimatedSpendMinor: handle.estimatedSpendMinor,
+        settledSpendMinor: quote.settledSpendMinor,
+        pricingVersion: quote.pricingVersion,
+        usedEstimatedFallback: quote.usedEstimatedFallback,
+        released: false,
+        settledAt: occurredAt,
+        billingLedgerEntryId,
+      });
+    default:
+      return assertNever(quote);
+  }
+}
+
+function fundsOperationId(
+  handle: SponsoredPrepaidReservationHandle,
+  action: 'indeterminate' | 'reconcile' | 'release' | 'settle',
+): string {
+  return JSON.stringify(['wallet', handle.instanceId, action, handle.sourceEventId]);
+}
+
+/** Accepted execution and its money changes share one D1 transaction. */
+export async function recordSponsoredExecution(
+  input: RecordSponsoredExecutionInput,
+): Promise<ConsoleSponsoredCallRecord> {
+  return await commitSponsoredExecution(input, 'record');
+}
+
+/** Confirmed chain evidence resolves an execution that retained its hold. */
+export async function reconcileSponsoredExecution(
+  input: RecordSponsoredExecutionInput,
+): Promise<ConsoleSponsoredCallRecord> {
+  return await commitSponsoredExecution(input, 'reconcile');
+}
+
+interface SponsoredFundsCommitInput {
+  readonly funds: WalletExecutionFunds;
+  readonly handle: SponsoredPrepaidReservationHandle;
+  readonly reservation: FundsReservationV1;
+  readonly quote: SponsoredPrepaidSettlementQuote;
+  readonly recordId: string;
+  readonly chargeId: string;
+  readonly ledgerSourceEventId: string;
+  readonly resourceId: string;
+  readonly occurredAt: string;
+  readonly assessment: SponsorshipExecutionAssessment;
+  readonly request: CreateConsoleSponsoredCallRecordRequest;
+  readonly statement: D1PreparedStatementLike;
+}
+
+async function commitSponsoredFunds(input: SponsoredFundsCommitInput): Promise<void> {
+  const identity = {
+    version: 1,
+    reservationId: input.handle.reservationId,
+    executionId: input.handle.sourceEventId,
+  };
+  if (input.quote.kind === 'indeterminate') {
+    const request = accepted(
+      MarkFundsIndeterminateRequestV1.parse({
+        ...identity,
+        operationId: fundsOperationId(input.handle, 'indeterminate'),
+      }),
+    );
+    accepted(
+      await input.funds.reservations.markIndeterminate(input.handle.authority, request, {
+        statements: [input.statement],
+      }),
+    );
+    return;
+  }
+  const evidence: DurableSourceEvidenceV1 = {
+    sourceRecordId: input.recordId,
+    sourceDigest: await evidenceDigest([
+      input.handle.instanceId,
+      input.handle.sourceEventId,
+      recordIdentity(input.request),
+      input.assessment.receiptStatus,
+      input.assessment.txOrExecutionRef,
+      input.assessment.feeUnit,
+      input.assessment.feeAmount,
+      input.quote.settledSpendMinor,
+      input.quote.pricingVersion,
+      input.quote.released,
+    ]),
+  };
+  const statements = [input.statement];
+  if (!input.quote.released) {
+    const quote = accepted(
+      TrustedWalletExecutionQuoteV1.parse({
+        version: 1,
+        currency: 'USD',
+        instanceId: input.handle.instanceId,
+        executionId: input.handle.sourceEventId,
+        quoteVersion: input.quote.pricingVersion,
+        quotedAt: input.handle.quotedAt,
+        amountMinor: input.quote.settledSpendMinor,
+        sourceRecordId: evidence.sourceRecordId,
+        sourceDigest: evidence.sourceDigest,
+        ledgerSourceEventId: input.ledgerSourceEventId,
+        resourceId: input.resourceId,
+        txOrExecutionRef: input.assessment.txOrExecutionRef,
+      }),
+    );
+    const event = accepted(
+      PlatformUsageEventV1.parse({
+        version: 1,
+        eventId: input.handle.sourceEventId,
+        instanceId: input.handle.instanceId,
+        occurredAt: input.occurredAt,
+        meterId: 'wallet.execution',
+        quantity: 1,
+        unit: 'execution',
+        evidence: {
+          kind: 'wallet_execution',
+          sourceRecordId: evidence.sourceRecordId,
+          sourceDigest: evidence.sourceDigest,
+          environmentId: input.request.environmentId,
+          executionId: input.handle.sourceEventId,
+          quoteVersion: input.quote.pricingVersion,
+          quotedAt: input.handle.quotedAt,
+          reservationId: input.handle.reservationId,
+        },
+      }),
+    );
+    const usage = accepted(
+      await input.funds.usage.prepareWalletExecutionCommit(input.handle.authority, quote, event),
+    );
+    statements.push(...usage.statements);
+  }
+  const transaction = {
+    chargeId: input.chargeId,
+    ledgerSourceEventId: input.ledgerSourceEventId,
+    resourceId: input.resourceId,
+    occurredAt: input.occurredAt,
+    txOrExecutionRef: input.assessment.txOrExecutionRef,
+    statements,
+  };
+  if (input.reservation.kind === 'indeterminate') {
+    const request = accepted(
+      ReconcileFundsRequestV1.parse({
+        ...identity,
+        operationId: fundsOperationId(input.handle, 'reconcile'),
+        outcome: input.quote.released
+          ? { kind: 'no_charge', noChargeEvidence: evidence }
+          : {
+              kind: 'charged',
+              settledMinor: input.quote.settledSpendMinor,
+              priceVersion: input.quote.pricingVersion,
+              evidence,
+            },
+      }),
+    );
+    accepted(
+      await input.funds.reservations.reconcile(input.handle.authority, request, transaction),
+    );
+    return;
+  }
+  if (input.quote.released) {
+    const request = accepted(
+      ReleaseFundsRequestV1.parse({
+        ...identity,
+        operationId: fundsOperationId(input.handle, 'release'),
+        noChargeEvidence: evidence,
+      }),
+    );
+    accepted(await input.funds.reservations.release(input.handle.authority, request, transaction));
+    return;
+  }
+  const request = accepted(
+    SettleFundsRequestV1.parse({
+      ...identity,
+      operationId: fundsOperationId(input.handle, 'settle'),
+      settledMinor: input.quote.settledSpendMinor,
+      priceVersion: input.quote.pricingVersion,
+      evidence,
+    }),
+  );
+  accepted(await input.funds.reservations.settle(input.handle.authority, request, transaction));
+}
+
+async function commitSponsoredExecution(
+  input: RecordSponsoredExecutionInput,
+  mode: 'record' | 'reconcile',
+): Promise<ConsoleSponsoredCallRecord> {
+  const prepaid = input.prepaidSettlementInput;
+  const handle = prepaid.reservation;
+  const funds = prepaid.executionFunds;
+  if (!handle || !funds) {
+    throw new Error('Sponsored settlement requires execution funds and a reservation');
+  }
+  if (
+    handle.authority.serviceId !== funds.authority.serviceId ||
+    handle.authority.deploymentId !== funds.authority.deploymentId
+  ) {
+    throw new Error('scope_forbidden: Sponsored reservation producer has changed');
+  }
+  const billing = getConsoleBillingD1Runtime(input.billing);
+  const reservations = getConsoleBillingPrepaidReservationD1Runtime(funds.reservations);
+  const calls = getConsoleSponsoredCallD1Runtime(input.ledger);
+  if (
+    !billing ||
+    !reservations ||
+    !calls ||
+    billing.database !== reservations.database ||
+    billing.database !== calls.database ||
+    billing.namespace !== reservations.namespace ||
+    billing.namespace !== calls.namespace
+  ) {
+    throw new Error('Sponsored settlement services must share one D1 database and namespace');
+  }
+  const initial = input.buildRecord({ prepaidSettlement: null, billingLedgerEntryId: null });
+  const idempotencyKey = initial.idempotencyKey.trim();
+  if (!idempotencyKey) throw new Error('Sponsored execution idempotency key is required');
+  const lookup = {
+    database: calls.database,
+    namespace: calls.namespace,
+    orgId: input.context.orgId,
+    idempotencyKey,
+  };
+  const existing = await loadD1ConsoleSponsoredCallRecordByIdempotencyKey(lookup);
+  if (existing) {
+    assertMatchingExecution(input, existing, initial, mode);
+    if (mode === 'record' || existing.receiptStatus !== 'broadcast_failed') return existing;
+  }
+  const reservation = accepted(
+    await funds.reservations.getReservation(handle.authority, handle.reservationId),
+  );
+  if (
+    reservation.instanceId !== handle.instanceId ||
+    reservation.executionId !== handle.sourceEventId ||
+    reservation.scope.organizationId !== input.context.orgId
+  ) {
+    throw new Error('scope_forbidden: Sponsored reservation does not match this execution');
+  }
+  if (mode === 'reconcile' && reservation.kind !== 'indeterminate') {
+    throw new Error(
+      'operation_conflict: Reconciliation requires an indeterminate funds reservation',
     );
   }
-  const quote = await resolveSponsoredPrepaidSettlementQuote(input.prepaidSettlementInput);
-  if (!quote) {
-    return {
-      settlement: null,
-      billingLedgerEntryId: null,
-      statements: [],
-      notificationStatements: [],
-      reservationTransition: NO_D1_RESERVATION_TRANSITION,
-    };
+  const quote = await resolveSponsoredPrepaidSettlementQuote({
+    reservation: handle,
+    pricing: prepaid.pricing,
+    chainFamily: initial.chainFamily,
+    intentKind: initial.intentKind,
+    executorKind: input.assessment.executorKind,
+    environmentId: initial.environmentId,
+    policyId: initial.policyId,
+    accountRef: initial.accountRef,
+    targetRef: initial.targetRef,
+    chainId: prepaid.chainId,
+    txOrExecutionRef: input.assessment.txOrExecutionRef,
+    receiptStatus: input.assessment.receiptStatus,
+    feeUnit: input.assessment.feeUnit,
+    feeAmount: input.assessment.feeAmount,
+    requestDetails: prepaid.requestDetails,
+  });
+  if (!quote) throw new Error('Sponsored settlement quote is unavailable');
+  if (mode === 'reconcile' && quote.kind === 'indeterminate') {
+    throw new Error('execution_unreconciled: A confirmed chain outcome is required');
   }
-  const reservation =
-    await input.prepaidSettlementInput.prepaidReservations.getReservationBySourceEventId(
-      input.billingContext,
-      reservationHandle.sourceEventId,
-    );
-  if (!reservation) {
-    throw new ConsoleBillingPrepaidReservationError(
-      'not_found',
-      404,
-      'Prepaid reservation was not found for sponsored settlement',
-    );
-  }
-  if (quote.released) {
-    return buildReleasedD1PrepaidSettlement({
-      ...input,
-      reservationHandle,
+  const now = billing.now();
+  const recordId = existing?.id || `scr_${handle.reservationId}`;
+  const chargeId = fundsChargeId(handle.reservationId);
+  const ledgerSourceEventId = `${input.billingSourceEventIdPrefix}:${handle.sourceEventId}`;
+  const occurredAt = input.occurredAt || now.toISOString();
+  const billingLedgerEntryId =
+    quote.kind === 'settled' && quote.settledSpendMinor > 0 ? chargeId : null;
+  const settlement = finalizedSettlement(handle, quote, occurredAt, billingLedgerEntryId);
+  const request: CreateConsoleSponsoredCallRecordRequest = {
+    ...input.buildRecord({ prepaidSettlement: settlement, billingLedgerEntryId }),
+    id: recordId,
+    executorKind: input.assessment.executorKind,
+    txOrExecutionRef: input.assessment.txOrExecutionRef,
+    receiptStatus: input.assessment.receiptStatus,
+    feeUnit: input.assessment.feeUnit,
+    feeAmount: input.assessment.feeAmount,
+    errorCode: input.assessment.recordErrorCode,
+    errorMessage: input.assessment.recordErrorMessage,
+    prepaidReservationId: handle.reservationId,
+    chargedReason: sponsoredExecutionChargeReason(quote),
+  };
+  const statement = existing
+    ? createD1ConsoleSponsoredCallRecordReconciliationStatement({
+        database: calls.database,
+        namespace: calls.namespace,
+        ctx: input.context,
+        recordId,
+        request,
+        updatedAtMs: now.getTime(),
+      })
+    : createD1ConsoleSponsoredCallRecordInsertStatement({
+        database: calls.database,
+        namespace: calls.namespace,
+        ctx: input.context,
+        recordId,
+        request,
+        createdAtMs: now.getTime(),
+      });
+  const before = await readSponsorshipBillingBalanceSnapshot(input.billing, input.context);
+  try {
+    await commitSponsoredFunds({
+      funds,
+      handle,
       reservation,
       quote,
+      recordId,
+      chargeId,
+      ledgerSourceEventId,
+      resourceId: input.walletId,
+      occurredAt,
+      assessment: input.assessment,
+      request,
+      statement,
     });
+  } catch (error: unknown) {
+    const duplicate = await loadD1ConsoleSponsoredCallRecordByIdempotencyKey(lookup);
+    if (!duplicate || (duplicate.receiptStatus === 'broadcast_failed' && mode === 'reconcile'))
+      throw error;
+    assertMatchingExecution(input, duplicate, initial, 'record');
+    return duplicate;
   }
-  return buildSettledD1PrepaidSettlement({
-    ...input,
-    reservationHandle,
-    reservation,
-    quote,
+  const record = await loadD1ConsoleSponsoredCallRecordById({
+    database: calls.database,
+    namespace: calls.namespace,
+    orgId: input.context.orgId,
+    recordId,
   });
-}
-
-function buildReleasedD1PrepaidSettlement(
-  input: D1ReleasedReservationInput,
-): FinalizedSponsoredPrepaidSettlementD1 {
-  const statements: D1PreparedStatementLike[] = [];
-  let reservationTransition: D1ReservationTransition = NO_D1_RESERVATION_TRANSITION;
-  switch (input.reservation.status) {
-    case 'RESERVED': {
-      const statementIndex = statements.length;
-      statements.push(
-        createReleaseConsoleBillingPrepaidReservationD1Statement({
-          runtime: input.prepaidRuntime,
-          ctx: input.billingContext,
-          reservation: input.reservation,
-          updatedAtMs: input.settledAtMs,
-        }),
-      );
-      reservationTransition = {
-        kind: 'required',
-        action: 'release',
-        statementIndex,
-        sourceEventId: input.reservation.sourceEventId,
-      };
-      break;
-    }
-    case 'RELEASED':
-    case 'EXPIRED':
-      throw new ConsoleBillingPrepaidReservationError(
-        'invalid_state',
-        409,
-        'Released or expired prepaid reservations cannot create a new sponsored execution record',
-      );
-    case 'SETTLED':
-      throw new ConsoleBillingPrepaidReservationError(
-        'invalid_state',
-        409,
-        'Settled prepaid reservations cannot be released',
-      );
-    default:
-      assertNeverReservationStatus(input.reservation.status);
-  }
-  return {
-    settlement: {
-      reservationId: input.reservation.id,
-      settledSpendMinor: 0,
-      pricingVersion: input.quote.pricingVersion,
-      usedEstimatedFallback: input.quote.usedEstimatedFallback,
-      released: true,
-      settledAt: new Date(input.settledAtMs).toISOString(),
-      sourceEventId: input.reservation.sourceEventId,
-      estimatedSpendMinor: input.reservationHandle.estimatedSpendMinor,
-      billingLedgerEntryId: null,
-    },
-    billingLedgerEntryId: null,
-    statements,
-    notificationStatements: [],
-    reservationTransition,
-  };
-}
-
-async function buildSettledD1PrepaidSettlement(
-  input: D1SettledReservationInput,
-): Promise<FinalizedSponsoredPrepaidSettlementD1> {
-  const statements: D1PreparedStatementLike[] = [];
-  const notificationStatements: D1PreparedStatementLike[] = [];
-  let reservationTransition: D1ReservationTransition = NO_D1_RESERVATION_TRANSITION;
-  switch (input.reservation.status) {
-    case 'RESERVED': {
-      const statementIndex = statements.length;
-      statements.push(
-        createSettleConsoleBillingPrepaidReservationD1Statement({
-          runtime: input.prepaidRuntime,
-          ctx: input.billingContext,
-          reservation: input.reservation,
-          settledSpendMinor: input.quote.settledSpendMinor,
-          txOrExecutionRef: input.prepaidSettlementInput.txOrExecutionRef,
-          pricingVersion: input.quote.pricingVersion,
-          updatedAtMs: input.settledAtMs,
-        }),
-      );
-      reservationTransition = {
-        kind: 'required',
-        action: 'settle',
-        statementIndex,
-        sourceEventId: input.reservation.sourceEventId,
-      };
-      break;
-    }
-    case 'SETTLED':
-      throw new ConsoleBillingPrepaidReservationError(
-        'invalid_state',
-        409,
-        'Settled prepaid reservations cannot create a new sponsored execution record',
-      );
-    case 'RELEASED':
-    case 'EXPIRED':
-      throw new ConsoleBillingPrepaidReservationError(
-        'invalid_state',
-        409,
-        'Released or expired prepaid reservations cannot be settled',
-      );
-    default:
-      assertNeverReservationStatus(input.reservation.status);
-  }
-
-  let billingLedgerEntryId: string | null = null;
-  if (input.quote.settledSpendMinor > 0) {
-    billingLedgerEntryId = `ble_${input.recordId}`;
-    const occurredAtMs = parseD1SponsoredDebitOccurredAtMs(input.occurredAt, input.settledAtMs);
-    const debitStatements = await createProductExecutionDebitD1Statements({
-      runtime: input.billingRuntime,
-      ctx: input.billingContext,
-      request: {
-        amountMinor: input.quote.settledSpendMinor,
-        sourceEventId: `${input.billingSourceEventIdPrefix}:${input.reservation.sourceEventId}`,
-        resourceId: input.walletId,
-        occurredAt: new Date(occurredAtMs).toISOString(),
-        txOrExecutionRef: input.prepaidSettlementInput.txOrExecutionRef,
-        pricingVersion: input.quote.pricingVersion,
+  if (!record)
+    throw new Error('Sponsored execution transaction did not persist its execution record');
+  if (input.balanceEvents) {
+    await emitSponsorshipBalanceTransitionEvents({
+      services: input.balanceEvents,
+      ctx: input.context,
+      before,
+      billing: input.billing,
+      trigger: {
+        kind: 'sponsored_execution_debit',
+        environmentId: record.environmentId,
+        routeId: record.route,
+        ...(record.billingLedgerEntryId ? { ledgerEntryId: record.billingLedgerEntryId } : {}),
+        sourceEventId: ledgerSourceEventId,
       },
-      entryId: billingLedgerEntryId,
-      occurredAtMs,
-      insertGuard: D1_PREVIOUS_STATEMENT_CHANGED_ONE_INSERT_GUARD,
     });
-    statements.push(debitStatements.ledgerStatement);
-    notificationStatements.push(...debitStatements.notificationStatements);
   }
-
-  return {
-    settlement: {
-      reservationId: input.reservation.id,
-      settledSpendMinor: input.quote.settledSpendMinor,
-      pricingVersion: input.quote.pricingVersion,
-      usedEstimatedFallback: input.quote.usedEstimatedFallback,
-      released: false,
-      settledAt: new Date(input.settledAtMs).toISOString(),
-      sourceEventId: input.reservation.sourceEventId,
-      estimatedSpendMinor: input.reservationHandle.estimatedSpendMinor,
-      billingLedgerEntryId,
-    },
-    billingLedgerEntryId,
-    statements,
-    notificationStatements,
-    reservationTransition,
-  };
+  return record;
 }

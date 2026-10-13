@@ -40,7 +40,6 @@ import {
   replaceDashboardSelectedContext,
   useDashboardUiPreferences,
 } from './useDashboardUiPreferences';
-import { isDashboardDefaultOrganizationName } from './utils/organizationIdentity';
 import { useSiteRouter } from '@core/router/useSiteRouter';
 import { useFrontendRuntime } from '@core/runtime';
 import { networkForConsoleEnvironmentId } from './environmentNetwork';
@@ -169,6 +168,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     getRouteFromPathname,
     getViewForRoute,
   } = composition;
+  const requestedRoute = getRouteFromPathname(pathname);
+  const usesWalletContext =
+    requestedRoute !== null && getViewForRoute(requestedRoute).context === 'wallet';
   const frontendRuntime = useFrontendRuntime();
   const { go, linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
@@ -201,7 +203,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const [environmentRows, setEnvironmentRows] = React.useState<DashboardConsoleEnvironment[]>([]);
   const [environmentRefreshRevision, setEnvironmentRefreshRevision] = React.useState(0);
   const organizationRecoveryAttemptRef = React.useRef<string>('');
-  const hasExistingOrganization = onboardingState?.hasOrganization === true;
   const sessionForbidden =
     !consoleSession.loading &&
     !consoleSession.claims &&
@@ -234,27 +235,12 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const currentOrganizationProjectId = String(
     currentOrganizationSummary?.selectedProjectId || '',
   ).trim();
-  const onboardingOrganizationName = String(onboardingState?.organization?.name || '').trim();
-  const onboardingOrganizationId = String(
-    onboardingState?.orgId || consoleSession.claims?.orgId || '',
-  ).trim();
-  const onboardingHasConfiguredOrganizationName =
-    onboardingOrganizationName.length > 0 &&
-    !isDashboardDefaultOrganizationName({
-      name: onboardingOrganizationName,
-      orgId: onboardingOrganizationId,
-    });
-  const hasConfiguredOrganization =
-    hasExistingOrganization && onboardingHasConfiguredOrganizationName;
   const isPlatformRoute = pathname === PLATFORM_BILLING_ROUTE || pathname.startsWith('/platform/');
   const isPlatformAdmin = consoleSession.claims?.platformSupport === true;
   const isSidebarNavigationLocked =
     !isPlatformRoute &&
     onboardingGateEnabled &&
-    (onboardingLoading ||
-      !onboardingState ||
-      onboardingState.hasOrganization !== true ||
-      onboardingState.hasProject !== true);
+    (onboardingLoading || !onboardingState || onboardingState.currentStep !== 'complete');
   /* Only claim setup is incomplete once the onboarding status has actually
      loaded; while loading the lock is provisional and the banner would flash
      at fully-onboarded users on every page load. */
@@ -375,7 +361,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     const isOnboardingRoute = pathname === DASHBOARD_ONBOARDING_ROUTE;
     const isPlatformBillingRoute = pathname === PLATFORM_BILLING_ROUTE;
     if (
-      (!hasConfiguredOrganization || !onboardingState.hasProject) &&
+      onboardingState.currentStep !== 'complete' &&
       !isOnboardingRoute &&
       !isPlatformBillingRoute
     ) {
@@ -385,7 +371,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     consoleSession.claims,
     consoleSession.loading,
     go,
-    hasConfiguredOrganization,
     isRecoveringOrganizationContext,
     isWaitingForCurrentOrgOnboardingState,
     onboardingGateEnabled,
@@ -395,15 +380,10 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   ]);
 
   const dashboardEntryRoute = React.useMemo<DashboardRoute | ProductRoute>(() => {
-    if (
-      onboardingGateEnabled &&
-      onboardingState &&
-      hasConfiguredOrganization &&
-      onboardingState.hasProject
-    )
+    if (onboardingGateEnabled && onboardingState && onboardingState.currentStep === 'complete')
       return DEFAULT_DASHBOARD_ROUTE;
     return DASHBOARD_ONBOARDING_ROUTE;
-  }, [DEFAULT_DASHBOARD_ROUTE, hasConfiguredOrganization, onboardingGateEnabled, onboardingState]);
+  }, [DEFAULT_DASHBOARD_ROUTE, onboardingGateEnabled, onboardingState]);
 
   React.useEffect(() => {
     const claims = consoleSession.claims;
@@ -574,7 +554,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   React.useEffect(() => {
     const claims = consoleSession.claims;
-    if (!claims || !currentOrgId) {
+    if (!claims || !currentOrgId || !usesWalletContext) {
       setEnvironmentRows([]);
       return;
     }
@@ -591,7 +571,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     return () => {
       cancelled = true;
     };
-  }, [consoleSession.claims, currentOrgId, environmentRefreshRevision]);
+  }, [consoleSession.claims, currentOrgId, environmentRefreshRevision, usesWalletContext]);
 
   const environmentOptions = React.useMemo(
     () =>
@@ -667,8 +647,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     return {
       organization: dropdownOptions.organization[0]?.value || consoleSession.claims?.orgId || '',
       project: projectValue,
-      environment:
-        preferredEnvironmentOption?.value || firstSelectableEnvironmentOption?.value || '',
+      environment: usesWalletContext
+        ? preferredEnvironmentOption?.value || firstSelectableEnvironmentOption?.value || ''
+        : '',
       accountSettings: dropdownOptions.accountSettings[0]?.value || '',
     };
   }, [
@@ -679,6 +660,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     scopedPersistedEnvironmentId,
     scopedPersistedProjectId,
     selectedProjectId,
+    usesWalletContext,
   ]);
 
   const {
@@ -838,10 +820,11 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   );
 
   React.useEffect(() => {
+    if (!usesWalletContext) return;
     const network = networkForConsoleEnvironmentId(selectedContext.environment);
     if (!network || network === frontendRuntime.selectedNetwork) return;
     frontendRuntime.selectNetwork(network);
-  }, [frontendRuntime, selectedContext.environment]);
+  }, [frontendRuntime, selectedContext.environment, usesWalletContext]);
 
   React.useEffect(() => {
     if (!consoleSession.claims) return;
@@ -998,14 +981,26 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         homeProps={homeProps}
         disableNavigationItems={isSidebarNavigationLocked}
         enabledWhenLockedPaths={onboardingRouteActive ? undefined : navigationLockExemptPaths}
-        workspace={{
-          projectGroups: workspaceProjectGroups,
-          projectValue: selectedContext.project,
-          environmentValue: selectedContext.environment,
-          onSelectEnvironment: onSelectWorkspaceEnvironment,
-          organizationOptions: dropdownOptions.organization,
-          organizationValue: selectedContext.organization,
-        }}
+        workspace={
+          usesWalletContext
+            ? {
+                kind: 'wallet',
+                projectGroups: workspaceProjectGroups,
+                projectValue: selectedContext.project,
+                environmentValue: selectedContext.environment,
+                onSelectEnvironment: onSelectWorkspaceEnvironment,
+                organizationOptions: dropdownOptions.organization,
+                organizationValue: selectedContext.organization,
+              }
+            : {
+                kind: 'account',
+                projectGroups: workspaceProjectGroups,
+                projectValue: selectedContext.project,
+                onSelectProject: onSelectContext.bind(null, 'project'),
+                organizationOptions: dropdownOptions.organization,
+                organizationValue: selectedContext.organization,
+              }
+        }
         product={{
           products: DASHBOARD_PRODUCTS,
           currentId: selectedProductId,

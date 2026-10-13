@@ -1,4 +1,8 @@
 import { secureRandomBase36 } from '../boundary';
+import { ensureBillingFundsD1Schema } from '../billingPrepaidReservations/schema';
+import { ensureBillingUsageD1Schema } from './usageSchema';
+import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
+import { listD1BillingUsageCharges } from './attribution';
 import {
   d1Integer as toNumber,
   d1ChangedRows,
@@ -71,9 +75,6 @@ import type {
   BillingRefundStatus,
   BillingProductExecutionDebitEntry,
   BillingProductExecutionDebitRequest,
-  BillingProductExecutionDebitResult,
-  BillingUsageEventRequest,
-  BillingUsageEventResult,
   GenerateMonthlyInvoiceRequest,
   GenerateMonthlyInvoiceResult,
   StripeCheckoutSession,
@@ -85,7 +86,7 @@ import type {
   StripeWebhookEventResult,
 } from './types';
 
-const ACTIVE_RESOURCE_USAGE_DEBIT_MINOR = 300;
+const ACTIVE_RESOURCE_USAGE_DEBIT_MINOR = WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1.unitMinor;
 const DEFAULT_LOW_BALANCE_THRESHOLD_MINOR = 2000;
 const DEFAULT_INVOICE_LIST_LIMIT = 25;
 const MAX_INVOICE_LIST_LIMIT = 100;
@@ -226,14 +227,6 @@ function normalizeRequiredString(value: unknown, field: string): string {
   return normalized;
 }
 
-function normalizePositiveInteger(value: unknown, field: string): number {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new ConsoleBillingError('invalid_body', 400, `${field} must be a positive integer`);
-  }
-  return parsed;
-}
-
 function normalizeMonthUtc(input: string): string {
   const value = String(input || '').trim();
   if (!/^\d{4}-\d{2}$/.test(value)) {
@@ -277,7 +270,7 @@ function stableHash32(input: string): number {
   return hash >>> 0;
 }
 
-function makeUsageStatementId(orgId: string, periodMonthUtc: string): string {
+export function buildBillingUsageStatementId(orgId: string, periodMonthUtc: string): string {
   const monthPart = periodMonthUtc.replace('-', '');
   const orgPrefix =
     orgId
@@ -644,6 +637,7 @@ async function buildLowBalanceStateStatements(input: {
   state: D1ConsoleBillingState;
   orgId: string;
   ledgerEntryId: string;
+  ledgerSourceEventId: string | null;
   createdAtMs: number;
 }): Promise<D1PreparedStatementLike[]> {
   const committedBalanceSql = `COALESCE(
@@ -676,9 +670,17 @@ async function buildLowBalanceStateStatements(input: {
              WHERE entry.namespace = billing_accounts.namespace
                AND entry.org_id = billing_accounts.org_id
                AND entry.id = ?
+               AND (? IS NULL OR entry.source_event_id = ?)
           )`,
     )
-    .bind(input.createdAtMs, input.state.namespace, input.orgId, input.ledgerEntryId);
+    .bind(
+      input.createdAtMs,
+      input.state.namespace,
+      input.orgId,
+      input.ledgerEntryId,
+      input.ledgerSourceEventId,
+      input.ledgerSourceEventId,
+    );
   const armStatement = input.state.database
     .prepare(
       `UPDATE billing_accounts
@@ -694,9 +696,17 @@ async function buildLowBalanceStateStatements(input: {
              WHERE entry.namespace = billing_accounts.namespace
                AND entry.org_id = billing_accounts.org_id
                AND entry.id = ?
+               AND (? IS NULL OR entry.source_event_id = ?)
           )`,
     )
-    .bind(input.createdAtMs, input.state.namespace, input.orgId, input.ledgerEntryId);
+    .bind(
+      input.createdAtMs,
+      input.state.namespace,
+      input.orgId,
+      input.ledgerEntryId,
+      input.ledgerSourceEventId,
+      input.ledgerSourceEventId,
+    );
   const recipients = await loadBillingEmailOwnerRecipients(input.state, input.orgId);
   if (recipients.length === 0 || !input.state.emailConsoleBaseUrl) {
     return [resetStatement, armStatement];
@@ -1245,7 +1255,7 @@ function statementInvoiceFromLedger(input: {
       .reduce((total, entry) => total + entry.amountMinor, 0),
   );
   return {
-    id: makeUsageStatementId(input.orgId, input.monthUtcValue),
+    id: buildBillingUsageStatementId(input.orgId, input.monthUtcValue),
     orgId: input.orgId,
     documentType: 'USAGE_STATEMENT',
     status: 'OPEN',
@@ -1305,6 +1315,67 @@ function invoiceLineItemsForStatement(input: {
       unitAmountMinor: productExecutionMinor,
       amountMinor: productExecutionMinor,
       createdAt: input.invoice.createdAt,
+    });
+  }
+  return items;
+}
+
+async function attributedUsageStatementLineItems(
+  state: D1ConsoleBillingState,
+  invoice: BillingInvoice,
+): Promise<BillingInvoiceLineItem[] | null> {
+  if (invoice.documentType !== 'USAGE_STATEMENT') return null;
+  const charges = await listD1BillingUsageCharges({
+    database: state.database,
+    namespace: state.namespace,
+    organizationId: invoice.orgId,
+    periodMonthUtc: invoice.periodMonthUtc,
+  });
+  let totalMinor = 0;
+  for (const charge of charges) totalMinor += charge.amountMinor;
+  if (charges.length === 0 || totalMinor !== invoice.amountDueMinor) return null;
+  const entries = await queryD1All(
+    state.database,
+    `SELECT id, entry_type FROM billing_ledger_entries
+      WHERE namespace = ? AND org_id = ? AND month_utc = ?
+        AND entry_type IN ('USAGE_DEBIT', 'PRODUCT_EXECUTION_DEBIT')`,
+    [state.namespace, invoice.orgId, invoice.periodMonthUtc],
+  );
+  const itemTypeByEntryId = new Map<string, BillingInvoiceLineItemType>();
+  for (const entry of entries) {
+    const entryId = normalizeRequiredString(entry.id, 'ledger entry ID');
+    switch (entry.entry_type) {
+      case 'USAGE_DEBIT':
+        itemTypeByEntryId.set(entryId, 'ACTIVE_RESOURCE_USAGE_DEBIT');
+        break;
+      case 'PRODUCT_EXECUTION_DEBIT':
+        itemTypeByEntryId.set(entryId, 'PRODUCT_EXECUTION_DEBIT');
+        break;
+      default:
+        throw new Error('Invalid persisted usage statement entry type');
+    }
+  }
+  const items: BillingInvoiceLineItem[] = [];
+  for (const charge of charges) {
+    const itemType = itemTypeByEntryId.get(charge.ledgerEntryId);
+    if (!itemType) throw new Error('Billing charge has no matching ledger entry');
+    let description =
+      'Historical organization usage without project, service, or meter attribution';
+    if (charge.kind === 'instance') {
+      description = `${charge.attribution.serviceId} | ${charge.meterId} | Project ${charge.attribution.scope.projectId} | Instance ${charge.attribution.instanceId} | Price ${charge.priceVersion}`;
+    }
+    items.push({
+      id: `ili_${invoice.id}_${charge.ledgerEntryId}`,
+      orgId: invoice.orgId,
+      invoiceId: invoice.id,
+      periodMonthUtc: invoice.periodMonthUtc,
+      itemType,
+      description,
+      quantity: 1,
+      unitAmountMinor: charge.amountMinor,
+      amountMinor: charge.amountMinor,
+      createdAt: charge.occurredAt,
+      usageCharge: charge,
     });
   }
   return items;
@@ -1434,37 +1505,6 @@ async function loadBillingAccount(input: {
   );
   if (row) return parseBillingAccount(row);
   return await ensureBillingAccount(input);
-}
-
-async function loadLedgerEntryBySourceEventAndType(input: {
-  database: D1DatabaseLike;
-  namespace: string;
-  orgId: string;
-  sourceEventId: string;
-  type: BillingLedgerEntry['type'];
-}): Promise<BillingLedgerEntry | null> {
-  const row = await queryD1One(
-    input.database,
-    `SELECT *
-       FROM billing_ledger_entries
-      WHERE namespace = ?
-        AND org_id = ?
-        AND entry_type = ?
-        AND source_event_id = ?
-      LIMIT 1`,
-    [input.namespace, input.orgId, input.type, input.sourceEventId],
-  );
-  if (!row) return null;
-  return (
-    (
-      await hydrateLedgerEntryRows({
-        database: input.database,
-        namespace: input.namespace,
-        orgId: input.orgId,
-        rows: [row],
-      })
-    )[0] || null
-  );
 }
 
 async function loadLedgerEntryById(input: {
@@ -2102,7 +2142,7 @@ function buildProductExecutionDebitInsert(input: {
     amountMinor: -input.request.amountMinor,
     description: `Product execution debit for ${input.request.resourceId}`,
     monthUtc: eventMonthUtc,
-    relatedInvoiceId: makeUsageStatementId(input.ctx.orgId, eventMonthUtc),
+    relatedInvoiceId: buildBillingUsageStatementId(input.ctx.orgId, eventMonthUtc),
     relatedPurchaseId: null,
     sourceEventId,
     actorType: 'SYSTEM',
@@ -2140,116 +2180,32 @@ async function buildProductExecutionDebitStatements(input: {
       state: input.state,
       orgId: input.ctx.orgId,
       ledgerEntryId: input.entryId,
+      ledgerSourceEventId: null,
       createdAtMs: input.occurredAtMs,
     }),
   };
 }
 
-function normalizeProductDebit(input: {
-  now: Date;
-  request: BillingProductExecutionDebitRequest;
-}): { sourceEventId: string; amountMinor: number; occurredAtMs: number } {
-  const sourceEventId = normalizeRequiredString(input.request.sourceEventId, 'sourceEventId');
-  const amountMinor = normalizePositiveInteger(input.request.amountMinor, 'amountMinor');
-  const occurredAtMs = input.request.occurredAt
-    ? Date.parse(input.request.occurredAt)
-    : nowMs(input.now);
-  if (!Number.isFinite(occurredAtMs)) {
-    throw new ConsoleBillingError(
-      'invalid_product_execution_debit',
-      400,
-      'Invalid occurredAt value',
-    );
-  }
-  return { sourceEventId, amountMinor, occurredAtMs };
-}
-
-export async function recordProductExecutionDebitD1(input: {
-  state: D1ConsoleBillingState;
-  ctx: ConsoleBillingContext;
-  request: BillingProductExecutionDebitRequest;
-  entryId?: string;
-}): Promise<{
-  result: BillingProductExecutionDebitResult;
-  ledgerEntry: BillingLedgerEntry | null;
-}> {
-  const currentNow = input.state.now();
-  const normalized = normalizeProductDebit({ now: currentNow, request: input.request });
-  const existing = await loadLedgerEntryBySourceEventAndType({
-    database: input.state.database,
-    namespace: input.state.namespace,
-    orgId: input.ctx.orgId,
-    sourceEventId: normalized.sourceEventId,
-    type: 'PRODUCT_EXECUTION_DEBIT',
+export async function createBillingLowBalanceD1Statements(input: {
+  runtime: ConsoleBillingD1Runtime;
+  orgId: string;
+  ledgerEntryId: string;
+  ledgerSourceEventId: string;
+  createdAtMs: number;
+}): Promise<D1PreparedStatementLike[]> {
+  await ensureBillingAccount({
+    database: input.runtime.database,
+    namespace: input.runtime.namespace,
+    orgId: input.orgId,
+    createdAtMs: input.createdAtMs,
   });
-  const eventMonthUtc = monthUtcFromMs(normalized.occurredAtMs);
-  if (existing) {
-    const account = await loadBillingAccount({
-      database: input.state.database,
-      namespace: input.state.namespace,
-      orgId: input.ctx.orgId,
-      createdAtMs: nowMs(currentNow),
-    });
-    return {
-      result: {
-        accepted: false,
-        debitAppliedMinor: 0,
-        ledgerEntryId: existing.id,
-        creditBalanceMinor: account.creditBalanceMinor,
-        monthUtc: eventMonthUtc,
-        statementId: makeUsageStatementId(input.ctx.orgId, eventMonthUtc),
-      },
-      ledgerEntry: existing,
-    };
-  }
-
-  const entryId = input.entryId || makeId('ble', new Date(normalized.occurredAtMs));
-  const statements = await buildProductExecutionDebitStatements({
-    state: input.state,
-    ctx: input.ctx,
-    request: { ...input.request, amountMinor: normalized.amountMinor },
-    entryId,
-    occurredAtMs: normalized.occurredAtMs,
+  return buildLowBalanceStateStatements({
+    state: input.runtime,
+    orgId: input.orgId,
+    ledgerEntryId: input.ledgerEntryId,
+    ledgerSourceEventId: input.ledgerSourceEventId,
+    createdAtMs: input.createdAtMs,
   });
-  try {
-    await input.state.database.batch([
-      statements.ledgerStatement,
-      ...statements.notificationStatements,
-    ]);
-  } catch (error: unknown) {
-    if (!isD1ConstraintError(error)) throw error;
-  }
-  const ledgerEntry =
-    (await loadLedgerEntryById({
-      database: input.state.database,
-      namespace: input.state.namespace,
-      orgId: input.ctx.orgId,
-      ledgerEntryId: entryId,
-    })) ||
-    (await loadLedgerEntryBySourceEventAndType({
-      database: input.state.database,
-      namespace: input.state.namespace,
-      orgId: input.ctx.orgId,
-      sourceEventId: normalized.sourceEventId,
-      type: 'PRODUCT_EXECUTION_DEBIT',
-    }));
-  const account = await loadBillingAccount({
-    database: input.state.database,
-    namespace: input.state.namespace,
-    orgId: input.ctx.orgId,
-    createdAtMs: nowMs(currentNow),
-  });
-  return {
-    result: {
-      accepted: ledgerEntry?.id === entryId,
-      debitAppliedMinor: ledgerEntry?.id === entryId ? normalized.amountMinor : 0,
-      ledgerEntryId: ledgerEntry?.id || null,
-      creditBalanceMinor: account.creditBalanceMinor,
-      monthUtc: eventMonthUtc,
-      statementId: makeUsageStatementId(input.ctx.orgId, eventMonthUtc),
-    },
-    ledgerEntry,
-  };
 }
 
 export async function createProductExecutionDebitD1Statements(input: {
@@ -2332,6 +2288,7 @@ async function reconcileUsageDebitCoverageD1(input: {
     state: input.state,
     orgId: input.ctx.orgId,
     ledgerEntryId: entryId,
+    ledgerSourceEventId: null,
     createdAtMs: input.createdAtMs,
   });
   try {
@@ -2344,7 +2301,7 @@ async function reconcileUsageDebitCoverageD1(input: {
         amountMinor: -missingAmountMinor,
         description: `Reconciled active-resource usage debit coverage (${input.periodMonthUtc})`,
         monthUtc: input.periodMonthUtc,
-        relatedInvoiceId: makeUsageStatementId(input.ctx.orgId, input.periodMonthUtc),
+        relatedInvoiceId: buildBillingUsageStatementId(input.ctx.orgId, input.periodMonthUtc),
         relatedPurchaseId: null,
         sourceEventId: `usage_statement:${input.periodMonthUtc}`,
         actorType: 'SYSTEM',
@@ -2370,7 +2327,7 @@ async function syncUsageStatementD1(input: {
   invoice: BillingInvoice;
   lineItems: BillingInvoiceLineItem[];
 }> {
-  const invoiceId = makeUsageStatementId(input.orgId, input.periodMonthUtc);
+  const invoiceId = buildBillingUsageStatementId(input.orgId, input.periodMonthUtc);
   const existingInvoice = await loadPersistedInvoiceById({
     database: input.state.database,
     namespace: input.state.namespace,
@@ -2471,7 +2428,7 @@ async function generateMonthlyInvoiceD1(input: {
     monthlyActiveResources,
     createdAtMs,
   });
-  const invoiceId = makeUsageStatementId(input.ctx.orgId, input.periodMonthUtc);
+  const invoiceId = buildBillingUsageStatementId(input.ctx.orgId, input.periodMonthUtc);
   const previousInvoice = await loadPersistedInvoiceById({
     database: input.state.database,
     namespace: input.state.namespace,
@@ -2499,7 +2456,9 @@ async function generateMonthlyInvoiceD1(input: {
   return {
     generated,
     invoice: synced.invoice,
-    lineItems: sortLineItems(synced.lineItems),
+    lineItems: sortLineItems(
+      (await attributedUsageStatementLineItems(input.state, synced.invoice)) ?? synced.lineItems,
+    ),
     monthlyActiveResources,
     pricing: { activeResourceUnitPriceMinor: ACTIVE_RESOURCE_USAGE_DEBIT_MINOR },
   };
@@ -2637,6 +2596,7 @@ async function settleCreditPurchaseD1(input: {
     state: input.state,
     orgId: input.orgId,
     ledgerEntryId,
+    ledgerSourceEventId: null,
     createdAtMs: input.settledAtMs,
   });
   const statements: D1PreparedStatementLike[] = [
@@ -2763,6 +2723,7 @@ async function finalizeRefundD1(input: {
       state: input.state,
       orgId: input.refund.orgId,
       ledgerEntryId,
+      ledgerSourceEventId: null,
       createdAtMs: input.updatedAtMs,
     });
     try {
@@ -2996,7 +2957,17 @@ async function createRefundD1(input: {
     namespace: input.state.namespace,
     orgId: input.ctx.orgId,
   });
-  if (request.amountMinor > account.creditBalanceMinor - pendingRefundAmount) {
+  const holdRow = await queryD1One(
+    input.state.database,
+    `SELECT COALESCE(SUM(requested_minor), 0) AS held FROM billing_funds_reservations
+      WHERE namespace = ? AND org_id = ? AND status IN ('reserved', 'indeterminate')`,
+    [input.state.namespace, input.ctx.orgId],
+  );
+  const outstandingHoldsMinor = toNumber(holdRow?.held);
+  if (
+    request.amountMinor >
+    account.creditBalanceMinor - pendingRefundAmount - outstandingHoldsMinor
+  ) {
     throw new ConsoleBillingError(
       'refund_amount_exceeds_credit',
       409,
@@ -3082,6 +3053,11 @@ async function createRefundD1(input: {
                AND pending_refund.origin = 'console'
                AND pending_refund.status IN ('requested', 'provider_pending')
           ),
+          0
+        ) - COALESCE(
+          (SELECT SUM(hold.requested_minor) FROM billing_funds_reservations hold
+            WHERE hold.namespace = purchase.namespace AND hold.org_id = purchase.org_id
+              AND hold.status IN ('reserved', 'indeterminate')),
           0
         )`,
       )
@@ -3372,6 +3348,7 @@ async function applyDisputeOpenedD1(input: {
     state: input.state,
     orgId: input.purchase.orgId,
     ledgerEntryId,
+    ledgerSourceEventId: null,
     createdAtMs,
   });
   await input.state.database.batch([
@@ -3464,6 +3441,7 @@ async function applyDisputeClosedD1(input: {
       state: input.state,
       orgId: input.dispute.orgId,
       ledgerEntryId,
+      ledgerSourceEventId: null,
       createdAtMs: updatedAtMs,
     });
     await input.state.database.batch([
@@ -3799,6 +3777,8 @@ async function processStripeWebhookEventD1(input: {
 export async function createD1ConsoleBillingService(
   options: D1ConsoleBillingServiceOptions,
 ): Promise<ConsoleBillingService> {
+  await ensureBillingFundsD1Schema(options.database);
+  await ensureBillingUsageD1Schema(options.database);
   const emailConsoleBaseUrl = normalizeEmailConsoleBaseUrl(options.emailConsoleBaseUrl);
   const consoleBaseUrl = normalizeEmailConsoleBaseUrl(
     options.consoleBaseUrl || emailConsoleBaseUrl,
@@ -3849,12 +3829,29 @@ export async function createD1ConsoleBillingService(
       const recentCreditPurchasedMinor = ledger
         .filter((entry) => entry.type === 'CREDIT_PURCHASE')
         .reduce((total, entry) => total + entry.amountMinor, 0);
+      const heldFunds = await queryD1One(
+        state.database,
+        `SELECT COALESCE(SUM(requested_minor), 0) AS reserved_minor, COUNT(*) AS reservation_count
+        FROM billing_funds_reservations WHERE namespace = ? AND org_id = ? AND status IN ('reserved', 'indeterminate')`,
+        [state.namespace, ctx.orgId],
+      );
+      const reservedMinor = Math.max(0, toNumber(heldFunds?.reserved_minor));
+      const activeReservationCount = Math.max(0, toNumber(heldFunds?.reservation_count));
+      const pendingRefundMinor = await pendingConsoleRefundAmountD1({
+        database: state.database,
+        namespace: state.namespace,
+        orgId: ctx.orgId,
+      });
       return {
         usageMetricVersion: 'active_resource_v1',
         currentMonthUtc,
         monthlyActiveResources,
         creditBalanceMinor: account.creditBalanceMinor,
         lowBalanceThresholdMinor: account.lowBalanceThresholdMinor,
+        reservedMinor,
+        activeReservationCount,
+        pendingRefundMinor,
+        availableBalanceMinor: account.creditBalanceMinor - reservedMinor - pendingRefundMinor,
         recentUsageDebitMinor,
         recentCreditPurchasedMinor,
         documentCount: await countProjectedInvoices(state, ctx.orgId),
@@ -3932,20 +3929,6 @@ export async function createD1ConsoleBillingService(
         monthUtc: monthUtcValue,
         monthlyActiveResources,
       };
-    },
-
-    async recordUsageEvent(
-      ctx: ConsoleBillingContext,
-      request: BillingUsageEventRequest,
-    ): Promise<BillingUsageEventResult> {
-      return await recordUsageEventD1({ state, ctx, request });
-    },
-
-    async recordProductExecutionDebit(
-      ctx: ConsoleBillingContext,
-      request: BillingProductExecutionDebitRequest,
-    ): Promise<BillingProductExecutionDebitResult> {
-      return (await recordProductExecutionDebitD1({ state, ctx, request })).result;
     },
 
     async listInvoices(ctx: ConsoleBillingContext): Promise<BillingInvoice[]> {
@@ -4054,6 +4037,8 @@ export async function createD1ConsoleBillingService(
         orgId: ctx.orgId,
         invoiceId: invoice.id,
       });
+      const attributed = await attributedUsageStatementLineItems(state, invoice);
+      if (attributed) return attributed;
       if (persisted.length > 0) return persisted;
       const entries = await listLedgerEntries({
         database: state.database,
@@ -4552,105 +4537,6 @@ async function listProjectedInvoices(
   });
 }
 
-async function recordUsageEventD1(input: {
-  state: D1ConsoleBillingState;
-  ctx: ConsoleBillingContext;
-  request: BillingUsageEventRequest;
-}): Promise<BillingUsageEventResult> {
-  const occurredAtMs = input.request.occurredAt
-    ? Date.parse(input.request.occurredAt)
-    : nowMs(input.state.now());
-  if (!Number.isFinite(occurredAtMs)) {
-    throw new ConsoleBillingError('invalid_usage_event', 400, 'Invalid occurredAt value');
-  }
-  const monthUtcValue = monthUtcFromMs(occurredAtMs);
-  const counted = input.request.shouldCount;
-  let debitAppliedMinor = 0;
-  if (counted) {
-    const sourceEventId = normalizeOptionalString(input.request.sourceEventId);
-    const existingResource = await queryD1One(
-      input.state.database,
-      `SELECT resource_id
-         FROM billing_monthly_active_resources
-        WHERE namespace = ?
-          AND org_id = ?
-          AND month_utc = ?
-          AND resource_id = ?
-        LIMIT 1`,
-      [input.state.namespace, input.ctx.orgId, monthUtcValue, input.request.resourceId],
-    );
-    if (!existingResource) {
-      const entryId = makeId('ble', new Date(occurredAtMs));
-      const notificationStatements = await buildLowBalanceStateStatements({
-        state: input.state,
-        orgId: input.ctx.orgId,
-        ledgerEntryId: entryId,
-        createdAtMs: occurredAtMs,
-      });
-      await input.state.database.batch([
-        input.state.database
-          .prepare(
-            `INSERT INTO billing_monthly_active_resources
-              (namespace, org_id, month_utc, resource_id, source_event_id, created_at_ms)
-             VALUES
-              (?, ?, ?, ?, ?, ?)`,
-          )
-          .bind(
-            input.state.namespace,
-            input.ctx.orgId,
-            monthUtcValue,
-            input.request.resourceId,
-            sourceEventId,
-            occurredAtMs,
-          ),
-        createD1BillingLedgerEntryInsertStatement(input.state.database, {
-          namespace: input.state.namespace,
-          orgId: input.ctx.orgId,
-          entryId,
-          type: 'USAGE_DEBIT',
-          amountMinor: -ACTIVE_RESOURCE_USAGE_DEBIT_MINOR,
-          description: `active-resource usage debit for resource ${input.request.resourceId}`,
-          monthUtc: monthUtcValue,
-          relatedInvoiceId: makeUsageStatementId(input.ctx.orgId, monthUtcValue),
-          relatedPurchaseId: null,
-          sourceEventId,
-          actorType: 'USER',
-          actorUserId: input.ctx.actorUserId,
-          reasonCode: 'usage_debit',
-          note: `Usage debit recorded for resource ${input.request.resourceId}`,
-          idempotencyKey: sourceEventId
-            ? `usage_debit:${sourceEventId}`
-            : `usage_debit:${monthUtcValue}:${input.request.resourceId}:${occurredAtMs}`,
-          createdAtMs: occurredAtMs,
-        }),
-        ...notificationStatements,
-      ]);
-      debitAppliedMinor = ACTIVE_RESOURCE_USAGE_DEBIT_MINOR;
-    }
-  }
-  const monthlyActiveResources = await countMonthlyActiveResources({
-    database: input.state.database,
-    namespace: input.state.namespace,
-    orgId: input.ctx.orgId,
-    monthUtcValue,
-  });
-  const account = await loadBillingAccount({
-    database: input.state.database,
-    namespace: input.state.namespace,
-    orgId: input.ctx.orgId,
-    createdAtMs: occurredAtMs,
-  });
-  return {
-    accepted: true,
-    counted,
-    monthUtc: monthUtcValue,
-    monthlyActiveResources,
-    debitAppliedMinor,
-    creditBalanceMinor: account.creditBalanceMinor,
-    statementId: makeUsageStatementId(input.ctx.orgId, monthUtcValue),
-  };
-}
-
 async function appendManualAdjustmentD1(input: {
   state: D1ConsoleBillingState;
   ctx: ConsoleBillingContext;
@@ -4700,6 +4586,7 @@ async function appendManualAdjustmentD1(input: {
     state: input.state,
     orgId: input.ctx.orgId,
     ledgerEntryId: entryId,
+    ledgerSourceEventId: null,
     createdAtMs: nowMs(currentNow),
   });
   await input.state.database.batch([

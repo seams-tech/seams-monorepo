@@ -1,8 +1,5 @@
 import type { PlatformResult } from './boundary';
-import type {
-  AcceptedServiceReceiptV1,
-  DurableSourceEvidenceV1,
-} from './instances';
+import type { AcceptedServiceReceiptV1, DurableSourceEvidenceV1 } from './instances';
 import type { PlatformScopeV1, PlatformServiceIdV1 } from './scope';
 import type { PlatformMeterIdV1 } from './usage';
 
@@ -95,23 +92,6 @@ export type ServiceProvisionObservationV1 = PlatformResult<
   { readonly code: 'operation_conflict' | 'scope_forbidden' }
 >;
 
-export interface SettleFundsRequestV1 {
-  readonly version: 1;
-  readonly operationId: string;
-  readonly reservationId: string;
-  readonly executionId: string;
-  readonly settledMinor: number;
-  readonly evidence: DurableSourceEvidenceV1;
-}
-
-export interface ReleaseFundsRequestV1 {
-  readonly version: 1;
-  readonly operationId: string;
-  readonly reservationId: string;
-  readonly executionId: string;
-  readonly noChargeEvidence: DurableSourceEvidenceV1;
-}
-
 interface ReservationIdentityV1 {
   readonly reservationId: string;
   readonly scope: PlatformScopeV1;
@@ -119,6 +99,7 @@ interface ReservationIdentityV1 {
   readonly executionId: string;
   readonly requestedMinor: number;
   readonly priceVersion: string;
+  readonly createdAt: string;
 }
 
 export type FundsReservationV1 = ReservationIdentityV1 &
@@ -132,9 +113,7 @@ export type FundsReservationV1 = ReservationIdentityV1 &
       }
     | {
         readonly kind: 'indeterminate';
-        readonly reconciliation:
-          | { readonly kind: 'pending'; readonly evidence?: never }
-          | { readonly kind: 'confirmed'; readonly evidence: DurableSourceEvidenceV1 };
+        readonly reconciliation: { readonly kind: 'pending'; readonly evidence?: never };
         readonly chargeId?: never;
         readonly settledMinor?: never;
         readonly noChargeEvidence?: never;
@@ -155,14 +134,10 @@ export type FundsReservationV1 = ReservationIdentityV1 &
       }
   );
 
-export type SettleableFundsReservationV1 =
-  | Extract<FundsReservationV1, { readonly kind: 'reserved' }>
-  | (Extract<FundsReservationV1, { readonly kind: 'indeterminate' }> & {
-      readonly reconciliation: {
-        readonly kind: 'confirmed';
-        readonly evidence: DurableSourceEvidenceV1;
-      };
-    });
+export type SettleableFundsReservationV1 = Extract<
+  FundsReservationV1,
+  { readonly kind: 'reserved' }
+>;
 
 export type ReservationResultV1 = PlatformResult<
   FundsReservationV1,
@@ -170,6 +145,7 @@ export type ReservationResultV1 = PlatformResult<
     readonly code:
       | 'scope_forbidden'
       | 'insufficient_funds'
+      | 'price_unavailable'
       | 'operation_conflict'
       | 'execution_unreconciled';
   }

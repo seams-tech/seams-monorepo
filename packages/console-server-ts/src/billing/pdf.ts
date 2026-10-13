@@ -162,7 +162,7 @@ function buildInvoicePdfLines(input: {
       pushWrapped(lines, '', summary, 78, 11);
       pushWrapped(lines, '   Description: ', lineItem.description || '-', 74, 10);
       pushWrapped(lines, '   Period: ', lineItem.periodMonthUtc || '-', 74, 10);
-      lines.push({ text: `   Line item ID: ${lineItem.id}`, size: 10 });
+      pushWrapped(lines, '   Line item ID: ', lineItem.id, 74, 10);
       lines.push({ text: '', size: 8 });
     });
   }

@@ -1,44 +1,42 @@
 import React from 'react';
 import { useSiteRouter } from '@core/router/useSiteRouter';
-import { useDashboardConsoleSession } from '../../consoleSession';
-import {
-  useDashboardSelectedContext,
-  useDashboardSelectedContextDisplay,
-} from '../../selectedContext';
+import { canDashboardManageBilling, useDashboardConsoleSession } from '../../consoleSession';
+import { useDashboardSelectedContext } from '../../selectedContext';
 import { BillingAccountView } from './BillingAccountView';
+import { BillingUsageCostsSection } from './BillingUsageCostsSection';
 import { BillingInvoiceDetailView } from './BillingInvoiceDetailView';
 import { BillingInvoicesView } from './BillingInvoicesView';
 import { PlatformBillingView } from './PlatformBillingView';
-import {
-  SponsoredExecutionHistorySection,
-  SponsoredExecutionReconciliationSection,
-} from './billingSections';
+import { BillingAccountActivitySection } from './billingSections';
 import {
   createDashboardStripeCheckoutSession,
   downloadDashboardBillingInvoicePdf,
   formatUsdMinor,
   getDashboardBillingInvoice,
   getDashboardBillingInvoiceActivity,
-  getDashboardBillingMonthlyActiveResources,
   getDashboardBillingOverview,
+  getDashboardBillingUsageCharges,
   listDashboardBillingInvoiceLineItems,
   listDashboardBillingInvoices,
+  listDashboardBillingAccountActivity,
   listDashboardBillingRefunds,
-  listDashboardSponsoredExecutionHistory,
-  listDashboardSponsoredExecutionReconciliation,
   reconcileDashboardStripeCheckoutSession,
   type DashboardBillingInvoice,
   type DashboardBillingInvoiceActivity,
   type DashboardBillingInvoiceLineItem,
   type DashboardBillingInvoiceListSummary,
   type DashboardBillingOverview,
+  type DashboardBillingCostsState,
   type DashboardBillingRefund,
-  type DashboardSponsoredExecutionHistoryEntry,
-  type DashboardSponsoredExecutionReconciliationPage,
-  type DashboardBillingUsage,
+  type DashboardBillingAccountActivityEntry,
   type DashboardStripeCheckoutSessionRequest,
 } from './consoleBillingApi';
-import { buildInvoicePdfFilename, parseBillingSubview, type BillingMetric } from './billingShared';
+import {
+  BillingMetricsGrid,
+  buildInvoicePdfFilename,
+  parseBillingSubview,
+  type BillingMetric,
+} from './billingShared';
 
 export interface BillingConsoleShellProps {
   defaultPath: '/dashboard/billing/account' | '/dashboard/invoices' | '/platform/billing';
@@ -47,6 +45,12 @@ export interface BillingConsoleShellProps {
 const DATE_INPUT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const PERIOD_MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
 const ONE_DAY_MS = 86_400_000;
+
+function billingUsagePeriod(search: string): string {
+  const requested = new URLSearchParams(search).get('periodMonthUtc');
+  if (requested && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested)) return requested;
+  return new Date().toISOString().slice(0, 7);
+}
 
 function parseDateInputMs(value: string, endOfDay: boolean): number | null {
   const match = DATE_INPUT_PATTERN.exec(String(value || '').trim());
@@ -65,6 +69,38 @@ function parseDateInputMs(value: string, endOfDay: boolean): number | null {
     return null;
   }
   return endOfDay ? timestamp + ONE_DAY_MS - 1 : timestamp;
+}
+
+function buildAccountSummaryMetrics(overview: DashboardBillingOverview | null): BillingMetric[] {
+  if (!overview) return [];
+  return [
+    {
+      label: 'Balance',
+      value: formatUsdMinor(overview.creditBalanceMinor),
+      hint: 'Posted organization balance',
+    },
+    {
+      label: 'Available balance',
+      value: formatUsdMinor(overview.availableBalanceMinor),
+      hint: 'Balance after reserved funds and pending refunds',
+      tone: overview.availableBalanceMinor <= 0 ? 'danger' : 'success',
+    },
+    {
+      label: 'Reserved funds',
+      value: formatUsdMinor(overview.reservedMinor),
+      hint: `${overview.activeReservationCount} unresolved reservation${overview.activeReservationCount === 1 ? '' : 's'}`,
+    },
+    {
+      label: 'Pending refunds',
+      value: formatUsdMinor(overview.pendingRefundMinor),
+      hint: 'Funds held while refunds are processed',
+    },
+    {
+      label: 'Recent top-ups',
+      value: formatUsdMinor(overview.recentCreditPurchasedMinor),
+      hint: `${overview.documentCount} billing document${overview.documentCount === 1 ? '' : 's'}`,
+    },
+  ];
 }
 
 function parseInvoicePeriodRange(
@@ -153,7 +189,6 @@ function filterInvoices(input: {
 export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.Element {
   const { defaultPath } = props;
   const session = useDashboardConsoleSession();
-  const selectedContextDisplay = useDashboardSelectedContextDisplay();
   const selectedContext = useDashboardSelectedContext();
   const { go } = useSiteRouter();
   const pathname = typeof window === 'undefined' ? defaultPath : window.location.pathname;
@@ -165,16 +200,11 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   const [loading, setLoading] = React.useState<boolean>(true);
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [overview, setOverview] = React.useState<DashboardBillingOverview | null>(null);
-  const [usage, setUsage] = React.useState<DashboardBillingUsage | null>(null);
-  const [sponsoredHistory, setSponsoredHistory] = React.useState<
-    DashboardSponsoredExecutionHistoryEntry[]
+  const [costs, setCosts] = React.useState<DashboardBillingCostsState>({ kind: 'unavailable' });
+  const [accountActivity, setAccountActivity] = React.useState<
+    DashboardBillingAccountActivityEntry[]
   >([]);
-  const [sponsoredHistoryLoading, setSponsoredHistoryLoading] = React.useState<boolean>(false);
-  const [sponsoredHistoryError, setSponsoredHistoryError] = React.useState<string>('');
-  const [reconciliationPage, setReconciliationPage] =
-    React.useState<DashboardSponsoredExecutionReconciliationPage | null>(null);
-  const [reconciliationLoading, setReconciliationLoading] = React.useState<boolean>(false);
-  const [reconciliationError, setReconciliationError] = React.useState<string>('');
+  const [accountActivityError, setAccountActivityError] = React.useState('');
 
   const [invoices, setInvoices] = React.useState<DashboardBillingInvoice[]>([]);
   const [invoiceListLoading, setInvoiceListLoading] = React.useState<boolean>(false);
@@ -210,18 +240,16 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
   const [invoiceDownloadError, setInvoiceDownloadError] = React.useState<string>('');
   const checkoutReconcileAttemptedRef = React.useRef<Set<string>>(new Set());
   const activeCheckoutReconcileRef = React.useRef<string>('');
+  const refreshRequestIdRef = React.useRef(0);
 
   const refreshBillingShellData = React.useCallback(async () => {
+    const refreshRequestId = ++refreshRequestIdRef.current;
     if (!session.claims) {
       setLoading(false);
-      setSponsoredHistoryLoading(false);
-      setReconciliationLoading(false);
       setOverview(null);
-      setUsage(null);
-      setSponsoredHistory([]);
-      setSponsoredHistoryError('');
-      setReconciliationPage(null);
-      setReconciliationError('');
+      setCosts({ kind: 'unavailable' });
+      setAccountActivity([]);
+      setAccountActivityError('');
       setRefunds([]);
       setRefundsLoading(false);
       setRefundsError('');
@@ -229,66 +257,50 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
       return;
     }
     setLoading(true);
-    setSponsoredHistoryLoading(true);
-    setReconciliationLoading(true);
     setRefundsLoading(true);
     setErrorMessage('');
-    setSponsoredHistoryError('');
-    setReconciliationError('');
+    setAccountActivityError('');
     setRefundsError('');
-    const environmentId = selectedContext.environment;
-    const [overviewResult, usageResult, historyResult, reconciliationResult, refundsResult] =
-      await Promise.allSettled([
-        getDashboardBillingOverview(),
-        getDashboardBillingMonthlyActiveResources(),
-        listDashboardSponsoredExecutionHistory({
-          ...(environmentId ? { environmentId } : {}),
-          limit: 12,
-          lookbackDays: 90,
-        }),
-        listDashboardSponsoredExecutionReconciliation({
-          ...(environmentId ? { environmentId } : {}),
-          limit: 12,
-          lookbackDays: 90,
-        }),
-        listDashboardBillingRefunds(),
-      ]);
-    if (overviewResult.status === 'fulfilled' && usageResult.status === 'fulfilled') {
+    const organizationId = session.claims.orgId;
+    setCosts({ kind: 'loading', organizationId });
+    const periodMonthUtc = billingUsagePeriod(search);
+    const [overviewResult, activityResult, refundsResult, costsResult] = await Promise.allSettled([
+      getDashboardBillingOverview(),
+      listDashboardBillingAccountActivity({ limit: 50 }),
+      listDashboardBillingRefunds(),
+      getDashboardBillingUsageCharges(organizationId, periodMonthUtc),
+    ]);
+    if (refreshRequestId !== refreshRequestIdRef.current) return;
+    if (costsResult.status === 'fulfilled') {
+      setCosts({ kind: 'ready', organizationId, data: costsResult.value });
+    } else {
+      setCosts({
+        kind: 'failed',
+        organizationId,
+        message:
+          costsResult.reason instanceof Error
+            ? costsResult.reason.message
+            : String(costsResult.reason),
+      });
+    }
+    if (overviewResult.status === 'fulfilled') {
       setOverview(overviewResult.value);
-      setUsage(usageResult.value);
     } else {
       setOverview(null);
-      setUsage(null);
       setErrorMessage(
-        overviewResult.status === 'rejected'
-          ? overviewResult.reason instanceof Error
-            ? overviewResult.reason.message
-            : String(overviewResult.reason)
-          : usageResult.status === 'rejected'
-            ? usageResult.reason instanceof Error
-              ? usageResult.reason.message
-              : String(usageResult.reason)
-            : 'Billing data unavailable',
+        overviewResult.reason instanceof Error
+          ? overviewResult.reason.message
+          : String(overviewResult.reason),
       );
     }
-    if (historyResult.status === 'fulfilled') {
-      setSponsoredHistory(historyResult.value.items);
+    if (activityResult.status === 'fulfilled') {
+      setAccountActivity(activityResult.value);
     } else {
-      setSponsoredHistory([]);
-      setSponsoredHistoryError(
-        historyResult.reason instanceof Error
-          ? historyResult.reason.message
-          : String(historyResult.reason),
-      );
-    }
-    if (reconciliationResult.status === 'fulfilled') {
-      setReconciliationPage(reconciliationResult.value);
-    } else {
-      setReconciliationPage(null);
-      setReconciliationError(
-        reconciliationResult.reason instanceof Error
-          ? reconciliationResult.reason.message
-          : String(reconciliationResult.reason),
+      setAccountActivity([]);
+      setAccountActivityError(
+        activityResult.reason instanceof Error
+          ? activityResult.reason.message
+          : String(activityResult.reason),
       );
     }
     if (refundsResult.status === 'fulfilled') {
@@ -302,10 +314,8 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
       );
     }
     setLoading(false);
-    setSponsoredHistoryLoading(false);
-    setReconciliationLoading(false);
     setRefundsLoading(false);
-  }, [selectedContext.environment, session.claims, session.errorMessage]);
+  }, [search, session.claims, session.errorMessage]);
 
   const loadInvoiceListPage = React.useCallback(async () => {
     if (!session.claims) return;
@@ -575,53 +585,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     ];
   }, [filteredInvoiceSummary]);
 
-  const summaryMetrics = React.useMemo<BillingMetric[]>(
-    () => [
-      {
-        label: 'Balance',
-        value: formatUsdMinor(overview?.creditBalanceMinor || 0),
-        hint:
-          (overview?.creditBalanceMinor ?? 0) <= 0
-            ? 'Add credits to fund service usage'
-            : (overview?.creditBalanceMinor ?? 0) <= (overview?.lowBalanceThresholdMinor ?? 0)
-              ? `Warning at ${formatUsdMinor(overview?.lowBalanceThresholdMinor || 0)}`
-              : 'Prepaid balance is available',
-        tone:
-          (overview?.creditBalanceMinor ?? 0) <= 0
-            ? ('danger' as const)
-            : (overview?.creditBalanceMinor ?? 0) <= (overview?.lowBalanceThresholdMinor ?? 0)
-              ? ('warning' as const)
-              : ('success' as const),
-      },
-      {
-        label: 'Reserved sponsorship',
-        value: formatUsdMinor(overview?.reservedSponsorshipMinor || 0),
-        hint: `${overview?.activeSponsorshipReservationCount ?? 0} active reservation${
-          overview?.activeSponsorshipReservationCount === 1 ? '' : 's'
-        }`,
-      },
-      {
-        label: 'Sponsored spend',
-        value: formatUsdMinor(overview?.trailing30DaySponsoredSpendMinor || 0),
-        hint: `${formatUsdMinor(
-          overview?.trailing90DaySponsoredSpendMinor || 0,
-        )} over 90d · ${overview?.trailing30DaySponsoredExecutionCount ?? 0}/${
-          overview?.trailing90DaySponsoredExecutionCount ?? 0
-        } charged executions`,
-      },
-      {
-        label: 'Monthly active wallets',
-        value: String(usage?.monthlyActiveResources ?? overview?.monthlyActiveResources ?? 0),
-        hint: usage?.monthUtc ? `Billing month ${usage.monthUtc}` : 'No usage data',
-      },
-      {
-        label: 'Recent top-ups',
-        value: formatUsdMinor(overview?.recentCreditPurchasedMinor || 0),
-        hint: `${overview?.documentCount ?? 0} billing document${overview?.documentCount === 1 ? '' : 's'}`,
-      },
-    ],
-    [overview, usage],
-  );
+  const summaryMetrics = buildAccountSummaryMetrics(overview);
 
   const invoiceDetailRecord = React.useMemo(() => {
     if (!activeInvoiceId) return null;
@@ -677,18 +641,6 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
     [invoices],
   );
 
-  const sponsoredScopeDescription = React.useMemo(() => {
-    const environmentId = selectedContext.environment;
-    if (environmentId) {
-      const environmentLabel =
-        selectedContextDisplay.environment && selectedContextDisplay.environment !== '-'
-          ? selectedContextDisplay.environment
-          : environmentId;
-      return `Showing the selected environment scope (${environmentLabel}). Billing balance remains organization-scoped.`;
-    }
-    return 'Showing organization-scoped records for the last 90 days.';
-  }, [selectedContext.environment, selectedContextDisplay.environment]);
-
   return (
     <div className="dashboard-view" aria-label="Billing page">
       {billingWarningMessage && !billingWarningDismissed ? (
@@ -736,8 +688,20 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
           )
         ) : (
           <>
+            <p className="dashboard-pagination-note">
+              Billing is organization-scoped. All projects and services use the same prepaid
+              balance.
+            </p>
+            <BillingMetricsGrid
+              metrics={summaryMetrics}
+              ariaLabel="Billing account summary metrics"
+            />
+            <BillingUsageCostsSection
+              organizationId={selectedContext.organization || session.claims.orgId}
+              state={costs}
+            />
             <BillingAccountView
-              summaryMetrics={summaryMetrics}
+              canManageBilling={canDashboardManageBilling(session.claims)}
               checkoutActionError={checkoutActionError}
               startingCheckoutPackId={startingCheckoutPackId}
               refunds={refunds}
@@ -748,23 +712,14 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
               }}
             />
             <section
-              id="billing-sponsored-history"
+              id="billing-account-activity"
               className="dashboard-view__section dashboard-view__section--plain"
             >
-              <SponsoredExecutionHistorySection
-                entries={sponsoredHistory}
-                loading={sponsoredHistoryLoading}
-                error={sponsoredHistoryError}
-                scopeDescription={sponsoredScopeDescription}
+              <BillingAccountActivitySection
+                accountActivity={accountActivity}
+                accountActivityError={accountActivityError}
               />
             </section>
-            <SponsoredExecutionReconciliationSection
-              sectionId="billing-sponsored-reconciliation"
-              page={reconciliationPage}
-              loading={reconciliationLoading}
-              error={reconciliationError}
-              scopeDescription={sponsoredScopeDescription}
-            />
           </>
         )
       ) : subview.kind === 'invoices' ? (

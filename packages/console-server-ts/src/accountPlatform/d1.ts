@@ -498,6 +498,77 @@ export class D1AccountPlatformService {
     return row ? accepted(readPlatformScopeColumns(row)) : rejected('scope_forbidden');
   }
 
+  async resolveWalletBinding(
+    authority: ServiceProducerAuthorityV1,
+    nativeScope: WalletNativeAdmissionScopeV1,
+  ): Promise<AccountPlatformResult<ServiceTenantBindingV1>> {
+    if (authority.serviceId !== 'wallet') return rejected('scope_forbidden');
+    const row = await queryD1One(
+      this.database,
+      `SELECT i.namespace, i.id, i.org_id, i.project_id, i.billing_account_id, b.binding_json
+       FROM wallet_service_bindings b
+       JOIN platform_service_instances i ON i.namespace = b.namespace AND i.id = b.instance_id
+       WHERE i.namespace = ? AND i.service_id = 'wallet' AND i.deployment_id = ?
+         AND b.deployment_id = ? AND b.native_namespace = ? AND b.native_org_id = ? AND b.native_project_id = ?
+         AND EXISTS (
+           SELECT 1 FROM platform_provision_operations o
+           JOIN platform_provision_receipts r ON r.namespace = o.namespace AND r.operation_id = o.id
+           WHERE o.namespace = i.namespace AND o.instance_id = i.id AND o.service_id = 'wallet'
+             AND o.deployment_id = ? AND r.result = 'active' AND r.disposition = 'applied'
+         )`,
+      [
+        this.namespace,
+        authority.deploymentId,
+        authority.deploymentId,
+        nativeScope.namespace,
+        nativeScope.nativeOrganizationId,
+        nativeScope.nativeProjectId,
+        authority.deploymentId,
+      ],
+    );
+    if (!row || typeof row.binding_json !== 'string') return rejected('scope_forbidden');
+    const binding = ServiceTenantBindingV1.parse(JSON.parse(row.binding_json));
+    if (binding.kind === 'rejected') throw new Error('Invalid persisted Wallet binding');
+    const native = binding.value.nativeScope;
+    if (
+      binding.value.instanceId !== row.id ||
+      !platformScopesEqual(binding.value.scope, readPlatformScopeColumns(row)) ||
+      native.serviceId !== 'wallet' ||
+      native.deploymentId !== authority.deploymentId ||
+      native.namespace !== nativeScope.namespace ||
+      native.nativeOrganizationId !== nativeScope.nativeOrganizationId ||
+      native.nativeProjectId !== nativeScope.nativeProjectId
+    ) {
+      throw new Error('Persisted Wallet binding disagrees with its native scope');
+    }
+    return accepted(binding.value);
+  }
+
+  async resolveServiceProducerInstance(
+    authority: ServiceProducerAuthorityV1,
+    instanceId: string,
+  ): Promise<AccountPlatformResult<AccountServiceInstanceV1>> {
+    const row = await queryD1One(
+      this.database,
+      `${INSTANCE_QUERY} WHERE i.namespace = ? AND i.id = ? AND i.service_id = ? AND i.deployment_id = ?`,
+      [this.namespace, instanceId, authority.serviceId, authority.deploymentId],
+    );
+    return row ? accepted(persistedInstance(row)) : rejected('scope_forbidden');
+  }
+
+  async resolveWalletServiceProducerInstance(
+    authority: ServiceProducerAuthorityV1,
+    nativeScope: WalletNativeAdmissionScopeV1,
+  ): Promise<AccountPlatformResult<AccountServiceInstanceV1>> {
+    const admitted = await this.checkWalletAdmission(authority, nativeScope);
+    if (admitted.kind === 'rejected') return admitted;
+    const binding = await this.resolveWalletBinding(authority, nativeScope);
+    if (binding.kind === 'rejected') return binding;
+    const instance = await this.resolveServiceProducerInstance(authority, binding.value.instanceId);
+    if (instance.kind === 'rejected') return instance;
+    return instance.value.state.kind === 'active' ? instance : rejected('scope_forbidden');
+  }
+
   async acknowledgeProvision(
     authority: ServiceProducerAuthorityV1,
     receipt: AcceptedServiceReceiptV1,

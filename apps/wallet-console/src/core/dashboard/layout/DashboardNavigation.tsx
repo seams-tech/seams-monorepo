@@ -9,18 +9,11 @@ import type {
 import DashboardSidebar, {
   type DashboardHomeLinkProps,
   type DashboardLinkPropsFactory,
-  type SidebarProjectGroup,
+  type DashboardWorkspaceNavigation,
 } from './DashboardSidebar';
 import DashboardTopbar, { type TopbarSearchItem } from './DashboardTopbar';
 
-export type DashboardWorkspaceNavigation = {
-  projectGroups: SidebarProjectGroup[];
-  projectValue: string;
-  environmentValue: string;
-  onSelectEnvironment: (projectValue: string, environmentValue: string) => void;
-  organizationOptions: TopbarOption[];
-  organizationValue: string;
-};
+export type { DashboardWorkspaceNavigation } from './DashboardSidebar';
 
 export type DashboardProductNavigation = {
   products: DashboardProduct[];

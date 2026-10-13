@@ -5,7 +5,6 @@ import type {
   DashboardStripeCheckoutSessionRequest,
 } from './consoleBillingApi';
 import { formatUsdMinor } from './consoleBillingApi';
-import { BillingMetricsGrid, type BillingMetric } from './billingShared';
 
 const PRESET_CREDIT_PACK_OPTIONS = [
   { id: 'usd_10', label: '$10', detail: 'Quick prepaid top-up for test traffic.' },
@@ -39,7 +38,7 @@ function refundStatusBadgeClassName(status: DashboardBillingRefund['status']): s
 }
 
 export interface BillingAccountViewProps {
-  summaryMetrics: BillingMetric[];
+  canManageBilling: boolean;
   checkoutActionError: string;
   startingCheckoutPackId: DashboardBillingCreditPackId | '';
   refunds: DashboardBillingRefund[];
@@ -52,7 +51,7 @@ export interface BillingAccountViewProps {
 
 export function BillingAccountView(props: BillingAccountViewProps): React.JSX.Element {
   const {
-    summaryMetrics,
+    canManageBilling,
     checkoutActionError,
     startingCheckoutPackId,
     refunds,
@@ -64,26 +63,24 @@ export function BillingAccountView(props: BillingAccountViewProps): React.JSX.El
     PRESET_CREDIT_PACK_OPTIONS[0].id,
   );
   const selectedPreset = PRESET_CREDIT_PACK_OPTIONS.find((pack) => pack.id === selectedPackId);
-  const buyDisabled = Boolean(startingCheckoutPackId);
+  const buyDisabled = !canManageBilling || Boolean(startingCheckoutPackId);
   const buyLabel = startingCheckoutPackId
     ? 'Starting checkout...'
     : `Buy ${selectedPreset?.label || ''}`;
 
   return (
     <>
-      <p className="dashboard-pagination-note">
-        Billing is organization-scoped. Use prepaid balance for usage and top up credits with
-        one-time checkout.
-      </p>
-
-      <BillingMetricsGrid metrics={summaryMetrics} ariaLabel="Billing account summary metrics" />
-
       <section className="dashboard-view__section" aria-label="Prepaid top-up actions">
         <h2>Top up credits</h2>
         <p className="dashboard-pagination-note">
           Start a one-time Stripe checkout to add prepaid balance. Settled purchases appear in
           billing documents as purchase receipts.
         </p>
+        {!canManageBilling ? (
+          <p className="dashboard-pagination-note">
+            Organization billing management access is required to buy credits.
+          </p>
+        ) : null}
         {checkoutActionError ? (
           <p className="dashboard-pagination-note">{checkoutActionError}</p>
         ) : null}

@@ -278,6 +278,7 @@ const gasSponsorshipItem: ComposedSidebarItem = {
   path: '/dashboard/gas-sponsorship',
   icon: FuelIcon,
   component: WalletGasSponsorshipPage,
+  context: 'wallet',
   createLabel: 'New gas sponsorship policy',
 };
 
@@ -287,6 +288,7 @@ const walletsListItem: ComposedSidebarItem = {
   path: '/dashboard/wallets-list',
   icon: WalletCardsIcon,
   component: WalletUserWalletsListPage,
+  context: 'wallet',
 };
 
 const derivationRootItem: ComposedSidebarItem = {
@@ -295,6 +297,7 @@ const derivationRootItem: ComposedSidebarItem = {
   path: '/dashboard/derivation-root',
   icon: KeyRoundIcon,
   component: WalletDerivationRootSecurityPage,
+  context: 'wallet',
 };
 
 const securityControlItems: ComposedSidebarItem[] = [
@@ -304,6 +307,7 @@ const securityControlItems: ComposedSidebarItem[] = [
     path: '/dashboard/policy-engine',
     icon: ScaleIcon,
     component: WalletPolicyEnginePage,
+    context: 'wallet',
     createLabel: 'New policy',
   },
   ...(derivationRootRoutesEnabled ? [derivationRootItem] : []),
@@ -315,6 +319,7 @@ const auditLogsItem: ComposedSidebarItem = {
   path: '/dashboard/audit',
   icon: ScrollTextIcon,
   component: WalletAuditLogsPage,
+  context: 'wallet',
 };
 
 const observabilityItem: ComposedSidebarItem = {
@@ -323,6 +328,7 @@ const observabilityItem: ComposedSidebarItem = {
   path: '/dashboard/observability',
   icon: ActivityIcon,
   component: ObservabilityPage,
+  context: 'wallet',
 };
 
 const operationsSecurityItems: ComposedSidebarItem[] = [
@@ -343,6 +349,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/overview',
         icon: LayoutDashboardIcon,
         component: WalletOpsCockpitPage,
+        context: 'wallet',
       },
       observabilityItem,
     ],
@@ -357,6 +364,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/account-settings',
         icon: CogIcon,
         component: AccountSettingsPage,
+        context: 'account',
       },
       {
         key: 'team-members',
@@ -364,6 +372,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/team-members',
         icon: UserCogIcon,
         component: TeamMembersPage,
+        context: 'account',
       },
       {
         key: 'api-keys',
@@ -371,6 +380,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/api-keys',
         icon: KeyRoundIcon,
         component: WalletApiKeyManagementPage,
+        context: 'wallet',
       },
       {
         key: 'deployment-status',
@@ -378,6 +388,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/deployment-status',
         icon: ServerIcon,
         component: WalletTenantDeploymentPage,
+        context: 'wallet',
         access: 'owner',
       },
       {
@@ -386,6 +397,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/webhooks',
         icon: WebhookIcon,
         component: WalletWebhooksPage,
+        context: 'wallet',
         createLabel: 'New webhook endpoint',
       },
     ],
@@ -405,6 +417,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/billing/account',
         icon: CreditCardIcon,
         component: BillingAccountPage,
+        context: 'account',
       },
       {
         key: 'invoices',
@@ -412,6 +425,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/dashboard/invoices',
         icon: FileTextIcon,
         component: InvoicesPage,
+        context: 'account',
       },
     ],
   },
@@ -425,6 +439,7 @@ const sidebarGroups: ComposedSidebarGroup[] = [
         path: '/platform/billing',
         icon: CreditCardIcon,
         component: PlatformBillingPage,
+        context: 'account',
       },
     ],
   },
@@ -461,6 +476,7 @@ const HIDDEN_DASHBOARD_ROUTES: ComposedSidebarItem[] = [
     path: '/dashboard/onboarding',
     icon: LayoutDashboardIcon,
     component: DashboardOnboardingPage,
+    context: 'account',
   },
 ];
 
@@ -526,6 +542,7 @@ export function getViewForRoute(route: ComposedDashboardRoute): ComposedSidebarI
     path: '/dashboard/overview',
     icon: LayoutDashboardIcon,
     component: WalletOpsCockpitPage,
+    context: 'wallet',
   };
 }
 

@@ -4,7 +4,6 @@ export * from '../approvals';
 export * from '@seams-internal/console-server/audit/index';
 export * from '@seams-internal/console-server/auditExports/index';
 export * from '@seams-internal/console-server/billing/index';
-export * from '../billingPrepaidReservations';
 export * from '@seams-internal/console-server/enterpriseIsolation/index';
 export * from '../keyExports';
 export * from '@seams-internal/console-server/observability/index';
@@ -88,7 +87,7 @@ export type {
 } from '@seams-internal/console-server/router/consoleAppSessionAuth';
 export { createAppSessionConsoleAuthAdapter } from '@seams-internal/console-server/router/consoleAppSessionAuth';
 export {
-  createRouterApiBillingUsageMeterAdapter,
+  createRouterApiWalletRegistrationProjectionAdapter,
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
 } from './routerApiKeyAuth';

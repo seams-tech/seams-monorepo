@@ -1,3 +1,5 @@
+import type { BillingUsageChargeV1 } from './attribution';
+
 export type BillingUsageMetricVersion = 'active_resource_v1';
 export type BillingDocumentType = 'PURCHASE_RECEIPT' | 'USAGE_STATEMENT';
 export type InvoiceStatus = 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
@@ -123,26 +125,13 @@ export interface BillingOverview {
   monthlyActiveResources: number;
   creditBalanceMinor: number;
   lowBalanceThresholdMinor: number;
+  reservedMinor: number;
+  activeReservationCount: number;
+  pendingRefundMinor: number;
+  availableBalanceMinor: number;
   recentUsageDebitMinor: number;
   recentCreditPurchasedMinor: number;
   documentCount: number;
-}
-
-export interface BillingUsageEventRequest {
-  resourceId: string;
-  shouldCount: boolean;
-  occurredAt?: string;
-  sourceEventId?: string;
-}
-
-export interface BillingUsageEventResult {
-  accepted: boolean;
-  counted: boolean;
-  monthUtc: string;
-  monthlyActiveResources: number;
-  debitAppliedMinor: number;
-  creditBalanceMinor: number;
-  statementId: string | null;
 }
 
 export interface BillingProductExecutionDebitRequest {
@@ -153,15 +142,6 @@ export interface BillingProductExecutionDebitRequest {
   txOrExecutionRef?: string | null;
   pricingVersion?: string | null;
   note?: string | null;
-}
-
-export interface BillingProductExecutionDebitResult {
-  accepted: boolean;
-  debitAppliedMinor: number;
-  ledgerEntryId: string | null;
-  creditBalanceMinor: number;
-  monthUtc: string;
-  statementId: string | null;
 }
 
 export interface BillingMonthlyActiveResources {
@@ -221,6 +201,7 @@ export interface BillingInvoiceLineItem {
   unitAmountMinor: number;
   amountMinor: number;
   createdAt: string;
+  usageCharge?: BillingUsageChargeV1;
 }
 
 export interface GenerateMonthlyInvoiceRequest {

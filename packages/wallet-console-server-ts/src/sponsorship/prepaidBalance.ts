@@ -1,12 +1,9 @@
-import type {
-  ConsoleBillingContext,
-  ConsoleBillingService,
-} from '@seams-internal/console-server/billing/service';
-import type {
-  ConsoleBillingPrepaidReservationContext,
-  ConsoleBillingPrepaidReservationService,
-} from '../billingPrepaidReservations/service';
-import { isConsoleBillingPrepaidReservationError } from '../billingPrepaidReservations/errors';
+import {
+  ReserveFundsRequestV1,
+  type FundsReservationV1,
+} from '@seams-internal/console-shared/accountPlatform';
+import type { ServiceProducerAuthorityV1 } from '@seams-internal/console-server/accountPlatform/types';
+import type { WalletExecutionFunds } from './funds';
 import type {
   ConsoleSponsoredCallChainFamily,
   ConsoleSponsoredCallExecutorKind,
@@ -14,7 +11,7 @@ import type {
   ConsoleSponsoredCallIntentKind,
   ConsoleSponsoredCallReceiptStatus,
 } from '../sponsoredCalls/types';
-import type { SponsorshipSpendPricingQuote, SponsorshipSpendPricingService } from './spendCaps';
+import type { SponsorshipSpendPricingService } from './spendCaps';
 
 export class SponsorshipPrepaidBalanceEnforcementError extends Error {
   readonly code: string;
@@ -38,27 +35,99 @@ export function isSponsorshipPrepaidBalanceEnforcementError(
   return error instanceof SponsorshipPrepaidBalanceEnforcementError;
 }
 
-export interface SponsoredPrepaidReservationHandle {
-  sourceEventId: string;
-  estimatedSpendMinor: number;
-  estimatedPricingVersion: string;
+export class SponsoredPrepaidReservationHandle {
+  private constructor(
+    readonly reservationId: string,
+    readonly instanceId: string,
+    readonly authority: ServiceProducerAuthorityV1,
+    readonly sourceEventId: string,
+    readonly estimatedSpendMinor: number,
+    readonly estimatedPricingVersion: string,
+    readonly quotedAt: string,
+  ) {
+    this.seal();
+  }
+
+  private seal(): void {
+    Object.freeze(this);
+  }
+
+  static fromFunds(
+    reservation: FundsReservationV1,
+    authority: ServiceProducerAuthorityV1,
+  ): SponsoredPrepaidReservationHandle {
+    return new SponsoredPrepaidReservationHandle(
+      reservation.reservationId,
+      reservation.instanceId,
+      authority,
+      reservation.executionId,
+      reservation.requestedMinor,
+      reservation.priceVersion,
+      reservation.createdAt,
+    );
+  }
 }
 
-export interface SponsoredPrepaidReservationSettlement {
-  reservationId: string | null;
-  settledSpendMinor: number;
-  pricingVersion: string;
-  usedEstimatedFallback: boolean;
-  released: boolean;
-  settledAt: string;
+/** Service reconciliation restores immutable admission facts from the funds authority. */
+export async function loadSponsoredPrepaidReservation(input: {
+  readonly executionFunds: WalletExecutionFunds;
+  readonly instanceId: string;
+  readonly executionId: string;
+}): Promise<SponsoredPrepaidReservationHandle> {
+  const result = await input.executionFunds.reservations.getByExecution(
+    input.executionFunds.authority,
+    { instanceId: input.instanceId, executionId: input.executionId },
+  );
+  if (result.kind === 'rejected') {
+    throw new SponsorshipPrepaidBalanceEnforcementError(
+      result.error.code,
+      403,
+      'Wallet execution reservation is unavailable',
+    );
+  }
+  return SponsoredPrepaidReservationHandle.fromFunds(result.value, input.executionFunds.authority);
 }
 
-export interface SponsoredPrepaidSettlementQuote {
-  settledSpendMinor: number;
-  pricingVersion: string;
-  usedEstimatedFallback: boolean;
-  released: boolean;
-}
+export type SponsoredPrepaidReservationSettlement = {
+  readonly reservationId: string;
+  readonly pricingVersion: string;
+  readonly usedEstimatedFallback: boolean;
+  readonly settledAt: string;
+} & (
+  | {
+      readonly kind: 'settled';
+      readonly settledSpendMinor: number;
+      readonly released: false;
+    }
+  | {
+      readonly kind: 'released';
+      readonly settledSpendMinor: 0;
+      readonly released: true;
+    }
+);
+
+export type SponsoredPrepaidSettlementQuote =
+  | {
+      readonly kind: 'settled';
+      readonly settledSpendMinor: number;
+      readonly pricingVersion: string;
+      readonly usedEstimatedFallback: boolean;
+      readonly released: false;
+    }
+  | {
+      readonly kind: 'released';
+      readonly settledSpendMinor: 0;
+      readonly pricingVersion: string;
+      readonly usedEstimatedFallback: false;
+      readonly released: true;
+    }
+  | {
+      readonly kind: 'indeterminate';
+      readonly settledSpendMinor?: never;
+      readonly pricingVersion?: never;
+      readonly usedEstimatedFallback?: never;
+      readonly released?: never;
+    };
 
 function assertNeverReceiptStatus(status: never): never {
   throw new SponsorshipPrepaidBalanceEnforcementError(
@@ -84,55 +153,10 @@ function normalizePricingVersion(value: unknown): string {
   return String(value || '').trim() || 'unknown';
 }
 
-function mapPrepaidReservationError(error: unknown): never {
-  if (isConsoleBillingPrepaidReservationError(error)) {
-    throw new SponsorshipPrepaidBalanceEnforcementError(
-      error.code,
-      error.status,
-      error.message,
-      error.details,
-    );
-  }
-  throw error;
-}
-
-function shouldUseEstimatedFallback(receiptStatus: ConsoleSponsoredCallReceiptStatus): boolean {
-  return receiptStatus === 'success' || receiptStatus === 'reverted';
-}
-
-function shouldReleaseWithoutFinalizedSpend(input: {
-  receiptStatus: ConsoleSponsoredCallReceiptStatus;
-  txOrExecutionRef: string | null;
-}): boolean {
-  switch (input.receiptStatus) {
-    case 'rpc_rejected':
-      return true;
-    case 'broadcast_failed':
-      return !input.txOrExecutionRef;
-    case 'success':
-    case 'reverted':
-      return false;
-    default:
-      return assertNeverReceiptStatus(input.receiptStatus);
-  }
-}
-
-function quoteToReservationHandle(input: {
-  sourceEventId: string;
-  quote: SponsorshipSpendPricingQuote;
-}): SponsoredPrepaidReservationHandle {
-  return {
-    sourceEventId: input.sourceEventId,
-    estimatedSpendMinor: toNonNegativeInteger(input.quote.spendMinor, 'estimated spendMinor'),
-    estimatedPricingVersion: normalizePricingVersion(input.quote.pricingVersion),
-  };
-}
-
 export async function reserveSponsoredPrepaidBalance(input: {
-  billing: ConsoleBillingService | null | undefined;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null | undefined;
+  executionFunds: WalletExecutionFunds | null | undefined;
   pricing: SponsorshipSpendPricingService | null | undefined;
-  ctx: ConsoleBillingContext & ConsoleBillingPrepaidReservationContext;
+  ctx: { readonly orgId: string; readonly actorUserId: string };
   chainFamily: ConsoleSponsoredCallChainFamily;
   intentKind: ConsoleSponsoredCallIntentKind;
   executorKind: ConsoleSponsoredCallExecutorKind;
@@ -144,14 +168,7 @@ export async function reserveSponsoredPrepaidBalance(input: {
   sourceEventId: string;
   requestDetails: Record<string, unknown>;
 }): Promise<SponsoredPrepaidReservationHandle> {
-  if (!input.billing) {
-    throw new SponsorshipPrepaidBalanceEnforcementError(
-      'sponsorship_prepaid_balance_unavailable',
-      503,
-      'Sponsored prepaid balance enforcement is not configured on this server',
-    );
-  }
-  if (!input.prepaidReservations) {
+  if (!input.executionFunds) {
     throw new SponsorshipPrepaidBalanceEnforcementError(
       'sponsorship_prepaid_balance_unavailable',
       503,
@@ -166,7 +183,6 @@ export async function reserveSponsoredPrepaidBalance(input: {
     );
   }
 
-  const overview = await input.billing.getOverview(input.ctx);
   const quote = await input.pricing.estimateSponsoredExecutionSpend({
     chainFamily: input.chainFamily,
     intentKind: input.intentKind,
@@ -178,24 +194,46 @@ export async function reserveSponsoredPrepaidBalance(input: {
     chainId: input.chainId,
     requestDetails: input.requestDetails,
   });
-  const handle = quoteToReservationHandle({
-    sourceEventId: input.sourceEventId,
-    quote,
+  const estimatedSpendMinor = toNonNegativeInteger(quote.spendMinor, 'estimated spendMinor');
+  const estimatedPricingVersion = normalizePricingVersion(quote.pricingVersion);
+  const instance = await input.executionFunds.resolveInstance(input.ctx.orgId, input.environmentId);
+  const request = ReserveFundsRequestV1.parse({
+    version: 1,
+    operationId: JSON.stringify(['wallet', instance.instanceId, 'reserve', input.sourceEventId]),
+    instanceId: instance.instanceId,
+    executionId: input.sourceEventId,
+    requestedMinor: estimatedSpendMinor,
+    priceVersion: estimatedPricingVersion,
   });
-
-  try {
-    await input.prepaidReservations.reserve(input.ctx, {
-      sourceEventId: handle.sourceEventId,
-      environmentId: input.environmentId,
-      policyId: input.policyId,
-      postedBalanceMinor: overview.creditBalanceMinor,
-      estimatedSpendMinor: handle.estimatedSpendMinor,
-    });
-  } catch (error: unknown) {
-    mapPrepaidReservationError(error);
+  if (request.kind === 'rejected') {
+    throw new SponsorshipPrepaidBalanceEnforcementError(
+      'sponsorship_prepaid_balance_invalid',
+      500,
+      'Wallet execution quote cannot produce a funds reservation',
+    );
   }
-
-  return handle;
+  const result = await input.executionFunds.reservations.reserve(
+    input.executionFunds.authority,
+    request.value,
+  );
+  if (result.kind === 'rejected') {
+    throw new SponsorshipPrepaidBalanceEnforcementError(
+      result.error.code,
+      result.error.code === 'insufficient_funds' ? 402 : 409,
+      'Wallet execution funds could not be reserved',
+    );
+  }
+  if (result.value.disposition === 'replayed') {
+    throw new SponsorshipPrepaidBalanceEnforcementError(
+      'execution_pending',
+      409,
+      'Wallet execution already has a funds reservation. Reconcile its outcome before retrying.',
+    );
+  }
+  return SponsoredPrepaidReservationHandle.fromFunds(
+    result.value.reservation,
+    input.executionFunds.authority,
+  );
 }
 
 export async function resolveSponsoredPrepaidSettlementQuote(input: {
@@ -223,18 +261,22 @@ export async function resolveSponsoredPrepaidSettlementQuote(input: {
       'Sponsored spend pricing is not configured on this server',
     );
   }
-  if (
-    shouldReleaseWithoutFinalizedSpend({
-      receiptStatus: input.receiptStatus,
-      txOrExecutionRef: input.txOrExecutionRef,
-    })
-  ) {
-    return {
-      settledSpendMinor: 0,
-      pricingVersion: input.reservation.estimatedPricingVersion,
-      usedEstimatedFallback: false,
-      released: true,
-    };
+  switch (input.receiptStatus) {
+    case 'broadcast_failed':
+      return { kind: 'indeterminate' };
+    case 'rpc_rejected':
+      return {
+        kind: 'released',
+        settledSpendMinor: 0,
+        pricingVersion: input.reservation.estimatedPricingVersion,
+        usedEstimatedFallback: false,
+        released: true,
+      };
+    case 'success':
+    case 'reverted':
+      break;
+    default:
+      return assertNeverReceiptStatus(input.receiptStatus);
   }
 
   let settledSpendMinor = input.reservation.estimatedSpendMinor;
@@ -262,100 +304,26 @@ export async function resolveSponsoredPrepaidSettlementQuote(input: {
     settledSpendMinor = toNonNegativeInteger(finalized.spendMinor, 'finalized spendMinor');
     pricingVersion = normalizePricingVersion(finalized.pricingVersion);
   } catch {
-    if (shouldUseEstimatedFallback(input.receiptStatus)) {
-      settledSpendMinor = input.reservation.estimatedSpendMinor;
-      pricingVersion = input.reservation.estimatedPricingVersion;
-      usedEstimatedFallback = true;
-    } else {
-      settledSpendMinor = 0;
-      pricingVersion = input.reservation.estimatedPricingVersion;
-    }
+    settledSpendMinor = input.reservation.estimatedSpendMinor;
+    pricingVersion = input.reservation.estimatedPricingVersion;
+    usedEstimatedFallback = true;
   }
 
   if (settledSpendMinor <= 0) {
     return {
+      kind: 'settled',
       settledSpendMinor: 0,
       pricingVersion,
       usedEstimatedFallback,
-      released: true,
+      released: false,
     };
   }
 
   return {
+    kind: 'settled',
     settledSpendMinor,
     pricingVersion,
     usedEstimatedFallback,
     released: false,
-  };
-}
-
-export async function settleSponsoredPrepaidBalance(input: {
-  reservation: SponsoredPrepaidReservationHandle | null;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null | undefined;
-  pricing: SponsorshipSpendPricingService | null | undefined;
-  ctx: ConsoleBillingPrepaidReservationContext;
-  chainFamily: ConsoleSponsoredCallChainFamily;
-  intentKind: ConsoleSponsoredCallIntentKind;
-  executorKind: ConsoleSponsoredCallExecutorKind;
-  environmentId: string;
-  policyId: string;
-  accountRef: string | null;
-  targetRef: string;
-  chainId: number;
-  txOrExecutionRef: string | null;
-  receiptStatus: ConsoleSponsoredCallReceiptStatus;
-  feeUnit: ConsoleSponsoredCallFeeUnit;
-  feeAmount: string;
-  requestDetails: Record<string, unknown>;
-}): Promise<SponsoredPrepaidReservationSettlement | null> {
-  if (!input.reservation) return null;
-  if (!input.prepaidReservations) {
-    throw new SponsorshipPrepaidBalanceEnforcementError(
-      'sponsorship_prepaid_balance_unavailable',
-      503,
-      'Sponsored prepaid balance reservations are not configured on this server',
-    );
-  }
-  const quote = await resolveSponsoredPrepaidSettlementQuote(input);
-  if (!quote) return null;
-  const settledAt = new Date().toISOString();
-  if (quote.released) {
-    let releasedReservationId: string | null = null;
-    try {
-      const released = await input.prepaidReservations.release(input.ctx, {
-        sourceEventId: input.reservation.sourceEventId,
-      });
-      releasedReservationId = released?.reservation.id || null;
-    } catch (error: unknown) {
-      mapPrepaidReservationError(error);
-    }
-    return {
-      reservationId: releasedReservationId,
-      settledSpendMinor: 0,
-      pricingVersion: quote.pricingVersion,
-      usedEstimatedFallback: quote.usedEstimatedFallback,
-      released: true,
-      settledAt,
-    };
-  }
-  let settledReservationId: string | null = null;
-  try {
-    const settled = await input.prepaidReservations.settle(input.ctx, {
-      sourceEventId: input.reservation.sourceEventId,
-      settledSpendMinor: quote.settledSpendMinor,
-      txOrExecutionRef: input.txOrExecutionRef,
-      pricingVersion: quote.pricingVersion,
-    });
-    settledReservationId = settled?.reservation.id || null;
-  } catch (error: unknown) {
-    mapPrepaidReservationError(error);
-  }
-  return {
-    reservationId: settledReservationId,
-    settledSpendMinor: quote.settledSpendMinor,
-    pricingVersion: quote.pricingVersion,
-    usedEstimatedFallback: quote.usedEstimatedFallback,
-    released: false,
-    settledAt,
   };
 }

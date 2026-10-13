@@ -47,6 +47,16 @@ import {
   type DashboardBillingOverview,
 } from '@core/dashboard/routes/billing/consoleBillingApi';
 import {
+  listDashboardSponsoredExecutionHistory,
+  listDashboardSponsoredExecutionReconciliation,
+  type DashboardSponsoredExecutionHistoryEntry,
+  type DashboardSponsoredExecutionReconciliationPage,
+} from './consoleSponsoredExecutionApi';
+import {
+  SponsoredExecutionHistorySection,
+  SponsoredExecutionReconciliationSection,
+} from './SponsoredExecutionSections';
+import {
   createDashboardGasSponsorshipPolicy,
   deleteDashboardGasSponsorshipPolicy,
   listDashboardGasSponsorshipPolicies,
@@ -1122,6 +1132,13 @@ export function GasSponsorshipPage(): React.JSX.Element {
   );
   const [billingOverviewLoading, setBillingOverviewLoading] = React.useState<boolean>(false);
   const [billingOverviewError, setBillingOverviewError] = React.useState<string>('');
+  const [sponsoredHistory, setSponsoredHistory] = React.useState<
+    DashboardSponsoredExecutionHistoryEntry[]
+  >([]);
+  const [sponsoredHistoryError, setSponsoredHistoryError] = React.useState('');
+  const [reconciliationPage, setReconciliationPage] =
+    React.useState<DashboardSponsoredExecutionReconciliationPage | null>(null);
+  const [reconciliationError, setReconciliationError] = React.useState('');
   const [mutationError, setMutationError] = React.useState<string>('');
   const [mutating, setMutating] = React.useState<boolean>(false);
   const [activeModal, setActiveModal] = React.useState<GasSponsorshipModalKind | null>(null);
@@ -1329,20 +1346,60 @@ export function GasSponsorshipPage(): React.JSX.Element {
       setBillingOverview(null);
       setBillingOverviewError(session.errorMessage || 'Console session is unavailable');
       setBillingOverviewLoading(false);
+      setSponsoredHistory([]);
+      setReconciliationPage(null);
       return;
     }
     let cancelled = false;
     setBillingOverviewLoading(true);
     setBillingOverviewError('');
-    getDashboardBillingOverview()
-      .then((overview) => {
+    setSponsoredHistoryError('');
+    setReconciliationError('');
+    Promise.allSettled([
+      getDashboardBillingOverview(),
+      listDashboardSponsoredExecutionHistory({
+        environmentId: selectedEnvironmentId,
+        limit: 12,
+        lookbackDays: 90,
+      }),
+      listDashboardSponsoredExecutionReconciliation({
+        environmentId: selectedEnvironmentId,
+        limit: 12,
+        lookbackDays: 90,
+      }),
+    ])
+      .then(([overviewResult, historyResult, reconciliationResult]) => {
         if (cancelled) return;
-        setBillingOverview(overview);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setBillingOverview(null);
-        setBillingOverviewError(error instanceof Error ? error.message : String(error));
+        if (overviewResult.status === 'fulfilled') {
+          setBillingOverview(overviewResult.value);
+        } else {
+          setBillingOverview(null);
+          setBillingOverviewError(
+            overviewResult.reason instanceof Error
+              ? overviewResult.reason.message
+              : String(overviewResult.reason),
+          );
+        }
+        if (historyResult.status === 'fulfilled') {
+          setSponsoredHistory(historyResult.value.items);
+        } else {
+          setSponsoredHistory([]);
+          setSponsoredHistoryError(
+            historyResult.reason instanceof Error
+              ? historyResult.reason.message
+              : String(historyResult.reason),
+          );
+        }
+        if (reconciliationResult.status === 'fulfilled') {
+          setReconciliationPage(reconciliationResult.value);
+        } else {
+          setReconciliationPage(null);
+          setReconciliationError(
+            reconciliationResult.reason instanceof Error
+              ? reconciliationResult.reason.message
+              : String(reconciliationResult.reason),
+          );
+        }
       })
       .finally(() => {
         if (cancelled) return;
@@ -1351,7 +1408,7 @@ export function GasSponsorshipPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [session.claims, session.errorMessage]);
+  }, [selectedEnvironmentId, session.claims, session.errorMessage]);
 
   // Awaitable so mutation handlers can `await loadGasPolicies()` and have the
   // list reflect the change before they finish; a monotonic request id ensures
@@ -1810,10 +1867,10 @@ export function GasSponsorshipPage(): React.JSX.Element {
               : 'Positive balance available for sponsorship admission',
       },
       {
-        label: 'Reserved sponsorship',
-        value: formatUsdMinor(billingOverview.reservedSponsorshipMinor),
-        hint: `${billingOverview.activeSponsorshipReservationCount} active reservation${
-          billingOverview.activeSponsorshipReservationCount === 1 ? '' : 's'
+        label: 'Reserved funds',
+        value: formatUsdMinor(billingOverview.reservedMinor),
+        hint: `${billingOverview.activeReservationCount} active reservation${
+          billingOverview.activeReservationCount === 1 ? '' : 's'
         }`,
       },
       {
@@ -2056,6 +2113,23 @@ export function GasSponsorshipPage(): React.JSX.Element {
               )}
             </DashboardTable>
           </section>
+          <section
+            id="sponsored-history"
+            className="dashboard-view__section dashboard-view__section--plain"
+          >
+            <SponsoredExecutionHistorySection
+              entries={sponsoredHistory}
+              loading={billingOverviewLoading}
+              error={sponsoredHistoryError}
+              scopeDescription={`Showing the selected Wallet environment (${selectedEnvironmentId}).`}
+            />
+          </section>
+          <SponsoredExecutionReconciliationSection
+            sectionId="sponsored-reconciliation"
+            page={reconciliationPage}
+            loading={billingOverviewLoading}
+            error={reconciliationError}
+          />
         </>
       )}
       {activeModal ? (

@@ -51,6 +51,7 @@ export type SidebarItem<Route extends string = DashboardRoute> = {
   path: Route;
   icon: SidebarIconComponent;
   component: DashboardViewComponent;
+  context: 'account' | 'wallet';
   /** Renders a trailing "+" in the rail that opens this route's create dialog. */
   createLabel?: string;
   access?: 'owner';

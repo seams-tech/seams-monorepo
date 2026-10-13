@@ -27,6 +27,8 @@ import {
   decodePathPart,
 } from './accountRoutes';
 import { json, readJson } from './http';
+import { getConsoleBillingD1Runtime } from '../../billing/d1';
+import { listD1BillingUsageCharges } from '../../billing/attribution';
 
 export type BillingRouteBalanceTrigger =
   | {
@@ -90,6 +92,7 @@ function isSharedBillingPath(pathname: string): boolean {
     pathname === '/console/billing/overview' ||
     pathname === '/console/billing/refunds' ||
     pathname === '/console/billing/account/activity' ||
+    pathname === '/console/billing/usage/charges' ||
     pathname === '/console/billing/invoices' ||
     pathname.startsWith('/console/billing/invoices/') ||
     pathname === '/console/billing/adjustments/support-credit' ||
@@ -269,6 +272,25 @@ export async function handleConsoleBillingRoutes(
   let billingFailureEvent: BillingRouteFailureTarget | null = null;
 
   try {
+    if (ctx.method === 'GET' && ctx.pathname === '/console/billing/usage/charges') {
+      const runtime = getConsoleBillingD1Runtime(billing);
+      if (!runtime)
+        return json({ ok: false, code: 'usage_attribution_unavailable' }, { status: 503 });
+      const request = parseBillingInvoiceListRequest(
+        Object.fromEntries(ctx.url.searchParams.entries()),
+      );
+      const periodMonthUtc = request.periodMonthUtc ?? runtime.now().toISOString().slice(0, 7);
+      const charges = await listD1BillingUsageCharges({
+        database: runtime.database,
+        namespace: runtime.namespace,
+        organizationId: auth.claims.orgId,
+        periodMonthUtc,
+      });
+      return json(
+        { ok: true, organizationId: auth.claims.orgId, periodMonthUtc, charges },
+        { status: 200 },
+      );
+    }
     if (ctx.method === 'GET' && ctx.pathname === '/console/billing/overview') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;

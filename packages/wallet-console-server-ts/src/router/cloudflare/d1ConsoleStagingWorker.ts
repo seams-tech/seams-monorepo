@@ -53,7 +53,7 @@ import {
   walletProjectEnvironment,
 } from '../projectEnvironmentAdapter';
 import {
-  createRouterApiBillingUsageMeterAdapter,
+  createRouterApiWalletRegistrationProjectionAdapter,
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
 } from '@seams-internal/wallet-console-server/router/routerApiKeyAuth';
@@ -275,7 +275,23 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'project_member_access',
   'organization_owner_events',
   'billing_accounts',
-  'billing_prepaid_reservations',
+  'organization_billing_accounts',
+  'project_billing_bindings',
+  'platform_service_instances',
+  'platform_provision_operations',
+  'platform_provision_receipts',
+  'wallet_service_bindings',
+  'satyr_service_bindings',
+  'billing_funds_reservations',
+  'billing_funds_transition_checks',
+  'billing_funds_terminal_receipts',
+  'billing_execution_charges',
+  'billing_reservation_history',
+  'billing_usage_events',
+  'billing_usage_receipts',
+  'billing_price_definitions',
+  'billing_wallet_execution_quotes',
+  'wallet_monthly_usage_outbox',
   'billing_stripe_post_processing_outbox',
   'sponsorship_pricing_rules',
   'sponsored_call_records',
@@ -359,6 +375,7 @@ async function createConsoleHandler(
       limit: 20,
     }),
   );
+  ctx.waitUntil(bundle.walletMonthlyUsage.resumePending(20));
   const session = createHmacSessionAdapterFromEnv({
     env,
     secretName: 'CONSOLE_SESSION_HMAC_SECRET',
@@ -401,7 +418,7 @@ async function createConsoleHandler(
           ctx.waitUntil.bind(ctx),
         ),
         observabilityIngestion: bundle.observabilityIngestion,
-        prepaidReservations: bundle.prepaidReservations,
+        executionFunds: bundle.executionFunds,
         pricing: bundle.sponsorshipPricing,
         spendCaps: bundle.spendCaps,
         webhooks: bundle.webhooks,
@@ -421,7 +438,7 @@ async function createConsoleHandler(
               config: sponsoredEvmCallConfig,
               resolveExecutionAdapter: resolveSponsoredEvmWorkerExecutionAdapter,
               observabilityIngestion: bundle.observabilityIngestion,
-              prepaidReservations: bundle.prepaidReservations,
+              executionFunds: bundle.executionFunds,
               pricing: bundle.sponsorshipPricing,
               spendCaps: bundle.spendCaps,
               webhooks: bundle.webhooks,
@@ -626,7 +643,7 @@ async function createConsoleHandler(
       walletAdmission,
       ctx.waitUntil.bind(ctx),
     ),
-    usageMeter: createRouterApiBillingUsageMeterAdapter(bundle.billing, {
+    usageMeter: createRouterApiWalletRegistrationProjectionAdapter({
       walletEnvironments: bundle.walletEnvironments,
       wallets: bundle.wallets,
     }),

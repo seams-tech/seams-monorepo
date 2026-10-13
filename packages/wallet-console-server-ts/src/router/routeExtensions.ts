@@ -7,7 +7,7 @@ import type { RouterApiRouteExtension } from '@seams/wallet-server/cloud-host';
 import { readJson } from '@seams/wallet-server/cloud-host';
 import type { RouterApiPublishableKeyAuthAdapter } from '@seams/wallet-server/cloud-host';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations';
+import type { WalletExecutionFunds } from '../sponsorship/funds';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/index';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
 import type { ConsoleSponsoredCallService } from '../sponsoredCalls';
@@ -52,7 +52,7 @@ export interface ConsoleRouterApiSignedDelegateRouteOptions {
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
   readonly publishableKeyAuth: RouterApiPublishableKeyAuthAdapter | null;
   readonly observabilityIngestion: ConsoleObservabilityIngestionService | null;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService | null;
+  readonly executionFunds: WalletExecutionFunds | null;
   readonly pricing: SponsorshipSpendPricingService | null;
   readonly spendCaps: ConsoleSponsorshipSpendCapService | null;
   readonly webhooks: ConsoleWebhookService | null;
@@ -68,7 +68,7 @@ export interface ConsoleRouterApiSponsoredEvmCallRouteOptions {
   readonly config: SponsoredEvmCallExecutorConfig;
   readonly resolveExecutionAdapter?: SponsoredEvmExecutionAdapterResolver | null;
   readonly observabilityIngestion: ConsoleObservabilityIngestionService | null;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService | null;
+  readonly executionFunds: WalletExecutionFunds | null;
   readonly pricing: SponsorshipSpendPricingService | null;
   readonly spendCaps: ConsoleSponsorshipSpendCapService | null;
   readonly webhooks?: ConsoleWebhookService | null;
@@ -175,7 +175,7 @@ async function handleConsoleSignedDelegateRoute(input: {
       signedDelegateAuth: options.authService,
       billing: options.billing,
       observabilityIngestion: options.observabilityIngestion,
-      prepaidReservations: options.prepaidReservations,
+      executionFunds: options.executionFunds,
       pricing: options.pricing,
       publishableKeyAuth: options.publishableKeyAuth,
       runtimeSnapshots: options.runtimeSnapshots,
@@ -221,7 +221,7 @@ async function handleConsoleSponsoredEvmCallRoute(input: {
         config: options.config,
         resolveExecutionAdapter: options.resolveExecutionAdapter || null,
         observabilityIngestion: options.observabilityIngestion,
-        prepaidReservations: options.prepaidReservations,
+        executionFunds: options.executionFunds,
         publishableKeyAuth: options.publishableKeyAuth,
         pricing: options.pricing,
         runtimeSnapshots: options.runtimeSnapshots,

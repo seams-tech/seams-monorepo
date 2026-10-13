@@ -684,8 +684,23 @@ const CONSOLE_READY_TABLES = Object.freeze([
   'invoices',
   'invoice_line_items',
   'stripe_webhook_events',
-  'billing_prepaid_reservation_summaries',
-  'billing_prepaid_reservations',
+  'organization_billing_accounts',
+  'project_billing_bindings',
+  'platform_service_instances',
+  'platform_provision_operations',
+  'platform_provision_receipts',
+  'wallet_service_bindings',
+  'satyr_service_bindings',
+  'billing_funds_reservations',
+  'billing_funds_transition_checks',
+  'billing_funds_terminal_receipts',
+  'billing_execution_charges',
+  'billing_reservation_history',
+  'billing_usage_events',
+  'billing_usage_receipts',
+  'billing_price_definitions',
+  'billing_wallet_execution_quotes',
+  'wallet_monthly_usage_outbox',
   'sponsorship_spend_cap_windows',
   'sponsorship_spend_cap_reservations',
   'sponsorship_pricing_rules',
@@ -1029,6 +1044,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       webhookSecretCipher: localConsoleWebhookSecretCipher(env),
     },
   });
+  await bundle.walletMonthlyUsage.resumePending(20);
   const session = localConsoleSession(env);
   const sessionAuth = createConsoleSessionAuthAdapter({
     session,

@@ -20,10 +20,13 @@ import {
 import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createD1ConsoleOrgProjectService } from '../../../packages/console-server-ts/src/orgProjectEnv/d1';
 import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
-import { createD1ConsoleBillingService } from '../../../packages/console-server-ts/src/billing/d1';
+import {
+  buildBillingUsageStatementId,
+  createD1BillingLedgerEntryInsertStatement,
+  createD1ConsoleBillingService,
+} from '../../../packages/console-server-ts/src/billing/d1';
 import { createD1ConsoleOrganizationAccessService } from '../../../packages/console-server-ts/src/teamRbac/d1';
 import { buildConsoleBillingInvoicePdf } from '../../../packages/console-server-ts/src/billing/pdf';
-import { createD1ConsoleBillingPrepaidReservationService } from '../../../packages/wallet-console-server-ts/src/billingPrepaidReservations/d1';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/shared-account-platform/rehearsal');
@@ -69,6 +72,8 @@ async function migrateSource(
   const migrations: { name: string; digest: string }[] = [];
   for (const name of (await readdir(directory)).sort()) {
     if (!name.endsWith('.sql')) continue;
+    // This inventory rehearsal represents the deployed source before the funds cutover.
+    if (name >= '0094') continue;
     const sql = await readFile(path.join(directory, name), 'utf8');
     for (const statement of unstable_splitSqlQuery(sql)) await database.prepare(statement).run();
     migrations.push({ name, digest: digest(sql) });
@@ -120,32 +125,45 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
     },
   );
   expect(refund.refund.status).toBe('succeeded');
-  const first = await billing.recordUsageEvent(context, {
-    resourceId: 'shared-native-wallet',
-    shouldCount: true,
-    sourceEventId: 'wallet-project-a-action',
-    occurredAt: now().toISOString(),
-  });
-  const second = await billing.recordUsageEvent(context, {
-    resourceId: 'shared-native-wallet',
-    shouldCount: true,
-    sourceEventId: 'wallet-project-b-action',
-    occurredAt: now().toISOString(),
-  });
-  expect(first.debitAppliedMinor).toBe(300);
-  expect(second.debitAppliedMinor).toBe(0);
-  const reservations = await createD1ConsoleBillingPrepaidReservationService({
-    database,
-    namespace,
-    now,
-  });
-  await reservations.reserve(context, {
-    sourceEventId: 'accepted-unfinished-execution',
-    environmentId: 'native-project-a:dev',
-    postedBalanceMinor: 3000,
-    estimatedSpendMinor: 75,
-    expiresAt: '2026-10-14T00:00:00.000Z',
-  });
+  await database.batch([
+    database
+      .prepare(
+        `INSERT INTO billing_monthly_active_resources (namespace, org_id, month_utc, resource_id, source_event_id, created_at_ms)
+      VALUES (?, ?, '2026-10', 'shared-native-wallet', 'wallet-project-a-action', ?)`,
+      )
+      .bind(namespace, context.orgId, now().getTime()),
+    createD1BillingLedgerEntryInsertStatement(database, {
+      namespace,
+      orgId: context.orgId,
+      entryId: 'historical-monthly-wallet-debit',
+      type: 'USAGE_DEBIT',
+      amountMinor: -300,
+      description: 'Historical monthly active-resource debit',
+      monthUtc: '2026-10',
+      relatedInvoiceId: buildBillingUsageStatementId(context.orgId, '2026-10'),
+      relatedPurchaseId: null,
+      sourceEventId: 'wallet-project-a-action',
+      actorType: 'USER',
+      actorUserId: context.actorUserId,
+      reasonCode: 'usage_debit',
+      note: 'Source record before instance attribution',
+      idempotencyKey: 'usage_debit:wallet-project-a-action',
+      createdAtMs: now().getTime(),
+    }),
+    database
+      .prepare(
+        `INSERT INTO billing_prepaid_reservations
+      (namespace, org_id, id, environment_id, policy_id, source_event_id, requested_minor, posted_balance_minor, settled_minor, released_minor, status, tx_or_execution_ref, pricing_version, expires_at_ms, created_at_ms, updated_at_ms)
+      VALUES (?, ?, 'historical-open-reservation', 'native-project-a:dev', NULL, 'accepted-unfinished-execution', 75, 3000, 0, 0, 'RESERVED', NULL, NULL, ?, ?, ?)`,
+      )
+      .bind(
+        namespace,
+        context.orgId,
+        Date.parse('2026-10-14T00:00:00.000Z'),
+        now().getTime(),
+        now().getTime(),
+      ),
+  ]);
   // Existing metered or manual debits can exhaust the balance after admission.
   await billing.appendManualAdminDebit(context, {
     amountMinor: 3100,

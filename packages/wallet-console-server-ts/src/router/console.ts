@@ -1,9 +1,11 @@
+import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import type { WalletExecutionFunds } from '@seams-internal/wallet-console-server/sponsorship/funds';
 import type { ConsoleWalletEnvironmentService } from '../environments';
 import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
 import type { AccountServiceProvisioningAdapterV1 } from '@seams-internal/console-server/accountPlatform/provisioning';
 import type { RouterLogger } from '@seams-internal/console-server/boundary/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/index';
+import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/console-server/billingPrepaidReservations/index';
 import type { ConsoleSponsoredCallService } from '@seams-internal/wallet-console-server/sponsoredCalls/index';
 import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
 import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/index';
@@ -63,7 +65,9 @@ export interface ConsoleRouterBaseOptions {
   // Optional billing adapter for console billing endpoints.
   billing?: ConsoleBillingService | null;
   // Optional prepaid sponsorship reservation adapter for balance/reservation reporting endpoints.
-  prepaidReservations?: ConsoleBillingPrepaidReservationService | null;
+  funds?: ConsoleBillingPrepaidReservationService | null;
+  billingUsage?: D1BillingUsageService | null;
+  executionFunds?: WalletExecutionFunds | null;
   // Optional sponsored-execution history adapter for console billing/reporting endpoints.
   sponsoredCalls?: ConsoleSponsoredCallService | null;
   // Optional org/project/environment metadata adapter for console routes.

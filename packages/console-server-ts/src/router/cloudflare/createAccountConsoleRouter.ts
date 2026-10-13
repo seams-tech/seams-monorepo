@@ -3,6 +3,8 @@ import type { D1AccountPlatformService } from '../../accountPlatform/d1';
 import type { AccountServiceProvisioningAdapterV1 } from '../../accountPlatform/provisioning';
 import type { ConsoleAuditService } from '../../audit/service';
 import type { ConsoleBillingService } from '../../billing/service';
+import type { D1BillingUsageService } from '../../billing/usage';
+import type { ConsoleBillingPrepaidReservationService } from '../../billingPrepaidReservations/service';
 import type { ConsoleWebhookService } from '../../webhooks/service';
 import {
   normalizeCorsOrigin,
@@ -35,6 +37,8 @@ export interface AccountConsoleRouterServices {
   readonly accountPlatform: D1AccountPlatformService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
   readonly webhooks: ConsoleWebhookService | null;
   readonly onboarding: ConsoleOnboardingService;
   readonly orgProjects: ConsoleOrgProjectService;

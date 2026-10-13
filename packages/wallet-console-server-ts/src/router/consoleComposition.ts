@@ -1,3 +1,5 @@
+import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import type { WalletExecutionFunds } from '@seams-internal/wallet-console-server/sponsorship/funds';
 import type { ConsoleWalletEnvironmentService } from '../environments';
 import type { D1AccountPlatformService } from '@seams-internal/console-server/accountPlatform/d1';
 import type { AccountServiceProvisioningAdapterV1 } from '@seams-internal/console-server/accountPlatform/provisioning';
@@ -6,7 +8,7 @@ import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server
 import type { ConsoleApprovalService } from '@seams-internal/wallet-console-server/approvals/index';
 import type { ConsoleAuditService } from '@seams-internal/console-server/audit/index';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/index';
+import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/console-server/billingPrepaidReservations/index';
 import type {
   ConsoleObservabilityIngestionService,
   ConsoleObservabilityService,
@@ -38,6 +40,8 @@ export interface ConsoleCoreRouterServices {
   readonly account: ConsoleAccountService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
   readonly webhooks: ConsoleWebhookService | null;
   readonly observability: ConsoleObservabilityService;
   readonly observabilityIngestion: ConsoleObservabilityIngestionService;
@@ -46,7 +50,7 @@ export interface ConsoleCoreRouterServices {
 
 export interface WalletConsoleRouterServices {
   readonly apiKeys: ConsoleApiKeyService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly executionFunds: WalletExecutionFunds;
   readonly walletEnvironments: ConsoleWalletEnvironmentService;
   readonly policies: ConsolePolicyService;
   readonly wallets: ConsoleWalletService;
@@ -97,7 +101,9 @@ function spreadBranchServices(
     apiKeys: walletConsole.apiKeys,
     audit: core.audit,
     billing: core.billing,
-    prepaidReservations: walletConsole.prepaidReservations,
+    funds: core.funds,
+    billingUsage: core.billingUsage,
+    executionFunds: walletConsole.executionFunds,
     webhooks: core.webhooks,
     observability: core.observability,
     observabilityIngestion: core.observabilityIngestion,

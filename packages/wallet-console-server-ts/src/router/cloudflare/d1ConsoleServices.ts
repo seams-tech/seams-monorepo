@@ -34,8 +34,10 @@ import {
 } from '../../audit';
 import type { BillingProviderAdapters } from '@seams-internal/console-server/billing/providers';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
-import { createD1ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/d1';
-import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/service';
+import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/console-server/billingPrepaidReservations/service';
+import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import { WalletExecutionFunds } from '../../sponsorship/funds';
+import { WalletMonthlyUsageAdapter } from '../../billing/usage';
 import { createD1ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/d1';
 import type { ConsoleKeyExportService } from '@seams-internal/wallet-console-server/keyExports/service';
 import {
@@ -104,7 +106,7 @@ import { createWalletProjectEnvironmentResolver } from '../projectEnvironmentAda
 import type { ConsoleRouterOptions } from '@seams-internal/wallet-console-server/router/console';
 import {
   createRouterApiKeyAuthAdapter,
-  createRouterApiBillingUsageMeterAdapter,
+  createRouterApiWalletRegistrationProjectionAdapter,
   createRouterApiPublishableKeyAuthAdapter,
 } from '@seams-internal/wallet-console-server/router/routerApiKeyAuth';
 import {
@@ -177,7 +179,6 @@ export interface CloudflareD1ConsoleAdapterOptions {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
   };
-  readonly defaultPrepaidReservationTtlMs?: number;
   readonly webhookSecretCipher?: ConsoleWebhookSecretCipher;
   readonly webhookDispatcher?: WebhookDispatchAdapter;
   readonly webhookEndpointDegradedThreshold?: number;
@@ -228,7 +229,8 @@ export interface CloudflareD1ConsoleRouterStorageOptions {
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
 }
@@ -263,7 +265,10 @@ export interface CloudflareD1ConsoleServiceBundle {
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
+  readonly executionFunds: WalletExecutionFunds;
+  readonly walletMonthlyUsage: WalletMonthlyUsageAdapter;
   readonly spendCaps: ConsoleSponsorshipSpendCapService;
   readonly sponsorshipPricing: SponsorshipSpendPricingService | null;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
@@ -294,6 +299,8 @@ export function consoleCoreServicesFromBundle(
     account: bundle.account,
     audit: bundle.audit,
     billing: bundle.billing,
+    funds: bundle.funds,
+    billingUsage: bundle.billingUsage,
     webhooks: bundle.webhooks,
     observability: bundle.observability,
     observabilityIngestion: bundle.observabilityIngestion,
@@ -306,7 +313,7 @@ export function walletConsoleServicesFromBundle(
 ): WalletConsoleRouterServices {
   return {
     apiKeys: bundle.apiKeys,
-    prepaidReservations: bundle.prepaidReservations,
+    executionFunds: bundle.executionFunds,
     walletEnvironments: bundle.walletEnvironments,
     policies: bundle.policies,
     wallets: bundle.wallets,
@@ -335,7 +342,7 @@ export function createCloudflareD1RouterApiRouteExtensions(
         runtimeSnapshots: bundle.runtimeSnapshots,
         publishableKeyAuth: bundle.routerApiRouterOptions.publishableKeyAuth,
         observabilityIngestion: bundle.observabilityIngestion,
-        prepaidReservations: bundle.prepaidReservations,
+        executionFunds: bundle.executionFunds,
         pricing: bundle.sponsorshipPricing,
         spendCaps: bundle.spendCaps,
         webhooks: bundle.webhooks,
@@ -359,7 +366,6 @@ interface NormalizedCloudflareD1ConsoleCommonOptions {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
   };
-  readonly defaultPrepaidReservationTtlMs?: number;
   readonly webhookSecretCipher?: ConsoleWebhookSecretCipher;
   readonly webhookDispatcher?: WebhookDispatchAdapter;
   readonly webhookEndpointDegradedThreshold?: number;
@@ -405,7 +411,10 @@ interface CloudflareD1ConsoleCommonServices {
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
+  readonly executionFunds: WalletExecutionFunds;
+  readonly walletMonthlyUsage: WalletMonthlyUsageAdapter;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
 }
@@ -434,7 +443,7 @@ class D1WalletOrganizationDeletion implements AccountOrganizationDeletionPort {
     const wallet = await queryD1One(
       this.database,
       `SELECT 1 AS retained FROM wallet_index WHERE namespace = ?1 AND org_id = ?2
-       UNION ALL SELECT 1 FROM billing_prepaid_reservations WHERE namespace = ?1 AND org_id = ?2 LIMIT 1`,
+       UNION ALL SELECT 1 FROM billing_funds_reservations WHERE namespace = ?1 AND org_id = ?2 LIMIT 1`,
       [this.namespace, ctx.orgId],
     );
     if (wallet) {
@@ -663,7 +672,6 @@ function normalizeCloudflareD1ConsoleServiceBundleOptions(
     billingProviders: options.adapters?.billingProviders,
     billingEmailConsoleBaseUrl: options.adapters?.billingEmailConsoleBaseUrl,
     onboardingEmail: options.adapters?.onboardingEmail,
-    defaultPrepaidReservationTtlMs: options.adapters?.defaultPrepaidReservationTtlMs,
     webhookSecretCipher: options.adapters?.webhookSecretCipher,
     webhookDispatcher: options.adapters?.webhookDispatcher,
     webhookEndpointDegradedThreshold: options.adapters?.webhookEndpointDegradedThreshold,
@@ -696,7 +704,6 @@ function normalizeCloudflareD1ConsoleOnlyServiceBundleOptions(
     billingProviders: options.adapters?.billingProviders,
     billingEmailConsoleBaseUrl: options.adapters?.billingEmailConsoleBaseUrl,
     onboardingEmail: options.adapters?.onboardingEmail,
-    defaultPrepaidReservationTtlMs: options.adapters?.defaultPrepaidReservationTtlMs,
     webhookSecretCipher: options.adapters?.webhookSecretCipher,
     webhookDispatcher: options.adapters?.webhookDispatcher,
     webhookEndpointDegradedThreshold: options.adapters?.webhookEndpointDegradedThreshold,
@@ -728,17 +735,6 @@ function createCloudflareD1TenantRouteResolver(
     signerMetadataBindingName: options.signerMetadataBindingName,
     signerMetadataDatabaseName: options.signerMetadataDatabaseName,
     signerMetadataDatabase: options.signerMetadataDatabase,
-  });
-}
-
-async function createCloudflareD1PrepaidReservations(
-  options: NormalizedCloudflareD1ConsoleCommonOptions,
-): Promise<ConsoleBillingPrepaidReservationService> {
-  return await createD1ConsoleBillingPrepaidReservationService({
-    database: options.consoleDatabase,
-    namespace: options.namespace,
-    now: options.now,
-    defaultReservationTtlMs: options.defaultPrepaidReservationTtlMs,
   });
 }
 
@@ -980,7 +976,6 @@ async function createCloudflareD1ConsoleCommonServices(
     options: normalized,
     observabilityIngestion,
   });
-  const prepaidReservations = await createCloudflareD1PrepaidReservations(normalized);
   const sponsoredCalls = await createCloudflareD1SponsoredCalls(normalized);
   await ensureCloudflareD1SponsorshipPricingSchema(normalized);
   const runtimeSnapshots = await createCloudflareD1RuntimeSnapshots(normalized);
@@ -992,6 +987,22 @@ async function createCloudflareD1ConsoleCommonServices(
         faucetContractAddress: DEFAULT_TEMPO_ONBOARDING_CONTRACT,
       })
     : baseWalletEnvironments;
+  const executionFunds = new WalletExecutionFunds({
+    database: normalized.consoleDatabase,
+    namespace: normalized.namespace,
+    deploymentId: normalized.deploymentId,
+    platform: core.accountPlatform,
+    reservations: core.funds,
+    usage: core.billingUsage,
+  });
+  const walletMonthlyUsage = new WalletMonthlyUsageAdapter({
+    database: normalized.consoleDatabase,
+    namespace: normalized.namespace,
+    deploymentId: normalized.deploymentId,
+    platform: core.accountPlatform,
+    usage: core.billingUsage,
+  });
+  if (normalized.ensureSchema) await walletMonthlyUsage.ensureSchema();
   const walletProvisioning = new WalletServiceProvisioningAdapter({
     deploymentId: normalized.deploymentId,
     namespace: normalized.namespace,
@@ -1011,7 +1022,8 @@ async function createCloudflareD1ConsoleCommonServices(
     webhooks,
     observability,
     observabilityIngestion,
-    prepaidReservations,
+    executionFunds,
+    walletMonthlyUsage,
     sponsoredCalls,
     runtimeSnapshots,
   };
@@ -1037,7 +1049,8 @@ function createCloudflareD1ConsoleRouterStorageOptions(input: {
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
 }): CloudflareD1ConsoleRouterStorageOptions {
@@ -1062,7 +1075,8 @@ function createCloudflareD1ConsoleRouterStorageOptions(input: {
     onboarding: input.onboarding,
     audit: input.audit,
     billing: input.billing,
-    prepaidReservations: input.prepaidReservations,
+    funds: input.funds,
+    billingUsage: input.billingUsage,
     sponsoredCalls: input.sponsoredCalls,
     runtimeSnapshots: input.runtimeSnapshots,
   };
@@ -1077,7 +1091,7 @@ function createCloudflareD1RouterApiStorageOptions(input: {
   readonly wallets: ConsoleWalletService;
   readonly apiKeys: ConsoleApiKeyService;
   readonly billing: ConsoleBillingService;
-  readonly prepaidReservations: ConsoleBillingPrepaidReservationService;
+  readonly executionFunds: WalletExecutionFunds;
   readonly spendCaps: ConsoleSponsorshipSpendCapService;
   readonly sponsoredCalls: ConsoleSponsoredCallService;
   readonly runtimeSnapshots: ConsoleRuntimeSnapshotService;
@@ -1114,7 +1128,7 @@ function createCloudflareD1RouterApiStorageOptions(input: {
       publishableKeyAuth,
       walletEnvironments,
     ),
-    apiKeyUsageMeter: createRouterApiBillingUsageMeterAdapter(input.billing, {
+    apiKeyUsageMeter: createRouterApiWalletRegistrationProjectionAdapter({
       walletEnvironments: input.walletEnvironments,
       wallets: input.wallets,
     }),
@@ -1131,7 +1145,7 @@ function createCloudflareD1RouterApiStorageOptions(input: {
               config: sponsoredEvmCallConfig,
               resolveExecutionAdapter: options.resolveSponsoredEvmExecutionAdapter || null,
               observabilityIngestion: input.observabilityIngestion,
-              prepaidReservations: input.prepaidReservations,
+              executionFunds: input.executionFunds,
               pricing: input.sponsorshipPricing,
               spendCaps: input.spendCaps,
               webhooks: input.webhooks,
@@ -1201,7 +1215,7 @@ export async function createCloudflareD1ConsoleServiceBundle(
     wallets: servicesWithApiKeys.wallets,
     apiKeys: servicesWithApiKeys.apiKeys,
     billing: servicesWithApiKeys.billing,
-    prepaidReservations: servicesWithApiKeys.prepaidReservations,
+    executionFunds: servicesWithApiKeys.executionFunds,
     spendCaps,
     sponsoredCalls: servicesWithApiKeys.sponsoredCalls,
     runtimeSnapshots: servicesWithApiKeys.runtimeSnapshots,

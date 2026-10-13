@@ -161,19 +161,17 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
           {invoice.documentType === 'USAGE_STATEMENT' ? (
             <section
               className="dashboard-view__section"
-              aria-label="Billing document sponsorship links"
+              aria-label="Billing document account activity"
             >
               <p className="dashboard-info-banner">
-                This statement stays aggregated by billing period. Review individual sponsored
-                charges in{' '}
-                <a href="/dashboard/billing/account#billing-sponsored-history">
-                  Sponsored usage history
-                </a>{' '}
-                and verify billed debits in{' '}
-                <a href="/dashboard/billing/account#billing-sponsored-reconciliation">
-                  Reconciliation
+                Review service costs for this billing period in{' '}
+                <a
+                  href={`/dashboard/billing/account?periodMonthUtc=${encodeURIComponent(invoice.periodMonthUtc)}#billing-usage-costs`}
+                >
+                  Usage costs
                 </a>
-                .
+                . Review posted financial movements in{' '}
+                <a href="/dashboard/billing/account#billing-account-activity">Account activity</a>.
               </p>
             </section>
           ) : null}

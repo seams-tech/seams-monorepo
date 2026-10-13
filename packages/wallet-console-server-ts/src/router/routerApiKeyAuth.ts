@@ -1,7 +1,6 @@
 import { isApiCredentialScope } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import type { ConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
 import type { ConsoleApiKey } from '@seams-internal/wallet-console-server/apiKeys/index';
-import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
 import type { ConsoleWalletEnvironmentService } from '@seams-internal/wallet-console-server/environments/index';
 import type { ConsoleWalletService } from '../wallets';
 import type { ConsoleWalletEnvironment } from '../environments/types';
@@ -56,7 +55,7 @@ async function admittedCredentialEnvironment(
 }
 
 async function upsertProjectedWallet(input: {
-  readonly wallets: ConsoleWalletService;
+  readonly upsertWallet: NonNullable<ConsoleWalletService['upsertWallet']>;
   readonly orgId: string;
   readonly actorUserId: string;
   readonly projectId: string;
@@ -64,10 +63,7 @@ async function upsertProjectedWallet(input: {
   readonly walletId: string;
   readonly occurredAt: string;
 }): Promise<void> {
-  if (!input.wallets.upsertWallet) {
-    throw new Error('Console wallet projection is not configured');
-  }
-  await input.wallets.upsertWallet(
+  await input.upsertWallet(
     {
       orgId: input.orgId,
       actorUserId: input.actorUserId,
@@ -165,52 +161,44 @@ class ConsoleRouterApiPublishableKeyAuthAdapter implements RouterApiPublishableK
   }
 }
 
-class ConsoleRouterApiBillingUsageMeterAdapter implements RouterApiUsageMeterAdapter {
-  constructor(
-    private readonly billing: ConsoleBillingService,
-    private readonly options: {
-      walletEnvironments?: ConsoleWalletEnvironmentService | null;
-      wallets?: ConsoleWalletService | null;
-    },
-  ) {}
+class ConsoleRouterApiWalletRegistrationProjectionAdapter implements RouterApiUsageMeterAdapter {
+  private readonly upsertWallet: NonNullable<ConsoleWalletService['upsertWallet']>;
 
-  async recordEvent(input: RouterApiUsageMeterEvent): Promise<void> {
-    await this.billing.recordUsageEvent(
-      {
-        orgId: input.orgId,
-        actorUserId: 'relay-api-key',
-      },
-      {
-        resourceId: input.walletId,
-        shouldCount: input.action !== 'wallet_created' && input.succeeded,
-        ...(input.occurredAt ? { occurredAt: input.occurredAt } : {}),
-        ...(input.sourceEventId ? { sourceEventId: input.sourceEventId } : {}),
-      },
-    );
-    if (input.action === 'wallet_created' && input.succeeded) {
-      await this.recordWalletProjection(input);
-    }
+  constructor(
+    private readonly options: {
+      readonly walletEnvironments: ConsoleWalletEnvironmentService;
+      readonly wallets: ConsoleWalletService;
+    },
+  ) {
+    const upsertWallet = options.wallets.upsertWallet;
+    if (!upsertWallet)
+      throw new Error('Wallet registration projection requires a writable Wallet index');
+    this.upsertWallet = upsertWallet.bind(options.wallets);
   }
 
-  private async recordWalletProjection(input: RouterApiUsageMeterEvent): Promise<void> {
-    const walletEnvironments = this.options.walletEnvironments || null;
-    const walletService = this.options.wallets || null;
-    if (!walletEnvironments || !walletService?.upsertWallet) return;
-    const envs = await walletEnvironments.listEnvironments({
+  async recordEvent(input: RouterApiUsageMeterEvent): Promise<void> {
+    if (input.action !== 'wallet_created' || !input.succeeded) return;
+    const environments = await this.options.walletEnvironments.listEnvironments({
       orgId: input.orgId,
       actorUserId: 'relay-api-key',
     });
-    const environment = envs.find((entry) => entry.id === input.environmentId) || null;
-    if (!environment) return;
-    const nowIso = String(input.occurredAt || '').trim() || new Date().toISOString();
+    let environment: ConsoleWalletEnvironment | null = null;
+    for (const candidate of environments) {
+      if (candidate.id === input.environmentId) {
+        environment = candidate;
+        break;
+      }
+    }
+    if (!environment) throw new Error('Accepted Wallet registration has no native environment');
+    const occurredAt = input.occurredAt ?? new Date().toISOString();
     await upsertProjectedWallet({
-      wallets: walletService,
+      upsertWallet: this.upsertWallet,
       orgId: input.orgId,
       actorUserId: 'relay-api-key',
       projectId: environment.projectId,
       environmentId: environment.id,
       walletId: input.walletId,
-      occurredAt: nowIso,
+      occurredAt,
     });
   }
 }
@@ -230,12 +218,9 @@ export function createRouterApiPublishableKeyAuthAdapter(
   return new ConsoleRouterApiPublishableKeyAuthAdapter(apiKeys, admission, deferUsageWrite);
 }
 
-export function createRouterApiBillingUsageMeterAdapter(
-  billing: ConsoleBillingService,
-  options: {
-    walletEnvironments?: ConsoleWalletEnvironmentService | null;
-    wallets?: ConsoleWalletService | null;
-  } = {},
-): RouterApiUsageMeterAdapter {
-  return new ConsoleRouterApiBillingUsageMeterAdapter(billing, options);
+export function createRouterApiWalletRegistrationProjectionAdapter(options: {
+  readonly walletEnvironments: ConsoleWalletEnvironmentService;
+  readonly wallets: ConsoleWalletService;
+}): RouterApiUsageMeterAdapter {
+  return new ConsoleRouterApiWalletRegistrationProjectionAdapter(options);
 }

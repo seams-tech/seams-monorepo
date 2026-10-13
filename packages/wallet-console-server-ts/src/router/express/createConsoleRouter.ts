@@ -1,3 +1,5 @@
+import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import type { WalletExecutionFunds } from '@seams-internal/wallet-console-server/sponsorship/funds';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '@seams-internal/wallet-console-shared/webhookEventCategories';
 import type { Request, Response, Router as ExpressRouter } from 'express';
@@ -22,10 +24,9 @@ import {
   LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
   ensureBillingReadyForLiveEnvironment,
 } from '../../environments/readiness';
-import { parseWalletBillingUsageEventRequest } from '../walletBillingUsage';
 import { buildConsoleBillingInvoiceGeneratedAuditEvent } from '@seams-internal/console-server/billing/auditMetadata';
 import { buildConsoleBillingCreditPurchaseSettledAuditEvent } from '@seams-internal/console-server/billing/stripePostProcessing';
-import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/index';
+import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/console-server/billingPrepaidReservations/index';
 import {
   isConsoleSponsoredCallError,
   listConsoleSponsoredCallReconciliationPage,
@@ -230,7 +231,9 @@ export interface ExpressConsoleContext {
   logger: NormalizedRouterLogger;
   routeDefinitions: readonly ConsoleRouteDefinition[];
   billing: ConsoleBillingService | null;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null;
+  funds: ConsoleBillingPrepaidReservationService | null;
+  billingUsage: D1BillingUsageService | null;
+  executionFunds: WalletExecutionFunds | null;
   sponsoredCalls: ConsoleSponsoredCallService | null;
   orgProjects: ConsoleOrgProjectService | null;
   walletEnvironments: ConsoleWalletEnvironmentService | null;
@@ -765,16 +768,11 @@ async function buildConsoleBillingOverviewResponse(
 ): Promise<Record<string, unknown>> {
   const billingCtx = toBillingContext(claims);
   const overview = await billing.getOverview(billingCtx);
-  const prepaidSummary = ctx.prepaidReservations
-    ? await ctx.prepaidReservations.getSummary(billingCtx)
-    : null;
   const sponsoredSummary = ctx.sponsoredCalls
     ? await ctx.sponsoredCalls.getOverviewSummary(billingCtx)
     : null;
   return {
     ...overview,
-    reservedSponsorshipMinor: prepaidSummary?.reservedMinor || 0,
-    activeSponsorshipReservationCount: prepaidSummary?.activeReservationCount || 0,
     trailing30DaySponsoredSpendMinor:
       sponsoredSummary?.trailing30Days.chargedSettledSpendMinor || 0,
     trailing30DaySponsoredExecutionCount:
@@ -4365,20 +4363,6 @@ function registerConsoleBillingRoutes(router: ExpressRouter, ctx: ExpressConsole
     },
   );
 
-  router.post('/console/billing/usage/events', async (req: Request, res: Response) => {
-    const claims = await requireConsoleAuth(req, res, ctx);
-    if (!claims) return;
-    if (!requireConsoleRoutePolicy(req, res, ctx, claims)) return;
-    const billing = requireBillingService(res, ctx);
-    if (!billing) return;
-    try {
-      const request = parseWalletBillingUsageEventRequest((req as any).body);
-      const result = await billing.recordUsageEvent(toBillingContext(claims), request);
-      res.status(200).json({ ok: true, result });
-    } catch (error: unknown) {
-      sendBillingError(res, error);
-    }
-  });
 
   router.post('/console/billing/invoices/generate', async (req: Request, res: Response) => {
     const claims = await requireConsoleAuth(req, res, ctx);
@@ -5013,8 +4997,9 @@ export function createConsoleRouter(opts: ConsoleRouterOptions = {}): ExpressRou
   const routeSurface = resolveWalletConsoleRouteSurface();
   const { routeDefinitions } = routeSurface;
   const billing = opts.billing === undefined ? null : opts.billing;
-  const prepaidReservations =
-    opts.prepaidReservations === undefined ? null : opts.prepaidReservations;
+  const funds = opts.funds ?? null;
+  const billingUsage = opts.billingUsage ?? null;
+  const executionFunds = opts.executionFunds ?? null;
   const sponsoredCalls = opts.sponsoredCalls === undefined ? null : opts.sponsoredCalls;
   const orgProjects = opts.orgProjects === undefined ? null : opts.orgProjects;
   const walletEnvironments = opts.walletEnvironments ?? null;
@@ -5043,7 +5028,9 @@ export function createConsoleRouter(opts: ConsoleRouterOptions = {}): ExpressRou
     logger,
     routeDefinitions,
     billing,
-    prepaidReservations,
+    funds,
+    billingUsage,
+    executionFunds,
     sponsoredCalls,
     orgProjects,
     walletEnvironments,

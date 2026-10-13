@@ -370,7 +370,7 @@ export class ReserveFundsRequestV1 {
       textValue(record.operationId, 'operationId'),
       textValue(record.instanceId, 'instanceId'),
       textValue(record.executionId, 'executionId'),
-      integer(record.requestedMinor, 'requestedMinor', 1),
+      integer(record.requestedMinor, 'requestedMinor', 0),
       textValue(record.priceVersion, 'priceVersion'),
     );
   }

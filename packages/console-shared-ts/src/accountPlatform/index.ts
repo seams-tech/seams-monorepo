@@ -3,3 +3,4 @@ export * from './scope';
 export * from './instances';
 export * from './usage';
 export * from './protocol';
+export * from './funds';

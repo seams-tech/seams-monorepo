@@ -72,8 +72,12 @@ export {
   SponsorshipPrepaidBalanceEnforcementError,
   isSponsorshipPrepaidBalanceEnforcementError,
   reserveSponsoredPrepaidBalance,
-  settleSponsoredPrepaidBalance,
+  loadSponsoredPrepaidReservation,
 } from './prepaidBalance';
+export { WalletExecutionFunds } from './funds';
+export type { WalletExecutionFundsOptions } from './funds';
+export { SponsoredEvmExecutionError, SponsoredNearDelegateRejectedError } from './executionFailure';
+export type { SponsoredEvmExecutionFailure } from './executionFailure';
 export type {
   ChainFamilySponsoredExecutionPricingConfig,
   StaticSponsoredExecutionPricingConfig,

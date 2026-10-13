@@ -19,13 +19,27 @@ export type SidebarProjectGroup = {
   environments: TopbarOption[];
 };
 
-export type SidebarWorkspaceProps = {
+export type DashboardWorkspaceNavigation = {
   projectGroups: SidebarProjectGroup[];
   projectValue: string;
-  environmentValue: string;
-  onSelectEnvironment: (projectValue: string, environmentValue: string) => void;
   organizationOptions: TopbarOption[];
   organizationValue: string;
+} & (
+  | {
+      kind: 'account';
+      onSelectProject: (projectValue: string) => void;
+      environmentValue?: never;
+      onSelectEnvironment?: never;
+    }
+  | {
+      kind: 'wallet';
+      environmentValue: string;
+      onSelectEnvironment: (projectValue: string, environmentValue: string) => void;
+      onSelectProject?: never;
+    }
+);
+
+export type SidebarWorkspaceProps = DashboardWorkspaceNavigation & {
   onSelectOrganization: (value: string) => void;
 };
 
@@ -190,16 +204,44 @@ function RailMenuRow({
   );
 }
 
-/* The workspace switcher treats a project/environment pair as one scope. */
-export function SidebarWorkspaceSwitcher({
-  projectGroups,
-  projectValue,
-  environmentValue,
-  onSelectEnvironment,
-  organizationOptions,
-  organizationValue,
-  onSelectOrganization,
-}: SidebarWorkspaceProps): React.JSX.Element {
+function workspaceLetterAvatar(label: string): React.JSX.Element {
+  return (
+    <span
+      className="dashboard-rail-menu__item-avatar dashboard-rail-menu__item-avatar--letter"
+      aria-hidden="true"
+    >
+      {(label.trim().charAt(0) || 'W').toUpperCase()}
+    </span>
+  );
+}
+
+function renderAccountProject(
+  props: Extract<SidebarWorkspaceProps, { kind: 'account' }>,
+  currentProjectValue: string | null,
+  group: SidebarProjectGroup,
+): React.JSX.Element {
+  return (
+    <RailMenuRow
+      key={group.project.value}
+      active={group.project.value === currentProjectValue}
+      disabled={group.project.disabled === true}
+      avatar={workspaceLetterAvatar(group.project.label)}
+      name={group.project.label}
+      onSelect={props.onSelectProject.bind(null, group.project.value)}
+    />
+  );
+}
+
+/* Wallet routes select a project/environment pair. Account routes select a project. */
+export function SidebarWorkspaceSwitcher(props: SidebarWorkspaceProps): React.JSX.Element {
+  const {
+    projectGroups,
+    projectValue,
+    organizationOptions,
+    organizationValue,
+    onSelectOrganization,
+  } = props;
+  const environmentValue = props.kind === 'wallet' ? props.environmentValue : '';
   const menu = useDashboardMenu();
   const menuStyle = useRailMenuPosition(menu.mounted, menu.rootRef);
 
@@ -220,15 +262,6 @@ export function SidebarWorkspaceSwitcher({
   const showOrganizations = organizationOptions.length > 1;
   const showSectionTitles = showOrganizations && projectGroups.length > 0;
 
-  const letterAvatar = (label: string) => (
-    <span
-      className="dashboard-rail-menu__item-avatar dashboard-rail-menu__item-avatar--letter"
-      aria-hidden="true"
-    >
-      {(label.trim().charAt(0) || 'W').toUpperCase()}
-    </span>
-  );
-
   return (
     <div ref={menu.rootRef} className="dashboard-workspace-switcher">
       <button
@@ -236,16 +269,22 @@ export function SidebarWorkspaceSwitcher({
         className="dashboard-workspace-switcher__trigger"
         aria-haspopup="menu"
         aria-expanded={menu.open}
-        aria-label={`${currentLabel}, ${currentEnvironmentLabel}`}
+        aria-label={
+          props.kind === 'wallet' ? `${currentLabel}, ${currentEnvironmentLabel}` : currentLabel
+        }
         onClick={menu.toggle}
       >
         <span className="dashboard-workspace-switcher__avatar" aria-hidden="true">
           {initial}
         </span>
-        <WorkspaceSwitcherLabel
-          projectLabel={currentLabel}
-          environmentLabel={currentEnvironmentLabel}
-        />
+        {props.kind === 'wallet' ? (
+          <WorkspaceSwitcherLabel
+            projectLabel={currentLabel}
+            environmentLabel={currentEnvironmentLabel}
+          />
+        ) : (
+          <span className="dashboard-workspace-switcher__label">{currentLabel}</span>
+        )}
         <RailCaret className="dashboard-workspace-switcher__caret" />
       </button>
       <DashboardMenu
@@ -255,62 +294,69 @@ export function SidebarWorkspaceSwitcher({
         aria-label="Workspace"
       >
         {showSectionTitles ? <p className="dashboard-rail-menu__section-title">Projects</p> : null}
-        {projectGroups.map((group) => (
-          <div
-            key={group.project.value}
-            className="dashboard-workspace-menu__project"
-            role="group"
-            aria-label={group.project.label}
-          >
-            <div className="dashboard-workspace-menu__project-heading">
-              {letterAvatar(group.project.label)}
-              <span>{group.project.label}</span>
-            </div>
-            <div className="dashboard-workspace-menu__environments">
-              {group.environments.map((environment) => {
-                const active =
-                  group.project.value === currentProject?.value &&
-                  environment.value === environmentValue;
-                const disabled = group.project.disabled === true || environment.disabled === true;
-                return (
-                  <DashboardMenuItem
-                    key={environment.value}
-                    role="menuitemradio"
-                    aria-checked={active}
-                    blocked={disabled}
-                    className={`dashboard-workspace-menu__environment${active ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
-                    onSelect={() => onSelectEnvironment(group.project.value, environment.value)}
-                  >
-                    <span
-                      className="dashboard-workspace-menu__environment-dot"
-                      aria-hidden="true"
-                    />
-                    <span>{environment.label}</span>
-                    {active ? (
-                      <svg
-                        className="dashboard-rail-menu__check"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
+        {props.kind === 'account'
+          ? projectGroups.map(renderAccountProject.bind(null, props, currentProject?.value || null))
+          : projectGroups.map((group) => (
+              <div
+                key={group.project.value}
+                className="dashboard-workspace-menu__project"
+                role="group"
+                aria-label={group.project.label}
+              >
+                <div className="dashboard-workspace-menu__project-heading">
+                  {workspaceLetterAvatar(group.project.label)}
+                  <span>{group.project.label}</span>
+                </div>
+                <div className="dashboard-workspace-menu__environments">
+                  {group.environments.map((environment) => {
+                    const active =
+                      group.project.value === currentProject?.value &&
+                      environment.value === environmentValue;
+                    const disabled =
+                      group.project.disabled === true || environment.disabled === true;
+                    return (
+                      <DashboardMenuItem
+                        key={environment.value}
+                        role="menuitemradio"
+                        aria-checked={active}
+                        blocked={disabled}
+                        className={`dashboard-workspace-menu__environment${active ? ' is-active' : ''}${disabled ? ' is-disabled' : ''}`}
+                        onSelect={props.onSelectEnvironment.bind(
+                          null,
+                          group.project.value,
+                          environment.value,
+                        )}
                       >
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
-                    ) : null}
-                  </DashboardMenuItem>
-                );
-              })}
-              {group.environments.length === 0 ? (
-                <p className="dashboard-workspace-menu__empty">No environments</p>
-              ) : null}
-            </div>
-          </div>
-        ))}
+                        <span
+                          className="dashboard-workspace-menu__environment-dot"
+                          aria-hidden="true"
+                        />
+                        <span>{environment.label}</span>
+                        {active ? (
+                          <svg
+                            className="dashboard-rail-menu__check"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        ) : null}
+                      </DashboardMenuItem>
+                    );
+                  })}
+                  {group.environments.length === 0 ? (
+                    <p className="dashboard-workspace-menu__empty">No environments</p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
         {projectGroups.length === 0 && !showOrganizations ? (
           <p className="dashboard-rail-menu__empty">No projects yet</p>
         ) : null}
@@ -322,7 +368,7 @@ export function SidebarWorkspaceSwitcher({
                 key={option.value}
                 active={option.value === currentOrganization?.value}
                 disabled={option.disabled === true}
-                avatar={letterAvatar(option.label)}
+                avatar={workspaceLetterAvatar(option.label)}
                 name={option.label}
                 onSelect={() => onSelectOrganization(option.value)}
               />

@@ -1,3 +1,15 @@
+import { PlatformScopeV1 } from '@seams-internal/console-shared/accountPlatform';
+import {
+  contractResult,
+  exactKeys,
+  integer,
+  invalidContract,
+  object,
+  textValue,
+  utcTimestamp,
+  type PlatformContractError,
+  type PlatformResult,
+} from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
   buildConsoleAcceptHeaders,
   buildConsoleJsonHeaders,
@@ -12,8 +24,10 @@ export interface DashboardBillingOverview {
   monthlyActiveResources: number;
   creditBalanceMinor: number;
   lowBalanceThresholdMinor: number;
-  reservedSponsorshipMinor: number;
-  activeSponsorshipReservationCount: number;
+  reservedMinor: number;
+  activeReservationCount: number;
+  pendingRefundMinor: number;
+  availableBalanceMinor: number;
   trailing30DaySponsoredSpendMinor: number;
   trailing30DaySponsoredExecutionCount: number;
   trailing90DaySponsoredSpendMinor: number;
@@ -23,11 +37,97 @@ export interface DashboardBillingOverview {
   documentCount: number;
 }
 
-export interface DashboardBillingUsage {
-  usageMetricVersion: string;
-  monthUtc: string;
-  monthlyActiveResources: number;
+interface DashboardBillingUsageChargeBase {
+  readonly ledgerEntryId: string;
+  readonly amountMinor: number;
+  readonly occurredAt: string;
 }
+
+interface DashboardBillingInstanceAttribution {
+  readonly kind: 'instance';
+  readonly scope: PlatformScopeV1;
+  readonly instanceId: string;
+}
+
+export type DashboardBillingUsageCharge = DashboardBillingUsageChargeBase &
+  (
+    | {
+        readonly kind: 'instance';
+        readonly attribution: DashboardBillingInstanceAttribution & {
+          readonly serviceId: 'wallet';
+        };
+        readonly meterId: 'wallet.monthly_active_resource';
+        readonly priceVersion: string;
+        readonly quantity: number;
+        readonly unit: 'resource_month';
+      }
+    | {
+        readonly kind: 'instance';
+        readonly attribution: DashboardBillingInstanceAttribution & {
+          readonly serviceId: 'wallet';
+        };
+        readonly meterId: 'wallet.execution';
+        readonly priceVersion: string;
+        readonly quantity: number;
+        readonly unit: 'execution';
+      }
+    | {
+        readonly kind: 'instance';
+        readonly attribution: DashboardBillingInstanceAttribution & { readonly serviceId: 'satyr' };
+        readonly meterId: 'satyr.completed_turn.test';
+        readonly priceVersion: string;
+        readonly quantity: number;
+        readonly unit: 'turn';
+      }
+    | {
+        readonly kind: 'historical_organization';
+        readonly attribution: {
+          readonly kind: 'historical_organization';
+          readonly namespace: string;
+          readonly organizationId: string;
+          readonly billingAccountId: string;
+          readonly scope?: never;
+          readonly serviceId?: never;
+          readonly instanceId?: never;
+        };
+        readonly meterId?: never;
+        readonly priceVersion?: never;
+        readonly quantity?: never;
+        readonly unit?: never;
+      }
+  );
+
+export interface DashboardBillingUsageCharges {
+  readonly organizationId: string;
+  readonly periodMonthUtc: string;
+  readonly charges: readonly DashboardBillingUsageCharge[];
+}
+
+export type DashboardBillingCostsState =
+  | {
+      readonly kind: 'unavailable';
+      readonly organizationId?: never;
+      readonly data?: never;
+      readonly message?: never;
+    }
+  | {
+      readonly kind: 'loading';
+      readonly organizationId: string;
+      readonly data?: never;
+      readonly message?: never;
+    }
+  | {
+      readonly kind: 'ready';
+      readonly organizationId: string;
+      readonly data: DashboardBillingUsageCharges;
+      readonly message?: never;
+    }
+  | {
+      readonly kind: 'failed';
+      readonly organizationId: string;
+      readonly data?: never;
+      readonly message: string;
+    };
 
 export interface DashboardBillingInvoice {
   id: string;
@@ -115,85 +215,6 @@ export interface DashboardBillingAccountActivityEntry {
   note: string | null;
   idempotencyKey: string | null;
   createdAt: string;
-}
-
-export interface DashboardSponsoredExecutionHistoryEntry {
-  id: string;
-  environmentId: string;
-  apiKeyId: string;
-  apiKeyKind: 'secret_key' | 'publishable_key';
-  route: string;
-  policyId: string;
-  policyNameAtEvent: string | null;
-  templateId: string | null;
-  chainFamily: 'evm' | 'near';
-  intentKind: 'evm_call' | 'near_delegate';
-  executorKind: 'evm_eoa' | 'near_delegate';
-  accountRef: string;
-  targetRef: string;
-  sponsorRef: string;
-  txOrExecutionRef: string | null;
-  receiptStatus: 'success' | 'reverted' | 'broadcast_failed' | 'rpc_rejected';
-  feeUnit: 'wei' | 'yocto_near';
-  feeAmount: string;
-  estimatedSpendMinor: number | null;
-  settledSpendMinor: number | null;
-  pricingVersion: string | null;
-  pricingSource: string | null;
-  billingLedgerEntryId: string | null;
-  prepaidReservationId: string | null;
-  charged: boolean;
-  chargedReason: string | null;
-  settledAt: string | null;
-  errorCode: string | null;
-  errorMessage: string | null;
-  idempotencyKey: string | null;
-  createdAt: string;
-}
-
-export interface DashboardSponsoredExecutionHistoryPage {
-  items: DashboardSponsoredExecutionHistoryEntry[];
-  nextCursor: string | null;
-}
-
-export type DashboardSponsoredExecutionReconciliationStatus =
-  | 'matched'
-  | 'not_charged'
-  | 'missing_billing_debit'
-  | 'amount_mismatch'
-  | 'unexpected_billing_debit';
-
-export interface DashboardSponsoredExecutionReconciliationEntry {
-  record: DashboardSponsoredExecutionHistoryEntry;
-  billingDebit: DashboardBillingAccountActivityEntry | null;
-  status: DashboardSponsoredExecutionReconciliationStatus;
-  mismatchReasons: string[];
-}
-
-export interface DashboardSponsoredExecutionReconciliationSummary {
-  matchedCount: number;
-  notChargedCount: number;
-  missingBillingDebitCount: number;
-  amountMismatchCount: number;
-  unexpectedBillingDebitCount: number;
-  mismatchCount: number;
-}
-
-export interface DashboardSponsoredExecutionReconciliationPage {
-  items: DashboardSponsoredExecutionReconciliationEntry[];
-  nextCursor: string | null;
-  summary: DashboardSponsoredExecutionReconciliationSummary;
-}
-
-export interface DashboardSponsoredExecutionHistoryRequest {
-  environmentId?: string;
-  policyId?: string;
-  chainFamily?: 'evm' | 'near';
-  receiptStatus?: 'success' | 'reverted' | 'broadcast_failed' | 'rpc_rejected';
-  charged?: boolean;
-  limit?: number;
-  cursor?: string;
-  lookbackDays?: number;
 }
 
 export type DashboardBillingAccountActivityEventType =
@@ -384,12 +405,6 @@ interface ConsoleOverviewResponse {
   overview?: unknown;
 }
 
-interface ConsoleUsageResponse {
-  ok?: boolean;
-  message?: string;
-  usage?: unknown;
-}
-
 interface ConsoleInvoicesResponse {
   ok?: boolean;
   message?: string;
@@ -433,18 +448,6 @@ interface ConsoleBillingRefundResultResponse {
   ok?: boolean;
   message?: string;
   result?: unknown;
-}
-
-interface ConsoleSponsoredExecutionHistoryResponse {
-  ok?: boolean;
-  message?: string;
-  page?: unknown;
-}
-
-interface ConsoleSponsoredExecutionReconciliationResponse {
-  ok?: boolean;
-  message?: string;
-  page?: unknown;
 }
 
 interface ConsoleBillingManualAdjustmentResponse {
@@ -527,16 +530,36 @@ function decodeOverview(raw: unknown): DashboardBillingOverview | null {
   const row = raw as Record<string, unknown>;
   const currentMonthUtc = String(row.currentMonthUtc || '').trim();
   if (!currentMonthUtc) return null;
-  const creditBalanceMinor = Number(row.creditBalanceMinor || 0);
-  const lowBalanceThresholdMinor = Number(row.lowBalanceThresholdMinor || 0);
+  const creditBalanceMinor = decodeBillingInteger(row.creditBalanceMinor);
+  const lowBalanceThresholdMinor = decodeBillingInteger(row.lowBalanceThresholdMinor);
+  const reservedMinor = decodeBillingInteger(row.reservedMinor);
+  const activeReservationCount = decodeBillingInteger(row.activeReservationCount);
+  const pendingRefundMinor = decodeBillingInteger(row.pendingRefundMinor);
+  const availableBalanceMinor = decodeBillingInteger(row.availableBalanceMinor);
+  if (
+    creditBalanceMinor === null ||
+    lowBalanceThresholdMinor === null ||
+    lowBalanceThresholdMinor < 0 ||
+    reservedMinor === null ||
+    reservedMinor < 0 ||
+    activeReservationCount === null ||
+    activeReservationCount < 0 ||
+    pendingRefundMinor === null ||
+    pendingRefundMinor < 0 ||
+    availableBalanceMinor === null ||
+    availableBalanceMinor !== creditBalanceMinor - reservedMinor - pendingRefundMinor
+  )
+    return null;
   return {
     usageMetricVersion: String(row.usageMetricVersion || '').trim() || 'active_resource_v1',
     currentMonthUtc,
     monthlyActiveResources: Number(row.monthlyActiveResources || 0),
     creditBalanceMinor,
     lowBalanceThresholdMinor,
-    reservedSponsorshipMinor: Number(row.reservedSponsorshipMinor || 0),
-    activeSponsorshipReservationCount: Number(row.activeSponsorshipReservationCount || 0),
+    reservedMinor,
+    activeReservationCount,
+    pendingRefundMinor,
+    availableBalanceMinor,
     trailing30DaySponsoredSpendMinor: Number(row.trailing30DaySponsoredSpendMinor || 0),
     trailing30DaySponsoredExecutionCount: Number(row.trailing30DaySponsoredExecutionCount || 0),
     trailing90DaySponsoredSpendMinor: Number(row.trailing90DaySponsoredSpendMinor || 0),
@@ -547,16 +570,141 @@ function decodeOverview(raw: unknown): DashboardBillingOverview | null {
   };
 }
 
-function decodeUsage(raw: unknown): DashboardBillingUsage | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const monthUtc = String(row.monthUtc || '').trim();
-  if (!monthUtc) return null;
-  return {
-    usageMetricVersion: String(row.usageMetricVersion || '').trim() || 'active_resource_v1',
-    monthUtc,
-    monthlyActiveResources: Number(row.monthlyActiveResources || 0),
-  };
+function decodeBillingInteger(raw: unknown): number | null {
+  if (typeof raw !== 'number' || !Number.isSafeInteger(raw)) return null;
+  return raw;
+}
+
+function readUsageCharge(input: unknown): DashboardBillingUsageCharge {
+  const row = object(input, 'charge');
+  const ledgerEntryId = textValue(row.ledgerEntryId, 'ledgerEntryId');
+  const amountMinor = integer(row.amountMinor, 'amountMinor', 1);
+  const occurredAt = utcTimestamp(row.occurredAt, 'occurredAt');
+  const attribution = object(row.attribution, 'attribution');
+  if (row.kind === 'historical_organization') {
+    exactKeys(row, ['kind', 'ledgerEntryId', 'amountMinor', 'occurredAt', 'attribution']);
+    exactKeys(attribution, ['kind', 'namespace', 'organizationId', 'billingAccountId']);
+    if (attribution.kind !== row.kind) return invalidContract('attribution.kind');
+    return {
+      kind: 'historical_organization',
+      ledgerEntryId,
+      amountMinor,
+      occurredAt,
+      attribution: {
+        kind: 'historical_organization',
+        namespace: textValue(attribution.namespace, 'namespace'),
+        organizationId: textValue(attribution.organizationId, 'organizationId'),
+        billingAccountId: textValue(attribution.billingAccountId, 'billingAccountId'),
+      },
+    };
+  }
+  if (row.kind !== 'instance') return invalidContract('charge.kind');
+  exactKeys(row, [
+    'kind',
+    'ledgerEntryId',
+    'amountMinor',
+    'occurredAt',
+    'attribution',
+    'meterId',
+    'priceVersion',
+    'quantity',
+    'unit',
+  ]);
+  exactKeys(attribution, ['kind', 'scope', 'serviceId', 'instanceId']);
+  if (attribution.kind !== 'instance') return invalidContract('attribution.kind');
+  const parsedScope = PlatformScopeV1.parse(attribution.scope);
+  if (parsedScope.kind === 'rejected') return invalidContract('attribution.scope');
+  const scope = parsedScope.value;
+  const instanceId = textValue(attribution.instanceId, 'instanceId');
+  const priceVersion = textValue(row.priceVersion, 'priceVersion');
+  const quantity = integer(row.quantity, 'quantity', 1);
+  switch (row.meterId) {
+    case 'wallet.monthly_active_resource':
+      if (attribution.serviceId !== 'wallet' || row.unit !== 'resource_month')
+        return invalidContract('meter');
+      return {
+        kind: 'instance',
+        ledgerEntryId,
+        amountMinor,
+        occurredAt,
+        attribution: { kind: 'instance', scope, serviceId: 'wallet', instanceId },
+        meterId: row.meterId,
+        priceVersion,
+        quantity,
+        unit: row.unit,
+      };
+    case 'wallet.execution':
+      if (attribution.serviceId !== 'wallet' || row.unit !== 'execution')
+        return invalidContract('meter');
+      return {
+        kind: 'instance',
+        ledgerEntryId,
+        amountMinor,
+        occurredAt,
+        attribution: { kind: 'instance', scope, serviceId: 'wallet', instanceId },
+        meterId: row.meterId,
+        priceVersion,
+        quantity,
+        unit: row.unit,
+      };
+    case 'satyr.completed_turn.test':
+      if (attribution.serviceId !== 'satyr' || row.unit !== 'turn') return invalidContract('meter');
+      return {
+        kind: 'instance',
+        ledgerEntryId,
+        amountMinor,
+        occurredAt,
+        attribution: { kind: 'instance', scope, serviceId: 'satyr', instanceId },
+        meterId: row.meterId,
+        priceVersion,
+        quantity,
+        unit: row.unit,
+      };
+    default:
+      return invalidContract('meterId');
+  }
+}
+
+function readUsageCharges(input: unknown): DashboardBillingUsageCharges {
+  const expected = object(input, 'request');
+  const response = object(expected.response, 'response');
+  exactKeys(response, ['ok', 'organizationId', 'periodMonthUtc', 'charges']);
+  const organizationId = textValue(response.organizationId, 'organizationId');
+  const periodMonthUtc = textValue(response.periodMonthUtc, 'periodMonthUtc');
+  if (
+    response.ok !== true ||
+    organizationId !== expected.organizationId ||
+    periodMonthUtc !== expected.periodMonthUtc ||
+    !/^\d{4}-(0[1-9]|1[0-2])$/.test(periodMonthUtc) ||
+    !Array.isArray(response.charges)
+  )
+    return invalidContract('response');
+  const charges: DashboardBillingUsageCharge[] = [];
+  const ledgerIds = new Set<string>();
+  let totalMinor = 0;
+  for (const raw of response.charges) {
+    const charge = readUsageCharge(raw);
+    const attributedOrganizationId =
+      charge.kind === 'instance'
+        ? charge.attribution.scope.organizationId
+        : charge.attribution.organizationId;
+    if (attributedOrganizationId !== organizationId || ledgerIds.has(charge.ledgerEntryId)) {
+      return invalidContract('charge.attribution');
+    }
+    totalMinor += charge.amountMinor;
+    if (!Number.isSafeInteger(totalMinor)) return invalidContract('charges.amountMinor');
+    ledgerIds.add(charge.ledgerEntryId);
+    charges.push(charge);
+  }
+  return { organizationId, periodMonthUtc, charges };
+}
+
+export function parseDashboardBillingUsageCharges(
+  response: unknown,
+  organizationId: string,
+  periodMonthUtc: string,
+): PlatformResult<DashboardBillingUsageCharges, PlatformContractError> {
+  return contractResult(readUsageCharges, { response, organizationId, periodMonthUtc });
 }
 
 function decodeInvoice(raw: unknown): DashboardBillingInvoice | null {
@@ -879,7 +1027,9 @@ function decodeInvoiceActivity(raw: unknown): DashboardBillingInvoiceActivity | 
   };
 }
 
-function decodeAccountActivityEntry(raw: unknown): DashboardBillingAccountActivityEntry | null {
+export function parseDashboardBillingAccountActivityEntry(
+  raw: unknown,
+): DashboardBillingAccountActivityEntry | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
   const id = String(row.id || '').trim();
@@ -961,187 +1111,8 @@ function decodeAccountActivity(
   const entriesRaw = Array.isArray(row.entries) ? row.entries : [];
   return {
     entries: entriesRaw
-      .map((entry) => decodeAccountActivityEntry(entry))
+      .map((entry) => parseDashboardBillingAccountActivityEntry(entry))
       .filter((entry): entry is DashboardBillingAccountActivityEntry => entry !== null),
-  };
-}
-
-function decodeSponsoredExecutionHistoryEntry(
-  raw: unknown,
-): DashboardSponsoredExecutionHistoryEntry | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const id = String(row.id || '').trim();
-  const environmentId = String(row.environmentId || '').trim();
-  const apiKeyId = String(row.apiKeyId || '').trim();
-  const route = String(row.route || '').trim();
-  const policyId = String(row.policyId || '').trim();
-  const accountRef = String(row.accountRef || '').trim();
-  const targetRef = String(row.targetRef || '').trim();
-  const sponsorRef = String(row.sponsorRef || '').trim();
-  const createdAt = String(row.createdAt || '').trim();
-  if (
-    !id ||
-    !environmentId ||
-    !apiKeyId ||
-    !route ||
-    !policyId ||
-    !accountRef ||
-    !targetRef ||
-    !sponsorRef ||
-    !createdAt
-  ) {
-    return null;
-  }
-  const apiKeyKind = String(row.apiKeyKind || '')
-    .trim()
-    .toLowerCase();
-  const chainFamily = String(row.chainFamily || '')
-    .trim()
-    .toLowerCase();
-  const intentKind = String(row.intentKind || '')
-    .trim()
-    .toLowerCase();
-  const executorKind = String(row.executorKind || '')
-    .trim()
-    .toLowerCase();
-  const receiptStatus = String(row.receiptStatus || '')
-    .trim()
-    .toLowerCase();
-  const feeUnit = String(row.feeUnit || '')
-    .trim()
-    .toLowerCase();
-  if (
-    (apiKeyKind !== 'secret_key' && apiKeyKind !== 'publishable_key') ||
-    (chainFamily !== 'evm' && chainFamily !== 'near') ||
-    (intentKind !== 'evm_call' && intentKind !== 'near_delegate') ||
-    (executorKind !== 'evm_eoa' && executorKind !== 'near_delegate') ||
-    (receiptStatus !== 'success' &&
-      receiptStatus !== 'reverted' &&
-      receiptStatus !== 'broadcast_failed' &&
-      receiptStatus !== 'rpc_rejected') ||
-    (feeUnit !== 'wei' && feeUnit !== 'yocto_near')
-  ) {
-    return null;
-  }
-  return {
-    id,
-    environmentId,
-    apiKeyId,
-    apiKeyKind,
-    route,
-    policyId,
-    policyNameAtEvent:
-      row.policyNameAtEvent == null ? null : String(row.policyNameAtEvent || '').trim() || null,
-    templateId: row.templateId == null ? null : String(row.templateId || '').trim() || null,
-    chainFamily,
-    intentKind,
-    executorKind,
-    accountRef,
-    targetRef,
-    sponsorRef,
-    txOrExecutionRef:
-      row.txOrExecutionRef == null ? null : String(row.txOrExecutionRef || '').trim() || null,
-    receiptStatus,
-    feeUnit,
-    feeAmount: String(row.feeAmount || '0').trim() || '0',
-    estimatedSpendMinor:
-      row.estimatedSpendMinor == null ? null : Number(row.estimatedSpendMinor || 0),
-    settledSpendMinor: row.settledSpendMinor == null ? null : Number(row.settledSpendMinor || 0),
-    pricingVersion:
-      row.pricingVersion == null ? null : String(row.pricingVersion || '').trim() || null,
-    pricingSource:
-      row.pricingSource == null ? null : String(row.pricingSource || '').trim() || null,
-    billingLedgerEntryId:
-      row.billingLedgerEntryId == null
-        ? null
-        : String(row.billingLedgerEntryId || '').trim() || null,
-    prepaidReservationId:
-      row.prepaidReservationId == null
-        ? null
-        : String(row.prepaidReservationId || '').trim() || null,
-    charged: row.charged === true,
-    chargedReason:
-      row.chargedReason == null ? null : String(row.chargedReason || '').trim() || null,
-    settledAt: row.settledAt == null ? null : String(row.settledAt || '').trim() || null,
-    errorCode: row.errorCode == null ? null : String(row.errorCode || '').trim() || null,
-    errorMessage: row.errorMessage == null ? null : String(row.errorMessage || '').trim() || null,
-    idempotencyKey:
-      row.idempotencyKey == null ? null : String(row.idempotencyKey || '').trim() || null,
-    createdAt,
-  };
-}
-
-function decodeSponsoredExecutionHistoryPage(
-  raw: unknown,
-): DashboardSponsoredExecutionHistoryPage | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const itemsRaw = Array.isArray(row.items) ? row.items : [];
-  return {
-    items: itemsRaw
-      .map((entry) => decodeSponsoredExecutionHistoryEntry(entry))
-      .filter((entry): entry is DashboardSponsoredExecutionHistoryEntry => entry !== null),
-    nextCursor: row.nextCursor == null ? null : String(row.nextCursor || '').trim() || null,
-  };
-}
-
-function decodeSponsoredExecutionReconciliationEntry(
-  raw: unknown,
-): DashboardSponsoredExecutionReconciliationEntry | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const record = decodeSponsoredExecutionHistoryEntry(row.record);
-  if (!record) return null;
-  const status = String(row.status || '')
-    .trim()
-    .toLowerCase();
-  if (
-    status !== 'matched' &&
-    status !== 'not_charged' &&
-    status !== 'missing_billing_debit' &&
-    status !== 'amount_mismatch' &&
-    status !== 'unexpected_billing_debit'
-  ) {
-    return null;
-  }
-  const billingDebit =
-    row.billingDebit == null ? null : decodeAccountActivityEntry(row.billingDebit);
-  const mismatchReasonsRaw = Array.isArray(row.mismatchReasons) ? row.mismatchReasons : [];
-  return {
-    record,
-    billingDebit,
-    status,
-    mismatchReasons: mismatchReasonsRaw
-      .map((value) => String(value || '').trim())
-      .filter((value) => value.length > 0),
-  };
-}
-
-function decodeSponsoredExecutionReconciliationPage(
-  raw: unknown,
-): DashboardSponsoredExecutionReconciliationPage | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const row = raw as Record<string, unknown>;
-  const itemsRaw = Array.isArray(row.items) ? row.items : [];
-  const summary =
-    row.summary && typeof row.summary === 'object' && !Array.isArray(row.summary)
-      ? (row.summary as Record<string, unknown>)
-      : null;
-  if (!summary) return null;
-  return {
-    items: itemsRaw
-      .map((entry) => decodeSponsoredExecutionReconciliationEntry(entry))
-      .filter((entry): entry is DashboardSponsoredExecutionReconciliationEntry => entry !== null),
-    nextCursor: row.nextCursor == null ? null : String(row.nextCursor || '').trim() || null,
-    summary: {
-      matchedCount: Number(summary.matchedCount || 0),
-      notChargedCount: Number(summary.notChargedCount || 0),
-      missingBillingDebitCount: Number(summary.missingBillingDebitCount || 0),
-      amountMismatchCount: Number(summary.amountMismatchCount || 0),
-      unexpectedBillingDebitCount: Number(summary.unexpectedBillingDebitCount || 0),
-      mismatchCount: Number(summary.mismatchCount || 0),
-    },
   };
 }
 
@@ -1150,7 +1121,7 @@ function decodeBillingManualAdjustmentResult(
 ): DashboardBillingManualAdjustmentResult | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
-  const adjustment = decodeAccountActivityEntry(row.adjustment);
+  const adjustment = parseDashboardBillingAccountActivityEntry(row.adjustment);
   if (!adjustment) return null;
   return {
     created: row.created === true,
@@ -1231,23 +1202,22 @@ function parseContentDispositionFilename(raw: string | null): string {
 
 export async function getDashboardBillingOverview(): Promise<DashboardBillingOverview> {
   const body = (await fetchJson('/console/billing/overview')) as ConsoleOverviewResponse;
+  if (body.ok !== true) throw new Error('Billing overview response was invalid');
   const overview = decodeOverview(body.overview);
   if (!overview) throw new Error('Billing overview response was invalid');
   return overview;
 }
 
-export async function getDashboardBillingMonthlyActiveResources(
-  monthUtc?: string,
-): Promise<DashboardBillingUsage> {
-  const params = new URLSearchParams();
-  if (monthUtc) params.set('monthUtc', monthUtc);
-  const suffix = params.toString();
-  const body = (await fetchJson(
-    `/console/billing/usage/monthly-active-wallets${suffix ? `?${suffix}` : ''}`,
-  )) as ConsoleUsageResponse;
-  const usage = decodeUsage(body.usage);
-  if (!usage) throw new Error('Billing MAW usage response was invalid');
-  return usage;
+export async function getDashboardBillingUsageCharges(
+  organizationId: string,
+  periodMonthUtc: string,
+): Promise<DashboardBillingUsageCharges> {
+  const params = new URLSearchParams({ periodMonthUtc });
+  const body: unknown = await fetchJson(`/console/billing/usage/charges?${params}`);
+  const result = parseDashboardBillingUsageCharges(body, organizationId, periodMonthUtc);
+  if (result.kind === 'rejected')
+    throw new Error('Billing cost response did not match this organization and period.');
+  return result.value;
 }
 
 export async function listDashboardBillingAccountActivity(
@@ -1321,56 +1291,6 @@ export async function reconcileDashboardPlatformBillingRefund(input: {
   const result = decodeBillingRefundResult(body.result);
   if (!result) throw new Error('Platform billing refund reconciliation response was invalid');
   return result;
-}
-
-export async function listDashboardSponsoredExecutionHistory(
-  input: DashboardSponsoredExecutionHistoryRequest = {},
-): Promise<DashboardSponsoredExecutionHistoryPage> {
-  const params = new URLSearchParams();
-  if (input.environmentId) params.set('environmentId', input.environmentId);
-  if (input.policyId) params.set('policyId', input.policyId);
-  if (input.chainFamily) params.set('chainFamily', input.chainFamily);
-  if (input.receiptStatus) params.set('receiptStatus', input.receiptStatus);
-  if (typeof input.charged === 'boolean') params.set('charged', input.charged ? 'true' : 'false');
-  if (Number.isFinite(input.limit) && Number(input.limit) > 0) {
-    params.set('limit', String(Math.floor(Number(input.limit))));
-  }
-  if (input.cursor) params.set('cursor', input.cursor);
-  if (Number.isFinite(input.lookbackDays) && Number(input.lookbackDays) > 0) {
-    params.set('lookbackDays', String(Math.floor(Number(input.lookbackDays))));
-  }
-  const suffix = params.toString();
-  const body = (await fetchJson(
-    `/console/billing/sponsored-executions${suffix ? `?${suffix}` : ''}`,
-  )) as ConsoleSponsoredExecutionHistoryResponse;
-  const page = decodeSponsoredExecutionHistoryPage(body.page);
-  if (!page) throw new Error('Sponsored execution history response was invalid');
-  return page;
-}
-
-export async function listDashboardSponsoredExecutionReconciliation(
-  input: DashboardSponsoredExecutionHistoryRequest = {},
-): Promise<DashboardSponsoredExecutionReconciliationPage> {
-  const params = new URLSearchParams();
-  if (input.environmentId) params.set('environmentId', input.environmentId);
-  if (input.policyId) params.set('policyId', input.policyId);
-  if (input.chainFamily) params.set('chainFamily', input.chainFamily);
-  if (input.receiptStatus) params.set('receiptStatus', input.receiptStatus);
-  if (typeof input.charged === 'boolean') params.set('charged', input.charged ? 'true' : 'false');
-  if (Number.isFinite(input.limit) && Number(input.limit) > 0) {
-    params.set('limit', String(Math.floor(Number(input.limit))));
-  }
-  if (input.cursor) params.set('cursor', input.cursor);
-  if (Number.isFinite(input.lookbackDays) && Number(input.lookbackDays) > 0) {
-    params.set('lookbackDays', String(Math.floor(Number(input.lookbackDays))));
-  }
-  const suffix = params.toString();
-  const body = (await fetchJson(
-    `/console/billing/sponsored-executions/reconciliation${suffix ? `?${suffix}` : ''}`,
-  )) as ConsoleSponsoredExecutionReconciliationResponse;
-  const page = decodeSponsoredExecutionReconciliationPage(body.page);
-  if (!page) throw new Error('Sponsored execution reconciliation response was invalid');
-  return page;
 }
 
 async function postBillingManualAdjustment(

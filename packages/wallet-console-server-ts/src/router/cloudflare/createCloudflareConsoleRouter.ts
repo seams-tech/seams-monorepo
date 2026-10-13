@@ -1,3 +1,5 @@
+import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
+import type { WalletExecutionFunds } from '@seams-internal/wallet-console-server/sponsorship/funds';
 import {
   handleConsoleBillingRoutes,
   sendBillingError,
@@ -34,12 +36,11 @@ import {
   ensureBillingReadyForLiveEnvironment,
   resolveBillingLiveEnvironmentState,
 } from '@seams-internal/wallet-console-server/environments/readiness';
-import { parseWalletBillingUsageEventRequest } from '../walletBillingUsage';
 import {
   ConsoleBillingError,
   isConsoleBillingError,
 } from '@seams-internal/console-server/billing/errors';
-import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/wallet-console-server/billingPrepaidReservations/service';
+import type { ConsoleBillingPrepaidReservationService } from '@seams-internal/console-server/billingPrepaidReservations/service';
 import type { ConsoleSponsoredCallService } from '@seams-internal/wallet-console-server/sponsoredCalls/service';
 import { isConsoleSponsoredCallError } from '@seams-internal/wallet-console-server/sponsoredCalls/errors';
 import { listConsoleSponsoredCallReconciliationPage } from '@seams-internal/wallet-console-server/sponsoredCalls/reconciliation';
@@ -213,7 +214,9 @@ export interface CloudflareConsoleContext extends Omit<AccountConsoleContext, 'a
   logger: NormalizedRouterLogger;
   routeDefinitions: readonly ConsoleRouteDefinition[];
   billing: ConsoleBillingService | null;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null;
+  funds: ConsoleBillingPrepaidReservationService | null;
+  billingUsage: D1BillingUsageService | null;
+  executionFunds: WalletExecutionFunds | null;
   sponsoredCalls: ConsoleSponsoredCallService | null;
   orgProjects: ConsoleOrgProjectService | null;
   walletEnvironments: ConsoleWalletEnvironmentService | null;
@@ -726,16 +729,11 @@ async function buildConsoleBillingOverviewResponse(
   overview: BillingOverview,
 ): Promise<Record<string, unknown>> {
   const billingCtx = toBillingContext(claims);
-  const prepaidSummary = ctx.prepaidReservations
-    ? await ctx.prepaidReservations.getSummary(billingCtx)
-    : null;
   const sponsoredSummary = ctx.sponsoredCalls
     ? await ctx.sponsoredCalls.getOverviewSummary(billingCtx)
     : null;
   return {
     ...overview,
-    reservedSponsorshipMinor: prepaidSummary?.reservedMinor || 0,
-    activeSponsorshipReservationCount: prepaidSummary?.activeReservationCount || 0,
     trailing30DaySponsoredSpendMinor:
       sponsoredSummary?.trailing30Days.chargedSettledSpendMinor || 0,
     trailing30DaySponsoredExecutionCount:
@@ -3152,13 +3150,6 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       return json({ ok: true, usage }, { status: 200 });
     }
 
-    if (ctx.method === 'POST' && ctx.pathname === '/console/billing/usage/events') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parseWalletBillingUsageEventRequest(await readJson(ctx.request));
-      const result = await billing.recordUsageEvent(billingCtx, request);
-      return json({ ok: true, result }, { status: 200 });
-    }
 
     if (
       ctx.method === 'POST' &&
@@ -3387,8 +3378,9 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
   const routeSurface = resolveWalletConsoleRouteSurface();
   const { routeDefinitions } = routeSurface;
   const billing = opts.billing === undefined ? null : opts.billing;
-  const prepaidReservations =
-    opts.prepaidReservations === undefined ? null : opts.prepaidReservations;
+  const funds = opts.funds ?? null;
+  const billingUsage = opts.billingUsage ?? null;
+  const executionFunds = opts.executionFunds ?? null;
   const sponsoredCalls = opts.sponsoredCalls === undefined ? null : opts.sponsoredCalls;
   const orgProjects = opts.orgProjects ?? null;
   const walletEnvironments = opts.walletEnvironments ?? null;
@@ -3478,7 +3470,9 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
       walletProvisioning: opts.walletProvisioning ?? null,
       satyrProvisioning: opts.satyrProvisioning ?? null,
       billing,
-      prepaidReservations,
+      funds,
+      billingUsage,
+      executionFunds,
       sponsoredCalls,
       orgProjects,
       walletEnvironments,

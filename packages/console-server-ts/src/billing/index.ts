@@ -17,9 +17,6 @@ export type {
   BillingProductExecutionDebitEntry,
   BillingOverview,
   BillingProductExecutionDebitRequest,
-  BillingProductExecutionDebitResult,
-  BillingUsageEventRequest,
-  BillingUsageEventResult,
   BillingMonthlyActiveResources,
   BillingInvoice,
   BillingInvoiceActivity,
@@ -114,7 +111,6 @@ export {
   createD1ConsoleBillingService,
   createProductExecutionDebitD1Statements,
   getConsoleBillingD1Runtime,
-  recordProductExecutionDebitD1,
   runD1ConsoleBillingMonthlyFinalization,
 } from './d1';
 
@@ -142,3 +138,7 @@ export {
   buildConsoleBillingInvoicePdfFilename,
   CONSOLE_BILLING_INVOICE_PDF_EXPORT_POLICY,
 } from './pdf';
+
+export * from './pricing';
+export * from './usage';
+export * from './attribution';

@@ -11,6 +11,9 @@ import type { ConsoleAuditCategory, ConsoleAuditEvidenceReferenceKind } from '..
 import { createD1ConsoleBillingService } from '../../billing/d1';
 import type { BillingProviderAdapters } from '../../billing/providers';
 import type { ConsoleBillingService } from '../../billing/service';
+import { D1BillingUsageService, type SatyrTestPricingPolicyV1 } from '../../billing/usage';
+import { createD1ConsoleBillingPrepaidReservationService } from '../../billingPrepaidReservations/d1';
+import type { ConsoleBillingPrepaidReservationService } from '../../billingPrepaidReservations/service';
 import { queryD1One, type D1DatabaseLike } from '../../boundary/d1';
 import type { Logger } from '../../boundary';
 import {
@@ -39,6 +42,7 @@ export interface CloudflareD1AccountServiceBundleOptions {
   readonly organizationEmail?: D1ConsoleOrganizationEmailOptions;
   readonly billingProviders?: Partial<BillingProviderAdapters>;
   readonly billingEmailConsoleBaseUrl?: string;
+  readonly satyrTestPricing?: SatyrTestPricingPolicyV1;
   readonly onboardingEmail?: {
     readonly consoleBaseUrl: string;
     readonly docsBaseUrl: string;
@@ -55,6 +59,8 @@ export interface CloudflareD1AccountServiceBundle {
   readonly onboarding: ConsoleOnboardingService;
   readonly audit: ConsoleAuditService;
   readonly billing: ConsoleBillingService;
+  readonly funds: ConsoleBillingPrepaidReservationService;
+  readonly billingUsage: D1BillingUsageService;
   readonly webhooks: null;
 }
 
@@ -81,11 +87,13 @@ class D1AccountOrganizationDeletion implements AccountOrganizationDeletionPort {
     }
     const history = await queryD1One(
       this.database,
-      `SELECT 1 AS retained FROM billing_ledger_entries WHERE namespace = ?1 AND org_id = ?2
-       UNION ALL SELECT 1 FROM billing_credit_purchases WHERE namespace = ?1 AND org_id = ?2
-       UNION ALL SELECT 1 FROM billing_refunds WHERE namespace = ?1 AND org_id = ?2
-       UNION ALL SELECT 1 FROM billing_disputes WHERE namespace = ?1 AND org_id = ?2
-       UNION ALL SELECT 1 FROM invoices WHERE namespace = ?1 AND org_id = ?2 LIMIT 1`,
+      `SELECT 1 AS retained WHERE
+         EXISTS (SELECT 1 FROM billing_ledger_entries WHERE namespace = ?1 AND org_id = ?2)
+         OR EXISTS (SELECT 1 FROM billing_credit_purchases WHERE namespace = ?1 AND org_id = ?2)
+         OR EXISTS (SELECT 1 FROM billing_refunds WHERE namespace = ?1 AND org_id = ?2)
+         OR EXISTS (SELECT 1 FROM billing_disputes WHERE namespace = ?1 AND org_id = ?2)
+         OR EXISTS (SELECT 1 FROM invoices WHERE namespace = ?1 AND org_id = ?2)
+         OR EXISTS (SELECT 1 FROM billing_funds_reservations WHERE namespace = ?1 AND org_id = ?2)`,
       [this.namespace, ctx.orgId],
     );
     if (history) {
@@ -140,6 +148,23 @@ export async function createCloudflareD1AccountServiceBundle(
     providers: options.billingProviders,
     emailConsoleBaseUrl: options.billingEmailConsoleBaseUrl,
   });
+  const funds = await createD1ConsoleBillingPrepaidReservationService({
+    database: options.database,
+    namespace,
+    platform: accountPlatform,
+    billing,
+    now: options.now,
+    ensureSchema: options.ensureSchema,
+  });
+  const billingUsage = new D1BillingUsageService({
+    billing,
+    database: options.database,
+    namespace,
+    funds,
+    satyrTestPricing: options.satyrTestPricing ?? { kind: 'disabled' },
+    now: options.now,
+  });
+  if (options.ensureSchema !== false) await billingUsage.ensureSchema();
   const welcomeEmail = options.onboardingEmail
     ? createD1ConsoleOnboardingWelcomeEmail({
         database: options.database,
@@ -177,6 +202,8 @@ export async function createCloudflareD1AccountServiceBundle(
     onboarding,
     audit,
     billing,
+    funds,
+    billingUsage,
     webhooks: null,
   };
 }

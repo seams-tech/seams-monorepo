@@ -169,6 +169,7 @@ const PROJECT_EDIT_ROUTES: readonly ConsoleRouteTuple[] = [
 
 const BILLING_VIEW_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_billing_overview_get', 'GET', '/console/billing/overview'],
+  ['console_billing_usage_charges_get', 'GET', '/console/billing/usage/charges'],
   ['console_billing_account_activity_get', 'GET', '/console/billing/account/activity'],
   ['console_billing_invoices_list', 'GET', '/console/billing/invoices'],
   ['console_billing_invoices_get', 'GET', '/console/billing/invoices/:id'],
@@ -195,7 +196,6 @@ const PLATFORM_SUPPORT_ROUTES: readonly ConsoleRouteTuple[] = [
   ['console_onboarding_telemetry_get', 'GET', '/console/onboarding/telemetry'],
   ['console_platform_billing_search_get', 'GET', '/console/platform/billing/search'],
   ['console_platform_billing_account_get', 'GET', '/console/platform/billing/account'],
-  ['console_billing_usage_events_record', 'POST', '/console/billing/usage/events'],
   ['console_billing_invoices_generate', 'POST', '/console/billing/invoices/generate'],
   [
     'console_billing_adjustments_support_credit',

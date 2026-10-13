@@ -53,10 +53,20 @@ export type SponsorshipReplayOrMatchResolution<TMatched, TBody extends Record<st
   | {
       kind: 'matched';
       matched: TMatched;
+      response?: never;
+      reason?: never;
     }
   | {
       kind: 'response';
       response: RouteResponse<TBody>;
+      matched?: never;
+      reason?: never;
+    }
+  | {
+      kind: 'conflict';
+      reason: 'environment_mismatch';
+      matched?: never;
+      response?: never;
     };
 
 function isPublishableKeyRoutePrincipal(
@@ -165,6 +175,7 @@ export async function resolveSponsorshipReplayOrMatch<
 >(input: {
   sponsoredCalls: ConsoleSponsoredCallService | null | undefined;
   sponsorshipCtx: ConsoleSponsoredCallContext;
+  environmentId: string;
   idempotencyKey: string;
   buildReplayResponse: (existing: ConsoleSponsoredCallRecord) => RouteResponse<TBody>;
   resolveMatch: () =>
@@ -178,6 +189,9 @@ export async function resolveSponsorshipReplayOrMatch<
       )
     : null;
   if (existing) {
+    if (existing.environmentId !== input.environmentId) {
+      return { kind: 'conflict', reason: 'environment_mismatch' };
+    }
     return {
       kind: 'response',
       response: input.buildReplayResponse(existing),

@@ -8,6 +8,7 @@ import {
   type WalletRuntimeExecuteSignedDelegateResult,
   type WalletRuntimeExecuteSignedDelegateRequest,
 } from '@seams/wallet-server/cloud-host';
+import { SponsoredNearDelegateRejectedError } from './executionFailure';
 
 export interface SponsoredNearDelegateAuthService {
   executeSignedDelegate(
@@ -42,7 +43,7 @@ export function createSponsoredNearDelegateExecutionAdapter(input: {
           allowedDelegateAction: input.allowedDelegateAction,
         }),
       });
-      if (!request) throw new Error('invalid signed delegate request');
+      if (!request) throw new SponsoredNearDelegateRejectedError('Invalid signed delegate request');
       return await input.authService.executeSignedDelegate(request);
     },
   };

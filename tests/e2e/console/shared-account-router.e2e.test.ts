@@ -9,6 +9,8 @@ import { createD1ConsoleAccountService } from '../../../packages/console-server-
 import { D1AccountPlatformService } from '../../../packages/console-server-ts/src/accountPlatform/d1';
 import { createD1ConsoleAuditService } from '../../../packages/console-server-ts/src/audit/d1';
 import { createD1ConsoleBillingService } from '../../../packages/console-server-ts/src/billing/d1';
+import { D1BillingUsageService } from '../../../packages/console-server-ts/src/billing/usage';
+import { createD1ConsoleBillingPrepaidReservationService } from '../../../packages/console-server-ts/src/billingPrepaidReservations/d1';
 import { ConsoleSessionService } from '../../../packages/console-server-ts/src/boundary/session';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createInMemoryConsoleOnboardingService } from '../../../packages/console-server-ts/src/onboarding/service';
@@ -134,6 +136,20 @@ async function composeAccountRouter(database: D1DatabaseLike) {
   });
   const accountPlatform = new D1AccountPlatformService({ database, namespace, organizationAccess });
   await accountPlatform.ensureSchema();
+  const funds = await createD1ConsoleBillingPrepaidReservationService({
+    database,
+    namespace,
+    platform: accountPlatform,
+    billing,
+  });
+  const billingUsage = new D1BillingUsageService({
+    billing,
+    database,
+    namespace,
+    funds,
+    satyrTestPricing: { kind: 'disabled' },
+  });
+  await billingUsage.ensureSchema();
   const session = createSession();
   const auth = createAppSessionConsoleAuthAdapter({
     session,
@@ -146,6 +162,8 @@ async function composeAccountRouter(database: D1DatabaseLike) {
       accountPlatform,
       audit,
       billing,
+      funds,
+      billingUsage,
       webhooks: null,
       onboarding,
       orgProjects,

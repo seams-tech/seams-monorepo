@@ -1,7 +1,7 @@
 import type { Request, Response, Router as ExpressRouter } from 'express';
 import { createEvmClient, parseRpcHexQuantity as parseEvmRpcHexQuantity } from './evmRpcClient';
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations';
+import type { WalletExecutionFunds } from './funds';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/index';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
 import type { ConsoleSponsoredCallService } from '../sponsoredCalls';
@@ -14,7 +14,9 @@ import {
   secp256k1PublicKey33ToEthereumAddress,
   signSecp256k1Recoverable,
   encodeEip1559SignedTxFromSignature65,
+  keccak256Bytes,
 } from '@seams/wallet-server/cloud-host';
+import { SponsoredEvmExecutionError } from './executionFailure';
 import type { SponsorshipSpendPricingService } from './spendCaps';
 import type { RouterApiPublishableKeyAuthAdapter } from '@seams/wallet-server/cloud-host';
 import { coerceRouterLogger, type RouterLogger } from '@seams/wallet-server/cloud-host';
@@ -41,7 +43,7 @@ export type RegisterSponsoredEvmCallRouteArgs = {
   ledger: ConsoleSponsoredCallService;
   runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
   spendCaps?: ConsoleSponsorshipSpendCapService | null;
-  prepaidReservations?: ConsoleBillingPrepaidReservationService | null;
+  executionFunds?: WalletExecutionFunds | null;
   pricing?: SponsorshipSpendPricingService | null;
   webhooks?: ConsoleWebhookService | null;
   observabilityIngestion?: ConsoleObservabilityIngestionService | null;
@@ -144,10 +146,10 @@ async function resolveFeeCaps(args: {
   };
 }
 
-export async function executeSponsoredEvmCall(args: {
+async function prepareSponsoredEvmTransaction(args: {
   executor: SponsoredEvmChainExecutorConfig;
   call: SponsoredEvmCall;
-}): Promise<SponsoredEvmExecutionResult> {
+}) {
   const client = createEvmClient({ rpcUrl: args.executor.rpcUrl });
   const nonce = await client.getTransactionCount({
     address: args.executor.sponsorAddress,
@@ -175,33 +177,45 @@ export async function executeSponsoredEvmCall(args: {
     digest32,
     privateKeyHexToBytes(args.executor.sponsorPrivateKeyHex),
   );
-  const rawTxHex = bytesToHex(
-    await encodeEip1559SignedTxFromSignature65({
-      tx: unsignedTx,
-      signature65,
-    }),
-  );
-  const txHash = normalizeTxHashOrThrow(
-    await client.request({
+  const signedBytes = await encodeEip1559SignedTxFromSignature65({
+    tx: unsignedTx,
+    signature65,
+  });
+  return {
+    client,
+    unsignedTx,
+    rawTxHex: bytesToHex(signedBytes),
+    txHash: bytesToHex(keccak256Bytes(signedBytes)),
+  };
+}
+
+async function broadcastSponsoredEvmTransaction(
+  prepared: Awaited<ReturnType<typeof prepareSponsoredEvmTransaction>>,
+): Promise<SponsoredEvmExecutionResult> {
+  const returnedHash = normalizeTxHashOrThrow(
+    await prepared.client.request({
       method: 'eth_sendRawTransaction',
-      params: [rawTxHex],
+      params: [prepared.rawTxHex],
       timeoutMs: 15_000,
     }),
   );
-  await client.waitForTransactionReceipt({
-    txHash,
+  if (returnedHash.toLowerCase() !== prepared.txHash.toLowerCase()) {
+    throw new Error('Sponsored EVM RPC returned a different signed transaction hash');
+  }
+  await prepared.client.waitForTransactionReceipt({
+    txHash: prepared.txHash,
     timeoutMs: 90_000,
     pollIntervalMs: 1_250,
     confirmations: 1,
-    maxFeePerGasHint: unsignedTx.maxFeePerGas,
+    maxFeePerGasHint: prepared.unsignedTx.maxFeePerGas,
   });
-  const receipt = await client.getTransactionReceipt({
-    txHash,
+  const receipt = await prepared.client.getTransactionReceipt({
+    txHash: prepared.txHash,
     timeoutMs: 10_000,
   });
   if (!receipt) {
     throw new Error(
-      `Sponsored EVM transaction ${txHash} finalized, but receipt could not be loaded`,
+      `Sponsored EVM transaction ${prepared.txHash} finalized, but receipt could not be loaded`,
     );
   }
   const gasUsed = parseEvmRpcHexQuantity(String(receipt.gasUsed || '0x0'), 'gasUsed');
@@ -210,7 +224,7 @@ export async function executeSponsoredEvmCall(args: {
     'effectiveGasPrice',
   );
   const execution = {
-    txHash,
+    txHash: prepared.txHash,
     gasUsed: gasUsed.toString(10),
     effectiveGasPrice: effectiveGasPrice.toString(10),
     feeAmount: (gasUsed * effectiveGasPrice).toString(10),
@@ -219,21 +233,30 @@ export async function executeSponsoredEvmCall(args: {
     .trim()
     .toLowerCase();
   if (status && status !== '0x1' && status !== '0x01') {
-    const reverted = new Error(`Sponsored EVM transaction reverted (${txHash})`) as Error & {
-      code?: string;
-      txHash?: `0x${string}`;
-      gasUsed?: string;
-      effectiveGasPrice?: string;
-      feeAmount?: string;
-    };
-    reverted.code = 'tx_reverted';
-    reverted.txHash = txHash;
-    reverted.gasUsed = execution.gasUsed;
-    reverted.effectiveGasPrice = execution.effectiveGasPrice;
-    reverted.feeAmount = execution.feeAmount;
-    throw reverted;
+    throw new SponsoredEvmExecutionError(
+      { kind: 'reverted', execution },
+      new Error(`Sponsored EVM transaction reverted (${prepared.txHash})`),
+    );
   }
   return execution;
+}
+
+export async function executeSponsoredEvmCall(args: {
+  executor: SponsoredEvmChainExecutorConfig;
+  call: SponsoredEvmCall;
+}): Promise<SponsoredEvmExecutionResult> {
+  let prepared: Awaited<ReturnType<typeof prepareSponsoredEvmTransaction>>;
+  try {
+    prepared = await prepareSponsoredEvmTransaction(args);
+  } catch (error: unknown) {
+    throw new SponsoredEvmExecutionError({ kind: 'rejected' }, error);
+  }
+  try {
+    return await broadcastSponsoredEvmTransaction(prepared);
+  } catch (error: unknown) {
+    if (error instanceof SponsoredEvmExecutionError) throw error;
+    throw new SponsoredEvmExecutionError({ kind: 'indeterminate', txHash: prepared.txHash }, error);
+  }
 }
 
 export async function resolveSponsoredEvmCallConfigFromEnv(
@@ -325,7 +348,7 @@ export function registerSponsoredEvmCallRoute(args: RegisterSponsoredEvmCallRout
           config: args.config,
           resolveExecutionAdapter: resolveSponsoredEvmExecutionAdapterForRoute,
           observabilityIngestion: args.observabilityIngestion || null,
-          prepaidReservations: args.prepaidReservations || null,
+          executionFunds: args.executionFunds || null,
           publishableKeyAuth: args.publishableKeyAuth,
           pricing: args.pricing || null,
           runtimeSnapshots: args.runtimeSnapshots,

@@ -1,5 +1,5 @@
 import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { ConsoleBillingPrepaidReservationService } from '../billingPrepaidReservations';
+import type { WalletExecutionFunds } from '../sponsorship/funds';
 import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/index';
 import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
 import type {
@@ -12,7 +12,6 @@ import {
   matchResolvedSponsoredEvmCallPolicy,
   normalizeEvmAddress,
   normalizeEvmSelector,
-  normalizeHex32,
   normalizeHexData,
   parseOptionalPositiveInteger,
   parseResolvedSponsoredEvmCallPolicies,
@@ -70,6 +69,8 @@ import type { RouteErrorBody } from '@seams/wallet-server/cloud-host';
 import { routeJson } from '@seams/wallet-server/cloud-host';
 import type { ConsoleWebhookService } from '@seams-internal/console-server/webhooks/index';
 import { isPlainObject } from '@seams/wallet-server/cloud-host';
+import { SponsoredEvmExecutionError } from '../sponsorship/executionFailure';
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 
 type SponsoredEvmExecution = {
   txHash: `0x${string}`;
@@ -128,7 +129,7 @@ export interface RouterApiSponsoredEvmCallService {
   config: SponsoredEvmCallExecutorConfig;
   resolveExecutionAdapter?: SponsoredEvmExecutionAdapterResolver | null;
   observabilityIngestion?: ConsoleObservabilityIngestionService | null;
-  prepaidReservations: ConsoleBillingPrepaidReservationService | null;
+  executionFunds: WalletExecutionFunds | null;
   pricing: SponsorshipSpendPricingService | null;
   publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
   runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
@@ -159,10 +160,6 @@ function normalizeOrigin(value: unknown): string {
   } catch {
     return '';
   }
-}
-
-function normalizeTxHashOrNull(value: unknown): `0x${string}` | null {
-  return normalizeHex32(value);
 }
 
 // Sponsored spend-cap accounting still binds to the hosted-NEAR account ref.
@@ -312,17 +309,37 @@ function buildSuccessfulSponsoredEvmAssessment(
   };
 }
 
-function buildFailedSponsoredEvmAssessment(error: unknown): SponsoredEvmExecutionAssessment {
+export function assessFailedSponsoredEvmExecution(error: unknown): SponsoredEvmExecutionAssessment {
   const responseMessage =
     error instanceof Error ? error.message : String(error || 'Sponsored EVM call failed');
-  const errorRow = isPlainObject(error) ? error : null;
-  const responseCode = String(errorRow?.code || '').trim() || 'sponsored_evm_call_failed';
-  const txHash = normalizeTxHashOrNull(errorRow?.txHash);
-  const gasUsed = String(errorRow?.gasUsed || '').trim() || null;
-  const effectiveGasPrice = String(errorRow?.effectiveGasPrice || '').trim() || null;
-  const feeAmount = String(errorRow?.feeAmount || '').trim() || '0';
-  const receiptStatus: ConsoleSponsoredCallReceiptStatus =
-    responseCode === 'tx_reverted' ? 'reverted' : txHash ? 'broadcast_failed' : 'rpc_rejected';
+  let responseCode = 'sponsored_evm_outcome_indeterminate';
+  let txHash: `0x${string}` | null = null;
+  let gasUsed: string | null = null;
+  let effectiveGasPrice: string | null = null;
+  let feeAmount = '0';
+  let receiptStatus: ConsoleSponsoredCallReceiptStatus = 'broadcast_failed';
+  if (error instanceof SponsoredEvmExecutionError) {
+    const failure = error.failure;
+    switch (failure.kind) {
+      case 'rejected':
+        responseCode = 'sponsored_evm_rpc_rejected';
+        receiptStatus = 'rpc_rejected';
+        break;
+      case 'indeterminate':
+        txHash = failure.txHash;
+        break;
+      case 'reverted':
+        responseCode = 'tx_reverted';
+        receiptStatus = 'reverted';
+        txHash = failure.execution.txHash;
+        gasUsed = failure.execution.gasUsed;
+        effectiveGasPrice = failure.execution.effectiveGasPrice;
+        feeAmount = failure.execution.feeAmount;
+        break;
+      default:
+        return assertNever(failure);
+    }
+  }
   return {
     succeeded: false,
     txOrExecutionRef: txHash,
@@ -523,8 +540,9 @@ export async function handleRouterApiSponsoredEvmCall(
   >({
     sponsoredCalls: routerApiSponsoredEvmCall.sponsoredCalls,
     sponsorshipCtx: sponsorshipRuntime.sponsorshipCtx,
+    environmentId: parsedBody.environmentId,
     idempotencyKey,
-    buildReplayResponse: (existing) => buildReplayResponse(existing),
+    buildReplayResponse,
     resolveMatch: () => {
       const policies = parseResolvedSponsoredEvmCallPolicies(
         sponsorshipRuntime.latestSnapshot.payload,
@@ -575,8 +593,19 @@ export async function handleRouterApiSponsoredEvmCall(
       };
     },
   });
-  if (sponsorshipDispatch.kind === 'response') {
-    return sponsorshipDispatch.response;
+  switch (sponsorshipDispatch.kind) {
+    case 'response':
+      return sponsorshipDispatch.response;
+    case 'conflict':
+      return routeJson(409, {
+        ok: false,
+        code: 'operation_conflict',
+        message: 'This execution key belongs to another Wallet environment.',
+      });
+    case 'matched':
+      break;
+    default:
+      return assertNever(sponsorshipDispatch);
   }
   const { matchedPolicy: matched, adapter } = sponsorshipDispatch.matched;
   const accountRef = buildHostedNearAccountRef(parsedBody.walletId);
@@ -672,8 +701,7 @@ export async function handleRouterApiSponsoredEvmCall(
 
   try {
     prepaidReservation = await reserveSponsoredPrepaidBalance({
-      billing: routerApiSponsoredEvmCall.billing,
-      prepaidReservations: routerApiSponsoredEvmCall.prepaidReservations,
+      executionFunds: routerApiSponsoredEvmCall.executionFunds,
       pricing: routerApiSponsoredEvmCall.pricing,
       ctx: sponsorshipRuntime.sponsorshipCtx,
       chainFamily: 'evm',
@@ -862,21 +890,9 @@ export async function handleRouterApiSponsoredEvmCall(
         },
         prepaidSettlementInput: {
           reservation: prepaidReservation,
-          prepaidReservations: routerApiSponsoredEvmCall.prepaidReservations,
+          executionFunds: routerApiSponsoredEvmCall.executionFunds,
           pricing: routerApiSponsoredEvmCall.pricing,
-          ctx: sponsorshipRuntime.sponsorshipCtx,
-          chainFamily: 'evm',
-          intentKind: 'evm_call',
-          executorKind: adapter.executorKind,
-          environmentId: parsedBody.environmentId,
-          policyId: matched.policy.policyId,
-          accountRef,
-          targetRef,
           chainId: parsedBody.chainId,
-          txOrExecutionRef: assessment.txHash,
-          receiptStatus: assessment.receiptStatus,
-          feeUnit: assessment.feeUnit,
-          feeAmount: assessment.feeAmount,
           requestDetails: spendCapRequestDetails,
         },
       });
@@ -891,7 +907,7 @@ export async function handleRouterApiSponsoredEvmCall(
         effectiveGasPrice: assessment.effectiveGasPrice,
       });
     },
-    assessThrownError: buildFailedSponsoredEvmAssessment,
+    assessThrownError: assessFailedSponsoredEvmExecution,
     onThrownError: async ({ assessment }): Promise<RouteResponse<Record<string, unknown>>> => {
       let spendCapSettlement:
         | (SponsorshipSpendCapSettlement & {
@@ -1013,21 +1029,9 @@ export async function handleRouterApiSponsoredEvmCall(
         },
         prepaidSettlementInput: {
           reservation: prepaidReservation,
-          prepaidReservations: routerApiSponsoredEvmCall.prepaidReservations,
+          executionFunds: routerApiSponsoredEvmCall.executionFunds,
           pricing: routerApiSponsoredEvmCall.pricing,
-          ctx: sponsorshipRuntime.sponsorshipCtx,
-          chainFamily: 'evm',
-          intentKind: 'evm_call',
-          executorKind: adapter.executorKind,
-          environmentId: parsedBody.environmentId,
-          policyId: matched.policy.policyId,
-          accountRef,
-          targetRef,
           chainId: parsedBody.chainId,
-          txOrExecutionRef: assessment.txHash,
-          receiptStatus: assessment.receiptStatus,
-          feeUnit: assessment.feeUnit,
-          feeAmount: assessment.feeAmount,
           requestDetails: spendCapRequestDetails,
         },
       });

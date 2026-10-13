@@ -1,0 +1,27 @@
+[Unit]
+Description=Seams Workers runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=celld
+Group=celld
+EnvironmentFile=/etc/seams/celld.env
+Environment=CELLD_WATCH=/var/lib/celld
+Environment=CELLD_MAX_REQUEST_BODY_BYTES=1048576
+Environment=RUST_LOG=warn,cell_console=info
+ExecStart=/opt/seams/celld --no-control-plane --listen 127.0.0.1:8080 --internal-listen 127.0.0.1:8081 --trust-forwarded-headers
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=45s
+StateDirectory=celld
+WorkingDirectory=/var/lib/celld
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

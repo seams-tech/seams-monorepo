@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
+import { unstable_splitSqlQuery } from 'wrangler';
 
 const output = path.resolve('.artifacts/console-publishable-auth');
 await mkdir(output, { recursive: true });
@@ -20,7 +21,10 @@ await build({
     resolveDir: process.cwd(),
     loader: 'ts',
     contents: `
-    export { createD1ConsoleApiKeyService } from './packages/console-server-ts/src/apiKeys/d1';
+    export { createD1ConsoleApiKeyService } from './packages/wallet-console-server-ts/src/apiKeys/d1';
+    export { createCloudflareD1AccountServiceBundle } from './packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+    export { createD1ConsoleWalletEnvironmentService } from './packages/wallet-console-server-ts/src/environments/d1';
+    export { activateWalletProject } from './tests/helpers/accountWalletProject.fixtures';
     export { createRouterApiPublishableKeyAuthAdapter } from './packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
     export { createWalletConsoleOpsHandler } from './packages/wallet-console-server-ts/src/serviceBinding/walletConsoleOpsHandler';
     export { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from './packages/wallet-console-shared-ts/src/apiKeyScopes';
@@ -29,6 +33,15 @@ await build({
   },
 });
 const api = await import(pathToFileURL(bundlePath).href);
+
+async function migrate(database) {
+  const directory = path.resolve('packages/wallet-console-server-ts/migrations/d1-console');
+  for (const filename of (await readdir(directory)).sort()) {
+    if (!filename.endsWith('.sql')) continue;
+    const contents = await readFile(path.join(directory, filename), 'utf8');
+    for (const sql of unstable_splitSqlQuery(contents)) await database.prepare(sql).run();
+  }
+}
 
 class DelayedUsageStatement {
   constructor(database, statement) {
@@ -105,15 +118,47 @@ const runtime = new Miniflare({
 });
 try {
   const database = await runtime.getD1Database('DB');
+  await migrate(database);
   const delayed = new DelayedUsageDatabase(database);
   const clock = new Clock();
+  const namespace = 'setup-telemetry';
+  const deploymentId = 'publishable-auth-wallet';
+  const owner = { orgId: 'org', actorUserId: 'owner' };
+  const core = await api.createCloudflareD1AccountServiceBundle({
+    database,
+    namespace,
+    ensureSchema: false,
+    now: clock.now.bind(clock),
+    externalDeletionGuard: null,
+  });
+  await core.orgProjects.upsertOrganization(owner, { name: 'Publishable auth account' });
+  await core.organizationAccess.bootstrapInitialOwner({
+    orgId: owner.orgId,
+    userId: owner.actorUserId,
+    email: 'owner@publishable-auth.invalid',
+    displayName: 'Fixture owner',
+  });
+  await core.orgProjects.createProject(owner, { id: 'project', name: 'Publishable auth Wallet' });
+  const environments = await api.createD1ConsoleWalletEnvironmentService({
+    database,
+    namespace,
+    ensureSchema: false,
+    now: clock.now.bind(clock),
+  });
+  await api.activateWalletProject({
+    core,
+    walletEnvironments: environments,
+    namespace,
+    deploymentId,
+    context: owner,
+    projectId: 'project',
+  });
   const service = await api.createD1ConsoleApiKeyService({
     database: delayed,
-    namespace: 'setup-telemetry',
+    namespace,
     now: clock.now.bind(clock),
     scopeValidation: api.WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
   });
-  const owner = { orgId: 'org', actorUserId: 'owner' };
   const created = await service.createApiKey(owner, {
     kind: 'publishable_key',
     name: 'Registration',
@@ -126,6 +171,12 @@ try {
   const handler = api.createWalletConsoleOpsHandler({
     publishableKeyAuth: api.createRouterApiPublishableKeyAuthAdapter(
       service,
+      {
+        platform: core.accountPlatform,
+        authority: { serviceId: 'wallet', deploymentId },
+        namespace,
+        environments,
+      },
       lifetime.waitUntil.bind(lifetime),
     ),
     apiKeyAuth: { authenticate: unexpectedOperation },
@@ -184,6 +235,7 @@ try {
     status: persisted.status,
     completedOutOfOrder: true,
     telemetryFailureDidNotRejectAuthentication: true,
+    activeWalletBindingRequired: true,
   };
   await writeFile(path.join(output, 'evidence.json'), JSON.stringify(evidence, null, 2));
   console.log(

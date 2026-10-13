@@ -4,7 +4,7 @@ import {
   makeApiKeyId,
   makeApiKeySecret,
   parseApiKeySecret,
-} from '@seams-internal/console-server/apiKeys/secret';
+} from '@seams-internal/wallet-console-server/apiKeys/secret';
 
 test.describe('console API key secret format', () => {
   test('creates environment-qualified publishable keys', async () => {

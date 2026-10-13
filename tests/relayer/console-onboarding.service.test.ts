@@ -1,8 +1,6 @@
-import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
 import { expect, test } from '@playwright/test';
-import { createInMemoryConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/service';
 import { createInMemoryConsoleOnboardingService } from '../../packages/console-server-ts/src/onboarding/service';
-import { createInMemoryConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
+import { createInMemoryConsoleOrgProjectService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
 import { createInMemoryConsoleOrganizationAccessService } from '../../packages/console-server-ts/src/teamRbac/service';
 import type {
   ConsoleOnboardingWelcomeEmail,
@@ -18,12 +16,11 @@ class RecordingWelcomeEmail implements ConsoleOnboardingWelcomeEmailPort {
 }
 
 test('organization onboarding persists the organization before bootstrapping its first owner', async () => {
-  const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+  const orgProjectEnv = createInMemoryConsoleOrgProjectService();
   const organizationAccess = createInMemoryConsoleOrganizationAccessService();
   const onboarding = createInMemoryConsoleOnboardingService({
     orgProjectEnv,
     organizationAccess,
-    apiKeys: createInMemoryConsoleApiKeyService({ scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION }),
   });
   const ctx = {
     orgId: 'org_onboarding_owner',
@@ -31,7 +28,6 @@ test('organization onboarding persists the organization before bootstrapping its
     actorEmail: 'owner@example.com',
     actorDisplayName: 'Owner',
     projectId: null,
-    environmentId: null,
   };
 
   const first = await onboarding.createOnboardingOrganization(ctx, {
@@ -57,9 +53,8 @@ test('organization onboarding persists the organization before bootstrapping its
 test('project onboarding requests a welcome email after the organization and project exist', async () => {
   const welcomeEmail = new RecordingWelcomeEmail();
   const onboarding = createInMemoryConsoleOnboardingService({
-    orgProjectEnv: createInMemoryConsoleOrgProjectEnvService(),
+    orgProjectEnv: createInMemoryConsoleOrgProjectService(),
     organizationAccess: createInMemoryConsoleOrganizationAccessService(),
-    apiKeys: createInMemoryConsoleApiKeyService({ scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION }),
     welcomeEmail,
   });
   const ctx = {
@@ -68,7 +63,6 @@ test('project onboarding requests a welcome email after the organization and pro
     actorEmail: 'ada@example.com',
     actorDisplayName: 'Ada',
     projectId: null,
-    environmentId: null,
   };
 
   await onboarding.createOnboardingOrganization(ctx, {

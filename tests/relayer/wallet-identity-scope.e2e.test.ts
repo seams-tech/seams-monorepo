@@ -268,6 +268,7 @@ export default { async fetch(request, env) {
     const otherOrg = await runtime.getWorker('console-other-org');
     const wrongResponse = await runtime.getWorker('console-wrong-response');
     const runtimeA = await runtime.getWorker('runtime-a');
+    expect((await otherOrg.fetch('https://console.test/fixture/seed-owner')).status).toBe(200);
     const seedsA = (await (
       await consoleA.fetch('https://console.test/fixture/seed')
     ).json()) as SeededWallet[];

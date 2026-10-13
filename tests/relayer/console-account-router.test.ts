@@ -3,18 +3,18 @@ import {
   createConsoleRouter,
   createInMemoryConsoleAccountService,
   createInMemoryConsoleOrganizationAccessService,
-  createInMemoryConsoleOrgProjectEnvService,
-  createInMemoryConsoleWalletService,
+  createInMemoryConsoleOrgProjectService,
   type ActiveOrganizationAuthorization,
   type ConsoleAccountService,
   type ConsoleAuthAdapter,
   type ConsoleAuthClaims,
   type ConsoleOrganizationAccessService,
-  type ConsoleOrgProjectEnvService,
+  type ConsoleOrgProjectService,
 } from '@seams-internal/wallet-console-server/router/express-adaptor';
 import { createCloudflareConsoleRouter } from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
 import type { SessionAdapter } from '@seams/wallet-server/router/express';
 import { callCf, fetchJson, makeConsoleAuthAdapter, startExpressRouter } from './helpers';
+import { consoleAuthorizationClaims } from '../helpers/consoleAuthorization.fixtures';
 
 const CURRENT_USER_ID = 'user_current';
 const CURRENT_EMAIL = 'owner@example.com';
@@ -23,7 +23,7 @@ const CURRENT_NAME = 'Owner User';
 type RouterMode = 'express' | 'cloudflare';
 
 interface AccountRouteFixture {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly account: ConsoleAccountService;
 }
@@ -37,6 +37,10 @@ interface ConsoleRouteResponse {
 class ContextSwitchSession implements SessionAdapter {
   signedSubject: string | null = null;
   signedClaims: Record<string, unknown> | null = null;
+
+  async verifyJwt(): Promise<{ readonly valid: false }> {
+    return { valid: false };
+  }
 
   async parse(): Promise<{
     readonly ok: true;
@@ -54,7 +58,6 @@ class ContextSwitchSession implements SessionAdapter {
         orgId: 'org_current',
         roles: ['owner'],
         projectId: 'proj_current',
-        environmentId: 'proj_current:dev',
       },
     };
   }
@@ -83,70 +86,28 @@ class ContextSwitchSession implements SessionAdapter {
 }
 
 function createAccountRouteFixture(): AccountRouteFixture {
-  const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+  const orgProjectEnv = createInMemoryConsoleOrgProjectService();
   const organizationAccess = createInMemoryConsoleOrganizationAccessService();
   const account = createInMemoryConsoleAccountService({
     orgProjectEnv,
     organizationAccess,
-    wallets: createInMemoryConsoleWalletService(),
+    deletion: { assertOrganizationCanBeDeleted },
   });
   return { orgProjectEnv, organizationAccess, account };
 }
 
-function assertNever(value: never): never {
-  throw new Error(`Unhandled authorization role: ${JSON.stringify(value)}`);
-}
+async function assertOrganizationCanBeDeleted(): Promise<void> {}
 
 function toConsoleAuthClaims(authorization: ActiveOrganizationAuthorization): ConsoleAuthClaims {
-  switch (authorization.role) {
-    case 'OWNER':
-      return {
-        userId: authorization.userId,
-        orgId: authorization.orgId,
-        membershipId: authorization.membershipId,
-        authorizationVersion: authorization.authorizationVersion,
-        role: 'OWNER',
-        adminPermissions: authorization.adminPermissions,
-        projectAccess: { kind: 'all' },
-        platformSupport: false,
-        email: CURRENT_EMAIL,
-        name: CURRENT_NAME,
-        provider: 'password',
-      };
-    case 'ADMIN':
-      return {
-        userId: authorization.userId,
-        orgId: authorization.orgId,
-        membershipId: authorization.membershipId,
-        authorizationVersion: authorization.authorizationVersion,
-        role: 'ADMIN',
-        adminPermissions: authorization.adminPermissions,
-        projectAccess: { kind: 'all' },
-        platformSupport: false,
-        email: CURRENT_EMAIL,
-        name: CURRENT_NAME,
-        provider: 'password',
-      };
-    case 'MEMBER':
-      return {
-        userId: authorization.userId,
-        orgId: authorization.orgId,
-        membershipId: authorization.membershipId,
-        authorizationVersion: authorization.authorizationVersion,
-        role: 'MEMBER',
-        adminPermissions: [],
-        projectAccess: {
-          kind: 'assigned',
-          assignments: authorization.projectAccess.assignments,
-        },
-        platformSupport: false,
-        email: CURRENT_EMAIL,
-        name: CURRENT_NAME,
-        provider: 'password',
-      };
-    default:
-      return assertNever(authorization);
-  }
+  return consoleAuthorizationClaims({
+    authorization,
+    platformSupport: false,
+    email: CURRENT_EMAIL,
+    name: CURRENT_NAME,
+    provider: 'password',
+    projectId: null,
+    sessionId: null,
+  });
 }
 
 async function loadCurrentClaims(
@@ -163,7 +124,7 @@ async function loadCurrentClaims(
 }
 
 async function seedOwnerOrganization(input: {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly orgId: string;
   readonly userId: string;
@@ -185,7 +146,7 @@ async function seedOwnerOrganization(input: {
 }
 
 async function createProject(input: {
-  readonly orgProjectEnv: ConsoleOrgProjectEnvService;
+  readonly orgProjectEnv: ConsoleOrgProjectService;
   readonly orgId: string;
   readonly actorUserId: string;
   readonly projectId: string;
@@ -195,7 +156,6 @@ async function createProject(input: {
     {
       id: input.projectId,
       name: `${input.projectId} Project`,
-      liveEnvironmentsEnabled: true,
     },
   );
 }
@@ -447,7 +407,6 @@ for (const mode of ['express', 'cloudflare'] as const) {
         },
         platformSupport: false,
         projectId: 'proj_target',
-        environmentId: 'proj_target:prod',
       });
       expect(session.signedSubject).toBe(CURRENT_USER_ID);
       expect(session.signedClaims).toMatchObject({
@@ -466,7 +425,6 @@ for (const mode of ['express', 'cloudflare'] as const) {
         },
         platformSupport: false,
         projectId: 'proj_target',
-        environmentId: 'proj_target:prod',
       });
       if (!session.signedClaims) throw new Error('Expected signed session claims');
       expect('roles' in session.signedClaims).toBe(false);

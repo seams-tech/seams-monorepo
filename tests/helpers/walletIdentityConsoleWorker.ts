@@ -1,9 +1,13 @@
 import type { D1DatabaseLike, WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
-import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments/d1';
 import type { ConsoleAuthClaims } from '../../packages/console-server-ts/src/router/consoleAuth';
 import { createCloudflareConsoleRouter } from '../../packages/wallet-console-server-ts/src/router/cloudflare/createCloudflareConsoleRouter';
 import { createWalletRuntimeOpsClient } from '../../packages/wallet-console-server-ts/src/serviceBinding/walletRuntimeOpsClient';
 import { createD1ConsoleWalletService } from '../../packages/wallet-console-server-ts/src/wallets/d1';
+import { activateWalletProject } from './accountWalletProject.fixtures';
+import { consoleAuthorizationClaims } from './consoleAuthorization.fixtures';
+import { createD1ConsoleOrganizationAccessService } from '../../packages/console-server-ts/src/teamRbac/d1';
 
 interface Environment {
   CONSOLE_DB: D1DatabaseLike;
@@ -13,23 +17,55 @@ interface Environment {
   ORG_ID: string;
 }
 
-function ownerClaims(orgId: string): ConsoleAuthClaims {
-  return {
+async function ownerClaims(env: Environment): Promise<ConsoleAuthClaims> {
+  const access = await createD1ConsoleOrganizationAccessService({
+    database: env.CONSOLE_DB,
+    namespace: env.NAMESPACE,
+    ensureSchema: false,
+  });
+  const authorization = await access.lookupAuthorization({
+    orgId: env.ORG_ID,
     userId: 'wallet-owner',
-    orgId,
-    membershipId: 'wallet-owner-membership',
-    authorizationVersion: 1,
-    role: 'OWNER',
-    adminPermissions: [],
-    projectAccess: { kind: 'all' },
+  });
+  if (!authorization || authorization.kind === 'denied')
+    throw new Error('Wallet identity fixture has no owner authorization');
+  return consoleAuthorizationClaims({
+    authorization,
     platformSupport: false,
-  };
+    email: 'owner@wallet-identity.example',
+    name: 'Wallet identity owner',
+    provider: 'oidc',
+    projectId: null,
+    sessionId: null,
+  });
 }
 
 let nowMs = Date.UTC(2026, 9, 2);
 
 function now(): Date {
   return new Date(nowMs);
+}
+
+async function seedAccount(env: Environment) {
+  const core = await createCloudflareD1AccountServiceBundle({
+    database: env.CONSOLE_DB,
+    namespace: env.NAMESPACE,
+    externalDeletionGuard: null,
+    now,
+  });
+  await core.account.createOrganization(
+    {
+      userId: 'wallet-owner',
+      email: 'owner@wallet-identity.example',
+      name: 'Wallet identity owner',
+      provider: 'oidc',
+      orgId: null,
+      projectId: null,
+      platformSupport: false,
+    },
+    { id: env.ORG_ID, name: 'Wallet identity acceptance' },
+  );
+  return core;
 }
 
 export default {
@@ -50,22 +86,34 @@ export default {
       nowMs += 5 * 60 * 1_000 + 1;
       return Response.json({ nowMs });
     }
+    if (pathname === '/fixture/seed-owner') {
+      await seedAccount(env);
+      return Response.json({ ok: true });
+    }
     if (pathname === '/fixture/seed') {
       const context = { orgId: env.ORG_ID, actorUserId: 'wallet-owner' };
-      const organizations = await createD1ConsoleOrgProjectEnvService({
+      const core = await seedAccount(env);
+      const walletEnvironments = await createD1ConsoleWalletEnvironmentService({
         database: env.CONSOLE_DB,
         namespace: env.NAMESPACE,
         ensureSchema: false,
         now,
       });
-      await organizations.upsertOrganization(context, { name: 'Wallet identity acceptance' });
       const seeded = [];
       for (const projectId of ['project-a', 'project-b']) {
-        const project = await organizations.createProject(context, {
+        const project = await core.orgProjects.createProject(context, {
           id: projectId,
           name: projectId,
         });
-        const environments = await organizations.listEnvironments(context, {
+        await activateWalletProject({
+          core,
+          walletEnvironments,
+          namespace: env.NAMESPACE,
+          deploymentId: 'wallet-identity-acceptance',
+          context,
+          projectId: project.id,
+        });
+        const environments = await walletEnvironments.listEnvironments(context, {
           projectId: project.id,
         });
         for (const environment of environments) {
@@ -89,8 +137,9 @@ export default {
       }
       return Response.json(seeded);
     }
+    const claims = await ownerClaims(env);
     const handler = createCloudflareConsoleRouter({
-      auth: { authenticate: () => ({ ok: true, claims: ownerClaims(env.ORG_ID) }) },
+      auth: { authenticate: () => ({ ok: true, claims }) },
       wallets,
     });
     return handler(request);

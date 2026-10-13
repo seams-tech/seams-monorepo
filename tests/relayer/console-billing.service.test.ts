@@ -239,7 +239,6 @@ test.describe('console billing service prepaid model', () => {
     const overview = await service.getOverview(ctx);
     expect(overview.creditBalanceMinor).toBe(2500);
     expect(overview.recentCreditPurchasedMinor).toBe(2500);
-    expect(overview.liveEnvironmentState).toBe('HEALTHY');
   });
 
   test('in-memory service settles prepaid purchase receipts idempotently by event id', async () => {
@@ -398,7 +397,6 @@ test.describe('console billing service prepaid model', () => {
 
     const overview = await service.getOverview(ctx);
     expect(overview.creditBalanceMinor).toBe(900);
-    expect(overview.liveEnvironmentState).toBe('LOW_BALANCE');
 
     const activity = await service.listAccountActivity(ctx, { limit: 5 });
     expect(activity.entries.map((entry) => entry.id)).toEqual([
@@ -576,7 +574,6 @@ test.describe('console billing service prepaid model', () => {
     });
     expect(external.refunds[0]?.status).toBe('succeeded');
     expect((await service.getOverview(ctx)).creditBalanceMinor).toBe(-300);
-    expect((await service.getOverview(ctx)).liveEnvironmentState).toBe('BLOCKED');
 
     const opened = await service.processStripeWebhookEvent({
       eventId: 'evt_dispute_opened',
@@ -602,48 +599,6 @@ test.describe('console billing service prepaid model', () => {
     });
     expect(won.dispute?.status).toBe('won');
     expect((await service.getOverview(ctx)).creditBalanceMinor).toBe(-300);
-  });
-
-  test('in-memory service derives blocked, low-balance, and healthy live-environment states', async () => {
-    const service = createInMemoryConsoleBillingService();
-    const ctx = {
-      orgId: 'org-live-env-state-memory',
-      actorUserId: 'admin-live-env-state-memory',
-    };
-
-    const initialOverview = await service.getOverview(ctx);
-    expect(initialOverview.creditBalanceMinor).toBe(0);
-    expect(initialOverview.liveEnvironmentState).toBe('BLOCKED');
-
-    await service.grantManualSupportCredit(ctx, {
-      amountMinor: 1500,
-      reasonCode: 'bootstrap_credit',
-      note: 'Seeded balance below warning threshold',
-      idempotencyKey: 'live-env-state-credit-low-memory',
-    });
-    const lowBalanceOverview = await service.getOverview(ctx);
-    expect(lowBalanceOverview.creditBalanceMinor).toBe(1500);
-    expect(lowBalanceOverview.liveEnvironmentState).toBe('LOW_BALANCE');
-
-    await service.grantManualSupportCredit(ctx, {
-      amountMinor: 1000,
-      reasonCode: 'bootstrap_credit',
-      note: 'Raised balance above warning threshold',
-      idempotencyKey: 'live-env-state-credit-healthy-memory',
-    });
-    const healthyOverview = await service.getOverview(ctx);
-    expect(healthyOverview.creditBalanceMinor).toBe(2500);
-    expect(healthyOverview.liveEnvironmentState).toBe('HEALTHY');
-
-    await service.appendManualAdminDebit(ctx, {
-      amountMinor: 2600,
-      reasonCode: 'correction',
-      note: 'Corrected overstated prepaid balance',
-      idempotencyKey: 'live-env-state-debit-blocked-memory',
-    });
-    const blockedOverview = await service.getOverview(ctx);
-    expect(blockedOverview.creditBalanceMinor).toBe(-100);
-    expect(blockedOverview.liveEnvironmentState).toBe('BLOCKED');
   });
 
   test('in-memory service links manual adjustments to invoice activity when relatedInvoiceId is provided', async () => {

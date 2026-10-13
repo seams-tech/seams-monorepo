@@ -13,7 +13,11 @@ const credential = Buffer.alloc(32, 7).toString('base64url');
 function request(action: string, body?: unknown) {
   return new Request(`${base}${action}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      'x-console-project-id': 'restore-test',
+      'x-console-environment-id': 'restore-test:dev',
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -128,6 +132,7 @@ test('console approval binds restore access to the owner session, environment an
     expect((await route(request('/poll', polling)))?.status).toBe(403);
   } finally {
     globalThis.fetch = originalFetch;
+    fixture.dispose();
   }
 });
 

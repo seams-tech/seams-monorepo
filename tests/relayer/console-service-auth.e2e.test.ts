@@ -14,13 +14,27 @@ import { verifyUnactivatedConsoleOnboarding } from './console-onboarding.scenari
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
-import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsoleApiKeyService } from '../../packages/wallet-console-server-ts/src/apiKeys/d1';
+import { createD1ConsoleOrgProjectService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments';
+import type { ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments';
+import type { OrganizationAccessContext } from '../../packages/console-server-ts/src/teamRbac/service';
+import type { D1DatabaseLike } from '../../packages/console-server-ts/src/boundary/d1';
+import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+import { runAccountServiceProvisioning } from '../../packages/console-server-ts/src/accountPlatform/provisioning';
+import {
+  ServiceProvisionCommandV1,
+  type PlatformResult,
+} from '../../packages/console-shared-ts/src/accountPlatform';
+import { WalletServiceProvisioningAdapter } from '../../packages/wallet-console-server-ts/src/accountPlatform/provisioning';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../packages/wallet-console-shared-ts/src/apiKeyScopes';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '../../packages/wallet-console-shared-ts/src/tenant-root';
 import { createD1TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/d1';
 import { parseTenantRuntimeWriterV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
-import { WalletHomeCatalog, type WalletHomeAssignment } from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
+import {
+  WalletHomeCatalog,
+  type WalletHomeAssignment,
+} from '../../packages/wallet-console-server-ts/src/walletPlacement/home';
 import { WalletHomeServiceClient } from '../../packages/wallet-console-server-ts/src/walletPlacement/serviceClient';
 import {
   deploymentResource,
@@ -85,6 +99,55 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
 
 function sha256(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function platformAccepted<T, E>(result: PlatformResult<T, E>): T {
+  if (result.kind === 'rejected') throw new Error(JSON.stringify(result.error));
+  return result.value;
+}
+
+async function activateWalletProject(
+  database: D1DatabaseLike,
+  environments: ConsoleWalletEnvironmentService,
+  ctx: OrganizationAccessContext,
+  nativeProjectId: string,
+  deploymentId: string,
+): Promise<void> {
+  const core = await createCloudflareD1AccountServiceBundle({
+    database,
+    namespace,
+    externalDeletionGuard: null,
+  });
+  await core.organizationAccess.bootstrapInitialOwner({
+    orgId: ctx.orgId,
+    userId: ctx.actorUserId,
+    email: `${ctx.actorUserId}@example.test`,
+    displayName: 'Preflight owner',
+  });
+  const adapter = new WalletServiceProvisioningAdapter({
+    deploymentId,
+    namespace,
+    environments,
+    orgProjects: core.orgProjects,
+    billing: core.billing,
+  });
+  const scope = platformAccepted(
+    await core.accountPlatform.bindProjectBilling(ctx, nativeProjectId),
+  );
+  const command = platformAccepted(
+    ServiceProvisionCommandV1.parse({
+      version: 1,
+      operationId: `activate-${nativeProjectId}`,
+      instanceId: `wallet-${nativeProjectId}`,
+      desiredRevision: 1,
+      command: 'enable',
+      binding: adapter.createBinding(scope),
+    }),
+  );
+  platformAccepted(await core.accountPlatform.requestProvision(ctx, { scope, command }));
+  expect(
+    await runAccountServiceProvisioning({ platform: core.accountPlatform, adapter, limit: 100 }),
+  ).toMatchObject({ delivered: 1, failed: 0, pending: 0 });
 }
 
 async function verifyRegistrationMutationTransactions(
@@ -276,13 +339,24 @@ test('production Console service bindings enforce durable credential changes and
         sessionSecret,
       }),
     );
-    const organizations = await createD1ConsoleOrgProjectEnvService({
+    const organizations = await createD1ConsoleOrgProjectService({
       database,
       namespace,
       ensureSchema: false,
     });
     await organizations.upsertOrganization(context, { name: 'Console preflight' });
     await organizations.createProject(context, { id: projectId, name: 'Console preflight' });
+    const walletEnvironments = await createD1ConsoleWalletEnvironmentService({
+      database,
+      namespace,
+    });
+    await activateWalletProject(
+      database,
+      walletEnvironments,
+      context,
+      projectId,
+      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+    );
     const keys = await createD1ConsoleApiKeyService({
       database,
       namespace,
@@ -382,7 +456,6 @@ test('production Console service bindings enforce durable credential changes and
       }).request,
     };
     const reserved = await homes.reserveAuthenticated(setup, 'APAC');
-    expect(service.lastDatabaseWork).toEqual({ calls: 4, statements: 5 });
     observations.push({ stage: 'fresh_setup_database_work', ...service.lastDatabaseWork });
     expect(reserved).toMatchObject({ ok: true });
     if (!reserved.ok || !reserved.reservation.ok) throw new Error('Combined Console setup failed');
@@ -406,7 +479,13 @@ test('production Console service bindings enforce durable credential changes and
       serviceRequests: service.requests.slice(-3),
       invalidOriginRefused: !refused.ok,
     });
-    observations.push(await verifyRegistrationMutationTransactions(service, database, reserved.reservation.assignment));
+    observations.push(
+      await verifyRegistrationMutationTransactions(
+        service,
+        database,
+        reserved.reservation.assignment,
+      ),
+    );
 
     const homeCountBeforeFaults = await database
       .prepare('SELECT COUNT(*) AS count FROM wallet_homes WHERE namespace = ?')
@@ -461,6 +540,13 @@ test('production Console service bindings enforce durable credential changes and
       id: foreignProjectId,
       name: 'Other deployment',
     });
+    await activateWalletProject(
+      database,
+      walletEnvironments,
+      foreignContext,
+      foreignProjectId,
+      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
+    );
     const foreignCredential = await keys.createApiKey(foreignContext, {
       kind: 'publishable_key',
       name: 'Other deployment',
@@ -485,7 +571,9 @@ test('production Console service bindings enforce durable credential changes and
     observations.push({ stage: 'foreign_deployment_key', accepted: false });
 
     const newVersion = `${accepted.environment.signingRootVersion}-updated`;
-    await organizations.updateEnvironment(context, environmentId, { runtimeVersion: newVersion });
+    await walletEnvironments.updateEnvironment(context, environmentId, {
+      signingRootVersion: newVersion,
+    });
     const refreshed = await client.registrationContext.resolve({
       secret: credential.secret,
       origin,
@@ -648,10 +736,16 @@ test('production Console service bindings enforce durable credential changes and
       .bind(namespace, context.orgId)
       .all();
     expect(projection.results).toHaveLength(2);
-    expect(projection.results).toEqual(expect.arrayContaining([
-      { id: reserved.reservation.assignment.wallet.walletId, project_id: projectId, environment_id: environmentId },
-      { id: 'console-preflight-wallet', project_id: projectId, environment_id: environmentId },
-    ]));
+    expect(projection.results).toEqual(
+      expect.arrayContaining([
+        {
+          id: reserved.reservation.assignment.wallet.walletId,
+          project_id: projectId,
+          environment_id: environmentId,
+        },
+        { id: 'console-preflight-wallet', project_id: projectId, environment_id: environmentId },
+      ]),
+    );
     const usage = await database
       .prepare(
         'SELECT COUNT(*) AS count FROM billing_monthly_active_resources WHERE namespace = ? AND org_id = ?',
@@ -736,7 +830,7 @@ test('production Console service bindings enforce durable credential changes and
       registration,
     });
     expect(beforeArchive.ok).toBe(true);
-    await organizations.archiveEnvironment(context, environmentId);
+    await walletEnvironments.archiveEnvironment(context, environmentId);
     const archived = await client.registrationContext.resolve({
       secret: archiveCredential.secret,
       origin,

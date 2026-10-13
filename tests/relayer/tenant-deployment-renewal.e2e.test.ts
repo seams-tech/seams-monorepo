@@ -10,7 +10,7 @@ import { once } from 'node:events';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/service';
+import type { ConsoleApiKeyService } from '../../packages/wallet-console-server-ts/src/apiKeys/service';
 import type { TenantDeploymentBindingV1 } from '../../packages/wallet-console-shared-ts/src/tenant-deployment';
 import type { TenantDeploymentResourceVerificationsV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/resourceVerification';
 import type { TenantDeploymentServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/service';

@@ -62,7 +62,10 @@ export async function verifyRegionalTargetPreparation({
     },
   );
   for (const [region, bridge] of bridges) {
-    bridge.targetPublishableKeyAuth = api.createRouterApiPublishableKeyAuthAdapter(apiKeys);
+    bridge.targetPublishableKeyAuth = api.createRouterApiPublishableKeyAuthAdapter(
+      apiKeys,
+      bridge.walletAdmission,
+    );
     bridge.linkRoutes.targetCredential =
       region === 'WEUR'
         ? provider

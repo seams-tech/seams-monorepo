@@ -40,7 +40,6 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
     ok: true,
     result: {
       project: { id: projectId },
-      environment: { id: `${projectId}:dev` },
       created: { project: true },
       state: { orgId: organizationId, onboardingComplete: true, activeProjectCount: 1 },
     },
@@ -59,8 +58,7 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
     ok: true,
     result: {
       project: { id: projectId },
-      environment: { id: `${projectId}:dev` },
-      created: { project: false, environment: false },
+      created: { project: false },
       state: { onboardingComplete: true, activeProjectCount: 1 },
     },
   });
@@ -75,7 +73,6 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
     state: {
       onboardingComplete: true,
       selectedProjectId: projectId,
-      selectedEnvironmentId: `${projectId}:dev`,
     },
   });
   const projects = await input.database
@@ -85,8 +82,20 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
   const activations = await input.database
     .prepare('SELECT COUNT(*) AS count FROM active_tenant_deployment_bindings')
     .first<number>('count');
+  const environments = await input.database
+    .prepare('SELECT COUNT(*) AS count FROM environments WHERE org_id = ? AND project_id = ?')
+    .bind(organizationId, projectId)
+    .first<number>('count');
+  const serviceInstances = await input.database
+    .prepare(
+      'SELECT COUNT(*) AS count FROM platform_service_instances WHERE org_id = ? AND project_id = ?',
+    )
+    .bind(organizationId, projectId)
+    .first<number>('count');
   expect(projects).toBe(1);
   expect(activations).toBe(0);
+  expect(environments).toBe(0);
+  expect(serviceInstances).toBe(0);
 
   const unauthorizedActivation = await input.service.fetch(
     'https://console.example.test/internal/tenant-deployment/v1/cutover',
@@ -103,7 +112,6 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
   return {
     stage: 'onboarding_before_activation',
     projectId,
-    environmentId: `${projectId}:dev`,
     createStatus: first.status,
     replayStatus: replay.status,
     wrongMethodStatus: wrongMethod.status,
@@ -111,5 +119,7 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
     organizationSelectionStatus: selected.status,
     projectCount: projects,
     activationCount: activations,
+    walletEnvironmentCount: environments,
+    serviceInstanceCount: serviceInstances,
   };
 }

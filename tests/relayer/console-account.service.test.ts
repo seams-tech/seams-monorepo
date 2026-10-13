@@ -9,7 +9,7 @@ import {
   createInMemoryConsoleAccountService,
   type ConsoleAccountContext,
 } from '../../packages/console-server-ts/src/account/service';
-import { createInMemoryConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
+import { createInMemoryConsoleOrgProjectService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
 import {
   createInMemoryConsoleOrganizationAccessService,
   type ConsoleOrganizationAccessService,
@@ -51,7 +51,6 @@ async function buildOwnerAccountContext(input: {
     name: input.name,
     provider: 'oidc',
     projectId: null,
-    environmentId: null,
     platformSupport: false,
     membershipId: authorization.membershipId,
     authorizationVersion: authorization.authorizationVersion,
@@ -59,6 +58,10 @@ async function buildOwnerAccountContext(input: {
     adminPermissions: [...authorization.adminPermissions],
     projectAccess: { kind: 'all' },
   };
+}
+
+async function assertOrganizationCanBeDeleted(): Promise<void> {
+  throw new Error('Account profile scenario must not delete an organization');
 }
 
 test.describe('console account parser and service semantics', () => {
@@ -118,7 +121,7 @@ test.describe('console account parser and service semantics', () => {
   });
 
   test('loads current authorization and bootstraps each created organization owner', async () => {
-    const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+    const orgProjectEnv = createInMemoryConsoleOrgProjectService();
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const userId = 'user_account_service_owner';
     const orgId = 'org_account_service_current';
@@ -144,6 +147,7 @@ test.describe('console account parser and service semantics', () => {
     const service = createInMemoryConsoleAccountService({
       orgProjectEnv,
       organizationAccess,
+      deletion: { assertOrganizationCanBeDeleted },
     });
 
     await expectAccountError(

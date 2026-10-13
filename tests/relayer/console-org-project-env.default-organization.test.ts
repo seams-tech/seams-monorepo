@@ -1,18 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { createInMemoryConsoleOrgProjectEnvService } from '@seams-internal/console-server/orgProjectEnv/index';
+import { createInMemoryConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/index';
 
-test.describe('console org/project/environment default organization resolution', () => {
+test.describe('console default organization resolution', () => {
   test('in-memory service returns the only persisted organization', async () => {
-    const service = createInMemoryConsoleOrgProjectEnvService();
+    const service = createInMemoryConsoleOrgProjectService();
     await service.upsertOrganization(
-      {
-        orgId: 'org_watchbook',
-        actorUserId: 'user-single-org',
-        roles: ['admin'],
-      },
-      {
-        name: 'Watchbook',
-      },
+      { orgId: 'org_watchbook', actorUserId: 'user-single-org' },
+      { name: 'Watchbook' },
     );
 
     await expect(service.findDefaultOrganization()).resolves.toMatchObject({
@@ -22,17 +16,11 @@ test.describe('console org/project/environment default organization resolution',
   });
 
   test('in-memory service returns null when persisted organizations are ambiguous', async () => {
-    const service = createInMemoryConsoleOrgProjectEnvService();
+    const service = createInMemoryConsoleOrgProjectService();
     for (const orgId of ['org_watchbook', 'org_platform']) {
       await service.upsertOrganization(
-        {
-          orgId,
-          actorUserId: 'user-multi-org',
-          roles: ['admin'],
-        },
-        {
-          name: orgId,
-        },
+        { orgId, actorUserId: 'user-multi-org' },
+        { name: orgId },
       );
     }
 

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '@seams-internal/wallet-console-shared/tenant-root';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '@seams-internal/wallet-console-shared/apiKeyScopes';
-import { createInMemoryConsoleApiKeyService } from '@seams-internal/console-server/apiKeys/index';
+import { createInMemoryConsoleApiKeyService } from '@seams-internal/wallet-console-server/apiKeys/index';
 import {
   createRouterApiKeyAuthAdapter,
   createRouterApiPublishableKeyAuthAdapter,
@@ -16,6 +16,15 @@ import {
   WALLET_CONTROL_AUTH_MARKER_V1,
 } from '@seams/wallet-server/cloud-host';
 import walletRuntimeWorker from '../../packages/wallet-console-server-ts/src/router/cloudflare/d1WalletRuntimeWorker';
+import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments/d1';
+import { activateWalletProject } from '../helpers/accountWalletProject.fixtures';
+import {
+  applyD1MigrationFiles,
+  cleanupTemporaryD1Database,
+  createTemporaryD1Database,
+  listD1MigrationFiles,
+} from '../helpers/sqliteD1';
 
 async function getNoWalletIdentities() {
   return { identities: [] };
@@ -63,6 +72,10 @@ async function unexpectedD1Operation(): Promise<never> {
   throw new Error('Wallet control request reached the tenant database');
 }
 
+async function unexpectedWalletConsoleFetch(): Promise<never> {
+  throw new Error('Wallet control operation reached account relocation authority');
+}
+
 const UNREACHABLE_D1 = {
   prepare: unexpectedD1Prepare,
   batch: unexpectedD1Operation,
@@ -76,14 +89,66 @@ const WORKER_CONTEXT = {
   passThroughOnException() {},
 };
 
-function bindingHarness() {
+const fixtureDirectories: string[] = [];
+
+function disposeFixtureDirectories(): void {
+  for (const directory of fixtureDirectories) cleanupTemporaryD1Database(directory);
+  fixtureDirectories.length = 0;
+}
+
+test.afterEach(disposeFixtureDirectories);
+
+async function bindingHarness() {
+  const temporary = createTemporaryD1Database();
+  fixtureDirectories.push(temporary.tempDir);
+  await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-console'));
+  const namespace = 'wallet-binding';
+  const deploymentId = 'wallet-binding';
+  const core = await createCloudflareD1AccountServiceBundle({
+    database: temporary.database,
+    namespace,
+    externalDeletionGuard: null,
+    ensureSchema: false,
+  });
+  await core.account.createOrganization(
+    {
+      userId: CTX.actorUserId,
+      email: 'binding-owner@example.test',
+      name: 'Binding owner',
+      provider: 'oidc',
+      orgId: null,
+      projectId: null,
+      platformSupport: false,
+    },
+    { id: CTX.orgId, name: 'Binding account' },
+  );
+  await core.orgProjects.createProject(CTX, { id: CTX.projectId, name: 'Binding project' });
+  const environments = await createD1ConsoleWalletEnvironmentService({
+    database: temporary.database,
+    namespace,
+    ensureSchema: false,
+  });
+  await activateWalletProject({
+    core,
+    walletEnvironments: environments,
+    namespace,
+    deploymentId,
+    context: CTX,
+    projectId: CTX.projectId,
+  });
+  const admission = {
+    platform: core.accountPlatform,
+    authority: { serviceId: 'wallet' as const, deploymentId },
+    namespace,
+    environments,
+  };
   const apiKeys = createInMemoryConsoleApiKeyService({
     scopeValidation: WALLET_API_CREDENTIAL_SCOPE_VALIDATION,
   });
   const recorded: RouterApiUsageMeterEvent[] = [];
   const handler = createWalletConsoleOpsHandler({
-    apiKeyAuth: createRouterApiKeyAuthAdapter(apiKeys),
-    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys),
+    apiKeyAuth: createRouterApiKeyAuthAdapter(apiKeys, admission),
+    publishableKeyAuth: createRouterApiPublishableKeyAuthAdapter(apiKeys, admission),
     usageMeter: {
       async recordEvent(event) {
         recorded.push(event);
@@ -184,7 +249,7 @@ function tenantRootClientForResponse(body: unknown, status: number) {
 }
 
 test('secret-key auth round-trips through the exact binding operation', async () => {
-  const { apiKeys, client } = bindingHarness();
+  const { apiKeys, client } = await bindingHarness();
   const created = await apiKeys.createApiKey(CTX, {
     kind: 'secret_key',
     name: 'binding-test',
@@ -205,7 +270,7 @@ test('secret-key auth round-trips through the exact binding operation', async ()
 });
 
 test('invalid secret key fails closed across the binding with status and code', async () => {
-  const { client } = bindingHarness();
+  const { client } = await bindingHarness();
   const result = await client.apiKeyAuth.authenticate({
     secret: 'sk_not_a_real_secret',
     endpoint: '/v1/wallets',
@@ -219,7 +284,7 @@ test('invalid secret key fails closed across the binding with status and code', 
 });
 
 test('publishable-key auth enforces origin binding across the binding', async () => {
-  const { apiKeys, client } = bindingHarness();
+  const { apiKeys, client } = await bindingHarness();
   const created = await apiKeys.createApiKey(CTX, {
     kind: 'publishable_key',
     name: 'binding-pub',
@@ -243,7 +308,7 @@ test('publishable-key auth enforces origin binding across the binding', async ()
 });
 
 test('usage events ingest through the binding with idempotency key preserved', async () => {
-  const { client, recorded } = bindingHarness();
+  const { client, recorded } = await bindingHarness();
   await client.usageMeter.recordEvent({
     orgId: CTX.orgId,
     environmentId: CTX.environmentId,
@@ -260,7 +325,7 @@ test('usage events ingest through the binding with idempotency key preserved', a
 });
 
 test('project environments decode into the exact Router API projection', async () => {
-  const { client } = bindingHarness();
+  const { client } = await bindingHarness();
   await expect(
     client.projectEnvironments.listEnvironments({
       orgId: CTX.orgId,
@@ -279,7 +344,7 @@ test('project environments decode into the exact Router API projection', async (
 });
 
 test('active tenant-root lineage resolves through the exact private operation', async () => {
-  const { client } = bindingHarness();
+  const { client } = await bindingHarness();
   await expect(
     client.tenantRootActiveLineage.resolveActiveLineage(TENANT_ROOT_IDENTITY),
   ).resolves.toEqual({
@@ -289,7 +354,7 @@ test('active tenant-root lineage resolves through the exact private operation', 
 });
 
 test('active tenant-root lineage forwards only the canonical identity through the binding', async () => {
-  const { handler } = bindingHarness();
+  const { handler } = await bindingHarness();
   const response = await handler(
     tenantRootRequest({
       ...TENANT_ROOT_IDENTITY,
@@ -367,7 +432,7 @@ test('active tenant-root lineage rejects malformed response branches', async () 
 });
 
 test('unknown internal operations are rejected, never forwarded', async () => {
-  const { client } = bindingHarness();
+  const { client } = await bindingHarness();
   await expect(
     client.usageMeter.recordEvent({
       orgId: '',
@@ -639,6 +704,10 @@ test('Wallet control binding admits an exact operation and injects Wallet-owned 
     TENANT_ROOT_CONTROL_PLANE: recordingBinding(controlPlaneRequests),
     DERIVER_A: recordingBinding(deriverARequests),
     DERIVER_B: recordingBinding(deriverBRequests),
+    WALLET_CONSOLE: { fetch: unexpectedWalletConsoleFetch },
+    CF_VERSION_METADATA: { id: 'wallet-control-binding-v1' },
+    SEAMS_D1_HOME_ACCOUNT_ID: RUNTIME_HOME_ACCOUNT_ID,
+    SEAMS_D1_HOME_DATABASE_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET: 'wallet-owned-secret',
   };
   const runtimeBinding = {
@@ -697,10 +766,26 @@ test('Wallet Runtime routes private control operations before an active tenant b
       SEAMS_D1_HOME_ACCOUNT_ID: RUNTIME_HOME_ACCOUNT_ID,
       SEAMS_D1_HOME_DATABASE_ID: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       SEAMS_WALLET_HOME_CATALOG_JSON: JSON.stringify([
-        { region: 'US', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
-        { region: 'WEUR', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' },
-        { region: 'APAC', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' },
-        { region: 'OC', accountId: RUNTIME_HOME_ACCOUNT_ID, databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' },
+        {
+          region: 'US',
+          accountId: RUNTIME_HOME_ACCOUNT_ID,
+          databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        },
+        {
+          region: 'WEUR',
+          accountId: RUNTIME_HOME_ACCOUNT_ID,
+          databaseId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        },
+        {
+          region: 'APAC',
+          accountId: RUNTIME_HOME_ACCOUNT_ID,
+          databaseId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        },
+        {
+          region: 'OC',
+          accountId: RUNTIME_HOME_ACCOUNT_ID,
+          databaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        },
       ]),
       CF_VERSION_METADATA: { id: '11111111-1111-4111-8111-111111111111' },
     },

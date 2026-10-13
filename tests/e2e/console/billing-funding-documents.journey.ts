@@ -3,7 +3,6 @@ import { expect, readConsoleSuccess, type ConsoleOperatingHarness } from './harn
 
 type BillingOverview = {
   readonly creditBalanceMinor: number;
-  readonly liveEnvironmentState: string;
 };
 
 type BillingActivityEntry = {
@@ -50,9 +49,8 @@ function parseBillingOverviewResponse(value: unknown, _label: string): BillingOv
   const overview = Reflect.get(value, 'overview');
   if (overview === null || typeof overview !== 'object' || Array.isArray(overview)) return null;
   const creditBalanceMinor = readBillingNumber(Reflect.get(overview, 'creditBalanceMinor'));
-  const liveEnvironmentState = readBillingString(Reflect.get(overview, 'liveEnvironmentState'));
-  if (creditBalanceMinor === null || liveEnvironmentState === null) return null;
-  return { creditBalanceMinor, liveEnvironmentState };
+  if (creditBalanceMinor === null) return null;
+  return { creditBalanceMinor };
 }
 
 function parseBillingActivityEntry(value: unknown): BillingActivityEntry | null {
@@ -140,7 +138,6 @@ export async function fundAccountAndVerifyReceipt(
     parseBillingOverviewResponse,
   );
   expect(initialOverview.creditBalanceMinor).toBe(0);
-  expect(initialOverview.liveEnvironmentState.toUpperCase()).toBe('BLOCKED');
 
   await page.goto('/dashboard/billing/account');
   const consoleOrigin = new URL(page.url()).origin;
@@ -148,7 +145,7 @@ export async function fundAccountAndVerifyReceipt(
   await expect(billingPage).toBeVisible();
   const summary = page.getByRole('region', { name: 'Billing account summary metrics' });
   await expect(summary).toContainText('$0.00');
-  await expect(summary).toContainText('Live environments are blocked');
+  await expect(summary).toContainText('Add credits to fund service usage');
 
   await page
     .getByRole('group', { name: 'Top-up amount' })
@@ -173,7 +170,6 @@ export async function fundAccountAndVerifyReceipt(
     parseBillingOverviewResponse,
   );
   expect(settledOverview.creditBalanceMinor).toBe(2500);
-  expect(settledOverview.liveEnvironmentState.toUpperCase()).toBe('HEALTHY');
 
   const activityResponse = await api.get(
     '/console/billing/account/activity?limit=100&eventType=CREDIT_PURCHASE',

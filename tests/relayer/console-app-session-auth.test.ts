@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createInMemoryConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
+import { createInMemoryConsoleOrgProjectService } from '../../packages/console-server-ts/src/orgProjectEnv/service';
 import {
   createInMemoryConsoleOrganizationAccessService,
   type ConsoleOrganizationAccessService,
@@ -8,9 +8,7 @@ import { createAppSessionConsoleAuthAdapter } from '../../packages/console-serve
 import { toConsoleSessionResponseClaims } from '../../packages/console-server-ts/src/router/consoleAuth';
 import { makeSessionAdapter } from './helpers';
 
-function makeAppSessionClaims(
-  overrides: Record<string, unknown> = {},
-): Record<string, unknown> {
+function makeAppSessionClaims(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     kind: 'app_session_v1',
     sub: 'oidc:https://accounts.google.com:user-123',
@@ -25,14 +23,8 @@ function makeAppSessionClaims(
   };
 }
 
-function validAppSessionVersion() {
-  return {
-    validateAppSessionVersion: async () => ({ ok: true as const }),
-  };
-}
-
 async function seedOwner(input: {
-  readonly orgProjectEnv: ReturnType<typeof createInMemoryConsoleOrgProjectEnvService>;
+  readonly orgProjectEnv: ReturnType<typeof createInMemoryConsoleOrgProjectService>;
   readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly orgId: string;
   readonly userId: string;
@@ -51,13 +43,12 @@ async function seedOwner(input: {
 }
 
 test.describe('console app-session auth adapter', () => {
-  test('preserves app-session validation failures', async () => {
+  test('preserves app-session parse failure', async () => {
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const parseFailure = createAppSessionConsoleAuthAdapter({
       session: makeSessionAdapter({
-        parse: async () => ({ ok: false }),
+        parse: async () => ({ ok: false, reason: 'missing' }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
     });
     await expect(parseFailure.authenticate({})).resolves.toEqual({
@@ -66,33 +57,10 @@ test.describe('console app-session auth adapter', () => {
       message: 'Missing or invalid app session',
       status: 401,
     });
-
-    const versionFailure = createAppSessionConsoleAuthAdapter({
-      session: makeSessionAdapter({
-        parse: async () => ({
-          ok: true,
-          claims: makeAppSessionClaims({ orgId: 'org_acme' }),
-        }),
-      }),
-      authService: {
-        validateAppSessionVersion: async () => ({
-          ok: false,
-          code: 'invalid_session_version',
-          message: 'Expired app session',
-        }),
-      },
-      organizationAccess,
-    });
-    await expect(versionFailure.authenticate({})).resolves.toEqual({
-      ok: false,
-      code: 'unauthorized',
-      message: 'Expired app session',
-      status: 401,
-    });
   });
 
   test('loads current owner authorization and emits no role array', async () => {
-    const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+    const orgProjectEnv = createInMemoryConsoleOrgProjectService();
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const orgId = 'org_acme_owner';
     const userId = 'oidc:https://accounts.google.com:user-123';
@@ -115,7 +83,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       provisioning: { orgProjectEnv },
     });
@@ -144,7 +111,7 @@ test.describe('console app-session auth adapter', () => {
   });
 
   test('enforces current member project access and suspension on every request', async () => {
-    const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+    const orgProjectEnv = createInMemoryConsoleOrgProjectService();
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const orgId = 'org_acme_member';
     const ownerUserId = 'owner-user';
@@ -162,7 +129,6 @@ test.describe('console app-session auth adapter', () => {
       {
         id: 'project_allowed',
         name: 'Allowed Project',
-        liveEnvironmentsEnabled: false,
       },
     );
     const invitation = await organizationAccess.invite(
@@ -190,7 +156,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       provisioning: { orgProjectEnv },
     });
@@ -208,10 +173,7 @@ test.describe('console app-session auth adapter', () => {
       },
     });
 
-    await organizationAccess.suspendMembership(
-      { orgId, actorUserId: ownerUserId },
-      membership.id,
-    );
+    await organizationAccess.suspendMembership({ orgId, actorUserId: ownerUserId }, membership.id);
     await expect(auth.authenticate({})).resolves.toEqual({
       ok: false,
       code: 'forbidden',
@@ -221,7 +183,7 @@ test.describe('console app-session auth adapter', () => {
   });
 
   test('bootstraps the initial OIDC organization owner and platform-support flag', async () => {
-    const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+    const orgProjectEnv = createInMemoryConsoleOrgProjectService();
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const auth = createAppSessionConsoleAuthAdapter({
       session: makeSessionAdapter({
@@ -233,7 +195,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       platformSupportEmails: 'support@example.com',
       provisioning: { orgProjectEnv },
@@ -261,7 +222,7 @@ test.describe('console app-session auth adapter', () => {
   });
 
   test('bootstraps only the configured authoritative Google owner', async () => {
-    const orgProjectEnv = createInMemoryConsoleOrgProjectEnvService();
+    const orgProjectEnv = createInMemoryConsoleOrgProjectService();
     const organizationAccess = createInMemoryConsoleOrganizationAccessService();
     const orgId = 'org_staging';
     const userId = 'google:owner-subject';
@@ -280,7 +241,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       defaultOrgId: orgId,
       initialOwnerEmail: 'owner@example.com',
@@ -305,7 +265,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       defaultOrgId: orgId,
       initialOwnerEmail: 'owner@example.com',
@@ -330,7 +289,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       defaultOrgId: orgId,
       initialOwnerEmail: 'owner@example.com',
@@ -354,7 +312,6 @@ test.describe('console app-session auth adapter', () => {
           }),
         }),
       }),
-      authService: validAppSessionVersion(),
       organizationAccess,
       defaultOrgId: orgId,
       initialOwnerEmail: 'owner@example.com',
@@ -370,9 +327,7 @@ test.describe('console app-session auth adapter', () => {
       email: 'owner@example.com',
       role: 'OWNER',
     });
-    await expect(
-      organizationAccess.lookupAuthorization({ orgId, userId }),
-    ).resolves.toMatchObject({
+    await expect(organizationAccess.lookupAuthorization({ orgId, userId })).resolves.toMatchObject({
       kind: 'authorized',
       role: 'OWNER',
     });
@@ -382,7 +337,6 @@ test.describe('console app-session auth adapter', () => {
     expect(() =>
       createAppSessionConsoleAuthAdapter({
         session: makeSessionAdapter(),
-        authService: validAppSessionVersion(),
         organizationAccess: createInMemoryConsoleOrganizationAccessService(),
         initialOwnerEmail: 'owner@example.com,backup-owner@example.com',
       }),

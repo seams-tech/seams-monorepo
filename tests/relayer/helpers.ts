@@ -5,9 +5,9 @@ import expressImport from 'express';
 import type {
   ConsoleAuthAdapter,
   ConsoleAuthClaims,
-  SessionAdapter,
-} from '@server/router/express-adaptor';
-import type { CfEnv, CfExecutionContext } from '@server/router/cloudflare-adaptor';
+} from '../../packages/console-server-ts/src/router/consoleAuth';
+import type { SessionAdapter } from '../../packages/console-server-ts/src/boundary/session';
+import type { CfEnv, CfExecutionContext } from '@seams/wallet-server/cloud-host';
 
 type ExpressMiddleware = (req: unknown, res: unknown, next: (err?: unknown) => void) => unknown;
 type ExpressAppLike = ((req: unknown, res: unknown) => unknown) & {
@@ -187,7 +187,8 @@ export function makeGoogleEmailOtpRegistrationOffer(input: {
 export function makeSessionAdapter(overrides: Partial<SessionAdapter> = {}): SessionAdapter {
   const adapter: SessionAdapter = {
     signJwt: overrides.signJwt || (async (sub: string) => `jwt-for:${sub}`),
-    parse: overrides.parse || (async () => ({ ok: false }) as const),
+    verifyJwt: overrides.verifyJwt || (async () => ({ valid: false })),
+    parse: overrides.parse || (async () => ({ ok: false, reason: 'missing' }) as const),
     buildSetCookie:
       overrides.buildSetCookie ||
       ((token: string) =>

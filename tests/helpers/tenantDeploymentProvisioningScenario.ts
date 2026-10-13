@@ -1,7 +1,9 @@
 import type { RegionalDeploymentInstaller } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import { createD1ConsoleApiKeyService } from '../../packages/console-server-ts/src/apiKeys/d1';
-import { createD1ConsoleOrgProjectEnvService } from '../../packages/console-server-ts/src/orgProjectEnv/d1';
+import { createD1ConsoleApiKeyService } from '../../packages/wallet-console-server-ts/src/apiKeys/d1';
+import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments/d1';
+import { activateWalletProject } from './accountWalletProject.fixtures';
 import { createD1ConsoleAuditService } from '../../packages/console-server-ts/src/audit/d1';
 import { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from '../../packages/wallet-console-shared-ts/src/apiKeyScopes';
 import { buildTenantRootIdentityFromAuthenticatedDeploymentV1 } from '../../packages/wallet-console-shared-ts/src/tenant-root';
@@ -56,13 +58,39 @@ export async function provisioningScenario(
   const namespace = 'wallet';
   const deploymentLane = 'renewal';
   const context = { orgId: 'org_renewal', actorUserId: 'system:test' };
-  const orgProjectEnv = await createD1ConsoleOrgProjectEnvService({ database, namespace });
-  await orgProjectEnv.upsertOrganization(context, { name: 'Deployment renewal' });
-  const project = await orgProjectEnv.createProject(context, {
+  const core = await createCloudflareD1AccountServiceBundle({
+    database,
+    namespace,
+    externalDeletionGuard: null,
+  });
+  await core.account.createOrganization(
+    {
+      userId: context.actorUserId,
+      email: 'renewal-owner@example.test',
+      name: 'Renewal owner',
+      provider: 'oidc',
+      platformSupport: false,
+      orgId: null,
+      projectId: null,
+    },
+    { id: context.orgId, name: 'Deployment renewal' },
+  );
+  const project = await core.orgProjects.createProject(context, {
     id: 'proj_renewal',
     name: 'Regional wallets',
   });
-  const environments = await orgProjectEnv.listEnvironments(context, { projectId: project.id });
+  const walletEnvironments = await createD1ConsoleWalletEnvironmentService({ database, namespace });
+  await activateWalletProject({
+    core,
+    walletEnvironments,
+    deploymentId: deploymentLane,
+    namespace,
+    context,
+    projectId: project.id,
+  });
+  const environments = await walletEnvironments.listEnvironments(context, {
+    projectId: project.id,
+  });
   const environment = environments.find(isDevelopmentEnvironment);
   if (!environment) throw new Error('Missing development environment');
   const parsedIdentity = buildTenantRootIdentityFromAuthenticatedDeploymentV1({
@@ -70,7 +98,7 @@ export async function provisioningScenario(
     projectId: project.id,
     envId: environment.id,
     signingRootId: `${project.id}:dev`,
-    signingRootVersion: environment.runtimeVersion,
+    signingRootVersion: environment.signingRootVersion,
   });
   if (!parsedIdentity.ok) throw new Error('Invalid provisioning fixture identity');
   const root = await seedAdoptionRoot(database, namespace, parsedIdentity.value);
@@ -90,7 +118,7 @@ export async function provisioningScenario(
   const adapter = createProductionTenantDeploymentReadinessAdapterV1({
     namespace,
     deploymentLane,
-    orgProjectEnv,
+    walletEnvironments,
     apiKeys,
     policies: await createD1ConsolePolicyService({ database, namespace }),
     runtimeSnapshots: await createD1ConsoleRuntimeSnapshotService({ database, namespace }),
@@ -109,12 +137,12 @@ export async function provisioningScenario(
       gatewayOrigin,
       relyingPartyId: 'sign.example.test',
     },
-    orgProjectEnv,
+    walletEnvironments,
     apiKeys,
     audit: await createD1ConsoleAuditService({ database, namespace, ensureSchema: false }),
     tenantRootCreation: {
       auth: new RejectInteractiveAuth(),
-      orgProjectEnv,
+      walletEnvironments,
       grants: createD1TenantRootCreationGrantServiceV1({ database, namespace }),
       router,
       internalServiceAuthSecret: 'fixture',

@@ -293,7 +293,10 @@ const bundle = await build({
       export { handleRuntimeIdentityHomeRequest } from './packages/wallet-console-server-ts/src/serviceBinding/runtimeIdentityHome';
       export { RegionalWalletIdentities } from './packages/wallet-console-server-ts/src/serviceBinding/regionalWalletIdentities';
       export { createRouterApiRouteDefinitions } from ${JSON.stringify(resolve(candidate, 'src/router/framework/routeDefinitions.ts'))};
-      export { createInMemoryConsoleApiKeyService } from './packages/console-server-ts/src/apiKeys/service';
+      export { createInMemoryConsoleApiKeyService } from './packages/wallet-console-server-ts/src/apiKeys/service';
+      export { createCloudflareD1AccountServiceBundle } from './packages/console-server-ts/src/router/cloudflare/d1AccountServices';
+      export { createD1ConsoleWalletEnvironmentService } from './packages/wallet-console-server-ts/src/environments/d1';
+      export { activateWalletProject } from './tests/helpers/accountWalletProject.fixtures';
       export { createRouterApiPublishableKeyAuthAdapter } from './packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
       export { WALLET_API_CREDENTIAL_SCOPE_VALIDATION } from './packages/wallet-console-shared-ts/src/apiKeyScopes';
       export { D1LinkedDeviceTargetCredentialProviderV1, LinkedDeviceWebAuthnRegistrationVerifierV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/d1/deviceLinking/d1LinkedDeviceTargetCredentialProvider.ts'))};
@@ -383,6 +386,51 @@ try {
     authorityDatabase,
     resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
   );
+  const walletOwner = { orgId: scope.organizationId, actorUserId: 'regional-platform-owner' };
+  const core = await api.createCloudflareD1AccountServiceBundle({
+    database: authorityDatabase,
+    namespace: scope.namespace,
+    ensureSchema: false,
+    externalDeletionGuard: null,
+  });
+  await core.orgProjects.upsertOrganization(walletOwner, { name: 'Regional Wallet account' });
+  await core.organizationAccess.bootstrapInitialOwner({
+    orgId: walletOwner.orgId,
+    userId: walletOwner.actorUserId,
+    email: 'owner@regional-wallet.invalid',
+    displayName: 'Regional fixture owner',
+  });
+  await core.orgProjects.createProject(walletOwner, {
+    id: scope.projectId,
+    name: 'Regional Wallet project',
+  });
+  const environments = await api.createD1ConsoleWalletEnvironmentService({
+    database: authorityDatabase,
+    namespace: scope.namespace,
+    ensureSchema: false,
+  });
+  await environments.createEnvironment(walletOwner, {
+    id: scope.environmentId,
+    projectId: scope.projectId,
+    key: 'dev',
+    signingRootVersion: 'default',
+    name: 'Regional development',
+    status: 'ACTIVE',
+  });
+  await api.activateWalletProject({
+    core,
+    walletEnvironments: environments,
+    namespace: scope.namespace,
+    deploymentId: 'test',
+    context: walletOwner,
+    projectId: scope.projectId,
+  });
+  const walletAdmission = {
+    platform: core.accountPlatform,
+    authority: { serviceId: 'wallet', deploymentId: 'test' },
+    namespace: scope.namespace,
+    environments,
+  };
   await api.activateConsoleDeploymentFixture(
     authorityDatabase,
     await api.fourRegionBinding(Date.now(), 'test', scope),
@@ -442,6 +490,7 @@ try {
     });
 ;
     bridge.database = database;
+    bridge.walletAdmission = walletAdmission;
     bridge.writer = writer;
     bridge.binding = await api.fourRegionBinding(1_791_000_000_000, 'test', scope);
     bridge.admission = await api.activateRegionalGatewayFixture(database, bridge.binding, writer);
@@ -856,6 +905,7 @@ try {
     unknownCredentialRejected: true,
     directoryOutageReturns503: true,
     plaintextAbsentFromDirectory: true,
+    targetPreparationUsesActiveWalletBinding: true,
     scope:
       'Local Worker transports, production routing/authorization services, four regional D1 databases and shared Console D1; tenant writer admission is controlled. No browser, signing execution, hosted provider, or geographic latency measurement.',
   };

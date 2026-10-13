@@ -39,7 +39,11 @@ import { createWalletConsoleRouter } from '../consoleComposition';
 import { attachConsoleRouteSurface } from '@seams-internal/console-server/router/consoleRouteSurface';
 import { resolveCompleteWalletConsoleRouteSurface } from '../walletConsoleRouteDefinitions';
 import { HostedConsoleAuthHandler } from '../hostedConsoleAuth';
-import { createWalletConsoleOpsHandler } from '../../serviceBinding/walletConsoleOpsHandler';
+import {
+  createWalletConsoleOpsHandler,
+  handleWalletConsoleTenantRootActiveLineage,
+  isWalletConsoleTenantRootActiveLineageRequest,
+} from '../../serviceBinding/walletConsoleOpsHandler';
 import type { WalletRuntimeServiceBinding } from '@seams/wallet-server/cloud-host';
 import {
   createWalletControlClientBindings,
@@ -956,6 +960,17 @@ async function fetch(
   }
   if (request.method === 'OPTIONS') {
     const response = new Response(null, { status: 204 });
+    withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
+    return response;
+  }
+  if (isWalletConsoleTenantRootActiveLineageRequest(request)) {
+    const response = await handleWalletConsoleTenantRootActiveLineage(
+      request,
+      new D1TenantRootActiveLineageResolverV1(
+        env.CONSOLE_DB,
+        requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
+      ),
+    );
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
     return response;
   }

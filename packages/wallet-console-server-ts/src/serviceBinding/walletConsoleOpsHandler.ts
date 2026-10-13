@@ -202,42 +202,60 @@ export function createWalletConsoleOpsHandler(
     }
 
     if (pathname === WALLET_CONSOLE_OP_PATHS_V1.tenantRootActiveLineage) {
-      const body: unknown = await request.json().catch(() => null);
-      const decoded = decodeWalletConsoleTenantRootActiveLineageRequestV1(body);
-      if (!decoded.ok) {
-        const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
-          ok: false,
-          code: 'invalid_body',
-          message: 'A complete canonical tenant-root identity is required',
-        };
-        return json(response, 400);
-      }
-      const identity = decodeTenantRootIdentityWireV1(decoded.value);
-      if (!identity.ok) {
-        const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
-          ok: false,
-          code: 'invalid_body',
-          message: 'A complete canonical tenant-root identity is required',
-        };
-        return json(response, 400);
-      }
-      const lineage = await services.tenantRootActiveLineage.resolveActiveLineage(identity.value);
-      if (!lineage) {
-        const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
-          ok: false,
-          code: 'tenant_root_active_lineage_not_found',
-          message: 'No active tenant-root lineage exists for this identity',
-        };
-        return json(response, 404);
-      }
-      const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
-        ok: true,
-        identityDigestB64u: lineage.identityDigestB64u,
-        custodyLineageB64u: lineage.custodyLineageB64u,
-      };
-      return json(response);
+      return handleWalletConsoleTenantRootActiveLineage(request, services.tenantRootActiveLineage);
     }
 
     return json({ ok: false, code: 'not_found', message: 'Unknown wallet-console operation' }, 404);
   };
+}
+
+export function isWalletConsoleTenantRootActiveLineageRequest(request: Request): boolean {
+  const url = new URL(request.url);
+  return (
+    url.origin === WALLET_CONSOLE_SERVICE_ORIGIN_V1 &&
+    url.pathname === WALLET_CONSOLE_OP_PATHS_V1.tenantRootActiveLineage
+  );
+}
+
+export async function handleWalletConsoleTenantRootActiveLineage(
+  request: Request,
+  resolver: WalletConsoleOpsHandlerServices['tenantRootActiveLineage'],
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return json({ ok: false, code: 'method_not_allowed', message: 'Method not allowed' }, 405);
+  }
+  const body: unknown = await request.json().catch(() => null);
+  const decoded = decodeWalletConsoleTenantRootActiveLineageRequestV1(body);
+  if (!decoded.ok) {
+    const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
+      ok: false,
+      code: 'invalid_body',
+      message: 'A complete canonical tenant-root identity is required',
+    };
+    return json(response, 400);
+  }
+  const identity = decodeTenantRootIdentityWireV1(decoded.value);
+  if (!identity.ok) {
+    const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
+      ok: false,
+      code: 'invalid_body',
+      message: 'A complete canonical tenant-root identity is required',
+    };
+    return json(response, 400);
+  }
+  const lineage = await resolver.resolveActiveLineage(identity.value);
+  if (!lineage) {
+    const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
+      ok: false,
+      code: 'tenant_root_active_lineage_not_found',
+      message: 'No active tenant-root lineage exists for this identity',
+    };
+    return json(response, 404);
+  }
+  const response: WalletConsoleTenantRootActiveLineageResponseV1 = {
+    ok: true,
+    identityDigestB64u: lineage.identityDigestB64u,
+    custodyLineageB64u: lineage.custodyLineageB64u,
+  };
+  return json(response);
 }

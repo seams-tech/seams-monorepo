@@ -4,6 +4,8 @@ import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import {
   createWalletConsoleOpsClient,
+  WALLET_CONSOLE_OP_PATHS_V1,
+  WALLET_CONSOLE_SERVICE_ORIGIN_V1,
   isD1DatabaseLike,
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
@@ -70,12 +72,15 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
   lastDatabaseWork: { calls: number; statements: number } | null = null;
   failNextBatch = false;
   accountKeysUnavailable = false;
+  consoleCompositionUnavailable = false;
 
   constructor(private readonly worker: Awaited<ReturnType<Miniflare['getWorker']>>) {}
 
   async fetch(input: Request | string, init?: RequestInit): Promise<Response> {
     const request = new Request(input, init);
     if (this.accountKeysUnavailable) request.headers.set('x-test-account-keys-unavailable', 'true');
+    if (this.consoleCompositionUnavailable)
+      request.headers.set('x-test-console-composition-unavailable', 'true');
     if (this.failNextBatch) {
       request.headers.set('x-test-fail-d1-batch', 'true');
       this.failNextBatch = false;
@@ -805,12 +810,13 @@ test('production Console service bindings enforce durable credential changes and
       signingRootId: 'unprovisioned-root',
       signingRootVersion: environments[0].signingRootVersion,
     };
-    service.accountKeysUnavailable = true;
+    service.consoleCompositionUnavailable = true;
     const lineage = await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
     expect(lineage).toBeNull();
     expect(service.lastDatabaseWork).toEqual({ calls: 1, statements: 2 });
     observations.push({
       stage: 'unprovisioned_root',
+      consoleCompositionUnavailable: true,
       result: lineage,
       ...service.lastDatabaseWork,
     });
@@ -845,6 +851,33 @@ test('production Console service bindings enforce durable credential changes and
     expect(await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity)).toEqual(
       createdLineage,
     );
+
+    const lineageUrl =
+      WALLET_CONSOLE_SERVICE_ORIGIN_V1 + WALLET_CONSOLE_OP_PATHS_V1.tenantRootActiveLineage;
+    expect((await service.fetch(lineageUrl)).status).toBe(405);
+    expect(service.lastDatabaseWork).toEqual({ calls: 0, statements: 0 });
+    const malformedLineage = await service.fetch(lineageUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    expect(malformedLineage.status).toBe(400);
+    expect(service.lastDatabaseWork).toEqual({ calls: 0, statements: 0 });
+    service.consoleCompositionUnavailable = false;
+    service.accountKeysUnavailable = false;
+    const foreignOriginLineage = await service.fetch(
+      'https://untrusted.example.test' + WALLET_CONSOLE_OP_PATHS_V1.tenantRootActiveLineage,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    );
+    expect(foreignOriginLineage.status).toBe(404);
+    expect(service.lastDatabaseWork).toEqual({ calls: 0, statements: 0 });
+    observations.push({
+      stage: 'direct_lineage_boundary',
+      skippedConsoleComposition: true,
+      wrongMethodStatus: 405,
+      malformedBodyStatus: 400,
+      foreignOriginStatus: 404,
+    });
 
     for (let delivery = 0; delivery < 2; delivery += 1) {
       await client.usageMeter.recordEvent({

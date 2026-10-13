@@ -80,6 +80,9 @@ function walletRequestEnvironment(
   request: Request,
   env: Parameters<typeof consoleWorker.fetch>[1],
 ): Parameters<typeof consoleWorker.fetch>[1] {
+  if (request.headers.has('x-test-console-composition-unavailable')) {
+    return { ...env, SEAMS_WALLET_HOME_CATALOG_JSON: 'Console composition is unavailable' };
+  }
   if (!request.headers.has('x-test-account-keys-unavailable')) return env;
   return {
     ...env,

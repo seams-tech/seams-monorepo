@@ -12,6 +12,9 @@ Use Satyr as the working integration example.
    Give retries fresh authentication around their original immutable command.
    Preserve an archived binding permanently.
 3. Authenticate the producer and the initiating user independently.
+   Publish `/account-platform/v1/*` on the configured Console origin.
+   Use that public origin for the service base URL and paired assertion audiences and issuers.
+   Console deployments disable their `workers.dev` addresses.
    Link verified issuer and subject evidence, or an explicit authenticated account link.
    Never infer a user or tenant merge from an email or a producer bearer.
 4. Resolve fresh shared eligibility for execution, protected disclosure, restore, and replay.

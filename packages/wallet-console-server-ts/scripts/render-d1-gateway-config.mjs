@@ -260,6 +260,7 @@ function buildConsoleRoutes(consoleOrigin, walletSiteOrigin) {
   return [
     { pattern: `${hostname}/console`, zone_name: zoneName },
     { pattern: `${hostname}/console/*`, zone_name: zoneName },
+    { pattern: `${hostname}/account-platform/v1/*`, zone_name: zoneName },
     { pattern: `${hostname}/internal/tenant-deployment/v1/verify-resource`, zone_name: zoneName },
     { pattern: `${hostname}/internal/tenant-deployment/v1/cutover`, zone_name: zoneName },
   ];

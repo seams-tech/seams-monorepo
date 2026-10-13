@@ -35,6 +35,11 @@ Its protected values file supplies the fifteen fields documented in
 A partial group fails before the secrets file can be written.
 No second configuration file or billing deployment was introduced.
 
+The shared service API uses `/account-platform/v1/*` on the existing Console origin.
+The Console route renderer publishes that path beside `/console/*`.
+Console deployments disable their `workers.dev` addresses.
+The prepared Satyr connection therefore uses `https://wallet.seams.sh` for the account authority.
+
 Seams repository validation publishes the built acceptance Worker after its checks and account journeys pass.
 Satyr CI checks out one exact commit from the public Seams repository.
 It installs the locked dependencies and builds the same Worker in a separate checkout.
@@ -120,6 +125,12 @@ Evidence:
 - `.artifacts/shared-account-platform/phase-5-*.log`: actual checks and builds.
 
 ## Production cohort procedure
+
+On 2026-10-13, the user scoped this task to shared-account staging.
+The separate production Wallet rollout remains outside this task.
+Production shared-account cutover requires that rollout first.
+The [existing production release gaps](../singapore-clean-switch-20261013.md#production-testnet-and-mainnet-databases-ready-deployment-blocked)
+include missing regional Workers and the missing mainnet activation path.
 
 The production workflow permits only `main`.
 Repository instructions require implementation commits on `dev`.

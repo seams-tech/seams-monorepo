@@ -594,7 +594,10 @@ export function createGatewayTenantDeploymentRegistrationCanaryV1(options?: {
         },
         body: JSON.stringify({
           registrationOperationId: `wreg_${base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)))}`,
-          wallet: { kind: 'provided', walletId: `canary-${crypto.randomUUID()}` },
+          // The request of a real client. A provided wallet id that is not in
+          // the server-allocated format cannot hold an implicit NEAR account,
+          // and a Gateway of 0.10.0 refuses it at setup.
+          wallet: { kind: 'server_allocated' },
           signerSelection: {
             kind: 'signer_set',
             signers: [

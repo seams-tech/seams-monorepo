@@ -45,22 +45,24 @@ No latency benefit or production security claim follows from this local proof.
 
 ## Build
 
-Use a new directory for the source checkout. Run these commands from this private repository:
+Use the committed build command with an upstream checkout and a new output directory:
 
 ```sh
-CELLD_PATCH_PATH="$PWD/deployment/celld/cross-script-objects.patch"
-git clone --branch v0.6.2 --depth 1 https://github.com/denoland/celld.git /tmp/seams-celld-private
-cd /tmp/seams-celld-private
-test "$(git rev-parse HEAD)" = 90b43017241f81189453d326d05948f388b34652
-git apply --check "$CELLD_PATCH_PATH"
-git apply "$CELLD_PATCH_PATH"
-cargo build --locked -p celld --bin celld
-./target/debug/celld --version
+git clone --branch v0.6.2 --depth 1 https://github.com/denoland/celld.git /tmp/celld-upstream
+node deployment/celld/build.mjs /tmp/celld-upstream /tmp/celld-candidate release
 ```
 
-Use the same Rust toolchain to reproduce the tested build conditions.
-A different toolchain or platform produces a new candidate that needs its own evidence.
-The upstream Apache-2.0 license and notices remain in the source checkout.
+The command extracts the pinned commit independently of checkout edits, checks the patch hash,
+applies the patch, and builds with locked dependencies. It verifies the resulting version.
+The output contains `celld`, `runtime-build.json`, the source archive, and the patched source with upstream license notices.
+The build record includes source, patch, archive, executable, platform, profile, and toolchain identity.
+A failed build produces no success record. Keep failed output for diagnosis and use a new directory for retries.
+
+Use `dev` instead of `release` for a local capability check. `CARGO_TARGET_DIR` can reuse an existing Cargo cache.
+These profiles produce separate candidates. A debug pass does not qualify a release executable.
+The command uses the installed Rust toolchain. Reproduce the versions above for the original proof conditions.
+Each different toolchain or platform requires new acceptance evidence.
+The build command does not deploy or approve the executable.
 
 ## Verify
 
@@ -68,7 +70,7 @@ From the `seams-wallet` R190 branch with locked dependencies installed:
 
 ```sh
 node tests/e2e/celld-bindings.e2e.mjs \
-  /tmp/seams-celld-private/target/debug/celld \
+  /tmp/celld-candidate/celld \
   /absolute/path/to/verified-stock-celld-0.6.2
 ```
 
@@ -90,3 +92,18 @@ The local proof checks:
 - Stock-runtime refusal of the patched manifest without rebuilding it.
 
 Keep the classic hosts until the remaining R190 gates pass. A production rollout needs a separately validated build and maintenance procedure.
+
+## Repeatable build verification
+
+On October 13, the build command extracted the pinned source, applied the patch, and built a fresh macOS ARM64 debug candidate.
+The binding acceptance scenario passed using that executable and the verified stock executable.
+This run includes stock-state upgrade, object ownership, aliases, restart, dependency cycles, invalid-owner rejection, and downgrade refusal.
+
+- [Generated build identity](evidence/runtime-build.json).
+- [Generated acceptance evidence](evidence/bindings.json).
+
+The acceptance record identifies Wallet revision `8c12c9eb2516a7c2585b001f6a3a5d7c2bb67969`, rebased onto `dev` revision `ab91d575d46a13be28deccb95660d6517c9164f3`.
+The private branch already contains local `dev` revision `26f9d01c3497365adacd261bff32bfe2d469abda`.
+The existing deployment-script suite passed: 53 tests passed and one was skipped.
+The build script also passed syntax, lint, and formatting checks.
+Linux and release-profile builds remain unverified.

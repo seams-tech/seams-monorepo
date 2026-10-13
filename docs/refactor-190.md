@@ -218,6 +218,27 @@ The complete Wallet graph, release WASM, distributed behavior, and provider depl
 still require evidence. Separate A/B backup-bucket isolation remains unresolved.
 No application adapters are eligible for deletion yet.
 
+### Remaining implementation sequence
+
+1. Rebase the isolated branches onto current local `dev` at each checkpoint.
+2. Build the pinned private runtime through `deployment/celld/build.mjs` and rerun the binding acceptance test. The macOS debug run passes; Linux release qualification remains open.
+3. Resolve separate physical A/B backup buckets before constructing the replacement deployment.
+4. Load the complete role graph and release WASM, then run lifecycle and failure acceptance scenarios.
+5. Verify Linux operation on Google Cloud, AWS, and a supported Google Confidential VM.
+6. Replace host consumers, delete classic-host code, and rerun acceptance on the final release.
+
+Source inspection confirms that the pinned runtime has one R2 storage handle.
+`crates/celld/r2_store.rs` selects that handle for all bindings and prefixes keys with the binding bucket name.
+`crates/celld/deploy.rs` accepts bucket names without a physical bucket mapping.
+The existing patch changes neither path. Separate physical buckets therefore need additional runtime work or a verified alternative topology.
+The user decision on extending the runtime patch is pending. Keep the existing storage contract intact.
+
+Current consumers also prevent immediate adapter deletion. Public lifecycle evidence reads SQLite through
+`nodeSqlite.ts`, and the step-up-expiry and sponsored-account-ownership E2Es use the Node database path.
+Private Console account-router and sponsored-call history tests execute both Express and Worker transports.
+Preserve their behavioral assertions when changing their launch boundaries.
+These are confirmed consumers, not an exhaustive deletion inventory.
+
 ## Phase 2 — Run the existing application artifacts on celld
 
 - [ ] Start with fresh test wallets and isolated test resources.

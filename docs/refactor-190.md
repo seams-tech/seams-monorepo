@@ -1,6 +1,6 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: Phase 1 blocked by celld 0.6.2 cross-script Durable Object handling.
+Status: Phase 1 private runtime proof passes. Full Wallet and storage gates remain open.
 Updated: October 13, 2026. Existing hosting support remains intact.
 
 ## Decision and purpose
@@ -169,7 +169,7 @@ Sources: [celld limitations](https://github.com/denoland/celld/blob/main/docs/li
 Exit: every required binding and behavior has a runnable check or a recorded
 blocker. No classic-host deletion occurs while a required gate remains blocked.
 
-### October 13 compatibility result
+### October 13 stock-runtime compatibility result
 
 The public branch adds `tests/e2e/celld-bindings.e2e.mjs` and an evidence record at
 `docs/evidence/celld-bindings.md`. The probe uses the verified celld 0.6.2 release
@@ -199,6 +199,24 @@ requires a separate design decision. No upstream contact was made.
 Implementation stays on `codex/refactor-190-workers-backend` in both repositories.
 Rebase these branches onto current `dev` before each resumed implementation checkpoint.
 Record the resulting source revisions in each new evidence run.
+
+### October 13 private runtime proof
+
+The user selected a private celld patch to preserve direct object calls and avoid
+an extra Router dispatch. The patch and build procedure live in
+[`deployment/celld/README.md`](../deployment/celld/README.md).
+No upstream PR or maintainer contact is authorized or required.
+
+Private build `0.6.2-seams.1` passes the expanded local binding check. It preserves
+object IDs and state created by stock celld. It resolves external owners, retains
+their environments, handles dependency cycles, and rejects invalid owners.
+Stock celld rejects the new deployment feature before serving traffic.
+
+This proof retains celld's existing requirement for unique owned class names
+across the fleet. It changes no Wallet protocol, application route, or secret boundary.
+The complete Wallet graph, release WASM, distributed behavior, and provider deployment
+still require evidence. Separate A/B backup-bucket isolation remains unresolved.
+No application adapters are eligible for deletion yet.
 
 ## Phase 2 — Run the existing application artifacts on celld
 

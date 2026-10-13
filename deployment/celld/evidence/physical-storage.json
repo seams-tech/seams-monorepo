@@ -1,0 +1,77 @@
+{
+  "sourceCommit": "0bf73248b54de6d3a43c601a954a257c5ee2a670",
+  "candidateSha256": "2faa55f11afece5f39fdf02ece2e86ccd2bcdf3cece773891da2d4f9a46ebb66",
+  "baselineSha256": "92ededd2bcfebeb1e78cc2d97219f00214a79eb6606f0eef48208fca3f98c15a",
+  "harnessSha256": "a5e54bf44dd7ecaaaf1f799d7719e34c39e2f363aded660d0493ddf1eab796ba",
+  "fixtureHashes": {
+    "role": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb",
+    "router": "a41691c7e6122cee127a17a2069bad2e89c5f71e17a47889bf470a0205a43c37"
+  },
+  "runtime": "celld 0.6.2-seams.2 (debug)",
+  "moto": "5.1.14",
+  "topology": "one celld process; two role Workers; separate S3 emulator buckets; local fleet store",
+  "status": "passed",
+  "stage": "missing-bucket-write-failure",
+  "concurrentStreams": [
+    {
+      "size": 9437184
+    },
+    {
+      "size": 9437184
+    }
+  ],
+  "roles": {
+    "a": {
+      "bindings": {
+        "role": "a",
+        "names": [
+          "BACKUP",
+          "ROLE"
+        ]
+      },
+      "physicalKey": "r2/role-a/same-key",
+      "stored": "a-updated",
+      "conditionalWrite": "accepted-then-stale-refused",
+      "streamedBytes": 9437184
+    },
+    "b": {
+      "bindings": {
+        "role": "b",
+        "names": [
+          "BACKUP",
+          "ROLE"
+        ]
+      },
+      "physicalKey": "r2/role-b/same-key",
+      "stored": "b-updated",
+      "conditionalWrite": "accepted-then-stale-refused",
+      "streamedBytes": 9437184
+    }
+  },
+  "fleetReuse": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: R2 backups must use a physical bucket distinct from the fleet bucket\n"
+  },
+  "missing": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: load Worker binding target role-a\n\nCaused by:\n    R2 binding has no configured physical bucket\n"
+  },
+  "mismatch": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: load Worker binding target role-a\n\nCaused by:\n    R2 physical bucket differs from deployment manifest\n"
+  },
+  "duplicate": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: R2 bindings must use distinct physical buckets\n"
+  },
+  "downgrade": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: load service binding target role-a\n\nCaused by:\n    deployment requires feature \"physical-r2-buckets-v1\" this celld build does not support; upgrade celld\n"
+  },
+  "restart": "both-roles-preserved",
+  "failure": {
+    "status": 500,
+    "peerPreserved": true
+  },
+  "cleanup": "runtime and temporary emulator stopped; evidence retained"
+}

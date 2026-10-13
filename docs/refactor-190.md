@@ -1,6 +1,6 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: Phase 1 private runtime proof passes. Full Wallet and storage gates remain open.
+Status: Local runtime storage and packaged role-graph checks pass. Wallet lifecycle and cloud gates remain open.
 Updated: October 13, 2026. Existing hosting support remains intact.
 
 ## Decision and purpose
@@ -131,7 +131,7 @@ implementation risk. It does not prove identical behavior across runtimes.
 - [ ] Record candidate file counts and non-generated source lines using the existing bloat report where available.
 - [ ] Inventory the exact Worker APIs, SQL features, migrations, and binding graph used by all roles and Console composition.
 - [x] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
-- [ ] Prove the complete role graph loads without changes to protocol or domain logic.
+- [x] Prove the five-role graph loads without changes to protocol or domain logic. Exact package `@seams/wallet-server@0.9.3` passes the load check; lifecycle acceptance remains open.
 
 Celld's general service support is insufficient evidence for our deployment.
 Resolve these specific gates before building a replacement host path:
@@ -215,8 +215,8 @@ Stock celld rejects the new deployment feature before serving traffic.
 This proof retains celld's existing requirement for unique owned class names
 across the fleet. It changes no Wallet protocol, application route, or secret boundary.
 The complete Wallet graph, release WASM, distributed behavior, and provider deployment
-still require evidence. Separate A/B backup-bucket isolation remains unresolved.
-No application adapters are eligible for deletion yet.
+still require evidence. The later `0.6.2-seams.2` proof verifies distinct physical buckets locally. Cloud permissions and distributed operation remain open.
+Application adapter deletion still requires the lifecycle and provider gates below.
 
 ### Remaining implementation sequence
 
@@ -231,7 +231,7 @@ Source inspection confirms that the pinned runtime has one R2 storage handle.
 `crates/celld/r2_store.rs` selects that handle for all bindings and prefixes keys with the binding bucket name.
 `crates/celld/deploy.rs` accepts bucket names without a physical bucket mapping.
 The existing patch changes neither path. Separate physical buckets therefore need additional runtime work or a verified alternative topology.
-The user decision on extending the runtime patch is pending. Keep the existing storage contract intact.
+The user authorized the remaining storage work. Private build `0.6.2-seams.2` adds explicit physical buckets and passes local storage acceptance. Cloud qualification remains open.
 
 Current consumers also prevent immediate adapter deletion. Public lifecycle evidence reads SQLite through
 `nodeSqlite.ts`, and the step-up-expiry and sponsored-account-ownership E2Es use the Node database path.
@@ -394,3 +394,28 @@ bundle. Correctness evidence and completed code deletion are both required.
 Coordinate with current registration work and preserve its edits. Reuse its
 accepted release baseline when freezing a candidate. R190 adds no latency target
 and does not repeat those optimization experiments.
+
+## October 13 physical-storage and packaged-graph checkpoint
+
+Private build `0.6.2-seams.2` requires separate physical R2 buckets through operator configuration.
+The deployment manifest records the mapping, and runtime startup refuses a missing or changed mapping.
+The pinned-source build and the original object-binding acceptance test pass.
+The storage scenario passes concurrent A/B streaming, multipart writes, conditional rejection, direct bucket reads,
+restart, invalid configuration, downgrade refusal, and a failed write after physical bucket removal.
+No application storage adapter or protocol change was introduced.
+
+The exact installed `@seams/wallet-server@0.9.3` artifact files pass manifest hash verification.
+All five role Workers load with their release WASM on one celld process using an S3 emulator fleet bucket.
+Router rejects GET with 405. The four private roles reject missing service authentication with 403.
+This establishes module loading and request dispatch, not successful wallet lifecycle operations.
+The Gateway and private Console composition are outside this five-role check.
+
+Celld must bundle the packaged entry shims. Its `no_bundle` path does not follow imported JavaScript.
+The installed esbuild 0.28.1 supports celld's `es2024` target; the older 0.21.5 executable does not.
+These are deployment-boundary requirements. No Worker source change was required.
+
+An independent reviewer checked the patch and raw evidence. The final storage run includes the requested concurrent upload check.
+See [runtime build, reproduction commands, and evidence](../deployment/celld/README.md).
+Remaining work includes complete wallet operations and failure scenarios, Linux release qualification,
+cloud credentials and permissions, distributed durability, Confidential VMs, migration inventory, and adapter deletion.
+Cloud project/account and region selection is pending user input. No cloud resources were created.

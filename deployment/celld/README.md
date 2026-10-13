@@ -1,4 +1,4 @@
-# Private celld cross-script object proof
+# Private celld runtime build
 
 Status: local compatibility proof. This build is not approved for Wallet production deployment.
 
@@ -9,13 +9,13 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 
 - Upstream: `https://github.com/denoland/celld.git`.
 - Base: `90b43017241f81189453d326d05948f388b34652` (`v0.6.2`).
-- Private version: `0.6.2-seams.1`.
-- Patch: [cross-script-objects.patch](cross-script-objects.patch).
-- Patch SHA-256: `6c42d06498ffdc42cef489aaef17dee52a0dbe67c543cc0bd30b035122e3f4a0`.
+- Private version: `0.6.2-seams.2`.
+- Patch: [workers-runtime.patch](workers-runtime.patch).
+- Patch SHA-256: `3a4215a42282e6e83ae313df2c192e3cf9e68469712edb766bb1c9907a1957fe`.
 - Tested build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
-- Tested executable SHA-256: `a7d2ec0f68f1bd6a762f4a300612d548de77ce5c9964eba9b9f6589cae1293fa`.
+- Historical object-only build identity: [original build record](evidence/runtime-build.json).
 
-The patch applies to a clean archive of the pinned source. All ten resulting files match the compiled source.
+The patch applies to a clean archive of the pinned source. The build command verifies the patch hash before applying it.
 The build retains the upstream locked dependencies. The lockfile changes only the private package version.
 
 ## What changes
@@ -38,9 +38,9 @@ Two independent Workers exporting the same class name remain unsupported and fai
 Our current Router, Deriver A, Deriver B, and SigningWorker classes have distinct names.
 The patch adds external references within this constraint. It does not implement all Cloudflare namespace semantics.
 
-The full Wallet role graph and WASM have not run on this build.
+The five packaged role Workers and their release WASM pass the load check below. Successful wallet operations remain unverified.
 Managed upload paths, live reload, distributed relocation, crash recovery, and remote bucket durability remain unverified.
-A/B backup-bucket separation remains unresolved. Linux, AWS, Google Cloud, and Confidential VMs remain untested.
+Local physical bucket separation passes the storage scenario described below. Cloud bucket access and distributed behavior remain unverified. Linux, AWS, Google Cloud, and Confidential VMs remain untested.
 No latency benefit or production security claim follows from this local proof.
 
 ## Build
@@ -107,3 +107,83 @@ The private branch already contains local `dev` revision `26f9d01c3497365adacd26
 The existing deployment-script suite passed: 53 tests passed and one was skipped.
 The build script also passed syntax, lint, and formatting checks.
 Linux and release-profile builds remain unverified.
+
+## Separate physical backup buckets
+
+The user authorized the remaining storage work on October 13.
+This private build requires explicit physical buckets for R2 bindings. It has no fallback to the fleet bucket.
+Set `CELLD_R2_BUCKETS` when deploying and on every node, for example:
+
+```json
+{
+  "router-ab-deriver-a-tenant-root-managed-backup": "gs://wallet-backup-a",
+  "router-ab-deriver-b-tenant-root-managed-backup": "gs://wallet-backup-b"
+}
+```
+
+Each value must name a whole `s3://` or `gs://` bucket. Prefix mappings, duplicate physical destinations,
+and reuse of the fleet bucket are rejected. Credentials use the existing cloud credential chain and stay on the node.
+The manifest records each binding's physical destination. Startup and reload reject a missing or changed node mapping.
+Deployments require `physical-r2-buckets-v1`; the original runtime refuses them before serving.
+All R2 operations, including streaming, multipart uploads, and the R2 CLI, use the selected physical store.
+Changing a mapping requires a verified data migration and coordinated restart. Existing fleet-prefix R2 data is not migrated automatically.
+The deployment operator still controls the node and its bucket credentials. This adds no protection from that operator.
+
+The storage E2E uses Moto 5.1.14 in a temporary virtual environment, the AWS CLI, and synthetic data on loopback listeners:
+
+```sh
+python3 -m venv /tmp/celld-storage-test
+/tmp/celld-storage-test/bin/pip install 'moto[server]==5.1.14'
+node tests/e2e/celld-storage.e2e.mjs /absolute/path/to/candidate /absolute/path/to/stock-celld /tmp/celld-storage-test/bin/python
+```
+
+Run the Node command from the public Wallet repository. The scenario writes repeatable evidence under `.artifacts/celld-storage-*`.
+It verifies role bindings, distinct bucket contents, conditional writes, streamed and multipart writes, restart,
+missing and changed mappings, duplicate destinations, fleet-bucket reuse, old-runtime refusal, and failed writes after bucket removal.
+The peer role remains readable after the failure. This is emulator evidence, not cloud durability qualification.
+
+## Current acceptance evidence
+
+- [Pristine-source build identity](evidence/physical-build.json).
+- [Object binding and upgrade checks](evidence/physical-bindings.json).
+- [Concurrent physical-storage checks](evidence/physical-storage.json).
+- [Packaged five-role graph](evidence/packaged-role-graph.json).
+
+These records use the same rebuilt executable. The public storage test is committed as `0bf73248`.
+An independent review found no blocking defect within the measured scope.
+Each Deriver test Worker receives only its own R2 binding. Shared host credentials remain under the trusted operator model.
+This does not establish protection against runtime compromise, cloud IAM isolation, or distributed durability.
+
+Run the packaged graph check from the private repository:
+
+```sh
+python3 tests/e2e/celld/packaged-role-graph.py \
+  /absolute/path/to/candidate \
+  /absolute/path/to/installed/@seams/wallet-server \
+  /tmp/celld-storage-test/bin/python \
+  /absolute/path/to/esbuild
+```
+
+The successful run uses esbuild 0.28.1 and the exact installed Wallet Server 0.9.3 package.
+It verifies all Worker artifact hashes, derives bindings from the packaged manifests, deploys to an isolated S3 emulator,
+and loads all five roles. Router rejects GET with 405; the four private roles reject missing service authentication with 403.
+No real secrets or wallet records enter the scenario. Runtime and emulator processes stop after the run.
+This scenario excludes the Gateway, private Console composition, successful signing, and lifecycle persistence.
+
+### Module-loading diagnosis
+
+| Fact | Instrument and result |
+| --- | --- |
+| Unbundled entry fails | The original probe uploads the packaged shim and receives `instantiate: <none>` before listening. |
+| Imported JS is absent | Pinned celld `deploy.rs` reads one JS entry plus sibling WASM in `no_bundle` mode. The shim imports another JS file. |
+| Old bundler fails before upload | esbuild 0.21.5 rejects celld's required `es2024` target. |
+| Normal bundle loads | esbuild 0.28.1 includes the imported module. The five packaged roles return their source-defined rejection responses. |
+
+| Cause | Assessment |
+| --- | --- |
+| Missing imported JS in the probe configuration | Fits the unbundled failure and the successful bundled control. |
+| Release WASM cannot execute on celld | Contradicted for these request-rejection paths by the successful responses. Other operations remain unverified. |
+| Wallet requires application code changes to load | Contradicted by unchanged packaged artifacts passing the load check. |
+| Probe response expectation is wrong | Confirmed for the initial 404/401 assumptions. Source defines 405 for Router GET and 403 for missing private service authentication. |
+
+The earlier module-instantiation error was a probe configuration defect. It is not evidence of wallet lifecycle parity or a required application rewrite.

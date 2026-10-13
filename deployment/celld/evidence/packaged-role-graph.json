@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "stage": "load-complete-graph",
+  "responses": {
+    "router": {
+      "status": 405,
+      "body": "Router A/B strict public route requires POST"
+    },
+    "deriver-a": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "deriver-b": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "signing-worker": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "tenant-root-control-plane": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    }
+  },
+  "runtimeSha256": "2faa55f11afece5f39fdf02ece2e86ccd2bcdf3cece773891da2d4f9a46ebb66",
+  "harnessSha256": "a4b5636feba0bcdc838db20842ebcc4e18d69d2a2bc43e4c935488b89a7b6232",
+  "sourceCommit": "9df7e8f056d5534ebf87334d8fb603c932d2861a",
+  "scope": "packaged role graph loading and unauthenticated request rejection only",
+  "runtime": "celld 0.6.2-seams.2 (debug)",
+  "esbuild": "0.28.1",
+  "moto": "5.1.14",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.9.3"
+  },
+  "manifestSha256": "8d1e46b35e154e3277f18e09ea5c9e28ca8076969d355ad1f96041b7e62bddd8",
+  "fingerprints": {
+    "router": "9aa6adbab32e5358ec10422887961436e7fef549c9c740331e05f51aa6f095e7",
+    "deriver-a": "9d5e7b103536e7ebb8171d92441c5e9e3d0ffc56e7fa2c14ae366b4c830a6021",
+    "deriver-b": "7d00d2bd13540dbf54852a229719bb49f63e13f63156eae27ed6d02bf155bfd5",
+    "signing-worker": "70f940a849724cee4ccbd8aab11645858179e95578badd8dab090a657a816e90",
+    "tenant-root-control-plane": "6ea385bf5cdad01cd1363343344884ee9c96dc3497896a398c49f3757b6c501a"
+  },
+  "cleanup": "runtime and temporary emulator stopped; evidence retained"
+}

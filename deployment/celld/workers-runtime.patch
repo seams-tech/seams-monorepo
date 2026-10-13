@@ -1,5 +1,5 @@
 diff --git a/Cargo.lock b/Cargo.lock
-index 09b2f25..ef3bd6b 100644
+index 09b2f25..acd72d3 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
 @@ -285,7 +285,7 @@ dependencies = [
@@ -7,24 +7,24 @@ index 09b2f25..ef3bd6b 100644
  [[package]]
  name = "celld"
 -version = "0.6.2"
-+version = "0.6.2-seams.3"
++version = "0.6.2-seams.4"
  dependencies = [
   "aes",
   "aes-gcm",
 diff --git a/crates/celld/Cargo.toml b/crates/celld/Cargo.toml
-index 98c9ac9..ecb5a6a 100644
+index 98c9ac9..d51518f 100644
 --- a/crates/celld/Cargo.toml
 +++ b/crates/celld/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "celld"
 -version = "0.6.2"
-+version = "0.6.2-seams.3"
++version = "0.6.2-seams.4"
  edition = "2021"
  rust-version = "1.94.1"
  license = "Apache-2.0"
 diff --git a/crates/celld/deploy.rs b/crates/celld/deploy.rs
-index dc2e783..b3529c3 100644
+index dc2e783..1591da5 100644
 --- a/crates/celld/deploy.rs
 +++ b/crates/celld/deploy.rs
 @@ -318,6 +318,7 @@ struct Project {
@@ -66,7 +66,15 @@ index dc2e783..b3529c3 100644
              }
              if sqlite_vec {
                  features.push(FEATURE_SQLITE_VEC_V1.to_string());
-@@ -1414,12 +1430,35 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+@@ -739,6 +755,7 @@ pub fn build(options: &Options) -> anyhow::Result<Built> {
+             if python_runtime {
+                 features.push(FEATURE_PYTHON_WORKERS_V1.to_string());
+             }
++            features.push(crate::protocol::FEATURE_STREAMING_RESPONSE_CLONE_V1.to_string());
+             features
+         },
+         raw_metadata: project.metadata,
+@@ -1414,12 +1431,35 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
              .get("class_name")
              .and_then(Value::as_str)
              .ok_or_else(|| anyhow!("durable object binding {name} has no `class_name`"))?;
@@ -105,7 +113,7 @@ index dc2e783..b3529c3 100644
      }
      let services = match object.get("services") {
          None => &[][..],
-@@ -1793,6 +1832,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+@@ -1793,6 +1833,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
          Some(Value::Array(buckets)) => buckets.as_slice(),
          Some(_) => bail!("config `r2_buckets` must be an array"),
      };
@@ -113,7 +121,7 @@ index dc2e783..b3529c3 100644
      let mut r2_binding_names = BTreeSet::new();
      let mut r2_bucket_names = BTreeSet::new();
      for bucket in r2_buckets {
-@@ -1831,6 +1871,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+@@ -1831,6 +1872,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
              "type": "r2_bucket",
              "name": binding,
              "bucket_name": bucket_name,
@@ -121,7 +129,7 @@ index dc2e783..b3529c3 100644
          }));
      }
      // `worker_loaders` is how a Dynamic Workers project asks for a Worker
-@@ -2010,6 +2051,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+@@ -2010,6 +2052,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
          has_queues: !queue_producers.is_empty() || !queue_consumers.is_empty(),
          queue_consumers,
          has_r2: !r2_buckets.is_empty(),
@@ -484,10 +492,39 @@ index b00dc8f..9f44fd0 100644
              lines.push_str(&format!(
                  "e[{:?}] = __celld.__makeR2Bucket({:?}, {:?});\n",
 diff --git a/crates/celld/js/harness.js b/crates/celld/js/harness.js
-index 074ea11..4b558aa 100644
+index 074ea11..b43f31f 100644
 --- a/crates/celld/js/harness.js
 +++ b/crates/celld/js/harness.js
-@@ -1123,7 +1123,11 @@ const __r2Multipart = (binding, bucketName, key, id) => ({
+@@ -359,17 +359,24 @@ globalThis.Response = class Response {
+       { type: this.headers.get("content-type") || "" });
+   }
+   clone() {
+-    if (this.bodyUsed) throw new TypeError("Body has already been consumed");
+-    if (this._bodyBytes === null)
+-      throw new TypeError("Cannot clone a streaming response before consumption");
++    if (this.bodyUsed || this.body?.locked || this.body?._disturbed)
++      throw new TypeError("Body has already been consumed or locked");
++    let body = this.body === null ? null : this._bodyBytes;
++    if (this._bodyBytes === null) {
++      const [left, right] = this.body.tee();
++      this.body = left;
++      body = right;
++    }
+     const response = new Response(
+-      this.body === null ? null : this._bodyBytes,
++      body,
+       {
+         status: this.status, statusText: this.statusText, headers: this.headers,
+         webSocket: this.webSocket, __wsTarget: this._wsTarget, cf: this.cf,
+       },
+     );
+     response.type = this.type;
++    response.url = this.url;
++    response.redirected = this.redirected;
+     return response;
+   }
+ };
+@@ -1123,7 +1130,11 @@ const __r2Multipart = (binding, bucketName, key, id) => ({
      await __r2_mp_abort(await id.host);
    },
  });
@@ -500,7 +537,7 @@ index 074ea11..4b558aa 100644
    async head(key) {
      const name = __r2Key(binding, "head", key);
      const r = JSON.parse(await __r2_head(bucketName, name));
-@@ -3523,6 +3527,9 @@ __celld.__makeLoader = () => {
+@@ -3523,6 +3534,9 @@ __celld.__makeLoader = () => {
    };
  };
 
@@ -510,7 +547,7 @@ index 074ea11..4b558aa 100644
  const __makeServiceBinding = __celld.__makeServiceBinding =
    (script, entrypoint = null, propsSc = undefined) => {
    const target = {
-@@ -3653,6 +3660,7 @@ const __makeServiceBinding = __celld.__makeServiceBinding =
+@@ -3653,6 +3667,7 @@ const __makeServiceBinding = __celld.__makeServiceBinding =
    const rpcEntrypoint = entrypoint === null ? "default" : entrypoint;
    const session = __entrypointSession(
      rpcEntrypoint, script === __cell.script, script, undefined, propsSc);
@@ -595,15 +632,16 @@ index 7fcf81f..2f9e48e 100644
                      containers: Vec::new(),
                      fence_image: None,
 diff --git a/crates/celld/protocol.rs b/crates/celld/protocol.rs
-index a2f79f5..e467267 100644
+index a2f79f5..8fd9efc 100644
 --- a/crates/celld/protocol.rs
 +++ b/crates/celld/protocol.rs
-@@ -71,11 +71,17 @@ pub const SUPPORTED_DEPLOYMENT_FEATURES: &[&str] = &[
+@@ -71,11 +71,18 @@ pub const SUPPORTED_DEPLOYMENT_FEATURES: &[&str] = &[
      FEATURE_QUEUES_V1,
      FEATURE_SQLITE_VEC_V1,
      FEATURE_R2_V1,
 +    FEATURE_PHYSICAL_R2_V1,
 +    FEATURE_BINDING_BRANDS_V1,
++    FEATURE_STREAMING_RESPONSE_CLONE_V1,
      FEATURE_WASM_V1,
      FEATURE_WORKFLOWS_V1,
      FEATURE_PYTHON_WORKERS_V1,
@@ -616,12 +654,13 @@ index a2f79f5..e467267 100644
  pub const FEATURE_ASSETS_V1: &str = "assets-v1";
  /// A deployment with `containers`. Required because a build without the
  /// container engine would load the manifest, build a `ctx` with no
-@@ -95,6 +101,8 @@ pub const FEATURE_CRON_V1: &str = "cron-v1";
+@@ -95,6 +102,9 @@ pub const FEATURE_CRON_V1: &str = "cron-v1";
  /// application calls, at request time, on a node the developer is not
  /// watching — the gate moves that failure to the deploy.
  pub const FEATURE_R2_V1: &str = "r2-v1";
 +pub const FEATURE_PHYSICAL_R2_V1: &str = "physical-r2-buckets-v1";
 +pub const FEATURE_BINDING_BRANDS_V1: &str = "workers-rs-binding-brands-v1";
++pub const FEATURE_STREAMING_RESPONSE_CLONE_V1: &str = "streaming-response-clone-v1";
  pub const FEATURE_SQLITE_VEC_V1: &str = "sqlite-vec-v1";
  pub const FEATURE_WASM_V1: &str = "wasm-v1";
  /// A deployment whose `main` is a `.py` file. Required because the bundle
@@ -676,7 +715,7 @@ index d7ecbe9..7e6b310 100644
 
  PUT OPTIONS
 diff --git a/crates/celld/r2_store.rs b/crates/celld/r2_store.rs
-index fae7ab8..3897f14 100644
+index fae7ab8..1b04a73 100644
 --- a/crates/celld/r2_store.rs
 +++ b/crates/celld/r2_store.rs
 @@ -2,7 +2,7 @@
@@ -802,7 +841,7 @@ index fae7ab8..3897f14 100644
  /// only right because both sides scope the key the same way.
  pub(crate) async fn head(bucket_name: &str, key: &str) -> Result<Option<BlobMeta>, String> {
 -    store()?
-+    store(&bucket_name)?
++    store(bucket_name)?
          .head_blob(&blob_key(bucket_name, key))
          .await
          .map_err(|error| error.to_string())
@@ -811,7 +850,7 @@ index fae7ab8..3897f14 100644
      conditions: &BlobConditions,
  ) -> Result<BlobRead, String> {
 -    store()?
-+    store(&bucket_name)?
++    store(bucket_name)?
          .get_blob(&blob_key(bucket_name, key), range, conditions)
          .await
          .map_err(|error| error.to_string())
@@ -820,7 +859,7 @@ index fae7ab8..3897f14 100644
  /// Remove every named key. Shared with `celld r2 delete`.
  pub(crate) async fn delete(bucket_name: &str, keys: &[String]) -> Result<(), String> {
 -    let store = store()?;
-+    let store = store(&bucket_name)?;
++    let store = store(bucket_name)?;
      let keys = keys
          .iter()
          .map(|key| blob_key(bucket_name, key))
@@ -829,7 +868,7 @@ index fae7ab8..3897f14 100644
      let request = serde_json::from_str::<ListRequest>(request_json)
          .map_err(|error| format!("invalid R2 list options: {error}"))?;
 -    let store = store()?;
-+    let store = store(&bucket_name)?;
++    let store = store(bucket_name)?;
      let limit = match request.limit.unwrap_or(0) {
          limit if limit > 0 => (limit as usize).min(LIST_LIMIT),
          _ => LIST_LIMIT,

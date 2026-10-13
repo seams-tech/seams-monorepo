@@ -109,6 +109,7 @@ export type ConsoleBillingD1Service = ConsoleBillingService & {
 export interface D1ConsoleBillingServiceOptions {
   database: D1DatabaseLike;
   namespace?: string;
+  ensureSchema?: boolean;
   now?: () => Date;
   providers?: Partial<BillingProviderAdapters>;
   emailConsoleBaseUrl?: string;
@@ -3777,8 +3778,10 @@ async function processStripeWebhookEventD1(input: {
 export async function createD1ConsoleBillingService(
   options: D1ConsoleBillingServiceOptions,
 ): Promise<ConsoleBillingService> {
-  await ensureBillingFundsD1Schema(options.database);
-  await ensureBillingUsageD1Schema(options.database);
+  if (options.ensureSchema !== false) {
+    await ensureBillingFundsD1Schema(options.database);
+    await ensureBillingUsageD1Schema(options.database);
+  }
   const emailConsoleBaseUrl = normalizeEmailConsoleBaseUrl(options.emailConsoleBaseUrl);
   const consoleBaseUrl = normalizeEmailConsoleBaseUrl(
     options.consoleBaseUrl || emailConsoleBaseUrl,

@@ -13,7 +13,11 @@ import {
 import type { ServiceProducerAuthorityV1 } from '../../../packages/console-server-ts/src/accountPlatform/types';
 import { runAccountServiceProvisioning } from '../../../packages/console-server-ts/src/accountPlatform/provisioning';
 import type { D1BillingUsageService } from '../../../packages/console-server-ts/src/billing/usage';
-import type { D1DatabaseLike, D1Row } from '../../../packages/console-server-ts/src/boundary/d1';
+import type {
+  D1DatabaseLike,
+  D1PreparedStatementLike,
+  D1Row,
+} from '../../../packages/console-server-ts/src/boundary/d1';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { WalletServiceProvisioningAdapter } from '../../../packages/wallet-console-server-ts/src/accountPlatform/provisioning';
 import { WalletBillingActivityV1 } from '../../../packages/wallet-console-server-ts/src/billing/activity';
@@ -36,6 +40,25 @@ class Clock {
   at = '2026-10-13T04:00:00.000Z';
   now(): Date {
     return new Date(this.at);
+  }
+}
+
+class MigratedRuntimeDatabase implements D1DatabaseLike {
+  schemaRequests = 0;
+
+  constructor(private readonly database: D1DatabaseLike) {}
+
+  prepare(query: string): D1PreparedStatementLike {
+    return this.database.prepare(query);
+  }
+
+  batch<T = unknown>(statements: readonly D1PreparedStatementLike[]): Promise<readonly T[]> {
+    return this.database.batch<T>(statements);
+  }
+
+  async exec(): Promise<never> {
+    this.schemaRequests += 1;
+    throw new Error('Migrated request handling cannot run schema initialization');
   }
 }
 
@@ -88,14 +111,14 @@ async function migrate(database: D1DatabaseLike): Promise<void> {
 }
 
 async function product(database: D1DatabaseLike, clock: Clock) {
+  const requestDatabase = new MigratedRuntimeDatabase(database);
   const core = await createCloudflareD1AccountServiceBundle({
-    database,
+    database: requestDatabase,
     namespace,
     ensureSchema: false,
     externalDeletionGuard: null,
     now: clock.now.bind(clock),
   });
-  await core.billingUsage.ensureSchema();
   const environments = await createD1ConsoleWalletEnvironmentService({
     database,
     namespace,
@@ -120,7 +143,7 @@ async function product(database: D1DatabaseLike, clock: Clock) {
     platform: core.accountPlatform,
     usage: core.billingUsage,
   });
-  return { core, environments, wallets, executions, monthly };
+  return { core, environments, wallets, executions, monthly, requestDatabase };
 }
 
 type Product = Awaited<ReturnType<typeof product>>;
@@ -450,6 +473,7 @@ test('Wallet monthly producer retains accepted facts across lost replies, restar
           monthlyResources: await rows(database, 'billing_monthly_active_resources'),
           ownerBalance,
           otherBalance,
+          runtimeSchemaRequests: services.requestDatabase.schemaRequests,
           usageEvents,
           outbox,
           sourceReceipts: await rows(database, 'sponsored_call_records'),

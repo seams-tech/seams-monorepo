@@ -93,9 +93,9 @@
       ]
     },
     "seams-monorepo": {
-      "baseRevision": "99ff1e750f273c881dffc17ffa435f75a7295c28",
+      "baseRevision": "cd04fa1cab052d8b3e77e5ffe369885fa0d68840",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 2260,
+      "netLines": -3257,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -110,10 +110,52 @@
           "netLines": 1097
         },
         {
+          "path": "packages/wallet-console-server-ts/package.json",
+          "beforeLines": 55,
+          "afterLines": 53,
+          "netLines": -2
+        },
+        {
+          "path": "packages/wallet-console-server-ts/rolldown.config.ts",
+          "beforeLines": 102,
+          "afterLines": 101,
+          "netLines": -1
+        },
+        {
           "path": "packages/wallet-console-server-ts/src/router/express-adaptor.ts",
           "beforeLines": 51,
           "afterLines": 0,
           "netLines": -51
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/router/express/consoleObservabilityRoutes.ts",
+          "beforeLines": 112,
+          "afterLines": 0,
+          "netLines": -112
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/router/express/createConsoleRouter.ts",
+          "beforeLines": 5085,
+          "afterLines": 0,
+          "netLines": -5085
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/sponsorship/evmRelay.ts",
+          "beforeLines": 363,
+          "afterLines": 243,
+          "netLines": -120
+        },
+        {
+          "path": "packages/wallet-console-server-ts/src/sponsorship/index.ts",
+          "beforeLines": 94,
+          "afterLines": 92,
+          "netLines": -2
+        },
+        {
+          "path": "packages/wallet-console-server-ts/tsconfig.json",
+          "beforeLines": 76,
+          "afterLines": 72,
+          "netLines": -4
         },
         {
           "path": "tests/e2e/celld/linux-runtime.e2e.py",
@@ -142,8 +184,8 @@
         {
           "path": "tests/relayer/console-account-router.test.ts",
           "beforeLines": 506,
-          "afterLines": 512,
-          "netLines": 6
+          "afterLines": 490,
+          "netLines": -16
         },
         {
           "path": "tests/relayer/console-observability.ingestion.test.ts",
@@ -154,8 +196,8 @@
         {
           "path": "tests/relayer/console-sponsored-calls.history.test.ts",
           "beforeLines": 498,
-          "afterLines": 500,
-          "netLines": 2
+          "afterLines": 477,
+          "netLines": -21
         },
         {
           "path": "tests/relayer/console-sponsorship-spend-caps.test.ts",
@@ -168,10 +210,16 @@
           "beforeLines": 546,
           "afterLines": 552,
           "netLines": 6
+        },
+        {
+          "path": "tests/unit/router.consoleRouteSurface.unit.test.ts",
+          "beforeLines": 173,
+          "afterLines": 27,
+          "netLines": -146
         }
       ]
     }
   },
-  "aggregateNetLines": 3363,
-  "netReductionAchieved": false
+  "aggregateNetLines": -2154,
+  "netReductionAchieved": true
 }

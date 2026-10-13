@@ -109,7 +109,7 @@ The local proof checks:
 - Recovery after rejected deployments.
 - Stock-runtime refusal of the patched manifest without rebuilding it.
 
-Keep the classic hosts until the remaining R190 gates pass. A production rollout needs a separately validated build and maintenance procedure.
+The private Console Express host is removed after its Worker behavior checks passed. Public classic-host deletion still requires the remaining R190 gates. A production rollout needs a separately validated build and maintenance procedure.
 
 ## Repeatable build verification
 
@@ -320,5 +320,8 @@ A separate setup run failed registration with `owner_unreachable` immediately af
 That run never reached the recovery hook. It is `environment_or_infrastructure_failure`.
 The harness now adopts the Gateway deployment on the running node. The subsequent complete run passes all 16 contracts.
 
-Remaining gates include full Google Wallet and private Console composition, multiple-node failures,
+Private Console Worker composition passes after its Express host removal. See [Console evidence](evidence/console-worker.json).
+The current aggregate removes 2,154 maintained lines, including the complete runtime patch and acceptance code.
+
+Remaining gates include full Google Wallet and celld Console composition, multiple-node failures,
 relocation, tenant-root retirement/restore, active-deployment inventory, host deletion, and a negative final source delta.

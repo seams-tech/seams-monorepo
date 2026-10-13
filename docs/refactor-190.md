@@ -101,7 +101,7 @@ Paths in this table are relative to `seams-monorepo`.
 
 | Area                  | Current files                                                                                                              | Planned treatment                                                                                   |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Move consumers to the existing Worker/fetch composition, then remove obsolete routes and re-exports |
+| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Removed. Existing Worker/fetch composition owns the retained behavior |
 | Hosted composition    | `packages/wallet-console-server-ts/src/router/cloudflare/`                                                                 | Keep Gateway, Runtime, and Console behavior shared across hosts                                     |
 | Deployment            | `scripts/deploy-backend.mjs`, `deployment/wallet-system/targets.json`                                                      | Extend existing deployment boundaries only as needed for celld                                      |
 | Local runtime         | `scripts/local-wallet/`                                                                                                    | Consume exact packaged Worker releases and the selected runtime configuration                       |
@@ -241,7 +241,7 @@ The user authorized the remaining storage work. Private build `0.6.2-seams.2` ad
 
 Current consumers also prevent immediate adapter deletion. Public lifecycle evidence reads SQLite through
 `nodeSqlite.ts`, and the step-up-expiry and sponsored-account-ownership E2Es use the Node database path.
-Private Console account-router and sponsored-call history tests execute both Express and Worker transports.
+Private Console account-router and sponsored-call history tests now execute the Worker transport. The Express branches were retired with their implementation.
 Preserve their behavioral assertions when changing their launch boundaries.
 These are confirmed consumers, not an exhaustive deletion inventory.
 
@@ -481,7 +481,7 @@ No application host was removed in this checkpoint.
 The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
 This excludes concurrent SDK work from R190's reduction claim.
 It includes the complete maintained patch file, including diff context, and the added acceptance code.
-The checkpoint currently adds 3363 lines. It is preparatory work and does not meet the completion requirement.
+The checkpoint currently removes 2,154 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
 The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
 Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
 
@@ -505,4 +505,28 @@ A separate Google IAM test denies B bucket access, observes application failure,
 The task-owned B grant was restored. These are runtime primitives, so full Wallet and distributed qualification remain open.
 
 The implementation still requires classic-host removal and a net reduction in maintained lines.
-No reduction from concurrent SDK work counts toward R190. The current source checkpoint remains positive.
+No reduction from concurrent SDK work counts toward R190. The later Console deletion makes the current aggregate negative.
+
+
+## October 13 Console host removal
+
+The private Wallet Console now has one Worker/fetch implementation.
+The 5,085-line Express router and 112-line Express observability routes are removed.
+The earlier 51-line re-export facade is also gone.
+The sponsored-EVM module loses 120 lines of unused Express registration and retains its execution functions.
+Its direct Express dependency, type dependency, build external, and TypeScript alias are removed.
+The generic Console package retains independently used Express support outside this Wallet backend.
+
+The account-router and sponsored-call history cases keep their Worker behavior assertions.
+Obsolete Express transport checks are deleted. The existing route declaration ownership checks remain.
+Eight retained route checks and both production Worker composition E2Es pass.
+The package builds, and `pnpm check` passes with existing lint warnings.
+A missing workspace dependency link caused the first check failure; an isolated locked dependency install resolved it.
+See [Console Worker evidence](../deployment/celld/evidence/console-worker.json).
+
+Google full-Wallet qualification remains open. One run reached an Ed25519 export failure;
+the two linked-device contracts then passed six repeated diagnostic runs without reproducing that error.
+A later full run lost the remote runtime listener after seven successful contracts.
+Kernel logs show no OOM event. The SSH session record does not establish the process exit cause.
+The next run uses systemd with automatic restart disabled, warning logs enabled, and recorded exit status.
+No application failure has been dismissed because a repeat run passed.

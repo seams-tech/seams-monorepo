@@ -50,7 +50,6 @@ const external = [
   /^@seams-internal\/console-server(?:\/.*)?$/,
   /^@aws-sdk\/.*/,
   'bs58',
-  'express',
   'tslib',
   /\.wasm$/,
 ];

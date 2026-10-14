@@ -224,7 +224,7 @@ function setTrace(trace, progress) {
   return tip;
 }
 function policyCheck(parent, P) {
-  const check = [P(-1, 5, 2.3), P(2, 10, 2.3), P(9, 0, 2.3)];
+  const check = [P(-3, 7, 2.3), P(0, 12, 2.3), P(7, 2, 2.3)];
   path(parent, HL.open(check));
   return trace(parent, check, 'check');
 }

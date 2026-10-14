@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { createPrivateKey, createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,6 +17,7 @@ const scenarios = await import(
   pathToFileURL(path.join(checkout, 'crates/router-ab-cloudflare/scripts/test-private-d1.mjs'))
 );
 let walletAddresses;
+let backupFaultPending = action === 'run';
 const observer = `let signingPrepare = null;
 export default {
   async fetch(request, env) {
@@ -188,10 +190,19 @@ class Worker {
   constructor(role) {
     this.role = role;
   }
-  fetch(input, options) {
+  async fetch(input, options) {
     const headers = new Headers(options.headers);
     headers.set('x-seams-wallet-object-addresses', JSON.stringify(walletAddresses));
-    return fetch(address + '/' + this.role + new URL(input).pathname, { ...options, headers });
+    const target = address + '/' + this.role + new URL(input).pathname;
+    if (
+      backupFaultPending &&
+      this.role === 'router' &&
+      new URL(input).pathname === '/router-ab/internal/tenant-root/restore/v1/execute'
+    ) {
+      backupFaultPending = false;
+      await verifyUnavailableBackup(target, { ...options, headers });
+    }
+    return fetch(target, { ...options, headers });
   }
 }
 
@@ -214,6 +225,111 @@ const topology = {
   },
 };
 const databases = { deriverA: new Database('deriver-a'), deriverB: new Database('deriver-b') };
+
+function storageCommand(args) {
+  const endpoint = new URL(process.env.S3_ENDPOINT);
+  assert.equal(endpoint.hostname, '127.0.0.1', 'Fault injection requires the local emulator');
+  return spawnSync('aws', ['--endpoint-url', endpoint.href, 's3api', ...args], {
+    encoding: 'utf8',
+    timeout: 10_000,
+  });
+}
+
+function requireStorageSuccess(args) {
+  const result = storageCommand(args);
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout;
+}
+
+function rootMetadata(database) {
+  return database
+    .prepare(
+      `SELECT tenant_identity_digest_hex, custody_lineage_b64u, tenant_root_share_epoch, lifecycle
+       FROM tenant_root_role_shares
+       ORDER BY tenant_identity_digest_hex, custody_lineage_b64u, tenant_root_share_epoch`,
+    )
+    .all();
+}
+
+async function verifyUnavailableBackup(target, options) {
+  const aKeys = JSON.parse(
+    requireStorageSuccess(['list-objects-v2', '--bucket', 'backup-deriver-a']),
+  );
+  const bKeys = JSON.parse(
+    requireStorageSuccess(['list-objects-v2', '--bucket', 'backup-deriver-b']),
+  );
+  const aRead = [
+    'get-object',
+    '--bucket',
+    'backup-deriver-a',
+    '--key',
+    aKeys.Contents[0].Key,
+    '/dev/null',
+  ];
+  const bRead = [
+    'get-object',
+    '--bucket',
+    'backup-deriver-b',
+    '--key',
+    bKeys.Contents[0].Key,
+    '/dev/null',
+  ];
+  requireStorageSuccess(aRead);
+  const before = await Promise.all([
+    rootMetadata(databases.deriverA),
+    rootMetadata(databases.deriverB),
+  ]);
+  requireStorageSuccess([
+    'put-bucket-policy',
+    '--bucket',
+    'backup-deriver-a',
+    '--policy',
+    JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Deny',
+          Principal: '*',
+          Action: 's3:GetObject',
+          Resource: 'arn:aws:s3:::backup-deriver-a/*',
+        },
+      ],
+    }),
+  ]);
+  try {
+    const denied = storageCommand(aRead);
+    assert.notEqual(denied.status, 0, 'The provider fault must deny an existing A backup');
+    assert.match(denied.stderr, /403|Forbidden/);
+    requireStorageSuccess(bRead);
+    const response = await fetch(target, options);
+    const body = await response.text();
+    assert.equal(response.status, 500, body);
+    const after = await Promise.all([
+      rootMetadata(databases.deriverA),
+      rootMetadata(databases.deriverB),
+    ]);
+    assert.deepEqual(
+      after.map(rootRows),
+      before.map(rootRows),
+      'A denied backup must not advance role-share lifecycle',
+    );
+    await save('backup-refusal.json', {
+      deniedRole: 'deriver-a',
+      independentRoleReadable: 'deriver-b',
+      providerReadStatus: 403,
+      restoreStatus: response.status,
+      restoreBody: body,
+      roleShareMetadataUnchanged: true,
+    });
+  } finally {
+    requireStorageSuccess(['delete-bucket-policy', '--bucket', 'backup-deriver-a']);
+  }
+  requireStorageSuccess(aRead);
+}
+
+function rootRows(result) {
+  return result.results;
+}
 
 async function run() {
   const fixture = await read('restore-fixture.json');

@@ -742,6 +742,30 @@ The aggregate maintained source reduction is now 32,946 lines.
 | The runtime cannot finish the measured shutdown | Three control exits and exact durable-state checks pass | Contradicted for this scenario |
 | Health readiness directly measures request admission | Application state checks passed before the health 503 | The test now measures application admission directly |
 
+## October 14 backup-read refusal checkpoint
+
+The existing restore runner now denies real object reads from the local A backup bucket.
+It first proves that A's object is readable. During denial, A returns 403 and B remains readable.
+The authorized restore returns a backup-lookup failure. Selected role-share identity, lineage, epoch, and lifecycle metadata remain unchanged.
+After the policy is removed, A becomes readable and the identical authorized request completes restore and forward refresh.
+The subsequent shutdown, upgrade, incompatible-downgrade refusal, and stored-signature checks also pass.
+See [backup-read refusal evidence](../deployment/celld/evidence/backup-read-refusal.json).
+
+The first fault instrument used HEAD, which the local emulator allowed despite the GET denial policy.
+An isolated control measured GET 200 before denial, HEAD 200 under denial, and GET 403 under denial.
+This was `valid_test_needs_update`. The corrected test uses GET for its access controls.
+No production request path, runtime patch, database call, or blocking validation changed.
+
+| Candidate cause of the initial fault-check failure | Measurement | Conclusion |
+| --- | --- | --- |
+| The deny policy does not block reads | GET returns 403 under the same policy | Contradicted |
+| HEAD does not exercise the denied action in this emulator | HEAD remains 200 while GET becomes 403 | Supported |
+| Wallet restore bypasses the denied backup | The initial instrument failed before calling restore; the corrected run reports backup lookup failure | Not supported by either run |
+
+This covers local simulated read denial with one missing A share. GCS IAM, provider outages, retirement failures, and both-share loss remain open.
+The metadata comparison excludes share bytes and other restore tables.
+The aggregate maintained source reduction is now 32,829 lines.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

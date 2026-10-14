@@ -211,6 +211,7 @@ def main():
             directory, environment, "restore.log", timeout=240,
         )
         result["scenario"] = json.loads((directory / "restore-result.json").read_text())
+        result["backupReadFailure"] = json.loads((directory / "backup-refusal.json").read_text())
         result["stage"] = "offline-upgrade"
         result["shutdownBeforeUpgrade"] = stop_runtime(node, directory, address)
         processes.remove(node)

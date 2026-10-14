@@ -243,6 +243,12 @@ Each run retains its source copies, source and package hashes, native logs, and 
 
 This qualifies an offline local upgrade for these tenant-root records and consumed ECDSA material.
 It does not qualify live claims during upgrade, mixed-version serving, all-replica recovery, or a provider storage partition.
+The same local runner also injects a GET denial in the A backup bucket after one A share is removed.
+It verifies B remains readable, restore fails, and selected role-share metadata does not advance.
+After access returns, the identical authorized restore request must complete the existing restore and refresh assertions.
+This synthetic S3 case does not qualify GCS IAM or loss of both shares.
+See [backup-read refusal evidence](evidence/backup-read-refusal.json).
+
 The runner now allows the existing 45-second service stop bound and requires exit status zero after SIGTERM.
 It holds an admitted observer request, checks that a new application request receives the explicit draining refusal,
 and releases the held request to replay the exact stored signature through the Router.

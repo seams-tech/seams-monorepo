@@ -119,7 +119,7 @@ export class SatyrAccountOnboarding {
     private readonly producer: AuthenticatedAccountServiceProducerV1,
     private readonly provisioning: AccountServiceProvisioningAdapterV1,
     private readonly waitUntil: (work: Promise<unknown>) => void,
-    private readonly googleFetch: typeof fetch = fetch,
+    private readonly googleFetch: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {}
 
   async fetch(request: Request): Promise<Response> {
@@ -149,7 +149,12 @@ export class SatyrAccountOnboarding {
           fetchImpl: this.googleFetch,
         });
         const identity = await provider.verifyGoogleLogin({ idToken: googleIdToken });
-        if (!identity.ok || identity.sub !== assertion.subject || identity.emailVerified !== true)
+        if (!identity.ok) {
+          if (identity.code === 'internal' || identity.code === 'not_configured')
+            return rejected('authority_unavailable', 503);
+          return rejected('scope_forbidden');
+        }
+        if (identity.sub !== assertion.subject || identity.emailVerified !== true)
           return rejected('scope_forbidden');
         await this.services.serviceAccess.recordVerifiedGoogleIdentity(
           identity,

@@ -343,6 +343,33 @@ Live checks verify the acceptance page, Wallet redirect, token removal from the
 address, anonymous rejection, invalid-link rejection, and return to account settings.
 Staging captures account emails locally. No external invitation message was sent.
 
+Manual Satyr sign-in reached the callback after browser control was canceled.
+An earlier callback then failed state validation. A fresh attempt passed Google
+verification in Satyr but failed the Platform account link with `scope_forbidden`.
+The private trace places that failure in Platform's Google verifier, after signed
+request and body-digest checks passed.
+
+The production account entrypoint passed the Worker's global `fetch` as an unbound
+callback. The Google-key loader invokes that callback as an object method, which
+causes an illegal-invocation error in workerd. The native provisioning transport
+had the same wiring defect. Both callbacks now use the existing bound-fetch pattern.
+Provider failures return `authority_unavailable`; invalid identities still fail closed.
+
+The new `satyr-account-worker.e2e.test.ts` runs the actual bundled production
+entrypoint in workerd. It intercepts provider HTTP at the runtime boundary and
+retains native global fetch. The journey verifies a provider outage, a rejected
+identity mismatch, account/project creation, one Satyr provision, and replay.
+It writes an artifact digest and sanitized results. Run it against the Worker bundle:
+
+```sh
+SEAMS_CONSOLE_WORKER_ARTIFACT=/absolute/path/to/d1ConsoleStagingWorker.js \
+  pnpm -C tests exec playwright test -c playwright.config.ts \
+  e2e/console/satyr-account-worker.e2e.test.ts --reporter=line
+```
+
+The local workerd binary supports July 17, 2026. The live Worker uses July 18.
+Live sign-in remains the final check of that runtime difference.
+
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
 encryption keys, and service-signing keys. The private account binding targets
@@ -399,8 +426,8 @@ Remaining actions, in order:
 1. Complete live Satyr sign-in and automatic setup. The approved Google redirect
    is saved and verified on the existing Satyr Portal client:
    `https://staging.satyr.seams.sh/v1/control/auth/google/callback`.
-   Chrome blocks the callback with `ERR_BLOCKED_BY_CLIENT`, including a fresh
-   sign-in attempt. Its cause is unresolved. Browser protections remain unchanged.
+   Keep browser control canceled for the manual sign-in check. Browser protections
+   remain unchanged. Repeat a fresh sign-in after the account Worker fix is deployed.
 2. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker

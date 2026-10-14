@@ -55,7 +55,7 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
       const provisioning = createSatyrProvisioningAdapterFromEnvironment(
         this.env,
         services.serviceAccess,
-        fetch,
+        globalThis.fetch.bind(globalThis),
       );
       if (!producer || !provisioning)
         return Response.json(

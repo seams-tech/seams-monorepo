@@ -1,5 +1,7 @@
 # Clean switch of every lane to Singapore
 
+Current staging Console database: see the [October 14 data-preserving migration](evidence/console-d1-migration-20261014.md). The earlier database IDs below are historical.
+
 Started October 13, 2026 (JST). Owner decision of October 12 and 13: the APAC
 components of a lane run in one place, Singapore; no lane is live, so every
 existing wallet and all data are discarded; downtime is accepted.

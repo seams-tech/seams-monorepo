@@ -1,7 +1,7 @@
 # Separate Platform and Wallet consoles
 
-Status: frontend separation, account-route isolation, and deployment commands are implemented locally on `codex/feat-2-platform-console`.
-Staging and production domain cutovers remain pending.
+Status: implementation is committed on `codex/feat-2-platform-console`. The staging backend and frontend artifacts are deployed.
+Staging DNS, identity-provider acceptance, and production cutover remain pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -167,7 +167,7 @@ repeat the completed account, billing, and migration acceptance work without cau
 1. Confirm the actual deployment state of earlier account-platform fixes and bindings.
    Keep this rollout separate from the deferred production Wallet rollout.
 2. Deploy the two frontend outputs to `staging.console.seams.sh` and
-   `staging.console.wallet.seams.sh`. Coordinate `staging.satyr.seams.sh` in Satyr's
+   `console.staging.wallet.seams.sh`. Coordinate `staging.satyr.seams.sh` in Satyr's
    repository. Preserve existing Wallet API and signing staging origins.
 3. Route each Console's allowed API paths to the existing Console Worker at the edge.
    Keep same-origin browser requests where practical. Add no server proxy hop.
@@ -241,10 +241,21 @@ Local validation and evidence:
   traces, the initial worktree snapshot, and Cloudflare prerequisite observations.
   The Platform JavaScript source maps contain no Wallet SDK source modules.
 
-No staging or production deployment occurred in this implementation. Cloudflare
-CLI authentication is available, but the local shell lacks the deployment API token,
-account ID, and the two new Pages project mappings. The inspected Pages project list
-contains no dedicated Platform or Wallet Console projects.
+Staging rollout began on October 15, 2026. Protected Console credentials were
+available in the existing local deployment file. Both staging Console Pages projects
+now exist, and their project mappings are configured in the staging GitHub environment.
+The active staging database backup and recovery bookmark were captured before applying
+`0098_account_delivery.sql`. No migrations remain pending on that database.
+
+The staging Wallet Console uses `console.staging.wallet.seams.sh`. Its hostname is
+inside the existing Console security relying-party ID, `staging.wallet.seams.sh`.
+The earlier `staging.console.wallet.seams.sh` hostname could not use those credentials.
+Production retains `console.wallet.seams.sh`. Wallet signing relying-party IDs are unchanged.
+
+The available Cloudflare credentials can deploy Workers and Pages, but DNS creation
+returns HTTP 403. Custom domains are registered and await DNS validation. Google
+JavaScript origins also require configuration. Existing login and Console security
+origins remain active while those prerequisites are incomplete.
 
 Complete rollout in this order:
 
@@ -265,3 +276,31 @@ Complete rollout in this order:
 
 Keep the deferred Wallet runtime rollout separate. No production cutover is implied
 by a green local test or by this branch's deployment configuration.
+
+## Remaining staging actions
+
+Add these proxied CNAME records in the existing `seams.sh` DNS zone:
+
+| Name                     | Target                                     |
+| ------------------------ | ------------------------------------------ |
+| `staging.console`        | `seams-platform-console-staging.pages.dev` |
+| `console.staging.wallet` | `seams-wallet-console-staging.pages.dev`   |
+
+In Google Cloud project `seams-501403`, add these Authorized JavaScript origins to
+the existing web OAuth client. Keep its current origins and client identity:
+
+- `https://staging.console.seams.sh`
+- `https://console.staging.wallet.seams.sh`
+
+GitHub callback selection now follows only approved Console origins. This keeps
+OAuth browser state on the initiating frontend. The same callback URI reaches the
+server-side code exchange. Unapproved origins cannot select a new callback.
+
+After DNS and Google configuration, verify both custom domains, real sign-in,
+reauthentication, context selection, billing, and Console passkey step-up. Then change
+the existing Console base URL and security origin to their generated cutover values.
+Keep the current staging entrypoints until acceptance passes. Production remains unchanged.
+
+Staging has no configured Satyr account-service identity or provisioning connection.
+Native Satyr onboarding acceptance requires that separate connection and deployment.
+Shared account access must continue to work while Satyr is unavailable.

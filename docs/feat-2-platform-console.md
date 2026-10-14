@@ -274,23 +274,26 @@ Google JavaScript origins and exact GitHub callbacks were saved in the existing 
 
 Deployed staging artifacts:
 
-| Component                                               | Version or deployment identifier       | Verified result                                                                 |
-| ------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
-| Existing Console Worker                                 | `53dbddce-d846-4c53-990e-0e5217c38e7b` | Shared account readiness passes; private Satyr staging connection is configured |
-| Platform Pages project `seams-platform-console-staging` | `acdc1857-26cd-417d-a2b1-d724959c6ced` | `/dashboard/login` returns HTTP 200 on its custom hostname                      |
-| Wallet Pages project `seams-console-wallet-staging`     | `3132b4b2-426a-49d8-bf02-2648355e10ea` | Google sign-in opens the requested project on the Wallet hostname               |
+| Component                                               | Version or deployment identifier       | Verified result                                                                                      |
+| ------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Existing Console Worker                                 | `201bf499-08a6-4741-b9f2-38dd1b126b15` | Invitation redemption and shared account readiness pass; private Satyr connection remains configured |
+| Platform Pages project `seams-platform-console-staging` | `b7980093-1906-439c-bac7-f5375b4f3043` | Invitation acceptance loads on its custom hostname                                                   |
+| Wallet Pages project `seams-console-wallet-staging`     | `607ce87f-6746-4b47-ad20-928e262dfacf` | Wallet invitation links open Platform; existing Wallet access remains available                      |
 
 The first Wallet Pages project returned HTTP 522 for static files. The same artifact
 serves successfully from the replacement project above. The staging CI mapping now
 selects that replacement. Production deployments are unchanged.
 
 The Worker retains the existing database, service bindings, secrets, and placement.
-Its source revision is `89b317ba60b72f6de03a9f21d74c6ac07fdfea30`. The latest Worker
-deployment adds the Satyr connection through the existing configuration boundary.
-The same payload, existing secret bindings, database bindings, service bindings,
-and placement are preserved. Two separate provisioning secrets were added.
-Worker version `606f4f0d-e5e5-4803-a83d-129c2773a56b` provides immediate rollback to
-the state before the Satyr connection, with the new Console origins intact.
+Its source revision is `42e6693c7c7e6df8caa17cce01e8a71150441542`. The latest Worker
+deployment adds invitation redemption through the current hosted authentication
+boundary. Secret bindings, database bindings, service bindings, placement, and
+security origins match the previous deployment. No migration was required.
+Worker version `53dbddce-d846-4c53-990e-0e5217c38e7b` provides immediate rollback to
+the state before invitation acceptance, with the Satyr connection and new origins intact.
+The earlier Satyr connection added two separate provisioning secrets through the
+existing configuration boundary. Version `606f4f0d-e5e5-4803-a83d-129c2773a56b`
+remains available for rollback before that connection.
 Compatible post-migration version
 `5fce7e3c-ff91-488d-a880-7dc2b6eb2ac2` remains available. Keep migration `0098` applied.
 
@@ -305,7 +308,7 @@ with a new identity still opens Platform onboarding. The fixed callback preserve
 account and project hints in existing UI preferences. The destination resolves them
 against authenticated account and project lists before Wallet setup can run.
 
-Frontend revision `6c1e149bf3ea8c95d201a5847185bfe6f158049d` contains this fix.
+Frontend revision `6c1e149bf3ea8c95d201a5847185bfe6f158049d` introduced this fix.
 Real Wallet Google sign-in opens the existing staging account and project. Wallet's
 existing active instance and three environments are confirmed by read-only database
 queries. New automatic provisioning is verified by the isolated browser journey.
@@ -329,6 +332,16 @@ organization session through the current signing code. No schema change is requi
 The browser journey verifies a recipient with no developer account, wrong accounts,
 invalid tokens, replay, revoked links, and preserved project access. It also confirms
 that Platform acceptance sends no Wallet provisioning request.
+
+Invitation acceptance is deployed from revision
+`42e6693c7c7e6df8caa17cce01e8a71150441542`. The release snapshot uses a fresh
+frozen-lockfile install of Wallet packages `0.10.2`. It excludes local package
+overrides and unrelated working changes. Both builds and release type checks pass.
+Five focused tests pass against the release snapshot, including the browser journey.
+`pnpm check` also passes in the main checkout. Platform includes no Wallet SDK source.
+Live checks verify the acceptance page, Wallet redirect, token removal from the
+address, anonymous rejection, invalid-link rejection, and return to account settings.
+Staging captures account emails locally. No external invitation message was sent.
 
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
@@ -388,10 +401,7 @@ Remaining actions, in order:
    `https://staging.satyr.seams.sh/v1/control/auth/google/callback`.
    Chrome blocks the callback with `ERR_BLOCKED_BY_CLIENT`, including a fresh
    sign-in attempt. Its cause is unresolved. Browser protections remain unchanged.
-2. Deploy invitation acceptance to staging and check the live acceptance page.
-   Its isolated browser journey passes. Staging captures account email locally,
-   so this change does not send messages to external recipients.
-3. Repeat the verified sequence for production after staging acceptance passes.
+2. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker
    lacks the source configuration's `ACCOUNT_PLATFORM` binding.

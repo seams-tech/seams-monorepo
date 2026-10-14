@@ -36,7 +36,8 @@ function getLayout(gallery) {
   let inactiveInert = true;
   for (const element of inactive) inactiveInert = inactiveInert && element.inert;
   return {
-    component: active.querySelector('article').dataset.preview,
+    component: active.querySelector('[data-preview]').dataset.preview,
+    centered: Math.abs((card.left + card.right) / 2 - (viewport.left + viewport.right) / 2) < 1,
     cardFits:
       card.left >= viewport.left &&
       card.right <= viewport.right &&
@@ -53,6 +54,7 @@ function getLayout(gallery) {
 
 function assertLayout(layout) {
   assert.equal(layout.cardFits, true, `${layout.component} fits the canvas`);
+  assert.equal(layout.centered, true, `${layout.component} remains centered after focus changes`);
   assert.equal(layout.railFits, true, 'The component rail fits the screen');
   assert.equal(layout.pageFits, true, 'The page has no horizontal overflow');
   assert.equal(layout.inactiveInert, true, 'Background previews cannot receive focus');
@@ -73,7 +75,26 @@ async function finishSceneMovement(gallery) {
 async function capture(gallery, name) {
   await settle(gallery);
   assertLayout(await gallery.evaluate(getLayout));
-  await gallery.screenshot({ path: `${artifacts}/${name}.png` });
+  await gallery.evaluate(positionForCapture);
+  const bounds = await gallery.boundingBox();
+  assert.ok(bounds);
+  const page = gallery.page();
+  await page.screenshot({
+    path: `${artifacts}/${name}.png`,
+    clip: {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height + 24,
+    },
+  });
+}
+
+function positionForCapture(gallery) {
+  window.scrollTo({
+    top: window.scrollY + gallery.getBoundingClientRect().top - 96,
+    behavior: 'instant',
+  });
 }
 
 function cursorFrame(gallery, phase) {
@@ -132,7 +153,7 @@ try {
   await gallery.evaluate(resumeCursor);
   await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible();
   await expect(gallery.getByRole('button', { name: 'Back to preview' })).not.toBeFocused();
-  await gallery.getByRole('button', { name: 'Pause demo' }).click();
+  await gallery.getByRole('button', { name: 'Back to preview' }).hover();
   await expect(gallery.locator('.showcase-preview__result[data-source="demo"]')).toHaveCSS(
     'animation-play-state',
     'paused',
@@ -140,15 +161,14 @@ try {
   await page.waitForTimeout(2800);
   await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible();
   await gallery.screenshot({ path: `${artifacts}/desktop-autoplay-result.png` });
-  await gallery.getByRole('button', { name: 'Play demo' }).focus();
-  await page.keyboard.press('Enter');
+  await page.mouse.move(10, 10);
   await expect(
     gallery.getByRole('heading', { name: 'Create your wallet', exact: true }),
   ).toBeVisible();
   await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible({
     timeout: 8000,
   });
-  await gallery.getByRole('button', { name: 'Pause demo' }).click();
+  await gallery.getByRole('button', { name: 'Back to preview' }).hover();
   await gallery.getByRole('radio', { name: 'Unlock', exact: true }).check();
   await gallery.getByRole('radio', { name: 'Create wallet', exact: true }).check();
   await capture(gallery, 'desktop-authentication');
@@ -215,6 +235,46 @@ try {
   await expect(gallery.getByRole('button', { name: 'Pay $24.00', exact: true })).toBeVisible();
   await capture(gallery, 'desktop-checkout');
 
+  // The original installed-SDK examples remain interactive within the moving canvas.
+  await gallery.getByRole('radio', { name: 'Transactions', exact: true }).check();
+  await gallery.getByRole('button', { name: 'Previous component' }).click();
+  await expect(
+    gallery.getByRole('radio', { name: 'Transaction modal', exact: true }),
+  ).toBeChecked();
+  await settle(gallery);
+  const modal = gallery.frameLocator('iframe[title="Transaction modal demo"]');
+  await expect(modal.getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
+  await capture(gallery, 'desktop-transaction-modal');
+  await modal.getByRole('button', { name: 'Confirm with passkey' }).click();
+  await expect(modal.getByRole('status').filter({ hasText: 'Transaction complete' })).toBeVisible({
+    timeout: 10000,
+  });
+  await capture(gallery, 'desktop-transaction-modal-complete');
+  await gallery.getByRole('button', { name: 'Next component' }).click();
+  await expect(gallery.getByRole('radio', { name: 'Transfer', exact: true })).toBeChecked();
+  await expect(gallery.locator('iframe')).toHaveCount(0);
+
+  await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
+  await gallery.getByRole('radio', { name: 'Prediction market', exact: true }).check();
+  await settle(gallery);
+  const market = gallery.frameLocator('iframe[title="Prediction market custom component demo"]');
+  await market.getByRole('radio', { name: /No/ }).check();
+  await market.getByRole('button', { name: 'Buy No', exact: true }).click();
+  await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
+  await expect(market.getByText('No positions', { exact: true })).toBeVisible();
+  await capture(gallery, 'desktop-prediction-review');
+  await market.getByRole('button', { name: 'Confirm in wallet' }).click();
+  const marketWallet = market.frameLocator('iframe');
+  await expect(marketWallet.locator('.seams-confirmation-modal--hosted')).toBeFocused();
+  await marketWallet.getByRole('button', { name: 'Confirm with passkey' }).click();
+  await expect(
+    marketWallet.getByRole('status').filter({ hasText: 'Transaction complete' }),
+  ).toBeVisible({
+    timeout: 10000,
+  });
+  await capture(gallery, 'desktop-prediction-complete');
+  await gallery.getByRole('radio', { name: 'Payment', exact: true }).check();
+
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(cursor).toBeHidden();
   const checked = [];
@@ -233,6 +293,20 @@ try {
     await capture(gallery, `mobile-${width}-security`);
     await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
     await capture(gallery, `mobile-${width}-checkout`);
+    await gallery.getByRole('radio', { name: 'Transactions', exact: true }).check();
+    await gallery.getByRole('radio', { name: 'Transaction modal', exact: true }).check();
+    await settle(gallery);
+    await expect(modal.getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
+    await capture(gallery, `mobile-${width}-transaction-modal`);
+    await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
+    await gallery.getByRole('radio', { name: 'Prediction market', exact: true }).check();
+    await settle(gallery);
+    await market.getByRole('button', { name: 'Buy Yes', exact: true }).click();
+    await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
+    await capture(gallery, `mobile-${width}-prediction-review`);
+    await market.getByRole('button', { name: 'Confirm in wallet' }).click();
+    await expect(marketWallet.getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
+    await capture(gallery, `mobile-${width}-prediction-approval`);
   }
   const touchContext = await browser.newContext({
     viewport: { width: 390, height: 1000 },
@@ -258,6 +332,10 @@ try {
         passed: true,
         cursor: 'action, result, pause, reset, replay, keyboard, reduced motion, touch',
         diagonalMovement: true,
+        embeddedExamples: [
+          'transaction modal approval and receipt',
+          'prediction market review, wallet approval, and receipt',
+        ],
         checked,
         errors,
       },

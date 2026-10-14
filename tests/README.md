@@ -8,13 +8,15 @@ private Console composition and deployed product flows.
 
 The wallet marketing page owns the canvas in `apps/wallet-console/src/pages/wallet/`.
 The Seams homepage does not mount it. Four category controls and a floating rail
-select twelve simulated previews. Staggered positions produce diagonal transitions.
+select twelve simulated previews plus the installed SDK transaction modal and prediction-market custom review. Staggered positions produce diagonal transitions.
 
 On a visible desktop canvas, the cursor runs the preview's local action, shows its
-result, then resets for replay. The Pause demo control stops playback. Hover, keyboard
-focus, and an offscreen canvas also pause it. Reduced-motion and touch modes use
+result, then resets for replay. Hover, keyboard focus, and an offscreen canvas pause it. Reduced-motion and touch modes use
 manual controls. Automatic playback never moves focus or connects a real wallet.
 Manual results remain visible until the user returns or selects another component.
+The two installed SDK examples use their existing sample-data pages and run only
+when selected. The canvas is flush with the page dividers and uses monochrome
+controls, with round previous/next buttons and a dot selector.
 
 With the local frontend running, execute from the repository root:
 

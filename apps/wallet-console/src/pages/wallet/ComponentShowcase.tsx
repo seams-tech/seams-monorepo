@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers2, Pause, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import './component-showcase.css';
 
@@ -10,9 +10,11 @@ export type PreviewId =
   | 'transfer'
   | 'contract'
   | 'receipt'
+  | 'transaction-modal'
   | 'payment'
   | 'methods'
   | 'paid'
+  | 'prediction-market'
   | 'profile'
   | 'devices'
   | 'security';
@@ -34,9 +36,17 @@ const previews: readonly Preview[] = [
   { id: 'transfer', category: 'transactions', label: 'Transfer', x: 420, y: 100 },
   { id: 'contract', category: 'transactions', label: 'Contract call', x: 500, y: 690 },
   { id: 'receipt', category: 'transactions', label: 'Receipt', x: 350, y: 1280 },
+  {
+    id: 'transaction-modal',
+    category: 'transactions',
+    label: 'Transaction modal',
+    x: 460,
+    y: 1870,
+  },
   { id: 'payment', category: 'checkout', label: 'Payment', x: 840, y: -70 },
   { id: 'methods', category: 'checkout', label: 'Payment method', x: 920, y: 520 },
   { id: 'paid', category: 'checkout', label: 'Confirmation', x: 770, y: 1110 },
+  { id: 'prediction-market', category: 'checkout', label: 'Prediction market', x: 880, y: 1700 },
   { id: 'profile', category: 'account', label: 'Profile', x: 1260, y: 60 },
   { id: 'devices', category: 'account', label: 'Devices', x: 1340, y: 650 },
   { id: 'security', category: 'account', label: 'Security', x: 1190, y: 1240 },
@@ -48,13 +58,6 @@ const categories: readonly { id: Category; label: string; first: PreviewId }[] =
   { id: 'checkout', label: 'Checkout', first: 'payment' },
   { id: 'account', label: 'Account', first: 'profile' },
 ];
-
-const captions: Record<Category, string> = {
-  authentication: 'A first impression that feels familiar.',
-  transactions: 'Every detail, before you approve.',
-  checkout: 'From choosing to yours, in a moment.',
-  account: 'Your wallet. Wherever you are.',
-};
 
 // Parse the radio value at the DOM boundary. Selection alone determines its category.
 function readPreview(value: string): Preview | null {
@@ -73,16 +76,17 @@ function selectPreview(
   if (preview !== null) setPreview(preview);
 }
 
-function togglePlayback(
-  setPlaying: React.Dispatch<React.SetStateAction<boolean>>,
-  playing: boolean,
-  event: React.MouseEvent<HTMLButtonElement>,
+function stepPreview(
+  setSelected: React.Dispatch<React.SetStateAction<Preview>>,
+  selected: Preview,
+  direction: -1 | 1,
 ): void {
-  setPlaying(!playing);
-  if (!playing) {
-    const showcase = event.currentTarget.closest<HTMLElement>('.component-showcase');
-    if (showcase !== null) showcase.dataset.motion = 'playback';
+  const siblings: Preview[] = [];
+  for (const preview of previews) {
+    if (preview.category === selected.category) siblings.push(preview);
   }
+  const index = siblings.indexOf(selected);
+  setSelected(siblings[(index + direction + siblings.length) % siblings.length]);
 }
 
 function setPointerMotion(event: React.PointerEvent<HTMLElement>): void {
@@ -141,18 +145,22 @@ function renderCategory(
 function renderRailChoice(selected: Preview, preview: Preview): React.JSX.Element | null {
   if (preview.category !== selected.category) return null;
   return (
-    <label className="component-showcase__choice" key={preview.id}>
+    <label
+      className="component-showcase__choice component-showcase__dot-choice"
+      key={preview.id}
+      title={preview.label}
+    >
       <input
         type="radio"
         name="showcase-component"
         value={preview.id}
         checked={preview.id === selected.id}
+        aria-label={preview.label}
         aria-controls="showcase-canvas"
         readOnly
       />
-      <span>
-        <span className="component-showcase__dot" />
-        {preview.label}
+      <span aria-hidden="true">
+        <span className={`h2-pager__dot${preview.id === selected.id ? ' is-active' : ''}`} />
       </span>
     </label>
   );
@@ -176,31 +184,15 @@ function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
 
 export function ComponentShowcase(): React.JSX.Element {
   const [selected, setSelected] = React.useState<Preview>(previews[0]);
-  const [playing, setPlaying] = React.useState(true);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
 
   return (
     <section
-      className="component-showcase"
+      className="component-showcase h2-rule"
       aria-label="Wallet component showcase"
-      data-playing={playing}
       onPointerDownCapture={setPointerMotion}
       onKeyDownCapture={setKeyboardMotion}
     >
-      <div className="component-showcase__heading">
-        <span>
-          <Layers2 aria-hidden /> The wallet, in components
-        </span>
-        <button
-          type="button"
-          className="component-showcase__playback"
-          onClick={togglePlayback.bind(null, setPlaying, playing)}
-          aria-pressed={playing}
-        >
-          {playing ? <Pause aria-hidden /> : <Play aria-hidden />}
-          {playing ? 'Pause demo' : 'Play demo'}
-        </button>
-      </div>
       <div className="component-showcase__frame">
         <div
           className="component-showcase__categories"
@@ -241,18 +233,34 @@ export function ComponentShowcase(): React.JSX.Element {
           <div className="component-showcase__fade" aria-hidden="true" />
         </div>
       </div>
-      <div
-        className="component-showcase__rail"
-        role="radiogroup"
-        aria-label={`${selected.category} components`}
-        onChange={selectPreview.bind(null, setSelected)}
-      >
-        {previews.map(renderRailChoice.bind(null, selected))}
+      <div className="component-showcase__navigation">
+        <div className="component-showcase__rail" aria-label="Component navigation">
+          <button
+            type="button"
+            className="h2-pager__btn"
+            aria-label="Previous component"
+            onClick={stepPreview.bind(null, setSelected, selected, -1)}
+          >
+            <ChevronLeft aria-hidden />
+          </button>
+          <div
+            className="h2-pager__dots"
+            role="radiogroup"
+            aria-label={`${selected.category} components`}
+            onChange={selectPreview.bind(null, setSelected)}
+          >
+            {previews.map(renderRailChoice.bind(null, selected))}
+          </div>
+          <button
+            type="button"
+            className="h2-pager__btn"
+            aria-label="Next component"
+            onClick={stepPreview.bind(null, setSelected, selected, 1)}
+          >
+            <ChevronRight aria-hidden />
+          </button>
+        </div>
       </div>
-      <p className="component-showcase__caption" aria-live="polite">
-        <span>{selected.label}</span>
-        {captions[selected.category]}
-      </p>
     </section>
   );
 }

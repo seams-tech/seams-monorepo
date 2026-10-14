@@ -267,6 +267,28 @@ function PaymentMethods(): React.JSX.Element {
 
 function previewContent(id: PreviewId): React.JSX.Element {
   switch (id) {
+    case 'transaction-modal':
+      return (
+        <>
+          <div className="showcase-preview__icon">
+            <Fingerprint aria-hidden />
+          </div>
+          <h3>Transaction modal</h3>
+          <p className="showcase-preview__subtitle">
+            Review, approve, and follow a sample transfer.
+          </p>
+        </>
+      );
+    case 'prediction-market':
+      return (
+        <>
+          <div className="showcase-preview__icon">
+            <Layers2 aria-hidden />
+          </div>
+          <h3>Prediction market</h3>
+          <p className="showcase-preview__subtitle">Your custom review, then wallet approval.</p>
+        </>
+      );
     case 'create':
       return (
         <>
@@ -603,6 +625,21 @@ function assertNever(value: never): never {
 
 export function ComponentPreview({ id, active }: PreviewProps): React.JSX.Element {
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
+  if (active && (id === 'transaction-modal' || id === 'prediction-market')) {
+    const route = id === 'transaction-modal' ? 'transaction' : 'checkout';
+    const title =
+      id === 'transaction-modal'
+        ? 'Transaction modal demo'
+        : 'Prediction market custom component demo';
+    return (
+      <iframe
+        className="showcase-preview__embed"
+        data-preview={id}
+        title={title}
+        src={`${import.meta.env.BASE_URL}showcase/${route}/`}
+      />
+    );
+  }
   return (
     <article
       className="showcase-preview"

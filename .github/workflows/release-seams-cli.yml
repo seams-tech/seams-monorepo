@@ -24,6 +24,8 @@ env:
   SEAMS_PUBLIC_REVISION: ${{ inputs.public_revision }}
   SEAMS_PUBLIC_BUILD_RUN_ID: ${{ inputs.public_build_run_id }}
   SEAMS_TARGETS: aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu
+  SEAMS_CLI_PUBLIC_CACHE_KEY: seams-cli-public-${{ github.run_id }}-${{ github.run_attempt }}
+  SEAMS_CLI_SIGNED_CACHE_KEY: seams-cli-signed-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   trust:
@@ -105,11 +107,11 @@ jobs:
             dist/THIRD_PARTY_NOTICES.md
           chmod +x dist/seams-release-manifest dist/seams-wallet-*
 
-      - uses: actions/upload-artifact@v7
+      - name: Save verified public binaries
+        uses: actions/cache/save@v6
         with:
-          name: seams-cli-public-${{ inputs.public_revision }}
+          key: ${{ env.SEAMS_CLI_PUBLIC_CACHE_KEY }}
           path: dist
-          if-no-files-found: error
 
   sign:
     environment: release-signing
@@ -117,10 +119,12 @@ jobs:
     needs: fetch
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v8
+      - name: Restore verified public binaries
+        uses: actions/cache/restore@v6
         with:
-          name: seams-cli-public-${{ inputs.public_revision }}
+          key: ${{ env.SEAMS_CLI_PUBLIC_CACHE_KEY }}
           path: dist
+          fail-on-cache-miss: true
 
       - name: Sign the public artifact set
         env:
@@ -163,15 +167,15 @@ jobs:
             --manifest dist/seams-release-manifest.json \
             --artifact dist/THIRD_PARTY_NOTICES.md
 
-      - uses: actions/upload-artifact@v7
+      - name: Save signed release
+        uses: actions/cache/save@v6
         with:
-          name: seams-cli-release-${{ inputs.release_version }}
+          key: ${{ env.SEAMS_CLI_SIGNED_CACHE_KEY }}
           path: |
             dist/seams-wallet-*
             dist/seams-release-manifest.json
             dist/seams-sbom.txt
             dist/THIRD_PARTY_NOTICES.md
-          if-no-files-found: error
 
   publish:
     environment: release-publication
@@ -179,10 +183,16 @@ jobs:
     needs: sign
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v8
+      - name: Restore signed release
+        uses: actions/cache/restore@v6
         with:
-          name: seams-cli-release-${{ inputs.release_version }}
-          path: dist
+          key: ${{ env.SEAMS_CLI_SIGNED_CACHE_KEY }}
+          path: |
+            dist/seams-wallet-*
+            dist/seams-release-manifest.json
+            dist/seams-sbom.txt
+            dist/THIRD_PARTY_NOTICES.md
+          fail-on-cache-miss: true
 
       - name: Create seams-wallet GitHub release
         env:

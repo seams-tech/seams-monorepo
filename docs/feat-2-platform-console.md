@@ -1,8 +1,8 @@
 # Separate Platform and Wallet consoles
 
-Status: Wallet automatic setup and removal of Project services are implemented locally.
-Separate frontend builds, account-route isolation, and domain cutover remain planned.
-Date: October 14, 2026.
+Status: frontend separation, account-route isolation, and deployment commands are implemented locally on `codex/feat-2-platform-console`.
+Staging and production domain cutovers remain pending.
+Date: October 15, 2026.
 
 ## Outcome
 
@@ -193,3 +193,75 @@ Exit: Platform, Wallet, and Satyr have separate browser frontends at their agree
 domains. Shared account pages work independently of product runtimes. Existing Wallet
 signing, asset locations, permissions, persistence, and commercial behaviour remain intact.
 Report local validation, staging deployment, and production deployment separately.
+
+## Local implementation and rollout handoff — October 15, 2026
+
+The existing workspace now has two explicit Console builds. The default Vite build
+owns Wallet marketing and showcases. The hosted Wallet keeps its existing build.
+No shared pages, Worker entrypoints, schema files, or public Wallet packages moved.
+
+```sh
+pnpm -C apps/wallet-console build:platform
+pnpm -C apps/wallet-console build:wallet
+pnpm -C apps/wallet-console build:marketing
+
+node scripts/deploy-surface.mjs plan --site staging --component platform-console
+node scripts/deploy-surface.mjs build --site staging --component platform-console
+node scripts/deploy-surface.mjs plan --site staging --component wallet-console
+node scripts/deploy-surface.mjs build --site staging --component wallet-console
+```
+
+Outputs are `apps/wallet-console/dist-platform`, `dist-wallet`, and `dist`.
+`pnpm site` starts Platform at `http://localhost:4007`, Wallet through the existing
+`http://localhost:4001/dashboard` route, and marketing through `/wallet`.
+The existing local backend must be available. The managed Console acceptance
+startup also starts both Console frontends.
+
+The deployed Worker selects existing account services before Wallet configuration
+construction. Billing retains its existing handlers, customer webhooks, balance
+notifications, observability, and sponsored-spend summaries through narrow storage
+composition. Wallet lifecycle mutations keep their existing product adapters.
+Wallet internal early dispatch and scheduled delivery remain in place.
+
+Console frontend targets live in `deployment/console/targets.json`. Existing account
+stores remain separate by deployment lane. Production testnet retains its existing
+API origin; staging and mainnet can use the new same-origin Worker routes. Product
+links preserve the selected network, developer account, and developer project.
+This change performs no account merge or data migration.
+
+Local validation and evidence:
+
+- `pnpm check` and `pnpm -C tests type-check:console`.
+- The existing service-auth E2E now exercises account onboarding, members, and
+  billing with invalid Wallet configuration and unavailable Satyr metadata.
+- The browser journey builds both frontends, follows the Wallet-to-Platform link,
+  checks project context, and recovers automatic Wallet setup after a lost reply.
+- Existing funds, usage, settlement, and Wallet request-budget E2Es remain applicable.
+- `.artifacts/platform-console/` contains command logs, bundle hashes, screenshots,
+  traces, the initial worktree snapshot, and Cloudflare prerequisite observations.
+  The Platform JavaScript source maps contain no Wallet SDK source modules.
+
+No staging or production deployment occurred in this implementation. Cloudflare
+CLI authentication is available, but the local shell lacks the deployment API token,
+account ID, and the two new Pages project mappings. The inspected Pages project list
+contains no dedicated Platform or Wallet Console projects.
+
+Complete rollout in this order:
+
+1. Create the staging Console Pages projects and configure
+   `CF_PAGES_PROJECT_PLATFORM_CONSOLE` and `CF_PAGES_PROJECT_WALLET_CONSOLE` in the
+   existing staging frontend environment. Supply its existing Cloudflare credentials.
+2. Confirm prior account-platform releases and migrations. Register the new browser
+   origins and OAuth callbacks with the existing identity providers. Keep cookie scope
+   and Wallet passkey relying-party IDs unchanged.
+3. Deploy the existing Console Worker with the new account dispatch and host routes.
+   Deploy both Console frontend outputs, then run their existing `smoke` commands.
+   Smoke checks require both the application HTML and the account session endpoint.
+4. Verify sign-in, reauthentication, context selection, rejected foreign access,
+   billing, Wallet setup, and Satyr's own onboarding on deployed staging.
+5. Repeat the verified sequence for production. Deploy marketing redirects only
+   after both Console frontends pass readiness checks. The `all` command deploys
+   Console frontends first and checks all project mappings before any deployment.
+
+Keep the deferred Wallet runtime rollout separate. No production cutover is implied
+by a green local test or by this branch's deployment configuration.

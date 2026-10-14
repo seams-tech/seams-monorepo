@@ -55,5 +55,21 @@
         "secrets": ["STRIPE_API_SK"]
       }
     }
+  },
+  "frontends": {
+    "staging": {
+      "branch": "dev",
+      "platformOrigin": "https://staging.console.seams.sh",
+      "walletConsoleOrigin": "https://staging.console.wallet.seams.sh",
+      "platformPagesProjectEnv": "CF_PAGES_PROJECT_PLATFORM_CONSOLE",
+      "walletConsolePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_CONSOLE"
+    },
+    "production": {
+      "branch": "main",
+      "platformOrigin": "https://console.seams.sh",
+      "walletConsoleOrigin": "https://console.wallet.seams.sh",
+      "platformPagesProjectEnv": "CF_PAGES_PROJECT_PLATFORM_CONSOLE",
+      "walletConsolePagesProjectEnv": "CF_PAGES_PROJECT_WALLET_CONSOLE"
+    }
   }
 }

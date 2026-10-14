@@ -6,7 +6,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { readFrontendSite } from './deployment-targets.mjs';
+import { readFrontendSite, readConsoleFrontendSite } from './deployment-targets.mjs';
 import { formatFailedCheck, isFailedCheck, runReadinessChecks } from './deployment-smoke.mjs';
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +17,13 @@ const WALLET_SITE_ROOT = path.join(REPOSITORY_ROOT, 'apps', 'wallet-console');
 const WALLET_SITE_OUTPUT = path.join(WALLET_SITE_ROOT, 'dist');
 const WALLET_HOST_OUTPUT = path.join(REPOSITORY_ROOT, '.release-artifacts', 'wallet-host');
 const PUBLIC_DOCS_ARTIFACT_ROOT = path.join(REPOSITORY_ROOT, '.artifacts', 'wallet-docs');
-const SURFACES = Object.freeze(['company', 'wallet-site', 'wallet-host']);
+const SURFACES = Object.freeze([
+  'platform-console',
+  'wallet-console',
+  'company',
+  'wallet-site',
+  'wallet-host',
+]);
 const COMPONENTS = Object.freeze(['all', ...SURFACES]);
 
 if (isDirectInvocation()) {
@@ -33,15 +39,115 @@ function isDirectInvocation() {
 
 async function main(args) {
   const options = parseArguments(args);
+  if (options.component === 'platform-console' || options.component === 'wallet-console') {
+    await runConsoleOperation(
+      options.operation,
+      readConsoleFrontendSite(options.site),
+      options.component,
+    );
+    return;
+  }
   const site = readFrontendSite(options.site);
   const walletLanes = selectWalletLanes(site, options);
   if (options.operation !== 'plan') assertDeploymentBranch(site);
   if (options.component === 'all') {
-    for (const surface of SURFACES)
-      await runOperation(options.operation, site, surface, walletLanes);
+    if (options.operation === 'deploy') {
+      const consoles = readConsoleFrontendSite(options.site);
+      requireEnvironmentValues(
+        [
+          'CLOUDFLARE_API_TOKEN',
+          'CLOUDFLARE_ACCOUNT_ID',
+          consoles.platformPagesProjectEnv,
+          consoles.walletConsolePagesProjectEnv,
+          site.pagesProjectEnv,
+          site.walletSitePagesProjectEnv,
+          ...walletLanes.map(walletPagesProjectEnvironment),
+        ],
+        process.env,
+      );
+    }
+    for (const surface of SURFACES) {
+      if (surface === 'platform-console' || surface === 'wallet-console') {
+        await runConsoleOperation(
+          options.operation,
+          readConsoleFrontendSite(options.site),
+          surface,
+        );
+      } else {
+        await runOperation(options.operation, site, surface, walletLanes);
+      }
+    }
     return;
   }
   await runOperation(options.operation, site, options.component, walletLanes);
+}
+
+function walletPagesProjectEnvironment(lane) {
+  return lane.walletPagesProjectEnv;
+}
+
+async function runConsoleOperation(operation, site, component) {
+  const platform = component === 'platform-console';
+  const mode = platform ? 'platform' : 'wallet';
+  const origin = platform ? site.platformOrigin : site.walletConsoleOrigin;
+  const projectEnv = platform ? site.platformPagesProjectEnv : site.walletConsolePagesProjectEnv;
+  const output = path.join(WALLET_SITE_ROOT, `dist-${mode}`);
+  if (operation === 'plan') {
+    process.stdout.write(
+      `${JSON.stringify({ component, origin, output, pagesProjectEnvironment: projectEnv, branch: site.branch })}\n`,
+    );
+    return;
+  }
+  assertDeploymentBranch(site);
+  if (operation === 'build') {
+    const environment = {
+      ...process.env,
+      VITE_SITE_ORIGIN: origin,
+      VITE_ASSET_BASE_PATH: '/',
+      VITE_CONSOLE_BASE_URL: origin,
+      VITE_MAINNET_CONSOLE_BASE_URL: '',
+      VITE_MAINNET_RELAYER_URL: '',
+      VITE_PLATFORM_CONSOLE_ORIGIN: site.platformOrigin,
+      VITE_WALLET_CONSOLE_ORIGIN: site.walletConsoleOrigin,
+    };
+    // Preserve the existing account stores. Production testnet retains its own
+    // backend; the mainnet and staging account authorities also serve the new hosts.
+    for (const account of site.accountOrigins) {
+      environment[`VITE_${account.network.toUpperCase()}_CONSOLE_BASE_URL`] =
+        site.id === 'production' && account.network === 'testnet' ? account.origin : origin;
+    }
+    if (!platform) {
+      for (const lane of readFrontendSite(site.id).lanes) {
+        environment[`VITE_${lane.network.toUpperCase()}_RELAYER_URL`] = lane.gatewayOrigin;
+        environment[`VITE_${lane.network.toUpperCase()}_WALLET_ORIGIN`] = lane.walletOrigin;
+      }
+    }
+    runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', `build:${mode}`], { env: environment });
+    assertFile(path.join(output, 'index.html'), 'Console entry');
+    fs.writeFileSync(path.join(output, '_redirects'), '/* /index.html 200\n');
+    return;
+  }
+  if (operation === 'deploy') {
+    requireEnvironmentValues(
+      ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', projectEnv],
+      process.env,
+    );
+    assertDirectory(output, 'Console output');
+    deployPagesProject(output, site, process.env[projectEnv]);
+    await ensurePagesCustomDomain(origin, process.env[projectEnv]);
+    return;
+  }
+  if (operation === 'smoke') {
+    const checks = smokeChecks(component, origin, [
+      { path: '/dashboard/login', isReady: consoleApplicationIsReady },
+      { path: '/console/auth/session', isReady: consoleSessionEndpointIsReady },
+    ]);
+    const results = await runReadinessChecks(checks);
+    process.stdout.write(`${JSON.stringify({ results })}\n`);
+    if (results.some(isFailedCheck)) throw new Error('Console frontend smoke failed');
+    return;
+  }
+  throw new Error(`Unsupported Console operation: ${operation}`);
 }
 
 async function runOperation(operation, site, component, walletLanes) {
@@ -99,7 +205,7 @@ function parseArguments(args) {
 }
 
 function usage() {
-  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-site|wallet-host> [--lane <lane>]';
+  return 'usage: deploy-surface.mjs <plan|build|deploy|smoke> --site <site> --component <all|company|wallet-site|wallet-host|platform-console|wallet-console> [--lane <lane>]';
 }
 
 function selectWalletLanes(site, options) {
@@ -134,7 +240,7 @@ function printPlan(site, component, walletLanes) {
       `Docs: ${site.docsOrigin}/`,
       `Console API: ${site.walletSiteOrigin}/console/*`,
       `Pages project environment: ${site.walletSitePagesProjectEnv}`,
-      'Artifact: wallet landing page, dashboard, and exact public Wallet docs',
+      'Artifact: wallet marketing, showcases, and exact public Wallet docs',
     ],
     'wallet-host': walletLanes.flatMap((lane) => [
       `Hosted wallet (${lane.network}): ${lane.walletOrigin}`,
@@ -156,9 +262,10 @@ function buildFrontend(site, component, walletLanes) {
     return;
   }
   if (component === 'wallet-site') {
-    runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', 'build'], {
+    runCommand('pnpm', ['-C', 'apps/wallet-console', 'run', 'build:marketing'], {
       env: buildFrontendEnvironment(site, site.walletSiteOrigin),
     });
+    writeWalletConsoleRedirects(site);
     copyPublicDocsArtifact();
     copySdkAssets(WALLET_SITE_OUTPUT);
     assertFile(path.join(WALLET_SITE_OUTPUT, 'index.html'), 'Wallet site entry');
@@ -188,6 +295,27 @@ function buildFrontend(site, component, walletLanes) {
   assertFile(path.join(output, 'index.html'), 'Wallet settings entry');
   fs.writeFileSync(path.join(output, '_redirects'), '/wallet-settings /index.html 200\n');
   assertFile(path.join(output, 'wallet-service', 'index.html'), 'wallet-service entry');
+}
+
+function writeWalletConsoleRedirects(site) {
+  const consoleSite = readConsoleFrontendSite(site.id);
+  const shared = [
+    '/dashboard/account-settings',
+    '/dashboard/team-members',
+    '/dashboard/onboarding',
+    '/dashboard/billing',
+    '/dashboard/billing/*',
+    '/dashboard/invoices',
+    '/dashboard/invoices/*',
+    '/platform/*',
+  ];
+  const lines = ['/docs /docs/ 301'];
+  for (const route of shared) {
+    lines.push(`${route} ${consoleSite.platformOrigin}${route.replace('*', ':splat')} 302`);
+  }
+  lines.push(`/dashboard ${consoleSite.walletConsoleOrigin}/dashboard 302`);
+  lines.push(`/dashboard/* ${consoleSite.walletConsoleOrigin}/dashboard/:splat 302`);
+  fs.writeFileSync(path.join(WALLET_SITE_OUTPUT, '_redirects'), `${lines.join('\n')}\n`);
 }
 
 function writeCompanyCutoverFiles(site) {
@@ -278,6 +406,9 @@ async function deployFrontend(site, component, walletLanes) {
     assertDirectory(COMPANY_OUTPUT, 'Company Pages output');
     deployPagesProject(COMPANY_OUTPUT, site, process.env[site.pagesProjectEnv]);
   } else if (component === 'wallet-site') {
+    const consoles = readConsoleFrontendSite(site.id);
+    await runConsoleOperation('smoke', consoles, 'platform-console');
+    await runConsoleOperation('smoke', consoles, 'wallet-console');
     requireEnvironmentValues([site.walletSitePagesProjectEnv], process.env);
     assertDirectory(WALLET_SITE_OUTPUT, 'Wallet site Pages output');
     const project = process.env[site.walletSitePagesProjectEnv];
@@ -355,7 +486,6 @@ function buildSmokeChecks(site, component, walletLanes) {
   if (component === 'wallet-site') {
     return smokeChecks('wallet-site', site.walletSiteOrigin, [
       '/',
-      { path: '/dashboard', isReady: consoleApplicationIsReady },
       '/docs/',
       '/docs/concepts/',
       '/sdk/workers/near-signer.worker.js',
@@ -410,11 +540,22 @@ export async function walletManifestMatchesPackageVersion(response, expectedVers
 async function consoleApplicationIsReady(response) {
   if (!response.ok) return false;
   const html = await response.text();
-  if (!html.includes('<title>Seams Wallet</title>')) return false;
+  if (
+    !html.includes('<title>Seams Wallet Console</title>') &&
+    !html.includes('<title>Seams Platform</title>')
+  )
+    return false;
   const assetPaths = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map(
     (match) => match[1],
   );
   return assetPaths.length > 0 && assetPaths.every((assetPath) => assetPath.startsWith('/assets/'));
+}
+
+async function consoleSessionEndpointIsReady(response) {
+  if (response.status !== 200 && response.status !== 401) return false;
+  if (!response.headers.get('content-type')?.includes('application/json')) return false;
+  const body = await response.json();
+  return isRecord(body) && typeof body.ok === 'boolean';
 }
 
 export async function walletSettingsApplicationIsReady(response) {

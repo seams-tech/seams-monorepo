@@ -20,7 +20,7 @@ import {
   GATEWAY_WORKER_COMPATIBILITY_FLAGS,
   gatewayRuntimeProfileNearNetwork,
 } from './gateway-deployment-config.mjs';
-import { readBackendLane } from '../../../scripts/deployment-targets.mjs';
+import { readBackendLane, readConsoleFrontendSite } from '../../../scripts/deployment-targets.mjs';
 import { isDirectInvocation } from './d1-staging-config.mjs';
 
 const VALID_LANES = new Set(['staging-testnet', 'production-testnet', 'production-mainnet']);
@@ -169,6 +169,13 @@ function buildConsoleConfig(
 ) {
   const resources = deployment.resources;
   const consoleOrigin = consoleTarget.origin;
+  const consoleSite = readConsoleFrontendSite(
+    deployment.lane === 'staging-testnet' ? 'staging' : 'production',
+  );
+  const frontendOrigins =
+    deployment.lane === 'production-testnet'
+      ? []
+      : [consoleSite.platformOrigin, consoleSite.walletConsoleOrigin];
   const production = deployment.lane !== 'staging-testnet';
   const vars = {
     SEAMS_WALLET_HOME_CATALOG_JSON: walletHomeCatalogJson(deployment),
@@ -180,10 +187,15 @@ function buildConsoleConfig(
       gatewayOrigin,
       relyingPartyId: new URL(walletOrigin).hostname,
     }),
-    CONSOLE_BASE_URL: walletSiteOrigin,
-    CONSOLE_CORS_ORIGINS: walletSiteOrigin,
+    CONSOLE_BASE_URL: consoleSite.platformOrigin,
+    CONSOLE_CORS_ORIGINS: [
+      walletSiteOrigin,
+      consoleSite.platformOrigin,
+      consoleSite.walletConsoleOrigin,
+    ].join(','),
     CONSOLE_STEP_UP_RP_ID: new URL(walletSiteOrigin).hostname,
-    CONSOLE_STEP_UP_ORIGIN: walletSiteOrigin,
+    CONSOLE_STEP_UP_ORIGIN:
+      frontendOrigins.length > 0 ? consoleSite.walletConsoleOrigin : walletSiteOrigin,
     CONSOLE_SESSION_COOKIE_NAME: DEFAULT_CONSOLE_SESSION_COOKIE_NAME,
     CONSOLE_SESSION_ISSUER: `${consoleOrigin}/console`,
     CONSOLE_SESSION_AUDIENCE: DEFAULT_CONSOLE_SESSION_AUDIENCE,
@@ -220,7 +232,7 @@ function buildConsoleConfig(
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
     workers_dev: false,
-    routes: buildConsoleRoutes(consoleOrigin, walletSiteOrigin),
+    routes: buildConsoleRoutes(consoleOrigin, walletSiteOrigin, frontendOrigins),
     d1_databases: [
       {
         binding: 'CONSOLE_DB',
@@ -250,14 +262,24 @@ function buildConsoleConfig(
   };
 }
 
-function buildConsoleRoutes(consoleOrigin, walletSiteOrigin) {
+function buildConsoleRoutes(consoleOrigin, walletSiteOrigin, frontendOrigins) {
+  const frontendRoutes = [];
+  for (const origin of frontendOrigins) {
+    const host = new URL(origin).hostname;
+    const zone = host.split('.').slice(-2).join('.');
+    frontendRoutes.push(
+      { pattern: `${host}/console`, zone_name: zone },
+      { pattern: `${host}/console/*`, zone_name: zone },
+    );
+  }
   const hostname = new URL(consoleOrigin).hostname;
   if (consoleOrigin !== walletSiteOrigin) {
-    return [{ pattern: hostname, custom_domain: true }];
+    return [{ pattern: hostname, custom_domain: true }, ...frontendRoutes];
   }
   const labels = hostname.split('.');
   const zoneName = labels.slice(-2).join('.');
   return [
+    ...frontendRoutes,
     { pattern: `${hostname}/console`, zone_name: zoneName },
     { pattern: `${hostname}/console/*`, zone_name: zoneName },
     { pattern: `${hostname}/account-platform/v1/*`, zone_name: zoneName },

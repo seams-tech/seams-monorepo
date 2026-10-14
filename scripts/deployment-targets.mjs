@@ -132,6 +132,48 @@ export function readFrontendSite(siteId) {
   return readDeploymentTargets().frontendSites[siteId];
 }
 
+export function readConsoleFrontendSite(siteId) {
+  if (!FRONTEND_SITE_IDS.includes(siteId))
+    throw new Error('frontend site must be staging or production');
+  const document = readJsonDocument(DEFAULT_CONSOLE_TARGETS_PATH);
+  const lanes = parseConsoleTargets(document);
+  const frontends = requireObject(document.frontends, 'Console frontends');
+  requireExactKeys(frontends, FRONTEND_SITE_IDS, 'Console frontends');
+  const site = requireObject(frontends[siteId], `Console frontends.${siteId}`);
+  requireExactKeys(
+    site,
+    [
+      'branch',
+      'platformOrigin',
+      'walletConsoleOrigin',
+      'platformPagesProjectEnv',
+      'walletConsolePagesProjectEnv',
+    ],
+    'Console frontend',
+  );
+  return Object.freeze({
+    id: siteId,
+    accountOrigins:
+      siteId === 'staging'
+        ? [{ network: 'testnet', origin: lanes['staging-testnet'].origin }]
+        : [
+            { network: 'testnet', origin: lanes['production-testnet'].origin },
+            { network: 'mainnet', origin: lanes['production-mainnet'].origin },
+          ],
+    branch: requireString(site.branch, 'Console frontend branch'),
+    platformOrigin: requireHttpsOrigin(site.platformOrigin, 'Platform Console origin'),
+    walletConsoleOrigin: requireHttpsOrigin(site.walletConsoleOrigin, 'Wallet Console origin'),
+    platformPagesProjectEnv: requireEnvironmentName(
+      site.platformPagesProjectEnv,
+      'Platform Pages project',
+    ),
+    walletConsolePagesProjectEnv: requireEnvironmentName(
+      site.walletConsolePagesProjectEnv,
+      'Wallet Pages project',
+    ),
+  });
+}
+
 function readJsonDocument(documentPath) {
   const absolutePath = path.resolve(documentPath);
   try {
@@ -145,7 +187,7 @@ function readJsonDocument(documentPath) {
 
 function parseConsoleTargets(value) {
   const root = requireObject(value, DEFAULT_CONSOLE_TARGETS_PATH);
-  requireExactKeys(root, ['schemaVersion', 'lanes'], DEFAULT_CONSOLE_TARGETS_PATH);
+  requireExactKeys(root, ['schemaVersion', 'lanes', 'frontends'], DEFAULT_CONSOLE_TARGETS_PATH);
   if (root.schemaVersion !== 1) {
     throw new Error(DEFAULT_CONSOLE_TARGETS_PATH + '.schemaVersion must be 1');
   }

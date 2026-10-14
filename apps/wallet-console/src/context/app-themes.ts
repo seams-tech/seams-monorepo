@@ -137,7 +137,6 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
 };
 
 // "Pastel Dark" — warm charcoal with peach and lilac accents.
-// Deeper peach icon highlights keep the light glyphs readable.
 const PASTEL_DARK_COLORS: Record<string, string> = {
   primary: '#f3e5f5',
   primaryHover: '#e6d3e8',
@@ -163,6 +162,10 @@ const PASTEL_DARK_COLORS: Record<string, string> = {
   surface2: '#3b302c',
   surface3: '#7b5243',
   surface4: '#895c4b',
+  // peach option-icon tiles in the auth menu, with dark glyphs
+  menuOptionIconBackground: '#ffdfd3',
+  menuOptionIconHoverBackground: '#f4cdbe',
+  menuOptionIconColor: '#1f1c1f',
   txDetailsBackground: '#3b302c',
 
   hover: '#3b302c',

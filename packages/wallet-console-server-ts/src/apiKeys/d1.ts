@@ -1,4 +1,4 @@
-import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary';
+import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary/index';
 import {
   d1Integer as toNumber,
   d1ChangedRows,
@@ -6,8 +6,8 @@ import {
   parseD1JsonArrayColumn as parseJsonArray,
   parseD1JsonObjectColumn as parseJsonObject,
   type D1Row,
-} from '@seams-internal/console-server/boundary';
-import type { D1DatabaseLike } from '@seams-internal/console-server/boundary';
+} from '@seams-internal/console-server/boundary/index';
+import type { D1DatabaseLike } from '@seams-internal/console-server/boundary/index';
 
 import { ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL } from '../accountPlatform/admission';
 import { ConsoleApiKeyError } from './errors';

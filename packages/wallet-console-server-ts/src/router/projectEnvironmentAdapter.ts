@@ -2,7 +2,7 @@ import type {
   RouterApiProjectEnvironment,
   RouterApiProjectEnvironmentResolver,
 } from '@seams/wallet-server/cloud-host';
-import { queryD1All, type D1DatabaseLike } from '@seams-internal/console-server/boundary';
+import { queryD1All, type D1DatabaseLike } from '@seams-internal/console-server/boundary/index';
 import { ADMITTED_WALLET_ENVIRONMENTS_FROM_SQL } from '../accountPlatform/admission';
 import { parseEnvironmentRow } from '../environments/d1';
 import type { ConsoleWalletEnvironment } from '../environments/types';

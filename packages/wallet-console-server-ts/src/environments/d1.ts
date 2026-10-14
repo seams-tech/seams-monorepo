@@ -8,7 +8,7 @@ import {
   type D1Row,
   type D1DatabaseLike,
   type D1PreparedStatementLike,
-} from '@seams-internal/console-server/boundary';
+} from '@seams-internal/console-server/boundary/index';
 import type { ConsoleOrganization } from '@seams-internal/console-server/orgProjectEnv/types';
 import { ConsoleWalletEnvironmentError } from './errors';
 import { DEFAULT_WALLET_SIGNING_ROOT_VERSION } from './types';

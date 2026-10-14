@@ -1,4 +1,4 @@
-import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary';
+import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary/index';
 
 function normalizeOrigin(input: string): string {
   return normalizeCorsOrigin(input) || String(input || '').trim();

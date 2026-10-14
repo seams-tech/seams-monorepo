@@ -7,8 +7,12 @@ private Console composition and deployed product flows.
 ## Wallet component showcase
 
 The wallet marketing page owns the canvas in `apps/wallet-console/src/pages/wallet/`.
-The Seams homepage does not mount it. Four category controls and a floating rail
-select twelve simulated previews plus the installed SDK transaction modal and prediction-market custom review. Staggered positions produce diagonal transitions.
+The Seams homepage does not mount it. One four-item list contains authentication,
+the installed SDK transaction modal, prediction-market checkout, and account controls.
+The top selector and bottom dots select the same item. Previous and next cycle
+through all four, wrapping at either end. Staggered positions produce diagonal transitions.
+Static unlock, recovery, payment, and receipt cards fill the background. They remain
+faded, inert, and hidden from assistive technology, and never enter the selectable list.
 
 On a visible desktop canvas, the cursor runs the preview's local action, shows its
 result, then resets for replay. Hover, keyboard focus, and an offscreen canvas pause it. Reduced-motion and touch modes use
@@ -18,8 +22,7 @@ The prediction-market approval bounds its transaction-details scroller to the he
 provided by its host. Expansion, collapse, and nested raw-data changes keep approval
 controls visible. The scenario records these transitions as per-frame JSON evidence.
 The two installed SDK examples use their existing sample-data pages and run only
-when selected. Transactions opens the original transaction modal by default;
-Checkout opens the original prediction-market review. Both retain the signing,
+when selected. Both retain the signing,
 broadcast, confirmation, and receipt lifecycle. The canvas is flush with the page dividers and uses monochrome
 controls, with round previous/next buttons and a dot selector.
 

@@ -684,7 +684,7 @@
 
 @media (max-width: 600px) {
   .component-showcase__playback {
-    bottom: 20px;
+    bottom: 32px;
     transform: none;
   }
 }

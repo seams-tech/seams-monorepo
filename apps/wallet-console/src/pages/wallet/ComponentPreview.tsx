@@ -15,6 +15,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import type { PreviewId } from './ComponentShowcase';
+import { EmbeddedPlayback } from './embeddedPlayback';
 import type { ModalBackdrop } from '@/showcase/modalBackdrop';
 
 type PreviewProps = { id: PreviewId; active: boolean; backdrop?: ModalBackdrop };
@@ -276,6 +277,27 @@ function assertNever(value: never): never {
   throw new Error(`Unknown component preview: ${String(value)}`);
 }
 
+function startEmbeddedPlayback(
+  frame: React.RefObject<HTMLIFrameElement | null>,
+  kind: 'transaction-modal' | 'prediction-market',
+): (() => void) | undefined {
+  if (!frame.current) return;
+  const playback = new EmbeddedPlayback(frame.current, kind);
+  return playback.dispose;
+}
+
+function EmbeddedPreview({
+  kind,
+  ...props
+}: React.IframeHTMLAttributes<HTMLIFrameElement> & {
+  kind: 'transaction-modal' | 'prediction-market';
+}): React.JSX.Element {
+  const frame = React.useRef<HTMLIFrameElement>(null);
+  React.useEffect(startEmbeddedPlayback.bind(null, frame, kind), [kind]);
+
+  return <iframe {...props} ref={frame} />;
+}
+
 export function ComponentPreview({
   id,
   active,
@@ -286,7 +308,8 @@ export function ComponentPreview({
     const route = id === 'transaction-modal' ? 'transaction' : 'checkout';
     const title = id === 'transaction-modal' ? 'Transaction modal' : 'Prediction market';
     return (
-      <iframe
+      <EmbeddedPreview
+        kind={id}
         className="showcase-preview__embed"
         data-preview={id}
         title={title}

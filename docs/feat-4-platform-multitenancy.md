@@ -5,305 +5,186 @@ Date: October 14, 2026.
 
 ## Outcome
 
-Let a developer account create an Application whose users can create or join
-organisations, manage members, and work in projects with separate project environments.
-Reuse existing account, membership, invitation, session, and project code.
-Expose this capability through an application API and a small client integration.
+Add an Application boundary around the existing organisation, membership, invitation,
+and project services. A developer account owns the Application. Each Application's
+users and account records remain isolated from other Applications and developer accounts.
 
-Use the [Platform glossary](platform-glossary.md). This plan specifies future work.
-Writing it does not change code, schemas, credentials, deployments, or product behaviour.
+Use the [Platform glossary](platform-glossary.md). This plan is documentation only.
+It changes no code, schemas, credentials, or deployments.
 
 ```text
 Developer account
-└── Application
+└── Application                  new ownership and isolation boundary
     ├── Users
-    └── Organisations
-        ├── Memberships and roles
+    └── Organisations            reuse existing account rules
+        ├── Memberships
         └── Projects
-            └── Project environments: development / staging / production
-                └── Resources and optional Wallet bindings
+            └── Project environments and resources remain product-owned
 ```
 
-**Application** is the outer scope for application identities and organisations.
-**ProjectEnvironment** identifies a project's deployment and resource scope.
-An environment name grants no authority. Do not introduce an `ApplicationEnvironment`
-entity or use `PlatformTenant` as another name for this hierarchy.
+Application scope contains users and organisations. Project environments retain their
+development/staging/production meaning. This slice adds no generic environment store,
+environment API, or new environment permission model.
 
-This extends [Shared Account Platform](feat-1-shared-account-platform.md).
-It does not require the [Console domain cutover](feat-2-platform-console.md).
-[Monthly postpaid billing](feat-3-platform-billing.md) remains developer billing.
-Charging an application's end customers is separate application billing and is outside this plan.
+## Smallest implementation
 
-## First-release scope and boundaries
+There are three changes:
 
-- One Application belongs to one developer account. Application transfer is deferred.
-- Users belong to an Application and can hold memberships in several of its organisations.
-  Developer account membership and organisation membership confer separate authority.
-- Reuse owner, administrator, and member behaviour where it fits. Preserve last-owner
-  protection, invitation expiry, verified-recipient checks, suspension, and revocation.
-  Keep developer permissions such as Platform support and developer billing out of application roles.
-- Organisations own projects. Projects own project environments. Scope application
-  credentials, resource operations, and environment-specific grants explicitly.
-- For the initial model, user identities and organisation memberships are application-wide.
-  Project environments isolate deployment resources and credentials. Production access
-  requires an explicit grant; development access alone must not authorise it.
-  A developer requiring separate identity populations uses separate Applications.
-- Keep business records in the developer's application. Seams supplies verified context
-  and permissions; the application must apply them to its own queries and operations.
-- Preserve Wallet custody, signing consent, native permissions, and existing request budgets.
-  Keep Wallet optional. An account-only Application needs no Wallet runtime startup.
-- Defer enterprise SSO/SCIM, custom role engines, arbitrary policy languages, cross-application
-  identity federation, tenant transfers, and application billing. Add no plugin framework,
-  generic service registry, new runtime service, or database solely for this feature.
+1. Store the Application's owner and its private storage namespace.
+2. Bind the existing authentication flow and resulting session to that Application.
+3. Construct existing account services with the resolved namespace and mount their
+   supported operations behind application authentication.
 
-## Reuse and ownership
+Keep the current Worker, database, packages, account rules, and deployment structure.
+Do not copy account services or introduce a universal tenancy framework.
 
-Paths below are relative to `seams-monorepo`.
+## 1. Add the Application record
 
-| Existing owner                                           | Reuse                                                                | Required boundary change                                                                             |
-| -------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `packages/console-server-ts/src/account/`                | Profile and account lifecycle rules                                  | Separate developer account administration from application organisation operations                   |
-| `packages/console-server-ts/src/teamRbac/`               | Memberships, roles, invitations, revocation versions, project grants | Require application scope for application-facing operations                                          |
-| `packages/console-server-ts/src/orgProjectEnv/`          | Organisation and project persistence                                 | Resolve the application's storage scope before constructing services                                 |
-| `packages/console-server-ts/src/boundary/` and `router/` | Provider verification, sessions, request parsing, authentication     | Add distinct application credentials and session authority                                           |
-| `packages/console-shared-ts/src/`                        | Boundary parsers, Result unions, precise lifecycle contracts         | Add application-scoped contracts without changing existing developer record meanings                 |
-| `apps/wallet-console/src/core/`                          | Shared account forms, navigation primitives, HTTP patterns           | Add Application management to the Platform composition; reuse end-user UI only through narrow inputs |
-| `packages/wallet-console-server-ts/`                     | Hosted Wallet adapters and resource admission                        | Resolve optional application-to-Wallet bindings through existing product boundaries                  |
+Store a stable `applicationId`, its developer account owner, an immutable storage
+namespace, and active/suspended state. Resolve developer account ownership through
+existing Console permissions. Creating or suspending an Application is a developer
+administration operation; it creates no end-customer membership.
 
-Current factories often accept `namespace`, `orgId`, and `actorUserId`. Some helpers
-also support default organisations or project-only lookups. Those inputs do not
-constitute a public application isolation boundary.
+Allocate the namespace on the server. Enforce a unique Application-to-namespace
+mapping and prevent overlap with developer storage. Callers cannot choose a namespace
+or change an Application's owner. Application transfer and automatic imports are deferred.
 
-Reuse the current business rules and transactions. Extract only the shared rules
-that cannot accept precise application context today. Avoid copying membership,
-invitation, or billing services into a parallel implementation. Keep developer and
-application authorization types distinct even where they use the same underlying logic.
+Use one forward migration for the registry and any demonstrated constraint gaps.
+Keep existing developer records, applied migrations, and stored identifiers unchanged.
+`PlatformScopeV1.organizationId` and `projectId` still identify a developer account
+and developer project. An Application is a separate entity.
 
-## Application registry and persistence
+## 2. Resolve application authority at the boundary
 
-Add an Application record with a stable `applicationId`, developer-account ownership,
-lifecycle, permitted authentication configuration, and credential references.
-Resolve ownership through the existing developer account permissions.
+Reuse the existing verified-provider login and session implementation. Bind login
+state and callback validation to the selected Application. Issue an application
+session only after successful identity verification. Reuse signing infrastructure;
+no separate authentication engine or per-application key hierarchy is required.
+Start with the existing configured provider and login origin. Validate return
+destinations against server configuration. Custom authentication domains are deferred.
 
-An Application is distinct from an existing developer project. The current
-`PlatformScopeV1.organizationId` and `projectId` continue to identify a developer
-account and developer project. Do not reinterpret them as end-customer identifiers.
+An application session must carry an explicit application identity and distinct
+purpose/audience from developer Console and product credentials. Reject expired,
+revoked, foreign-application, and wrong-purpose credentials. A public `applicationId`
+selects the login configuration and grants no authority by itself.
 
-Use the existing D1 database and migration workflow. Prefer reusing namespace-scoped
-account stores through an immutable, server-owned Application-to-storage mapping.
-Each Application must resolve to a unique partition that cannot overlap developer
-account storage or another Application. Callers cannot supply or select that namespace.
+For an authenticated application request:
 
-Before choosing this storage reuse, trace every relevant query, join, unique key,
-foreign key, and bulk operation. Prove that the resolved scope reaches each operation.
-Add targeted application ownership columns or constraints where the existing schema
-cannot express the required isolation. Namespace substitution alone is insufficient.
+1. Verify the session and match any route application ID to its verified identity.
+2. Resolve the active Application and its server-owned namespace.
+3. Construct the required account services with that namespace and schema setup disabled.
+4. Run the existing membership and operation permission checks in that scope.
 
-Required persistence invariants:
+Represent resolved application context separately from developer authority. Require
+it when assembling application handlers. Keep parsed identity separate from verified
+authority. Do not add optional `applicationId` fields or default-scope fallbacks.
+Existing inner functions can retain their current inputs when their service instance
+already binds them to the verified namespace.
 
-1. Application ownership is authoritative and cannot be changed by an end-user request.
-2. Identity links are unique within `(applicationId, providerIssuer, providerSubject)`.
-   The same verified person can have independent users in two Applications.
-   Email equality cannot merge users or memberships across Applications.
-3. Every organisation, membership, invitation, project, and project environment has
-   an immutable application ownership chain. Cross-scope references fail at persistence boundaries.
-4. Uniqueness, idempotency, and invitation redemption include the resolved application
-   scope. A key or token replay in another Application cannot reuse an earlier result.
-5. Developer rows retain their current identities and storage scope. New application
-   records cannot become developer organisations through a fallback or missing field.
+Users and organisation memberships are application-scoped. Reuse existing provider
+identity handling within that scope. The same provider subject can have independent
+records in two Applications. Email equality grants no membership and cannot merge
+records across Applications. Developer account membership never substitutes for an
+application-user session or organisation membership.
 
-Keep applied migrations unchanged. Use forward migrations for new records and
-constraints. Existing Wallet and Satyr deployments remain in their current scopes.
-Import into an Application only through a separately reviewed, explicit mapping.
+## 3. Reuse the existing services
 
-## Authentication and authorization
+| Existing code                                            | Use in this change                                                                     |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `packages/console-server-ts/src/account/`                | Reuse profile and organisation operations through application-scoped service instances |
+| `packages/console-server-ts/src/teamRbac/`               | Keep membership, invitation, last-owner, revocation, and project-access rules          |
+| `packages/console-server-ts/src/orgProjectEnv/`          | Keep organisation and project persistence and lifecycle rules                          |
+| `packages/console-server-ts/src/boundary/` and `router/` | Reuse provider verification, session handling, and request parsers                     |
+| `packages/console-shared-ts/src/`                        | Add only the Application and authority contracts needed by these boundaries            |
 
-Keep three actors separate:
+Use the narrow factories required by each route. Do not instantiate the complete
+billing and service-provisioning bundle for application account operations.
+Reuse current roles and the permissions relevant to the mounted account routes.
+Keep developer billing, Platform support, and private service ingress unavailable
+through the application API.
 
-| Actor                         | Authority                                                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Developer Console session     | Manage Applications and credentials within an authorised developer account                                            |
-| Application server credential | Perform explicitly granted application-management operations; never impersonate a user or authorise Wallet signatures |
-| Application user session      | Act as a user within that Application and their current organisation/project grants                                   |
+Mount explicit application routes for login/session handling, organisations,
+memberships, invitations, and projects in the existing Worker. Adapt existing
+handlers where they assume developer scope. Do not publish every Console route.
+Reuse an existing account journey to exercise these routes before adding a new UI.
+A public SDK, embeddable components, application server credentials, and a separate
+Application management dashboard are follow-up work.
 
-Reuse provider verification and session infrastructure. Start with the existing
-verified-provider flow. Add application-specific issuer/audience checks, login
-configuration, exact origins, callback destinations, and signing-key selection.
-Keep raw provider tokens transient and retain only the required verified identity evidence.
+## Isolation requirements
 
-Reuse credential hashing, rotation, revocation, and audit patterns. Application
-server credentials remain server-only. Public application identifiers select login
-configuration and grant no administrative authority. Existing Wallet credentials and
-developer Console cookies must not authenticate the application-user API.
+Existing namespace columns make reuse plausible. They do not establish that every
+operation is safe. Audit the paths actually exposed by the application routes:
 
-At each request boundary:
+- Scope queries, joins, uniqueness, and foreign keys to the resolved namespace and
+  relevant organisation/project. Fix only demonstrated gaps. Avoid duplicating
+  `applicationId` across tables whose namespace constraints already enforce ownership.
+- Remove default-organisation or unscoped lookup behaviour from the application path.
+  An unknown Application or resource must not fall back to developer scope.
+- Scope identity records, invitation tokens, idempotency keys, cache entries, and
+  pagination cursors. A replay or cached result from Application A cannot serve B.
+- Preserve scope through existing invitation delivery, audit, and background work
+  used by these routes. Reject foreign targets without exposing their records.
+- Apply existing live permission and revocation checks. Removed members, revoked
+  sessions, suspended Applications, and archived projects cannot retain access.
+- Treat organisation selection as request context. Verify membership for the target
+  organisation on each request, including background browser requests and multiple tabs.
+- Reuse current request limits and invitation protections. Key them by Application
+  where necessary so one Application cannot consume another's allowance.
 
-1. Verify the credential's purpose, issuer, audience, expiry, and application binding.
-   Match any application ID in the route to that verified binding.
-2. Resolve the current Application lifecycle and server-owned storage scope.
-3. Resolve organisation membership and the requested permission. Verify the full
-   parent chain for project and environment operations.
-4. Build the narrow authorized context required by the operation. Core functions
-   receive that context, never raw IDs with an optional application scope.
+If a factory cannot preserve scope, fix that boundary before exposing it. A whole
+account-stack rewrite is not a prerequisite. Developer Console behaviour stays on its
+existing authenticated path and storage scope.
 
-Use required fields, discriminated unions, branch-specific builders, and exhaustive
-switches. Keep unauthenticated, developer, application-server, and application-user
-states distinct. Keep parsed identity separate from verified authority. Do not permit
-domain casts or broad object spreads to construct an authorized context.
+## Work outside this slice
 
-Reuse current revocation versions and fresh authorization checks. Removed members,
-revoked credentials, suspended Applications, and archived resources must reject new
-protected operations. Existing sessions must not preserve grants that were removed.
+[Console separation](feat-2-platform-console.md) and
+[monthly postpaid billing](feat-3-platform-billing.md) remain independent plans.
+This change adds no meters, payment flows, application billing, or payer selection API.
 
-The selected organisation is request context. A tab switch or URL change cannot
-grant access or change another tab's authority. Validate the explicit target against
-the caller's membership on every request. Avoid a browser-global active-organisation
-cookie as the sole source of scope for background requests.
+Keep Wallet and Satyr integrations unchanged. Do not create new application-to-Wallet
+bindings, modify custody or signing, or add account calls to Wallet request paths.
+Connecting application users and project environments to Wallet is a later integration
+with its own ownership, permission, and request-budget checks.
 
-Scope caches, pagination cursors, exports, audit reads, queued work, and event delivery
-by Application and their relevant child identities. Avoid cross-application existence
-disclosure in errors. Recheck authority before deferred protected work or disclosure.
-Keep accepted financial settlement independent of a user's later session state.
+The developer's business database also remains outside this feature. Application
+code must enforce Seams' verified context when accessing its own records.
 
-## Public API and client surface
+## Implementation and acceptance
 
-Use explicit versioned routes in the existing Worker. The following route families
-describe the proposed contract; they are not implemented endpoints.
+1. **Trace and define.** Map the selected handlers to their factories and persistence
+   operations. Define the minimal Application record and verified context. Record
+   concrete scope gaps before proposing additional schema or helper changes.
+2. **Implement in place.** Add the registry, application session binding, and scoped
+   route assembly. Reuse the current factories and fix the identified gaps. Keep
+   request-time schema setup disabled and deployment topology unchanged.
+3. **Prove isolation.** Extend one composed E2E journey using real D1 and authentication.
+   Use two Applications under one developer account and another under a different
+   developer account. Reuse provider subjects, resource names, and idempotency keys
+   across them. Verify legitimate access, then attempt cross-application reads,
+   mutations, invitation acceptance, and replay. Check a developer credential against
+   application routes, membership revocation, Application suspension, and recovery
+   after a lost create response. Confirm existing developer account journeys still pass.
 
-| Surface                                              | Operations                                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Developer Console `/console/applications`            | Create, list, configure, suspend, and inspect owned Applications; manage application credentials |
-| Application authentication `/applications/v1/auth/*` | Authenticate an application user, inspect a session, and revoke a session                        |
-| `/applications/v1/organizations`                     | List accessible organisations and create one when the application's policy permits it            |
-| Organisation member and invitation routes            | Invite, accept, change permitted roles, remove membership, and inspect current access            |
-| Organisation project routes                          | Create, list, update, and archive projects with existing lifecycle rules                         |
-| Project environment routes                           | Manage environments and environment-specific resource access                                     |
+Read `tests/AGENTS.md`. Add no unit tests or source-text guards. Add focused type
+fixtures for developer/application authority confusion, incomplete contexts, direct
+construction, and broad spreads. Use existing checks for unsafe domain casts.
 
-Define a small fixed permission set for the first release. Application owners choose
-whether users can create organisations. Require verified invitation acceptance and
-atomically establish the initial owner. Replay of a create request must not leave
-duplicate organisations, ownerless records, or extra memberships.
+Save the command, source revision, migration identity, scoped results, and replay
+receipts under `.artifacts/platform-multitenancy/`. Add browser evidence if the
+implementation changes browser behaviour. Run narrow checks during implementation
+and `pnpm check` after the shared authentication/persistence change. Run
+`pnpm test:scripts` only if deployment scripts change. No Wallet latency campaign
+is required while its runtime and request paths remain untouched.
 
-Expose typed request/response contracts, bounded lists, stable errors, and idempotent
-mutations. Reuse existing invitation delivery and audit machinery. Do not publish
-private provisioning, billing-settlement, or support endpoints as application APIs.
-Apply request and invitation limits per Application and actor through existing
-admission patterns. One Application must not consume another's allowance.
-
-Prove the contract through one thin browser/server integration before publishing a
-new SDK package. Reuse the existing organisation picker and member form behaviour
-without importing the entire Console into customer applications. Keep the account
-client independent of the Wallet SDK. Public package ownership and release paths
-must be assigned explicitly before publication; private Console packages stay private.
-
-## Optional Wallet integration and developer billing
-
-Configure Wallet explicitly for an Application using a developer project owned by
-the same developer account. This is a binding between existing concepts. It does
-not make the Application and developer project the same entity.
-
-Bind application users or organisation-owned Wallet resources through verified
-identity and the existing Wallet provisioning flow. Resolve the application,
-organisation, project, and project environment before accepting a binding. Reject
-substitution of a wallet or environment from another Application or organisation.
-An application project environment needs an explicit mapping to the native Wallet
-environment. Matching names such as `production` do not establish that mapping.
-
-Membership grants application permissions. Wallet ownership, consent, and signing
-policy remain authoritative for signatures. Removing a member cannot transfer a
-personal wallet. Developer account administration cannot imply custody of end-user wallets.
-Preserve existing recovery and independently owned Wallet contracts.
-
-Use existing Wallet admission points and capability checks. Do not add serial
-Platform requests, schema setup, or awaited billing delivery to registration,
-unlock, signing, or response paths. Ship the Wallet integration only after its
-isolation checks and existing query/service-call budgets pass.
-
-Seams charges the developer billing account. Derive its payer and existing service
-instance from the authoritative Application binding. End-customer IDs provide
-attribution only and cannot select another payer. Reuse durable usage events,
-pricing versions, and the ledger. New billable meters require approved prices.
-End customers' subscriptions, invoices, and payment methods remain outside this release.
-
-## Implementation sequence
-
-### 1. Prove scope and define contracts
-
-Inventory current namespace handling, identity keys, sessions, membership checks,
-default-scope helpers, and persistence constraints. Define the Application registry,
-scope builders, actor types, fixed permissions, and versioned API contracts.
-Record the smallest required migration and the existing factories each route will reuse.
-
-Exit: developer and application authority cannot be confused in the types or storage
-mapping. No application operation can fall back to developer scope.
-
-### 2. Implement scoped account operations
-
-Add the registry and required persistence constraints. Adapt existing account,
-membership, invitation, and project factories to validated application contexts.
-Add application sessions and credentials through existing authentication boundaries.
-Preserve existing developer Console and first-party product behaviour.
-
-Exit: two Applications can use the same organisation names, provider subjects,
-and idempotency keys without sharing records or authority. Cross-scope references fail.
-
-### 3. Add Console management and client integration
-
-Add Application administration to the Platform Console composition. Build one
-application-facing journey for login, organisation selection, invitations, projects,
-and project environments. Add the optional Wallet binding through current adapters.
-Use the same account contracts in browser and server integrations.
-
-Exit: a developer can configure an Application and its users can complete the journey.
-Account-only operation works without Wallet or Satyr runtime dependencies.
-
-### 4. Acceptance and bounded rollout
-
-Read `tests/AGENTS.md`. Use composed E2Es and type fixtures. Add no unit tests or
-source-text guards. Test the real account persistence and authentication boundaries.
-
-Use one journey with two developer accounts, two Applications under one account,
-another Application under the second account, and overlapping verified identities.
-Create multiple organisations and projects with development and production environments.
-
-The journey must demonstrate:
-
-- Organisation creation and invitation acceptance survive duplicate delivery and restart.
-- A user switches between authorised organisations without affecting another browser tab.
-- Foreign application credentials, developer sessions, organisation IDs, invitation
-  tokens, project/environment IDs, cursors, and idempotency keys cannot cross scopes.
-- Role changes, revocation, Application suspension, and resource archive reject stale
-  authority. A development grant cannot access production resources.
-- The same provider subject in two Applications remains two independent user contexts.
-  Developer account membership alone grants no application-user access.
-- Optional Wallet provisioning preserves ownership, environment isolation, signing
-  permissions, and existing request costs. It never creates Satyr resources.
-- Usage resolves to the correct developer billing account without duplicate charges.
-  Developer Console and existing Wallet/Satyr journeys continue to pass.
-
-Save commands, source revisions, schema versions, request results, database scope
-checks, screenshots, traces, and relevant Wallet call counts under
-`.artifacts/platform-multitenancy/`. Add static checks for invalid actor/scope
-combinations, direct construction, broad spreads, and existing unsafe-cast escape hatches.
-
-Run narrow checks per phase and `pnpm check` after shared auth or persistence changes.
-Run `pnpm test:scripts` when deployment scripts change. Run public Wallet contracts
-in `seams-wallet` only if that repository's behaviour changes. Classify failures
-against current contracts before changing implementation or fixtures.
-
-Stage with isolated developer accounts first. Verify prerequisite migrations and
-deployments before a bounded opt-in release. Reuse existing runtime topology and
-exact Wallet package releases. Do not migrate existing customers automatically.
-On rollback, stop new application admissions and retain accepted billing delivery.
-Deploy only artifacts that understand existing records; preserve financial history.
-Report local validation, staging, and production separately.
+Stage with isolated Applications before enabling developer accounts. Verify migration
+and deployment prerequisites. Keep existing accounts out of automatic migration.
+For rollback, stop new application admission and restore compatible artifacts while
+preserving stored records. Report local validation and deployment separately.
 
 ## Completion criteria
 
-- Application scope is mandatory from credential verification through persistence and deferred work.
-- Developer accounts, organisations, projects, and project environments have distinct meanings and authorities.
-- Existing account rules and transactions serve the new API without a parallel membership engine.
-- Account-only Applications operate independently of product runtimes.
-- Optional Wallet integration preserves custody, permissions, and request budgets.
-- Acceptance evidence proves isolation, revocation, retry safety, and correct developer billing attribution.
-- Public API publication, package release, and production deployment are reported separately from local implementation.
+- Every application request resolves authenticated application scope before accessing account data.
+- Cross-application and developer/application access attempts fail at the relevant boundaries.
+- Existing account rules and factories serve the new routes without duplicate implementations.
+- Existing developer accounts, Wallet, and Satyr behaviour remain unchanged.
+- One repeatable E2E demonstrates successful use, isolation, revocation, and retry safety.

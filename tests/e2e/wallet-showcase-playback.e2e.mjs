@@ -45,6 +45,19 @@ try {
   const page = await context.newPage();
   await page.goto(origin);
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
+  await gallery.evaluate(positionGallery);
+  await page.mouse.move(5, 5);
+  const authentication = gallery.frameLocator('iframe[title="Authentication"]');
+  await expect(authentication.locator('[data-playback-cursor]')).toBeVisible();
+  await expect(authentication.getByRole('status')).toHaveText('Your wallet is ready.', {
+    timeout: 10000,
+  });
+  await expect(
+    authentication.getByRole('button', { name: 'Create wallet with passkey', exact: true }),
+  ).toBeVisible({ timeout: 10000 });
+  await expect(authentication.getByRole('status')).toHaveText('Your wallet is ready.', {
+    timeout: 10000,
+  });
   await select(page, gallery, 'Transactions');
   const transaction = gallery.frameLocator('iframe[title="Transaction modal"]');
   for (let cycle = 0; cycle < 2; cycle += 1) {

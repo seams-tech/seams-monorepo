@@ -294,25 +294,7 @@
   color: var(--showcase-ink);
   margin-top: 10px;
 }
-.showcase-preview__google {
-  font-size: 18px;
-  font-weight: 600;
-}
-.showcase-preview__divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 24px 0 12px;
-  color: var(--showcase-muted);
-  font-size: 11px;
-}
-.showcase-preview__divider::before,
-.showcase-preview__divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--showcase-line);
-}
+
 .showcase-preview__option {
   display: flex;
   align-items: center;

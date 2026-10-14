@@ -94,7 +94,9 @@ async function expectSelection(gallery, name) {
   switch (name) {
     case 'Authentication':
       await expect(
-        gallery.getByRole('button', { name: 'Create with passkey', exact: true }),
+        gallery
+          .frameLocator('iframe[title="Authentication"]')
+          .getByRole('button', { name: 'Create wallet with passkey', exact: true }),
       ).toBeVisible();
       break;
     case 'Transactions':
@@ -133,9 +135,28 @@ try {
   await expect(selector.getByRole('radio')).toHaveCount(4);
   await expect(pagination.getByRole('radio')).toHaveCount(4);
   await expectSelection(gallery, 'Authentication');
-  await gallery.getByRole('button', { name: 'Create with passkey', exact: true }).click();
-  await expect(gallery.getByRole('status')).toContainText('Your wallet is ready.');
-  await gallery.getByRole('button', { name: 'Back' }).click();
+  await gallery.evaluate(positionForCapture);
+  await gallery
+    .frameLocator('iframe[title="Authentication"]')
+    .getByRole('button', { name: 'Create wallet with passkey', exact: true })
+    .click();
+  await expect(
+    gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
+  ).toContainText('Your wallet is ready.');
+  await gallery
+    .frameLocator('iframe[title="Authentication"]')
+    .getByRole('button', { name: 'Back', exact: true })
+    .click();
+  await gallery.evaluate(positionForCapture);
+  const authentication = gallery.frameLocator('iframe[title="Authentication"]');
+  await authentication.getByRole('button', { name: 'Unlock wallet', exact: true }).click();
+  await expect(
+    authentication.getByRole('button', { name: 'Unlock with passkey', exact: true }),
+  ).toBeVisible();
+  await authentication.getByRole('button', { name: 'Create a wallet', exact: true }).click();
+  await expect(
+    authentication.getByRole('button', { name: 'Create wallet with passkey', exact: true }),
+  ).toBeVisible();
   await capture(gallery, 'desktop-authentication');
 
   await gallery.getByRole('button', { name: 'Next component' }).click();

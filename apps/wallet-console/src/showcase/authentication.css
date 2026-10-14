@@ -1,0 +1,41 @@
+.showcase-stage > [hidden] {
+  display: none !important;
+}
+
+.showcase-stage .seams-auth-menu-surface {
+  width: 100%;
+  filter: grayscale(1);
+}
+
+.authentication-result {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 40px 28px;
+  border: 1px solid #e7e5e4;
+  border-radius: 24px;
+  background: white;
+  color: #171717;
+  font-family: 'Hanken Grotesk', sans-serif;
+  box-shadow: 0 12px 32px #0000000d;
+}
+
+.authentication-result h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+}
+
+.authentication-result p {
+  margin: 0 0 28px;
+  color: #737373;
+}
+
+.authentication-result button {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #171717;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}

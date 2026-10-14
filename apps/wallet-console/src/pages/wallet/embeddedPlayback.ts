@@ -3,6 +3,11 @@ type PlaybackStep = {
   afterConfirmation: boolean;
 };
 
+const authenticationSteps: readonly PlaybackStep[] = [
+  { selector: '[data-auth-menu-primary]', afterConfirmation: false },
+  { selector: '[data-authentication-reset]', afterConfirmation: false },
+];
+
 const transferSteps: readonly PlaybackStep[] = [
   { selector: 'button.confirm', afterConfirmation: false },
   { selector: '.seams-receipt-primary', afterConfirmation: true },
@@ -38,9 +43,19 @@ export class EmbeddedPlayback {
 
   constructor(
     private readonly frame: HTMLIFrameElement,
-    kind: 'transaction-modal' | 'prediction-market',
+    kind: 'create' | 'transaction-modal' | 'prediction-market',
   ) {
-    this.steps = kind === 'transaction-modal' ? transferSteps : checkoutSteps;
+    switch (kind) {
+      case 'create':
+        this.steps = authenticationSteps;
+        break;
+      case 'transaction-modal':
+        this.steps = transferSteps;
+        break;
+      case 'prediction-market':
+        this.steps = checkoutSteps;
+        break;
+    }
     this.timer = window.setInterval(this.tick, 100);
   }
 

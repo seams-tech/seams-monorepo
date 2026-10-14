@@ -2,15 +2,12 @@ import React from 'react';
 import {
   ArrowRight,
   Check,
-  ChevronRight,
   Fingerprint,
-  KeyRound,
   Laptop,
   Layers2,
   LockKeyhole,
   MousePointer2,
   Plus,
-  QrCode,
   ShieldCheck,
   Smartphone,
 } from 'lucide-react';
@@ -20,7 +17,7 @@ import type { ModalBackdrop } from '@/showcase/modalBackdrop';
 
 type PreviewProps = { id: PreviewId; active: boolean; backdrop?: ModalBackdrop };
 
-type PreviewAction = 'create' | 'google' | 'link' | 'recover' | 'security' | 'reset';
+type PreviewAction = 'link' | 'security' | 'reset';
 
 type PreviewResult = { title: string; message: string };
 
@@ -30,25 +27,10 @@ type PreviewState =
 
 function resultForAction(action: string): PreviewResult | null {
   switch (action) {
-    case 'create':
-      return {
-        title: 'Wallet created',
-        message: 'Your wallet is ready.',
-      };
-    case 'google':
-      return {
-        title: 'Continue with Google',
-        message: 'Choose your Google account to continue.',
-      };
     case 'link':
       return {
         title: 'Device linked',
         message: 'Your wallet is now available on this device.',
-      };
-    case 'recover':
-      return {
-        title: 'Access restored',
-        message: 'Your wallet is ready on this device.',
       };
     case 'security':
       return {
@@ -218,42 +200,10 @@ function previewContent(id: PreviewId): React.JSX.Element {
       return (
         <>
           <div className="showcase-preview__icon">
-            <Layers2 aria-hidden />
+            <Fingerprint aria-hidden />
           </div>
           <h3>Create your wallet</h3>
           <p className="showcase-preview__subtitle">Your keys. Your next chapter.</p>
-          <PrimaryAction action="create">
-            <Fingerprint aria-hidden />
-            Create with passkey
-          </PrimaryAction>
-          <button
-            className="showcase-preview__secondary"
-            type="button"
-            data-preview-action="google"
-          >
-            <span className="showcase-preview__google">G</span>Continue with Google
-          </button>
-          <div className="showcase-preview__divider">More ways to connect</div>
-          <button className="showcase-preview__option" type="button" data-preview-action="link">
-            <span className="showcase-preview__option-icon">
-              <QrCode aria-hidden />
-            </span>
-            <span>
-              <strong>Link a device</strong>
-              <small>Bring your wallet with you</small>
-            </span>
-            <ChevronRight aria-hidden />
-          </button>
-          <button className="showcase-preview__option" type="button" data-preview-action="recover">
-            <span className="showcase-preview__option-icon">
-              <KeyRound aria-hidden />
-            </span>
-            <span>
-              <strong>Recover wallet</strong>
-              <small>Use your recovery code</small>
-            </span>
-            <ChevronRight aria-hidden />
-          </button>
         </>
       );
     case 'profile':
@@ -277,9 +227,31 @@ function assertNever(value: never): never {
   throw new Error(`Unknown component preview: ${String(value)}`);
 }
 
+function embeddedRoute(id: 'create' | 'transaction-modal' | 'prediction-market'): string {
+  switch (id) {
+    case 'create':
+      return 'authentication';
+    case 'transaction-modal':
+      return 'transaction';
+    case 'prediction-market':
+      return 'checkout';
+  }
+}
+
+function embeddedTitle(id: 'create' | 'transaction-modal' | 'prediction-market'): string {
+  switch (id) {
+    case 'create':
+      return 'Authentication';
+    case 'transaction-modal':
+      return 'Transaction modal';
+    case 'prediction-market':
+      return 'Prediction market';
+  }
+}
+
 function startEmbeddedPlayback(
   frame: React.RefObject<HTMLIFrameElement | null>,
-  kind: 'transaction-modal' | 'prediction-market',
+  kind: 'create' | 'transaction-modal' | 'prediction-market',
 ): (() => void) | undefined {
   if (!frame.current) return;
   const playback = new EmbeddedPlayback(frame.current, kind);
@@ -290,7 +262,7 @@ function EmbeddedPreview({
   kind,
   ...props
 }: React.IframeHTMLAttributes<HTMLIFrameElement> & {
-  kind: 'transaction-modal' | 'prediction-market';
+  kind: 'create' | 'transaction-modal' | 'prediction-market';
 }): React.JSX.Element {
   const frame = React.useRef<HTMLIFrameElement>(null);
   React.useEffect(startEmbeddedPlayback.bind(null, frame, kind), [kind]);
@@ -304,9 +276,9 @@ export function ComponentPreview({
   backdrop = 'dimmed',
 }: PreviewProps): React.JSX.Element {
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
-  if (active && (id === 'transaction-modal' || id === 'prediction-market')) {
-    const route = id === 'transaction-modal' ? 'transaction' : 'checkout';
-    const title = id === 'transaction-modal' ? 'Transaction modal' : 'Prediction market';
+  if (active && (id === 'create' || id === 'transaction-modal' || id === 'prediction-market')) {
+    const route = embeddedRoute(id);
+    const title = embeddedTitle(id);
     return (
       <EmbeddedPreview
         kind={id}

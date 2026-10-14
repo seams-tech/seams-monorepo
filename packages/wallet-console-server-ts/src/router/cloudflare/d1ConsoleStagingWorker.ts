@@ -291,12 +291,21 @@ function parseTenantDeploymentSurfaces(raw: string): TenantDeploymentCandidateSu
 
 function consoleGithubOAuthConfig(
   env: CloudflareD1ConsoleStagingEnv,
+  request: Request,
 ): ConsoleGithubOAuthConfig | undefined {
   const clientId = readEnvString(env, 'GITHUB_OAUTH_CLIENT_ID');
   const clientSecret = readEnvString(env, 'GITHUB_OAUTH_CLIENT_SECRET');
   const callbackUrl = readEnvString(env, 'GITHUB_OAUTH_CALLBACK_URL');
   if (!clientId || !clientSecret || !callbackUrl) return undefined;
-  return { clientId, clientSecret, callbackUrl };
+  const requestOrigin = request.headers.get('Origin') || new URL(request.url).origin;
+  if (!consoleCorsOrigins(env).includes(requestOrigin))
+    return { clientId, clientSecret, callbackUrl };
+  const callback = new URL(callbackUrl);
+  return {
+    clientId,
+    clientSecret,
+    callbackUrl: new URL(`${callback.pathname}${callback.search}`, requestOrigin).href,
+  };
 }
 
 function consoleCorsOrigins(env: CloudflareD1ConsoleStagingEnv): string[] {
@@ -358,6 +367,7 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
 async function createConsoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
+  request: Request,
 ): Promise<FetchHandler> {
   let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
@@ -724,7 +734,7 @@ async function createConsoleHandler(
     return await router(request, workerEnv, ctx);
   };
   return attachConsoleRouteSurface(
-    createHostedConsoleAuthentication(env, routerWithOps, bundle, session),
+    createHostedConsoleAuthentication(env, routerWithOps, bundle, session, request),
     resolveCompleteWalletConsoleRouteSurface(),
   );
 }
@@ -737,9 +747,10 @@ function createHostedConsoleAuthentication(
     readonly serviceAccess: CloudflareD1AccountServiceBundle['serviceAccess'];
   },
   session: SessionAdapter,
+  request: Request,
 ): FetchHandler {
   const googleOidcClientId = readEnvString(env, 'GOOGLE_OIDC_CLIENT_ID');
-  const githubOAuth = consoleGithubOAuthConfig(env);
+  const githubOAuth = consoleGithubOAuthConfig(env, request);
   const authHandler = new HostedConsoleAuthHandler({
     handler,
     recordVerifiedGoogleIdentity: services.serviceAccess.recordVerifiedGoogleIdentity.bind(
@@ -845,7 +856,7 @@ async function createAccountHandler(
     pathname.startsWith('/console/billing/') ||
     pathname.startsWith('/console/platform/billing/')
   ) {
-    return createAccountBillingHandler(env, services, auth, session);
+    return createAccountBillingHandler(env, services, auth, session, request);
   }
 
   let walletProvisioning: WalletServiceProvisioningAdapter | null = null;
@@ -884,7 +895,7 @@ async function createAccountHandler(
     waitUntil: ctx.waitUntil.bind(ctx),
   });
   return attachConsoleRouteSurface(
-    createHostedConsoleAuthentication(env, handler, services, session),
+    createHostedConsoleAuthentication(env, handler, services, session, request),
     resolveConsoleRouteSurface(),
   );
 }
@@ -894,6 +905,7 @@ async function createAccountBillingHandler(
   services: CloudflareD1AccountServiceBundle,
   auth: ConsoleAuthAdapter,
   session: SessionAdapter,
+  request: Request,
 ): Promise<FetchHandler> {
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const observability = await createD1ConsoleObservabilityService({
@@ -948,7 +960,7 @@ async function createAccountBillingHandler(
     billingStripeWebhookSigningSecret: readEnvString(env, 'STRIPE_WEBHOOK_SECRET'),
   });
   return attachConsoleRouteSurface(
-    createHostedConsoleAuthentication(env, handler, services, session),
+    createHostedConsoleAuthentication(env, handler, services, session, request),
     resolveCompleteWalletConsoleRouteSurface(),
   );
 }
@@ -956,8 +968,9 @@ async function createAccountBillingHandler(
 function consoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
+  request: Request,
 ): Promise<FetchHandler> {
-  return createConsoleHandler(env, ctx);
+  return createConsoleHandler(env, ctx, request);
 }
 
 function createConsoleReadyCheck(env: CloudflareD1ConsoleStagingEnv): () => Promise<void> {
@@ -1167,7 +1180,7 @@ async function fetch(
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
     return response;
   }
-  const handler = await consoleHandler(env, ctx);
+  const handler = await consoleHandler(env, ctx, request);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
   withCors(result.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
@@ -1375,7 +1388,7 @@ async function registrationSetupResponse(
   if (!catalog.matchesResources(setup.binding.resources)) {
     return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
   }
-  const handler = await consoleHandler(env, ctx);
+  const handler = await consoleHandler(env, ctx, request);
   const operations = createWalletConsoleOpsClient({
     fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
   });

@@ -87,6 +87,11 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
       request.headers.set('x-test-fail-d1-batch', 'true');
       this.failNextBatch = false;
     }
+    const browserOrigin = request.headers.get('Origin');
+    if (browserOrigin) {
+      request.headers.set('x-test-browser-origin', browserOrigin);
+      request.headers.delete('Origin');
+    }
     let response;
     try {
       response = await this.worker.fetch(request.url, {
@@ -164,6 +169,30 @@ async function activateWalletProject(
   expect(
     await runAccountServiceProvisioning({ platform: core.accountPlatform, adapter, limit: 100 }),
   ).toMatchObject({ delivered: 1, failed: 0, pending: 0 });
+}
+
+async function verifyConsoleGithubCallbacks(service: LocalConsoleService): Promise<void> {
+  for (const requestOrigin of [
+    'https://platform.example.test',
+    'https://wallet-console.example.test',
+    'https://foreign.example.test',
+  ]) {
+    const response = await service.fetch(
+      'https://console.example.test/console/auth/github/options',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: requestOrigin },
+        body: '{}',
+      },
+    );
+    expect(response.status, `${requestOrigin}: ${await response.clone().text()}`).toBe(200);
+    const expectedOrigin =
+      requestOrigin === 'https://foreign.example.test' ? origin : requestOrigin;
+    expect(await response.json()).toMatchObject({
+      configured: true,
+      callbackUrl: `${expectedOrigin}/dashboard/login`,
+    });
+  }
 }
 
 async function verifyRegistrationMutationTransactions(
@@ -355,6 +384,10 @@ test('production Console service bindings enforce durable credential changes and
   });
   const assertionKeys = generateKeyPairSync('ed25519');
   Object.assign(consoleEnvironment, {
+    GITHUB_OAUTH_CLIENT_ID: 'isolated-console-github-client',
+    GITHUB_OAUTH_CLIENT_SECRET: 'isolated-console-github-secret',
+    GITHUB_OAUTH_CALLBACK_URL: `${origin}/dashboard/login`,
+    CONSOLE_CORS_ORIGINS: `${origin},https://platform.example.test,https://wallet-console.example.test`,
     SATYR_DEPLOYMENT_ID: 'satyr-preflight',
     SATYR_ACCOUNT_ASSERTION_ISSUER: 'https://satyr.test',
     SATYR_ACCOUNT_ASSERTION_AUDIENCE: 'https://account.test',
@@ -527,6 +560,7 @@ test('production Console service bindings enforce durable credential changes and
       unsignedUserRejected: true,
     });
     const service = new LocalConsoleService(consumer);
+    await verifyConsoleGithubCallbacks(new LocalConsoleService(consumer));
     const client = createWalletConsoleOpsClient(service);
     // The Gateway sends its setup request with every registration-context call.
     const registration = gatewaySetupInput({

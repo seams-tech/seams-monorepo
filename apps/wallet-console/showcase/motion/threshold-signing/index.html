@@ -944,40 +944,9 @@ function setTrace(trace, progress) {
   return tip;
 }
 function policyCheck(parent, P) {
-  // A normal rounded check is drawn in the card's x/y plane before projection.
-  const outline = HL.fillet(
-    [
-      [-3, 7],
-      [-1, 6],
-      [2, 11],
-      [11, -3],
-      [13, -1.5],
-      [2, 15],
-      [0.5, 14.5],
-    ],
-    [0.7, 0.7, 0.5, 0.7, 0.7, 0.9, 0.7],
-    6,
-  );
-  const top = [];
-  const bottom = [];
-  for (const [x, y] of outline) {
-    top.push(P(x, y, 3));
-    bottom.push(P(x, y, 2.25));
-  }
-  let walls = '';
-  let edges = '';
-  for (let index = 0; index < outline.length; index++) {
-    const next = (index + 1) % outline.length;
-    const a = outline[index];
-    const b = outline[next];
-    if (b[1] - a[1] <= b[0] - a[0]) continue;
-    walls += HL.poly([bottom[index], bottom[next], top[next], top[index]]);
-    edges += HL.seg(bottom[index], bottom[next]);
-  }
-  path(parent, walls, 'fo');
-  path(parent, edges);
-  path(parent, HL.poly(top), 'lo');
-  return trace(parent, top.concat([top[0]]), 'check');
+  const check = [P(-1, 5, 2.3), P(2, 10, 2.3), P(9, 0, 2.3)];
+  path(parent, HL.open(check));
+  return trace(parent, check, 'check');
 }
 function policyStack(svg, P, front) {
   const group = HL.mk('g', { 'data-part': 'policy-stack' }, svg);

@@ -203,5 +203,22 @@
     "reviewer": "review_r190_runtime",
     "result": "No material blocker within the recorded scope. Archived sources and generated-file hashes verified; scope limits preserved."
   },
-  "aggregateMaintainedSourceDelta": -31931
+  "aggregateMaintainedSourceDelta": -31931,
+  "postQualificationRebase": {
+    "publicBase": "9f57952c8f67c56a8fc86a069317cd3a1c4b568e",
+    "privateBase": "7e0b2fac6dabfca6d5875953d0b86b27ddc39894",
+    "publicRevision": "0e8aa5c7c9e0d05775a9d6ba12ee2a8b75277775",
+    "privateRevision": "64ef7c891d2d0af5a911130831b8eb598a9cf791",
+    "qualificationSourceHashesUnchanged": true,
+    "qualificationInputTreeHashesUnchanged": true,
+    "scope": "Incoming CLI release-root metadata, CLI release workflow and documentation. No qualification code or application input tree changed.",
+    "privateScripts": {
+      "passed": 53,
+      "skipped": 1,
+      "log": {
+        "path": "/tmp/seams-r190-relocation-post-rebase-scripts.log",
+        "sha256": "462f933baf27b5a7865e33fddd70f5895d77a7335702b665036639485b29b712"
+      }
+    }
+  }
 }

@@ -850,6 +850,8 @@ Migration setup now reuses the public test SQL splitter, which tracks CASE nesti
 The callback relay removes transport headers before forwarding through Node fetch.
 The earlier `transfer-encoding` failure was a test infrastructure defect.
 Both final runs pass after these boundary fixes. Independent review found no blocker within the stated scope.
+Both branches then rebased onto current local `dev`: public `9f57952c` and private `d7103cdf`.
+All 37 recorded source files and 13 application input trees remain unchanged. The deployment-script checks pass again.
 
 ## Remaining rollout gates
 

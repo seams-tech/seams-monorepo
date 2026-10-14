@@ -1,7 +1,8 @@
 # Separate Platform and Wallet consoles
 
-Status: implementation is committed on `codex/feat-2-platform-console`. The staging backend and frontend artifacts are deployed.
-Staging DNS, identity-provider acceptance, and production cutover remain pending.
+Status: implementation is committed on `codex/feat-2-platform-console`.
+The staging backend and frontends are deployed. DNS and identity providers are configured.
+Wallet acceptance, the Console security origin cutover, Satyr acceptance, and production cutover remain pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -171,6 +172,8 @@ repeat the completed account, billing, and migration acceptance work without cau
    repository. Preserve existing Wallet API and signing staging origins.
 3. Route each Console's allowed API paths to the existing Console Worker at the edge.
    Keep same-origin browser requests where practical. Add no server proxy hop.
+   Remove any previous whole-host Worker binding on a frontend hostname before
+   assigning its Pages CNAME. Preserve the Worker routes for the allowed API paths.
    Satyr retains its native backend and private account binding.
 4. Configure exact allowed origins, OAuth callbacks, cookie settings, invitation and
    email links, product links, and validated return destinations. Shared identity
@@ -252,50 +255,51 @@ inside the existing Console security relying-party ID, `staging.wallet.seams.sh`
 The earlier `staging.console.wallet.seams.sh` hostname could not use those credentials.
 Production retains `console.wallet.seams.sh`. Wallet signing relying-party IDs are unchanged.
 
-The available Cloudflare credentials can deploy Workers and Pages, but DNS creation
-returns HTTP 403. Custom domains are registered and await DNS validation. Google
-JavaScript origins also require configuration. Existing login and Console security
-origins remain active while those prerequisites are incomplete.
+Both custom domains are active. Their application HTML and account session smoke
+checks pass. The API token cannot write DNS, so the records were configured through
+the authenticated Cloudflare dashboard. The previous whole-host Worker binding on
+`staging.console.seams.sh` was removed. Its `/console` API routes remain in place.
+Google JavaScript origins and exact GitHub callbacks were saved in the existing clients.
 
 Deployed staging artifacts:
 
 | Component                                               | Version or deployment identifier       | Verified result                                                                |
 | ------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | Existing Console Worker                                 | `bfb78906-3e0a-4a18-8986-6de9e7f8aabe` | Health and readiness return HTTP 200; unauthenticated session returns HTTP 401 |
-| Platform Pages project `seams-platform-console-staging` | `0f2bcca5-2907-41d3-a223-cb824dd4f3b5` | `/dashboard/login` returns HTTP 200 on its Pages hostname                      |
-| Wallet Pages project `seams-console-wallet-staging`     | `ad6ef66e-4243-46e1-a335-b2475f0983b0` | `/dashboard/login` returns HTTP 200 on its Pages hostname                      |
+| Platform Pages project `seams-platform-console-staging` | `f0b6a8d2-8fd1-477a-a8de-7d0231dfebcd` | `/dashboard/login` returns HTTP 200 on its custom hostname                     |
+| Wallet Pages project `seams-console-wallet-staging`     | `4b086122-5d75-4bd9-be0b-4187d71e9fa8` | `/dashboard/login` returns HTTP 200 on its custom hostname                     |
 
 The first Wallet Pages project returned HTTP 522 for static files. The same artifact
 serves successfully from the replacement project above. The staging CI mapping now
-selects that replacement. Both custom domains remain pending DNS validation.
+selects that replacement. Production deployments are unchanged.
 
 The Worker retains the existing database, service bindings, secrets, and placement.
 Its source revision is `89b317ba60b72f6de03a9f21d74c6ac07fdfea30`. After migration
 `0098`, use compatible Worker version `5fce7e3c-ff91-488d-a880-7dc2b6eb2ac2` as the
 rollback baseline. Keep migration `0098` applied during rollback.
 
-Finish the DNS and provider actions below, then run both frontend `smoke` commands.
-Verify real sign-in, reauthentication, context selection, rejected foreign access,
-billing, and Wallet automatic setup on the custom staging domains.
-Coordinate Satyr onboarding acceptance separately when its private connection is configured.
-Repeat the verified sequence for production after staging acceptance passes.
-Deploy marketing redirects only after both Console frontends pass readiness checks.
-The `all` command checks all project mappings before deploying Console frontends.
+Real Google sign-in opens the existing staging account on Platform. Its account
+settings, members, billing account, and invoice pages load. GitHub sign-in on Platform
+reaches initial account onboarding for the test identity. No developer account or
+developer project was created during this check. Shared account access works without a Satyr connection.
+
+The domain split also exposed a broken Contact sales link. Both login builds now
+link to the existing company page at `https://seams.sh/contact`.
 
 Keep the deferred Wallet runtime rollout separate. No production cutover is implied
 by a green local test or by this branch's deployment configuration.
 
-## Remaining staging actions
+## Staging configuration
 
-Add these proxied CNAME records in the existing `seams.sh` DNS zone:
+These proxied CNAME records are configured in the existing `seams.sh` DNS zone:
 
 | Name                     | Target                                     |
 | ------------------------ | ------------------------------------------ |
 | `staging.console`        | `seams-platform-console-staging.pages.dev` |
 | `console.staging.wallet` | `seams-console-wallet-staging.pages.dev`   |
 
-In Google Cloud project `seams-501403`, add these Authorized JavaScript origins to
-the existing web OAuth client. Keep its current origins and client identity:
+Google Cloud project `seams-501403` now allows these JavaScript origins on the existing
+Seams Web (Staging) client. Its previous origins and client identity are preserved:
 
 - `https://staging.console.seams.sh`
 - `https://console.staging.wallet.seams.sh`
@@ -304,22 +308,32 @@ GitHub callback selection now follows only approved Console origins. This keeps
 OAuth browser state on the initiating frontend. The same callback URI reaches the
 server-side code exchange. Unapproved origins cannot select a new callback.
 
-In the existing GitHub OAuth app, register or verify these exact callback URLs.
-Keep the current callback available during acceptance:
+The existing Seams Wallet OAuth app owned by `seams-tech` now has these exact callbacks.
+Wildcard matching remains disabled. Existing callbacks are preserved during acceptance:
 
 - `https://staging.console.seams.sh/dashboard/login`
 - `https://console.staging.wallet.seams.sh/dashboard/login`
+- `https://staging.wallet.seams.sh/dashboard/login`
 
-After DNS and both identity providers are configured, verify both custom domains and
-sign-in. Change the Console base URL and security origin to their generated cutover
-values, then verify Console passkey step-up and account email links.
-Keep the current staging entrypoints until acceptance passes. Production remains unchanged.
+Remaining actions, in order:
 
-The available Cloudflare token cannot write these DNS records. Provider settings also
-remain unverified. These external prerequisites block full staging acceptance.
-Deployment evidence and pending actions are recorded in
-`.artifacts/platform-console/rollout/report.json`.
+1. Finish Wallet sign-in and automatic setup with the existing staging account.
+   The temporary Wallet test session needs a browser reset before the Google check.
+   Browser automation cannot open Chrome's site-data settings, so this reset requires
+   user input. Wallet GitHub callback registration was accepted; its exchange response
+   was not captured, so full Wallet GitHub acceptance remains unverified.
+2. Set `CONSOLE_BASE_URL` to `https://staging.console.seams.sh` and
+   `CONSOLE_STEP_UP_ORIGIN` to `https://console.staging.wallet.seams.sh` after Wallet
+   sign-in passes. Preserve `CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh`.
+   Verify Console passkey step-up, captured account email links, and destination access.
+3. Configure Satyr's private account connection and verify onboarding in its own app.
+   Staging currently has no Satyr account-service identity or provisioning connection.
+4. Repeat the verified sequence for production after staging acceptance passes.
+   Deploy marketing redirects after both Console frontends pass readiness checks.
+   Retire old callbacks and browser routes after their links and in-flight sign-in
+   journeys no longer need them. The `all` command checks all project mappings before
+   deploying Console frontends.
 
-Staging has no configured Satyr account-service identity or provisioning connection.
-Native Satyr onboarding acceptance requires that separate connection and deployment.
-Shared account access must continue to work while Satyr is unavailable.
+Keep the current staging entrypoints and security origin until their replacements
+pass acceptance. Deployment evidence, screenshots, and pending actions are recorded
+under `.artifacts/platform-console/rollout/`, including `report.json` and `signin-journey.json`.

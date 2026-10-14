@@ -5,6 +5,7 @@ import { consoleIdentityCookie } from '../helpers/consoleWorkerEnvironment';
 /** Exercises the hosted entrypoint before any deployment exists in its D1 database. */
 export async function verifyUnactivatedConsoleOnboarding(input: {
   readonly service: WalletConsoleServiceBinding;
+  readonly productService: WalletConsoleServiceBinding;
   readonly database: D1DatabaseLike;
   readonly sessionSecret: string;
 }) {
@@ -75,6 +76,16 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
       selectedProjectId: projectId,
     },
   });
+  for (const pathname of [
+    '/console/account/profile',
+    '/console/organization/memberships',
+    '/console/billing/overview',
+  ]) {
+    const response = await input.service.fetch(`https://console.example.test${pathname}`, {
+      headers: { cookie },
+    });
+    expect(response.status, await response.clone().text()).toBe(200);
+  }
   const projects = await input.database
     .prepare('SELECT COUNT(*) AS count FROM projects WHERE id = ?')
     .bind(projectId)
@@ -97,7 +108,7 @@ export async function verifyUnactivatedConsoleOnboarding(input: {
   expect(environments).toBe(0);
   expect(serviceInstances).toBe(0);
 
-  const unauthorizedActivation = await input.service.fetch(
+  const unauthorizedActivation = await input.productService.fetch(
     'https://console.example.test/internal/tenant-deployment/v1/cutover',
     {
       method: 'POST',

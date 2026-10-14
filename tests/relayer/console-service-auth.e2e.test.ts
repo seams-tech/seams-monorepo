@@ -87,11 +87,18 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
       request.headers.set('x-test-fail-d1-batch', 'true');
       this.failNextBatch = false;
     }
-    const response = await this.worker.fetch(request.url, {
-      method: request.method,
-      headers: Array.from(request.headers.entries()),
-      body: request.body === null ? undefined : await request.arrayBuffer(),
-    });
+    let response;
+    try {
+      response = await this.worker.fetch(request.url, {
+        method: request.method,
+        headers: Array.from(request.headers.entries()),
+        body: request.body === null ? undefined : await request.arrayBuffer(),
+      });
+    } catch (error) {
+      throw new Error(`Console fixture request failed: ${new URL(request.url).pathname}`, {
+        cause: error,
+      });
+    }
     this.requests.push({ path: new URL(request.url).pathname, status: response.status });
     const calls = response.headers.get('x-test-d1-calls');
     const statements = response.headers.get('x-test-d1-statements');
@@ -407,13 +414,18 @@ test('production Console service bindings enforce durable credential changes and
     }
     const sessionSecret = consoleEnvironment.CONSOLE_SESSION_HMAC_SECRET;
     if (!sessionSecret) throw new Error('Console fixture is missing its session secret');
+    const accountOnlyService = new LocalConsoleService(await runtime.getWorker('console'));
+    accountOnlyService.consoleCompositionUnavailable = true;
+    accountOnlyService.accountKeysUnavailable = true;
     observations.push(
       await verifyUnactivatedConsoleOnboarding({
-        service: new LocalConsoleService(await runtime.getWorker('console')),
+        service: accountOnlyService,
+        productService: new LocalConsoleService(await runtime.getWorker('console')),
         database,
         sessionSecret,
       }),
     );
+    observations.push({ stage: 'account_routes_without_product_configuration', verified: true });
     const organizations = await createD1ConsoleOrgProjectService({
       database,
       namespace,

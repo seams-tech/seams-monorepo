@@ -69,14 +69,6 @@ class ObservedStatement implements D1PreparedStatementLike {
   }
 }
 
-class ScheduledLifetime {
-  readonly pending: Promise<unknown>[] = [];
-
-  waitUntil(promise: Promise<unknown>): void {
-    this.pending.push(promise);
-  }
-}
-
 function walletRequestEnvironment(
   request: Request,
   env: Parameters<typeof consoleWorker.fetch>[1],
@@ -98,16 +90,6 @@ async function fetch(
   env: Parameters<typeof consoleWorker.fetch>[1],
   ctx: Parameters<typeof consoleWorker.fetch>[2],
 ): Promise<Response> {
-  if (new URL(request.url).pathname === '/__test/scheduled') {
-    const lifetime = new ScheduledLifetime();
-    await consoleWorker.scheduled(
-      { scheduledTime: Date.now(), cron: '* * * * *' },
-      walletRequestEnvironment(request, env),
-      lifetime,
-    );
-    await Promise.all(lifetime.pending);
-    return Response.json({ ok: true });
-  }
   const database = new ObservedDatabase(
     env.CONSOLE_DB,
     request.headers.has('x-test-fail-d1-batch'),

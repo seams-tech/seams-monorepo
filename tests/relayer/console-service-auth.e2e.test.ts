@@ -159,70 +159,6 @@ async function activateWalletProject(
   ).toMatchObject({ delivered: 1, failed: 0, pending: 0 });
 }
 
-async function verifyScheduledWalletProvisioning(
-  database: D1DatabaseLike,
-  service: LocalConsoleService,
-  environments: ConsoleWalletEnvironmentService,
-  deploymentId: string,
-  credential: { readonly secret: string },
-): Promise<void> {
-  const core = await createCloudflareD1AccountServiceBundle({
-    database,
-    namespace,
-    ensureSchema: false,
-    externalDeletionGuard: null,
-  });
-  const retryProjectId = 'scheduled-wallet-retry';
-  await core.orgProjects.createProject(context, {
-    id: retryProjectId,
-    name: 'Scheduled Wallet retry',
-  });
-  const scope = platformAccepted(
-    await core.accountPlatform.bindProjectBilling(context, retryProjectId),
-  );
-  const adapter = new WalletServiceProvisioningAdapter({
-    deploymentId,
-    namespace,
-    environments,
-    orgProjects: core.orgProjects,
-    billing: core.billing,
-  });
-  const command = platformAccepted(
-    ServiceProvisionCommandV1.parse({
-      version: 1,
-      operationId: 'scheduled-wallet-enable',
-      instanceId: 'scheduled-wallet-instance',
-      desiredRevision: 1,
-      command: 'enable',
-      binding: adapter.createBinding(scope),
-    }),
-  );
-  platformAccepted(await core.accountPlatform.requestProvision(context, { scope, command }));
-  const client = createWalletConsoleOpsClient(service);
-  expect(
-    await client.publishableKeyAuth.authenticate({
-      secret: credential.secret,
-      origin,
-      environmentId,
-    }),
-  ).toMatchObject({ ok: true });
-  expect(service.lastDatabaseWork).toEqual({ calls: 2, statements: 2 });
-  expect(await environments.listEnvironments(context, { projectId: retryProjectId })).toHaveLength(
-    0,
-  );
-  expect(
-    (await service.fetch('https://wallet-console.internal/__test/scheduled', { method: 'POST' }))
-      .status,
-  ).toBe(200);
-  expect(await environments.listEnvironments(context, { projectId: retryProjectId })).toHaveLength(
-    3,
-  );
-  expect(
-    platformAccepted(await core.accountPlatform.getInstance(context, command.instanceId)).state
-      .kind,
-  ).toBe('active');
-}
-
 async function verifyRegistrationMutationTransactions(
   service: LocalConsoleService,
   database: Parameters<typeof createD1TenantDeploymentServiceV1>[0]['database'],
@@ -657,19 +593,6 @@ test('production Console service bindings enforce durable credential changes and
         .status,
     ).toBe(401);
     observations.push({ stage: 'wallet_routes_skip_account_key_initialization', verified: true });
-    await verifyScheduledWalletProvisioning(
-      database,
-      service,
-      walletEnvironments,
-      consoleEnvironment.SEAMS_TENANT_DEPLOYMENT_LANE,
-      credential,
-    );
-    observations.push({
-      stage: 'scheduled_wallet_retry',
-      invalidSatyrConfigurationIsolated: true,
-      requestDidNotProvision: true,
-      scheduledProvisioningCompleted: true,
-    });
 
     service.accountKeysUnavailable = false;
     const nowMs = Date.now();

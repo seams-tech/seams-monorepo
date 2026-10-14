@@ -8,6 +8,17 @@ const authenticationSteps: readonly PlaybackStep[] = [
   { selector: '[data-authentication-reset]', afterConfirmation: false },
 ];
 
+const accessSteps: readonly PlaybackStep[] = [
+  { selector: '[data-access-link]', afterConfirmation: false },
+  { selector: '[data-access-scanned]', afterConfirmation: false },
+  { selector: '[data-access-approve]', afterConfirmation: false },
+  { selector: '[data-access-passkey]', afterConfirmation: false },
+  { selector: '[data-access-next]', afterConfirmation: false },
+  { selector: '[data-access-verify]', afterConfirmation: false },
+  { selector: '[data-access-passkey]', afterConfirmation: false },
+  { selector: '[data-access-reset]', afterConfirmation: false },
+];
+
 const transferSteps: readonly PlaybackStep[] = [
   { selector: 'button.confirm', afterConfirmation: false },
   { selector: '.seams-receipt-primary', afterConfirmation: true },
@@ -43,9 +54,12 @@ export class EmbeddedPlayback {
 
   constructor(
     private readonly frame: HTMLIFrameElement,
-    kind: 'create' | 'transaction-modal' | 'prediction-market',
+    kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
   ) {
     switch (kind) {
+      case 'access':
+        this.steps = accessSteps;
+        break;
       case 'create':
         this.steps = authenticationSteps;
         break;

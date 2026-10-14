@@ -21,7 +21,7 @@
   z-index: 4;
   transform: translate(-50%, -50%);
   display: grid;
-  grid-template-columns: repeat(4, max-content);
+  grid-template-columns: repeat(5, max-content);
   width: max-content;
   max-width: calc(100% - 44px);
   gap: 4px;
@@ -572,7 +572,7 @@
   transition: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .component-showcase__frame {
     padding-top: 48px;
   }

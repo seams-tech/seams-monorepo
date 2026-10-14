@@ -206,6 +206,13 @@ function previewContent(id: PreviewId): React.JSX.Element {
           <p className="showcase-preview__subtitle">Your keys. Your next chapter.</p>
         </>
       );
+    case 'access':
+      return (
+        <>
+          <h3>Link & recover</h3>
+          <p className="showcase-preview__subtitle">Your wallet, wherever you are.</p>
+        </>
+      );
     case 'profile':
       return (
         <>
@@ -227,10 +234,14 @@ function assertNever(value: never): never {
   throw new Error(`Unknown component preview: ${String(value)}`);
 }
 
-function embeddedRoute(id: 'create' | 'transaction-modal' | 'prediction-market'): string {
+function embeddedRoute(
+  id: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
+): string {
   switch (id) {
     case 'create':
       return 'authentication';
+    case 'access':
+      return 'access';
     case 'transaction-modal':
       return 'transaction';
     case 'prediction-market':
@@ -238,10 +249,14 @@ function embeddedRoute(id: 'create' | 'transaction-modal' | 'prediction-market')
   }
 }
 
-function embeddedTitle(id: 'create' | 'transaction-modal' | 'prediction-market'): string {
+function embeddedTitle(
+  id: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
+): string {
   switch (id) {
     case 'create':
       return 'Authentication';
+    case 'access':
+      return 'Link and recover';
     case 'transaction-modal':
       return 'Transaction modal';
     case 'prediction-market':
@@ -251,7 +266,7 @@ function embeddedTitle(id: 'create' | 'transaction-modal' | 'prediction-market')
 
 function startEmbeddedPlayback(
   frame: React.RefObject<HTMLIFrameElement | null>,
-  kind: 'create' | 'transaction-modal' | 'prediction-market',
+  kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
 ): (() => void) | undefined {
   if (!frame.current) return;
   const playback = new EmbeddedPlayback(frame.current, kind);
@@ -262,7 +277,7 @@ function EmbeddedPreview({
   kind,
   ...props
 }: React.IframeHTMLAttributes<HTMLIFrameElement> & {
-  kind: 'create' | 'transaction-modal' | 'prediction-market';
+  kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access';
 }): React.JSX.Element {
   const frame = React.useRef<HTMLIFrameElement>(null);
   React.useEffect(startEmbeddedPlayback.bind(null, frame, kind), [kind]);
@@ -276,7 +291,10 @@ export function ComponentPreview({
   backdrop = 'dimmed',
 }: PreviewProps): React.JSX.Element {
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
-  if (active && (id === 'create' || id === 'transaction-modal' || id === 'prediction-market')) {
+  if (
+    active &&
+    (id === 'create' || id === 'transaction-modal' || id === 'prediction-market' || id === 'access')
+  ) {
     const route = embeddedRoute(id);
     const title = embeddedTitle(id);
     return (

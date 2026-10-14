@@ -5,7 +5,13 @@ import { chromium, expect } from '@playwright/test';
 const origin = process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet';
 const artifacts = '.artifacts/wallet-component-showcase';
 const errors = [];
-const components = ['Authentication', 'Transactions', 'Custom Components', 'Account management'];
+const components = [
+  'Authentication',
+  'Transactions',
+  'Custom Components',
+  'Link & recover',
+  'Account management',
+];
 
 function recordError(error) {
   errors.push(error.message);
@@ -113,6 +119,13 @@ async function expectSelection(gallery, name) {
           .getByRole('button', { name: 'Buy Yes', exact: true }),
       ).toBeVisible();
       break;
+    case 'Link & recover':
+      await expect(
+        gallery
+          .frameLocator('iframe[title="Link and recover"]')
+          .getByRole('button', { name: 'Link a device', exact: false }),
+      ).toBeVisible();
+      break;
     case 'Account management':
       await expect(gallery.getByRole('heading', { name: 'At home, everywhere.' })).toBeVisible();
       break;
@@ -132,8 +145,8 @@ try {
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
   const selector = gallery.getByRole('radiogroup', { name: 'Components', exact: true });
   const pagination = gallery.getByRole('radiogroup', { name: 'Component pagination' });
-  await expect(selector.getByRole('radio')).toHaveCount(4);
-  await expect(pagination.getByRole('radio')).toHaveCount(4);
+  await expect(selector.getByRole('radio')).toHaveCount(5);
+  await expect(pagination.getByRole('radio')).toHaveCount(5);
   await expectSelection(gallery, 'Authentication');
   await gallery.evaluate(positionForCapture);
   await gallery
@@ -188,6 +201,9 @@ try {
   });
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
+  await expectSelection(gallery, 'Link & recover');
+  await capture(gallery, 'desktop-link-recover');
+  await gallery.getByRole('button', { name: 'Next component' }).click();
   await expectSelection(gallery, 'Account management');
   await capture(gallery, 'desktop-account');
   await gallery.getByRole('button', { name: 'Next component' }).click();
@@ -238,7 +254,7 @@ try {
     ),
   );
   console.log(
-    'Passed the four-component carousel, synchronized selectors, wraparound, full transaction lifecycles, and mobile layouts.',
+    'Passed the five-component carousel, synchronized selectors, wraparound, full transaction lifecycles, and mobile layouts.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

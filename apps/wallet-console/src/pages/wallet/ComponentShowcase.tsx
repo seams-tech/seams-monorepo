@@ -4,7 +4,7 @@ import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
 import './component-showcase.css';
 
-export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile';
+export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile' | 'access';
 
 type Preview = {
   id: PreviewId;
@@ -17,6 +17,7 @@ const previews: readonly Preview[] = [
   { id: 'create', label: 'Authentication', x: 0, y: 0 },
   { id: 'transaction-modal', label: 'Transactions', x: 420, y: 100 },
   { id: 'prediction-market', label: 'Custom Components', x: 840, y: -70 },
+  { id: 'access', label: 'Link & recover', x: 1680, y: -100 },
   { id: 'profile', label: 'Account management', x: 1260, y: 60 },
 ];
 
@@ -31,7 +32,7 @@ const backgroundPreviews: readonly BackgroundPlacement[] = [
   { kind: 'receipt', x: 840, y: -500 },
   { kind: 'unlock', x: 1260, y: 520 },
   { kind: 'recovery', x: 1260, y: -400 },
-  { kind: 'payment', x: 1680, y: 0 },
+  { kind: 'payment', x: 2100, y: -240 },
   { kind: 'receipt', x: 1680, y: 390 },
 ];
 

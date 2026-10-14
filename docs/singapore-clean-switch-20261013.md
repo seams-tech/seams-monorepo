@@ -332,6 +332,151 @@ Open:
 - One sample of 198 failed at respond with a transient database fault.
   Respond does not retry it.
 
+## Staging: release 0.10.1 and two Console corrections since October 14, 11:54 JST
+
+Release 0.10.1 of the Wallet packages is a patch release with no wire,
+schema or protocol change. Its one correction is public `1ae2df5b`:
+registration setup answers 200 again for a provided wallet id that is not
+in the server-allocated format. The same morning found two Console queries
+that read whole tables for each registration, and a GitHub storage fault
+that blocked the backend deployment.
+
+Deployment, all times JST:
+
+1. 09:21. The three staging frontends were deployed from private `e64f627c`
+   (run `38489608173`), with the public docs of `96cf6d85`. The first run
+   failed at a script that `seams-wallet` removed on September 30;
+   `e64f627c` removes the step. The hosted wallet on staging speaks
+   protocol 4 since then.
+2. 11:18. Console run `38500163964` deployed the route correction
+   (`28f6e43e`, see below).
+3. 11:21. npm showed both 0.10.1 packages, 8 minutes after publish run
+   `38496003374` ended. Private `617770a8` moves the ten pins and the two
+   release-age exclusions. `pnpm check` and `pnpm build` pass. Console run
+   `38501430480` deployed it at 11:33.
+4. 11:37. Console run `38501744176` applied migration `0099` (`de8d6626`,
+   see below).
+5. 11:38. Backend run `38502043490` built the release and failed at
+   `Upload backend artifact`: the organization's artifact quota is full. No
+   Worker was deployed. `17c8a1a8` moves the staging backend workflow to
+   the run cache of the production workflows;
+   `docs/github-actions-storage.md` has the details.
+6. 11:52. Backend run `38502490077` deployed every component through the
+   cache handoff and deleted its cache. Its smoke step failed by design.
+   Activation run `38503380240` passed at 11:54.
+7. Read back: 14 serving versions, each the latest upload
+   (`serving-after-0101.json`). A setup with the provided wallet id
+   `canary-<uuid>` answers 200 with `ed25519.status = after_proof`; 0.10.0
+   answered 500. All 495 signatures of the five runs below verify
+   independently, with 495 distinct keys.
+
+### The Console read every wallet route for each registration
+
+Route publication (`D1WalletRoutes.publish`) joined the locator list with
+`wallet_routes` through a plain JOIN. D1 keeps no planner statistics, so
+SQLite searched `wallet_routes` with the four scope columns only. Each
+registration read every route of the environment 11 times. The table held
+15,910 routes of 1,591 wallets at 11:10 on October 14. The cost grew with
+each wallet that the measurement runs added:
+
+| Run, JST | Median `publish-routes` call |
+| --- | ---: |
+| October 13, 03:28 | 38 ms |
+| October 13, 16:06 | 95 ms |
+| October 13, 22:42 | 128 ms |
+| October 14, 00:35 | 185 ms |
+| October 14, 10:00 | 261 ms |
+
+D1 runs one statement at a time, so the scan also delayed the other Console
+calls of registrations that ran at the same time. `28f6e43e` writes both
+statements with `CROSS JOIN`, which fixes the join order: each locator finds
+its route through the full primary key. Old and new statements gave the
+same result in 13 cases on a real SQLite database, and the regional routing
+suite passes.
+
+The trigger `wallet_homes_no_replace` had the same fault in a smaller form:
+one `EXISTS` with a nested OR read every wallet home of the namespace on
+each insert. Migration `0099_wallet_homes_no_replace_index.sql` gives the
+trigger one `EXISTS` for each unique key. `origin/dev` has no migration
+`0098` yet; the migration runner accepts the gap.
+
+| Console statement, per execution | Rows read before | After | SQL time before | After |
+| --- | ---: | ---: | ---: | ---: |
+| Insert into `wallet_routes` | 171,070 | 41 | 172 ms | 1.5 ms |
+| Route verification | 15,491 | 30 | 36 ms | 0.3 ms |
+| Insert into `wallet_homes` | 1,571 | 17 | 5.8 ms | 0.9 ms |
+
+The Gateway and custody databases have no statement that reads more than
+600 rows.
+
+### Measurement
+
+Client in Tokyo, every request through Tokyo, 99 wallets in each run, test
+site of the 0.10.0 SDK.
+
+| Run | Start | State | After the passkey step, p50 | p90 | Finalize, p50 | Proof and execution, p50 |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| `day0100-a` | 10:00 | 0.10.0, scans present | 1,513 ms | 2,090 ms | 595 ms | 783 ms |
+| `day0100-routes-fix` | 11:20 | 0.10.0, route correction | 1,383 ms | 1,884 ms | 413 ms | 867 ms |
+| `day0101-a` | 11:55 | 0.10.1, both corrections | 1,725 ms | 2,276 ms | 511 ms | 1,055 ms |
+| `day0101-b` | 12:07 | 0.10.1, both corrections | 1,796 ms | 2,284 ms | 529 ms | 1,100 ms |
+| `day0101-c` | 12:21 | 0.10.1, both corrections | 1,626 ms | 2,313 ms | 501 ms | 912 ms |
+
+The route correction took 182 ms from the median finalize and 356 ms from
+its 90th percentile. The 0.10.1 runs are slower, and the release is not the
+cause: 0.10.1 changes no code after setup, and the stage that grew has the
+same CPU time in all five runs.
+
+| Wait, median | 10:00 | 11:20 | 11:55 | 12:07 | 12:21 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Deriver A, one database batch | 6 ms | 56 ms | 50 ms | 52 ms | 44 ms |
+| Deriver B, one database batch | 14 ms | 16 ms | 16 ms | 19 ms | 17 ms |
+| Deriver A, execute work, wall | 372 ms | 466 ms | 628 ms | 701 ms | 498 ms |
+| Deriver A, execute work, CPU | 163 ms | 178 ms | 173 ms | 178 ms | 184 ms |
+| Deriver A, connection made inside the execution | 13 of 99 | 23 of 99 | 48 of 99 | 55 of 99 | 20 of 99 |
+| Console, one write call | 51 ms | 80 ms | 86 ms | 87 ms | 83 ms |
+
+Two facts are measured. The causes behind them are not.
+
+- Between 10:10 and 11:20 the write confirmation of Deriver A's database
+  went from 6 ms to about 52 ms, before the 0.10.1 deployment. Its SQL time
+  stayed at 0.2 ms, its primary stayed in Singapore, and every custody
+  object ran in Singapore. Deriver A makes four database round trips for
+  each registration. The Console database shows the same kind of step:
+  about 20 ms for one write call on October 13, 51 ms at 10:00 and 80 to
+  87 ms from 11:20.
+- The two runs that started 8 and 20 minutes after the deployment of all
+  14 Workers had a further 150 to 230 ms of wait in Deriver A's preparation
+  and execution, with the same database time. The preparation then ended
+  after the passkey step (about 410 ms with the virtual authenticator) in
+  half of the registrations, so the execution waited for the pair
+  connection. In the run that started 32 minutes after the deployment, both
+  values were back at the level of 11:20. A person takes longer at the
+  passkey prompt, so this loss is smaller for real users.
+
+The 90th percentiles of `day0101-c` are not a clean measure. From 12:20
+another session measured write times on the Console database, and the
+`publish-routes` and `complete` calls of that run have 90th percentiles of
+471 and 590 ms against 103 and 104 ms at 11:20.
+
+Open:
+
+- The `Validate / repository` workflow fails on every push to `dev` at the
+  artifact upload of `Publish native service acceptance authority`. All
+  checks before that step pass. It stays blocked until the artifact quota
+  clears or the step stops using an artifact.
+- Local `dev` holds commits that are not on `origin/dev`: the account
+  commits `e904a044`, `d1f56f46`, `c02d6c58` and `193b892c` with migration
+  `0098`, and `e44f5232` (the launcher version in the Console's recovery
+  commands). None of them is deployed.
+- The write confirmation times of the Deriver A and Console databases are
+  outside our code. The cost of each one falls with the number of serial
+  database round trips: four in Deriver A, and two Console write calls
+  (`publish-routes`, then `complete`) inside finalization. At 12:26 the
+  owner ordered a move of the staging Console to a fresh Singapore database
+  for this reason; another session does it. The new database must carry
+  migration `0099`, and the measurement kit's database id changes with it.
+
 ## Production testnet and mainnet: databases ready, deployment blocked
 
 Empty databases exist for both lanes. Nothing serves them.

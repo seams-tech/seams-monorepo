@@ -4,8 +4,13 @@ const KEY_TRAVEL = 76;
 const KEY_HALF_THICKNESS = 1.6;
 const SLOT_HALF_WIDTH = 2.6;
 const SLOT_BEVEL = 0.65;
-const INSERT_END = HL.EASE_LIFT(0.45);
+const INSERT_END = 0.82;
 const TURN_ANGLE = -60;
+const DISC_SETTINGS = [
+  { x: -18, restAngle: -110, alignmentStart: 0, alignmentEnd: 0.18 },
+  { x: 9, restAngle: 135, alignmentStart: 0.24, alignmentEnd: 0.53 },
+  { x: 36, restAngle: -95, alignmentStart: 0.59, alignmentEnd: 0.88 },
+];
 const KEY_PROFILE = keyProfile();
 function keyProfile() {
   const neckAngle = Math.asin(3 / 24.2);
@@ -13,16 +18,13 @@ function keyProfile() {
   const outline = [
     [neck, 3],
     [-17.8, 3],
-    [-17.8, 17.5],
-    [-11.2, 17.5],
+    [-14.5, 14.5],
     [-11.2, 3],
     [9.2, 3],
-    [9.2, 17.5],
-    [15.8, 17.5],
+    [12.5, 14.5],
     [15.8, 3],
     [36.2, 3],
-    [36.2, 17.5],
-    [42.8, 17.5],
+    [39.5, 14.5],
     [42.8, 3],
     [49, 3],
     [51, 1],
@@ -125,9 +127,9 @@ function discKeyway(bevel) {
   const radius = 6 + bevel;
   const angle = Math.asin(width / radius);
   const contour = [
-    [-width, 18.5 + bevel],
+    [-width, 15.5 + bevel],
     ...circle(radius, Math.PI * 2 - angle, angle),
-    [width, 18.5 + bevel],
+    [width, 15.5 + bevel],
   ];
   return HL.fillet(contour, Array(contour.length).fill(0.45 + bevel), 4);
 }
@@ -145,11 +147,12 @@ function discDetail(P, disc, angle) {
 }
 function keySection(svg, low, high, cover) {
   const surface = path(svg, 'fo');
+  const back = path(svg, 'sil nf');
+  const face = path(svg, 'fo');
   const edge = path(svg, 'sil nf');
   const bore = path(svg, 'lo');
-  const crease = path(svg, 'lo nf');
   if (cover) svg.append(cover.frontWall, cover.face, cover.detail);
-  return { low, high, surface, edge, bore, crease };
+  return { low, high, surface, back, face, edge, bore };
 }
 function clipProfile(profile, boundary, keepRight) {
   const result = [];
@@ -181,8 +184,8 @@ function drawKey(P, part, offset, angle) {
   const far = profile.map(mapFar);
   const near = profile.map(mapNear);
   let walls = '';
+  let backEdges = '';
   let edges = '';
-  let detail = '';
   let bore = '';
   if (profile.length > 0) {
     const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
@@ -196,26 +199,23 @@ function drawKey(P, part, offset, angle) {
       const previous = (index + profile.length - 1) % profile.length;
       if (visible) {
         walls += HL.poly([far[index], far[next], near[next], near[index]]);
-        if (!clipped) edges += HL.seg(far[index], far[next]);
+        if (!clipped) backEdges += HL.seg(far[index], far[next]);
       }
       if (!clipped && visible !== !sideVisible(far[previous], far[index], direction)) {
-        edges += HL.seg(far[index], near[index]);
+        backEdges += HL.seg(far[index], near[index]);
       }
     }
     if (low < -78 && high > -58) {
       const hole = circle(8.5).map(holePoint);
       bore = HL.poly(hole.map(mapNear));
     }
-    const grooveStart = Math.max(low, -46);
-    const grooveEnd = Math.min(high, 45);
-    if (grooveEnd > grooveStart) {
-      detail += HL.seg(mapNear([grooveStart, 1.3]), mapNear([grooveEnd, 1.3]));
-    }
   }
-  part.surface.setAttribute('d', profile.length ? walls + HL.poly(near) : '');
+  // The opaque front face masks rear edges inside the concave tooth and bow outline.
+  part.surface.setAttribute('d', walls);
+  part.back.setAttribute('d', backEdges);
+  part.face.setAttribute('d', profile.length ? HL.poly(near) : '');
   part.edge.setAttribute('d', edges);
   part.bore.setAttribute('d', bore);
-  part.crease.setAttribute('d', detail);
 }
 function pedestal(svg, P, x, entry = false) {
   const outline = [
@@ -249,27 +249,82 @@ function base(svg, P, front) {
     }
   }
 }
+function phaseProgress(progress, start, end) {
+  const from = HL.EASE_LIFT(start);
+  const to = HL.EASE_LIFT(end);
+  return HL.EASE_LIFT(HL.clamp((progress - from) / (to - from), 0, 1));
+}
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);
   if (progress === state.drawn) return !HL.tdone(state.motion, now);
   state.drawn = progress;
-  const insertion = HL.clamp(progress / INSERT_END, 0, 1);
-  const turn = HL.clamp((progress - INSERT_END) / (1 - INSERT_END), 0, 1);
+  const insertion = HL.clamp(progress / HL.EASE_LIFT(INSERT_END), 0, 1);
+  const offset = KEY_TRAVEL * (insertion - 1);
+  const turn = phaseProgress(progress, INSERT_END, 1);
   const angle = HL.rad(TURN_ANGLE * turn);
-  // Both phases share one reversible clock: turn back fully before withdrawal.
+  // Reversing the shared clock clears each tooth before its disc returns to rest.
   for (const sleeve of state.sleeves) drawBody(state.P, sleeve, angle);
-  for (const disc of state.discs) {
-    drawBody(state.P, disc, angle, discDetail(state.P, disc, angle));
+  let aligning = -1;
+  for (let index = 0; index < state.discs.length; index++) {
+    const disc = state.discs[index];
+    const { restAngle, alignmentStart, alignmentEnd } = disc.settings;
+    // Alignment follows insertion distance and finishes before the leading tooth reaches the disc.
+    const alignment = HL.EASE_LIFT(
+      HL.clamp((insertion - alignmentStart) / (alignmentEnd - alignmentStart), 0, 1),
+    );
+    const discAngle = angle + HL.rad(restAngle * (1 - alignment));
+    drawBody(state.P, disc, discAngle, discDetail(state.P, disc, discAngle));
+    disc.face.dataset.alignment = alignment;
+    if (alignment > 0 && alignment < 1) aligning = index;
   }
-  for (const part of state.keys) drawKey(state.P, part, KEY_TRAVEL * (insertion - 1), angle);
+  for (const part of state.keys) drawKey(state.P, part, offset, angle);
   state.svg.dataset.insertion = insertion;
   state.svg.dataset.turn = turn;
   state.read.textContent = 'rest';
   if (progress > 0 && insertion < 1)
     state.read.textContent = state.active ? 'inserting' : 'withdrawing';
+  if (aligning >= 0) {
+    const action = state.active ? 'aligning' : 'resetting';
+    state.read.textContent = `${action} disc ${aligning + 1}`;
+  }
   if (insertion === 1 && turn < 1) state.read.textContent = state.active ? 'turning' : 'returning';
   if (turn === 1) state.read.textContent = '3 engaged · turned';
   return !HL.tdone(state.motion, now);
+}
+function containsPoint(polygon, point) {
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const a = polygon[index];
+    const b = polygon[previous];
+    const crossesHeight = a[1] > point[1] !== b[1] > point[1];
+    if (!crossesHeight) continue;
+    const intersectionX = ((b[0] - a[0]) * (point[1] - a[1])) / (b[1] - a[1]) + a[0];
+    if (point[0] < intersectionX) inside = !inside;
+  }
+  return inside;
+}
+function highlight(state, outline) {
+  if (state.highlight === outline) return;
+  for (const edge of state.highlight) edge.classList.remove('hi');
+  for (const edge of outline) edge.classList.add('hi');
+  state.highlight = outline;
+}
+function move(state, point) {
+  // Disc silhouettes are fixed. The key uses its rest-to-target envelope to prevent hover flicker.
+  for (let index = state.discs.length - 1; index >= 0; index--) {
+    const disc = state.discs[index];
+    if (containsPoint(disc.hitArea, point)) {
+      highlight(state, disc.outline);
+      select(state, true);
+      return;
+    }
+  }
+  highlight(state, containsPoint(state.keyHitArea, point) ? state.keyOutline : state.noOutline);
+  select(state, true);
+}
+function leave(state) {
+  highlight(state, state.keyOutline);
+  select(state, false);
 }
 function select(state, active) {
   if (state.active === active) return;
@@ -308,9 +363,17 @@ function mount({ stage, svg, read }, duration) {
   const discs = [];
   const sleeves = [];
   let previous = -36;
-  for (const x of [-18, 9, 36]) {
+  for (const settings of DISC_SETTINGS) {
+    const { x } = settings;
     sleeves.push(body(svg, previous, x - previous, slottedRing(8, 7)));
     const disc = body(svg, x, 7, circle(31), 43, discKeyway(0), discKeyway(SLOT_BEVEL));
+    disc.settings = settings;
+    disc.hitArea = HL.hull(
+      circle(31)
+        .map(project.bind(null, P, x, 43, 0))
+        .concat(circle(31).map(project.bind(null, P, x + 7, 43, 0))),
+    );
+    disc.outline = [disc.face];
     keys.push(keySection(svg, x === -18 ? -36 : x - 20, x + 7, disc));
     discs.push(disc);
     previous = x + 7;
@@ -320,6 +383,13 @@ function mount({ stage, svg, read }, duration) {
   pedestal(svg, P, 54);
   drawBody(P, body(svg, 62, 2, circle(7)), 0, HL.seg(P(64, -3, 40), P(64, 3, 46)));
   const motion = HL.tween(0, duration);
+  const keyOutline = [];
+  for (const part of keys) keyOutline.push(part.back, part.edge);
+  const keyHitArea = HL.hull(
+    KEY_PROFILE.map(keyPoint.bind(null, P, -KEY_TRAVEL, 0, KEY_HALF_THICKNESS)).concat(
+      KEY_PROFILE.map(keyPoint.bind(null, P, 0, HL.rad(TURN_ANGLE), KEY_HALF_THICKNESS)),
+    ),
+  );
   const state = {
     P,
     svg,
@@ -329,17 +399,19 @@ function mount({ stage, svg, read }, duration) {
     discs,
     sleeves,
     motion,
+    keyOutline,
+    keyHitArea,
+    noOutline: [],
+    highlight: [],
     drawn: NaN,
     active: false,
     loop: null,
   };
   state.loop = HL.register(stage, tick.bind(null, state));
-  for (const part of keys) part.edge.classList.add('hi');
+  highlight(state, keyOutline);
   const bag = HL.disposer();
   bag.add(state.loop.unregister);
-  const move = select.bind(null, state, true);
-  const leave = select.bind(null, state, false);
-  bag.add(HL.pointer(stage, { move, leave }));
+  bag.add(HL.pointer(stage, { move: move.bind(null, state), leave: leave.bind(null, state) }));
   stage.tabIndex = 0;
   stage.setAttribute('role', 'button');
   stage.setAttribute('aria-label', 'Insert and turn the interlock key');
@@ -351,8 +423,8 @@ function mount({ stage, svg, read }, duration) {
 hairline({
   name: 'interlock',
   means:
-    'Hover to insert the key, then turn it with all three discs. Leave to turn back before withdrawing.',
+    'Hover to align each disc as the key advances, then turn the assembly. The outline follows the pointer.',
   rules: [1, 4, 6, 7, 8, 9],
-  range: [900, 1200, 1500],
+  range: [2600, 3400, 4400],
   mount,
 });

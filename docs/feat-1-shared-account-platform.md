@@ -14,6 +14,16 @@ Satyr integration scope: [Phase 4 implementation](shared-account-platform/phase-
 Interface and cutover evidence: [Phase 5 implementation](shared-account-platform/phase-5.md).
 Future integrations: [Service addition procedure](shared-account-platform/add-service.md).
 
+## Terminology and scope
+
+Use the [Platform glossary](platform-glossary.md). This plan covers developer
+accounts, developer projects, developer account memberships, and developer billing.
+“Organisation” in existing Platform code and stored fields maps to developer account.
+Keep native Wallet and Satyr organisation scopes explicit. Applications and
+end-customer organisations describe the proposed public model. Project environments
+mean development/staging/production scopes. This terminology change adds no nesting,
+API fields, or isolation guarantees.
+
 ## Implementation rules
 
 This document specifies the first release. Requirements below take precedence over
@@ -29,32 +39,32 @@ transaction patterns. Choose local implementation details within these boundarie
 If an existing invariant conflicts with this specification, record the exact
 conflict before changing behaviour. Do not weaken the invariant to complete a phase.
 
-Production Satyr prices and customer account merges remain product decisions.
-Use isolated test prices and separate customer accounts until those decisions exist.
+Production Satyr prices and developer account merges remain product decisions.
+Use isolated test prices and separate developer accounts until those decisions exist.
 These decisions do not block contract, migration, or E2E implementation.
 
 ## Purpose and decisions
 
 Build one account platform for Seams, Satyr, and future services. Reuse the
-existing Console core for organisations, users, memberships, platform projects,
+existing Console core for developer accounts, developer users, account memberships, developer projects,
 service access, and billing. Keep each service's operational data and execution
 rules in its owning runtime.
 
-The first release provides one billing account per platform organisation,
-multiple platform projects, and independently enabled services. Users can belong
-to several organisations. Each service can define several usage measures and
+The first release provides one billing account per developer account,
+multiple developer projects, and independently enabled services. Developer users can belong
+to several developer accounts. Each service can define several usage measures and
 prices. Seams retains its current commercial behaviour during the transition.
 
-Platform projects define resource ownership and cost attribution. Satyr's existing
+Developer projects define resource ownership and cost attribution. Satyr's existing
 projects remain work resources inside Satyr. They retain their personal/shared
 access, Cases, briefs, references, and history controls.
 
-Bind one Satyr tenant to one platform project for the initial integration.
-An existing tenant cannot serve several platform projects. A second instance
-requires a separate tenant and successful isolation verification.
+Bind one Satyr native tenant to one developer project for the initial integration.
+An existing Satyr native tenant cannot serve several developer projects. A second
+instance requires a separate Satyr native tenant and successful isolation verification.
 
 This plan defines the implementation defaults. Actual Satyr prices, new payment
-terms, and customer account merges require explicit product decisions before use.
+terms, and developer account merges require explicit product decisions before use.
 The implementation can proceed with test prices and separately identified accounts.
 
 ## Current implementation and constraints
@@ -62,63 +72,63 @@ The implementation can proceed with test prices and separately identified accoun
 Seams paths below are relative to `seams-monorepo`. Satyr paths are relative to
 `/Users/pta/Dev/lowerarchy/satyr`.
 
-| Area                | Current implementation                                                                     | Consequence                                                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Seams ownership     | `packages/console-server-ts/src/orgProjectEnv/{types,service,d1}.ts`                       | Organisation and project identity already have a shared package owner. Project creation also creates three environments. |
-| Seams access        | `packages/console-server-ts/src/teamRbac/`                                                 | Reuse membership lifecycles and administrative permissions. Service content needs separate access checks.                |
-| Seams billing       | `packages/console-server-ts/src/billing/`                                                  | Reuse the ledger and payment flows. Replace the fixed resource price and organisation-only usage attribution.            |
-| Seams composition   | `packages/wallet-console-server-ts/src/router/consoleComposition.ts`                       | The production composition still requires wallet services. Extract a usable account-only composition.                    |
-| Wallet reservations | `packages/wallet-console-server-ts/src/billingPrepaidReservations/`                        | Move reusable money reservation behaviour into shared billing. Keep wallet execution policy in Wallet.                   |
-| Satyr projects      | `packages/control-api/src/{projects,project-access}.ts`                                    | Projects contain work context and personal/shared access. They are distinct from platform projects.                      |
-| Satyr membership    | `services/platform/migrations-regional/0001_current_schema.sql`, `organisation_membership` | Membership includes `personId` and owner/admin/operator/viewer roles. Preserve service roles and person bindings.        |
-| Satyr lifecycle     | `services/platform/src/data/control-plane.ts`, `organisation-lifecycle.ts`                 | Onboarding carries development/production mode, activation, archive, and purge state. Keep this service lifecycle.       |
-| Satyr storage       | `services/platform/src/organisation-execution-scope.ts`                                    | Regional placement and write fences remain authoritative for Satyr operations.                                           |
-| Satyr disclosure    | `services/platform/src/projects/membership.ts` and `policy/information-flow/README.md`     | Project admission checks source access and retained history. Platform membership cannot bypass these checks.             |
-| Satyr inference     | `services/platform/src/data/organisation-inference-selection.ts`, `workspace-ai-budget.ts` | Funding selection and token/time/tool limits are separate from customer money balances.                                  |
+| Area                | Current implementation                                                                     | Consequence                                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Seams ownership     | `packages/console-server-ts/src/orgProjectEnv/{types,service,d1}.ts`                       | Developer account and developer project identity already have a shared package owner. Project creation also creates three environments. |
+| Seams access        | `packages/console-server-ts/src/teamRbac/`                                                 | Reuse membership lifecycles and administrative permissions. Service content needs separate access checks.                               |
+| Seams billing       | `packages/console-server-ts/src/billing/`                                                  | Reuse the ledger and payment flows. Replace the fixed resource price and developer-account-only usage attribution.                      |
+| Seams composition   | `packages/wallet-console-server-ts/src/router/consoleComposition.ts`                       | The production composition still requires wallet services. Extract a usable account-only composition.                                   |
+| Wallet reservations | `packages/wallet-console-server-ts/src/billingPrepaidReservations/`                        | Move reusable money reservation behaviour into shared billing. Keep wallet execution policy in Wallet.                                  |
+| Satyr projects      | `packages/control-api/src/{projects,project-access}.ts`                                    | Projects contain work context and personal/shared access. They are distinct from developer projects.                                    |
+| Satyr membership    | `services/platform/migrations-regional/0001_current_schema.sql`, `organisation_membership` | Membership includes `personId` and owner/admin/operator/viewer roles. Preserve service roles and person bindings.                       |
+| Satyr lifecycle     | `services/platform/src/data/control-plane.ts`, `organisation-lifecycle.ts`                 | Onboarding carries development/production mode, activation, archive, and purge state. Keep this service lifecycle.                      |
+| Satyr storage       | `services/platform/src/organisation-execution-scope.ts`                                    | Regional placement and write fences remain authoritative for Satyr operations.                                                          |
+| Satyr disclosure    | `services/platform/src/projects/membership.ts` and `policy/information-flow/README.md`     | Project admission checks source access and retained history. Developer account membership cannot bypass these checks.                   |
+| Satyr inference     | `services/platform/src/data/organisation-inference-selection.ts`, `workspace-ai-budget.ts` | Funding selection and token/time/tool limits are separate from developer billing balances.                                              |
 
 The inspected Satyr code has execution budgets and provider usage records.
-It does not establish a customer money ledger equivalent to Seams billing.
+It does not establish a developer billing ledger equivalent to Seams billing.
 Satyr's Stripe connection code serves commerce integrations and remains separately owned.
 
 ## Ownership model
 
 ```text
-Platform organisation
-  Users and organisation memberships
-  Billing account
-  Platform project
+Developer account
+  Developer users and developer account memberships
+  Developer billing account
+  Developer project
     Wallet service instance
       Wallet environments and operational resources
     Satyr service instance
-      Satyr tenant and regional placement
+      Satyr native tenant and regional placement
       Satyr work projects and Cases
       Commerce connections, workspaces, and agent sessions
 ```
 
-An organisation identifies the customer account. A platform project defines a
+A developer account identifies the buyer of Seams services. A developer project defines a
 resource and cost boundary. A service instance binds an enabled service to that
 project and its operational tenant.
 
-The account platform owns shared records. Service runtimes own operational records.
+The account platform owns shared developer records. Service runtimes own operational records.
 Services communicate through versioned APIs and authenticated events. They do not
 read another runtime's private tables or import its private implementation.
 
-| Record                  | Owner                | Required meaning                                                                          |
-| ----------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
-| Platform organisation   | Account platform     | Stable customer identity, account name, lifecycle, and ownership                          |
-| User identity           | Account platform     | Stable principal with verified identity-provider bindings                                 |
-| Organisation membership | Account platform     | Current membership eligibility and account administration permissions                     |
-| Platform project        | Account platform     | Organisation ownership, account-level visibility, name, and lifecycle                     |
-| Billing account         | Account platform     | Payment responsibility, currency, and ledger identity                                     |
-| Project billing binding | Account platform     | The billing account responsible for the project's charges                                 |
-| Service instance        | Account platform     | Service identity, project ownership, requested access, and observed provisioning state    |
-| Service tenant binding  | Integration boundary | Stable association between an instance and the service's native tenant identity           |
-| Satyr tenant            | Satyr                | Regional placement, operational lifecycle, integrations, inference choice, and workspaces |
-| Satyr work project      | Satyr                | Work context, project roles, source restrictions, and Case membership                     |
-| Service grants          | Owning service       | Permissions for its operations and resources                                              |
+| Record                       | Owner                | Required meaning                                                                          |
+| ---------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| Developer account            | Account platform     | Stable developer account identity, name, lifecycle, and ownership                         |
+| Developer user identity      | Account platform     | Stable principal with verified identity-provider bindings                                 |
+| Developer account membership | Account platform     | Current membership eligibility and account administration permissions                     |
+| Developer project            | Account platform     | Developer account ownership, account-level visibility, name, and lifecycle                |
+| Developer billing account    | Account platform     | Payment responsibility, currency, and ledger identity                                     |
+| Project billing binding      | Account platform     | The billing account responsible for the project's charges                                 |
+| Service instance             | Account platform     | Service identity, project ownership, requested access, and observed provisioning state    |
+| Service tenant binding       | Integration boundary | Stable association between an instance and the service's native tenant identity           |
+| Satyr native tenant          | Satyr                | Regional placement, operational lifecycle, integrations, inference choice, and workspaces |
+| Satyr work project           | Satyr                | Work context, project roles, source restrictions, and Case membership                     |
+| Service grants               | Owning service       | Permissions for its operations and resources                                              |
 
-Keep one billing account per organisation in the first release. Give it its own
-identifier and bind every platform project to it. Multiple payers, cross-organisation
+Keep one developer billing account per developer account in the first release. Give it its own
+identifier and bind every developer project to it. Multiple payers, cross-developer-account
 billing, project transfers, and multiple currencies remain outside this release.
 
 ### Identity and data rules
@@ -157,13 +167,13 @@ Store these bindings as distinct typed variants. Do not use nullable native proj
 fields to distinguish services. Resolve native environment and resource ownership
 inside the Wallet adapter before accepting an operation or usage event.
 
-Create one platform organisation for each unmapped source organisation. Import
-Satyr into a dedicated platform project. Import Seams projects individually.
+Create one developer account for each unmapped source organisation. Import
+Satyr into a dedicated developer project. Import Seams projects individually.
 Keep account identities separate unless an explicit, verified mapping joins them.
 
 ### Environments and lifecycle
 
-Remove environment creation from generic platform project creation. Wallet
+Remove environment creation from generic developer project creation. Wallet
 provisioning creates its existing dev/staging/prod environments. Preserve their IDs,
 keys, status semantics, and signing metadata during this move.
 
@@ -175,7 +185,7 @@ Complete the environment separation across `account`, `onboarding`, `apiKeys`,
 session context, route definitions, persistence, and Console UI. These currently
 carry environment fields or readiness checks. Moving project creation alone is insufficient.
 
-Account onboarding completes after organisation and platform project creation.
+Developer onboarding completes after developer account and developer project creation.
 It requires no Wallet environment or API key. Wallet setup separately provisions
 environments and preserves its existing live-environment billing gate.
 
@@ -198,24 +208,24 @@ delete operational tables. Satyr retains its archive, restore, and purge procedu
 
 ## Access contract
 
-The account platform decides who belongs to an organisation and who can manage
+The account platform decides who belongs to a developer account and who can manage
 projects, services, or payments. The service decides who can read its content or
 perform an operational action.
 
 A billing administrator can inspect costs without access to private Satyr chats.
 A Satyr operator can execute an authorised workflow without access to payments.
-Platform project visibility alone grants no access to Satyr work projects.
+Developer project visibility alone grants no access to Satyr work projects.
 Admission also requires access to the specific service instance. Membership in
-the platform organisation does not automatically admit a user to every Satyr tenant.
+the developer account does not automatically admit a user to every Satyr native tenant.
 
-At the service boundary, resolve the verified principal, organisation, project,
+At the service boundary, resolve the verified principal, developer account, developer project,
 instance, and current account eligibility. Then apply the service's own grants.
 Satyr must retain source access, history disclosure, capability, and approval checks.
 
 Use the existing authentication mechanisms where possible. Any delegated assertion
 must bind the issuer, audience, principal, scope, expiry, and authority revision.
 Authenticate service usage producers and restrict each producer to its bound instances.
-Never trust caller-supplied organisation or project IDs as authority.
+Never trust caller-supplied developer account or developer project IDs as authority.
 
 Membership removal must invalidate service admission and ongoing disclosure where
 the service already requires live access. Define and verify projection freshness
@@ -228,27 +238,27 @@ Do not cache positive eligibility between requests. An authority outage returns
 `authority_unavailable` and releases no protected content or new execution.
 
 Already accepted work follows its existing service lifecycle. Financial settlement
-uses authenticated service authority and remains independent of the removed user's
+uses authenticated service authority and remains independent of the removed account member's
 session. Restore and replay must recheck authority before protected disclosure.
 
 ### Role translation
 
-| Source role or permission                          | Platform grant                                                 | Service grant                                               |
-| -------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
-| Seams OWNER                                        | Organisation owner                                             | Preserve existing Wallet authority within imported projects |
-| Seams ADMIN                                        | Preserve explicit administrative permissions and project scope | Preserve existing Wallet authority                          |
-| Seams MEMBER                                       | Membership plus existing project assignments                   | Preserve assigned Wallet access                             |
-| Satyr owner, in a separately imported organisation | Organisation owner                                             | Satyr owner on the bound instance                           |
-| Satyr admin                                        | Membership and access to its imported platform project         | Satyr admin on that instance                                |
-| Satyr operator or viewer                           | Membership and access to its imported platform project         | Preserve the corresponding Satyr role                       |
-| Existing billing permission                        | Same platform billing permission                               | No additional service content access                        |
+| Source role or permission                                 | Platform grant                                                 | Service grant                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| Seams OWNER                                               | Developer account owner                                        | Preserve existing Wallet authority within imported projects |
+| Seams ADMIN                                               | Preserve explicit administrative permissions and project scope | Preserve existing Wallet authority                          |
+| Seams MEMBER                                              | Membership plus existing project assignments                   | Preserve assigned Wallet access                             |
+| Satyr owner, in a separately imported native organisation | Developer account owner                                        | Satyr owner on the bound instance                           |
+| Satyr admin                                               | Membership and access to its imported developer project        | Satyr admin on that instance                                |
+| Satyr operator or viewer                                  | Membership and access to its imported developer project        | Preserve the corresponding Satyr role                       |
+| Existing billing permission                               | Same platform billing permission                               | No additional service content access                        |
 
-Platform ownership does not automatically create Satyr tenant or project ownership.
+Developer account ownership does not automatically create Satyr native tenant or work project ownership.
 Only the migration mapping preserves existing owners. New service grants follow
 the owning service's authorisation rules. Preserve its last-owner constraints.
 An explicit account merge requires its own role mapping before migration.
 
-The platform owns organisation invitations and membership revocation. Satyr owns
+The Platform owns developer account invitations and membership revocation. Satyr owns
 instance roles and work project invitations. Adapt its existing invitation flows
 to these owners without silently granting access to another service.
 
@@ -268,7 +278,7 @@ integration envelope. Reject unknown versions and unsupported operations at ingr
 Authenticate the producer separately from payload parsing.
 
 Wallet Console automatically enables an absent Wallet service when an authorised
-owner or project-managing administrator opens a Wallet product page. It uses the
+owner or developer-project administrator opens a Wallet product page. It uses the
 existing enable command, retains its operation identity across reloads, and waits
 for provisioning before showing the page. Shared account pages and project creation
 remain product-neutral. Opening Wallet Console does not reverse a disabled or
@@ -301,7 +311,7 @@ quantities for the initial meters.
 Use separate principal variants for users and service automation. User requests
 require verified identity and active eligibility. Automation requires an explicit
 grant for its instance and action. Preserve Satyr's initiating actor and delegated
-authority. A service credential cannot impersonate an arbitrary organisation member.
+authority. A service credential cannot impersonate an arbitrary developer account member.
 
 Evidence identifies a durable source record and its immutable digest. Satyr evidence
 requires `sessionId`, `turnId`, terminal outcome, and the pinned funding selection.
@@ -354,7 +364,7 @@ A usage event identifies its producer, event ID, instance, meter, quantity, unit
 occurrence time, and service-local execution or resource reference. A meter defines
 what is measured, such as monthly active wallets or completed agent runs.
 
-Resolve organisation, project, and billing account from the authoritative instance
+Resolve developer account, developer project, and developer billing account from the authoritative instance
 binding. Validate the event once at ingress. Reject unknown measures, invalid units,
 invalid quantities, and producers without authority for that instance.
 
@@ -375,7 +385,7 @@ Prepaid usage evidence includes its reservation ID. Usage delivery and explicit
 settlement converge on one charge identified by instance, meter, and execution.
 They cannot create separate debits for the same work. A settled reservation returns
 its existing charge when the matching usage event arrives later. Monthly resource
-charges use their existing organisation/month/resource key and require no reservation.
+charges use their existing developer-account/month/resource key and require no reservation.
 
 Use `accepted` and `rejected` Result branches. Accepted outcomes distinguish
 `charged` from `recorded_without_charge`. Rejections include `scope_forbidden`,
@@ -385,7 +395,7 @@ failures remain retryable and cannot mark an event as permanently processed.
 The service owns billable activity semantics. Shared billing applies a registered,
 immutable price version and records the charge. A service can supply a trusted
 execution quote through a separate typed contract for variable execution costs.
-End-user requests cannot submit authoritative charge amounts.
+Application user requests cannot submit authoritative charge amounts.
 
 Preserve quantity, unit, price version, charge scope, source evidence, and amount on
 each usage charge. Define fixed-precision arithmetic and rounding at the billing
@@ -397,7 +407,7 @@ quantities and currencies at the new ingress. Add finer pricing precision only
 with a separately specified meter and rounding rule.
 
 Keep metering policy separate from charge attribution. Seams currently counts
-active resources across an organisation and month. Preserve that scope during
+active resources across a developer account and month. Preserve that scope during
 migration, even when usage arrives through several project instances. Record the
 accepted charge against its originating instance without charging the resource twice.
 
@@ -412,11 +422,11 @@ and quoted execution usage. It does not require speculative seat or tier engines
 
 ### Initial meter specification
 
-| Meter                                | Billable fact                                             | Scope and amount                                                             |
-| ------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Wallet monthly active resource       | Existing successful billable Wallet action rules          | Existing organisation/month/resource scope, 300 USD cents once per UTC month |
-| Wallet execution                     | Existing accepted execution receipt and pricing quote     | Preserve quote version, execution identity, and actual charge semantics      |
-| Satyr completed turn, test plan only | A durable accepted terminal turn with outcome `completed` | One unit per instance/session/turn, one USD cent per unit                    |
+| Meter                                | Billable fact                                             | Scope and amount                                                                  |
+| ------------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Wallet monthly active resource       | Existing successful billable Wallet action rules          | Existing developer-account/month/resource scope, 300 USD cents once per UTC month |
+| Wallet execution                     | Existing accepted execution receipt and pricing quote     | Preserve quote version, execution identity, and actual charge semantics           |
+| Satyr completed turn, test plan only | A durable accepted terminal turn with outcome `completed` | One unit per instance/session/turn, one USD cent per unit                         |
 
 For the Satyr test meter, failed or cancelled turns produce no completed-turn charge.
 Internal retries, continuation deliveries, and replay of the same accepted turn
@@ -424,8 +434,8 @@ cannot produce another unit. Use the durable terminal acceptance timestamp and
 session/turn identity. Model usage remains separate evidence with its funding source.
 
 The test price is a Satyr service fee. It does not reimburse provider token cost.
-Enable it only in isolated E2E accounts and never in customer accounts. Do not
-add customer subscriptions or token pass-through prices as part of this release.
+Enable it only in isolated E2E accounts and never in non-test developer accounts. Do not
+add developer subscriptions or token pass-through prices as part of this release.
 
 ### Payment and execution controls
 
@@ -466,7 +476,7 @@ already have incurred cost. Reconcile the outcome before settlement or release.
 Wallet and Satyr adapters supply their own execution receipts.
 
 Satyr must carry its pinned inference funding source into usage records. Distinguish
-customer-funded provider usage from platform-funded usage. Charge a Satyr service
+developer-funded provider usage from platform-funded usage. Charge a Satyr service
 fee only under an explicit plan. Preserve its rule against automatic funding fallback.
 
 ### Service addition procedure
@@ -490,7 +500,7 @@ Keep wallet runtime adapters in `packages/wallet-console-server-ts`. Keep Satyr
 adapters, tenant placement, and operational migrations in its repository. Account
 platform deployment remains separately accountable for identity and money.
 
-Expose organisation settings, members, platform projects, enabled services, and
+Expose developer account settings, account members, developer projects, enabled services, and
 billing through the existing Console application. Keep product-specific operational
 screens in Seams and Satyr. Satyr can open in the context of a platform instance
 without sharing browser cookies or removing its session validation.
@@ -503,8 +513,8 @@ billing events and documents. Use stable references where needed for reconciliat
 
 ### Phase 1 Define contracts and migration inventory
 
-- Inventory deployed organisation, user, membership, project, payment, and tenant
-  identities in both systems. Record namespace and regional placement boundaries.
+- Inventory developer accounts, native organisations, users, memberships, projects,
+  payments, and service tenants in both systems. Record namespace and regional placement boundaries.
 - Define platform scope, service instance state, tenant bindings, identity links,
   usage events, and billing attribution in the existing shared packages.
 - Define migration mappings and invariants before changing schemas. Preserve
@@ -513,7 +523,7 @@ billing events and documents. Use stable references where needed for reconciliat
   test meter. Document its exact fields and durable delivery path before coding.
 
 Exit: reviewed contracts, exact ownership rules, and an executable migration design.
-Resolve any account identity ambiguity without automatic customer merges.
+Resolve any account identity ambiguity without automatic developer account merges.
 
 ### Phase 2 Extract account composition and instance lifecycle
 
@@ -543,22 +553,22 @@ Replayed events and payment callbacks create no duplicate money entries.
 
 - Add authenticated provisioning, status, identity, membership, and usage adapters
   through Satyr's existing runtime boundaries.
-- Bind a Satyr tenant to one platform instance. Preserve native project IDs,
+- Bind a Satyr native tenant to one service instance. Preserve native project IDs,
   workspaces, regional placement, integration accounts, and inference authority.
-- Switch organisation membership authority while retaining Satyr roles, person
+- Move account membership authority to the Platform while retaining Satyr roles, person
   associations, source policy, project admission, and disclosure checks.
 - Emit settled usage from durable execution evidence. Reconcile uncertain usage
   before billing or releasing funds.
 
-Exit: one organisation can use both services and inspect consolidated charges.
+Exit: one developer account can use both services and inspect consolidated charges.
 Service disable and member revocation preserve Satyr's existing access invariants.
 
 ### Phase 5 Complete the interface and production cutover
 
-- Add instance activation and status to the platform project interface.
+- Add instance activation and status to the developer project interface.
 - Complete cost breakdowns and service links in the shared Console.
 - Rehearse migration, restart recovery, and restore on representative data.
-- Cut over one bounded customer cohort at a time, with one authoritative writer
+- Cut over one bounded developer customer cohort at a time, with one authoritative writer
   for each cohort. Delete retired paths after reconciliation.
 
 Exit: production records reconcile. The implementation removes old writers and
@@ -570,18 +580,18 @@ Use explicit, rerunnable migrations at persistence boundaries. Keep operational
 code on one final model. Do not add permanent compatibility branches or duplicate
 membership and billing workflows.
 
-Create a billing account for each existing Seams organisation. Bind its projects
+Create a developer billing account for each existing Seams developer account. Bind its projects
 and Wallet instances. Preserve provider references and the existing ledger history.
 Determine current balances from the existing ledger without introducing duplicate credits.
 
 Historical Seams charges may lack sufficient project evidence. Represent these
-as organisation-scoped historical charges through an explicit domain variant.
+as developer-account-scoped historical charges through an explicit domain variant.
 Display them as historical unattributed costs. Never assign them to an arbitrary
 project. New service charges require instance attribution.
 
-Import Satyr tenants through explicit account and principal mappings. Preserve
+Import Satyr native tenants through explicit account and principal mappings. Preserve
 service tenant IDs, native work projects, personal access, regional placement, and
-archive deadlines. Do not infer customer identity from organisation names or email.
+archive deadlines. Do not infer developer account identity from native organisation names or email.
 
 For each cohort, pause affected mutations and usage admission, drain or durably
 record accepted work, snapshot state, migrate, verify, and switch the writer.
@@ -611,8 +621,8 @@ Place Seams type fixtures in `tests/typecheck/` and composed journeys in
 `tests/e2e/console/`. Read each repository's test instructions before implementation.
 Do not add unit tests or source snapshot tests for this work.
 
-The main acceptance journey uses two organisations, two platform projects under
-one organisation, Wallet and Satyr instances, and distinct finance/operator/private
+The main acceptance journey uses two developer accounts, two developer projects under
+one developer account, Wallet and Satyr instances, and distinct finance/operator/private
 project users. It must verify these behaviours:
 
 | Scenario                                                                   | Required evidence                                                             |
@@ -622,11 +632,11 @@ project users. It must verify these behaviours:
 | Deliver duplicate and conflicting usage events                             | One accepted charge and an explicit conflict result                           |
 | Race reservations from both services against limited funds                 | Accepted reservations remain within available funds                           |
 | Interrupt execution and reconnect the usage producer                       | Reconciled settlement or release without duplicate charge or lost reservation |
-| Use customer-funded and platform-funded Satyr inference                    | Funding attribution matches the selected route and price policy               |
-| Revoke an organisation member and attempt stale-session access             | New execution and protected disclosure are denied                             |
+| Use developer-funded and platform-funded Satyr inference                   | Funding attribution matches the selected route and price policy               |
+| Revoke a developer account member and attempt stale-session access         | New execution and protected disclosure are denied                             |
 | Add a member to a restricted Satyr work project                            | Existing source/history checks still permit or reject the correct audience    |
 | Disable Satyr while Wallet remains active                                  | New Satyr work stops and accepted work settles under its lifecycle rules      |
-| Attempt cross-organisation instance or usage substitution                  | Authorisation rejects the foreign scope                                       |
+| Attempt cross-developer-account instance or usage substitution             | Authorisation rejects the foreign scope                                       |
 | Migrate existing balances, refunds, reservations, and unattributed history | Before/after reconciliation preserves money and historical meaning            |
 
 Also require these targeted cases in the owning phase's journey:
@@ -671,4 +681,4 @@ under its repository instructions. Record the actual commands in the evidence.
   to another service's domain models.
 - Migration evidence reconciles ownership, access, balances, reservations, and usage.
 - Retired account writers, billing paths, and temporary migration logic are removed.
-- Satyr commercial prices receive explicit approval before customer charges begin.
+- Satyr commercial prices receive explicit approval before developer charges begin.

@@ -5,21 +5,32 @@ Date: October 14, 2026.
 
 ## Outcome
 
-Let an organisation add a payment method, incur usage within an approved credit
+Let a developer account add a payment method, incur usage within an approved credit
 limit, and pay one consolidated invoice automatically after each calendar month.
 Platform owns payment methods, credit policy, invoices, and collection. Products
 continue to report durable usage through the existing account integration.
 
 This feature builds on [Shared Account Platform](feat-1-shared-account-platform.md).
 It is independent of the [Console split](feat-2-platform-console.md). It requires
-no application moves, new Worker, new database, or new subscription engine.
+no frontend moves, new Worker, new database, or new subscription engine.
+
+## Terminology and scope
+
+Use the [Platform glossary](platform-glossary.md). This is **developer billing**:
+Seams charges its developer accounts for Wallet and Satyr usage. **Application
+billing**, where a developer charges end customers, is outside this plan.
+A Stripe Customer here represents the payer for a developer billing account.
+Existing `orgId`, `organizationId`, and `billingAccountId` fields retain their names
+and persisted meaning. This terminology update adds no application or end-customer
+organisation records.
+Project environments retain their development/staging/production meaning.
 
 ## First-release scope
 
 - Use Stripe, USD, and UTC calendar months. Start with cards saved for future
   automatic payments through Stripe-hosted Checkout in setup mode.
-- Keep one billing account and one persisted Stripe customer mapping per
-  organisation. Consolidate projects and enabled products into that account.
+- Keep one billing account and one persisted Stripe Customer mapping per
+  developer account. Consolidate developer projects and enabled products into that account.
 - Keep Platform's existing meters and price versions authoritative. Send fixed
   invoice amounts to Stripe. Do not duplicate usage metering in Stripe.
 - Preserve existing prepaid accounts. Offer postpaid to explicitly approved
@@ -30,15 +41,15 @@ no application moves, new Worker, new database, or new subscription engine.
   account. Do not add a legacy mode or parallel billing implementation.
 - Require completed payment setup and a positive, explicitly approved credit limit
   before new paid work. A saved card alone grants no credit.
-- Preserve existing product prices. Satyr customer fees remain unpriced until
-  approved. Its isolated test price must remain unavailable to customer accounts.
+- Preserve existing product prices. Satyr fees charged to developer accounts remain unpriced until
+  approved. Its isolated test price must remain unavailable to non-test developer accounts.
 - Defer bank debits, multiple currencies, mid-month threshold charging, custom
   payment terms, automatic credit scoring, and arbitrary billing cycles.
 
 Proposed defaults: close the previous month from 01:00 UTC on the first day of the
 next month. Allow seven days from the first collection failure before blocking new
 paid work, subject to the credit limit throughout. Confirm these defaults and the
-initial credit limits before enabling customer accounts. Record the applicable
+initial credit limits before enabling non-test developer accounts. Record the applicable
 tax treatment and billing details before production collection. A USD-only release
 does not determine tax treatment. Use Stripe's existing tax facilities if required.
 
@@ -50,7 +61,7 @@ Paths below are relative to this repository. Keep their current owners.
 | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `packages/console-server-ts/src/billing/{service,d1,types,ledger}.ts`            | Account payment model, receivables, invoice snapshots, and payment reconciliation  |
 | `packages/console-server-ts/src/billing/{usage,pricing,attribution}.ts`          | Reuse meters, immutable prices, source evidence, and project attribution           |
-| `packages/console-server-ts/src/billing/{providers,stripeProvider}.ts`           | Customer mapping, payment setup, invoice creation, and provider lookup             |
+| `packages/console-server-ts/src/billing/{providers,stripeProvider}.ts`           | Stripe Customer mapping, payment setup, invoice creation, and provider lookup      |
 | `packages/console-server-ts/src/billing/{stripeWebhook,stripePostProcessing}.ts` | Payment events and durable follow-up work                                          |
 | `packages/console-server-ts/src/billingPrepaidReservations/`                     | Extend existing atomic admission and reservation transitions for postpaid credit   |
 | `packages/console-server-ts/src/router/cloudflare/billingRoutes.ts`              | Payment setup and billing account operations with existing permissions             |
@@ -70,16 +81,16 @@ purchase. Keep historical prepaid postings and documents unchanged.
 
 ## Payment methods
 
-1. Reuse the organisation's existing billing permissions for payment administration.
+1. Reuse the developer account's existing billing permissions for payment administration.
    Resolve the billing account on the server. Never accept another account's
-   Stripe customer or payment method from browser input.
-2. Persist or reconcile the account's Stripe customer before starting setup. Enforce
+   Stripe Customer or payment method from browser input.
+2. Persist or reconcile the account's Stripe Customer before starting setup. Enforce
    one mapping through existing D1 transaction and idempotency patterns.
-3. Create a Stripe Checkout setup session for that customer. Explain the monthly
+3. Create a Stripe Checkout setup session for that Stripe Customer. Explain the monthly
    billing schedule and obtain authorisation for future automatic payments.
 4. Verify successful setup through the signed webhook or a server-side Stripe
    lookup. A browser success redirect does not establish payment readiness.
-5. Set the verified method as the customer's invoice default. Persist only provider
+5. Set the verified method as the Stripe Customer's invoice default. Persist only provider
    references and display fields such as brand, last four digits, and expiry.
    Stripe retains the payment credentials.
 6. Support adding a replacement and selecting the default through the same flow.
@@ -92,7 +103,7 @@ records. Payment repair and invoice access remain available when paid work is bl
 
 ## Credit limits and admission
 
-The credit limit bounds the organisation's total unpaid exposure across all
+The credit limit bounds the developer account's total unpaid exposure across all
 projects, products, and billing months. It does not reset at month-end.
 
 ```text
@@ -105,8 +116,8 @@ Unpaid charges include unbilled usage and invoiced debt, counted once. Commitmen
 include reserved and indeterminate work. Account for applicable tax exposure in
 admission where required by the configured tax treatment.
 
-- Permit only authorised Platform support to set the approved limit. Customers can
-  view it and request changes. Persist changes with the existing audit machinery.
+- Permit only authorised Platform support to set the approved limit. Developer
+  account administrators can view it and request changes. Persist changes with the existing audit machinery.
 - Check account readiness and available credit in the existing atomic admission
   transaction. Concurrent requests must not each spend the same remaining credit.
 - Reuse reservations for bounded execution commitments. On final usage, replace the
@@ -155,7 +166,7 @@ flowchart LR
    before retrying. An expired provider idempotency window must not create a second
    invoice or payment; unresolved ambiguity requires reconciliation.
 6. Reconcile verified invoice/payment events into the existing ledger and invoice
-   store. Verify customer, currency, amount, and snapshot association. Deduplicate
+   store. Verify Stripe Customer, currency, amount, and snapshot association. Deduplicate
    events and prevent delayed failure events from reversing a confirmed payment.
 
 Payment confirmation reduces unpaid exposure once. Invoice creation, finalisation,
@@ -201,7 +212,7 @@ of previously accepted work after suspension, revocation, or product disablement
 
 ### 1. Account state and payment setup
 
-- Add the required persisted account state and Stripe customer mapping through
+- Add the required persisted account state and Stripe Customer mapping through
   forward migrations. Preserve applied migration files and existing records.
 - Model payment model, readiness, and collection lifecycle with branch-specific
   builders and discriminated unions. Parse provider and database records once at
@@ -221,7 +232,7 @@ Foreign methods, failed setup, and forged success redirects cannot enable spendi
 - Add type fixtures for invalid lifecycle combinations, broad spreads, and direct
   object construction. Preserve the existing boundaries against unsafe domain casts.
 
-Exit: concurrent paid operations respect one organisation limit. Settlement and
+Exit: concurrent paid operations respect one developer account limit. Settlement and
 release preserve balanced postings and never count a commitment and its charge twice.
 
 ### 3. Close, collect, and recover
@@ -242,7 +253,8 @@ Read `tests/AGENTS.md` before changing tests. Extend the existing composed billi
 funds, and usage journeys under `tests/e2e/console/`. Add no unit tests or source-text
 guards. Use real D1 behaviour and Stripe test mode for provider acceptance.
 
-One composed journey must cover an organisation with multiple projects and services:
+One composed journey must cover a developer account with multiple developer
+projects and services:
 
 1. Add and replace a card; reject foreign-account access and incomplete setup.
 2. Race admissions near the credit limit; prove that only permitted work proceeds.
@@ -250,7 +262,7 @@ One composed journey must cover an organisation with multiple projects and servi
 4. Close the month twice, including a lost Stripe response. Verify one invoice,
    correct attribution, balanced ledger postings, and unchanged prepaid documents.
 5. Deliver late usage and verify next-period inclusion. Cover zero/minimum amounts.
-6. Fail collection, require customer action, expire grace, and reject new paid work.
+6. Fail collection, require payer action, expire grace, and reject new paid work.
    Deliver accepted terminal usage while blocked. Replace the card and confirm payment.
 7. Replay and reorder payment events. Verify debt clears once and access resumes
    only when all account restrictions permit it.
@@ -266,7 +278,7 @@ phase, then `pnpm check` for the shared billing change. Run `pnpm test:scripts` 
 deployment scripts or workflows change. Check affected Wallet call budgets.
 
 Deploy migrations and code to staging first. Enable isolated postpaid test accounts
-through the account policy. Confirm customer pricing, limits, grace, tax handling,
+through the account policy. Confirm developer pricing, limits, grace, tax handling,
 and payment authorisation before a bounded production rollout. Keep existing funded
 accounts prepaid. Enabling postpaid must not deploy Wallet or change Satyr pricing.
 
@@ -289,6 +301,6 @@ Report local validation, staging, and production separately.
 - [Save payment details through Checkout](https://docs.stripe.com/payments/save-and-reuse?platform=web&ui=stripe-hosted)
 - [Create invoices and select automatic collection](https://docs.stripe.com/api/invoices/create)
 - [Automatic collection and recovery notifications](https://docs.stripe.com/invoicing/automatic-collection)
-- [Payment retries and failures that require customer action](https://docs.stripe.com/billing/revenue-recovery/smart-retries)
+- [Payment retries and failures that require payer action](https://docs.stripe.com/billing/revenue-recovery/smart-retries)
 
 Verify the implementation against the configured Stripe API version before coding.

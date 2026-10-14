@@ -1,6 +1,7 @@
 # Integrate a service with the account platform
 
-The account platform owns users, organisation membership, platform projects, payers, enablement, and money.
+Use the [Platform glossary](../platform-glossary.md).
+The account platform owns developer users, developer account membership, developer projects, payers, provisioning, and developer billing.
 The service owns its native content, roles, execution, and operational lifecycle.
 Use Satyr as the working integration example.
 
@@ -23,7 +24,7 @@ Use Satyr as the working integration example.
    Deny protected work during an authority outage.
    Pin grant revisions to native authority and finish revocation cleanup before releasing content.
 5. Register meters and explicit price versions at the account authority.
-   Keep commercial prices unpriced until approved.
+   Keep developer prices unpriced until approved.
    Reserve shared funds before prepaid execution through the existing atomic admission boundary.
    Persist the accepted reservation and pinned funding choice before provider work.
 6. Commit terminal usage intent with the native accepted terminal record.
@@ -32,13 +33,13 @@ Use Satyr as the working integration example.
    Keep uncertain obligations reserved until reconciliation proves their outcome.
 7. Use the shared account authority for membership, product provisioning, and consolidated costs.
    Start provisioning from the product's own authenticated onboarding. Offer existing
-   account/project selection and creation without a separate manual enable screen.
+   developer account/project selection and creation without a separate manual enable screen.
    Open native operations through the service link and its own authenticated session.
    Billing events carry stable references and no private content.
 8. Add static type fixtures and one composed journey through the real account and service runtimes.
    Include a lost reply, restart, revocation, foreign scope, authority outage, and terminal replay.
    Export usage, balanced ledger entries, hold reconciliation, a billing document, and browser evidence.
-9. Inventory existing customers and write explicit source-to-instance mappings at the persistence boundary.
+9. Inventory existing developer accounts and write explicit source-to-instance mappings at the persistence boundary.
    Rehearse migration and restore before a bounded production cutover.
    Pause admission, retain callbacks, reconcile checkpoints, and switch to one writer.
    Remove old writers and the temporary migration runner after closure.

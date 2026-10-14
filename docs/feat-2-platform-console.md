@@ -10,11 +10,11 @@ Build two Console frontends from the existing `apps/wallet-console` workspace.
 Give each frontend its own entrypoint, route composition, build output, and domain.
 Reuse the current shared UI, session, HTTP, and account code. Keep Satyr separate.
 
-| Target domain             | Experience                                                               | Source owner                                         |
-| ------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| `console.seams.sh`        | Organisations, projects, members, account settings, consolidated billing | Platform entrypoint in `apps/wallet-console`         |
-| `console.wallet.seams.sh` | Wallet environments, credentials, sponsorship, and operations            | Wallet entrypoint in `apps/wallet-console`           |
-| `satyr.seams.sh`          | Agents, Cases, workflows, and integrations                               | Existing Satyr application in the `satyr` repository |
+| Target domain             | Experience                                                                 | Source owner                                      |
+| ------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------- |
+| `console.seams.sh`        | Developer accounts, developer projects, account members, developer billing | Platform entrypoint in `apps/wallet-console`      |
+| `console.wallet.seams.sh` | Wallet environments, credentials, sponsorship, and operations              | Wallet entrypoint in `apps/wallet-console`        |
+| `satyr.seams.sh`          | Agents, Cases, workflows, and integrations                                 | Existing Satyr frontend in the `satyr` repository |
 
 These are target domains, not a statement of current deployment. Current production
 Console configuration uses `wallet.seams.sh`. Wallet marketing remains there.
@@ -22,6 +22,16 @@ Preserve `api.wallet.seams.sh`, `sign.seams.sh`, and Wallet passkey relying-part
 
 This plan builds on [Shared Account Platform](feat-1-shared-account-platform.md).
 [Monthly postpaid billing](feat-3-platform-billing.md) is a separate feature.
+
+## Terminology and scope
+
+Use the [Platform glossary](platform-glossary.md). Console account pages administer
+**developer accounts** and **developer projects**. Their membership and billing are
+separate from end-customer organisation membership and application billing.
+“Application” in that glossary means a developer-built product. The Console builds
+below are first-party frontends. Existing routes, UI labels, identifiers, and storage
+names remain unchanged by this documentation update. Public application isolation remains separate future work. Project environments
+retain their development/staging/production meaning.
 
 ## Reuse the existing structure
 
@@ -58,24 +68,24 @@ or additional database is required.
 
 ## Product behaviour
 
-- Platform owns shared account administration and billing. Keep one canonical page
+- Platform owns developer account administration and developer billing. Keep one canonical page
   per account operation and mount it only in the Platform composition after cutover.
 - Wallet remains a dedicated product console. Link shared account actions to Platform.
   Remove their local route registrations after the destination is available.
-- Satyr retains its own application, native data, roles, and operational permissions.
-  Platform membership never bypasses Satyr content restrictions.
-- Each product sets itself up through its own authenticated application. An authorised
+- Satyr retains its own frontend, native data, roles, and operational permissions.
+  Developer account membership never bypasses Satyr content restrictions.
+- Each product sets itself up through its own authenticated frontend. An authorised
   Wallet visit provisions an absent Wallet instance through the existing API. Satyr
   must use its own onboarding flow for the equivalent integration.
-- Creating a Platform organisation or project alone provisions neither product.
+- Creating a developer account or developer project alone provisions neither product.
   Opening Wallet never provisions Satyr. Neither product needs a manual enable screen.
 - Preserve deliberately disabled and archived states. Retry and reload must reuse
   accepted provisioning operations. Keep Project services absent from Wallet navigation.
-- Product links may carry organisation and project identifiers. The destination checks
+- Product links may carry developer account and developer project identifiers. The destination checks
   access. URL identifiers grant no authority and must never contain session tokens.
 
 Wallet automatic setup and the Wallet-only navigation change are committed locally.
-Satyr's account/project picker and automatic provisioning are implemented locally in
+Satyr's developer-account/project picker and automatic provisioning are implemented locally in
 its own repository. Deploy the new private account onboarding endpoints before the
 Satyr client. Record local acceptance and deployment separately.
 
@@ -89,7 +99,7 @@ Satyr client. Record local acceptance and deployment separately.
    requests. Scope showcase-only dependency resolution to showcase builds.
 4. Preserve independent marketing, showcase, and hosted Wallet outputs and public
    asset paths. Keep company marketing in `apps/seams-site`. Do not copy pages or
-   create another application solely to change ownership labels.
+   create another frontend workspace solely to change ownership labels.
 5. Update existing build, local startup, CI, and deployment commands only where needed
    to select an output. Reuse current deployment utilities and configuration files.
 
@@ -114,8 +124,7 @@ Existing Console Worker
 2. Select the existing account-only factory and router for shared routes. Construct
    Wallet services only for routes that need them. Reuse current route definitions,
    authentication, sessions, and permission checks.
-3. Preserve Wallet early dispatch and required product checks. Keep `ensureSchema:
-false` during requests. Add no database calls, serial service calls, or awaited
+3. Preserve Wallet early dispatch and required product checks. Keep `ensureSchema: false` during requests. Add no database calls, serial service calls, or awaited
    billing delivery to registration, unlock, signing, and response paths.
 4. Preserve the private Satyr binding, its server-owned identity, signed user assertions,
    and public-ingress rejection. Keep scheduled provisioning and billing delivery
@@ -163,7 +172,7 @@ repeat the completed account, billing, and migration acceptance work without cau
    `staging.console.wallet.seams.sh`. Coordinate `staging.satyr.seams.sh` in Satyr's
    repository. Preserve existing Wallet API and signing staging origins.
 3. Route each Console's allowed API paths to the existing Console Worker at the edge.
-   Keep same-origin browser requests where practical. Add no application proxy hop.
+   Keep same-origin browser requests where practical. Add no server proxy hop.
    Satyr retains its native backend and private account binding.
 4. Configure exact allowed origins, OAuth callbacks, cookie settings, invitation and
    email links, product links, and validated return destinations. Shared identity
@@ -182,7 +191,7 @@ rollback. Restore compatible artifacts and routes without reversing shared data.
 Preserve exact released Wallet package versions throughout. Deploying Console must
 not require publishing Wallet or deploying either product runtime.
 
-Exit: Platform, Wallet, and Satyr have separate browser applications at their agreed
+Exit: Platform, Wallet, and Satyr have separate browser frontends at their agreed
 domains. Shared account pages work independently of product runtimes. Existing Wallet
 signing, asset locations, permissions, persistence, and commercial behaviour remain intact.
 Report local validation, staging deployment, and production deployment separately.

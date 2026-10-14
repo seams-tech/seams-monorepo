@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and all 16 selected Wallet contracts. Its Linux release build and Clippy pass. Timed Google active-claim qualification remains pending. The earlier `.5` release has full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
+Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and all 16 selected Wallet contracts. Its Linux build and Clippy pass. Timed live-claim owner loss and clean drain pass across ordinary and Confidential Google VMs. The earlier `.5` release has full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -13,7 +13,7 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 - Patch: [workers-runtime.patch](workers-runtime.patch).
 - Patch SHA-256: `df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7`.
 - Wallet lifecycle build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
-- Current Linux candidate: `.7`, x86-64, Ubuntu 24.04, Rust 1.97.1. Build and Clippy pass; timed Google qualification remains pending.
+- Current Linux candidate: `.7`, x86-64, Ubuntu 24.04, Rust 1.97.1. Build, Clippy, and timed Google live-claim qualification pass.
 - Earlier `.6` evidence covers interrupted-pair takeover. Later testing found WebSocket passthrough defects corrected by `.7`.
 - Previous qualified Linux release: `.5`, x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
 - Historical Linux release: `.4`, ARM64, Debian Bookworm, upstream Dockerfile. See its separate qualification record below.
@@ -404,4 +404,8 @@ The Google runner now holds the second Yao reply, reads both claims as running, 
 It requires execute submission through confirmed SIGKILL to take less than the 15-second ceremony timeout.
 It also rejects a shutdown handoff stall regardless of process exit code.
 The first trial lacked the timing bound and logged a stall, so it remains unqualified.
-The corrected `.7` Google run remains pending.
+The corrected `.7` run confirms SIGKILL within 6,195 ms, below the 15,000 ms ceremony timeout.
+Both roles stay burned after takeover, and an exact retry opens no new protocol connection.
+Independent registration succeeds on the unchanged survivor. Both VMs stop, and temporary peer rules are removed.
+The fresh post-rebase package candidates pass all 16 selected contracts on celld and workerd.
+Shared storage remains available during this scenario; provider partitions and all-replica loss remain open.

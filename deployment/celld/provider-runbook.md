@@ -9,6 +9,11 @@ A Google IAM denial test observes B failure while A remains writable. The B gran
 The two-VM object ownership scenario also passes. Local 0.11.0 Wallet and Console checks pass on both runtimes.
 The final 0.11.0 archives pass the same 16 contracts on both Google VM types.
 The [one-node Wallet failure check](evidence/google-wallet-one-node-failure.json) and [Google Console onboarding](evidence/google-console.json) also pass.
+The `.7` Linux release also passes timed Yao owner loss across the ordinary and SEV-SNP VMs.
+Both claims are running before SIGKILL, confirmed within 6,195 ms of execute submission.
+The survivor takes ownership at epoch 2, retains burned state, refuses replay, and completes independent registration.
+Both VMs stop with no remaining temporary peer rules. Shared storage stays available during the test.
+See [the `.7` runtime evidence](evidence/websocket-passthrough.json).
 The broader distributed lifecycle matrix, release promotion, and live cutover checks remain open.
 See [final Google package evidence](evidence/google-wallet-final-packages.json) and [earlier evidence and limitations](evidence/google-wallet.json).
 AWS qualification is outside the current scope. The deleted project `eigen-413918` must not be used.

@@ -1,6 +1,6 @@
 {
-  "status": "partially_qualified",
-  "scope": "seams.7 WebSocket lifecycle correction. Local acceptance passes; Linux build and Clippy pass; timed Google active-claim qualification remains pending.",
+  "status": "passed_for_recorded_scope",
+  "scope": "seams.7 WebSocket lifecycle correction; local API controls, matched post-rebase package acceptance on celld and workerd, and timed live Yao owner loss across ordinary and SEV-SNP Google VMs.",
   "macRuntime": {
     "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
     "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
@@ -180,14 +180,111 @@
     "Ordinary /state snapshots omit drainPins. Their absence is not evidence of zero active pins.",
     "The workerd reference covers echo and rejected-upgrade behavior in one runtime, without distributed or drain parity claims.",
     "The raw initial Google and local diagnostic status fields are overridden by the stated timing and shutdown limits; they are not successful qualification records.",
-    "The corrected Google timing/drain scenario has not yet run on seams.7.",
     "Peer partitions, distributed relocation, Google restore/provider-failure cases, upgrade/rollback with active claims, and release promotion remain open.",
-    "Current package evidence refers to the frozen 0.11.0 candidates before the next dev rebase; newer registration optimizations require refreshed candidates."
+    "Google live-claim qualification keeps shared fleet storage available. It does not cover loss of all replicas or a storage-provider partition.",
+    "The exact burned-pair retry is required to fail with an HTTP error and open no new connection; this scenario does not require one specific rejection code.",
+    "The post-takeover control is independent registration. It is not a complete failover signing matrix.",
+    "The fresh package candidates remain unpublished. Private production pins remain at the released version until promotion."
   ],
   "review": {
     "reviewer": "review_r190_runtime",
-    "scope": "Independent source and diagnostic review identified the timing gap, false-positive drain result, tunneled-target cleanup, and forwarded relay path. Final Google qualification remains open."
+    "scope": "Independent review verified the final Google timing bound, owner epoch1-to2, unchanged survivor, burned-state refusal without new protocol connections, independent registration, clean logs and stopped VMs. Fresh celld/workerd runs each pass16 contracts on matching package snapshots."
   },
   "productionLatency": "No new Wallet request, database call, network round trip, or blocking validation. The runtime removes invalid ownership tracking and response-body retention.",
-  "aggregateMaintainedSourceDelta": -31315
+  "aggregateMaintainedSourceDelta": -31315,
+  "googleActiveClaim": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-dt4b3roe/result.json",
+      "sha256": "60e04482c1b3ca1acb033a462ea0d591ab003e46f6eb7427ad715f6fc5e7be20"
+    },
+    "signalUpperBoundMs": 6194.961958099157,
+    "ceremonyTimeoutMs": 15000,
+    "roleStatesBeforeKill": {
+      "deriver-a": "running",
+      "deriver-b": "running"
+    },
+    "afterTakeover": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "initialBOwnerEpoch": 1,
+    "replacementBOwnerEpoch": 2,
+    "survivorUnchanged": true,
+    "independentWalletCompletedAfterTakeover": true,
+    "runtimeLogs": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-dt4b3roe/ordinary-runtime.log",
+        "sha256": "c9b2ef4c54fda5459f63eeca5bcb762c9665bc4e1898c193521af37479814e94"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-dt4b3roe/confidential-runtime.log",
+        "sha256": "868754e444b90d6869fe235158efefda5f66d7d2b50e201f504ebb61884d1eab"
+      }
+    ],
+    "finalVms": [
+      {
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED"
+      },
+      {
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED"
+      }
+    ],
+    "cleanupErrors": [],
+    "remainingPeerRules": []
+  },
+  "postRebase": {
+    "publicRevision": "85ee989a913a2bdc323280bf09adc4fef2358de2",
+    "publicBase": "565d4d2485cd6794e7f49cf436c3eeb9242c091a",
+    "privateRevision": "14003ba9ca2df2e1bf3855fed73b6e1d3bfa2716",
+    "privateBase": "8fe70b8918ea2b06502a6c71ff0f2ef51e46ab47",
+    "candidate": {
+      "path": "/tmp/seams-r190-post-rebase-20261014-candidate/candidate.json",
+      "sha256": "4e1e639680e21c73016d6a1c2d6ea56a205d1a68043a6cf9529aa6a21926470b"
+    },
+    "packages": {
+      "wallet-server": {
+        "archive": "/tmp/seams-r190-post-rebase-20261014-packages/seams-wallet-server-0.11.0.tgz",
+        "archiveSha256": "5a0b5b977b7e390c9ff90259a98b384b57c97571cf43931df4065f9330fdc323",
+        "directory": "/tmp/seams-r190-post-rebase-20261014-candidate/node_modules/@seams/wallet-server"
+      },
+      "wallet": {
+        "archive": "/tmp/seams-r190-post-rebase-20261014-packages/seams-wallet-0.11.0.tgz",
+        "archiveSha256": "a69dc4f22b04fe866ce846190c8e5520290653e7c508fe82067a5549fb94ea6d",
+        "directory": "/tmp/seams-r190-post-rebase-20261014-candidate/node_modules/@seams/wallet"
+      }
+    },
+    "packageSnapshotHashes": {
+      "wallet-server": "ec994786662f1eb2d0e62e75f5b9bcdc70f4174bf03062b48258a280a96fada7",
+      "wallet": "b6329d55b7fd13898894b26f89176eec8c3e581392143950fe5f865f061fb476"
+    },
+    "celld": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-6rb1s2dj/result.json",
+        "sha256": "c6042b71ee9f58f90c29f69cfeae39f879cc5e3af00da7fdc95a635343238147"
+      },
+      "contractsPassed": 16
+    },
+    "workerd": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-post-rebase-7-w83tvryf/result.json",
+        "sha256": "10b4c2382bc690d46763c3f96705486ba1ce8e8701fc9d01125c674e8b250451"
+      },
+      "contractsPassed": 16
+    },
+    "packageBuild": {
+      "path": "/tmp/seams-r190-post-rebase-package-build.log",
+      "sha256": "44af15ab9216dcb8c17462a206d0751822aee8f97c9de27ffddb362869684b39"
+    },
+    "privateCheck": {
+      "path": "/tmp/seams-r190-seams7-post-rebase-private-check.log",
+      "sha256": "fe2fd9047e670e95934e51ed257fc7748d268793423ad1f70425616f3296914f"
+    },
+    "scope": "Incoming dev registration batching, session observation fixes, and Console provisioning changes included. Both package candidates were rebuilt and repacked, then all16 selected contracts passed on each runtime."
+  }
 }

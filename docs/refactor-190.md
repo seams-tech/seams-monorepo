@@ -865,7 +865,10 @@ No Wallet handler, database call, or network round trip was added.
 The clean macOS build passes binding acceptance and all 16 selected Wallet contracts.
 The four-case passthrough fixture fails on `.6` and passes on `.7`, including clean shutdown.
 The full local active-claim and post-takeover Wallet scenario also drains on `.7`.
-Linux release build and Clippy pass. The corrected Google timing/drain run remains pending.
+Linux release build and Clippy pass. The corrected Google run confirms SIGKILL within 6,195 ms, below the 15-second timeout.
+Takeover preserves burned state and refuses retry without another protocol connection.
+Independent registration succeeds on the unchanged survivor, and shutdown completes without the earlier stall.
+Both VMs are stopped. Temporary peer rules are removed.
 See [the measured evidence and remaining limits](../deployment/celld/evidence/websocket-passthrough.json).
 
 The initial Google trial observed running claims and later burned-state takeover, but it did not bound signal timing before the 15-second timeout.
@@ -873,12 +876,14 @@ It also logged a stalled drain despite exit code 0. Its raw success field does n
 The driver now enforces the timing bound and rejects stalled shutdown.
 The maintained source reduction is 31,315 lines, including the new acceptance fixture and complete patch.
 
-The next dev rebase includes new registration optimizations and Console behavior.
-Rebuild and requalify package candidates after that rebase; the records above identify the tested earlier candidates.
+Both R190 branches rebased cleanly onto local `dev`: public `565d4d24` and private `8fe70b89`.
+The rebase includes registration batching, session observation fixes, and automatic Console Wallet provisioning.
+Fresh 0.11.0 candidates build and pass all 16 selected contracts on both celld and workerd with matching package snapshots.
+Private `pnpm check` passes. The package candidates remain unpublished.
 
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
+1. Finish the distributed lifecycle matrix: peer partitions and other in-flight claim failures, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 

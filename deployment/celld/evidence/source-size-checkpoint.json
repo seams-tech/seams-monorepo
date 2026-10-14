@@ -34,6 +34,12 @@
       "netLines": -32523,
       "files": [
         {
+          "path": "crates/router-ab-cloudflare/scripts/test-private-d1.mjs",
+          "beforeLines": 5863,
+          "afterLines": 5863,
+          "netLines": 0
+        },
+        {
           "path": "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs",
           "beforeLines": 631,
           "afterLines": 605,
@@ -596,7 +602,7 @@
     "seams-monorepo": {
       "baseRevision": "c02d6c58e8f30dc4269fa765b6d3bd644b356879",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -1190,
+      "netLines": -752,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -755,6 +761,18 @@
           "netLines": 96
         },
         {
+          "path": "tests/e2e/celld/tenant-root-restore.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 183,
+          "netLines": 183
+        },
+        {
+          "path": "tests/e2e/celld/tenant-root-restore.mjs",
+          "beforeLines": 0,
+          "afterLines": 255,
+          "netLines": 255
+        },
+        {
           "path": "tests/e2e/celld/yao-peer-disconnect.e2e.py",
           "beforeLines": 0,
           "afterLines": 266,
@@ -799,6 +817,6 @@
       ]
     }
   },
-  "aggregateNetLines": -33713,
+  "aggregateNetLines": -33275,
   "netReductionAchieved": true
 }

@@ -222,3 +222,24 @@ The `.6` manifest feature proves loader refusal only. A safe mixed-version rollo
 Before publishing a `.6` manifest, drain old runtime processes and verify every serving node uses the reviewed `.6` executable.
 Do not start `.5` against that manifest or remove its required feature to permit a downgrade.
 Keep durable state and consumed material intact. Full state-safe upgrade and rollback qualification remains open.
+
+## Repeat the local tenant-root restore and upgrade check
+
+```sh
+python3 tests/e2e/celld/tenant-root-restore.e2e.py \
+  CELLD_6 WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT CELLD_5
+```
+
+Use the reviewed `.5` and `.6` executables and exact 0.11.0 Wallet Server candidate.
+The test observer can inspect synthetic databases and buckets. The runner binds it to loopback only.
+Never deploy this observer into a product fleet.
+
+The runner applies the public restore and retirement assertions on `.5`, then stops that process before deploying `.6` manifests.
+It starts `.6` with the same durable state and verifies the original restore receipt, revision, and current epoch records.
+It repeats those checks after another restart. It records temporary ownership refusals and waits at most 60 seconds for takeover.
+Each run retains its source copies, source and package hashes, native logs, and result file.
+
+This qualifies a drained local upgrade for these tenant-root records only.
+It does not qualify consumed signing material, mixed-version serving, all-replica recovery, or a provider storage partition.
+Keep production upgrade and rollback gated on those applicable state checks.
+Rollback must preserve current durable records. Never restore an older storage snapshot to undo an executable change.

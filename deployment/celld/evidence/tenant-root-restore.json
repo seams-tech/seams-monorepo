@@ -1,0 +1,142 @@
+{
+  "status": "passed for the recorded local one-share restore, retirement, drained upgrade and restart",
+  "publicScenarioCommit": "510110d46ffb5b081f3aebedc59a6064a17f7ee4",
+  "publicRevisionNote": "Runs captured the parent revision plus two scenario exports. Their recorded source hashes match the committed scenario.",
+  "workerPackage": {
+    "name": "@seams/wallet-server",
+    "version": "0.11.0"
+  },
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "workerdControl": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-3fn5my2t/workerd-control.log",
+    "sha256": "1de3c23c3bcd600301fe85d37f8c23b78cf9a2237cab369af8dea43899340fc4"
+  },
+  "celld6RestoreAndRestart": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-lx0b6eoj/result.json",
+    "sha256": "f43e512cd343f1d464723418b9e499d4c183c6749729ed2579f1dfdbe5d7b758"
+  },
+  "celld5To6DrainedUpgradeAndRestart": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-3fn5my2t/result.json",
+    "sha256": "12a77a3ed5d4b57a7c433f156a8a80c442faf61d3ec3003a364314210c7dbbce"
+  },
+  "scenario": {
+    "kind": "tenant_root_refresh_after_managed_restore_workers_e2e_v1",
+    "restoreRevision": 4,
+    "refreshStatus": 200,
+    "refreshRevision": 5,
+    "deriverA": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "deriverB": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "restoreRetryReturnsDurableOutcome": true
+  },
+  "upgrade": {
+    "oldRuntimeStoppedBeforeDeployment": true,
+    "durableRestoreOutcomePreserved": true,
+    "epochRecordsPreserved": {
+      "deriverA": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ],
+      "deriverB": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ]
+    }
+  },
+  "restart": {
+    "durableRestoreOutcomePreserved": true,
+    "epochRecordsPreserved": {
+      "deriverA": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ],
+      "deriverB": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ]
+    },
+    "ownerUnreachableRefusals": 25,
+    "ownershipRecoveryElapsedMs": 6743
+  },
+  "checks": {
+    "publicBloat": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-3fn5my2t/public-bloat.log",
+      "sha256": "2b6e34b27e8f200258fdcccf277201c9d5542b91126d3af4371f2902756f5220"
+    },
+    "privateScripts": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-3fn5my2t/private-script-checks.log",
+      "sha256": "be899b5331b5f43de6c7e0a12835da2f2813182863aa63653cb8781c468430da"
+    },
+    "privateScriptsSummary": {
+      "passed": 53,
+      "skipped": 1
+    },
+    "lint": "changed JavaScript ESLint and Prettier checks pass",
+    "python": "driver syntax parses"
+  },
+  "cleanupErrors": [],
+  "failedRuns": [
+    {
+      "directory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-0rc_ycfx",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "Resolving Python symlinks bypassed the Moto virtual environment. Preserve its interpreter path."
+    },
+    {
+      "directory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-uq7ap8en",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "Test observer used invalid service binding identifiers. Corrected to uppercase identifiers."
+    },
+    {
+      "directory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-8adtn5id",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "Observer service and D1 binding names collided. Database bindings now use a distinct suffix."
+    },
+    {
+      "directory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-fkk8rkc3",
+      "classification": "environment_or_infrastructure_failure",
+      "reason": "Immediate replay after HTTP readiness encountered an unrecovered object lease. Record and retry only the known owner-unreachable refusal for at most 60 seconds."
+    }
+  ],
+  "limits": [
+    "Local macOS ARM64 runtime with synthetic S3. No new Google qualification is claimed.",
+    "Availability restore removes exactly one role share. Both-share and all-replica loss remain untested.",
+    "Existing authorized restore flow succeeds. This run adds no unauthorized restore rejection coverage.",
+    "Retirement has no held admission or live signing work. In-flight retirement and partitions remain open.",
+    "Upgrade checks tenant-root receipts and role epochs. Consumed signing material and ownership-generation preservation need separate upgrade checks.",
+    "Old runtime is stopped before .6 deployment. Mixed-version serving and state-safe rollback remain unqualified.",
+    "No Worker application code, cryptographic protocol, or native patch changes were needed."
+  ],
+  "aggregateMaintainedSourceDelta": -33275
+}

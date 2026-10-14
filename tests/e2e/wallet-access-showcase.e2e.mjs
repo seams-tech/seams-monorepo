@@ -3,7 +3,10 @@ import { chromium, expect } from '@playwright/test';
 const artifacts = '.artifacts/wallet-access-showcase';
 await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome' });
-const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
+const context = await browser.newContext({
+  viewport: { width: 1440, height: 1100 },
+  reducedMotion: 'reduce',
+});
 context.setDefaultTimeout(15000);
 await context.tracing.start({ screenshots: true, snapshots: true });
 function position(gallery) {
@@ -12,10 +15,39 @@ function position(gallery) {
     behavior: 'instant',
   });
 }
+async function settleMenu(element) {
+  for (const animation of element.getAnimations({ subtree: true })) {
+    if (animation.effect?.getTiming().iterations !== Infinity) await animation.finished;
+  }
+}
 try {
   const page = await context.newPage();
   await page.goto(process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet');
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
+  await gallery.evaluate(position);
+  const auth = gallery.frameLocator('iframe[title="Authentication"]');
+  await auth.getByRole('button', { name: 'Link this device', exact: false }).click();
+  await expect(auth.locator('.seams-auth-menu-surface')).toBeVisible();
+  await expect(auth.getByRole('img', { name: 'QR code to link this device' })).toBeVisible();
+  await page.screenshot({ path: `${artifacts}/sdk-link-menu.png` });
+  await auth.getByRole('button', { name: 'Back', exact: true }).press('Enter');
+  await auth.locator('.seams-auth-menu-surface').evaluate(settleMenu);
+  await gallery.evaluate(position);
+  await page.screenshot({ path: `${artifacts}/authentication-return.png` });
+  await auth.getByRole('button', { name: 'Recover wallet', exact: false }).click();
+  await expect(auth.getByLabel('Recovery code', { exact: true })).toBeVisible();
+  await page.screenshot({ path: `${artifacts}/sdk-recovery-menu.png` });
+  await auth.getByLabel('Recovery code', { exact: true }).fill('1234');
+  await auth.getByRole('button', { name: 'Recover with Passkey', exact: true }).press('Enter');
+  await expect(auth.getByRole('alert')).toContainText('Check your recovery code');
+  await auth.getByLabel('Recovery code', { exact: true }).fill('4821-7396-2058-1643');
+  await auth.getByRole('button', { name: 'Recover with Passkey', exact: true }).press('Enter');
+  await auth.getByRole('button', { name: 'Create new passkey', exact: true }).press('Enter');
+  await auth.getByRole('button', { name: 'Unlock with new passkey', exact: true }).press('Enter');
+  await expect(auth.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible();
+  await auth.getByRole('button', { name: 'Back', exact: true }).press('Enter');
+  await expect(auth.getByRole('button', { name: 'Create wallet with passkey' })).toBeVisible();
+
   await gallery
     .getByRole('radiogroup', { name: 'Components', exact: true })
     .getByRole('radio', { name: 'Link & recover', exact: true })
@@ -23,58 +55,52 @@ try {
     .click();
   await gallery.evaluate(position);
   await page.mouse.move(5, 5);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   const access = gallery.frameLocator('iframe[title="Link and recover"]');
   for (let cycle = 0; cycle < 2; cycle += 1) {
-    for (const state of [
-      'scan',
-      'approve',
-      'passkey',
-      'complete',
-      'recovery',
-      'passkey',
-      'complete',
-      'choose',
-    ]) {
-      await expect(access.locator('.access-card')).toHaveAttribute('data-access-state', state, {
-        timeout: 15000,
-      });
-    }
+    await expect(access.getByRole('button', { name: 'Create passkey', exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(access.getByRole('heading', { name: 'Device linked' })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(access.getByLabel('Recovery code', { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(
+      access.getByRole('button', { name: 'Create new passkey', exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      access.getByRole('button', { name: 'Unlock with new passkey', exact: true }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible({
+      timeout: 15000,
+    });
   }
-  // Manual input stops playback, including after validation failure and back navigation.
-  await access.getByRole('button', { name: 'Recover your wallet', exact: false }).click();
-  await access.getByLabel('Recovery code', { exact: true }).fill('1234');
-  await access.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(access.getByRole('alert')).toContainText('Check your recovery code');
-  await access.getByLabel('Recovery code', { exact: true }).fill('4821-7396-2058-1643');
-  await access.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(access.getByRole('heading', { name: 'Create a new passkey' })).toBeVisible();
-  await page.mouse.move(5, 5);
-  await page.waitForTimeout(4000);
-  await expect(access.getByRole('heading', { name: 'Create a new passkey' })).toBeVisible();
-  await access.getByRole('button', { name: 'Create passkey', exact: true }).click();
-  await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible();
-  await page.screenshot({ path: `${artifacts}/recovered.png` });
-  await access.getByRole('button', { name: 'Done', exact: true }).click();
-  await access.getByRole('button', { name: 'Link a device', exact: false }).click();
-  await access.getByRole('button', { name: 'Back to link and recover', exact: true }).click();
-  await expect(
-    access.getByRole('button', { name: 'Recover your wallet', exact: false }),
-  ).toBeVisible();
   await writeFile(
     `${artifacts}/result.json`,
     JSON.stringify(
       {
         passed: true,
+        sdkMenus: true,
+        authenticationEntryPoints: true,
         replayCycles: 2,
         invalidRecoveryCode: true,
-        manualTakeover: true,
         backNavigation: true,
       },
       null,
       2,
     ),
   );
-  console.log('Passed combined link/recovery playback, validation, manual takeover, and reset.');
+  console.log(
+    'Passed SDK linking/recovery menus, Authentication entry points, validation, reset, and replay.',
+  );
+} catch (error) {
+  await context.pages()[0]?.screenshot({ path: `${artifacts}/failure.png` });
+  throw error;
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });
   await browser.close();

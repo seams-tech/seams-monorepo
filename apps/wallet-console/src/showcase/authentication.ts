@@ -9,7 +9,16 @@ import type {
   AuthMenuIntent,
   AuthMenuLoginViewModel,
   AuthMenuRegisterViewModel,
+  AuthMenuViewModel,
 } from '@wallet-ui/SeamsWeb/walletIframe/host/auth-menu/domain';
+import {
+  linkMenu,
+  recoveryEntry,
+  passkeyRecovery,
+  googleRecovery,
+  recoveryCode,
+} from './accessMenus';
+import linkingCode from './linking-code.svg';
 import { paperIframeAppearance } from '@/context/app-themes';
 
 const stage = document.getElementById('root');
@@ -53,48 +62,113 @@ function login(): AuthMenuLoginViewModel {
   };
 }
 
-function mountMenu(): AuthMenuSurfaceHandle {
+const combinedAccess = location.pathname.includes('/showcase/access/');
+let approvalTimer = 0;
+
+function mountMenu(viewModel: AuthMenuViewModel): AuthMenuSurfaceHandle {
   // The showcase must retain focus on its carousel selector during mounting.
   if (!stage) throw new Error('Authentication showcase requires a root element.');
   stage.inert = true;
-  const handle = mountAuthMenuSurface({ parent: stage, viewModel: registration(), onIntent });
+  const handle = mountAuthMenuSurface({ parent: stage, viewModel, onIntent });
   stage.inert = false;
   return handle;
 }
 
-type AuthenticationState = { kind: 'menu'; handle: AuthMenuSurfaceHandle } | { kind: 'result' };
-let state: AuthenticationState = { kind: 'menu', handle: mountMenu() };
+type AuthenticationState =
+  | { kind: 'menu'; handle: AuthMenuSurfaceHandle; model: AuthMenuViewModel }
+  | { kind: 'result'; next: 'home' | 'recovery' };
+const initialModel = combinedAccess
+  ? linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: 'Waiting for approval' })
+  : registration();
+let state: AuthenticationState = {
+  kind: 'menu',
+  handle: mountMenu(initialModel),
+  model: initialModel,
+};
 const result = document.createElement('section');
 result.className = 'authentication-result';
 result.hidden = true;
 result.innerHTML =
   '<h1></h1><p role="status"></p><button type="button" data-authentication-reset>Back</button>';
 stage.append(result);
-result.querySelector('button')?.addEventListener('click', reset);
+result.querySelector('button')?.addEventListener('click', continueAfterResult);
+if (combinedAccess) approvalTimer = window.setTimeout(approveLink, 4000);
 
-function reset(): void {
-  const returnFocus = result.contains(document.activeElement);
-  if (state.kind === 'menu') state.handle.dispose();
+function show(model: AuthMenuViewModel): void {
+  window.clearTimeout(approvalTimer);
   result.hidden = true;
-  const handle = mountMenu();
-  state = { kind: 'menu', handle };
-  if (returnFocus)
-    handle.element
-      .querySelector<HTMLElement>('[data-auth-menu-primary]')
-      ?.focus({ preventScroll: true });
+  if (state.kind === 'menu') {
+    const manual = state.handle.element.contains(document.activeElement);
+    if (!manual) state.handle.element.inert = true;
+    state.handle.update(model);
+    state.handle.element.inert = false;
+    state = { kind: 'menu', handle: state.handle, model };
+  } else {
+    state = { kind: 'menu', handle: mountMenu(model), model };
+  }
 }
 
-function complete(heading: string, message: string): void {
+function reset(): void {
+  window.clearTimeout(approvalTimer);
+  if (state.kind === 'menu') state.handle.dispose();
+  state = { kind: 'result', next: 'home' };
+  if (combinedAccess) openLink();
+  else show(registration());
+}
+
+function continueAfterResult(): void {
+  if (state.kind === 'result' && state.next === 'recovery') {
+    show(recoveryEntry(recoveryCode, null));
+  } else reset();
+}
+
+function openLink(): void {
+  show(linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: 'Waiting for approval' }));
+  // The remote device's approval arrives independently of this menu's controls.
+  approvalTimer = window.setTimeout(approveLink, 4000);
+}
+
+function approveLink(): void {
+  if (
+    state.kind === 'menu' &&
+    state.model.kind === 'link_device' &&
+    state.model.linkDevice.kind === 'ready'
+  ) {
+    show(linkMenu({ kind: 'passkey_required', message: 'Device approved' }));
+  }
+}
+
+function complete(heading: string, message: string, next: 'home' | 'recovery' = 'home'): void {
   if (state.kind !== 'menu') return;
+  window.clearTimeout(approvalTimer);
   const returnFocus = state.handle.element.contains(document.activeElement);
   state.handle.dispose();
-  state = { kind: 'result' };
+  state = { kind: 'result', next };
   const title = result.querySelector('h1');
   const status = result.querySelector('p');
+  const button = result.querySelector('button');
   if (title) title.textContent = heading;
   if (status) status.textContent = message;
+  if (button) {
+    button.textContent = next === 'recovery' ? 'Explore account recovery' : 'Back';
+    button.toggleAttribute('data-access-next', next === 'recovery');
+  }
   result.hidden = false;
-  if (returnFocus) result.querySelector('button')?.focus({ preventScroll: true });
+  if (returnFocus) button?.focus({ preventScroll: true });
+}
+
+function recover(method: 'passkey' | 'google'): void {
+  if (state.kind !== 'menu' || state.model.kind !== 'recovery') return;
+  const code = state.model.recoveryCode;
+  if (code.replaceAll(/[^0-9]/g, '') !== recoveryCode.replaceAll('-', '')) {
+    show(recoveryEntry(code, 'Check your recovery code and try again.'));
+    return;
+  }
+  show(
+    method === 'passkey'
+      ? passkeyRecovery('passkey_ready', code)
+      : googleRecovery('google_ready', code),
+  );
 }
 
 // The showcase uses the SDK's real menu renderer with local preview outcomes.
@@ -102,8 +176,7 @@ function complete(heading: string, message: string): void {
 function onIntent(intent: AuthMenuIntent): void {
   switch (intent.kind) {
     case 'mode_selected':
-      if (state.kind === 'menu')
-        state.handle.update(intent.mode === 'register' ? registration() : login());
+      if (state.kind === 'menu') show(intent.mode === 'register' ? registration() : login());
       return;
     case 'submit':
       complete(
@@ -112,13 +185,38 @@ function onIntent(intent: AuthMenuIntent): void {
       );
       return;
     case 'external_auth':
-      complete('Continue with Google', 'Choose your Google account to continue.');
+      if (state.kind === 'menu' && state.model.kind === 'recovery')
+        show(googleRecovery('sign_in_ready', state.model.recoveryCode));
+      else complete('Continue with Google', 'Choose your Google account to continue.');
       return;
     case 'link_device_open':
-      complete('Link this device', 'Scan a code with your other device to connect this one.');
+      openLink();
       return;
     case 'recovery_open':
-      complete('Recover your wallet', 'Use your recovery code to restore access.');
+      show(recoveryEntry(recoveryCode, null));
+      return;
+    case 'link_device_create_passkey':
+      complete(
+        'Device linked',
+        'Your wallet is ready on this device.',
+        combinedAccess ? 'recovery' : 'home',
+      );
+      return;
+    case 'recovery_code_changed':
+      show(recoveryEntry(intent.recoveryCode, null));
+      return;
+    case 'recovery_passkey_selected':
+      recover('passkey');
+      return;
+    case 'recovery_google_selected':
+      recover('google');
+      return;
+    case 'recovery_create_passkey':
+      if (state.kind === 'menu' && state.model.kind === 'recovery')
+        show(passkeyRecovery('sign_in_ready', state.model.recoveryCode));
+      return;
+    case 'recovery_sign_in':
+      complete('Wallet recovered', 'Your wallet is ready.');
       return;
     case 'close':
     case 'back':

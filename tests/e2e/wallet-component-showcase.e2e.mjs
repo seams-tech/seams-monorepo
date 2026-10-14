@@ -123,7 +123,7 @@ async function expectSelection(gallery, name) {
       await expect(
         gallery
           .frameLocator('iframe[title="Link and recover"]')
-          .getByRole('button', { name: 'Link a device', exact: false }),
+          .locator('.seams-auth-menu-surface'),
       ).toBeVisible();
       break;
     case 'Account management':

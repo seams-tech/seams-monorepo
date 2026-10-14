@@ -9,14 +9,12 @@ const authenticationSteps: readonly PlaybackStep[] = [
 ];
 
 const accessSteps: readonly PlaybackStep[] = [
-  { selector: '[data-access-link]', afterConfirmation: false },
-  { selector: '[data-access-scanned]', afterConfirmation: false },
-  { selector: '[data-access-approve]', afterConfirmation: false },
-  { selector: '[data-access-passkey]', afterConfirmation: false },
+  { selector: '[data-link-device-passkey-action]', afterConfirmation: false },
   { selector: '[data-access-next]', afterConfirmation: false },
-  { selector: '[data-access-verify]', afterConfirmation: false },
-  { selector: '[data-access-passkey]', afterConfirmation: false },
-  { selector: '[data-access-reset]', afterConfirmation: false },
+  { selector: '[data-recovery-target="passkey"]', afterConfirmation: false },
+  { selector: '[data-auth-menu-primary]', afterConfirmation: false },
+  { selector: '[data-auth-menu-primary]', afterConfirmation: false },
+  { selector: '[data-authentication-reset]', afterConfirmation: false },
 ];
 
 const transferSteps: readonly PlaybackStep[] = [

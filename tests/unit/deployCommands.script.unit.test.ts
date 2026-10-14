@@ -992,9 +992,7 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
 
     // Staging also carries the activation-only job for an already deployed candidate.
     const trailingJobs =
-      lane.id === 'staging-testnet'
-        ? ['cleanup_build_artifact', 'activate']
-        : ['cleanup_build_cache'];
+      lane.id === 'staging-testnet' ? ['cleanup_build_cache', 'activate'] : ['cleanup_build_cache'];
     expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, ...trailingJobs]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);

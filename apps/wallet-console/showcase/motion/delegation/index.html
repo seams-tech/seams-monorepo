@@ -780,7 +780,8 @@ function phone(parent, P, center, name) {
     back.push(P(-1.6, center + point.u, point.v));
     chassisRim.push(P(2.7, center + point.u, point.v));
   }
-  path(group, HL.poly(HL.hull(back.concat(chassisRim))), 'sil');
+  const profile = HL.hull(back.concat(chassisRim));
+  path(group, HL.poly(profile), 'sil');
   path(group, HL.poly(chassisRim), 'lo nf');
   const outline = screenPath(
     group,
@@ -789,6 +790,7 @@ function phone(parent, P, center, name) {
     HL.rrect(-20.65, 4.35, 20.65, 91.65, 7.65, 16),
     'sil',
   );
+  outline.setAttribute('data-part', 'phone-outline');
   screenPath(group, P, center, HL.rrect(-19.65, 5.35, 19.65, 90.65, 6.65, 16));
   screenPath(group, P, center, HL.rrect(-6.2, 84.2, 6.2, 87.5, 1.65, 12), 'dot m');
   screenPath(group, P, center, HL.rrect(3.7, 85.1, 5.1, 86.5, 0.7, 12), 'fo');
@@ -811,7 +813,7 @@ function phone(parent, P, center, name) {
   const check = path(success, '', 'sil nf');
   rim.setAttribute('data-part', 'success-circle');
   check.setAttribute('data-part', 'success-tick');
-  return { group, outline, content, qr, sweep, success, rim, check };
+  return { group, profile, hitArea: profile, outline, content, qr, sweep, success, rim, check };
 }
 function sideButton(parent, P, center, low, high, classes) {
   const points = [];
@@ -906,11 +908,6 @@ function drawScreen(device, code, scan, success, scanner) {
   const ink = progressBetween(success, CIRCLE_END, TICK_END);
   device.check.setAttribute('d', tickStroke(ink));
   device.success.setAttribute('data-progress', ink);
-  // Pass the single accent from the scanner's edge to its sweep, then confirmation.
-  device.outline.classList.toggle('hi', scanner && scan === 0 && success === 0);
-  device.sweep.classList.toggle('hi', scanner && scan > 0 && success === 0);
-  device.rim.classList.toggle('hi', scanner && success > 0);
-  device.check.classList.toggle('hi', scanner && success > 0);
 }
 function tick(state, _dt, now) {
   const progress = HL.tval(state.motion, now);
@@ -951,6 +948,50 @@ function select(state, active) {
   HL.tset(state.motion, Number(active), performance.now(), 0);
   state.loop.wake();
 }
+function updateHitAreas(state) {
+  const origin = state.P(0, 0, 0);
+  const target = state.P(state.distance / 2, 28, 0);
+  for (const [device, direction] of [
+    [state.scanner, 1],
+    [state.receiver, -1],
+  ]) {
+    const points = device.profile.slice();
+    for (const point of device.profile) {
+      points.push([
+        point[0] + direction * (target[0] - origin[0]),
+        point[1] + direction * (target[1] - origin[1]),
+      ]);
+    }
+    device.hitArea = HL.hull(points);
+  }
+}
+function containsPoint(polygon, point) {
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const a = polygon[index];
+    const b = polygon[previous];
+    const crossesHeight = a[1] > point[1] !== b[1] > point[1];
+    if (!crossesHeight) continue;
+    const intersectionX = ((b[0] - a[0]) * (point[1] - a[1])) / (b[1] - a[1]) + a[0];
+    if (point[0] < intersectionX) inside = !inside;
+  }
+  return inside;
+}
+function highlight(state, device) {
+  state.scanner.outline.classList.toggle('hi', device === state.scanner);
+  state.receiver.outline.classList.toggle('hi', device === state.receiver);
+}
+function move(state, point) {
+  // Fixed envelopes cover the rest and aligned poses. The foreground phone wins overlaps.
+  if (containsPoint(state.scanner.hitArea, point)) highlight(state, state.scanner);
+  else if (containsPoint(state.receiver.hitArea, point)) highlight(state, state.receiver);
+  else highlight(state, null);
+  select(state, true);
+}
+function leave(state) {
+  highlight(state, state.scanner);
+  select(state, false);
+}
 function keyboard(state, event) {
   if (event.key !== 'Enter' && event.key !== ' ') return;
   event.preventDefault();
@@ -958,6 +999,7 @@ function keyboard(state, event) {
 }
 function set(state, distance) {
   state.distance = distance;
+  updateHitAreas(state);
   state.drawn = NaN;
   state.loop.wake();
 }
@@ -993,6 +1035,8 @@ function mount({ stage, svg, read }, distance) {
     active: false,
     loop: null,
   };
+  updateHitAreas(state);
+  highlight(state, scanner);
   stage.setAttribute('tabindex', '0');
   stage.setAttribute('role', 'button');
   stage.setAttribute(
@@ -1005,12 +1049,12 @@ function mount({ stage, svg, read }, distance) {
   bag.add(state.loop.unregister);
   bag.add(
     HL.pointer(stage, {
-      move: select.bind(null, state, true),
-      leave: select.bind(null, state, false),
+      move: move.bind(null, state),
+      leave: leave.bind(null, state),
     }),
   );
   bag.on(stage, 'keydown', keyboard.bind(null, state));
-  bag.on(stage, 'blur', select.bind(null, state, false));
+  bag.on(stage, 'blur', leave.bind(null, state));
   bag.add(svg.replaceChildren.bind(svg));
   return { set: set.bind(null, state), destroy: bag.dispose };
 }

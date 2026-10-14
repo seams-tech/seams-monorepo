@@ -1,13 +1,42 @@
 # Platform-owned Console implementation plan
 
-Status: proposed; implementation has not started.
+Status: separate consoles and target domains agreed; implementation has not started.
 Date: October 14, 2026.
 
 ## Outcome
 
-Make the shared Console the Platform application. Wallet and Satyr integrate as
-products inside platform organisations and projects. Preserve current account,
-permission, billing, and product behaviour throughout the change.
+Create a focused Platform Console and retain the separate Wallet developer Console.
+Satyr keeps its own application. All three use the shared account platform.
+Preserve current account, permission, billing, and product behaviour throughout the change.
+
+| Domain | Experience | Frontend owner |
+| --- | --- | --- |
+| `console.seams.sh` | Organisations, projects, members, account settings, billing, service enablement | `seams-monorepo/apps/console` |
+| `console.wallet.seams.sh` | Wallet environments, API keys, sponsorship, and operations | `seams-monorepo/apps/wallet-console` |
+| `satyr.seams.sh` | Agents, Cases, workflows, and integrations | Existing Satyr application in the `satyr` repository |
+
+These are the agreed target domains. They do not describe the current deployment.
+The current production Console configuration uses `wallet.seams.sh`.
+Keep Wallet marketing at `wallet.seams.sh`, the Wallet API at
+`api.wallet.seams.sh`, and hosted Wallet signing at `sign.seams.sh`.
+
+```mermaid
+flowchart TB
+    PlatformUI["Platform Console<br/>console.seams.sh"]
+    WalletUI["Wallet Console<br/>console.wallet.seams.sh"]
+    SatyrUI["Satyr application<br/>satyr.seams.sh"]
+    Account["Shared Account Platform<br/>Identity, organisations, access, billing"]
+    Wallet["Wallet product services"]
+    Satyr["Satyr product services"]
+    PlatformUI --> Account
+    WalletUI --> Wallet
+    SatyrUI --> Satyr
+    Wallet -->|"Existing account integration"| Account
+    Satyr -->|"Private service binding"| Account
+```
+
+The diagram shows ownership and integration. It does not add account calls to
+Wallet signing or require another deployed backend service.
 
 Keep the three repositories:
 
@@ -17,14 +46,15 @@ Keep the three repositories:
 
 This plan builds on [Shared Account Platform](feat-1-shared-account-platform.md).
 It does not repeat the completed account, billing, service-instance, or private
-Satyr binding work. Its approved application and composition moves supersede that
-plan's restriction on renaming solely to match Platform terminology.
+Satyr binding work. Keep existing package names where their ownership is already clear.
 
 ## Scope and constraints
 
 - Work on `dev` in the main checkout. Commit each completed phase separately.
-- Preserve public URLs, cookies, OAuth callbacks, Worker names, service-binding
-  names, D1 identities, and persisted record formats.
+- Preserve current public URLs, cookies, and OAuth callbacks during structural
+  extraction. Change Console and Satyr application origins only in the explicit
+  domain cutover phase. Preserve Worker names, binding names, D1 identities,
+  Wallet signing origins, passkey relying-party IDs, and persisted record formats.
 - Add zero database calls or service calls to Wallet registration, unlock, signing,
   and response paths. Add no serial validation, awaited billing delivery, or schema
   setup to these paths. Preserve existing early dispatch and query budgets.
@@ -38,8 +68,10 @@ plan's restriction on renaming solely to match Platform terminology.
 - Keep service-native data and permissions in their owning products. Platform
   membership does not bypass Satyr's native access restrictions.
 - Do not introduce another runtime service or database solely for source ownership.
-- Do not rename the GitHub repository, change domains, or take over the separate
-  production Wallet rollout. Those are independent changes.
+- Keep `apps/wallet-console`. Extract shared account pages into `apps/console`.
+  Do not rename the Wallet application into the Platform application.
+- Do not rename the GitHub repository or take over the separate production Wallet
+  rollout. Domain deployment is a distinct phase after structural validation.
 
 The previously committed service-binding changes and architecture fixes still
 require their own deployment coordination. Record their actual rollout state
@@ -49,8 +81,8 @@ before any deployment under this plan.
 
 | Area | Current owner | Required change |
 | --- | --- | --- |
-| Console frontend | `apps/wallet-console` | Make it the Platform app and separate its build from product surfaces. |
-| Shared frontend | `src/core/dashboard`, `src/app` inside that app | Preserve useful structure; remove product assumptions from shared navigation and startup. |
+| Console frontend | `apps/wallet-console` | Retain the Wallet app and extract a focused `apps/console` for shared account pages. |
+| Shared frontend | `src/core/dashboard`, `src/app` inside the Wallet app | Move shared account pages into Platform; retain each application's own shell and navigation. |
 | Wallet frontend | Existing `src/products/wallet` plus mixed routes and assets | Consolidate Wallet-specific pages in the existing product module. |
 | Shared account and billing | `packages/console-server-ts`, `packages/console-shared-ts` | Keep these owners and their existing factories. |
 | Hosted Console composition | `packages/wallet-console-server-ts/src/router/consoleComposition.ts` and `router/cloudflare/d1ConsoleServices.ts` | Move application assembly into the Platform application. Retain Wallet implementations in their package. |
@@ -66,39 +98,61 @@ these properties and use them; do not build parallel implementations.
 ## Target ownership
 
 ```text
-apps/console/
-  src/
-    app/                    application assembly and explicit routes
-    core/                   shared Platform UI, account state, and navigation
-    products/
-      wallet/               Wallet management pages
-      satyr/                Satyr management UI only where needed
-  worker/                   deployed Console entrypoint and service assembly
+seams-monorepo/
+  apps/
+    console/
+      src/
+        app/                 Platform shell and account routes
+        core/                Organisations, projects, members, billing, services
+      worker/                Existing Console backend and service composition
+    wallet-console/
+      src/
+        app/                 Wallet developer shell and routes
+        products/wallet/     Wallet management pages
+    seams-site/              Company website
+  packages/
+    console-server-ts/       Shared account and billing implementation
+    console-shared-ts/       Shared contracts and parsers
+    wallet-console-server-ts/   Hosted Wallet adapters and product routes
+    wallet-console-shared-ts/   Wallet management contracts
+  deployment/console/        Console targets and configuration
+  tests/                     Private composed acceptance tests
 
-packages/console-server-ts/         shared account and billing implementation
-packages/console-shared-ts/         shared contracts and parsers
-packages/wallet-console-server-ts/  hosted Wallet adapters and product routes
-packages/wallet-console-shared-ts/  Wallet management contracts
-
-deployment/console/                 Console deployment targets
+satyr/
+  apps/portal/               Satyr product interface
+  services/platform/         Satyr runtime and Account Platform client
 ```
 
-Keep the existing `core` directory where it expresses shared ownership. A cosmetic
-rename to `platform` is unnecessary. Create a Satyr UI directory only when it owns
-actual product-specific UI. The existing shared Services page can remain shared.
+Platform owns organisation and project administration, account onboarding, members,
+account settings, consolidated billing, and service enablement. Wallet owns its
+navigation, environments, credentials, sponsorship policy, and operational pages.
+Satyr retains its portal, Cases, workflows, commerce integrations, and agent execution.
 
-The application may import both shared and product packages. Shared packages must
-not import the application or product packages. Product adapters may consume
-shared contracts and narrow service interfaces.
+Wallet and Satyr link to Platform for shared account settings and billing. Platform
+links to the product consoles. A small product switcher can carry organisation and
+project identifiers, with access checked by the destination using existing mechanisms.
+Identifiers in a URL select context; they do not grant access.
 
-Platform owns login, organisation and project selection, onboarding, members,
-account settings, consolidated billing, and the service catalogue. Wallet owns
-Wallet environments, credentials, sponsorship policy, and Wallet operations.
-Classify audit, webhooks, and observability by their actual contracts; shared
-infrastructure can remain shared while Wallet event definitions stay in Wallet.
+Use one canonical shared account page for each operation. Remove moved pages from
+the Wallet application. Reuse existing UI primitives where useful, without forcing
+both applications through a universal shell or creating a new design-system project.
+Classify audit, webhooks, and observability by their contracts. Shared infrastructure
+can remain shared while Wallet event definitions stay in Wallet.
 
-Satyr retains its portal, Cases, workflows, commerce integrations, and agent
-execution. Console exposes its enablement, account access, status, and product link.
+Application-level backend composition may import both shared and product packages.
+Shared packages must not import either application or product packages. Product
+adapters may consume shared contracts and narrow service interfaces.
+
+Separate frontend domains can use the existing Console backend. Prefer routing each
+Console's API paths to that existing Worker at the edge, preserving same-origin
+browser requests without a new application proxy hop. Keep each surface's allowed
+routes and existing authentication checks explicit. Satyr retains its native backend
+and uses the private Account Platform binding.
+
+Shared account identity does not imply shared browser cookies. Preserve the existing
+authentication mechanisms. Validate session behaviour across the target origins
+before cutover. Do not broaden cookies to `.seams.sh`, pass session tokens in URLs,
+or introduce a new single-sign-on protocol as part of the file extraction.
 
 ## Phase 1 — Inventory and baseline
 
@@ -111,34 +165,35 @@ execution. Console exposes its enablement, account access, status, and product l
 4. Capture current E2E results and per-operation database and service-call counts.
    Include registration context, active-lineage resolution, Wallet settlement,
    shared onboarding, and Satyr account access.
-5. Identify the current Console browser journey that will verify the shell move.
-   Extend that journey only for behaviour it does not cover.
+5. Identify browser journeys for both Console shells and navigation between products.
+   Inventory origin-bound sessions, OAuth callbacks, invitation links, and return URLs.
+   Extend existing journeys only for behaviour they do not cover.
 
 Exit: the ownership table, affected commands, deployment prerequisites, and baseline
 artifacts are recorded. Each proposed extraction removes a demonstrated dependency.
 
-## Phase 2 — Platform frontend application
+## Phase 2 — Separate Platform and Wallet frontends
 
-1. Move `apps/wallet-console` to `apps/console` and rename its private workspace package.
-   Update workspace references, aliases, local startup, CI, deployment scripts, test
-   fixtures, asset paths, and documentation in the same change.
-2. Keep shared shell and account pages in `core`. Move mixed Wallet management pages
-   into the existing `products/wallet` module. Use the existing router to register
-   product routes explicitly.
-3. Make shared navigation organisation- and project-based. Show service-specific
-   controls from service-instance state. Preserve existing route URLs and deep links.
-4. Ensure shared login, account data, and billing render without Wallet SDK startup,
-   Wallet RPC, or a Satyr request. Keep SDK initialization inside the relevant product
-   flow. Use existing lazy-route patterns where they reduce shared startup work.
-5. Separate Console, Wallet marketing/showcase, and hosted Wallet build inputs.
-   Keep company marketing in `apps/seams-site`. Assign Wallet marketing and hosted
-   assets to explicit Wallet build roots; create a separate app only if their actual
-   build dependencies require it. Do not copy pages or merge independently owned
-   surfaces to make the rename easier.
+1. Create `apps/console` and move shared account pages from `apps/wallet-console`.
+   Keep the Wallet application's workspace identity and product navigation.
+   Update workspace references, aliases, local startup, CI, fixtures, and documentation.
+2. Give Platform a focused shell for organisations, projects, members, billing, and
+   service enablement. Retain Wallet management pages in the existing Wallet module.
+   Delete replaced account page implementations after moving their callers.
+3. Add explicit links between the product consoles and shared account pages.
+   Preserve selected organisation and project identifiers where relevant. Validate
+   return destinations through the existing redirect boundary.
+4. Ensure Platform login, account data, and billing render without Wallet SDK startup,
+   Wallet RPC, or a Satyr request. Keep SDK initialization inside Wallet product flows.
+   Reuse existing routing and loading patterns.
+5. Separate Platform Console, Wallet Console, marketing/showcase, and hosted Wallet
+   build inputs. Keep company marketing in `apps/seams-site`. Assign Wallet marketing
+   and hosted assets to explicit Wallet build roots. Create another app only if its
+   actual build dependencies require it. Avoid copying pages between applications.
 
-Exit: existing URLs and authentication flows work. A shared account journey loads
-without either product runtime. Each surface builds independently with the same
-public asset locations and hosted Wallet behaviour.
+Exit: both Console applications build and run independently. Platform account
+journeys work without either product runtime. Wallet retains its developer workflows.
+Existing production origins remain unchanged until the domain cutover phase.
 
 ## Phase 3 — Platform Worker and composition
 
@@ -182,10 +237,11 @@ Wallet call counts do not increase.
 5. Update local combined development and private composed tests to the new source
    locations. Keep Satyr independently deployed and connected by the same binding.
 
-Exit: Console frontend and backend can build and deploy independently of a Wallet
-release or Satyr release. No new persistence migration is required for file moves.
+Exit: Platform and Wallet Console frontends have separate build outputs and deployment
+selection. The existing Console backend can deploy independently of a public Wallet
+release or Satyr release. File moves require no new persistence migration.
 
-## Phase 5 — Acceptance and rollout
+## Phase 5 — Acceptance before domain cutover
 
 Run the narrow checks after each phase. Run `pnpm check` after the full composition
 change. Run `pnpm test:scripts` after deployment-script or workflow changes.
@@ -202,8 +258,11 @@ The composed acceptance journey must demonstrate:
    binding accepts a permitted user and rejects stale, revoked, and foreign authority.
 4. Product failure leaves shared account and billing pages usable. Unavailable
    product operations show their own failure without changing another product's state.
-5. Existing deep links, session cookies, asset paths, and hosted Wallet flows survive
-   the source moves. Browser screenshots and a trace show the final navigation.
+5. Both consoles retain their separate navigation. Shared account actions open the
+   canonical Platform pages. Organisation and project selection survives product
+   navigation, and a foreign or revoked selection is rejected by the destination.
+   Browser screenshots and traces cover sign-in, return navigation, and deep links.
+   Existing session and hosted Wallet behaviour survives the source moves.
 6. Wallet query and service-call budgets remain at or below baseline. Billing capture
    stays in its existing transaction and delivery stays asynchronous.
 
@@ -216,17 +275,46 @@ Stage the candidate Console against existing bindings and schemas. Compare Walle
 latency on the same request cohort, SDK version, region, and deployment topology.
 Reject unexplained latency increases; local call counts alone do not prove latency.
 
-Production rollout remains separate from the deferred Wallet rollout. Before a
-production deployment, verify prerequisite releases and migrations are applied.
-Retain the previous deployable Console artifact for rollback. Roll back by deploying
-that artifact; do not retain a second implementation in source or reverse shared data.
+## Phase 6 — Domain cutover
+
+1. Recheck prerequisite releases and migrations. Keep the deferred production Wallet
+   rollout separate. Configure and validate staging counterparts for all three
+   application domains before changing production traffic.
+2. Configure `console.seams.sh` and `console.wallet.seams.sh` with their respective
+   frontend outputs and API routes to the existing Console backend. Coordinate
+   `satyr.seams.sh` with Satyr's existing frontend and backend deployment.
+   Separate frontends do not require separate account databases or duplicate writers.
+3. Update exact allowed origins, OAuth callback registrations, cookie settings,
+   invitation links, email links, product links, and validated return destinations.
+   Preserve `sign.seams.sh`, `api.wallet.seams.sh`, and Wallet passkey relying-party IDs.
+   Test existing sessions and any required reauthentication explicitly.
+4. Update Satyr's browser-facing origin configuration in its owning repository.
+   Keep private binding names stable. If signed assertion issuer or audience values
+   change, coordinate both producers and verifiers; an origin move alone does not
+   require changing those logical identifiers.
+5. Map old browser Console links to their correct new destinations at the request
+   boundary. Use redirects only for browser navigation; do not redirect state-changing
+   API calls or retain duplicate application implementations. Record removal criteria
+   for temporary transition rules. Preserve Wallet marketing and hosted assets.
+6. Run the cross-origin acceptance journey on deployed staging, then verify the
+   coordinated production cutover. Keep prior frontend artifacts and route configuration
+   available for rollback. Restore those artifacts and routes if checks fail; preserve
+   shared data and the single-writer model.
+
+For staging, use `staging.console.seams.sh`, `staging.console.wallet.seams.sh`, and
+`staging.satyr.seams.sh`. Existing Wallet API and signing staging origins stay unchanged.
+Record DNS, certificates, session behaviour, callback results, and product navigation
+in the acceptance evidence. Domain approval defines the target architecture; this
+plan update does not itself deploy or modify DNS.
 
 ## Completion criteria
 
-- The application and its deployed entrypoint have explicit Platform ownership.
+- Platform and Wallet have separate Console applications at their agreed domains.
+- Shared backend composition and the private account entrypoint have Platform ownership.
 - Shared pages and account routes have no product-runtime startup dependency.
 - Wallet and Satyr retain their native data, permissions, and release boundaries.
-- Existing URLs, bindings, persistence, and commercial behaviour remain intact.
+- Old browser links reach the correct destination through defined request-boundary rules.
+- Wallet execution origins, bindings, persistence, and commercial behaviour remain intact.
 - Replaced paths, duplicate composition, and obsolete build references are removed.
 - Acceptance artifacts prove the requested behaviour and unchanged request costs.
 - Report local validation, staging deployment, and production deployment separately.

@@ -227,6 +227,7 @@ try {
   await expect(cursor).toHaveCount(0);
 
   await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
+  await gallery.getByRole('radio', { name: 'Payment', exact: true }).check();
   await gallery.getByRole('combobox', { name: 'Pay with' }).selectOption('ethereum');
   await gallery.getByRole('button', { name: 'Pay $24.00', exact: true }).click();
   await expect(gallery.getByRole('status')).toContainText('No payment was made.');
@@ -237,6 +238,8 @@ try {
 
   // The original installed-SDK examples remain interactive within the moving canvas.
   await gallery.getByRole('radio', { name: 'Transactions', exact: true }).check();
+  await gallery.getByRole('button', { name: 'Next component' }).click();
+  await expect(gallery.getByRole('radio', { name: 'Transfer', exact: true })).toBeChecked();
   await gallery.getByRole('button', { name: 'Previous component' }).click();
   await expect(
     gallery.getByRole('radio', { name: 'Transaction modal', exact: true }),
@@ -320,6 +323,7 @@ try {
   await touchGallery.scrollIntoViewIfNeeded();
   await expect(touchGallery.locator('[data-active="true"] .showcase-preview__cursor')).toBeHidden();
   await touchGallery.getByRole('radio', { name: 'Checkout', exact: true }).tap();
+  await touchGallery.getByRole('radio', { name: 'Payment', exact: true }).tap();
   await touchGallery.getByRole('button', { name: 'Pay $24.00', exact: true }).tap();
   await expect(touchGallery.getByRole('status')).toContainText('No payment was made.');
   await capture(touchGallery, 'touch-payment-result');

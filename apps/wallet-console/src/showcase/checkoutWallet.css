@@ -24,6 +24,14 @@ body {
   inline-size: var(--checkout-toast-width, 100%);
 }
 
+/* Bound the tree inside the disclosure before the SDK measures its expansion.
+   The disclosure can then request only the room the host can actually provide. */
+.seams-review-technical > div > .seams-review-detail {
+  block-size: var(--checkout-details-height);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 /* The container takes opening focus; its controls keep their own rings. */
 .seams-confirmation-modal--hosted:focus {
   outline: none;

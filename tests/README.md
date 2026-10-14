@@ -14,8 +14,13 @@ On a visible desktop canvas, the cursor runs the preview's local action, shows i
 result, then resets for replay. Hover, keyboard focus, and an offscreen canvas pause it. Reduced-motion and touch modes use
 manual controls. Automatic playback never moves focus or connects a real wallet.
 Manual results remain visible until the user returns or selects another component.
+The prediction-market approval bounds its transaction-details scroller to the height
+provided by its host. Expansion, collapse, and nested raw-data changes keep approval
+controls visible. The scenario records these transitions as per-frame JSON evidence.
 The two installed SDK examples use their existing sample-data pages and run only
-when selected. The canvas is flush with the page dividers and uses monochrome
+when selected. Transactions opens the original transaction modal by default;
+Checkout opens the original prediction-market review. Both retain the signing,
+broadcast, confirmation, and receipt lifecycle. The canvas is flush with the page dividers and uses monochrome
 controls, with round previous/next buttons and a dot selector.
 
 With the local frontend running, execute from the repository root:
@@ -27,6 +32,12 @@ node tests/e2e/wallet-component-showcase.e2e.mjs
 The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGIN`
 to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
 `.artifacts/wallet-component-showcase/`.
+
+For the embedded checkout's resize behavior, run
+`node tests/e2e/checkout-details-motion.e2e.mjs`. This uses the same checkout page
+at the canvas's dimensions, independently of the separate live login widget.
+Set `SEAMS_CHECKOUT_DEMO_URL` for another checkout URL. Per-frame measurements,
+screenshots, and a trace go to `.artifacts/transaction-details-jank/`.
 
 ## Gates
 

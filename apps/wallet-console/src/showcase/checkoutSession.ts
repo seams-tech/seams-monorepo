@@ -145,11 +145,16 @@ export class CheckoutSession {
   };
 
   private readonly sendLayout = (): void => {
-    const dialog = dialogGeometry(modalWalletIframeSurfacePresentation('Wallet approval'), 1);
+    const dialog = dialogGeometry(
+      modalWalletIframeSurfacePresentation('Wallet approval'),
+      window.innerHeight,
+    );
+    if (dialog === null) return;
     this.iframe.contentWindow?.postMessage(
       {
         type: 'checkout-layout',
-        dialogWidthCssPx: dialog?.widthCssPx ?? dialogWidthCssPx,
+        dialogWidthCssPx: dialog.widthCssPx,
+        dialogMaxHeightCssPx: dialog.heightCssPx,
         toastWidthCssPx: toastWidth(),
       },
       window.location.origin,

@@ -337,15 +337,17 @@ See [the current plan](../../docs/refactor-190.md#remaining-rollout-gates).
 ## Yao peer-disconnect check
 
 The shared Durable Object fault proxy passes the real Yao interruption check on both runtimes.
-Celld also preserves the burned pair across a local restart.
+The local runner checks burned state across a drained runtime upgrade and a later restart.
 Use the exact qualified Wallet Server package, the public Wallet checkout and the supplied Moto Python environment:
 
 ```sh
-python3 tests/e2e/celld/yao-peer-disconnect.e2e.py CELLD WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT
+python3 tests/e2e/celld/yao-peer-disconnect.e2e.py CELLD WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT PREVIOUS_CELLD
 ```
 
+Use `.5` for `PREVIOUS_CELLD` and `.6` for `CELLD` to repeat the qualified upgrade.
+The runner stops the old process before deploying the new manifests.
 Moto supplies local synthetic S3 storage. This check uses no AWS account.
 The result records runtime/package/source hashes, the fault, pair states, retries, the independent wallet and cleanup.
-See [Yao evidence](evidence/yao-peer-disconnect.json) and [diagnosis and limits](yao-diagnostics.md).
+See [Yao interruption evidence](evidence/yao-peer-disconnect.json), [runtime upgrade evidence](evidence/yao-runtime-upgrade.json), and [diagnosis and limits](yao-diagnostics.md).
 A Worker-created socket currently loses its handoff across the sampled celld service binding.
 The verified Wallet peer path uses object-owned sockets. General Worker WebSocket handoff remains unqualified.

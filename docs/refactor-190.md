@@ -658,6 +658,18 @@ See [the restore and upgrade evidence](../deployment/celld/evidence/tenant-root-
 This is a single-node availability restore with one missing share. Provider partitions, both-share loss, relocation,
 in-flight work during retirement, consumed signing material across upgrades, and mixed-version rollout remain separate gates.
 
+## October 14 burned-pair upgrade checkpoint
+
+The existing real Yao fault runner now checks a drained `.5` to `.6` upgrade and another restart.
+It disconnects after B's second protocol message. Both roles report burned state before and after each runtime transition.
+Exact retries return 503 and open zero additional protocol connections. An independent wallet registers before the upgrade.
+The runner uses the same 0.11.0 packaged Workers and the shared public fault proxy.
+See [the Yao upgrade evidence](../deployment/celld/evidence/yao-runtime-upgrade.json).
+
+This closes the local burned-Yao-pair upgrade check. ECDSA consumed presigns, mixed-version serving,
+ownership-generation preservation during upgrade, provider partitions, and rollback remain open.
+The aggregate maintained source reduction is now 33,258 lines.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

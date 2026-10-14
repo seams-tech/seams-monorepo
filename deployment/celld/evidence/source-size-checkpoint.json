@@ -602,7 +602,7 @@
     "seams-monorepo": {
       "baseRevision": "c02d6c58e8f30dc4269fa765b6d3bd644b356879",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -752,
+      "netLines": -735,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -775,8 +775,8 @@
         {
           "path": "tests/e2e/celld/yao-peer-disconnect.e2e.py",
           "beforeLines": 0,
-          "afterLines": 266,
-          "netLines": 266
+          "afterLines": 283,
+          "netLines": 283
         },
         {
           "path": "tests/relayer/console-account-router.test.ts",
@@ -817,6 +817,6 @@
       ]
     }
   },
-  "aggregateNetLines": -33275,
+  "aggregateNetLines": -33258,
   "netReductionAchieved": true
 }

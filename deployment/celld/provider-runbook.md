@@ -243,3 +243,7 @@ This qualifies a drained local upgrade for these tenant-root records only.
 It does not qualify consumed signing material, mixed-version serving, all-replica recovery, or a provider storage partition.
 Keep production upgrade and rollback gated on those applicable state checks.
 Rollback must preserve current durable records. Never restore an older storage snapshot to undo an executable change.
+
+The [Yao runtime upgrade check](evidence/yao-runtime-upgrade.json) additionally proves that an interrupted pair remains burned after `.5` to `.6` and another restart.
+It observes both role states and zero new protocol connections on exact retry.
+This adds evidence for one-use Yao material. ECDSA presign material and live mixed-version rollout still require separate checks.

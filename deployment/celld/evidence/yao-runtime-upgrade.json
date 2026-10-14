@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "scope": "real packaged Yao pair disconnect, exact retry, independent wallet, drained runtime upgrade and restart; local synthetic S3",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-yao-disconnect-qnmc49wu/result.json",
+    "sha256": "4bac9583b82b285a1c94bb2caa4c8c8d8591417eccd2835e3177350f9412acf3"
+  },
+  "publicRevision": "510110d46ffb5b081f3aebedc59a6064a17f7ee4",
+  "sourceHashes": {
+    "driver": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+    "preparer": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+    "proxy": "0629b4ab0dda0b6c1e85ac3833edaadaad22ad6b235c41803e9df4116747db42"
+  },
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "fault": {
+    "httpStatus": 200,
+    "status": "recoverable_failure",
+    "roleStates": {
+      "deriver-a": "burned",
+      "deriver-b": "burned"
+    },
+    "connection": {
+      "connectionAttempts": 1,
+      "connections": 1,
+      "refusals": [],
+      "aMessages": 1,
+      "bMessages": 2,
+      "disconnected": true,
+      "aClosed": true,
+      "bClosed": false,
+      "aClose": {
+        "code": 1000,
+        "reason": "pair execution ended"
+      }
+    },
+    "exactRetryStatus": 503
+  },
+  "independentWalletCompletedBeforeUpgrade": true,
+  "oldRuntimeStoppedBeforeDeployment": true,
+  "upgrade": {
+    "roleStates": {
+      "deriver-a": "burned",
+      "deriver-b": "burned"
+    },
+    "exactRetryStatus": 503,
+    "newProtocolConnections": 0
+  },
+  "restart": {
+    "roleStates": {
+      "deriver-a": "burned",
+      "deriver-b": "burned"
+    },
+    "exactRetryStatus": 503,
+    "newProtocolConnections": 0
+  },
+  "temporaryOwnershipRefusals": {
+    "upgrade": 0,
+    "restart": 26
+  },
+  "cleanup": "owned native process and local S3 emulator stopped",
+  "limits": [
+    "Local macOS ARM64 runtime and synthetic S3. No additional Google qualification.",
+    "Real Yao interruption before completion. ECDSA consumed-presign upgrade parity remains open.",
+    "Independent wallet registration precedes upgrade. No new post-upgrade registration claim.",
+    "Both role pairs report burned and retry opens no connection. The retry assertion does not require a particular error reason.",
+    "Old runtime stops before new deployment. No live mixed-version rollout or rollback proof.",
+    "No Wallet handler, cryptographic protocol, or celld patch changes."
+  ],
+  "aggregateMaintainedSourceDelta": -33258
+}

@@ -1,6 +1,6 @@
-"""Prove a real Yao pair stays burned after disconnect, exact retry and restart.
+"""Prove a real Yao pair stays burned after disconnect, exact retry, drained runtime upgrade and restart.
 
-Usage: python3 yao-peer-disconnect.e2e.py CELLD WALLET_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT
+Usage: python3 yao-peer-disconnect.e2e.py CELLD WALLET_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT PREVIOUS_CELLD
 Uses the public workerd scenario's unchanged WebSocket fault proxy and fixture builder.
 """
 
@@ -146,9 +146,11 @@ def verify_burned_pair(address, interrupted, result):
 
 
 def main():
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 7:
         raise SystemExit(__doc__)
-    binary, package, python, esbuild, checkout = [Path(value).absolute() for value in sys.argv[1:]]
+    binary, package, python, esbuild, checkout, previous = [
+        Path(value).absolute() for value in sys.argv[1:]
+    ]
     package = package.resolve()
     repository = Path(__file__).resolve().parents[3]
     root = Path(tempfile.mkdtemp(prefix="celld-yao-disconnect-", dir=repository / ".artifacts"))
@@ -169,7 +171,8 @@ def main():
         "NODE_PATH": str(repository / "node_modules"),
     }
     result = {
-        "status": "running", "stage": "prepare", "scope": "real packaged Yao pair disconnect, exact retry, independent wallet and restart; local synthetic S3",
+        "status": "running", "stage": "prepare", "scope": "real packaged Yao pair disconnect, exact retry, independent wallet, drained runtime upgrade and restart; local synthetic S3",
+        "previousRuntimeSha256": harness.sha256(previous),
         "runtimeSha256": harness.sha256(binary), "packageSha256": harness.directory_sha256(package),
         "manifestSha256": harness.sha256(package / "artifact-manifest.json"),
         "publicRevision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip(),
@@ -229,26 +232,40 @@ def main():
         })
         result["stage"] = "deploy"
         for role in [*configs, "proxy", "capture", "order", "observer"]:
-            harness.run([binary, "deploy", role + ".json", "--bucket", "fleet-test"], root, environment, "deploy-" + role + ".log")
-        command = [binary, "--no-control-plane", "--bucket", "fleet-test", "--listen", address.removeprefix("http://"),
+            harness.run([previous, "deploy", role + ".json", "--bucket", "fleet-test"], root, environment, "deploy-" + role + ".log")
+        command = [previous, "--no-control-plane", "--bucket", "fleet-test", "--listen", address.removeprefix("http://"),
                    "--internal-listen", "127.0.0.1:0"]
         node = harness.start(command, root, environment, "node.log", processes)
         harness.wait_for_http(address + "/ROUTER", node)
         for role in configs:
             config = json.loads((root / (role + ".json")).read_text())
             for database in config.get("d1_databases", []):
-                harness.run([binary, "d1", "migrations", "apply", database["database_name"], role + ".json", "--bucket", "fleet-test"],
+                harness.run([previous, "d1", "migrations", "apply", database["database_name"], role + ".json", "--bucket", "fleet-test"],
                             root, environment, "migrate-" + role + ".log")
         inputs = json.loads((root / "yao-inputs.json").read_text())
-        credential = inputs["internalCredential"]
         addresses = read(address, "", "addresses")
         interrupted = verify_disconnect(address, inputs, addresses, result)
-        result["stage"] = "restart"
+        result["stage"] = "drained-upgrade"
         harness.stop(node)
         processes.remove(node)
-        node = harness.start(command, root, environment, "node-restarted.log", processes)
-        harness.wait_for_http(address + "/ROUTER", node)
-        verify_burned_pair(address, interrupted, result)
+        result["oldRuntimeStoppedBeforeDeployment"] = node.returncode is not None
+        assert result["oldRuntimeStoppedBeforeDeployment"]
+        for role in [*configs, "proxy", "capture", "order", "observer"]:
+            harness.run(
+                [binary, "deploy", role + ".json", "--bucket", "fleet-test"],
+                root, environment, "upgrade-deploy-" + role + ".log",
+            )
+        command[0] = binary
+        for checkpoint in ("upgrade", "restart"):
+            result["stage"] = checkpoint
+            node = harness.start(command, root, environment, "node-" + checkpoint + ".log", processes)
+            harness.wait_for_http(address + "/ROUTER", node)
+            verify_burned_pair(address, interrupted, result)
+            if checkpoint == "upgrade":
+                result["upgrade"] = result["restart"]
+                result["proxyTakeoverAfterUpgrade"] = result["proxyTakeoverAfterRestart"]
+            harness.stop(node)
+            processes.remove(node)
         result["status"] = "passed"
     except Exception as error:
         result["status"] = "failed"

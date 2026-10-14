@@ -135,13 +135,11 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
   highlightAmount: '#f4f5f6',
 };
 
-// "Pastel Dark" — the Pastel Rainbow palette on charcoal (Outlander-dashboard
-// style): plum-charcoal layers, mint carrying the CTAs with dark ink, and the
-// remaining pastels as status/highlight tones (pastels are light, so they
-// read directly on dark surfaces).
+// "Pastel Dark" — the light preset's blue, pink, and lavender on charcoal.
+// Pink icon highlights are deepened to keep the light glyphs readable.
 const PASTEL_DARK_COLORS: Record<string, string> = {
-  primary: '#C9E4DE',
-  primaryHover: '#b1d6cd',
+  primary: '#C6DEF1',
+  primaryHover: '#aed0ec',
   secondary: '#b5b0bd',
   secondaryHover: '#f4f1ea',
   accent: '#DBCDF0',
@@ -151,8 +149,8 @@ const PASTEL_DARK_COLORS: Record<string, string> = {
   textMuted: '#847f8e',
   textButton: '#1e1d22',
 
-  buttonBackground: '#C9E4DE',
-  buttonHoverBackground: '#b1d6cd',
+  buttonBackground: '#C6DEF1',
+  buttonHoverBackground: '#aed0ec',
   // lavender pastel secondary (Google SSO) button
   secondaryButtonBackground: '#DBCDF0',
   secondaryButtonHoverBackground: '#cfbfe9',
@@ -161,16 +159,18 @@ const PASTEL_DARK_COLORS: Record<string, string> = {
 
   colorBackground: '#1e1d22',
   surface: '#26252b',
-  surface2: '#2e2d34',
-  surface3: '#38363f',
-  surface4: '#423f4a',
-  txDetailsBackground: '#2e2d34',
+  surface2: '#342d38',
+  surface3: '#9c6b88',
+  surface4: '#7d6b96',
+  txDetailsBackground: '#342d38',
 
-  hover: '#2e2d34',
-  active: '#38363f',
+  hover: '#342d38',
+  active: '#493b4c',
   focus: '#C6DEF1',
 
   success: '#C9E4DE',
+  lastUsedBadgeBackground: '#F2C6DE',
+  lastUsedBadgeText: '#2f2a38',
   warning: '#F7D9C4',
   error: '#F2C6DE',
   info: '#C6DEF1',

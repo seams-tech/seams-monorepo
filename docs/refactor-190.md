@@ -693,6 +693,24 @@ The evidence proves the old process stopped before deployment, with no test requ
 The final old process exited through SIGKILL (`-9`). Restart recovery recorded 22 temporary refusals over 6.006 seconds.
 The aggregate maintained source reduction is now 33,051 lines, including all new test code and the full runtime patch.
 
+## October 14 rebase after Console query optimization
+
+Both isolated R190 branches rebase cleanly onto local `dev`: public `66262a36` and private `072f28ba`.
+Private `dev` supplies Console query optimizations, migration `0099`, and exact Wallet package pins at `0.10.1`.
+Public `dev` changes a CLI error message. The packaged Wallet Worker code and celld patch remain unchanged.
+
+The private frozen-lockfile install and `pnpm check` pass, including 53 script tests and one existing skip.
+The public bloat check passes. Both production Console composition E2Es pass on workerd.
+The binding E2E initially failed because its bundler omitted the runtime-provided `cloudflare:workers` module.
+This was `valid_test_needs_update`. Its external-module setting now matches the production renderer.
+The targeted rerun passes. Production request paths remain unchanged.
+
+Celld `.6` passes Console onboarding, exact replay, and all 76 migrations with the existing `0.11.0` candidate.
+The raw result is `.artifacts/celld-console-sm_0b2ha/result.json`.
+Its SHA-256 is `0dbc1616b1e3e1c71b7e57be726168db6592716c71153eb53ceb584018a0e1d3`.
+The aggregate maintained source reduction remains 33,051 lines against the new `dev` bases.
+Earlier Google results retain their recorded revisions and migration counts. This rebase adds local qualification only.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

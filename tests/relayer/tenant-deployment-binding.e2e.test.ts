@@ -57,7 +57,7 @@ test('Console binding reads stay fresh through service bindings and retain D1 ti
     platform: 'neutral',
     mainFields: ['module', 'main'],
     conditions: ['workerd', 'worker', 'browser'],
-    external: ['node:*'],
+    external: ['node:*', 'cloudflare:*'],
     loader: { '.wasm': 'file' },
     tsconfig: path.join(repoRoot, 'packages/wallet-console-server-ts/tsconfig.json'),
     alias: process.env.SEAMS_WALLET_SERVER_CANDIDATE

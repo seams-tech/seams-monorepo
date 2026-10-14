@@ -866,7 +866,6 @@ function slab(svg, P, front) {
   HL.put(base, HL.prism(P, front, ...HL.rings(-35, -19, 35, 19, 4, 1.2), 0, 2.6));
   const body = HL.solid(svg);
   body.g.setAttribute('data-part', 'share-tile');
-  body.sil.style.strokeWidth = '1px';
   const outline = HL.rrect(-33, -17, 33, 17, 3, 12);
   const top = HL.ringAt(P, outline, 2.6);
   HL.put(body, {
@@ -975,7 +974,6 @@ function transaction(svg, P, front) {
   HL.put(base, HL.prism(P, front, ...HL.rings(-31, -23, 31, 23, 5, 1.2), 0, 2.6));
   const body = HL.solid(svg);
   body.g.setAttribute('data-part', 'transaction-tile');
-  body.sil.style.strokeWidth = '1px';
   const [outline, inset] = HL.rings(-29, -21, 29, 21, 4, 0.8);
   HL.put(body, HL.prism(P, front, outline, inset, 0, 3.5));
   let lines = '';

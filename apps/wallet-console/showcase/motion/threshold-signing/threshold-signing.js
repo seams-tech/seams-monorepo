@@ -1,9 +1,8 @@
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
-// Share the tween's easing without restarting its velocity at stage boundaries.
-const INPUT_END = HL.EASE_LIFT(0.4);
-const POLICY_END = HL.EASE_LIFT(0.56);
-const OUTPUT_END = HL.EASE_LIFT(0.72);
+const DURATION = 2800;
+const CLOCK_TIME = HL.bezier(0.72, 0.32, 1, 0);
+const TILE_EASE = HL.bezier(0.65, 0, 0.35, 1);
 const SIGNATURE_EASE = HL.bezier(0.23, 1, 0.32, 1);
 function path(parent, d, classes = 'lo nf') {
   return HL.mk('path', { d, class: classes }, parent);
@@ -47,7 +46,7 @@ function port(svg, P, center) {
   for (let step = 0; step < 32; step++) {
     const angle = (step * Math.PI) / 16;
     const offset = 0.8 * Math.cos(angle);
-    points.push(P(33.05, center + offset, 1.3 + 0.8 * Math.sin(angle)));
+    points.push(P(35.05, center + offset, 1.3 + 0.8 * Math.sin(angle)));
   }
   path(svg, HL.poly(points), 'sil');
 }
@@ -143,7 +142,10 @@ function classicKey(slab, P, front) {
   }
 }
 function slab(svg, P, front) {
+  const base = HL.solid(svg);
+  HL.put(base, HL.prism(P, front, ...HL.rings(-35, -19, 35, 19, 4, 1.2), 0, 2.6));
   const body = HL.solid(svg);
+  body.g.setAttribute('data-part', 'share-tile');
   body.sil.style.strokeWidth = '1px';
   const outline = HL.rrect(-33, -17, 33, 17, 3, 12);
   const top = HL.ringAt(P, outline, 2.6);
@@ -155,7 +157,20 @@ function slab(svg, P, front) {
     HL.seg(P(-25, 11, 2.6), P(-17, 11, 2.6)) + HL.seg(P(-25, 13, 2.6), P(-20, 13, 2.6));
   path(body.g, engravings);
   classicKey(body.g, P, front);
-  return { body, labelTop: Math.min(...top.map(screenY)) };
+  const liftVector = liftDirection(P);
+  return { body, liftVector, labelTop: Math.min(...top.map(screenY)) + liftVector[1] * 10.6 };
+}
+function liftDirection(P) {
+  const ground = P(0, 0, 0);
+  const raised = P(0, 0, 1);
+  return [raised[0] - ground[0], raised[1] - ground[1]];
+}
+function liftTile(tile, height) {
+  tile.body.g.setAttribute(
+    'transform',
+    `translate(${tile.liftVector[0] * height} ${tile.liftVector[1] * height})`,
+  );
+  tile.body.g.dataset.lift = height;
 }
 function curvePoints(points) {
   const samples = [];
@@ -208,47 +223,69 @@ function setTrace(trace, progress) {
   trace.el.setAttribute('data-progress', progress);
   return tip;
 }
-function shield(svg, P) {
-  const scale = 1.3;
-  const outline = [
-    [-14, -12],
-    [0, -18],
-    [14, -12],
-    [14, 1],
-    [10, 11],
-    [0, 18],
-    [-10, 11],
-    [-14, 1],
-  ];
-  const face = [],
-    inset = [],
-    back = [];
-  for (const [x, y] of HL.fillet(outline, [1, 0.6, 1, 3, 3, 1, 3, 3], 8)) {
-    face.push(P(x * scale, y * scale, 4));
-    inset.push(P(x * scale * 0.82, y * scale * 0.82, 4.05));
-    back.push(P(x * scale, y * scale, 2));
-  }
-  const body = HL.solid(svg);
-  const silhouette = HL.hull(face.concat(back));
-  HL.put(body, { sil: HL.poly(silhouette), crease: HL.poly(face) });
-  body.sil.style.strokeWidth = '1px';
-  body.cr.setAttribute('class', 'sil nf');
-  path(body.g, HL.poly(inset));
-  const mark = trace(
-    body.g,
-    [P(-7 * scale, 0, 4.1), P(-1.2 * scale, 6 * scale, 4.1), P(8 * scale, -8 * scale, 4.1)],
-    'check',
+function policyCheck(parent, P) {
+  // A normal rounded check is drawn in the card's x/y plane before projection.
+  const outline = HL.fillet(
+    [
+      [-3, 7],
+      [-1, 6],
+      [2, 11],
+      [11, -3],
+      [13, -1.5],
+      [2, 15],
+      [0.5, 14.5],
+    ],
+    [0.7, 0.7, 0.5, 0.7, 0.7, 0.9, 0.7],
+    6,
   );
+  const top = [];
+  const bottom = [];
+  for (const [x, y] of outline) {
+    top.push(P(x, y, 3));
+    bottom.push(P(x, y, 2.25));
+  }
+  let walls = '';
+  let edges = '';
+  for (let index = 0; index < outline.length; index++) {
+    const next = (index + 1) % outline.length;
+    const a = outline[index];
+    const b = outline[next];
+    if (b[1] - a[1] <= b[0] - a[0]) continue;
+    walls += HL.poly([bottom[index], bottom[next], top[next], top[index]]);
+    edges += HL.seg(bottom[index], bottom[next]);
+  }
+  path(parent, walls, 'fo');
+  path(parent, edges);
+  path(parent, HL.poly(top), 'lo');
+  return trace(parent, top.concat([top[0]]), 'check');
+}
+function policyStack(svg, P, front) {
+  const group = HL.mk('g', { 'data-part': 'policy-stack' }, svg);
+  const base = HL.solid(group);
+  const [footprint, inset] = HL.rings(-25, -20, 25, 20, 4, 1.2);
+  HL.put(base, HL.prism(P, front, footprint, inset, 0, 2.6));
+  const cards = [];
+  for (let index = 0; index < 3; index++) {
+    const body = HL.solid(group);
+    body.g.setAttribute('data-policy', index + 1);
+    const [outline, inner] = HL.rings(-22, -17, 22, 17, 3, 1.2);
+    HL.put(body, HL.prism(P, front, outline, inner, 0, 2.2));
+    path(body.g, HL.seg(P(-13, -9, 2.3), P(12, -9, 2.3)) + HL.seg(P(-13, -5, 2.3), P(5, -5, 2.3)));
+    cards.push({ body, mark: policyCheck(body.g, P), liftVector: liftDirection(P) });
+  }
   return {
-    body,
-    mark,
-    labelBottom: Math.max(...silhouette.map(screenY)),
-    inlet: P(-17.8, 0, 2.6),
-    outlet: P(17.8, 0, 2.6),
+    group,
+    cards,
+    labelBottom: Math.max(...HL.ringAt(P, footprint, 0).map(screenY)),
+    inlet: P(-24.8, 0, 1.3),
+    outlet: P(24.8, 0, 1.3),
   };
 }
 function transaction(svg, P, front) {
+  const base = HL.solid(svg);
+  HL.put(base, HL.prism(P, front, ...HL.rings(-31, -23, 31, 23, 5, 1.2), 0, 2.6));
   const body = HL.solid(svg);
+  body.g.setAttribute('data-part', 'transaction-tile');
   body.sil.style.strokeWidth = '1px';
   const [outline, inset] = HL.rings(-29, -21, 29, 21, 4, 0.8);
   HL.put(body, HL.prism(P, front, outline, inset, 0, 3.5));
@@ -291,6 +328,7 @@ function transaction(svg, P, front) {
   }
   return {
     body,
+    liftVector: liftDirection(P),
     mark: trace(body.g, signature, 'signature'),
     labelBottom: Math.max(...HL.ringAt(P, outline, 0).map(screenY)),
   };
@@ -298,7 +336,12 @@ function transaction(svg, P, front) {
 function select(state, active) {
   if (active === state.active) return;
   state.active = active;
-  HL.tset(state.motion, Number(active), performance.now(), 0);
+  const now = performance.now();
+  const from = sequencePosition(state.motion, now);
+  const to = Number(active);
+  const clock = HL.tween(0, DURATION * Math.abs(to - from));
+  HL.tset(clock, 1, now, 0);
+  state.motion = { from, to, clock };
   state.loop.wake();
 }
 function keyboard(state, event) {
@@ -306,15 +349,35 @@ function keyboard(state, event) {
   event.preventDefault();
   select(state, !state.active);
 }
+function sequencePosition(motion, now) {
+  return HL.lerp(motion.from, motion.to, CLOCK_TIME(HL.tval(motion.clock, now)));
+}
+function phase(motion, from, to) {
+  return HL.clamp((motion - from) / (to - from), 0, 1);
+}
 function tick(state, _dt, now) {
-  const motion = HL.tval(state.motion, now);
-  const input = HL.clamp(motion / INPUT_END, 0, 1);
-  const policy = HL.clamp((motion - INPUT_END) / (POLICY_END - INPUT_END), 0, 1);
-  const output = HL.clamp((motion - POLICY_END) / (OUTPUT_END - POLICY_END), 0, 1);
-  const signed = HL.clamp((motion - OUTPUT_END) / (1 - OUTPUT_END), 0, 1);
+  const motion = sequencePosition(state.motion, now);
+  const input = TILE_EASE(phase(motion, 0.14, 0.42));
+  const policy = phase(motion, 0.42, 0.68);
+  const output = TILE_EASE(phase(motion, 0.68, 0.84));
+  const signed = phase(motion, 0.84, 1);
   const pose = [motion, state.lag].join();
   if (pose !== state.pose) {
     state.pose = pose;
+    for (let index = 0; index < state.tiles.length; index++) {
+      const tile = state.tiles[index];
+      liftTile(tile, 2.6 + 8 * TILE_EASE(phase(motion, index * 0.03, 0.14 + index * 0.03)));
+      tile.body.sil.classList.toggle('hi', index === 0 && input === 0);
+    }
+    const spread = TILE_EASE(phase(motion, 0.26, 0.42));
+    for (let index = 0; index < state.gate.cards.length; index++) {
+      const card = state.gate.cards[index];
+      const checked = HL.clamp(policy * 3 - index, 0, 1);
+      liftTile(card, 4 + index * (4 + 10 * spread));
+      setTrace(card.mark, SIGNATURE_EASE(checked));
+      card.mark.el.setAttribute('class', checked > 0 && checked < 1 ? 'hi nf' : 'sil nf');
+    }
+    liftTile(state.result, 2.6 + 6 * TILE_EASE(phase(motion, 0.72, 0.84)));
     const progress = [
       HL.clamp(input / (1 - state.lag), 0, 1),
       HL.clamp((input - state.lag) / (1 - state.lag), 0, 1),
@@ -338,20 +401,18 @@ function tick(state, _dt, now) {
           : 'hidden',
       );
     }
-    setTrace(state.gate.mark, policy);
     setTrace(state.result.mark, SIGNATURE_EASE(signed));
-    state.gate.mark.el.setAttribute('class', policy > 0 && output === 0 ? 'hi nf' : 'sil nf');
   }
   state.read.textContent = 'rest';
   if (state.active) {
     if (input < 1) state.read.textContent = 'two shares';
-    else if (policy < 1) state.read.textContent = 'policy check';
+    else if (policy < 1) state.read.textContent = 'policy checks';
     else if (output < 1) state.read.textContent = 'authorized';
     else if (signed < 1) state.read.textContent = 'signing';
     else state.read.textContent = 'signed';
   }
   state.stage.setAttribute('aria-pressed', String(state.active));
-  return !HL.tdone(state.motion, now);
+  return !HL.tdone(state.motion.clock, now);
 }
 function set(state, lag) {
   state.lag = lag;
@@ -377,10 +438,10 @@ function mount({ stage, svg, read }, lag) {
   const preview = stage.closest('main');
   if (preview && !preview.style.maxWidth) preview.style.maxWidth = '896px';
   const C = HL.Cam(45, 0.5, 1.45);
-  HL.fit(C, [[0, 0, 0]], 185, 82);
+  HL.fit(C, [[0, 0, 0]], 185, 88);
   const P = HL.proj(C),
     front = HL.facing(C);
-  // The keys share one x position; the shield and result follow their centre axis.
+  // The source tiles share one x position; policies and result follow their centre axis.
   const sourceCenters = [
     [0, -50],
     [0, 50],
@@ -389,14 +450,14 @@ function mount({ stage, svg, read }, lag) {
   for (const center of sourceCenters) sources.push(local.bind(null, P, center));
   const gateP = local.bind(null, P, [110, 0]);
   const resultP = local.bind(null, P, [220, 0]);
-  const gate = shield(svg, gateP);
+  const gate = policyStack(svg, gateP, front);
   const wireBase = HL.mk('g', {}, svg);
   const paths = [];
   const inlet = HL.unproj(C, gate.inlet[0], gate.inlet[1], 0);
   const junction = [inlet[0] - 24, inlet[1]];
   const merge = P(junction[0] + 12, junction[1], 0);
   for (const source of sources) {
-    const start = source(33.05, 0, 1.3);
+    const start = source(35.05, 0, 1.3);
     const from = HL.unproj(C, start[0], start[1], 0);
     const side = Math.sign(from[1] - junction[1]);
     const entry = P(junction[0], junction[1] + side * 12, 0);
@@ -410,7 +471,7 @@ function mount({ stage, svg, read }, lag) {
     points.push(...bend.slice(1), gate.inlet);
     paths.push(points);
   }
-  paths.push([gate.outlet, resultP(-28.8, 0, 2.6)]);
+  paths.push([gate.outlet, resultP(-30.8, 0, 1.3)]);
   const routes = [];
   let wiring = '';
   for (const points of paths) {
@@ -438,8 +499,10 @@ function mount({ stage, svg, read }, lag) {
     routes[routes.length - 1].trail.el.setAttribute('class', 'lo nf');
   }
   path(wireBase, wiring);
+  const tiles = [];
   for (let index = 0; index < sources.length; index++) {
     const source = slab(svg, sources[index], front);
+    tiles.push(source);
     const center = sources[index](0, 0, 0);
     label(
       svg,
@@ -447,29 +510,30 @@ function mount({ stage, svg, read }, lag) {
       index === 0 ? 'User’s device' : 'Your infrastructure',
     );
   }
-  // Keep shared wire segments beneath every signal and the shield above the join.
+  // Keep shared wires beneath every signal and the policy stack above the join.
   svg.append(wireBase);
   for (const route of routes) svg.append(route.group);
   for (const source of sources) port(svg, source, 0);
-  svg.append(gate.body.g);
+  svg.append(gate.group);
   const result = transaction(svg, resultP, front);
   const gateCenter = gateP(0, 0, 0);
   const resultCenter = resultP(0, 0, 0);
-  label(svg, [gateCenter[0], gate.labelBottom + 15], 'Policy check');
+  label(svg, [gateCenter[0], gate.labelBottom + 15], 'Policy checks');
   const transactionLabel = label(
     svg,
     [resultCenter[0], result.labelBottom + 15],
     'Signed transaction',
   );
-  label(svg, [280, 253], '2-of-2 threshold · neither share signs alone');
+  label(svg, [280, 260], '2-of-2 threshold · neither share signs alone');
   const state = {
     stage,
     read,
     routes,
+    tiles,
     gate,
     result,
     lag,
-    motion: HL.tween(0, 1800),
+    motion: { from: 0, to: 0, clock: HL.tween(1, DURATION) },
     active: false,
     pose: '',
     loop: null,
@@ -502,7 +566,7 @@ function mount({ stage, svg, read }, lag) {
 hairline({
   name: 'threshold-signing',
   means:
-    'Two separate key shares pass a policy check, then authorize one signed transaction. Hover or press Enter to animate.',
+    'Two key shares rise from their bases. Three policies approve one signed transaction. Hover or press Enter to animate.',
   rules: [1, 3, 4, 6, 7, 8, 9],
   range: [0, 0.15, 0.3],
   mount,

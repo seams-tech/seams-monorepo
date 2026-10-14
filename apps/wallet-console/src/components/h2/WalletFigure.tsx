@@ -29,7 +29,7 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #stage[data-hairline="infrastructure-array"] svg { transform: translateY(5%) scale(1.22); }
 #stage[data-hairline="threshold-signing"] svg { transform: translateX(2.5%) scale(1.44); }
 @media (max-width: 480px) {
-  #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%) scale(1.05); }
+  #stage[data-hairline="threshold-signing"] svg { transform: translateX(1.5%); }
 }
 [data-hairline="threshold-signing"] svg text { font-size: 8.2px; letter-spacing: 0.25px; }
 #stage:focus-visible { outline: 1px solid #777169; outline-offset: -3px; border-radius: 8px; }

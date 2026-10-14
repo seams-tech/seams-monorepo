@@ -15,9 +15,9 @@ type Preview = {
 
 const previews: readonly Preview[] = [
   { id: 'create', label: 'Authentication', x: 0, y: 0 },
-  { id: 'transaction-modal', label: 'Transaction modal', x: 420, y: 100 },
-  { id: 'prediction-market', label: 'Prediction market', x: 840, y: -70 },
-  { id: 'profile', label: 'Account', x: 1260, y: 60 },
+  { id: 'transaction-modal', label: 'Transactions', x: 420, y: 100 },
+  { id: 'prediction-market', label: 'Custom Components', x: 840, y: -70 },
+  { id: 'profile', label: 'Account management', x: 1260, y: 60 },
 ];
 
 type BackgroundPlacement = { kind: BackgroundPreviewKind; x: number; y: number };

@@ -5,7 +5,7 @@ import { chromium, expect } from '@playwright/test';
 const origin = process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet';
 const artifacts = '.artifacts/wallet-component-showcase';
 const errors = [];
-const components = ['Authentication', 'Transaction modal', 'Prediction market', 'Account'];
+const components = ['Authentication', 'Transactions', 'Custom Components', 'Account management'];
 
 function recordError(error) {
   errors.push(error.message);
@@ -97,21 +97,21 @@ async function expectSelection(gallery, name) {
         gallery.getByRole('button', { name: 'Create with passkey', exact: true }),
       ).toBeVisible();
       break;
-    case 'Transaction modal':
+    case 'Transactions':
       await expect(
         gallery
           .frameLocator('iframe[title="Transaction modal demo"]')
           .getByRole('button', { name: 'Confirm with passkey' }),
       ).toBeVisible();
       break;
-    case 'Prediction market':
+    case 'Custom Components':
       await expect(
         gallery
           .frameLocator('iframe[title="Prediction market custom component demo"]')
           .getByRole('button', { name: 'Buy Yes', exact: true }),
       ).toBeVisible();
       break;
-    case 'Account':
+    case 'Account management':
       await expect(gallery.getByRole('heading', { name: 'At home, everywhere.' })).toBeVisible();
       break;
     default:
@@ -139,7 +139,7 @@ try {
   await capture(gallery, 'desktop-authentication');
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Transaction modal');
+  await expectSelection(gallery, 'Transactions');
   const modal = gallery.frameLocator('iframe[title="Transaction modal demo"]');
   await modal.getByRole('button', { name: 'Confirm with passkey' }).click();
   for (const status of [
@@ -153,7 +153,7 @@ try {
   await capture(gallery, 'desktop-transaction-receipt');
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Prediction market');
+  await expectSelection(gallery, 'Custom Components');
   const market = gallery.frameLocator('iframe[title="Prediction market custom component demo"]');
   await market.getByRole('button', { name: 'Buy Yes', exact: true }).click();
   await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
@@ -167,20 +167,23 @@ try {
   });
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Account');
+  await expectSelection(gallery, 'Account management');
   await capture(gallery, 'desktop-account');
   await gallery.getByRole('button', { name: 'Next component' }).click();
   await expectSelection(gallery, 'Authentication');
   await gallery.getByRole('button', { name: 'Previous component' }).click();
-  await expectSelection(gallery, 'Account');
+  await expectSelection(gallery, 'Account management');
 
   // Either selector changes the same carousel, including native arrow-key navigation.
   await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
   await selector.getByRole('radio', { name: 'Authentication', exact: true }).focus();
   await page.keyboard.press('ArrowRight');
-  await expectSelection(gallery, 'Transaction modal');
-  await pagination.getByRole('radio', { name: 'Account', exact: true }).locator('..').click();
-  await expectSelection(gallery, 'Account');
+  await expectSelection(gallery, 'Transactions');
+  await pagination
+    .getByRole('radio', { name: 'Account management', exact: true })
+    .locator('..')
+    .click();
+  await expectSelection(gallery, 'Account management');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const checked = [];

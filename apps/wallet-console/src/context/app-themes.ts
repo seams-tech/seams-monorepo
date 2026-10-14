@@ -11,113 +11,6 @@ const CONTAINED_SHADOW_LIGHT =
 const CONTAINED_SHADOW_DARK =
   '0 2px 6px -2px rgba(0, 0, 0, 0.5), 0 14px 30px -16px rgba(0, 0, 0, 0.7)';
 
-export const ROSE_PINE_DARK_COLORS: Record<string, string> = {
-  primary: '#c4a7e7',
-  primaryHover: '#9ccfd8',
-  secondary: '#31748f',
-  secondaryHover: '#ebbcba',
-  accent: '#f6c177',
-
-  textPrimary: '#e0def4',
-  textSecondary: '#908caa',
-  textMuted: '#6e6a86',
-  textButton: '#191724',
-
-  buttonBackground: '#c4a7e7',
-  buttonHoverBackground: '#9ccfd8',
-  secondaryButtonBackground: '#ebbcba',
-  secondaryButtonHoverBackground: '#f6c177',
-  secondaryButtonBorder: 'transparent',
-  secondaryButtonText: '#191724',
-
-  colorBackground: '#191724',
-  surface: '#1f1d2e',
-  surface2: '#26233a',
-  txDetailsBackground: '#26233a',
-  surface3: '#312f44',
-  surface4: '#403d52',
-
-  hover: '#26233a',
-  active: '#403d52',
-  focus: '#9ccfd8',
-
-  success: '#31748f',
-  warning: '#f6c177',
-  error: '#eb6f92',
-  info: '#9ccfd8',
-
-  borderPrimary: '#524f67',
-  borderSecondary: '#403d52',
-  borderHover: '#6e6a86',
-
-  gradientPrimary: 'linear-gradient(120deg, #1f1d2e 0%, #c4a7e7 100%)',
-  gradientSecondary: 'linear-gradient(120deg, #191724 0%, #31748f 100%)',
-  gradientTertiary: 'linear-gradient(120deg, #191724 0%, #26233a 100%)',
-
-  highlightPrimary: '#c4a7e7',
-  // Dark-mode tx row highlight: use a deeper Rose Pine purple shade.
-  highlightRow: '#403d52',
-  highlightHalo: '#e2d1f5',
-  highlightReceiver: '#9ccfd8',
-  highlightMethodName: '#c4a7e7',
-  highlightAmount: '#f6c177',
-};
-
-export const ROSE_PINE_LIGHT_COLORS: Record<string, string> = {
-  primary: '#907aa9',
-  primaryHover: '#56949f',
-  secondary: '#286983',
-  secondaryHover: '#d7827e',
-  accent: '#ea9d34',
-
-  textPrimary: '#575279',
-  textSecondary: '#797593',
-  textMuted: '#9893a5',
-  textButton: '#fffaf3',
-
-  buttonBackground: '#907aa9',
-  buttonHoverBackground: '#56949f',
-  secondaryButtonBackground: '#ebbcba',
-  secondaryButtonHoverBackground: '#e6a7a4',
-  secondaryButtonBorder: 'transparent',
-  secondaryButtonText: '#575279',
-
-  colorBackground: '#faf4ed',
-  surface: '#fffaf3',
-  // lighter than Rose Pine's stock overlay so the seg track / readout
-  // surfaces stay airy on the cream card
-  surface2: '#f7f0e6',
-  txDetailsBackground: '#fffaf3',
-  surface3: '#eee6dc',
-  surface4: '#e5dcd2',
-
-  hover: '#f2e9de',
-  active: '#dfdad9',
-  focus: '#56949f',
-
-  success: '#286983',
-  warning: '#ea9d34',
-  error: '#b4637a',
-  info: '#56949f',
-
-  borderPrimary: '#cecacd',
-  borderSecondary: '#dfdad9',
-  borderHover: '#9893a5',
-
-  gradientPrimary: 'linear-gradient(120deg, #fffaf3 0%, #f2e9de 100%)',
-  gradientSecondary: 'linear-gradient(120deg, #faf4ed 0%, #907aa9 100%)',
-  gradientTertiary: 'linear-gradient(120deg, #faf4ed 0%, #fffaf3 100%)',
-
-  highlightPrimary: '#907aa9',
-  // Light-mode tx row highlight: use a soft Rose Pine purple tint.
-  highlightRow: 'rgba(144, 122, 169, 0.24)',
-  // Lighter Rose Pine iris for halo ring in light mode.
-  highlightHalo: '#d7b9ea',
-  highlightReceiver: '#56949f',
-  highlightMethodName: '#907aa9',
-  highlightAmount: '#ea9d34',
-};
-
 // ============================================================================
 // Live-demo theme presets (fed to the hosted auth menu via the SDK Theme provider)
 // ============================================================================
@@ -243,55 +136,6 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
   highlightAmount: '#f4f5f6',
 };
 
-// "Greenhouse" — the Ironclad palette (ironcladapp.com, from their own color
-// presets): navy ink on layered creams with the Ironclad green pair
-// (#308970 brand / #00ca88 logo) doing the accent work.
-const GREENHOUSE_LIGHT_COLORS: Record<string, string> = {
-  primary: '#308970',
-  primaryHover: '#27735e',
-  secondary: '#1c212b',
-  secondaryHover: '#308970',
-  accent: '#00ca88',
-
-  textPrimary: '#1c212b',
-  textSecondary: '#555555',
-  textMuted: '#adb9c4',
-  textButton: '#ffffff',
-
-  buttonBackground: '#308970',
-  secondaryButtonBackground: '#308970',
-  secondaryButtonHoverBackground: '#27735e',
-  secondaryButtonBorder: 'transparent',
-  secondaryButtonText: '#ffffff',
-  buttonHoverBackground: '#27735e',
-
-  colorBackground: '#ffffff',
-  surface: '#f5f5f3',
-  surface2: '#f2f1ee',
-  surface3: '#e9e5df',
-  surface4: '#dcd6cd',
-
-  hover: '#f2f1ee',
-  active: '#e9e5df',
-  focus: '#308970',
-
-  success: '#308970',
-  warning: '#b45309',
-  error: '#cf2e2e',
-  info: '#3860be',
-
-  borderPrimary: '#e3ded6',
-  borderSecondary: '#edeae5',
-  borderHover: '#c9c2b6',
-
-  highlightPrimary: '#00ca88',
-  highlightRow: 'rgba(0, 202, 136, 0.12)',
-  highlightHalo: '#7bdcb5',
-  highlightReceiver: '#308970',
-  highlightMethodName: '#1c212b',
-  highlightAmount: '#308970',
-};
-
 // "Pastel Dark" — the Pastel Rainbow palette on charcoal (Outlander-dashboard
 // style): plum-charcoal layers, mint carrying the CTAs with dark ink, and the
 // remaining pastels as status/highlight tones (pastels are light, so they
@@ -404,14 +248,7 @@ const PASTEL_LIGHT_COLORS: Record<string, string> = {
   highlightAmount: '#d4547a',
 };
 
-export type DemoThemeId =
-  | 'paper'
-  | 'carbon'
-  | 'rose-pine-dark'
-  | 'rose-pine-light'
-  | 'greenhouse'
-  | 'pastel'
-  | 'pastel-dark';
+export type DemoThemeId = 'paper' | 'carbon' | 'pastel' | 'pastel-dark';
 
 export interface DemoThemePreset {
   id: DemoThemeId;
@@ -441,30 +278,6 @@ export const DEMO_THEME_PRESETS: DemoThemePreset[] = [
     mode: 'dark',
     swatch: '#12171a',
     colors: CARBON_DARK_COLORS,
-    shape: 'square',
-  },
-  {
-    id: 'rose-pine-dark',
-    label: 'Rose Pine Dark',
-    mode: 'dark',
-    swatch: '#c4a7e7',
-    colors: ROSE_PINE_DARK_COLORS,
-    shape: 'rounded',
-  },
-  {
-    id: 'rose-pine-light',
-    label: 'Rose Pine Light',
-    mode: 'light',
-    swatch: '#faf4ed',
-    colors: ROSE_PINE_LIGHT_COLORS,
-    shape: 'rounded',
-  },
-  {
-    id: 'greenhouse',
-    label: 'Greenhouse',
-    mode: 'light',
-    swatch: '#308970',
-    colors: GREENHOUSE_LIGHT_COLORS,
     shape: 'square',
   },
   {

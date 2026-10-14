@@ -14,6 +14,9 @@ import type { TxDisplayModel } from '@wallet-ui/core/signingEngine/interfaces/di
 import { paperIframeAppearance } from '@/context/app-themes';
 import { playReceiptLifecycle } from './receiptLifecycle';
 import { sendExplorerLinksHome } from './sampleExplorer';
+import { configureModalBackdrop } from './modalBackdrop';
+
+configureModalBackdrop();
 
 /* The SDK's transaction confirmer and receipt on sample data. Confirming plays
    a simulated signing and broadcast; nothing is signed or sent. */

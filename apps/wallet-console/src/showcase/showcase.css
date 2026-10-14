@@ -9,6 +9,14 @@ body {
   overscroll-behavior: auto;
 }
 
+/* Keep native modality, dismissal, and focus handling while omitting its tint.
+   The animation override also prevents the host's fade from restoring the tint. */
+html[data-modal-backdrop='none'] dialog.seams-wallet-overlay-dialog::backdrop,
+html[data-modal-backdrop='none'] dialog.seams-confirmation-modal::backdrop {
+  background: transparent !important;
+  animation: none !important;
+}
+
 /* One centred column at the confirmer's width. Its long, unbroken hashes
    would otherwise widen the surface's wrapper past the card and push the
    card to the left edge. */

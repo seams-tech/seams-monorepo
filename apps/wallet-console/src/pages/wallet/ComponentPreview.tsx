@@ -19,8 +19,9 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { PreviewId } from './ComponentShowcase';
+import type { ModalBackdrop } from '@/showcase/modalBackdrop';
 
-type PreviewProps = { id: PreviewId; active: boolean };
+type PreviewProps = { id: PreviewId; active: boolean; backdrop?: ModalBackdrop };
 
 type PreviewAction =
   | 'create'
@@ -623,7 +624,11 @@ function assertNever(value: never): never {
   throw new Error(`Unknown component preview: ${String(value)}`);
 }
 
-export function ComponentPreview({ id, active }: PreviewProps): React.JSX.Element {
+export function ComponentPreview({
+  id,
+  active,
+  backdrop = 'dimmed',
+}: PreviewProps): React.JSX.Element {
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
   if (active && (id === 'transaction-modal' || id === 'prediction-market')) {
     const route = id === 'transaction-modal' ? 'transaction' : 'checkout';
@@ -636,7 +641,7 @@ export function ComponentPreview({ id, active }: PreviewProps): React.JSX.Elemen
         className="showcase-preview__embed"
         data-preview={id}
         title={title}
-        src={`${import.meta.env.BASE_URL}showcase/${route}/`}
+        src={`${import.meta.env.BASE_URL}showcase/${route}/?backdrop=${backdrop}`}
       />
     );
   }

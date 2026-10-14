@@ -7,6 +7,9 @@ import { createRoot } from 'react-dom/client';
 import type { TransactionReviewControls } from '@seams/wallet/react';
 import { CheckoutSession } from './checkoutSession';
 import { market, sides, type Side } from './checkoutMarket';
+import { configureModalBackdrop } from './modalBackdrop';
+
+configureModalBackdrop();
 
 /* A sample prediction-market checkout: the host app's own review panel hands
    off to the SDK's wallet approval in one resizing modal. The market stays

@@ -23,6 +23,10 @@ Checkout opens the original prediction-market review. Both retain the signing,
 broadcast, confirmation, and receipt lifecycle. The canvas is flush with the page dividers and uses monochrome
 controls, with round previous/next buttons and a dot selector.
 
+Embedded previews accept `backdrop="dimmed" | "none"`; standalone demo pages default
+to dimmed. The canvas passes `none` so the native dialog's tint does not end at the
+iframe boundary. This changes only the backdrop paint, preserving modality and dismissal.
+
 With the local frontend running, execute from the repository root:
 
 ```sh

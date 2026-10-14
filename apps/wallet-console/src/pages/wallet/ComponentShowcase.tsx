@@ -171,7 +171,12 @@ function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
       aria-hidden={!active}
       ref={setPreviewInert.bind(null, active)}
     >
-      <ComponentPreview key={`${preview.id}:${active}`} id={preview.id} active={active} />
+      <ComponentPreview
+        key={`${preview.id}:${active}`}
+        id={preview.id}
+        active={active}
+        backdrop="none"
+      />
     </div>
   );
 }

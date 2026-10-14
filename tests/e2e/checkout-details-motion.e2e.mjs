@@ -13,6 +13,20 @@ function recordError(error) {
   errors.push(error.message);
 }
 
+function backdropAppearance(dialog) {
+  const style = getComputedStyle(dialog, '::backdrop');
+  return {
+    transparent:
+      style.backgroundColor === 'rgba(0, 0, 0, 0)' || style.backgroundColor === 'transparent',
+    animation: style.animationName,
+    modal: dialog.matches(':modal'),
+  };
+}
+
+async function readBackdrop(page) {
+  return page.locator('dialog[open]').evaluate(backdropAppearance);
+}
+
 function startProbe() {
   window.transactionDetailsMotion.start();
 }
@@ -97,6 +111,9 @@ try {
     path: fileURLToPath(new URL('../helpers/transactionDetailsMotionProbe.mjs', import.meta.url)),
   });
   await page.getByRole('button', { name: 'Buy Yes', exact: true }).click();
+  await expect
+    .poll(readBackdrop.bind(null, page))
+    .toMatchObject({ transparent: false, modal: true });
   await page.getByRole('button', { name: 'Confirm in wallet' }).click();
   const wallet = page.frameLocator('iframe.seams-wallet-overlay-iframe');
   await expect(wallet.locator('.seams-confirmation-modal--hosted')).toBeFocused();
@@ -143,6 +160,32 @@ try {
     timeout: 10000,
   });
   await page.screenshot({ path: `${artifacts}/receipt.png` });
+
+  // Canvas previews omit only the tint; review, approval, and dismissal stay native.
+  const withoutBackdrop = new URL(url);
+  withoutBackdrop.searchParams.set('backdrop', 'none');
+  await page.goto(withoutBackdrop.href);
+  await page.getByRole('button', { name: 'Buy Yes', exact: true }).click();
+  await expect
+    .poll(readBackdrop.bind(null, page))
+    .toEqual({ transparent: true, animation: 'none', modal: true });
+  await page.screenshot({ path: `${artifacts}/review-without-backdrop.png` });
+  await page.getByRole('button', { name: 'Confirm in wallet' }).click();
+  await expect(wallet.locator('.seams-confirmation-modal--hosted')).toBeFocused();
+  await expect
+    .poll(readBackdrop.bind(null, page))
+    .toEqual({ transparent: true, animation: 'none', modal: true });
+  await page.screenshot({ path: `${artifacts}/approval-without-backdrop.png` });
+  await wallet.getByRole('button', { name: 'Confirm with passkey' }).click();
+  await expect(wallet.getByRole('status').filter({ hasText: 'Transaction complete' })).toBeVisible({
+    timeout: 10000,
+  });
+  await wallet.getByRole('button', { name: 'Open', exact: true }).click();
+  await expect
+    .poll(readBackdrop.bind(null, page))
+    .toEqual({ transparent: true, animation: 'none', modal: true });
+  await wallet.getByRole('button', { name: 'Done', exact: true }).press('Escape');
+  await expect(page.getByRole('status')).toContainText('Purchase confirmed');
   assert.deepEqual(errors, []);
   await writeFile(
     `${artifacts}/result.json`,
@@ -158,6 +201,7 @@ try {
           'resize while open',
           'reduced motion',
           'approval and receipt',
+          'optional backdrop across review, approval, and receipt',
         ],
         errors,
       },

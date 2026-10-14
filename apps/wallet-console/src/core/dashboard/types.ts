@@ -4,7 +4,6 @@ export type SidebarGroupKey = 'overview' | 'administration' | 'billing' | 'platf
 
 export type DashboardRoute =
   | '/dashboard/account-settings'
-  | '/dashboard/services'
   | '/dashboard/onboarding'
   | '/dashboard/overview'
   | '/dashboard/observability'
@@ -16,7 +15,7 @@ export type DashboardRoute =
   | '/dashboard/api-keys'
   | '/dashboard/webhooks';
 
-export type DashboardProductId = 'embedded-wallets' | 'ecommerce-agents' | 'api';
+export type DashboardProductId = 'embedded-wallets';
 
 export type DashboardProduct = {
   id: DashboardProductId;

@@ -8,7 +8,6 @@ import {
   changeProjectService,
   getServiceStatus,
   isEnableableService,
-  type EnableableService,
   type ServiceOperation,
   type ServiceStatus,
 } from '@core/dashboard/routes/services/consoleServicesApi';
@@ -16,7 +15,7 @@ import {
 type SetupState =
   | { kind: 'loading' }
   | { kind: 'ready'; service: ServiceStatus }
-  | { kind: 'enabling'; operation: ServiceOperation }
+  | { kind: 'enabling' }
   | { kind: 'failed'; message: string };
 
 function operationStorageKey(organizationId: string, projectId: string): string {
@@ -68,89 +67,110 @@ function writeStoredOperation(key: string, operation: ServiceOperation): void {
   }
 }
 
-async function loadWalletService(
-  organizationId: string,
-  projectId: string,
-  key: string,
-  setState: React.Dispatch<React.SetStateAction<SetupState>>,
-): Promise<void> {
-  setState({ kind: 'loading' });
-  try {
-    const service = await getServiceStatus(organizationId, projectId, 'wallet');
-    retainPendingOperation(key, service);
-    setState({ kind: 'ready', service });
-    if (service.kind === 'active') {
-      window.dispatchEvent(new Event(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT));
+interface WalletProjectSetupProps {
+  readonly organizationId: string;
+  readonly projectId: string;
+  readonly canEnable: boolean;
+  readonly children: React.ReactNode;
+}
+
+interface WalletSetupOptions {
+  readonly organizationId: string;
+  readonly projectId: string;
+  readonly canEnable: boolean;
+  readonly setState: React.Dispatch<React.SetStateAction<SetupState>>;
+}
+
+// Each mounted project owns its requests and polling. A previous project cannot
+// update the next project's gate after navigation or a session change.
+class WalletSetup {
+  private readonly key: string;
+  private readonly cancellation = new AbortController();
+  private timer: number | null = null;
+  private polls = 0;
+
+  constructor(private readonly options: WalletSetupOptions) {
+    this.key = operationStorageKey(options.organizationId, options.projectId);
+  }
+
+  stop(): void {
+    this.cancellation.abort();
+    if (this.timer !== null) window.clearTimeout(this.timer);
+  }
+
+  async load(resume: boolean): Promise<void> {
+    const { organizationId, projectId, canEnable, setState } = this.options;
+    try {
+      let service = await getServiceStatus(organizationId, projectId, 'wallet');
+      if (this.cancellation.signal.aborted) return;
+      retainPendingOperation(this.key, service);
+      if (resume && canEnable && service.kind !== 'disabled' && isEnableableService(service)) {
+        const operation = readStoredOperation(this.key) ?? {
+          operationId: crypto.randomUUID(),
+          desiredRevision: service.kind === 'absent' ? 1 : service.desiredRevision + 1,
+        };
+        writeStoredOperation(this.key, operation);
+        setState({ kind: 'enabling' });
+        service = await changeProjectService(
+          organizationId,
+          projectId,
+          'wallet',
+          'enable',
+          operation,
+        );
+        if (this.cancellation.signal.aborted) return;
+        retainPendingOperation(this.key, service);
+      }
+      if (service.kind === 'provisioning') {
+        this.polls += 1;
+        if (this.polls >= 60) {
+          throw new Error(
+            'Wallet setup is taking longer than expected. Retry to check its progress.',
+          );
+        }
+        setState({ kind: 'enabling' });
+        this.timer = window.setTimeout(this.load.bind(this, false), 1000);
+        return;
+      }
+      setState({ kind: 'ready', service });
+      if (service.kind === 'active') {
+        window.dispatchEvent(new Event(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT));
+      }
+    } catch (error: unknown) {
+      if (this.cancellation.signal.aborted) return;
+      setState({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : 'Wallet setup could not be completed.',
+      });
     }
-  } catch (error: unknown) {
-    setState({
-      kind: 'failed',
-      message: error instanceof Error ? error.message : 'Wallet setup could not be loaded.',
-    });
   }
 }
 
-function beginWalletServiceLoad(
-  organizationId: string,
-  projectId: string,
-  key: string,
-  setState: React.Dispatch<React.SetStateAction<SetupState>>,
-): void {
-  if (!organizationId || !projectId) return;
-  void loadWalletService(organizationId, projectId, key, setState);
+function startWalletSetup(options: WalletSetupOptions, _attempt: number): () => void {
+  const setup = new WalletSetup(options);
+  options.setState({ kind: 'loading' });
+  void setup.load(true);
+  return setup.stop.bind(setup);
 }
 
-async function submitWalletEnable(
-  organizationId: string,
-  projectId: string,
-  key: string,
-  service: EnableableService,
-  setState: React.Dispatch<React.SetStateAction<SetupState>>,
-): Promise<void> {
-  try {
-    const operation = readStoredOperation(key) ?? {
-      operationId: crypto.randomUUID(),
-      desiredRevision: service.kind === 'absent' ? 1 : service.desiredRevision + 1,
-    };
-    writeStoredOperation(key, operation);
-    setState({ kind: 'enabling', operation });
-    const nextService = await changeProjectService(
-      organizationId,
-      projectId,
-      'wallet',
-      'enable',
-      operation,
-    );
-    retainPendingOperation(key, nextService);
-    setState({ kind: 'ready', service: nextService });
-    if (nextService.kind === 'active') {
-      window.dispatchEvent(new Event(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT));
-    }
-  } catch (error: unknown) {
-    setState({
-      kind: 'failed',
-      message:
-        error instanceof Error
-          ? error.message
-          : 'Wallet activation could not be confirmed. Retry to resume.',
-    });
-  }
+function nextAttempt(attempt: number): number {
+  return attempt + 1;
 }
 
 function setupDescription(service: ServiceStatus): string {
   switch (service.kind) {
     case 'absent':
-      return 'Enable Wallet for this project to create its environments and configure wallet operations.';
+      return 'An organization owner or administrator with project management access must open this project to finish Wallet setup.';
     case 'disabled':
-      return 'Wallet is disabled for this project. Enable it to resume wallet operations.';
-    case 'provisioning':
-      return 'Wallet setup is in progress. Check its status or retry the same setup operation.';
+      return 'Wallet access is disabled for this project. Contact your organization administrator.';
     case 'failed':
-      return 'Wallet setup failed. Retry setup to try again.';
+      return 'Wallet setup failed. Retry to check its progress.';
     case 'archived':
-      return 'This Wallet instance is archived. Create a project to enable a new Wallet instance.';
+      return 'This Wallet instance is archived. Select another project to continue.';
     case 'active':
-      return 'Wallet is active. Select a Wallet environment to continue.';
+      return 'Select a Wallet environment to continue.';
+    case 'provisioning':
+      return 'Wallet setup is in progress.';
     default:
       return assertNever(service);
   }
@@ -160,81 +180,70 @@ function assertNever(value: never): never {
   throw new Error(`Unknown Wallet setup state: ${String(value)}`);
 }
 
-export function WalletServiceGate({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const { claims } = useDashboardConsoleSession();
+function WalletProjectSetup({
+  organizationId,
+  projectId,
+  canEnable,
+  children,
+}: WalletProjectSetupProps): React.JSX.Element {
   const selected = useDashboardSelectedContext();
-  const projectId = selected.project;
-  const organizationId = claims?.orgId ?? '';
-  const key = operationStorageKey(organizationId, projectId);
   const [state, setState] = React.useState<SetupState>({ kind: 'loading' });
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- The bound callback receives every dependency listed here.
-  React.useEffect(beginWalletServiceLoad.bind(null, organizationId, projectId, key, setState), [
-    organizationId,
-    projectId,
-    key,
-  ]);
-  const canEnable =
-    claims?.role === 'OWNER' ||
-    (claims?.role === 'ADMIN' && claims.adminPermissions.includes('projects.manage'));
+  const [attempt, retry] = React.useReducer(nextAttempt, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- All bound inputs are dependencies; setState is stable.
+  React.useEffect(
+    startWalletSetup.bind(null, { organizationId, projectId, canEnable, setState }, attempt),
+    [organizationId, projectId, canEnable, attempt],
+  );
   switch (state.kind) {
     case 'loading':
-      return <DashboardLoadingState title="Checking Wallet setup..." />;
     case 'enabling':
-      return <DashboardLoadingState title="Enabling Wallet..." />;
+      return <DashboardLoadingState title="Preparing Wallet..." />;
     case 'failed':
       return (
         <section className="dashboard-view__section">
           <h2>Wallet setup unavailable</h2>
           <p role="alert">{state.message}</p>
-          <button
-            type="button"
-            className="dashboard-pagination-button"
-            onClick={beginWalletServiceLoad.bind(null, organizationId, projectId, key, setState)}
-          >
-            Check setup
+          <button type="button" className="dashboard-pagination-button" onClick={retry}>
+            Retry setup
           </button>
         </section>
       );
     case 'ready':
-      if (state.service.kind === 'active' && selected.environment) return <>{children}</>;
+      if (state.service.kind === 'active') {
+        if (selected.environment) return <>{children}</>;
+        return <DashboardLoadingState title="Loading Wallet environments..." />;
+      }
       return (
         <section className="dashboard-view__section">
-          <h2>Set up Wallet</h2>
+          <h2>Wallet unavailable</h2>
           <p>{setupDescription(state.service)}</p>
-          {canEnable && isEnableableService(state.service) ? (
-            <button
-              type="button"
-              className="dashboard-pagination-button"
-              onClick={submitWalletEnable.bind(
-                null,
-                organizationId,
-                projectId,
-                key,
-                state.service,
-                setState,
-              )}
-            >
-              {state.service.kind === 'provisioning' ? 'Retry setup' : 'Enable Wallet'}
-            </button>
-          ) : null}
-          {!canEnable && state.service.kind !== 'active' && state.service.kind !== 'archived' ? (
-            <p>
-              Ask an organization owner or administrator with project management access to enable
-              Wallet.
-            </p>
-          ) : null}
-          {state.service.kind === 'provisioning' || state.service.kind === 'active' ? (
-            <button
-              type="button"
-              className="dashboard-pagination-button"
-              onClick={beginWalletServiceLoad.bind(null, organizationId, projectId, key, setState)}
-            >
-              Check setup
-            </button>
-          ) : null}
+          <button type="button" className="dashboard-pagination-button" onClick={retry}>
+            Check again
+          </button>
         </section>
       );
     default:
       return assertNever(state);
   }
+}
+
+export function WalletServiceGate({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const { claims } = useDashboardConsoleSession();
+  const selected = useDashboardSelectedContext();
+  if (!claims || !selected.project) {
+    return <DashboardLoadingState title="Loading project..." />;
+  }
+  const canEnable =
+    claims.role === 'OWNER' ||
+    (claims.role === 'ADMIN' && claims.adminPermissions.includes('projects.manage'));
+  return (
+    <WalletProjectSetup
+      key={JSON.stringify([claims.userId, claims.orgId, selected.project])}
+      organizationId={claims.orgId}
+      projectId={selected.project}
+      canEnable={canEnable}
+    >
+      {children}
+    </WalletProjectSetup>
+  );
 }

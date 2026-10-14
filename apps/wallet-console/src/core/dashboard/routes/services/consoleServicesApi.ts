@@ -6,11 +6,7 @@ import {
   parseServiceProvisionReceiptV1,
   type PlatformServiceIdV1,
 } from '@seams-internal/console-shared/accountPlatform';
-import {
-  assertNever,
-  object,
-  textValue,
-} from '@seams-internal/console-shared/accountPlatform/boundary';
+import { object, textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import {
   buildConsoleAcceptHeaders,
   buildConsoleJsonHeaders,
@@ -308,15 +304,4 @@ export async function changeProjectService(
   if (!response.ok || raw.ok !== true)
     throw new Error(consoleErrorMessage(response, body, 'Service change failed'));
   return readServiceInstance(raw.instance, organizationId, projectId, serviceId);
-}
-
-export function serviceName(serviceId: PlatformServiceIdV1): string {
-  switch (serviceId) {
-    case 'wallet':
-      return 'Wallet';
-    case 'satyr':
-      return 'Satyr';
-    default:
-      return assertNever(serviceId);
-  }
 }

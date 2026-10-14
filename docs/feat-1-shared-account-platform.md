@@ -267,6 +267,17 @@ The initial catalogue contains `wallet` and `satyr`. Use version `1` for the
 integration envelope. Reject unknown versions and unsupported operations at ingress.
 Authenticate the producer separately from payload parsing.
 
+Wallet Console automatically enables an absent Wallet service when an authorised
+owner or project-managing administrator opens a Wallet product page. It uses the
+existing enable command, retains its operation identity across reloads, and waits
+for provisioning before showing the page. Shared account pages and project creation
+remain product-neutral. Opening Wallet Console does not reverse a disabled or
+archived service or bypass membership permissions. Failed setup offers a retry.
+Each product owns its automatic onboarding. Satyr uses its separate application;
+Wallet Console does not provision Satyr or expose a Project services page. Neither
+product requires a manual enable screen. Keep the service lifecycle API for internal
+provisioning, permissions, and deliberate administrative restrictions.
+
 ### Required operation payloads
 
 These are semantic field names for the shared contract. Reuse existing types for

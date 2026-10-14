@@ -1,9 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Miniflare } from 'miniflare';
+import { createRequire } from 'node:module';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import type {
@@ -40,6 +41,7 @@ import {
   createRouterApiPublishableKeyAuthAdapter,
 } from '../../../packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
 import { createWalletProjectEnvironmentResolver } from '../../../packages/wallet-console-server-ts/src/router/projectEnvironmentAdapter';
+import { createCloudflareConsoleRouter } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/createCloudflareConsoleRouter';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/shared-account-platform/wallet-activation');
@@ -53,13 +55,13 @@ function now(): Date {
   return new Date('2026-10-13T02:00:00.000Z');
 }
 
-function runtime(): Miniflare {
+function runtime(persistence = path.join(output, 'state')): Miniflare {
   return new Miniflare({
     modules: true,
     script: 'export default { fetch() { return new Response("Wallet activation acceptance"); } };',
     compatibilityDate: '2026-04-17',
     d1Databases: { CONSOLE_DB: 'wallet-activation' },
-    d1Persist: path.join(output, 'state'),
+    d1Persist: persistence,
   });
 }
 
@@ -219,6 +221,7 @@ async function compose(database: D1DatabaseLike) {
     corsOrigins: [origin],
   });
   return {
+    auth,
     core,
     environments,
     apiKeys,
@@ -633,3 +636,183 @@ test('Wallet activation API controls native credentials across delayed shutdown 
     await worker.dispose();
   }
 });
+
+class WalletConsoleBrowserTransport {
+  readonly enableRequests: string[] = [];
+  private loseNextEnableReply = true;
+  private readonly pending: Promise<unknown>[] = [];
+
+  constructor(
+    private readonly router: ReturnType<typeof createCloudflareConsoleRouter>,
+    private readonly token: string,
+  ) {}
+
+  waitUntil(work: Promise<unknown>): void {
+    this.pending.push(work);
+  }
+
+  passThroughOnException(): void {
+    throw new Error('The isolated Console test has no upstream fallback');
+  }
+
+  async handle(route: Route): Promise<void> {
+    const incoming = route.request();
+    const url = new URL(incoming.url());
+    const enable = incoming.method() === 'POST' && url.pathname.endsWith('/services/wallet/enable');
+    if (enable) this.enableRequests.push(incoming.postData() ?? '');
+    const request = new Request(`${origin}${url.pathname}${url.search}`, {
+      method: incoming.method(),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+        Origin: origin,
+      },
+      body: incoming.postData(),
+    });
+    const response = await this.router(request, {}, this);
+    await Promise.all(this.pending.splice(0));
+    if (enable && this.loseNextEnableReply) {
+      this.loseNextEnableReply = false;
+      await route.abort('failed');
+      return;
+    }
+    await route.fulfill({
+      status: response.status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': incoming.headers().origin ?? '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: await response.text(),
+    });
+  }
+}
+
+async function verifyAutomaticWalletSetup(
+  { page }: { page: Page },
+  testInfo: TestInfo,
+): Promise<void> {
+  const evidence = testInfo.outputPath('automatic-wallet-setup');
+  await mkdir(evidence, { recursive: true });
+  // Use the application's installed Vite so this journey needs no running local stack.
+  const appDirectory = path.join(repository, 'apps/wallet-console');
+  const appRequire = createRequire(path.join(appDirectory, 'package.json'));
+  const { createServer } = await import(appRequire.resolve('vite'));
+  const frontend = await createServer({
+    root: appDirectory,
+    base: '/',
+    server: { host: '127.0.0.1', port: 0, strictPort: false },
+    define: {
+      'import.meta.env.VITE_CONSOLE_BASE_URL': JSON.stringify(origin),
+      'import.meta.env.VITE_RELAYER_URL': JSON.stringify(origin),
+    },
+  });
+  const worker = runtime(path.join(evidence, 'state'));
+  await page.context().tracing.start({ screenshots: true, snapshots: true });
+  try {
+    await frontend.listen();
+    const appUrl: unknown = frontend.resolvedUrls?.local[0];
+    if (typeof appUrl !== 'string') throw new Error('Console frontend did not start');
+    const database = await databaseFor(worker);
+    await migrate(database);
+    const product = await compose(database);
+    await product.core.account.createOrganization(ownerIdentity(), {
+      id: owner.orgId,
+      name: 'Automatic Wallet setup',
+    });
+    const projectId = 'automatic-wallet-project';
+    await product.core.orgProjects.createProject(owner, {
+      id: projectId,
+      name: 'Automatic Wallet',
+    });
+    const router = createCloudflareConsoleRouter({
+      auth: product.auth,
+      session: product.session,
+      account: product.core.account,
+      accountPlatform: product.core.accountPlatform,
+      orgProjects: product.core.orgProjects,
+      organizationAccess: product.core.organizationAccess,
+      onboarding: product.core.onboarding,
+      billing: product.core.billing,
+      audit: product.core.audit,
+      walletEnvironments: product.environments,
+      apiKeys: product.apiKeys,
+      walletProvisioning: product.delivery,
+      satyrProvisioning: null,
+      corsOrigins: [origin],
+    });
+    const token = await issueSession(product.session);
+    const transport = new WalletConsoleBrowserTransport(router, token);
+    await page.route('**/console/**', transport.handle.bind(transport));
+    await page.goto(new URL('/dashboard/account-settings', appUrl).href);
+    await expect(page.getByLabel('Account settings page')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Project services', exact: true })).toHaveCount(0);
+    expect(await environmentCount(database, projectId)).toBe(0);
+    expect(transport.enableRequests).toHaveLength(0);
+
+    // The first enable is durably accepted, but both its delivery and reply are lost.
+    product.delivery.disconnect();
+    await page.goto(new URL('/dashboard/api-keys', appUrl).href);
+    await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(1);
+    expect(await environmentCount(database, projectId)).toBe(0);
+    product.delivery.reconnect();
+    await page.reload();
+    await expect(
+      page.getByRole('button', { name: 'Create credential', exact: true }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(2);
+    expect(transport.enableRequests[1]).toBe(transport.enableRequests[0]);
+    expect(await environmentCount(database, projectId)).toBe(3);
+    const instances = await product.core.accountPlatform.listInstances(owner, projectId);
+    expect(instances).toMatchObject({
+      kind: 'accepted',
+      value: [{ serviceId: 'wallet', state: { kind: 'active' } }],
+    });
+    await page.reload();
+    await expect(
+      page.getByRole('button', { name: 'Create credential', exact: true }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(2);
+    await page.screenshot({ path: path.join(evidence, 'wallet-ready.png'), fullPage: true });
+
+    const disabled = await changeService(
+      product.router,
+      token,
+      projectId,
+      'disable',
+      'disable-auto',
+      2,
+    );
+    expect(disabled.status).toBe(200);
+    await page.reload();
+    await expect(
+      page.getByText('Wallet access is disabled for this project.', { exact: false }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(2);
+    await writeFile(
+      path.join(evidence, 'report.json'),
+      JSON.stringify(
+        {
+          projectId,
+          accountPageEnableRequests: 0,
+          enableRequests: transport.enableRequests,
+          environments: await environmentCount(database, projectId),
+          disabledStatePreserved: true,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await page.context().tracing.stop({ path: path.join(evidence, 'trace.zip') });
+    await frontend.close();
+    await worker.dispose();
+  }
+}
+
+test(
+  'Wallet Console enables an absent service and recovers a lost reply without reversing disable',
+  verifyAutomaticWalletSetup,
+);

@@ -11,7 +11,7 @@ Preserve current account, permission, billing, and product behaviour throughout 
 
 | Domain | Experience | Frontend owner |
 | --- | --- | --- |
-| `console.seams.sh` | Organisations, projects, members, account settings, billing, service enablement | `seams-monorepo/apps/console` |
+| `console.seams.sh` | Organisations, projects, members, account settings, billing | `seams-monorepo/apps/console` |
 | `console.wallet.seams.sh` | Wallet environments, API keys, sponsorship, and operations | `seams-monorepo/apps/wallet-console` |
 | `satyr.seams.sh` | Agents, Cases, workflows, and integrations | Existing Satyr application in the `satyr` repository |
 
@@ -103,7 +103,7 @@ seams-monorepo/
     console/
       src/
         app/                 Platform shell and account routes
-        core/                Organisations, projects, members, billing, services
+        core/                Organisations, projects, members, billing
       worker/                Existing Console backend and service composition
     wallet-console/
       src/
@@ -124,7 +124,7 @@ satyr/
 ```
 
 Platform owns organisation and project administration, account onboarding, members,
-account settings, consolidated billing, and service enablement. Wallet owns its
+account settings and consolidated billing. Wallet owns its
 navigation, environments, credentials, sponsorship policy, and operational pages.
 Satyr retains its portal, Cases, workflows, commerce integrations, and agent execution.
 
@@ -132,6 +132,13 @@ Wallet and Satyr link to Platform for shared account settings and billing. Platf
 links to the product consoles. A small product switcher can carry organisation and
 project identifiers, with access checked by the destination using existing mechanisms.
 Identifiers in a URL select context; they do not grant access.
+
+Wallet and Satyr require no manual product-enable screen. Each product starts its
+own provisioning through its authenticated onboarding flow. Wallet Console enables
+an absent Wallet instance when an authorised user opens a Wallet page. Satyr owns
+the equivalent onboarding integration in its separate application. Visiting Wallet
+Console must not provision Satyr. Preserve deliberately disabled and archived states.
+Remove Project services from Wallet Console and keep its navigation Wallet-only.
 
 Use one canonical shared account page for each operation. Remove moved pages from
 the Wallet application. Reuse existing UI primitives where useful, without forcing
@@ -177,8 +184,8 @@ artifacts are recorded. Each proposed extraction removes a demonstrated dependen
 1. Create `apps/console` and move shared account pages from `apps/wallet-console`.
    Keep the Wallet application's workspace identity and product navigation.
    Update workspace references, aliases, local startup, CI, fixtures, and documentation.
-2. Give Platform a focused shell for organisations, projects, members, billing, and
-   service enablement. Retain Wallet management pages in the existing Wallet module.
+2. Give Platform a focused shell for organisations, projects, members, and billing.
+   Retain Wallet management pages in the existing Wallet module.
    Delete replaced account page implementations after moving their callers.
 3. Add explicit links between the product consoles and shared account pages.
    Preserve selected organisation and project identifiers where relevant. Validate
@@ -223,7 +230,11 @@ Wallet call counts do not increase.
 ## Phase 4 — Lifecycle and deployment ownership
 
 1. Verify organisation and project creation use only Platform services. Keep Wallet
-   environments and native Satyr tenant creation behind explicit service enablement.
+   environments and native Satyr tenant creation behind their service enablement flows.
+   Wallet Console automatically enables an absent Wallet service on an authorised
+   user's first Wallet page visit. Satyr starts provisioning through its own
+   onboarding flow without a manual enable screen. Preserve disabled and archived
+   states. Shared account pages and project creation do not enable products.
    Fix only remaining violations; preserve completed Shared Account Platform behaviour.
 2. Update Console build and deployment commands to the new application entrypoints.
    Retain `deployment/console` as the configuration owner. Extract Console-only
@@ -252,9 +263,10 @@ The composed acceptance journey must demonstrate:
 
 1. A user signs in, creates an organisation and project, and manages members and
    billing while Wallet and Satyr runtimes are unavailable. No service enables itself.
-2. Wallet enablement creates its existing resources. Disable and re-enable preserve
-   the defined lifecycle and account records.
-3. Satyr enablement completes through existing asynchronous provisioning. Its private
+2. Opening Wallet Console provisions an absent Wallet instance without an enable
+   button. Retry and reload preserve the operation identity and resource IDs.
+   Disabled and archived services remain restricted. Project services is absent.
+3. Satyr onboarding completes through existing asynchronous provisioning. Its private
    binding accepts a permitted user and rejects stale, revoked, and foreign authority.
 4. Product failure leaves shared account and billing pages usable. Unavailable
    product operations show their own failure without changing another product's state.

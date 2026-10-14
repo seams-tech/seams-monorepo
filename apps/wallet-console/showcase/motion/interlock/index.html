@@ -722,20 +722,25 @@ var HL = (() => {
 /* global HL, hairline */
 const AXIS_HEIGHT = 45;
 const RING_RADIUS = 31;
-const PIN_RADIUS = 2.4;
-const PIN_ORBIT = 17;
-const CONTACT_ANGLE = (2 * Math.asin(PIN_RADIUS / PIN_ORBIT) * 180) / Math.PI;
-const REAR_RING = { x: -42, restAngle: -135, frontPin: 30, rearPin: null };
-const MIDDLE_RING = { x: -10, restAngle: 105, frontPin: 150, rearPin: 270 };
-const FRONT_RING = { x: 22, restAngle: -165, frontPin: null, rearPin: 270 };
+const GATE = { halfWidth: 3, floor: 18.8 };
+const DISK_DEPTH = 4;
+const TAB_HALF_ANGLE = 6;
+const CONTACT_ANGLE = 2 * TAB_HALF_ANGLE;
+const PIVOT_Y = -40;
+const PIVOT_Z = 65.5;
+const LEVER_REACH = 40;
+const LEVER_REST_ANGLE = -Math.asin((79 - PIVOT_Z) / LEVER_REACH);
+const REAR_RING = { x: -40, restAngle: -135, frontTab: 30, rearTab: null };
+const MIDDLE_RING = { x: -12, restAngle: 105, frontTab: 150, rearTab: 270 };
+const FRONT_RING = { x: 16, restAngle: -165, frontTab: null, rearTab: 270 };
 const RING_SETTINGS = [REAR_RING, MIDDLE_RING, FRONT_RING];
 const MIDDLE_PICKUP = pickupTravel(
-  FRONT_RING.restAngle + FRONT_RING.rearPin,
-  MIDDLE_RING.restAngle + MIDDLE_RING.frontPin,
+  FRONT_RING.restAngle + FRONT_RING.rearTab,
+  MIDDLE_RING.restAngle + MIDDLE_RING.frontTab,
 );
 const REAR_PICKUP = pickupTravel(
-  MIDDLE_RING.restAngle + MIDDLE_RING.rearPin,
-  REAR_RING.restAngle + REAR_RING.frontPin,
+  MIDDLE_RING.restAngle + MIDDLE_RING.rearTab,
+  REAR_RING.restAngle + REAR_RING.frontTab,
 );
 const FIRST_TRAVEL = MIDDLE_PICKUP + REAR_PICKUP - REAR_RING.restAngle;
 const MIDDLE_STOP = MIDDLE_RING.restAngle + REAR_PICKUP - REAR_RING.restAngle;
@@ -762,13 +767,60 @@ function project(P, x, center, angle, point) {
   const z = point[1] * Math.cos(angle) - point[0] * Math.sin(angle);
   return P(x, y, center + z);
 }
-function plate(parent, x, depth, profile, hole = [], center = AXIS_HEIGHT) {
+function offsetView(P, dy, dz, x, y, z) {
+  return P(x, y + dy, z + dz);
+}
+function rodPoint(P, x, y, z, point) {
+  return P(x, y + point[0], z + point[1]);
+}
+function rod(parent, low, high, radius, name) {
+  const group = HL.mk('g', { 'data-part': name }, parent);
+  const surface = path(group, 'fo');
+  const edge = path(group, 'sil nf');
+  return { group, low, high, profile: circle(radius), surface, edge };
+}
+function drawRod(P, part, y, z) {
+  const far = part.profile.map(rodPoint.bind(null, P, part.low, y, z));
+  const near = part.profile.map(rodPoint.bind(null, P, part.high, y, z));
+  const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
+  let edges = '';
+  for (let index = 0; index < far.length; index++) {
+    const next = (index + 1) % far.length;
+    const previous = (index + far.length - 1) % far.length;
+    if (
+      sideVisible(far[index], far[next], direction) !==
+      sideVisible(far[previous], far[index], direction)
+    ) {
+      edges += HL.seg(far[index], near[index]);
+    }
+  }
+  part.surface.setAttribute('d', HL.poly(HL.hull(far.concat(near))));
+  // Interior depth cuts have no end-cap edges: adjacent sections form one continuous rod.
+  part.edge.setAttribute('d', edges);
+}
+function plate(parent, x, depth, profile, hole = [], center = AXIS_HEIGHT, gate = null) {
   const back = path(parent, 'fo');
   const wall = path(parent, 'fo');
   const edge = path(parent, 'sil nf');
+  const frontWall = path(parent, 'fo');
+  const frontEdge = path(parent, 'sil nf');
   const face = path(parent, 'sil');
   const detail = path(parent);
-  return { x, depth, profile, hole, center, back, wall, edge, face, detail };
+  return {
+    x,
+    depth,
+    profile,
+    hole,
+    center,
+    gate,
+    back,
+    wall,
+    edge,
+    frontWall,
+    frontEdge,
+    face,
+    detail,
+  };
 }
 function sideVisible(a, b, direction) {
   return (b[0] - a[0]) * direction[1] - (b[1] - a[1]) * direction[0] < 0;
@@ -778,6 +830,8 @@ function drawPlate(P, part, angle, detail = '') {
   let face = '';
   let walls = '';
   let edges = '';
+  let frontWalls = '';
+  let frontEdges = '';
   for (const contour of [part.profile, part.hole]) {
     if (contour.length === 0) continue;
     const far = contour.map(project.bind(null, P, part.x, part.center, angle));
@@ -789,26 +843,37 @@ function drawPlate(P, part, angle, detail = '') {
       const next = (index + 1) % contour.length;
       const previous = (index + contour.length - 1) % contour.length;
       const visible = sideVisible(far[index], far[next], direction);
+      const insideGate =
+        part.gate !== null &&
+        Math.abs(contour[index][0]) <= part.gate.halfWidth + 0.001 &&
+        contour[index][1] >= part.gate.floor - 0.001;
+      const interior = contour === part.hole || insideGate;
       if (visible) {
-        walls += HL.poly([far[index], far[next], near[next], near[index]]);
-        edges += HL.seg(far[index], far[next]);
+        const wall = HL.poly([far[index], far[next], near[next], near[index]]);
+        if (interior) walls += wall;
+        else frontWalls += wall;
       }
+      let edge = visible ? HL.seg(far[index], far[next]) : '';
       if (visible !== sideVisible(far[previous], far[index], direction)) {
-        edges += HL.seg(far[index], near[index]);
+        edge += HL.seg(far[index], near[index]);
       }
+      if (interior) edges += edge;
+      else frontEdges += edge;
     }
   }
   part.back.setAttribute('d', back);
   part.wall.setAttribute('d', walls);
   part.edge.setAttribute('d', edges);
+  part.frontWall.setAttribute('d', frontWalls);
+  part.frontEdge.setAttribute('d', frontEdges);
   part.face.setAttribute('d', face);
   part.detail.setAttribute('d', detail);
 }
 function gateProfile() {
-  const angle = Math.asin(3.8 / RING_RADIUS);
+  const angle = Math.asin(GATE.halfWidth / RING_RADIUS);
   const points = circle(RING_RADIUS, angle, Math.PI * 2 - angle);
-  points.push([-3.8, 24.5], [3.8, 24.5]);
-  return HL.fillet(points, Array(points.length).fill(0.65), 4);
+  points.push([-GATE.halfWidth, GATE.floor], [GATE.halfWidth, GATE.floor]);
+  return HL.fillet(points, Array(points.length).fill(0.45), 4);
 }
 function roundedProfile(left, bottom, right, top, radius) {
   return HL.fillet(
@@ -828,103 +893,136 @@ function block(parent, P, front, x0, y0, x1, y1, low, high, radius = 1) {
   return solid;
 }
 function chassis(parent, P, front) {
-  block(parent, P, front, -67, -37, 91, 37, 3, 8, 5);
-  for (const x of [-58, 82]) {
-    for (const y of [-28, 28]) {
+  block(parent, P, front, -62, -52, 80, 37, 3, 8, 5);
+  for (const x of [-53, 71]) {
+    for (const y of [-43, 28]) {
       const screw = HL.rrect(x - 2.1, y - 2.1, x + 2.1, y + 2.1, 2.1, 12);
       path(parent).setAttribute('d', HL.poly(HL.ringAt(P, screw, 8)));
     }
   }
-  for (const x of [-56, 53]) block(parent, P, front, x, -12, x + 4, -8, 8, 86);
-  block(parent, P, front, -56, -12, 57, -8, 82, 86);
 }
 function bearing(parent, P, x) {
-  const shape = roundedProfile(-11, 8, 11, 51, 3);
-  const support = plate(parent, x, 5, shape, [], 0);
+  const shape = roundedProfile(-9, 8, 9, AXIS_HEIGHT + 6, 3);
+  const opening = circle(4.5).reverse();
+  for (const point of opening) point[1] += AXIS_HEIGHT;
+  const support = plate(parent, x, 5, shape, opening, 0);
   drawPlate(P, support, 0);
-  const collar = plate(parent, x + 5, 2, circle(8.5), circle(4.5).reverse());
+  const collar = plate(parent, x + 5, 2, circle(7), circle(4.5).reverse());
   drawPlate(P, collar, 0);
+  return { support, collar };
 }
-function ringDetail(P, ring, angle) {
-  const map = project.bind(null, P, ring.x + ring.depth, AXIS_HEIGHT, angle);
-  const opening = Math.asin(4.5 / 27.5);
-  let detail = HL.open(circle(27.5, opening, Math.PI * 2 - opening).map(map));
-  for (let index = 1; index < 24; index++) {
-    const theta = (index * Math.PI) / 12;
-    detail += HL.seg(
-      map([28.7 * Math.sin(theta), 28.7 * Math.cos(theta)]),
-      map([30 * Math.sin(theta), 30 * Math.cos(theta)]),
-    );
-  }
-  return detail;
+function pivotSupport(parent, P, x) {
+  const support = plate(parent, x, 5, roundedProfile(-9, 8, 9, PIVOT_Z + 6, 3), [], 0);
+  drawPlate(P, support, 0);
 }
-function drivePin(parent, x, depth, phase) {
-  const angle = HL.rad(phase);
+function polarPoint(radius, degrees) {
+  const angle = HL.rad(degrees);
+  return [radius * Math.sin(angle), radius * Math.cos(angle)];
+}
+function driveTab(parent, x, depth, phase) {
   const profile = [];
-  for (const point of circle(PIN_RADIUS)) {
-    profile.push([point[0] + PIN_ORBIT * Math.sin(angle), point[1] + PIN_ORBIT * Math.cos(angle)]);
+  for (const [radius, degrees] of [
+    [23.5, phase - TAB_HALF_ANGLE],
+    [30, phase - TAB_HALF_ANGLE],
+    [30, phase + TAB_HALF_ANGLE],
+    [23.5, phase + TAB_HALF_ANGLE],
+  ]) {
+    profile.push(polarPoint(radius, degrees));
   }
-  return plate(parent, x, depth, profile);
+  const body = plate(parent, x, depth, HL.fillet(profile, [0.3, 0.3, 0.3, 0.3], 4));
+  const crease = [
+    polarPoint(24.3, phase - 4.5),
+    polarPoint(29.2, phase - 4.5),
+    polarPoint(29.2, phase + 4.5),
+  ];
+  return { body, crease };
 }
-function wheel(parent, P, settings, index) {
+function wheel(parent, P, settings, index, axleStart, pinStart) {
   const group = HL.mk('g', { 'data-ring': index + 1 }, parent);
-  const pins = [];
-  if (settings.rearPin !== null) pins.push(drivePin(group, settings.x - 13, 13, settings.rearPin));
-  const ring = plate(group, settings.x, 6, gateProfile(), circle(4.5).reverse());
-  const hub = plate(group, settings.x + 6, 1.4, circle(8.5), circle(4.5).reverse());
-  if (settings.frontPin !== null) pins.push(drivePin(group, settings.x + 6, 15, settings.frontPin));
+  const tabs = [];
+  if (settings.rearTab !== null)
+    tabs.push(driveTab(group, settings.x - 12.5, 12.5, settings.rearTab));
+  const faceX = settings.x + DISK_DEPTH;
+  const ring = plate(
+    group,
+    settings.x,
+    DISK_DEPTH,
+    gateProfile(),
+    circle(4.5).reverse(),
+    AXIS_HEIGHT,
+    GATE,
+  );
+  ring.face.setAttribute('data-part', 'disk-face');
+  ring.frontWall.setAttribute('data-part', 'disk-edge');
+  const axleGap = rod(group, axleStart, settings.x, 4.3, 'axle-gap');
+  const axleBore = rod(group, settings.x, faceX, 4.3, 'axle-bore');
+  drawRod(P, axleGap, 0, AXIS_HEIGHT);
+  drawRod(P, axleBore, 0, AXIS_HEIGHT);
+  const pinGap = rod(group, pinStart, settings.x, 1, 'locking-pin-section');
+  const pinBore = rod(group, settings.x, faceX, 1, 'locking-pin-section');
+  // Open spans sit behind the whole disk. Interior spans stay behind its rim and front face.
+  ring.back.before(axleGap.group, pinGap.group);
+  ring.frontWall.before(axleBore.group, pinBore.group);
+  const hub = plate(group, faceX, 1.4, circle(7), circle(4.5).reverse());
+  const bore = rod(group, faceX, faceX + 1.4, 4.3, 'axle-collar');
+  drawRod(P, bore, 0, AXIS_HEIGHT);
+  hub.frontWall.before(bore.group);
+  if (settings.frontTab !== null) tabs.push(driveTab(group, faceX, 13.5, settings.frontTab));
   const hitArea = HL.hull(
     circle(RING_RADIUS)
       .map(project.bind(null, P, settings.x, AXIS_HEIGHT, 0))
-      .concat(circle(RING_RADIUS).map(project.bind(null, P, settings.x + 6, AXIS_HEIGHT, 0))),
+      .concat(circle(RING_RADIUS).map(project.bind(null, P, faceX, AXIS_HEIGHT, 0))),
   );
-  return { group, ring, hub, pins, hitArea, outline: [ring.face], drawn: NaN };
+  return {
+    group,
+    ring,
+    hub,
+    tabs,
+    pinSections: [pinGap, pinBore],
+    hitArea,
+    outline: [ring.face],
+    drawn: NaN,
+  };
 }
 function drawWheel(state, wheel, rotation) {
   if (wheel.drawn === rotation) return;
   wheel.drawn = rotation;
   const angle = HL.rad(rotation);
-  drawPlate(state.P, wheel.ring, angle, ringDetail(state.P, wheel.ring, angle));
+  drawPlate(state.P, wheel.ring, angle);
   drawPlate(state.P, wheel.hub, angle);
-  for (const pin of wheel.pins) drawPlate(state.P, pin, angle);
+  for (const tab of wheel.tabs) {
+    const map = project.bind(null, state.P, tab.body.x + tab.body.depth, AXIS_HEIGHT, angle);
+    drawPlate(state.P, tab.body, angle, HL.open(tab.crease.map(map)));
+  }
   wheel.group.dataset.rotation = rotation;
 }
-function fence(parent, P, front) {
-  const group = HL.mk('g', { 'data-part': 'locking-pin' }, parent);
-  const beam = HL.solid(group);
-  const left = HL.solid(group);
-  const right = HL.solid(group);
-  for (const x of [-50, 30]) block(group, P, front, x, -11, x + 7, 4, 82, 86, 1.2);
-  return { group, beam, left, right, drawn: NaN };
+function lever(parent, x) {
+  return plate(parent, x, 3.5, roundedProfile(-7, -7, LEVER_REACH + 7, 7, 7), [], 0);
 }
 function drawFence(state, drop) {
   const fence = state.fence;
   if (fence.drawn === drop) return;
   fence.drawn = drop;
-  const low = 78 - 7.5 * drop;
-  HL.put(
-    fence.beam,
-    HL.prism(state.P, state.front, ...HL.rings(-48, -2.6, 35, 2.6, 0.7, 0.5), low, low + 4),
-  );
-  HL.put(
-    fence.left,
-    HL.prism(state.P, state.front, ...HL.rings(-49, -2.6, -45, 2.6, 0.7, 0.5), low, 83),
-  );
-  HL.put(
-    fence.right,
-    HL.prism(state.P, state.front, ...HL.rings(31, -2.6, 35, 2.6, 0.7, 0.5), low, 83),
-  );
-  fence.group.dataset.drop = drop;
+  const angle = LEVER_REST_ANGLE * (1 - drop);
+  const y = PIVOT_Y + LEVER_REACH * Math.cos(angle);
+  const z = PIVOT_Z - LEVER_REACH * Math.sin(angle);
+  const armP = offsetView.bind(null, state.P, PIVOT_Y, PIVOT_Z);
+  for (const arm of fence.arms) {
+    const cap = HL.poly(circle(2.8).map(project.bind(null, armP, arm.x + arm.depth, 0, angle)));
+    drawPlate(armP, arm, angle, cap);
+  }
+  for (const section of fence.sections) drawRod(state.P, section, y, z);
+  state.svg.dataset.pinDrop = drop;
 }
 function dial(parent, P) {
   const group = HL.mk('g', { 'data-part': 'dial' }, parent);
-  const rim = plate(group, 64, 7, circle(28));
-  const knob = plate(group, 71, 10, circle(11.5));
-  const grip = plate(group, 81, 2, roundedProfile(-3, -9, 3, 9, 2));
+  const rim = plate(group, 52, 6, circle(28));
+  const knob = plate(group, 58, 9, circle(11.5));
+  const grip = plate(group, 67, 2, roundedProfile(-3, -9, 3, 9, 2));
   const hitArea = HL.hull(
     circle(28)
-      .map(project.bind(null, P, 64, AXIS_HEIGHT, 0))
-      .concat(circle(28).map(project.bind(null, P, 83, AXIS_HEIGHT, 0))),
+      .map(project.bind(null, P, 52, AXIS_HEIGHT, 0))
+      .concat(circle(28).map(project.bind(null, P, 69, AXIS_HEIGHT, 0))),
   );
   return { group, rim, knob, grip, hitArea, outline: [rim.face, knob.face], drawn: NaN };
 }
@@ -933,7 +1031,7 @@ function drawDial(state, rotation) {
   if (dial.drawn === rotation) return;
   dial.drawn = rotation;
   const angle = HL.rad(rotation);
-  const map = project.bind(null, state.P, dial.rim.x + 7, AXIS_HEIGHT, angle);
+  const map = project.bind(null, state.P, dial.rim.x + dial.rim.depth, AXIS_HEIGHT, angle);
   let detail = HL.poly(circle(23.5).map(map));
   for (let index = 0; index < 36; index++) {
     const theta = (index * Math.PI) / 18;
@@ -948,7 +1046,11 @@ function drawDial(state, rotation) {
     state.P,
     dial.knob,
     angle,
-    HL.poly(circle(9.5).map(project.bind(null, state.P, dial.knob.x + 10, AXIS_HEIGHT, angle))),
+    HL.poly(
+      circle(9.5).map(
+        project.bind(null, state.P, dial.knob.x + dial.knob.depth, AXIS_HEIGHT, angle),
+      ),
+    ),
   );
   drawPlate(state.P, dial.grip, angle);
   dial.group.dataset.rotation = rotation;
@@ -1045,10 +1147,10 @@ function mount({ stage, svg, read }, duration) {
   HL.fit(
     camera,
     [
-      [-67, -37, 3],
-      [-67, 37, 86],
-      [91, -37, 86],
-      [91, 37, 3],
+      [-62, -52, 3],
+      [-62, 37, 87],
+      [80, -52, 87],
+      [80, 37, 3],
     ],
     200,
     166,
@@ -1056,18 +1158,38 @@ function mount({ stage, svg, read }, duration) {
   const P = HL.proj(camera);
   const front = HL.facing(camera);
   chassis(svg, P, front);
-  bearing(svg, P, -58);
-  drawPlate(P, plate(svg, -51, 121, circle(4.3)), 0);
+  const pivotP = offsetView.bind(null, P, PIVOT_Y, 0);
+  pivotSupport(svg, pivotP, -54);
+  drawRod(P, rod(svg, -49, 38, 4.3, 'pivot-shaft'), PIVOT_Y, PIVOT_Z);
+  bearing(svg, P, -54);
+  const lockingPin = { arms: [lever(svg, -47)], sections: [], drawn: NaN };
   const wheels = [];
+  let axleStart = -47;
+  let pinStart = -43.5;
   for (let index = 0; index < RING_SETTINGS.length; index++) {
-    wheels.push(wheel(svg, P, RING_SETTINGS[index], index));
+    const disk = wheel(svg, P, RING_SETTINGS[index], index, axleStart, pinStart);
+    wheels.push(disk);
+    lockingPin.sections.push(...disk.pinSections);
+    axleStart = disk.hub.x + disk.hub.depth;
+    pinStart = disk.ring.x + disk.ring.depth;
   }
-  const lockingPin = fence(svg, P, front);
-  bearing(svg, P, 53);
+  lockingPin.sections.push(rod(svg, pinStart, 33, 1, 'locking-pin-section'));
+  lockingPin.arms.push(lever(svg, 33));
+  pivotSupport(svg, pivotP, 38);
+  const frontBearing = bearing(svg, P, 43);
+  const bearingGap = rod(svg, axleStart, 43, 4.3, 'axle-gap');
+  drawRod(P, bearingGap, 0, AXIS_HEIGHT);
+  frontBearing.support.back.before(bearingGap.group);
+  const throughBearing = rod(svg, 43, 48, 4.3, 'axle-bore');
+  drawRod(P, throughBearing, 0, AXIS_HEIGHT);
+  frontBearing.support.frontWall.before(throughBearing.group);
+  const throughCollar = rod(svg, 48, 50, 4.3, 'axle-collar');
+  drawRod(P, throughCollar, 0, AXIS_HEIGHT);
+  frontBearing.collar.frontWall.before(throughCollar.group);
+  drawRod(P, rod(svg, 50, 58, 4.3, 'axle-tail'), 0, AXIS_HEIGHT);
   const control = dial(svg, P);
   const state = {
     P,
-    front,
     stage,
     svg,
     read,

@@ -149,15 +149,19 @@ The fixed frame and dense perforations dominate the 240px view. The automated ch
 
 ## Combination interlock
 
-Three coaxial disks sit between bearings on a shared shaft. Each disk has a solid face, a small shaft opening, a raised center collar, and an outer gate. A thin engraved rim carries the index marks. The front dial drives the nearest disk. Pickup pins on opposing disk faces make contact before the next disk begins to turn. Their contact angle comes from the pins’ radius and distance from the shaft.
+Three coaxial disks sit between bearings on a visible center axle. Each four-unit disk has a plain solid face, a raised shaft collar, and a narrow radial slot. The slots are six units wide and 12.2 units deep. The front dial carries the index marks and drives the nearest disk. Block-shaped pickup tabs on opposing faces make contact before the next disk turns. Two faint inset lines give each tab depth.
 
-The sequence follows the [Woodgears combination-lock reference](https://woodgears.ca/combolock/). The front wheel first picks up the middle wheel, which then picks up the rear wheel. All three turn until the rear gate aligns. The dial reverses to pick up and align the middle wheel while the rear wheel stays parked. A final forward turn aligns only the front wheel. The shared locking pin then drops into all three gates, and the readout shows “unlocked”.
+The sequence follows the [Woodgears combination-lock reference](https://woodgears.ca/combolock/). The front disk first picks up the middle disk, which then picks up the rear disk. All three turn until the rear slot aligns. The dial reverses to pick up and align the middle disk while the rear disk stays parked. A final forward turn aligns only the front disk. The shared locking pin then enters all three slots, and the readout shows “unlocked”.
 
-The pickup pins have a 2.4-unit radius on a 17-unit orbit. Their axial ends overlap in the gaps between wheels. The wheels remain stationary until their pins contact a driven neighbor. A guided crossbar spans all three gates and drops 7.5 units once they align. The dial stays coupled to the front wheel throughout the sequence.
+The pickup tabs span twelve degrees between radii 23.5 and 30. Their axial ends overlap in the gaps between disks. Each disk stays stationary until its tab contacts a driven neighbor. The dial stays coupled to the front disk throughout the sequence. The 8.6-unit center axle remains visible between disks and bearings.
 
-One reversible Hairline tween preserves the current pose when hover or keyboard input changes. Leaving rewinds the sequence and raises the locking pin before the wheels move. Enter and Space toggle the animation. The slider sets the sequence to 3400, 4400, or 5600 milliseconds. Reduced motion lands directly at the endpoint, and settled parts stop rewriting their paths.
+Two rounded arms carry a two-unit cylindrical locking pin. The arms pivot around a second shaft behind the disks, lowering the pin from height 79 to 65.5. Their faces have one simple pivot mark. The cross-pin seats inside the deep slots once all three align. It clears the slot floors and sidewalls throughout descent.
 
-The pointer transfers the dark outline between disks and the dial. Selection uses fixed silhouettes and checks the nearest object first. The dial is the resting accent. Opaque disk faces hide the shaft and rear hardware. The pickup pins remain visible in the gaps between disks. The figure keeps the unchanged Hairline kernel, bench, camera projection, and stroke palette.
+One reversible Hairline tween preserves the current pose when hover or keyboard input changes. Leaving rewinds the sequence and raises the locking pin before the disks move. Enter and Space toggle the animation. The slider sets the sequence to 3400, 4400, or 5600 milliseconds. Reduced motion lands directly at the endpoint, and settled parts stop rewriting their paths.
+
+The pointer transfers the dark outline between disks and the dial. Selection uses fixed silhouettes and checks the nearest object first. The dial is the resting accent. The figure keeps the unchanged Hairline kernel, bench, camera projection, and stroke palette.
+
+The center axle and cross-pin draw in sections at the rear and front planes of each disk. Open spans draw behind the entire disk. Sections inside slots and bores draw behind the outer sidewalls and front face, with the inner surfaces behind them. The rod sections have no artificial end caps or seams. This lets the pin sit inside each slot and keeps the axle behind the disk rims.
 
 Edit `apps/wallet-console/showcase/motion/interlock/combination-interlock.js`, then rebuild:
 
@@ -167,7 +171,7 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
   apps/wallet-console/showcase/motion/interlock/index.html
 ```
 
-Review at `/dashboard-static/showcase/motion/interlock/`. Run `node tests/e2e/wallet-scoped-permissions.e2e.mjs` for the browser review. It checks both pickups, pin clearance, reverse dialing, gate alignment, the shared pin, interrupted resets, pointer selection, keyboard input, reduced motion, both themes, and frame bounds. It saves phase screenshots, a contact sheet, and `review.json` under `.artifacts/combination-interlock/ring-dial/`.
+Review at `/dashboard-static/showcase/motion/interlock/`. Run `node tests/e2e/wallet-scoped-permissions.e2e.mjs` for the browser review. It checks both pickups, tab clearance, reverse dialing, slot alignment, the shared pin, interrupted resets, pointer selection, keyboard input, and reduced motion. It also checks both themes, frame bounds, axle visibility, and rod occlusion at disk faces and sidewalls. It saves phase screenshots, a contact sheet, and `review.json` under `.artifacts/combination-interlock/ring-dial/`.
 
 The standalone Hairline checker still rejects this extended figure’s line count. The browser review checks the rendered mechanism directly.
 

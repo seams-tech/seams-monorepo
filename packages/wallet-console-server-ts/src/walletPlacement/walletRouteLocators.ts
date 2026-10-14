@@ -113,6 +113,9 @@ export class D1WalletRoutes {
       writer.resource.accountId,
       writer.resource.databaseId,
     ];
+    // CROSS JOIN fixes the join order: each locator is the outer row and finds its route
+    // through the full primary key. A plain JOIN lets SQLite put wallet_routes outside,
+    // which reads every route of the environment for each registration.
     const insert = this.database
       .prepare(
         `INSERT INTO wallet_routes
@@ -124,7 +127,7 @@ export class D1WalletRoutes {
         AND home.environment_id = ?4 AND home.wallet_id = ?6
         AND home.account_id = ?7 AND home.database_id = ?8 AND home.state IN ('reserved', 'established')
         AND home.placement_state = 'active'
-        AND NOT EXISTS (SELECT 1 FROM json_each(?5) AS candidate JOIN wallet_routes AS claimed
+        AND NOT EXISTS (SELECT 1 FROM json_each(?5) AS candidate CROSS JOIN wallet_routes AS claimed
           ON claimed.kind = json_extract(candidate.value, '$.kind') AND claimed.value = json_extract(candidate.value, '$.value')
           WHERE claimed.namespace = ?1 AND claimed.organization_id = ?2 AND claimed.project_id = ?3
             AND claimed.environment_id = ?4 AND claimed.wallet_id != ?6)
@@ -138,7 +141,7 @@ export class D1WalletRoutes {
     const verify = this.database
       .prepare(
         `SELECT COUNT(*) AS matched
-      FROM json_each(?5) AS item JOIN wallet_routes AS route
+      FROM json_each(?5) AS item CROSS JOIN wallet_routes AS route
         ON route.kind = json_extract(item.value, '$.kind') AND route.value = json_extract(item.value, '$.value')
       JOIN wallet_homes AS home ON home.namespace = route.namespace
         AND home.organization_id = route.organization_id AND home.project_id = route.project_id

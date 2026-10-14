@@ -1,9 +1,6 @@
 import React from 'react';
-import { DashboardPage } from '@core/dashboard/page';
-import { DashboardLoginPage } from '@core/dashboard/login/page';
 import { DashboardToaster } from '@core/dashboard/components/DashboardToaster';
 import { normalizePathname } from '@core/router/siteRouting';
-import { DASHBOARD_COMPOSITION } from './dashboardConfig';
 
 const WalletMarketingRoute = React.lazy(() =>
   import('../marketing/WalletMarketingRoute').then((module) => ({
@@ -52,9 +49,6 @@ function useConsoleLocation(): string {
   return location;
 }
 
-// Static composition of the customer Console: core routes plus the Wallet
-// Console route group registered in dashboardConfig. No SeamsWebProvider,
-// no Wallet theme bridge — the Console owns its shell.
 function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
   if (pathname === '/') {
     return <WalletMarketingPage />;
@@ -67,16 +61,6 @@ function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
   }
   if (pathname === '/contact') {
     return <ContactPage />;
-  }
-  if (pathname === '/dashboard/login') {
-    return <DashboardLoginPage />;
-  }
-  if (
-    pathname === '/dashboard' ||
-    pathname.startsWith('/dashboard/') ||
-    pathname.startsWith('/platform/')
-  ) {
-    return <DashboardPage composition={DASHBOARD_COMPOSITION} pathname={pathname} />;
   }
   return <WalletMarketingPage />;
 }

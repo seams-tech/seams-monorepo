@@ -1,6 +1,8 @@
 # Dependencies and build outputs
 node_modules/
 dist/
+/apps/wallet-console/dist-platform/
+/apps/wallet-console/dist-wallet/
 target/
 
 # Environment and local runtime state

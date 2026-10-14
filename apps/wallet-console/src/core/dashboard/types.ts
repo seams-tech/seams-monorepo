@@ -15,7 +15,7 @@ export type DashboardRoute =
   | '/dashboard/api-keys'
   | '/dashboard/webhooks';
 
-export type DashboardProductId = 'embedded-wallets';
+export type DashboardProductId = 'embedded-wallets' | 'platform';
 
 export type DashboardProduct = {
   id: DashboardProductId;
@@ -73,6 +73,12 @@ export type ExpandedSidebarGroupsState<GroupKey extends string = SidebarGroupKey
   boolean
 >;
 
+export interface DashboardExternalLink {
+  readonly label: string;
+  readonly href: string;
+  readonly icon: SidebarIconComponent;
+}
+
 export type DashboardComposition<Route extends string, GroupKey extends string> = {
   accountSettingsAccountOption: string;
   accountSettingsSignOutOption: string;
@@ -81,6 +87,7 @@ export type DashboardComposition<Route extends string, GroupKey extends string> 
   defaultProductId: DashboardProductId;
   defaultRoute: Route;
   sidebarGroups: SidebarGroup<Route, GroupKey>[];
+  externalLinks?: readonly DashboardExternalLink[];
   defaultExpandedSidebarGroups: ExpandedSidebarGroupsState<GroupKey>;
   sidebarGroupKeys: GroupKey[];
   getRouteFromPathname: (pathname: string) => Route | null;

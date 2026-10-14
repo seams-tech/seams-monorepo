@@ -1,3 +1,4 @@
+import { sharedAccountHref, linksWithConsoleContext } from './consoleNavigation';
 import { DashboardOnboardingPage } from './routes/onboarding/page';
 import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
 import { requireConsoleBaseUrl } from './consoleHttp';
@@ -365,7 +366,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       !isOnboardingRoute &&
       !isPlatformBillingRoute
     ) {
-      go(DASHBOARD_ONBOARDING_ROUTE);
+      go(sharedAccountHref(DASHBOARD_ONBOARDING_ROUTE));
     }
   }, [
     consoleSession.claims,
@@ -748,7 +749,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         return;
       }
       if (menu === 'accountSettings' && value === DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION) {
-        go(DASHBOARD_ACCOUNT_SETTINGS_ROUTE);
+        go(sharedAccountHref(DASHBOARD_ACCOUNT_SETTINGS_ROUTE));
         return;
       }
       if (menu === 'accountSettings' && value === DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION) {
@@ -775,7 +776,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         menu === 'environment' &&
         dropdownOptions.environment.find((entry) => entry.value === value)?.disabled === true
       ) {
-        go('/dashboard/billing/account?billing=production_required');
+        go(sharedAccountHref('/dashboard/billing/account?billing=production_required'));
         return;
       }
       onSelectContextRaw(menu, value);
@@ -833,7 +834,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     if (onboardingGateEnabled && !onboardingState) return;
     if (isRecoveringOrganizationContext) return;
     if (pathname === '/dashboard') {
-      go(dashboardEntryRoute);
+      go(sharedAccountHref(dashboardEntryRoute));
     }
   }, [
     consoleSession.claims,
@@ -859,7 +860,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       (pathname.startsWith('/dashboard/') || pathname.startsWith('/platform/')) &&
       !getRouteFromPathname(pathname)
     ) {
-      go(dashboardEntryRoute);
+      go(sharedAccountHref(dashboardEntryRoute));
     }
   }, [
     consoleSession.claims,
@@ -974,6 +975,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         dropdownOptions={dropdownOptions}
         pageTitle={activeView.label}
         groups={visibleSidebarGroups}
+        externalLinks={linksWithConsoleContext(composition.externalLinks ?? [], selectedContext)}
         activeRoute={activeRoute}
         isSidebarExpanded={isSidebarExpanded}
         onToggleSidebar={toggleSidebar}

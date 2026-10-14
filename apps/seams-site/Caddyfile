@@ -23,8 +23,17 @@
 	}
 	@wallet_product path /wallet /wallet/
 	handle @wallet_product {
-		rewrite * /dashboard-static/
-		reverse_proxy 127.0.0.1:4005
+		rewrite * /wallet-static/
+		reverse_proxy 127.0.0.1:4008
+	}
+	@wallet_marketing_assets path /wallet-static/*
+	handle @wallet_marketing_assets {
+		reverse_proxy 127.0.0.1:4008
+	}
+	@wallet_showcase path /showcase/*
+	handle @wallet_showcase {
+		rewrite * /wallet-static{uri}
+		reverse_proxy 127.0.0.1:4008
 	}
 	# R105 Phase 5: the customer Console is its own application; public
 	# /dashboard/* and /platform/* URLs are preserved through routing.

@@ -699,13 +699,28 @@ async function verifyAutomaticWalletSetup(
   const appDirectory = path.join(repository, 'apps/wallet-console');
   const appRequire = createRequire(path.join(appDirectory, 'package.json'));
   const { createServer } = await import(appRequire.resolve('vite'));
-  const frontend = await createServer({
-    root: appDirectory,
+  const platform = await createServer({
+    configFile: path.join(appDirectory, 'vite.console.config.ts'),
+    mode: 'platform',
     base: '/',
     server: { host: '127.0.0.1', port: 0, strictPort: false },
     define: {
       'import.meta.env.VITE_CONSOLE_BASE_URL': JSON.stringify(origin),
       'import.meta.env.VITE_RELAYER_URL': JSON.stringify(origin),
+    },
+  });
+  await platform.listen();
+  const platformUrl: unknown = platform.resolvedUrls?.local[0];
+  if (typeof platformUrl !== 'string') throw new Error('Platform frontend did not start');
+  const frontend = await createServer({
+    configFile: path.join(appDirectory, 'vite.console.config.ts'),
+    mode: 'wallet',
+    base: '/',
+    server: { host: '127.0.0.1', port: 0, strictPort: false },
+    define: {
+      'import.meta.env.VITE_CONSOLE_BASE_URL': JSON.stringify(origin),
+      'import.meta.env.VITE_RELAYER_URL': JSON.stringify(origin),
+      'import.meta.env.VITE_PLATFORM_CONSOLE_ORIGIN': JSON.stringify(platformUrl),
     },
   });
   const worker = runtime(path.join(evidence, 'state'));
@@ -745,7 +760,7 @@ async function verifyAutomaticWalletSetup(
     const token = await issueSession(product.session);
     const transport = new WalletConsoleBrowserTransport(router, token);
     await page.route('**/console/**', transport.handle.bind(transport));
-    await page.goto(new URL('/dashboard/account-settings', appUrl).href);
+    await page.goto(new URL('/dashboard/account-settings', platformUrl).href);
     await expect(page.getByLabel('Account settings page')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Project services', exact: true })).toHaveCount(0);
     expect(await environmentCount(database, projectId)).toBe(0);
@@ -776,6 +791,20 @@ async function verifyAutomaticWalletSetup(
     ).toBeVisible();
     expect(transport.enableRequests).toHaveLength(2);
     await page.screenshot({ path: path.join(evidence, 'wallet-ready.png'), fullPage: true });
+    const accountLink = page.getByRole('link', { name: 'Account settings', exact: true });
+    const accountHref = await accountLink.getAttribute('href');
+    if (!accountHref) throw new Error('Wallet omitted the Platform account link');
+    expect(new URL(accountHref).origin).toBe(new URL(platformUrl).origin);
+    expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
+    await accountLink.click();
+    await expect(page.getByLabel('Account settings page')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'API Keys', exact: true })).toHaveCount(0);
+    expect(transport.enableRequests).toHaveLength(2);
+    await page.screenshot({ path: path.join(evidence, 'platform-account.png'), fullPage: true });
+    await page.goto(new URL('/dashboard/api-keys', appUrl).href);
+    await expect(
+      page.getByRole('button', { name: 'Create credential', exact: true }),
+    ).toBeVisible();
 
     const disabled = await changeService(
       product.router,
@@ -808,6 +837,7 @@ async function verifyAutomaticWalletSetup(
   } finally {
     await page.context().tracing.stop({ path: path.join(evidence, 'trace.zip') });
     await frontend.close();
+    await platform.close();
     await worker.dispose();
   }
 }

@@ -1,16 +1,11 @@
+import { platformConsoleHref } from '@core/dashboard/consoleNavigation';
 import { ApiKeyManagementPage } from '@core/dashboard/routes/api-keys/page';
 import type { ApiCredentialScopeCatalog } from '@core/dashboard/routes/api-keys/apiKeyScopeCatalog';
-import { BillingAccountPage } from '@core/dashboard/routes/billing/page';
-import { AccountSettingsPage } from '@core/dashboard/routes/account-settings/page';
 import { AuditLogsPage, type AuditApprovalIntegration } from '@core/dashboard/routes/audit/page';
 import { GasSponsorshipPage } from '@wallet-product/gas-sponsorship/page';
-import { InvoicesPage } from '@core/dashboard/routes/invoices/page';
-import { PlatformBillingPage } from '@core/dashboard/routes/platform-billing/page';
 import { DerivationRootSecurityPage } from '@wallet-product/derivation-root/page';
 import { TenantDeploymentPage } from '@wallet-product/tenant-deployment/page';
 import { PolicyEnginePage } from '@wallet-product/policy-engine/page';
-import { TeamMembersPage } from '@core/dashboard/routes/team-members/page';
-import { DashboardOnboardingPage } from '@core/dashboard/routes/onboarding/page';
 import {
   OpsCockpitPage,
   type OpsCockpitApprovalActions,
@@ -342,22 +337,6 @@ const sidebarGroups: ComposedSidebarGroup[] = [
     label: 'Administration',
     items: [
       {
-        key: 'account-settings',
-        label: 'Account settings',
-        path: '/dashboard/account-settings',
-        icon: CogIcon,
-        component: AccountSettingsPage,
-        context: 'account',
-      },
-      {
-        key: 'team-members',
-        label: 'Team members',
-        path: '/dashboard/team-members',
-        icon: UserCogIcon,
-        component: TeamMembersPage,
-        context: 'account',
-      },
-      {
         key: 'api-keys',
         label: 'API Keys',
         path: '/dashboard/api-keys',
@@ -390,42 +369,6 @@ const sidebarGroups: ComposedSidebarGroup[] = [
     label: 'Wallet operations',
     items: operationsSecurityItems,
   },
-  {
-    key: 'billing',
-    label: 'Billing',
-    items: [
-      {
-        key: 'billing-account',
-        label: 'Billing account',
-        path: '/dashboard/billing/account',
-        icon: CreditCardIcon,
-        component: BillingAccountPage,
-        context: 'account',
-      },
-      {
-        key: 'invoices',
-        label: 'Invoices',
-        path: '/dashboard/invoices',
-        icon: FileTextIcon,
-        component: InvoicesPage,
-        context: 'account',
-      },
-    ],
-  },
-  {
-    key: 'platform',
-    label: 'Platform',
-    items: [
-      {
-        key: 'platform-billing',
-        label: 'Customer Accounts',
-        path: '/platform/billing',
-        icon: CreditCardIcon,
-        component: PlatformBillingPage,
-        context: 'account',
-      },
-    ],
-  },
 ];
 
 export const SIDEBAR_GROUPS: ComposedSidebarGroup[] = sidebarGroups.filter(
@@ -452,17 +395,6 @@ export const SIDEBAR_GROUP_KEYS = Object.keys(
   DEFAULT_EXPANDED_SIDEBAR_GROUPS,
 ) as Array<ComposedSidebarGroupKey>;
 
-const HIDDEN_DASHBOARD_ROUTES: ComposedSidebarItem[] = [
-  {
-    key: 'onboarding',
-    label: 'Onboarding wizard',
-    path: '/dashboard/onboarding',
-    icon: LayoutDashboardIcon,
-    component: DashboardOnboardingPage,
-    context: 'account',
-  },
-];
-
 function resolveDefaultDashboardRoute(groups: ComposedSidebarGroup[]): ComposedDashboardRoute {
   for (const group of groups) {
     if (group.items[0]) return group.items[0].path;
@@ -477,30 +409,10 @@ export function getRouteFromPathname(pathname: string): ComposedDashboardRoute |
   const normalizedPathname =
     pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 
-  if (
-    normalizedPathname === '/dashboard/billing' ||
-    normalizedPathname === '/dashboard/billing/account'
-  ) {
-    return '/dashboard/billing/account';
-  }
-  if (
-    normalizedPathname === '/dashboard/invoices' ||
-    /^\/dashboard\/invoices\/[^/]+$/.test(normalizedPathname) ||
-    normalizedPathname === '/dashboard/billing/invoices' ||
-    /^\/dashboard\/billing\/invoices\/[^/]+$/.test(normalizedPathname)
-  ) {
-    return '/dashboard/invoices';
-  }
-  if (normalizedPathname === '/platform/billing') {
-    return '/platform/billing';
-  }
   for (const group of SIDEBAR_GROUPS) {
     for (const item of group.items) {
       if (item.path === normalizedPathname) return item.path;
     }
-  }
-  for (const item of HIDDEN_DASHBOARD_ROUTES) {
-    if (item.path === normalizedPathname) return item.path;
   }
   return null;
 }
@@ -510,9 +422,6 @@ export function getViewForRoute(route: ComposedDashboardRoute): ComposedSidebarI
     for (const item of group.items) {
       if (item.path === route) return item;
     }
-  }
-  for (const item of HIDDEN_DASHBOARD_ROUTES) {
-    if (item.path === route) return item;
   }
   for (const group of SIDEBAR_GROUPS) {
     for (const item of group.items) {
@@ -540,6 +449,24 @@ export const DASHBOARD_COMPOSITION: DashboardComposition<
   defaultProductId: DEFAULT_DASHBOARD_PRODUCT_ID,
   defaultRoute: DEFAULT_DASHBOARD_ROUTE,
   sidebarGroups: SIDEBAR_GROUPS,
+  externalLinks: [
+    {
+      label: 'Account settings',
+      href: platformConsoleHref('/dashboard/account-settings'),
+      icon: CogIcon,
+    },
+    {
+      label: 'Team members',
+      href: platformConsoleHref('/dashboard/team-members'),
+      icon: UserCogIcon,
+    },
+    {
+      label: 'Billing account',
+      href: platformConsoleHref('/dashboard/billing/account'),
+      icon: CreditCardIcon,
+    },
+    { label: 'Invoices', href: platformConsoleHref('/dashboard/invoices'), icon: FileTextIcon },
+  ],
   defaultExpandedSidebarGroups: DEFAULT_EXPANDED_SIDEBAR_GROUPS,
   sidebarGroupKeys: SIDEBAR_GROUP_KEYS,
   getRouteFromPathname,

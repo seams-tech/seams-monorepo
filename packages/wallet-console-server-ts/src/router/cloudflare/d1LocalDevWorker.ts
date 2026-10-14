@@ -2295,8 +2295,16 @@ async function fetch(
   ctx: CfExecutionContext,
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (url.pathname === '/healthz') return jsonResponse({ ok: true });
-  if (url.pathname === '/readyz') return await handleReady(env);
+  if (url.pathname === '/healthz') {
+    const response = jsonResponse({ ok: true });
+    withCors(response.headers, undefined, request);
+    return response;
+  }
+  if (url.pathname === '/readyz') {
+    const response = await handleReady(env);
+    withCors(response.headers, undefined, request);
+    return response;
+  }
   if (request.method === 'GET' && url.pathname === LOCAL_ROUTER_AB_CEREMONY_JWKS_PATH) {
     return localRouterAbCeremonyJwksResponse(env);
   }

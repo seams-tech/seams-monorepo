@@ -117,24 +117,7 @@ localhost:4002 {
 localhost:4101 {
 	tls internal
 	encode gzip
-	@router_allowed_origin header_regexp router_origin Origin ^(https://localhost:4002|http://localhost:4001)$
-	@router_preflight {
-		method OPTIONS
-		header_regexp Origin ^(https://localhost:4002|http://localhost:4001)$
-	}
-	header @router_allowed_origin Access-Control-Allow-Origin {http.request.header.Origin}
-	header @router_allowed_origin Access-Control-Allow-Credentials true
-	header @router_allowed_origin Access-Control-Allow-Methods "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-	header @router_allowed_origin Access-Control-Allow-Headers "Content-Type,Authorization,X-Seams-Linked-Device-Proof-V1,X-Seams-Trace-Id,X-Seams-Wallet-Recovery-Challenge-Id,X-Seams-Environment-Id,X-Environment-Id,X-Console-Org-Id,X-Console-User-Id,X-Console-Roles,X-Console-Project-Id,X-Console-Environment-Id"
-	header @router_allowed_origin Vary Origin
-	respond @router_preflight 204
-	reverse_proxy 127.0.0.1:4100 {
-		header_down -Access-Control-Allow-Origin
-		header_down -Access-Control-Allow-Credentials
-		header_down -Access-Control-Allow-Methods
-		header_down -Access-Control-Allow-Headers
-		header_down -Vary
-	}
+	reverse_proxy 127.0.0.1:4100
 	handle_errors {
 		@router_optional_probe path /auth/google/options /.well-known/webauthn /.well-known/webauthn/
 		@router_google_options path /auth/google/options

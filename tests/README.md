@@ -4,6 +4,28 @@ Public Wallet lifecycle contracts, Rust vectors, and Wallet-owned browser tests 
 [`seams-wallet`](https://github.com/seams-tech/seams-wallet). This workspace covers
 private Console composition and deployed product flows.
 
+## Wallet component showcase
+
+The wallet marketing page owns the canvas in `apps/wallet-console/src/pages/wallet/`.
+The Seams homepage does not mount it. Four category controls and a floating rail
+select twelve simulated previews. Staggered positions produce diagonal transitions.
+
+On a visible desktop canvas, the cursor runs the preview's local action, shows its
+result, then resets for replay. The Pause demo control stops playback. Hover, keyboard
+focus, and an offscreen canvas also pause it. Reduced-motion and touch modes use
+manual controls. Automatic playback never moves focus or connects a real wallet.
+Manual results remain visible until the user returns or selects another component.
+
+With the local frontend running, execute from the repository root:
+
+```sh
+node tests/e2e/wallet-component-showcase.e2e.mjs
+```
+
+The default page is `http://localhost:4001/wallet`. Set `SEAMS_WALLET_SITE_ORIGIN`
+to test another wallet page URL. Screenshots, `result.json`, and `trace.zip` go to
+`.artifacts/wallet-component-showcase/`.
+
 ## Gates
 
 - `pnpm test` runs the Console operating E2E cases on a fresh managed local stack.

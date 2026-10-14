@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 
-const origin = process.env.SEAMS_SITE_ORIGIN || 'http://127.0.0.1:4004';
-const artifacts = '.artifacts/component-showcase';
+const origin = process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet';
+const artifacts = '.artifacts/wallet-component-showcase';
 const errors = [];
 const views = [
   ['Authentication', 'Create wallet', 'Create your wallet'],
@@ -73,7 +73,7 @@ async function finishSceneMovement(gallery) {
 async function capture(gallery, name) {
   await settle(gallery);
   assertLayout(await gallery.evaluate(getLayout));
-  await gallery.screenshot({ path: `${artifacts}/${name}.png`, animations: 'disabled' });
+  await gallery.screenshot({ path: `${artifacts}/${name}.png` });
 }
 
 function cursorFrame(gallery, phase) {
@@ -100,8 +100,11 @@ function resumeCursor(gallery) {
   for (const animation of cursor.getAnimations({ subtree: true })) animation.play();
 }
 
-function scrollBelowCanvas() {
-  window.scrollTo(0, document.documentElement.scrollHeight);
+function canvasPosition(gallery) {
+  const matrix = new DOMMatrixReadOnly(
+    getComputedStyle(gallery.querySelector('.component-showcase__world')).transform,
+  );
+  return { x: matrix.e, y: matrix.f };
 }
 
 await mkdir(artifacts, { recursive: true });
@@ -124,14 +127,30 @@ try {
   await page.mouse.move(10, 10);
   await expect(cursorMotion).toHaveCSS('animation-play-state', 'running');
   assert.equal((await gallery.evaluate(cursorFrame, 0.12)).belowAction, true);
-  assert.equal((await gallery.evaluate(cursorFrame, 0.64)).onAction, true);
+  assert.equal((await gallery.evaluate(cursorFrame, 0.9)).onAction, true);
   await gallery.screenshot({ path: `${artifacts}/desktop-cursor-click.png` });
-  await expect(gallery.getByRole('status')).toHaveCount(0);
   await gallery.evaluate(resumeCursor);
-  await page.evaluate(scrollBelowCanvas);
-  await expect(cursorMotion).toHaveCSS('animation-play-state', 'paused');
-  await gallery.scrollIntoViewIfNeeded();
-  await expect(cursorMotion).toHaveCSS('animation-play-state', 'running');
+  await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible();
+  await expect(gallery.getByRole('button', { name: 'Back to preview' })).not.toBeFocused();
+  await gallery.getByRole('button', { name: 'Pause demo' }).click();
+  await expect(gallery.locator('.showcase-preview__result[data-source="demo"]')).toHaveCSS(
+    'animation-play-state',
+    'paused',
+  );
+  await page.waitForTimeout(2800);
+  await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible();
+  await gallery.screenshot({ path: `${artifacts}/desktop-autoplay-result.png` });
+  await gallery.getByRole('button', { name: 'Play demo' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(
+    gallery.getByRole('heading', { name: 'Create your wallet', exact: true }),
+  ).toBeVisible();
+  await expect(gallery.getByRole('heading', { name: 'Wallet created', exact: true })).toBeVisible({
+    timeout: 8000,
+  });
+  await gallery.getByRole('button', { name: 'Pause demo' }).click();
+  await gallery.getByRole('radio', { name: 'Unlock', exact: true }).check();
+  await gallery.getByRole('radio', { name: 'Create wallet', exact: true }).check();
   await capture(gallery, 'desktop-authentication');
 
   // Native radio navigation must keep both levels of selection synchronized.
@@ -155,6 +174,8 @@ try {
   assert.equal((await gallery.evaluate(getLayout)).movementDuration, '0s');
   await gallery.getByRole('button', { name: 'Approve contract call', exact: true }).click();
   await expect(gallery.getByRole('status')).toContainText('No transaction was signed or sent.');
+  await page.waitForTimeout(2800);
+  await expect(gallery.getByRole('status')).toContainText('No transaction was signed or sent.');
   await expect(gallery.getByRole('button', { name: 'Back to preview' })).toBeFocused();
   await capture(gallery, 'desktop-contract-result');
   await page.keyboard.press('Enter');
@@ -163,17 +184,26 @@ try {
   ).toBeFocused();
   await expect(
     gallery.getByRole('link', { name: 'Explore transaction components' }),
-  ).toHaveAttribute('href', '/transaction-mocks/');
+  ).toHaveAttribute('href', /\/showcase\/transaction\/$/);
+
+  const beforeCategory = await gallery.evaluate(canvasPosition);
 
   // Interrupt the moving scene several times; the last choice owns both rails and the active card.
   for (const category of ['Account', 'Checkout', 'Authentication', 'Transactions']) {
     await gallery.getByRole('radio', { name: category, exact: true }).check();
   }
+  await settle(gallery);
+  const afterCategory = await gallery.evaluate(canvasPosition);
+  assert.notEqual(beforeCategory.x, afterCategory.x, 'Category movement changes x');
+  assert.notEqual(beforeCategory.y, afterCategory.y, 'Category movement changes y');
   await gallery.getByRole('radio', { name: 'Receipt', exact: true }).check();
   await expect(
     gallery.getByRole('heading', { name: 'Transfer confirmed', exact: true }),
   ).toBeVisible();
   await capture(gallery, 'desktop-receipt');
+  const afterComponent = await gallery.evaluate(canvasPosition);
+  assert.notEqual(afterCategory.x, afterComponent.x, 'Rail movement changes x');
+  assert.notEqual(afterCategory.y, afterComponent.y, 'Rail movement changes y');
   await expect(cursor).toHaveCount(0);
 
   await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
@@ -226,8 +256,8 @@ try {
     JSON.stringify(
       {
         passed: true,
-        cursor:
-          'approach, pulse, interaction pause, offscreen pause, keyboard, reduced motion, touch',
+        cursor: 'action, result, pause, reset, replay, keyboard, reduced motion, touch',
+        diagonalMovement: true,
         checked,
         errors,
       },
@@ -236,7 +266,7 @@ try {
     ),
   );
   console.log(
-    'Passed category and rail navigation, demo actions, interrupted motion, keyboard access, and 24 mobile views.',
+    'Passed automatic action/reset/replay, pause, diagonal navigation, manual actions, keyboard access, and 24 mobile views.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

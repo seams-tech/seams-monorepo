@@ -1,6 +1,5 @@
 import React from 'react';
 import { Bot, ListChecks, ScrollText, ShieldCheck, Wallet } from 'lucide-react';
-import { ComponentShowcase } from './ComponentShowcase';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import SeamsLogo from '@/components/icons/SeamsLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
@@ -49,8 +48,6 @@ function HomeHeroCurrent(): React.JSX.Element {
           </div>
         </div>
       </header>
-
-      <ComponentShowcase />
     </>
   );
 }

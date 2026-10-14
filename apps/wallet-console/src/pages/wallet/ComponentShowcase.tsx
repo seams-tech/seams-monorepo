@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers2 } from 'lucide-react';
+import { Layers2, Pause, Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import './component-showcase.css';
 
@@ -29,17 +29,17 @@ type Preview = {
 
 const previews: readonly Preview[] = [
   { id: 'create', category: 'authentication', label: 'Create wallet', x: 0, y: 0 },
-  { id: 'unlock', category: 'authentication', label: 'Unlock', x: 0, y: 590 },
-  { id: 'recovery', category: 'authentication', label: 'Recovery', x: 0, y: 1180 },
-  { id: 'transfer', category: 'transactions', label: 'Transfer', x: 420, y: 0 },
-  { id: 'contract', category: 'transactions', label: 'Contract call', x: 420, y: 590 },
-  { id: 'receipt', category: 'transactions', label: 'Receipt', x: 420, y: 1180 },
-  { id: 'payment', category: 'checkout', label: 'Payment', x: 840, y: 0 },
-  { id: 'methods', category: 'checkout', label: 'Payment method', x: 840, y: 590 },
-  { id: 'paid', category: 'checkout', label: 'Confirmation', x: 840, y: 1180 },
-  { id: 'profile', category: 'account', label: 'Profile', x: 1260, y: 0 },
-  { id: 'devices', category: 'account', label: 'Devices', x: 1260, y: 590 },
-  { id: 'security', category: 'account', label: 'Security', x: 1260, y: 1180 },
+  { id: 'unlock', category: 'authentication', label: 'Unlock', x: 80, y: 590 },
+  { id: 'recovery', category: 'authentication', label: 'Recovery', x: -70, y: 1180 },
+  { id: 'transfer', category: 'transactions', label: 'Transfer', x: 420, y: 100 },
+  { id: 'contract', category: 'transactions', label: 'Contract call', x: 500, y: 690 },
+  { id: 'receipt', category: 'transactions', label: 'Receipt', x: 350, y: 1280 },
+  { id: 'payment', category: 'checkout', label: 'Payment', x: 840, y: -70 },
+  { id: 'methods', category: 'checkout', label: 'Payment method', x: 920, y: 520 },
+  { id: 'paid', category: 'checkout', label: 'Confirmation', x: 770, y: 1110 },
+  { id: 'profile', category: 'account', label: 'Profile', x: 1260, y: 60 },
+  { id: 'devices', category: 'account', label: 'Devices', x: 1340, y: 650 },
+  { id: 'security', category: 'account', label: 'Security', x: 1190, y: 1240 },
 ];
 
 const categories: readonly { id: Category; label: string; first: PreviewId }[] = [
@@ -71,6 +71,18 @@ function selectPreview(
   if (!(event.target instanceof HTMLInputElement)) return;
   const preview = readPreview(event.target.value);
   if (preview !== null) setPreview(preview);
+}
+
+function togglePlayback(
+  setPlaying: React.Dispatch<React.SetStateAction<boolean>>,
+  playing: boolean,
+  event: React.MouseEvent<HTMLButtonElement>,
+): void {
+  setPlaying(!playing);
+  if (!playing) {
+    const showcase = event.currentTarget.closest<HTMLElement>('.component-showcase');
+    if (showcase !== null) showcase.dataset.motion = 'playback';
+  }
 }
 
 function setPointerMotion(event: React.PointerEvent<HTMLElement>): void {
@@ -164,12 +176,14 @@ function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
 
 export function ComponentShowcase(): React.JSX.Element {
   const [selected, setSelected] = React.useState<Preview>(previews[0]);
+  const [playing, setPlaying] = React.useState(true);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
 
   return (
     <section
       className="component-showcase"
       aria-label="Wallet component showcase"
+      data-playing={playing}
       onPointerDownCapture={setPointerMotion}
       onKeyDownCapture={setKeyboardMotion}
     >
@@ -177,7 +191,15 @@ export function ComponentShowcase(): React.JSX.Element {
         <span>
           <Layers2 aria-hidden /> The wallet, in components
         </span>
-        <span className="component-showcase__demo-label">Interactive demo</span>
+        <button
+          type="button"
+          className="component-showcase__playback"
+          onClick={togglePlayback.bind(null, setPlaying, playing)}
+          aria-pressed={playing}
+        >
+          {playing ? <Pause aria-hidden /> : <Play aria-hidden />}
+          {playing ? 'Pause demo' : 'Play demo'}
+        </button>
       </div>
       <div className="component-showcase__frame">
         <div

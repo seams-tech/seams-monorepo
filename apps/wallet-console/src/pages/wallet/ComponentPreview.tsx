@@ -35,52 +35,103 @@ type PreviewAction =
   | 'security'
   | 'reset';
 
+type PreviewResult = { title: string; message: string };
+
+type PreviewState =
+  | { kind: 'ready' }
+  | { kind: 'result'; source: 'demo' | 'user'; result: PreviewResult };
+
+function resultForAction(action: string): PreviewResult | null {
+  switch (action) {
+    case 'create':
+      return {
+        title: 'Wallet created',
+        message: 'Your sample wallet is ready. No real wallet or passkey was created.',
+      };
+    case 'google':
+      return {
+        title: 'Continue with Google',
+        message:
+          'Google sign-in starts here in the product. This preview does not connect an account.',
+      };
+    case 'unlock':
+      return {
+        title: 'Welcome back',
+        message: 'Your sample wallet is unlocked. Your real wallet stays unchanged.',
+      };
+    case 'link':
+      return {
+        title: 'Device linked',
+        message: 'Your sample device is connected. No real device was linked.',
+      };
+    case 'recover':
+      return {
+        title: 'Access restored',
+        message: 'Your sample wallet is ready on this device. No real recovery code was used.',
+      };
+    case 'confirm':
+      return {
+        title: 'Transfer confirmed',
+        message: '125.00 USDC to Studio North. No funds were sent.',
+      };
+    case 'contract':
+      return {
+        title: 'Contract call confirmed',
+        message: 'The sample call is complete. No transaction was signed or sent.',
+      };
+    case 'pay':
+      return { title: 'Payment complete', message: '$24.00 to Studio North. No payment was made.' };
+    case 'cancel':
+      return {
+        title: 'Transfer canceled',
+        message: 'The sample transfer was canceled. No funds were sent.',
+      };
+    case 'security':
+      return {
+        title: 'Recovery is ready',
+        message:
+          'Your sample recovery code is saved. No real recovery code appears in this preview.',
+      };
+    default:
+      return null;
+  }
+}
+
+function activatePreview(
+  setState: React.Dispatch<React.SetStateAction<PreviewState>>,
+  source: 'demo' | 'user',
+  button: HTMLButtonElement,
+): void {
+  const result = resultForAction(button.dataset.previewAction ?? '');
+  if (result !== null) setState({ kind: 'result', source, result });
+}
+
 function previewAction(
-  setFeedback: React.Dispatch<React.SetStateAction<string | null>>,
+  setState: React.Dispatch<React.SetStateAction<PreviewState>>,
   event: React.MouseEvent<HTMLElement>,
 ): void {
   if (!(event.target instanceof Element)) return;
-  const action = event.target.closest<HTMLButtonElement>('button[data-preview-action]');
-  if (!action) return;
-  switch (action.dataset.previewAction) {
-    case 'create':
-      setFeedback('Wallet created. This preview did not create a real wallet or passkey.');
-      break;
-    case 'google':
-      setFeedback(
-        'Google sign-in starts here in the product. This preview does not connect an account.',
-      );
-      break;
-    case 'unlock':
-      setFeedback('Wallet unlocked. This preview did not access your real wallet.');
-      break;
-    case 'link':
-      setFeedback('Device linked. This preview did not connect a real device.');
-      break;
-    case 'recover':
-      setFeedback('Access restored. This preview did not use a real recovery code.');
-      break;
-    case 'confirm':
-      setFeedback('Transfer confirmed: 125.00 USDC to Studio North. No funds were sent.');
-      break;
-    case 'contract':
-      setFeedback('Contract call confirmed. No transaction was signed or sent.');
-      break;
-    case 'pay':
-      setFeedback('Payment complete: $24.00 to Studio North. No payment was made.');
-      break;
-    case 'cancel':
-      setFeedback('Transfer canceled. No funds were sent.');
-      break;
-    case 'security':
-      setFeedback(
-        'Recovery is ready for this sample account. No real recovery code appears in this preview.',
-      );
-      break;
-    case 'reset':
-      setFeedback(null);
-      requestAnimationFrame(focusPreviewAction.bind(null, event.currentTarget));
-      break;
+  const button = event.target.closest<HTMLButtonElement>('button[data-preview-action]');
+  if (button === null) return;
+  if (button.dataset.previewAction === 'reset') {
+    setState({ kind: 'ready' });
+    requestAnimationFrame(focusPreviewAction.bind(null, event.currentTarget));
+    return;
+  }
+  activatePreview(setState, 'user', button);
+}
+
+// Both the cursor and a real click use the same local preview action.
+function advanceDemo(
+  setState: React.Dispatch<React.SetStateAction<PreviewState>>,
+  event: React.AnimationEvent<HTMLElement>,
+): void {
+  if (!(event.target instanceof Element)) return;
+  if (event.animationName === 'showcase-cursor-visit') {
+    const button = event.target.closest<HTMLButtonElement>('button[data-preview-action]');
+    if (button !== null) activatePreview(setState, 'demo', button);
+  } else if (event.animationName === 'showcase-result-replay') {
+    setState({ kind: 'ready' });
   }
 }
 
@@ -103,16 +154,18 @@ function PreviewCursor(): React.JSX.Element {
 function PrimaryAction({
   action,
   children,
+  focus = false,
 }: {
   action: PreviewAction;
   children: React.ReactNode;
+  focus?: boolean;
 }): React.JSX.Element {
   return (
     <button
       className="showcase-preview__primary"
       type="button"
       data-preview-action={action}
-      autoFocus={action === 'reset'}
+      autoFocus={focus}
     >
       {children}
       <ArrowRight aria-hidden />
@@ -357,7 +410,10 @@ function previewContent(id: PreviewId): React.JSX.Element {
             <Fingerprint aria-hidden />
             Approve contract call
           </PrimaryAction>
-          <a className="showcase-preview__demo-link" href="/transaction-mocks/">
+          <a
+            className="showcase-preview__demo-link"
+            href={`${import.meta.env.BASE_URL}showcase/transaction/`}
+          >
             Explore transaction components <ArrowUpRight aria-hidden />
           </a>
         </>
@@ -449,6 +505,12 @@ function previewContent(id: PreviewId): React.JSX.Element {
             <Wallet aria-hidden />
             Preview payment
           </PrimaryAction>
+          <a
+            className="showcase-preview__demo-link"
+            href={`${import.meta.env.BASE_URL}showcase/checkout/`}
+          >
+            Explore checkout components <ArrowUpRight aria-hidden />
+          </a>
         </>
       );
     case 'paid':
@@ -540,31 +602,37 @@ function assertNever(value: never): never {
 }
 
 export function ComponentPreview({ id, active }: PreviewProps): React.JSX.Element {
-  const [feedback, setFeedback] = React.useState<string | null>(null);
+  const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
   return (
     <article
       className="showcase-preview"
       data-preview={id}
-      onClick={previewAction.bind(null, setFeedback)}
+      onClick={previewAction.bind(null, setState)}
+      onAnimationEnd={active ? advanceDemo.bind(null, setState) : undefined}
     >
       <div className="showcase-preview__origin">
         <LockKeyhole aria-hidden />
         shop.example.com<span>Demo</span>
       </div>
       <div className="showcase-preview__content">
-        {feedback === null ? (
+        {state.kind === 'ready' ? (
           previewContent(id)
         ) : (
-          <>
+          <div className="showcase-preview__result" data-source={state.source}>
             <div className="showcase-preview__icon">
               <Check aria-hidden />
             </div>
-            <h3>Preview complete</h3>
-            <p className="showcase-preview__feedback" role={active ? 'status' : undefined}>
-              {feedback}
+            <h3>{state.result.title}</h3>
+            <p
+              className="showcase-preview__feedback"
+              role={active && state.source === 'user' ? 'status' : undefined}
+            >
+              {state.result.message}
             </p>
-            <PrimaryAction action="reset">Back to preview</PrimaryAction>
-          </>
+            <PrimaryAction action="reset" focus={state.source === 'user'}>
+              Back to preview
+            </PrimaryAction>
+          </div>
         )}
       </div>
       <div className="showcase-preview__footer">

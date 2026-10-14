@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
 import './component-showcase.css';
@@ -263,7 +263,13 @@ export function ComponentShowcase(): React.JSX.Element {
         title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
         onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
       >
-        {playback.kind === 'playing' ? <Pause aria-hidden /> : <Play aria-hidden />}
+        {playback.kind === 'playing' ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke="currentColor" strokeLinecap="round">
+            <path d="M8 5v14M16 5v14" />
+          </svg>
+        ) : (
+          <Play aria-hidden />
+        )}
       </button>
       <div className="component-showcase__navigation">
         <div className="component-showcase__rail" aria-label="Component navigation">

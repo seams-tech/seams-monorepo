@@ -673,7 +673,7 @@
   z-index: 5;
 }
 .component-showcase__playback svg {
-  fill: currentColor;
+  fill: none;
   stroke-width: 1.5;
 }
 .component-showcase[data-playback='paused'] .showcase-preview__cursor-motion,

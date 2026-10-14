@@ -5,6 +5,8 @@ Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and al
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
 
+The [registration-rebase qualification](evidence/registration-rebase-qualification.json) records fresh package checks, `.5` to `.7` restore/upgrade, and Google owner loss.
+
 ## Source and build identity
 
 - Upstream: `https://github.com/denoland/celld.git`.

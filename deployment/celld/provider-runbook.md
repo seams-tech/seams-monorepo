@@ -247,16 +247,16 @@ Keep durable state and consumed material intact. Full state-safe upgrade and rol
 
 ```sh
 python3 tests/e2e/celld/tenant-root-restore.e2e.py \
-  CELLD_6 WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT CELLD_5
+  CELLD_7 WALLET_SERVER_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT CELLD_5
 ```
 
-Use the reviewed `.5` and `.6` executables and exact 0.11.0 Wallet Server candidate.
+Use the reviewed `.5` and `.7` executables and exact 0.11.0 Wallet Server candidate.
 The test observer can inspect synthetic databases and buckets. The runner binds it to loopback only.
 Never deploy this observer into a product fleet.
 
 The runner creates a real ECDSA signature and applies the public restore and retirement assertions on `.5`.
-It then stops that process before deploying `.6` manifests.
-It starts `.6` with the same durable state and verifies the original restore receipt, revision, and current epoch records.
+It then stops that process before deploying `.7` manifests.
+It starts `.7` with the same durable state and verifies the original restore receipt, revision, and current epoch records.
 It also requires exact ECDSA signature replay and refuses both changed finalization input and consumed-presign reuse before request expiry.
 It repeats those checks after another restart. It records temporary ownership refusals and waits at most 60 seconds for takeover.
 Each run retains its source copies, source and package hashes, native logs, and result file.
@@ -276,9 +276,10 @@ These local checks do not establish GCS behavior or cryptographic erasure.
 The runner now allows the existing 45-second service stop bound and requires exit status zero after SIGTERM.
 It holds an admitted observer request, checks that a new application request receives the explicit draining refusal,
 and releases the held request to replay the exact stored signature through the Router.
-It then attempts the incompatible `.5` executable without changing the `.6` manifests or durable state.
-That executable must refuse the required feature. The `.6` restart must preserve the stored outcomes and consumed-material refusals.
-See [shutdown and downgrade-refusal evidence](evidence/shutdown-runtime-upgrade.json).
+It then attempts the incompatible `.5` executable without changing the `.7` manifests or durable state.
+That executable must refuse the required feature. The `.7` restart must preserve the stored outcomes and consumed-material refusals.
+See [the current package qualification](evidence/registration-rebase-qualification.json) for the `.5` to `.7` run.
+The [earlier shutdown evidence](evidence/shutdown-runtime-upgrade.json) records the `.5` to `.6` run.
 This qualifies completion of an admitted stored-response replay during local shutdown. Fresh signing claims and fleet drain remain open.
 Rollback must preserve current durable records. Never restore an older storage snapshot to undo an executable change.
 

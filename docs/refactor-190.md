@@ -897,6 +897,30 @@ No production handler, runtime patch, database call, or request round trip chang
 See [the partition evidence and precise limits](../deployment/celld/evidence/peer-partitions.json).
 The maintained source reduction is 31,127 lines, including the added acceptance code.
 
+## October 14 registration rebase qualification
+
+Both branches rebased onto local `dev`: public `24e93a78` and private `eca55b5d`.
+The public rebase includes concurrent founding-record reads during Router registration consumption.
+Fresh 0.11.0 archives pass all 16 selected Wallet contracts on celld `.7` and workerd.
+Both suites use identical package snapshots, with no skipped or flaky contracts.
+The existing registration reservation E2E also passes, including one batched database call for the wallet commit.
+Private `pnpm check` passes. Console onboarding and replay pass on `.7` with all 76 migrations.
+
+The local restore scenario now qualifies `.5` to `.7` with the rebuilt candidate.
+Backup GET denial and retired-backup DELETE denial preserve their required refusal and recovery behavior.
+The upgrade and restart preserve the exact ECDSA signature and refuse consumed-presign reuse.
+All three admitted-replay shutdown checkpoints exit zero. The incompatible `.5` downgrade refuses to serve.
+See [the source-bound qualification record](../deployment/celld/evidence/registration-rebase-qualification.json).
+
+The rebuilt candidate also passes timed Yao owner loss across ordinary and SEV-SNP Google VMs.
+SIGKILL is confirmed within 6,002 ms of execution submission, before the 15-second ceremony timeout.
+The replacement owner advances epoch 1 to 2. Both role claims remain burned, and retry opens no new protocol connection.
+Fresh registration succeeds on the unchanged survivor. Both VMs stop, temporary rules are removed, and SSH forwarding ports close.
+
+No production handler, runtime patch, database call, or request round trip changed in this checkpoint.
+The maintained source reduction remains 31,127 lines against the rebased `dev` branches.
+The candidates remain unpublished. These functional checks do not establish provider latency equivalence.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

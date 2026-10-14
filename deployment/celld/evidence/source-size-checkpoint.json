@@ -29,7 +29,7 @@
   "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
   "repositories": {
     "seams-wallet": {
-      "baseRevision": "565d4d2485cd6794e7f49cf436c3eeb9242c091a",
+      "baseRevision": "24e93a7854cf694a367fafc0d88d12cdde1d0551",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
       "netLines": -32482,
       "files": [
@@ -612,7 +612,7 @@
       ]
     },
     "seams-monorepo": {
-      "baseRevision": "8fe70b8918ea2b06502a6c71ff0f2ef51e46ab47",
+      "baseRevision": "eca55b5d432a6b8f1b7274c57ba3449c207d94f0",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
       "netLines": 1355,
       "files": [

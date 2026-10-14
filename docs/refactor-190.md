@@ -622,9 +622,28 @@ R190 therefore requires no live migration from those retired hosts.
 Existing Workers deployments retain their durable state. A future move from Cloudflare to celld still requires the authorized relocation or recovery flow.
 This inventory closes the classic-host consumer gate. It does not establish distributed restore correctness.
 
+## October 14 cross-node runtime qualification
+
+Private celld `.6` fixes two measured cross-node WebSocket defects without changing Wallet handlers or persisted Wallet records.
+The build-time patch completes the peer handshake and attaches accepted sockets to the remote owner's tunnel.
+Failed or cancelled attachment releases native socket registration. New manifests require `peer-durable-websockets-v1`.
+The `.5` runtime rejects those manifests before serving.
+
+The clean `.6` macOS build passes bindings, all three echo controls, real two-node Yao owner loss, and all 16 selected Wallet contracts.
+The Linux release passes real Yao interruption across ordinary and SEV-SNP Google VMs in `seams-501403`.
+Both roles retain burned state after B-owner SIGKILL. The exact retry opens no new connection.
+B moves to the surviving VM with epoch 2. The survivor keeps its process ID and reports zero restarts.
+Both VMs are stopped. Temporary peer rules are removed. Cleanup reports no errors.
+See [the exact build and qualification record](../deployment/celld/evidence/peer-websocket-runtime.json).
+
+Both R190 branches are rebased onto current local `dev`: public `2f634225` and private `c02d6c58`.
+The public rebase changes documentation only relative to the tested tree. The private rebase preserves the celld and Wallet test sources.
+Post-rebase private checks and public bloat checks pass. The maintained source reduction remains 33,713 lines.
+The earlier full Google Wallet and Console evidence uses `.5`; the new `.6` Google proof covers this distributed Yao scenario.
+
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed Yao interruption, relocation, tenant-root retirement, and authorized restore.
+1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, tenant-root retirement, and authorized restore.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete state-safe upgrade and rollback procedures for Workers deployments. Preserve consumed material and ownership generations. No classic-host state migration is required.
 

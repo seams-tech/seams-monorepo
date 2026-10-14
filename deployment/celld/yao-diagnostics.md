@@ -93,3 +93,18 @@ It changes no Wallet handler, cryptographic operation, protocol message, or pers
 The separate Worker-created socket handoff limitation remains open.
 The Google rerun must measure runtime identity, both owners before and after execution, owner SIGKILL, replacement epoch, and unchanged survivor process.
 Its source now retains non-upgrade refusal bodies. Cleanup errors prevent a passing result.
+
+## Google `.6` result
+
+The reviewed Linux release passes the two-node Yao scenario in project `seams-501403`, zone `us-central1-c`.
+A runs on the ordinary VM. B runs on the SEV-SNP VM. Actual ownership records match those placements before and after the fault.
+One A message and two B messages precede the disconnect. Both roles report burned state. The exact retry returns HTTP 503.
+After B-owner SIGKILL, B moves to the ordinary VM and its ownership epoch increases from 1 to 2.
+Both roles still report burned state. Retry returns HTTP 503 and opens zero additional protocol connections.
+The survivor keeps its original process ID and reports zero restarts.
+An independent wallet completes registration before owner loss. This result makes no post-loss fresh-registration claim.
+
+The cleanup audit reports both VMs stopped, temporary peer rules absent, and no cleanup errors.
+The [qualification record](evidence/peer-websocket-runtime.json) identifies the raw result, source hashes, exact executable, and retained diagnostics.
+This closes the distributed Yao interruption/owner-loss check. It does not close the full restore, relocation, retirement, or upgrade matrix.
+The original `.5` Google HTTP 500 body remains unavailable. The passing `.6` result does not retrospectively establish that missing fact.

@@ -1,5 +1,5 @@
 {
-  "status": "local-qualification-passed; Google release qualification pending",
+  "status": "passed for the recorded local contracts and Google two-node Yao owner-loss scenario",
   "runtime": {
     "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
     "patchSha256": "0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da",
@@ -38,19 +38,385 @@
     "sha256": "e454b0ba4b0a115dd90afdfe438544083a2ebb2ef8300c2f9d79cd1f79a2116b"
   },
   "limits": [
-    "Local synthetic S3 only; Google release acceptance pending.",
+    "Google evidence qualifies the recorded .6 Linux two-node Yao scenario. The earlier 16-contract Google and Console runs used .5.",
     "Local Yao ownership measured before execution only.",
     "Independent registration precedes owner loss.",
     "Retry proves refusal and zero additional connections, without asserting a specific rejection reason.",
     "Cancellation cleanup source-reviewed; not separately fault-injected.",
     "Subprotocol, malformed external handshake, and Worker-created socket handoff remain unqualified."
   ],
-  "review": "Independent reviewer found no material blocker in the native fix or Google controller. Remote executable identity must match the .6 build ledger.",
+  "review": "Independent review verified the native fix, Google controller, distinct owner records, fault counters, burned states, SIGKILL, takeover epoch, unchanged survivor, exact executable and archive hashes, and final resource cleanup. No contradiction was found. The listed qualification limits remain.",
   "localWallet": {
     "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-b0njdq2l/result.json",
     "sha256": "aa60419da2dc2f9941e32a85fd146083a296fad4bbbcb10b85e79559920a56c6",
     "selectedContractsPassed": 16,
     "previousRuntime": "celld 0.6.2-seams.5 (debug)",
     "refusedFeature": "peer-durable-websockets-v1"
+  },
+  "postRebase": {
+    "publicRevision": "1fbf02aad08599cb694e6efa5b650fd8e6fc296f",
+    "publicDevRevision": "2f6342253b1e63cfda887374ad269bd844f210de",
+    "privateRevision": "738a4c1242697efb3d87626c1bbdfeb82e62d9fa",
+    "privateDevRevision": "c02d6c58e8f30dc4269fa765b6d3bd644b356879",
+    "privateCheck": {
+      "path": "/tmp/seams-r190-seams6-rebased-private-check.log",
+      "sha256": "13657adcacd83fc1f5d4e9448954b9340ec2faa9403d1722450c6f676906fff2"
+    },
+    "publicBloatCheck": {
+      "path": "/tmp/seams-r190-seams6-public-bloat.log",
+      "sha256": "2b6e34b27e8f200258fdcccf277201c9d5542b91126d3af4371f2902756f5220"
+    },
+    "sourceEquivalence": "The public rebase changes documentation only versus the tested tree. The private rebase changes account/deployment files outside the celld patch and Wallet qualification harness."
+  },
+  "linuxRuntime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da",
+    "sourceTransferSha256": "8b33f4399c2017b3b91af4077c6cb83e44a240254cfd6cb9e312f3e43d05c0ea",
+    "executableSha256": "62364da890f8add12f93cbab89fa2a9189e692b6996e3e7f1176235f3f77e972",
+    "version": "celld 0.6.2-seams.6",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "linuxBuildLog": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/release-6/build.log",
+    "sha256": "4e47fc36578e2962ca5e2136bb13516e9aefe7e583b0887b58a2c083281b3fc5"
+  },
+  "linuxInstallation": {
+    "ordinary": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/release-6/install-ordinary.log",
+      "sha256": "36040631e91026fb1aa18cc800ab0fd9d2ba81f183e4ad5299088492207d98f4"
+    },
+    "snp": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/release-6/install-snp.log",
+      "sha256": "36040631e91026fb1aa18cc800ab0fd9d2ba81f183e4ad5299088492207d98f4"
+    }
+  },
+  "googleYao": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-jz4t3tbt/result.json",
+      "sha256": "2feea6621700dcdc700e8b0f4adcc38703f6f1410aac60b1b93259371a126021"
+    },
+    "runtimeSha256": "62364da890f8add12f93cbab89fa2a9189e692b6996e3e7f1176235f3f77e972",
+    "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+    "project": "seams-501403",
+    "fault": {
+      "httpStatus": 200,
+      "status": "recoverable_failure",
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "connection": {
+        "connectionAttempts": 1,
+        "connections": 1,
+        "refusals": [],
+        "aMessages": 1,
+        "bMessages": 2,
+        "disconnected": true,
+        "aClosed": true,
+        "bClosed": false,
+        "aClose": {
+          "code": 1000,
+          "reason": "pair execution ended"
+        }
+      },
+      "exactRetryStatus": 503
+    },
+    "afterOwnerLoss": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "ownersBeforeFault": {
+      "a": {
+        "scope": "RouterAbDeriverAWalletDurableObject:fea66add559488e9d3bb2de1ae4eb365885d92b84aab919cdc85c12f260cb798",
+        "owner": {
+          "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+          "expires_ms": 1791941627578,
+          "addr": "10.128.0.4:19081",
+          "probe_public_key": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+          "log": {
+            "state": "open",
+            "epoch": 1,
+            "ensemble": ["node_eb11341848f3825468dc70cb617e6c75"],
+            "tiered": 0,
+            "active": true,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791941617578,
+            "owned_cells": 4,
+            "placement_weight": 4,
+            "bucket_format": 2,
+            "resident_cells": 4,
+            "host_websockets": 0,
+            "rss_bytes": 216711168,
+            "in_use_bytes": 201778864,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 99,
+            "open_fds": 64,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      },
+      "b": {
+        "scope": "RouterAbDeriverBWalletDurableObject:2e9ab1399bb4f02890639e422a1752e2b26dea9335cb46ff39f7399e7960b8c5",
+        "owner": {
+          "node": "node_eb11341848f3825468dc70cb617e6c75",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_eb11341848f3825468dc70cb617e6c75",
+          "expires_ms": 1791941630258,
+          "addr": "10.128.0.3:19081",
+          "probe_public_key": "e0103fc90e00b66096fb0f4b989acae72b4bec7edd3ee01b9563a2fc6692af4e",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "e0103fc90e00b66096fb0f4b989acae72b4bec7edd3ee01b9563a2fc6692af4e",
+          "log": {
+            "state": "open",
+            "epoch": 1,
+            "ensemble": ["node_e67e52eac04ea395ac3a33627ab849c1"],
+            "tiered": 0,
+            "active": false,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791941620258,
+            "owned_cells": 1,
+            "placement_weight": 2,
+            "bucket_format": 2,
+            "resident_cells": 1,
+            "host_websockets": 0,
+            "rss_bytes": 215384064,
+            "in_use_bytes": 207835360,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 0,
+            "open_fds": 40,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      }
+    },
+    "ownersAfterFault": {
+      "a": {
+        "scope": "RouterAbDeriverAWalletDurableObject:fea66add559488e9d3bb2de1ae4eb365885d92b84aab919cdc85c12f260cb798",
+        "owner": {
+          "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+          "expires_ms": 1791941667599,
+          "addr": "10.128.0.4:19081",
+          "probe_public_key": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+          "log": {
+            "state": "open",
+            "epoch": 1,
+            "ensemble": ["node_eb11341848f3825468dc70cb617e6c75"],
+            "tiered": 0,
+            "active": true,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791941657599,
+            "owned_cells": 12,
+            "placement_weight": 4,
+            "bucket_format": 2,
+            "resident_cells": 12,
+            "host_websockets": 0,
+            "rss_bytes": 534437888,
+            "in_use_bytes": 514353040,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 199,
+            "open_fds": 144,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      },
+      "b": {
+        "scope": "RouterAbDeriverBWalletDurableObject:2e9ab1399bb4f02890639e422a1752e2b26dea9335cb46ff39f7399e7960b8c5",
+        "owner": {
+          "node": "node_eb11341848f3825468dc70cb617e6c75",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_eb11341848f3825468dc70cb617e6c75",
+          "expires_ms": 1791941672519,
+          "addr": "10.128.0.3:19081",
+          "probe_public_key": "e0103fc90e00b66096fb0f4b989acae72b4bec7edd3ee01b9563a2fc6692af4e",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "e0103fc90e00b66096fb0f4b989acae72b4bec7edd3ee01b9563a2fc6692af4e",
+          "log": {
+            "state": "open",
+            "epoch": 1,
+            "ensemble": ["node_e67e52eac04ea395ac3a33627ab849c1"],
+            "tiered": 0,
+            "active": true,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791941662519,
+            "owned_cells": 1,
+            "placement_weight": 2,
+            "bucket_format": 2,
+            "resident_cells": 1,
+            "host_websockets": 1,
+            "rss_bytes": 208310272,
+            "in_use_bytes": 200064960,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 99,
+            "open_fds": 39,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      }
+    },
+    "replacementOwner": {
+      "scope": "RouterAbDeriverBWalletDurableObject:2e9ab1399bb4f02890639e422a1752e2b26dea9335cb46ff39f7399e7960b8c5",
+      "owner": {
+        "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+        "epoch": 2
+      },
+      "nodeLease": {
+        "node": "node_e67e52eac04ea395ac3a33627ab849c1",
+        "expires_ms": 1791941690945,
+        "addr": "10.128.0.4:19081",
+        "probe_public_key": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+        "peer_protocol": 5,
+        "paced_handoff": true,
+        "ownership_index_generation": "faa84570da7dd9cb355a91035b3392db5e9581a4f7c5d262ae6f4a762b6502d3",
+        "log": {
+          "state": "open",
+          "epoch": 1,
+          "ensemble": ["node_eb11341848f3825468dc70cb617e6c75"],
+          "tiered": 0,
+          "active": true,
+          "claimant": null,
+          "claimed_ms": null
+        },
+        "load": {
+          "sampled_ms": 1791941680945,
+          "owned_cells": 13,
+          "placement_weight": 4,
+          "bucket_format": 2,
+          "resident_cells": 13,
+          "host_websockets": 0,
+          "rss_bytes": 516812800,
+          "in_use_bytes": 496353848,
+          "cgroup_working_set_bytes": null,
+          "cgroup_current_bytes": null,
+          "cpu_percent_x100": 99,
+          "open_fds": 154,
+          "fd_limit": 524288,
+          "pressured": false,
+          "memory_headroom": true,
+          "shed_cells": 0,
+          "restoring": 0,
+          "rebalance_paused": false,
+          "draining": false
+        }
+      }
+    },
+    "survivor": {
+      "MainPID": "20296",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Wed 2026-10-14 01:33:00 UTC",
+      "ExecMainPID": "20296",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-yao-jz4t3tbt-ordinary.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "independentWalletCompletedBeforeOwnerLoss": true,
+    "finalVmStates": [
+      {
+        "kind": "ordinary",
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "state": "TERMINATED",
+        "configuration": {
+          "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/e2-standard-4",
+          "cpuPlatform": "Intel Broadwell"
+        }
+      },
+      {
+        "kind": "confidential",
+        "name": "r190q-20261013-e7f9b0-snp",
+        "state": "TERMINATED",
+        "configuration": {
+          "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/n2d-standard-2",
+          "cpuPlatform": "AMD Milan",
+          "confidentialInstanceConfig": {
+            "confidentialInstanceType": "SEV_SNP"
+          }
+        }
+      }
+    ],
+    "cleanupErrors": [],
+    "remainingPeerRules": []
   }
 }

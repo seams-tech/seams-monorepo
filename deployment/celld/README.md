@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: all 16 selected local Wallet contracts pass on celld and workerd. Google runtime primitives pass on ordinary and Confidential VMs. The service, HTTPS, and restart check passes on an ordinary VM. The final 0.11.0 archives pass all 16 selected Wallet contracts on both Google VM types. A two-node ingress-loss scenario and Google Console onboarding also pass. Broader distributed lifecycle, release promotion, and cutover qualification continue.
+Status: `.6` passes local binding, WebSocket, Yao owner-loss checks, and all 16 selected Wallet contracts. Its Linux release passes two-node Yao interruption and owner loss across ordinary and Confidential Google VMs. The earlier `.5` release has the full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -9,10 +9,11 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 
 - Upstream: `https://github.com/denoland/celld.git`.
 - Base: `90b43017241f81189453d326d05948f388b34652` (`v0.6.2`).
-- Private candidate: `0.6.2-seams.6`. Linux qualification is in progress.
+- Private version: `0.6.2-seams.6`.
 - Patch: [workers-runtime.patch](workers-runtime.patch).
 - Patch SHA-256: `0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da`.
 - Wallet lifecycle build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
+- Current Linux release: `.6`, x86-64, Ubuntu 24.04, Rust 1.97.1. The Google two-node Yao scenario passes.
 - Previous qualified Linux release: `.5`, x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
 - Historical Linux release: `.4`, ARM64, Debian Bookworm, upstream Dockerfile. See its separate qualification record below.
 - Historical object-only build identity: [original build record](evidence/runtime-build.json).
@@ -48,7 +49,7 @@ Cross-node Durable Object WebSockets complete their internal HTTP upgrade handsh
 Accepted sockets use the peer tunnel to the object's owner. Failed or cancelled attachment releases the native socket registration.
 New deployments require `peer-durable-websockets-v1`. The `.5` runtime must reject this feature before serving.
 The local echo and real two-node Yao controls pass on `.6`. See [diagnosis and qualification limits](yao-diagnostics.md).
-Previous `.5` Google evidence does not qualify the `.6` release executable.
+The [`.6` qualification record](evidence/peer-websocket-runtime.json) identifies each checked executable and its measured scope.
 
 ## Deliberate limit
 
@@ -59,7 +60,7 @@ The patch adds external references within this constraint. It does not implement
 
 The five packaged role Workers, release WASM, and Gateway pass the local acceptance scenario below.
 The historical `.4` run passes six contracts with Wallet Server and Wallet SDK 0.9.3.
-The current `.5` run passes all 16 selected contracts with frozen SDK 0.9.4 and a Server 0.9.4 local test-hook candidate.
+The earlier `.5` run passes all 16 selected contracts with frozen SDK 0.9.4 and a Server 0.9.4 local test-hook candidate.
 A forced node kill also preserves the tenant-root result after lease expiry and exact grant replay.
 The browser run uses one process and an S3 emulator. It does not establish distributed takeover.
 Separate real-GCS primitive checks pass on Google ordinary and Confidential VMs. They also cover denied bucket access.

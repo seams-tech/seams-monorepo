@@ -19,8 +19,20 @@ function snapshot() {
   const rotations = [];
   for (const ring of svg.querySelectorAll('[data-ring]'))
     rotations.push(Number(ring.dataset.rotation));
+  const arms = svg.querySelectorAll('[data-part="pivot-arm"]');
+  const sockets = [];
+  for (const [index, bore] of svg.querySelectorAll('[data-part="pivot-bore"]').entries()) {
+    const shaft = bore.querySelector('path.fo');
+    const box = shaft.getBBox();
+    const center = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2);
+    sockets.push({
+      open: !arms[index].isPointInFill(center),
+      shaftInside: shaft.isPointInFill(center),
+    });
+  }
   return {
     rotations,
+    sockets,
     dial: Number(svg.querySelector('[data-part="dial"]').dataset.rotation),
     pin: Number(svg.dataset.pinDrop),
     read: document.querySelector('#read').textContent,
@@ -41,6 +53,10 @@ function near(actual, expected, message) {
 
 function validate(sample) {
   assert.equal(sample.invalid, false);
+  assert.equal(sample.sockets.length, 2, 'Both pivot arms have a shaft connection');
+  for (const socket of sample.sockets) {
+    assert.ok(socket.open && socket.shaftInside, 'The pivot shaft passes through an open socket');
+  }
   const box = sample.bounds;
   assert.ok(box.x > 0 && box.y > 0 && box.x + box.width < 400 && box.y + box.height < 320);
   const [rear, middle, front] = sample.rotations;
@@ -63,6 +79,7 @@ function frameRecord(sample, ms) {
   return {
     ms,
     rotations: sample.rotations,
+    sockets: sample.sockets,
     dial: sample.dial,
     pin: sample.pin,
     read: sample.read,
@@ -332,7 +349,7 @@ try {
   report.passed = true;
   await writeFile(`${directory}review.json`, JSON.stringify(report, null, 2));
   console.log(
-    'Passed coupled pickups, pin clearance, reverse dialing, gate alignment, pin drop, rod occlusion, interruption, hover, keyboard, reduced motion, themes, and bounds.',
+    'Passed coupled pickups, pin clearance, reverse dialing, gate alignment, pin drop, pivot sockets, rod occlusion, interruption, hover, keyboard, reduced motion, themes, and bounds.',
   );
 } finally {
   await browser.close();

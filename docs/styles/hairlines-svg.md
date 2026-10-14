@@ -155,7 +155,7 @@ The sequence follows the [Woodgears combination-lock reference](https://woodgear
 
 The pickup tabs span twelve degrees between radii 23.5 and 30. Their axial ends overlap in the gaps between disks. Each disk stays stationary until its tab contacts a driven neighbor. The dial stays coupled to the front disk throughout the sequence. The 8.6-unit center axle remains visible between disks and bearings.
 
-Two rounded arms carry a two-unit cylindrical locking pin. The arms pivot around a second shaft behind the disks, lowering the pin from height 79 to 65.5. Their faces have one simple pivot mark. The cross-pin seats inside the deep slots once all three align. It clears the slot floors and sidewalls throughout descent.
+Two rounded arms carry a two-unit cylindrical locking pin. The arms pivot around a second shaft behind the disks, lowering the pin from height 79 to 65.5. Each arm has a nine-unit socket around the 8.6-unit pivot shaft. The shaft draws in sections through both sockets and between the arms. The cross-pin seats inside the deep slots once all three align. It clears the slot floors and sidewalls throughout descent.
 
 One reversible Hairline tween preserves the current pose when hover or keyboard input changes. Leaving rewinds the sequence and raises the locking pin before the disks move. Enter and Space toggle the animation. The slider sets the sequence to 3400, 4400, or 5600 milliseconds. Reduced motion lands directly at the endpoint, and settled parts stop rewriting their paths.
 
@@ -171,7 +171,7 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
   apps/wallet-console/showcase/motion/interlock/index.html
 ```
 
-Review at `/dashboard-static/showcase/motion/interlock/`. Run `node tests/e2e/wallet-scoped-permissions.e2e.mjs` for the browser review. It checks both pickups, tab clearance, reverse dialing, slot alignment, the shared pin, interrupted resets, pointer selection, keyboard input, and reduced motion. It also checks both themes, frame bounds, axle visibility, and rod occlusion at disk faces and sidewalls. It saves phase screenshots, a contact sheet, and `review.json` under `.artifacts/combination-interlock/ring-dial/`.
+Review at `/dashboard-static/showcase/motion/interlock/`. Run `node tests/e2e/wallet-scoped-permissions.e2e.mjs` for the browser review. It checks both pickups, tab clearance, reverse dialing, slot alignment, the shared pin, interrupted resets, pointer selection, keyboard input, and reduced motion. It also checks both themes, frame bounds, axle visibility, rod occlusion at disk faces and sidewalls, and open pivot sockets throughout the motion. It saves phase screenshots, a contact sheet, and `review.json` under `.artifacts/combination-interlock/ring-dial/`.
 
 The standalone Hairline checker still rejects this extended figure’s line count. The browser review checks the rendered mechanism directly.
 

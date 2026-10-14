@@ -276,8 +276,20 @@ function drawWheel(state, wheel, rotation) {
   }
   wheel.group.dataset.rotation = rotation;
 }
-function lever(parent, x) {
-  return plate(parent, x, 3.5, roundedProfile(-7, -7, LEVER_REACH + 7, 7, 7), [], 0);
+function lever(parent, P, x) {
+  const arm = plate(
+    parent,
+    x,
+    3.5,
+    roundedProfile(-7, -7, LEVER_REACH + 7, 7, 7),
+    circle(4.5).reverse(),
+    0,
+  );
+  arm.face.setAttribute('data-part', 'pivot-arm');
+  const shaft = rod(parent, x, x + arm.depth, 4.3, 'pivot-bore');
+  drawRod(P, shaft, PIVOT_Y, PIVOT_Z);
+  arm.frontWall.before(shaft.group);
+  return arm;
 }
 function drawFence(state, drop) {
   const fence = state.fence;
@@ -287,10 +299,7 @@ function drawFence(state, drop) {
   const y = PIVOT_Y + LEVER_REACH * Math.cos(angle);
   const z = PIVOT_Z - LEVER_REACH * Math.sin(angle);
   const armP = offsetView.bind(null, state.P, PIVOT_Y, PIVOT_Z);
-  for (const arm of fence.arms) {
-    const cap = HL.poly(circle(2.8).map(project.bind(null, armP, arm.x + arm.depth, 0, angle)));
-    drawPlate(armP, arm, angle, cap);
-  }
+  for (const arm of fence.arms) drawPlate(armP, arm, angle);
   for (const section of fence.sections) drawRod(state.P, section, y, z);
   state.svg.dataset.pinDrop = drop;
 }
@@ -440,9 +449,10 @@ function mount({ stage, svg, read }, duration) {
   chassis(svg, P, front);
   const pivotP = offsetView.bind(null, P, PIVOT_Y, 0);
   pivotSupport(svg, pivotP, -54);
-  drawRod(P, rod(svg, -49, 38, 4.3, 'pivot-shaft'), PIVOT_Y, PIVOT_Z);
   bearing(svg, P, -54);
-  const lockingPin = { arms: [lever(svg, -47)], sections: [], drawn: NaN };
+  drawRod(P, rod(svg, -49, -47, 4.3, 'pivot-shaft'), PIVOT_Y, PIVOT_Z);
+  const lockingPin = { arms: [lever(svg, P, -47)], sections: [], drawn: NaN };
+  drawRod(P, rod(svg, -43.5, 33, 4.3, 'pivot-shaft'), PIVOT_Y, PIVOT_Z);
   const wheels = [];
   let axleStart = -47;
   let pinStart = -43.5;
@@ -454,7 +464,8 @@ function mount({ stage, svg, read }, duration) {
     pinStart = disk.ring.x + disk.ring.depth;
   }
   lockingPin.sections.push(rod(svg, pinStart, 33, 1, 'locking-pin-section'));
-  lockingPin.arms.push(lever(svg, 33));
+  lockingPin.arms.push(lever(svg, P, 33));
+  drawRod(P, rod(svg, 36.5, 38, 4.3, 'pivot-shaft'), PIVOT_Y, PIVOT_Z);
   pivotSupport(svg, pivotP, 38);
   const frontBearing = bearing(svg, P, 43);
   const bearingGap = rod(svg, axleStart, 43, 4.3, 'axle-gap');

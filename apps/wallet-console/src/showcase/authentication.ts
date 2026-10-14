@@ -25,7 +25,9 @@ import { paperIframeAppearance } from '@/context/app-themes';
 const stage = document.getElementById('root');
 if (!stage) throw new Error('Authentication showcase requires a root element.');
 
-function registration(): AuthMenuRegisterViewModel {
+function registration(
+  status: AuthMenuRegisterViewModel['status'] = { kind: 'idle', interaction: 'actionable' },
+): AuthMenuRegisterViewModel {
   return {
     kind: 'passkey',
     mode: 'register',
@@ -37,7 +39,7 @@ function registration(): AuthMenuRegisterViewModel {
     ctaLabel: 'Create with passkey',
     showProgress: false,
     enabledExternalProviders: ['google'],
-    status: { kind: 'idle', interaction: 'actionable' },
+    status,
     showRegistrationInput: false,
     passkeyNameReadOnly: true,
     passkeyName: 'alex',
@@ -45,7 +47,9 @@ function registration(): AuthMenuRegisterViewModel {
   };
 }
 
-function login(): AuthMenuLoginViewModel {
+function login(
+  status: AuthMenuLoginViewModel['status'] = { kind: 'idle', interaction: 'actionable' },
+): AuthMenuLoginViewModel {
   return {
     kind: 'passkey',
     mode: 'login',
@@ -57,7 +61,7 @@ function login(): AuthMenuLoginViewModel {
     ctaLabel: 'Continue with passkey',
     showProgress: false,
     enabledExternalProviders: ['google'],
-    status: { kind: 'idle', interaction: 'actionable' },
+    status,
     accountOptions: [],
     selectedAccount: null,
   };
@@ -159,6 +163,16 @@ function complete(heading: string, message: string, next: 'home' | 'recovery' = 
   if (returnFocus) button?.focus({ preventScroll: true });
 }
 
+function finishAuthentication(): void {
+  complete('Success', "You're logged in.");
+}
+
+function promptAuthentication(mode: 'login' | 'register'): void {
+  const status: AuthMenuLoginViewModel['status'] = { kind: 'busy', headline: 'Signing you in…' };
+  show(mode === 'register' ? registration(status) : login(status));
+  cancelApproval = schedulePlayback(finishAuthentication, 3000);
+}
+
 function recover(method: 'passkey' | 'google'): void {
   if (state.kind !== 'menu' || state.model.kind !== 'recovery') return;
   const code = state.model.recoveryCode;
@@ -181,12 +195,12 @@ function onIntent(intent: AuthMenuIntent): void {
       if (state.kind === 'menu') show(intent.mode === 'register' ? registration() : login());
       return;
     case 'submit':
-      complete('Success', "You're logged in.");
+      promptAuthentication(intent.mode);
       return;
     case 'external_auth':
       if (state.kind === 'menu' && state.model.kind === 'recovery')
         show(googleRecovery('sign_in_ready', state.model.recoveryCode));
-      else complete('Success', "You're logged in.");
+      else if (state.kind === 'menu') promptAuthentication(state.model.mode);
       return;
     case 'link_device_open':
       openLink();

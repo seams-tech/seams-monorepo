@@ -95,16 +95,14 @@ the spending cap requires the account owner's decision; it was left at $0.
 
 ## Retention and handoff policy
 
-- Production backend and Console build caches are temporary job-to-job handoffs.
-  Use a key scoped to the workflow run and attempt, restore the exact key with
-  `fail-on-cache-miss`, and delete it after all consumers finish. Mainnet now
-  follows the existing testnet pattern. Console gains the same cleanup.
+- Backend and Console build caches are temporary job-to-job handoffs, on
+  staging and on both production lanes. Use a key scoped to the workflow run
+  and attempt, restore the exact key with `fail-on-cache-miss`, and delete it
+  after all consumers finish.
 - Rerun the whole deployment workflow after a failure. A new attempt rebuilds
   its payload; a failed-jobs-only rerun cannot restore a previous attempt's key.
-- Staging backend artifacts use compression level 6 and are deleted by the
-  uploaded artifact ID after every consumer finishes. A one-day retention limit
-  bounds storage if cleanup is interrupted. Their previous retention was 30 days
-  with compression disabled.
+- No deployment workflow uploads an artifact. The staging backend workflow was
+  the last one; it moved to the cache handoff on 2026-10-14 (see below).
 - In `seams-wallet`, intermediate local-tool artifacts expire after one day and
   ordinary documentation builds after seven days. Versioned release docs retain
   their existing 90-day lifetime; CLI release inputs retain their existing
@@ -125,6 +123,36 @@ closed without merging, and its branch was deleted. Quota recovery is still
 unverified. Retry a private upload after reconciliation, then inspect billing
 usage if the same failure persists. Successful public uploads do not establish
 that private artifact uploads are available.
+
+## Findings on 2026-10-14
+
+The artifact quota blocked staging again. Staging backend run
+[38502043490](https://github.com/seams-tech/seams-monorepo/actions/runs/38502043490)
+built release 0.10.1 and then failed at `Upload backend artifact` with
+`Artifact storage quota has been hit`. No Worker was deployed. From 02:16 UTC
+the `Validate / repository` runs on `dev` passed every check and then failed
+at the artifact upload of `Publish native service acceptance authority` for
+the same reason. The last upload that worked was at 00:20 UTC.
+
+The inventory at 02:45 UTC listed these unexpired artifacts in the private
+repositories of the organization. The public repositories do not count.
+
+| Repository | Unexpired artifacts | Listed size |
+| --- | ---: | ---: |
+| Archived `seams-sdk` | 179 | 127.0 MB |
+| `seams-monorepo` | 11 | 1.4 MB |
+| `satyr` | 0 | 0 MB |
+
+The listed bytes are below the 500 MB of the Free plan, so the block follows
+GitHub's accrued usage, not the bytes that remain. The organization still has
+a $0 Actions budget. Nothing was deleted, and the budget was not changed.
+
+The staging backend workflow now uses the cache handoff of the production
+workflows: `actions/cache/save` in the build job, `actions/cache/restore` with
+`fail-on-cache-miss` in each consumer, and `gh cache delete` in the cleanup
+job. The cleanup job keeps its condition `needs.build.result == 'success'`,
+because an activation-only run has no build. The artifact step of the
+validation workflow is unchanged and stays blocked until the quota clears.
 
 ## Mainnet availability is a separate issue
 

@@ -602,7 +602,7 @@
     "seams-monorepo": {
       "baseRevision": "072f28ba92f94f143e8f328bc5934b4d85b1ec36",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -306,
+      "netLines": -211,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -763,14 +763,14 @@
         {
           "path": "tests/e2e/celld/tenant-root-restore.e2e.py",
           "beforeLines": 0,
-          "afterLines": 284,
-          "netLines": 284
+          "afterLines": 285,
+          "netLines": 285
         },
         {
           "path": "tests/e2e/celld/tenant-root-restore.mjs",
           "beforeLines": 0,
-          "afterLines": 583,
-          "netLines": 583
+          "afterLines": 677,
+          "netLines": 677
         },
         {
           "path": "tests/e2e/celld/yao-peer-disconnect.e2e.py",
@@ -817,6 +817,6 @@
       ]
     }
   },
-  "aggregateNetLines": -32829,
+  "aggregateNetLines": -32734,
   "netReductionAchieved": true
 }

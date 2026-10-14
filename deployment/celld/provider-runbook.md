@@ -248,6 +248,10 @@ It verifies B remains readable, restore fails, and selected role-share metadata 
 After access returns, the identical authorized restore request must complete the existing restore and refresh assertions.
 This synthetic S3 case does not qualify GCS IAM or loss of both shares.
 See [backup-read refusal evidence](evidence/backup-read-refusal.json).
+It then denies deletion of B's retired epoch-1 backup. The next refresh must remain pending without advancing active-share metadata.
+After deletion access returns, the identical refresh must succeed and the selected old backup must return GET 404.
+See [retirement-deletion evidence](evidence/retirement-delete-refusal.json), including an unresolved earlier `.5` macOS SIGILL.
+These local checks do not establish GCS behavior or cryptographic erasure.
 
 The runner now allows the existing 45-second service stop bound and requires exit status zero after SIGTERM.
 It holds an admitted observer request, checks that a new application request receives the explicit draining refusal,

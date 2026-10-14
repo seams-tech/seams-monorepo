@@ -212,6 +212,7 @@ def main():
         )
         result["scenario"] = json.loads((directory / "restore-result.json").read_text())
         result["backupReadFailure"] = json.loads((directory / "backup-refusal.json").read_text())
+        result["retirementDeleteFailure"] = json.loads((directory / "retirement-refusal.json").read_text())
         result["stage"] = "offline-upgrade"
         result["shutdownBeforeUpgrade"] = stop_runtime(node, directory, address)
         processes.remove(node)

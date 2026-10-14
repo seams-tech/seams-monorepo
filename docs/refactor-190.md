@@ -766,6 +766,39 @@ This covers local simulated read denial with one missing A share. GCS IAM, provi
 The metadata comparison excludes share bytes and other restore tables.
 The aggregate maintained source reduction is now 32,829 lines.
 
+## October 14 retirement-deletion refusal checkpoint
+
+The local provider test now also denies deletion of B's actual retired epoch-1 backup.
+An independent DELETE receives 403. The next refresh returns 409 `tenant_root_retirement_pending`, with B pending.
+Active-share metadata does not advance, and the selected retired backup remains readable.
+After the deny policy is removed, the identical refresh succeeds. A direct GET of that selected backup then returns 404.
+The shared restore, refresh, shutdown, downgrade-refusal, and restart assertions pass afterward.
+See [retirement-deletion evidence](../deployment/celld/evidence/retirement-delete-refusal.json).
+
+The assertion intentionally permits erasure of an old local share before its backup deletion succeeds.
+The existing contract keeps the retirement pending until provider cleanup finishes.
+GET 404 establishes that this selected object is no longer retrievable. It does not establish cryptographic erasure.
+No production request path, runtime patch, database call, or blocking validation changed.
+The aggregate maintained source reduction is now 32,734 lines.
+
+A preceding local attempt crashed before provider fault injection.
+The macOS report identifies SIGILL in the `.5` binary by UUID. Its cause remains unknown.
+The same-source repeat passed. That success does not explain the crash or eliminate a runtime defect.
+The failed attempt also recorded a cleanup permission error; later inspection found no matching test processes.
+
+| Fact | Instrument |
+| --- | --- |
+| Native process received SIGILL at 12:27:36 JST | macOS crash report for PID 92320 |
+| Crashed image matches `.5`, while `.6` has a different UUID | Crash report and `dwarfdump --uuid` |
+| No backup-policy requests or saved signing replay existed in the crashed attempt | Failed `8aw4izec` log and artifacts; passing control logs four policy requests |
+| Same-source repeat passed with no cleanup errors | Archived final run `2mmw3zzi` |
+
+| Candidate explanation | Evidence | Conclusion |
+| --- | --- | --- |
+| Injected provider deletion triggered this crash | Crash preceded provider fault artifacts and injection | Contradicted for this attempt |
+| The `.6` executable crashed | Report UUID matches `.5` | Contradicted |
+| A specific runtime, compiler, or application defect caused SIGILL | JIT/Wasm frames identify execution context without the cause | Unresolved; reproduction or a symbolized native diagnosis is needed |
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

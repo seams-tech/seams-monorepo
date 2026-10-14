@@ -17,7 +17,7 @@ const scenarios = await import(
   pathToFileURL(path.join(checkout, 'crates/router-ab-cloudflare/scripts/test-private-d1.mjs'))
 );
 let walletAddresses;
-let backupFaultPending = action === 'run';
+let nextProviderFault = action === 'run' ? 'restore' : 'complete';
 const observer = `let signingPrepare = null;
 export default {
   async fetch(request, env) {
@@ -195,12 +195,19 @@ class Worker {
     headers.set('x-seams-wallet-object-addresses', JSON.stringify(walletAddresses));
     const target = address + '/' + this.role + new URL(input).pathname;
     if (
-      backupFaultPending &&
+      nextProviderFault === 'restore' &&
       this.role === 'router' &&
       new URL(input).pathname === '/router-ab/internal/tenant-root/restore/v1/execute'
     ) {
-      backupFaultPending = false;
+      nextProviderFault = 'retirement';
       await verifyUnavailableBackup(target, { ...options, headers });
+    } else if (
+      nextProviderFault === 'retirement' &&
+      this.role === 'router' &&
+      new URL(input).pathname === '/router-ab/internal/tenant-root/refresh/v1/execute'
+    ) {
+      nextProviderFault = 'complete';
+      return verifyUnavailableRetirement(target, { ...options, headers });
     }
     return fetch(target, { ...options, headers });
   }
@@ -279,23 +286,7 @@ async function verifyUnavailableBackup(target, options) {
     rootMetadata(databases.deriverA),
     rootMetadata(databases.deriverB),
   ]);
-  requireStorageSuccess([
-    'put-bucket-policy',
-    '--bucket',
-    'backup-deriver-a',
-    '--policy',
-    JSON.stringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Deny',
-          Principal: '*',
-          Action: 's3:GetObject',
-          Resource: 'arn:aws:s3:::backup-deriver-a/*',
-        },
-      ],
-    }),
-  ]);
+  denyBackupAction('backup-deriver-a', 's3:GetObject');
   try {
     const denied = storageCommand(aRead);
     assert.notEqual(denied.status, 0, 'The provider fault must deny an existing A backup');
@@ -325,6 +316,109 @@ async function verifyUnavailableBackup(target, options) {
     requireStorageSuccess(['delete-bucket-policy', '--bucket', 'backup-deriver-a']);
   }
   requireStorageSuccess(aRead);
+}
+
+function denyBackupAction(bucket, action) {
+  requireStorageSuccess([
+    'put-bucket-policy',
+    '--bucket',
+    bucket,
+    '--policy',
+    JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Deny',
+          Principal: '*',
+          Action: action,
+          Resource: `arn:aws:s3:::${bucket}/*`,
+        },
+      ],
+    }),
+  ]);
+}
+
+function activeRootRows(result) {
+  const rows = [];
+  for (const row of result.results) {
+    if (row.lifecycle === 'active') rows.push(row);
+  }
+  return rows;
+}
+
+async function verifyUnavailableRetirement(target, options) {
+  const request = JSON.parse(options.body);
+  const identity = Buffer.from(request.identity_digest_b64u, 'base64url').toString('hex');
+  const suffix = `/deriver-b/${identity}/${request.custody_lineage_b64u}/1.bin`;
+  const objects = JSON.parse(
+    requireStorageSuccess(['list-objects-v2', '--bucket', 'backup-deriver-b']),
+  );
+  let retiredKey;
+  for (const object of objects.Contents) {
+    if (object.Key.endsWith(suffix)) retiredKey = object.Key;
+  }
+  assert.equal(typeof retiredKey, 'string', 'The retired B backup must exist before denial');
+  const readBackup = [
+    'get-object',
+    '--bucket',
+    'backup-deriver-b',
+    '--key',
+    retiredKey,
+    '/dev/null',
+  ];
+  const remove = ['delete-object', '--bucket', 'backup-deriver-b', '--key', retiredKey];
+  requireStorageSuccess(readBackup);
+  const before = await Promise.all([
+    rootMetadata(databases.deriverA),
+    rootMetadata(databases.deriverB),
+  ]);
+  denyBackupAction('backup-deriver-b', 's3:DeleteObject');
+  try {
+    const denied = storageCommand(remove);
+    assert.notEqual(
+      denied.status,
+      0,
+      'The provider fault must deny deletion of the retired B backup',
+    );
+    assert.match(denied.stderr, /403|Forbidden/);
+    const response = await fetch(target, options);
+    const body = await response.text();
+    assert.equal(response.status, 409, body);
+    const refused = JSON.parse(body);
+    assert.equal(refused.code, 'tenant_root_retirement_pending');
+    assert.equal(refused.retirement.deriver_b.kind, 'pending');
+    requireStorageSuccess(readBackup);
+    const after = await Promise.all([
+      rootMetadata(databases.deriverA),
+      rootMetadata(databases.deriverB),
+    ]);
+    assert.deepEqual(
+      after.map(activeRootRows),
+      before.map(activeRootRows),
+      'Pending retirement must block the next active epoch',
+    );
+    await save('retirement-refusal.json', {
+      deniedRole: 'deriver-b',
+      providerDeleteStatus: 403,
+      refreshStatus: response.status,
+      response: refused,
+      activeShareMetadataUnchanged: true,
+      retiredBackupStillReadable: true,
+    });
+  } finally {
+    requireStorageSuccess(['delete-bucket-policy', '--bucket', 'backup-deriver-b']);
+  }
+  const recovered = await fetch(target, options);
+  assert.equal(recovered.status, 200, await recovered.clone().text());
+  const removed = storageCommand(readBackup);
+  assert.notEqual(removed.status, 0, 'Retirement must remove the selected old backup');
+  assert.match(removed.stderr, /404|NoSuchKey/);
+  await save('retirement-refusal.json', {
+    ...(await read('retirement-refusal.json')),
+    recoveredRefreshStatus: recovered.status,
+    backupReadAfterRecoveryStatus: 404,
+  });
+  return recovered;
 }
 
 function rootRows(result) {

@@ -1,3 +1,4 @@
+export { SatyrAccountPlatform } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/satyrAccountPlatform';
 import consoleWorker from '../../../packages/wallet-console-server-ts/src/router/cloudflare/d1ConsoleStagingWorker';
 import type {
   D1DatabaseLike,

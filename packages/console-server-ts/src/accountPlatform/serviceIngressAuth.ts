@@ -12,7 +12,6 @@ import type { ServiceProducerAuthorityV1 } from './types';
 
 export interface AccountServiceProducerConfigurationV1 {
   readonly authority: ServiceProducerAuthorityV1;
-  readonly bearerToken: string;
   readonly userAssertion: {
     readonly issuer: string;
     readonly audience: string;
@@ -24,7 +23,6 @@ export interface AccountServiceProducerConfigurationV1 {
 
 interface VerifiedProducerConfiguration {
   readonly authority: ServiceProducerAuthorityV1;
-  readonly tokenDigest: Uint8Array;
   readonly issuer: string;
   readonly audience: string;
   readonly keyId: string;
@@ -43,22 +41,11 @@ export class AuthenticatedAccountServiceProducerV1 {
     return this.configuration.googleClientId;
   }
 
-  static async authenticate(
-    request: Request,
-    configurations: readonly VerifiedProducerConfiguration[],
-  ): Promise<
-    PlatformResult<AuthenticatedAccountServiceProducerV1, { readonly code: 'scope_forbidden' }>
-  > {
-    const header = request.headers.get('Authorization');
-    const match = header?.match(/^Bearer ([^\s]+)$/);
-    if (!match) return forbidden();
-    const digest = await tokenDigest(match[1]);
-    let selected: VerifiedProducerConfiguration | null = null;
-    for (const configuration of configurations) {
-      if (equalDigest(digest, configuration.tokenDigest)) selected = configuration;
-    }
-    if (!selected) return forbidden();
-    return { kind: 'accepted', value: new AuthenticatedAccountServiceProducerV1(selected) };
+  /** Only construct at a private service-binding entrypoint with deployment-owned configuration. */
+  static async fromServiceBinding(
+    configuration: AccountServiceProducerConfigurationV1,
+  ): Promise<AuthenticatedAccountServiceProducerV1> {
+    return new AuthenticatedAccountServiceProducerV1(await prepareProducer(configuration));
   }
 
   async verifyUserAssertion(
@@ -181,16 +168,6 @@ function decodeSegment(value: string): Uint8Array {
   return base64UrlDecode(value);
 }
 
-async function tokenDigest(value: string): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
-}
-
-function equalDigest(left: Uint8Array, right: Uint8Array): boolean {
-  let difference = 0;
-  for (let index = 0; index < 32; index += 1) difference |= left[index] ^ right[index];
-  return difference === 0;
-}
-
 async function prepareProducer(
   configuration: AccountServiceProducerConfigurationV1,
 ): Promise<VerifiedProducerConfiguration> {
@@ -207,7 +184,6 @@ async function prepareProducer(
       serviceId: configuration.authority.serviceId,
       deploymentId: textValue(configuration.authority.deploymentId, 'deploymentId'),
     },
-    tokenDigest: await tokenDigest(textValue(configuration.bearerToken, 'bearerToken')),
     issuer: textValue(configuration.userAssertion.issuer, 'assertion issuer'),
     audience: textValue(configuration.userAssertion.audience, 'assertion audience'),
     keyId: textValue(configuration.userAssertion.keyId, 'assertion key ID'),
@@ -216,40 +192,4 @@ async function prepareProducer(
     ]),
     googleClientId: textValue(configuration.googleClientId, 'Google client ID'),
   };
-}
-
-export class AccountServiceIngressAuthenticatorV1 {
-  private constructor(private readonly producers: readonly VerifiedProducerConfiguration[]) {}
-
-  static async create(
-    configurations: readonly AccountServiceProducerConfigurationV1[],
-  ): Promise<AccountServiceIngressAuthenticatorV1> {
-    const producers: VerifiedProducerConfiguration[] = [];
-    const deploymentKeys = new Set<string>();
-    const tokenDigests: Uint8Array[] = [];
-    for (const configuration of configurations) {
-      const producer = await prepareProducer(configuration);
-      const deploymentKey = JSON.stringify([
-        producer.authority.serviceId,
-        producer.authority.deploymentId,
-      ]);
-      if (deploymentKeys.has(deploymentKey))
-        throw new Error('Duplicate account service deployment');
-      for (const digest of tokenDigests)
-        if (equalDigest(digest, producer.tokenDigest))
-          throw new Error('Account service deployments require distinct producer tokens');
-      deploymentKeys.add(deploymentKey);
-      tokenDigests.push(producer.tokenDigest);
-      producers.push(producer);
-    }
-    return new AccountServiceIngressAuthenticatorV1(producers);
-  }
-
-  async authenticate(
-    request: Request,
-  ): Promise<
-    PlatformResult<AuthenticatedAccountServiceProducerV1, { readonly code: 'scope_forbidden' }>
-  > {
-    return AuthenticatedAccountServiceProducerV1.authenticate(request, this.producers);
-  }
 }

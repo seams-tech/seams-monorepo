@@ -1,3 +1,4 @@
+export { SatyrAccountPlatform } from './satyrAccountPlatform';
 import type { D1AccountServiceAccess } from '@seams-internal/console-server/accountPlatform/serviceAccess';
 import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
 import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';

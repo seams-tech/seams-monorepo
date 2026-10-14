@@ -13,7 +13,7 @@ import {
   versionOne,
 } from '../../packages/console-shared-ts/src/accountPlatform/boundary';
 import {
-  AccountServiceIngressAuthenticatorV1,
+  AuthenticatedAccountServiceProducerV1,
   createAccountPlatformServiceIngress,
   SatyrServiceProvisioningAdapterV1,
   type SatyrSignedProvisionDeliveryV1,
@@ -247,7 +247,7 @@ class AccountWorkerFixture {
     private readonly bindings: FixtureBindings,
     private core: CloudflareD1AccountServiceBundle,
     private ingress: AccountPlatformServiceIngressHandler,
-    private readonly authenticator: AccountServiceIngressAuthenticatorV1,
+    private readonly producer: AuthenticatedAccountServiceProducerV1,
     private readonly google: ConsoleProviderIdentity,
     private readonly googleSigningKey: CryptoKey,
     private readonly googlePublicKey: JsonWebKey,
@@ -263,19 +263,16 @@ class AccountWorkerFixture {
       [namespace, primaryOrgId],
     );
     if (existing) core = await compose(bindings.ACCOUNT_DB, true);
-    const authenticator = await AccountServiceIngressAuthenticatorV1.create([
-      {
-        authority: satyr,
-        bearerToken: 'shared-account-e2e-satyr-producer',
-        userAssertion: {
-          issuer: 'https://satyr.shared-account.invalid',
-          audience: 'https://account.shared-account.invalid',
-          keyId: 'satyr-shared-account-e2e',
-          publicJwk: publicEd25519(bindings.FIXTURE_ASSERTION_PUBLIC_JWK),
-        },
-        googleClientId: bindings.FIXTURE_GOOGLE_CLIENT_ID,
+    const producer = await AuthenticatedAccountServiceProducerV1.fromServiceBinding({
+      authority: satyr,
+      userAssertion: {
+        issuer: 'https://satyr.shared-account.invalid',
+        audience: 'https://account.shared-account.invalid',
+        keyId: 'satyr-shared-account-e2e',
+        publicJwk: publicEd25519(bindings.FIXTURE_ASSERTION_PUBLIC_JWK),
       },
-    ]);
+      googleClientId: bindings.FIXTURE_GOOGLE_CLIENT_ID,
+    });
     const publicKey = rsaPublic(bindings.FIXTURE_GOOGLE_PUBLIC_JWK);
     const fetchGoogle = googleJwks.bind(null, publicKey);
     const google = createConsoleProviderIdentity({
@@ -309,8 +306,8 @@ class AccountWorkerFixture {
     return new AccountWorkerFixture(
       bindings,
       core,
-      ingressFor(core, authenticator, fetchGoogle),
-      authenticator,
+      ingressFor(core, producer, fetchGoogle),
+      producer,
       google,
       signingKey,
       publicKey,
@@ -548,7 +545,7 @@ class AccountWorkerFixture {
     this.core = await compose(this.bindings.ACCOUNT_DB, true);
     this.ingress = ingressFor(
       this.core,
-      this.authenticator,
+      this.producer,
       googleJwks.bind(null, this.googlePublicKey),
     );
     const primaryProjectId = 'project_shared_account_primary';
@@ -1003,11 +1000,11 @@ async function googleJwks(publicKey: JsonWebKey, input: RequestInfo | URL): Prom
 
 function ingressFor(
   core: CloudflareD1AccountServiceBundle,
-  authenticator: AccountServiceIngressAuthenticatorV1,
+  producer: AuthenticatedAccountServiceProducerV1,
   fetchGoogle: typeof fetch,
 ): AccountPlatformServiceIngressHandler {
   return createAccountPlatformServiceIngress({
-    authenticator,
+    producer,
     access: core.serviceAccess,
     memberships: core.serviceMemberships,
     funds: core.funds,

@@ -12,11 +12,12 @@ Use Satyr as the working integration example.
    Give retries fresh authentication around their original immutable command.
    Preserve an archived binding permanently.
 3. Authenticate the producer and the initiating user independently.
-   Publish `/account-platform/v1/*` on the configured Console origin.
-   Use that public origin for the service base URL and paired assertion audiences and issuers.
-   Console deployments disable their `workers.dev` addresses.
+   Expose a private named Worker entrypoint through a Cloudflare service binding.
+   Fix the producer identity in server configuration and require the binding in the service client.
+   Keep `/account-platform/v1/*` unavailable through public fetch.
+   Configure paired user assertion audiences and issuers.
    Link verified issuer and subject evidence, or an explicit authenticated account link.
-   Never infer a user or tenant merge from an email or a producer bearer.
+   Never infer a user or tenant merge from an email or service access.
 4. Resolve fresh shared eligibility for execution, protected disclosure, restore, and replay.
    Retain the service's native role, project, source, history, capability, readiness, and placement checks.
    Deny protected work during an authority outage.

@@ -1,12 +1,9 @@
+export { SatyrAccountPlatform } from './satyrAccountPlatform';
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
 import {
   satyrProvisioningForConsoleRoute,
   type SatyrProvisioningEnvironment,
 } from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
-import {
-  createAccountPlatformServiceIngressFromEnvironment,
-  type AccountServiceIngressEnvironment,
-} from '@seams-internal/console-server/accountPlatform/serviceIngressEnvironment';
 import { createWalletConsoleOpsClient } from '@seams/wallet-server/cloud-host';
 import { handleRegistrationSetupRequest } from '../../walletPlacement/registrationSetup';
 import {
@@ -159,7 +156,6 @@ interface CloudflareD1ConsoleStagingEnv
   extends
     CloudflareD1StagingSessionEnv,
     RouterApiCloudflareConsoleWorkerEnv,
-    AccountServiceIngressEnvironment,
     SatyrProvisioningEnvironment {
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly CLOUDFLARE_API_TOKEN?: string;
@@ -723,48 +719,10 @@ async function createConsoleHandler(
     account: bundle.account,
     corsOrigins: consoleCorsOrigins(env),
   });
-  const composed = new ConsoleWithAccountServiceIngress(
-    env,
-    bundle,
-    authHandler.fetch.bind(authHandler),
-  );
   return attachConsoleRouteSurface(
-    composed.fetch.bind(composed),
+    authHandler.fetch.bind(authHandler),
     resolveCompleteWalletConsoleRouteSurface(),
   );
-}
-
-class ConsoleWithAccountServiceIngress {
-  constructor(
-    private readonly environment: AccountServiceIngressEnvironment,
-    private readonly services: Parameters<
-      typeof createAccountPlatformServiceIngressFromEnvironment
-    >[1],
-    private readonly fallback: FetchHandler,
-  ) {}
-
-  async fetch(...args: Parameters<FetchHandler>): Promise<Response> {
-    const [request] = args;
-    if (new URL(request.url).pathname.startsWith('/account-platform/v1/')) {
-      const ingress = await createAccountPlatformServiceIngressFromEnvironment(
-        this.environment,
-        this.services,
-      );
-      if (!ingress)
-        return Response.json(
-          { kind: 'rejected', error: { code: 'authority_unavailable', retryable: true } },
-          { status: 503, headers: { 'Cache-Control': 'no-store' } },
-        );
-      return (
-        (await ingress(request)) ??
-        Response.json(
-          { kind: 'rejected', error: { code: 'operation_unsupported' } },
-          { status: 404 },
-        )
-      );
-    }
-    return this.fallback(...args);
-  }
 }
 
 function consoleHandler(
@@ -828,6 +786,8 @@ async function fetch(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
 ): Promise<Response> {
+  if (new URL(request.url).pathname.startsWith('/account-platform/'))
+    return new Response(null, { status: 404 });
   const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,

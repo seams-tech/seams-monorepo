@@ -1,5 +1,5 @@
 import { object, textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
-import { AccountServiceIngressAuthenticatorV1 } from './serviceIngressAuth';
+import { AuthenticatedAccountServiceProducerV1 } from './serviceIngressAuth';
 import {
   createAccountPlatformServiceIngress,
   type AccountPlatformServiceIngressHandler,
@@ -11,7 +11,6 @@ import type { D1BillingUsageService } from '../billing/usage';
 
 export interface AccountServiceIngressEnvironment {
   readonly SATYR_DEPLOYMENT_ID?: string;
-  readonly SATYR_ACCOUNT_SERVICE_TOKEN?: string;
   readonly SATYR_ACCOUNT_ASSERTION_ISSUER?: string;
   readonly SATYR_ACCOUNT_ASSERTION_AUDIENCE?: string;
   readonly SATYR_ACCOUNT_USER_ASSERTION_KEY_ID?: string;
@@ -40,7 +39,6 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
 ): Promise<AccountPlatformServiceIngressHandler | null> {
   const values = [
     environment.SATYR_DEPLOYMENT_ID,
-    environment.SATYR_ACCOUNT_SERVICE_TOKEN,
     environment.SATYR_ACCOUNT_ASSERTION_ISSUER,
     environment.SATYR_ACCOUNT_ASSERTION_AUDIENCE,
     environment.SATYR_ACCOUNT_USER_ASSERTION_KEY_ID,
@@ -50,44 +48,38 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
   let configured = false;
   for (const value of values) if (value !== undefined) configured = true;
   if (!configured) return null;
-  const authenticator = await AccountServiceIngressAuthenticatorV1.create([
-    {
-      authority: {
-        serviceId: 'satyr',
-        deploymentId: textValue(environment.SATYR_DEPLOYMENT_ID, 'SATYR_DEPLOYMENT_ID'),
-      },
-      bearerToken: textValue(
-        environment.SATYR_ACCOUNT_SERVICE_TOKEN,
-        'SATYR_ACCOUNT_SERVICE_TOKEN',
+  const producer = await AuthenticatedAccountServiceProducerV1.fromServiceBinding({
+    authority: {
+      serviceId: 'satyr',
+      deploymentId: textValue(environment.SATYR_DEPLOYMENT_ID, 'SATYR_DEPLOYMENT_ID'),
+    },
+    userAssertion: {
+      issuer: textValue(
+        environment.SATYR_ACCOUNT_ASSERTION_ISSUER,
+        'SATYR_ACCOUNT_ASSERTION_ISSUER',
       ),
-      userAssertion: {
-        issuer: textValue(
-          environment.SATYR_ACCOUNT_ASSERTION_ISSUER,
-          'SATYR_ACCOUNT_ASSERTION_ISSUER',
+      audience: textValue(
+        environment.SATYR_ACCOUNT_ASSERTION_AUDIENCE,
+        'SATYR_ACCOUNT_ASSERTION_AUDIENCE',
+      ),
+      keyId: textValue(
+        environment.SATYR_ACCOUNT_USER_ASSERTION_KEY_ID,
+        'SATYR_ACCOUNT_USER_ASSERTION_KEY_ID',
+      ),
+      publicJwk: publicAssertionJwk(
+        textValue(
+          environment.SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON,
+          'SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON',
         ),
-        audience: textValue(
-          environment.SATYR_ACCOUNT_ASSERTION_AUDIENCE,
-          'SATYR_ACCOUNT_ASSERTION_AUDIENCE',
-        ),
-        keyId: textValue(
-          environment.SATYR_ACCOUNT_USER_ASSERTION_KEY_ID,
-          'SATYR_ACCOUNT_USER_ASSERTION_KEY_ID',
-        ),
-        publicJwk: publicAssertionJwk(
-          textValue(
-            environment.SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON,
-            'SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON',
-          ),
-        ),
-      },
-      googleClientId: textValue(
-        environment.SATYR_GOOGLE_OIDC_CLIENT_ID,
-        'SATYR_GOOGLE_OIDC_CLIENT_ID',
       ),
     },
-  ]);
+    googleClientId: textValue(
+      environment.SATYR_GOOGLE_OIDC_CLIENT_ID,
+      'SATYR_GOOGLE_OIDC_CLIENT_ID',
+    ),
+  });
   return createAccountPlatformServiceIngress({
-    authenticator,
+    producer,
     access: services.serviceAccess,
     memberships: services.serviceMemberships,
     funds: services.funds,

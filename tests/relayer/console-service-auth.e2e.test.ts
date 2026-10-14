@@ -9,7 +9,7 @@ import {
   isD1DatabaseLike,
   type WalletConsoleServiceBinding,
 } from '@seams/wallet-server/cloud-host';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, generateKeyPairSync } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { consoleWorkerEnvironment } from '../helpers/consoleWorkerEnvironment';
 import { verifyUnactivatedConsoleOnboarding } from './console-onboarding.scenario';
@@ -26,6 +26,8 @@ import { createCloudflareD1AccountServiceBundle } from '../../packages/console-s
 import { runAccountServiceProvisioning } from '../../packages/console-server-ts/src/accountPlatform/provisioning';
 import {
   ServiceProvisionCommandV1,
+  ServiceTenantBindingV1,
+  parseServiceProvisionReceiptV1,
   type PlatformResult,
 } from '../../packages/console-shared-ts/src/accountPlatform';
 import { WalletServiceProvisioningAdapter } from '../../packages/wallet-console-server-ts/src/accountPlatform/provisioning';
@@ -322,6 +324,58 @@ function registrationMutationState(
     .first();
 }
 
+async function activateSatyrAccount(
+  database: D1DatabaseLike,
+  deploymentId: string,
+  instanceId: string,
+): Promise<void> {
+  const core = await createCloudflareD1AccountServiceBundle({
+    database,
+    namespace,
+    ensureSchema: false,
+    externalDeletionGuard: null,
+  });
+  const scope = platformAccepted(await core.accountPlatform.bindProjectBilling(context, projectId));
+  const nativeScope = {
+    serviceId: 'satyr',
+    deploymentId,
+    nativeOrganizationId: instanceId,
+  } as const;
+  const command = platformAccepted(
+    ServiceProvisionCommandV1.parse({
+      version: 1,
+      operationId: `enable-${instanceId}`,
+      instanceId,
+      desiredRevision: 1,
+      command: 'enable',
+      binding: {
+        kind: 'attach_existing_scope',
+        nativeScope,
+        authorityEvidence: { sourceRecordId: instanceId, sourceDigest: 'a'.repeat(64) },
+      },
+    }),
+  );
+  platformAccepted(await core.accountPlatform.requestProvision(context, { scope, command }));
+  const binding = platformAccepted(
+    ServiceTenantBindingV1.parse({ instanceId, scope, nativeScope }),
+  );
+  platformAccepted(
+    await core.accountPlatform.acknowledgeProvision(
+      { serviceId: 'satyr', deploymentId },
+      platformAccepted(
+        parseServiceProvisionReceiptV1({
+          version: 1,
+          operationId: command.operationId,
+          instanceId,
+          desiredRevision: 1,
+          result: 'active',
+          binding,
+        }),
+      ),
+    ),
+  );
+}
+
 test('production Console service bindings enforce durable credential changes and resolve environments', async () => {
   test.setTimeout(120_000);
   const testInfo = test.info();
@@ -356,6 +410,17 @@ test('production Console service bindings enforce durable credential changes and
     accountId: '0123456789abcdef0123456789abcdef',
     databaseId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   });
+  const assertionKeys = generateKeyPairSync('ed25519');
+  Object.assign(consoleEnvironment, {
+    SATYR_DEPLOYMENT_ID: 'satyr-preflight',
+    SATYR_ACCOUNT_ASSERTION_ISSUER: 'https://satyr.test',
+    SATYR_ACCOUNT_ASSERTION_AUDIENCE: 'https://account.test',
+    SATYR_ACCOUNT_USER_ASSERTION_KEY_ID: 'satyr-preflight',
+    SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON: JSON.stringify(
+      assertionKeys.publicKey.export({ format: 'jwk' }),
+    ),
+    SATYR_GOOGLE_OIDC_CLIENT_ID: 'test-google',
+  });
   const runtime = new Miniflare({
     host: '127.0.0.1',
     port: 0,
@@ -367,7 +432,10 @@ test('production Console service bindings enforce durable credential changes and
         scriptPath: path.join(output, 'consumer.js'),
         compatibilityDate: '2026-04-17',
         compatibilityFlags: ['nodejs_compat'],
-        serviceBindings: { WALLET_CONSOLE: 'console' },
+        serviceBindings: {
+          WALLET_CONSOLE: 'console',
+          ACCOUNT_PLATFORM: { name: 'console', entrypoint: 'SatyrAccountPlatform' },
+        },
         outboundService: guard.fetch.bind(guard),
       },
       {
@@ -443,7 +511,73 @@ test('production Console service bindings enforce durable credential changes and
       rateLimitBucket: 'default',
       quotaBucket: 'default',
     });
+    await activateSatyrAccount(database, 'satyr-preflight', 'satyr:preflight');
     const consumer = await runtime.getWorker('consumer');
+    const accountRequest = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 1, instanceId: 'satyr:missing' }),
+    };
+    const publicAccount = await (
+      await runtime.getWorker('console')
+    ).fetch('https://console.test/account-platform/v1/fee-policy', accountRequest);
+    expect(publicAccount.status).toBe(404);
+    expect(publicAccount.headers.get('x-test-d1-calls')).toBe('0');
+    const privateAccount = await consumer.fetch(
+      'https://account.test/account-platform/v1/fee-policy',
+      accountRequest,
+    );
+    expect(await privateAccount.json()).toEqual({
+      kind: 'rejected',
+      error: { code: 'scope_forbidden' },
+    });
+    const acceptedPolicy = await consumer.fetch(
+      'https://account.test/account-platform/v1/fee-policy',
+      {
+        ...accountRequest,
+        body: JSON.stringify({ version: 1, instanceId: 'satyr:preflight' }),
+      },
+    );
+    expect(acceptedPolicy.status).toBe(200);
+    expect(await acceptedPolicy.json()).toMatchObject({
+      kind: 'accepted',
+      value: { instanceId: 'satyr:preflight', policy: { kind: 'customer_unpriced' } },
+    });
+    // The caller cannot select another producer using request headers.
+    const forgedAuthority = await consumer.fetch(
+      'https://account.test/account-platform/v1/fee-policy',
+      {
+        ...accountRequest,
+        headers: {
+          ...accountRequest.headers,
+          'X-Account-Deployment-Id': 'foreign',
+          Authorization: 'Bearer foreign',
+        },
+        body: JSON.stringify({ version: 1, instanceId: 'satyr:preflight' }),
+      },
+    );
+    expect(await forgedAuthority.json()).toMatchObject({
+      kind: 'accepted',
+      value: { instanceId: 'satyr:preflight' },
+    });
+    const unsignedUser = await consumer.fetch(
+      'https://account.test/account-platform/v1/eligibility',
+      accountRequest,
+    );
+    expect(await unsignedUser.json()).toEqual({
+      kind: 'rejected',
+      error: { code: 'scope_forbidden' },
+    });
+    observations.push({
+      stage: 'private_account_binding',
+      boundInstanceAccepted: true,
+      requestAuthorityIgnored: true,
+      publicStatus: publicAccount.status,
+      publicDatabaseCalls: 0,
+      tokenRequired: false,
+      missingInstanceRejected: true,
+      unsignedUserRejected: true,
+    });
     const service = new LocalConsoleService(consumer);
     const client = createWalletConsoleOpsClient(service);
     // The Gateway sends its setup request with every registration-context call.

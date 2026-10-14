@@ -30,13 +30,10 @@ import { json, readJson } from '../router/cloudflare/http';
 import type { D1AccountServiceAccess } from './serviceAccess';
 import type { AccountAutomationGrantChangeV1 } from './serviceAccess';
 import type { D1AccountMembershipFacade } from './membershipFacade';
-import type {
-  AccountServiceIngressAuthenticatorV1,
-  AuthenticatedAccountServiceProducerV1,
-} from './serviceIngressAuth';
+import type { AuthenticatedAccountServiceProducerV1 } from './serviceIngressAuth';
 
 export interface AccountPlatformServiceIngressOptions {
-  readonly authenticator: AccountServiceIngressAuthenticatorV1;
+  readonly producer: AuthenticatedAccountServiceProducerV1;
   readonly access: D1AccountServiceAccess;
   readonly memberships: D1AccountMembershipFacade;
   readonly funds: ConsoleBillingPrepaidReservationService;
@@ -227,9 +224,7 @@ class AccountPlatformServiceIngress {
     if (!pathname.startsWith('/account-platform/v1/')) return null;
     if (request.method !== 'POST') return rejected('method_not_allowed', 405);
     try {
-      const authenticated = await this.options.authenticator.authenticate(request);
-      if (authenticated.kind === 'rejected') return resultResponse(authenticated);
-      const producer = authenticated.value;
+      const producer = this.options.producer;
       const body = await readJson(request);
       switch (pathname) {
         case '/account-platform/v1/funds/reserve': {

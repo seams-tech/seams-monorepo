@@ -8,7 +8,7 @@ declare const producer: AuthenticatedAccountServiceProducerV1;
 declare const assertion: VerifiedAccountUserAssertionV1;
 declare const candidate: DelegatedPlatformAssertionV1;
 
-// @ts-expect-error Producer authority requires verified bearer authentication.
+// @ts-expect-error Producer authority requires a private service binding.
 const spreadProducer: AuthenticatedAccountServiceProducerV1 = { ...producer };
 
 // @ts-expect-error Public fields cannot construct verified producer authority.

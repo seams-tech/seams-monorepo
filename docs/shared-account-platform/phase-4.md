@@ -8,12 +8,13 @@ Production schema application and cohort cutover remain Phase 5 work.
 
 Account ingress lives in `console-server-ts/src/accountPlatform/`.
 The shared D1 bundle exposes `serviceAccess` and `serviceMemberships`.
-The existing Console Worker mounts the ingress alongside its account and Wallet routes.
+The Console Worker exposes a private `SatyrAccountPlatform` entrypoint through a Cloudflare service binding.
+Its public fetch handler rejects `/account-platform/*` with 404 before database access.
 The local Worker uses the same services and contracts.
 Shared parsers live in `console-shared-ts/src/accountPlatform/`.
 Type fixtures reject unsigned assertions, object spreads, and invalid principal combinations.
 
-The bearer token authenticates one configured service and deployment.
+The private entrypoint fixes the service to Satyr and takes its deployment identity from server configuration.
 User operations also require `X-Account-User-Assertion`, a compact Ed25519 JWS.
 Its header is exactly `{alg:"EdDSA",typ:"JWT",kid}`.
 The configured key, issuer, and audience must match.
@@ -44,7 +45,7 @@ Each automation principal contains only `automationId` and `grantId`.
 
 The wire also defines authenticated account links.
 This Satyr integration accepts its persisted verified Google subject mapping.
-It does not infer a link from an email, a producer bearer, or an invented native session.
+It does not infer a link from an email, service access, or an invented native session.
 The account API verifies the provider token against the configured Satyr Google audience.
 The token is transient and never enters link tables.
 Provider verification receipts remain canonical across later logins.
@@ -64,7 +65,7 @@ Producer settlement remains available after member removal or service disable.
 
 ## Account HTTP contract
 
-Every account ingress operation uses `POST`, JSON, and `Authorization: Bearer <service-token>`.
+Every account ingress operation uses `POST` and JSON through the required `ACCOUNT_PLATFORM` service binding.
 Responses use `{kind:"accepted",value}` or `{kind:"rejected",error:{code,...}}` directly.
 Responses set `Cache-Control: no-store`.
 The paths below are relative to `/account-platform/v1`.
@@ -298,15 +299,18 @@ Inbound account configuration is explicit:
 | Account Worker                                 | Satyr Worker counterpart                                    |
 | ---------------------------------------------- | ----------------------------------------------------------- |
 | `SATYR_DEPLOYMENT_ID`                          | `ACCOUNT_PLATFORM_DEPLOYMENT_ID`                            |
-| `SATYR_ACCOUNT_SERVICE_TOKEN`                  | `ACCOUNT_PLATFORM_SERVICE_TOKEN`                            |
 | `SATYR_ACCOUNT_ASSERTION_ISSUER`               | `ACCOUNT_PLATFORM_ASSERTION_ISSUER`                         |
 | `SATYR_ACCOUNT_ASSERTION_AUDIENCE`             | `ACCOUNT_PLATFORM_ASSERTION_AUDIENCE`                       |
 | `SATYR_ACCOUNT_USER_ASSERTION_KEY_ID`          | `ACCOUNT_PLATFORM_USER_ASSERTION_KEY_ID`                    |
 | `SATYR_ACCOUNT_USER_ASSERTION_PUBLIC_JWK_JSON` | Public half of `ACCOUNT_PLATFORM_USER_ASSERTION_PKCS8_B64U` |
 | `SATYR_GOOGLE_OIDC_CLIENT_ID`                  | Satyr's actual Google OIDC client audience                  |
 
-Satyr uses `ACCOUNT_PLATFORM_BASE_URL` and optionally the `ACCOUNT_PLATFORM` service binding.
-The base URL must be an HTTPS origin, or localhost HTTP for local acceptance.
+Satyr requires the `ACCOUNT_PLATFORM` binding to the `SatyrAccountPlatform` named entrypoint.
+Production targets `seams-sdk-d1-console`; local development targets `seams-sdk-d1-local`.
+The request URL is an internal routing label. There is no public HTTP fallback or shared service token.
+Both Workers must run in the same Cloudflare account.
+Deploy the Console entrypoint before the Satyr binding, then remove the retired service secrets from both Workers.
+The reverse provisioning transport retains its existing separate configuration.
 The account ingress treats a partially configured deployment as an error.
 Absent ingress configuration exposes no authenticated integration.
 User assertion keys have a dedicated purpose; native session and Actor token secrets remain separate.

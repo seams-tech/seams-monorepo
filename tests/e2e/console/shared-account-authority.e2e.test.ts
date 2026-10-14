@@ -8,7 +8,7 @@ import { unstable_splitSqlQuery } from 'wrangler';
 import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
 import { AccountDatabaseProbe } from '../../helpers/accountDatabaseProbe';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
-import { AccountServiceIngressAuthenticatorV1 } from '../../../packages/console-server-ts/src/accountPlatform/serviceIngressAuth';
+import { AuthenticatedAccountServiceProducerV1 } from '../../../packages/console-server-ts/src/accountPlatform/serviceIngressAuth';
 import { createAesGcmConsoleInvitationSecretCipher } from '../../../packages/console-server-ts/src/email/secrets';
 import {
   ServiceProvisionCommandV1,
@@ -55,25 +55,20 @@ async function assertion(scope: PlatformScopeV1, revision: number, principal: Pl
   );
   const content = `${encode({ alg: 'EdDSA', typ: 'JWT', kid: 'test' })}.${encode(envelope.toJSON())}`;
   const jwt = `${content}.${sign(null, Buffer.from(content), keys.privateKey).toString('base64url')}`;
-  const auth = await AccountServiceIngressAuthenticatorV1.create([
-    {
-      authority,
-      bearerToken: 'test-producer',
-      googleClientId: 'test-google',
-      userAssertion: {
-        issuer: 'satyr',
-        audience: 'account',
-        keyId: 'test',
-        publicJwk: keys.publicKey.export({ format: 'jwk' }),
-      },
+  const auth = await AuthenticatedAccountServiceProducerV1.fromServiceBinding({
+    authority,
+    googleClientId: 'test-google',
+    userAssertion: {
+      issuer: 'satyr',
+      audience: 'account',
+      keyId: 'test',
+      publicJwk: keys.publicKey.export({ format: 'jwk' }),
     },
-  ]);
-  const request = new Request('https://account.test/eligibility', {
-    headers: { Authorization: 'Bearer test-producer', 'X-Account-User-Assertion': jwt },
   });
-  return accepted(
-    await accepted(await auth.authenticate(request)).verifyUserAssertion(request, now()),
-  );
+  const request = new Request('https://account.test/eligibility', {
+    headers: { 'X-Account-User-Assertion': jwt },
+  });
+  return accepted(await auth.verifyUserAssertion(request, now()));
 }
 function principal(): PlatformPrincipalV1 {
   return accepted(

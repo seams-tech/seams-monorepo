@@ -79,7 +79,11 @@ sudo systemctl enable --now celld.service
 
 Install Nginx and adapt [nginx.conf.example](nginx.conf.example) for the Gateway domain and its TLS certificate.
 Use a certificate trusted by the application's clients. The acceptance certificate is synthetic and locally trusted only.
-The proxy replaces the forwarded host and protocol fields and buffers request bodies before forwarding.
+The proxy replaces forwarded host, protocol, and client-IP fields and buffers request bodies before forwarding.
+Client IP comes from the direct socket peer. Caller-supplied Cloudflare and forwarding headers cannot select it.
+A separate upstream load balancer requires an explicitly trusted real-IP configuration before using its client address.
+Verify this boundary locally with `python3 tests/e2e/celld/nginx-ingress.e2e.py NGINX deployment/celld/nginx.conf.example`.
+This uses loopback listeners and a synthetic TLS certificate. See [the review evidence](evidence/local-review.json).
 Its body limit accepts 1 MiB and rejects larger requests with `413`.
 These settings follow Nginx's [body limit](https://nginx.org/en/docs/http/ngx_http_core_module.html#client_max_body_size)
 and [request buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_request_buffering) documentation.

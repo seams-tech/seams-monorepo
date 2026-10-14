@@ -1,7 +1,39 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: the classic Wallet hosts are removed. The local 0.11.0 candidate passes all 16 selected Wallet contracts on celld and workerd. Console composition also passes. The same candidate passes on ordinary and SEV-SNP Google VMs. Distributed Wallet, release promotion, and live cutover gates remain open.
-Updated: October 14, 2026. Production rollout remains pending.
+Status: ready for human review. Deployment and publication are paused at the user's request. Nothing is merged.
+Updated: October 14, 2026. The latest local candidate passes 15 selected Wallet contracts on each runtime. One Google-backed case awaits a fresh test identity.
+
+## Current review scope
+
+Both R190 branches rebased cleanly onto local `dev`: public `fcbff95f` and private `2018b490`.
+The public branch removes Express, Node Gateway, and native VM hosts. The private branch removes the Wallet Console Express entrypoint.
+The generic Console backend remains for its separate product responsibilities.
+The runtime patch and test-only probes preserve the Workers application model. The maintained source reduction is 30,796 lines across both repositories.
+
+| Local check | Result |
+| --- | --- |
+| Public package build, full type-check, and packed boundaries | Passed |
+| Private `pnpm check` | Passed |
+| Retained Rust development targets and 38 Cargo lock files | Passed |
+| Public bloat check | Passed; the baseline now preserves the reductions |
+| Wallet contracts on celld and workerd | 15 passed on each, with matching package snapshots and no flakes |
+| Registration reservation and Console onboarding/replay | Passed |
+| Nginx TLS ingress, spoofed headers, body integrity and size limit | Passed after the review fix |
+| Deployment script checks | 53 passed, one existing skip |
+
+The review found that the Nginx example forwarded caller-supplied client-IP headers to the Wallet's IP controls.
+A local HTTPS test reproduced the issue. The proxy now replaces those headers with the direct socket peer address.
+It also removes the caller-supplied `Forwarded` header. No application database call or request round trip was added.
+
+One Google-backed device-revocation contract was excluded from both fresh local selections because its test identity expired.
+The earlier 16-contract evidence remains valid for its recorded source revision. It does not replace this missing check on the latest candidate.
+The initial full type-check failed on missing worktree dependency links. Repairing those ignored links resolved it without a source change.
+See [the review record and repeatable evidence](../deployment/celld/evidence/local-review.json).
+
+Review the public host removal and exports first, then the private consumers and runtime patch.
+Keep package publication, exact private package-pin updates, and cloud rollout separate from the merge decision.
+The 0.11.0 candidates remain unpublished. Private production dependencies remain pinned to 0.10.1.
+The provider qualification items at the end of this plan are deferred while deployment is paused.
 
 ## Decision and purpose
 
@@ -961,10 +993,10 @@ Google-hosted relocation, provider faults during relocation, return moves, and r
 No production handler, runtime patch, database call, or request round trip changed.
 The maintained source reduction is 31,020 lines, including the stronger acceptance topology.
 
-## Remaining rollout gates
+## Deferred deployment qualification (paused)
 
 1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, Google-hosted relocation, and retirement/authorized restore with provider failures. Local two-process relocation, one-share restore, and retirement evidence are recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 
-The branch implementation and selected qualification checks are committed. Production rollout remains pending.
+Resume these deployment checks only after the user authorizes deployment work. Local review and the merge decision come first.

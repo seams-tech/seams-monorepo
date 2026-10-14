@@ -29,7 +29,7 @@
   "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
   "repositories": {
     "seams-wallet": {
-      "baseRevision": "24e93a7854cf694a367fafc0d88d12cdde1d0551",
+      "baseRevision": "fcbff95f8341e6ea680c7453e8feca886445fdd2",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
       "netLines": -32482,
       "files": [
@@ -484,6 +484,12 @@
           "netLines": -1
         },
         {
+          "path": "scripts/bloat-baseline.json",
+          "beforeLines": 29,
+          "afterLines": 29,
+          "netLines": 0
+        },
+        {
           "path": "scripts/bloat-report.mjs",
           "beforeLines": 512,
           "afterLines": 512,
@@ -612,9 +618,9 @@
       ]
     },
     "seams-monorepo": {
-      "baseRevision": "eca55b5d432a6b8f1b7274c57ba3449c207d94f0",
+      "baseRevision": "2018b490193bcabbd49e07577a0973afd95012bc",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 1462,
+      "netLines": 1686,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -631,8 +637,8 @@
         {
           "path": "deployment/celld/nginx.conf.example",
           "beforeLines": 0,
-          "afterLines": 20,
-          "netLines": 20
+          "afterLines": 24,
+          "netLines": 24
         },
         {
           "path": "deployment/celld/render.mjs",
@@ -785,6 +791,12 @@
           "netLines": 186
         },
         {
+          "path": "tests/e2e/celld/nginx-ingress.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 220,
+          "netLines": 220
+        },
+        {
           "path": "tests/e2e/celld/packaged-wallet.e2e.py",
           "beforeLines": 0,
           "afterLines": 792,
@@ -913,6 +925,6 @@
       ]
     }
   },
-  "aggregateNetLines": -31020,
+  "aggregateNetLines": -30796,
   "netReductionAchieved": true
 }

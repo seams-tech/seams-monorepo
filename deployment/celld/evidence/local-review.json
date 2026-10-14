@@ -1,0 +1,158 @@
+{
+  "status": "ready_for_human_review_with_named_test_gap",
+  "scope": "Local review and acceptance after rebasing onto dev. No cloud deployment, VM startup, package publication or merge was performed during this checkpoint.",
+  "publicHead": "508b7c26af75a1d32f9d7f6becf90744d824197c",
+  "privateHeadBeforeIngressFix": "8b76d9dc62965bf75ac01df50ee362bf84b466e5",
+  "candidate": {
+    "kind": "local-packed-release-candidate",
+    "version": "0.11.0",
+    "sourceRevision": "6af100c631f64ad06356c80b9ad0ac3995c143c0",
+    "packages": {
+      "wallet-server": {
+        "archive": "/tmp/seams-r190-merge-review-packages/seams-wallet-server-0.11.0.tgz",
+        "archiveSha256": "d978314bb548a4431b535f1cc2033151b8b679132c6d29d0246e0658d8626822",
+        "directory": "/tmp/seams-r190-merge-review-candidate/node_modules/@seams/wallet-server"
+      },
+      "wallet": {
+        "archive": "/tmp/seams-r190-merge-review-packages/seams-wallet-0.11.0.tgz",
+        "archiveSha256": "389b32ed6a354de65fd3b1ccb12aee55422034f73773eb9596bad884736f20bf",
+        "directory": "/tmp/seams-r190-merge-review-candidate/node_modules/@seams/wallet"
+      }
+    }
+  },
+  "candidateSourceNote": "The public head adds only the generated bloat baseline after the candidate source revision.",
+  "packageSnapshotHashes": {
+    "wallet-server": "010b5fb037a2ba8cb2751a736567ad06375c6f699f68ee636dad0748cefa31f1",
+    "wallet": "a52ba7d8016b35f7cde88a56c514e16d56cb5cfae3a035be6b1bd79ebb917d95"
+  },
+  "walletContracts": {
+    "celld": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-_d7j2zv9/result.json",
+        "sha256": "4d5c7e7245685d7a034fd93e37652505ac3207db1c31e27c561585320f40c995"
+      },
+      "passed": 15,
+      "flaky": 0,
+      "selectionDriver": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-_d7j2zv9/effective-selection.py",
+        "sha256": "1c181e84a950c01e0951f1ed3485698a2c9452892a60130045cb85145172545b"
+      }
+    },
+    "workerd": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-merge-review-1wx4s965/result.json",
+        "sha256": "32c8e308d7005156b16680c6e062a1637f247b9933f35ce9f2f60eb237784a13"
+      },
+      "passed": 15,
+      "flaky": 0
+    },
+    "deferred": "a linked device revoked with an email code across a refused commit is answered from what committed",
+    "reason": "The Google test identity expired. Cloud work is paused. This Google-backed case was deliberately excluded from both local selections; it is not counted as passed or skipped by these runners.",
+    "earlierCoverage": "The 16-contract result on the preceding source revision is preserved in registration-rebase-qualification.json."
+  },
+  "console": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-s26g58e2/result.json",
+    "sha256": "bf282ea5e99109840a45dc0300512cac78600163562f9e4b2b433f0d6e8f5565"
+  },
+  "registrationReservation": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-_d7j2zv9/registration-reservation-proof.json",
+    "sha256": "44e804a0a4992da85953da2e73a4e2a01394de701cd05cb7911444134ae14778"
+  },
+  "ingressReview": {
+    "classification": "production_regression",
+    "finding": "The added Nginx example forwarded caller-supplied CF-Connecting-IP, X-Forwarded-For and X-Real-IP to code that uses them for client-IP controls.",
+    "fix": "Overwrite all three fields with the direct socket peer address and remove the caller-supplied Forwarded header.",
+    "before": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/nginx-ingress-0bz7tgg1/result.json",
+      "sha256": "3f2c7031f90599ffd3014dca8f62bcd94c7cb2168690d3c98991afdae6d8c987"
+    },
+    "after": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/nginx-ingress-bk6xf0w8/result.json",
+      "sha256": "e1af6bf57745a62e6d553e321cbf272bcfcad292fc9d77d837cda41f40a776b2"
+    },
+    "driver": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/e2e/celld/nginx-ingress.e2e.py",
+      "sha256": "ee53503650de3130e6adf578687a20e66e6ac24579291125624b10c657306a6e"
+    },
+    "template": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/deployment/celld/nginx.conf.example",
+      "sha256": "69123fbd977b8e1d7bc5d5f054dc11dc2e1d2e85acb2533d77b2c8f722d35b1e"
+    },
+    "assertions": [
+      "Spoofed identity, host and protocol headers are replaced over verified TLS.",
+      "An admitted body reaches the backend byte-for-byte.",
+      "A body larger than 1 MiB receives 413 and never reaches the backend.",
+      "The local Nginx process exits zero."
+    ],
+    "localNginx": {
+      "path": "/tmp/seams-r190-nginx-source/nginx-1.31.6/objs/nginx",
+      "sha256": "b403bdced526b78fcaf45d9b2dcb91bae97457d48c1ab11099bcbdbcdb0994a6"
+    }
+  },
+  "initialTypecheck": {
+    "classification": "environment_or_infrastructure_failure",
+    "log": {
+      "path": "/tmp/seams-r190-merge-review-public-types.log",
+      "sha256": "882e1d9e688c9709f764aa31717702f14710eda15df0fe51507a382be62be9ae"
+    },
+    "repair": "Restore ignored example dependency links in the isolated worktree. No source change was needed. The full type-check then passed."
+  },
+  "checks": {
+    "build": {
+      "path": "/tmp/seams-r190-merge-review-build.log",
+      "sha256": "0782f9d711fb2832477c5b33717d7c671bc765920e6a8aaf039e61cdf36ff524"
+    },
+    "publicTypes": {
+      "path": "/tmp/seams-r190-merge-review-public-types-retry.log",
+      "sha256": "4166468effcfd0ad489a949e5e4cf15616673b46cd7efe41744d4072e7d0ab63"
+    },
+    "privateCheck": {
+      "path": "/tmp/seams-r190-merge-review-private-check.log",
+      "sha256": "3b5f0fd0c9580dfb6f075777c968d1a793fc3531828a4ae83537516a342a6f75"
+    },
+    "rustTargets": {
+      "path": "/tmp/seams-r190-merge-review-rust.log",
+      "sha256": "14558fea18c160d749e342d2774cb007b2d4df4d4eb614ddf82503307dc3d365"
+    },
+    "cargoLocks": {
+      "path": "/tmp/seams-r190-merge-review-locks.log",
+      "sha256": "bccecd851e71c201a3df72986440fc984876ce82ce2eece9ba3ae3e7dca4c5c1"
+    },
+    "bloat": {
+      "path": "/tmp/seams-r190-merge-review-bloat-final.log",
+      "sha256": "f0f779a3fd80f0f64339ab6d99d9681723adcaa75c46f17ce6b23972381198a3"
+    },
+    "packageBoundaries": {
+      "path": "/tmp/seams-r190-merge-review-package-boundaries.log",
+      "sha256": "25fa7ff997de2ac27a0750da79a313937e944b10b24d51062e59edfefdf62f79"
+    },
+    "deploymentScripts": {
+      "path": "/tmp/seams-r190-merge-review-final-scripts.log",
+      "sha256": "4d1e3c5c23618b1962d43a091fe8f90462141013ff6134d89a051fc7586fa9c4"
+    }
+  },
+  "scriptChecks": {
+    "passed": 53,
+    "existingSkipped": 1
+  },
+  "cargoLockFilesChecked": 38,
+  "reviewScope": [
+    "Removed Wallet host exports, entrypoints and active callers.",
+    "Private Console consumer imports and packed package boundaries.",
+    "Runtime binding ownership validation and deployment-time feature checks.",
+    "Proxy identity boundary and reviewed runtime-patch evidence."
+  ],
+  "mergeSequence": [
+    "Review public host removal and package exports, then private consumer/runtime changes.",
+    "Decide on merge after reviewing the named Google-backed test gap.",
+    "Keep publication, exact private package-pin updates and cloud rollout as separately authorized follow-up work."
+  ],
+  "aggregateMaintainedSourceDelta": -30796,
+  "limits": [
+    "This focused review is not a new comprehensive cryptographic audit.",
+    "The fresh candidate is unpublished; private production pins remain 0.10.1.",
+    "Provider restore/retirement failures, Google-hosted relocation and wider upgrade qualification remain deferred.",
+    "The ingress test uses two local processes and a synthetic certificate. It does not qualify a cloud load-balancer topology.",
+    "No application database call, validation step or request round trip was added."
+  ]
+}

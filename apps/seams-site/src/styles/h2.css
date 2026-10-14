@@ -1107,71 +1107,147 @@ body:has(.h2-page) {
   padding-top: 0;
 }
 
-/* Display-only auth artwork shares the hero's paper palette. */
+/* Display-only artwork matches the wallet's create screen. */
 .h2-heroscene__shell {
   pointer-events: none;
   filter: drop-shadow(0 22px 40px rgba(15, 23, 42, 0.14));
-  width: min(352px, 100%);
+  width: min(384px, 100%);
 }
 
 .h2-auth-mock {
-  padding: 28px;
-  border: 1px solid #ddd8d1;
-  border-radius: 28px;
-  background: #fffdf9;
-  color: #292524;
+  padding: 16px 22px;
+  border: 1px solid var(--h2-stone);
+  border-radius: 16px;
+  background: var(--h2-bg);
+  color: var(--h2-ink);
+}
+
+.h2-auth-mock__origin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--h2-smoke);
+  font-size: var(--h2-text-base);
+  line-height: 1.4;
 }
 
 .h2-auth-mock h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
 }
 
-.h2-auth-mock p {
-  margin: 8px 0 24px;
-  color: #78716c;
-  font-size: 13px;
+.h2-auth-mock__subtitle {
+  margin: 4px 0 14px;
+  color: var(--h2-graphite);
+  font-size: var(--h2-text-lg);
+  line-height: 1.4;
 }
 
-.h2-auth-mock__input,
 .h2-auth-mock__method {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 10px 14px;
-  border: 1px solid #ddd8d1;
-  border-radius: 14px;
-  font-size: 13px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--h2-stone);
+  border-radius: 10px;
+  font-size: var(--h2-text-body);
+  line-height: 1.4;
 }
 
-.h2-auth-mock__input {
-  justify-content: flex-start;
-  margin-bottom: 14px;
-  color: #78716c;
+.h2-auth-mock svg {
+  flex-shrink: 0;
 }
 
 .h2-auth-mock__method + .h2-auth-mock__method {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .h2-auth-mock__method--primary {
-  background: #292524;
-  border-color: #292524;
-  color: #fffdf9;
+  background: var(--h2-ink);
+  border-color: var(--h2-ink);
+  color: var(--h2-bg);
 }
 
-.h2-auth-mock__divider {
-  margin: 14px 0;
-  text-align: center;
-  color: #78716c;
-  font-size: 12px;
+.h2-auth-mock__options-label {
+  margin: 12px 0 4px;
+  color: var(--h2-smoke);
+  font-size: var(--h2-text-base);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+.h2-auth-mock__options {
+  overflow: hidden;
+  border: 1px solid var(--h2-stone);
+  border-radius: 10px;
+}
+
+.h2-auth-mock__option {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+}
+
+.h2-auth-mock__option + .h2-auth-mock__option {
+  border-top: 1px solid var(--h2-stone);
+}
+
+.h2-auth-mock__option-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--h2-taupe);
+}
+
+.h2-auth-mock__option strong,
+.h2-auth-mock__option small {
+  display: block;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.h2-auth-mock__option strong {
+  font-size: var(--h2-text-lg);
+}
+
+.h2-auth-mock__option small {
+  color: var(--h2-smoke);
+  font-size: var(--h2-text-sm);
+}
+
+.h2-auth-mock__option > svg {
+  color: var(--h2-ash);
 }
 
 .h2-auth-mock p.h2-auth-mock__footer {
-  margin: 24px 0 0;
+  margin: 12px 0 0;
+  color: var(--h2-smoke);
+  font-size: var(--h2-text-base);
+  line-height: 1.4;
   text-align: center;
+}
+
+.h2-auth-mock__footer strong {
+  margin-left: 4px;
+  border-bottom: 1px solid var(--h2-line);
+  color: var(--h2-ink);
+  font-weight: 400;
+}
+
+@media (max-width: 360px) {
+  .h2-auth-mock {
+    padding-inline: 16px;
+  }
 }
 
 /* Confirmer scene: the signing drawer docked at the band's bottom edge,

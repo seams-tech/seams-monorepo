@@ -166,7 +166,7 @@ function IntegrationsWindow(): React.JSX.Element {
 
 type HeroWalletPreview =
   | {
-      kind: 'signIn';
+      kind: 'createWallet';
       sub: string;
     }
   | {
@@ -174,8 +174,8 @@ type HeroWalletPreview =
       sub: string;
     };
 
-const signInWalletPreview: HeroWalletPreview = {
-  kind: 'signIn',
+const createWalletPreview: HeroWalletPreview = {
+  kind: 'createWallet',
   sub: 'Non-custodial wallets, opened with a passkey',
 };
 
@@ -239,7 +239,7 @@ function WalletTransactionPreview(): React.JSX.Element {
 
 function renderHeroWalletPreview(preview: HeroWalletPreview): React.JSX.Element {
   switch (preview.kind) {
-    case 'signIn':
+    case 'createWallet':
       return <SeamsAuthMenuMock />;
     case 'transactionConfirm':
       return <WalletTransactionPreview />;
@@ -268,7 +268,7 @@ const heroScenes: HeroScene[] = [
     title: 'Ecommerce Agents',
     sub: 'Agents run your store: limits, approvals, and audit built in',
     left: <DashboardWindow />,
-    wallet: signInWalletPreview,
+    wallet: createWalletPreview,
   },
   {
     id: 'integrations',

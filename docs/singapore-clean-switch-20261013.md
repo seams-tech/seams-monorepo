@@ -431,8 +431,9 @@ same CPU time in all five runs.
 
 | Wait, median | 10:00 | 11:20 | 11:55 | 12:07 | 12:21 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Deriver A, one database batch | 6 ms | 56 ms | 50 ms | 52 ms | 44 ms |
-| Deriver B, one database batch | 14 ms | 16 ms | 16 ms | 19 ms | 17 ms |
+| Deriver A, write batch at registration | 9 ms | 62 ms | 56 ms | 58 ms | 57 ms |
+| Deriver B, write batch at registration | 51 ms | 55 ms | 56 ms | 57 ms | 57 ms |
+| Deriver B, read of the admission | 13 ms | 14 ms | 15 ms | 16 ms | 16 ms |
 | Deriver A, execute work, wall | 372 ms | 466 ms | 628 ms | 701 ms | 498 ms |
 | Deriver A, execute work, CPU | 163 ms | 178 ms | 173 ms | 178 ms | 184 ms |
 | Deriver A, connection made inside the execution | 13 of 99 | 23 of 99 | 48 of 99 | 55 of 99 | 20 of 99 |
@@ -440,13 +441,20 @@ same CPU time in all five runs.
 
 Two facts are measured. The causes behind them are not.
 
-- Between 10:10 and 11:20 the write confirmation of Deriver A's database
-  went from 6 ms to about 52 ms, before the 0.10.1 deployment. Its SQL time
-  stayed at 0.2 ms, its primary stayed in Singapore, and every custody
-  object ran in Singapore. Deriver A makes four database round trips for
-  each registration. The Console database shows the same kind of step:
-  about 20 ms for one write call on October 13, 51 ms at 10:00 and 80 to
-  87 ms from 11:20.
+- Between 10:10 and 11:20 the write batch of Deriver A's database went
+  from 9 ms to about 57 ms, before the 0.10.1 deployment. Deriver B's write
+  batch was already at 51 ms at 10:00. Reads stayed at 13 to 16 ms, SQL
+  time at 0.2 ms, both primaries in Singapore, and every custody object ran
+  in Singapore. The Console database shows the same kind of step: about
+  20 ms for one write call on October 13, 51 ms at 10:00 and 80 to 87 ms
+  from 11:20.
+- At 13:23 both Deriver write batches were back at 10 and 12 ms (6
+  registrations), with no change on our side. Cloudflare's status page
+  lists no incident for D1, Durable Objects or Singapore since October 12.
+  The slow write confirmation was a temporary state on Cloudflare's side.
+  (Correction: an earlier version of this table showed medians over all
+  database logs of a role, which mixed reads and zero-time entries with the
+  write batches.)
 - The two runs that started 8 and 20 minutes after the deployment of all
   14 Workers had a further 150 to 230 ms of wait in Deriver A's preparation
   and execution, with the same database time. The preparation then ended
@@ -471,10 +479,10 @@ Open:
   commits `e904a044`, `d1f56f46`, `c02d6c58` and `193b892c` with migration
   `0098`, and `e44f5232` (the launcher version in the Console's recovery
   commands). None of them is deployed.
-- The write confirmation times of the Deriver A and Console databases are
+- The write confirmation times of the Deriver and Console databases are
   outside our code. The cost of each one falls with the number of serial
-  database round trips: four in Deriver A, and two Console write calls
-  (`publish-routes`, then `complete`) inside finalization. At 12:26 the
+  write batches: one in each Deriver for each registration, and two Console
+  write calls (`publish-routes`, then `complete`) inside finalization. At 12:26 the
   owner ordered a move of the staging Console to a fresh Singapore database
   for this reason; another session does it. The new database must carry
   migration `0099`, and the measurement kit's database id changes with it.

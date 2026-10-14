@@ -132,7 +132,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   const { go, linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
   const docsProps = linkProps('/docs');
-  const contactProps = linkProps('/contact');
+  const contactProps = linkProps('https://seams.sh/contact');
   const relayerBaseUrl = React.useMemo(() => {
     const deployment = getActiveFrontendDeployment();
     return normalizeBaseUrl(deployment.consoleBaseUrl || deployment.relayerUrl);

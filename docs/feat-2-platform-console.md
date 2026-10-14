@@ -257,22 +257,30 @@ returns HTTP 403. Custom domains are registered and await DNS validation. Google
 JavaScript origins also require configuration. Existing login and Console security
 origins remain active while those prerequisites are incomplete.
 
-Complete rollout in this order:
+Deployed staging artifacts:
 
-1. Create the staging Console Pages projects and configure
-   `CF_PAGES_PROJECT_PLATFORM_CONSOLE` and `CF_PAGES_PROJECT_WALLET_CONSOLE` in the
-   existing staging frontend environment. Supply its existing Cloudflare credentials.
-2. Confirm prior account-platform releases and migrations. Register the new browser
-   origins and OAuth callbacks with the existing identity providers. Keep cookie scope
-   and Wallet passkey relying-party IDs unchanged.
-3. Deploy the existing Console Worker with the new account dispatch and host routes.
-   Deploy both Console frontend outputs, then run their existing `smoke` commands.
-   Smoke checks require both the application HTML and the account session endpoint.
-4. Verify sign-in, reauthentication, context selection, rejected foreign access,
-   billing, Wallet setup, and Satyr's own onboarding on deployed staging.
-5. Repeat the verified sequence for production. Deploy marketing redirects only
-   after both Console frontends pass readiness checks. The `all` command deploys
-   Console frontends first and checks all project mappings before any deployment.
+| Component                                               | Version or deployment identifier       | Verified result                                                                |
+| ------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| Existing Console Worker                                 | `bfb78906-3e0a-4a18-8986-6de9e7f8aabe` | Health and readiness return HTTP 200; unauthenticated session returns HTTP 401 |
+| Platform Pages project `seams-platform-console-staging` | `0f2bcca5-2907-41d3-a223-cb824dd4f3b5` | `/dashboard/login` returns HTTP 200 on its Pages hostname                      |
+| Wallet Pages project `seams-console-wallet-staging`     | `ad6ef66e-4243-46e1-a335-b2475f0983b0` | `/dashboard/login` returns HTTP 200 on its Pages hostname                      |
+
+The first Wallet Pages project returned HTTP 522 for static files. The same artifact
+serves successfully from the replacement project above. The staging CI mapping now
+selects that replacement. Both custom domains remain pending DNS validation.
+
+The Worker retains the existing database, service bindings, secrets, and placement.
+Its source revision is `89b317ba60b72f6de03a9f21d74c6ac07fdfea30`. After migration
+`0098`, use compatible Worker version `5fce7e3c-ff91-488d-a880-7dc2b6eb2ac2` as the
+rollback baseline. Keep migration `0098` applied during rollback.
+
+Finish the DNS and provider actions below, then run both frontend `smoke` commands.
+Verify real sign-in, reauthentication, context selection, rejected foreign access,
+billing, and Wallet automatic setup on the custom staging domains.
+Coordinate Satyr onboarding acceptance separately when its private connection is configured.
+Repeat the verified sequence for production after staging acceptance passes.
+Deploy marketing redirects only after both Console frontends pass readiness checks.
+The `all` command checks all project mappings before deploying Console frontends.
 
 Keep the deferred Wallet runtime rollout separate. No production cutover is implied
 by a green local test or by this branch's deployment configuration.
@@ -284,7 +292,7 @@ Add these proxied CNAME records in the existing `seams.sh` DNS zone:
 | Name                     | Target                                     |
 | ------------------------ | ------------------------------------------ |
 | `staging.console`        | `seams-platform-console-staging.pages.dev` |
-| `console.staging.wallet` | `seams-wallet-console-staging.pages.dev`   |
+| `console.staging.wallet` | `seams-console-wallet-staging.pages.dev`   |
 
 In Google Cloud project `seams-501403`, add these Authorized JavaScript origins to
 the existing web OAuth client. Keep its current origins and client identity:
@@ -296,10 +304,21 @@ GitHub callback selection now follows only approved Console origins. This keeps
 OAuth browser state on the initiating frontend. The same callback URI reaches the
 server-side code exchange. Unapproved origins cannot select a new callback.
 
-After DNS and Google configuration, verify both custom domains, real sign-in,
-reauthentication, context selection, billing, and Console passkey step-up. Then change
-the existing Console base URL and security origin to their generated cutover values.
+In the existing GitHub OAuth app, register or verify these exact callback URLs.
+Keep the current callback available during acceptance:
+
+- `https://staging.console.seams.sh/dashboard/login`
+- `https://console.staging.wallet.seams.sh/dashboard/login`
+
+After DNS and both identity providers are configured, verify both custom domains and
+sign-in. Change the Console base URL and security origin to their generated cutover
+values, then verify Console passkey step-up and account email links.
 Keep the current staging entrypoints until acceptance passes. Production remains unchanged.
+
+The available Cloudflare token cannot write these DNS records. Provider settings also
+remain unverified. These external prerequisites block full staging acceptance.
+Deployment evidence and pending actions are recorded in
+`.artifacts/platform-console/rollout/report.json`.
 
 Staging has no configured Satyr account-service identity or provisioning connection.
 Native Satyr onboarding acceptance requires that separate connection and deployment.

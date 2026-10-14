@@ -39,9 +39,9 @@ function screenPath(parent, P, center, ring, classes = 'lo nf') {
   return path(parent, HL.poly(ring.map(screenPoint.bind(null, P, center))), classes);
 }
 function screenLayer(parent, P, center) {
-  const origin = P(3.1, center, 46);
-  const u = P(3.1, center + 1, 46);
-  const v = P(3.1, center, 45);
+  const origin = P(3.1, center, 48);
+  const u = P(3.1, center + 1, 48);
+  const v = P(3.1, center, 47);
   const matrix = [
     u[0] - origin[0],
     u[1] - origin[1],
@@ -53,17 +53,32 @@ function screenLayer(parent, P, center) {
 }
 function phone(parent, P, center, name) {
   const group = HL.mk('g', { 'data-device': name }, parent);
-  const ring = HL.rrect(-21, 4, 21, 88, 6.5, 12);
-  const front = ring.map(screenPoint.bind(null, P, center));
+  const ring = HL.rrect(-21, 4, 21, 92, 8, 16);
+  const chassisRim = [];
   const back = [];
-  for (const point of ring) back.push(P(-1.6, center + point.u, point.v));
-  path(group, HL.poly(HL.hull(back.concat(front))), 'sil');
-  const outline = path(group, HL.poly(front), 'sil');
-  screenPath(group, P, center, HL.rrect(-19.5, 5.5, 19.5, 86.5, 5.4, 12));
-  screenPath(group, P, center, HL.rrect(-5.3, 80.5, 5.3, 83.4, 1.45, 12), 'dot m');
-  screenPath(group, P, center, HL.rrect(-5.5, 8.2, 5.5, 8.9, 0.35, 8), 'dot m');
-  sideButton(group, P, center, 57, 67);
-  sideButton(group, P, center, 71, 75);
+  for (const point of ring) {
+    back.push(P(-1.6, center + point.u, point.v));
+    chassisRim.push(P(2.7, center + point.u, point.v));
+  }
+  path(group, HL.poly(HL.hull(back.concat(chassisRim))), 'sil');
+  path(group, HL.poly(chassisRim), 'lo nf');
+  const outline = screenPath(
+    group,
+    P,
+    center,
+    HL.rrect(-20.65, 4.35, 20.65, 91.65, 7.65, 16),
+    'sil',
+  );
+  screenPath(group, P, center, HL.rrect(-19.65, 5.35, 19.65, 90.65, 6.65, 16));
+  screenPath(group, P, center, HL.rrect(-6.2, 84.2, 6.2, 87.5, 1.65, 12), 'dot m');
+  screenPath(group, P, center, HL.rrect(3.7, 85.1, 5.1, 86.5, 0.7, 12), 'fo');
+  screenPath(group, P, center, HL.rrect(-3.8, 90.25, 3.8, 90.6, 0.175, 8), 'dot m');
+  screenPath(group, P, center, HL.rrect(-6.5, 8.1, 6.5, 8.8, 0.35, 8), 'dot m');
+  sideButton(group, P, center, 55, 66, 'sil');
+  sideButton(group, P, center, 26, 34, 'lo');
+  for (const height of [15, 81]) {
+    path(group, HL.seg(P(-1.2, center + 21, height), P(2.5, center + 21, height)));
+  }
   const screen = screenLayer(group, P, center);
   const content = HL.mk('g', { 'data-part': 'scan-content' }, screen);
   const qr = qrCode(content);
@@ -78,12 +93,12 @@ function phone(parent, P, center, name) {
   check.setAttribute('data-part', 'success-tick');
   return { group, outline, content, qr, sweep, success, rim, check };
 }
-function sideButton(parent, P, center, low, high) {
+function sideButton(parent, P, center, low, high, classes) {
   const points = [];
-  for (const point of HL.rrect(-0.7, low, 1.8, high, 0.65, 8)) {
+  for (const point of HL.rrect(-0.25, low, 1.25, high, 0.75, 10)) {
     points.push(P(point.u, center + 21.1, point.v));
   }
-  path(parent, HL.poly(points), 'sil');
+  path(parent, HL.poly(points), classes);
 }
 function successArc(progress) {
   const points = [];
@@ -235,9 +250,9 @@ function mount({ stage, svg, read }, distance) {
   HL.fit(
     C,
     [
-      [-3, -49, 88],
+      [-3, -49, 92],
       [51, 49, 4],
-      [-3, 49, 88],
+      [-3, 49, 92],
       [51, -49, 4],
     ],
     230,

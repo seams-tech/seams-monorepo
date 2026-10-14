@@ -721,6 +721,9 @@ var HL = (() => {
 /* @license MIT License — Copyright (c) 2026 Lucas Marques. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. */
 /* global HL, hairline */
 const KEY_TRAVEL = 76;
+const KEY_HALF_THICKNESS = 1.6;
+const SLOT_HALF_WIDTH = 2.6;
+const SLOT_BEVEL = 0.65;
 const INSERT_END = HL.EASE_LIFT(0.45);
 const TURN_ANGLE = -60;
 const KEY_PROFILE = keyProfile();
@@ -772,13 +775,13 @@ function project(P, x, center, angle, point) {
   const z = point[1] * Math.cos(angle) - point[0] * Math.sin(angle);
   return P(x, y, z + center);
 }
-function body(svg, x, depth, profile, center = 43, hole = []) {
+function body(svg, x, depth, profile, center = 43, hole = [], mouth = []) {
   const wall = path(svg, 'fo');
   const back = path(svg, 'sil nf');
   const frontWall = path(svg, 'fo');
   const face = path(svg, 'sil');
   const detail = path(svg, 'lo nf');
-  return { x, depth, profile, hole, center, wall, back, frontWall, face, detail };
+  return { x, depth, profile, hole, mouth, center, wall, back, frontWall, face, detail };
 }
 function drawBody(P, part, angle, detail = '') {
   let farFaces = '';
@@ -789,10 +792,21 @@ function drawBody(P, part, angle, detail = '') {
   let frontEdges = '';
   for (const profile of [part.profile, part.hole]) {
     if (profile.length === 0) continue;
+    const bevelled = profile === part.hole && part.mouth.length > 0;
+    const nearX = part.x + part.depth;
     const far = profile.map(project.bind(null, P, part.x, part.center, angle));
-    const near = profile.map(project.bind(null, P, part.x + part.depth, part.center, angle));
+    const near = profile.map(
+      project.bind(null, P, nearX - (bevelled ? SLOT_BEVEL : 0), part.center, angle),
+    );
     farFaces += HL.poly(far);
-    nearFaces += HL.poly(near);
+    if (bevelled) {
+      const mouth = part.mouth.map(project.bind(null, P, nearX, part.center, angle));
+      nearFaces += HL.poly(mouth);
+      frontWalls += HL.poly(mouth) + HL.poly(near.slice().reverse());
+      detail += HL.poly(near);
+    } else {
+      nearFaces += HL.poly(near);
+    }
     const direction = [near[0][0] - far[0][0], near[0][1] - far[0][1]];
     for (let i = 0; i < far.length; i++) {
       const next = (i + 1) % far.length;
@@ -800,7 +814,8 @@ function drawBody(P, part, angle, detail = '') {
       const visible = sideVisible(far[i], far[next], direction);
       const wall = HL.poly([far[i], far[next], near[next], near[i]]);
       const inSlot =
-        profile === part.hole || (Math.abs(profile[i][0]) <= 6.501 && profile[i][1] >= 0);
+        profile === part.hole ||
+        (Math.abs(profile[i][0]) <= SLOT_HALF_WIDTH + 0.001 && profile[i][1] >= 0);
       if (visible) walls += wall;
       if (visible && !inSlot) frontWalls += wall;
       let edge = visible ? HL.seg(far[i], far[next]) : '';
@@ -819,21 +834,26 @@ function sideVisible(a, b, direction) {
   return (b[0] - a[0]) * direction[1] - (b[1] - a[1]) * direction[0] < 0;
 }
 function slottedRing(outerRadius, innerRadius) {
-  const outerAngle = Math.asin(6.5 / outerRadius);
-  const innerAngle = Math.asin(6.5 / innerRadius);
+  const outerAngle = Math.asin(SLOT_HALF_WIDTH / outerRadius);
+  const innerAngle = Math.asin(SLOT_HALF_WIDTH / innerRadius);
   const contour = circle(outerRadius, outerAngle, Math.PI * 2 - outerAngle);
   contour.push(...circle(innerRadius, Math.PI * 2 - innerAngle, innerAngle));
   return contour;
 }
-function discKeyway() {
-  const angle = Math.asin(6.5 / 9);
-  const contour = [[-6.5, 18.5], ...circle(9, Math.PI * 2 - angle, angle), [6.5, 18.5]];
-  return HL.fillet(contour, Array(contour.length).fill(0.3), 3);
+function discKeyway(bevel) {
+  const width = SLOT_HALF_WIDTH + bevel;
+  const radius = 6 + bevel;
+  const angle = Math.asin(width / radius);
+  const contour = [
+    [-width, 18.5 + bevel],
+    ...circle(radius, Math.PI * 2 - angle, angle),
+    [width, 18.5 + bevel],
+  ];
+  return HL.fillet(contour, Array(contour.length).fill(0.45 + bevel), 4);
 }
 function discDetail(P, disc, angle) {
   const map = project.bind(null, P, disc.x + disc.depth, 43, angle);
   let d = HL.poly(circle(26).map(map));
-  d += HL.open(circle(11, 0.66, Math.PI * 2 - 0.66).map(map));
   for (let i = 1; i < 24; i++) {
     const theta = (i * Math.PI) / 12;
     d += HL.seg(
@@ -876,8 +896,8 @@ function drawKey(P, part, offset, angle) {
   const low = part.low - offset;
   const high = part.high - offset;
   const profile = clipProfile(clipProfile(KEY_PROFILE, low, true), high, false);
-  const mapFar = keyPoint.bind(null, P, offset, angle, -5.5);
-  const mapNear = keyPoint.bind(null, P, offset, angle, 5.5);
+  const mapFar = keyPoint.bind(null, P, offset, angle, -KEY_HALF_THICKNESS);
+  const mapNear = keyPoint.bind(null, P, offset, angle, KEY_HALF_THICKNESS);
   const far = profile.map(mapFar);
   const near = profile.map(mapNear);
   let walls = '';
@@ -923,12 +943,12 @@ function pedestal(svg, P, x, entry = false) {
     [-13, 53],
   ];
   if (entry) {
-    const angle = Math.asin(6.5 / 7);
-    outline.push([-6.5, 53]);
+    const angle = Math.asin(SLOT_HALF_WIDTH / 7);
+    outline.push([-SLOT_HALF_WIDTH, 53]);
     for (const point of circle(7, Math.PI * 2 - angle, angle)) {
       outline.push([point[0], point[1] + 43]);
     }
-    outline.push([6.5, 53]);
+    outline.push([SLOT_HALF_WIDTH, 53]);
   }
   outline.push([13, 53], [13, 9]);
   const part = body(svg, x, 8, HL.fillet(outline, Array(outline.length).fill(0.4), 5), 0);
@@ -994,7 +1014,7 @@ function mount({ stage, svg, read }, duration) {
   HL.fit(
     C,
     [
-      [-164, -5.5, 67.2],
+      [-164, -KEY_HALF_THICKNESS, 67.2],
       [66, -38, 3],
       [-60, 38, 9],
       [66, 38, 9],
@@ -1010,7 +1030,7 @@ function mount({ stage, svg, read }, duration) {
   let previous = -36;
   for (const x of [-18, 9, 36]) {
     sleeves.push(body(svg, previous, x - previous, slottedRing(8, 7)));
-    const disc = body(svg, x, 7, circle(31), 43, discKeyway());
+    const disc = body(svg, x, 7, circle(31), 43, discKeyway(0), discKeyway(SLOT_BEVEL));
     keys.push(keySection(svg, x === -18 ? -36 : x - 20, x + 7, disc));
     discs.push(disc);
     previous = x + 7;

@@ -37,6 +37,20 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
   environment: AccountServiceIngressEnvironment,
   services: AccountServiceIngressServices,
 ): Promise<AccountPlatformServiceIngressHandler | null> {
+  const producer = await createAccountServiceProducerFromEnvironment(environment);
+  if (!producer) return null;
+  return createAccountPlatformServiceIngress({
+    producer,
+    access: services.serviceAccess,
+    memberships: services.serviceMemberships,
+    funds: services.funds,
+    billingUsage: services.billingUsage,
+  });
+}
+
+export async function createAccountServiceProducerFromEnvironment(
+  environment: AccountServiceIngressEnvironment,
+): Promise<AuthenticatedAccountServiceProducerV1 | null> {
   const values = [
     environment.SATYR_DEPLOYMENT_ID,
     environment.SATYR_ACCOUNT_ASSERTION_ISSUER,
@@ -48,7 +62,7 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
   let configured = false;
   for (const value of values) if (value !== undefined) configured = true;
   if (!configured) return null;
-  const producer = await AuthenticatedAccountServiceProducerV1.fromServiceBinding({
+  return AuthenticatedAccountServiceProducerV1.fromServiceBinding({
     authority: {
       serviceId: 'satyr',
       deploymentId: textValue(environment.SATYR_DEPLOYMENT_ID, 'SATYR_DEPLOYMENT_ID'),
@@ -77,12 +91,5 @@ export async function createAccountPlatformServiceIngressFromEnvironment(
       environment.SATYR_GOOGLE_OIDC_CLIENT_ID,
       'SATYR_GOOGLE_OIDC_CLIENT_ID',
     ),
-  });
-  return createAccountPlatformServiceIngress({
-    producer,
-    access: services.serviceAccess,
-    memberships: services.serviceMemberships,
-    funds: services.funds,
-    billingUsage: services.billingUsage,
   });
 }

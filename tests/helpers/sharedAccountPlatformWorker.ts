@@ -42,6 +42,7 @@ import {
   type CloudflareD1AccountServiceBundle,
 } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import type { OrganizationAccessContext } from '../../packages/console-server-ts/src/teamRbac';
+import { SatyrAccountOnboarding } from '../../packages/console-server-ts/src/accountPlatform/onboarding';
 
 const namespace = 'shared-account-satyr-e2e';
 const prefix = '/__fixture/account-platform/v1/';
@@ -301,7 +302,7 @@ class AccountWorkerFixture {
         },
       },
       access: core.serviceAccess,
-      transport: fetch.bind(globalThis),
+      transport: unavailableProvisionTransport,
     });
     return new AccountWorkerFixture(
       bindings,
@@ -326,6 +327,17 @@ class AccountWorkerFixture {
         return json(await this.setup(readSetup(body)));
       case 'acknowledge':
         return json(await this.acknowledge(body));
+      case 'onboarding-delivery': {
+        const record = object(body, 'onboarding delivery');
+        exactKeys(record, ['version', 'operationId']);
+        versionOne(record.version);
+        const delivery = await this.core.accountPlatform.pendingProvisionOperation(
+          satyr,
+          textValue(record.operationId, 'operationId'),
+        );
+        if (!delivery) return json({ code: 'operation_not_pending' }, 409);
+        return json(await this.signedProvision(delivery));
+      }
       case 'mutate':
         return json(await this.mutate(body));
       case 'fault':
@@ -340,6 +352,21 @@ class AccountWorkerFixture {
   }
 
   private async serviceRequest(request: Request, pathname: string): Promise<Response> {
+    if (pathname.startsWith('/account-platform/v1/onboarding/')) {
+      if (this.faults.has('onboarding_outage')) return outage();
+      const lifetime = new OnboardingTestLifetime();
+      const response = await new SatyrAccountOnboarding(
+        this.core,
+        this.producer,
+        this.provisioning,
+        lifetime.waitUntil.bind(lifetime),
+        googleJwks.bind(null, this.googlePublicKey),
+      ).fetch(request);
+      await lifetime.finish();
+      if (response.ok && pathname.endsWith('/start') && this.faults.delete('lose_onboarding_reply'))
+        return outage();
+      return response;
+    }
     if (pathname === '/account-platform/v1/eligibility' && this.faults.has('eligibility_outage'))
       return outage();
     if (pathname === '/account-platform/v1/fee-policy' && this.faults.has('fee_policy_outage'))
@@ -685,6 +712,19 @@ class AccountWorkerFixture {
     versionOne(record.version);
     const context = await this.context(record.organisation);
     switch (record.kind) {
+      case 'fail_service_provision': {
+        exactKeys(record, ['version', 'kind', 'organisation', 'instanceId']);
+        const instance = accepted(
+          await this.core.accountPlatform.getInstance(
+            context,
+            textValue(record.instanceId, 'instanceId'),
+          ),
+        );
+        return this.core.accountPlatform.failProvision(satyr, {
+          operationId: instance.command.operationId,
+          failureCode: 'provisioning_failed',
+        });
+      }
       case 'remove_member':
       case 'suspend_member':
       case 'reactivate_member': {
@@ -843,6 +883,8 @@ class AccountWorkerFixture {
       case 'usage_outage':
       case 'lose_usage_reply':
       case 'lose_reserve_reply':
+      case 'lose_onboarding_reply':
+      case 'onboarding_outage':
         this.faults.add(record.kind);
         break;
       default:
@@ -1014,6 +1056,23 @@ function ingressFor(
 }
 
 let runtime: Promise<AccountWorkerFixture> | null = null;
+
+// The journey controls delivery between the two real runtimes and can lose its reply.
+async function unavailableProvisionTransport(): Promise<Response> {
+  return new Response('Provision delivery is controlled by the acceptance journey', {
+    status: 503,
+  });
+}
+
+class OnboardingTestLifetime {
+  private readonly pending: Promise<unknown>[] = [];
+  waitUntil(work: Promise<unknown>): void {
+    this.pending.push(work);
+  }
+  async finish(): Promise<void> {
+    await Promise.all(this.pending);
+  }
+}
 
 async function fetchFixture(request: Request, bindings: FixtureBindings): Promise<Response> {
   runtime ??= AccountWorkerFixture.create(bindings);

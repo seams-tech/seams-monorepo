@@ -3,13 +3,20 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { createCloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
 import {
   createAccountPlatformServiceIngressFromEnvironment,
+  createAccountServiceProducerFromEnvironment,
   type AccountServiceIngressEnvironment,
 } from '@seams-internal/console-server/accountPlatform/serviceIngressEnvironment';
 import type { D1DatabaseLike } from '@seams-internal/console-server/boundary/d1';
 import { textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import { resolveCloudflareConsoleEmailDispatchCronOptions } from './cron';
+import { SatyrAccountOnboarding } from '@seams-internal/console-server/accountPlatform/onboarding';
+import {
+  createSatyrProvisioningAdapterFromEnvironment,
+  type SatyrProvisioningEnvironment,
+} from '@seams-internal/console-server/accountPlatform/satyrProvisioningEnvironment';
 
 type SatyrAccountPlatformEnvironment = AccountServiceIngressEnvironment &
+  SatyrProvisioningEnvironment &
   Parameters<typeof resolveCloudflareConsoleEmailDispatchCronOptions>[0]['env'] & {
     readonly CONSOLE_DB: D1DatabaseLike;
     readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
@@ -43,6 +50,25 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
         consoleBaseUrl: textValue(this.env.CONSOLE_BASE_URL, 'CONSOLE_BASE_URL'),
       },
     });
+    if (new URL(request.url).pathname.startsWith('/account-platform/v1/onboarding/')) {
+      const producer = await createAccountServiceProducerFromEnvironment(this.env);
+      const provisioning = createSatyrProvisioningAdapterFromEnvironment(
+        this.env,
+        services.serviceAccess,
+        fetch,
+      );
+      if (!producer || !provisioning)
+        return Response.json(
+          { kind: 'rejected', error: { code: 'authority_unavailable' } },
+          { status: 503 },
+        );
+      return new SatyrAccountOnboarding(
+        services,
+        producer,
+        provisioning,
+        this.ctx.waitUntil.bind(this.ctx),
+      ).fetch(request);
+    }
     const ingress = await createAccountPlatformServiceIngressFromEnvironment(this.env, services);
     if (!ingress)
       return Response.json(

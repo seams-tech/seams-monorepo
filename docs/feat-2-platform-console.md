@@ -75,8 +75,9 @@ or additional database is required.
   access. URL identifiers grant no authority and must never contain session tokens.
 
 Wallet automatic setup and the Wallet-only navigation change are committed locally.
-Satyr automatic onboarding still needs implementation or verification in its own
-repository. This plan does not treat a shared account binding as proof of that behaviour.
+Satyr's account/project picker and automatic provisioning are implemented locally in
+its own repository. Deploy the new private account onboarding endpoints before the
+Satyr client. Record local acceptance and deployment separately.
 
 ## Step 1 — Separate the frontend builds
 

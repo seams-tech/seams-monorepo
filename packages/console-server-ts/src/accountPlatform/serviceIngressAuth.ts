@@ -1,5 +1,6 @@
 import {
   DelegatedPlatformAssertionV1,
+  ServiceOnboardingAssertionV1,
   type PlatformResult,
 } from '@seams-internal/console-shared/accountPlatform';
 import {
@@ -59,43 +60,65 @@ export class AuthenticatedAccountServiceProducerV1 {
     request: Request,
     at: Date,
   ): Promise<PlatformResult<DelegatedPlatformAssertionV1, { readonly code: 'scope_forbidden' }>> {
-    const value = request.headers.get('X-Account-User-Assertion');
-    if (!value) return forbidden();
     try {
-      const parts = value.split('.');
-      if (parts.length !== 3) return forbidden();
-      const header = object(
-        JSON.parse(new TextDecoder().decode(decodeSegment(parts[0]))),
-        'assertion header',
-      );
-      exactKeys(header, ['alg', 'typ', 'kid']);
-      if (header.alg !== 'EdDSA' || header.typ !== 'JWT' || header.kid !== this.configuration.keyId)
+      const parsed = DelegatedPlatformAssertionV1.parse(await this.readSignedAssertion(request));
+      if (parsed.kind === 'rejected' || !this.isCurrentAssertion(parsed.value, at))
         return forbidden();
-      const signedBytes = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
-      const verified = await crypto.subtle.verify(
-        { name: 'Ed25519' },
-        this.configuration.assertionKey,
-        copyBuffer(decodeSegment(parts[2])),
-        signedBytes,
-      );
-      if (!verified) return forbidden();
-      const parsed = DelegatedPlatformAssertionV1.parse(
-        JSON.parse(new TextDecoder().decode(decodeSegment(parts[1]))),
-      );
-      if (parsed.kind === 'rejected') return forbidden();
-      const assertion = parsed.value;
-      const expiresAt = Date.parse(assertion.expiresAt);
-      if (
-        assertion.issuer !== this.configuration.issuer ||
-        assertion.audience !== this.configuration.audience ||
-        expiresAt <= at.getTime() ||
-        expiresAt > at.getTime() + 60_000
-      )
-        return forbidden();
-      return { kind: 'accepted', value: assertion };
+      return parsed;
     } catch {
       return forbidden();
     }
+  }
+
+  async verifyOnboardingAssertion(
+    request: Request,
+    at: Date,
+  ): Promise<PlatformResult<ServiceOnboardingAssertionV1, { readonly code: 'scope_forbidden' }>> {
+    if (this.authority.serviceId !== 'satyr') return forbidden();
+    try {
+      const parsed = ServiceOnboardingAssertionV1.parse(await this.readSignedAssertion(request));
+      if (parsed.kind === 'rejected' || !this.isCurrentAssertion(parsed.value, at))
+        return forbidden();
+      return parsed;
+    } catch {
+      return forbidden();
+    }
+  }
+
+  private isCurrentAssertion(
+    assertion: { readonly issuer: string; readonly audience: string; readonly expiresAt: string },
+    at: Date,
+  ): boolean {
+    const expiresAt = Date.parse(assertion.expiresAt);
+    return (
+      assertion.issuer === this.configuration.issuer &&
+      assertion.audience === this.configuration.audience &&
+      expiresAt > at.getTime() &&
+      expiresAt <= at.getTime() + 60_000
+    );
+  }
+
+  private async readSignedAssertion(request: Request): Promise<unknown> {
+    const value = request.headers.get('X-Account-User-Assertion');
+    if (!value) throw new Error('Missing user assertion');
+    const parts = value.split('.');
+    if (parts.length !== 3) throw new Error('Invalid user assertion');
+    const header = object(
+      JSON.parse(new TextDecoder().decode(decodeSegment(parts[0]))),
+      'assertion header',
+    );
+    exactKeys(header, ['alg', 'typ', 'kid']);
+    if (header.alg !== 'EdDSA' || header.typ !== 'JWT' || header.kid !== this.configuration.keyId)
+      throw new Error('Invalid assertion header');
+    const signedBytes = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const verified = await crypto.subtle.verify(
+      { name: 'Ed25519' },
+      this.configuration.assertionKey,
+      copyBuffer(decodeSegment(parts[2])),
+      signedBytes,
+    );
+    if (!verified) throw new Error('Invalid assertion signature');
+    return JSON.parse(new TextDecoder().decode(decodeSegment(parts[1])));
   }
 }
 

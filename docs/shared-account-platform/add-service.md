@@ -30,7 +30,9 @@ Use Satyr as the working integration example.
    Retry that durable event independently of the initiating user's later membership or session.
    Settle or release only from accepted final evidence.
    Keep uncertain obligations reserved until reconciliation proves their outcome.
-7. Use the shared Console for account membership, service enablement, and consolidated costs.
+7. Use the shared account authority for membership, product provisioning, and consolidated costs.
+   Start provisioning from the product's own authenticated onboarding. Offer existing
+   account/project selection and creation without a separate manual enable screen.
    Open native operations through the service link and its own authenticated session.
    Billing events carry stable references and no private content.
 8. Add static type fixtures and one composed journey through the real account and service runtimes.

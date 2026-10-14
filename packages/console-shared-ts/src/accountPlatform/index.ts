@@ -7,3 +7,4 @@ export * from './funds';
 export * from './access';
 export * from './fundsDelivery';
 export * from './provisionOwner';
+export * from './onboarding';

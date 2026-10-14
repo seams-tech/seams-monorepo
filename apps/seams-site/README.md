@@ -41,6 +41,11 @@ to the existing interactive transaction component gallery.
 Pointer selections move the canvas. Keyboard selections and reduced-motion mode
 change its position immediately. The rail remains usable at a 320px viewport.
 
+A decorative cursor approaches the active preview's main action and pulses once.
+It starts when the canvas is visible, pauses offscreen or during card interaction,
+and never activates a control. Keyboard navigation, touch devices, and reduced-motion
+mode suppress the cursor. Receipt previews have no action cursor.
+
 With the site running, execute the browser scenario from the repository root:
 
 ```sh

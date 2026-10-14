@@ -11,6 +11,7 @@ import {
   Laptop,
   Layers2,
   LockKeyhole,
+  MousePointer2,
   Plus,
   QrCode,
   ShieldCheck,
@@ -88,6 +89,17 @@ function focusPreviewAction(preview: HTMLElement): void {
   preview.querySelector<HTMLButtonElement>('button[data-preview-action]')?.focus();
 }
 
+function PreviewCursor(): React.JSX.Element {
+  return (
+    <span className="showcase-preview__cursor" aria-hidden="true">
+      <span className="showcase-preview__cursor-motion">
+        <MousePointer2 />
+        <span className="showcase-preview__cursor-pulse" />
+      </span>
+    </span>
+  );
+}
+
 function PrimaryAction({
   action,
   children,
@@ -104,6 +116,7 @@ function PrimaryAction({
     >
       {children}
       <ArrowRight aria-hidden />
+      {action !== 'reset' && <PreviewCursor />}
     </button>
   );
 }
@@ -142,12 +155,13 @@ function Devices(): React.JSX.Element {
       <button className="showcase-preview__secondary" type="button" data-preview-action="link">
         <Plus aria-hidden />
         Link another device
+        <PreviewCursor />
       </button>
     </>
   );
 }
 
-function RecoveryOption(): React.JSX.Element {
+function RecoveryOption({ showCursor = false }: { showCursor?: boolean }): React.JSX.Element {
   return (
     <button className="showcase-preview__option" type="button" data-preview-action="security">
       <span className="showcase-preview__option-icon">
@@ -158,6 +172,7 @@ function RecoveryOption(): React.JSX.Element {
         <small>Keep a copy somewhere safe</small>
       </span>
       <span className="showcase-preview__badge">Saved</span>
+      {showCursor && <PreviewCursor />}
     </button>
   );
 }
@@ -508,7 +523,7 @@ function previewContent(id: PreviewId): React.JSX.Element {
             </span>
             <span className="showcase-preview__badge">Enabled</span>
           </div>
-          <RecoveryOption />
+          <RecoveryOption showCursor />
           <div className="showcase-preview__notice">
             <LockKeyhole aria-hidden />
             <p>Use your recovery code if you lose access to your devices.</p>

@@ -76,6 +76,34 @@ async function capture(gallery, name) {
   await gallery.screenshot({ path: `${artifacts}/${name}.png`, animations: 'disabled' });
 }
 
+function cursorFrame(gallery, phase) {
+  const cursor = gallery.querySelector('[data-active="true"] .showcase-preview__cursor');
+  for (const animation of cursor.getAnimations({ subtree: true })) {
+    const timing = animation.effect.getTiming();
+    animation.pause();
+    animation.currentTime = timing.delay + Number(timing.duration) * phase;
+  }
+  const pointer = cursor.querySelector('.showcase-preview__cursor-motion').getBoundingClientRect();
+  const action = cursor.closest('button').getBoundingClientRect();
+  return {
+    belowAction: pointer.top > action.bottom,
+    onAction:
+      pointer.left >= action.left &&
+      pointer.left < action.right &&
+      pointer.top >= action.top &&
+      pointer.top < action.bottom,
+  };
+}
+
+function resumeCursor(gallery) {
+  const cursor = gallery.querySelector('[data-active="true"] .showcase-preview__cursor');
+  for (const animation of cursor.getAnimations({ subtree: true })) animation.play();
+}
+
+function scrollBelowCanvas() {
+  window.scrollTo(0, document.documentElement.scrollHeight);
+}
+
 await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome' });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
@@ -87,6 +115,23 @@ try {
   await page.goto(origin);
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
   await gallery.scrollIntoViewIfNeeded();
+  const cursor = gallery.locator('[data-active="true"] .showcase-preview__cursor');
+  const cursorMotion = cursor.locator('.showcase-preview__cursor-motion');
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'running');
+  await gallery.getByRole('button', { name: 'Create with passkey', exact: true }).hover();
+  await expect(cursor).toHaveCSS('opacity', '0');
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'paused');
+  await page.mouse.move(10, 10);
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'running');
+  assert.equal((await gallery.evaluate(cursorFrame, 0.12)).belowAction, true);
+  assert.equal((await gallery.evaluate(cursorFrame, 0.64)).onAction, true);
+  await gallery.screenshot({ path: `${artifacts}/desktop-cursor-click.png` });
+  await expect(gallery.getByRole('status')).toHaveCount(0);
+  await gallery.evaluate(resumeCursor);
+  await page.evaluate(scrollBelowCanvas);
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'paused');
+  await gallery.scrollIntoViewIfNeeded();
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'running');
   await capture(gallery, 'desktop-authentication');
 
   // Native radio navigation must keep both levels of selection synchronized.
@@ -96,6 +141,8 @@ try {
   await expect(
     gallery.getByRole('button', { name: 'Create with passkey', exact: true }),
   ).toBeFocused();
+  await expect(cursor).toHaveCSS('opacity', '0');
+  await expect(cursorMotion).toHaveCSS('animation-play-state', 'paused');
   await authentication.focus();
   await page.keyboard.press('ArrowRight');
   await expect(gallery.getByRole('radio', { name: 'Transactions', exact: true })).toBeChecked();
@@ -127,6 +174,7 @@ try {
     gallery.getByRole('heading', { name: 'Transfer confirmed', exact: true }),
   ).toBeVisible();
   await capture(gallery, 'desktop-receipt');
+  await expect(cursor).toHaveCount(0);
 
   await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
   await gallery.getByRole('combobox', { name: 'Pay with' }).selectOption('ethereum');
@@ -138,6 +186,7 @@ try {
   await capture(gallery, 'desktop-checkout');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(cursor).toBeHidden();
   const checked = [];
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -155,10 +204,36 @@ try {
     await gallery.getByRole('radio', { name: 'Checkout', exact: true }).check();
     await capture(gallery, `mobile-${width}-checkout`);
   }
+  const touchContext = await browser.newContext({
+    viewport: { width: 390, height: 1000 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const touchPage = await touchContext.newPage();
+  touchPage.on('pageerror', recordError);
+  await touchPage.goto(origin);
+  const touchGallery = touchPage.getByRole('region', { name: 'Wallet component showcase' });
+  await touchGallery.scrollIntoViewIfNeeded();
+  await expect(touchGallery.locator('[data-active="true"] .showcase-preview__cursor')).toBeHidden();
+  await touchGallery.getByRole('radio', { name: 'Checkout', exact: true }).tap();
+  await touchGallery.getByRole('button', { name: 'Pay $24.00', exact: true }).tap();
+  await expect(touchGallery.getByRole('status')).toContainText('No payment was made.');
+  await capture(touchGallery, 'touch-payment-result');
+  await touchContext.close();
   assert.deepEqual(errors, []);
   await writeFile(
     `${artifacts}/result.json`,
-    JSON.stringify({ passed: true, checked, errors }, null, 2),
+    JSON.stringify(
+      {
+        passed: true,
+        cursor:
+          'approach, pulse, interaction pause, offscreen pause, keyboard, reduced motion, touch',
+        checked,
+        errors,
+      },
+      null,
+      2,
+    ),
   );
   console.log(
     'Passed category and rail navigation, demo actions, interrupted motion, keyboard access, and 24 mobile views.',

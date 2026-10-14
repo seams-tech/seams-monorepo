@@ -85,6 +85,25 @@ function setPreviewInert(active: boolean, element: HTMLDivElement | null): void 
   if (element !== null) element.inert = !active;
 }
 
+function updateCursorVisibility(entries: IntersectionObserverEntry[]): void {
+  for (const entry of entries) {
+    if (entry.target instanceof HTMLElement) {
+      entry.target.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.3);
+    }
+  }
+}
+
+function observeCanvas(
+  observer: React.MutableRefObject<IntersectionObserver | null>,
+  element: HTMLDivElement | null,
+): void {
+  observer.current?.disconnect();
+  observer.current = null;
+  if (element === null) return;
+  observer.current = new IntersectionObserver(updateCursorVisibility, { threshold: 0.3 });
+  observer.current.observe(element);
+}
+
 function renderCategory(
   selected: Preview,
   category: (typeof categories)[number],
@@ -145,6 +164,7 @@ function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
 
 export function ComponentShowcase(): React.JSX.Element {
   const [selected, setSelected] = React.useState<Preview>(previews[0]);
+  const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
 
   return (
     <section
@@ -168,7 +188,11 @@ export function ComponentShowcase(): React.JSX.Element {
         >
           {categories.map(renderCategory.bind(null, selected))}
         </div>
-        <div className="component-showcase__viewport" id="showcase-canvas">
+        <div
+          className="component-showcase__viewport"
+          id="showcase-canvas"
+          ref={observeCanvas.bind(null, visibilityObserver)}
+        >
           <div className="component-showcase__glow" aria-hidden="true" />
           <div
             className="component-showcase__world"

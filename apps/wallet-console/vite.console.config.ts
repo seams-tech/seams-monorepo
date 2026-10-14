@@ -11,6 +11,7 @@ function consoleConfig({ mode }: ConfigEnv) {
     root: `${directory}${mode === 'platform' ? 'platform' : 'console'}`,
     envDir: directory,
     publicDir: `${directory}public`,
+    cacheDir: `${directory}node_modules/.vite-console-${mode}`,
     base: process.env.VITE_ASSET_BASE_PATH || '/',
     plugins: [react()],
     resolve: {

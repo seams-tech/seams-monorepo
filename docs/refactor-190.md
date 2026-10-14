@@ -821,6 +821,8 @@ Directory/Runtime composition and Chromium session reconciliation are local. Hos
 The existing celld restore/upgrade runner also passes with the regenerated development fixture, including both provider-denial cases and shutdown checks.
 This regression check does not exercise relocation on celld.
 The aggregate maintained source reduction is now 32,684 lines.
+Both branches then rebased cleanly onto local `dev`: public `16fa2169` and private `201b916e`.
+The incoming changes contain release records and the verified staging target update. Qualification code and Worker bytes are unchanged.
 
 ## Remaining rollout gates
 

@@ -271,5 +271,12 @@
     "publicRevision": "214a3f067285cdd72742c614478f5ca8e510cf3d",
     "cleanupErrors": [],
     "scope": "Existing celld root restore, backup-read/deletion refusal, shutdown, upgrade, incompatible-downgrade refusal, and stored ECDSA replay with the regenerated development fixture. No celld relocation claim."
+  },
+  "postQualificationRebase": {
+    "publicBase": "16fa216923a9312511aeb0dc0b50f9ce5c0986d8",
+    "privateBase": "201b916ed213254be888e43ea68176da3fcaf78a",
+    "publicCodeChanges": [],
+    "privateQualificationCodeChanges": [],
+    "scope": "Public release documentation; private staging target data, matching script assertions, and documentation. No deployment performed by this checkpoint."
   }
 }

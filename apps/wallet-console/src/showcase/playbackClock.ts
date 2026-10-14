@@ -1,3 +1,5 @@
+import './playbackFocus.css';
+
 // The canvas controls this clock through the embedded document. Standalone
 // examples run normally, and manual interaction retains their normal timing.
 class PlaybackDelay {

@@ -86,6 +86,7 @@ export class EmbeddedPlayback {
   private takeOver = (event: Event): void => {
     if (!event.isTrusted) return;
     this.stopped = true;
+    for (const child of this.documents) delete child.documentElement.dataset.showcaseAutoplay;
     this.clearVisit();
     this.onInteract();
   };
@@ -120,8 +121,14 @@ export class EmbeddedPlayback {
       viewport?.dataset.inView !== 'true' ||
       (section?.getAttribute('data-playback') === 'paused' &&
         section?.getAttribute('data-pause-reason') === 'control');
-    for (const child of documents)
+    for (const child of documents) {
       child.documentElement.dataset.showcaseClock = clockPaused ? 'paused' : 'playing';
+      child.documentElement.dataset.showcaseAutoplay = String(
+        !this.stopped &&
+          section?.getAttribute('data-playback') === 'playing' &&
+          section?.getAttribute('data-motion') !== 'keyboard',
+      );
+    }
     const playing =
       !this.stopped &&
       section?.getAttribute('data-playback') === 'playing' &&
@@ -191,14 +198,20 @@ function createCursorVisit(button: HTMLButtonElement): CursorVisit {
   button.append(cursor);
   const animation = cursor.animate(
     [
-      { transform: 'translate(48px, 52px)', opacity: 0, offset: 0 },
-      { transform: 'translate(48px, 52px)', opacity: 0, offset: 0.25 },
-      { opacity: 1, offset: 0.35 },
-      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.85 },
-      { transform: 'translate(0, 0) scale(.88)', opacity: 1, offset: 0.95 },
+      { transform: 'translate(54px, 38px)', opacity: 0, offset: 0 },
+      { transform: 'translate(54px, 38px)', opacity: 1, offset: 0.12 },
+      { transform: 'translate(52px, 16px)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(38px, -6px)', opacity: 1, offset: 0.34 },
+      { transform: 'translate(20px, -11px)', opacity: 1, offset: 0.43 },
+      { transform: 'translate(8px, -7px)', opacity: 1, offset: 0.48 },
+      { transform: 'translate(8px, -7px)', opacity: 1, offset: 0.65 },
+      { transform: 'translate(3px, -4px)', opacity: 1, offset: 0.74 },
+      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.84 },
+      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.92 },
+      { transform: 'translate(0, 0) scale(.88)', opacity: 1, offset: 0.96 },
       { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 1 },
     ],
-    { duration: 3200, easing: 'cubic-bezier(.23, 1, .32, 1)', fill: 'both' },
+    { duration: 2000, easing: 'linear', fill: 'both' },
   );
   return { button, cursor, animation, position, overflow };
 }

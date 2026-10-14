@@ -1,0 +1,6 @@
+/* Only the canvas player suppresses programmatic focus. Real input removes
+   this marker before the browser processes the pointer or keyboard event. */
+html[data-showcase-autoplay='true'] :focus {
+  outline: none !important;
+  box-shadow: none !important;
+}

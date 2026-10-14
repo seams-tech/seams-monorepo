@@ -5,7 +5,14 @@ import { chromium } from '@playwright/test';
 const directory = '.artifacts/combination-interlock/ring-dial/';
 const origin = process.env.SEAMS_SITE_ORIGIN || 'http://localhost:4001';
 const preview = new URL('/dashboard-static/showcase/motion/interlock/', origin).href;
-const report = { frames: [], errors: [], views: [], interactions: [], descendingOcclusion: null };
+const report = {
+  frames: [],
+  rewind: [],
+  errors: [],
+  views: [],
+  interactions: [],
+  descendingOcclusion: null,
+};
 const captured = new Set();
 const contactAngle = 12;
 
@@ -42,7 +49,7 @@ function snapshot() {
   };
 }
 
-function tabSeparation(first, second) {
+function pinSeparation(first, second) {
   const angle = (((first - second) % 360) + 360) % 360;
   return Math.min(angle, 360 - angle);
 }
@@ -62,12 +69,12 @@ function validate(sample) {
   const [rear, middle, front] = sample.rotations;
   near(sample.dial, front, 'The dial drives the front wheel');
   assert.ok(
-    tabSeparation(front + 270, middle + 150) >= contactAngle - 0.00001,
-    'Front pickup tabs do not intersect',
+    pinSeparation(front + 270, middle + 150) >= contactAngle - 0.00001,
+    'Front pickup pins do not intersect',
   );
   assert.ok(
-    tabSeparation(middle + 270, rear + 30) >= contactAngle - 0.00001,
-    'Rear pickup tabs do not intersect',
+    pinSeparation(middle + 270, rear + 30) >= contactAngle - 0.00001,
+    'Rear pickup pins do not intersect',
   );
   if (sample.pin > 0) {
     for (const rotation of sample.rotations)
@@ -86,6 +93,16 @@ function frameRecord(sample, ms) {
     invalid: sample.invalid,
     bounds: sample.bounds,
   };
+}
+
+function validateReversal(previous, sample) {
+  validate(sample);
+  for (let index = 0; index < sample.rotations.length; index++) {
+    assert.ok(
+      Math.abs(sample.rotations[index] - previous.rotations[index]) < 30,
+      'A 20ms sample can span two paint frames, with less than thirty degrees of wheel travel',
+    );
+  }
 }
 
 function targetPoint(element) {
@@ -231,15 +248,15 @@ try {
     if (sample.read === previous.read) {
       if (Math.abs(middleDelta) > 0.00001)
         near(
-          tabSeparation(front + 270, middle + 150),
+          pinSeparation(front + 270, middle + 150),
           contactAngle,
-          'The front tab stays in contact while driving the middle wheel',
+          'The front pin stays in contact while driving the middle wheel',
         );
       if (Math.abs(rearDelta) > 0.00001)
         near(
-          tabSeparation(middle + 270, rear + 30),
+          pinSeparation(middle + 270, rear + 30),
           contactAngle,
-          'The middle tab stays in contact while driving the rear wheel',
+          'The middle pin stays in contact while driving the rear wheel',
         );
     }
     if (sample.pin > 0.7 && sample.pin < 1 && report.descendingOcclusion === null) {
@@ -302,6 +319,53 @@ try {
   await page.waitForTimeout(300);
   await capture(page, 'dial-highlight');
   await page.mouse.move(0, 0);
+  previous = await page.evaluate(snapshot);
+  for (let step = 1; step <= 240; step++) {
+    await page.clock.runFor(20);
+    const sample = await page.evaluate(snapshot);
+    validateReversal(previous, sample);
+    const ms = step * 20;
+    if (ms <= 400) {
+      for (let index = 0; index < 3; index++)
+        near(
+          sample.rotations[index],
+          unlocked.rotations[index],
+          'The gate rises before any wheel turns',
+        );
+    }
+    if (ms < 4000)
+      assert.equal(sample.read, 'resetting', 'The rewind keeps the forward sequence pace');
+    if ([400, 1200, 2400, 4000].includes(ms)) await capture(page, `rewind-${ms}`);
+    report.rewind.push(frameRecord(sample, ms));
+    previous = sample;
+  }
+  assert.equal((await page.evaluate(snapshot)).read, 'rest');
+
+  // Interrupt an unfinished reset with the real pointer, then reverse it repeatedly.
+  await page.mouse.move(dialPoint.x, dialPoint.y);
+  await page.clock.runFor(4800);
+  await page.mouse.move(0, 0);
+  await page.clock.runFor(900);
+  for (let interruption = 0; interruption < 8; interruption++) {
+    previous = await page.evaluate(snapshot);
+    await page.mouse.move(dialPoint.x, dialPoint.y);
+    const resumed = await page.evaluate(snapshot);
+    assert.deepEqual(
+      resumed.rotations,
+      previous.rotations,
+      'Reentry preserves the current wheel pose',
+    );
+    for (let step = 0; step < 5; step++) {
+      await page.clock.runFor(20);
+      const sample = await page.evaluate(snapshot);
+      validateReversal(previous, sample);
+      previous = sample;
+    }
+    await page.mouse.move(0, 0);
+    await page.clock.runFor(20);
+    validateReversal(previous, await page.evaluate(snapshot));
+  }
+  await page.mouse.move(0, 0);
   await page.clock.runFor(4800);
   assert.equal((await page.evaluate(snapshot)).read, 'rest');
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -335,6 +399,10 @@ try {
     'aligning-front',
     'pin-dropping',
     'unlocked',
+    'rewind-400',
+    'rewind-1200',
+    'rewind-2400',
+    'rewind-4000',
   ];
   for (const name of names) {
     const data = await readFile(`${directory}${name}.png`);
@@ -349,7 +417,7 @@ try {
   report.passed = true;
   await writeFile(`${directory}review.json`, JSON.stringify(report, null, 2));
   console.log(
-    'Passed coupled pickups, pin clearance, reverse dialing, gate alignment, pin drop, pivot sockets, rod occlusion, interruption, hover, keyboard, reduced motion, themes, and bounds.',
+    'Passed coupled pickups, pin clearance, reverse dialing, gate alignment, pin drop, pivot sockets, rod occlusion, paced rewind, repeated hover reversals, keyboard, reduced motion, themes, and bounds.',
   );
 } finally {
   await browser.close();

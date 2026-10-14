@@ -881,9 +881,25 @@ The rebase includes registration batching, session observation fixes, and automa
 Fresh 0.11.0 candidates build and pass all 16 selected contracts on both celld and workerd with matching package snapshots.
 Private `pnpm check` passes. The package candidates remain unpublished.
 
+## October 14 live-peer partition qualification
+
+The Google Yao scenario now passes explicit TCP rejection and silent peer packet loss on `.7`.
+Both faults begin while A/B claims are running, before the 15-second ceremony timeout.
+The silent case releases the held reply, observes further A messages while B remains at its earlier message count, and records dropped packets.
+Both processes stay alive, owner records remain unchanged, and shared-storage leases renew.
+After healing, both pairs remain burned and retry opens no new protocol connection.
+Fresh registration succeeds. The silent case samples distinct A/B owners before that fresh execution.
+
+Both qualified runs stop the VMs, remove temporary host/cloud rules, and verify closed SSH forwarding ports.
+The first trial's functional checks passed, but a local process-group permission error failed cleanup.
+That raw failed record is retained. The revised cleanup checks the managed process and its known port after VM shutdown.
+No production handler, runtime patch, database call, or request round trip changed.
+See [the partition evidence and precise limits](../deployment/celld/evidence/peer-partitions.json).
+The maintained source reduction is 31,127 lines, including the added acceptance code.
+
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: peer partitions and other in-flight claim failures, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
+1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 

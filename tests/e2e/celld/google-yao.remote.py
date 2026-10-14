@@ -1,6 +1,7 @@
 """Operate one task-owned celld process and read its fleet ownership records."""
 
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -111,6 +112,77 @@ def storage_object(bucket, key, token):
         return json.loads(reply.read())
 
 
+def firewall(arguments, check=True):
+    return subprocess.run(
+        ['sudo', 'iptables', '--wait', '5', *arguments],
+        check=check, capture_output=True, text=True,
+    )
+
+
+def partition_status():
+    chain = 'r190-yao-' + inputs['id']
+    rules = firewall(['-L', chain, '-n', '-v', '-x'], check=False)
+    if rules.returncode == 1:
+        return {'active': False}
+    rules.check_returncode()
+    packets = 0
+    for line in rules.stdout.splitlines():
+        columns = line.split()
+        if columns and columns[0].isdigit():
+            packets += int(columns[0])
+    linked = firewall(['-C', 'OUTPUT', '-j', chain], check=False)
+    assert linked.returncode in (0, 1), linked.stderr
+    return {'active': linked.returncode == 0, 'packets': packets, 'rules': rules.stdout}
+
+
+def partition_peer():
+    peer = inputs['peerIp']
+    assert ipaddress.ip_address(peer).is_private and peer != inputs['privateIp']
+    before = state()
+    assert before['ActiveState'] == 'active' and before['MainPID'] != '0', before
+    sockets = []
+    for port in ('dport', 'sport'):
+        sockets.append(subprocess.check_output(
+            ['sudo', 'ss', '-Hntp', 'dst', peer, port, '=', '19081'], text=True,
+        ))
+    assert any('pid=' + before['MainPID'] + ',' in row for row in sockets), sockets
+    assert inputs['faultKind'] in ('peer-partition', 'silent-partition')
+    verdict = ['-j', 'REJECT', '--reject-with', 'tcp-reset']
+    if inputs['faultKind'] == 'silent-partition':
+        verdict = ['-j', 'DROP']
+    chain = 'r190-yao-' + inputs['id']
+    firewall(['-N', chain])
+    for port in ('--dport', '--sport'):
+        firewall(['-A', chain, '-p', 'tcp', '-d', peer, port, '19081', *verdict])
+    firewall(['-I', 'OUTPUT', '1', '-j', chain])
+    closed = []
+    if inputs['faultKind'] == 'peer-partition':
+        for port in ('dport', 'sport'):
+            closed.append(subprocess.check_output(
+                ['sudo', 'ss', '-K', 'dst', peer, port, '=', '19081'], text=True,
+            ))
+    result = partition_status()
+    assert result['active']
+    result.update({'peer': peer, 'runtimeBefore': before, 'socketsBefore': sockets,
+                   'closedSockets': closed})
+    return result
+
+
+def heal_peer():
+    before = partition_status()
+    chain = 'r190-yao-' + inputs['id']
+    if before['active']:
+        firewall(['-D', 'OUTPUT', '-j', chain])
+    exists = firewall(['-L', chain], check=False)
+    assert exists.returncode in (0, 1), exists.stderr
+    if exists.returncode == 0:
+        firewall(['-F', chain])
+        firewall(['-X', chain])
+    after = partition_status()
+    assert not after['active'], after
+    return {'before': before, 'after': after}
+
+
 action = sys.argv[2]
 if action == 'deploy':
     for role in inputs['roles']:
@@ -131,6 +203,12 @@ elif action == 'kill':
     result = stop(True)
 elif action == 'status':
     result = state()
+elif action == 'partition-peer':
+    result = partition_peer()
+elif action == 'partition-status':
+    result = partition_status()
+elif action == 'heal-peer':
+    result = heal_peer()
 elif action == 'runtime-state':
     with urllib.request.urlopen('http://' + inputs['privateIp'] + ':19081/state', timeout=10) as reply:
         snapshot = json.loads(reply.read())

@@ -1,0 +1,351 @@
+{
+  "status": "passed_for_recorded_scope",
+  "scope": "Active Yao claims during A-side OUTPUT filtering of peer TCP source/destination19081 between ordinary and SEV-SNP Google VMs. Shared storage remains reachable.",
+  "project": "seams-501403",
+  "runtime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceTransferSha256": "eab9480b2e926a063cebb0a56de0121efea98e1f3a45167c6c5d7f9ae6e3a7ea",
+    "executableSha256": "4cd1f113e51e69cf33e41f46c17dea65e8ff4989ad44597e2de9fea9239d5429",
+    "version": "celld 0.6.2-seams.7",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "packageSha256": "ec994786662f1eb2d0e62e75f5b9bcdc70f4174bf03062b48258a280a96fada7",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "publicRevision": "85ee989a913a2bdc323280bf09adc4fef2358de2",
+  "tcpRejection": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/result.json",
+      "sha256": "490deb37c3489376a908fd47cc3c142594a314c23231198a423c3476f7fb77d5"
+    },
+    "faultKind": "peer-partition",
+    "partitionUpperBoundMs": 6721.594459144399,
+    "ceremonyTimeoutMs": 15000,
+    "measuredMinimumHoldMs": 20003.241208847612,
+    "packetCountBeforeHeal": 93,
+    "forcedSocketClosureInvocations": 2,
+    "ownersUnchanged": true,
+    "leasesRenewed": true,
+    "processesUnchanged": true,
+    "afterHealing": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "independentRegistrationCompleted": true,
+    "independentOwnersSampledBeforeExecution": null,
+    "protocolAfterHeldReplyReleased": null,
+    "hostRulesAfterHeal": {
+      "active": false
+    },
+    "tunnelCleanup": [
+      {
+        "pid": 13540,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 62426,
+        "connectionRefused": true
+      },
+      {
+        "pid": 13287,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 61756,
+        "connectionRefused": true
+      }
+    ],
+    "finalVms": [
+      {
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED"
+      },
+      {
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED"
+      }
+    ],
+    "cleanupErrors": [],
+    "remainingPeerRules": [],
+    "logs": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/partition-peer.log",
+        "sha256": "d9c6a7417b3411d688c21c2f69dc903f818177dbaca0464ed5f04af023b27e4f"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/partition-counters.log",
+        "sha256": "6bf7d35d9b56e3403fd519f70208ac7e80a9d4d1036dfda164f2da2fc235919c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/heal-peer.log",
+        "sha256": "4bda90a93a0a95b34712c9ed2a65c3a1176a49f9609309c5ca246cb54cd5237a"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/ordinary-runtime.log",
+        "sha256": "114c31a1fa47f3f6fbfb7e15919932dcd0b545f7626433b8354336f1c7db4dfc"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-i80fluc2/confidential-runtime.log",
+        "sha256": "1174e18b6ab120e8d162eeb0c273dc7e8b8667e8d6ef3d9ed7d5aa64908e450e"
+      }
+    ]
+  },
+  "silentPacketLoss": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/result.json",
+      "sha256": "dc3bda7730913a250f3f289479358116a9b79af79b2b34d8f8a875f204199b17"
+    },
+    "faultKind": "silent-partition",
+    "partitionUpperBoundMs": 8858.460916904733,
+    "ceremonyTimeoutMs": 15000,
+    "measuredMinimumHoldMs": 20002.662082901224,
+    "packetCountBeforeHeal": 300,
+    "forcedSocketClosureInvocations": 0,
+    "ownersUnchanged": true,
+    "leasesRenewed": true,
+    "processesUnchanged": true,
+    "afterHealing": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "independentRegistrationCompleted": true,
+    "independentOwnersSampledBeforeExecution": {
+      "a": {
+        "scope": "RouterAbDeriverAWalletDurableObject:9bd930a795a5eb492ef1abb48b9dfa83d29a3a1ed9d87bb93ba01a2b249f0496",
+        "owner": {
+          "node": "node_5e447bafd0fdb8a85f5799cd1a625913",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_5e447bafd0fdb8a85f5799cd1a625913",
+          "expires_ms": 1791961126533,
+          "addr": "10.128.0.4:19081",
+          "probe_public_key": "34ef704784b87a973f9d406ea35769973ef90a8ef2f8d3fdafe7be32adc42936",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "34ef704784b87a973f9d406ea35769973ef90a8ef2f8d3fdafe7be32adc42936",
+          "log": {
+            "state": "open",
+            "epoch": 11,
+            "ensemble": ["node_c2adb12bde5709edca483a33e81e88d1"],
+            "tiered": 0,
+            "active": true,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791961116533,
+            "owned_cells": 9,
+            "placement_weight": 4,
+            "bucket_format": 2,
+            "resident_cells": 9,
+            "host_websockets": 0,
+            "rss_bytes": 416538624,
+            "in_use_bytes": 402101360,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 99,
+            "open_fds": 113,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      },
+      "b": {
+        "scope": "RouterAbDeriverBWalletDurableObject:1d18f2e50771904a53037e139d530ca1fd78fd24da17e673a06dc830eaaf3ec2",
+        "owner": {
+          "node": "node_c2adb12bde5709edca483a33e81e88d1",
+          "epoch": 1
+        },
+        "nodeLease": {
+          "node": "node_c2adb12bde5709edca483a33e81e88d1",
+          "expires_ms": 1791961128561,
+          "addr": "10.128.0.3:19081",
+          "probe_public_key": "4df73f7154f26303da6ed0a9b796fdb65821475b4a3ac677ae0674121397636b",
+          "peer_protocol": 5,
+          "paced_handoff": true,
+          "ownership_index_generation": "4df73f7154f26303da6ed0a9b796fdb65821475b4a3ac677ae0674121397636b",
+          "log": {
+            "state": "open",
+            "epoch": 9,
+            "ensemble": ["node_5e447bafd0fdb8a85f5799cd1a625913"],
+            "tiered": 0,
+            "active": true,
+            "claimant": null,
+            "claimed_ms": null
+          },
+          "load": {
+            "sampled_ms": 1791961118561,
+            "owned_cells": 1,
+            "placement_weight": 2,
+            "bucket_format": 2,
+            "resident_cells": 1,
+            "host_websockets": 1,
+            "rss_bytes": 208699392,
+            "in_use_bytes": 200176856,
+            "cgroup_working_set_bytes": null,
+            "cgroup_current_bytes": null,
+            "cpu_percent_x100": 0,
+            "open_fds": 39,
+            "fd_limit": 524288,
+            "pressured": false,
+            "memory_headroom": true,
+            "shed_cells": 0,
+            "restoring": 0,
+            "rebalance_paused": false,
+            "draining": false
+          }
+        }
+      }
+    },
+    "protocolAfterHeldReplyReleased": {
+      "connectionAttempts": 1,
+      "connections": 1,
+      "refusals": [],
+      "aMessages": 3,
+      "bMessages": 2,
+      "disconnected": false,
+      "aClosed": true,
+      "bClosed": true,
+      "heldSecondReply": true,
+      "releasedSecondReply": true,
+      "aClose": {
+        "code": 1000,
+        "reason": "pair execution ended"
+      },
+      "bClose": {
+        "code": 1006,
+        "reason": ""
+      }
+    },
+    "hostRulesAfterHeal": {
+      "active": false
+    },
+    "tunnelCleanup": [
+      {
+        "pid": 27948,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 52915,
+        "connectionRefused": true
+      },
+      {
+        "pid": 27501,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 51681,
+        "connectionRefused": true
+      }
+    ],
+    "finalVms": [
+      {
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED"
+      },
+      {
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED"
+      }
+    ],
+    "cleanupErrors": [],
+    "remainingPeerRules": [],
+    "logs": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/partition-peer.log",
+        "sha256": "0402da2f78052f121a66bb05e39c46b0844bb4e0ae29c9543d1fe0e5992689f3"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/partition-counters.log",
+        "sha256": "2b8ac34f683224d2fb87784604d8212a658b4f8ea1b6aab4b392d1c4976d1404"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/heal-peer.log",
+        "sha256": "a56469173189f5e6ef40242ded75273ddb2c482f4489c46b7abcacadee3e0068"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/ordinary-runtime.log",
+        "sha256": "24d83cdfa23dd247f8e3586dd4cb88e997de8d59ef2acc1c5d4e20f8f13454e0"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-7_n6ei95/confidential-runtime.log",
+        "sha256": "89bf65156e43b4872ad5b759640a2cb84e8c725616589ac710a2ec174685ee01"
+      }
+    ]
+  },
+  "cleanupDiagnosis": {
+    "classification": "environment_or_infrastructure_failure",
+    "initialResult": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-f8mf0el1/result.json",
+      "sha256": "27c22bfc662e9d7e8c53113e59972c203c932321d8635ba8863b54ce4885aaba"
+    },
+    "initialCleanupErrors": [
+      {
+        "pid": 91345,
+        "error": "PermissionError(1, 'Operation not permitted')"
+      }
+    ],
+    "facts": [
+      "The first run completed functional assertions, but its local process-group helper raised PermissionError. The raw result remains failed.",
+      "Cloud cleanup recorded both VMs stopped and no temporary peer rules. A separate process inspection found no remaining task SSH process.",
+      "Later cleanup runs after VM shutdown, reaps the managed Popen, and requires ECONNREFUSED on its recorded forwarding port.",
+      "Both qualified reruns record exited managed processes, closed forwarding ports, and no cleanup errors."
+    ],
+    "causeAssessment": "The failure is confined to local test cleanup. The original record does not identify which group-signal syscall raised the exception. No Wallet or runtime change was made.",
+    "fallback": "Only PermissionError from group cleanup permits fallback to the same managed process. Both wait stages are bounded; other socket errors do not prove listener closure."
+  },
+  "limits": [
+    "These are two concrete peer-network faults, not arbitrary network partitions or storage isolation. Only A-side egress to the counterpart and TCP port19081 is filtered.",
+    "TCP rejection also forcibly closes existing peer sockets. Silent loss installs DROP rules, does not close sockets, and releases the held reply before the ceremony timeout.",
+    "The20-second figure is a measured minimum hold; the total partition also includes observation and healing commands.",
+    "The silent case samples distinct A/B owners before independent registration. It does not claim continuous ownership sampling throughout that registration.",
+    "The rejection control completes independent registration and restores access to the previous B object. Its fresh A/B placement was not separately measured.",
+    "The exact retry is required to fail and open no new connection; this scenario does not require one particular rejection code.",
+    "The runner records managed-process exit and forwarding-port closure. It does not enumerate every historical descendant.",
+    "Each run retains its own source snapshot and hashes. The silent mode and stronger fresh-control placement were added after the TCP-rejection run.",
+    "The owner-loss branch was not newly rerun in this checkpoint. Earlier timed owner-loss evidence remains source-bound.",
+    "ECDSA claim failures, distributed relocation, provider restore/retirement failures, upgrade/rollback and release promotion remain separate gates."
+  ],
+  "validation": {
+    "pythonSyntax": "py_compile passed for both changed drivers",
+    "scriptChecks": {
+      "passed": 53,
+      "skipped": 1,
+      "log": {
+        "path": "/tmp/seams-r190-peer-partition-final-script-checks.log",
+        "sha256": "09e0c2f954abf2886e7441698017c471447dd14e21504b539fe8993b2cdf691c"
+      }
+    },
+    "reviewer": "review_r190_runtime",
+    "review": "Independent review verified fault timing, packet counters, live owners/leases, burned replay, fresh registration, shutdown logs, removed rules, stopped VMs and closed forwarding ports."
+  },
+  "productionChanges": false,
+  "aggregateMaintainedSourceDelta": -31127
+}

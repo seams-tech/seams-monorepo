@@ -409,3 +409,12 @@ Both roles stay burned after takeover, and an exact retry opens no new protocol 
 Independent registration succeeds on the unchanged survivor. Both VMs stop, and temporary peer rules are removed.
 The fresh post-rebase package candidates pass all 16 selected contracts on celld and workerd.
 Shared storage remains available during this scenario; provider partitions and all-replica loss remain open.
+
+## Live-peer partition checks
+
+Both explicit peer TCP rejection and silent packet loss pass on the ordinary and SEV-SNP Google VMs.
+The interrupted Yao claims remain burned after healing, and an exact retry opens no new protocol connection.
+Both processes keep their ownership and renew their leases while shared storage remains available.
+Fresh registration succeeds after healing. All temporary rules and local forwarding listeners are removed, and both VMs stop.
+See [the results and limits](evidence/peer-partitions.json) and [the repeat commands](provider-runbook.md#repeat-the-two-node-yao-check).
+These changes affect qualification tooling only and add no production calls.

@@ -212,19 +212,34 @@ Use the owned Google resource ledger and the exact packed Wallet Server director
 
 ```sh
 python3 tests/e2e/celld/google-yao.e2e.py \
-  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT owner-loss
+
+# Explicit TCP rejection, with existing peer sockets closed:
+python3 tests/e2e/celld/google-yao.e2e.py \
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT peer-partition
+
+# Silent packet loss, without forced socket closure:
+python3 tests/e2e/celld/google-yao.e2e.py \
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT silent-partition
 ```
 
 Install the same reviewed Linux runtime on both ledger VMs before running this command.
 The executable digest must match `runtime-build.json`. The driver refuses mismatched executables.
 The driver uses project `seams-501403`, the ordinary VM, the SEV-SNP VM, and the three task buckets.
-It records actual A/B owners, interrupts Yao after B's second message, kills B's owner, and checks burned state after takeover.
-It also checks the replacement ownership epoch and the unchanged surviving process.
-The driver stops both VMs and removes its temporary peer rules and tags. Cleanup failures make the result fail.
+The owner-loss mode records A/B owners, holds B's second reply, kills B's owner, and checks burned state after takeover.
+That mode also checks the replacement ownership epoch and the unchanged surviving process.
+The partition modes filter only A-side OUTPUT traffic to the other VM with TCP source or destination port 19081.
+SSH and shared storage remain available. Both processes retain their PIDs, owner records stay unchanged, and leases renew.
+After healing, the interrupted pair stays burned and a retry opens no new protocol connection.
+The silent case releases its held reply before the ceremony timeout and places the fresh control's A/B objects on separate VMs.
+See [the measured partition scope and limits](evidence/peer-partitions.json).
+
+The driver stops both VMs, removes its host rules and temporary cloud rules/tags, then reaps its local SSH processes.
+Each forwarding port must refuse connections. Cleanup failures make the result fail.
 Each retained run includes the controller sources, rendered artifact hashes, ownership records, native logs, and `result.json`.
 
-The `.6` manifest feature proves loader refusal only. A safe mixed-version rollout requires separate evidence.
-Before publishing a `.6` manifest, drain old runtime processes and verify every serving node uses the reviewed `.6` executable.
+The required peer-WebSocket feature proves loader refusal only. A safe mixed-version rollout requires separate evidence.
+Before publishing a manifest that requires it, drain old processes and verify every serving node uses the current reviewed executable.
 Do not start `.5` against that manifest or remove its required feature to permit a downgrade.
 Keep durable state and consumed material intact. Full state-safe upgrade and rollback qualification remains open.
 

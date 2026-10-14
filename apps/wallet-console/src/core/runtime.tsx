@@ -75,7 +75,7 @@ export type ConsoleRuntimeState = {
 
 const listeners = new Set<() => void>();
 
-function selectNetwork(network: ConsoleNetwork): void {
+export function selectNetwork(network: ConsoleNetwork): void {
   if (!availableNetworks().includes(network)) return;
   activeDeployment = deploymentFor(network);
   try {

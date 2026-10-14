@@ -42,6 +42,15 @@ import {
 } from '../../../packages/wallet-console-server-ts/src/router/routerApiKeyAuth';
 import { createWalletProjectEnvironmentResolver } from '../../../packages/wallet-console-server-ts/src/router/projectEnvironmentAdapter';
 import { createCloudflareConsoleRouter } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/createCloudflareConsoleRouter';
+import {
+  HostedConsoleAuthHandler,
+  type HostedConsoleIdentityPort,
+} from '../../../packages/wallet-console-server-ts/src/router/hostedConsoleAuth';
+import { createConsoleSessionAuthAdapter } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
+import type {
+  ConsoleGithubLoginResult,
+  ConsoleGoogleLoginResult,
+} from '../../../packages/console-server-ts/src/boundary/providerIdentity';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/shared-account-platform/wallet-activation');
@@ -637,15 +646,140 @@ test('Wallet activation API controls native credentials across delayed shutdown 
   }
 });
 
+class WalletConsoleBrowserIdentity implements HostedConsoleIdentityPort {
+  async verifyGoogleLogin(): Promise<ConsoleGoogleLoginResult> {
+    return {
+      ok: false,
+      verified: false,
+      code: 'not_configured',
+      message: 'This isolated journey uses GitHub sign-in',
+    };
+  }
+
+  async verifyGithubOAuthCode(input: { code: string }): Promise<ConsoleGithubLoginResult> {
+    switch (input.code) {
+      case 'unscoped-wallet-identity':
+        return {
+          ok: true,
+          verified: true,
+          userId: 'unscoped-wallet-browser-user',
+          providerSubject: 'unscoped-wallet-browser-user',
+          sub: 'unscoped-wallet-browser-user',
+          email: 'unscoped@activation.invalid',
+          name: 'New Wallet user',
+        };
+      case 'wallet-activation-owner':
+        return {
+          ok: true,
+          verified: true,
+          userId: owner.actorUserId,
+          providerSubject: owner.actorUserId,
+          sub: owner.actorUserId,
+          email: 'owner@activation.invalid',
+          name: 'Activation owner',
+        };
+      default:
+        return {
+          ok: false,
+          verified: false,
+          code: 'not_verified',
+          message: 'Unknown isolated provider code',
+        };
+    }
+  }
+}
+
+async function recordBrowserGoogleIdentity(): Promise<void> {}
+
+function browserSessionToken(response: Response): string {
+  const cookie = response.headers.get('Set-Cookie');
+  const prefix = 'activation-session=';
+  if (!cookie?.startsWith(prefix)) throw new Error('Console did not issue a session cookie');
+  const token = cookie.slice(prefix.length).split(';')[0];
+  if (!token) throw new Error('Console issued an empty session cookie');
+  return token;
+}
+
+async function issueBrowserSession(
+  handler: HostedConsoleAuthHandler,
+  code: string,
+): Promise<string> {
+  const response = await handler.fetch(
+    new Request(`${origin}/console/auth/github`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  return browserSessionToken(response);
+}
+
+async function switchBrowserOrganization(
+  handler: HostedConsoleAuthHandler,
+  token: string,
+  orgId: string,
+): Promise<string> {
+  const response = await handler.fetch(
+    new Request(`${origin}/console/account/organizations/${orgId}/switch-context`, {
+      method: 'POST',
+      headers: { Cookie: `activation-session=${token}`, 'Content-Type': 'application/json' },
+      body: '{}',
+    }),
+  );
+  expect(response.status).toBe(200);
+  return browserSessionToken(response);
+}
+
+async function createBrowserForeignAccount(
+  handler: HostedConsoleAuthHandler,
+  session: ConsoleSessionService,
+  identityToken: string,
+): Promise<string> {
+  const response = await handler.fetch(
+    new Request(`${origin}/console/account/organizations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `activation-session=${identityToken}`,
+      },
+      body: JSON.stringify({ name: 'Foreign wallet account', slug: 'foreign-wallet-account' }),
+    }),
+  );
+  expect(response.status).toBe(200);
+  const cookie = response.headers.get('Set-Cookie');
+  if (!cookie) throw new Error('Foreign account creation did not issue a session');
+  const parsed = await session.parse({ cookie: cookie.split(';')[0] });
+  if (
+    !parsed.ok ||
+    parsed.claims.kind !== 'console_session_v1' ||
+    typeof parsed.claims.orgId !== 'string'
+  ) {
+    throw new Error('Foreign account creation did not return a scoped session');
+  }
+  return parsed.claims.orgId;
+}
+
+async function completeBrowserGithubAuthorization(walletUrl: string, route: Route): Promise<void> {
+  const request = new URL(route.request().url());
+  const callback = request.searchParams.get('redirect_uri');
+  const state = request.searchParams.get('state');
+  if (callback !== new URL('/dashboard/login', walletUrl).href || !state) {
+    throw new Error('Console selected an unexpected provider callback');
+  }
+  const redirect = new URL(callback);
+  redirect.searchParams.set('code', 'wallet-activation-owner');
+  redirect.searchParams.set('state', state);
+  await route.fulfill({ status: 302, headers: { Location: redirect.href } });
+}
+
 class WalletConsoleBrowserTransport {
   readonly enableRequests: string[] = [];
+  readonly authExchanges: { readonly status: number; readonly body: unknown }[] = [];
   private loseNextEnableReply = true;
   private readonly pending: Promise<unknown>[] = [];
 
-  constructor(
-    private readonly router: ReturnType<typeof createCloudflareConsoleRouter>,
-    private readonly token: string,
-  ) {}
+  constructor(private readonly handler: HostedConsoleAuthHandler) {}
 
   waitUntil(work: Promise<unknown>): void {
     this.pending.push(work);
@@ -663,27 +797,28 @@ class WalletConsoleBrowserTransport {
     const request = new Request(`${origin}${url.pathname}${url.search}`, {
       method: incoming.method(),
       headers: {
-        Authorization: `Bearer ${this.token}`,
+        Cookie: incoming.headers().cookie ?? '',
         'Content-Type': 'application/json',
         Origin: origin,
       },
       body: incoming.postData(),
     });
-    const response = await this.router(request, {}, this);
+    const response = await this.handler.fetch(request, {}, this);
     await Promise.all(this.pending.splice(0));
+    if (incoming.method() === 'POST' && url.pathname === '/console/auth/github') {
+      this.authExchanges.push({ status: response.status, body: await response.clone().json() });
+    }
     if (enable && this.loseNextEnableReply) {
       this.loseNextEnableReply = false;
       await route.abort('failed');
       return;
     }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const cookie = response.headers.get('Set-Cookie');
+    if (cookie !== null) headers['Set-Cookie'] = cookie;
     await route.fulfill({
       status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': incoming.headers().origin ?? '*',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
+      headers,
       body: await response.text(),
     });
   }
@@ -701,12 +836,16 @@ async function verifyAutomaticWalletSetup(
   const { createServer } = await import(appRequire.resolve('vite'));
   const platform = await createServer({
     configFile: path.join(appDirectory, 'vite.console.config.ts'),
+    cacheDir: path.join(evidence, 'vite-platform'),
     mode: 'platform',
     base: '/',
     server: { host: '127.0.0.1', port: 0, strictPort: false },
     define: {
-      'import.meta.env.VITE_CONSOLE_BASE_URL': JSON.stringify(origin),
-      'import.meta.env.VITE_RELAYER_URL': JSON.stringify(origin),
+      'import.meta.env.VITE_SITE_ORIGIN': 'window.location.origin',
+      'import.meta.env.VITE_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_TESTNET_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_MAINNET_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_RELAYER_URL': 'window.location.origin',
     },
   });
   await platform.listen();
@@ -714,12 +853,16 @@ async function verifyAutomaticWalletSetup(
   if (typeof platformUrl !== 'string') throw new Error('Platform frontend did not start');
   const frontend = await createServer({
     configFile: path.join(appDirectory, 'vite.console.config.ts'),
+    cacheDir: path.join(evidence, 'vite-wallet'),
     mode: 'wallet',
     base: '/',
     server: { host: '127.0.0.1', port: 0, strictPort: false },
     define: {
-      'import.meta.env.VITE_CONSOLE_BASE_URL': JSON.stringify(origin),
-      'import.meta.env.VITE_RELAYER_URL': JSON.stringify(origin),
+      'import.meta.env.VITE_SITE_ORIGIN': 'window.location.origin',
+      'import.meta.env.VITE_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_TESTNET_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_MAINNET_CONSOLE_BASE_URL': 'window.location.origin',
+      'import.meta.env.VITE_RELAYER_URL': 'window.location.origin',
       'import.meta.env.VITE_PLATFORM_CONSOLE_ORIGIN': JSON.stringify(platformUrl),
     },
   });
@@ -727,8 +870,11 @@ async function verifyAutomaticWalletSetup(
   await page.context().tracing.start({ screenshots: true, snapshots: true });
   try {
     await frontend.listen();
-    const appUrl: unknown = frontend.resolvedUrls?.local[0];
-    if (typeof appUrl !== 'string') throw new Error('Console frontend did not start');
+    const resolvedUrl: unknown = frontend.resolvedUrls?.local[0];
+    if (typeof resolvedUrl !== 'string') throw new Error('Console frontend did not start');
+    const walletOrigin = new URL(resolvedUrl);
+    walletOrigin.hostname = 'localhost';
+    const appUrl = walletOrigin.href;
     const database = await databaseFor(worker);
     await migrate(database);
     const product = await compose(database);
@@ -737,12 +883,30 @@ async function verifyAutomaticWalletSetup(
       name: 'Automatic Wallet setup',
     });
     const projectId = 'automatic-wallet-project';
+    const defaultProjectId = 'default-wallet-project';
+    await product.core.orgProjects.createProject(owner, {
+      id: defaultProjectId,
+      name: 'Default Wallet',
+    });
     await product.core.orgProjects.createProject(owner, {
       id: projectId,
-      name: 'Automatic Wallet',
+      name: 'Selected Wallet',
     });
+    const secondOrgId = 'second-wallet-account';
+    const secondProjectId = 'second-account-wallet-project';
+    await product.core.account.createOrganization(ownerIdentity(), {
+      id: secondOrgId,
+      name: 'Second Wallet account',
+    });
+    await product.core.orgProjects.createProject(
+      { orgId: secondOrgId, actorUserId: owner.actorUserId },
+      { id: secondProjectId, name: 'Second account Wallet' },
+    );
     const router = createCloudflareConsoleRouter({
-      auth: product.auth,
+      auth: createConsoleSessionAuthAdapter({
+        session: product.session,
+        organizationAccess: product.core.organizationAccess,
+      }),
       session: product.session,
       account: product.core.account,
       accountPlatform: product.core.accountPlatform,
@@ -758,28 +922,102 @@ async function verifyAutomaticWalletSetup(
       corsOrigins: [origin],
     });
     const token = await issueSession(product.session);
-    const transport = new WalletConsoleBrowserTransport(router, token);
+    const handler = new HostedConsoleAuthHandler({
+      handler: router,
+      identity: new WalletConsoleBrowserIdentity(),
+      recordVerifiedGoogleIdentity: recordBrowserGoogleIdentity,
+      providers: {
+        google: { configured: false },
+        github: {
+          configured: true,
+          clientId: 'isolated-wallet-console-client',
+          callbackUrl: new URL('/dashboard/login', appUrl).href,
+        },
+      },
+      session: product.session,
+      account: product.core.account,
+      corsOrigins: [origin],
+    });
+    const initialWalletToken = await issueBrowserSession(handler, 'unscoped-wallet-identity');
+    const foreignOrgId = await createBrowserForeignAccount(
+      handler,
+      product.session,
+      initialWalletToken,
+    );
+    const platformToken = await issueBrowserSession(handler, 'wallet-activation-owner');
+    await page.context().addCookies([
+      {
+        name: 'activation-session',
+        value: platformToken,
+        url: platformUrl,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+      {
+        name: 'activation-session',
+        value: initialWalletToken,
+        url: appUrl,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    const transport = new WalletConsoleBrowserTransport(handler);
     await page.route('**/console/**', transport.handle.bind(transport));
+    await page.route(
+      'https://github.com/login/oauth/authorize?*',
+      completeBrowserGithubAuthorization.bind(null, appUrl),
+    );
     await page.goto(new URL('/dashboard/account-settings', platformUrl).href);
     await expect(page.getByLabel('Account settings page')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Project services', exact: true })).toHaveCount(0);
     expect(await environmentCount(database, projectId)).toBe(0);
     expect(transport.enableRequests).toHaveLength(0);
 
+    const walletEntry = new URL('/dashboard/api-keys', appUrl);
+    walletEntry.searchParams.set('db_org', owner.orgId);
+    walletEntry.searchParams.set('db_project', projectId);
+    walletEntry.searchParams.set('db_network', 'mainnet');
+    await page.goto(walletEntry.href);
+    await expect(
+      page.getByRole('button', { name: 'Continue with GitHub', exact: true }),
+    ).toBeVisible();
+    expect(new URL(page.url()).origin).toBe(walletOrigin.origin);
+    expect(transport.enableRequests).toHaveLength(0);
+    expect(await environmentCount(database, projectId)).toBe(0);
+    await page.screenshot({
+      path: path.join(evidence, 'wallet-reauthentication.png'),
+      fullPage: true,
+    });
+
+    // Reauthentication returns through a fixed callback with no selection parameters.
     // The first enable is durably accepted, but both its delivery and reply are lost.
     product.delivery.disconnect();
-    await page.goto(new URL('/dashboard/api-keys', appUrl).href);
+    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
+    expect(new URL(page.url()).origin).toBe(walletOrigin.origin);
+    const callbackAccountHref = await page
+      .getByRole('link', { name: 'Account settings', exact: true })
+      .getAttribute('href');
+    if (!callbackAccountHref) throw new Error('Wallet omitted the Platform account link');
+    expect(new URL(callbackAccountHref).searchParams.get('db_network')).toBe('mainnet');
+    expect(new URL(callbackAccountHref).searchParams.get('db_project')).toBe(projectId);
+    expect(transport.authExchanges).toEqual([
+      { status: 200, body: { ok: true, session: { kind: 'console_session_v1' } } },
+    ]);
     expect(transport.enableRequests).toHaveLength(1);
     expect(await environmentCount(database, projectId)).toBe(0);
     product.delivery.reconnect();
     await page.reload();
+    await expect.poll(environmentCount.bind(null, database, projectId)).toBe(3);
+    await page.goto(new URL('/dashboard/api-keys', appUrl).href);
     await expect(
       page.getByRole('button', { name: 'Create credential', exact: true }),
     ).toBeVisible();
     expect(transport.enableRequests).toHaveLength(2);
     expect(transport.enableRequests[1]).toBe(transport.enableRequests[0]);
     expect(await environmentCount(database, projectId)).toBe(3);
+    expect(await environmentCount(database, defaultProjectId)).toBe(0);
+    expect(await environmentCount(database, secondProjectId)).toBe(0);
     const instances = await product.core.accountPlatform.listInstances(owner, projectId);
     expect(instances).toMatchObject({
       kind: 'accepted',
@@ -795,6 +1033,8 @@ async function verifyAutomaticWalletSetup(
     const accountHref = await accountLink.getAttribute('href');
     if (!accountHref) throw new Error('Wallet omitted the Platform account link');
     expect(new URL(accountHref).origin).toBe(new URL(platformUrl).origin);
+    // Native setup selects Development, which uses the existing Testnet lane.
+    expect(new URL(accountHref).searchParams.get('db_network')).toBe('testnet');
     expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
     await accountLink.click();
     await expect(page.getByLabel('Account settings page')).toBeVisible();
@@ -805,6 +1045,59 @@ async function verifyAutomaticWalletSetup(
     await expect(
       page.getByRole('button', { name: 'Create credential', exact: true }),
     ).toBeVisible();
+
+    const secondWalletEntry = new URL('/dashboard/api-keys', appUrl);
+    secondWalletEntry.searchParams.set('db_org', secondOrgId);
+    secondWalletEntry.searchParams.set('db_project', secondProjectId);
+    secondWalletEntry.searchParams.set('db_network', 'mainnet');
+    // An incomplete account in the cookie must not redirect an owned-project link.
+    const incompleteOrgId = 'account-without-projects';
+    await product.core.account.createOrganization(ownerIdentity(), {
+      id: incompleteOrgId,
+      name: 'Account without projects',
+    });
+    await page.context().addCookies([
+      {
+        name: 'activation-session',
+        value: await switchBrowserOrganization(handler, platformToken, incompleteOrgId),
+        url: appUrl,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    await page.goto(secondWalletEntry.href);
+    await expect(
+      page.getByRole('button', { name: 'Create credential', exact: true }),
+    ).toBeVisible();
+    expect(await environmentCount(database, secondProjectId)).toBe(3);
+    expect(transport.enableRequests).toHaveLength(3);
+
+    const foreignEntry = new URL('/dashboard/api-keys', appUrl);
+    foreignEntry.searchParams.set('db_org', foreignOrgId);
+    foreignEntry.searchParams.set('db_project', defaultProjectId);
+    foreignEntry.searchParams.set('db_network', 'mainnet');
+    await page.goto(foreignEntry.href);
+    await expect(
+      page.getByRole('heading', { name: 'Unable to open this project', exact: true }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(3);
+    expect(await environmentCount(database, defaultProjectId)).toBe(0);
+    // The fixed post-login entry must also show denied context instead of waiting forever.
+    foreignEntry.pathname = '/dashboard';
+    await page.goto(foreignEntry.href);
+    await expect(
+      page.getByRole('heading', { name: 'Unable to open this project', exact: true }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(3);
+    await page.screenshot({
+      path: path.join(evidence, 'foreign-context-denied.png'),
+      fullPage: true,
+    });
+    await page.goto(walletEntry.href);
+    await expect(
+      page.getByRole('button', { name: 'Create credential', exact: true }),
+    ).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(3);
 
     const disabled = await changeService(
       product.router,
@@ -819,12 +1112,23 @@ async function verifyAutomaticWalletSetup(
     await expect(
       page.getByText('Wallet access is disabled for this project.', { exact: false }),
     ).toBeVisible();
-    expect(transport.enableRequests).toHaveLength(2);
+    expect(transport.enableRequests).toHaveLength(3);
     await writeFile(
       path.join(evidence, 'report.json'),
       JSON.stringify(
         {
           projectId,
+          defaultProjectId,
+          secondOrgId,
+          secondProjectId,
+          foreignContextDenied: true,
+          ownedAccountSelectionPreserved: true,
+          incompleteAccountDoesNotOverrideRequestedAccount: true,
+          reauthenticatedAfterUnscopedIdentity: true,
+          networkPreservedAfterProviderCallback: true,
+          developmentSelectionUsesTestnet: true,
+          authExchanges: transport.authExchanges,
+          defaultProjectEnvironments: await environmentCount(database, defaultProjectId),
           accountPageEnableRequests: 0,
           enableRequests: transport.enableRequests,
           environments: await environmentCount(database, projectId),
@@ -843,6 +1147,6 @@ async function verifyAutomaticWalletSetup(
 }
 
 test(
-  'Wallet Console enables an absent service and recovers a lost reply without reversing disable',
+  'Wallet Console reauthenticates and recovers a lost setup reply without reversing disable',
   verifyAutomaticWalletSetup,
 );

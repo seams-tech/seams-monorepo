@@ -1,5 +1,10 @@
-import { getActiveFrontendDeployment } from '@core/runtime';
+import { getActiveFrontendDeployment, selectNetwork } from '@core/runtime';
 import type { DashboardExternalLink, TopbarContextState } from './types';
+import {
+  DASHBOARD_UI_QUERY_KEYS,
+  persistDashboardSelectedContext,
+  readPersistedDashboardSelectedContext,
+} from './useDashboardUiPreferences';
 
 export function isSharedAccountPath(pathname: string): boolean {
   return (
@@ -52,6 +57,39 @@ export function sharedAccountHref(pathname: string): string {
     : pathname;
 }
 
+export function rememberConsoleContext(): void {
+  const parameters = new URLSearchParams(window.location.search);
+  const previous = readPersistedDashboardSelectedContext();
+  persistDashboardSelectedContext({
+    organization:
+      parameters.get(DASHBOARD_UI_QUERY_KEYS.organization) ?? previous.organization ?? '',
+    project: parameters.get(DASHBOARD_UI_QUERY_KEYS.project) ?? previous.project ?? '',
+  });
+  selectNetwork(getActiveFrontendDeployment().network);
+}
+
+function setConsoleContext(
+  url: URL,
+  context: Pick<TopbarContextState, 'organization' | 'project'>,
+): void {
+  url.searchParams.set('db_network', getActiveFrontendDeployment().network);
+  if (context.organization)
+    url.searchParams.set(DASHBOARD_UI_QUERY_KEYS.organization, context.organization);
+  if (context.project) url.searchParams.set(DASHBOARD_UI_QUERY_KEYS.project, context.project);
+}
+
+export function consoleSessionHref(
+  pathname: '/dashboard' | '/dashboard/login' | '/dashboard/onboarding',
+): string {
+  const selected = readPersistedDashboardSelectedContext();
+  const url = new URL(pathname, window.location.origin);
+  setConsoleContext(url, {
+    organization: selected.organization ?? '',
+    project: selected.project ?? '',
+  });
+  return url.pathname + url.search;
+}
+
 export function linksWithConsoleContext(
   links: readonly DashboardExternalLink[],
   context: TopbarContextState,
@@ -59,9 +97,7 @@ export function linksWithConsoleContext(
   const result: DashboardExternalLink[] = [];
   for (const link of links) {
     const url = new URL(link.href);
-    url.searchParams.set('db_network', getActiveFrontendDeployment().network);
-    if (context.organization) url.searchParams.set('db_org', context.organization);
-    if (context.project) url.searchParams.set('db_project', context.project);
+    setConsoleContext(url, context);
     result.push({ label: link.label, href: url.href, icon: link.icon });
   }
   return result;

@@ -110,9 +110,6 @@ jobs:
       - name: Setup Bun
         if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
         uses: oven-sh/setup-bun@v2
-      - name: Install pinned WASM tooling
-        if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
-        run: bash .wallet-source/packages/wallet/scripts/build/install-ci-wasm-tooling.sh
       - name: Build exact public Wallet docs
         if: env.DEPLOY_COMPONENT == 'all' || env.DEPLOY_COMPONENT == 'wallet-site'
         run: |

@@ -170,7 +170,7 @@ function finishAuthentication(): void {
 function promptAuthentication(mode: 'login' | 'register'): void {
   const status: AuthMenuLoginViewModel['status'] = { kind: 'busy', headline: 'Signing you in…' };
   show(mode === 'register' ? registration(status) : login(status));
-  cancelApproval = schedulePlayback(finishAuthentication, 3000);
+  cancelApproval = schedulePlayback(finishAuthentication, 2000);
 }
 
 function recover(method: 'passkey' | 'google'): void {

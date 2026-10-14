@@ -940,9 +940,30 @@ Fresh claims during drain, mixed-version serving, and ECDSA state across provide
 No production handler, runtime patch, database call, or request round trip changed.
 The maintained source reduction is 31,092 lines, including the added acceptance code.
 
+## October 14 two-process relocation
+
+The mixed Ed25519/ECDSA relocation scenario now passes across two local celld `.7` processes.
+The runner directs source and destination entrypoints to their respective processes and shares one synthetic S3 fleet.
+The completion snapshots identify the real wallet objects through their persisted source and destination addresses.
+All four source roles reside on one process. All four destination roles reside on the other.
+Eviction locates the actual resident process before testing stored-result replay.
+
+The unchanged scenario verifies owner approval, pending signing during freeze, lost-finalize recovery, and source cleanup.
+It also verifies destination signatures, stale-generation refusal, and refusal of delayed source presign publication.
+The production presign alarm also runs during source freeze, and the expired refill is refused.
+Both native runtimes exit zero with no stalled shutdown or panic in their logs.
+All 25 release Worker files match the candidate manifest. Source snapshots and input-tree hashes remain unchanged during the run.
+See [the two-process evidence](../deployment/celld/evidence/relocation-two-node.json).
+
+This is one generation-1-to-2 move on one machine. Deriver stores and tenant-root authority remain shared.
+Directory/Runtime handlers remain in Node, and Directory storage remains in Miniflare.
+Google-hosted relocation, provider faults during relocation, return moves, and repeated moves remain open.
+No production handler, runtime patch, database call, or request round trip changed.
+The maintained source reduction is 31,020 lines, including the stronger acceptance topology.
+
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
+1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, Google-hosted relocation, and retirement/authorized restore with provider failures. Local two-process relocation, one-share restore, and retirement evidence are recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 

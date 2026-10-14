@@ -1,0 +1,162 @@
+{
+  "status": "passed_for_recorded_scope",
+  "scope": "One generation-1-to-2 mixed Ed25519/ECDSA relocation between two local celld .7 processes sharing a synthetic S3 fleet.",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/result.json",
+    "sha256": "871a4eae019434beb8b9c21f32842b384d1cf480dbbc81d4576b5fcf6499fe8c"
+  },
+  "publicRevision": "98281b53927a2b1a915456b213d0cead0d1c8ef7",
+  "privateRevisionBeforeChanges": "a0b2e9b662b95edae8ecdf2613176aaae49438e4",
+  "runtimeSha256": "a318bdcc2a1383dfb2dc06fb7fad2f0ef7493f54c2c223023dd76e5739547cad",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "matchedReleaseWorkerFiles": 25,
+  "sourceSnapshots": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/sources",
+  "sourceHashes": {
+    "private/tests/e2e/celld/relocation.e2e.py": "36328465b904e5118250a527d8d4c54b91e7592ef1832171aa023ca5f299b62b",
+    "private/tests/e2e/celld/packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "private/tests/e2e/celld/relocation-topology.mjs": "2c6e5dd5dfac90d53701092806c7e64b05cb9ccd20c7d80c166de6d258410623",
+    "private/tests/e2e/celld/relocation-inspector.mjs": "a6760de6a31cca2fa956f4cd1853a0b453d79eb574e91b2a534feab8115a4b48"
+  },
+  "residencySnapshot": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/runtime-residency.json",
+    "sha256": "7a6377882a57db145aea1893ab5114d7d86b19aab11ca3515c0cb3c6d704d4a0"
+  },
+  "walletAddresses": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/wallet-object-addresses.json",
+    "sha256": "899328199584bd5e357fb249605cad780b3ccf4fa729932655d3c2a4c2785224"
+  },
+  "walletResidency": {
+    "source": {
+      "router": "RouterAbRouterWalletDurableObject:9ebf0e6381ab20593240a1966212fcbc8063a62cf34a5224b8ce8450780b9b30",
+      "deriver_a": "RouterAbDeriverAWalletDurableObject:04204c02fabf9c683197c37f5b8d306320f2472c553a1e06223548a53a937298",
+      "deriver_b": "RouterAbDeriverBWalletDurableObject:0cc614635d9a3800faabc18b83fa09ab39f94618a5fe3b837b459236a0120e86",
+      "signing_worker": "RouterAbSigningWorkerWalletDurableObject:f03cadaa5fd0055a3912e6acacc231c245ac3566fceb31ad250ab9e2e1476d63"
+    },
+    "destination": {
+      "router": "DestinationRouterAbRouterWalletDurableObject:958628f9586f39a4e2ed697f4516b7a0d90b1acdc4c550c54ca15e51d82ee5a7",
+      "deriver_a": "DestinationRouterAbDeriverAWalletDurableObject:bfb0e9ca6e7b05bd5ad0721f2a65293e766c728509bee193e75c6c80b67cfec2",
+      "deriver_b": "DestinationRouterAbDeriverBWalletDurableObject:fabe08bc0358fca79e82187cd4e58d2f3792be1b0c27f524c802026d6c41369d",
+      "signing_worker": "DestinationRouterAbSigningWorkerWalletDurableObject:8cbb8139401b14ad9ac2b60a2ff12df89abd48bcb4687fa5a64ad4c41f670263"
+    }
+  },
+  "runtimeStop": {
+    "source": {
+      "pid": 89921,
+      "exitCode": 0,
+      "signal": null
+    },
+    "destination": {
+      "pid": 89997,
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "proofs": {
+    "browser-session": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/browser-session.json",
+      "sha256": "a6aa94f7e47c0955424a4af987595efdf963347d7c3903420ca65919511fb52c"
+    },
+    "coordinator-bindings": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/coordinator-bindings.json",
+      "sha256": "ae78ef20c9d64184addf7cad2ac41f4f8bde59635b8cf780b377b1bdf4666203"
+    },
+    "coordinator-progress": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/coordinator-progress.json",
+      "sha256": "4ae6e531ab2c9602157f074ad05f910224595802c08012553bd805cb540dd149"
+    },
+    "custody-topology": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/custody-topology.json",
+      "sha256": "f164868b9010f194c45b0cb32e599214e6582904bf69b723f72663c852a3284e"
+    },
+    "destination-signing": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/destination-signing.json",
+      "sha256": "e95da983eebf24ed5e6a98a4b2d401e98a2d4bd75734824a16d89cd820915717"
+    },
+    "ecdsa-signing": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/ecdsa-signing.json",
+      "sha256": "38f539fae16b7498a8fdbc17c150c0e64e645efa2434cc47d6023eab273d709c"
+    },
+    "presign-expiry-alarm": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/presign-expiry-alarm.json",
+      "sha256": "232bc44a96098995e74fc34b0b661d0b3996996afc8c14073881d090a8c61c19"
+    },
+    "signing-race": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/signing-race.json",
+      "sha256": "f249d1f223e74ef4c309601b8f9f412e9ac7eb294033b8b584ebb7773c652b2b"
+    },
+    "wallet-object-addresses": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/proofs/wallet-object-addresses.json",
+      "sha256": "899328199584bd5e357fb249605cad780b3ccf4fa729932655d3c2a4c2785224"
+    }
+  },
+  "ed25519": {
+    "signatureSha256Hex": "0dfacc858694e2d1da7199815209f78a875fcd27605a850ca63586c3e9116829",
+    "staleGenerationRejected": true,
+    "prepareReplayAfterEviction": true,
+    "finalizeReplayAfterEviction": true
+  },
+  "ecdsa": {
+    "scope": "Native ECDSA registration for the same wallet as NEAR, real directory coordinator, independent custody namespaces, source cleanup, and fresh destination ECDSA signing. Excludes browser ECDSA authorization and an in-flight ECDSA finalize during freeze.",
+    "sourceSignatureSha256": "dd90619919e75de8cf89ac16d13f858dcaabfb8f72c56ab175544ea0a771d21a",
+    "destinationSignatureSha256": "896b26386de2cf7c2cb275058defaf614b862ac9e9b68c1d9fd13b542aa3156c",
+    "destinationOwnershipGeneration": 2,
+    "sourceRefillPublicationRejectedAfterMove": true,
+    "independentlyVerifiedSignatures": 2
+  },
+  "pendingSigningRound": {
+    "sourceWaitedForPendingRound": true,
+    "pendingRounds": 1,
+    "signatureSha256Hex": "56151ae10850ae1a4b446fbe91c93215c0d5dfcc7b687016f84ab95afa4951c7",
+    "lostFinalizeReplyRecoveredBeforeCutover": true,
+    "retiredSourceReasonVerified": true,
+    "changedFinalizationReasonVerified": true,
+    "retiredSourceStatus": 500,
+    "destinationTerminalReplayVerified": true,
+    "changedFinalizationStatus": 500,
+    "scope": "Native signing prepared before move admission. Finalize reply lost after commit and recovered while source was still freezing. Exact terminal result replayed at destination after completed move; changed finalization rejected. Does not cover SDK session reconciliation after cutover."
+  },
+  "presignExpiry": {
+    "scope": "Production presign alarm observed through a local test wrapper while source settlement waits for an unfinished NEAR signature.",
+    "freezeStartedAtMs": 1791964330843,
+    "alarm": {
+      "startedAtMs": 1791964343196,
+      "status": 200,
+      "nextAlarm": null
+    },
+    "lateRefillRejected": true
+  },
+  "runtimeLogs": [
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/runtime-source.log",
+      "sha256": "f014aaf3ec133d314ab2c4444ff4f9fcaedadb629f906b19efa7f89a3d7a5e96"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-n5pnigzh/runtime-destination.log",
+      "sha256": "b7714c3db3672384ba6dce6a2a77c2cc2a83e0a640d29344782b758262b381b0"
+    }
+  ],
+  "cleanupErrors": [],
+  "productionChanges": false,
+  "aggregateMaintainedSourceDelta": -31020,
+  "limits": [
+    "The two processes run on one local machine with synthetic S3. This is not a Google VM or regional-network qualification.",
+    "Runtime residency is sampled at completion using the exact stored wallet addresses. It does not continuously measure ownership throughout the move.",
+    "Router and SigningWorker stores are separate. Deriver role stores and tenant-root authority remain shared.",
+    "Directory/Runtime handlers remain in Node, and Directory storage remains in Miniflare. The relay covers the exercised JSON-safe D1 operations and buffered callbacks.",
+    "Destination class exports retain the existing distinct aliases required for celld co-hosting.",
+    "This covers one forward move. Return moves, repeated moves, provider faults and an in-flight ECDSA finalize during freeze remain unqualified.",
+    "No production request, database call or validation path changed. This functional run does not establish latency equivalence."
+  ],
+  "validation": {
+    "javascriptSyntax": "passed",
+    "pythonSyntax": "passed",
+    "scriptChecks": {
+      "passed": 53,
+      "existingSkipped": 1,
+      "log": {
+        "path": "/tmp/seams-r190-two-node-relocation-script-checks.log",
+        "sha256": "163cddd10dd106616be16b54b99145cf7c9a2e0f3a27885dcd7897c68def671b"
+      }
+    }
+  }
+}

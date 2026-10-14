@@ -1,4 +1,4 @@
-"""Run the existing mixed relocation scenario with celld custody Workers.
+"""Run the existing mixed relocation scenario with two celld custody processes.
 
 Usage: python3 relocation.e2e.py CELLD MOTO_PYTHON WALLET_CHECKOUT WALLET_PACKAGE
 Directory storage and browser composition remain in the workerd/Node harness.
@@ -111,6 +111,8 @@ def main():
         "CELLD_RELOCATION_BINARY": str(binary),
         "CELLD_RELOCATION_ADDRESS": "http://127.0.0.1:" + str(harness.free_port()),
         "CELLD_RELOCATION_OPERATOR": "http://127.0.0.1:" + str(harness.free_port()),
+        "CELLD_RELOCATION_DESTINATION_ADDRESS": "http://127.0.0.1:" + str(harness.free_port()),
+        "CELLD_RELOCATION_DESTINATION_OPERATOR": "http://127.0.0.1:" + str(harness.free_port()),
         "SEAMS_RELOCATION_OUTPUT": str(root / "proofs"),
         "SEAMS_WALLET_SERVER_CANDIDATE": str(checkout / "packages/wallet-server"),
         "ROUTER_AB_WORKER_BUILD_PROFILE": "release",
@@ -136,7 +138,7 @@ def main():
     result = {
         "status": "running",
         "scope": (
-            "Generation 1 to 2 mixed relocation with one celld node and synthetic S3. "
+            "Generation 1 to 2 mixed relocation across two local celld processes and synthetic S3. "
             "Custody Workers, regional D1 and R2 run on celld. Directory storage uses "
             "Miniflare. Directory/Runtime handlers run in Node. Destination exports "
             "use distinct class aliases. No hosted deployment or latency claim."
@@ -168,7 +170,28 @@ def main():
         )
         assert (root / "proofs/custody-topology.json").is_file()
         runtime_stop = json.loads((root / "runtime-stop.json").read_text())
-        assert runtime_stop["exitCode"] == 0 and runtime_stop["signal"] is None, runtime_stop
+        assert set(runtime_stop) == {"source", "destination"}
+        for stopped in runtime_stop.values():
+            assert stopped["exitCode"] == 0 and stopped["signal"] is None, stopped
+        residency = json.loads((root / "runtime-residency.json").read_text())
+        assert residency["source"]["pid"] != residency["destination"]["pid"]
+        addresses = json.loads((root / "proofs/wallet-object-addresses.json").read_text())
+        placement = {}
+        for home, prefix in (("source", ""), ("destination", "Destination")):
+            placement[home] = {}
+            for role, class_name in (
+                ("router", "RouterAbRouterWalletDurableObject"),
+                ("deriver_a", "RouterAbDeriverAWalletDurableObject"),
+                ("deriver_b", "RouterAbDeriverBWalletDurableObject"),
+                ("signing_worker", "RouterAbSigningWorkerWalletDurableObject"),
+            ):
+                scope = prefix + class_name + ":" + addresses[home][role]
+                assert scope in residency[home]["state"]["residents"], (home, scope)
+                other = "destination" if home == "source" else "source"
+                assert scope not in residency[other]["state"]["residents"], (other, scope)
+                placement[home][role] = scope
+        result["walletResidency"] = placement
+        result["runtimeResidency"] = residency
         result["runtimeStop"] = runtime_stop
         for name, source in sources.items():
             assert hashes[name] == harness.sha256(source), name

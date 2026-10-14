@@ -320,5 +320,6 @@ Omit `--with-ecdsa` for the Ed25519-only control.
 The scenario writes proofs under `.artifacts/r155d-addresses/composed-mixed-relocation` or `composed-relocation`.
 The [recorded control](evidence/relocation-workerd-control.json) verifies that all 25 Worker files match the packed `0.11.0` candidate.
 It covers generation 1 to 2, owner approval, signing settlement, source cleanup, persisted addresses, and destination signatures.
-The local browser check uses direct session persistence. Hosted acceptance, return moves, and celld relocation remain open.
+The local browser check uses direct session persistence. Hosted acceptance and return moves remain open.
+The [two-process celld result](evidence/relocation-two-node.json) verifies the same mixed scenario with separate source and destination processes.
 The older raw Miniflare harness does not provide the current stored-ID eviction hook and remains unqualified.

@@ -614,7 +614,7 @@
     "seams-monorepo": {
       "baseRevision": "eca55b5d432a6b8f1b7274c57ba3449c207d94f0",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 1390,
+      "netLines": 1462,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -817,14 +817,14 @@
         {
           "path": "tests/e2e/celld/relocation-topology.mjs",
           "beforeLines": 0,
-          "afterLines": 461,
-          "netLines": 461
+          "afterLines": 510,
+          "netLines": 510
         },
         {
           "path": "tests/e2e/celld/relocation.e2e.py",
           "beforeLines": 0,
-          "afterLines": 198,
-          "netLines": 198
+          "afterLines": 221,
+          "netLines": 221
         },
         {
           "path": "tests/e2e/celld/tenant-root-restore.e2e.py",
@@ -913,6 +913,6 @@
       ]
     }
   },
-  "aggregateNetLines": -31092,
+  "aggregateNetLines": -31020,
   "netReductionAchieved": true
 }

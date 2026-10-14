@@ -102,10 +102,20 @@ function forceStop(process) {
 export async function createCelldRelocationTopology(workers) {
   const directory = process.env.CELLD_RELOCATION_DIRECTORY;
   const binary = process.env.CELLD_RELOCATION_BINARY;
-  const address = process.env.CELLD_RELOCATION_ADDRESS;
-  const operator = process.env.CELLD_RELOCATION_OPERATOR;
-  assert.equal(new URL(address).hostname, '127.0.0.1');
-  assert.equal(new URL(operator).hostname, '127.0.0.1');
+  const nodes = {
+    source: {
+      address: process.env.CELLD_RELOCATION_ADDRESS,
+      operator: process.env.CELLD_RELOCATION_OPERATOR,
+    },
+    destination: {
+      address: process.env.CELLD_RELOCATION_DESTINATION_ADDRESS,
+      operator: process.env.CELLD_RELOCATION_DESTINATION_OPERATOR,
+    },
+  };
+  for (const node of Object.values(nodes)) {
+    assert.equal(new URL(node.address).hostname, '127.0.0.1');
+    assert.equal(new URL(node.operator).hostname, '127.0.0.1');
+  }
   const registry = {
     workers: new Map(),
     databases: new Map(),
@@ -113,7 +123,7 @@ export async function createCelldRelocationTopology(workers) {
     namespaces: new Map(),
   };
   const callbacks = new Map();
-  const callbackTopology = { getWorker: remoteWorker.bind(null, address, registry.workers) };
+  const callbackTopology = { getWorker: remoteWorker.bind(null, registry.workers) };
   const callbackServer = http.createServer(
     handleCallback.bind(null, callbacks, callbackTopology, directory),
   );
@@ -138,7 +148,10 @@ export async function createCelldRelocationTopology(workers) {
   try {
     for (const worker of workers) {
       const service = 'WORKER_' + registry.workers.size;
-      registry.workers.set(worker.name, service);
+      registry.workers.set(worker.name, {
+        binding: service,
+        node: worker.name.startsWith('destination-') ? nodes.destination : nodes.source,
+      });
       inspector.services.push({ binding: service, service: worker.name });
       const config = {
         name: worker.name,
@@ -234,39 +247,33 @@ export async function createCelldRelocationTopology(workers) {
         environment,
       );
     }
-    const log = await open(path.join(directory, 'runtime.log'), 'w');
-    const runtime = spawn(
-      binary,
-      [
-        '--no-control-plane',
-        '--bucket',
-        'fleet-test',
-        '--listen',
-        new URL(address).host,
-        '--internal-listen',
-        new URL(operator).host,
-      ],
-      { cwd: directory, env: environment, stdio: ['ignore', log.fd, log.fd] },
-    );
-    processes.push(runtime);
-    await log.close();
-    for (let attempt = 0; attempt < 100; attempt += 1) {
-      assert.equal(runtime.exitCode, null, 'Runtime exited before listening');
-      try {
-        await fetch(address, { signal: AbortSignal.timeout(300) });
-        return new CelldRelocationTopology(
-          address,
-          operator,
-          registry,
-          runtime,
-          callbackServer,
-          directory,
-        );
-      } catch {
-        await delay(100);
-      }
+    for (const [name, node] of Object.entries(nodes)) {
+      const log = await open(path.join(directory, 'runtime-' + name + '.log'), 'w');
+      const runtime = spawn(
+        binary,
+        [
+          '--no-control-plane',
+          '--bucket',
+          'fleet-test',
+          '--listen',
+          new URL(node.address).host,
+          '--internal-listen',
+          new URL(node.operator).host,
+          '--advertise',
+          new URL(node.operator).host,
+        ],
+        {
+          cwd: directory,
+          env: { ...environment, CELLD_WATCH: path.join(directory, 'state-' + name) },
+          stdio: ['ignore', log.fd, log.fd],
+        },
+      );
+      processes.push(runtime);
+      node.runtime = runtime;
+      await log.close();
+      await waitForRuntime(node);
     }
-    throw new Error('Relocation runtime did not start');
+    return new CelldRelocationTopology(nodes, registry, callbackServer, directory);
   } catch (error) {
     for (const process of processes) await stop(process);
     callbackServer.closeAllConnections();
@@ -275,35 +282,44 @@ export async function createCelldRelocationTopology(workers) {
   }
 }
 
+async function waitForRuntime(node) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    assert.equal(node.runtime.exitCode, null, 'Runtime exited before listening');
+    try {
+      const response = await fetch(node.address + '/.well-known/celld/health', {
+        signal: AbortSignal.timeout(300),
+      });
+      if (response.status === 200) return;
+    } catch {
+      // The native listener is still starting.
+    }
+    await delay(100);
+  }
+  throw new Error('Relocation runtime did not start');
+}
+
 class CelldRelocationTopology {
-  constructor(address, operator, registry, runtime, callbackServer, directory) {
-    Object.assign(this, { address, operator, registry, runtime, callbackServer, directory });
+  constructor(nodes, registry, callbackServer, directory) {
+    Object.assign(this, { nodes, registry, callbackServer, directory });
     this.ready = Promise.resolve();
   }
   getWorker(name) {
-    return remoteWorker(this.address, this.registry.workers, name);
+    return remoteWorker(this.registry.workers, name);
   }
   getD1Database(binding, name) {
     const id = this.registry.databases.get(bindingKey(name, binding));
     assert.ok(id, bindingKey(name, binding));
-    return new RemoteDatabase(this, id);
+    return new RemoteDatabase(this.registry.workers.get(name).node.address, id);
   }
   getR2Bucket(binding, name) {
     const id = this.registry.buckets.get(bindingKey(name, binding));
     assert.ok(id, bindingKey(name, binding));
-    return new RemoteBucket(this, id);
+    return new RemoteBucket(this.registry.workers.get(name).node.address, id);
   }
   getDurableObjectNamespace(binding, name) {
     const entry = this.registry.namespaces.get(bindingKey(name, binding));
     assert.ok(entry, bindingKey(name, binding));
-    return new RemoteNamespace(this, entry.name);
-  }
-  async request(route, body) {
-    return fetch(this.address + route, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    return new RemoteNamespace(this.registry.workers.get(name).node.address, entry.name);
   }
   async listDurableObjectIds(className, worker) {
     let namespace;
@@ -311,51 +327,84 @@ class CelldRelocationTopology {
       if (key.startsWith(worker + '/') && entry.className === className) namespace = entry.name;
     }
     assert.ok(namespace, worker + '/' + className);
-    const state = await jsonResponse(await fetch(this.operator + '/state'));
-    const ids = [];
-    for (const scope of state.residents) {
-      const id = scope.slice(scope.lastIndexOf(':') + 1);
-      if (/^[0-9a-f]{64}$/.test(id)) ids.push(id);
+    const ids = new Set();
+    for (const node of Object.values(this.nodes)) {
+      const state = await jsonResponse(await fetch(node.operator + '/state'));
+      for (const scope of state.residents) {
+        const id = scope.slice(scope.lastIndexOf(':') + 1);
+        if (/^[0-9a-f]{64}$/.test(id)) ids.add(id);
+      }
     }
-    return jsonResponse(await this.request('/namespace/' + namespace + '/validate', { ids }));
+    const address = this.registry.workers.get(worker).node.address;
+    return jsonResponse(
+      await remoteRequest(address, '/namespace/' + namespace + '/validate', {
+        ids: [...ids],
+      }),
+    );
   }
   async unsafeEvictDurableObject(worker, className, { id }) {
-    const state = await jsonResponse(await fetch(this.operator + '/state'));
     const matches = [];
-    for (const scope of state.residents) {
-      if (scope.endsWith(':' + id)) matches.push(scope);
+    for (const node of Object.values(this.nodes)) {
+      const state = await jsonResponse(await fetch(node.operator + '/state'));
+      for (const scope of state.residents) {
+        if (scope === className + ':' + id) matches.push({ node, scope });
+      }
     }
     assert.equal(matches.length, 1, worker + '/' + className + '/' + id);
-    await jsonResponse(await fetch(this.operator + '/evict/' + matches[0], { method: 'POST' }));
-    const after = await jsonResponse(await fetch(this.operator + '/state'));
-    assert.ok(
-      !after.residents.includes(matches[0]),
-      'The object must leave residency before replay',
-    );
+    const [{ node, scope }] = matches;
+    await jsonResponse(await fetch(node.operator + '/evict/' + scope, { method: 'POST' }));
+    const after = await jsonResponse(await fetch(node.operator + '/state'));
+    assert.ok(!after.residents.includes(scope), 'The object must leave residency before replay');
   }
   async dispose() {
-    await stop(this.runtime);
-    this.callbackServer.closeAllConnections();
-    this.callbackServer.close();
-    await writeFile(
-      path.join(this.directory, 'runtime-stop.json'),
-      JSON.stringify(
-        {
-          pid: this.runtime.pid,
-          exitCode: this.runtime.exitCode,
-          signal: this.runtime.signalCode,
-        },
-        null,
-        2,
-      ) + '\n',
-    );
+    try {
+      const snapshots = {};
+      for (const [name, node] of Object.entries(this.nodes)) {
+        snapshots[name] = {
+          pid: node.runtime.pid,
+          address: node.address,
+          operator: node.operator,
+          state: await jsonResponse(await fetch(node.operator + '/state')),
+        };
+      }
+      await writeFile(
+        path.join(this.directory, 'runtime-residency.json'),
+        JSON.stringify(snapshots, null, 2) + '\n',
+      );
+    } finally {
+      const stops = [];
+      for (const node of Object.values(this.nodes)) stops.push(stop(node.runtime));
+      await Promise.all(stops);
+      this.callbackServer.closeAllConnections();
+      this.callbackServer.close();
+      const exits = {};
+      for (const [name, node] of Object.entries(this.nodes)) {
+        exits[name] = {
+          pid: node.runtime.pid,
+          exitCode: node.runtime.exitCode,
+          signal: node.runtime.signalCode,
+        };
+      }
+      await writeFile(
+        path.join(this.directory, 'runtime-stop.json'),
+        JSON.stringify(exits, null, 2) + '\n',
+      );
+    }
   }
 }
 
-function remoteWorker(address, workers, name) {
-  const binding = workers.get(name);
-  assert.ok(binding, name);
-  return new RemoteWorker(address, binding);
+function remoteWorker(workers, name) {
+  const entry = workers.get(name);
+  assert.ok(entry, name);
+  return new RemoteWorker(entry.node.address, entry.binding);
+}
+
+function remoteRequest(address, route, body) {
+  return fetch(address + route, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 class RemoteWorker {
@@ -376,8 +425,8 @@ class RemoteWorker {
   }
 }
 class RemoteDatabase {
-  constructor(topology, binding) {
-    Object.assign(this, { topology, binding });
+  constructor(address, binding) {
+    Object.assign(this, { address, binding });
   }
   prepare(sql) {
     return new RemoteStatement(this, sql, []);
@@ -393,7 +442,7 @@ class RemoteDatabase {
   }
   async call(method, input) {
     return jsonResponse(
-      await this.topology.request('/database/' + this.binding + '/' + method, input),
+      await remoteRequest(this.address, '/database/' + this.binding + '/' + method, input),
     );
   }
 }
@@ -421,36 +470,36 @@ class RemoteStatement {
   }
 }
 class RemoteBucket {
-  constructor(topology, binding) {
-    Object.assign(this, { topology, binding });
+  constructor(address, binding) {
+    Object.assign(this, { address, binding });
   }
   async list() {
-    return jsonResponse(await this.topology.request('/bucket/' + this.binding, {}));
+    return jsonResponse(await remoteRequest(this.address, '/bucket/' + this.binding, {}));
   }
 }
 class RemoteNamespace {
-  constructor(topology, binding) {
-    Object.assign(this, { topology, binding });
+  constructor(address, binding) {
+    Object.assign(this, { address, binding });
   }
   async idFromName(name) {
     return jsonResponse(
-      await this.topology.request('/namespace/' + this.binding + '/name', { name }),
+      await remoteRequest(this.address, '/namespace/' + this.binding + '/name', { name }),
     );
   }
   idFromString(id) {
     return id;
   }
   get(id) {
-    return new RemoteObject(this.topology, this.binding, id);
+    return new RemoteObject(this.address, this.binding, id);
   }
 }
 class RemoteObject {
-  constructor(topology, binding, id) {
-    Object.assign(this, { topology, binding, id });
+  constructor(address, binding, id) {
+    Object.assign(this, { address, binding, id });
   }
   async fetch(input, init) {
     const request = new Request(input, init);
-    return this.topology.request('/namespace/' + this.binding + '/fetch', {
+    return remoteRequest(this.address, '/namespace/' + this.binding + '/fetch', {
       id: await this.id,
       url: request.url,
       method: request.method,

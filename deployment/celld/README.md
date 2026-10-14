@@ -353,8 +353,6 @@ The runner stops the old process before deploying the new manifests.
 Moto supplies local synthetic S3 storage. This check uses no AWS account.
 The result records runtime/package/source hashes, the fault, pair states, retries, the independent wallet and cleanup.
 See [Yao interruption evidence](evidence/yao-peer-disconnect.json), [runtime upgrade evidence](evidence/yao-runtime-upgrade.json), and [diagnosis and limits](yao-diagnostics.md).
-A Worker-created socket currently loses its handoff across the sampled celld service binding.
-The verified Wallet peer path uses object-owned sockets. General Worker WebSocket handoff remains unqualified.
 
 ## Composed relocation check
 
@@ -367,7 +365,7 @@ python3 tests/e2e/celld/relocation.e2e.py \
 ```
 
 The runner requires release Worker builds that match the supplied package manifest.
-It starts isolated loopback services and writes a protected `.artifacts/celld-relocation-*` directory.
+It starts separate source and destination celld processes on loopback and writes a protected `.artifacts/celld-relocation-*` directory.
 The result records source snapshots, source-tree hashes, generated deployment hashes, proof files, and runtime cleanup.
 Run the workerd control separately because both variants generate the same public fixture modules:
 
@@ -379,12 +377,14 @@ node tests/e2e/relocation-custody.e2e.mjs --with-ecdsa
 ```
 
 Both variants pass generation-1-to-2 relocation, lost-response recovery, replay after eviction, and destination signing.
-See [the recorded results and limits](evidence/relocation-celld.json).
+See [the two-process result and limits](evidence/relocation-two-node.json) and [the earlier single-process control](evidence/relocation-celld.json).
+The completion snapshot places the four stored source wallet objects on one process and the four destination objects on the other.
+Eviction finds the actual resident process before it removes the destination object. Both runtimes must exit normally.
 Destination class exports use distinct aliases to satisfy celld's co-hosting restriction.
 Router and SigningWorker stores are separate. Deriver role stores and tenant-root authority are shared.
 Directory/Runtime handlers remain in Node. Directory storage remains in Miniflare.
 The relay covers the exercised JSON-safe D1 operations and buffered HTTP callbacks.
-This check adds no production calls. Hosted deployment, distributed relocation, and latency qualification remain separate gates.
+This check adds no production calls. Google-hosted relocation, provider failures during relocation, and latency qualification remain separate gates.
 
 ## WebSocket passthrough and active claims
 

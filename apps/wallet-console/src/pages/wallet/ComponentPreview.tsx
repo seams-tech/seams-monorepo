@@ -32,29 +32,27 @@ function resultForAction(action: string): PreviewResult | null {
     case 'create':
       return {
         title: 'Wallet created',
-        message: 'Your sample wallet is ready. No real wallet or passkey was created.',
+        message: 'Your wallet is ready.',
       };
     case 'google':
       return {
         title: 'Continue with Google',
-        message:
-          'Google sign-in starts here in the product. This preview does not connect an account.',
+        message: 'Choose your Google account to continue.',
       };
     case 'link':
       return {
         title: 'Device linked',
-        message: 'Your sample device is connected. No real device was linked.',
+        message: 'Your wallet is now available on this device.',
       };
     case 'recover':
       return {
         title: 'Access restored',
-        message: 'Your sample wallet is ready on this device. No real recovery code was used.',
+        message: 'Your wallet is ready on this device.',
       };
     case 'security':
       return {
         title: 'Recovery is ready',
-        message:
-          'Your sample recovery code is saved. No real recovery code appears in this preview.',
+        message: 'Keep your recovery code somewhere safe.',
       };
     default:
       return null;
@@ -202,9 +200,7 @@ function previewContent(id: PreviewId): React.JSX.Element {
             <Fingerprint aria-hidden />
           </div>
           <h3>Transaction modal</h3>
-          <p className="showcase-preview__subtitle">
-            Review, approve, and follow a sample transfer.
-          </p>
+          <p className="showcase-preview__subtitle">Review, approve, and follow your transfer.</p>
         </>
       );
     case 'prediction-market':
@@ -288,10 +284,7 @@ export function ComponentPreview({
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
   if (active && (id === 'transaction-modal' || id === 'prediction-market')) {
     const route = id === 'transaction-modal' ? 'transaction' : 'checkout';
-    const title =
-      id === 'transaction-modal'
-        ? 'Transaction modal demo'
-        : 'Prediction market custom component demo';
+    const title = id === 'transaction-modal' ? 'Transaction modal' : 'Prediction market';
     return (
       <iframe
         className="showcase-preview__embed"
@@ -310,7 +303,7 @@ export function ComponentPreview({
     >
       <div className="showcase-preview__origin">
         <LockKeyhole aria-hidden />
-        shop.example.com<span>Demo</span>
+        shop.example.com
       </div>
       <div className="showcase-preview__content">
         {state.kind === 'ready' ? (
@@ -328,14 +321,14 @@ export function ComponentPreview({
               {state.result.message}
             </p>
             <PrimaryAction action="reset" focus={state.source === 'user'}>
-              Back to preview
+              Back
             </PrimaryAction>
           </div>
         )}
       </div>
       <div className="showcase-preview__footer">
         <Layers2 aria-hidden />
-        Powered by seams<span>Simulated preview</span>
+        Powered by seams
       </div>
     </article>
   );

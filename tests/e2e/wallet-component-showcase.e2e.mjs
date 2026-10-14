@@ -100,14 +100,14 @@ async function expectSelection(gallery, name) {
     case 'Transactions':
       await expect(
         gallery
-          .frameLocator('iframe[title="Transaction modal demo"]')
+          .frameLocator('iframe[title="Transaction modal"]')
           .getByRole('button', { name: 'Confirm with passkey' }),
       ).toBeVisible();
       break;
     case 'Custom Components':
       await expect(
         gallery
-          .frameLocator('iframe[title="Prediction market custom component demo"]')
+          .frameLocator('iframe[title="Prediction market"]')
           .getByRole('button', { name: 'Buy Yes', exact: true }),
       ).toBeVisible();
       break;
@@ -134,13 +134,13 @@ try {
   await expect(pagination.getByRole('radio')).toHaveCount(4);
   await expectSelection(gallery, 'Authentication');
   await gallery.getByRole('button', { name: 'Create with passkey', exact: true }).click();
-  await expect(gallery.getByRole('status')).toContainText('No real wallet or passkey was created');
-  await gallery.getByRole('button', { name: 'Back to preview' }).click();
+  await expect(gallery.getByRole('status')).toContainText('Your wallet is ready.');
+  await gallery.getByRole('button', { name: 'Back' }).click();
   await capture(gallery, 'desktop-authentication');
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
   await expectSelection(gallery, 'Transactions');
-  const modal = gallery.frameLocator('iframe[title="Transaction modal demo"]');
+  const modal = gallery.frameLocator('iframe[title="Transaction modal"]');
   await modal.getByRole('button', { name: 'Confirm with passkey' }).click();
   for (const status of [
     'Signing transaction',
@@ -154,7 +154,7 @@ try {
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
   await expectSelection(gallery, 'Custom Components');
-  const market = gallery.frameLocator('iframe[title="Prediction market custom component demo"]');
+  const market = gallery.frameLocator('iframe[title="Prediction market"]');
   await market.getByRole('button', { name: 'Buy Yes', exact: true }).click();
   await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
   await capture(gallery, 'desktop-prediction-review');

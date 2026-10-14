@@ -173,6 +173,9 @@
   height: 620px;
   border: 0;
   background: transparent;
+}
+
+.showcase-preview__embed[data-preview='transaction-modal'] {
   filter: grayscale(1);
 }
 
@@ -227,12 +230,7 @@
   width: 13px;
   height: 13px;
 }
-.showcase-preview__origin > span {
-  margin-left: auto;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 1px;
-}
+
 .showcase-preview__content {
   padding: 26px;
 }
@@ -354,10 +352,7 @@
   width: 13px;
   height: 13px;
 }
-.showcase-preview__footer > span {
-  margin-left: auto;
-  font-size: 10px;
-}
+
 .showcase-preview__profile {
   display: flex;
   align-items: center;
@@ -637,9 +632,6 @@
 @media (max-width: 360px) {
   .showcase-preview__content {
     padding: 18px;
-  }
-  .showcase-preview__footer > span {
-    display: none;
   }
 }
 

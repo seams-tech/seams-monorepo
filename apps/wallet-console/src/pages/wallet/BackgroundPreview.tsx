@@ -101,7 +101,7 @@ export function BackgroundPreview({ kind }: { kind: BackgroundPreviewKind }): Re
     <div className="showcase-preview">
       <div className="showcase-preview__origin">
         <LockKeyhole />
-        shop.example.com<span>Demo</span>
+        shop.example.com
       </div>
       <div className="showcase-preview__content">{backgroundContent(kind)}</div>
       <div className="showcase-preview__footer">

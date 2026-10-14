@@ -61,9 +61,11 @@ function Checkout(): React.JSX.Element {
         <span>Buy {side}</span>
         <span aria-hidden="true">→</span>
       </button>
-      <p className="checkout-outcome" role="status">
-        {outcome || 'Sample data. Nothing is signed or sent.'}
-      </p>
+      {outcome ? (
+        <p className="checkout-outcome" role="status">
+          {outcome}
+        </p>
+      ) : null}
       {quote ? <CheckoutReview quote={quote} onFinish={finish} /> : null}
     </section>
   );
@@ -87,7 +89,6 @@ function CheckoutReview({
     <section className="seams-transaction-review-content checkout-review" ref={session.observe}>
       <div className="checkout-review-heading">
         <span className="checkout-eyebrow">Review order</span>
-        <span className="checkout-badge">Sample data</span>
       </div>
       <h2>Review purchase</h2>
       <PurchaseSummary
@@ -125,7 +126,7 @@ function PurchaseSummary({
           <div>
             <span className="checkout-summary-label">You pay</span>
             <strong className="checkout-amount">{market.pay}</strong>
-            <span className="checkout-summary-label">test units</span>
+            <span className="checkout-summary-label">units</span>
           </div>
           <div>
             <span className="checkout-summary-label">You receive</span>
@@ -140,7 +141,7 @@ function PurchaseSummary({
         <dt>
           Trading fee <span className="checkout-included">Included</span>
         </dt>
-        <dd>{market.fee} test units</dd>
+        <dd>{market.fee} units</dd>
         <dt>Network fee</dt>
         <dd>None</dd>
       </dl>

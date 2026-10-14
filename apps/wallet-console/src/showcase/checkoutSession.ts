@@ -26,7 +26,7 @@ type Phase = 'mounting' | 'review' | 'review_again' | 'preparing' | 'approval' |
 const dialogWidthCssPx = 420;
 const toastWidthCssPx = 360;
 
-const confirmedMessage = 'Purchase confirmed. Nothing was signed or sent.';
+const confirmedMessage = 'Purchase confirmed.';
 
 /* Drives the SDK's production overlay through a custom review, its handoff to
    the wallet approval, and the receipt toast that follows. The approval runs
@@ -90,10 +90,10 @@ export class CheckoutSession {
     this.iframe.src = `${import.meta.env.BASE_URL}showcase/checkout/wallet/?side=${this.side}`;
   };
 
-  readonly cancel = (): void => this.finish('Checkout closed. Nothing was signed or sent.');
+  readonly cancel = (): void => this.finish('Checkout closed.');
 
   readonly fail = (error: unknown): void =>
-    this.finish(error instanceof Error ? error.message : 'The demo could not open.');
+    this.finish(error instanceof Error ? error.message : 'Checkout could not open.');
 
   readonly dispose = (): void => {
     this.phase = 'closed';
@@ -190,11 +190,7 @@ export class CheckoutSession {
       this.phase = 'review_again';
       this.resize();
     } else if (message.type === 'checkout-finished' && typeof message.confirmed === 'boolean') {
-      this.finish(
-        message.confirmed
-          ? confirmedMessage
-          : 'Declined in the wallet. Nothing was signed or sent.',
-      );
+      this.finish(message.confirmed ? confirmedMessage : 'Declined in the wallet.');
     } else if (
       message.type === 'checkout-receipt-view' &&
       (message.view === 'expanded' || message.view === 'toast') &&

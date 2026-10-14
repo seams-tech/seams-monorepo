@@ -149,23 +149,15 @@ The fixed frame and dense perforations dominate the 240px view. The automated ch
 
 ## Combination interlock
 
-The policy interlock uses three slotted discs on a common axis. A vintage key enters from the rear through the centers of the discs. Three triangular teeth seat in enclosed radial keyways. Its wide scalloped bow has a large oval opening. The shaft, teeth, and bow form one solid outline.
+Three coaxial disks sit between bearings on a shared shaft. Each disk has a solid face, a small shaft opening, a raised center collar, and an outer gate. A thin engraved rim carries the index marks. The front dial drives the nearest disk. Pickup pins on opposing disk faces make contact before the next disk begins to turn. Their contact angle comes from the pins’ radius and distance from the shaft.
 
-The discs start at -110, 135, and -95 degrees. Hover or Enter moves the key continuously through 76 world units. Each disc aligns before the leading tooth reaches it. Alignment follows insertion distance, so the key passes through all three discs without pauses. Once fully inserted, the key and discs turn together through 60 degrees.
+The sequence follows the [Woodgears combination-lock reference](https://woodgears.ca/combolock/). The front wheel first picks up the middle wheel, which then picks up the rear wheel. All three turn until the rear gate aligns. The dial reverses to pick up and align the middle wheel while the rear wheel stays parked. A final forward turn aligns only the front wheel. The shared locking pin then drops into all three gates, and the readout shows “unlocked”.
 
-Pointer exit or another Enter reverses the turn before withdrawing the key. Each disc returns to its initial angle after the teeth clear it. Space also toggles the sequence. One reversible Hairline tween preserves this ordering during interruptions. Insertion takes the first 82% of the sequence, with the final turn in the remaining time. The slider sets the full sequence to 2600, 3400, or 4400 milliseconds.
+The pickup pins have a 2.4-unit radius on a 17-unit orbit. Their axial ends overlap in the gaps between wheels. The wheels remain stationary until their pins contact a driven neighbor. A guided crossbar spans all three gates and drops 7.5 units once they align. The dial stays coupled to the front wheel throughout the sequence.
 
-Each tooth leaves 0.2 units of axial clearance inside its seven-unit disc. The key is 3.2 units thick inside 5.2-unit slots. Each disc opening has a 0.65-unit bevel and softly rounded corners. The circular bore has a six-unit radius. A fine inner contour defines the bevel.
+One reversible Hairline tween preserves the current pose when hover or keyboard input changes. Leaving rewinds the sequence and raises the locking pin before the wheels move. Enter and Space toggle the animation. The slider sets the sequence to 3400, 4400, or 5600 milliseconds. Reduced motion lands directly at the endpoint, and settled parts stop rewriting their paths.
 
-Slotted hollow sleeves support the discs. They stay aligned during insertion, then turn with the fully inserted key. The sleeves and rear bearing use the same narrow entry channel. Each triangular tooth rises 11.5 units above the blade, with one unit of clearance under its keyway roof. The bow uses a sixteen-by-twenty-two-unit oval with a ten-percent scallop and a nine-by-fourteen-unit opening. The stationary supports clear the rotating shaft.
-
-The key draws in sections at disc boundaries. Slot backs draw before each key section. Near disc walls and faces draw above it. Section boundaries have no artificial end caps. An opaque key face covers the rear edges at the tooth bases and bow. The blade has no extra groove line.
-
-The pointer transfers the dark outline between the key and individual discs. Disc selection uses fixed silhouettes and checks the nearest disc first. Key selection uses a fixed envelope spanning its rest and final poses. Leaving restores the key accent. Radial ticks, circular grooves, base mounting holes, and the front retaining cap use lighter detail strokes.
-
-The figure keeps the existing Hairline camera, palette, runtime, and bench. As with the other extended mechanical figures, its readable geometry exceeds the standalone skill's 200-line limit.
-
-This figure illustrates mechanical engagement. It does not execute policy checks or show threshold signing. The threshold-signing diagram remains a separate figure.
+The pointer transfers the dark outline between disks and the dial. Selection uses fixed silhouettes and checks the nearest object first. The dial is the resting accent. Opaque disk faces hide the shaft and rear hardware. The pickup pins remain visible in the gaps between disks. The figure keeps the unchanged Hairline kernel, bench, camera projection, and stroke palette.
 
 Edit `apps/wallet-console/showcase/motion/interlock/combination-interlock.js`, then rebuild:
 
@@ -175,11 +167,9 @@ node "$HOME/.codex/skills/hairline-create/build.mjs" \
   apps/wallet-console/showcase/motion/interlock/index.html
 ```
 
-Review at `/dashboard-static/showcase/motion/interlock/`. Use `?w=240&theme=dark&at=200,166&intensity=1` for the compact dark view at the longest duration. Set intensity to zero for the shortest duration.
+Review at `/dashboard-static/showcase/motion/interlock/`. Run `node tests/e2e/wallet-scoped-permissions.e2e.mjs` for the browser review. It checks both pickups, pin clearance, reverse dialing, gate alignment, the shared pin, interrupted resets, pointer selection, keyboard input, reduced motion, both themes, and frame bounds. It saves phase screenshots, a contact sheet, and `review.json` under `.artifacts/combination-interlock/ring-dial/`.
 
-Run `node .artifacts/combination-interlock/key-alignment/review.mjs` for the browser review. It saves eight preview states, each alignment phase, pointer highlights, desktop and mobile embeds, and `review.json` with sampled motion states. The checks cover ordered alignment, tooth clearance, continuous insertion, reversal, interruptions, keyboard control, reduced motion, and stable bounds. During every sample with a nonzero turn, insertion must equal one. Inspect the teeth inside the bevelled slots and the key's bore in both themes.
-
-The standalone Hairline checker still rejects this extended figure's line count. The browser review checks the rendered figure directly.
+The standalone Hairline checker still rejects this extended figure’s line count. The browser review checks the rendered mechanism directly.
 
 ## Self-hostable example
 

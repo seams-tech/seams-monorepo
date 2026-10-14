@@ -2,7 +2,8 @@
 
 Status: implementation is committed on `codex/feat-2-platform-console`.
 The staging backend and frontends are deployed. DNS and identity providers are configured.
-Wallet acceptance, the Console security origin cutover, Satyr acceptance, and production cutover remain pending.
+Wallet Google sign-in, account navigation, and the staging security origin cutover pass.
+Passkey verification, captured email links, Satyr acceptance, and production cutover remain pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -83,7 +84,7 @@ or additional database is required.
 - Product links may carry developer account and developer project identifiers. The destination checks
   access. URL identifiers grant no authority and must never contain session tokens.
 
-Wallet automatic setup and the Wallet-only navigation change are committed locally.
+Wallet automatic setup and the Wallet-only navigation change are deployed to staging.
 Satyr's developer-account/project picker and automatic provisioning are implemented locally in
 its own repository. Deploy the new private account onboarding endpoints before the
 Satyr client. Record local acceptance and deployment separately.
@@ -239,6 +240,11 @@ Local validation and evidence:
   billing with invalid Wallet configuration and unavailable Satyr metadata.
 - The browser journey builds both frontends, follows the Wallet-to-Platform link,
   checks project context, and recovers automatic Wallet setup after a lost reply.
+- The extended journey reauthenticates an unscoped Wallet identity through the fixed
+  GitHub callback. It preserves the requested project and network before environment
+  selection. Development then selects Testnet through the existing environment rules.
+  It also switches owned accounts, handles an incomplete previous account, rejects
+  foreign selections on both Wallet pages and `/dashboard`, and preserves disabled state.
 - Existing funds, usage, settlement, and Wallet request-budget E2Es remain applicable.
 - `.artifacts/platform-console/` contains command logs, bundle hashes, screenshots,
   traces, the initial worktree snapshot, and Cloudflare prerequisite observations.
@@ -265,23 +271,39 @@ Deployed staging artifacts:
 
 | Component                                               | Version or deployment identifier       | Verified result                                                                |
 | ------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
-| Existing Console Worker                                 | `bfb78906-3e0a-4a18-8986-6de9e7f8aabe` | Health and readiness return HTTP 200; unauthenticated session returns HTTP 401 |
-| Platform Pages project `seams-platform-console-staging` | `f0b6a8d2-8fd1-477a-a8de-7d0231dfebcd` | `/dashboard/login` returns HTTP 200 on its custom hostname                     |
-| Wallet Pages project `seams-console-wallet-staging`     | `4b086122-5d75-4bd9-be0b-4187d71e9fa8` | `/dashboard/login` returns HTTP 200 on its custom hostname                     |
+| Existing Console Worker                                 | `606f4f0d-e5e5-4803-a83d-129c2773a56b` | Health and readiness return HTTP 200; unauthenticated session returns HTTP 401 |
+| Platform Pages project `seams-platform-console-staging` | `acdc1857-26cd-417d-a2b1-d724959c6ced` | `/dashboard/login` returns HTTP 200 on its custom hostname                     |
+| Wallet Pages project `seams-console-wallet-staging`     | `3132b4b2-426a-49d8-bf02-2648355e10ea` | Google sign-in opens the requested project on the Wallet hostname              |
 
 The first Wallet Pages project returned HTTP 522 for static files. The same artifact
 serves successfully from the replacement project above. The staging CI mapping now
 selects that replacement. Production deployments are unchanged.
 
 The Worker retains the existing database, service bindings, secrets, and placement.
-Its source revision is `89b317ba60b72f6de03a9f21d74c6ac07fdfea30`. After migration
-`0098`, use compatible Worker version `5fce7e3c-ff91-488d-a880-7dc2b6eb2ac2` as the
-rollback baseline. Keep migration `0098` applied during rollback.
+Its source revision is `89b317ba60b72f6de03a9f21d74c6ac07fdfea30`. The latest Worker
+deployment changes only the two staging Console origin values. The same payload,
+secrets, database bindings, service bindings, and placement are preserved.
+Worker version `bfb78906-3e0a-4a18-8986-6de9e7f8aabe` provides immediate rollback to
+the previous origins. Compatible post-migration version
+`5fce7e3c-ff91-488d-a880-7dc2b6eb2ac2` remains available. Keep migration `0098` applied.
 
 Real Google sign-in opens the existing staging account on Platform. Its account
 settings, members, billing account, and invoice pages load. GitHub sign-in on Platform
 reaches initial account onboarding for the test identity. No developer account or
 developer project was created during this check. Shared account access works without a Satyr connection.
+
+The domain split exposed an unscoped-session loop that prevented Wallet
+reauthentication. Wallet now keeps the provider choices available. Explicit sign-in
+with a new identity still opens Platform onboarding. The fixed callback preserves
+account and project hints in existing UI preferences. The destination resolves them
+against authenticated account and project lists before Wallet setup can run.
+
+Frontend revision `6c1e149bf3ea8c95d201a5847185bfe6f158049d` contains this fix.
+Real Wallet Google sign-in opens the existing staging account and project. Wallet's
+existing active instance and three environments are confirmed by read-only database
+queries. New automatic provisioning is verified by the isolated browser journey.
+Wallet-to-Platform navigation and the return link preserve the selected project.
+A browser data reset is no longer required for this acceptance check.
 
 The domain split also exposed a broken Contact sales link. Both login builds now
 link to the existing company page at `https://seams.sh/contact`.
@@ -317,23 +339,22 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Finish Wallet sign-in and automatic setup with the existing staging account.
-   The temporary Wallet test session needs a browser reset before the Google check.
-   Browser automation cannot open Chrome's site-data settings, so this reset requires
-   user input. Wallet GitHub callback registration was accepted; its exchange response
-   was not captured, so full Wallet GitHub acceptance remains unverified.
-2. Set `CONSOLE_BASE_URL` to `https://staging.console.seams.sh` and
-   `CONSOLE_STEP_UP_ORIGIN` to `https://console.staging.wallet.seams.sh` after Wallet
-   sign-in passes. Preserve `CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh`.
-   Verify Console passkey step-up, captured account email links, and destination access.
-3. Configure Satyr's private account connection and verify onboarding in its own app.
-   Staging currently has no Satyr account-service identity or provisioning connection.
-4. Repeat the verified sequence for production after staging acceptance passes.
+1. Finish staging security acceptance: verify a real Console passkey assertion and
+   newly captured account email links. Wallet GitHub callback registration was accepted;
+   its live exchange response remains untraced. The isolated GitHub browser journey passes.
+2. Add an isolated Satyr staging profile and deployment in Satyr's repository. Its
+   current configuration defines local and production profiles only. No Satyr staging
+   Worker exists. The live production Worker also lacks the source configuration's
+   `ACCOUNT_PLATFORM` binding. Configure the staging private account connection and
+   verify Satyr onboarding in its own app. Keep production data and bindings separate.
+3. Repeat the verified sequence for production after staging acceptance passes.
    Deploy marketing redirects after both Console frontends pass readiness checks.
    Retire old callbacks and browser routes after their links and in-flight sign-in
    journeys no longer need them. The `all` command checks all project mappings before
    deploying Console frontends.
 
-Keep the current staging entrypoints and security origin until their replacements
-pass acceptance. Deployment evidence, screenshots, and pending actions are recorded
+The active staging configuration now uses `CONSOLE_BASE_URL=https://staging.console.seams.sh`
+and `CONSOLE_STEP_UP_ORIGIN=https://console.staging.wallet.seams.sh`.
+`CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh` is preserved. Keep old entrypoints
+available until the remaining acceptance checks pass. Deployment evidence, screenshots, and pending actions are recorded
 under `.artifacts/platform-console/rollout/`, including `report.json` and `signin-journey.json`.

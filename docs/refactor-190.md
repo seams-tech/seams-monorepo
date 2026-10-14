@@ -921,6 +921,25 @@ No production handler, runtime patch, database call, or request round trip chang
 The maintained source reduction remains 31,127 lines against the rebased `dev` branches.
 The candidates remain unpublished. These functional checks do not establish provider latency equivalence.
 
+## October 14 Google runtime state compatibility
+
+The Google Yao runner now checks a drained `.7` to `.6` to `.7` cycle after active owner loss.
+The ordinary survivor uses the same GCS fleet and local watch directory for both replacements.
+The test verifies each running executable hash and requires a successful stop before replacement.
+It deploys no new manifest and restores no storage snapshot during the cycle.
+
+Both checkpoints preserve burned A/B claims and exact tenant-root creation receipt replay.
+An exact pair retry opens no new protocol connection. Runtime ownership epochs advance from 1 through 4.
+Both VMs stop, temporary peer rules are removed, and the SSH forwarding ports close.
+The deployment script checks pass: 53 passed and one existing skip.
+See [the runtime-cycle evidence](../deployment/celld/evidence/google-runtime-cycle.json).
+
+This qualifies the measured durable-state compatibility. The known `.6` WebSocket defects still prevent recommending `.6` for production.
+The claims are burned before each drain, and the Confidential peer stays stopped during the cycle.
+Fresh claims during drain, mixed-version serving, and ECDSA state across provider upgrades remain open.
+No production handler, runtime patch, database call, or request round trip changed.
+The maintained source reduction is 31,092 lines, including the added acceptance code.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

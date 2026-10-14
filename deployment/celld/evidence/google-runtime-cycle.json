@@ -1,0 +1,217 @@
+{
+  "status": "passed_for_recorded_scope",
+  "scope": "Google GCS state retained across drained .7 to .6 to .7 executable changes on the surviving ordinary VM after active Yao owner loss on a SEV-SNP peer.",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-76kou_8i/result.json",
+    "sha256": "13089146f3ba82ba29b2655b540ba7cb8f11e5ca065b4fbb434bdf3f34bfc9fd"
+  },
+  "project": "seams-501403",
+  "publicRevision": "98281b53927a2b1a915456b213d0cead0d1c8ef7",
+  "packageSha256": "cdcb440484548a0a9fc99f4af1d7d87b47100e31f08c12b84dc21b2c609b4a38",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "sourceHashes": {
+    "google-yao.e2e.py": "59df6a98e166929751f080e496150218900a21642801f627925bb96e105c9f08",
+    "google-yao.remote.py": "bca516fcd833b432806c386959118c310f4d72fd368d0cbacb5b55082cdca695",
+    "yao-peer-disconnect.e2e.py": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+    "prepare-yao.mjs": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+    "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+    "yao-peer-disconnect-proxy.mjs": "126ddaf996b65d6bac5a24809eb191c2d8e749153b2d616a6d294b08700cab44",
+    "test-private-d1.mjs": "d15878bf6fbff347ce14eeed154e13d26f5a25f48dedbf8aea1ed45d76ce720c",
+    "cloudflare_private_d1_fixture.rs": "37c6535b901ea53e72d57031e24b551cc874f6882194d60e10147de9ccb5a040"
+  },
+  "initialRuntime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceTransferSha256": "eab9480b2e926a063cebb0a56de0121efea98e1f3a45167c6c5d7f9ae6e3a7ea",
+    "executableSha256": "4cd1f113e51e69cf33e41f46c17dea65e8ff4989ad44597e2de9fea9239d5429",
+    "version": "celld 0.6.2-seams.7",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld"
+    ],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "previousRuntime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da",
+    "sourceTransferSha256": "8b33f4399c2017b3b91af4077c6cb83e44a240254cfd6cb9e312f3e43d05c0ea",
+    "executableSha256": "62364da890f8add12f93cbab89fa2a9189e692b6996e3e7f1176235f3f77e972",
+    "version": "celld 0.6.2-seams.6",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld"
+    ],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "signalUpperBoundMs": 7084.818542003632,
+  "ceremonyTimeoutMs": 15000,
+  "ownerEpochBeforeLoss": 1,
+  "ownerEpochAfterTakeover": 2,
+  "independentRegistrationBeforeCycle": true,
+  "cycle": [
+    {
+      "checkpoint": "rollback",
+      "runtimeVersion": "celld 0.6.2-seams.6",
+      "runtimeSha256": "62364da890f8add12f93cbab89fa2a9189e692b6996e3e7f1176235f3f77e972",
+      "previousProcess": "1466",
+      "stop": {
+        "MainPID": "0",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "",
+        "ExecMainPID": "0",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-yao-76kou-8i-ordinary.service",
+        "ActiveState": "inactive",
+        "SubState": "dead"
+      },
+      "newProcess": "2036",
+      "burnedPair": {
+        "roleStates": {
+          "deriver-a": "burned",
+          "deriver-b": "burned"
+        },
+        "exactRetryStatus": 503,
+        "newProtocolConnections": 0
+      },
+      "ownerEpoch": 3,
+      "tenantRootCreationReplayPreserved": true
+    },
+    {
+      "checkpoint": "upgrade",
+      "runtimeVersion": "celld 0.6.2-seams.7",
+      "runtimeSha256": "4cd1f113e51e69cf33e41f46c17dea65e8ff4989ad44597e2de9fea9239d5429",
+      "previousProcess": "2036",
+      "stop": {
+        "MainPID": "0",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "",
+        "ExecMainPID": "0",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-yao-76kou-8i-ordinary.service",
+        "ActiveState": "inactive",
+        "SubState": "dead"
+      },
+      "newProcess": "2226",
+      "burnedPair": {
+        "roleStates": {
+          "deriver-a": "burned",
+          "deriver-b": "burned"
+        },
+        "exactRetryStatus": 503,
+        "newProtocolConnections": 0
+      },
+      "ownerEpoch": 4,
+      "tenantRootCreationReplayPreserved": true
+    }
+  ],
+  "runtimeLogs": [
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-76kou_8i/ordinary-runtime.log",
+      "sha256": "637da751aa44f5fed4dfd27341b5920a503913f5d838d146a20924bb5b3909f4"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-76kou_8i/confidential-runtime.log",
+      "sha256": "868754e444b90d6869fe235158efefda5f66d7d2b50e201f504ebb61884d1eab"
+    }
+  ],
+  "finalVms": [
+    {
+      "name": "r190q-20261013-e7f9b0-ordinary-final",
+      "status": "TERMINATED"
+    },
+    {
+      "name": "r190q-20261013-e7f9b0-snp",
+      "status": "TERMINATED"
+    }
+  ],
+  "tunnelCleanup": [
+    {
+      "pid": 65009,
+      "returncode": 255,
+      "mode": "already-exited",
+      "forwardingPort": 60107,
+      "connectionRefused": true
+    },
+    {
+      "pid": 64737,
+      "returncode": 255,
+      "mode": "already-exited",
+      "forwardingPort": 59052,
+      "connectionRefused": true
+    }
+  ],
+  "remainingPeerRules": [],
+  "cleanupErrors": [],
+  "validation": {
+    "pythonSyntax": "passed",
+    "scriptChecks": {
+      "passed": 53,
+      "existingSkipped": 1,
+      "log": {
+        "path": "/tmp/seams-r190-runtime-cycle-final-scripts.log",
+        "sha256": "a2b4ab6b01a840c7ba7d6acb743b9a9084f0e711e1541843d47af50c21c52e75"
+      }
+    }
+  },
+  "productionChanges": false,
+  "limits": [
+    "This is a durable-state compatibility check. The known .6 WebSocket defects still prevent recommending .6 for production.",
+    "The runtime changes occur after the interrupted claims are burned and the independent registration completes. No fresh claim is in flight during drain.",
+    "The peer stays stopped during the executable cycle. Mixed-version serving is not tested.",
+    "The same fleet and local watch directory are reused. The runner performs no storage snapshot restoration or manifest deployment during the cycle.",
+    "The test verifies burned Yao pairs, creation receipt replay and nondecreasing runtime ownership epochs. ECDSA material and wallet relocation generations have separate coverage.",
+    "The cycle runs on the ordinary survivor. The Confidential VM participates in the initial active claim and owner loss.",
+    "Provider restore/retirement failures, distributed relocation and release promotion remain open."
+  ],
+  "aggregateMaintainedSourceDelta": -31092
+}

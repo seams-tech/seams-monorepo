@@ -1,6 +1,6 @@
 """Verify a live Yao claim survives owner loss or a peer partition.
 
-Usage: python3 google-yao.e2e.py RESOURCE_DIRECTORY WALLET_PACKAGE WALLET_CHECKOUT owner-loss|peer-partition|silent-partition
+Usage: python3 google-yao.e2e.py RESOURCE_DIRECTORY WALLET_PACKAGE WALLET_CHECKOUT owner-loss|peer-partition|silent-partition|runtime-cycle
 The task ledger supplies owned VMs, three buckets, SSH key and verified Linux runtime.
 Both VMs are stopped after the run. No production resources or wallets are used.
 """
@@ -23,10 +23,11 @@ import urllib.request
 
 source = Path(__file__).resolve()
 repository = source.parents[3]
-if len(sys.argv) != 5 or sys.argv[4] not in ('owner-loss', 'peer-partition', 'silent-partition'):
+if len(sys.argv) != 5 or sys.argv[4] not in ('owner-loss', 'peer-partition', 'silent-partition', 'runtime-cycle'):
     raise SystemExit(__doc__)
 ledger_directory, package, checkout = [Path(value).resolve() for value in sys.argv[1:4]]
-fault_kind = sys.argv[4]
+scenario = sys.argv[4]
+fault_kind = 'owner-loss' if scenario == 'runtime-cycle' else scenario
 ledger = json.loads((ledger_directory / 'resources.json').read_text())
 assert ledger['project'] == 'seams-501403'
 runtime = json.loads((ledger_directory / 'runtime-build.json').read_text())
@@ -59,7 +60,7 @@ partitioned = []
 tag = 'r190-yao-' + identifier
 result = {
     'status': 'running', 'stage': 'prepare', 'project': ledger['project'],
-    'faultKind': fault_kind,
+    'scenario': scenario, 'faultKind': fault_kind,
     'scope': 'A/B running claims on distinct Google nodes, held second protocol reply, bounded fault injection, burned-state recovery, and independent registration',
     'fleet': fleet, 'runtime': runtime, 'packageSha256': harness.directory_sha256(package),
     'manifestSha256': harness.sha256(package / 'artifact-manifest.json'),
@@ -261,6 +262,11 @@ try:
         cloud(['compute', 'ssh', node['name'], *common(node), '--command=' + extract], 'extract-' + node['kind'])
         provider = dict(node, id=identifier, fleet=fleet, mapping=mapping, roles=roles,
                         faultKind=fault_kind, runtimeSha256=runtime['executableSha256'])
+        if scenario == 'runtime-cycle':
+            rollback = json.loads((ledger_directory / 'release-6/runtime-build.json').read_text())
+            assert rollback['version'] == 'celld 0.6.2-seams.6'
+            result['rollbackRuntime'] = rollback
+            provider['rollbackRuntimeSha256'] = rollback['executableSha256']
         provider_path = root / (node['kind'] + '-provider.json')
         harness.write_json(provider_path, provider)
         provider_path.chmod(0o600)
@@ -439,6 +445,31 @@ try:
     assert answer['status'] == 200 and answer['body']['status'] == 'succeeded', answer
     result['independentWalletCompletedAfterFault'] = True
     result['runtimeAfterControl'] = remote(nodes[0], 'runtime-state', 'runtime-after-control')
+    if scenario == 'runtime-cycle':
+        result['runtimeCycle'] = []
+        previous_owner = result['replacementOwner']['owner']
+        for checkpoint, action in (('rollback', 'start-rollback'), ('upgrade', 'start')):
+            result['stage'] = checkpoint
+            stopped = remote(nodes[0], 'stop', checkpoint + '-stop')
+            assert stopped['after']['ExecMainStatus'] == '0', stopped
+            assert stopped['after']['Result'] == 'success', stopped
+            launched = remote(nodes[0], action, checkpoint + '-start')
+            assert launched['state']['MainPID'] != stopped['before']['MainPID']
+            observed = {'checkpoint': checkpoint, 'stop': stopped, 'start': launched}
+            yao.verify_burned_pair(address, interrupted, observed)
+            owner = remote(nodes[0], 'owner', checkpoint + '-owner-b',
+                           'RouterAbDeriverBWalletDurableObject', addresses['deriver_b'])
+            assert owner['owner']['epoch'] >= previous_owner['epoch'], owner
+            assert owner['nodeLease']['addr'] == nodes[0]['privateIp'] + ':19081'
+            observed['owner'] = owner
+            previous_owner = owner['owner']
+            replay = yao.post(address, 'ROUTER', '/router-ab/internal/tenant-root/creation/v1/create',
+                              inputs['secondCreation'], credential, independent_addresses)
+            expected_replay = dict(second['body'])
+            expected_replay['replayed'] = True
+            assert replay['status'] == 200 and replay['body'] == expected_replay, replay
+            observed['tenantRootCreationReplayPreserved'] = True
+            result['runtimeCycle'].append(observed)
     for file in source_files:
         assert result['sourceHashes'][file.name] == harness.sha256(file), file.name
     result['status'] = 'passed'

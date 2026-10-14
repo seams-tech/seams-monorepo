@@ -221,6 +221,10 @@ python3 tests/e2e/celld/google-yao.e2e.py \
 # Silent packet loss, without forced socket closure:
 python3 tests/e2e/celld/google-yao.e2e.py \
   RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT silent-partition
+
+# Drained executable cycle after owner loss:
+python3 tests/e2e/celld/google-yao.e2e.py \
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT runtime-cycle
 ```
 
 Install the same reviewed Linux runtime on both ledger VMs before running this command.
@@ -242,6 +246,18 @@ The required peer-WebSocket feature proves loader refusal only. A safe mixed-ver
 Before publishing a manifest that requires it, drain old processes and verify every serving node uses the current reviewed executable.
 Do not start `.5` against that manifest or remove its required feature to permit a downgrade.
 Keep durable state and consumed material intact. Full state-safe upgrade and rollback qualification remains open.
+
+The `runtime-cycle` scenario adds a drained `.7` to `.6` to `.7` cycle after owner loss and an independent registration.
+Keep the reviewed `.6` executable at `/opt/seams/celld.seams6` and its build record at `RESOURCE_DIRECTORY/release-6/runtime-build.json`.
+The runner verifies the file hash and running executable hash at startup.
+It uses the same GCS fleet and watch directory throughout the cycle. It does not restore a storage snapshot or deploy new manifests.
+Both checkpoints require burned A/B claims, no new protocol connection on retry, nondecreasing runtime ownership epochs, and exact creation receipt replay.
+The earlier runtime must stop successfully before its replacement starts.
+See [the Google runtime cycle evidence](evidence/google-runtime-cycle.json).
+
+This case tests durable-state compatibility. Known `.6` WebSocket defects still prevent recommending `.6` for production.
+Only the ordinary survivor runs the cycle. The Confidential peer remains stopped after its injected failure.
+Fresh claims during drain, mixed-version serving, and ECDSA state across provider upgrades remain separate checks.
 
 ## Repeat the local tenant-root restore and upgrade check
 

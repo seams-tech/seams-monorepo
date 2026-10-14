@@ -39,7 +39,8 @@ def cli(arguments, label):
                        stdout=output, stderr=subprocess.STDOUT, check=True, timeout=180)
 
 
-def start():
+def start(executable, expected_hash):
+    assert hashlib.sha256(executable.read_bytes()).hexdigest() == expected_hash
     (root / 'state').mkdir(exist_ok=True)
     log = root / 'runtime.log'
     log.touch()
@@ -52,7 +53,7 @@ def start():
     ]
     command.extend('--setenv=' + key + '=' + value for key, value in environment.items())
     command.extend([
-        str(binary), '--no-control-plane', '--listen', '127.0.0.1:19080',
+        str(executable), '--no-control-plane', '--listen', '127.0.0.1:19080',
         '--internal-listen', inputs['privateIp'] + ':19081',
         '--advertise', inputs['privateIp'] + ':19081',
     ])
@@ -71,8 +72,9 @@ def start():
         raise RuntimeError('Native process readiness timed out')
     process = Path('/proc') / current['MainPID']
     assert (process / 'cwd').resolve() == root
-    assert (process / 'cmdline').read_bytes().split(b'\0')[0].decode() == str(binary)
-    return {'state': current, 'runtimeSha256': inputs['runtimeSha256'], 'watch': str(root / 'state')}
+    assert (process / 'cmdline').read_bytes().split(b'\0')[0].decode() == str(executable)
+    assert hashlib.sha256((process / 'exe').read_bytes()).hexdigest() == expected_hash
+    return {'state': current, 'runtimeSha256': expected_hash, 'watch': str(root / 'state')}
 
 
 def stop(force):
@@ -196,7 +198,9 @@ elif action == 'migrate':
             cli(['d1', 'migrations', 'apply', database['database_name'], relative], 'migrate-' + role)
     result = {'migrated': True}
 elif action == 'start':
-    result = start()
+    result = start(binary, inputs['runtimeSha256'])
+elif action == 'start-rollback':
+    result = start(Path('/opt/seams/celld.seams6'), inputs['rollbackRuntimeSha256'])
 elif action == 'stop':
     result = stop(False)
 elif action == 'kill':

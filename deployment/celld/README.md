@@ -6,6 +6,7 @@ The user selected a private runtime patch to preserve the current Wallet call st
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
 
 The [registration-rebase qualification](evidence/registration-rebase-qualification.json) records fresh package checks, `.5` to `.7` restore/upgrade, and Google owner loss.
+The [Google runtime-cycle check](evidence/google-runtime-cycle.json) preserves burned claims and creation replay across a drained `.7` to `.6` to `.7` cycle. Known `.6` WebSocket defects still prevent recommending `.6` for production.
 
 ## Source and build identity
 

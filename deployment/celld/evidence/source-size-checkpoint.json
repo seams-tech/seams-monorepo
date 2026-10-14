@@ -614,7 +614,7 @@
     "seams-monorepo": {
       "baseRevision": "eca55b5d432a6b8f1b7274c57ba3449c207d94f0",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 1355,
+      "netLines": 1390,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -769,14 +769,14 @@
         {
           "path": "tests/e2e/celld/google-yao.e2e.py",
           "beforeLines": 0,
-          "afterLines": 517,
-          "netLines": 517
+          "afterLines": 548,
+          "netLines": 548
         },
         {
           "path": "tests/e2e/celld/google-yao.remote.py",
           "beforeLines": 0,
-          "afterLines": 228,
-          "netLines": 228
+          "afterLines": 232,
+          "netLines": 232
         },
         {
           "path": "tests/e2e/celld/linux-runtime.e2e.py",
@@ -913,6 +913,6 @@
       ]
     }
   },
-  "aggregateNetLines": -31127,
+  "aggregateNetLines": -31092,
   "netReductionAchieved": true
 }

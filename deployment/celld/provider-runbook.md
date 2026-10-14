@@ -234,16 +234,19 @@ Use the reviewed `.5` and `.6` executables and exact 0.11.0 Wallet Server candid
 The test observer can inspect synthetic databases and buckets. The runner binds it to loopback only.
 Never deploy this observer into a product fleet.
 
-The runner applies the public restore and retirement assertions on `.5`, then stops that process before deploying `.6` manifests.
+The runner creates a real ECDSA signature and applies the public restore and retirement assertions on `.5`.
+It then stops that process before deploying `.6` manifests.
 It starts `.6` with the same durable state and verifies the original restore receipt, revision, and current epoch records.
+It also requires exact ECDSA signature replay and refuses both changed finalization input and consumed-presign reuse before request expiry.
 It repeats those checks after another restart. It records temporary ownership refusals and waits at most 60 seconds for takeover.
 Each run retains its source copies, source and package hashes, native logs, and result file.
 
-This qualifies a drained local upgrade for these tenant-root records only.
-It does not qualify consumed signing material, mixed-version serving, all-replica recovery, or a provider storage partition.
-Keep production upgrade and rollback gated on those applicable state checks.
+This qualifies a offline local upgrade for these tenant-root records and consumed ECDSA material.
+It does not qualify live claims during upgrade, mixed-version serving, all-replica recovery, or a provider storage partition.
+The local stop helper can escalate to SIGKILL. These checks establish stopped-before-deployment ordering, with no test request in flight.
+They do not establish graceful drain. Keep production upgrade and rollback gated on the remaining state checks.
 Rollback must preserve current durable records. Never restore an older storage snapshot to undo an executable change.
 
 The [Yao runtime upgrade check](evidence/yao-runtime-upgrade.json) additionally proves that an interrupted pair remains burned after `.5` to `.6` and another restart.
 It observes both role states and zero new protocol connections on exact retry.
-This adds evidence for one-use Yao material. ECDSA presign material and live mixed-version rollout still require separate checks.
+The [ECDSA upgrade check](evidence/ecdsa-runtime-upgrade.json) covers consumed presign material. Live mixed-version rollout remains unqualified.

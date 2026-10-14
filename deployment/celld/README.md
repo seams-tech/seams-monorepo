@@ -337,7 +337,7 @@ See [the current plan](../../docs/refactor-190.md#remaining-rollout-gates).
 ## Yao peer-disconnect check
 
 The shared Durable Object fault proxy passes the real Yao interruption check on both runtimes.
-The local runner checks burned state across a drained runtime upgrade and a later restart.
+The local runner checks burned state across a offline runtime upgrade and a later restart.
 Use the exact qualified Wallet Server package, the public Wallet checkout and the supplied Moto Python environment:
 
 ```sh

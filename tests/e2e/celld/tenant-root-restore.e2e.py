@@ -1,4 +1,4 @@
-"""Run shared tenant-root restore, refresh and retirement assertions on celld.
+"""Verify root restore and consumed ECDSA material across a celld upgrade.
 
 Usage: python3 tenant-root-restore.e2e.py CELLD WALLET_PACKAGE MOTO_PYTHON ESBUILD WALLET_CHECKOUT PREVIOUS_CELLD
 The inspection Worker has synthetic storage access and runs only on loopback.
@@ -63,8 +63,9 @@ def main():
         "stage": "prepare",
         "scope": (
             "one missing tenant-root role share, dual-authorized restore, forward "
-            "refresh, retirement and replay after a drained runtime upgrade and "
-            "restart; one runtime node and synthetic S3"
+            "refresh, retirement and replay after an offline runtime upgrade and "
+            "restart, stored ECDSA signature replay and consumed-presign refusal; "
+            "one runtime node and synthetic S3"
         ),
         "previousRuntimeSha256": harness.sha256(previous),
         "runtimeSha256": harness.sha256(binary),
@@ -128,9 +129,10 @@ def main():
             directory, environment, "restore.log", timeout=240,
         )
         result["scenario"] = json.loads((directory / "restore-result.json").read_text())
-        result["stage"] = "drained-upgrade"
+        result["stage"] = "offline-upgrade"
         harness.stop(node)
         processes.remove(node)
+        result["previousRuntimeExitCode"] = node.returncode
         result["oldRuntimeStoppedBeforeDeployment"] = node.returncode is not None
         assert result["oldRuntimeStoppedBeforeDeployment"]
         for role in [*configs, "restore-observer"]:

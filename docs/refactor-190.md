@@ -17,8 +17,9 @@ Exclude documentation, generated files, lockfiles, and binaries. Moves receive z
 New acceptance and deployment code must be outweighed by deletion of the retired implementations. A lifecycle change should have
 one application implementation. Hosting should not require us to reproduce
 service bindings, object execution, SQL behavior, or background-task handling.
-Latency and hosting cost are optional measurements. Neither determines whether
-this refactor succeeds.
+The refactor must add no latency to application request paths. Do not add sequential database reads, blocking calls,
+or extra validation to compensate for a hosting change. Preserve the existing call order and concurrency.
+Test-only fault injection, inspection, and restart waits stay outside production artifacts. Hosting cost remains an optional measurement.
 
 The shared contract is the Workers programming model: fetch handlers, bindings,
 Durable Objects, and the storage APIs the wallet uses. Celld and workerd currently
@@ -641,7 +642,7 @@ The public rebase changes documentation only relative to the tested tree. The pr
 Post-rebase private checks and public bloat checks pass. The maintained source reduction remains 33,713 lines.
 The earlier full Google Wallet and Console evidence uses `.5`; the new `.6` Google proof covers this distributed Yao scenario.
 
-## October 14 tenant-root restore and drained upgrade
+## October 14 tenant-root restore and offline upgrade
 
 The existing workerd restore scenario is now shared with the private celld acceptance runner.
 The scenario removes exactly one active Deriver A share, obtains dual authorization, restores from managed backup,
@@ -649,7 +650,7 @@ and performs the mandatory forward refresh. A later refresh erases epoch 1 and l
 An exact restore retry keeps its original activation receipt and lifecycle revision after the later refresh.
 
 The local celld check uses unchanged 0.11.0 Worker artifacts and synthetic S3 storage.
-It also checks a drained `.5` to `.6` runtime upgrade and a subsequent restart against the same durable state.
+It also checks an offline `.5` to `.6` runtime upgrade and a subsequent restart against the same durable state.
 Temporary owner-unreachable refusals are recorded during lease recovery. HTTP readiness alone does not prove object readiness.
 The final restart records 25 temporary ownership refusals over 6.743 seconds before replay succeeds.
 The maintained source reduction is now 33,275 lines, including the new acceptance runner.
@@ -660,7 +661,7 @@ in-flight work during retirement, consumed signing material across upgrades, and
 
 ## October 14 burned-pair upgrade checkpoint
 
-The existing real Yao fault runner now checks a drained `.5` to `.6` upgrade and another restart.
+The existing real Yao fault runner now checks an offline `.5` to `.6` upgrade and another restart.
 It disconnects after B's second protocol message. Both roles report burned state before and after each runtime transition.
 Exact retries return 503 and open zero additional protocol connections. An independent wallet registers before the upgrade.
 The runner uses the same 0.11.0 packaged Workers and the shared public fault proxy.
@@ -670,10 +671,32 @@ This closes the local burned-Yao-pair upgrade check. ECDSA consumed presigns, mi
 ownership-generation preservation during upgrade, provider partitions, and rollback remain open.
 The aggregate maintained source reduction is now 33,258 lines.
 
+## October 14 ECDSA upgrade checkpoint
+
+The existing restore runner now creates and verifies a real ECDSA signature before tenant-root restore.
+After the offline `.5` to `.6` upgrade and another restart, it requires the same stored signature.
+Changed finalization input must fail with an effect-identity conflict.
+The captured prepare request must fail with a stale-revision conflict while its original deadline is still valid.
+These checks keep the original request deadline and require the specific consumed-state conflict.
+The same packaged Worker artifacts and assertions run through the address-aware workerd test boundary.
+See [the ECDSA upgrade evidence](../deployment/celld/evidence/ecdsa-runtime-upgrade.json).
+
+The public scenario needed its current Gateway credential for ECDSA activation.
+Its old all-purpose workerd entrypoint also omits required wallet object addresses and remains outside this qualification.
+The focused control supplies runtime-issued addresses. Production authentication and request paths are unchanged.
+
+The R190 public branch includes `dev` commit `8c77470f`, which updates CLI versions and documentation.
+This rebase changes no packaged Worker code. No new live request, database validation, or blocking call was added.
+
+Earlier records called these upgrades “drained.” The stop helper can send SIGKILL after eight seconds.
+The evidence proves the old process stopped before deployment, with no test request in flight. Graceful drain remains unqualified.
+The final old process exited through SIGKILL (`-9`). Restart recovery recorded 22 temporary refusals over 6.006 seconds.
+The aggregate maintained source reduction is now 33,051 lines, including all new test code and the full runtime patch.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
-3. Complete state-safe upgrade and rollback procedures for Workers deployments. Preserve consumed material and ownership generations. No classic-host state migration is required.
+3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local offline upgrades now cover root records, burned Yao pairs, and consumed ECDSA presigns. No classic-host state migration is required.
 
 The branch implementation and selected qualification checks are committed. Production rollout remains pending.

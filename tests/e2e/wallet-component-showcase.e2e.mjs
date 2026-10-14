@@ -147,6 +147,8 @@ try {
   const pagination = gallery.getByRole('radiogroup', { name: 'Component pagination' });
   await expect(selector.getByRole('radio')).toHaveCount(5);
   await expect(pagination.getByRole('radio')).toHaveCount(5);
+  await expectSelection(gallery, 'Transactions');
+  await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
   await expectSelection(gallery, 'Authentication');
   await gallery.evaluate(positionForCapture);
   await gallery

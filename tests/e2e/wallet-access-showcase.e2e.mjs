@@ -24,6 +24,11 @@ try {
   const page = await context.newPage();
   await page.goto(process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet');
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
+  await gallery
+    .getByRole('radiogroup', { name: 'Components', exact: true })
+    .getByRole('radio', { name: 'Authentication', exact: true })
+    .locator('..')
+    .click();
   await gallery.evaluate(position);
   const auth = gallery.frameLocator('iframe[title="Authentication"]');
   await auth.getByRole('button', { name: 'Link this device', exact: false }).click();

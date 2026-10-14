@@ -13,9 +13,11 @@ type Preview = {
   y: number;
 };
 
+const defaultPreview: Preview = { id: 'transaction-modal', label: 'Transactions', x: 420, y: 100 };
+
 const previews: readonly Preview[] = [
   { id: 'create', label: 'Authentication', x: 0, y: 0 },
-  { id: 'transaction-modal', label: 'Transactions', x: 420, y: 100 },
+  defaultPreview,
   { id: 'prediction-market', label: 'Custom Components', x: 840, y: -70 },
   { id: 'access', label: 'Link & recover', x: 1680, y: -100 },
   { id: 'profile', label: 'Account management', x: 1260, y: 60 },
@@ -171,7 +173,7 @@ function renderBackground(preview: BackgroundPlacement): React.JSX.Element {
 }
 
 export function ComponentShowcase(): React.JSX.Element {
-  const [selected, setSelected] = React.useState<Preview>(previews[0]);
+  const [selected, setSelected] = React.useState<Preview>(defaultPreview);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
 
   return (

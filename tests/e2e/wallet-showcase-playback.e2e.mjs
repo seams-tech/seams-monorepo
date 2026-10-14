@@ -45,6 +45,7 @@ try {
   const page = await context.newPage();
   await page.goto(origin);
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
+  await select(page, gallery, 'Authentication');
   await gallery.evaluate(positionGallery);
   await page.mouse.move(5, 5);
   const authentication = gallery.frameLocator('iframe[title="Authentication"]');

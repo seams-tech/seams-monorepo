@@ -26,12 +26,10 @@ This plan builds on [Shared Account Platform](feat-1-shared-account-platform.md)
 ## Terminology and scope
 
 Use the [Platform glossary](platform-glossary.md). Console account pages administer
-**developer accounts** and **developer projects**. Their membership and billing are
-separate from end-customer organisation membership and application billing.
-“Application” in that glossary means a developer-built product. The Console builds
-below are first-party frontends. Existing routes, UI labels, identifiers, and storage
-names remain unchanged by this documentation update. Public application isolation remains separate future work. Project environments
-retain their development/staging/production meaning.
+developer accounts and developer projects. Satyr retains its native organisations,
+users, and work projects. Existing routes, UI labels, identifiers, and storage names
+remain unchanged by this documentation update. Project environments retain their
+development/staging/production meaning.
 
 ## Reuse the existing structure
 
@@ -55,7 +53,7 @@ packages/wallet-console-server-ts/  Existing Console Worker and Wallet integrati
 packages/wallet-console-shared-ts/  Existing Wallet contracts
 
 deployment/console/                 Existing backend configuration
-satyr/                             Separate repository, application, and runtime
+satyr/                             Separate repository, portal, and runtime
 ```
 
 Keep the existing workspace and package names. Do not create `apps/console`, move

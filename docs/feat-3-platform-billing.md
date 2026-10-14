@@ -16,13 +16,12 @@ no frontend moves, new Worker, new database, or new subscription engine.
 
 ## Terminology and scope
 
-Use the [Platform glossary](platform-glossary.md). This is **developer billing**:
-Seams charges its developer accounts for Wallet and Satyr usage. **Application
-billing**, where a developer charges end customers, is outside this plan.
+Use the [Platform glossary](platform-glossary.md). This plan covers Seams charging
+developer accounts for Wallet and Satyr usage. It does not define fees that a product
+might charge its users.
 A Stripe Customer here represents the payer for a developer billing account.
 Existing `orgId`, `organizationId`, and `billingAccountId` fields retain their names
-and persisted meaning. This terminology update adds no application or end-customer
-organisation records.
+and persisted meaning.
 Project environments retain their development/staging/production meaning.
 
 ## First-release scope

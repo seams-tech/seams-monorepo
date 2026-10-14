@@ -19,9 +19,8 @@ Future integrations: [Service addition procedure](shared-account-platform/add-se
 Use the [Platform glossary](platform-glossary.md). This plan covers developer
 accounts, developer projects, developer account memberships, and developer billing.
 “Organisation” in existing Platform code and stored fields maps to developer account.
-Keep native Wallet and Satyr organisation scopes explicit. Applications and
-end-customer organisations describe the proposed public model. Project environments
-mean development/staging/production scopes. This terminology change adds no nesting,
+Keep Wallet and Satyr native organisations, projects, and project environments
+under their existing product owners. A terminology change adds no new account hierarchy,
 API fields, or isolation guarantees.
 
 ## Implementation rules
@@ -395,7 +394,7 @@ failures remain retryable and cannot mark an event as permanently processed.
 The service owns billable activity semantics. Shared billing applies a registered,
 immutable price version and records the charge. A service can supply a trusted
 execution quote through a separate typed contract for variable execution costs.
-Application user requests cannot submit authoritative charge amounts.
+Product-user requests cannot submit authoritative charge amounts.
 
 Preserve quantity, unit, price version, charge scope, source evidence, and amount on
 each usage charge. Define fixed-precision arithmetic and rounding at the billing

@@ -27,6 +27,29 @@ Open:
 - `https://localhost:4101` – Router API origin
 - `https://docs.localhost:4003` – docs site
 
+## Homepage component showcase
+
+The homepage canvas groups twelve simulated previews into Authentication,
+Transactions, Checkout, and Account. The top row selects a category. The floating
+bottom rail selects a component within that category. Both rows support native
+radio-button keyboard navigation. Background previews cannot receive focus.
+
+Preview actions run locally and display sample results. They do not create wallets,
+connect accounts, sign transactions, or send payments. The contract preview links
+to the existing interactive transaction component gallery.
+
+Pointer selections move the canvas. Keyboard selections and reduced-motion mode
+change its position immediately. The rail remains usable at a 320px viewport.
+
+With the site running, execute the browser scenario from the repository root:
+
+```sh
+node tests/e2e/site-component-showcase.e2e.mjs
+```
+
+Set `SEAMS_SITE_ORIGIN` to test another origin. The scenario writes screenshots,
+`result.json`, and `trace.zip` to `.artifacts/component-showcase/`.
+
 ## Production deployment
 
 Production app and wallet Pages artifacts are built from the accepted `main`

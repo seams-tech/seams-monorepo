@@ -1,10 +1,11 @@
-"""Verify a real interrupted Yao pair across two Google nodes and B-owner loss.
+"""Verify a live Yao claim survives B-owner loss across two Google nodes.
 
 Usage: python3 google-yao.e2e.py RESOURCE_DIRECTORY WALLET_PACKAGE WALLET_CHECKOUT
 The task ledger supplies owned VMs, three buckets, SSH key and verified Linux runtime.
 Both VMs are stopped after the run. No production resources or wallets are used.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import json
 import os
@@ -50,7 +51,7 @@ firewalls = []
 tag = 'r190-yao-' + identifier
 result = {
     'status': 'running', 'stage': 'prepare', 'project': ledger['project'],
-    'scope': 'real Yao interruption with measured A/B ownership on distinct Google nodes; B-owner SIGKILL and burned-pair takeover',
+    'scope': 'A/B running claims on distinct Google nodes, held second protocol reply, B-owner SIGKILL during execution, and burned-pair takeover',
     'fleet': fleet, 'runtime': runtime, 'packageSha256': harness.directory_sha256(package),
     'manifestSha256': harness.sha256(package / 'artifact-manifest.json'),
     'publicRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=checkout, text=True).strip(),
@@ -141,13 +142,9 @@ try:
     manifest, configs, mapping = harness.prepare(package, root, prepared)
     harness.run(['node', source.with_name('prepare-yao.mjs'), root, checkout],
                 root, environment, 'prepare-yao.log', timeout=240)
-    proxy = root / 'yao-proxy.mjs'
-    proxy_source = proxy.read_text()
-    refusal_record = 'evidence.refusals.push({ status: response.status, reason });'
-    assert refusal_record in proxy_source
-    proxy.write_text(proxy_source.replace(
-        refusal_record, 'evidence.refusals.push({ status: response.status, reason, body });',
-    ))
+    proxy_config = json.loads((root / 'proxy.json').read_text())
+    proxy_config['vars']['CONNECTION'] = 'hold-second-reply'
+    harness.write_json(root / 'proxy.json', proxy_config)
     roles = [*configs, 'proxy', 'capture', 'order', 'observer']
     services = []
     for role, config in configs.items():
@@ -259,16 +256,63 @@ try:
         grant = fresh_grant(identifier + '-' + label)
         inputs[creation_key] = {'creation_grant_b64u': grant['creation_grant_b64u']}
         inputs[envelope_key]['tenant_root']['identity'] = grant['identity']
-    interrupted = yao.verify_disconnect(address, inputs, addresses, result)
-    result['ownersAfterFault'] = {}
-    for role in ('a', 'b'):
-        after_fault = remote(nodes[0], 'owner', 'owner-after-fault-' + role,
-                             'RouterAbDeriver' + role.upper() + 'WalletDurableObject', addresses['deriver_' + role])
-        assert after_fault['owner'] == first_owners[role]['owner']
-        result['ownersAfterFault'][role] = after_fault
-    result['stage'] = 'kill-b-owner'
-    result['killedOwner'] = remote(nodes[1], 'kill', 'kill-b-owner')
-    assert result['killedOwner']['afterSignal']['ExecMainStatus'] == '9'
+    result['stage'] = 'create-tenant'
+    credential = inputs['internalCredential']
+    created = yao.post(address, 'ROUTER', '/router-ab/internal/tenant-root/creation/v1/create',
+                       inputs['creation'], credential, addresses)
+    assert created['status'] == 200 and created['body']['status']['kind'] == 'ready', created
+    envelope = inputs['envelope']
+    envelope['tenant_root']['custody_lineage_b64u'] = created['body']['custody_lineage_b64u']
+    result['runtimeBeforeExecution'] = remote(nodes[0], 'runtime-state', 'runtime-before-execution')
+    result['stage'] = 'hold-running-pair'
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        execute_started = time.monotonic()
+        pending = executor.submit(
+            yao.post, address, 'ROUTER', '/router-ab/router/ed25519-yao/execute',
+            envelope, inputs['gatewayCredential'], addresses,
+        )
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            held = yao.read(address, 'PROXY', '/evidence')
+            if held.get('heldSecondReply'):
+                break
+            assert not pending.done(), pending.result() if pending.done() else None
+            time.sleep(0.1)
+        assert held.get('heldSecondReply'), held
+        assert held['connectionAttempts'] == 1 and held['connections'] == 1, held
+        assert held['aMessages'] >= 1 and held['bMessages'] == 2, held
+        assert not held['disconnected'] and not held['aClosed'] and not held['bClosed'], held
+        execution = yao.read(address, 'CAPTURE', '/captured')
+        assert execution is not None
+        scope = {
+            'wallet_route': execution['tenant_root']['wallet_route'],
+            'ownership_generation': execution['tenant_root']['ownership_generation'],
+            'root_identity': execution['tenant_root']['identity'],
+            'pair_binding': execution['pair_binding'],
+        }
+        states = {}
+        for role in ('deriver-a', 'deriver-b'):
+            states[role] = yao.require_pair_state(
+                address, role, scope, credential, addresses, 'running',
+            )
+        assert not pending.done(), 'Execution completed before owner-loss injection'
+        result['activeClaimObservation'] = {
+            'roleStates': states, 'connection': held, 'requestPendingBeforeKill': True,
+        }
+        result['stage'] = 'kill-b-owner-during-execution'
+        result['killedOwner'] = remote(nodes[1], 'kill', 'kill-b-owner')
+        assert result['killedOwner']['afterSignal']['ExecMainStatus'] == '9'
+        signal_upper_bound_ms = (time.monotonic() - execute_started) * 1000
+        result['activeClaimObservation']['signalUpperBoundMs'] = signal_upper_bound_ms
+        result['activeClaimObservation']['ceremonyTimeoutMs'] = 15_000
+        assert signal_upper_bound_ms < 15_000, 'SIGKILL was not confirmed before the ceremony timeout'
+        first = pending.result(timeout=130)
+        assert first['body'].get('status') != 'succeeded', first
+        result['interruptedExecution'] = first
+    interrupted = {
+        'scope': scope, 'execution': execution, 'addresses': addresses,
+        'credential': credential,
+    }
     result['bTakeover'] = yao.read_after_takeover(address, '', 'touch-b?id=' + addresses['deriver_b'])
     assert result['bTakeover']['evidence']['status'] == 404
     yao.verify_burned_pair(address, interrupted, result)
@@ -280,8 +324,21 @@ try:
     result['survivor'] = remote(nodes[0], 'status', 'survivor-status')
     assert result['survivor']['MainPID'] == nodes[0]['start']['state']['MainPID']
     assert result['survivor']['NRestarts'] == '0'
+    result['stage'] = 'independent-wallet-after-takeover'
+    second = yao.post(address, 'ROUTER', '/router-ab/internal/tenant-root/creation/v1/create',
+                      inputs['secondCreation'], credential, addresses)
+    assert second['status'] == 200 and second['body']['status']['kind'] == 'ready', second
+    independent = inputs['secondEnvelope']
+    independent['tenant_root']['custody_lineage_b64u'] = second['body']['custody_lineage_b64u']
+    answer = yao.post(address, 'ROUTER', '/router-ab/router/ed25519-yao/execute',
+                      independent, inputs['gatewayCredential'], yao.read(address, '', 'addresses'))
+    assert answer['status'] == 200 and answer['body']['status'] == 'succeeded', answer
+    result['independentWalletCompletedAfterTakeover'] = True
+    result['runtimeAfterControl'] = remote(nodes[0], 'runtime-state', 'runtime-after-control')
+    for file in source_files:
+        assert result['sourceHashes'][file.name] == harness.sha256(file), file.name
     result['status'] = 'passed'
-except Exception as error:
+except (Exception, KeyboardInterrupt) as error:
     result['status'] = 'failed'
     result['error'] = repr(error)
     harness.write_json(root / 'failure.json', result)
@@ -293,6 +350,10 @@ finally:
             node['cleanup'] = remote(node, 'stop', 'stop-' + node['kind'])
             cloud(['compute', 'scp', node['name'] + ':' + remote_directory + '/runtime.log',
                    str(root / (node['kind'] + '-runtime.log')), *common(node)], 'runtime-log-' + node['kind'])
+            runtime_log = (root / (node['kind'] + '-runtime.log')).read_text()
+            assert 'shutdown_handoff_stalled' not in runtime_log, (
+                node['kind'] + ' runtime did not drain successfully'
+            )
         except Exception as error:
             cleanup_errors.append(repr(error))
     for node in prepared_nodes:

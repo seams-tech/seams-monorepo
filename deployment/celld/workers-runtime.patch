@@ -1,5 +1,5 @@
 diff --git a/Cargo.lock b/Cargo.lock
-index 09b2f25..4951f9e 100644
+index 09b2f25..507362d 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
 @@ -285,7 +285,7 @@ dependencies = [
@@ -7,22 +7,73 @@ index 09b2f25..4951f9e 100644
  [[package]]
  name = "celld"
 -version = "0.6.2"
-+version = "0.6.2-seams.6"
++version = "0.6.2-seams.7"
  dependencies = [
   "aes",
   "aes-gcm",
 diff --git a/crates/celld/Cargo.toml b/crates/celld/Cargo.toml
-index 98c9ac9..8107451 100644
+index 98c9ac9..1e158a4 100644
 --- a/crates/celld/Cargo.toml
 +++ b/crates/celld/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "celld"
 -version = "0.6.2"
-+version = "0.6.2-seams.6"
++version = "0.6.2-seams.7"
  edition = "2021"
  rust-version = "1.94.1"
  license = "Apache-2.0"
+diff --git a/crates/celld/cell_dispatch.rs b/crates/celld/cell_dispatch.rs
+index fc8abd3..fd887f3 100644
+--- a/crates/celld/cell_dispatch.rs
++++ b/crates/celld/cell_dispatch.rs
+@@ -349,13 +349,15 @@ async fn dispatch_local_fetch(
+                 // path, so the caller's `stub.fetch()` rejects whichever
+                 // node the caller runs on.
+                 anyhow::ensure!(upgrade, "TypeError: {WEBSOCKET_WITHOUT_UPGRADE}");
+-                let (cell, hibernatable) = crate::js::ws_core_registration(target);
+-                let kind = if hibernatable {
+-                    WebSocketKind::Hibernatable
+-                } else {
+-                    WebSocketKind::Regular
+-                };
+-                app.websocket_opened(cell, target.id, kind).await?;
++                if target.tunnel.is_none() {
++                    let (cell, hibernatable) = crate::js::ws_core_registration(target);
++                    let kind = if hibernatable {
++                        WebSocketKind::Hibernatable
++                    } else {
++                        WebSocketKind::Regular
++                    };
++                    app.websocket_opened(cell, target.id, kind).await?;
++                }
+             }
+             Ok(response)
+         })
+@@ -363,12 +365,18 @@ async fn dispatch_local_fetch(
+     let activity = completed.activity;
+     match completed.result.map_err(local_request_error) {
+         Ok(mut response) => {
+-            let body_active = response.stream.is_some();
+-            activity.set_phase("response_body", true, body_active);
+-            if let Some(stream) = response.stream.take() {
+-                response.stream = Some(local_response_stream(stream, activity, || {}));
+-            } else {
++            if response.websocket.is_some() {
++                // An upgrade transfers the socket, with no HTTP response body.
++                response.stream = None;
+                 drop(activity);
++            } else {
++                let body_active = response.stream.is_some();
++                activity.set_phase("response_body", true, body_active);
++                if let Some(stream) = response.stream.take() {
++                    response.stream = Some(local_response_stream(stream, activity, || {}));
++                } else {
++                    drop(activity);
++                }
+             }
+             CallAttempt::Local(Ok(response))
+         }
 diff --git a/crates/celld/deploy.rs b/crates/celld/deploy.rs
 index dc2e783..4198b49 100644
 --- a/crates/celld/deploy.rs
@@ -731,10 +782,46 @@ index 57d3f9a..7e06dfe 100644
              .await
              .map_err(|error| error.to_string())?;
 diff --git a/crates/celld/main.rs b/crates/celld/main.rs
-index 7fcf81f..2f9e48e 100644
+index 7fcf81f..46a96cd 100644
 --- a/crates/celld/main.rs
 +++ b/crates/celld/main.rs
-@@ -3808,17 +3808,17 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+@@ -2111,19 +2111,22 @@ pub(crate) async fn dispatch_forwarded_fetch(
+             match result {
+                 Ok(mut worker_response) => {
+                     if let Some(HttpResponseWebSocket::Cell(target)) = &worker_response.websocket {
+-                        let (cell, hibernatable) = celld::js::ws_core_registration(target);
+-                        let kind = if hibernatable {
+-                            WebSocketKind::Hibernatable
+-                        } else {
+-                            WebSocketKind::Regular
+-                        };
+-                        if let Err(error) = app.websocket_opened(cell, target.id, kind).await {
+-                            let reason = format!("WebSocket core registration failed: {error:#}");
+-                            websocket::reject_accepted_websocket(&app, target, &reason).await;
+-                            return ForwardedFetchOutcome::Reply(peer_response(response(
+-                                StatusCode::SERVICE_UNAVAILABLE,
+-                                reason,
+-                            )));
++                        if target.tunnel.is_none() {
++                            let (cell, hibernatable) = celld::js::ws_core_registration(target);
++                            let kind = if hibernatable {
++                                WebSocketKind::Hibernatable
++                            } else {
++                                WebSocketKind::Regular
++                            };
++                            if let Err(error) = app.websocket_opened(cell, target.id, kind).await {
++                                let reason =
++                                    format!("WebSocket core registration failed: {error:#}");
++                                websocket::reject_accepted_websocket(&app, target, &reason).await;
++                                return ForwardedFetchOutcome::Reply(peer_response(response(
++                                    StatusCode::SERVICE_UNAVAILABLE,
++                                    reason,
++                                )));
++                            }
+                         }
+                     }
+                     if let Some(HttpResponseWebSocket::Cell(target)) =
+@@ -3808,17 +3811,17 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
                  fleet::wait_for_deployment_pointer(&client).await?;
              }
              let peer_key = peer_auth::load_or_create(&client).await?;
@@ -757,7 +844,7 @@ index 7fcf81f..2f9e48e 100644
              // celld treats replication as a node service, not as a property
              // of today's manifest. Start it even for a stateless deployment
              // so a later deployment can introduce cells without changing the
-@@ -4007,7 +4007,11 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+@@ -4007,7 +4010,11 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
                      bucket: client.clone(),
                      flusher: wake.clone(),
                  });
@@ -770,7 +857,7 @@ index 7fcf81f..2f9e48e 100644
                  let bucket_ownership = Arc::new(
                      BucketOwnership::new(
                          client.clone(),
-@@ -4055,6 +4059,7 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+@@ -4055,6 +4062,7 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
                          .collect(),
                      assets: None,
                      services: Vec::new(),
@@ -779,10 +866,38 @@ index 7fcf81f..2f9e48e 100644
                      containers: Vec::new(),
                      fence_image: None,
 diff --git a/crates/celld/main/peer_tunnel.rs b/crates/celld/main/peer_tunnel.rs
-index b293707..360560c 100644
+index b293707..ae42c55 100644
 --- a/crates/celld/main/peer_tunnel.rs
 +++ b/crates/celld/main/peer_tunnel.rs
-@@ -528,9 +528,29 @@ pub(crate) async fn fetch(
+@@ -263,14 +263,20 @@ async fn serve_do(upgraded: hyper::upgrade::Upgraded, app: AppHandle) {
+             // task a local client gets, and answer with the real 101. The
+             // Worker's application headers ride along; the sidecars and
+             // the hop framing die here.
+-            tokio::spawn(async move {
+-                match upgrade.await {
+-                    Ok(socket) => super::websocket::websocket_task(app, target, socket).await,
+-                    Err(error) => {
+-                        eprintln!("celld tunneled upgrade failed: {error}");
+-                    }
++            let websocket = match super::websocket::PendingWebSocket::new(
++                HttpResponseWebSocket::Cell(target),
++            ) {
++                Ok(websocket) => websocket,
++                Err(error) => {
++                    return Ok(peer_response(response(
++                        StatusCode::BAD_GATEWAY,
++                        format!("tunneled WebSocket upgrade: {error}"),
++                    )));
+                 }
+-            });
++            };
++            tokio::spawn(super::websocket::run_websocket_upgrade(
++                app, upgrade, websocket,
++            ));
+             let (accept_parts, _) = accept.into_parts();
+             let mut answer = Response::from_parts(
+                 accept_parts,
+@@ -528,9 +534,29 @@ pub(crate) async fn fetch(
      control: &TunnelControl,
      url: String,
      method: String,
@@ -813,7 +928,7 @@ index b293707..360560c 100644
      send_inner(
          peer,
          "do",
-@@ -680,7 +700,7 @@ pub(crate) fn claim_upgrade(parked: u64) -> anyhow::Result<TunnelUpgradeClaim> {
+@@ -680,7 +706,7 @@ pub(crate) fn claim_upgrade(parked: u64) -> anyhow::Result<TunnelUpgradeClaim> {
  }
  
  impl TunnelUpgradeClaim {
@@ -823,9 +938,51 @@ index b293707..360560c 100644
      }
  }
 diff --git a/crates/celld/main/websocket.rs b/crates/celld/main/websocket.rs
-index d528f18..b46a289 100644
+index d528f18..7379878 100644
 --- a/crates/celld/main/websocket.rs
 +++ b/crates/celld/main/websocket.rs
+@@ -271,17 +271,17 @@ async fn finish_websocket(
+ /// count before the Worker's response reaches this code, and `WsTarget` is plain
+ /// data: dropping it releases nothing. A rejection that only returns an error
+ /// status therefore leaks the registration and the count for the life of the
+-/// process, and the Worker never sees a close. A remote target is registered on
+-/// the owner node instead, so the entry node has nothing to release — the same
+-/// split that the upgrade-failure path makes. 1006 is the code for a connection
+-/// that closed without a close frame, which is exactly what happened.
++/// process, and the Worker never sees a close. A remote target owns a parked
++/// tunnel on this node; dropping that upgrade closes its connection to the owner.
++/// 1006 means the local connection closed without a close frame.
+ pub(super) async fn reject_accepted_websocket(
+     app: &AppHandle,
+     target: &celld::js::WsTarget,
+     reason: &str,
+ ) {
+-    if target.tunnel.is_none() {
+-        finish_websocket(app, target, 1006, reason.to_string(), false).await;
++    match target.tunnel {
++        Some(parked) => drop(super::peer_tunnel::claim_upgrade(parked)),
++        None => finish_websocket(app, target, 1006, reason.to_string(), false).await,
+     }
+ }
+ 
+@@ -330,7 +330,7 @@ pub(super) async fn refuse_websocket_without_upgrade(
+ /// Keep the response shape in one value through every validation and executor
+ /// exit. A tunneled response attaches its parked connection lifetime here,
+ /// so dropping an unfinished response cannot leave host state behind.
+-enum PendingWebSocket {
++pub(super) enum PendingWebSocket {
+     Worker(celld::js::websocket::WorkerWebSocket),
+     Cell(celld::js::WsTarget),
+     Tunnel {
+@@ -340,7 +340,7 @@ enum PendingWebSocket {
+ }
+ 
+ impl PendingWebSocket {
+-    fn new(websocket: HttpResponseWebSocket) -> anyhow::Result<Self> {
++    pub(super) fn new(websocket: HttpResponseWebSocket) -> anyhow::Result<Self> {
+         Ok(match websocket {
+             HttpResponseWebSocket::Worker(worker) => Self::Worker(worker),
+             HttpResponseWebSocket::Cell(target) => match target.tunnel {
 @@ -552,6 +552,17 @@ async fn local_websocket_pipe(
      Ok(())
  }
@@ -1005,6 +1162,15 @@ index d528f18..b46a289 100644
          }
      };
      let socket = connection.socket;
+@@ -1230,7 +1260,7 @@ pub(crate) async fn handle_websocket(mut request: Request<Incoming>, app: AppHan
+ /// Finish the client upgrade through the same owned response value that
+ /// survives validation. Keeping this work in one future makes a failed client
+ /// upgrade and a cancelled executor task drop the same owned response.
+-async fn run_websocket_upgrade(
++pub(super) async fn run_websocket_upgrade(
+     task_app: AppHandle,
+     upgrade: fastwebsockets::upgrade::UpgradeFut,
+     websocket: PendingWebSocket,
 diff --git a/crates/celld/protocol.rs b/crates/celld/protocol.rs
 index a2f79f5..cfb9a49 100644
 --- a/crates/celld/protocol.rs

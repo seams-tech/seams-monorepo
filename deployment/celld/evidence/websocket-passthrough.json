@@ -1,0 +1,193 @@
+{
+  "status": "partially_qualified",
+  "scope": "seams.7 WebSocket lifecycle correction. Local acceptance passes; Linux build and Clippy pass; timed Google active-claim qualification remains pending.",
+  "macRuntime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+    "executableSha256": "a318bdcc2a1383dfb2dc06fb7fad2f0ef7493f54c2c223023dd76e5739547cad",
+    "version": "celld 0.6.2-seams.7 (debug)",
+    "profile": "dev",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--locked", "-p", "celld", "--bin", "celld"]
+  },
+  "linuxRuntime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+    "sourceTransferSha256": "eab9480b2e926a063cebb0a56de0121efea98e1f3a45167c6c5d7f9ae6e3a7ea",
+    "executableSha256": "4cd1f113e51e69cf33e41f46c17dea65e8ff4989ad44597e2de9fea9239d5429",
+    "version": "celld 0.6.2-seams.7",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "nativePassthrough": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-websocket-passthrough-10tr4jys/result.json",
+      "sha256": "fd298d08b4d282c81ef3fd5cb622ad568e0778d524e1379e033e10a3dfa1807c"
+    },
+    "status": "passed"
+  },
+  "oldRuntimeControl": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-websocket-passthrough-luvgewlu/result.json",
+      "sha256": "c1d0606b3c39e9ac6dfe81b1f9afd77fd32f38e760e5f928e7dbb9e80c399c7b"
+    },
+    "status": "failed"
+  },
+  "workerdReference": {
+    "result": {
+      "path": "/tmp/seams-r190-websocket-workerd-control.json",
+      "sha256": "c696ce55c828b622368f0ee01d963b395371ca9951a8a09c520129b34a24929a"
+    },
+    "status": "passed"
+  },
+  "workerdReferenceDriver": {
+    "path": "/tmp/seams-r190-workerd-websocket.mjs",
+    "sha256": "48d87b4950f9b9d8b9bd12b68389f8fc1cd3046ece6f7f1ce820f45839e6e608"
+  },
+  "bindings": {
+    "result": {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-kVzo1q/result.json",
+      "sha256": "5a957033b3cf16540b0056567dc347483963cb403d2ff1ea65f0eed85cbde105"
+    },
+    "status": "passed"
+  },
+  "wallet": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-sf2q7pw4/result.json",
+      "sha256": "45cd568b2f011b72d86ed8bb0d53c6f621797af3da2ea0cd1ad382cbbb9a5917"
+    },
+    "status": "passed"
+  },
+  "walletContractsPassed": 16,
+  "clippy": {
+    "path": "/tmp/seams-r190-ws-passthrough-clippy.log",
+    "sha256": "03add07d3a03d0d0198d6f51c8bd2abb5795440e7548e7ff806733aa39090e30"
+  },
+  "scriptChecks": {
+    "passed": 53,
+    "skipped": 1,
+    "log": {
+      "path": "/tmp/seams-r190-seams7-script-checks.log",
+      "sha256": "e6d54877acf3c54168f560980d8547c654e385bb3925e08ce18072c7f98fa532"
+    }
+  },
+  "facts": [
+    {
+      "fact": "The workerd barrier control reads both claims as running. Releasing the held second reply completes the pair and an independent wallet.",
+      "evidence": {
+        "path": "/Users/pta/Dev/rust/seams-wallet-r190/.artifacts/yao-peer-disconnect/held-protocol-reply.json",
+        "sha256": "f41aa402ad8b150937a68b32cf90567159febed98251332c3f25b4655249fe42"
+      }
+    },
+    {
+      "fact": "The first Google trial observes running claims, then SIGKILL, takeover epoch 2, burned state and refusal without another connection. Signal timing was not bounded before the 15-second timeout.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-0gwa94pc/result.json",
+        "sha256": "aac7a6ceb236388d011073211f5c6d835d4b00156cd34db15d510bbc07c717c5"
+      }
+    },
+    {
+      "fact": "That Google trial logs shutdown_handoff_stalled despite exit code 0. Its raw passed status does not qualify successful drain.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-0gwa94pc/ordinary-runtime.log",
+        "sha256": "9c789b1b14418fc859c2ce13b8ea64e3694d295d5b74dc8c58839d9479a5cd02"
+      }
+    },
+    {
+      "fact": "A local two-node active-claim kill completes within 284 ms and drains when it omits the later independent-wallet request.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-live-claim-repro-oafadj8r/result.json",
+        "sha256": "1868803cf4da098ccea843bc17170592e0303a10e00cb35f13ac903b51590ecb"
+      }
+    },
+    {
+      "fact": "Adding the independent wallet after takeover reproduces the stalled YaoConnectionProxy response-body pin on seams.6. The local SIGKILL upper bound is 421 ms.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-live-claim-repro-0o7lruha/result.json",
+        "sha256": "9d2f29739403749432a6964066175edad15757754c0b134bed1608393cbd82ab"
+      }
+    },
+    {
+      "fact": "The same local Wallet reproduction passes and drains on the seams.7 candidate, including the independent wallet after takeover.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-live-claim-repro-oi4k25ta/result.json",
+        "sha256": "2440cae8ed8301e00535dbee01eee8dd27bbc8c2bf32a309e513f590a43dfee5"
+      }
+    },
+    {
+      "fact": "The final four-case fixture fails on seams.6 when a remote socket is registered as local; celld panics because the object is not resident.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-websocket-passthrough-luvgewlu/node-0/runtime.log",
+        "sha256": "0d3afe0528de2001f62a5f5e0e369c1847be19826fd9a66bf8bbf1f5c76ec448"
+      }
+    },
+    {
+      "fact": "The same fixture passes on the clean seams.7 build: local owner, remote owner, remote relay, rejected upgrade, and clean shutdown.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-websocket-passthrough-10tr4jys/result.json",
+        "sha256": "fd298d08b4d282c81ef3fd5cb622ad568e0778d524e1379e033e10a3dfa1807c"
+      }
+    }
+  ],
+  "causes": [
+    {
+      "cause": "A WebSocket response retains an HTTP-body activity.",
+      "assessment": "Supported by the response_body drain pin, local full-Wallet reproduction, and removal of that pin after the runtime discards the upgrade body stream."
+    },
+    {
+      "cause": "A forwarded remote target is registered in the caller node ownership core.",
+      "assessment": "Supported by the nonresident-object panic. Skipping local registration for tunneled targets removes the failure in the same fixture."
+    },
+    {
+      "cause": "Wallet protocol or cryptographic changes are required.",
+      "assessment": "Contradicted for these failures: the same Worker package bytes pass after runtime-only corrections."
+    },
+    {
+      "cause": "The initial Google trial proves active execution at the actual signal.",
+      "assessment": "Not established. The timed driver now requires the complete execute-to-confirmed-SIGKILL interval below 15 seconds."
+    }
+  ],
+  "classification": "production_regression",
+  "classificationScope": "Runtime compatibility defects. Wallet application and cryptographic code are unchanged.",
+  "changes": [
+    "Keep upgrade validation, but register only locally owned accepted sockets in the local core.",
+    "Release the HTTP-body activity when transferring a WebSocket response.",
+    "Release a rejected parked tunnel and reuse the existing owned upgrade/splice path for peer relays.",
+    "Fail Google qualification when shutdown logs a stalled handoff, even if the process exits 0."
+  ],
+  "limits": [
+    "Simple local echo already drained on seams.6; it did not reproduce the body-pin failure. The full post-takeover Wallet scenario did.",
+    "Ordinary /state snapshots omit drainPins. Their absence is not evidence of zero active pins.",
+    "The workerd reference covers echo and rejected-upgrade behavior in one runtime, without distributed or drain parity claims.",
+    "The raw initial Google and local diagnostic status fields are overridden by the stated timing and shutdown limits; they are not successful qualification records.",
+    "The corrected Google timing/drain scenario has not yet run on seams.7.",
+    "Peer partitions, distributed relocation, Google restore/provider-failure cases, upgrade/rollback with active claims, and release promotion remain open.",
+    "Current package evidence refers to the frozen 0.11.0 candidates before the next dev rebase; newer registration optimizations require refreshed candidates."
+  ],
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "scope": "Independent source and diagnostic review identified the timing gap, false-positive drain result, tunneled-target cleanup, and forwarded relay path. Final Google qualification remains open."
+  },
+  "productionLatency": "No new Wallet request, database call, network round trip, or blocking validation. The runtime removes invalid ownership tracking and response-body retention.",
+  "aggregateMaintainedSourceDelta": -31315
+}

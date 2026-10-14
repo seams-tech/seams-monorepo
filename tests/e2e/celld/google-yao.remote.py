@@ -131,6 +131,10 @@ elif action == 'kill':
     result = stop(True)
 elif action == 'status':
     result = state()
+elif action == 'runtime-state':
+    with urllib.request.urlopen('http://' + inputs['privateIp'] + ':19081/state', timeout=10) as reply:
+        snapshot = json.loads(reply.read())
+    result = {key: snapshot[key] for key in ('residents', 'node_load')}
 elif action == 'collect':
     archive = root / 'diagnostics.tar.gz'
     logs = sorted(root.glob('*.log'))

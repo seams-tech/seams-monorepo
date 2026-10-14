@@ -31,7 +31,7 @@
     "seams-wallet": {
       "baseRevision": "9f57952c8f67c56a8fc86a069317cd3a1c4b568e",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -32536,
+      "netLines": -32482,
       "files": [
         {
           "path": "crates/router-ab-cloudflare/scripts/linked-presign-transfer-evidence.mjs",
@@ -48,14 +48,14 @@
         {
           "path": "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs",
           "beforeLines": 631,
-          "afterLines": 605,
-          "netLines": -26
+          "afterLines": 637,
+          "netLines": 6
         },
         {
           "path": "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-proxy.mjs",
           "beforeLines": 0,
-          "afterLines": 165,
-          "netLines": 165
+          "afterLines": 187,
+          "netLines": 187
         },
         {
           "path": "crates/router-ab-dev/Cargo.toml",
@@ -614,7 +614,7 @@
     "seams-monorepo": {
       "baseRevision": "7e0b2fac6dabfca6d5875953d0b86b27ddc39894",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": 605,
+      "netLines": 1167,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -643,8 +643,8 @@
         {
           "path": "deployment/celld/workers-runtime.patch",
           "beforeLines": 0,
-          "afterLines": 1327,
-          "netLines": 1327
+          "afterLines": 1493,
+          "netLines": 1493
         },
         {
           "path": "packages/wallet-console-server-ts/package.json",
@@ -769,14 +769,14 @@
         {
           "path": "tests/e2e/celld/google-yao.e2e.py",
           "beforeLines": 0,
-          "afterLines": 346,
-          "netLines": 346
+          "afterLines": 407,
+          "netLines": 407
         },
         {
           "path": "tests/e2e/celld/google-yao.remote.py",
           "beforeLines": 0,
-          "afterLines": 146,
-          "netLines": 146
+          "afterLines": 150,
+          "netLines": 150
         },
         {
           "path": "tests/e2e/celld/linux-runtime.e2e.py",
@@ -837,6 +837,12 @@
           "beforeLines": 0,
           "afterLines": 677,
           "netLines": 677
+        },
+        {
+          "path": "tests/e2e/celld/websocket-passthrough.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 331,
+          "netLines": 331
         },
         {
           "path": "tests/e2e/celld/yao-peer-disconnect.e2e.py",
@@ -907,6 +913,6 @@
       ]
     }
   },
-  "aggregateNetLines": -31931,
+  "aggregateNetLines": -31315,
   "netReductionAchieved": true
 }

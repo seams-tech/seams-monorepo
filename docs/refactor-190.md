@@ -853,6 +853,29 @@ Both final runs pass after these boundary fixes. Independent review found no blo
 Both branches then rebased onto current local `dev`: public `9f57952c` and private `d7103cdf`.
 All 37 recorded source files and 13 application input trees remain unchanged. The deployment-script checks pass again.
 
+## October 14 WebSocket lifecycle correction
+
+Private runtime `.7` corrects two defects exposed by stronger owner-loss qualification.
+A fresh wallet after takeover left a proxy pinned to an HTTP response body during shutdown.
+A separate remote passthrough echo triggered a nonresident-object panic in celld's ownership core.
+The runtime now releases upgrade body activity, keeps remote socket registration on its owner,
+and reuses the existing owned tunnel path for relay and rejection cleanup.
+No Wallet handler, database call, or network round trip was added.
+
+The clean macOS build passes binding acceptance and all 16 selected Wallet contracts.
+The four-case passthrough fixture fails on `.6` and passes on `.7`, including clean shutdown.
+The full local active-claim and post-takeover Wallet scenario also drains on `.7`.
+Linux release build and Clippy pass. The corrected Google timing/drain run remains pending.
+See [the measured evidence and remaining limits](../deployment/celld/evidence/websocket-passthrough.json).
+
+The initial Google trial observed running claims and later burned-state takeover, but it did not bound signal timing before the 15-second timeout.
+It also logged a stalled drain despite exit code 0. Its raw success field does not qualify either missing guarantee.
+The driver now enforces the timing bound and rejects stalled shutdown.
+The maintained source reduction is 31,315 lines, including the new acceptance fixture and complete patch.
+
+The next dev rebase includes new registration optimizations and Console behavior.
+Rebuild and requalify package candidates after that rebase; the records above identify the tested earlier candidates.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

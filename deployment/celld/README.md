@@ -1,6 +1,6 @@
 # Private celld runtime build
 
-Status: `.6` passes local binding, WebSocket, Yao owner-loss checks, and all 16 selected Wallet contracts. Its Linux release passes two-node Yao interruption and owner loss across ordinary and Confidential Google VMs. The earlier `.5` release has the full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
+Status: `.7` passes local binding, WebSocket passthrough/relay/rejection, and all 16 selected Wallet contracts. Its Linux release build and Clippy pass. Timed Google active-claim qualification remains pending. The earlier `.5` release has full Google Wallet and Console evidence. Broader distributed lifecycle, release promotion, and upgrade qualification remain open.
 
 The user selected a private runtime patch to preserve the current Wallet call structure.
 No upstream issue, pull request, public fork, or maintainer contact is part of this work.
@@ -9,11 +9,12 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 
 - Upstream: `https://github.com/denoland/celld.git`.
 - Base: `90b43017241f81189453d326d05948f388b34652` (`v0.6.2`).
-- Private version: `0.6.2-seams.6`.
+- Private version: `0.6.2-seams.7`.
 - Patch: [workers-runtime.patch](workers-runtime.patch).
-- Patch SHA-256: `0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da`.
+- Patch SHA-256: `df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7`.
 - Wallet lifecycle build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
-- Current Linux release: `.6`, x86-64, Ubuntu 24.04, Rust 1.97.1. The Google two-node Yao scenario passes.
+- Current Linux candidate: `.7`, x86-64, Ubuntu 24.04, Rust 1.97.1. Build and Clippy pass; timed Google qualification remains pending.
+- Earlier `.6` evidence covers interrupted-pair takeover. Later testing found WebSocket passthrough defects corrected by `.7`.
 - Previous qualified Linux release: `.5`, x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
 - Historical Linux release: `.4`, ARM64, Debian Bookworm, upstream Dockerfile. See its separate qualification record below.
 - Historical object-only build identity: [original build record](evidence/runtime-build.json).
@@ -381,3 +382,26 @@ Router and SigningWorker stores are separate. Deriver role stores and tenant-roo
 Directory/Runtime handlers remain in Node. Directory storage remains in Miniflare.
 The relay covers the exercised JSON-safe D1 operations and buffered HTTP callbacks.
 This check adds no production calls. Hosted deployment, distributed relocation, and latency qualification remain separate gates.
+
+## WebSocket passthrough and active claims
+
+Private build `.7` corrects remote socket ownership tracking and an HTTP-body drain pin on upgraded responses.
+It also releases rejected tunnels and uses the existing splice path for forwarded remote sockets.
+The fixes add no Wallet request, database call, or network round trip.
+See [the diagnosis, controls, and limits](evidence/websocket-passthrough.json).
+
+Run the repeatable two-node fixture with isolated loopback services:
+
+```sh
+python3 tests/e2e/celld/websocket-passthrough.e2e.py /path/to/celld /path/to/moto-venv/bin/python
+```
+
+It checks local and remote owners, a remote relay, rejected upgrades, and successful runtime shutdown.
+The identical fixture reproduces the ownership panic on `.6` and passes on `.7`.
+The full post-takeover Wallet scenario also drains on `.7`; simple local echo did not reproduce its earlier stall.
+
+The Google runner now holds the second Yao reply, reads both claims as running, and kills the B-owner process.
+It requires execute submission through confirmed SIGKILL to take less than the 15-second ceremony timeout.
+It also rejects a shutdown handoff stall regardless of process exit code.
+The first trial lacked the timing bound and logged a stall, so it remains unqualified.
+The corrected `.7` Google run remains pending.

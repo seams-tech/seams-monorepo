@@ -1,39 +1,24 @@
-import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 
 const artifacts = '.artifacts/wallet-showcase-playback';
 const origin = process.env.SEAMS_WALLET_SITE_ORIGIN || 'http://localhost:4001/wallet';
-const states = [
-  'Signing transaction',
-  'Broadcasting transaction',
-  'Waiting for confirmation',
-  'Transaction complete',
-];
-
 function positionGallery(gallery) {
   window.scrollTo({
     top: scrollY + gallery.getBoundingClientRect().top - 100,
     behavior: 'instant',
   });
 }
-
-async function select(page, gallery, name) {
-  await gallery
-    .getByRole('radiogroup', { name: 'Components', exact: true })
-    .getByRole('radio', { name, exact: true })
-    .locator('..')
-    .click();
-  await gallery.evaluate(positionGallery);
-  await page.mouse.move(5, 5);
+async function selection(gallery, name) {
+  await expect(
+    gallery
+      .getByRole('radiogroup', { name: 'Components', exact: true })
+      .getByRole('radio', { name, exact: true }),
+  ).toBeChecked({ timeout: 45000 });
 }
-
-async function receipt(frame) {
-  for (const state of states) {
-    await expect(frame.getByRole('status').filter({ hasText: state })).toBeVisible({
-      timeout: 15000,
-    });
-  }
+async function resume(page, gallery) {
+  await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
+  await page.mouse.move(5, 5);
 }
 
 await mkdir(artifacts, { recursive: true });
@@ -45,73 +30,92 @@ try {
   const page = await context.newPage();
   await page.goto(origin);
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
-  await select(page, gallery, 'Authentication');
   await gallery.evaluate(positionGallery);
   await page.mouse.move(5, 5);
-  const authentication = gallery.frameLocator('iframe[title="Authentication"]');
-  await expect(authentication.locator('[data-playback-cursor]')).toBeVisible();
-  await expect(authentication.getByRole('status')).toHaveText('Your wallet is ready.', {
-    timeout: 10000,
-  });
-  await expect(
-    authentication.getByRole('button', { name: 'Create wallet with passkey', exact: true }),
-  ).toBeVisible({ timeout: 10000 });
-  await expect(authentication.getByRole('status')).toHaveText('Your wallet is ready.', {
-    timeout: 10000,
-  });
-  await select(page, gallery, 'Transactions');
+  await expect(gallery.getByRole('button', { name: 'Pause playback', exact: true })).toBeVisible();
+  await selection(gallery, 'Transactions');
   const transaction = gallery.frameLocator('iframe[title="Transaction modal"]');
-  for (let cycle = 0; cycle < 2; cycle += 1) {
-    await expect(transaction.locator('[data-playback-cursor]')).toBeVisible();
-    await receipt(transaction);
-    await page.screenshot({ path: `${artifacts}/transfer-${cycle}.png` });
-    await expect(transaction.getByRole('button', { name: 'Confirm with passkey' })).toBeVisible({
-      timeout: 10000,
-    });
-  }
-
-  await select(page, gallery, 'Custom Components');
+  await expect(transaction.getByRole('status')).toContainText('Signing transaction', {
+    timeout: 15000,
+  });
+  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
+  await page.waitForTimeout(2500);
+  await expect(transaction.getByRole('status')).toContainText('Signing transaction');
+  await page.screenshot({ path: `${artifacts}/paused-transaction.png` });
+  await resume(page, gallery);
+  await expect(transaction.getByRole('status')).toContainText('Transaction complete', {
+    timeout: 10000,
+  });
+  await selection(gallery, 'Custom Components');
   const market = gallery.frameLocator('iframe[title="Prediction market"]');
-  const wallet = market.frameLocator('iframe');
-  for (let cycle = 0; cycle < 2; cycle += 1) {
-    await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(wallet.getByRole('heading', { name: 'Approve purchase' })).toBeVisible({
-      timeout: 15000,
-    });
-    await receipt(wallet);
-    await page.screenshot({ path: `${artifacts}/purchase-${cycle}.png` });
-    await expect(market.getByRole('button', { name: 'Buy Yes', exact: true })).toBeEnabled({
-      timeout: 10000,
-    });
-  }
-
-  console.log('Completed two automatic cycles for both components.');
-  // Real input takes ownership. Automation must not submit a visitor's review.
-  await market.getByRole('button', { name: 'Buy Yes', exact: true }).click();
-  await page.mouse.move(5, 5);
-  await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
-  await page.waitForTimeout(5000);
-  await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible();
-  await expect(market.locator('[data-playback-cursor]')).toHaveCount(0);
-
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await select(page, gallery, 'Transactions');
+  await expect(market.getByRole('heading', { name: 'Review purchase' })).toBeVisible({
+    timeout: 15000,
+  });
+  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
+  await page.waitForTimeout(200);
+  const quote = market.getByRole('progressbar', { name: 'Quote time remaining' });
+  const remaining = await quote.getAttribute('value');
+  await page.waitForTimeout(2200);
+  await expect(quote).toHaveAttribute('value', remaining);
+  await resume(page, gallery);
+  await expect(market.frameLocator('iframe').getByRole('status')).toContainText(
+    'Transaction complete',
+    { timeout: 20000 },
+  );
+  await selection(gallery, 'Link & recover');
+  const access = gallery.frameLocator('iframe[title="Link and recover"]');
+  await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible();
+  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
   await page.waitForTimeout(4500);
+  await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible();
+  await resume(page, gallery);
+  await expect(access.getByRole('heading', { name: 'Device linked' })).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(access.getByLabel('Recovery code', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible({
+    timeout: 20000,
+  });
+  await selection(gallery, 'Account management');
+  await expect(gallery.getByText('Your wallet is now available on this device.')).toBeVisible({
+    timeout: 15000,
+  });
+  await selection(gallery, 'Authentication');
+  await expect(
+    gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
+  ).toHaveText('Your wallet is ready.', { timeout: 15000 });
+  await selection(gallery, 'Transactions');
+
+  // A visitor takes control; Play restarts this component so the cursor has a known starting point.
+  await transaction.getByRole('button', { name: 'Confirm with passkey' }).click();
+  await expect(gallery.getByRole('button', { name: 'Play playback', exact: true })).toBeVisible();
+  await expect(transaction.getByRole('status')).toContainText('Transaction complete', {
+    timeout: 10000,
+  });
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(4000);
+  await selection(gallery, 'Transactions');
+  await resume(page, gallery);
   await expect(transaction.getByRole('button', { name: 'Confirm with passkey' })).toBeVisible();
-  await expect(transaction.locator('[data-playback-cursor]')).toHaveCount(0);
-  assert.equal(await transaction.getByRole('status').count(), 0);
+  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
+  await page.screenshot({ path: `${artifacts}/playback-control.png` });
   await writeFile(
     `${artifacts}/result.json`,
     JSON.stringify(
-      { passed: true, cyclesPerComponent: 2, states, manualTakeover: true, reducedMotion: true },
+      {
+        passed: true,
+        automaticFullCarousel: true,
+        pausedReceiptClock: true,
+        pausedLinkApproval: true,
+        manualTakeover: true,
+        restartedOnPlay: true,
+      },
       null,
       2,
     ),
   );
   console.log(
-    'Passed transaction and purchase playback, reset, replay, manual takeover, and reduced motion.',
+    'Passed full carousel playback, pause/resume, timer suspension, wraparound, and manual takeover.',
   );
 } catch (error) {
   await context.pages()[0]?.screenshot({ path: `${artifacts}/failure.png` });

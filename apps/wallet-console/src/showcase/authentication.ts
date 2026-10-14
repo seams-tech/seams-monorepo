@@ -1,6 +1,7 @@
 import '@wallet-ui/sdk/wallet-ui.css';
 import './showcase.css';
 import './authentication.css';
+import { schedulePlayback } from './playbackClock';
 import {
   mountAuthMenuSurface,
   type AuthMenuSurfaceHandle,
@@ -63,7 +64,8 @@ function login(): AuthMenuLoginViewModel {
 }
 
 const combinedAccess = location.pathname.includes('/showcase/access/');
-let approvalTimer = 0;
+function noApproval(): void {}
+let cancelApproval: () => void = noApproval;
 
 function mountMenu(viewModel: AuthMenuViewModel): AuthMenuSurfaceHandle {
   // The showcase must retain focus on its carousel selector during mounting.
@@ -92,10 +94,10 @@ result.innerHTML =
   '<h1></h1><p role="status"></p><button type="button" data-authentication-reset>Back</button>';
 stage.append(result);
 result.querySelector('button')?.addEventListener('click', continueAfterResult);
-if (combinedAccess) approvalTimer = window.setTimeout(approveLink, 4000);
+if (combinedAccess) cancelApproval = schedulePlayback(approveLink, 4000);
 
 function show(model: AuthMenuViewModel): void {
-  window.clearTimeout(approvalTimer);
+  cancelApproval();
   result.hidden = true;
   if (state.kind === 'menu') {
     const manual = state.handle.element.contains(document.activeElement);
@@ -109,7 +111,7 @@ function show(model: AuthMenuViewModel): void {
 }
 
 function reset(): void {
-  window.clearTimeout(approvalTimer);
+  cancelApproval();
   if (state.kind === 'menu') state.handle.dispose();
   state = { kind: 'result', next: 'home' };
   if (combinedAccess) openLink();
@@ -125,7 +127,7 @@ function continueAfterResult(): void {
 function openLink(): void {
   show(linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: 'Waiting for approval' }));
   // The remote device's approval arrives independently of this menu's controls.
-  approvalTimer = window.setTimeout(approveLink, 4000);
+  cancelApproval = schedulePlayback(approveLink, 4000);
 }
 
 function approveLink(): void {
@@ -140,7 +142,7 @@ function approveLink(): void {
 
 function complete(heading: string, message: string, next: 'home' | 'recovery' = 'home'): void {
   if (state.kind !== 'menu') return;
-  window.clearTimeout(approvalTimer);
+  cancelApproval();
   const returnFocus = state.handle.element.contains(document.activeElement);
   state.handle.dispose();
   state = { kind: 'result', next };

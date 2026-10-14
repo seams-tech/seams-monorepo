@@ -1,4 +1,5 @@
 .component-showcase {
+  position: relative;
   --showcase-ink: var(--h2-ink);
   --showcase-muted: color-mix(in srgb, var(--h2-ink) 55%, var(--h2-bg));
   --showcase-line: color-mix(in srgb, var(--h2-ink) 12%, var(--h2-bg));
@@ -640,4 +641,22 @@
     width: 44px;
     min-height: 42px;
   }
+}
+
+.component-showcase__playback {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+}
+.component-showcase__playback svg {
+  width: 15px;
+  height: 15px;
+}
+.component-showcase[data-playback='paused'] .showcase-preview__cursor-motion,
+.component-showcase[data-playback='paused'] .showcase-preview__cursor-pulse,
+.component-showcase[data-playback='paused'] .showcase-preview__result[data-source='demo'] {
+  animation-play-state: paused;
 }

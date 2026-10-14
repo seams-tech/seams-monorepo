@@ -1,3 +1,4 @@
+import { schedulePlayback } from './playbackClock';
 import type { TransactionReceiptState } from '@wallet-ui/core/signingEngine/uiConfirm/ui/transaction-receipt';
 
 const hash = `0x7a4b${'0'.repeat(56)}91c2`;
@@ -14,13 +15,28 @@ const lifecycle: readonly (readonly [TransactionReceiptState, number])[] = [
 
 /* Plays a simulated signing, broadcast and confirmation through the SDK's
    receipt states. Returns a function that stops it. */
-export function playReceiptLifecycle(show: (state: TransactionReceiptState) => void): () => void {
-  let timer = 0;
-  const play = (step: number): void => {
-    const [state, durationMs] = lifecycle[step];
-    show(state);
-    if (durationMs > 0) timer = window.setTimeout(play, durationMs, step + 1);
+class ReceiptPlayback {
+  private step = 0;
+  private cancelDelay: () => void = noDelay;
+
+  constructor(private readonly show: (state: TransactionReceiptState) => void) {
+    this.play();
+  }
+
+  stop = (): void => {
+    this.cancelDelay();
   };
-  play(0);
-  return () => window.clearTimeout(timer);
+
+  private play = (): void => {
+    const [state, durationMs] = lifecycle[this.step];
+    this.show(state);
+    this.step += 1;
+    if (durationMs > 0) this.cancelDelay = schedulePlayback(this.play, durationMs);
+  };
+}
+
+function noDelay(): void {}
+
+export function playReceiptLifecycle(show: (state: TransactionReceiptState) => void): () => void {
+  return new ReceiptPlayback(show).stop;
 }

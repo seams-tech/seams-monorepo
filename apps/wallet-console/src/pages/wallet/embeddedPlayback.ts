@@ -53,6 +53,8 @@ export class EmbeddedPlayback {
   constructor(
     private readonly frame: HTMLIFrameElement,
     kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
+    private readonly onComplete: () => void,
+    private readonly onInteract: () => void,
   ) {
     switch (kind) {
       case 'access':
@@ -85,6 +87,7 @@ export class EmbeddedPlayback {
     if (!event.isTrusted) return;
     this.stopped = true;
     this.clearVisit();
+    this.onInteract();
   };
 
   private collectDocuments(frame: HTMLIFrameElement): Document[] {
@@ -103,7 +106,6 @@ export class EmbeddedPlayback {
   }
 
   private tick = (): void => {
-    if (this.stopped) return;
     const documents = this.collectDocuments(this.frame);
     for (const previous of this.documents) {
       if (documents.includes(previous)) continue;
@@ -113,7 +115,16 @@ export class EmbeddedPlayback {
     }
     const section = this.frame.closest('.component-showcase');
     const viewport = section?.querySelector<HTMLElement>('.component-showcase__viewport');
+    const clockPaused =
+      document.hidden ||
+      viewport?.dataset.inView !== 'true' ||
+      (section?.getAttribute('data-playback') === 'paused' &&
+        section?.getAttribute('data-pause-reason') === 'control');
+    for (const child of documents)
+      child.documentElement.dataset.showcaseClock = clockPaused ? 'paused' : 'playing';
     const playing =
+      !this.stopped &&
+      section?.getAttribute('data-playback') === 'playing' &&
       this.motion.matches &&
       !document.hidden &&
       viewport?.dataset.inView === 'true' &&
@@ -136,6 +147,7 @@ export class EmbeddedPlayback {
         this.clearVisit();
         this.step = (this.step + 1) % this.steps.length;
         button.click();
+        if (this.step === 0) this.onComplete();
       }
       return;
     }

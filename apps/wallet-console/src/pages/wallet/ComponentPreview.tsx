@@ -15,7 +15,13 @@ import type { PreviewId } from './ComponentShowcase';
 import { EmbeddedPlayback } from './embeddedPlayback';
 import type { ModalBackdrop } from '@/showcase/modalBackdrop';
 
-type PreviewProps = { id: PreviewId; active: boolean; backdrop?: ModalBackdrop };
+type PreviewProps = {
+  id: PreviewId;
+  active: boolean;
+  backdrop?: ModalBackdrop;
+  onComplete: () => void;
+  onInteract: () => void;
+};
 
 type PreviewAction = 'link' | 'security' | 'reset';
 
@@ -53,11 +59,13 @@ function activatePreview(
 
 function previewAction(
   setState: React.Dispatch<React.SetStateAction<PreviewState>>,
+  onInteract: () => void,
   event: React.MouseEvent<HTMLElement>,
 ): void {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest<HTMLButtonElement>('button[data-preview-action]');
   if (button === null) return;
+  onInteract();
   if (button.dataset.previewAction === 'reset') {
     setState({ kind: 'ready' });
     requestAnimationFrame(focusPreviewAction.bind(null, event.currentTarget));
@@ -69,6 +77,7 @@ function previewAction(
 // Both the cursor and a real click use the same local preview action.
 function advanceDemo(
   setState: React.Dispatch<React.SetStateAction<PreviewState>>,
+  onComplete: () => void,
   event: React.AnimationEvent<HTMLElement>,
 ): void {
   if (!(event.target instanceof Element)) return;
@@ -77,6 +86,7 @@ function advanceDemo(
     if (button !== null) activatePreview(setState, 'demo', button);
   } else if (event.animationName === 'showcase-result-replay') {
     setState({ kind: 'ready' });
+    onComplete();
   }
 }
 
@@ -267,20 +277,30 @@ function embeddedTitle(
 function startEmbeddedPlayback(
   frame: React.RefObject<HTMLIFrameElement | null>,
   kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
+  onComplete: () => void,
+  onInteract: () => void,
 ): (() => void) | undefined {
   if (!frame.current) return;
-  const playback = new EmbeddedPlayback(frame.current, kind);
+  const playback = new EmbeddedPlayback(frame.current, kind, onComplete, onInteract);
   return playback.dispose;
 }
 
 function EmbeddedPreview({
   kind,
+  onComplete,
+  onInteract,
   ...props
 }: React.IframeHTMLAttributes<HTMLIFrameElement> & {
   kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access';
+  onComplete: () => void;
+  onInteract: () => void;
 }): React.JSX.Element {
   const frame = React.useRef<HTMLIFrameElement>(null);
-  React.useEffect(startEmbeddedPlayback.bind(null, frame, kind), [kind]);
+  React.useEffect(startEmbeddedPlayback.bind(null, frame, kind, onComplete, onInteract), [
+    kind,
+    onComplete,
+    onInteract,
+  ]);
 
   return <iframe {...props} ref={frame} />;
 }
@@ -289,6 +309,8 @@ export function ComponentPreview({
   id,
   active,
   backdrop = 'dimmed',
+  onComplete,
+  onInteract,
 }: PreviewProps): React.JSX.Element {
   const [state, setState] = React.useState<PreviewState>({ kind: 'ready' });
   if (
@@ -300,6 +322,8 @@ export function ComponentPreview({
     return (
       <EmbeddedPreview
         kind={id}
+        onComplete={onComplete}
+        onInteract={onInteract}
         className="showcase-preview__embed"
         data-preview={id}
         title={title}
@@ -311,8 +335,8 @@ export function ComponentPreview({
     <article
       className="showcase-preview"
       data-preview={id}
-      onClick={previewAction.bind(null, setState)}
-      onAnimationEnd={active ? advanceDemo.bind(null, setState) : undefined}
+      onClick={previewAction.bind(null, setState, onInteract)}
+      onAnimationEnd={active ? advanceDemo.bind(null, setState, onComplete) : undefined}
     >
       <div className="showcase-preview__origin">
         <LockKeyhole aria-hidden />

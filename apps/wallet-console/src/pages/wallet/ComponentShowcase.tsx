@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
 import './component-showcase.css';
@@ -137,7 +137,13 @@ function renderRailChoice(selected: Preview, preview: Preview): React.JSX.Elemen
   );
 }
 
-function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
+function renderPreview(
+  selected: Preview,
+  run: number,
+  onComplete: () => void,
+  onInteract: () => void,
+  preview: Preview,
+): React.JSX.Element {
   const active = preview.id === selected.id;
   return (
     <div
@@ -149,10 +155,12 @@ function renderPreview(selected: Preview, preview: Preview): React.JSX.Element {
       ref={setPreviewInert.bind(null, active)}
     >
       <ComponentPreview
-        key={`${preview.id}:${active}`}
+        key={`${preview.id}:${active}:${run}`}
         id={preview.id}
         active={active}
         backdrop="none"
+        onComplete={onComplete}
+        onInteract={onInteract}
       />
     </div>
   );
@@ -172,14 +180,54 @@ function renderBackground(preview: BackgroundPlacement): React.JSX.Element {
   );
 }
 
+type PlaybackState = { kind: 'playing' } | { kind: 'paused'; reason: 'control' | 'interaction' };
+
+function nextPreview(selected: Preview): Preview {
+  return previews[(previews.indexOf(selected) + 1) % previews.length];
+}
+
+function completePlayback(setSelected: React.Dispatch<React.SetStateAction<Preview>>): void {
+  setSelected(nextPreview);
+}
+
+function interruptPlayback(setPlayback: React.Dispatch<React.SetStateAction<PlaybackState>>): void {
+  setPlayback({ kind: 'paused', reason: 'interaction' });
+}
+
+function incrementRun(run: number): number {
+  return run + 1;
+}
+
+function togglePlayback(
+  playback: PlaybackState,
+  setPlayback: React.Dispatch<React.SetStateAction<PlaybackState>>,
+  setRun: React.Dispatch<React.SetStateAction<number>>,
+  event: React.MouseEvent<HTMLButtonElement>,
+): void {
+  if (playback.kind === 'playing') {
+    setPlayback({ kind: 'paused', reason: 'control' });
+  } else {
+    if (playback.reason === 'interaction') setRun(incrementRun);
+    const section = event.currentTarget.closest<HTMLElement>('.component-showcase');
+    if (section) section.dataset.motion = 'pointer';
+    setPlayback({ kind: 'playing' });
+  }
+}
+
 export function ComponentShowcase(): React.JSX.Element {
   const [selected, setSelected] = React.useState<Preview>(defaultPreview);
+  const [playback, setPlayback] = React.useState<PlaybackState>({ kind: 'playing' });
+  const [run, setRun] = React.useState(0);
+  const onComplete = React.useCallback(completePlayback.bind(null, setSelected), []);
+  const onInteract = React.useCallback(interruptPlayback.bind(null, setPlayback), []);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
 
   return (
     <section
       className="component-showcase h2-rule"
       aria-label="Wallet component showcase"
+      data-playback={playback.kind}
+      data-pause-reason={playback.kind === 'paused' ? playback.reason : undefined}
       onPointerDownCapture={setPointerMotion}
       onKeyDownCapture={setKeyboardMotion}
     >
@@ -202,12 +250,21 @@ export function ComponentShowcase(): React.JSX.Element {
             className="component-showcase__world"
             style={{ transform: `translate(${-selected.x}px, ${-selected.y}px)` }}
           >
-            {previews.map(renderPreview.bind(null, selected))}
+            {previews.map(renderPreview.bind(null, selected, run, onComplete, onInteract))}
             {backgroundPreviews.map(renderBackground)}
           </div>
           <div className="component-showcase__fade" aria-hidden="true" />
         </div>
       </div>
+      <button
+        type="button"
+        className="h2-pager__btn component-showcase__playback"
+        aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+        title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+        onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
+      >
+        {playback.kind === 'playing' ? <Pause aria-hidden /> : <Play aria-hidden />}
+      </button>
       <div className="component-showcase__navigation">
         <div className="component-showcase__rail" aria-label="Component navigation">
           <button

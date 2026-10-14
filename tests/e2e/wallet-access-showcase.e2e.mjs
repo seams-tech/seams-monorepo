@@ -61,6 +61,8 @@ try {
   await gallery.evaluate(position);
   await page.mouse.move(5, 5);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
+  await page.mouse.move(5, 5);
   const access = gallery.frameLocator('iframe[title="Link and recover"]');
   for (let cycle = 0; cycle < 2; cycle += 1) {
     await expect(access.getByRole('button', { name: 'Create passkey', exact: true })).toBeVisible({
@@ -81,9 +83,17 @@ try {
     await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible({
       timeout: 15000,
     });
-    await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(
+      gallery
+        .getByRole('radiogroup', { name: 'Components', exact: true })
+        .getByRole('radio', { name: 'Account management', exact: true }),
+    ).toBeChecked({ timeout: 15000 });
+    await gallery
+      .getByRole('radiogroup', { name: 'Components', exact: true })
+      .getByRole('radio', { name: 'Link & recover', exact: true })
+      .locator('..')
+      .click();
+    await page.mouse.move(5, 5);
   }
   await writeFile(
     `${artifacts}/result.json`,

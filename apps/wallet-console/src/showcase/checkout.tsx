@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import type { TransactionReviewControls } from '@seams/wallet/react';
 import { CheckoutSession } from './checkoutSession';
 import { market, sides, type Side } from './checkoutMarket';
+import { schedulePlayback } from './playbackClock';
 import { configureModalBackdrop } from './modalBackdrop';
 
 configureModalBackdrop();
@@ -170,12 +171,17 @@ function PurchaseSummary({
   );
 }
 
+function scheduleCountdown(
+  seconds: number,
+  setSeconds: React.Dispatch<React.SetStateAction<number>>,
+): (() => void) | undefined {
+  if (seconds === 0) return;
+  return schedulePlayback(setSeconds.bind(null, seconds - 1), 1000);
+}
+
 function useSecondsUntil(deadlineMs: number): number {
-  const [seconds, setSeconds] = React.useState(() => secondsUntil(deadlineMs));
-  React.useEffect(() => {
-    const timer = window.setInterval(() => setSeconds(secondsUntil(deadlineMs)), 1000);
-    return () => window.clearInterval(timer);
-  }, [deadlineMs]);
+  const [seconds, setSeconds] = React.useState(secondsUntil.bind(null, deadlineMs));
+  React.useEffect(scheduleCountdown.bind(null, seconds, setSeconds), [seconds]);
   return seconds;
 }
 

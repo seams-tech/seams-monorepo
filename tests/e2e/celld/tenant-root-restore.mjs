@@ -20,6 +20,13 @@ const observer = `let signingPrepare = null;
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/held-signing-replay') {
+      const gate = await fetch(url.searchParams.get('gate'));
+      if (!gate.ok) throw new Error('Signing replay gate failed');
+      url.pathname = '/router-ab/ecdsa-derivation/sign';
+      url.search = '';
+      return env.ROUTER.fetch(new Request(url, request));
+    }
     if (url.pathname === '/addresses') return Response.json({
       router: env.ROUTER_WALLET.newUniqueId().toString(),
       deriver_a: env.DERIVER_A_WALLET.newUniqueId().toString(),

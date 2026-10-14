@@ -1,0 +1,183 @@
+{
+  "status": "passed",
+  "scope": "Local .5 to .6 state upgrade, admitted observer request completing an exact stored-signature replay during SIGTERM, incompatible-downgrade refusal, and .6 restart",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-rqo7wli1/result.json",
+    "sha256": "0f1221781eaf8f3fe61d50b9f66bc91ce82ab54d03d3d023cc37f7f67cf228ce"
+  },
+  "sigtermControl": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-j01xmzgg/result.json",
+    "sha256": "2f43dd0a71140594d0d9286ec6f39483156205443d536a0e6f6a497f17fb0665"
+  },
+  "earlierForcedStop": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-utv_v_pp/result.json",
+    "sha256": "058eceb146ea024068acfc7bd54f77507cae61bd029b0b19a55708ca35e43c3d"
+  },
+  "invalidReadinessPreconditionRun": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-c1g6c2sw/result.json",
+    "sha256": "f0a65f4f390cc9fda5fb57aad8d1c3446df4a797ac66871e4fa0c30b93405382"
+  },
+  "sourceHashes": {
+    "tenant-root-restore.e2e.py": "c5b334640288851319a091ffbd69046fbcb3c8dc77b3df15b822d12d7a63b42d",
+    "tenant-root-restore.mjs": "95b334c46ea955f5d3f9e5a7124a6e4a589a0a50474dd0cb6f1f27c03d1c3a36",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "test-private-d1.mjs": "1cb8b1a8bb0b5114da1d3e44d1c8be4bac7de69749e7ec8e9e74a1218341a7c4"
+  },
+  "publicRevision": "953e085450598033f1c14f6d52deb2ffdf86f147",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.11.0"
+  },
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "shutdownBeforeUpgrade": {
+    "exitCode": 0,
+    "elapsedMs": 15133,
+    "freshApplicationRequest": {
+      "status": 503,
+      "draining": true
+    },
+    "admittedSigningReplay": {
+      "status": 200,
+      "storedReplyPreserved": true
+    }
+  },
+  "upgrade": {
+    "signing": {
+      "signatureSha256": "f2633e75e2f7fd8b14e71f1f8a33677c0b979a893a6220f448fcc3872f64cb4a",
+      "storedSignaturePreserved": true,
+      "changedFinalize": {
+        "status": 500,
+        "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+      },
+      "consumedPrepare": {
+        "status": 409,
+        "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+      }
+    },
+    "durableRestoreOutcomePreserved": true,
+    "ownershipRecovery": {
+      "refusals": [],
+      "elapsedMs": 108
+    },
+    "epochs": {
+      "deriverA": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ],
+      "deriverB": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ]
+    },
+    "retirement": ["superseded", "superseded"],
+    "shutdown": {
+      "exitCode": 0,
+      "elapsedMs": 15115,
+      "freshApplicationRequest": {
+        "status": 503,
+        "draining": true
+      },
+      "admittedSigningReplay": {
+        "status": 200,
+        "storedReplyPreserved": true
+      }
+    }
+  },
+  "incompatibleDowngrade": {
+    "exitCode": 1,
+    "requiredFeature": "peer-durable-websockets-v1",
+    "servingAnnouncementObserved": false
+  },
+  "downgradeLog": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-rqo7wli1/runtime-downgrade.log",
+    "sha256": "aee03b9963c19e296d9a9836ab0593d52732230f32faee2e8fb54d67bdd58576"
+  },
+  "restart": {
+    "signing": {
+      "signatureSha256": "f2633e75e2f7fd8b14e71f1f8a33677c0b979a893a6220f448fcc3872f64cb4a",
+      "storedSignaturePreserved": true,
+      "changedFinalize": {
+        "status": 500,
+        "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+      },
+      "consumedPrepare": {
+        "status": 409,
+        "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+      }
+    },
+    "durableRestoreOutcomePreserved": true,
+    "ownershipRecovery": {
+      "refusals": [],
+      "elapsedMs": 100
+    },
+    "epochs": {
+      "deriverA": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ],
+      "deriverB": [
+        {
+          "tenant_root_share_epoch": 2,
+          "lifecycle": "retired"
+        },
+        {
+          "tenant_root_share_epoch": 3,
+          "lifecycle": "active"
+        }
+      ]
+    },
+    "retirement": ["superseded", "superseded"],
+    "shutdown": {
+      "exitCode": 0,
+      "elapsedMs": 15148,
+      "freshApplicationRequest": {
+        "status": 503,
+        "draining": true
+      },
+      "admittedSigningReplay": {
+        "status": 200,
+        "storedReplyPreserved": true
+      }
+    }
+  },
+  "cleanupErrors": [],
+  "failureClassification": {
+    "classification": "valid_test_needs_update",
+    "cause": "Health readiness was incorrectly used as an application-admission precondition. The test now probes an application route and checks the exact draining refusal."
+  },
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "result": "Final archived source hashes and assertions verified; no material objection within the stated scope."
+  },
+  "limits": [
+    "One local macOS ARM64 node with synthetic S3. No new Google provider qualification.",
+    "The held observer request invokes Router after gate release. No fresh signing claim was executing at signal time.",
+    "Feature refusal and absence of a serving announcement do not establish that no port was briefly bound.",
+    "Incompatible downgrade is refused. Compatible rollback, mixed-version serving, active claims, and fleet drain remain unqualified.",
+    "The earlier eight-second helper forced the measured stops. These runs do not establish that every runtime shutdown finishes within the deployment bound.",
+    "No production request path, runtime patch, database call, or deployment stop setting changed. No steady-state latency benchmark claim."
+  ],
+  "aggregateMaintainedSourceDelta": -32946
+}

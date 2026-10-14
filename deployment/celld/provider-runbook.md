@@ -241,10 +241,15 @@ It also requires exact ECDSA signature replay and refuses both changed finalizat
 It repeats those checks after another restart. It records temporary ownership refusals and waits at most 60 seconds for takeover.
 Each run retains its source copies, source and package hashes, native logs, and result file.
 
-This qualifies a offline local upgrade for these tenant-root records and consumed ECDSA material.
+This qualifies an offline local upgrade for these tenant-root records and consumed ECDSA material.
 It does not qualify live claims during upgrade, mixed-version serving, all-replica recovery, or a provider storage partition.
-The local stop helper can escalate to SIGKILL. These checks establish stopped-before-deployment ordering, with no test request in flight.
-They do not establish graceful drain. Keep production upgrade and rollback gated on the remaining state checks.
+The runner now allows the existing 45-second service stop bound and requires exit status zero after SIGTERM.
+It holds an admitted observer request, checks that a new application request receives the explicit draining refusal,
+and releases the held request to replay the exact stored signature through the Router.
+It then attempts the incompatible `.5` executable without changing the `.6` manifests or durable state.
+That executable must refuse the required feature. The `.6` restart must preserve the stored outcomes and consumed-material refusals.
+See [shutdown and downgrade-refusal evidence](evidence/shutdown-runtime-upgrade.json).
+This qualifies completion of an admitted stored-response replay during local shutdown. Fresh signing claims and fleet drain remain open.
 Rollback must preserve current durable records. Never restore an older storage snapshot to undo an executable change.
 
 The [Yao runtime upgrade check](evidence/yao-runtime-upgrade.json) additionally proves that an interrupted pair remains burned after `.5` to `.6` and another restart.

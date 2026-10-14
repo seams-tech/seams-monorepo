@@ -4,6 +4,8 @@ Usage: python3 tenant-root-restore.e2e.py CELLD WALLET_PACKAGE MOTO_PYTHON ESBUI
 The inspection Worker has synthetic storage access and runs only on loopback.
 """
 
+from concurrent.futures import ThreadPoolExecutor
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import importlib.util
 import json
 import os
@@ -12,12 +14,91 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+from threading import Event
+import urllib.error
+import urllib.parse
+import urllib.request
 
 spec = importlib.util.spec_from_file_location(
     "wallet_harness", Path(__file__).with_name("packaged-wallet.e2e.py")
 )
 harness = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(harness)
+
+
+class ReplayGate(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.server.admitted.set()
+        released = self.server.release.wait(timeout=10)
+        self.send_response(200 if released else 504)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass
+
+
+def held_replay(address, replay, gate):
+    request = urllib.request.Request(
+        address + "/held-signing-replay?" + urllib.parse.urlencode({"gate": gate}),
+        data=json.dumps(replay["signed"]["finalizeRequest"]).encode(),
+        headers={
+            "content-type": "application/json",
+            "x-router-ab-internal-service-auth": "private-d1-gateway-router-auth",
+            "x-seams-wallet-home-region": "US",
+            "x-seams-wallet-object-addresses": json.dumps(replay["addresses"]),
+        },
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        body = json.load(response)
+        assert body == replay["signed"]["response"], "Shutdown changed the stored signing reply"
+        return {"status": response.status, "storedReplyPreserved": True}
+
+
+def stop_runtime(process, directory, address):
+    admission_probe = urllib.request.Request(address + "/addresses", data=b"{}")
+    with urllib.request.urlopen(admission_probe, timeout=2) as response:
+        assert response.status == 200
+    replay = json.loads((directory / "signing-replay.json").read_text())
+    with HTTPServer(("127.0.0.1", 0), ReplayGate) as gate, ThreadPoolExecutor(max_workers=2) as executor:
+        gate.timeout = 10
+        gate.admitted = Event()
+        gate.release = Event()
+        gate_request = executor.submit(gate.handle_request)
+        pending = executor.submit(
+            held_replay, address, replay, "http://127.0.0.1:" + str(gate.server_port)
+        )
+        try:
+            assert gate.admitted.wait(timeout=10), "Signing replay did not reach the gate"
+            assert not pending.done(), "Replay must remain in flight before shutdown"
+            started = time.monotonic()
+            process.terminate()
+            while time.monotonic() - started < 5:
+                try:
+                    with urllib.request.urlopen(admission_probe, timeout=1):
+                        pass
+                except urllib.error.HTTPError as error:
+                    assert error.code == 503
+                    assert json.load(error) == {"ok": False, "draining": True}
+                    break
+                time.sleep(0.05)
+            else:
+                raise AssertionError("Shutdown did not close public admission")
+            assert not pending.done(), "Replay must remain in flight when admission closes"
+            gate.release.set()
+            reply = pending.result(timeout=15)
+            gate_request.result(timeout=1)
+            code = process.wait(timeout=max(1, 45 - (time.monotonic() - started)))
+            assert code == 0, f"Runtime shutdown exited with {code}"
+            return {
+                "exitCode": code,
+                "elapsedMs": round((time.monotonic() - started) * 1000),
+                "freshApplicationRequest": {"status": 503, "draining": True},
+                "admittedSigningReplay": reply,
+            }
+        finally:
+            gate.release.set()
 
 
 def main():
@@ -64,7 +145,8 @@ def main():
         "scope": (
             "one missing tenant-root role share, dual-authorized restore, forward "
             "refresh, retirement and replay after an offline runtime upgrade and "
-            "restart, stored ECDSA signature replay and consumed-presign refusal; "
+            "restart, admitted stored-signature replay during shutdown, incompatible "
+            "downgrade refusal and consumed-presign refusal; "
             "one runtime node and synthetic S3"
         ),
         "previousRuntimeSha256": harness.sha256(previous),
@@ -130,7 +212,7 @@ def main():
         )
         result["scenario"] = json.loads((directory / "restore-result.json").read_text())
         result["stage"] = "offline-upgrade"
-        harness.stop(node)
+        result["shutdownBeforeUpgrade"] = stop_runtime(node, directory, address)
         processes.remove(node)
         result["previousRuntimeExitCode"] = node.returncode
         result["oldRuntimeStoppedBeforeDeployment"] = node.returncode is not None
@@ -152,8 +234,24 @@ def main():
                 directory, environment, checkpoint + ".log",
             )
             result[checkpoint] = json.loads((directory / "state-result.json").read_text())
-            harness.stop(node)
+            result[checkpoint]["shutdown"] = stop_runtime(node, directory, address)
             processes.remove(node)
+            if checkpoint == "upgrade":
+                result["stage"] = "incompatible-downgrade-refusal"
+                refusal = subprocess.run(
+                    [previous, *command[1:]], cwd=directory, env=environment,
+                    capture_output=True, text=True, timeout=15,
+                )
+                refusal_log = refusal.stdout + refusal.stderr
+                (directory / "runtime-downgrade.log").write_text(refusal_log)
+                assert refusal.returncode == 1, refusal_log
+                assert "peer-durable-websockets-v1" in refusal_log
+                assert "celld listening on" not in refusal_log
+                result["incompatibleDowngrade"] = {
+                    "exitCode": refusal.returncode,
+                    "requiredFeature": "peer-durable-websockets-v1",
+                    "servingAnnouncementObserved": False,
+                }
         assert result["packageSha256"] == harness.directory_sha256(package), (
             "Package changed during the run"
         )

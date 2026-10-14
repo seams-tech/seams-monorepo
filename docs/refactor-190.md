@@ -711,10 +711,41 @@ Its SHA-256 is `0dbc1616b1e3e1c71b7e57be726168db6592716c71153eb53ceb584018a0e1d3
 The aggregate maintained source reduction remains 33,051 lines against the new `dev` bases.
 Earlier Google results retain their recorded revisions and migration counts. This rebase adds local qualification only.
 
+## October 14 shutdown qualification
+
+The local upgrade runner now allows the deployment service's existing 45-second stop bound.
+The preceding helper forced a stop after eight seconds. The unchanged runtimes exit normally in about 15.1 seconds in the control.
+The new scenario holds an admitted observer request before it invokes the Router.
+After SIGTERM, a fresh application request must receive the explicit draining refusal.
+The held request then completes the exact stored-signature replay, and the process must exit with status zero.
+These checks run before upgrade and after both `.6` checkpoints.
+
+The incompatible `.5` executable refuses the `.6` required feature against the same manifests and durable state.
+The subsequent `.6` restart must preserve the signature, consumed-material refusals, restore receipt, and root retirement state.
+This establishes refusal of an incompatible downgrade. Compatible rollback and mixed-version operation remain open.
+The test does not claim that a fresh SigningWorker claim was already executing when shutdown began.
+No production handler, runtime patch, database call, or deployment timeout changed.
+See [the shutdown evidence](../deployment/celld/evidence/shutdown-runtime-upgrade.json).
+The aggregate maintained source reduction is now 32,946 lines.
+
+| Fact | Instrument and scope |
+| --- | --- |
+| Earlier stop exited through SIGKILL (`-9`) | Archived `utv_v_pp` E2E result and the eight-second helper |
+| Longer SIGTERM control exited zero three times at about 15.1 seconds | Archived `j01xmzgg` result with unchanged runtimes |
+| One early held-request run failed on a health 503 before its second stop | Archived `c1g6c2sw` traceback; readiness was an invalid admission precondition |
+| Final admission probe requires the exact draining response | E2E checks a fresh application request while the held request remains pending |
+
+| Candidate cause | Evidence | Conclusion |
+| --- | --- | --- |
+| The test stopped the runtime too early | Exit `-9` at the old bound; exit zero after about 15.1 seconds at the longer bound | Supported for these runs |
+| SIGTERM was ignored | The control exits without SIGKILL | Contradicted for these runs |
+| The runtime cannot finish the measured shutdown | Three control exits and exact durable-state checks pass | Contradicted for this scenario |
+| Health readiness directly measures request admission | Application state checks passed before the health 503 | The test now measures application admission directly |
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
-3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local offline upgrades now cover root records, burned Yao pairs, and consumed ECDSA presigns. No classic-host state migration is required.
+3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 
 The branch implementation and selected qualification checks are committed. Production rollout remains pending.

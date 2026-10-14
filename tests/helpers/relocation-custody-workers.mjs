@@ -1,7 +1,8 @@
 import { migrate } from './relocation-directory-runtime.mjs';
 import { loadWalletAddressApi, StoredWalletTopology } from './relocation-wallet-addresses.mjs';
 import assert from 'node:assert/strict';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { Miniflare } from 'miniflare';
 import { observePresignAlarms } from './presign-alarm-observer.mjs';
@@ -44,7 +45,7 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
   const observedSigningWorker = includeEcdsa
     ? await observePresignAlarms(publicRoot, sourceSigningWorker, alarms)
     : sourceSigningWorker;
-  const topology = new Miniflare({
+  const options = {
     rootPath: publicRoot,
     workers: [
       sourceRouter,
@@ -52,16 +53,22 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
       sourceB,
       api.tenantRootControlPlaneWorker(fixture),
       observedSigningWorker,
-      destinationRouter,
-      {
+      await destinationWorker(publicRoot, destinationRouter),
+      await destinationWorker(publicRoot, {
         ...sourceA,
         name: 'destination-deriver-a',
         serviceBindings: { DERIVER_B: 'destination-deriver-b' },
-      },
-      { ...sourceB, name: 'destination-deriver-b' },
-      api.signingWorker('destination-signing-worker', 'destination-signing-worker', fixture),
+      }),
+      await destinationWorker(publicRoot, { ...sourceB, name: 'destination-deriver-b' }),
+      await destinationWorker(
+        publicRoot,
+        api.signingWorker('destination-signing-worker', 'destination-signing-worker', fixture),
+      ),
     ],
-  });
+  };
+  const topology = process.env.CELLD_RELOCATION_DIRECTORY
+    ? await createCelldTopology(options)
+    : new Miniflare(options);
   try {
     await topology.ready;
     const releaseFaultProbe =
@@ -109,10 +116,12 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
     await migrate(
       sourceDatabase,
       resolve(publicRoot, 'packages/wallet-server/migrations/d1-signer'),
+      api.splitSqlStatements,
     );
     await migrate(
       destinationDatabase,
       resolve(publicRoot, 'packages/wallet-server/migrations/d1-signer'),
+      api.splitSqlStatements,
     );
     const store = new addressApi.D1WalletObjectAddresses(sourceDatabase, {
       namespace: 'composed-relocation',
@@ -175,15 +184,15 @@ export async function createRelocationCustodyWorkers(publicRoot, { includeEcdsa 
     ]) {
       const from = await topology.getDurableObjectNamespace(binding, source);
       const to = await topology.getDurableObjectNamespace(binding, destination);
-      assert.notEqual(
-        from.idFromName('same-wallet').toString(),
-        to.idFromName('same-wallet').toString(),
-      );
+      const sourceId = await from.idFromName('same-wallet');
+      const destinationId = await to.idFromName('same-wallet');
+      assert.notEqual(sourceId.toString(), destinationId.toString());
       objects.push({ binding, source, destination, independentNamespaces: true });
     }
     return {
       topology: scopedTopology,
       rawTopology: topology,
+      splitSqlStatements: api.splitSqlStatements,
       addressApi,
       identity,
       addresses,
@@ -244,4 +253,32 @@ async function verifyReleaseFaultUnavailable(topology) {
     statuses.push({ worker, status: response.status });
   }
   return { kind: 'verified', statuses };
+}
+
+async function createCelldTopology(options) {
+  const { createCelldRelocationTopology } = await import('../e2e/celld/relocation-topology.mjs');
+  return createCelldRelocationTopology(options.workers);
+}
+
+async function destinationWorker(publicRoot, worker) {
+  const scriptPath = resolve(
+    publicRoot,
+    '.artifacts/relocation-destination-workers',
+    worker.name + '.mjs',
+  );
+  await mkdir(dirname(scriptPath), { recursive: true });
+  const module = JSON.stringify(relative(dirname(scriptPath), worker.scriptPath));
+  const exports = [`export { default } from ${module};`];
+  const durableObjects = {};
+  for (const [binding, object] of Object.entries(worker.durableObjects)) {
+    if ((object.scriptName ?? worker.name) === worker.name) {
+      const className = 'Destination' + object.className;
+      exports.push(`export { ${object.className} as ${className} } from ${module};`);
+      durableObjects[binding] = { ...object, className };
+    } else {
+      durableObjects[binding] = object;
+    }
+  }
+  await writeFile(scriptPath, exports.join('\n') + '\n');
+  return { ...worker, scriptPath, durableObjects };
 }

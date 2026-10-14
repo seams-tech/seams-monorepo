@@ -4,7 +4,6 @@ import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Miniflare } from 'miniflare';
-import { unstable_splitSqlQuery } from 'wrangler';
 
 export class CustodyBinding {
   calls = 0;
@@ -100,10 +99,10 @@ class UnavailableRegion {
   }
 }
 
-export async function migrate(database, directory) {
+export async function migrate(database, directory, splitSqlStatements) {
   for (const name of (await readdir(directory)).filter(isMigration).sort()) {
-    const statements = unstable_splitSqlQuery(await readFile(resolve(directory, name), 'utf8'));
-    for (const statement of statements) await database.prepare(statement).run();
+    const statements = splitSqlStatements(await readFile(resolve(directory, name), 'utf8'));
+    for (const statement of statements) await database.exec(statement);
   }
 }
 function isMigration(name) {
@@ -173,6 +172,7 @@ export async function createRelocationDirectoryRuntime({ root, candidate, custod
     await migrate(
       database,
       resolve(root, 'packages/wallet-console-server-ts/migrations/d1-console'),
+      custody.splitSqlStatements,
     );
     const delivery = JSON.parse(custody.registration.delivery);
     const scope = {

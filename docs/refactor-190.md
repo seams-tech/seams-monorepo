@@ -824,9 +824,36 @@ The aggregate maintained source reduction is now 32,684 lines.
 Both branches then rebased cleanly onto local `dev`: public `16fa2169` and private `201b916e`.
 The incoming changes contain release records and the verified staging target update. Qualification code and Worker bytes are unchanged.
 
+## October 14 composed celld relocation
+
+The mixed Ed25519/ECDSA relocation scenario now passes on `0.6.2-seams.6` and workerd.
+Both runs use the same test sources and application input trees. All 25 Worker files still match the packed candidate.
+The native runtime exits with code 0 and no cleanup errors.
+See [the celld relocation evidence](../deployment/celld/evidence/relocation-celld.json).
+
+The scenario verifies owner approval, an unfinished round during freeze, lost-finalize recovery, source cleanup,
+stored destination addresses, replay after eviction, verified destination signatures, and delayed source-publication refusal.
+The test bridge adds no production request, database read, or blocking validation.
+The maintained source reduction is 31,931 lines, including this acceptance code and the complete celld patch.
+
+This is one local generation-1-to-2 move. Custody Workers and their bound stores run on celld.
+Directory/Runtime handlers remain in Node, and Directory D1 remains in Miniflare.
+Router and SigningWorker databases are separate. Deriver role databases and tenant-root authority remain shared.
+The test does not relocate root shares or establish hosted deployment, distributed, or latency claims.
+
+Celld rejects duplicate Durable Object class exports across co-hosted scripts.
+The test re-exports destination classes with distinct names on both runtimes. Their Worker implementation and WASM remain unchanged.
+This qualifies the aliased deployment schema. Deployments with unchanged duplicate class names remain unsupported.
+The relay covers the exercised JSON-safe D1 operations and buffered callbacks.
+
+Migration setup now reuses the public test SQL splitter, which tracks CASE nesting inside trigger bodies.
+The callback relay removes transport headers before forwarding through Node fetch.
+The earlier `transfer-encoding` failure was a test infrastructure defect.
+Both final runs pass after these boundary fixes. Independent review found no blocker within the stated scope.
+
 ## Remaining rollout gates
 
-1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
+1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.
 2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
 3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
 

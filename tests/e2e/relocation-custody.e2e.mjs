@@ -17,11 +17,13 @@ const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = resolve(candidate, '../..');
 const includeEcdsa = process.argv.includes('--with-ecdsa');
-const output = resolve(
-  import.meta.dirname,
-  '../../.artifacts/r155d-addresses',
-  includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
-);
+const output =
+  process.env.SEAMS_RELOCATION_OUTPUT ??
+  resolve(
+    import.meta.dirname,
+    '../../.artifacts/r155d-addresses',
+    includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
+  );
 const custody = await createRelocationCustodyWorkers(publicRoot, { includeEcdsa });
 try {
   await mkdir(output, { recursive: true });
@@ -414,7 +416,7 @@ async function evictDestinationWallet(custody) {
   for (const role of ['router', 'deriver_a', 'deriver_b', 'signing_worker']) {
     assert.notEqual(addresses[role], source[role], 'Destination uses fresh role addresses');
   }
-  const objectClass = 'RouterAbSigningWorkerWalletDurableObject';
+  const objectClass = 'DestinationRouterAbSigningWorkerWalletDurableObject';
   const worker = 'destination-signing-worker';
   const ids = await custody.rawTopology.listDurableObjectIds(objectClass, worker);
   assert.ok(ids.includes(addresses.signing_worker), 'The persisted destination object must exist');

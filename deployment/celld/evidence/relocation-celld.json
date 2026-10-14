@@ -1,0 +1,207 @@
+{
+  "status": "passed",
+  "scope": "Mixed Ed25519/ECDSA composed wallet-object relocation from generation 1 to 2 on one celld node, with the same aliased workerd control.",
+  "celld": {
+    "status": "passed",
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/result.json",
+      "sha256": "104fb19040397387376336b3d4ffdb00d688af6d1163c40dcb1a87910d6217e6"
+    },
+    "log": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/scenario.log",
+      "sha256": "6477bbc53a41e4162f4bc67f8a2eb9e4d818d0053ded5c3821538825c25f0a58"
+    },
+    "proofs": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/browser-session.json",
+        "sha256": "a6aa94f7e47c0955424a4af987595efdf963347d7c3903420ca65919511fb52c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/coordinator-bindings.json",
+        "sha256": "ccebeb11a2988b62aa4d58ddf2e8d824df18b5d1ce266a532c918e7bf3ec87da"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/coordinator-progress.json",
+        "sha256": "034bdf984c7da037896c69124745a2872558d62ed173f62bed8b4c37ed344c26"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/custody-topology.json",
+        "sha256": "db20d1e0cb9a3b4bd2f6e1b5fbf24280acfb14850007373176da74463eefe40c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/destination-signing.json",
+        "sha256": "2c6aeb5263967a93f3db95f5b8364ac4840cb58d130d6f6e10774fcd3a25ae20"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/ecdsa-signing.json",
+        "sha256": "3f1a30ea9374f97f913cc99cda7690f453da9b9d306c9786ce684ad0aa752909"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/presign-expiry-alarm.json",
+        "sha256": "e95287a392f14dd83f1c65507db3911cee03c1e9687f3d98b30161697bdbd5e1"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/signing-race.json",
+        "sha256": "087e2b92bc68e0bf18dadeb7206a82d36933052fbd9d0394ddc7ee1738d97e65"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/proofs/wallet-object-addresses.json",
+        "sha256": "98eb02e6e7e060392470379c1fef5420fc4cd8ecd3b7c84ab38f31efe3ec7b12"
+      }
+    ]
+  },
+  "workerd": {
+    "status": "passed",
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/result.json",
+      "sha256": "336a2af8034fbaaa9d45abb9b20873564e6a0295701360dbb2b69e20c12febde"
+    },
+    "log": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/scenario.log",
+      "sha256": "a78f131b188615a617e10ce938f3ff9a6f6ab2d107374f18983269dcdb189d64"
+    },
+    "proofs": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/browser-session.json",
+        "sha256": "a6aa94f7e47c0955424a4af987595efdf963347d7c3903420ca65919511fb52c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/coordinator-bindings.json",
+        "sha256": "6c3a5eb9db2757c1554495d1e4432d3f1e9cc841bd1d30fdae081ac5c67644db"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/coordinator-progress.json",
+        "sha256": "df29cec09fcd69883d33abc389c8b9555f968f1f3275131fdf27acaf464eb83a"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/custody-topology.json",
+        "sha256": "56c44e5b65c8b48da1c6b30bc56f3556cf921935e8bb2f3ec2df4f387d70d57c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/destination-signing.json",
+        "sha256": "618384f7fa4a58c5961898a2e83df3cd8724ab234d27fea9f704d489d577e727"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/ecdsa-signing.json",
+        "sha256": "a1d4c47f00b839a7d8ca0dea960b6592f74a4e7953686f00a41d0c68be0ed23f"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/presign-expiry-alarm.json",
+        "sha256": "e121965840758bbad056ad1f455561239f4d8983b0ad3b999c075a6bec88c9df"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/signing-race.json",
+        "sha256": "75905277086157b25683ffb1a48ff824fe37b8212cea2853e5c282f651d2a7cb"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/proofs/wallet-object-addresses.json",
+        "sha256": "a78be7a6026ffc555fa7f26ca9d4c03a93abec457da8902bda9e7419d13fd083"
+      }
+    ]
+  },
+  "runtimeVersion": "0.6.2-seams.6",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "runtimeStop": {
+    "pid": 32141,
+    "exitCode": 0,
+    "signal": null
+  },
+  "cleanupErrors": [],
+  "manifest": {
+    "path": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server/artifact-manifest.json",
+    "sha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb"
+  },
+  "matchedWorkerFiles": 25,
+  "sameSourceHashesAcrossRuntimes": true,
+  "sameInputTreeHashesAcrossRuntimes": true,
+  "assertions": [
+    "An unapproved move is refused. WebAuthn owner approval permits directory-coordinated relocation.",
+    "An unfinished Ed25519 round blocks freeze. A committed finalize with a lost response recovers before cutover.",
+    "Destination terminal replay returns the same signature. Changed finalization and retired source work are refused.",
+    "Destination uses independent stored object addresses. Replay survives eviction of the stored destination object.",
+    "Destination Ed25519 and ECDSA signatures verify. Stale ECDSA ownership generation is refused.",
+    "The production presign alarm runs during freeze. Delayed source publication is refused after the move.",
+    "Production SDK session reconciliation uses real coordinator responses in Chromium IndexedDB."
+  ],
+  "limits": [
+    "Directory/Runtime handlers execute in Node. Directory D1 remains Miniflare. This is not hosted product acceptance.",
+    "Router and SigningWorker D1 and wallet object namespaces are distinct. Deriver role D1 and tenant-root authority are shared. Root shares do not relocate.",
+    "Source and destination exports use distinct Durable Object class names on both runtimes. This deployment-schema adaptation avoids the celld duplicate-class restriction; unchanged duplicate-class deployments remain unsupported.",
+    "The test bridge exercises JSON-safe D1 values and buffered HTTP callbacks. It does not establish generic BLOB, streaming, or WebSocket transport parity.",
+    "The private address fixture supports generation 1 to 2. Return moves, repeated moves, in-flight ECDSA finalize, distributed partitions and Google relocation remain open.",
+    "Browser session installation uses production persistence directly. Full iframe/login/unlock flow is outside this check.",
+    "These test-only changes add no production calls, DB reads or blocking validation. No latency measurement or general performance claim is made."
+  ],
+  "diagnosis": {
+    "facts": [
+      {
+        "fact": "The old relay failed before downstream fetch because undici rejected transfer-encoding.",
+        "evidence": {
+          "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-2rrruahl/callback-error.json",
+          "sha256": "b7bc82e805a6f2e584bf628a96bdf25e7d717546131898f1ab9ab4a6e87382ae"
+        }
+      },
+      {
+        "fact": "Removing transport headers at the callback boundary permits the complete native scenario and normal cleanup.",
+        "evidence": {
+          "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-jhtg_e6b/result.json",
+          "sha256": "081701082aa8f6796494185a57997ed4fc44fc7d0b8fbbee4b0e24d64557224a"
+        }
+      },
+      {
+        "fact": "Final native and aliased workerd control pass with identical test source and input-tree hashes.",
+        "evidence": [
+          {
+            "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-relocation-1_rk4rgl/result.json",
+            "sha256": "104fb19040397387376336b3d4ffdb00d688af6d1163c40dcb1a87910d6217e6"
+          },
+          {
+            "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-relocation-1hyvq9zq/result.json",
+            "sha256": "336a2af8034fbaaa9d45abb9b20873564e6a0295701360dbb2b69e20c12febde"
+          }
+        ]
+      }
+    ],
+    "causes": [
+      {
+        "cause": "The test relay forwards hop-by-hop HTTP headers into Node fetch.",
+        "assessment": "Confirmed by the invalid transfer-encoding error and subsequent complete native pass after boundary normalization."
+      },
+      {
+        "cause": "Wallet signing or relocation logic causes the callback error.",
+        "assessment": "Contradicted for this failure: Node fetch rejects transport metadata before the downstream request; unchanged Wallet logic passes."
+      },
+      {
+        "cause": "The aliased topology only works on celld.",
+        "assessment": "Contradicted by the updated workerd control on the same source inputs."
+      }
+    ],
+    "classification": "environment_or_infrastructure_failure",
+    "otherFixtureRepairs": [
+      "The callback Worker name now uses valid hyphens and the production renderer supplies deployable bundles.",
+      "Shared bindings are deduplicated in the inspector. Destination class aliases resolve the demonstrated co-hosting restriction.",
+      "Migration setup reuses the existing single-statement D1 exec path. The shared test splitter now tracks CASE nesting inside trigger bodies."
+    ],
+    "parity": "Established only for the listed composed scenario. Full hosted deployment and transport parity remain unverified."
+  },
+  "validation": {
+    "publicBloat": {
+      "path": "/tmp/seams-r190-relocation-parser-bloat.log",
+      "sha256": "251d723dd8628d87ecca88346b52de94d56459a3636d206570c2844d238fabcb"
+    },
+    "privateScripts": {
+      "log": {
+        "path": "/tmp/seams-r190-celld-relocation-script-checks.log",
+        "sha256": "5191d35692bf40acca023c6a717b95bdbcbbbaeb02d456d1fac2434b73fd6cd0"
+      },
+      "passed": 53,
+      "skipped": 1
+    },
+    "lint": "Changed JavaScript passes ESLint and Prettier. Python driver passes py_compile."
+  },
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "result": "No material blocker within the recorded scope. Archived sources and generated-file hashes verified; scope limits preserved."
+  },
+  "aggregateMaintainedSourceDelta": -31931
+}

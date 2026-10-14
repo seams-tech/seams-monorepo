@@ -66,7 +66,9 @@ export class StoredWalletTopology {
     });
     const addresses = await store.read(identity);
     assert.ok(addresses, 'The transferred wallet must have stored object addresses');
-    const objectClass = 'RouterAbSigningWorkerWalletDurableObject';
+    const objectClass = name.startsWith('destination-')
+      ? 'DestinationRouterAbSigningWorkerWalletDurableObject'
+      : 'RouterAbSigningWorkerWalletDurableObject';
     const ids = await this.topology.listDurableObjectIds(objectClass, name);
     assert.ok(
       ids.includes(addresses.signing_worker),

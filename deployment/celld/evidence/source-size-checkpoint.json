@@ -614,7 +614,7 @@
     "seams-monorepo": {
       "baseRevision": "201b916ed213254be888e43ea68176da3fcaf78a",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -148,
+      "netLines": 605,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -809,6 +809,24 @@
           "netLines": 96
         },
         {
+          "path": "tests/e2e/celld/relocation-inspector.mjs",
+          "beforeLines": 0,
+          "afterLines": 53,
+          "netLines": 53
+        },
+        {
+          "path": "tests/e2e/celld/relocation-topology.mjs",
+          "beforeLines": 0,
+          "afterLines": 461,
+          "netLines": 461
+        },
+        {
+          "path": "tests/e2e/celld/relocation.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 198,
+          "netLines": 198
+        },
+        {
           "path": "tests/e2e/celld/tenant-root-restore.e2e.py",
           "beforeLines": 0,
           "afterLines": 285,
@@ -829,14 +847,26 @@
         {
           "path": "tests/e2e/relocation-custody.e2e.mjs",
           "beforeLines": 424,
-          "afterLines": 438,
-          "netLines": 14
+          "afterLines": 440,
+          "netLines": 16
+        },
+        {
+          "path": "tests/helpers/relocation-custody-workers.mjs",
+          "beforeLines": 247,
+          "afterLines": 284,
+          "netLines": 37
+        },
+        {
+          "path": "tests/helpers/relocation-directory-runtime.mjs",
+          "beforeLines": 312,
+          "afterLines": 312,
+          "netLines": 0
         },
         {
           "path": "tests/helpers/relocation-wallet-addresses.mjs",
           "beforeLines": 69,
-          "afterLines": 118,
-          "netLines": 49
+          "afterLines": 120,
+          "netLines": 51
         },
         {
           "path": "tests/relayer/console-account-router.test.ts",
@@ -877,6 +907,6 @@
       ]
     }
   },
-  "aggregateNetLines": -32684,
+  "aggregateNetLines": -31931,
   "netReductionAchieved": true
 }

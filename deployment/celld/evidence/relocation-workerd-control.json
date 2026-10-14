@@ -1,0 +1,275 @@
+{
+  "status": "passed",
+  "scope": "Private composed workerd relocation control, generation1 to2, separate regional custody namespaces, production directory and Runtime handlers, Ed25519 and mixed Ed25519/ECDSA variants",
+  "publicRevision": "214a3f067285cdd72742c614478f5ca8e510cf3d",
+  "miniflareVersion": "4.20260710.0",
+  "workerdVersion": "1.20260710.1",
+  "logs": {
+    "ed25519": {
+      "path": "/tmp/seams-r190-relocation-ed25519-development-fixture.log",
+      "sha256": "83c36c27632a46512f1fe4a1b91eb2d9a2879e2a25007736ea6cb0c27e261163"
+    },
+    "mixed": {
+      "path": "/tmp/seams-r190-relocation-mixed-stored-eviction.log",
+      "sha256": "5d7cc62795691c5d4a0a5abac03908bb4caa0deb3ea4a00c8f44fa01c4fbb198"
+    }
+  },
+  "proofs": {
+    "composed-relocation": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/browser-session.json",
+        "sha256": "a6aa94f7e47c0955424a4af987595efdf963347d7c3903420ca65919511fb52c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/coordinator-bindings.json",
+        "sha256": "c52ec4d2446113fe82b5d003df69b3dba531e1def501056ae3a0ebe334b410fa"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/coordinator-progress.json",
+        "sha256": "834ee325cecde40f0eb34026f4a0192d56de50723f391bbf8dfa5e810d6c4abc"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/custody-topology.json",
+        "sha256": "debd18c4de773f296b243cdc9f06419c30427096b5337daf36cffc41c74712b8"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/destination-signing.json",
+        "sha256": "13ebebb0bb5e45bdc53fa455e14daaad8c6d4705bd8f943d8f81b2601d60e5e7"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/signing-race.json",
+        "sha256": "37793dd6e0ba584104af178179742e78a36f076eebc6709683c3dcde43143223"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-relocation/wallet-object-addresses.json",
+        "sha256": "35d5ad51f7ca048d0b15fafb89a347166caa9b1c9186be2c4ce89bc71da79a66"
+      }
+    ],
+    "composed-mixed-relocation": [
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/browser-session.json",
+        "sha256": "a6aa94f7e47c0955424a4af987595efdf963347d7c3903420ca65919511fb52c"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/coordinator-bindings.json",
+        "sha256": "002eaebd025af38303a60f341269617a1a408a30dd8a1383b91a9ba92b13094d"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/coordinator-progress.json",
+        "sha256": "8f5447418e86eb0f4ff3d8f4684e99b1dcc86ef11f93c391077f275ae7162985"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/custody-topology.json",
+        "sha256": "ba785873e30c0ccbfad135ef288ed8390dd89261a6b456195031d4932f10334f"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/destination-signing.json",
+        "sha256": "fc56e32095a8471aca8d65f9469fbad5af867329ddca40f0dbc7752031892e0d"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/ecdsa-signing.json",
+        "sha256": "2464958dbf95d4ec966fdf7f5aad3b15ef894d24e2ce02d9cdfa6bf6ccd93fce"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/presign-expiry-alarm.json",
+        "sha256": "b52747f31cc7839a1c6425d91d95b5ca322dd78c0b1241d7d7753c83b2b2d9a2"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/signing-race.json",
+        "sha256": "ac6328c04e96bb6d943dea8dcb019ec8aca63027c77762b0bc1df1ffe189d6ad"
+      },
+      {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r155d-addresses/composed-mixed-relocation/wallet-object-addresses.json",
+        "sha256": "8e38af2cbd2e376cab6e8478067770960689f9cbd2e1328ef386d5771528851d"
+      }
+    ]
+  },
+  "packedWorkerIdentity": {
+    "manifest": {
+      "path": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server/artifact-manifest.json",
+      "sha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb"
+    },
+    "allSourceAndPackedFilesMatchManifest": true,
+    "checkedFiles": [
+      "cloudflare-router-ab/build/router/build-stamp.json",
+      "cloudflare-router-ab/build/router/index.js",
+      "cloudflare-router-ab/build/router/index_bg.wasm",
+      "cloudflare-router-ab/build/router/package.json",
+      "cloudflare-router-ab/build/router/worker/shim.mjs",
+      "cloudflare-router-ab/build/deriver-a/build-stamp.json",
+      "cloudflare-router-ab/build/deriver-a/index.js",
+      "cloudflare-router-ab/build/deriver-a/index_bg.wasm",
+      "cloudflare-router-ab/build/deriver-a/package.json",
+      "cloudflare-router-ab/build/deriver-a/worker/shim.mjs",
+      "cloudflare-router-ab/build/deriver-b/build-stamp.json",
+      "cloudflare-router-ab/build/deriver-b/index.js",
+      "cloudflare-router-ab/build/deriver-b/index_bg.wasm",
+      "cloudflare-router-ab/build/deriver-b/package.json",
+      "cloudflare-router-ab/build/deriver-b/worker/shim.mjs",
+      "cloudflare-router-ab/build/signing-worker/build-stamp.json",
+      "cloudflare-router-ab/build/signing-worker/index.js",
+      "cloudflare-router-ab/build/signing-worker/index_bg.wasm",
+      "cloudflare-router-ab/build/signing-worker/package.json",
+      "cloudflare-router-ab/build/signing-worker/worker/shim.mjs",
+      "cloudflare-router-ab/build/tenant-root-control-plane/build-stamp.json",
+      "cloudflare-router-ab/build/tenant-root-control-plane/index.js",
+      "cloudflare-router-ab/build/tenant-root-control-plane/index_bg.wasm",
+      "cloudflare-router-ab/build/tenant-root-control-plane/package.json",
+      "cloudflare-router-ab/build/tenant-root-control-plane/worker/shim.mjs"
+    ]
+  },
+  "finalMixedSourceHashes": [
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/e2e/relocation-custody.e2e.mjs",
+      "sha256": "170f27eb5d27a1766c84a4d6c563c4b547841d46784991c2e9fef23f5b04da04"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-browser-session.mjs",
+      "sha256": "fcc71ee29e7fc1d784b150e2f449e321245752899c62e0835f08a1ac9851fdb2"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-custody-workers.mjs",
+      "sha256": "2eeeedb0adf2fdd41606caf0a4028ed96f4e0e108ca4444f9d409a4f3a89df0c"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-directory-runtime.mjs",
+      "sha256": "b818022f29a305589a95ba18f3c0539fa34f86698b46262adbe81834f5b3256c"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-owner-approval.mjs",
+      "sha256": "2380a52b3223b0a5103f5973b61f73cee12ac91065c7dae184f700efffd87c64"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-signing-race.mjs",
+      "sha256": "7852b72a39483961563fb697d0ac1e5b09ccaf0f6c9284e5be69f41dd6623318"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/relocation-wallet-addresses.mjs",
+      "sha256": "f0b2d93147252aed614d32969614578707f39d92430eb0c259e6b0f59d863b87"
+    },
+    {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/tests/helpers/presign-alarm-observer.mjs",
+      "sha256": "2842a100ae67826dd6da52247693fe553ec5406743a5752cdbe90f37e9da1307"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-dev/examples/cloudflare_private_d1_fixture.rs",
+      "sha256": "37c6535b901ea53e72d57031e24b551cc874f6882194d60e10147de9ccb5a040"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/deriver-activation-evidence.mjs",
+      "sha256": "c0d895cc55f728e9ecde2ef3019ea67c27f622dc10985e1f9729dded1ddd3d39"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/deriver-import-evidence.mjs",
+      "sha256": "9df58d4cf11f7e0c20566cafafbbb02857ac0bef523682a1ba32a84e7eed7baf"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/deriver-preparation-evidence.mjs",
+      "sha256": "c82324abce1c0e4e6d4485b3fee7680f1d30e014beb3649f2b6acbb782fadd1b"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/deriver-snapshot-evidence.mjs",
+      "sha256": "bb69e0692ed115be847673198434b3ed1beb01e893e7b43429954dc548ee88cf"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/ed25519-signing-evidence.mjs",
+      "sha256": "435daf7dde330d5ee17b8473edecb0fcfe0857a3376ac8e37ccd9f26e8e6539b"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/ed25519-snapshot-evidence.mjs",
+      "sha256": "36e7d829635c4da8a4f813ac1dc7ffefc20f6f99fa8481c2c6287b31c80702dc"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/linked-presign-transfer-evidence.mjs",
+      "sha256": "67bfbba1946d8f8191cb58d7490222c0f60f659adc0dfa57e67bf214d373a845"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/package-delivery-failure-evidence.mjs",
+      "sha256": "e83dd89b9b497b7b96534f35f5efbf757f43f8f4ec10526c9e432b550e30eea6"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/registration-prompt-evidence.mjs",
+      "sha256": "3d59f60fa4fb6fdc062c64e9c73f54cf5e8c481cecb7dd307b1388f5c91a7f11"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/runtime-relocation-evidence.mjs",
+      "sha256": "b541ead80a8553d16fa62d96b97b006577de371caea32845ae7ace81b3ee6465"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/stored-wallet-preparation-evidence.mjs",
+      "sha256": "80caba6428db2b788aae4c4af1b51b9074343abb2310cdb67c729e834b237c6a"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/streamed-delivery-evidence.mjs",
+      "sha256": "3db97ec93a358c1431f8ecf4e736492871867c6a45ec890047c5b6c9ac0840e1"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/wallet-home-placement-evidence.mjs",
+      "sha256": "58a4aa2c5ec0a40ca80a2ea95e25b67e1e0e98b237a4696c7b3990b5849bf4ed"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs",
+      "sha256": "1716659727a41f1fe79b741159ffa107a3fbb79154c48417152fcf34ec41b3b5"
+    },
+    {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/crates/router-ab-cloudflare/scripts/test-private-d1.mjs",
+      "sha256": "d1d416d9ddcec608ebe4cb5a216a902b1d169cc886dd1d4857b4728938a8af59"
+    }
+  ],
+  "assertions": [
+    "Unapproved move refused; WebAuthn owner-approved move completes through the directory coordinator.",
+    "Source waits for an unfinished Ed25519 round; a lost committed-finalize reply is recovered before cutover.",
+    "Exact terminal signing result replays at destination; changed finalization and retired source are refused.",
+    "Destination uses stored independent object addresses; prepare and finalize replay after destination object eviction.",
+    "Mixed-curve source refill publication is refused after move; the production presign alarm is observed during freezing.",
+    "Fresh destination Ed25519 and ECDSA signatures are verified; stale ECDSA ownership generation is refused.",
+    "Production SDK session reconciliation observes actual coordinator responses in Chromium IndexedDB."
+  ],
+  "failureClassifications": [
+    {
+      "classification": "production_regression",
+      "issue": "Compiled private Console imports referenced boundary.js, while the existing package entrypoint is boundary/index.js. Normal rebuild alone did not resolve it. Six source imports now use the existing path; no alias or runtime call added."
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "issue": "Generated tenant identity used test instead of a development environment ending in :dev. The Rust fixture generator now emits test:dev; generated records were not hand-edited."
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "issue": "Direct presign-object calls omitted stored wallet addresses. They now use the existing scoped address binding; delayed publication targets the persisted source object ID."
+    },
+    {
+      "classification": "valid_test_needs_update",
+      "issue": "The stale-generation assertion expected older pool-state errors. It now requires the current ownership-generation mismatch."
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "issue": "Eviction reconstructed old named IDs and used the wrong worker variable. The scoped fixture reads the persisted ID and checks that object exists before eviction."
+    }
+  ],
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "result": "No material blocker for this private workerd control. Public raw-harness and generation limits remain explicit."
+  },
+  "limits": [
+    "Workerd control only. Celld relocation, provider faults during relocation, return moves, and multiple moves remain unqualified.",
+    "The private scoped fixture supports its tested generation1 to2 move. Worker-name prefixes determine its region/generation selection.",
+    "Shared evictTransferredWallet now requires topology.evictWalletObject. Older bare Miniflare callers do not supply it and remain unqualified; their former named-ID implementation was already obsolete.",
+    "Directory and Runtime handlers execute in the composed harness. This is not deployed hosted-SDK acceptance.",
+    "Browser session installation uses production persistence directly. Iframe transport, browser registration, Gateway status HTTP routing, and fresh unlock after move are excluded.",
+    "No in-flight ECDSA finalize during freeze is covered.",
+    "Final mixed source hashes describe the final run. The earlier Ed25519-only control preceded the direct-object and eviction fixture updates.",
+    "Production changes correct import paths only. No new production request, DB read, validation, or blocking call was added."
+  ],
+  "aggregateMaintainedSourceDelta": -32684,
+  "fixtureRegression": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-rgcukd7_/result.json",
+      "sha256": "a4770b869849bf8cdf5fdced3a13ae2ac3c9a4110f7dad3f13f296a0aebf9e08"
+    },
+    "status": "passed",
+    "publicRevision": "214a3f067285cdd72742c614478f5ca8e510cf3d",
+    "cleanupErrors": [],
+    "scope": "Existing celld root restore, backup-read/deletion refusal, shutdown, upgrade, incompatible-downgrade refusal, and stored ECDSA replay with the regenerated development fixture. No celld relocation claim."
+  }
+}

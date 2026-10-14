@@ -265,3 +265,23 @@ Rollback must preserve current durable records. Never restore an older storage s
 The [Yao runtime upgrade check](evidence/yao-runtime-upgrade.json) additionally proves that an interrupted pair remains burned after `.5` to `.6` and another restart.
 It observes both role states and zero new protocol connections on exact retry.
 The [ECDSA upgrade check](evidence/ecdsa-runtime-upgrade.json) covers consumed presign material. Live mixed-version rollout remains unqualified.
+
+## Repeat the composed workerd relocation control
+
+Use the public checkout with its current release Worker and client WASM builds.
+Build the private packages, then run the existing composition scenario:
+
+```sh
+pnpm -C packages/console-server-ts build
+pnpm -C packages/wallet-console-server-ts build
+SEAMS_WALLET_SERVER_CANDIDATE=WALLET_CHECKOUT/packages/wallet-server \
+  ROUTER_AB_WORKER_BUILD_PROFILE=release \
+  node tests/e2e/relocation-custody.e2e.mjs --with-ecdsa
+```
+
+Omit `--with-ecdsa` for the Ed25519-only control.
+The scenario writes proofs under `.artifacts/r155d-addresses/composed-mixed-relocation` or `composed-relocation`.
+The [recorded control](evidence/relocation-workerd-control.json) verifies that all 25 Worker files match the packed `0.11.0` candidate.
+It covers generation 1 to 2, owner approval, signing settlement, source cleanup, persisted addresses, and destination signatures.
+The local browser check uses direct session persistence. Hosted acceptance, return moves, and celld relocation remain open.
+The older raw Miniflare harness does not provide the current stored-ID eviction hook and remains unqualified.

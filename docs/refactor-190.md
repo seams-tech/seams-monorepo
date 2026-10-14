@@ -799,6 +799,29 @@ The failed attempt also recorded a cleanup permission error; later inspection fo
 | The `.6` executable crashed | Report UUID matches `.5` | Contradicted |
 | A specific runtime, compiler, or application defect caused SIGILL | JIT/Wasm frames identify execution context without the cause | Unresolved; reproduction or a symbolized native diagnosis is needed |
 
+## October 14 composed relocation control
+
+The existing Ed25519 and mixed Ed25519/ECDSA relocation scenarios pass on workerd.
+All 25 release Worker files match the packed `0.11.0` candidate byte for byte.
+The scenarios verify directory-coordinated owner approval, an unfinished signing round during freeze,
+lost-response recovery, independent destination addresses, source cleanup, and verified destination signatures.
+The mixed scenario also verifies stale-generation refusal, exact prepare replay after stored-ID eviction,
+and refusal of a delayed source publication after the move.
+See [the workerd relocation control](../deployment/celld/evidence/relocation-workerd-control.json).
+
+This preparation exposed a compiled-package import defect. Six Console imports now use the existing `boundary/index` entrypoint.
+Normal package builds and private checks pass. No alias or production request call was added.
+The Rust fixture generator now emits a valid `:dev` tenant environment.
+The test boundary supplies persisted wallet addresses to direct object calls and uses the stored object ID for eviction.
+The stale-generation assertion now requires the current generation-mismatch error.
+
+The shared eviction helper requires `topology.evictWalletObject`. Older raw Miniflare callers do not provide it and remain unqualified.
+The private fixture covers generation 1 to 2. It does not establish return or repeated relocation.
+Directory/Runtime composition and Chromium session reconciliation are local. Hosted SDK acceptance and celld relocation remain open.
+The existing celld restore/upgrade runner also passes with the regenerated development fixture, including both provider-denial cases and shutdown checks.
+This regression check does not exercise relocation on celld.
+The aggregate maintained source reduction is now 32,684 lines.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, relocation, and retirement/authorized restore with provider failures. The local one-share restore and retirement scenario is recorded above.

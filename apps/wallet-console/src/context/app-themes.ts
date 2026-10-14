@@ -137,55 +137,55 @@ export const CARBON_DARK_COLORS: Record<string, string> = {
 };
 
 // "Pastel Dark" — warm charcoal with peach and lilac accents.
-// Deeper lilac icon highlights keep the light glyphs readable.
+// Deeper peach icon highlights keep the light glyphs readable.
 const PASTEL_DARK_COLORS: Record<string, string> = {
-  primary: '#ffdfd3',
-  primaryHover: '#f4cdbe',
-  secondary: '#f3e5f5',
-  secondaryHover: '#e6d3e8',
-  accent: '#f3e5f5',
+  primary: '#f3e5f5',
+  primaryHover: '#e6d3e8',
+  secondary: '#ffdfd3',
+  secondaryHover: '#f4cdbe',
+  accent: '#ffdfd3',
 
   textPrimary: '#eee9ee',
   textSecondary: '#bab0bc',
   textMuted: '#a197a3',
   textButton: '#1f1c1f',
 
-  buttonBackground: '#ffdfd3',
-  buttonHoverBackground: '#f4cdbe',
-  // lilac pastel secondary (Google SSO) button
-  secondaryButtonBackground: '#f3e5f5',
-  secondaryButtonHoverBackground: '#e6d3e8',
+  buttonBackground: '#f3e5f5',
+  buttonHoverBackground: '#e6d3e8',
+  // peach pastel secondary (Google SSO) button
+  secondaryButtonBackground: '#ffdfd3',
+  secondaryButtonHoverBackground: '#f4cdbe',
   secondaryButtonBorder: 'transparent',
   secondaryButtonText: '#1f1c1f',
 
   colorBackground: '#1f1c1f',
   surface: '#29252a',
-  surface2: '#373038',
-  surface3: '#6e5272',
-  surface4: '#816285',
-  txDetailsBackground: '#373038',
+  surface2: '#3b302c',
+  surface3: '#7b5243',
+  surface4: '#895c4b',
+  txDetailsBackground: '#3b302c',
 
-  hover: '#373038',
-  active: '#483f49',
-  focus: '#f3e5f5',
+  hover: '#3b302c',
+  active: '#4c3f3a',
+  focus: '#ffdfd3',
 
   success: '#a6d2c5',
-  lastUsedBadgeBackground: '#f3e5f5',
+  lastUsedBadgeBackground: '#ffdfd3',
   lastUsedBadgeText: '#1f1c1f',
   warning: '#e3cb99',
   error: '#f2a7a6',
-  info: '#f3e5f5',
+  info: '#ffdfd3',
 
   borderPrimary: '#483f49',
   borderSecondary: '#3a323b',
   borderHover: '#675c69',
 
-  highlightPrimary: '#ffdfd3',
-  highlightRow: 'rgba(255, 223, 211, 0.12)',
-  highlightHalo: '#f3e5f5',
-  highlightReceiver: '#ffdfd3',
+  highlightPrimary: '#f3e5f5',
+  highlightRow: 'rgba(243, 229, 245, 0.12)',
+  highlightHalo: '#ffdfd3',
+  highlightReceiver: '#f3e5f5',
   highlightMethodName: '#eee9ee',
-  highlightAmount: '#f3e5f5',
+  highlightAmount: '#ffdfd3',
 };
 
 // "Pastel" — the Pastel Rainbow palette (kdesign.co #09): paper cream,

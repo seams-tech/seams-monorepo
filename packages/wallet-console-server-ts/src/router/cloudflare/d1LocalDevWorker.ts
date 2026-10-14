@@ -1314,6 +1314,7 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
     session,
     account: bundle.account,
     corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
+    organizationAccess: bundle.organizationAccess,
   });
   return {
     handler: attachConsoleRouteSurface(

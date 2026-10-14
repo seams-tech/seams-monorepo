@@ -4,7 +4,8 @@ Status: implementation is committed on `codex/feat-2-platform-console`.
 The staging backend and frontends are deployed. DNS and identity providers are configured.
 Wallet Google and GitHub sign-in, account navigation, and the staging origin cutover pass.
 Satyr staging and its private account connection are deployed.
-Satyr's Google callback awaits approval. Invitation acceptance scope and production cutover remain pending.
+Satyr's Google callback is saved. Invitation acceptance is implemented.
+Live Satyr sign-in and production cutover remain pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -84,6 +85,9 @@ or additional database is required.
   accepted provisioning operations. Keep Project services absent from Wallet navigation.
 - Product links may carry developer account and developer project identifiers. The destination checks
   access. URL identifiers grant no authority and must never contain session tokens.
+- Platform accepts invitation links before the Dashboard membership check. Verified
+  recipients can join an existing developer account without creating another account.
+  Keep the invitation token and verified-email checks in the existing access service.
 
 Wallet automatic setup and the Wallet-only navigation change are deployed to staging.
 Satyr's developer-account/project picker and automatic provisioning are deployed to
@@ -313,6 +317,19 @@ HTTP 200. The unscoped identity follows the account handoff, and Wallet keeps it
 provider choices available on the next visit. Google sign-in restores the existing
 Wallet project. The trace saves paths, methods, status codes, and timestamps only.
 
+Platform now has an invitation acceptance page. Wallet invitation links redirect to
+that page. A pending invitation stays in same-origin session storage through sign-in.
+Its token is removed from the address before sign-in and cleared after acceptance
+or when the recipient leaves. Provider callbacks remain fixed.
+
+The existing hosted authentication boundary accepts both identity and organization
+sessions for invitation redemption. The existing access service checks the recipient's
+verified email, token, invitation state, and project grant. Acceptance issues an
+organization session through the current signing code. No schema change is required.
+The browser journey verifies a recipient with no developer account, wrong accounts,
+invalid tokens, replay, revoked links, and preserved project access. It also confirms
+that Platform acceptance sends no Wallet provisioning request.
+
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
 encryption keys, and service-signing keys. The private account binding targets
@@ -366,14 +383,14 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Approve the prepared Google redirect on the existing Satyr Portal client:
+1. Complete live Satyr sign-in and automatic setup. The approved Google redirect
+   is saved and verified on the existing Satyr Portal client:
    `https://staging.satyr.seams.sh/v1/control/auth/google/callback`.
-   The browser confirmation policy requires approval before saving this new trusted
-   destination. Then verify Google sign-in and automatic setup through Satyr's own app.
-2. Resolve the pre-existing account invitation gap before accepting email links.
-   Emails target `/dashboard/invitations/accept`, but both frontends lack that page.
-   First-time recipients also need an identity-based redemption boundary.
-   The user is deciding whether to include this work in the current rollout.
+   Chrome blocks the callback with `ERR_BLOCKED_BY_CLIENT`, including a fresh
+   sign-in attempt. Its cause is unresolved. Browser protections remain unchanged.
+2. Deploy invitation acceptance to staging and check the live acceptance page.
+   Its isolated browser journey passes. Staging captures account email locally,
+   so this change does not send messages to external recipients.
 3. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker

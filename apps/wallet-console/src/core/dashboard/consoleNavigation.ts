@@ -11,6 +11,7 @@ export function isSharedAccountPath(pathname: string): boolean {
     pathname === '/dashboard/onboarding' ||
     pathname === '/dashboard/account-settings' ||
     pathname === '/dashboard/team-members' ||
+    pathname === '/dashboard/invitations/accept' ||
     pathname === '/platform/billing' ||
     /^\/dashboard\/(?:billing|invoices)(?:\/|$)/.test(pathname)
   );
@@ -79,7 +80,11 @@ function setConsoleContext(
 }
 
 export function consoleSessionHref(
-  pathname: '/dashboard' | '/dashboard/login' | '/dashboard/onboarding',
+  pathname:
+    | '/dashboard'
+    | '/dashboard/login'
+    | '/dashboard/onboarding'
+    | '/dashboard/invitations/accept',
 ): string {
   const selected = readPersistedDashboardSelectedContext();
   const url = new URL(pathname, window.location.origin);

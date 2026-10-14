@@ -12,6 +12,11 @@ import type {
   ConsoleGoogleLoginResult,
 } from '@seams-internal/console-server/boundary/providerIdentity';
 import { billingCanonicalDigest } from '@seams-internal/console-server/billing/pricing';
+import {
+  isConsoleOrganizationAccessError,
+  parseRedeemOrganizationInvitationRequest,
+  type ConsoleOrganizationAccessService,
+} from '@seams-internal/console-server/teamRbac';
 
 function normalizeString(input: unknown): string {
   return String(input ?? '').trim();
@@ -56,6 +61,7 @@ export interface HostedConsoleAuthHandlerOptions {
   readonly providers: HostedConsoleProviderOptions;
   readonly session: SessionAdapter;
   readonly account: ConsoleAccountService;
+  readonly organizationAccess: ConsoleOrganizationAccessService;
   readonly corsOrigins: readonly string[];
 }
 
@@ -123,26 +129,39 @@ export class HostedConsoleAuthHandler {
 
   async fetch(request: Request, env?: object, ctx?: CfExecutionContext): Promise<Response> {
     const pathname = new URL(request.url).pathname;
+    const invitation = pathname.match(
+      /^\/console\/account\/invitations\/([^/]+)\/(accept|decline)$/,
+    );
     if (
       request.method === 'OPTIONS' ||
-      (!pathname.startsWith('/console/auth/') && pathname !== '/console/account/organizations')
+      (!pathname.startsWith('/console/auth/') &&
+        pathname !== '/console/account/organizations' &&
+        !invitation)
     ) {
       return await this.options.handler(request, env, ctx);
     }
 
     let response: Response;
     try {
-      response =
-        pathname === '/console/account/organizations'
-          ? await this.handleIdentityOrganizationRequest(request, env, ctx)
-          : await this.handleAuthRequest(request, pathname);
+      if (invitation) {
+        response = await this.handleInvitationRequest(
+          request,
+          decodeURIComponent(invitation[1]),
+          invitation[2] === 'decline' ? 'decline' : 'accept',
+        );
+      } else if (pathname === '/console/account/organizations') {
+        response = await this.handleIdentityOrganizationRequest(request, env, ctx);
+      } else {
+        response = await this.handleAuthRequest(request, pathname);
+      }
     } catch (error: unknown) {
-      response = isConsoleAccountError(error)
-        ? consoleAuthJson({ ok: false, code: error.code, message: error.message }, error.status)
-        : consoleAuthJson(
-            { ok: false, code: 'internal', message: 'Console authentication failed' },
-            500,
-          );
+      response =
+        isConsoleAccountError(error) || isConsoleOrganizationAccessError(error)
+          ? consoleAuthJson({ ok: false, code: error.code, message: error.message }, error.status)
+          : consoleAuthJson(
+              { ok: false, code: 'internal', message: 'Console authentication failed' },
+              500,
+            );
     }
     withCors(response.headers, { corsOrigins: [...this.options.corsOrigins] }, request);
     return response;
@@ -156,8 +175,8 @@ export class HostedConsoleAuthHandler {
       return consoleAuthJson({ ok: true, ...this.options.providers.github }, 200);
     }
     if (request.method === 'GET' && pathname === '/console/auth/session') {
-      const account = await this.readIdentitySession(request);
-      return account
+      const session = await this.readAccountSession(request);
+      return session?.kind === 'console_identity_v1'
         ? consoleAuthJson({ ok: true, session: { kind: 'console_identity_v1' } }, 200)
         : consoleAuthJson({ ok: false, code: 'unauthorized', message: 'Sign in to continue' }, 401);
     }
@@ -284,24 +303,71 @@ export class HostedConsoleAuthHandler {
     );
   }
 
-  private async readIdentitySession(
-    request: Request,
-  ): Promise<ConsoleAccountIdentityContext | null> {
+  private async readAccountSession(request: Request): Promise<{
+    readonly kind: 'console_identity_v1' | 'console_session_v1';
+    readonly account: ConsoleAccountIdentityContext;
+  } | null> {
     const parsed = await this.options.session.parse(Object.fromEntries(request.headers.entries()));
-    if (!parsed.ok || parsed.claims.kind !== 'console_identity_v1') return null;
+    if (!parsed.ok) return null;
+    const kind = parsed.claims.kind;
+    if (kind !== 'console_identity_v1' && kind !== 'console_session_v1') return null;
+    if (kind === 'console_session_v1' && !normalizeString(parsed.claims.orgId)) return null;
     const userId = normalizeString(parsed.claims.sub);
     const email = normalizeConsoleLoginEmail(parsed.claims.email);
     const provider = parsed.claims.provider;
     if (!userId || !email || (provider !== 'google' && provider !== 'github')) return null;
     return {
-      userId,
-      email,
-      name: normalizeString(parsed.claims.name),
-      provider,
-      orgId: null,
-      projectId: null,
-      platformSupport: false,
+      kind,
+      account: {
+        userId,
+        email,
+        name: normalizeString(parsed.claims.name),
+        provider,
+        orgId: null,
+        projectId: null,
+        platformSupport: false,
+      },
     };
+  }
+
+  private async handleInvitationRequest(
+    request: Request,
+    invitationId: string,
+    action: 'accept' | 'decline',
+  ): Promise<Response> {
+    if (request.method !== 'POST') {
+      return consoleAuthJson(
+        { ok: false, code: 'method_not_allowed', message: 'Invitation redemption requires POST' },
+        405,
+      );
+    }
+    const session = await this.readAccountSession(request);
+    if (!session) {
+      return consoleAuthJson(
+        { ok: false, code: 'unauthorized', message: 'Sign in to continue' },
+        401,
+      );
+    }
+    const input = parseRedeemOrganizationInvitationRequest(await readJsonOrNull(request));
+    const verifiedAccount = {
+      userId: session.account.userId,
+      verifiedEmail: session.account.email,
+    };
+    if (action === 'decline') {
+      const invitation = await this.options.organizationAccess.declineInvitation(
+        verifiedAccount,
+        invitationId,
+        input,
+      );
+      return consoleAuthJson({ ok: true, invitation }, 200);
+    }
+    const membership = await this.options.organizationAccess.acceptInvitation(
+      verifiedAccount,
+      invitationId,
+      input,
+    );
+    const cookie = await this.organizationSessionCookie(session.account, membership.orgId);
+    return consoleAuthJson({ ok: true, membership }, 200, cookie);
   }
 
   private async handleIdentityOrganizationRequest(
@@ -309,8 +375,9 @@ export class HostedConsoleAuthHandler {
     env?: object,
     ctx?: CfExecutionContext,
   ): Promise<Response> {
-    const account = await this.readIdentitySession(request);
-    if (!account) return this.options.handler(request, env, ctx);
+    const session = await this.readAccountSession(request);
+    if (session?.kind !== 'console_identity_v1') return this.options.handler(request, env, ctx);
+    const account = session.account;
     if (request.method === 'GET') {
       const organizations = await this.options.account.listOrganizations(account);
       return consoleAuthJson({ ok: true, organizations }, 200);
@@ -338,6 +405,14 @@ export class HostedConsoleAuthHandler {
     account: ConsoleAccountIdentityContext,
     orgId: string,
   ): Promise<Response> {
+    const cookie = await this.organizationSessionCookie(account, orgId);
+    return consoleAuthJson({ ok: true, session: { kind: 'console_session_v1' } }, 200, cookie);
+  }
+
+  private async organizationSessionCookie(
+    account: ConsoleAccountIdentityContext,
+    orgId: string,
+  ): Promise<string> {
     const scope = await this.options.account.switchOrganizationContext(account, orgId);
     const token = await this.options.session.signJwt(account.userId, {
       kind: 'console_session_v1',
@@ -347,10 +422,6 @@ export class HostedConsoleAuthHandler {
       email: account.email,
       name: account.name,
     });
-    return consoleAuthJson(
-      { ok: true, session: { kind: 'console_session_v1' } },
-      200,
-      this.options.session.buildSetCookie(token),
-    );
+    return this.options.session.buildSetCookie(token);
   }
 }

@@ -18,12 +18,20 @@ import {
 import { consumeDashboardConsoleSignOut, fetchDashboardConsoleSession } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
 import { consoleSessionHref, rememberConsoleContext } from '../consoleNavigation';
+import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
 import '../styles.css';
 
 function normalizeBaseUrl(input: unknown): string {
   return String(input || '')
     .trim()
     .replace(/\/+$/, '');
+}
+
+function loginDestination(pathname: '/dashboard' | '/dashboard/onboarding'): string {
+  if (import.meta.env.MODE === 'platform' && readPendingDashboardInvitation()) {
+    return consoleSessionHref('/dashboard/invitations/accept');
+  }
+  return consoleSessionHref(pathname);
 }
 
 type DashboardLoginExchangeResponse =
@@ -166,12 +174,12 @@ export function DashboardLoginPage(): React.JSX.Element {
     fetchDashboardConsoleSession()
       .then(() => {
         if (cancelled) return;
-        go(consoleSessionHref('/dashboard'));
+        go(loginDestination('/dashboard'));
       })
       .catch(async () => {
         if (import.meta.env.MODE === 'wallet') return;
         if (await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false)) {
-          if (!cancelled) go(consoleSessionHref('/dashboard/onboarding'));
+          if (!cancelled) go(loginDestination('/dashboard/onboarding'));
         }
       })
       .finally(() => {
@@ -240,11 +248,11 @@ export function DashboardLoginPage(): React.JSX.Element {
       .then(async (kind) => {
         if (cancelled) return;
         if (kind === 'console_identity_v1') {
-          go(consoleSessionHref('/dashboard/onboarding'));
+          go(loginDestination('/dashboard/onboarding'));
           return;
         }
         await fetchDashboardConsoleSession();
-        if (!cancelled) go(consoleSessionHref('/dashboard'));
+        if (!cancelled) go(loginDestination('/dashboard'));
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -280,12 +288,12 @@ export function DashboardLoginPage(): React.JSX.Element {
 
       const kind = await exchangeDashboardSession(relayerBaseUrl, { kind: 'google', idToken });
       if (kind === 'console_identity_v1') {
-        go(consoleSessionHref('/dashboard/onboarding'));
+        go(loginDestination('/dashboard/onboarding'));
         return;
       }
 
       await fetchDashboardConsoleSession();
-      go(consoleSessionHref('/dashboard'));
+      go(loginDestination('/dashboard'));
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {

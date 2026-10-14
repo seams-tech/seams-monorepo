@@ -744,6 +744,7 @@ function createHostedConsoleAuthentication(
   handler: FetchHandler,
   services: {
     readonly account: ConsoleAccountService;
+    readonly organizationAccess: CloudflareD1AccountServiceBundle['organizationAccess'];
     readonly serviceAccess: CloudflareD1AccountServiceBundle['serviceAccess'];
   },
   session: SessionAdapter,
@@ -774,6 +775,7 @@ function createHostedConsoleAuthentication(
     },
     session,
     account: services.account,
+    organizationAccess: services.organizationAccess,
     corsOrigins: consoleCorsOrigins(env),
   });
   return authHandler.fetch.bind(authHandler);

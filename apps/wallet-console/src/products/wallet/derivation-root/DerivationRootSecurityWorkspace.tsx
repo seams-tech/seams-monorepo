@@ -1,4 +1,4 @@
-import { shellQuote } from './recoveryKeySetupCommand';
+import { shellQuote, WALLET_CLI_PACKAGE } from './recoveryKeySetupCommand';
 import { CliRestoreApproval } from './CliRestoreApproval';
 import { listDashboardOrganizationMemberships } from '@core/dashboard/routes/team-members/consoleTeamRbacApi';
 import { CliBackupApproval } from './CliBackupApproval';
@@ -248,7 +248,7 @@ function ShortId({
 function walletCliInstallCommand(): DerivationRootCliCommand {
   return {
     label: 'Install the Seams wallet CLI',
-    command: 'npm install --global @seams/wallet-cli@0.4.1',
+    command: `npm install --global ${WALLET_CLI_PACKAGE}`,
     note: 'Run once to install the CLI. Requires Node.js 22 or later.',
   };
 }
@@ -266,7 +266,7 @@ function authorizeRestoreCommand(
 }
 
 function renderCommandToken(token: string, index: number): React.ReactNode {
-  if (token.startsWith('@seams/wallet-cli@')) {
+  if (token === WALLET_CLI_PACKAGE) {
     return (
       <span key={index} className="derivation-root-command-package">
         {token}
@@ -1449,7 +1449,7 @@ function DerivationRootSecurityWorkspace(): React.JSX.Element {
                     commands={[
                       {
                         label: 'Save your recovery kit',
-                        command: `npx @seams/wallet-cli@0.4.1 derivation-root backup kit --console-url ${shellQuote(consoleBaseUrl)} --environment ${shellQuote(status.identity.envId)} --recovery-set ${shellQuote(downloadable.recoverySetId)}${kitRole === null ? '' : ` --role ${kitRole}`}`,
+                        command: `npx ${WALLET_CLI_PACKAGE} derivation-root backup kit --console-url ${shellQuote(consoleBaseUrl)} --environment ${shellQuote(status.identity.envId)} --recovery-set ${shellQuote(downloadable.recoverySetId)}${kitRole === null ? '' : ` --role ${kitRole}`}`,
                         note:
                           kitRole === null
                             ? 'Your private wrapper keys and password stay in Terminal. The ZIP includes both wrapper keys, both encrypted recovery packages, the manifest and restore instructions.'

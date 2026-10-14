@@ -1,3 +1,6 @@
+/** The launcher release every printed command names. It must exist on npm with a signed GitHub release. */
+export const WALLET_CLI_PACKAGE = '@seams/wallet-cli@0.10.1';
+
 export function shellQuote(value: string): string {
   return "'" + value.replaceAll("'", "'\\''") + "'";
 }
@@ -7,7 +10,7 @@ export function recoveryKeySetupCommand(
   environment: string,
   role: 'deriver-a' | 'deriver-b',
 ): string {
-  const launcher = 'npx @seams/wallet-cli@0.4.1';
+  const launcher = `npx ${WALLET_CLI_PACKAGE}`;
   return `${launcher} derivation-root recovery-key setup \\
   --console-url ${shellQuote(consoleUrl)} \\
   --environment ${shellQuote(environment)} --role ${role} \\\n  --wrapping-key-file ./${role}-wrapper.key`;

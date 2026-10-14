@@ -1,0 +1,56 @@
+{
+  "status": "local-qualification-passed; Google release qualification pending",
+  "runtime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da",
+    "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+    "executableSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+    "version": "celld 0.6.2-seams.6 (debug)",
+    "profile": "dev",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--locked", "-p", "celld", "--bin", "celld"]
+  },
+  "bindings": {
+    "path": "/Users/pta/Dev/rust/seams-wallet-r190/.artifacts/celld-bindings-PeICeI/result.json",
+    "sha256": "33421ec04929a7522401a2d717506f671c99dbb77888ab0ad4d88cc17ba88245"
+  },
+  "localTwoNodeYao": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-two-node-yao-ou3f1ffo/result.json",
+    "sha256": "4303276b35fcb69ca08d4161c3e4dfee2285e16eda9076593966932aa8b8bef0"
+  },
+  "echoControls": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/peer-ws-control-p0sg05qi/result.json",
+    "sha256": "a7ebd16a048bca3aadde4e009b29e097720c131bdb4683638b7337bd88af91d3"
+  },
+  "clippy": {
+    "path": "/tmp/seams-r190-seams6-clippy.log",
+    "sha256": "a802b9449176b46b35e70eb3e46c30a5efe782890ce10c7babdaf39f0d342325"
+  },
+  "privateCheck": {
+    "path": "/tmp/seams-r190-seams6-private-check.log",
+    "sha256": "f5cabf0a76ba51c6094cebb825629f0ea62b48520e281c23bec6f9ba9ae29835"
+  },
+  "scriptChecks": {
+    "path": "/tmp/seams-r190-seams6-script-checks.log",
+    "sha256": "e454b0ba4b0a115dd90afdfe438544083a2ebb2ef8300c2f9d79cd1f79a2116b"
+  },
+  "limits": [
+    "Local synthetic S3 only; Google release acceptance pending.",
+    "Local Yao ownership measured before execution only.",
+    "Independent registration precedes owner loss.",
+    "Retry proves refusal and zero additional connections, without asserting a specific rejection reason.",
+    "Cancellation cleanup source-reviewed; not separately fault-injected.",
+    "Subprotocol, malformed external handshake, and Worker-created socket handoff remain unqualified."
+  ],
+  "review": "Independent reviewer found no material blocker in the native fix or Google controller. Remote executable identity must match the .6 build ledger.",
+  "localWallet": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-b0njdq2l/result.json",
+    "sha256": "aa60419da2dc2f9941e32a85fd146083a296fad4bbbcb10b85e79559920a56c6",
+    "selectedContractsPassed": 16,
+    "previousRuntime": "celld 0.6.2-seams.5 (debug)",
+    "refusedFeature": "peer-durable-websockets-v1"
+  }
+}

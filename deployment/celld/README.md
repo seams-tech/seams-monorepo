@@ -9,11 +9,11 @@ No upstream issue, pull request, public fork, or maintainer contact is part of t
 
 - Upstream: `https://github.com/denoland/celld.git`.
 - Base: `90b43017241f81189453d326d05948f388b34652` (`v0.6.2`).
-- Private version: `0.6.2-seams.5`.
+- Private candidate: `0.6.2-seams.6`. Linux qualification is in progress.
 - Patch: [workers-runtime.patch](workers-runtime.patch).
-- Patch SHA-256: `c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4`.
+- Patch SHA-256: `0fdbe6624af888ed3bd0cbf45e60874ae7f6dbc72125c0a6a8a5796c271210da`.
 - Wallet lifecycle build: macOS ARM64, `rustc 1.97.1`, `cargo 1.97.1`, Cargo `dev` profile.
-- Current Linux release: x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
+- Previous qualified Linux release: `.5`, x86-64, Ubuntu 24.04, Rust 1.97.1, verified on Google ordinary and SEV-SNP VMs.
 - Historical Linux release: `.4`, ARM64, Debian Bookworm, upstream Dockerfile. See its separate qualification record below.
 - Historical object-only build identity: [original build record](evidence/runtime-build.json).
 
@@ -43,6 +43,12 @@ Raw ECDH/ECDSA public-key import and export use the existing P-256, P-384, and P
 Malformed points fail validation. Public keys export as uncompressed SEC1 points. Private and nonextractable keys refuse raw export.
 Ed25519 and X25519 raw round trips remain supported. New deployments require `raw-ec-public-keys-v1`.
 The preceding `.4` runtime refuses that feature before serving traffic. No cryptographic dependency was added.
+
+Cross-node Durable Object WebSockets complete their internal HTTP upgrade handshake.
+Accepted sockets use the peer tunnel to the object's owner. Failed or cancelled attachment releases the native socket registration.
+New deployments require `peer-durable-websockets-v1`. The `.5` runtime must reject this feature before serving.
+The local echo and real two-node Yao controls pass on `.6`. See [diagnosis and qualification limits](yao-diagnostics.md).
+Previous `.5` Google evidence does not qualify the `.6` release executable.
 
 ## Deliberate limit
 
@@ -321,10 +327,11 @@ That run never reached the recovery hook. It is `environment_or_infrastructure_f
 The harness now adopts the Gateway deployment on the running node. The subsequent complete run passes all 16 contracts.
 
 Private Console Worker composition passes after its Express host removal. See [Console evidence](evidence/console-worker.json).
-The current aggregate removes 2,154 maintained lines, including the complete runtime patch and acceptance code.
-
-Remaining gates include full Google Wallet and celld Console composition, multiple-node failures,
-relocation, tenant-root retirement/restore, active-deployment inventory, host deletion, and a negative final source delta.
+The [current source inventory](evidence/source-size-checkpoint.json) includes the complete runtime patch and acceptance code.
+The final 0.11.0 candidates pass all 16 selected Wallet contracts on both Google VM types. Google Console onboarding also passes.
+Classic-host code is removed. The operator confirms that only Workers are deployed, so no classic-host state migration is required.
+Remaining gates cover the distributed lifecycle matrix, release promotion, and state-safe upgrade and rollback procedures.
+See [the current plan](../../docs/refactor-190.md#remaining-rollout-gates).
 
 ## Yao peer-disconnect check
 

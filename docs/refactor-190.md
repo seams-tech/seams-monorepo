@@ -481,7 +481,7 @@ No application host was removed in this checkpoint.
 The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
 This excludes concurrent SDK work from R190's reduction claim.
 It includes the complete maintained patch file, including diff context, and the added acceptance code.
-The checkpoint currently removes 34,460 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
+The checkpoint currently removes 33,713 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
 The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
 Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
 
@@ -603,7 +603,8 @@ See [one-node failure evidence and limits](../deployment/celld/evidence/google-w
 
 Production Console onboarding and all 75 migrations also pass on the Confidential VM with real GCS.
 See [Google Console evidence](../deployment/celld/evidence/google-console.json).
-Release promotion, live consumer inventory, state-safe cutover, and the remaining distributed restore/lifecycle matrix remain open.
+Release promotion, state-safe deployment procedures, and the remaining distributed restore/lifecycle matrix remain open.
+The deployment inventory was subsequently confirmed below.
 
 ## October 14 local Yao failure checkpoint
 
@@ -614,11 +615,17 @@ The runtime patch and application code remain unchanged.
 See [Yao evidence](../deployment/celld/evidence/yao-peer-disconnect.json) and [diagnosis and limits](../deployment/celld/yao-diagnostics.md).
 Distributed Yao recovery remains open. The sampled Worker-created WebSocket handoff also remains unqualified.
 
+## October 14 deployment inventory
+
+The operator confirms that only Workers are deployed. No deployed wallet uses the retired Express, Node Gateway, or native VM hosts.
+R190 therefore requires no live migration from those retired hosts.
+Existing Workers deployments retain their durable state. A future move from Cloudflare to celld still requires the authorized relocation or recovery flow.
+This inventory closes the classic-host consumer gate. It does not establish distributed restore correctness.
+
 ## Remaining rollout gates
 
 1. Finish the distributed lifecycle matrix: in-flight claim failure and partition, distributed Yao interruption, relocation, tenant-root retirement, and authorized restore.
-2. Confirm deployed classic-host consumers and their stored state before any live cutover. The source deletion does not establish that inventory.
-3. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
-4. Complete state-safe cutover and rollback procedures for the confirmed consumers. Preserve consumed material and ownership generations.
+2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
+3. Complete state-safe upgrade and rollback procedures for Workers deployments. Preserve consumed material and ownership generations. No classic-host state migration is required.
 
 The branch implementation and selected qualification checks are committed. Production rollout remains pending.

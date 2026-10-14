@@ -741,9 +741,9 @@ def main():
             timeout=1800,
         )
         result["browserOutcomes"] = verify_browser_report(browser_report)
-        result["stage"] = "raw-ec-public-keys-downgrade-refusal"
+        result["stage"] = "peer-durable-websockets-downgrade-refusal"
         stop(node)
-        # The preceding release must refuse the required public-key format before serving.
+        # The preceding release must refuse the required peer transport before serving.
         refusal = subprocess.run(
             [
                 previous,
@@ -764,7 +764,7 @@ def main():
         refusal_output = refusal.stdout + refusal.stderr
         (directory / "runtime-feature-downgrade.log").write_text(refusal_output)
         assert refusal.returncode == 1
-        assert "raw-ec-public-keys-v1" in refusal_output
+        assert "peer-durable-websockets-v1" in refusal_output
         result["previousRuntime"] = subprocess.check_output(
             [previous, "--version"],
             env=environment,

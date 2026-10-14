@@ -182,8 +182,8 @@ Use at least two nodes for a killed owner, a partition, and peer failure.
 Prove that one-use material and stale ownership remain fenced after failure and recovery.
 Qualify backup and restore through the application's authorized flow. Do not roll back consumed signing material.
 
-Before retiring any classic host, identify its deployed consumers and durable state.
-Give each consumer a verified replacement and a state-safe cutover procedure.
+The operator confirmed on October 14 that only Workers are deployed. No wallet requires migration from a retired classic host.
+Keep existing Workers state intact during release promotion. A future Cloudflare-to-celld transfer requires the authorized relocation or recovery flow.
 After adapter deletion, repeat acceptance with the final packaged release on both supported hosting models.
 
 ## Repeat the single-VM operational check
@@ -200,3 +200,25 @@ It trusts its synthetic certificate explicitly and removes the synthetic private
 It stops both owned test services. The VM and task buckets remain available for the next qualification.
 The final ordinary proof checks a fresh acknowledged counter write immediately before SIGKILL.
 Its successful read after automatic restart establishes single-node continuity only.
+
+## Repeat the two-node Yao check
+
+Use the owned Google resource ledger and the exact packed Wallet Server directory:
+
+```sh
+python3 tests/e2e/celld/google-yao.e2e.py \
+  RESOURCE_DIRECTORY WALLET_SERVER_PACKAGE WALLET_CHECKOUT
+```
+
+Install the same reviewed Linux runtime on both ledger VMs before running this command.
+The executable digest must match `runtime-build.json`. The driver refuses mismatched executables.
+The driver uses project `seams-501403`, the ordinary VM, the SEV-SNP VM, and the three task buckets.
+It records actual A/B owners, interrupts Yao after B's second message, kills B's owner, and checks burned state after takeover.
+It also checks the replacement ownership epoch and the unchanged surviving process.
+The driver stops both VMs and removes its temporary peer rules and tags. Cleanup failures make the result fail.
+Each retained run includes the controller sources, rendered artifact hashes, ownership records, native logs, and `result.json`.
+
+The `.6` manifest feature proves loader refusal only. A safe mixed-version rollout requires separate evidence.
+Before publishing a `.6` manifest, drain old runtime processes and verify every serving node uses the reviewed `.6` executable.
+Do not start `.5` against that manifest or remove its required feature to permit a downgrade.
+Keep durable state and consumed material intact. Full state-safe upgrade and rollback qualification remains open.

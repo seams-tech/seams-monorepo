@@ -29,7 +29,7 @@
   "excluded": "documentation, generated evidence, dependency/build output, lockfiles, generated declarations, binaries",
   "repositories": {
     "seams-wallet": {
-      "baseRevision": "6dd8fc8976b5ab0f5185f3a1d6d14af728490679",
+      "baseRevision": "2f6342253b1e63cfda887374ad269bd844f210de",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
       "netLines": -32523,
       "files": [
@@ -596,7 +596,7 @@
     "seams-monorepo": {
       "baseRevision": "e904a04456fbea8de7a5e47796f02f55680416be",
       "comparison": "current dev merge base versus R190 branch plus its own working files",
-      "netLines": -1937,
+      "netLines": -1190,
       "files": [
         {
           "path": "deployment/celld/build.mjs",
@@ -625,8 +625,8 @@
         {
           "path": "deployment/celld/workers-runtime.patch",
           "beforeLines": 0,
-          "afterLines": 1097,
-          "netLines": 1097
+          "afterLines": 1327,
+          "netLines": 1327
         },
         {
           "path": "packages/wallet-console-server-ts/package.json",
@@ -713,6 +713,18 @@
           "netLines": 27
         },
         {
+          "path": "tests/e2e/celld/google-yao.e2e.py",
+          "beforeLines": 0,
+          "afterLines": 346,
+          "netLines": 346
+        },
+        {
+          "path": "tests/e2e/celld/google-yao.remote.py",
+          "beforeLines": 0,
+          "afterLines": 146,
+          "netLines": 146
+        },
+        {
           "path": "tests/e2e/celld/linux-runtime.e2e.py",
           "beforeLines": 0,
           "afterLines": 186,
@@ -745,8 +757,8 @@
         {
           "path": "tests/e2e/celld/yao-peer-disconnect.e2e.py",
           "beforeLines": 0,
-          "afterLines": 241,
-          "netLines": 241
+          "afterLines": 266,
+          "netLines": 266
         },
         {
           "path": "tests/relayer/console-account-router.test.ts",
@@ -787,6 +799,6 @@
       ]
     }
   },
-  "aggregateNetLines": -34460,
+  "aggregateNetLines": -33713,
   "netReductionAchieved": true
 }

@@ -47,12 +47,12 @@ def read(address, role, path):
         return json.loads(reply.read())
 
 
-def read_proxy_after_restart(address):
+def read_after_takeover(address, role, path):
     refusals = []
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         try:
-            return {"evidence": read(address, "PROXY", "/evidence"), "refusals": refusals}
+            return {"evidence": read(address, role, path), "refusals": refusals}
         except urllib.error.HTTPError as error:
             body = error.read().decode()
             if error.code != 500 or not (
@@ -62,7 +62,7 @@ def read_proxy_after_restart(address):
                 raise RuntimeError((error.code, body)) from error
             refusals.append({"status": error.code, "body": body})
             time.sleep(0.25)
-    raise RuntimeError("Proxy ownership did not recover after restart")
+    raise RuntimeError("Object ownership did not recover: " + role + path)
 
 
 def require_pair_state(address, role, scope, credential, addresses, expected):
@@ -74,6 +74,75 @@ def require_pair_state(address, role, scope, credential, addresses, expected):
             return expected
         time.sleep(0.1)
     raise AssertionError((role, expected, reply))
+
+
+def verify_disconnect(address, inputs, addresses, result):
+    credential = inputs["internalCredential"]
+    result["stage"] = "create-tenant"
+    created = post(address, "ROUTER", "/router-ab/internal/tenant-root/creation/v1/create", inputs["creation"], credential, addresses)
+    assert created["status"] == 200 and created["body"]["status"]["kind"] == "ready", created
+    envelope = inputs["envelope"]
+    envelope["tenant_root"]["custody_lineage_b64u"] = created["body"]["custody_lineage_b64u"]
+    result["stage"] = "disconnect"
+    first = post(address, "ROUTER", "/router-ab/router/ed25519-yao/execute", envelope, inputs["gatewayCredential"], addresses)
+    assert first["body"].get("status") != "succeeded", first
+    execution = read(address, "CAPTURE", "/captured")
+    assert execution is not None
+    scope = {
+        "wallet_route": execution["tenant_root"]["wallet_route"],
+        "ownership_generation": execution["tenant_root"]["ownership_generation"],
+        "root_identity": execution["tenant_root"]["identity"], "pair_binding": execution["pair_binding"],
+    }
+    states = {}
+    for role in ("deriver-a", "deriver-b"):
+        states[role] = require_pair_state(address, role, scope, credential, addresses, "burned")
+    evidence = read(address, "PROXY", "/evidence")
+    result["faultObservation"] = {
+        "httpStatus": first["status"], "reply": first["body"],
+        "roleStates": states, "connection": evidence,
+    }
+    assert evidence["disconnected"] and evidence["connectionAttempts"] == 1, evidence
+    assert evidence["aMessages"] >= 1 and evidence["bMessages"] == 2, evidence
+    retry = post(address, "DERIVER_A", "/router-ab/deriver-a/ed25519-yao/execute-pair", execution, credential, addresses)
+    assert retry["status"] >= 400, retry
+    assert read(address, "PROXY", "/evidence")["connectionAttempts"] == 1
+    result["fault"] = {"httpStatus": first["status"], "status": first["body"].get("status"),
+                       "roleStates": states, "connection": evidence, "exactRetryStatus": retry["status"]}
+    result["stage"] = "independent-wallet-control"
+    second = post(address, "ROUTER", "/router-ab/internal/tenant-root/creation/v1/create", inputs["secondCreation"], credential, addresses)
+    assert second["status"] == 200 and second["body"]["status"]["kind"] == "ready", second
+    independent = inputs["secondEnvelope"]
+    independent["tenant_root"]["custody_lineage_b64u"] = second["body"]["custody_lineage_b64u"]
+    answer = post(address, "ROUTER", "/router-ab/router/ed25519-yao/execute", independent, inputs["gatewayCredential"], read(address, "", "addresses"))
+    assert answer["status"] == 200 and answer["body"]["status"] == "succeeded", answer
+    result["independentWalletCompleted"] = True
+    return {
+        "scope": scope, "execution": execution, "addresses": addresses,
+        "credential": credential,
+    }
+
+
+def verify_burned_pair(address, interrupted, result):
+    takeover = read_after_takeover(address, "PROXY", "/evidence")
+    before = takeover["evidence"]["connectionAttempts"]
+    states = {}
+    for role in ("deriver-a", "deriver-b"):
+        states[role] = require_pair_state(
+            address, role, interrupted["scope"], interrupted["credential"],
+            interrupted["addresses"], "burned",
+        )
+    retry = post(
+        address, "DERIVER_A", "/router-ab/deriver-a/ed25519-yao/execute-pair",
+        interrupted["execution"], interrupted["credential"], interrupted["addresses"],
+    )
+    assert retry["status"] >= 400, retry
+    after = read(address, "PROXY", "/evidence")["connectionAttempts"]
+    assert after == before
+    result["proxyTakeoverAfterRestart"] = takeover
+    result["restart"] = {
+        "roleStates": states, "exactRetryStatus": retry["status"],
+        "newProtocolConnections": after - before,
+    }
 
 
 def main():
@@ -173,57 +242,13 @@ def main():
         inputs = json.loads((root / "yao-inputs.json").read_text())
         credential = inputs["internalCredential"]
         addresses = read(address, "", "addresses")
-        result["stage"] = "create-tenant"
-        created = post(address, "ROUTER", "/router-ab/internal/tenant-root/creation/v1/create", inputs["creation"], credential, addresses)
-        assert created["status"] == 200 and created["body"]["status"]["kind"] == "ready", created
-        envelope = inputs["envelope"]
-        envelope["tenant_root"]["custody_lineage_b64u"] = created["body"]["custody_lineage_b64u"]
-        result["stage"] = "disconnect"
-        first = post(address, "ROUTER", "/router-ab/router/ed25519-yao/execute", envelope, inputs["gatewayCredential"], addresses)
-        assert first["body"].get("status") != "succeeded", first
-        execution = read(address, "CAPTURE", "/captured")
-        assert execution is not None
-        scope = {
-            "wallet_route": execution["tenant_root"]["wallet_route"],
-            "ownership_generation": execution["tenant_root"]["ownership_generation"],
-            "root_identity": execution["tenant_root"]["identity"], "pair_binding": execution["pair_binding"],
-        }
-        states = {}
-        for role in ("deriver-a", "deriver-b"):
-            states[role] = require_pair_state(address, role, scope, credential, addresses, "burned")
-        evidence = read(address, "PROXY", "/evidence")
-        result["faultObservation"] = {
-            "httpStatus": first["status"], "reply": first["body"],
-            "roleStates": states, "connection": evidence,
-        }
-        assert evidence["disconnected"] and evidence["connectionAttempts"] == 1, evidence
-        assert evidence["aMessages"] >= 1 and evidence["bMessages"] == 2, evidence
-        retry = post(address, "DERIVER_A", "/router-ab/deriver-a/ed25519-yao/execute-pair", execution, credential, addresses)
-        assert retry["status"] >= 400, retry
-        assert read(address, "PROXY", "/evidence")["connectionAttempts"] == 1
-        result["fault"] = {"httpStatus": first["status"], "status": first["body"].get("status"),
-                           "roleStates": states, "connection": evidence, "exactRetryStatus": retry["status"]}
-        result["stage"] = "independent-wallet-control"
-        second = post(address, "ROUTER", "/router-ab/internal/tenant-root/creation/v1/create", inputs["secondCreation"], credential, addresses)
-        assert second["status"] == 200 and second["body"]["status"]["kind"] == "ready", second
-        independent = inputs["secondEnvelope"]
-        independent["tenant_root"]["custody_lineage_b64u"] = second["body"]["custody_lineage_b64u"]
-        answer = post(address, "ROUTER", "/router-ab/router/ed25519-yao/execute", independent, inputs["gatewayCredential"], read(address, "", "addresses"))
-        assert answer["status"] == 200 and answer["body"]["status"] == "succeeded", answer
-        result["independentWalletCompleted"] = True
+        interrupted = verify_disconnect(address, inputs, addresses, result)
         result["stage"] = "restart"
         harness.stop(node)
         processes.remove(node)
         node = harness.start(command, root, environment, "node-restarted.log", processes)
         harness.wait_for_http(address + "/ROUTER", node)
-        for role in ("deriver-a", "deriver-b"):
-            require_pair_state(address, role, scope, credential, addresses, "burned")
-        retry = post(address, "DERIVER_A", "/router-ab/deriver-a/ed25519-yao/execute-pair", execution, credential, addresses)
-        assert retry["status"] >= 400, retry
-        takeover = read_proxy_after_restart(address)
-        assert takeover["evidence"]["connectionAttempts"] == 0
-        result["proxyTakeoverAfterRestart"] = takeover
-        result["restart"] = {"roleStates": states, "exactRetryStatus": retry["status"], "newProtocolConnections": 0}
+        verify_burned_pair(address, interrupted, result)
         result["status"] = "passed"
     except Exception as error:
         result["status"] = "failed"

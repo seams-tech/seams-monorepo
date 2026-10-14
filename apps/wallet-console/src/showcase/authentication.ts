@@ -181,15 +181,12 @@ function onIntent(intent: AuthMenuIntent): void {
       if (state.kind === 'menu') show(intent.mode === 'register' ? registration() : login());
       return;
     case 'submit':
-      complete(
-        intent.mode === 'register' ? 'Wallet created' : 'Wallet unlocked',
-        'Your wallet is ready.',
-      );
+      complete('Success', "You're logged in.");
       return;
     case 'external_auth':
       if (state.kind === 'menu' && state.model.kind === 'recovery')
         show(googleRecovery('sign_in_ready', state.model.recoveryCode));
-      else complete('Continue with Google', 'Choose your Google account to continue.');
+      else complete('Success', "You're logged in.");
       return;
     case 'link_device_open':
       openLink();

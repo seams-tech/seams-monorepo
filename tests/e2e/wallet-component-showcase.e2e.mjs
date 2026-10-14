@@ -157,7 +157,7 @@ try {
     .click();
   await expect(
     gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
-  ).toContainText('Your wallet is ready.');
+  ).toContainText("You're logged in.");
   await gallery
     .frameLocator('iframe[title="Authentication"]')
     .getByRole('button', { name: 'Back', exact: true })

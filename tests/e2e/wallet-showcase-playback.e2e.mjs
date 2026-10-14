@@ -83,7 +83,7 @@ try {
   await selection(gallery, 'Authentication');
   await expect(
     gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
-  ).toHaveText('Your wallet is ready.', { timeout: 15000 });
+  ).toHaveText("You're logged in.", { timeout: 15000 });
   await selection(gallery, 'Transactions');
 
   // A visitor takes control; Play restarts this component so the cursor has a known starting point.

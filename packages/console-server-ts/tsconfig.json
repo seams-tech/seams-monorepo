@@ -19,14 +19,13 @@
     "declarationMap": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "types": ["node", "express"],
+    "types": ["node"],
     "useDefineForClassFields": false,
     "paths": {
       "@seams-internal/console-shared": ["../console-shared-ts/src/index.ts"],
       "@seams-internal/console-shared/*": ["../console-shared-ts/src/*"],
       "@seams-internal/console-server": ["src/index.ts"],
       "@seams-internal/console-server/*": ["src/*"],
-      "express": ["./node_modules/@types/express/index.d.ts"],
       "*": ["./node_modules/*", "../node_modules/*", "../../node_modules/*"]
     }
   },

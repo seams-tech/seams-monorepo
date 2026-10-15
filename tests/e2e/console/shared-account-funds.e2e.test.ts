@@ -1,3 +1,4 @@
+import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -104,7 +105,12 @@ async function migrateAfterFunds(database: D1DatabaseLike): Promise<void> {
 async function services(database: D1DatabaseLike) {
   const projects = await createD1ConsoleOrgProjectService({ database, namespace, now });
   const access = await createD1ConsoleOrganizationAccessService({ database, namespace, now });
-  const billing = await createD1ConsoleBillingService({ database, namespace, now });
+  const billing = await createD1ConsoleBillingService({
+    database,
+    namespace,
+    now,
+    providers: createSimulatedBillingProviderAdapters(),
+  });
   const platform = createD1AccountPlatformService({
     database,
     namespace,

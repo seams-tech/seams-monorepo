@@ -1,7 +1,3 @@
-import type { Server } from 'node:http';
-import http from 'node:http';
-import type { Buffer } from 'node:buffer';
-import expressImport from 'express';
 import type {
   ConsoleAuthAdapter,
   ConsoleAuthClaims,
@@ -9,81 +5,8 @@ import type {
 import type { SessionAdapter } from '../../packages/console-server-ts/src/boundary/session';
 import type { CfEnv, CfExecutionContext } from '@seams/wallet-server/cloud-host';
 
-type ExpressMiddleware = (req: unknown, res: unknown, next: (err?: unknown) => void) => unknown;
-type ExpressAppLike = ((req: unknown, res: unknown) => unknown) & {
-  use: (...args: unknown[]) => unknown;
-};
-
 const SESSION_COOKIE_NAME =
   String(process.env.SESSION_COOKIE_NAME || 'seams-jwt').trim() || 'seams-jwt';
-
-// In TS `moduleResolution: bundler`, CommonJS packages like `express` can type as a
-// namespace object (non-callable). Normalize to a callable factory for tests.
-type ExpressLike = { (): ExpressAppLike; json: (options?: unknown) => ExpressMiddleware };
-
-const express: ExpressLike = (() => {
-  const maybeDefault = (expressImport as unknown as { default?: unknown }).default;
-  if (typeof maybeDefault === 'function') return maybeDefault as ExpressLike;
-  return expressImport as unknown as ExpressLike;
-})();
-
-function captureRawJsonBody(req: unknown, _res: unknown, buffer: Buffer): void {
-  if (!req || typeof req !== 'object') return;
-  (req as { rawBody?: Uint8Array }).rawBody = Uint8Array.from(buffer);
-}
-
-export async function startExpressRouter(router: unknown): Promise<{
-  baseUrl: string;
-  close: () => Promise<void>;
-}> {
-  const app = express();
-  app.use(express.json({ limit: '1mb', verify: captureRawJsonBody }));
-  app.use(router);
-
-  const server: Server = http.createServer(app);
-
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-
-  const address = server.address();
-  if (!address || typeof address === 'string') {
-    throw new Error('Failed to bind express test server');
-  }
-
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
-  return {
-    baseUrl,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
-        server.close((err) => (err ? reject(err) : resolve()));
-      }),
-  };
-}
-
-export async function fetchJson(
-  url: string,
-  init?: RequestInit,
-): Promise<{
-  status: number;
-  headers: Headers;
-  json: Record<string, any> | null;
-  text: string;
-}> {
-  const res = await fetch(url, init);
-  const text = await res.text();
-  let json: Record<string, any> | null = null;
-  try {
-    const parsed: unknown = text ? JSON.parse(text) : null;
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      json = parsed as Record<string, any>;
-    } else {
-      json = null;
-    }
-  } catch {
-    json = null;
-  }
-  return { status: res.status, headers: res.headers, json, text };
-}
 
 export function makeCfCtx(): {
   ctx: CfExecutionContext;

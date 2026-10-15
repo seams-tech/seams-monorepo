@@ -500,3 +500,50 @@ and `CONSOLE_STEP_UP_ORIGIN=https://console.staging.wallet.seams.sh`.
 `CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh` is preserved. Keep old entrypoints
 available until the remaining acceptance checks pass. Deployment evidence, screenshots, and pending actions are recorded
 under `.artifacts/platform-console/rollout/`, including `report.json` and `signin-journey.json`.
+
+## P2 architecture review fixes — October 16, 2026
+
+These review fixes are implemented locally. They await staging deployment.
+The accepted staging release described above remains unchanged.
+
+- Local and hosted Workers use `d1AccountConsole.ts` for account request composition.
+  Account routes do not construct the Wallet runtime or require signer bindings.
+- The core Fetch router owns shared billing routes, including support adjustments and refunds.
+  Wallet supplies billing summaries, balance notifications, and request observations through hooks.
+  Wallet sponsorship history and monthly Wallet usage remain product routes.
+- The unused private Express Console router, exports, and transport helpers are removed.
+  Retained behaviour checks use Fetch. Public Wallet SDK adapters keep their separate owner.
+- Missing or invalid Stripe configuration produces an unavailable provider.
+  Account and billing reads remain usable. Payment operations return `503` before creating pending state.
+  Replays of completed refunds still return their stored result without Stripe.
+  Payment simulation requires an explicit adapter in local development or test fixtures.
+- Invitation encryption fails at the operation that seals or opens a secret.
+  Account reads do not require email delivery configuration.
+- Satyr verifies the shared identity before sign-in. Organisation linking runs independently while the Google token is present.
+  A failed organisation link cannot prevent access to another authorised organisation.
+  An affected invitation displays a scoped retry. Google tokens remain transient.
+- Satyr reuses each resolved placement and checks independent organisations concurrently.
+  Session and organisation-list responses include required `membershipAvailability`: `complete` or `incomplete`.
+  Partial lists contain only organisations that pass fresh account and native role checks.
+  An authority outage never becomes an empty-account claim. Refresh requests read a fresh session.
+
+No new environment variables, service bindings, databases, or schema migrations are required.
+Deploy the native Satyr Worker and its built Portal together because they share the session response contract.
+Monthly postpaid billing remains a separate feature.
+
+Acceptance covers both Worker entrypoints with absent Wallet bindings, missing and malformed Stripe keys,
+failed invitation encryption, real provider HTTP boundaries, idempotent payment settlement, refunds,
+support adjustments, Wallet balance webhooks, native Google sign-in, and scoped authority outages.
+It also covers native financial recovery and browser recovery from a partial organisation list.
+
+Repeat the composed Console acceptance from this checkout:
+
+```sh
+pnpm -C tests exec playwright test -c playwright.config.ts e2e/console/account-worker-composition.e2e.test.ts --reporter=line
+node tests/helpers/buildSharedAccountPlatformWorker.mjs
+```
+
+The first command builds both current Worker entrypoints. It writes
+`.artifacts/p2-console-review/account-composition/acceptance.json` and attaches it to the test report.
+The account fixture build supplies the real shared authority for native Satyr acceptance.
+See Satyr's `docs/evidence/account-session-isolation.md` for those commands and artifacts.

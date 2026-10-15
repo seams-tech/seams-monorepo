@@ -6,7 +6,7 @@ import {
   buildWebhookDeadLetterObservabilityEvent,
   buildWebhookRetryExhaustedObservabilityEvent,
   redactConsoleObservabilityMetadata,
-} from '@seams-internal/wallet-console-server/router/express-adaptor';
+} from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
 
 function parseJsonObject(raw: unknown): Record<string, unknown> {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {

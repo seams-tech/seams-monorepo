@@ -30,7 +30,11 @@ import type { AccountConsoleContext } from './context';
 import { json } from './http';
 import { handleAccountPlatformRoutes } from './accountPlatformRoutes';
 import { handleAccountConsoleAudit } from './auditRoutes';
-import { handleAccountConsoleBilling } from './billingRoutes';
+import {
+  handleConsoleBillingRoutes,
+  ACCOUNT_BILLING_HOOKS,
+  type ConsoleBillingRouteHooks,
+} from './billingRoutes';
 
 export interface AccountConsoleRouterServices {
   readonly account: ConsoleAccountService;
@@ -53,6 +57,12 @@ export interface AccountConsoleRouterOptions {
   readonly walletProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly satyrProvisioning: AccountServiceProvisioningAdapterV1 | null;
   readonly billingStripeWebhookSigningSecret: string | null;
+  readonly billingHooks?: ConsoleBillingRouteHooks;
+  readonly requestCompleted?: (
+    context: AccountConsoleContext,
+    latencyMs: number,
+    statusCode: number,
+  ) => Promise<void>;
   readonly corsOrigins?: readonly (string | undefined)[];
   readonly logger?: RouterLogger;
   readonly waitUntil?: (work: Promise<unknown>) => void;
@@ -70,7 +80,6 @@ const ACCOUNT_HANDLERS = [
   handleConsoleProjects,
   handleConsoleOrganizationAccess,
   handleAccountConsoleAudit,
-  handleAccountConsoleBilling,
 ] as const;
 
 function corsResponse(
@@ -115,6 +124,7 @@ async function routeAccountRequest(
   if (request.method.toUpperCase() === 'OPTIONS') {
     return corsResponse(new Response(null, { status: 204 }), request, options.corsOrigins ?? []);
   }
+  const startedAt = Date.now();
   const url = new URL(request.url);
   const context: AccountConsoleContext = {
     request,
@@ -142,11 +152,38 @@ async function routeAccountRequest(
     authorizeTenant: null,
     waitUntil: options.waitUntil ?? null,
   };
+  const response = await dispatchAccountRequest(options, context);
+  if (options.requestCompleted) {
+    const work = options
+      .requestCompleted(context, Math.max(0, Date.now() - startedAt), response.status)
+      .catch(logAccountRequestObservationFailure.bind(null, context));
+    if (context.waitUntil) context.waitUntil(work);
+    else void work;
+  }
+  return response;
+}
+
+function logAccountRequestObservationFailure(context: AccountConsoleContext, error: unknown): void {
+  context.logger.warn('[console] request observation failed', {
+    message: error instanceof Error ? error.message : String(error),
+  });
+}
+
+async function dispatchAccountRequest(
+  options: AccountConsoleRouterOptions,
+  context: AccountConsoleContext,
+): Promise<Response> {
+  const request = context.request;
   try {
     for (const handle of ACCOUNT_HANDLERS) {
       const response = await handle(context);
       if (response) return corsResponse(response, request, options.corsOrigins ?? []);
     }
+    const billing = await handleConsoleBillingRoutes(
+      context,
+      options.billingHooks ?? ACCOUNT_BILLING_HOOKS,
+    );
+    if (billing) return corsResponse(billing, request, options.corsOrigins ?? []);
     return corsResponse(
       new Response('Not Found', { status: 404 }),
       request,

@@ -38,6 +38,7 @@ import type { ScheduledHandler } from '@seams/wallet-server/cloud-host';
 import type { RouterLogger } from '@seams/wallet-server/cloud-host';
 import { base64UrlDecode, coerceRouterLogger } from '@seams/wallet-server/cloud-host';
 import type { RouterApiCloudflareConsoleWorkerEnv } from './cloudflareConsole.types';
+import { ConsoleOrganizationAccessError } from '@seams-internal/console-server/teamRbac/errors';
 
 type BillingMonthlyFinalizationRunner = (
   options: D1ConsoleBillingMonthlyFinalizationOptions,
@@ -311,6 +312,35 @@ function resolveOptionalConsoleEmailInvitationSecretCipher(
       return null;
     default:
       return assertNeverConsoleInvitationDelivery(input.invitationDelivery);
+  }
+}
+
+/** Account reads do not depend on email delivery configuration. */
+export function createConsoleEmailInvitationSecretCipherFromEnv(
+  env: RouterApiCloudflareConsoleWorkerEnv,
+): ConsoleInvitationSecretCipher {
+  try {
+    return resolveConsoleEmailInvitationSecretCipher(env);
+  } catch {
+    return new UnavailableConsoleInvitationSecretCipher();
+  }
+}
+
+class UnavailableConsoleInvitationSecretCipher implements ConsoleInvitationSecretCipher {
+  async seal(): Promise<never> {
+    throw new ConsoleOrganizationAccessError(
+      'invitation_email_unavailable',
+      503,
+      'Invitation encryption is not configured correctly',
+    );
+  }
+
+  async open(): Promise<never> {
+    throw new ConsoleOrganizationAccessError(
+      'invitation_email_unavailable',
+      503,
+      'Invitation encryption is not configured correctly',
+    );
   }
 }
 

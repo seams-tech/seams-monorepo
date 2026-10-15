@@ -4,7 +4,7 @@ import {
   createD1BillingLedgerEntryInsertStatement,
   createD1ConsoleBillingService,
 } from '../../packages/console-server-ts/src/billing/d1';
-import { createDefaultBillingProviderAdapters } from '../../packages/console-server-ts/src/billing/providers';
+import { createSimulatedBillingProviderAdapters } from '../../packages/console-server-ts/src/billing/providers';
 import type { ConsoleBillingRefundSupportContext } from '../../packages/console-server-ts/src/billing/service';
 import { ensureAccountPlatformD1Schema } from '../../packages/console-server-ts/src/accountPlatform/schema';
 import { ensureBillingFundsD1Schema } from '../../packages/console-server-ts/src/billingPrepaidReservations/schema';
@@ -115,6 +115,7 @@ test('D1 billing reconstructs balanced credit and persists provider-backed refun
       database: temporary.database,
       namespace: BILLING_NAMESPACE,
       now: () => new Date('2026-03-20T00:00:00.000Z'),
+      providers: createSimulatedBillingProviderAdapters(),
       emailConsoleBaseUrl: 'https://console.example.com',
     });
 
@@ -275,7 +276,7 @@ test('D1 billing reserves refund capacity before awaiting Stripe', async () => {
   const firstRefundGate = Promise.withResolvers<void>();
   try {
     await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-console-core'));
-    const defaults = createDefaultBillingProviderAdapters();
+    const defaults = createSimulatedBillingProviderAdapters();
     const firstRefundStarted = Promise.withResolvers<void>();
     let refundAttempts = 0;
     const billing = await createD1ConsoleBillingService({
@@ -341,7 +342,7 @@ test('D1 billing matches the exact checkout session and retries an ambiguous ref
   const temporary = createTemporaryD1Database();
   try {
     await applyD1MigrationFiles(temporary.database, listD1MigrationFiles('d1-console-core'));
-    const defaults = createDefaultBillingProviderAdapters();
+    const defaults = createSimulatedBillingProviderAdapters();
     let refundAttempts = 0;
     const billing = await createD1ConsoleBillingService({
       database: temporary.database,
@@ -478,6 +479,7 @@ for (const directory of ['d1-console-core', 'd1-console'] as const) {
       const billing = await createD1ConsoleBillingService({
         database: temporary.database,
         namespace: BILLING_NAMESPACE,
+        providers: createSimulatedBillingProviderAdapters(),
       });
       const checkout = await billing.createStripeCheckoutSession(SUPPORT_CONTEXT, {
         creditPackId: 'usd_25',

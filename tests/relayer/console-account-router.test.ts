@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import {
-  createConsoleRouter,
   createInMemoryConsoleAccountService,
   createInMemoryConsoleOrganizationAccessService,
   createInMemoryConsoleOrgProjectService,
@@ -10,17 +9,15 @@ import {
   type ConsoleAuthClaims,
   type ConsoleOrganizationAccessService,
   type ConsoleOrgProjectService,
-} from '@seams-internal/wallet-console-server/router/express-adaptor';
+} from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
 import { createCloudflareConsoleRouter } from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
-import type { SessionAdapter } from '@seams/wallet-server/router/express';
-import { callCf, fetchJson, makeConsoleAuthAdapter, startExpressRouter } from './helpers';
+import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import { callCf, makeConsoleAuthAdapter } from './helpers';
 import { consoleAuthorizationClaims } from '../helpers/consoleAuthorization.fixtures';
 
 const CURRENT_USER_ID = 'user_current';
 const CURRENT_EMAIL = 'owner@example.com';
 const CURRENT_NAME = 'Owner User';
-
-type RouterMode = 'express' | 'cloudflare';
 
 interface AccountRouteFixture {
   readonly orgProjectEnv: ConsoleOrgProjectService;
@@ -201,40 +198,14 @@ function requireOrganization(
   return organization;
 }
 
-async function callConsoleRoute(
-  mode: RouterMode,
-  input: {
-    readonly auth: ConsoleAuthAdapter;
-    readonly account: ConsoleAccountService;
-    readonly session?: SessionAdapter | null;
-    readonly method: string;
-    readonly path: string;
-    readonly body?: Record<string, unknown>;
-  },
-): Promise<ConsoleRouteResponse> {
-  if (mode === 'express') {
-    const router = createConsoleRouter({
-      auth: input.auth,
-      account: input.account,
-      session: input.session ?? null,
-    });
-    const server = await startExpressRouter(router);
-    try {
-      const response = await fetchJson(`${server.baseUrl}${input.path}`, {
-        method: input.method,
-        headers: input.body ? { 'Content-Type': 'application/json' } : undefined,
-        body: input.body ? JSON.stringify(input.body) : undefined,
-      });
-      return {
-        status: response.status,
-        json: response.json,
-        cookie: String(response.headers.get('set-cookie') || ''),
-      };
-    } finally {
-      await server.close();
-    }
-  }
-
+async function callConsoleRoute(input: {
+  readonly auth: ConsoleAuthAdapter;
+  readonly account: ConsoleAccountService;
+  readonly session?: SessionAdapter | null;
+  readonly method: string;
+  readonly path: string;
+  readonly body?: Record<string, unknown>;
+}): Promise<ConsoleRouteResponse> {
   const handler = createCloudflareConsoleRouter({
     auth: input.auth,
     account: input.account,
@@ -252,255 +223,247 @@ async function callConsoleRoute(
   };
 }
 
-for (const mode of ['express', 'cloudflare'] as const) {
-  test.describe(`console account routes (${mode})`, () => {
-    test('returns profile data and lists only organizations with precise access', async () => {
-      const fixture = createAccountRouteFixture();
-      const currentMembershipId = await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_current',
-        userId: CURRENT_USER_ID,
-        email: CURRENT_EMAIL,
-        displayName: CURRENT_NAME,
-        organizationName: 'Current Org',
-      });
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_shared',
-        userId: 'user_shared_owner',
-        email: 'shared-owner@example.com',
-        displayName: 'Shared Owner',
-        organizationName: 'Shared Org',
-      });
-      await createProject({
-        orgProjectEnv: fixture.orgProjectEnv,
-        orgId: 'org_shared',
-        actorUserId: 'user_shared_owner',
-        projectId: 'proj_shared',
-      });
-      const memberMembershipId = await addCurrentUserAsProjectMember({
-        organizationAccess: fixture.organizationAccess,
-        orgId: 'org_shared',
-        ownerUserId: 'user_shared_owner',
-        projectId: 'proj_shared',
-      });
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_hidden',
-        userId: 'user_hidden_owner',
-        email: 'hidden-owner@example.com',
-        displayName: 'Hidden Owner',
-        organizationName: 'Hidden Org',
-      });
+test.describe('console account routes', () => {
+  test('returns profile data and lists only organizations with precise access', async () => {
+    const fixture = createAccountRouteFixture();
+    const currentMembershipId = await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_current',
+      userId: CURRENT_USER_ID,
+      email: CURRENT_EMAIL,
+      displayName: CURRENT_NAME,
+      organizationName: 'Current Org',
+    });
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_shared',
+      userId: 'user_shared_owner',
+      email: 'shared-owner@example.com',
+      displayName: 'Shared Owner',
+      organizationName: 'Shared Org',
+    });
+    await createProject({
+      orgProjectEnv: fixture.orgProjectEnv,
+      orgId: 'org_shared',
+      actorUserId: 'user_shared_owner',
+      projectId: 'proj_shared',
+    });
+    const memberMembershipId = await addCurrentUserAsProjectMember({
+      organizationAccess: fixture.organizationAccess,
+      orgId: 'org_shared',
+      ownerUserId: 'user_shared_owner',
+      projectId: 'proj_shared',
+    });
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_hidden',
+      userId: 'user_hidden_owner',
+      email: 'hidden-owner@example.com',
+      displayName: 'Hidden Owner',
+      organizationName: 'Hidden Org',
+    });
 
-      const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
-      const profileResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'GET',
-        path: '/console/account/profile',
-      });
-      expect(profileResponse.status).toBe(200);
-      expect(profileResponse.json?.profile).toMatchObject({
-        userId: CURRENT_USER_ID,
-        displayName: CURRENT_NAME,
-        primaryEmail: CURRENT_EMAIL,
-      });
+    const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
+    const profileResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'GET',
+      path: '/console/account/profile',
+    });
+    expect(profileResponse.status).toBe(200);
+    expect(profileResponse.json?.profile).toMatchObject({
+      userId: CURRENT_USER_ID,
+      displayName: CURRENT_NAME,
+      primaryEmail: CURRENT_EMAIL,
+    });
 
-      const patchResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'PATCH',
-        path: '/console/account/profile',
-        body: {
-          displayName: 'Updated Owner',
-          addBackupEmail: 'backup@example.com',
-        },
-      });
-      expect(patchResponse.status).toBe(200);
-      expect(patchResponse.json?.profile).toMatchObject({
+    const patchResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'PATCH',
+      path: '/console/account/profile',
+      body: {
         displayName: 'Updated Owner',
-        backupEmails: [{ email: 'backup@example.com', status: 'PENDING' }],
-      });
-
-      const listResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'GET',
-        path: '/console/account/organizations',
-      });
-      expect(listResponse.status).toBe(200);
-      const organizations = readObjectArray(listResponse.json?.organizations, 'organizations');
-      expect(organizations.map((entry) => entry.id).sort()).toEqual(['org_current', 'org_shared']);
-      expect(requireOrganization(organizations, 'org_current')).toMatchObject({
-        membershipId: currentMembershipId,
-        role: 'OWNER',
-        adminPermissions: ['members.manage', 'projects.manage', 'billing.view', 'billing.manage'],
-        projectAccess: { kind: 'all' },
-        isCurrentOrg: true,
-      });
-      const sharedOrganization = requireOrganization(organizations, 'org_shared');
-      expect(sharedOrganization).toMatchObject({
-        membershipId: memberMembershipId,
-        role: 'MEMBER',
-        adminPermissions: [],
-        projectAccess: {
-          kind: 'assigned',
-          assignments: [{ projectId: 'proj_shared', accessLevel: 'viewer' }],
-        },
-        isCurrentOrg: false,
-      });
-      expect('actorRoles' in sharedOrganization).toBe(false);
+        addBackupEmail: 'backup@example.com',
+      },
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(patchResponse.json?.profile).toMatchObject({
+      displayName: 'Updated Owner',
+      backupEmails: [{ email: 'backup@example.com', status: 'PENDING' }],
     });
 
-    test('switches to member access and signs only current authorization claims', async () => {
-      const fixture = createAccountRouteFixture();
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_current',
-        userId: CURRENT_USER_ID,
-        email: CURRENT_EMAIL,
-        displayName: CURRENT_NAME,
-        organizationName: 'Current Org',
-      });
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_target',
-        userId: 'user_target_owner',
-        email: 'target-owner@example.com',
-        displayName: 'Target Owner',
-        organizationName: 'Target Org',
-      });
-      await createProject({
-        orgProjectEnv: fixture.orgProjectEnv,
-        orgId: 'org_target',
-        actorUserId: 'user_target_owner',
-        projectId: 'proj_target',
-      });
-      const targetMembershipId = await addCurrentUserAsProjectMember({
-        organizationAccess: fixture.organizationAccess,
-        orgId: 'org_target',
-        ownerUserId: 'user_target_owner',
-        projectId: 'proj_target',
-      });
-
-      const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
-      const session = new ContextSwitchSession();
-      const response = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        session,
-        method: 'POST',
-        path: '/console/account/organizations/org_target/switch-context',
-        body: {},
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.json?.context).toMatchObject({
-        orgId: 'org_target',
-        membershipId: targetMembershipId,
-        role: 'MEMBER',
-        adminPermissions: [],
-        projectAccess: {
-          kind: 'assigned',
-          assignments: [{ projectId: 'proj_target', accessLevel: 'viewer' }],
-        },
-        platformSupport: false,
-        projectId: 'proj_target',
-      });
-      expect(session.signedSubject).toBe(CURRENT_USER_ID);
-      expect(session.signedClaims).toMatchObject({
-        userId: CURRENT_USER_ID,
-        kind: 'app_session_v1',
-        appSessionVersion: 'v1',
-        email: CURRENT_EMAIL,
-        name: CURRENT_NAME,
-        orgId: 'org_target',
-        membershipId: targetMembershipId,
-        role: 'MEMBER',
-        adminPermissions: [],
-        projectAccess: {
-          kind: 'assigned',
-          assignments: [{ projectId: 'proj_target', accessLevel: 'viewer' }],
-        },
-        platformSupport: false,
-        projectId: 'proj_target',
-      });
-      if (!session.signedClaims) throw new Error('Expected signed session claims');
-      expect('roles' in session.signedClaims).toBe(false);
-      expect(response.cookie).toContain('switched-session-token');
+    const listResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'GET',
+      path: '/console/account/organizations',
     });
-
-    test('allows owner update and delete while transfer-owner remains absent', async () => {
-      const fixture = createAccountRouteFixture();
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_current',
-        userId: CURRENT_USER_ID,
-        email: CURRENT_EMAIL,
-        displayName: CURRENT_NAME,
-        organizationName: 'Current Org',
-      });
-      await seedOwnerOrganization({
-        ...fixture,
-        orgId: 'org_target',
-        userId: CURRENT_USER_ID,
-        email: CURRENT_EMAIL,
-        displayName: CURRENT_NAME,
-        organizationName: 'Target Org',
-      });
-
-      const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
-      const updateResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'PATCH',
-        path: '/console/account/organizations/org_target',
-        body: { name: 'Renamed Target', slug: 'renamed-target' },
-      });
-      expect(updateResponse.status).toBe(200);
-      expect(updateResponse.json?.organization).toMatchObject({
-        id: 'org_target',
-        name: 'Renamed Target',
-        slug: 'renamed-target',
-        role: 'OWNER',
-        projectAccess: { kind: 'all' },
-      });
-
-      const transferResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'POST',
-        path: '/console/account/organizations/org_target/transfer-owner',
-        body: { targetUserId: 'user_other' },
-      });
-      if (mode === 'express') {
-        expect(transferResponse.status).toBe(404);
-      } else {
-        expect(transferResponse.status).toBe(500);
-        expect(transferResponse.json).toMatchObject({
-          code: 'route_auth_not_configured',
-        });
-      }
-      expect(transferResponse.json?.transfer).toBeUndefined();
-
-      const deleteResponse = await callConsoleRoute(mode, {
-        auth,
-        account: fixture.account,
-        method: 'DELETE',
-        path: '/console/account/organizations/org_target',
-      });
-      expect(deleteResponse.status).toBe(200);
-      expect(deleteResponse.json?.deleted).toEqual({
-        orgId: 'org_target',
-        organizationName: 'Renamed Target',
-      });
-      await expect(
-        fixture.organizationAccess.lookupAuthorization({
-          orgId: 'org_target',
-          userId: CURRENT_USER_ID,
-        }),
-      ).resolves.toBeNull();
+    expect(listResponse.status).toBe(200);
+    const organizations = readObjectArray(listResponse.json?.organizations, 'organizations');
+    expect(organizations.map((entry) => entry.id).sort()).toEqual(['org_current', 'org_shared']);
+    expect(requireOrganization(organizations, 'org_current')).toMatchObject({
+      membershipId: currentMembershipId,
+      role: 'OWNER',
+      adminPermissions: ['members.manage', 'projects.manage', 'billing.view', 'billing.manage'],
+      projectAccess: { kind: 'all' },
+      isCurrentOrg: true,
     });
+    const sharedOrganization = requireOrganization(organizations, 'org_shared');
+    expect(sharedOrganization).toMatchObject({
+      membershipId: memberMembershipId,
+      role: 'MEMBER',
+      adminPermissions: [],
+      projectAccess: {
+        kind: 'assigned',
+        assignments: [{ projectId: 'proj_shared', accessLevel: 'viewer' }],
+      },
+      isCurrentOrg: false,
+    });
+    expect('actorRoles' in sharedOrganization).toBe(false);
   });
-}
+
+  test('switches to member access and signs only current authorization claims', async () => {
+    const fixture = createAccountRouteFixture();
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_current',
+      userId: CURRENT_USER_ID,
+      email: CURRENT_EMAIL,
+      displayName: CURRENT_NAME,
+      organizationName: 'Current Org',
+    });
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_target',
+      userId: 'user_target_owner',
+      email: 'target-owner@example.com',
+      displayName: 'Target Owner',
+      organizationName: 'Target Org',
+    });
+    await createProject({
+      orgProjectEnv: fixture.orgProjectEnv,
+      orgId: 'org_target',
+      actorUserId: 'user_target_owner',
+      projectId: 'proj_target',
+    });
+    const targetMembershipId = await addCurrentUserAsProjectMember({
+      organizationAccess: fixture.organizationAccess,
+      orgId: 'org_target',
+      ownerUserId: 'user_target_owner',
+      projectId: 'proj_target',
+    });
+
+    const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
+    const session = new ContextSwitchSession();
+    const response = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      session,
+      method: 'POST',
+      path: '/console/account/organizations/org_target/switch-context',
+      body: {},
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.json?.context).toMatchObject({
+      orgId: 'org_target',
+      membershipId: targetMembershipId,
+      role: 'MEMBER',
+      adminPermissions: [],
+      projectAccess: {
+        kind: 'assigned',
+        assignments: [{ projectId: 'proj_target', accessLevel: 'viewer' }],
+      },
+      platformSupport: false,
+      projectId: 'proj_target',
+    });
+    expect(session.signedSubject).toBe(CURRENT_USER_ID);
+    expect(session.signedClaims).toMatchObject({
+      userId: CURRENT_USER_ID,
+      kind: 'app_session_v1',
+      appSessionVersion: 'v1',
+      email: CURRENT_EMAIL,
+      name: CURRENT_NAME,
+      orgId: 'org_target',
+      membershipId: targetMembershipId,
+      role: 'MEMBER',
+      adminPermissions: [],
+      projectAccess: {
+        kind: 'assigned',
+        assignments: [{ projectId: 'proj_target', accessLevel: 'viewer' }],
+      },
+      platformSupport: false,
+      projectId: 'proj_target',
+    });
+    if (!session.signedClaims) throw new Error('Expected signed session claims');
+    expect('roles' in session.signedClaims).toBe(false);
+    expect(response.cookie).toContain('switched-session-token');
+  });
+
+  test('allows owner update and delete while transfer-owner remains absent', async () => {
+    const fixture = createAccountRouteFixture();
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_current',
+      userId: CURRENT_USER_ID,
+      email: CURRENT_EMAIL,
+      displayName: CURRENT_NAME,
+      organizationName: 'Current Org',
+    });
+    await seedOwnerOrganization({
+      ...fixture,
+      orgId: 'org_target',
+      userId: CURRENT_USER_ID,
+      email: CURRENT_EMAIL,
+      displayName: CURRENT_NAME,
+      organizationName: 'Target Org',
+    });
+
+    const auth = makeConsoleAuthAdapter(await loadCurrentClaims(fixture.organizationAccess));
+    const updateResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'PATCH',
+      path: '/console/account/organizations/org_target',
+      body: { name: 'Renamed Target', slug: 'renamed-target' },
+    });
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.json?.organization).toMatchObject({
+      id: 'org_target',
+      name: 'Renamed Target',
+      slug: 'renamed-target',
+      role: 'OWNER',
+      projectAccess: { kind: 'all' },
+    });
+
+    const transferResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'POST',
+      path: '/console/account/organizations/org_target/transfer-owner',
+      body: { targetUserId: 'user_other' },
+    });
+    expect(transferResponse.status).toBe(500);
+    expect(transferResponse.json).toMatchObject({ code: 'route_auth_not_configured' });
+    expect(transferResponse.json?.transfer).toBeUndefined();
+
+    const deleteResponse = await callConsoleRoute({
+      auth,
+      account: fixture.account,
+      method: 'DELETE',
+      path: '/console/account/organizations/org_target',
+    });
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.json?.deleted).toEqual({
+      orgId: 'org_target',
+      organizationName: 'Renamed Target',
+    });
+    await expect(
+      fixture.organizationAccess.lookupAuthorization({
+        orgId: 'org_target',
+        userId: CURRENT_USER_ID,
+      }),
+    ).resolves.toBeNull();
+  });
+});

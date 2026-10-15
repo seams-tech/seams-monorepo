@@ -100,6 +100,9 @@ interface VerifiedMember {
 
 type FixtureFault =
   | 'eligibility_outage'
+  | 'primary_eligibility_outage'
+  | 'lose_onboarding_reply'
+  | 'onboarding_outage'
   | 'fee_policy_outage'
   | 'usage_outage'
   | 'lose_usage_reply'
@@ -323,6 +326,16 @@ class AccountWorkerFixture {
       return json({ code: 'forbidden' }, 403);
     const body: unknown = request.method === 'POST' ? await request.json() : { version: 1 };
     switch (pathname.slice(prefix.length)) {
+      case 'google-login': {
+        const record = object(body, 'Google login');
+        exactKeys(record, ['version', 'native', 'nonce']);
+        versionOne(record.version);
+        const native = readNativeMember(record.native);
+        return json({
+          token: await this.googleToken(native, textValue(record.nonce, 'nonce')),
+          publicJwk: this.googlePublicKey,
+        });
+      }
       case 'setup':
         return json(await this.setup(readSetup(body)));
       case 'acknowledge':
@@ -367,8 +380,13 @@ class AccountWorkerFixture {
         return outage();
       return response;
     }
-    if (pathname === '/account-platform/v1/eligibility' && this.faults.has('eligibility_outage'))
-      return outage();
+    if (pathname === '/account-platform/v1/eligibility') {
+      if (this.faults.has('eligibility_outage')) return outage();
+      if (this.faults.has('primary_eligibility_outage')) {
+        const body = object(await request.clone().json(), 'eligibility');
+        if (body.instanceId === 'satyr:project_shared_account_primary') return outage();
+      }
+    }
     if (pathname === '/account-platform/v1/fee-policy' && this.faults.has('fee_policy_outage'))
       return outage();
     if (pathname === '/account-platform/v1/usage' && this.faults.has('usage_outage'))
@@ -390,16 +408,22 @@ class AccountWorkerFixture {
     return result;
   }
 
-  private async verifyMember(native: NativeMember): Promise<VerifiedMember> {
-    const token = await signedJwt(this.googleSigningKey, 'RS256', 'shared-account-google-e2e', {
+  private googleToken(native: NativeMember, nonce: string | null): Promise<string> {
+    return signedJwt(this.googleSigningKey, 'RS256', 'shared-account-google-e2e', {
       iss: native.google.issuer,
       sub: native.google.subject,
       aud: this.bindings.FIXTURE_GOOGLE_CLIENT_ID,
       exp: Math.floor(Date.now() / 1000) + 600,
+      iat: Math.floor(Date.now() / 1000),
       email: `${native.google.subject}@example.test`,
       email_verified: true,
       name: native.google.subject,
+      ...(nonce === null ? {} : { nonce }),
     });
+  }
+
+  private async verifyMember(native: NativeMember): Promise<VerifiedMember> {
+    const token = await this.googleToken(native, null);
     const verified = await this.google.verifyGoogleLogin({ idToken: token });
     if (!verified.ok || !verified.email || verified.emailVerified !== true)
       throw new Error('Fixture Google proof failed');
@@ -667,8 +691,10 @@ class AccountWorkerFixture {
     exactKeys(record, ['version', 'receipt', 'owner']);
     versionOne(record.version);
     const receipt = accepted(parseServiceProvisionReceiptV1(record.receipt));
-    const pending = await this.core.accountPlatform.pendingProvision(satyr, 100);
-    const delivery = pending.find(matchesOperation.bind(null, receipt.operationId));
+    const delivery = await this.core.accountPlatform.pendingProvisionOperation(
+      satyr,
+      receipt.operationId,
+    );
     if (!delivery)
       return accepted(await this.core.accountPlatform.acknowledgeProvision(satyr, receipt));
     const owner = object(record.owner, 'owner');
@@ -879,6 +905,7 @@ class AccountWorkerFixture {
         this.faults.clear();
         break;
       case 'eligibility_outage':
+      case 'primary_eligibility_outage':
       case 'fee_policy_outage':
       case 'usage_outage':
       case 'lose_usage_reply':

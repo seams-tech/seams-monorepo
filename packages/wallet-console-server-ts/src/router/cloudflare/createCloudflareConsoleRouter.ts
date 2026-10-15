@@ -1,13 +1,10 @@
+import { createWalletBillingRouteHooks } from './walletBillingHooks';
 import type { D1BillingUsageService } from '@seams-internal/console-server/billing/usage';
 import type { WalletExecutionFunds } from '@seams-internal/wallet-console-server/sponsorship/funds';
 import {
   handleConsoleBillingRoutes,
   sendBillingError,
-  type BillingRouteBalanceChange,
-  type BillingRouteFailure,
 } from '@seams-internal/console-server/router/cloudflare/billingRoutes';
-import type { ConsoleAuthClaims as AccountAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
-import type { BillingOverview } from '@seams-internal/console-server/billing/types';
 import { buildWalletConsoleAuthClaims } from '../walletConsoleAuth';
 import { handleConsoleAuditRoutes } from '@seams-internal/console-server/router/cloudflare/auditRoutes';
 import {
@@ -34,7 +31,6 @@ import type { ConsoleBillingService } from '@seams-internal/console-server/billi
 import {
   LIVE_ENVIRONMENT_BILLING_REQUIRED_MESSAGE,
   ensureBillingReadyForLiveEnvironment,
-  resolveBillingLiveEnvironmentState,
 } from '@seams-internal/wallet-console-server/environments/readiness';
 import {
   ConsoleBillingError,
@@ -147,10 +143,7 @@ import { isConsoleObservabilityError } from '@seams-internal/console-server/obse
 import type { ConsoleRouterOptions } from '@seams-internal/wallet-console-server/router/console';
 import {
   emitConsoleApprovalFailureObservabilityEvent,
-  emitConsoleBillingFailureObservabilityEvent,
-  emitConsoleBillingStripeWebhookFailureObservabilityEvent,
   observeConsoleRequestMetric,
-  readConsoleStripeWebhookFailureMetadata,
 } from '../consoleObservabilityHooks';
 import {
   buildConsoleExportGovernanceView,
@@ -170,23 +163,10 @@ import {
   buildConsoleWebhookEndpointAuditEvent,
   buildConsoleWebhookReplayAuditEvent,
 } from '../consoleAuditMetadata';
-import {
-  parsePlatformBillingLookupRequest,
-  parsePlatformBillingSearchRequest,
-  parsePlatformBillingManualAdjustmentRequest,
-  parsePlatformBillingRefundReconcileRequest,
-  parsePlatformBillingRefundRequest,
-  resolvePlatformBillingLookup,
-  searchPlatformBillingOrganizations,
-} from '../platformBilling';
 import { resolveConsoleRuntimeSnapshotPayload } from '../runtimeSnapshotPayload';
 import type { NormalizedRouterLogger } from '@seams/wallet-server/cloud-host';
 import { coerceRouterLogger } from '@seams/wallet-server/cloud-host';
 import { buildConsoleOpsCockpitSummary } from '../opsCockpitSummary';
-import {
-  emitSponsorshipBalanceTransitionEvents,
-  readSponsorshipBillingBalanceSnapshot,
-} from '@seams-internal/wallet-console-server/router/sponsorshipBillingEvents';
 import { attachConsoleRouteSurface } from '@seams-internal/console-server/router/consoleRouteSurface';
 import type { ConsoleRouteDefinition } from '@seams-internal/console-server/router/consoleRouteDefinitions';
 import { resolveWalletConsoleRouteSurface } from '../walletConsoleRouteDefinitions';
@@ -293,55 +273,6 @@ async function emitRouterTimingObservabilityEvent(
     method: ctx.method,
     statusCode,
     latencyMs: Math.max(0, Date.now() - startedAtMs),
-  });
-}
-
-async function emitBillingFailureObservabilityEvent(
-  ctx: CloudflareConsoleContext,
-  claims: ConsoleAuthClaims,
-  input: {
-    operation: 'INVOICE_FINALIZATION' | 'PAYMENT_RECONCILE';
-    invoiceId?: string;
-    providerRef?: string;
-    error: unknown;
-  },
-): Promise<void> {
-  await emitConsoleBillingFailureObservabilityEvent(ctx, {
-    claims,
-    operation: input.operation,
-    ...(input.invoiceId ? { invoiceId: input.invoiceId } : {}),
-    ...(input.providerRef ? { providerRef: input.providerRef } : {}),
-    failureCode: isConsoleBillingError(input.error) ? input.error.code : 'internal',
-    failureMessage: input.error instanceof Error ? input.error.message : String(input.error),
-    readHeader: (header) => readOptionalRequestHeader(ctx.request, header),
-  });
-}
-
-async function emitStripeWebhookFailureObservabilityEvent(
-  ctx: CloudflareConsoleContext,
-  input: {
-    rawBody: unknown;
-    eventType:
-      | 'billing.stripe_webhook.invalid_signature'
-      | 'billing.stripe_webhook.processing.failed';
-    failureCode: string;
-    failureMessage: string;
-  },
-): Promise<void> {
-  const metadata = readConsoleStripeWebhookFailureMetadata(input.rawBody);
-  if (!metadata.orgId) return;
-  await emitConsoleBillingStripeWebhookFailureObservabilityEvent(ctx, {
-    orgId: metadata.orgId,
-    actorUserId: 'system-stripe-webhook',
-    eventType: input.eventType,
-    ...(metadata.stripeEventId ? { stripeEventId: metadata.stripeEventId } : {}),
-    ...(metadata.stripeEventType ? { stripeEventType: metadata.stripeEventType } : {}),
-    ...(metadata.checkoutSessionId ? { checkoutSessionId: metadata.checkoutSessionId } : {}),
-    ...(metadata.providerRef ? { providerRef: metadata.providerRef } : {}),
-    ...(metadata.providerCustomerRef ? { providerCustomerRef: metadata.providerCustomerRef } : {}),
-    failureCode: input.failureCode,
-    failureMessage: input.failureMessage,
-    readHeader: (header) => readOptionalRequestHeader(ctx.request, header),
   });
 }
 
@@ -723,28 +654,6 @@ function requireBillingService(ctx: CloudflareConsoleContext): ConsoleBillingSer
   );
 }
 
-async function buildConsoleBillingOverviewResponse(
-  ctx: CloudflareConsoleContext,
-  claims: AccountAuthClaims,
-  overview: BillingOverview,
-): Promise<Record<string, unknown>> {
-  const billingCtx = toBillingContext(claims);
-  const sponsoredSummary = ctx.sponsoredCalls
-    ? await ctx.sponsoredCalls.getOverviewSummary(billingCtx)
-    : null;
-  return {
-    ...overview,
-    trailing30DaySponsoredSpendMinor:
-      sponsoredSummary?.trailing30Days.chargedSettledSpendMinor || 0,
-    trailing30DaySponsoredExecutionCount:
-      sponsoredSummary?.trailing30Days.chargedExecutionCount || 0,
-    trailing90DaySponsoredSpendMinor:
-      sponsoredSummary?.trailing90Days.chargedSettledSpendMinor || 0,
-    trailing90DaySponsoredExecutionCount:
-      sponsoredSummary?.trailing90Days.chargedExecutionCount || 0,
-  };
-}
-
 function requireSponsoredCallService(
   ctx: CloudflareConsoleContext,
 ): ConsoleSponsoredCallService | Response {
@@ -780,20 +689,6 @@ function requireWalletEnvironmentService(
       ok: false,
       code: 'wallet_environments_not_configured',
       message: 'Wallet environment service is not configured on this server',
-    },
-    { status: 501 },
-  );
-}
-
-function requireOrgProjectService(
-  ctx: CloudflareConsoleContext,
-): ConsoleOrgProjectService | Response {
-  if (ctx.orgProjects) return ctx.orgProjects;
-  return json(
-    {
-      ok: false,
-      code: 'org_project_env_not_configured',
-      message: 'Org/project/environment service is not configured on this server',
     },
     { status: 501 },
   );
@@ -1417,9 +1312,11 @@ async function handleConsoleObservability(ctx: CloudflareConsoleContext): Promis
   });
 }
 
-function isConsoleBillingPath(pathname: string): boolean {
+function isWalletBillingPath(pathname: string): boolean {
   return (
-    pathname.startsWith('/console/billing/') || pathname.startsWith('/console/platform/billing/')
+    pathname === '/console/billing/sponsored-executions' ||
+    pathname === '/console/billing/sponsored-executions/reconciliation' ||
+    pathname === '/console/billing/usage/monthly-active-wallets'
   );
 }
 
@@ -3024,68 +2921,17 @@ async function handleConsoleWebhooks(ctx: CloudflareConsoleContext): Promise<Res
   return new Response('Not Found', { status: 404 });
 }
 
-async function observeWalletBillingBalanceChange(
-  ctx: CloudflareConsoleContext,
-  change: BillingRouteBalanceChange,
-): Promise<void> {
-  await emitSponsorshipBalanceTransitionEvents({
-    services: {
-      logger: ctx.logger,
-      webhooks: ctx.webhooks,
-      observabilityIngestion: ctx.observabilityIngestion,
-    },
-    ctx: change.context,
-    before: {
-      creditBalanceMinor: change.before.creditBalanceMinor,
-      lowBalanceThresholdMinor: change.before.lowBalanceThresholdMinor,
-      state: resolveBillingLiveEnvironmentState(change.before),
-    },
-    billing: ctx.billing,
-    trigger: change.trigger,
-  });
-}
-async function observeWalletBillingFailure(
-  ctx: CloudflareConsoleContext,
-  claims: AccountAuthClaims,
-  failure: BillingRouteFailure,
-): Promise<void> {
-  const walletClaims = buildWalletConsoleAuthClaims(
-    claims,
-    claims.projectId ?? null,
-    ctx.request.headers.get('X-Console-Environment-Id'),
-  );
-  await emitBillingFailureObservabilityEvent(ctx, walletClaims, failure);
-}
 async function handleSharedConsoleBilling(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  return handleConsoleBillingRoutes(ctx, {
-    overview: buildConsoleBillingOverviewResponse.bind(null, ctx),
-    balanceChanged: observeWalletBillingBalanceChange.bind(null, ctx),
-    failure: observeWalletBillingFailure.bind(null, ctx),
-    stripeWebhookFailure: emitStripeWebhookFailureObservabilityEvent.bind(null, ctx),
-  });
+  return handleConsoleBillingRoutes(ctx, createWalletBillingRouteHooks(ctx));
 }
 
-async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Response | null> {
-  if (!isConsoleBillingPath(ctx.pathname)) return null;
+async function handleWalletConsoleBilling(ctx: CloudflareConsoleContext): Promise<Response | null> {
+  if (!isWalletBillingPath(ctx.pathname)) return null;
 
   const auth = await requireConsoleAuth(ctx);
   if (!auth.ok) return auth.response;
 
   try {
-    if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/search') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectsOrResponse = requireOrgProjectService(ctx);
-      if (projectsOrResponse instanceof Response) return projectsOrResponse;
-      const organizations = await searchPlatformBillingOrganizations({
-        orgProjects: projectsOrResponse,
-        request: parsePlatformBillingSearchRequest(
-          Object.fromEntries(ctx.url.searchParams.entries()),
-        ),
-      });
-      return json({ ok: true, organizations }, { status: 200 });
-    }
-
     const billingCtx = toBillingContext(auth.claims);
 
     if (
@@ -3125,22 +2971,6 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
     const billingOrResponse = requireBillingService(ctx);
     if (billingOrResponse instanceof Response) return billingOrResponse;
     const billing = billingOrResponse;
-    if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/account') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectsOrResponse = requireOrgProjectService(ctx);
-      if (projectsOrResponse instanceof Response) return projectsOrResponse;
-      const result = await resolvePlatformBillingLookup({
-        claims: auth.claims,
-        billing,
-        orgProjects: projectsOrResponse,
-        request: parsePlatformBillingLookupRequest(
-          Object.fromEntries(ctx.url.searchParams.entries()),
-        ),
-      });
-      return json({ ok: true, result }, { status: 200 });
-    }
-
     if (ctx.method === 'GET' && ctx.pathname === '/console/billing/usage/monthly-active-wallets') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
       if (routePolicy) return routePolicy;
@@ -3148,215 +2978,6 @@ async function handleConsoleBilling(ctx: CloudflareConsoleContext): Promise<Resp
       const monthUtc = monthUtcRaw || undefined;
       const usage = await billing.getMonthlyActiveResources(billingCtx, monthUtc);
       return json({ ok: true, usage }, { status: 200 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      ctx.pathname === '/console/platform/billing/adjustments/support-credit'
-    ) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectsOrResponse = requireOrgProjectService(ctx);
-      if (projectsOrResponse instanceof Response) return projectsOrResponse;
-      const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
-      const { orgId, ...adjustmentRequest } = request;
-      const organization = await projectsOrResponse.getOrganization({
-        orgId,
-        actorUserId: auth.claims.userId,
-        ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
-        ...(auth.claims.environmentId ? { environmentId: auth.claims.environmentId } : {}),
-      });
-      const targetBillingCtx = {
-        orgId,
-        actorUserId: auth.claims.userId,
-      };
-      const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(
-        billing,
-        targetBillingCtx,
-      );
-      const result = await billing.grantManualSupportCredit(targetBillingCtx, adjustmentRequest);
-      await emitSponsorshipBalanceTransitionEvents({
-        services: {
-          logger: ctx.logger,
-          webhooks: ctx.webhooks,
-          observabilityIngestion: ctx.observabilityIngestion,
-        },
-        ctx: targetBillingCtx,
-        before: beforeBalanceState,
-        billing,
-        trigger: {
-          kind: 'manual_support_credit',
-          adjustmentId: result.adjustment.id,
-          sourceEventId: result.adjustment.idempotencyKey,
-        },
-      });
-      await emitConsoleAuditEvent(
-        ctx,
-        {
-          ...auth.claims,
-          orgId,
-        },
-        {
-          category: 'BILLING',
-          action: 'billing.adjustment.support_credit',
-          summary: `Appended manual support credit for org ${orgId}`,
-          metadata: {
-            organizationId: orgId,
-            organizationName: organization.name,
-            adjustmentId: result.adjustment.id,
-            amountMinor: result.adjustment.amountMinor,
-            resultingBalanceMinor: result.creditBalanceMinor,
-            reasonCode: result.adjustment.reasonCode,
-            note: result.adjustment.note,
-            relatedInvoiceId: result.adjustment.relatedInvoiceId,
-            idempotencyKey: result.adjustment.idempotencyKey,
-            created: result.created,
-            platformBilling: true,
-          },
-        },
-      );
-      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
-    }
-
-    if (
-      ctx.method === 'POST' &&
-      ctx.pathname === '/console/platform/billing/adjustments/admin-debit'
-    ) {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const projectsOrResponse = requireOrgProjectService(ctx);
-      if (projectsOrResponse instanceof Response) return projectsOrResponse;
-      const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
-      const { orgId, ...adjustmentRequest } = request;
-      const organization = await projectsOrResponse.getOrganization({
-        orgId,
-        actorUserId: auth.claims.userId,
-        ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
-        ...(auth.claims.environmentId ? { environmentId: auth.claims.environmentId } : {}),
-      });
-      const targetBillingCtx = {
-        orgId,
-        actorUserId: auth.claims.userId,
-      };
-      const beforeBalanceState = await readSponsorshipBillingBalanceSnapshot(
-        billing,
-        targetBillingCtx,
-      );
-      const result = await billing.appendManualAdminDebit(targetBillingCtx, adjustmentRequest);
-      await emitSponsorshipBalanceTransitionEvents({
-        services: {
-          logger: ctx.logger,
-          webhooks: ctx.webhooks,
-          observabilityIngestion: ctx.observabilityIngestion,
-        },
-        ctx: targetBillingCtx,
-        before: beforeBalanceState,
-        billing,
-        trigger: {
-          kind: 'manual_admin_debit',
-          adjustmentId: result.adjustment.id,
-          sourceEventId: result.adjustment.idempotencyKey,
-        },
-      });
-      await emitConsoleAuditEvent(
-        ctx,
-        {
-          ...auth.claims,
-          orgId,
-        },
-        {
-          category: 'BILLING',
-          action: 'billing.adjustment.admin_debit',
-          summary: `Appended manual admin debit for org ${orgId}`,
-          metadata: {
-            organizationId: orgId,
-            organizationName: organization.name,
-            adjustmentId: result.adjustment.id,
-            amountMinor: result.adjustment.amountMinor,
-            resultingBalanceMinor: result.creditBalanceMinor,
-            reasonCode: result.adjustment.reasonCode,
-            note: result.adjustment.note,
-            relatedInvoiceId: result.adjustment.relatedInvoiceId,
-            idempotencyKey: result.adjustment.idempotencyKey,
-            created: result.created,
-            platformBilling: true,
-          },
-        },
-      );
-      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/platform/billing/refunds') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parsePlatformBillingRefundRequest(await readJson(ctx.request));
-      const { orgId, ...refundRequest } = request;
-      const result = await billing.createRefund(
-        {
-          orgId,
-          actorUserId: auth.claims.userId,
-          platformSupport: true,
-        },
-        refundRequest,
-      );
-      await emitConsoleAuditEvent(
-        ctx,
-        {
-          ...auth.claims,
-          orgId,
-        },
-        {
-          category: 'BILLING',
-          action: 'billing.refund.requested',
-          summary: `Requested refund for org ${orgId}`,
-          metadata: {
-            organizationId: orgId,
-            refundId: result.refund.id,
-            purchaseId: result.refund.purchaseId,
-            amountMinor: result.refund.amountMinor,
-            status: result.refund.status,
-            created: result.created,
-            platformBilling: true,
-          },
-        },
-      );
-      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
-    }
-
-    if (ctx.method === 'POST' && ctx.pathname === '/console/platform/billing/refunds/reconcile') {
-      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
-      if (routePolicy) return routePolicy;
-      const request = parsePlatformBillingRefundReconcileRequest(await readJson(ctx.request));
-      const { orgId, ...reconcileRequest } = request;
-      const result = await billing.reconcileRefund(
-        {
-          orgId,
-          actorUserId: auth.claims.userId,
-          platformSupport: true,
-        },
-        reconcileRequest,
-      );
-      await emitConsoleAuditEvent(
-        ctx,
-        {
-          ...auth.claims,
-          orgId,
-        },
-        {
-          category: 'BILLING',
-          action: 'billing.refund.reconciled',
-          summary: `Reconciled refund for org ${orgId}`,
-          metadata: {
-            organizationId: orgId,
-            refundId: result.refund.id,
-            purchaseId: result.refund.purchaseId,
-            amountMinor: result.refund.amountMinor,
-            status: result.refund.status,
-            platformBilling: true,
-          },
-        },
-      );
-      return json({ ok: true, result }, { status: 200 });
     }
   } catch (error: unknown) {
     if (isConsoleOrgProjectError(error) || isConsoleWalletEnvironmentError(error)) {
@@ -3429,7 +3050,7 @@ export function createCloudflareConsoleRouter(opts: ConsoleRouterOptions = {}): 
     handleConsoleApiKeys,
     handleConsoleWebhooks,
     handleSharedConsoleBilling,
-    handleConsoleBilling,
+    handleWalletConsoleBilling,
   ];
 
   const handler: FetchHandler = async function handler(

@@ -10,6 +10,7 @@ import type {
   StripeRefundProviderOutput,
 } from './providers';
 import type { BillingCreditPackId, StripeProviderRefundStatus } from './types';
+import { UnavailableStripeBillingProvider } from './providers';
 
 export interface StripeBillingProviderOptions {
   readonly secretKey: string;
@@ -343,29 +344,23 @@ export function createStripeBillingProviderAdapter(
 
 export function createStripeBillingProviderAdaptersFromEnv(
   env: StripeBillingProviderEnv,
-): BillingProviderAdapters | undefined {
-  const secretKey = normalizeStripeSecretKey(env.STRIPE_API_SK);
-  if (!secretKey) return undefined;
-  const apiBaseUrl = normalizeString(env.STRIPE_API_BASE_URL);
-  const requestTimeoutMs = toPositiveInteger(
-    env.STRIPE_API_TIMEOUT_MS,
-    DEFAULT_STRIPE_API_TIMEOUT_MS,
-  );
-  return {
-    stripe: createStripeBillingProviderAdapter({
-      secretKey,
-      ...(apiBaseUrl ? { apiBaseUrl } : {}),
-      requestTimeoutMs,
-    }),
-  };
-}
-
-export function requireStripeBillingProviderAdaptersFromEnv(
-  env: StripeBillingProviderEnv,
 ): BillingProviderAdapters {
-  const providers = createStripeBillingProviderAdaptersFromEnv(env);
-  if (!providers) {
-    throw new Error('STRIPE_API_SK is required for hosted console billing');
+  try {
+    const secretKey = normalizeStripeSecretKey(env.STRIPE_API_SK);
+    if (!secretKey) {
+      return { stripe: new UnavailableStripeBillingProvider('Stripe is not configured') };
+    }
+    return {
+      stripe: createStripeBillingProviderAdapter({
+        secretKey,
+        apiBaseUrl: normalizeString(env.STRIPE_API_BASE_URL),
+        requestTimeoutMs: toPositiveInteger(
+          env.STRIPE_API_TIMEOUT_MS,
+          DEFAULT_STRIPE_API_TIMEOUT_MS,
+        ),
+      }),
+    };
+  } catch {
+    return { stripe: new UnavailableStripeBillingProvider('Stripe configuration is invalid') };
   }
-  return providers;
 }

@@ -230,7 +230,7 @@ function buildConsoleConfig(
       ? { placement: { region: consoleTarget.placementRegion } }
       : {}),
     compatibility_date: GATEWAY_WORKER_COMPATIBILITY_DATE,
-    compatibility_flags: GATEWAY_WORKER_COMPATIBILITY_FLAGS,
+    compatibility_flags: [...GATEWAY_WORKER_COMPATIBILITY_FLAGS, 'global_fetch_strictly_public'],
     workers_dev: false,
     routes: buildConsoleRoutes(consoleOrigin, walletSiteOrigin, frontendOrigins),
     d1_databases: [

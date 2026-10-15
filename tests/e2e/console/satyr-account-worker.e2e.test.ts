@@ -187,7 +187,7 @@ async function verifySatyrAccountRuntime(
         scriptPath: artifact,
         modulesRoot: payloadDirectory,
         compatibilityDate: '2026-07-17',
-        compatibilityFlags: ['nodejs_compat'],
+        compatibilityFlags: ['nodejs_compat', 'global_fetch_strictly_public'],
         d1Databases: { CONSOLE_DB: 'satyr-account-runtime' },
         outboundService: endpoints.fetch.bind(endpoints),
         bindings: {

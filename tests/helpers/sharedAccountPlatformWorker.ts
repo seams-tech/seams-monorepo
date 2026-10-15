@@ -101,6 +101,8 @@ interface VerifiedMember {
 type FixtureFault =
   | 'eligibility_outage'
   | 'primary_eligibility_outage'
+  | 'primary_malformed_eligibility_reply'
+  | 'primary_foreign_scope_reply'
   | 'lose_onboarding_reply'
   | 'onboarding_outage'
   | 'fee_policy_outage'
@@ -391,8 +393,41 @@ class AccountWorkerFixture {
       return outage();
     if (pathname === '/account-platform/v1/usage' && this.faults.has('usage_outage'))
       return outage();
+    let corruptedEligibilityInstanceId: string | null = null;
+    if (
+      pathname === '/account-platform/v1/eligibility' &&
+      (this.faults.has('primary_malformed_eligibility_reply') ||
+        this.faults.has('primary_foreign_scope_reply'))
+    ) {
+      const body = object(await request.clone().json(), 'eligibility');
+      corruptedEligibilityInstanceId = textValue(body.instanceId, 'instanceId');
+    }
     const result = await this.ingress(request);
     if (!result) return json({ code: 'not_found' }, 404);
+    if (
+      result.ok &&
+      pathname === '/account-platform/v1/eligibility' &&
+      (this.faults.has('primary_malformed_eligibility_reply') ||
+        this.faults.has('primary_foreign_scope_reply'))
+    ) {
+      if (corruptedEligibilityInstanceId === 'satyr:project_shared_account_primary') {
+        const envelope = object(await result.json(), 'eligibility response');
+        const value = object(envelope.value, 'eligibility value');
+        if (this.faults.has('primary_malformed_eligibility_reply'))
+          return json({
+            kind: 'accepted',
+            value: { ...value, accessRevision: 'invalid-revision' },
+          });
+        const foreign = accepted(
+          await this.core.accountPlatform.resolveServiceProducerInstance(
+            satyr,
+            'satyr:project_shared_account_foreign',
+          ),
+        );
+        return json({ kind: 'accepted', value: { ...value, scope: foreign.scope } });
+      }
+    }
+
     if (
       result.ok &&
       pathname === '/account-platform/v1/usage' &&
@@ -906,6 +941,8 @@ class AccountWorkerFixture {
         break;
       case 'eligibility_outage':
       case 'primary_eligibility_outage':
+      case 'primary_malformed_eligibility_reply':
+      case 'primary_foreign_scope_reply':
       case 'fee_policy_outage':
       case 'usage_outage':
       case 'lose_usage_reply':

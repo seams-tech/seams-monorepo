@@ -249,12 +249,12 @@ export class SatyrServiceFeePolicyV1 {
     return new SatyrServiceFeePolicyV1(
       textValue(record.instanceId, 'instanceId'),
       scope.value,
-      readSatyrFeePolicy(record.policy),
+      readSatyrFeePolicyV1(record.policy),
     );
   }
 }
 
-function readSatyrFeePolicy(input: unknown): SatyrFeePolicyV1 {
+export function readSatyrFeePolicyV1(input: unknown): SatyrFeePolicyV1 {
   const record = object(input, 'policy');
   switch (record.kind) {
     case 'customer_unpriced':
@@ -287,7 +287,7 @@ export function readPlatformPrincipalV1(input: unknown): PlatformPrincipalV1 {
       return Object.freeze({
         kind: record.kind,
         identity: readIdentityLink(record.identity),
-        authority: readUserAuthority(record.authority),
+        authority: readPlatformUserAuthorityV1(record.authority),
       });
     case 'automation':
       exactKeys(record, ['kind', 'automationId', 'grantId']);
@@ -301,7 +301,7 @@ export function readPlatformPrincipalV1(input: unknown): PlatformPrincipalV1 {
   }
 }
 
-function readUserAuthority(input: unknown): PlatformUserAuthorityV1 {
+export function readPlatformUserAuthorityV1(input: unknown): PlatformUserAuthorityV1 {
   const record = object(input, 'authority');
   switch (record.kind) {
     case 'authenticated_session':
@@ -352,7 +352,7 @@ function readPrincipalAction(
   principal: PlatformPrincipalV1,
   input: unknown,
 ): ServiceAdmissionActionV1 {
-  const action = readAdmissionAction(input);
+  const action = readServiceAdmissionActionV1(input);
   if (
     principal.kind === 'user' &&
     principal.authority.kind === 'disclosure_recipient' &&
@@ -394,7 +394,7 @@ function readIdentityLink(input: unknown): PlatformIdentityLinkV1 {
   }
 }
 
-function readAdmissionAction(input: unknown): ServiceAdmissionActionV1 {
+export function readServiceAdmissionActionV1(input: unknown): ServiceAdmissionActionV1 {
   switch (input) {
     case 'execute':
     case 'disclose':

@@ -547,3 +547,34 @@ The first command builds both current Worker entrypoints. It writes
 `.artifacts/p2-console-review/account-composition/acceptance.json` and attaches it to the test report.
 The account fixture build supplies the real shared authority for native Satyr acceptance.
 See Satyr's `docs/evidence/account-session-isolation.md` for those commands and artifacts.
+
+## P3 contract ownership — October 16, 2026
+
+`packages/console-shared-ts` owns the account wire contracts in both repositories.
+The shared package now includes membership and invitation records, onboarding,
+provisioning envelopes and receipts, funds responses, usage receipts, and automation grants.
+Console services import these types. Satyr imports their parsers and derives its native types from them.
+Satyr retains its Google-only principal policy, signature verification, service roles, and durable execution state.
+The copied Satyr membership module and transport validators are removed.
+The V1 JSON message format remains unchanged.
+
+The existing package has internal version `0.1.0`.
+Its workspace exports continue to resolve source. `pnpm pack` builds JavaScript and declarations for the internal artifact.
+Satyr pins that compiled tarball under `vendor/seams`, using a content hash in its filename and lockfile integrity.
+The artifact requires no sibling checkout, registry credentials, or private server sources.
+
+Build the internal release from this checkout:
+
+```sh
+pnpm -C packages/console-shared-ts pack --pack-destination /tmp/shared-account-contracts
+shasum -a 256 /tmp/shared-account-contracts/seams-internal-console-shared-0.1.0.tgz
+```
+
+For a later contract change, bump the package version, build a new tarball, and update both Satyr dependency pins.
+Never replace a committed artifact in place. See Satyr's `vendor/seams/README.md` for the artifact hash and source owner.
+
+Acceptance uses the packed consumer artifact and the real account authority fixture.
+It verifies malformed response refusal, foreign-scope refusal, invitation races and revocation,
+zero-quote reservations, payment settlement, native paid and unpriced turns, recovery, and replay.
+The Portal build, native onboarding closure, type fixtures, and repository checks pass.
+These changes are committed locally and await deployment.

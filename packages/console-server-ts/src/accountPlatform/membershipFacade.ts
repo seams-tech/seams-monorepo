@@ -1,4 +1,12 @@
 import type {
+  AccountMembershipListV1,
+  AccountInstanceAccessV1,
+} from '@seams-internal/console-shared/accountPlatform';
+export type {
+  AccountMembershipListV1,
+  AccountInstanceAccessV1,
+} from '@seams-internal/console-shared/accountPlatform';
+import type {
   ConsoleOrganizationAccessD1Service,
   OrganizationInvitationScope,
 } from '../teamRbac/d1';
@@ -32,18 +40,6 @@ export type AccountMembershipErrorV1 = {
 };
 
 export type AccountMembershipResultV1<T> = PlatformResult<T, AccountMembershipErrorV1>;
-
-export interface AccountMembershipListV1 {
-  readonly memberships: readonly OrganizationMembershipWithAccess[];
-  readonly invitations: readonly OrganizationInvitation[];
-}
-
-export interface AccountInstanceAccessV1 {
-  readonly instanceId: string;
-  readonly membershipId: string;
-  readonly access: 'allowed' | 'revoked';
-  readonly authorityRevision: number;
-}
 
 export interface D1AccountMembershipFacadeOptions {
   readonly database: D1DatabaseLike;

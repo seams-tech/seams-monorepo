@@ -46,7 +46,7 @@ export function exactKeys(record: Record<string, unknown>, keys: readonly string
   }
 }
 
-export function textValue(input: unknown, field: string): string {
+export function textValue(input: unknown, field = 'text'): string {
   if (typeof input !== 'string' || input.length === 0 || input !== input.trim()) {
     return invalidContract(field);
   }
@@ -60,7 +60,7 @@ export function integer(input: unknown, field: string, minimum: number): number 
   return input;
 }
 
-export function utcTimestamp(input: unknown, field: string): string {
+export function utcTimestamp(input: unknown, field = 'timestamp'): string {
   const value = textValue(input, field);
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== value) {
@@ -82,4 +82,19 @@ export function versionOne(input: unknown): 1 {
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected account platform variant: ${String(value)}`);
+}
+
+export function exactObject(
+  input: unknown,
+  keys: readonly string[],
+  field = 'account message',
+): Record<string, unknown> {
+  const record = object(input, field);
+  exactKeys(record, keys);
+  return record;
+}
+
+export function requirePlatformContract<T>(result: PlatformResult<T, PlatformContractError>): T {
+  if (result.kind === 'rejected') throw new InvalidContract(result.error);
+  return result.value;
 }

@@ -1,5 +1,9 @@
 import type { PlatformResult } from './boundary';
-import type { AcceptedServiceReceiptV1, DurableSourceEvidenceV1 } from './instances';
+import type {
+  ServiceProvisionCommandV1,
+  AcceptedServiceReceiptV1,
+  DurableSourceEvidenceV1,
+} from './instances';
 import type { PlatformScopeV1, PlatformServiceIdV1 } from './scope';
 import type { PlatformMeterIdV1 } from './usage';
 
@@ -244,3 +248,16 @@ export const PLATFORM_SERVICE_CATALOGUE_V1: readonly PlatformServiceCatalogueEnt
       }),
     }),
   ]);
+
+export interface ServiceProducerAuthorityV1 {
+  readonly serviceId: PlatformServiceIdV1;
+  readonly deploymentId: string;
+}
+
+export interface ServiceProvisionDeliveryV1 {
+  readonly scope: PlatformScopeV1;
+  readonly command: ServiceProvisionCommandV1;
+  readonly authority: ServiceProducerAuthorityV1;
+  readonly payloadDigest: string;
+  readonly requestedByUserId: string;
+}

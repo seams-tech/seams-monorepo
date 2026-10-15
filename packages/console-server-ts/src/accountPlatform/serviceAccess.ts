@@ -1,3 +1,19 @@
+import type {
+  AccountAutomationGrantChangeV1,
+  AccountAutomationGrantV1,
+} from '@seams-internal/console-shared/accountPlatform';
+export type {
+  AccountAutomationGrantChangeV1,
+  AccountAutomationGrantV1,
+} from '@seams-internal/console-shared/accountPlatform';
+import type {
+  AccountProvisionedServiceOwnerV1,
+  AccountProvisionOwnerGrantV1,
+} from '@seams-internal/console-shared/accountPlatform';
+export type {
+  AccountProvisionedServiceOwnerV1,
+  AccountProvisionOwnerGrantV1,
+} from '@seams-internal/console-shared/accountPlatform';
 import type { VerifiedAccountUserAssertionV1 } from './serviceIngressAuth';
 import {
   ServiceIdentityResolutionV1,
@@ -48,41 +64,6 @@ export interface VerifiedAccountProvisionOwner {
   readonly verificationReceiptId: string;
   readonly email: string;
   readonly displayName: string | null;
-}
-
-export interface AccountProvisionedServiceOwnerV1 {
-  readonly nativePrincipalId: string;
-  readonly platformUserId: string;
-  readonly issuer: 'https://accounts.google.com';
-  readonly subject: string;
-  readonly verificationReceiptId: string;
-}
-
-export interface AccountProvisionOwnerGrantV1 {
-  readonly platformMembershipId: string;
-  readonly accountAcceptanceReceiptId: string;
-  readonly serviceGrant:
-    | { readonly kind: 'instance_access'; readonly accessRevision: number }
-    | { readonly kind: 'account_management'; readonly accessRevision?: never };
-}
-
-export interface AccountAutomationGrantChangeV1 {
-  readonly instanceId: string;
-  readonly automationId: string;
-  readonly grantId: string;
-  readonly nativePrincipalId: string;
-  readonly access: 'allowed' | 'revoked';
-  readonly expectedAccessRevision: number;
-}
-
-export interface AccountAutomationGrantV1 extends Omit<
-  AccountAutomationGrantChangeV1,
-  'expectedAccessRevision'
-> {
-  readonly version: 1;
-  readonly scope: ServiceIdentityResolutionV1['scope'];
-  readonly authorityRevision: number;
-  readonly accessRevision: number;
 }
 
 function now(): Date {

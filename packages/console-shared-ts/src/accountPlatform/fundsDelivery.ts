@@ -75,3 +75,19 @@ function readTerminalRequest(record: Record<string, unknown>): FundsTerminalRequ
       return invalidContract('kind');
   }
 }
+
+export type FundsTerminalDeliveryDataV1 = Readonly<{ version: 1; occurredAt: string }> &
+  (
+    | {
+        readonly kind: 'settle';
+        readonly request: Pick<SettleFundsRequestV1, keyof SettleFundsRequestV1>;
+      }
+    | {
+        readonly kind: 'release';
+        readonly request: Pick<ReleaseFundsRequestV1, keyof ReleaseFundsRequestV1>;
+      }
+    | {
+        readonly kind: 'reconcile';
+        readonly request: Pick<ReconcileFundsRequestV1, keyof ReconcileFundsRequestV1>;
+      }
+  );

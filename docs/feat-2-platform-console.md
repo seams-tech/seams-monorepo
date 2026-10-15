@@ -6,7 +6,8 @@ Wallet Google and GitHub sign-in, account navigation, and the staging origin cut
 Satyr staging and its private account connection are deployed.
 Satyr Google sign-in and automatic setup pass. Invitation acceptance is implemented.
 Live Satyr workspace entry passes. Setup completes without an automatic page reload.
-Saved appearance applies before the first visible frame. Production cutover remains pending.
+Saved appearance applies before the first visible frame. The organisation list has one loading layout.
+Production cutover remains pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -396,22 +397,34 @@ See [Cloudflare's public fetch routing flag](https://developers.cloudflare.com/w
 Portal setup completion now refreshes account state without reloading the document.
 An already visible organisation needs no second session or organisation read.
 The user confirmed one load and estimated about five seconds, down from about ten.
+They later reported about 3.5 seconds with three loading layouts.
 Saved appearance now applies in the document head before React starts. System mode
 follows the browser setting. Account preferences remain authoritative after sign-in.
 The browser journey verifies uncertain acceptance, operation replay, pending delivery,
 workspace entry, and the first visible Dark frame. It passes against local builds
 and published staging assets with mocked account APIs. Real account setup and
 workspace entry were confirmed separately by the user.
+The user also confirmed Dark mode starts without a Light flash.
+
+The organisation list now uses one loading layout with its final heading and navigation.
+Its page code loads with Portal. Validators and Portal code load together.
+On return visits, remembered organisation identifiers start fresh authorised reads
+alongside the session request. Authenticated memberships still select every displayed
+organisation. A rejected early read cannot disclose a revoked organisation.
+Live traces before this change measured about one second for the session, followed
+by about 2.3 seconds for organisation details. The browser reproduction confirms
+that the reads now overlap. It does not measure the user's final network latency.
+A first visit without remembered identifiers still needs the session before organisation reads.
 
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
 encryption keys, and service-signing keys. The private account binding targets
 `seams-sdk-d1-console-staging`, entrypoint `SatyrAccountPlatform`.
 The existing `staging-console` GitHub environment holds the connection settings.
-Satyr source revision `3e1c42a0087a10c8d62d2253d5edcc04766e1906` includes the staging
-profiles, regional recovery fixes, setup refresh, and startup appearance. Its button says
+Satyr source revision `5eb4152e3064372d21f1a0036903c5606bafe478` includes the staging
+profiles, regional recovery fixes, setup refresh, startup appearance, and overlapping reads. Its button says
 Set up Satyr. The empty page explains automatic setup through project selection.
-Native Worker version `2d088fa7-4d71-4ad9-9486-ac3b0c51d1ac` contains these changes.
+Native Worker version `7e54323c-697e-4955-88d7-156f1a208e58` contains these changes.
 The release uses committed source and excludes concurrent model edits. Containers
 are unchanged. Native health and unauthenticated access checks pass.
 The approved native Google redirect is saved on the existing Satyr Portal client:
@@ -462,8 +475,8 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Confirm the saved appearance on the user's existing staging session.
-   Isolated browser checks already verify the published assets.
+1. Check the updated loading layout and elapsed time in the user's staging session.
+   Isolated browser checks verify one layout and overlapping requests.
 2. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker

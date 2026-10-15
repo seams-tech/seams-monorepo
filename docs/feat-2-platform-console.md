@@ -416,6 +416,15 @@ by about 2.3 seconds for organisation details. The browser reproduction confirms
 that the reads now overlap. It does not measure the user's final network latency.
 A first visit without remembered identifiers still needs the session before organisation reads.
 
+The user confirmed one layout but reported nine seconds after that release.
+Slow requests entered through PDX; the earlier requests entered through NRT.
+Read-only database probes place the global primary in HKG and both regional and account primaries in SIN.
+Staging configuration revision `a54088ad53b54fe8860b1153d19401698016e31f` now requests
+`aws:ap-southeast-1` placement. A live health response reports `cf-placement: remote-SIN`.
+Application assets match the previous build. Existing bindings and access checks pass.
+This is a deployment control for the location hypothesis. Its effect on authenticated
+startup time still needs the user's refresh and matching request timings.
+
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
 encryption keys, and service-signing keys. The private account binding targets
@@ -424,7 +433,7 @@ The existing `staging-console` GitHub environment holds the connection settings.
 Satyr source revision `5eb4152e3064372d21f1a0036903c5606bafe478` includes the staging
 profiles, regional recovery fixes, setup refresh, startup appearance, and overlapping reads. Its button says
 Set up Satyr. The empty page explains automatic setup through project selection.
-Native Worker version `7e54323c-697e-4955-88d7-156f1a208e58` contains these changes.
+Native Worker version `5671d1bd-d0ce-4bde-b4ce-0bfd5aadb3ef` contains these changes and the staging placement hint.
 The release uses committed source and excludes concurrent model edits. Containers
 are unchanged. Native health and unauthenticated access checks pass.
 The approved native Google redirect is saved on the existing Satyr Portal client:
@@ -475,8 +484,8 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Check the updated loading layout and elapsed time in the user's staging session.
-   Isolated browser checks verify one layout and overlapping requests.
+1. Measure authenticated startup after the staging placement change. The user confirms
+   one layout. The effect of the new execution location remains unmeasured.
 2. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker

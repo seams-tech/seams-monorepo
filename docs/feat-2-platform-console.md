@@ -5,7 +5,8 @@ The staging backend and frontends are deployed. DNS and identity providers are c
 Wallet Google and GitHub sign-in, account navigation, and the staging origin cutover pass.
 Satyr staging and its private account connection are deployed.
 Satyr Google sign-in and automatic setup pass. Invitation acceptance is implemented.
-Live Satyr workspace entry passes. Production cutover remains pending.
+Live Satyr workspace entry passes. Setup completes without an automatic page reload.
+Saved appearance applies before the first visible frame. Production cutover remains pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -274,19 +275,20 @@ Google JavaScript origins and exact GitHub callbacks were saved in the existing 
 
 Deployed staging artifacts:
 
-| Component                                               | Version or deployment identifier       | Verified result                                                                                      |
-| ------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Existing Console Worker                                 | `cc1a38b2-993c-446e-8bae-0204c2aec465` | Satyr account fetch fix deployed; shared account readiness passes                                    |
-| Platform Pages project `seams-platform-console-staging` | `b7980093-1906-439c-bac7-f5375b4f3043` | Invitation acceptance loads on its custom hostname                                                   |
-| Wallet Pages project `seams-console-wallet-staging`     | `607ce87f-6746-4b47-ad20-928e262dfacf` | Wallet invitation links open Platform; existing Wallet access remains available                      |
+| Component                                               | Version or deployment identifier       | Verified result                                                                 |
+| ------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
+| Existing Console Worker                                 | `1b9dbae7-e518-4e33-916c-87dc638695c9` | Satyr account verification and public provisioning routing pass                 |
+| Platform Pages project `seams-platform-console-staging` | `b7980093-1906-439c-bac7-f5375b4f3043` | Invitation acceptance loads on its custom hostname                              |
+| Wallet Pages project `seams-console-wallet-staging`     | `607ce87f-6746-4b47-ad20-928e262dfacf` | Wallet invitation links open Platform; existing Wallet access remains available |
 
 The first Wallet Pages project returned HTTP 522 for static files. The same artifact
 serves successfully from the replacement project above. The staging CI mapping now
 selects that replacement. Production deployments are unchanged.
 
 The Worker retains the existing database, service bindings, secrets, and placement.
-Its source revision is `e2f0aee77d0f95986f205532d9ae05fd233e9de5`. The latest Worker
-deployment fixes Google verification and native provisioning for Satyr account setup.
+Its payload source revision is `e2f0aee77d0f95986f205532d9ae05fd233e9de5`.
+Configuration revision `7ef775d307ae4c4591449c7bb82cceb04a88777a` adds public fetch routing
+to Console. The latest deployment fixes Google verification and native provisioning for Satyr account setup.
 It retains invitation redemption through the current hosted authentication boundary.
 Secret bindings, database bindings, service bindings, placement, and
 security origins match the previous deployment. No migration was required.
@@ -381,17 +383,35 @@ organisations restored `/portal`, and the user selected an existing account and 
 The accepted setup operation completed after 274 seconds. Console and Satyr agree
 on one active instance, one native organisation, and matching revision-one receipts.
 The user confirmed organisation or workspace entry after refresh on October 15, 2026.
-The initial dispatch failure remains unexplained.
+Paired live probes identified a Cloudflare routing fault. During an HTTP invocation,
+Console's global fetch bypassed the same-zone Satyr Worker and returned HTTP 522.
+The same awaited requests from its scheduled invocation reached Satyr and returned
+HTTP 200 for health and HTTP 403 for unsigned provisioning. Adding
+`global_fetch_strictly_public` to Console alone made both contexts reach Satyr.
+Response hashes matched the public controls. Wallet Gateway and Runtime flags stay unchanged.
+This verifies the measured routing fault; it does not identify every historical defer.
+The final release removes the temporary probe endpoints and logs.
+See [Cloudflare's public fetch routing flag](https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public).
+
+Portal setup completion now refreshes account state without reloading the document.
+An already visible organisation needs no second session or organisation read.
+The user confirmed one load and estimated about five seconds, down from about ten.
+Saved appearance now applies in the document head before React starts. System mode
+follows the browser setting. Account preferences remain authoritative after sign-in.
+The browser journey verifies uncertain acceptance, operation replay, pending delivery,
+workspace entry, and the first visible Dark frame. It passes against local builds
+and published staging assets with mocked account APIs. Real account setup and
+workspace entry were confirmed separately by the user.
 
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
 encryption keys, and service-signing keys. The private account binding targets
 `seams-sdk-d1-console-staging`, entrypoint `SatyrAccountPlatform`.
 The existing `staging-console` GitHub environment holds the connection settings.
-Satyr source revision `6e8ca164276880ae9810918ff4bbe48faca27de0` includes the staging
-profiles, regional recovery fixes, and corrected setup text. Its button says
+Satyr source revision `3e1c42a0087a10c8d62d2253d5edcc04766e1906` includes the staging
+profiles, regional recovery fixes, setup refresh, and startup appearance. Its button says
 Set up Satyr. The empty page explains automatic setup through project selection.
-Native Worker version `f577b77a-018c-41c7-8f8c-8d8c435d25a7` contains this text change.
+Native Worker version `2d088fa7-4d71-4ad9-9486-ac3b0c51d1ac` contains these changes.
 The release uses committed source and excludes concurrent model edits. Containers
 are unchanged. Native health and unauthenticated access checks pass.
 The approved native Google redirect is saved on the existing Satyr Portal client:
@@ -442,8 +462,8 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Measure the initial setup defer before production acceptance. The first setup
-   needed durable retry. Its initial dispatch failure remains unresolved.
+1. Confirm the saved appearance on the user's existing staging session.
+   Isolated browser checks already verify the published assets.
 2. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker

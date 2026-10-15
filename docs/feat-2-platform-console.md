@@ -5,7 +5,7 @@ The staging backend and frontends are deployed. DNS and identity providers are c
 Wallet Google and GitHub sign-in, account navigation, and the staging origin cutover pass.
 Satyr staging and its private account connection are deployed.
 Satyr Google sign-in and automatic setup pass. Invitation acceptance is implemented.
-Live Satyr workspace entry and production cutover remain pending.
+Live Satyr workspace entry passes. Production cutover remains pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -380,8 +380,8 @@ The browser opened `/portal%20i`, which does not match a Portal page. Return to
 organisations restored `/portal`, and the user selected an existing account and project.
 The accepted setup operation completed after 274 seconds. Console and Satyr agree
 on one active instance, one native organisation, and matching revision-one receipts.
-The initial dispatch failure remains unexplained. Workspace entry after refresh
-remains the final live check.
+The user confirmed organisation or workspace entry after refresh on October 15, 2026.
+The initial dispatch failure remains unexplained.
 
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
@@ -394,6 +394,9 @@ Set up Satyr. The empty page explains automatic setup through project selection.
 Native Worker version `f577b77a-018c-41c7-8f8c-8d8c435d25a7` contains this text change.
 The release uses committed source and excludes concurrent model edits. Containers
 are unchanged. Native health and unauthenticated access checks pass.
+The approved native Google redirect is saved on the existing Satyr Portal client:
+`https://staging.satyr.seams.sh/v1/control/auth/google/callback`.
+Browser protections remain unchanged.
 
 Satyr validation includes 2,374 passing tests, backend and test type checks, Portal
 and storefront builds, the shared-account onboarding E2E, and regional recovery.
@@ -439,15 +442,9 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Confirm live Satyr workspace entry after refresh. Google sign-in, project selection,
-   the Platform identity link, and automatic setup pass. The approved Google redirect
-   is saved and verified on the existing Satyr Portal client:
-   `https://staging.satyr.seams.sh/v1/control/auth/google/callback`.
-   Keep browser control canceled for the manual sign-in check. Browser protections
-   remain unchanged. Open `/portal` with the current session and enter the organisation.
-   The first setup needed durable retry. Its initial dispatch failure remains unresolved.
+1. Measure the initial setup defer before production acceptance. The first setup
+   needed durable retry. Its initial dispatch failure remains unresolved.
 2. Repeat the verified sequence for production after staging acceptance passes.
-   Measure the initial setup defer before production acceptance.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker
    lacks the source configuration's `ACCOUNT_PLATFORM` binding.

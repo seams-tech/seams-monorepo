@@ -7,7 +7,7 @@ Satyr staging and its private account connection are deployed.
 Satyr Google sign-in and automatic setup pass. Invitation acceptance is implemented.
 Live Satyr workspace entry passes. Setup completes without an automatic page reload.
 Saved appearance applies before the first visible frame. The organisation list has one loading layout.
-Production cutover remains pending.
+The user accepted startup at roughly 2.5 seconds. Production cutover remains pending.
 Date: October 15, 2026.
 
 ## Outcome
@@ -422,8 +422,10 @@ Read-only database probes place the global primary in HKG and both regional and 
 Staging configuration revision `a54088ad53b54fe8860b1153d19401698016e31f` now requests
 `aws:ap-southeast-1` placement. A live health response reports `cf-placement: remote-SIN`.
 Application assets match the previous build. Existing bindings and access checks pass.
-This is a deployment control for the location hypothesis. Its effect on authenticated
-startup time still needs the user's refresh and matching request timings.
+The user then reported roughly 2.5 seconds and accepted the result.
+Latest authenticated requests returned HTTP 200, with 688 ms for the session and
+1,230 ms for organisation details. They entered through NRT. The ingress location
+also changed, so these observations do not isolate the placement change's contribution.
 
 Satyr now serves its native Portal at `https://staging.satyr.seams.sh/portal`.
 Its staging profiles use separate databases, queues, KV, archive storage, sessions,
@@ -484,9 +486,7 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 
 Remaining actions, in order:
 
-1. Measure authenticated startup after the staging placement change. The user confirms
-   one layout. The effect of the new execution location remains unmeasured.
-2. Repeat the verified sequence for production after staging acceptance passes.
+1. Repeat the verified sequence for production after staging acceptance passes.
    Confirm production Satyr's existing organizations and private account connection
    before releasing its account-service admission changes. Its current live Worker
    lacks the source configuration's `ACCOUNT_PLATFORM` binding.

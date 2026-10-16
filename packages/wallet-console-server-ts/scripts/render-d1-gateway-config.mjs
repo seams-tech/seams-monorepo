@@ -38,7 +38,7 @@ function main() {
   const options = parseArguments(process.argv.slice(2));
   const lane = readBackendLane(options.lane);
   const deployment = requireProvisionedGatewayDeploymentConfig(options.lane, lane.provisioning);
-  requireAllocatedWalletRegions(deployment);
+  if (options.worker !== 'console') requireAllocatedWalletRegions(deployment);
   const config =
     options.worker === 'console'
       ? buildConsoleConfig(
@@ -177,8 +177,18 @@ function buildConsoleConfig(
       ? []
       : [consoleSite.platformOrigin, consoleSite.walletConsoleOrigin];
   const production = deployment.lane !== 'staging-testnet';
+  const consoleBaseUrl = new URL(consoleSite.platformOrigin);
+  consoleBaseUrl.searchParams.set(
+    'db_network',
+    deployment.lane === 'production-mainnet' ? 'mainnet' : 'testnet',
+  );
+  let regionalWalletConfigured = true;
+  for (const region of WALLET_REGIONS) {
+    if (resources.regions[region].signerD1.kind !== 'allocated') {
+      regionalWalletConfigured = false;
+    }
+  }
   const vars = {
-    SEAMS_WALLET_HOME_CATALOG_JSON: walletHomeCatalogJson(deployment),
     SEAMS_TENANT_STORAGE_NAMESPACE: deployment.tenant.namespace,
     SEAMS_TENANT_DEPLOYMENT_LANE: deployment.lane,
     TENANT_DEPLOYMENT_SURFACES_JSON: JSON.stringify({
@@ -187,7 +197,7 @@ function buildConsoleConfig(
       gatewayOrigin,
       relyingPartyId: new URL(walletOrigin).hostname,
     }),
-    CONSOLE_BASE_URL: consoleSite.platformOrigin,
+    CONSOLE_BASE_URL: consoleBaseUrl.href,
     CONSOLE_CORS_ORIGINS: [
       walletSiteOrigin,
       consoleSite.platformOrigin,
@@ -202,6 +212,9 @@ function buildConsoleConfig(
     CONSOLE_EMAIL_INVITATION_SECRET_KEY_ID: `console-email-${deployment.lane}-r1`,
     CONSOLE_WEBHOOK_SECRET_KEY_ID: `console-webhook-${deployment.lane}-r1`,
   };
+  if (regionalWalletConfigured) {
+    vars.SEAMS_WALLET_HOME_CATALOG_JSON = walletHomeCatalogJson(deployment);
+  }
   addOptionalStringVar(vars, 'GOOGLE_OIDC_CLIENT_ID', deployment.optional.googleOidcClientId);
   addOptionalStringVar(
     vars,
@@ -242,8 +255,8 @@ function buildConsoleConfig(
       },
     ],
     services: [
-      ...regionalGatewayBindings(deployment),
-      ...regionalRuntimeBindings(deployment),
+      ...(regionalWalletConfigured ? regionalGatewayBindings(deployment) : []),
+      ...(regionalWalletConfigured ? regionalRuntimeBindings(deployment) : []),
       {
         binding: 'WALLET_RUNTIME',
         service: walletRuntimeWorkerNameFor(resources.regions[resources.ingressRegion].workerName),

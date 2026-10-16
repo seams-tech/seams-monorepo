@@ -15,6 +15,7 @@ on:
         type: choice
         options:
           - staging-testnet
+          - production-testnet
           - production-mainnet
 
 permissions:
@@ -184,7 +185,6 @@ jobs:
       - name: Deploy Console
         run: pnpm deploy:backend deploy --lane "$DEPLOY_LANE" --component console
       - name: Smoke Console
-        if: inputs.lane != 'production-testnet'
         run: pnpm deploy:backend smoke --lane "$DEPLOY_LANE" --component console
 
   cleanup_build_cache:

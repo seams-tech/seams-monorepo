@@ -50,8 +50,13 @@ import {
   useDashboardUiPreferences,
 } from './useDashboardUiPreferences';
 import { useSiteRouter } from '@core/router/useSiteRouter';
-import { useFrontendRuntime } from '@core/runtime';
-import { networkForConsoleEnvironmentId } from './environmentNetwork';
+import {
+  getActiveFrontendDeployment,
+  selectNetwork,
+  useFrontendRuntime,
+  type ConsoleNetwork,
+  type ConsoleRuntimeState,
+} from '@core/runtime';
 import {
   listDashboardAccountOrganizations,
   switchDashboardAccountOrganizationContext,
@@ -155,6 +160,52 @@ function dedupeOptions(options: TopbarOption[]): TopbarOption[] {
     }
   }
   return deduped;
+}
+
+const SWITCH_TO_MAINNET = 'console-network-mainnet';
+const SWITCH_TO_TESTNET = 'console-network-testnet';
+
+function withConsoleNetworkOptions(
+  options: TopbarOption[],
+  runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
+): TopbarOption[] {
+  if (import.meta.env.MODE !== 'wallet' || runtime.availableNetworks.length < 2) return options;
+  const mainnet = runtime.selectedNetwork === 'mainnet';
+  return [
+    ...options,
+    {
+      value: 'console-current-network',
+      label: mainnet ? 'Network: Mainnet' : 'Network: Testnet',
+      disabled: true,
+    },
+    {
+      value: mainnet ? SWITCH_TO_TESTNET : SWITCH_TO_MAINNET,
+      label: mainnet ? 'Switch to Testnet' : 'Switch to Mainnet',
+    },
+  ];
+}
+
+function selectConsoleNetworkOption(value: string): boolean {
+  switch (value) {
+    case SWITCH_TO_MAINNET:
+      navigateToConsoleNetwork('mainnet');
+      return true;
+    case SWITCH_TO_TESTNET:
+      navigateToConsoleNetwork('testnet');
+      return true;
+    default:
+      return false;
+  }
+}
+
+function navigateToConsoleNetwork(network: ConsoleNetwork): void {
+  if (getActiveFrontendDeployment().network === network) return;
+  selectNetwork(network);
+  if (getActiveFrontendDeployment().network !== network) return;
+  clearDashboardUiState();
+  const destination = new URL('/dashboard/account-settings', window.location.origin);
+  destination.searchParams.set('db_network', network);
+  window.location.assign(destination.href);
 }
 
 function buildProjectEnvironmentOptions(input: {
@@ -712,14 +763,24 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       organization: dedupeOptions(organizationOptions),
       project: projectOptions,
       environment: environmentOptions,
-      accountSettings: DASHBOARD_ACCOUNT_SETTINGS_OPTIONS.map(
-        (entry): TopbarOption => ({
-          value: entry,
-          label: entry,
-        }),
+      accountSettings: withConsoleNetworkOptions(
+        DASHBOARD_ACCOUNT_SETTINGS_OPTIONS.map(
+          (entry): TopbarOption => ({
+            value: entry,
+            label: entry,
+          }),
+        ),
+        frontendRuntime,
       ),
     }),
-    [DASHBOARD_ACCOUNT_SETTINGS_OPTIONS, environmentOptions, organizationOptions, projectOptions],
+    [
+      DASHBOARD_ACCOUNT_SETTINGS_OPTIONS,
+      environmentOptions,
+      organizationOptions,
+      projectOptions,
+      frontendRuntime.selectedNetwork,
+      frontendRuntime.availableNetworks.length,
+    ],
   );
 
   const workspaceProjectGroups = React.useMemo<SidebarProjectGroup[]>(
@@ -842,6 +903,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
 
   const onSelectContext = React.useCallback(
     (menu: TopbarMenuKey, value: string) => {
+      if (menu === 'accountSettings' && selectConsoleNetworkOption(value)) return;
       if (menu === 'organization') {
         const nextOrgId = String(value || '').trim();
         if (!nextOrgId) return;
@@ -888,10 +950,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       if (menu === 'project') {
         setSelectedProjectId(value);
       }
-      if (menu === 'environment') {
-        const network = networkForConsoleEnvironmentId(value);
-        if (network) frontendRuntime.selectNetwork(network);
-      }
     },
     [
       DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION,
@@ -919,18 +977,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         environment: environmentId,
       });
       setSelectedProjectId(projectId);
-      const network = networkForConsoleEnvironmentId(environmentId);
-      if (network) frontendRuntime.selectNetwork(network);
     },
     [currentOrgId, frontendRuntime, workspaceProjectGroups],
   );
-
-  React.useEffect(() => {
-    if (!usesWalletContext) return;
-    const network = networkForConsoleEnvironmentId(selectedContext.environment);
-    if (!network || network === frontendRuntime.selectedNetwork) return;
-    frontendRuntime.selectNetwork(network);
-  }, [frontendRuntime, selectedContext.environment, usesWalletContext]);
 
   React.useEffect(() => {
     if (!consoleSession.claims) return;
@@ -1244,6 +1293,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   onOrganizationCreated: () => void;
 }): React.JSX.Element {
   const { go, linkProps } = useSiteRouter();
+  const frontendRuntime = useFrontendRuntime();
   const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(true);
   const [selectedProductId, setSelectedProductId] = React.useState<DashboardProductId>(
     composition.defaultProductId,
@@ -1251,14 +1301,23 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   const [logoutPending, setLogoutPending] = React.useState(false);
   const homeProps = linkProps('https://seams.sh/');
   const accountOptions = React.useMemo<TopbarOption[]>(
-    () => [
-      {
-        value: composition.accountSettingsSignOutOption,
-        label: logoutPending ? 'Signing out...' : composition.accountSettingsSignOutOption,
-        disabled: logoutPending,
-      },
+    () =>
+      withConsoleNetworkOptions(
+        [
+          {
+            value: composition.accountSettingsSignOutOption,
+            label: logoutPending ? 'Signing out...' : composition.accountSettingsSignOutOption,
+            disabled: logoutPending,
+          },
+        ],
+        frontendRuntime,
+      ),
+    [
+      composition.accountSettingsSignOutOption,
+      logoutPending,
+      frontendRuntime.selectedNetwork,
+      frontendRuntime.availableNetworks.length,
     ],
-    [composition.accountSettingsSignOutOption, logoutPending],
   );
   const dropdownOptions = React.useMemo<Record<TopbarMenuKey, TopbarOption[]>>(
     () => ({
@@ -1275,6 +1334,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
   }, []);
   const selectAccountOption = React.useCallback(
     (value: string) => {
+      if (selectConsoleNetworkOption(value)) return;
       if (value !== composition.accountSettingsSignOutOption || logoutPending) return;
       setLogoutPending(true);
       void revokeDashboardConsoleSession().finally(() => {

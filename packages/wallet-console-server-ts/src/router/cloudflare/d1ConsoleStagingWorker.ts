@@ -1,3 +1,10 @@
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
+import {
+  readRegionalWalletConfiguration,
+  type ConfiguredRegionalWallet,
+  type RegionalWalletConfiguration,
+  type RegionalWalletEnvironment,
+} from './regionalWalletConfiguration';
 import { createD1AccountConsoleComposition, isAccountConsoleRequest } from './d1AccountConsole';
 export { SatyrAccountPlatform } from './satyrAccountPlatform';
 import { type CloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
@@ -28,7 +35,7 @@ import { GATEWAY_SESSION_PATH, gatewaySessionResponse } from '../../walletPlacem
 import { createWalletRuntimeOpsClient } from '../../serviceBinding/walletRuntimeOpsClient';
 import { RegionalWalletIdentities } from '../../serviceBinding/regionalWalletIdentities';
 import { D1WalletHomeDirectory } from '../../walletPlacement/d1';
-import { WalletHomeCatalog, type WalletHome } from '../../walletPlacement/home';
+import { type WalletHome } from '../../walletPlacement/home';
 import { recoveryTrustResponse } from '../../tenantRootSecurity/recoveryTrustRoute';
 import { createRestoreAccessRoute } from '../../tenantRootSecurity/restoreAccessRoute';
 import { withCors } from '@seams/wallet-server/cloud-host';
@@ -143,9 +150,11 @@ import {
   createGatewayTenantDeploymentRegistrationCanaryV1,
   createTenantDeploymentProvisionerV1,
 } from '../../tenantDeployment/provisioning';
-import { createTenantDeploymentAutomationRouteV1 } from '../../tenantDeployment/automationRoute';
+import {
+  createTenantDeploymentAutomationRouteV1,
+  isTenantDeploymentAutomationRequestV1,
+} from '../../tenantDeployment/automationRoute';
 import { createTenantD1ResourceVerifierV1 } from '../../tenantDeployment/resourceChallenge';
-import type { TenantDeploymentCandidateSurfacesV1 } from '../../tenantDeployment/productionReadiness';
 
 import { TenantDeploymentD1ResourceIdentityV1 } from '../../tenantDeployment/deploymentResource';
 import {
@@ -162,18 +171,11 @@ interface CloudflareD1ConsoleStagingEnv
   extends
     CloudflareD1StagingSessionEnv,
     RouterApiCloudflareConsoleWorkerEnv,
-    SatyrProvisioningEnvironment {
+    SatyrProvisioningEnvironment,
+    RegionalWalletEnvironment {
   readonly CONSOLE_DB: D1DatabaseLike;
   readonly CLOUDFLARE_API_TOKEN?: string;
   readonly WALLET_RUNTIME: WalletRuntimeServiceBinding;
-  readonly WALLET_RUNTIME_US: WalletRuntimeServiceBinding;
-  readonly WALLET_RUNTIME_WEUR: WalletRuntimeServiceBinding;
-  readonly WALLET_RUNTIME_APAC: WalletRuntimeServiceBinding;
-  readonly WALLET_RUNTIME_OC: WalletRuntimeServiceBinding;
-  readonly WALLET_GATEWAY_US: WalletRuntimeServiceBinding;
-  readonly WALLET_GATEWAY_WEUR: WalletRuntimeServiceBinding;
-  readonly WALLET_GATEWAY_APAC: WalletRuntimeServiceBinding;
-  readonly WALLET_GATEWAY_OC: WalletRuntimeServiceBinding;
   readonly TENANT_ROOT_RESTORE_DESTINATION_JSON?: string;
   readonly TENANT_ROOT_RESTORE_ACCESS_JSON?: string;
   readonly TENANT_ROOT_RECOVERY_CERTIFICATES_JSON?: string;
@@ -181,8 +183,6 @@ interface CloudflareD1ConsoleStagingEnv
   readonly TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED?: string;
   readonly SEAMS_TENANT_STORAGE_NAMESPACE?: string;
   readonly SEAMS_TENANT_DEPLOYMENT_LANE: string;
-  readonly TENANT_DEPLOYMENT_SURFACES_JSON: string;
-  readonly SEAMS_WALLET_HOME_CATALOG_JSON: string;
   // Console step-up relying party. The id and origin are required wherever the
   // refresh route is mounted, because without them no step-up can be obtained
   // and rotation is unreachable.
@@ -220,46 +220,6 @@ function regionalReadinessInspector(
     databaseId: home.databaseId,
   });
   return createTenantDeploymentRuntimeInspectionClientV1(runtime, resource);
-}
-
-function readTenantDeploymentSurfaceText(
-  source: Record<string, unknown>,
-  name: 'applicationOrigin' | 'hostedWalletOrigin' | 'gatewayOrigin' | 'relyingPartyId',
-): string {
-  const candidate = source[name];
-  if (typeof candidate !== 'string' || !candidate || candidate.trim() !== candidate) {
-    throw new Error(`TENANT_DEPLOYMENT_SURFACES_JSON.${name} is invalid`);
-  }
-  return candidate;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function parseTenantDeploymentSurfaces(raw: string): TenantDeploymentCandidateSurfacesV1 {
-  if (!raw || raw.trim() !== raw) throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON is required');
-  const value: unknown = JSON.parse(raw);
-  if (!isRecord(value)) {
-    throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON must be an object');
-  }
-  const source = value;
-  const required = [
-    'applicationOrigin',
-    'hostedWalletOrigin',
-    'gatewayOrigin',
-    'relyingPartyId',
-  ] as const;
-  if (Object.keys(source).sort().join(',') !== [...required].sort().join(',')) {
-    throw new Error('TENANT_DEPLOYMENT_SURFACES_JSON has unexpected fields');
-  }
-  return {
-    applicationOrigin: new URL(readTenantDeploymentSurfaceText(source, 'applicationOrigin')).origin,
-    hostedWalletOrigin: new URL(readTenantDeploymentSurfaceText(source, 'hostedWalletOrigin'))
-      .origin,
-    gatewayOrigin: new URL(readTenantDeploymentSurfaceText(source, 'gatewayOrigin')).origin,
-    relyingPartyId: readTenantDeploymentSurfaceText(source, 'relyingPartyId'),
-  };
 }
 
 function consoleGithubOAuthConfig(
@@ -337,26 +297,172 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
   'tenant_deployment_activations',
 ]);
 
+type RegionalTenantDeployment =
+  | { readonly kind: 'unconfigured'; readonly route?: never; readonly readyCheck?: never }
+  | {
+      readonly kind: 'configured';
+      readonly route: ReturnType<typeof createTenantDeploymentAutomationRouteV1>;
+      readonly readyCheck: () => Promise<void>;
+    };
+
+function createRegionalTenantDeployment(
+  regional: RegionalWalletConfiguration,
+  input: {
+    readonly namespace: string;
+    readonly deploymentLane: string;
+    readonly database: D1DatabaseLike;
+    readonly bundle: Awaited<ReturnType<typeof createCloudflareD1ConsoleOnlyServiceBundle>>;
+    readonly tenantRootState: ReturnType<typeof createTenantRootSecurityStateReaderV1>;
+    readonly tenantRootCreationDependencies: TenantRootCreationConsoleRouteDependenciesV1;
+  },
+): RegionalTenantDeployment {
+  switch (regional.kind) {
+    case 'unconfigured':
+      return { kind: 'unconfigured' };
+    case 'configured':
+      break;
+    default:
+      return assertNever(regional);
+  }
+  const {
+    namespace,
+    deploymentLane,
+    database,
+    bundle,
+    tenantRootState,
+    tenantRootCreationDependencies,
+  } = input;
+  const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
+    database,
+  });
+  const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
+    namespace,
+    deploymentLane,
+    walletEnvironments: bundle.walletEnvironments,
+    apiKeys: bundle.apiKeys,
+    policies: bundle.policies,
+    runtimeSnapshots: bundle.runtimeSnapshots,
+    tenantRootState,
+    bindings: tenantDeploymentBindings,
+    walletRuntime: combineTenantDeploymentRuntimeInspectorsV1([
+      regionalReadinessInspector(namespace, regional.catalog.select('US'), regional.runtimes.US),
+      regionalReadinessInspector(
+        namespace,
+        regional.catalog.select('WEUR'),
+        regional.runtimes.WEUR,
+      ),
+      regionalReadinessInspector(
+        namespace,
+        regional.catalog.select('APAC'),
+        regional.runtimes.APAC,
+      ),
+      regionalReadinessInspector(namespace, regional.catalog.select('OC'), regional.runtimes.OC),
+    ]),
+  });
+  const tenantDeploymentReadiness = createTenantDeploymentReadinessServiceV1({
+    inspector: tenantDeploymentReadinessAdapter,
+  });
+  const tenantDeploymentStore = createD1TenantDeploymentServiceV1({
+    database,
+  });
+  const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
+    namespace,
+    resources: regional.catalog.deploymentResources(),
+    deploymentLane,
+    surfaces: regional.surfaces,
+    walletEnvironments: bundle.walletEnvironments,
+    apiKeys: bundle.apiKeys,
+    audit: bundle.audit,
+    tenantRootCreation: tenantRootCreationDependencies,
+    tenantRootState,
+    candidates: tenantDeploymentReadinessAdapter,
+    readiness: tenantDeploymentReadiness,
+    store: tenantDeploymentStore,
+    regionalAdmission: new RegionalDeploymentServiceInstaller(regional.catalog, regional.runtimes),
+    canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
+    browserCredential: { kind: 'create_managed_publishable_key' },
+  });
+  const resourceVerifier = relocationRuntimeVerifier(regional, namespace, deploymentLane);
+
+  const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
+    deploymentLane,
+    provisioner: tenantDeploymentProvisioner,
+    resourceVerifier,
+  });
+  return {
+    kind: 'configured',
+    route: tenantDeploymentAutomationRoute,
+    readyCheck: checkActiveTenantDeployment.bind(
+      null,
+      tenantDeploymentBindings,
+      deploymentLane,
+      tenantDeploymentReadinessAdapter,
+    ),
+  };
+}
+
+async function checkActiveTenantDeployment(
+  bindings: ReturnType<typeof createD1TenantDeploymentBindingReaderV1>,
+  deploymentLane: string,
+  readiness: ReturnType<typeof createProductionTenantDeploymentReadinessAdapterV1>,
+): Promise<void> {
+  const active = await bindings.resolveActiveBinding(deploymentLane);
+  if (active) await readiness.inspect(active);
+}
+
+function consoleWalletIdentityReader(
+  regional: RegionalWalletConfiguration,
+  namespace: string,
+  database: D1DatabaseLike,
+  runtime: ReturnType<typeof createWalletRuntimeOpsClient>,
+): ReturnType<typeof createWalletRuntimeOpsClient>['getWalletIdentities'] {
+  switch (regional.kind) {
+    case 'unconfigured':
+      return runtime.getWalletIdentities.bind(runtime);
+    case 'configured': {
+      const identities = new RegionalWalletIdentities(
+        namespace,
+        new D1WalletHomeDirectory(database, regional.catalog),
+        regional.runtimes,
+      );
+      return identities.read.bind(identities);
+    }
+    default:
+      return assertNever(regional);
+  }
+}
+
+function regionalGatewayDispatch(regional: ConfiguredRegionalWallet): WalletRegionalDispatch {
+  return new WalletRegionalDispatch({
+    WALLET_GATEWAY_US: regional.gateways.US,
+    WALLET_GATEWAY_WEUR: regional.gateways.WEUR,
+    WALLET_GATEWAY_APAC: regional.gateways.APAC,
+    WALLET_GATEWAY_OC: regional.gateways.OC,
+  });
+}
+
+function regionalWalletUnavailable(): Response {
+  return Response.json(
+    { ok: false, code: 'regional_wallet_unconfigured' },
+    { status: 503, headers: { 'Cache-Control': 'no-store' } },
+  );
+}
+
 async function createConsoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
   request: Request,
+  regional: RegionalWalletConfiguration,
 ): Promise<FetchHandler> {
-  let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
   const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
-  const walletHomeCatalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
-  const regionalIdentities = new RegionalWalletIdentities(
-    namespace,
-    new D1WalletHomeDirectory(env.CONSOLE_DB, walletHomeCatalog),
-    {
-      US: env.WALLET_RUNTIME_US,
-      WEUR: env.WALLET_RUNTIME_WEUR,
-      APAC: env.WALLET_RUNTIME_APAC,
-      OC: env.WALLET_RUNTIME_OC,
-    },
-  );
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
+  const resolveWalletIdentities = consoleWalletIdentityReader(
+    regional,
+    namespace,
+    env.CONSOLE_DB,
+    walletRuntime,
+  );
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
   const invitationSecretCipher = createConsoleEmailInvitationSecretCipherFromEnv(env);
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
@@ -381,7 +487,7 @@ async function createConsoleHandler(
       sponsorshipPricing: resolveSponsoredExecutionPricingFromEnv(env),
       webhookSecretCipher: createConsoleWebhookSecretCipherFromEnv(env),
       walletBalanceReader: {
-        resolveWalletIdentities: regionalIdentities.read.bind(regionalIdentities),
+        resolveWalletIdentities,
       },
     },
   });
@@ -553,79 +659,13 @@ async function createConsoleHandler(
     internalServiceAuthSecret: WALLET_CONTROL_AUTH_MARKER_V1,
     stepUp: tenantRootStepUp,
   });
-  const tenantDeploymentBindings = createD1TenantDeploymentBindingReaderV1({
+  const tenantDeployment = createRegionalTenantDeployment(regional, {
+    namespace,
+    deploymentLane,
     database: env.CONSOLE_DB,
-  });
-  const tenantDeploymentReadinessAdapter = createProductionTenantDeploymentReadinessAdapterV1({
-    namespace,
-    deploymentLane: requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
-    walletEnvironments: bundle.walletEnvironments,
-    apiKeys: bundle.apiKeys,
-    policies: bundle.policies,
-    runtimeSnapshots: bundle.runtimeSnapshots,
+    bundle,
     tenantRootState,
-    bindings: tenantDeploymentBindings,
-    walletRuntime: combineTenantDeploymentRuntimeInspectorsV1([
-      regionalReadinessInspector(namespace, walletHomeCatalog.select('US'), env.WALLET_RUNTIME_US),
-      regionalReadinessInspector(
-        namespace,
-        walletHomeCatalog.select('WEUR'),
-        env.WALLET_RUNTIME_WEUR,
-      ),
-      regionalReadinessInspector(
-        namespace,
-        walletHomeCatalog.select('APAC'),
-        env.WALLET_RUNTIME_APAC,
-      ),
-      regionalReadinessInspector(namespace, walletHomeCatalog.select('OC'), env.WALLET_RUNTIME_OC),
-    ]),
-  });
-  const tenantDeploymentReadiness = createTenantDeploymentReadinessServiceV1({
-    inspector: tenantDeploymentReadinessAdapter,
-  });
-  const tenantDeploymentStore = createD1TenantDeploymentServiceV1({
-    database: env.CONSOLE_DB,
-  });
-  tenantDeploymentReadyCheck = async () => {
-    const active = await tenantDeploymentBindings.resolveActiveBinding(
-      requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE'),
-    );
-    if (!active) return;
-    await tenantDeploymentReadinessAdapter.inspect(active);
-  };
-  const tenantDeploymentProvisioner = createTenantDeploymentProvisionerV1({
-    namespace,
-    resources: walletHomeCatalog.deploymentResources(),
-    deploymentLane,
-    surfaces: parseTenantDeploymentSurfaces(env.TENANT_DEPLOYMENT_SURFACES_JSON),
-    walletEnvironments: bundle.walletEnvironments,
-    apiKeys: bundle.apiKeys,
-    audit: bundle.audit,
-    tenantRootCreation: tenantRootCreationDependencies,
-    tenantRootState,
-    candidates: tenantDeploymentReadinessAdapter,
-    readiness: tenantDeploymentReadiness,
-    store: tenantDeploymentStore,
-    regionalAdmission: new RegionalDeploymentServiceInstaller(walletHomeCatalog, {
-      US: env.WALLET_RUNTIME_US,
-      WEUR: env.WALLET_RUNTIME_WEUR,
-      APAC: env.WALLET_RUNTIME_APAC,
-      OC: env.WALLET_RUNTIME_OC,
-    }),
-    canary: createGatewayTenantDeploymentRegistrationCanaryV1(),
-    browserCredential: { kind: 'create_managed_publishable_key' },
-  });
-  const resourceVerifier = relocationRuntimeVerifier(
-    env,
-    namespace,
-    deploymentLane,
-    walletHomeCatalog,
-  );
-
-  const tenantDeploymentAutomationRoute = createTenantDeploymentAutomationRouteV1({
-    deploymentLane,
-    provisioner: tenantDeploymentProvisioner,
-    resourceVerifier,
+    tenantRootCreationDependencies,
   });
   // Private service-binding target: the declared Wallet Console
   // operations, served ahead of the console router.
@@ -670,8 +710,12 @@ async function createConsoleHandler(
     if (consoleStepUpResponse) return consoleStepUpResponse;
     const tenantRootSecurityReadResponse = await tenantRootSecurityReadRoute(request);
     if (tenantRootSecurityReadResponse) return tenantRootSecurityReadResponse;
-    const tenantDeploymentAutomationResponse = await tenantDeploymentAutomationRoute(request);
-    if (tenantDeploymentAutomationResponse) return tenantDeploymentAutomationResponse;
+    if (tenantDeployment.kind === 'configured') {
+      const tenantDeploymentResponse = await tenantDeployment.route(request);
+      if (tenantDeploymentResponse) return tenantDeploymentResponse;
+    } else if (isTenantDeploymentAutomationRequestV1(request)) {
+      return regionalWalletUnavailable();
+    }
     const relayResponse = await relayHandler(request, ctx);
     if (relayResponse) return relayResponse;
     const satyrProvisioning = satyrProvisioningForConsoleRoute(
@@ -690,7 +734,7 @@ async function createConsoleHandler(
       session,
       readyCheck: async () => {
         await createConsoleReadyCheck(env)();
-        if (tenantDeploymentReadyCheck) await tenantDeploymentReadyCheck();
+        if (tenantDeployment.kind === 'configured') await tenantDeployment.readyCheck();
       },
       billingStripeWebhookSigningSecret: requireEnvString(env, 'STRIPE_WEBHOOK_SECRET'),
     });
@@ -806,8 +850,9 @@ function consoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
   request: Request,
+  regional: RegionalWalletConfiguration,
 ): Promise<FetchHandler> {
-  return createConsoleHandler(env, ctx, request);
+  return createConsoleHandler(env, ctx, request, regional);
 }
 
 function createConsoleReadyCheck(env: CloudflareD1ConsoleStagingEnv): () => Promise<void> {
@@ -875,12 +920,14 @@ async function fetch(
     const handler = await createAccountHandler(request, env, ctx);
     return handler(request, env, ctx);
   }
+  const regional = readRegionalWalletConfiguration(env);
   const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
     timingHeaders: bindingTimingHeaders,
   });
   if (isWalletHomeServiceRequest(request)) {
+    if (regional.kind === 'unconfigured') return regionalWalletUnavailable();
     const deploymentLane = requireEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE');
     let active;
     let writer;
@@ -894,12 +941,12 @@ async function fetch(
         },
       );
       if (new URL(request.url).pathname === '/internal/wallet-placement/v1/registration-setup') {
-        return await registrationSetupResponse(request, env, ctx, deploymentLane, writer);
+        return await registrationSetupResponse(request, env, ctx, deploymentLane, writer, regional);
       }
       const mutation = await handleWalletRegistrationMutation(request, {
         database: env.CONSOLE_DB,
         writer,
-        catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+        catalogJson: JSON.stringify(regional.catalog),
         deploymentLane,
       });
       if (mutation) return mutation;
@@ -922,19 +969,18 @@ async function fetch(
         request,
         active,
         env.CONSOLE_DB,
-        env.SEAMS_WALLET_HOME_CATALOG_JSON,
+        JSON.stringify(regional.catalog),
       );
       const timing = bindingTimingHeaders.get('Server-Timing');
       if (timing) response.headers.append('Server-Timing', timing);
       return response;
     }
     if (request.url === WALLET_RELOCATION_ADMISSION_URL) {
-      const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+      const catalog = regional.catalog;
       const runtimeVerifier = relocationRuntimeVerifier(
-        env,
+        regional,
         active.tenant.namespace,
         deploymentLane,
-        catalog,
       );
       const verifier = new RelocationResourceVerifier(
         env.CONSOLE_DB,
@@ -950,34 +996,29 @@ async function fetch(
         writer,
         deploymentLane,
         bindings: {
-          gateways: new WalletRegionalDispatch(env),
-          runtimes: {
-            US: env.WALLET_RUNTIME_US,
-            WEUR: env.WALLET_RUNTIME_WEUR,
-            APAC: env.WALLET_RUNTIME_APAC,
-            OC: env.WALLET_RUNTIME_OC,
-          },
+          gateways: regionalGatewayDispatch(regional),
+          runtimes: regional.runtimes,
         },
         verifyResources: verifier.verify.bind(verifier),
-        onAdmitted: runWalletRelocation.bind(null, relocationResumptionOptions(env), 'activation'),
+        onAdmitted: runWalletRelocation.bind(
+          null,
+          relocationResumptionOptions(env, regional),
+          'activation',
+        ),
         clock: Date.now,
       });
-      if (response.ok) ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
+      if (response.ok)
+        ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env, regional)));
       return response;
     }
     if (request.url === WALLET_RELOCATION_ADVANCE_URL) {
       return handleWalletRelocationAdvance(request, {
         database: env.CONSOLE_DB,
-        catalog: WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON)),
+        catalog: regional.catalog,
         scope: active.tenant,
         bindings: {
-          gateways: new WalletRegionalDispatch(env),
-          runtimes: {
-            US: env.WALLET_RUNTIME_US,
-            WEUR: env.WALLET_RUNTIME_WEUR,
-            APAC: env.WALLET_RUNTIME_APAC,
-            OC: env.WALLET_RUNTIME_OC,
-          },
+          gateways: regionalGatewayDispatch(regional),
+          runtimes: regional.runtimes,
         },
         clock: Date.now,
       });
@@ -985,7 +1026,7 @@ async function fetch(
     const response = await handleWalletHomeServiceRequest(request, {
       writer,
       database: env.CONSOLE_DB,
-      catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+      catalogJson: JSON.stringify(regional.catalog),
       admittedResources: active.resources,
       scope: active.tenant,
       environmentKey: active.mode.environment === 'development' ? 'dev' : 'prod',
@@ -1017,7 +1058,7 @@ async function fetch(
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
     return response;
   }
-  const handler = await consoleHandler(env, ctx, request);
+  const handler = await consoleHandler(env, ctx, request, regional);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
   withCors(result.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
@@ -1159,24 +1200,25 @@ async function scheduled(
       env,
     ),
   );
-  ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env)));
+  const regional = readRegionalWalletConfiguration(env);
+  if (regional.kind === 'configured') {
+    ctx.waitUntil(resumeWalletRelocations(relocationResumptionOptions(env, regional)));
+  }
   const handler = consoleScheduledHandler(env);
   await handler(event, env, ctx);
 }
 
-function relocationResumptionOptions(env: CloudflareD1ConsoleStagingEnv) {
+function relocationResumptionOptions(
+  env: CloudflareD1ConsoleStagingEnv,
+  regional: ConfiguredRegionalWallet,
+) {
   return {
     database: env.CONSOLE_DB,
-    catalog: WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON)),
+    catalog: regional.catalog,
     namespace: requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE'),
     bindings: {
-      gateways: new WalletRegionalDispatch(env),
-      runtimes: {
-        US: env.WALLET_RUNTIME_US,
-        WEUR: env.WALLET_RUNTIME_WEUR,
-        APAC: env.WALLET_RUNTIME_APAC,
-        OC: env.WALLET_RUNTIME_OC,
-      },
+      gateways: regionalGatewayDispatch(regional),
+      runtimes: regional.runtimes,
     },
     clock: Date.now,
   };
@@ -1185,20 +1227,19 @@ function relocationResumptionOptions(env: CloudflareD1ConsoleStagingEnv) {
 export default { fetch, scheduled };
 
 function relocationRuntimeVerifier(
-  env: CloudflareD1ConsoleStagingEnv,
+  regional: ConfiguredRegionalWallet,
   namespace: string,
   deploymentLane: string,
-  catalog: WalletHomeCatalog,
 ) {
   return createTenantD1ResourceVerifierV1({
     namespace,
-    catalog,
+    catalog: regional.catalog,
     deploymentLane,
     writers: {
-      US: { gateway: env.WALLET_GATEWAY_US, walletRuntime: env.WALLET_RUNTIME_US },
-      WEUR: { gateway: env.WALLET_GATEWAY_WEUR, walletRuntime: env.WALLET_RUNTIME_WEUR },
-      APAC: { gateway: env.WALLET_GATEWAY_APAC, walletRuntime: env.WALLET_RUNTIME_APAC },
-      OC: { gateway: env.WALLET_GATEWAY_OC, walletRuntime: env.WALLET_RUNTIME_OC },
+      US: { gateway: regional.gateways.US, walletRuntime: regional.runtimes.US },
+      WEUR: { gateway: regional.gateways.WEUR, walletRuntime: regional.runtimes.WEUR },
+      APAC: { gateway: regional.gateways.APAC, walletRuntime: regional.runtimes.APAC },
+      OC: { gateway: regional.gateways.OC, walletRuntime: regional.runtimes.OC },
     },
   });
 }
@@ -1209,6 +1250,7 @@ async function registrationSetupResponse(
   ctx: CfExecutionContext,
   deploymentLane: string,
   writer: TenantRuntimeWriterV1,
+  regional: ConfiguredRegionalWallet,
 ): Promise<Response> {
   const setup = await resolveD1RegistrationSetupBinding(
     { database: env.CONSOLE_DB },
@@ -1221,11 +1263,11 @@ async function registrationSetupResponse(
       { status: 503, headers: { 'Cache-Control': 'no-store' } },
     );
   }
-  const catalog = WalletHomeCatalog.parse(JSON.parse(env.SEAMS_WALLET_HOME_CATALOG_JSON));
+  const catalog = regional.catalog;
   if (!catalog.matchesResources(setup.binding.resources)) {
     return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
   }
-  const handler = await consoleHandler(env, ctx, request);
+  const handler = await consoleHandler(env, ctx, request, regional);
   const operations = createWalletConsoleOpsClient({
     fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
   });

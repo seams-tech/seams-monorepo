@@ -513,7 +513,7 @@ function writeWalletRuntimeBuildConfig(laneId) {
 
 function preflightBackend(lane, component, environment = process.env) {
   assertLaneResourceBindings(lane, component);
-  if (['gateway', 'wallet-runtime', 'console'].includes(component)) {
+  if (component === 'gateway' || component === 'wallet-runtime') {
     requireAllocatedWalletRegions(requireProvisionedLane(lane));
   }
   const requiredNames = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID'];
@@ -915,11 +915,11 @@ function signerDatabaseName(resource) {
 }
 
 function migrateBackend(lane, component) {
-  requireAllocatedWalletRegions(requireProvisionedLane(lane));
   if (component === 'console') {
     migrateRegionalBackend(lane, component, null);
     return;
   }
+  requireAllocatedWalletRegions(requireProvisionedLane(lane));
   for (const region of WALLET_REGIONS) migrateRegionalBackend(lane, component, region);
 }
 

@@ -1,9 +1,12 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: ready for human review. Deployment and publication are paused at the user's request. Nothing is merged.
-Updated: October 14, 2026. The latest local candidate passes 15 selected Wallet contracts on each runtime. One Google-backed case awaits a fresh test identity.
+Status: merged into local `dev` in both repositories on October 16, 2026. Deployment and publication remain paused.
+The integration preserves the shared checkouts' concurrent uncommitted work. No remote push was performed.
+Source integration commits: private `1e4d47e1`, public `b69a0ef5`.
 
-## Current review scope
+## Local review checkpoint — October 14, 2026
+
+The recorded local candidate passed 15 selected Wallet contracts on each runtime. One Google-backed case required a fresh test identity.
 
 Both R190 branches rebased cleanly onto local `dev`: public `fcbff95f` and private `2018b490`.
 The public branch removes Express, Node Gateway, and native VM hosts. The private branch removes the Wallet Console Express entrypoint.

@@ -993,6 +993,29 @@ Google-hosted relocation, provider faults during relocation, return moves, and r
 No production handler, runtime patch, database call, or request round trip changed.
 The maintained source reduction is 31,020 lines, including the stronger acceptance topology.
 
+## October 16 legacy and test sweep
+
+The broader sweep removes another 785 maintained lines net: 755 public and 30 private.
+The count compares the updated branch heads before cleanup against this change. Documentation and lockfiles are excluded.
+
+The unused signing-only self-hosted router, Worker factory, and public exports are removed.
+Their three unit cases only injected incomplete fake service bags and compared health responses.
+The Node Redis TCP client, RESP parser, TCP session-seal adapters, and unused automatic backend selectors are also removed.
+The active D1 path and typed in-memory/HTTP provider APIs remain.
+Unused SDK Express dependencies and type settings are removed, along with three orphaned relayer fixture helpers.
+No new unit tests or source guards were added.
+
+Real workerd D1/DO storage transfer, rollback, restart, and registration reservation E2Es pass.
+Console onboarding, exact replay, and unauthorized activation also pass through real celld Workers.
+Its older driver needed the current scenario's required productService input. The same real Worker binding now supplies it.
+Public builds, full type-checks, packed boundaries, the lower bloat guard, and private checks pass.
+Ignored worktree dependency links required repair before the full type-check could resolve the current React profile export.
+See [the scoped audit, classifications, and retained evidence](../deployment/celld/evidence/legacy-sweep.json).
+
+Cryptographic vectors, type fixtures, and tests of active persistence, auth, and failure behavior remain.
+No deployment, publication, or merge occurred. The removed public exports require a later package release.
+No application database read or request round trip was added.
+
 ## Deferred deployment qualification (paused)
 
 1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, Google-hosted relocation, and retirement/authorized restore with provider failures. Local two-process relocation, one-share restore, and retirement evidence are recorded above.

@@ -224,6 +224,7 @@ async function verify(): Promise<void> {
   const service = new ConsoleService();
   const proof = await verifyUnactivatedConsoleOnboarding({
     service,
+    productService: service,
     database: new ConsoleReadDatabase(),
     sessionSecret: config.vars.CONSOLE_SESSION_HMAC_SECRET,
   });

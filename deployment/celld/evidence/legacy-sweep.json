@@ -1,0 +1,123 @@
+{
+  "status": "passed_for_recorded_scope",
+  "date": "2026-10-16",
+  "scope": "Legacy host code, unused adapters, dependencies, test scaffolding and tests tied to R190 across both repositories.",
+  "publicBaseline": "4b0dee8f182b1f908299a8bc58ccfea255705203",
+  "publicCleanupCommit": "21908053eab771d10c047914e926d558273f084c",
+  "privateBaseline": "fd03b924a189c53954c1c5f9268ec6459f41ef83",
+  "lineCount": {
+    "definition": "Net maintained physical source lines, including comments and blanks. Excludes documentation, generated evidence and lockfiles.",
+    "publicNetRemoved": 755,
+    "privateNetRemoved": 30,
+    "totalNetRemoved": 785
+  },
+  "removed": [
+    {
+      "code": "Unused signing-only self-hosted Worker/router factory and its exports.",
+      "evidence": "Only the deleted mock-based unit file called these factories; production uses the shared Worker entrypoints.",
+      "category": "obsolete_host_code"
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "test": "tests/unit/cloudflareSelfHostedSigningWorker.script.unit.test.ts",
+      "casesRemoved": 3,
+      "reason": "Incomplete fake service bags and health-response comparisons exercised an unused hosting path."
+    },
+    {
+      "code": "Node Redis TCP client, RESP parser, session-seal TCP adapters, automatic backend selectors and their exports.",
+      "evidence": "These legacy transport and bootstrap helpers had no application callers in either repository.",
+      "category": "unused_node_transport"
+    },
+    {
+      "code": "SDK Express and @types/express dev dependencies, Express type settings and orphaned lockfile entries.",
+      "evidence": "No active Express host or Express import remains in the scoped code.",
+      "category": "unused_host_dependencies"
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "helpers": [
+        "makeCfCtx",
+        "randomNamespace",
+        "makeGoogleEmailOtpRegistrationOffer"
+      ],
+      "reason": "No callers remain in the current relayer tests."
+    }
+  ],
+  "retained": [
+    {
+      "scope": "Real D1 and Durable Object persistence, consume-once, rollback, restart and storage-selection behavior.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r190-legacy-sweep-o_k1pozv/storage.json",
+        "sha256": "fbdcb2ee9b9a11eaddf6a849b9f683ef07c119f3ea98c97a180fc2f53202d6f9"
+      }
+    },
+    {
+      "scope": "Production D1 registration reservation and atomic wallet commit, including rejected claims and lost replies.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/r190-legacy-sweep-o_k1pozv/reservation.json",
+        "sha256": "78ca0792d681f5b48e092acdc9d09389434e52b89beb3a4635bf641c5d1e15a0"
+      }
+    },
+    {
+      "scope": "Production Console Worker onboarding, exact replay and unauthorized product activation through celld.",
+      "evidence": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-g09sd5w2/result.json",
+        "sha256": "5b5ad90d5235f46d7c1632a02e09db26002ca0d4f8afded70fa5c0314deb8e5d"
+      }
+    },
+    {
+      "scope": "Cryptographic vectors, type fixtures, active auth/input-boundary tests and controlled failure injection over real persistence.",
+      "reason": "These protect current independent invariants and are not obsolete host parity tests."
+    }
+  ],
+  "consoleDriverUpdate": {
+    "classification": "valid_test_needs_update",
+    "failure": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-7i1jdljp/result.json",
+      "sha256": "3c0b8bdfc10b0af0137c045e2f8a9d16278b5fc0c2e7eeb425d2fac4bd20ce5c"
+    },
+    "reason": "The current onboarding scenario requires productService. The old celld driver omitted it.",
+    "fix": "Pass the existing real Console Worker binding as productService. No fake success response or relaxed assertion was added."
+  },
+  "typecheckEnvironment": {
+    "classification": "environment_or_infrastructure_failure",
+    "reason": "The isolated preview and intended-app workspaces lacked dependency links to the current SDK React profile export.",
+    "fix": "Restore ignored local dependency links; no source workaround was added."
+  },
+  "checks": {
+    "build": {
+      "path": "/tmp/seams-r190-sweep-build.log",
+      "sha256": "2d18596baec0d42f9d521f4a8f7b099e1ad71ff07714e452de28e4d67f597040"
+    },
+    "publicTypes": {
+      "path": "/tmp/seams-r190-sweep-public-types-final.log",
+      "sha256": "914c6dc863757672985eef2166bea5599db8c46f8ccd287f5bb377ef37dea91e"
+    },
+    "bloat": {
+      "path": "/tmp/seams-r190-sweep-bloat-final.log",
+      "sha256": "ee8f4cb91bd754e4495dd06020b486a6cde3d12bb6775bbc562e40df0ce049be"
+    },
+    "packageBoundaries": {
+      "path": "/tmp/seams-r190-sweep-packed.log",
+      "sha256": "25fa7ff997de2ac27a0750da79a313937e944b10b24d51062e59edfefdf62f79"
+    },
+    "privateCheck": {
+      "path": "/tmp/seams-r190-sweep-private-check.log",
+      "sha256": "6ec79638fec34e5e941b316d000e17d3d0ffb06f4308bb7d34474273dfc7f2d3"
+    },
+    "finalDeploymentScripts": {
+      "path": "/tmp/seams-r190-sweep-final-scripts.log",
+      "sha256": "867bad0a09296d48ce7645d425bcfbf26154141dd66408a94c5e877bda8700f6"
+    }
+  },
+  "publication": "No deployment, package publication or merge. Removed public exports require a later release.",
+  "latency": "Active application request paths are unchanged; no database read, validation round trip or blocking request call was added.",
+  "limits": [
+    "This is a scoped legacy and test-quality sweep, not a blanket deletion of all unit tests.",
+    "No new browser Wallet lifecycle suite or hosted qualification was run in this checkpoint."
+  ],
+  "scriptChecks": {
+    "passed": 53,
+    "existingSkipped": 1
+  }
+}

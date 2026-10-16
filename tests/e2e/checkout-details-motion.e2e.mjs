@@ -5,7 +5,7 @@ import { chromium, expect } from '@playwright/test';
 
 const url =
   process.env.SEAMS_CHECKOUT_DEMO_URL ||
-  'http://localhost:4001/dashboard-static/showcase/checkout/';
+  'http://localhost:4001/wallet-static/showcase/checkout/';
 const artifacts = '.artifacts/transaction-details-jank';
 const errors = [];
 

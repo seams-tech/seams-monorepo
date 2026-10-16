@@ -22,7 +22,6 @@ import type { RouterApiPublishableKeyAuthAdapter } from '@seams/wallet-server/cl
 import { coerceRouterLogger, type RouterLogger } from '@seams/wallet-server/cloud-host';
 import { handleRouterApiSponsoredEvmCall } from '../router/routerApiSponsoredEvmCall';
 import type { RouteDefinition } from '@seams/wallet-server/cloud-host';
-import { sendExpressRouteResponse } from '@seams/wallet-server/cloud-host';
 import { normalizeEvmAddress, type SponsoredEvmCall } from './evm';
 import { DEFAULT_SPONSORED_EVM_CALL_ROUTE } from './evmRoutes';
 import type {
@@ -358,6 +357,7 @@ export function registerSponsoredEvmCallRoute(args: RegisterSponsoredEvmCallRout
         },
       },
     });
-    sendExpressRouteResponse(res, response);
+    for (const [name, value] of Object.entries(response.headers || {})) res.set(name, value);
+    res.status(response.status).json(response.body);
   });
 }

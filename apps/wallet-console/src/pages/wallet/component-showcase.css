@@ -176,10 +176,6 @@
   background: transparent;
 }
 
-.showcase-preview__embed[data-preview='transaction-modal'] {
-  filter: grayscale(1);
-}
-
 .showcase-preview {
   overflow: hidden;
   border: 1px solid var(--showcase-line);

@@ -35,7 +35,7 @@ export default defineConfig(() => {
       rolldownOptions: {
         input: {
           main: `${appRoot}index.html`,
-          showcaseAccess: `${appRoot}showcase/access/index.html`,
+          showcaseAccount: `${appRoot}showcase/account/index.html`,
           showcaseAuthentication: `${appRoot}showcase/authentication/index.html`,
           showcaseTransaction: `${appRoot}showcase/transaction/index.html`,
           showcaseCheckout: `${appRoot}showcase/checkout/index.html`,

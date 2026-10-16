@@ -4,7 +4,7 @@ import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
 import './component-showcase.css';
 
-export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile' | 'access';
+export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile';
 
 type Preview = {
   id: PreviewId;
@@ -19,8 +19,7 @@ const previews: readonly Preview[] = [
   { id: 'create', label: 'Authentication', x: 0, y: 0 },
   defaultPreview,
   { id: 'prediction-market', label: 'Custom Components', x: 840, y: -70 },
-  { id: 'access', label: 'Link & recover', x: 1680, y: -100 },
-  { id: 'profile', label: 'Account management', x: 1260, y: 60 },
+  { id: 'profile', label: 'Recover and Link Devices', x: 1260, y: 60 },
 ];
 
 type BackgroundPlacement = { kind: BackgroundPreviewKind; x: number; y: number };
@@ -190,6 +189,30 @@ function completePlayback(setSelected: React.Dispatch<React.SetStateAction<Previ
   setSelected(nextPreview);
 }
 
+// A demo's own Next control asks for the next component. Only a frame inside
+// this canvas may ask, so no other page can move it.
+function advanceFromPreview(
+  setSelected: React.Dispatch<React.SetStateAction<Preview>>,
+  event: MessageEvent<unknown>,
+): void {
+  if (event.origin !== window.location.origin) return;
+  const message = event.data;
+  if (typeof message !== 'object' || message === null) return;
+  if (!('type' in message) || message.type !== 'seams-showcase-next') return;
+  const frames = document.querySelectorAll<HTMLIFrameElement>('.component-showcase iframe');
+  if (Array.from(frames).some((frame) => frame.contentWindow === event.source)) {
+    setSelected(nextPreview);
+  }
+}
+
+function listenForPreviewNext(
+  setSelected: React.Dispatch<React.SetStateAction<Preview>>,
+): () => void {
+  const listener = advanceFromPreview.bind(null, setSelected);
+  window.addEventListener('message', listener);
+  return () => window.removeEventListener('message', listener);
+}
+
 function interruptPlayback(setPlayback: React.Dispatch<React.SetStateAction<PlaybackState>>): void {
   setPlayback({ kind: 'paused', reason: 'interaction' });
 }
@@ -221,6 +244,7 @@ export function ComponentShowcase(): React.JSX.Element {
   const onComplete = React.useCallback(completePlayback.bind(null, setSelected), []);
   const onInteract = React.useCallback(interruptPlayback.bind(null, setPlayback), []);
   const visibilityObserver = React.useRef<IntersectionObserver | null>(null);
+  React.useEffect(listenForPreviewNext.bind(null, setSelected), []);
 
   return (
     <section

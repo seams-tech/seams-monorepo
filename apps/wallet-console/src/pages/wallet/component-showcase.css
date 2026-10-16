@@ -22,7 +22,7 @@
   z-index: 4;
   transform: translate(-50%, -50%);
   display: grid;
-  grid-template-columns: repeat(5, max-content);
+  grid-template-columns: repeat(4, max-content);
   width: max-content;
   max-width: calc(100% - 44px);
   gap: 4px;
@@ -174,6 +174,15 @@
   height: 620px;
   border: 0;
   background: transparent;
+}
+
+.component-showcase__viewport:has(.showcase-preview__embed[data-preview='profile']) {
+  height: 820px;
+}
+
+.showcase-preview__embed[data-preview='profile'] {
+  height: 800px;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.12));
 }
 
 .showcase-preview {
@@ -429,156 +438,6 @@
   position: relative;
 }
 
-.showcase-preview__cursor {
-  display: none;
-  position: absolute;
-  left: 72%;
-  top: 55%;
-  z-index: 1;
-  width: 28px;
-  height: 28px;
-  pointer-events: none;
-  transition: opacity 150ms ease;
-}
-
-.showcase-preview__cursor-motion {
-  display: block;
-  position: relative;
-  opacity: 0;
-  transform-origin: 4px 4px;
-}
-
-.showcase-preview__cursor svg {
-  position: relative;
-  z-index: 1;
-  width: 28px;
-  height: 28px;
-  fill: var(--h2-ink);
-  stroke: var(--h2-bg);
-  stroke-width: 1.5;
-  filter: drop-shadow(0 2px 2px var(--showcase-shadow));
-}
-
-.showcase-preview__cursor-pulse {
-  position: absolute;
-  left: -10px;
-  top: -10px;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--showcase-ink);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--h2-bg) 25%, transparent);
-  opacity: 0;
-}
-
-/* The cursor completes the same local action as a user, then the result resets for replay. */
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .component-showcase__position[data-active='true'] .showcase-preview__cursor {
-    display: block;
-  }
-
-  .component-showcase__position[data-active='true'] .showcase-preview__cursor-motion {
-    animation: showcase-cursor-visit 2000ms linear 0ms both paused;
-  }
-
-  .component-showcase__position[data-active='true'] .showcase-preview__cursor-pulse {
-    animation: showcase-cursor-pulse 2000ms ease 0ms both paused;
-  }
-
-  .component-showcase__position[data-active='true'] .showcase-preview__result[data-source='demo'] {
-    animation: showcase-result-replay 2600ms ease both paused;
-  }
-
-  .component-showcase__viewport[data-in-view='true'] .showcase-preview__cursor-motion,
-  .component-showcase__viewport[data-in-view='true'] .showcase-preview__cursor-pulse,
-  .component-showcase__viewport[data-in-view='true'] .showcase-preview__result[data-source='demo'] {
-    animation-play-state: running;
-  }
-
-  .component-showcase[data-motion='keyboard'] .showcase-preview__cursor,
-  .showcase-preview:is(:hover, :focus-within) .showcase-preview__cursor {
-    opacity: 0;
-  }
-
-  .component-showcase[data-motion='keyboard'] .showcase-preview__cursor-motion,
-  .component-showcase[data-motion='keyboard'] .showcase-preview__cursor-pulse,
-  .component-showcase[data-motion='keyboard'] .showcase-preview__result[data-source='demo'],
-  .showcase-preview:is(:hover, :focus-within) .showcase-preview__cursor-motion,
-  .showcase-preview:is(:hover, :focus-within) .showcase-preview__cursor-pulse,
-  .showcase-preview:is(:hover, :focus-within) .showcase-preview__result[data-source='demo'] {
-    animation-play-state: paused;
-  }
-}
-
-@keyframes showcase-cursor-visit {
-  0% {
-    opacity: 0;
-    transform: translate(54px, 38px);
-  }
-  12% {
-    opacity: 1;
-    transform: translate(54px, 38px);
-  }
-  25% {
-    opacity: 1;
-    transform: translate(52px, 16px);
-  }
-  34% {
-    opacity: 1;
-    transform: translate(38px, -6px);
-  }
-  43% {
-    opacity: 1;
-    transform: translate(20px, -11px);
-  }
-  48%,
-  65% {
-    opacity: 1;
-    transform: translate(8px, -7px);
-  }
-  74% {
-    opacity: 1;
-    transform: translate(3px, -4px);
-  }
-  84%,
-  92% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  96% {
-    opacity: 1;
-    transform: translate(0, 0) scale(0.88);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes showcase-cursor-pulse {
-  0%,
-  92% {
-    opacity: 0;
-    transform: scale(0.75);
-  }
-  96% {
-    opacity: 0.65;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-}
-
-@keyframes showcase-result-replay {
-  /* Hold a readable result on the same pausable clock as the cursor. */
-  0%,
-  100% {
-    opacity: 1;
-  }
-}
-
 @media (hover: hover) and (pointer: fine) {
   .component-showcase__choice:hover > span,
   .showcase-preview__secondary:hover {
@@ -671,11 +530,6 @@
 .component-showcase__playback svg {
   fill: none;
   stroke-width: 1.5;
-}
-.component-showcase[data-playback='paused'] .showcase-preview__cursor-motion,
-.component-showcase[data-playback='paused'] .showcase-preview__cursor-pulse,
-.component-showcase[data-playback='paused'] .showcase-preview__result[data-source='demo'] {
-  animation-play-state: paused;
 }
 
 @media (max-width: 600px) {

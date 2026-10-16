@@ -1,0 +1,29 @@
+.account-showcase {
+  font-family: 'Hanken Grotesk', sans-serif;
+  --seams-colors-colorBackground: #fff;
+  --seams-colors-borderPrimary: #e7e5e4;
+  --seams-colors-textPrimary: #171717;
+  --seams-colors-textSecondary: #737373;
+  --seams-colors-surface2: #f5f5f4;
+  --seams-colors-primary: #171717;
+  --seams-colors-buttonBackground: #171717;
+  --seams-colors-buttonHoverBackground: #292929;
+  --seams-colors-textButton: white;
+  box-shadow: none;
+}
+
+html,
+body,
+.seams-linked-devices-modal-body {
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.account-showcase::-webkit-scrollbar,
+.seams-linked-devices-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+.account-showcase.closed {
+  justify-self: center;
+}

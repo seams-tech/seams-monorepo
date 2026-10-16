@@ -85,6 +85,7 @@ test('regional rollout renders one shared Console and four isolated writer pairs
       expect(JSON.parse(config.vars.SEAMS_WALLET_HOME_CATALOG_JSON)).toEqual(catalog);
       expect(config.workers_dev).toBe(false);
       if (worker === 'console') {
+        expect(config.compatibility_flags).toContain('global_fetch_strictly_public');
         expect(config.d1_databases).toHaveLength(1);
         expect(config.d1_databases[0].binding).toBe('CONSOLE_DB');
         expect(config.services).toEqual([
@@ -95,6 +96,7 @@ test('regional rollout renders one shared Console and four isolated writer pairs
         expect(config.vars.SEAMS_D1_HOME_DATABASE_ID).toBeUndefined();
         expect(config.placement).toBeUndefined();
       } else {
+        expect(config.compatibility_flags).not.toContain('global_fetch_strictly_public');
         const resource = resources.find(matchesRegion.bind(null, region));
         if (!resource) throw new Error('Missing regional resource');
         expect(config.d1_databases).toHaveLength(1);

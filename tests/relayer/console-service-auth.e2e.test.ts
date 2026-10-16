@@ -87,11 +87,23 @@ class LocalConsoleService implements WalletConsoleServiceBinding {
       request.headers.set('x-test-fail-d1-batch', 'true');
       this.failNextBatch = false;
     }
-    const response = await this.worker.fetch(request.url, {
-      method: request.method,
-      headers: Array.from(request.headers.entries()),
-      body: request.body === null ? undefined : await request.arrayBuffer(),
-    });
+    const browserOrigin = request.headers.get('Origin');
+    if (browserOrigin) {
+      request.headers.set('x-test-browser-origin', browserOrigin);
+      request.headers.delete('Origin');
+    }
+    let response;
+    try {
+      response = await this.worker.fetch(request.url, {
+        method: request.method,
+        headers: Array.from(request.headers.entries()),
+        body: request.body === null ? undefined : await request.arrayBuffer(),
+      });
+    } catch (error) {
+      throw new Error(`Console fixture request failed: ${new URL(request.url).pathname}`, {
+        cause: error,
+      });
+    }
     this.requests.push({ path: new URL(request.url).pathname, status: response.status });
     const calls = response.headers.get('x-test-d1-calls');
     const statements = response.headers.get('x-test-d1-statements');
@@ -157,6 +169,30 @@ async function activateWalletProject(
   expect(
     await runAccountServiceProvisioning({ platform: core.accountPlatform, adapter, limit: 100 }),
   ).toMatchObject({ delivered: 1, failed: 0, pending: 0 });
+}
+
+async function verifyConsoleGithubCallbacks(service: LocalConsoleService): Promise<void> {
+  for (const requestOrigin of [
+    'https://platform.example.test',
+    'https://wallet-console.example.test',
+    'https://foreign.example.test',
+  ]) {
+    const response = await service.fetch(
+      'https://console.example.test/console/auth/github/options',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: requestOrigin },
+        body: '{}',
+      },
+    );
+    expect(response.status, `${requestOrigin}: ${await response.clone().text()}`).toBe(200);
+    const expectedOrigin =
+      requestOrigin === 'https://foreign.example.test' ? origin : requestOrigin;
+    expect(await response.json()).toMatchObject({
+      configured: true,
+      callbackUrl: `${expectedOrigin}/dashboard/login`,
+    });
+  }
 }
 
 async function verifyRegistrationMutationTransactions(
@@ -348,6 +384,10 @@ test('production Console service bindings enforce durable credential changes and
   });
   const assertionKeys = generateKeyPairSync('ed25519');
   Object.assign(consoleEnvironment, {
+    GITHUB_OAUTH_CLIENT_ID: 'isolated-console-github-client',
+    GITHUB_OAUTH_CLIENT_SECRET: 'isolated-console-github-secret',
+    GITHUB_OAUTH_CALLBACK_URL: `${origin}/dashboard/login`,
+    CONSOLE_CORS_ORIGINS: `${origin},https://platform.example.test,https://wallet-console.example.test`,
     SATYR_DEPLOYMENT_ID: 'satyr-preflight',
     SATYR_ACCOUNT_ASSERTION_ISSUER: 'https://satyr.test',
     SATYR_ACCOUNT_ASSERTION_AUDIENCE: 'https://account.test',
@@ -407,13 +447,18 @@ test('production Console service bindings enforce durable credential changes and
     }
     const sessionSecret = consoleEnvironment.CONSOLE_SESSION_HMAC_SECRET;
     if (!sessionSecret) throw new Error('Console fixture is missing its session secret');
+    const accountOnlyService = new LocalConsoleService(await runtime.getWorker('console'));
+    accountOnlyService.consoleCompositionUnavailable = true;
+    accountOnlyService.accountKeysUnavailable = true;
     observations.push(
       await verifyUnactivatedConsoleOnboarding({
-        service: new LocalConsoleService(await runtime.getWorker('console')),
+        service: accountOnlyService,
+        productService: new LocalConsoleService(await runtime.getWorker('console')),
         database,
         sessionSecret,
       }),
     );
+    observations.push({ stage: 'account_routes_without_product_configuration', verified: true });
     const organizations = await createD1ConsoleOrgProjectService({
       database,
       namespace,
@@ -515,6 +560,7 @@ test('production Console service bindings enforce durable credential changes and
       unsignedUserRejected: true,
     });
     const service = new LocalConsoleService(consumer);
+    await verifyConsoleGithubCallbacks(new LocalConsoleService(consumer));
     const client = createWalletConsoleOpsClient(service);
     // The Gateway sends its setup request with every registration-context call.
     const registration = gatewaySetupInput({

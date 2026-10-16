@@ -1,7 +1,8 @@
 import {
   contractResult,
-  digestValue,
   exactKeys,
+  exactObject,
+  utcTimestamp,
   integer,
   invalidContract,
   object,
@@ -10,7 +11,9 @@ import {
   type PlatformContractError,
   type PlatformResult,
 } from './boundary';
-import type { DurableSourceEvidenceV1 } from './instances';
+import { readDurableSourceEvidenceV1, type DurableSourceEvidenceV1 } from './instances';
+import { readPlatformScopeV1 } from './scope';
+import type { FundsReservationV1 } from './protocol';
 
 /** Authenticated service evidence authorizes terminal money changes. */
 export class SettleFundsRequestV1 {
@@ -53,7 +56,7 @@ export class SettleFundsRequestV1 {
       textValue(record.executionId, 'executionId'),
       integer(record.settledMinor, 'settledMinor', 0),
       textValue(record.priceVersion, 'priceVersion'),
-      readFundsEvidence(record.evidence, 'evidence'),
+      readDurableSourceEvidenceV1(record.evidence, 'evidence'),
     );
   }
 }
@@ -92,7 +95,7 @@ export class ReleaseFundsRequestV1 {
       textValue(record.operationId, 'operationId'),
       textValue(record.reservationId, 'reservationId'),
       textValue(record.executionId, 'executionId'),
-      readFundsEvidence(record.noChargeEvidence, 'noChargeEvidence'),
+      readDurableSourceEvidenceV1(record.noChargeEvidence, 'noChargeEvidence'),
     );
   }
 }
@@ -189,24 +192,69 @@ function readReconciliationOutcome(input: unknown): FundsReconciliationOutcomeV1
         kind: record.kind,
         settledMinor: integer(record.settledMinor, 'settledMinor', 0),
         priceVersion: textValue(record.priceVersion, 'priceVersion'),
-        evidence: readFundsEvidence(record.evidence, 'evidence'),
+        evidence: readDurableSourceEvidenceV1(record.evidence, 'evidence'),
       });
     case 'no_charge':
       exactKeys(record, ['kind', 'noChargeEvidence']);
       return Object.freeze({
         kind: record.kind,
-        noChargeEvidence: readFundsEvidence(record.noChargeEvidence, 'noChargeEvidence'),
+        noChargeEvidence: readDurableSourceEvidenceV1(record.noChargeEvidence, 'noChargeEvidence'),
       });
     default:
       return invalidContract('outcome.kind');
   }
 }
 
-function readFundsEvidence(input: unknown, field: string): DurableSourceEvidenceV1 {
-  const record = object(input, field);
-  exactKeys(record, ['sourceRecordId', 'sourceDigest']);
-  return Object.freeze({
-    sourceRecordId: textValue(record.sourceRecordId, `${field}.sourceRecordId`),
-    sourceDigest: digestValue(record.sourceDigest, `${field}.sourceDigest`),
-  });
+export function readFundsReservationV1(input: unknown): FundsReservationV1 {
+  const record = object(input, 'reservation');
+  const keys = [
+    'reservationId',
+    'scope',
+    'instanceId',
+    'executionId',
+    'requestedMinor',
+    'priceVersion',
+    'createdAt',
+    'kind',
+  ];
+  const common = {
+    reservationId: textValue(record.reservationId),
+    scope: readPlatformScopeV1(record.scope),
+    instanceId: textValue(record.instanceId),
+    executionId: textValue(record.executionId),
+    requestedMinor: integer(record.requestedMinor, 'requestedMinor', 0),
+    priceVersion: textValue(record.priceVersion),
+    createdAt: utcTimestamp(record.createdAt),
+  };
+  switch (record.kind) {
+    case 'reserved':
+      exactObject(record, keys);
+      return { ...common, kind: record.kind };
+    case 'indeterminate':
+      exactObject(record, [...keys, 'reconciliation']);
+      if (exactObject(record.reconciliation, ['kind']).kind !== 'pending')
+        throw new Error('Invalid reconciliation');
+      return {
+        ...common,
+        kind: record.kind,
+        reconciliation: { kind: 'pending' },
+      };
+    case 'settled':
+      exactObject(record, [...keys, 'chargeId', 'settledMinor']);
+      return {
+        ...common,
+        kind: record.kind,
+        chargeId: textValue(record.chargeId),
+        settledMinor: integer(record.settledMinor, 'integer', 0),
+      };
+    case 'released':
+      exactObject(record, [...keys, 'noChargeEvidence']);
+      return {
+        ...common,
+        kind: record.kind,
+        noChargeEvidence: readDurableSourceEvidenceV1(record.noChargeEvidence),
+      };
+    default:
+      throw new Error('Unknown reservation state');
+  }
 }

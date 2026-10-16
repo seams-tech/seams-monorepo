@@ -1,3 +1,7 @@
+import {
+  readAccountOnboardingRequest as readStart,
+  type AccountOnboardingRequest as OnboardingStart,
+} from '@seams-internal/console-shared/accountPlatform';
 import { ServiceProvisionCommandV1 } from '@seams-internal/console-shared/accountPlatform';
 import {
   exactKeys,
@@ -16,66 +20,6 @@ import {
   dispatchAccountServiceProvision,
   type AccountServiceProvisioningAdapterV1,
 } from './provisioning';
-
-type ProjectSelection =
-  | {
-      readonly kind: 'existing_project';
-      readonly organizationId: string;
-      readonly projectId: string;
-    }
-  | { readonly kind: 'new_project'; readonly organizationId: string; readonly projectName: string }
-  | {
-      readonly kind: 'new_organization';
-      readonly organizationName: string;
-      readonly projectName: string;
-    };
-
-interface OnboardingStart {
-  readonly operationId: string;
-  readonly selection: ProjectSelection;
-}
-
-function readStart(input: unknown): OnboardingStart {
-  const record = object(input, 'onboarding');
-  exactKeys(record, ['version', 'operationId', 'selection']);
-  versionOne(record.version);
-  const selection = object(record.selection, 'selection');
-  const operationId = textValue(record.operationId, 'operationId');
-  switch (selection.kind) {
-    case 'existing_project':
-      exactKeys(selection, ['kind', 'organizationId', 'projectId']);
-      return {
-        operationId,
-        selection: {
-          kind: selection.kind,
-          organizationId: textValue(selection.organizationId, 'organizationId'),
-          projectId: textValue(selection.projectId, 'projectId'),
-        },
-      };
-    case 'new_project':
-      exactKeys(selection, ['kind', 'organizationId', 'projectName']);
-      return {
-        operationId,
-        selection: {
-          kind: selection.kind,
-          organizationId: textValue(selection.organizationId, 'organizationId'),
-          projectName: textValue(selection.projectName, 'projectName'),
-        },
-      };
-    case 'new_organization':
-      exactKeys(selection, ['kind', 'organizationName', 'projectName']);
-      return {
-        operationId,
-        selection: {
-          kind: selection.kind,
-          organizationName: textValue(selection.organizationName, 'organizationName'),
-          projectName: textValue(selection.projectName, 'projectName'),
-        },
-      };
-    default:
-      throw new Error('Invalid onboarding selection');
-  }
-}
 
 function canManageProjects(organization: ConsoleAccountOrganization): boolean {
   return (
@@ -119,7 +63,7 @@ export class SatyrAccountOnboarding {
     private readonly producer: AuthenticatedAccountServiceProducerV1,
     private readonly provisioning: AccountServiceProvisioningAdapterV1,
     private readonly waitUntil: (work: Promise<unknown>) => void,
-    private readonly googleFetch: typeof fetch = fetch,
+    private readonly googleFetch: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {}
 
   async fetch(request: Request): Promise<Response> {
@@ -149,7 +93,12 @@ export class SatyrAccountOnboarding {
           fetchImpl: this.googleFetch,
         });
         const identity = await provider.verifyGoogleLogin({ idToken: googleIdToken });
-        if (!identity.ok || identity.sub !== assertion.subject || identity.emailVerified !== true)
+        if (!identity.ok) {
+          if (identity.code === 'internal' || identity.code === 'not_configured')
+            return rejected('authority_unavailable', 503);
+          return rejected('scope_forbidden');
+        }
+        if (identity.sub !== assertion.subject || identity.emailVerified !== true)
           return rejected('scope_forbidden');
         await this.services.serviceAccess.recordVerifiedGoogleIdentity(
           identity,

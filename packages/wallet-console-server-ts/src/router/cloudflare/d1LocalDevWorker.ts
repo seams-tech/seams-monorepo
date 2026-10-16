@@ -1,3 +1,5 @@
+import { createD1AccountConsoleComposition, isAccountConsoleRequest } from './d1AccountConsole';
+import { createConsoleEmailInvitationSecretCipherFromEnv } from './cron';
 export { SatyrAccountPlatform } from './satyrAccountPlatform';
 import type { D1AccountServiceAccess } from '@seams-internal/console-server/accountPlatform/serviceAccess';
 import { admitD1EstablishedWalletHome } from '@seams/wallet-server/cloud-host';
@@ -67,7 +69,7 @@ import {
   resolveSponsoredEvmWorkerExecutionAdapter,
 } from '@seams-internal/wallet-console-server/sponsorship/evmWorkerExecutionAdapter';
 import { resolveSponsoredExecutionPricingFromEnv } from '@seams-internal/wallet-console-server/sponsorship/pricing';
-import { createDefaultBillingProviderAdapters } from '@seams-internal/console-server/billing/providers';
+import { createSimulatedBillingProviderAdapters } from '@seams-internal/console-server/billing/providers';
 import {
   createAesGcmConsoleWebhookSecretCipher,
   type ConsoleWebhookSecretCipher,
@@ -284,7 +286,7 @@ const DEFAULT_LOCAL_ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET = 'dev-router-ab-inte
 const DEFAULT_LOCAL_ROUTER_AB_ROUTER_URL = 'http://127.0.0.1:4100';
 const LOCAL_TENANT_DEPLOYMENT_LANE = 'local-development-testnet';
 // Local D1 handlers are rebuilt per request, so synthetic provider state must outlive one handler.
-const LOCAL_SYNTHETIC_BILLING_PROVIDERS = createDefaultBillingProviderAdapters();
+const LOCAL_SYNTHETIC_BILLING_PROVIDERS = createSimulatedBillingProviderAdapters();
 const LOCAL_ROUTER_AB_CEREMONY_JWKS_PATH = '/.well-known/router-ab-ceremony-jwks.json';
 const LOCAL_INTENDED_YAO_FAULT_HEADER_V1 = 'x-seams-intended-yao-fault-v1';
 const LOCAL_INTENDED_YAO_FAULT_TOKEN_HEADER_V1 = 'x-seams-intended-yao-fault-token-v1';
@@ -295,7 +297,8 @@ const LOCAL_INTENDED_YAO_FAULT_TOKEN_PATTERN_V1 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function localBillingProviderAdapters(env: LocalD1DevEnv) {
-  return createStripeBillingProviderAdaptersFromEnv(env) ?? LOCAL_SYNTHETIC_BILLING_PROVIDERS;
+  if (!normalizeLocalString(env.STRIPE_API_SK)) return LOCAL_SYNTHETIC_BILLING_PROVIDERS;
+  return createStripeBillingProviderAdaptersFromEnv(env);
 }
 
 type LocalIntendedYaoFaultModeV1 = 'drop_router_response_once' | 'return_terminal_burned_once';
@@ -1288,36 +1291,15 @@ async function createLocalConsoleComposition(env: LocalD1DevEnv): Promise<LocalC
       tenantRootSecurityReadRoute,
     ],
   });
-  const googleOidcClientId = localGoogleOidcClientId(env);
-  const githubOAuth = localGithubOAuthConfig(env);
-  const consoleAuthHandler = new HostedConsoleAuthHandler({
-    handler: handlerWithTenantRootCreation,
-    recordVerifiedGoogleIdentity: bundle.serviceAccess.recordVerifiedGoogleIdentity.bind(
-      bundle.serviceAccess,
-    ),
-    identity: createConsoleProviderIdentity({
-      googleOidcClientId,
-      githubOAuth,
-    }),
-    providers: {
-      google: googleOidcClientId
-        ? { configured: true, clientId: googleOidcClientId }
-        : { configured: false },
-      github: githubOAuth
-        ? {
-            configured: true,
-            clientId: githubOAuth.clientId,
-            callbackUrl: githubOAuth.callbackUrl,
-          }
-        : { configured: false },
-    },
+  const authenticatedHandler = localHostedConsoleAuthentication(
+    env,
+    handlerWithTenantRootCreation,
+    bundle,
     session,
-    account: bundle.account,
-    corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
-  });
+  );
   return {
     handler: attachConsoleRouteSurface(
-      consoleAuthHandler.fetch.bind(consoleAuthHandler),
+      authenticatedHandler,
       resolveCompleteWalletConsoleRouteSurface(),
     ),
     tenantDeployment: {
@@ -1350,6 +1332,84 @@ async function handleLocalConsoleTenantRoot(
     if (response) return response;
   }
   return await input.handler(request, workerEnv, ctx);
+}
+
+async function localAccountReadyCheck(env: LocalD1DevEnv): Promise<void> {
+  await assertD1Tables({
+    database: env.CONSOLE_DB,
+    label: 'CONSOLE_DB',
+    tables: ['organizations', 'projects', 'organization_memberships'],
+  });
+}
+
+async function localAccountConsoleHandler(
+  request: Request,
+  env: LocalD1DevEnv,
+  ctx: CfExecutionContext,
+): Promise<FetchHandler> {
+  const session = localConsoleSession(env);
+  const composition = await createD1AccountConsoleComposition(request, {
+    database: env.CONSOLE_DB,
+    namespace: localTenantStorageNamespace(env),
+    ensureSchema: false,
+    session,
+    billingProviders: localBillingProviderAdapters(env),
+    organizationEmail: {
+      invitationSecretCipher: createConsoleEmailInvitationSecretCipherFromEnv(env),
+      consoleBaseUrl: String(env.CONSOLE_BASE_URL || '').trim() || 'http://localhost:4001',
+    },
+    billingEmailConsoleBaseUrl:
+      String(env.CONSOLE_BASE_URL || '').trim() || 'http://localhost:4001',
+    platformSupportEmails: undefined,
+    walletDeploymentId: LOCAL_TENANT_DEPLOYMENT_LANE,
+    satyrEnvironment: env,
+    webhookSecretCipher: localConsoleWebhookSecretCipher(env),
+    billingStripeWebhookSigningSecret: String(env.STRIPE_WEBHOOK_SECRET || '').trim() || null,
+    corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
+    waitUntil: ctx.waitUntil.bind(ctx),
+    readyCheck: localAccountReadyCheck.bind(null, env),
+  });
+  return localHostedConsoleAuthentication(env, composition.handler, composition.services, session);
+}
+
+function localHostedConsoleAuthentication(
+  env: LocalD1DevEnv,
+  handler: FetchHandler,
+  services: Pick<
+    Awaited<ReturnType<typeof createCloudflareD1AccountServiceBundle>>,
+    'serviceAccess' | 'account' | 'organizationAccess'
+  >,
+  session: SessionAdapter,
+): FetchHandler {
+  const googleOidcClientId = localGoogleOidcClientId(env);
+  const githubOAuth = localGithubOAuthConfig(env);
+  const consoleAuthHandler = new HostedConsoleAuthHandler({
+    handler,
+    recordVerifiedGoogleIdentity: services.serviceAccess.recordVerifiedGoogleIdentity.bind(
+      services.serviceAccess,
+    ),
+    identity: createConsoleProviderIdentity({
+      googleOidcClientId,
+      githubOAuth,
+    }),
+    providers: {
+      google: googleOidcClientId
+        ? { configured: true, clientId: googleOidcClientId }
+        : { configured: false },
+      github: githubOAuth
+        ? {
+            configured: true,
+            clientId: githubOAuth.clientId,
+            callbackUrl: githubOAuth.callbackUrl,
+          }
+        : { configured: false },
+    },
+    session,
+    account: services.account,
+    corsOrigins: [...LOCAL_ROUTER_API_CORS_ORIGINS],
+    organizationAccess: services.organizationAccess,
+  });
+  return consoleAuthHandler.fetch.bind(consoleAuthHandler);
 }
 
 async function localConsoleHandler(env: LocalD1DevEnv): Promise<FetchHandler> {
@@ -2310,6 +2370,10 @@ async function fetch(
   }
   if (url.pathname === '/.well-known/seams-tenant-deployment.json') {
     return await handleLocalTenantDeploymentProjection(request, env);
+  }
+  if (isAccountConsoleRequest(request)) {
+    const handler = await localAccountConsoleHandler(request, env, ctx);
+    return await handler(request, env, ctx);
   }
   if (isConsolePath(url.pathname)) {
     const handler = await localConsoleHandler(env);

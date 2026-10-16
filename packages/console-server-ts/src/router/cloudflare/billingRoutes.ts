@@ -29,6 +29,16 @@ import {
 import { json, readJson } from './http';
 import { getConsoleBillingD1Runtime } from '../../billing/d1';
 import { listD1BillingUsageCharges } from '../../billing/attribution';
+import { isConsoleOrgProjectError } from '../../orgProjectEnv/errors';
+import {
+  parsePlatformBillingLookupRequest,
+  parsePlatformBillingSearchRequest,
+  parsePlatformBillingManualAdjustmentRequest,
+  parsePlatformBillingRefundReconcileRequest,
+  parsePlatformBillingRefundRequest,
+  resolvePlatformBillingLookup,
+  searchPlatformBillingOrganizations,
+} from '../platformBilling';
 
 export type BillingRouteBalanceTrigger =
   | {
@@ -76,19 +86,15 @@ export interface ConsoleBillingRouteHooks {
     | null;
   readonly stripeWebhookFailure: ((failure: BillingStripeWebhookFailure) => Promise<void>) | null;
 }
-const ACCOUNT_BILLING_HOOKS: ConsoleBillingRouteHooks = {
+export const ACCOUNT_BILLING_HOOKS: ConsoleBillingRouteHooks = {
   overview: null,
   balanceChanged: null,
   failure: null,
   stripeWebhookFailure: null,
 };
-export async function handleAccountConsoleBilling(
-  ctx: AccountConsoleContext,
-): Promise<Response | null> {
-  return handleConsoleBillingRoutes(ctx, ACCOUNT_BILLING_HOOKS);
-}
 function isSharedBillingPath(pathname: string): boolean {
   return (
+    pathname.startsWith('/console/platform/billing/') ||
     pathname === '/console/billing/overview' ||
     pathname === '/console/billing/refunds' ||
     pathname === '/console/billing/account/activity' ||
@@ -161,7 +167,7 @@ function requireStripeWebhookSigningSecret(ctx: AccountConsoleContext): string |
         code: 'stripe_webhook_not_configured',
         message: 'Stripe webhook signing secret is not configured on this server',
       },
-      { status: 501 },
+      { status: 503 },
     );
   }
   return configured;
@@ -290,6 +296,220 @@ export async function handleConsoleBillingRoutes(
         { ok: true, organizationId: auth.claims.orgId, periodMonthUtc, charges },
         { status: 200 },
       );
+    }
+    if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/search') {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const projectsOrResponse = ctx.orgProjects;
+      if (!projectsOrResponse)
+        return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
+      const organizations = await searchPlatformBillingOrganizations({
+        orgProjects: projectsOrResponse,
+        request: parsePlatformBillingSearchRequest(
+          Object.fromEntries(ctx.url.searchParams.entries()),
+        ),
+      });
+      return json({ ok: true, organizations }, { status: 200 });
+    }
+
+    if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/account') {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const projectsOrResponse = ctx.orgProjects;
+      if (!projectsOrResponse)
+        return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
+      const result = await resolvePlatformBillingLookup({
+        claims: auth.claims,
+        billing,
+        orgProjects: projectsOrResponse,
+        request: parsePlatformBillingLookupRequest(
+          Object.fromEntries(ctx.url.searchParams.entries()),
+        ),
+      });
+      return json({ ok: true, result }, { status: 200 });
+    }
+
+    if (
+      ctx.method === 'POST' &&
+      ctx.pathname === '/console/platform/billing/adjustments/support-credit'
+    ) {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const projectsOrResponse = ctx.orgProjects;
+      if (!projectsOrResponse)
+        return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
+      const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
+      const { orgId, ...adjustmentRequest } = request;
+      const organization = await projectsOrResponse.getOrganization({
+        orgId,
+        actorUserId: auth.claims.userId,
+        ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
+      });
+      const targetBillingCtx = {
+        orgId,
+        actorUserId: auth.claims.userId,
+      };
+      const before = hooks.balanceChanged ? await billing.getOverview(targetBillingCtx) : null;
+      const result = await billing.grantManualSupportCredit(targetBillingCtx, adjustmentRequest);
+      await observeBalanceChange(hooks, targetBillingCtx, before, {
+        kind: 'manual_support_credit',
+        adjustmentId: result.adjustment.id,
+        sourceEventId: result.adjustment.idempotencyKey,
+      });
+      await emitConsoleAuditEvent(
+        ctx,
+        {
+          ...auth.claims,
+          orgId,
+        },
+        {
+          category: 'BILLING',
+          action: 'billing.adjustment.support_credit',
+          summary: `Appended manual support credit for org ${orgId}`,
+          metadata: {
+            organizationId: orgId,
+            organizationName: organization.name,
+            adjustmentId: result.adjustment.id,
+            amountMinor: result.adjustment.amountMinor,
+            resultingBalanceMinor: result.creditBalanceMinor,
+            reasonCode: result.adjustment.reasonCode,
+            note: result.adjustment.note,
+            relatedInvoiceId: result.adjustment.relatedInvoiceId,
+            idempotencyKey: result.adjustment.idempotencyKey,
+            created: result.created,
+            platformBilling: true,
+          },
+        },
+      );
+      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
+    }
+
+    if (
+      ctx.method === 'POST' &&
+      ctx.pathname === '/console/platform/billing/adjustments/admin-debit'
+    ) {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const projectsOrResponse = ctx.orgProjects;
+      if (!projectsOrResponse)
+        return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
+      const request = parsePlatformBillingManualAdjustmentRequest(await readJson(ctx.request));
+      const { orgId, ...adjustmentRequest } = request;
+      const organization = await projectsOrResponse.getOrganization({
+        orgId,
+        actorUserId: auth.claims.userId,
+        ...(auth.claims.projectId ? { projectId: auth.claims.projectId } : {}),
+      });
+      const targetBillingCtx = {
+        orgId,
+        actorUserId: auth.claims.userId,
+      };
+      const before = hooks.balanceChanged ? await billing.getOverview(targetBillingCtx) : null;
+      const result = await billing.appendManualAdminDebit(targetBillingCtx, adjustmentRequest);
+      await observeBalanceChange(hooks, targetBillingCtx, before, {
+        kind: 'manual_admin_debit',
+        adjustmentId: result.adjustment.id,
+        sourceEventId: result.adjustment.idempotencyKey,
+      });
+      await emitConsoleAuditEvent(
+        ctx,
+        {
+          ...auth.claims,
+          orgId,
+        },
+        {
+          category: 'BILLING',
+          action: 'billing.adjustment.admin_debit',
+          summary: `Appended manual admin debit for org ${orgId}`,
+          metadata: {
+            organizationId: orgId,
+            organizationName: organization.name,
+            adjustmentId: result.adjustment.id,
+            amountMinor: result.adjustment.amountMinor,
+            resultingBalanceMinor: result.creditBalanceMinor,
+            reasonCode: result.adjustment.reasonCode,
+            note: result.adjustment.note,
+            relatedInvoiceId: result.adjustment.relatedInvoiceId,
+            idempotencyKey: result.adjustment.idempotencyKey,
+            created: result.created,
+            platformBilling: true,
+          },
+        },
+      );
+      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
+    }
+
+    if (ctx.method === 'POST' && ctx.pathname === '/console/platform/billing/refunds') {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const request = parsePlatformBillingRefundRequest(await readJson(ctx.request));
+      const { orgId, ...refundRequest } = request;
+      const result = await billing.createRefund(
+        {
+          orgId,
+          actorUserId: auth.claims.userId,
+          platformSupport: true,
+        },
+        refundRequest,
+      );
+      await emitConsoleAuditEvent(
+        ctx,
+        {
+          ...auth.claims,
+          orgId,
+        },
+        {
+          category: 'BILLING',
+          action: 'billing.refund.requested',
+          summary: `Requested refund for org ${orgId}`,
+          metadata: {
+            organizationId: orgId,
+            refundId: result.refund.id,
+            purchaseId: result.refund.purchaseId,
+            amountMinor: result.refund.amountMinor,
+            status: result.refund.status,
+            created: result.created,
+            platformBilling: true,
+          },
+        },
+      );
+      return json({ ok: true, result }, { status: result.created ? 201 : 200 });
+    }
+
+    if (ctx.method === 'POST' && ctx.pathname === '/console/platform/billing/refunds/reconcile') {
+      const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
+      if (routePolicy) return routePolicy;
+      const request = parsePlatformBillingRefundReconcileRequest(await readJson(ctx.request));
+      const { orgId, ...reconcileRequest } = request;
+      const result = await billing.reconcileRefund(
+        {
+          orgId,
+          actorUserId: auth.claims.userId,
+          platformSupport: true,
+        },
+        reconcileRequest,
+      );
+      await emitConsoleAuditEvent(
+        ctx,
+        {
+          ...auth.claims,
+          orgId,
+        },
+        {
+          category: 'BILLING',
+          action: 'billing.refund.reconciled',
+          summary: `Reconciled refund for org ${orgId}`,
+          metadata: {
+            organizationId: orgId,
+            refundId: result.refund.id,
+            purchaseId: result.refund.purchaseId,
+            amountMinor: result.refund.amountMinor,
+            status: result.refund.status,
+            platformBilling: true,
+          },
+        },
+      );
+      return json({ ok: true, result }, { status: 200 });
     }
     if (ctx.method === 'GET' && ctx.pathname === '/console/billing/overview') {
       const routePolicy = requireConsoleRoutePolicy(ctx, auth.claims);
@@ -580,6 +800,12 @@ export async function handleConsoleBillingRoutes(
   } catch (error: unknown) {
     if (billingFailureEvent && hooks.failure)
       await hooks.failure(auth.claims, { ...billingFailureEvent, error });
+    if (isConsoleOrgProjectError(error)) {
+      return json(
+        { ok: false, code: error.code, message: error.message },
+        { status: error.status },
+      );
+    }
     return sendBillingError(error);
   }
   return new Response('Not Found', { status: 404 });

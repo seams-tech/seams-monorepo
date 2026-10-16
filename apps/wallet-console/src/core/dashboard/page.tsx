@@ -1,7 +1,15 @@
+import {
+  sharedAccountHref,
+  linksWithConsoleContext,
+  consoleSessionHref,
+  rememberConsoleContext,
+  platformConsoleHref,
+} from './consoleNavigation';
 import { DashboardOnboardingPage } from './routes/onboarding/page';
 import { readUnscopedConsoleSession } from './routes/onboarding/initialOrganizationApi';
 import { requireConsoleBaseUrl } from './consoleHttp';
 import React from 'react';
+import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { SidebarProjectGroup } from './layout/DashboardSidebar';
 import DashboardNavigation from './layout/DashboardNavigation';
 import { DASHBOARD_PAGE_ACTIONS_SLOT_ID } from './components/DashboardPageActions';
@@ -20,6 +28,7 @@ import {
   markDashboardConsoleSignOut,
   revokeDashboardConsoleSession,
   useDashboardConsoleSession,
+  type DashboardConsoleSessionClaims,
 } from './consoleSession';
 import { DashboardSelectedContextProvider } from './selectedContext';
 import {
@@ -58,11 +67,63 @@ type DashboardPageProps<ProductRoute extends string, ProductGroupKey extends str
   pathname?: string;
 };
 
-const DASHBOARD_ONBOARDING_ROUTE: DashboardRoute = '/dashboard/onboarding';
+const DASHBOARD_ONBOARDING_ROUTE = '/dashboard/onboarding';
 const DASHBOARD_ACCOUNT_SETTINGS_ROUTE: DashboardRoute = '/dashboard/account-settings';
 const PLATFORM_BILLING_ROUTE: DashboardRoute = '/platform/billing';
 const DASHBOARD_LOGIN_ROUTE = '/dashboard/login';
 const DASHBOARD_ONBOARDING_STATE_UPDATED_EVENT = 'dashboard:onboarding-state-updated';
+const EMPTY_DASHBOARD_PROJECT_OPTIONS: TopbarOption[] = [];
+type DashboardProjectFailure = 'load_failed' | 'selection_unavailable';
+type DashboardProjects =
+  | {
+      readonly kind: 'loading';
+      readonly orgId?: never;
+      readonly options?: never;
+      readonly reason?: never;
+    }
+  | {
+      readonly kind: 'loaded';
+      readonly orgId: string;
+      readonly options: TopbarOption[];
+      readonly reason?: never;
+    }
+  | {
+      readonly kind: 'unavailable';
+      readonly orgId: string;
+      readonly reason: DashboardProjectFailure;
+      readonly options?: never;
+    };
+
+function loadingDashboardProjects(): Extract<DashboardProjects, { kind: 'loading' }> {
+  return { kind: 'loading' };
+}
+
+function loadedDashboardProjects(
+  claims: DashboardConsoleSessionClaims,
+  options: TopbarOption[],
+): Extract<DashboardProjects, { kind: 'loaded' }> {
+  return { kind: 'loaded', orgId: claims.orgId, options };
+}
+
+function unavailableDashboardProjects(
+  claims: DashboardConsoleSessionClaims,
+  reason: DashboardProjectFailure,
+): Extract<DashboardProjects, { kind: 'unavailable' }> {
+  return { kind: 'unavailable', orgId: claims.orgId, reason };
+}
+
+function projectOptionsForScope(projects: DashboardProjects, orgId: string): TopbarOption[] {
+  switch (projects.kind) {
+    case 'loaded':
+      return projects.orgId === orgId ? projects.options : EMPTY_DASHBOARD_PROJECT_OPTIONS;
+    case 'loading':
+    case 'unavailable':
+      return EMPTY_DASHBOARD_PROJECT_OPTIONS;
+    default:
+      return assertNever(projects);
+  }
+}
+
 function isSelectableOption(option: TopbarOption): boolean {
   return option.disabled !== true;
 }
@@ -94,17 +155,6 @@ function dedupeOptions(options: TopbarOption[]): TopbarOption[] {
     }
   }
   return deduped;
-}
-
-function buildFallbackOptions(value: string, label?: string | null): TopbarOption[] {
-  const normalizedValue = String(value || '').trim();
-  if (!normalizedValue) return [];
-  return [
-    {
-      value: normalizedValue,
-      label: String(label || '').trim() || normalizedValue,
-    },
-  ];
 }
 
 function buildProjectEnvironmentOptions(input: {
@@ -198,7 +248,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const [pendingOrganizationContextOrgId, setPendingOrganizationContextOrgId] =
     React.useState<string>('');
   const [organizationOptions, setOrganizationOptions] = React.useState<TopbarOption[]>([]);
-  const [projectOptions, setProjectOptions] = React.useState<TopbarOption[]>([]);
+  const [projectResolution, setProjectResolution] =
+    React.useState<DashboardProjects>(loadingDashboardProjects);
+  const initialContextResolution = React.useRef<'pending' | 'applied'>('pending');
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>(persistedProjectId);
   const [environmentRows, setEnvironmentRows] = React.useState<DashboardConsoleEnvironment[]>([]);
   const [environmentRefreshRevision, setEnvironmentRefreshRevision] = React.useState(0);
@@ -208,6 +260,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     !consoleSession.claims &&
     (consoleSession.errorCode === 'forbidden' || consoleSession.errorStatus === 403);
   const currentOrgId = String(consoleSession.claims?.orgId || '').trim();
+  const projectOptions = projectOptionsForScope(projectResolution, currentOrgId);
   const onboardingStateOrgId = String(onboardingState?.orgId || '').trim();
   const onboardingSelectedProjectId = String(onboardingState?.selectedProjectId || '').trim();
   const onboardingSelectionMatchesCurrentOrg = Boolean(
@@ -260,6 +313,12 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       Boolean(pendingOrganizationContextOrgId) ||
       (Boolean(recoveryTargetOrgId) &&
         organizationRecoveryAttemptRef.current !== recoveryAttemptKey));
+  const isSelectingRequestedOrganization = Boolean(
+    pendingOrganizationContextOrgId ||
+    (initialContextResolution.current === 'pending' &&
+      persistedOrganizationId &&
+      persistedOrganizationId !== currentOrgId),
+  );
   const isWaitingForCurrentOrgOnboardingState = Boolean(
     currentOrgId && onboardingGateEnabled && onboardingStateOrgId !== currentOrgId,
   );
@@ -267,6 +326,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     pathname === '/dashboard' &&
     consoleSession.claims &&
     (isRecoveringOrganizationContext ||
+      isSelectingRequestedOrganization ||
       (onboardingGateEnabled && (!onboardingState || isWaitingForCurrentOrgOnboardingState))),
   );
 
@@ -280,7 +340,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       setAccountOrganizationsResolved(false);
       setPendingOrganizationContextOrgId('');
       setOrganizationOptions([]);
-      setProjectOptions([]);
+      setProjectResolution(loadingDashboardProjects());
       setSelectedProjectId(persistedProjectId);
       setEnvironmentRows([]);
       return;
@@ -290,7 +350,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       setOnboardingState(buildDashboardOrganizationOnboardingState(''));
       setOnboardingGateEnabled(true);
       setSelectedProjectId('');
-      setProjectOptions([]);
+      setProjectResolution(loadingDashboardProjects());
       setEnvironmentRows([]);
       return;
     }
@@ -355,7 +415,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     const claims = consoleSession.claims;
     if (!claims) return;
     if (consoleSession.loading || onboardingLoading) return;
-    if (isRecoveringOrganizationContext) return;
+    if (isRecoveringOrganizationContext || isSelectingRequestedOrganization) return;
     if (isWaitingForCurrentOrgOnboardingState) return;
     if (!onboardingGateEnabled || !onboardingState) return;
     const isOnboardingRoute = pathname === DASHBOARD_ONBOARDING_ROUTE;
@@ -365,13 +425,14 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       !isOnboardingRoute &&
       !isPlatformBillingRoute
     ) {
-      go(DASHBOARD_ONBOARDING_ROUTE);
+      go(sharedAccountHref(DASHBOARD_ONBOARDING_ROUTE));
     }
   }, [
     consoleSession.claims,
     consoleSession.loading,
     go,
     isRecoveringOrganizationContext,
+    isSelectingRequestedOrganization,
     isWaitingForCurrentOrgOnboardingState,
     onboardingGateEnabled,
     onboardingLoading,
@@ -389,10 +450,12 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     const claims = consoleSession.claims;
     if (!claims) {
       setAccountOrganizationsResolved(false);
+      setProjectResolution(loadingDashboardProjects());
       return;
     }
     let cancelled = false;
     setAccountOrganizationsResolved(false);
+    setProjectResolution(loadingDashboardProjects());
     Promise.allSettled([
       listDashboardAccountOrganizations(),
       currentOrgId ? listDashboardProjects({ status: 'ACTIVE' }) : Promise.resolve([]),
@@ -409,9 +472,6 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         });
         const preferredOrganizationProjectId = String(
           preferredOrganization?.selectedProjectId || '',
-        ).trim();
-        const preferredOrganizationProjectLabel = String(
-          preferredOrganization?.selectedProjectName || '',
         ).trim();
         setAccountOrganizations(organizations);
         const nextOrganizationOptions = dedupeOptions(
@@ -436,39 +496,66 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
             })),
         );
         setOrganizationOptions(nextOrganizationOptions);
-        const nextProjectOptions = dedupeOptions([
-          ...projects.map((entry) => ({
+        setAccountOrganizationsResolved(true);
+        if (!currentOrgId) return;
+        if (
+          initialContextResolution.current === 'pending' &&
+          persistedOrganizationId &&
+          persistedOrganizationId !== currentOrgId
+        ) {
+          if (organizationsResult.status === 'rejected') {
+            setProjectResolution(unavailableDashboardProjects(claims, 'load_failed'));
+          }
+          return;
+        }
+        if (projectsResult.status === 'rejected') {
+          setProjectResolution(unavailableDashboardProjects(claims, 'load_failed'));
+          return;
+        }
+        const nextProjectOptions = dedupeOptions(
+          projects.map((entry) => ({
             value: entry.id,
             label: entry.name || entry.id,
           })),
-          ...buildFallbackOptions(
-            preferredOrganizationProjectId,
-            preferredOrganizationProjectLabel,
-          ),
-          ...buildFallbackOptions(scopedOnboardingSelectedProjectId),
-          ...(scopedPersistedProjectId ? buildFallbackOptions(scopedPersistedProjectId) : []),
-        ]);
-        setProjectOptions(nextProjectOptions);
+        );
+        let requestedProjectId = scopedPersistedProjectId;
+        if (initialContextResolution.current === 'applied') {
+          const selected = readPersistedDashboardSelectedContext();
+          requestedProjectId =
+            selected.organization === currentOrgId ? (selected.project ?? '') : '';
+        }
+        if (requestedProjectId && !projects.some((project) => project.id === requestedProjectId)) {
+          setProjectResolution(unavailableDashboardProjects(claims, 'selection_unavailable'));
+          return;
+        }
         const nextSelectedProjectId =
+          requestedProjectId ||
           (scopedOnboardingSelectedProjectId &&
             nextProjectOptions.find((entry) => entry.value === scopedOnboardingSelectedProjectId)
               ?.value) ||
           (preferredOrganizationProjectId &&
             nextProjectOptions.find((entry) => entry.value === preferredOrganizationProjectId)
               ?.value) ||
-          (scopedPersistedProjectId &&
-            nextProjectOptions.find((entry) => entry.value === scopedPersistedProjectId)?.value) ||
           nextProjectOptions[0]?.value ||
-          scopedOnboardingSelectedProjectId ||
-          preferredOrganizationProjectId ||
-          scopedPersistedProjectId ||
           '';
+        if (initialContextResolution.current === 'pending') {
+          replaceDashboardSelectedContext({
+            organization: currentOrgId,
+            project: nextSelectedProjectId,
+            environment:
+              nextSelectedProjectId === scopedPersistedProjectId
+                ? scopedPersistedEnvironmentId
+                : '',
+          });
+          initialContextResolution.current = 'applied';
+        }
         setSelectedProjectId(nextSelectedProjectId);
-        setAccountOrganizationsResolved(true);
+        setProjectResolution(loadedDashboardProjects(claims, nextProjectOptions));
       })
       .catch(() => {
         if (cancelled) return;
         setAccountOrganizationsResolved(true);
+        setProjectResolution(unavailableDashboardProjects(claims, 'load_failed'));
       });
     return () => {
       cancelled = true;
@@ -480,12 +567,14 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     pathname,
     persistedOrganizationId,
     scopedPersistedProjectId,
+    scopedPersistedEnvironmentId,
   ]);
 
   const switchOrganizationContext = React.useCallback(
     (nextOrgId: string, failurePrefix: string) => {
       const normalizedOrgId = String(nextOrgId || '').trim();
-      if (!normalizedOrgId) return;
+      const claims = consoleSession.claims;
+      if (!normalizedOrgId || !claims) return;
       setContextActionErrorMessage('');
       setPendingOrganizationContextOrgId(normalizedOrgId);
       void switchDashboardAccountOrganizationContext(normalizedOrgId)
@@ -501,6 +590,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         })
         .catch((error: unknown) => {
           setPendingOrganizationContextOrgId('');
+          setProjectResolution(unavailableDashboardProjects(claims, 'load_failed'));
           setContextActionErrorMessage(
             `${failurePrefix}: ${error instanceof Error ? error.message : String(error)}`,
           );
@@ -508,6 +598,41 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     },
     [consoleSession],
   );
+
+  React.useEffect(() => {
+    const claims = consoleSession.claims;
+    if (
+      !claims ||
+      !currentOrgId ||
+      !accountOrganizationsResolved ||
+      pendingOrganizationContextOrgId
+    )
+      return;
+    if (
+      initialContextResolution.current === 'applied' ||
+      !persistedOrganizationId ||
+      persistedOrganizationId === currentOrgId
+    )
+      return;
+    if (projectResolution.kind === 'unavailable') return;
+    const organization = organizationOptions.find(
+      (entry) => entry.value === persistedOrganizationId,
+    );
+    if (!organization) {
+      setProjectResolution(unavailableDashboardProjects(claims, 'selection_unavailable'));
+      return;
+    }
+    switchOrganizationContext(organization.value, 'Unable to open the selected organization');
+  }, [
+    accountOrganizationsResolved,
+    consoleSession.claims,
+    currentOrgId,
+    organizationOptions,
+    pendingOrganizationContextOrgId,
+    persistedOrganizationId,
+    projectResolution,
+    switchOrganizationContext,
+  ]);
 
   React.useEffect(() => {
     if (!consoleSession.claims) {
@@ -585,20 +710,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
   const dropdownOptions = React.useMemo<Record<TopbarMenuKey, TopbarOption[]>>(
     () => ({
       organization: dedupeOptions(organizationOptions),
-      project: dedupeOptions(
-        projectOptions.length > 0
-          ? projectOptions
-          : dedupeOptions([
-              ...(scopedOnboardingSelectedProjectId
-                ? [
-                    {
-                      value: scopedOnboardingSelectedProjectId,
-                      label: scopedOnboardingSelectedProjectId,
-                    },
-                  ]
-                : []),
-            ]),
-      ),
+      project: projectOptions,
       environment: environmentOptions,
       accountSettings: DASHBOARD_ACCOUNT_SETTINGS_OPTIONS.map(
         (entry): TopbarOption => ({
@@ -607,13 +719,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         }),
       ),
     }),
-    [
-      DASHBOARD_ACCOUNT_SETTINGS_OPTIONS,
-      environmentOptions,
-      scopedOnboardingSelectedProjectId,
-      organizationOptions,
-      projectOptions,
-    ],
+    [DASHBOARD_ACCOUNT_SETTINGS_OPTIONS, environmentOptions, organizationOptions, projectOptions],
   );
 
   const workspaceProjectGroups = React.useMemo<SidebarProjectGroup[]>(
@@ -748,7 +854,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         return;
       }
       if (menu === 'accountSettings' && value === DASHBOARD_ACCOUNT_SETTINGS_ACCOUNT_OPTION) {
-        go(DASHBOARD_ACCOUNT_SETTINGS_ROUTE);
+        go(sharedAccountHref(DASHBOARD_ACCOUNT_SETTINGS_ROUTE));
         return;
       }
       if (menu === 'accountSettings' && value === DASHBOARD_ACCOUNT_SETTINGS_SIGN_OUT_OPTION) {
@@ -775,7 +881,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         menu === 'environment' &&
         dropdownOptions.environment.find((entry) => entry.value === value)?.disabled === true
       ) {
-        go('/dashboard/billing/account?billing=production_required');
+        go(sharedAccountHref('/dashboard/billing/account?billing=production_required'));
         return;
       }
       onSelectContextRaw(menu, value);
@@ -831,9 +937,9 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     if (onboardingGateEnabled && onboardingLoading) return;
     if (isWaitingForCurrentOrgOnboardingState) return;
     if (onboardingGateEnabled && !onboardingState) return;
-    if (isRecoveringOrganizationContext) return;
+    if (isRecoveringOrganizationContext || isSelectingRequestedOrganization) return;
     if (pathname === '/dashboard') {
-      go(dashboardEntryRoute);
+      go(sharedAccountHref(dashboardEntryRoute));
     }
   }, [
     consoleSession.claims,
@@ -841,6 +947,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     getRouteFromPathname,
     go,
     isRecoveringOrganizationContext,
+    isSelectingRequestedOrganization,
     isWaitingForCurrentOrgOnboardingState,
     onboardingGateEnabled,
     onboardingLoading,
@@ -853,13 +960,13 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     if (onboardingGateEnabled && onboardingLoading) return;
     if (isWaitingForCurrentOrgOnboardingState) return;
     if (onboardingGateEnabled && !onboardingState) return;
-    if (isRecoveringOrganizationContext) return;
+    if (isRecoveringOrganizationContext || isSelectingRequestedOrganization) return;
     if (
       pathname !== '/dashboard' &&
       (pathname.startsWith('/dashboard/') || pathname.startsWith('/platform/')) &&
       !getRouteFromPathname(pathname)
     ) {
-      go(dashboardEntryRoute);
+      go(sharedAccountHref(dashboardEntryRoute));
     }
   }, [
     consoleSession.claims,
@@ -867,6 +974,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     getRouteFromPathname,
     go,
     isRecoveringOrganizationContext,
+    isSelectingRequestedOrganization,
     isWaitingForCurrentOrgOnboardingState,
     onboardingGateEnabled,
     onboardingLoading,
@@ -882,7 +990,8 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
       pathname.startsWith('/dashboard/') ||
       pathname.startsWith('/platform/')
     ) {
-      go(DASHBOARD_LOGIN_ROUTE);
+      rememberConsoleContext();
+      go(consoleSessionHref(DASHBOARD_LOGIN_ROUTE));
     }
   }, [consoleSession.claims, consoleSession.loading, go, pathname, sessionForbidden]);
 
@@ -947,10 +1056,42 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
     );
   }
 
+  if (
+    import.meta.env.MODE === 'wallet' &&
+    projectResolution.kind === 'unavailable' &&
+    projectResolution.orgId === currentOrgId &&
+    !pendingOrganizationContextOrgId
+  ) {
+    return (
+      <main className="dashboard-session-gate" aria-label="Dashboard access">
+        <h1>Unable to open this project</h1>
+        <p role="alert">
+          {projectResolution.reason === 'selection_unavailable'
+            ? 'The selected account or project is unavailable. Choose a project in Platform Console.'
+            : 'Projects could not be loaded. Try again.'}
+        </p>
+        <a href={platformConsoleHref('/dashboard/account-settings')}>Open Platform Console</a>
+        <button type="button" onClick={consoleSession.refresh}>
+          Retry
+        </button>
+      </main>
+    );
+  }
+
+  const walletProjectContextPending =
+    usesWalletContext &&
+    (projectResolution.kind !== 'loaded' ||
+      projectResolution.orgId !== currentOrgId ||
+      Boolean(pendingOrganizationContextOrgId) ||
+      selectedContext.organization !== currentOrgId ||
+      selectedContext.project !== selectedProjectId ||
+      (Boolean(selectedContext.project) &&
+        !projectOptions.some((project) => project.value === selectedContext.project)));
+
   /* Keep the shell hidden until session and dashboard-entry routing decisions
      resolve. The provisional entry route points at onboarding, so mounting it
      here would expose the wizard before an existing workspace loads. */
-  if (!consoleSession.claims || isDashboardEntryRoutePending) {
+  if (!consoleSession.claims || isDashboardEntryRoutePending || walletProjectContextPending) {
     return (
       <main className="dashboard-session-gate" aria-label="Dashboard workspace" aria-busy>
         <DashboardLoadingState
@@ -974,6 +1115,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         dropdownOptions={dropdownOptions}
         pageTitle={activeView.label}
         groups={visibleSidebarGroups}
+        externalLinks={linksWithConsoleContext(composition.externalLinks ?? [], selectedContext)}
         activeRoute={activeRoute}
         isSidebarExpanded={isSidebarExpanded}
         onToggleSidebar={toggleSidebar}
@@ -1054,11 +1196,16 @@ function DashboardEntry<ProductRoute extends string, ProductGroupKey extends str
   const [entry, setEntry] = React.useState<'loading' | 'onboarding' | 'workspace'>('loading');
   React.useEffect(() => {
     let cancelled = false;
+    rememberConsoleContext();
     readUnscopedConsoleSession(requireConsoleBaseUrl())
       .then((onboarding) => {
         if (cancelled) return;
+        if (onboarding && import.meta.env.MODE === 'wallet') {
+          go(consoleSessionHref(DASHBOARD_LOGIN_ROUTE));
+          return;
+        }
         setEntry(onboarding ? 'onboarding' : 'workspace');
-        if (onboarding) go('/dashboard/onboarding');
+        if (onboarding) go(consoleSessionHref(DASHBOARD_ONBOARDING_ROUTE));
       })
       .catch(() => {
         if (!cancelled) setEntry('workspace');

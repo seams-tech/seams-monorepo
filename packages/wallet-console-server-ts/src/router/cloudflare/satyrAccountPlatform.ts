@@ -8,7 +8,7 @@ import {
 } from '@seams-internal/console-server/accountPlatform/serviceIngressEnvironment';
 import type { D1DatabaseLike } from '@seams-internal/console-server/boundary/d1';
 import { textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
-import { resolveCloudflareConsoleEmailDispatchCronOptions } from './cron';
+import { createConsoleEmailInvitationSecretCipherFromEnv } from './cron';
 import { SatyrAccountOnboarding } from '@seams-internal/console-server/accountPlatform/onboarding';
 import {
   createSatyrProvisioningAdapterFromEnvironment,
@@ -17,7 +17,7 @@ import {
 
 type SatyrAccountPlatformEnvironment = AccountServiceIngressEnvironment &
   SatyrProvisioningEnvironment &
-  Parameters<typeof resolveCloudflareConsoleEmailDispatchCronOptions>[0]['env'] & {
+  Parameters<typeof createConsoleEmailInvitationSecretCipherFromEnv>[0] & {
     readonly CONSOLE_DB: D1DatabaseLike;
     readonly SEAMS_TENANT_STORAGE_NAMESPACE: string;
     readonly CONSOLE_BASE_URL: string;
@@ -30,16 +30,7 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
       this.env.SEAMS_TENANT_STORAGE_NAMESPACE,
       'SEAMS_TENANT_STORAGE_NAMESPACE',
     );
-    const emailDispatch = resolveCloudflareConsoleEmailDispatchCronOptions({
-      env: this.env,
-      database: this.env.CONSOLE_DB,
-      namespace,
-      ensureSchema: false,
-      invitationDelivery: { kind: 'ENABLED' },
-    });
-    const invitationSecretCipher = emailDispatch.invitationSecretCipher;
-    if (!invitationSecretCipher)
-      throw new Error('Console invitation email cipher was not configured');
+    const invitationSecretCipher = createConsoleEmailInvitationSecretCipherFromEnv(this.env);
     const services = await createCloudflareD1AccountServiceBundle({
       database: this.env.CONSOLE_DB,
       namespace,
@@ -55,7 +46,7 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
       const provisioning = createSatyrProvisioningAdapterFromEnvironment(
         this.env,
         services.serviceAccess,
-        fetch,
+        globalThis.fetch.bind(globalThis),
       );
       if (!producer || !provisioning)
         return Response.json(

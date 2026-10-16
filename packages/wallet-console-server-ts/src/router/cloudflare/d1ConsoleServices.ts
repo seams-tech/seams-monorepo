@@ -441,7 +441,7 @@ const TEMPO_STATIC_SPONSORSHIP_ESTIMATE_FEE_PER_GAS_WEI = 40_000_000_000n;
 const TEMPO_STATIC_SPONSORSHIP_MINOR_PER_WEI_NUMERATOR = 1n;
 const TEMPO_STATIC_SPONSORSHIP_MINOR_PER_WEI_DENOMINATOR = 1_000_000_000_000_000n;
 
-class D1WalletOrganizationDeletion implements AccountOrganizationDeletionPort {
+export class D1WalletOrganizationDeletion implements AccountOrganizationDeletionPort {
   constructor(
     private readonly database: D1DatabaseLike,
     private readonly namespace: string,

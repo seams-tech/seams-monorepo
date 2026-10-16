@@ -4,6 +4,7 @@ import { ConsoleBillingError } from './errors';
 import { resolveCreditPackAmountMinorOrThrow } from './creditPacks';
 import {
   resolveBillingProviderAdapters,
+  assertBillingProviderAvailable,
   type BillingProviderAdapters,
   type StripeRefundProviderOutput,
 } from './providers';
@@ -1895,6 +1896,7 @@ export function createInMemoryConsoleBillingService(
           );
         }
         if (existing.status === 'requested' && !existing.providerRefundId) {
+          assertBillingProviderAvailable(providers);
           const purchase = store.purchases.get(existing.purchaseId);
           if (!purchase || purchase.status !== 'SETTLED') {
             throw new ConsoleBillingError(
@@ -1914,6 +1916,7 @@ export function createInMemoryConsoleBillingService(
               reason: existing.reason,
             });
           } catch (error: unknown) {
+            if (error instanceof ConsoleBillingError) throw error;
             throw new ConsoleBillingError(
               'refund_provider_error',
               502,
@@ -1938,6 +1941,7 @@ export function createInMemoryConsoleBillingService(
           creditBalanceMinor: getMemoryStoreBalance(store),
         };
       }
+      assertBillingProviderAvailable(providers);
       const purchase = store.purchases.get(normalized.purchaseId);
       if (!purchase || purchase.status !== 'SETTLED') {
         throw new ConsoleBillingError(
@@ -1986,6 +1990,7 @@ export function createInMemoryConsoleBillingService(
           reason: requested.reason,
         });
       } catch (error: unknown) {
+        if (error instanceof ConsoleBillingError) throw error;
         throw new ConsoleBillingError(
           'refund_provider_error',
           502,
@@ -2043,6 +2048,7 @@ export function createInMemoryConsoleBillingService(
       ctx: ConsoleBillingContext,
       request: StripeCheckoutSessionRequest,
     ): Promise<StripeCheckoutSession> {
+      assertBillingProviderAvailable(providers);
       const now = nowFn();
       const store = ensureOrgStore(ctx.orgId);
       const amountMinor = resolveCreditPackAmountMinorOrThrow(request.creditPackId);

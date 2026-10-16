@@ -27,6 +27,8 @@ export default [
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      'apps/wallet-console/dist-platform/**',
+      'apps/wallet-console/dist-wallet/**',
       '**/.next/**',
       '**/.svelte-kit/**',
       '**/.vercel/**',

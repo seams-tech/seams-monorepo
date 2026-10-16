@@ -22,6 +22,7 @@ import {
 import type { ConsoleEmailNonInvitationTemplateV1 } from '../email/types';
 import {
   resolveBillingProviderAdapters,
+  assertBillingProviderAvailable,
   type BillingProviderAdapters,
   type StripeRefundProviderOutput,
 } from './providers';
@@ -2868,6 +2869,7 @@ async function createRefundD1(input: {
       );
     }
     if (existing.status === 'requested' && !existing.providerRefundId) {
+      assertBillingProviderAvailable(input.providers);
       const purchase = await loadCreditPurchaseById({
         database: input.state.database,
         namespace: input.state.namespace,
@@ -2892,6 +2894,7 @@ async function createRefundD1(input: {
           reason: existing.reason,
         });
       } catch (error: unknown) {
+        if (error instanceof ConsoleBillingError) throw error;
         throw new ConsoleBillingError(
           'refund_provider_error',
           502,
@@ -2920,6 +2923,7 @@ async function createRefundD1(input: {
     });
     return { created: false, refund: existing, creditBalanceMinor: account.creditBalanceMinor };
   }
+  assertBillingProviderAvailable(input.providers);
   const purchase = await loadCreditPurchaseById({
     database: input.state.database,
     namespace: input.state.namespace,
@@ -3151,6 +3155,7 @@ async function createRefundD1(input: {
       reason: request.reason,
     });
   } catch (error: unknown) {
+    if (error instanceof ConsoleBillingError) throw error;
     throw new ConsoleBillingError(
       'refund_provider_error',
       502,
@@ -4121,6 +4126,7 @@ export async function createD1ConsoleBillingService(
       ctx: ConsoleBillingContext,
       request: StripeCheckoutSessionRequest,
     ): Promise<StripeCheckoutSession> {
+      assertBillingProviderAvailable(providers);
       const currentNow = state.now();
       const amountMinor = resolveCreditPackAmountMinorOrThrow(request.creditPackId);
       const checkoutReturnUrls = buildStripeCheckoutReturnUrls(state.consoleBaseUrl);

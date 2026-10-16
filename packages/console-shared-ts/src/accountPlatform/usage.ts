@@ -319,20 +319,34 @@ export type BillingChargeAttributionV1 =
       readonly instanceId?: never;
     };
 
-export type UsageRecordingResultV1 = PlatformResult<
+export type PlatformUsageReceiptV1 =
   | {
       readonly kind: 'charged';
       readonly chargeId: string;
       readonly amountMinor: number;
       readonly priceVersion: string;
+      readonly reason?: never;
     }
   | {
       readonly kind: 'recorded_without_charge';
       readonly reason: 'meter_already_counted' | 'nonbillable_outcome';
       readonly chargeId?: never;
-    },
+      readonly amountMinor?: never;
+      readonly priceVersion?: never;
+    };
+
+export type UsageRecordingResultV1 = PlatformResult<
+  PlatformUsageReceiptV1,
   { readonly code: 'scope_forbidden' | 'meter_unknown' | 'event_conflict' | 'price_unavailable' }
 >;
+
+export type PlatformUsageEventDataV1 = Readonly<{
+  version: 1;
+  eventId: string;
+  instanceId: string;
+  occurredAt: string;
+}> &
+  PlatformUsageMeasureV1;
 
 export class ReserveFundsRequestV1 {
   readonly version = 1;

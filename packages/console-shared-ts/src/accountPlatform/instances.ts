@@ -1,5 +1,6 @@
 import {
   contractResult,
+  exactObject,
   digestValue,
   exactKeys,
   integer,
@@ -92,7 +93,10 @@ export function readServiceBindingRequest(input: unknown): ServiceBindingRequest
           });
         case 'satyr':
           exactKeys(configuration, ['deploymentId', 'placementCellId', 'environment']);
-          if (configuration.environment !== 'development' && configuration.environment !== 'production') {
+          if (
+            configuration.environment !== 'development' &&
+            configuration.environment !== 'production'
+          ) {
             return invalidContract('environment');
           }
           return Object.freeze({
@@ -137,9 +141,20 @@ export class ServiceProvisionCommandV1 {
 
   private static read(input: unknown): ServiceProvisionCommandV1 {
     const record = object(input, 'command');
-    exactKeys(record, ['version', 'operationId', 'instanceId', 'desiredRevision', 'command', 'binding']);
+    exactKeys(record, [
+      'version',
+      'operationId',
+      'instanceId',
+      'desiredRevision',
+      'command',
+      'binding',
+    ]);
     versionOne(record.version);
-    if (record.command !== 'enable' && record.command !== 'disable' && record.command !== 'archive') {
+    if (
+      record.command !== 'enable' &&
+      record.command !== 'disable' &&
+      record.command !== 'archive'
+    ) {
       return invalidContract('command');
     }
     const rawBinding = object(record.binding, 'binding');
@@ -378,4 +393,15 @@ function readBoundReceipt(input: unknown): AcceptedServiceReceiptV1 {
     result: record.result,
     binding: binding.value,
   });
+}
+
+export function readDurableSourceEvidenceV1(
+  input: unknown,
+  field = 'evidence',
+): DurableSourceEvidenceV1 {
+  const record = exactObject(input, ['sourceRecordId', 'sourceDigest'], field);
+  return {
+    sourceRecordId: textValue(record.sourceRecordId, `${field}.sourceRecordId`),
+    sourceDigest: digestValue(record.sourceDigest, `${field}.sourceDigest`),
+  };
 }

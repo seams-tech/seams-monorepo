@@ -1,3 +1,4 @@
+import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
 import { expect, test } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -102,7 +103,12 @@ async function seedSource(database: D1DatabaseLike): Promise<void> {
     projectId: 'native-project-b',
     liveAccess: 'disabled',
   });
-  const billing = await createD1ConsoleBillingService({ database, namespace, now });
+  const billing = await createD1ConsoleBillingService({
+    database,
+    namespace,
+    now,
+    providers: createSimulatedBillingProviderAdapters(),
+  });
   await billing.grantManualSupportCredit(context, {
     amountMinor: 2500,
     reasonCode: 'migration_rehearsal',
@@ -425,7 +431,12 @@ test('migration preflight preserves two native Wallet projects, money, holds, an
     let database = await sourceDatabase(worker);
     const migrations = await migrateSource(database);
     await seedSource(database);
-    const billing = await createD1ConsoleBillingService({ database, namespace, now });
+    const billing = await createD1ConsoleBillingService({
+      database,
+      namespace,
+      now,
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const generated = await billing.generateMonthlyInvoice(context, { periodMonthUtc: '2026-10' });
     if (!generated.invoice) throw new Error('Rehearsal statement is unavailable');
     const lineItems = await billing.listInvoiceLineItems(context, generated.invoice.id);

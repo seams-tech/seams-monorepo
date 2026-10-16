@@ -1,3 +1,4 @@
+import { createSimulatedBillingProviderAdapters } from '../../packages/console-server-ts/src/billing/providers';
 import { expect, test } from '@playwright/test';
 import {
   createInMemoryConsoleBillingService,
@@ -88,7 +89,9 @@ test.describe('console billing service prepaid model', () => {
       orgId: 'org-stripe-post-processing-memory',
       actorUserId: 'user-stripe-post-processing-memory',
     };
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const audit = createInMemoryConsoleAuditService({ seedDemoData: false });
     const checkout = await service.createStripeCheckoutSession(ctx, {
       creditPackId: 'usd_25',
@@ -242,7 +245,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('in-memory service settles prepaid purchase receipts idempotently by event id', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-stripe-webhook-memory',
       actorUserId: 'ops-webhook-memory',
@@ -292,7 +297,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('checkout settlement uses the exact paid session and verifies the purchased pack', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-stripe-exact-checkout',
       actorUserId: 'ops-stripe-exact-checkout',
@@ -352,7 +359,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('in-memory service appends manual support credits and admin debits idempotently', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-manual-adjustments-memory',
       actorUserId: 'admin-manual-adjustments-memory',
@@ -414,7 +423,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('in-memory refunds are partial, provider-backed, idempotent, and ledger-posted after success', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-refunds-memory',
       actorUserId: 'support-refunds-memory',
@@ -546,7 +557,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('external refunds may make credit negative and dispute wins restore their debit', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-external-refund-memory',
       actorUserId: 'ops-external-refund-memory',
@@ -604,7 +617,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('in-memory service links manual adjustments to invoice activity when relatedInvoiceId is provided', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const ctx = {
       orgId: 'org-manual-adjustments-linked-memory',
       actorUserId: 'admin-manual-adjustments-linked-memory',
@@ -635,7 +650,9 @@ test.describe('console billing service prepaid model', () => {
   });
 
   test('in-memory service records large manual admin debits', async () => {
-    const service = createInMemoryConsoleBillingService();
+    const service = createInMemoryConsoleBillingService({
+      providers: createSimulatedBillingProviderAdapters(),
+    });
     const platformCtx = {
       orgId: 'org-manual-adjustments-large-debit-memory',
       actorUserId: 'admin-manual-adjustments-large-debit-memory',

@@ -65,7 +65,10 @@ export type {
   StripeBillingProviderAdapter,
   BillingProviderAdapters,
 } from './providers';
-export { createDefaultBillingProviderAdapters, resolveBillingProviderAdapters } from './providers';
+export {
+  createSimulatedBillingProviderAdapters,
+  resolveBillingProviderAdapters,
+} from './providers';
 export {
   assertBillingEntryBalances,
   billingBalanceFromEntries,
@@ -87,7 +90,6 @@ export {
   createStripeBillingProviderAdaptersFromEnv,
   normalizeOptionalStripePublishableKey,
   normalizeStripeSecretKey,
-  requireStripeBillingProviderAdaptersFromEnv,
 } from './stripeProvider';
 
 export type {

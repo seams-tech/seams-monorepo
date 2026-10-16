@@ -17,12 +17,21 @@ import {
 } from '@core/auth/githubOAuth';
 import { consumeDashboardConsoleSignOut, fetchDashboardConsoleSession } from '../consoleSession';
 import { readUnscopedConsoleSession } from '../routes/onboarding/initialOrganizationApi';
+import { consoleSessionHref, rememberConsoleContext } from '../consoleNavigation';
+import { readPendingDashboardInvitation } from '../routes/invitations/invitation';
 import '../styles.css';
 
 function normalizeBaseUrl(input: unknown): string {
   return String(input || '')
     .trim()
     .replace(/\/+$/, '');
+}
+
+function loginDestination(pathname: '/dashboard' | '/dashboard/onboarding'): string {
+  if (import.meta.env.MODE === 'platform' && readPendingDashboardInvitation()) {
+    return consoleSessionHref('/dashboard/invitations/accept');
+  }
+  return consoleSessionHref(pathname);
 }
 
 type DashboardLoginExchangeResponse =
@@ -132,7 +141,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   const { go, linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
   const docsProps = linkProps('/docs');
-  const contactProps = linkProps('/contact');
+  const contactProps = linkProps('https://seams.sh/contact');
   const relayerBaseUrl = React.useMemo(() => {
     const deployment = getActiveFrontendDeployment();
     return normalizeBaseUrl(deployment.consoleBaseUrl || deployment.relayerUrl);
@@ -147,6 +156,8 @@ export function DashboardLoginPage(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean>(false);
   const [signedOut, setSignedOut] = React.useState<boolean>(false);
+
+  React.useEffect(rememberConsoleContext, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -163,11 +174,12 @@ export function DashboardLoginPage(): React.JSX.Element {
     fetchDashboardConsoleSession()
       .then(() => {
         if (cancelled) return;
-        go('/dashboard');
+        go(loginDestination('/dashboard'));
       })
       .catch(async () => {
+        if (import.meta.env.MODE === 'wallet') return;
         if (await readUnscopedConsoleSession(relayerBaseUrl).catch(() => false)) {
-          if (!cancelled) go('/dashboard/onboarding');
+          if (!cancelled) go(loginDestination('/dashboard/onboarding'));
         }
       })
       .finally(() => {
@@ -236,11 +248,11 @@ export function DashboardLoginPage(): React.JSX.Element {
       .then(async (kind) => {
         if (cancelled) return;
         if (kind === 'console_identity_v1') {
-          go('/dashboard/onboarding');
+          go(loginDestination('/dashboard/onboarding'));
           return;
         }
         await fetchDashboardConsoleSession();
-        if (!cancelled) go('/dashboard');
+        if (!cancelled) go(loginDestination('/dashboard'));
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -270,17 +282,18 @@ export function DashboardLoginPage(): React.JSX.Element {
         throw new Error('Google OIDC is not configured on the Router API server');
       }
 
+      rememberConsoleContext();
       await ensureGoogleIdentityScriptLoaded();
       const idToken = await requestGoogleIdToken(googleClientId);
 
       const kind = await exchangeDashboardSession(relayerBaseUrl, { kind: 'google', idToken });
       if (kind === 'console_identity_v1') {
-        go('/dashboard/onboarding');
+        go(loginDestination('/dashboard/onboarding'));
         return;
       }
 
       await fetchDashboardConsoleSession();
-      go('/dashboard');
+      go(loginDestination('/dashboard'));
     } catch (error: unknown) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -301,6 +314,7 @@ export function DashboardLoginPage(): React.JSX.Element {
   const onGithubSignIn = React.useCallback(() => {
     if (loadingProvider || !githubOptions.configured) return;
     setErrorMessage('');
+    rememberConsoleContext();
     beginGithubOAuth(githubOptions);
   }, [githubOptions, loadingProvider]);
 

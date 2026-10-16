@@ -52,10 +52,12 @@ function readStoredNetwork(): ConsoleNetwork {
   if (typeof window === 'undefined') return 'testnet';
   let value = '';
   try {
-    value = String(window.localStorage.getItem(NETWORK_STORAGE_KEY) || '').trim();
+    value =
+      new URLSearchParams(window.location.search).get('db_network') ||
+      String(window.localStorage.getItem(NETWORK_STORAGE_KEY) || '').trim();
   } catch {}
   const networks = availableNetworks();
-  return networks.includes(value as ConsoleNetwork) ? (value as ConsoleNetwork) : 'testnet';
+  return value === 'mainnet' && networks.includes('mainnet') ? 'mainnet' : 'testnet';
 }
 
 let activeDeployment: ConsoleDeployment = deploymentFor(readStoredNetwork());
@@ -73,7 +75,7 @@ export type ConsoleRuntimeState = {
 
 const listeners = new Set<() => void>();
 
-function selectNetwork(network: ConsoleNetwork): void {
+export function selectNetwork(network: ConsoleNetwork): void {
   if (!availableNetworks().includes(network)) return;
   activeDeployment = deploymentFor(network);
   try {

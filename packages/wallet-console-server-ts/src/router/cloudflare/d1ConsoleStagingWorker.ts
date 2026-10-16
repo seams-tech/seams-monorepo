@@ -1,4 +1,9 @@
+import { createD1AccountConsoleComposition, isAccountConsoleRequest } from './d1AccountConsole';
 export { SatyrAccountPlatform } from './satyrAccountPlatform';
+import { type CloudflareD1AccountServiceBundle } from '@seams-internal/console-server/router/cloudflare/d1AccountServices';
+import { resolveConsoleRouteSurface } from '@seams-internal/console-server/router/consoleRouteSurface';
+import type { SessionAdapter } from '@seams-internal/console-server/boundary/session';
+import type { ConsoleAccountService } from '@seams-internal/console-server/account/service';
 import { handleWalletRegistrationMutation } from '../../walletPlacement/service';
 import {
   satyrProvisioningForConsoleRoute,
@@ -91,10 +96,11 @@ import {
   readEnvironmentString as readEnvString,
   requireEnvironmentString as requireEnvString,
 } from '@seams/wallet-server/cloud-host';
-import { requireStripeBillingProviderAdaptersFromEnv } from '@seams-internal/console-server/billing/stripeProvider';
+import { createStripeBillingProviderAdaptersFromEnv } from '@seams-internal/console-server/billing/stripeProvider';
 import {
   createCloudflareCron,
   resolveCloudflareConsoleEmailDispatchCronOptions,
+  createConsoleEmailInvitationSecretCipherFromEnv,
   type TenantRootRefreshResumptionRunner,
 } from './cron';
 import type { RouterApiCloudflareConsoleWorkerEnv } from './cloudflareConsole.types';
@@ -258,12 +264,21 @@ function parseTenantDeploymentSurfaces(raw: string): TenantDeploymentCandidateSu
 
 function consoleGithubOAuthConfig(
   env: CloudflareD1ConsoleStagingEnv,
+  request: Request,
 ): ConsoleGithubOAuthConfig | undefined {
   const clientId = readEnvString(env, 'GITHUB_OAUTH_CLIENT_ID');
   const clientSecret = readEnvString(env, 'GITHUB_OAUTH_CLIENT_SECRET');
   const callbackUrl = readEnvString(env, 'GITHUB_OAUTH_CALLBACK_URL');
   if (!clientId || !clientSecret || !callbackUrl) return undefined;
-  return { clientId, clientSecret, callbackUrl };
+  const requestOrigin = request.headers.get('Origin') || new URL(request.url).origin;
+  if (!consoleCorsOrigins(env).includes(requestOrigin))
+    return { clientId, clientSecret, callbackUrl };
+  const callback = new URL(callbackUrl);
+  return {
+    clientId,
+    clientSecret,
+    callbackUrl: new URL(`${callback.pathname}${callback.search}`, requestOrigin).href,
+  };
 }
 
 function consoleCorsOrigins(env: CloudflareD1ConsoleStagingEnv): string[] {
@@ -325,6 +340,7 @@ const CONSOLE_STAGING_READY_TABLES = Object.freeze([
 async function createConsoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
+  request: Request,
 ): Promise<FetchHandler> {
   let tenantDeploymentReadyCheck: (() => Promise<void>) | null = null;
   const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
@@ -342,17 +358,7 @@ async function createConsoleHandler(
   );
   const walletRuntime = createWalletRuntimeOpsClient(env.WALLET_RUNTIME);
   const walletControl = createWalletControlClientBindings(env.WALLET_RUNTIME);
-  const emailDispatch = resolveCloudflareConsoleEmailDispatchCronOptions({
-    env,
-    database: env.CONSOLE_DB,
-    namespace,
-    ensureSchema: false,
-    invitationDelivery: { kind: 'ENABLED' },
-  });
-  const invitationSecretCipher = emailDispatch.invitationSecretCipher;
-  if (!invitationSecretCipher) {
-    throw new Error('Console invitation email cipher was not configured');
-  }
+  const invitationSecretCipher = createConsoleEmailInvitationSecretCipherFromEnv(env);
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
   const bundle = await createCloudflareD1ConsoleOnlyServiceBundle({
     bindings: {
@@ -364,7 +370,7 @@ async function createConsoleHandler(
     },
     adapters: {
       ensureSchema: false,
-      billingProviders: requireStripeBillingProviderAdaptersFromEnv(env),
+      billingProviders: createStripeBillingProviderAdaptersFromEnv(env),
       billingEmailConsoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
       organizationEmail: {
         invitationSecretCipher,
@@ -690,14 +696,29 @@ async function createConsoleHandler(
     });
     return await router(request, workerEnv, ctx);
   };
-  // The Console Worker owns /console/auth/* end-to-end: provider verification
-  // is Console-owned (no signer D1, Wasm, or identity-link store involved).
+  return attachConsoleRouteSurface(
+    createHostedConsoleAuthentication(env, routerWithOps, bundle, session, request),
+    resolveCompleteWalletConsoleRouteSurface(),
+  );
+}
+
+function createHostedConsoleAuthentication(
+  env: CloudflareD1ConsoleStagingEnv,
+  handler: FetchHandler,
+  services: {
+    readonly account: ConsoleAccountService;
+    readonly organizationAccess: CloudflareD1AccountServiceBundle['organizationAccess'];
+    readonly serviceAccess: CloudflareD1AccountServiceBundle['serviceAccess'];
+  },
+  session: SessionAdapter,
+  request: Request,
+): FetchHandler {
   const googleOidcClientId = readEnvString(env, 'GOOGLE_OIDC_CLIENT_ID');
-  const githubOAuth = consoleGithubOAuthConfig(env);
+  const githubOAuth = consoleGithubOAuthConfig(env, request);
   const authHandler = new HostedConsoleAuthHandler({
-    handler: routerWithOps,
-    recordVerifiedGoogleIdentity: bundle.serviceAccess.recordVerifiedGoogleIdentity.bind(
-      bundle.serviceAccess,
+    handler,
+    recordVerifiedGoogleIdentity: services.serviceAccess.recordVerifiedGoogleIdentity.bind(
+      services.serviceAccess,
     ),
     identity: createConsoleProviderIdentity({
       googleOidcClientId,
@@ -716,20 +737,77 @@ async function createConsoleHandler(
         : { configured: false },
     },
     session,
-    account: bundle.account,
+    account: services.account,
+    organizationAccess: services.organizationAccess,
     corsOrigins: consoleCorsOrigins(env),
   });
+  return authHandler.fetch.bind(authHandler);
+}
+
+async function createAccountHandler(
+  request: Request,
+  env: CloudflareD1ConsoleStagingEnv,
+  ctx: CfExecutionContext,
+): Promise<FetchHandler> {
+  const namespace = requireEnvString(env, 'SEAMS_TENANT_STORAGE_NAMESPACE');
+  const session = createHmacSessionAdapterFromEnv({
+    env,
+    secretName: 'CONSOLE_SESSION_HMAC_SECRET',
+    cookieName: readEnvString(env, 'CONSOLE_SESSION_COOKIE_NAME'),
+    issuer: readEnvString(env, 'CONSOLE_SESSION_ISSUER'),
+    audience: readEnvString(env, 'CONSOLE_SESSION_AUDIENCE'),
+  });
+  const composition = await createD1AccountConsoleComposition(request, {
+    database: env.CONSOLE_DB,
+    namespace,
+    ensureSchema: false,
+    session,
+    organizationEmail: {
+      invitationSecretCipher: createConsoleEmailInvitationSecretCipherFromEnv(env),
+      consoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
+    },
+    billingProviders: createStripeBillingProviderAdaptersFromEnv(env),
+    billingEmailConsoleBaseUrl: requireEnvString(env, 'CONSOLE_BASE_URL'),
+    platformSupportEmails: readEnvString(env, 'CONSOLE_PLATFORM_SUPPORT_EMAILS'),
+    walletDeploymentId: readEnvString(env, 'SEAMS_TENANT_DEPLOYMENT_LANE') ?? null,
+    satyrEnvironment: env,
+    webhookSecretCipher: isBillingRequest(request)
+      ? (createConsoleWebhookSecretCipherFromEnv(env) ?? null)
+      : null,
+    billingStripeWebhookSigningSecret: readEnvString(env, 'STRIPE_WEBHOOK_SECRET') ?? null,
+    corsOrigins: consoleCorsOrigins(env),
+    waitUntil: ctx.waitUntil.bind(ctx),
+    readyCheck: assertD1Tables.bind(null, {
+      database: env.CONSOLE_DB,
+      label: 'CONSOLE_DB',
+      tables: ['organizations', 'projects', 'organization_memberships'],
+    }),
+  });
   return attachConsoleRouteSurface(
-    authHandler.fetch.bind(authHandler),
-    resolveCompleteWalletConsoleRouteSurface(),
+    createHostedConsoleAuthentication(
+      env,
+      composition.handler,
+      composition.services,
+      session,
+      request,
+    ),
+    resolveConsoleRouteSurface(),
+  );
+}
+
+function isBillingRequest(request: Request): boolean {
+  const pathname = new URL(request.url).pathname;
+  return (
+    pathname.startsWith('/console/billing/') || pathname.startsWith('/console/platform/billing/')
   );
 }
 
 function consoleHandler(
   env: CloudflareD1ConsoleStagingEnv,
   ctx: CfExecutionContext,
+  request: Request,
 ): Promise<FetchHandler> {
-  return createConsoleHandler(env, ctx);
+  return createConsoleHandler(env, ctx, request);
 }
 
 function createConsoleReadyCheck(env: CloudflareD1ConsoleStagingEnv): () => Promise<void> {
@@ -788,6 +866,15 @@ async function fetch(
 ): Promise<Response> {
   if (new URL(request.url).pathname.startsWith('/account-platform/'))
     return new Response(null, { status: 404 });
+  if (request.method === 'OPTIONS') {
+    const response = new Response(null, { status: 204 });
+    withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
+    return response;
+  }
+  if (isAccountConsoleRequest(request)) {
+    const handler = await createAccountHandler(request, env, ctx);
+    return handler(request, env, ctx);
+  }
   const bindingTimingHeaders = new Headers();
   const tenantDeploymentReader = createD1TenantDeploymentBindingReaderV1({
     database: env.CONSOLE_DB,
@@ -919,11 +1006,6 @@ async function fetch(
     if (timing) tenantDeploymentResponse.headers.append('Server-Timing', timing);
     return tenantDeploymentResponse;
   }
-  if (request.method === 'OPTIONS') {
-    const response = new Response(null, { status: 204 });
-    withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
-    return response;
-  }
   if (isWalletConsoleTenantRootActiveLineageRequest(request)) {
     const response = await handleWalletConsoleTenantRootActiveLineage(
       request,
@@ -935,7 +1017,7 @@ async function fetch(
     withCors(response.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
     return response;
   }
-  const handler = await consoleHandler(env, ctx);
+  const handler = await consoleHandler(env, ctx, request);
   const response = await handler(request, env, ctx);
   const result = new Response(response.body, response);
   withCors(result.headers, { corsOrigins: consoleCorsOrigins(env) }, request);
@@ -1143,7 +1225,7 @@ async function registrationSetupResponse(
   if (!catalog.matchesResources(setup.binding.resources)) {
     return Response.json({ ok: false, code: 'wallet_home_resources_unverified' }, { status: 503 });
   }
-  const handler = await consoleHandler(env, ctx);
+  const handler = await consoleHandler(env, ctx, request);
   const operations = createWalletConsoleOpsClient({
     fetch: dispatchConsoleOperation.bind(undefined, handler, env, ctx),
   });

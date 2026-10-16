@@ -8,6 +8,7 @@ import { unstable_splitSqlQuery } from 'wrangler';
 import { createD1ConsoleAccountService } from '../../../packages/console-server-ts/src/account/d1';
 import { D1AccountPlatformService } from '../../../packages/console-server-ts/src/accountPlatform/d1';
 import { createD1ConsoleAuditService } from '../../../packages/console-server-ts/src/audit/d1';
+import { createSimulatedBillingProviderAdapters } from '../../../packages/console-server-ts/src/billing/providers';
 import { createD1ConsoleBillingService } from '../../../packages/console-server-ts/src/billing/d1';
 import { D1BillingUsageService } from '../../../packages/console-server-ts/src/billing/usage';
 import { createD1ConsoleBillingPrepaidReservationService } from '../../../packages/console-server-ts/src/billingPrepaidReservations/d1';
@@ -121,7 +122,11 @@ async function composeAccountRouter(database: D1DatabaseLike) {
     createInvitationToken: knownInvitationToken,
   });
   const audit = await createD1ConsoleAuditService({ database, namespace });
-  const billing = await createD1ConsoleBillingService({ database, namespace });
+  const billing = await createD1ConsoleBillingService({
+    database,
+    namespace,
+    providers: createSimulatedBillingProviderAdapters(),
+  });
   const account = await createD1ConsoleAccountService({
     database,
     namespace,

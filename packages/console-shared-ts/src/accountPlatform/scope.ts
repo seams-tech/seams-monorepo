@@ -144,3 +144,21 @@ export class ServiceTenantBindingV1 {
     );
   }
 }
+
+export function readPlatformScopeV1(input: unknown): PlatformScopeV1 {
+  const parsed = PlatformScopeV1.parse(input);
+  if (parsed.kind === 'rejected') return invalidContract(parsed.error.field);
+  return parsed.value;
+}
+
+export function platformScopeFieldsEqual(
+  left: PlatformScopeFieldsV1,
+  right: PlatformScopeFieldsV1,
+): boolean {
+  return (
+    left.namespace === right.namespace &&
+    left.organizationId === right.organizationId &&
+    left.projectId === right.projectId &&
+    left.billingAccountId === right.billingAccountId
+  );
+}

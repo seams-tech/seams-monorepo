@@ -1,10 +1,8 @@
 import { expect, test } from '@playwright/test';
 import {
   createStripeBillingProviderAdapter,
-  createStripeBillingProviderAdaptersFromEnv,
   normalizeOptionalStripePublishableKey,
   normalizeStripeSecretKey,
-  requireStripeBillingProviderAdaptersFromEnv,
 } from '../../packages/console-server-ts/src/billing/stripeProvider';
 
 test.describe('console-server Stripe billing provider config', () => {
@@ -28,18 +26,6 @@ test.describe('console-server Stripe billing provider config', () => {
     expect(normalizeOptionalStripePublishableKey('pk_test_123')).toBe('pk_test_123');
     expect(() => normalizeOptionalStripePublishableKey('sk_test_123')).toThrow(
       'STRIPE_API_PK must be a Stripe publishable key (pk_...).',
-    );
-  });
-
-  test('enables live billing from Worker env and requires it for hosted billing', async () => {
-    expect(createStripeBillingProviderAdaptersFromEnv({})).toBeUndefined();
-    expect(
-      createStripeBillingProviderAdaptersFromEnv({
-        STRIPE_API_SK: 'sk_test_123',
-      })?.stripe,
-    ).toBeTruthy();
-    expect(() => requireStripeBillingProviderAdaptersFromEnv({})).toThrow(
-      'STRIPE_API_SK is required for hosted console billing',
     );
   });
 });

@@ -12,6 +12,8 @@ on:
         options:
           - all
           - wallet-site
+          - platform-console
+          - wallet-console
           - company
           - wallet-host
       wallet_lane:
@@ -52,6 +54,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CF_PAGES_PROJECT_VITE: ${{ secrets.CF_PAGES_PROJECT_VITE }}
+      CF_PAGES_PROJECT_PLATFORM_CONSOLE: ${{ secrets.CF_PAGES_PROJECT_PLATFORM_CONSOLE }}
+      CF_PAGES_PROJECT_WALLET_CONSOLE: ${{ secrets.CF_PAGES_PROJECT_WALLET_CONSOLE }}
       CF_PAGES_PROJECT_WALLET_SITE: ${{ secrets.CF_PAGES_PROJECT_WALLET_SITE }}
       CF_PAGES_PROJECT_WALLET: ${{ secrets.CF_PAGES_PROJECT_WALLET }}
       VITE_RELAYER_URL: ${{ vars.VITE_RELAYER_URL }}

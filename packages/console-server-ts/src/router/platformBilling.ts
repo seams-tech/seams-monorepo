@@ -1,5 +1,5 @@
-import { ConsoleBillingError } from '@seams-internal/console-server/billing/errors';
-import type { ConsoleBillingService } from '@seams-internal/console-server/billing/service';
+import { ConsoleBillingError } from '../billing/errors';
+import type { ConsoleBillingService } from '../billing/service';
 import type {
   BillingAccountActivityRequest,
   BillingAccountActivityResult,
@@ -8,25 +8,22 @@ import type {
   BillingRefund,
   BillingRefundReconcileRequest,
   BillingRefundRequest,
-} from '@seams-internal/console-server/billing/types';
+} from '../billing/types';
 import {
   parseBillingAccountActivityRequest,
   parseBillingManualAdjustmentRequest,
   parseBillingRefundReconcileRequest,
   parseBillingRefundRequest,
-} from '@seams-internal/console-server/billing/requests';
-import type { ConsoleOrgProjectService } from '@seams-internal/console-server/orgProjectEnv/service';
-import type {
-  ConsoleOrganization,
-  ConsoleProject,
-} from '@seams-internal/console-server/orgProjectEnv/types';
+} from '../billing/requests';
+import type { ConsoleOrgProjectService } from '../orgProjectEnv/service';
+import type { ConsoleOrganization, ConsoleProject } from '../orgProjectEnv/types';
 import {
   readRequiredStringField,
   readOptionalQueryStringField,
   requireBodyObject,
   requireQueryObject,
-} from '@seams-internal/console-server/shared/requestParse';
-import type { ConsoleAuthClaims } from '@seams-internal/console-server/router/consoleAuth';
+} from '../shared/requestParse';
+import type { ConsoleAuthClaims } from './consoleAuth';
 
 function createParseError(code: string, status: number, message: string): ConsoleBillingError {
   return new ConsoleBillingError(code, status, message);

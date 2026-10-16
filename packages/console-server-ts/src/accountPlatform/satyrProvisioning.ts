@@ -1,8 +1,11 @@
 import {
+  readSatyrProvisionAppliedV1,
+  type SatyrProvisionEnvelopeV1,
+} from '@seams-internal/console-shared/accountPlatform';
+import {
   ServiceProvisionOwnerAssertionV1,
   ServiceTenantBindingV1,
   nativeTenantScopeKey,
-  parseServiceProvisionReceiptV1,
   type AcceptedServiceReceiptV1,
   type PlatformResult,
   type PlatformScopeV1,
@@ -17,11 +20,7 @@ import {
 import { base64UrlEncode } from '../boundary/encoding';
 import { billingCanonicalDigest } from '../billing/pricing';
 import type { AccountServiceProvisioningAdapterV1 } from './provisioning';
-import type {
-  AccountProvisionedServiceOwnerV1,
-  AccountProvisionOwnerGrantV1,
-  D1AccountServiceAccess,
-} from './serviceAccess';
+import type { AccountProvisionedServiceOwnerV1, D1AccountServiceAccess } from './serviceAccess';
 import {
   platformScopesEqual,
   type ServiceProducerAuthorityV1,
@@ -59,23 +58,16 @@ interface AppliedSatyrProvision {
   readonly owner: AccountProvisionedServiceOwnerV1;
 }
 
-export interface SatyrSignedProvisionDeliveryV1 {
-  readonly version: 1;
+export type SatyrSignedProvisionDeliveryV1 = Omit<
+  SatyrProvisionEnvelopeV1,
+  'delivery' | 'owner'
+> & {
   readonly delivery: ServiceProvisionDeliveryV1;
-  readonly owner: {
-    readonly platformUserId: string;
-    readonly issuer: 'https://accounts.google.com';
-    readonly subject: string;
+  readonly owner: SatyrProvisionEnvelopeV1['owner'] & {
     readonly email: string;
     readonly emailVerified: true;
-    readonly displayName: string | null;
-    readonly verificationReceiptId: string;
-    readonly platformMembershipId: string;
-    readonly accountAcceptanceReceiptId: string;
-    readonly serviceGrant: AccountProvisionOwnerGrantV1['serviceGrant'];
   };
-  readonly ownerAssertion: string;
-}
+};
 
 function now(): Date {
   return new Date();
@@ -93,31 +85,8 @@ function readAppliedResponse(input: unknown): AppliedSatyrProvision {
   const result = object(input, 'provision response');
   exactKeys(result, ['kind', 'value']);
   if (result.kind !== 'accepted') throw new Error('Satyr did not accept provisioning');
-  const value = object(result.value, 'applied provision');
-  exactKeys(value, ['kind', 'receipt', 'owner']);
-  if (value.kind !== 'applied') throw new Error('Satyr provision is not applied');
-  const receipt = parseServiceProvisionReceiptV1(value.receipt);
-  if (receipt.kind === 'rejected') throw new Error('Satyr returned an invalid provision receipt');
-  const owner = object(value.owner, 'provision owner');
-  exactKeys(owner, [
-    'nativePrincipalId',
-    'platformUserId',
-    'issuer',
-    'subject',
-    'verificationReceiptId',
-  ]);
-  if (owner.issuer !== 'https://accounts.google.com')
-    throw new Error('Satyr returned an invalid owner issuer');
-  return {
-    receipt: receipt.value,
-    owner: {
-      nativePrincipalId: textValue(owner.nativePrincipalId, 'nativePrincipalId'),
-      platformUserId: textValue(owner.platformUserId, 'platformUserId'),
-      issuer: owner.issuer,
-      subject: textValue(owner.subject, 'subject'),
-      verificationReceiptId: textValue(owner.verificationReceiptId, 'verificationReceiptId'),
-    },
-  };
+  const value = readSatyrProvisionAppliedV1(result.value);
+  return { receipt: value.receipt, owner: value.owner };
 }
 
 function receiptMatchesDelivery(

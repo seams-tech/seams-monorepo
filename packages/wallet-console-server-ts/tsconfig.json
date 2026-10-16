@@ -54,7 +54,7 @@
         "src/*"
       ],
       "express": [
-        "../console-server-ts/node_modules/@types/express/index.d.ts"
+        "./node_modules/@types/express/index.d.ts"
       ],
       "*": [
         "./node_modules/*",

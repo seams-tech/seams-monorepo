@@ -7613,6 +7613,11 @@ select.dashboard-input {
   background: #ffffff;
 }
 
+.dashboard-invitation {
+  grid-template-columns: minmax(0, 540px);
+  justify-content: center;
+}
+
 .dashboard-login__panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;

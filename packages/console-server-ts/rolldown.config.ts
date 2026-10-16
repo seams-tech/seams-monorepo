@@ -47,7 +47,6 @@ const external = [
   'util',
   /^node:.*/,
   'bs58',
-  'express',
   'tslib',
   /\.wasm$/,
 ];

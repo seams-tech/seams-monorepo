@@ -35,6 +35,7 @@ class TestSessionAdapter implements SessionAdapter {
 }
 
 function createHandler(calls: string[]): HostedConsoleAuthHandler {
+  const organizationAccess = createInMemoryConsoleOrganizationAccessService();
   const identity: HostedConsoleIdentityPort = {
     verifyGoogleLogin: async ({ idToken }) => {
       calls.push(idToken);
@@ -65,8 +66,9 @@ function createHandler(calls: string[]): HostedConsoleAuthHandler {
       },
     },
     session: new TestSessionAdapter(),
+    organizationAccess,
     account: createInMemoryConsoleAccountService({
-      organizationAccess: createInMemoryConsoleOrganizationAccessService(),
+      organizationAccess,
       orgProjectEnv: createInMemoryConsoleOrgProjectService(),
       deletion: { assertOrganizationCanBeDeleted },
     }),

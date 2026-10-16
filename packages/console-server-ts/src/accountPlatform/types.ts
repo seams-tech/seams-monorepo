@@ -1,3 +1,13 @@
+export { platformScopeFieldsEqual as platformScopesEqual } from '@seams-internal/console-shared/accountPlatform';
+import { platformScopeFieldsEqual as platformScopesEqual } from '@seams-internal/console-shared/accountPlatform';
+import type {
+  ServiceProducerAuthorityV1,
+  ServiceProvisionDeliveryV1,
+} from '@seams-internal/console-shared/accountPlatform';
+export type {
+  ServiceProducerAuthorityV1,
+  ServiceProvisionDeliveryV1,
+} from '@seams-internal/console-shared/accountPlatform';
 import {
   BoundServiceInstanceV1,
   PlatformScopeV1,
@@ -27,11 +37,6 @@ export interface AccountPlatformError {
     | 'service_instances_exist';
 }
 
-export interface ServiceProducerAuthorityV1 {
-  readonly serviceId: PlatformServiceIdV1;
-  readonly deploymentId: string;
-}
-
 export interface ServiceProvisionAdapterV1 {
   readonly authority: ServiceProducerAuthorityV1;
   provision(
@@ -42,14 +47,6 @@ export interface ServiceProvisionAdapterV1 {
       { readonly code: 'unavailable' | 'provisioning_failed' }
     >
   >;
-}
-
-export interface ServiceProvisionDeliveryV1 {
-  readonly scope: PlatformScopeV1;
-  readonly command: ServiceProvisionCommandV1;
-  readonly authority: ServiceProducerAuthorityV1;
-  readonly payloadDigest: string;
-  readonly requestedByUserId: string;
 }
 
 export interface ServiceProvisionAcknowledgementV1 {
@@ -290,13 +287,4 @@ export class AccountServiceInstanceV1 {
       state,
     );
   }
-}
-
-export function platformScopesEqual(left: PlatformScopeV1, right: PlatformScopeV1): boolean {
-  return (
-    left.namespace === right.namespace &&
-    left.organizationId === right.organizationId &&
-    left.projectId === right.projectId &&
-    left.billingAccountId === right.billingAccountId
-  );
 }

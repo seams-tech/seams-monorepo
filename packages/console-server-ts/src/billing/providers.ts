@@ -1,4 +1,5 @@
 import { secureRandomBase36 } from '../boundary';
+import { ConsoleBillingError } from './errors';
 import type { BillingCreditPackId, StripeProviderRefundStatus } from './types';
 
 export interface StripeCheckoutSessionProviderInput {
@@ -89,7 +90,8 @@ function buildMockCheckoutSuccessUrl(successUrl: string, checkoutSessionId: stri
   return url.toString();
 }
 
-export function createDefaultBillingProviderAdapters(): BillingProviderAdapters {
+/** Explicit payment simulation for local development and acceptance fixtures. */
+export function createSimulatedBillingProviderAdapters(): BillingProviderAdapters {
   const sessions = new Map<string, StripeCheckoutSessionLookupProviderOutput>();
   const refunds = new Map<string, StripeRefundProviderOutput>();
   return {
@@ -157,8 +159,38 @@ export function createDefaultBillingProviderAdapters(): BillingProviderAdapters 
 export function resolveBillingProviderAdapters(
   overrides?: Partial<BillingProviderAdapters>,
 ): BillingProviderAdapters {
-  const defaults = createDefaultBillingProviderAdapters();
   return {
-    stripe: overrides?.stripe || defaults.stripe,
+    stripe: overrides?.stripe ?? new UnavailableStripeBillingProvider('Stripe is not configured'),
   };
+}
+
+export class UnavailableStripeBillingProvider implements StripeBillingProviderAdapter {
+  constructor(private readonly message: string) {}
+
+  requireAvailable(): never {
+    throw new ConsoleBillingError('payment_provider_unavailable', 503, this.message);
+  }
+
+  createCheckoutSession(): never {
+    return this.requireAvailable();
+  }
+
+  getCheckoutSession(): never {
+    return this.requireAvailable();
+  }
+
+  createRefund(): never {
+    return this.requireAvailable();
+  }
+
+  getRefund(): never {
+    return this.requireAvailable();
+  }
+}
+
+/** Reject unavailable configuration before a payment creates durable pending state. */
+export function assertBillingProviderAvailable(providers: BillingProviderAdapters): void {
+  if (providers.stripe instanceof UnavailableStripeBillingProvider) {
+    providers.stripe.requireAvailable();
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@seams-internal/console-shared",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -12,6 +12,41 @@
     "./accountPlatform/boundary": "./src/accountPlatform/boundary.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && rolldown -c rolldown.config.ts",
+    "prepack": "pnpm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "rolldown": "^1.0.0-beta.27",
+    "typescript": "^5.8.3"
+  },
+  "publishConfig": {
+    "main": "./dist/esm/index.js",
+    "types": "./dist/types/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/types/index.d.ts",
+        "import": "./dist/esm/index.js",
+        "default": "./dist/esm/index.js"
+      },
+      "./organizationIdentity": {
+        "types": "./dist/types/organizationIdentity.d.ts",
+        "import": "./dist/esm/organizationIdentity.js",
+        "default": "./dist/esm/organizationIdentity.js"
+      },
+      "./accountPlatform": {
+        "types": "./dist/types/accountPlatform/index.d.ts",
+        "import": "./dist/esm/accountPlatform/index.js",
+        "default": "./dist/esm/accountPlatform/index.js"
+      },
+      "./accountPlatform/boundary": {
+        "types": "./dist/types/accountPlatform/boundary.d.ts",
+        "import": "./dist/esm/accountPlatform/boundary.js",
+        "default": "./dist/esm/accountPlatform/boundary.js"
+      }
+    }
   }
 }

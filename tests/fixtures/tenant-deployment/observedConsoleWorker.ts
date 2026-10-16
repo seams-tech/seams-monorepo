@@ -90,6 +90,13 @@ async function fetch(
   env: Parameters<typeof consoleWorker.fetch>[1],
   ctx: Parameters<typeof consoleWorker.fetch>[2],
 ): Promise<Response> {
+  const browserOrigin = request.headers.get('x-test-browser-origin');
+  if (browserOrigin) {
+    const headers = new Headers(request.headers);
+    headers.set('Origin', browserOrigin);
+    headers.delete('x-test-browser-origin');
+    request = new Request(request, { headers });
+  }
   const database = new ObservedDatabase(
     env.CONSOLE_DB,
     request.headers.has('x-test-fail-d1-batch'),

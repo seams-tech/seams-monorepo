@@ -43,6 +43,9 @@ jobs:
       - name: Build private applications
         run: pnpm build
 
+      - name: Install account acceptance browser
+        run: pnpm -C tests exec playwright install --with-deps chromium
+
       - name: Shared account acceptance
         run: pnpm -C tests exec playwright test -c playwright.config.ts 'e2e/console/shared-account-.*\.e2e\.test\.ts' e2e/console/shared-wallet-settlement.e2e.test.ts --reporter=line
 

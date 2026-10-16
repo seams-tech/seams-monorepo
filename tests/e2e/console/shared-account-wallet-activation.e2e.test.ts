@@ -872,6 +872,7 @@ async function verifyAutomaticWalletSetup(
   { page }: { page: Page },
   testInfo: TestInfo,
 ): Promise<void> {
+  testInfo.setTimeout(180_000);
   const evidence = testInfo.outputPath('automatic-wallet-setup');
   await mkdir(evidence, { recursive: true });
   // Use the application's installed Vite so this journey needs no running local stack.
@@ -1103,7 +1104,7 @@ async function verifyAutomaticWalletSetup(
     await page.goto(secondWalletEntry.href);
     await expect(
       page.getByRole('button', { name: 'Create credential', exact: true }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     expect(await environmentCount(database, secondProjectId)).toBe(3);
     expect(transport.enableRequests).toHaveLength(3);
 

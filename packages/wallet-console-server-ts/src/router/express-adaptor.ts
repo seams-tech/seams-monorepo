@@ -33,7 +33,6 @@ export {
 export {
   extractBearerCredential,
   extractRouterApiEnvironmentId,
-  resolveSourceIpFromExpressRequest,
   resolveSourceIpFromFetchHeaders,
 } from '@seams/wallet-server/cloud-host';
 

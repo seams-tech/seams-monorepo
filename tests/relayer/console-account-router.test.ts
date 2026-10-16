@@ -12,7 +12,7 @@ import {
   type ConsoleOrgProjectService,
 } from '@seams-internal/wallet-console-server/router/express-adaptor';
 import { createCloudflareConsoleRouter } from '@seams-internal/wallet-console-server/router/cloudflare-adaptor';
-import type { SessionAdapter } from '@seams/wallet-server/router/express';
+import type { SessionAdapter } from '@seams/wallet-server/cloud-host';
 import { callCf, fetchJson, makeConsoleAuthAdapter, startExpressRouter } from './helpers';
 import { consoleAuthorizationClaims } from '../helpers/consoleAuthorization.fixtures';
 

@@ -51,6 +51,7 @@ jobs:
 
       - name: Save account browser evidence
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: account-browser-evidence-${{ github.sha }}
@@ -65,6 +66,7 @@ jobs:
         run: pnpm -C tests exec node helpers/buildSharedAccountPlatformWorker.mjs
 
       - name: Publish native service acceptance authority
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: shared-account-authority-${{ github.sha }}

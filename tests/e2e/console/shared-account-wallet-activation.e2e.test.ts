@@ -1069,8 +1069,8 @@ async function verifyAutomaticWalletSetup(
     const accountHref = await accountLink.getAttribute('href');
     if (!accountHref) throw new Error('Wallet omitted the Platform account link');
     expect(new URL(accountHref).origin).toBe(new URL(platformUrl).origin);
-    // Native setup selects Development, which uses the existing Testnet lane.
-    expect(new URL(accountHref).searchParams.get('db_network')).toBe('testnet');
+    // A Wallet environment must not change the selected account authority.
+    expect(new URL(accountHref).searchParams.get('db_network')).toBe('mainnet');
     expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
     await accountLink.click();
     await expect(page.getByLabel('Account settings page')).toBeVisible();
@@ -1102,9 +1102,9 @@ async function verifyAutomaticWalletSetup(
       },
     ]);
     await page.goto(secondWalletEntry.href);
-    await expect(
-      page.getByRole('button', { name: 'Create credential', exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Create credential', exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
     expect(await environmentCount(database, secondProjectId)).toBe(3);
     expect(transport.enableRequests).toHaveLength(3);
 
@@ -1146,7 +1146,7 @@ async function verifyAutomaticWalletSetup(
         organizationName: 'Automatic Wallet setup',
         inviterDisplayName: 'Activation owner',
         invitedRole: 'MEMBER',
-        consoleBaseUrl: appUrl,
+        consoleBaseUrl: `${appUrl}?db_network=testnet`,
         expiresAt: invitation.invitation.expiresAt,
       }),
       invitation.token,
@@ -1154,6 +1154,7 @@ async function verifyAutomaticWalletSetup(
     await writeFile(path.join(evidence, 'invitation-email.html'), email.html);
     const invitationHref = email.text.match(/Accept the invitation: (\S+)/)?.[1];
     if (!invitationHref) throw new Error('Invitation email omitted its acceptance link');
+    expect(new URL(invitationHref).searchParams.get('db_network')).toBe('testnet');
     const anonymousAcceptance = await platformHandler.fetch(
       new Request(`${origin}/console/account/invitations/${invitation.invitation.id}/accept`, {
         method: 'POST',

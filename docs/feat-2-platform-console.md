@@ -205,6 +205,17 @@ domains. Shared account pages work independently of product runtimes. Existing W
 signing, asset locations, permissions, persistence, and commercial behaviour remain intact.
 Report local validation, staging deployment, and production deployment separately.
 
+Production Console uses its same-origin mainnet account authority by default.
+Explicit network selections retain the existing mainnet and testnet account stores.
+Wallet environment selection must not silently change the account authority.
+An explicit account network switch clears the previous organisation and project selection.
+Invitation, welcome, billing, and checkout links retain the selected account network.
+
+Console deployment requires only its account database and existing Wallet runtime binding.
+Regional Wallet features require their complete catalog, Gateway bindings, and runtime bindings.
+An absent regional configuration leaves account pages and existing Wallet operations available.
+A partial regional configuration must fail validation. This release creates no regional resources.
+
 ## Local implementation and rollout handoff — October 15, 2026
 
 The existing workspace now has two explicit Console builds. The default Vite build

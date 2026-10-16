@@ -193,6 +193,11 @@ async function parseRequest(request: Request): Promise<{
   };
 }
 
+export function isTenantDeploymentAutomationRequestV1(request: Request): boolean {
+  const pathname = new URL(request.url).pathname;
+  return pathname === AUTOMATION_PATH || pathname === VERIFY_RESOURCE_PATH;
+}
+
 export function createTenantDeploymentAutomationRouteV1(input: {
   readonly deploymentLane: string;
   readonly provisioner: TenantDeploymentProvisionerV1;
@@ -200,7 +205,7 @@ export function createTenantDeploymentAutomationRouteV1(input: {
 }): (request: Request) => Promise<Response | null> {
   return async function handleTenantDeploymentAutomation(request) {
     const url = new URL(request.url);
-    if (url.pathname !== AUTOMATION_PATH && url.pathname !== VERIFY_RESOURCE_PATH) return null;
+    if (!isTenantDeploymentAutomationRequestV1(request)) return null;
     if (request.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405);
     try {
       await authenticate(request, input.deploymentLane);

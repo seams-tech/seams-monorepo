@@ -1,3 +1,17 @@
+/** Keep the configured account selection when linking to another Console page. */
+export function consoleApplicationUrl(base: URL, pathname: string): URL {
+  const result = new URL(base);
+  const network = base.searchParams.get('db_network');
+  if (network !== null && network !== 'mainnet' && network !== 'testnet') {
+    throw new Error('Console account network must be mainnet or testnet');
+  }
+  result.pathname = pathname;
+  result.search = '';
+  if (network !== null) result.searchParams.set('db_network', network);
+  result.hash = '';
+  return result;
+}
+
 export function normalizeBoundedPositiveInteger(
   value: unknown,
   options: {

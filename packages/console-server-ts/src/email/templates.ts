@@ -1,3 +1,4 @@
+import { consoleApplicationUrl } from '../boundary/normalization';
 import type {
   AccountWelcomeEmailV1,
   BillingRefundResultEmailV1,
@@ -254,7 +255,10 @@ export function renderOrganizationInvitationEmailV1(
   invitationSecret: string,
 ): RenderedConsoleEmail {
   const secret = requiredText(invitationSecret, 'invitationSecret');
-  const invitationUrl = new URL('/dashboard/invitations/accept', template.consoleBaseUrl);
+  const invitationUrl = consoleApplicationUrl(
+    new URL(template.consoleBaseUrl),
+    '/dashboard/invitations/accept',
+  );
   invitationUrl.searchParams.set('invitation_id', template.invitationId);
   invitationUrl.searchParams.set('token', secret);
   const subject = `Invitation to join ${template.organizationName}`;
@@ -429,7 +433,10 @@ function renderOwnerMembershipChanged(
 }
 
 function renderAccountWelcome(template: AccountWelcomeEmailV1): RenderedConsoleEmail {
-  const consoleUrl = new URL('/dashboard', template.consoleBaseUrl).toString();
+  const consoleUrl = consoleApplicationUrl(
+    new URL(template.consoleBaseUrl),
+    '/dashboard',
+  ).toString();
   const quickstartUrl = new URL('/getting-started/', template.docsBaseUrl).toString();
   const architectureUrl = new URL('/concepts/architecture', template.docsBaseUrl).toString();
   const subject = 'Welcome to Seams';
@@ -578,7 +585,7 @@ function htmlMessage(input: {
 }
 
 function billingUrl(consoleBaseUrl: string): string {
-  return new URL('/dashboard/billing', consoleBaseUrl).toString();
+  return consoleApplicationUrl(new URL(consoleBaseUrl), '/dashboard/billing').toString();
 }
 
 function escapeHtml(value: string): string {
@@ -672,9 +679,8 @@ function httpBaseUrl(value: string, field: string): string {
     throw new Error(`${field} must use http or https`);
   }
   url.pathname = '/';
-  url.search = '';
   url.hash = '';
-  return url.toString();
+  return consoleApplicationUrl(url, '/').toString();
 }
 
 function unknownRecord(value: unknown, field: string): UnknownRecord {

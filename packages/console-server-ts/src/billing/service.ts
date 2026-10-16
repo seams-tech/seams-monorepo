@@ -1,4 +1,4 @@
-import { secureRandomBase36 } from '../boundary';
+import { consoleApplicationUrl, secureRandomBase36 } from '../boundary';
 import { WALLET_MONTHLY_ACTIVE_RESOURCE_PRICE_V1 } from './pricing';
 import { ConsoleBillingError } from './errors';
 import { resolveCreditPackAmountMinorOrThrow } from './creditPacks';
@@ -175,10 +175,11 @@ export function buildStripeCheckoutReturnUrls(consoleBaseUrl?: string): {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Console base URL must use HTTP or HTTPS');
   }
-  const accountUrl = new URL('/dashboard/billing/account', parsed).toString();
+  const accountUrl = consoleApplicationUrl(parsed, '/dashboard/billing/account');
+  const separator = accountUrl.search ? '&' : '?';
   return {
-    successUrl: `${accountUrl}?checkout=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${accountUrl}?checkout=cancel`,
+    successUrl: `${accountUrl}${separator}checkout=success&checkout_session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${accountUrl}${separator}checkout=cancel`,
   };
 }
 

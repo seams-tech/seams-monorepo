@@ -171,6 +171,10 @@ export class WalletHomeCatalog {
     return new WalletHomeCatalog(raw.map((value) => WalletHome.parse(value)));
   }
 
+  toJSON(): readonly WalletHome[] {
+    return [...this.#byRegion.values()];
+  }
+
   deploymentResources(): TenantDeploymentD1ResourcesV1 {
     return this.#resources;
   }

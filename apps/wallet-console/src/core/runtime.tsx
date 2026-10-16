@@ -49,15 +49,24 @@ function availableNetworks(): readonly ConsoleNetwork[] {
 }
 
 function readStoredNetwork(): ConsoleNetwork {
-  if (typeof window === 'undefined') return 'testnet';
+  const networks = availableNetworks();
+  const origin = windowOrigin() || trimmedEnv(import.meta.env.VITE_SITE_ORIGIN);
+  const defaultNetwork =
+    networks.includes('mainnet') &&
+    origin &&
+    new URL(deploymentFor('mainnet').consoleBaseUrl).origin === origin
+      ? 'mainnet'
+      : 'testnet';
+  if (typeof window === 'undefined') return defaultNetwork;
   let value = '';
   try {
     value =
       new URLSearchParams(window.location.search).get('db_network') ||
       String(window.localStorage.getItem(NETWORK_STORAGE_KEY) || '').trim();
   } catch {}
-  const networks = availableNetworks();
-  return value === 'mainnet' && networks.includes('mainnet') ? 'mainnet' : 'testnet';
+  if (value === 'testnet') return 'testnet';
+  if (value === 'mainnet' && networks.includes('mainnet')) return 'mainnet';
+  return defaultNetwork;
 }
 
 let activeDeployment: ConsoleDeployment = deploymentFor(readStoredNetwork());

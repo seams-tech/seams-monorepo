@@ -5,7 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Miniflare } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
-import { isD1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import {
+  isD1DatabaseLike,
+  WALLET_CONSOLE_OP_PATHS_V1,
+  WALLET_CONSOLE_SERVICE_ORIGIN_V1,
+} from '@seams/wallet-server/cloud-host';
 import type { D1DatabaseLike } from '../../../packages/console-server-ts/src/boundary/d1';
 import { createCloudflareD1AccountServiceBundle } from '../../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { createHmacSessionAdapter } from '../../../packages/wallet-console-server-ts/src/router/cloudflare/d1StagingSession';
@@ -14,6 +18,8 @@ import {
   createD1ConsoleWebhookService,
 } from '../../../packages/console-server-ts/src/webhooks/d1';
 import { WALLET_CONSOLE_WEBHOOK_EVENT_CATEGORY_VALIDATION } from '../../../packages/wallet-console-shared-ts/src/webhookEventCategories';
+import { createD1ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/d1';
+import type { ConsoleWalletEnvironmentService } from '../../../packages/wallet-console-server-ts/src/environments/service';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const output = path.join(repository, '.artifacts/p2-console-review/account-composition');
@@ -21,6 +27,7 @@ const namespace = 'p2-account-worker';
 const owner = { orgId: 'p2-account', actorUserId: 'google:p2-owner' };
 const sessionSecret = 'p2-account-composition-session-secret';
 const webhookKey = new Uint8Array(32).fill(8);
+const walletProjectId = 'p2-existing-runtime-project';
 
 test(
   'both Workers serve accounts without Wallet or payment config and preserve canonical billing effects',
@@ -74,6 +81,7 @@ async function buildWorker(name: 'hosted' | 'local'): Promise<string> {
 class PaymentEndpoints {
   readonly requests: string[] = [];
   readonly webhookEvents: string[] = [];
+  readonly checkoutReturns: string[] = [];
   private checkout: Record<string, unknown> | null = null;
 
   async fetch(request: Request): Promise<Response> {
@@ -87,6 +95,7 @@ class PaymentEndpoints {
     if (url.pathname === '/v1/customers') return Response.json({ id: 'cus_p2' });
     if (url.pathname === '/v1/checkout/sessions' && request.method === 'POST') {
       const form = new URLSearchParams(await request.text());
+      this.checkoutReturns.push(text(form.get('success_url')), text(form.get('cancel_url')));
       this.checkout = {
         id: 'cs_p2',
         url: 'https://checkout.stripe.com/p2',
@@ -110,6 +119,127 @@ class PaymentEndpoints {
     if (url.pathname === '/v1/refunds') return Response.json({ id: 're_p2', status: 'succeeded' });
     throw new Error(`Unexpected Stripe route: ${url.pathname}`);
   }
+}
+
+class WalletRuntimeEndpoint {
+  readonly requests: unknown[] = [];
+
+  async fetch(request: Request): Promise<Response> {
+    expect(new URL(request.url).pathname).toBe('/internal/wallet-runtime/v1/wallet-identities');
+    const input = object(await request.json());
+    expect(input.orgId).toBe(owner.orgId);
+    if (!Array.isArray(input.wallets)) throw new Error('Wallet selectors missing');
+    this.requests.push(input);
+    const identities = [];
+    for (const value of input.wallets) {
+      const wallet = object(value);
+      expect(wallet.projectId).toBe(walletProjectId);
+      identities.push({
+        walletId: text(wallet.walletId),
+        projectId: text(wallet.projectId),
+        envId: text(wallet.envId),
+        nearAccountId: 'p2-runtime.testnet',
+        evmAddress: `0x${'1'.repeat(40)}`,
+      });
+    }
+    return Response.json({ identities });
+  }
+}
+
+async function projectEnvironmentCount(
+  environments: ConsoleWalletEnvironmentService,
+): Promise<number> {
+  return (await environments.listEnvironments(owner, { projectId: walletProjectId })).length;
+}
+
+async function verifyExistingWalletRuntime(
+  runtime: Miniflare,
+  core: Awaited<ReturnType<typeof createCloudflareD1AccountServiceBundle>>,
+  database: D1DatabaseLike,
+  token: string,
+  endpoint: WalletRuntimeEndpoint,
+): Promise<unknown> {
+  await core.orgProjects.createProject(owner, {
+    id: walletProjectId,
+    name: 'Existing Wallet runtime',
+  });
+  const worker = await runtime.getWorker('hosted-wallet');
+  for (let replay = 0; replay < 2; replay += 1) {
+    const enabled = await call(
+      worker,
+      token,
+      `/console/projects/${walletProjectId}/services/wallet/enable`,
+      {
+        operationId: 'p2-existing-runtime-enable',
+        desiredRevision: 1,
+      },
+    );
+    expect(enabled.status, await enabled.clone().text()).toBe(200);
+  }
+  const environments = await createD1ConsoleWalletEnvironmentService({
+    database,
+    namespace,
+    ensureSchema: false,
+  });
+  await expect.poll(projectEnvironmentCount.bind(null, environments)).toBe(3);
+  const native = (await environments.listEnvironments(owner, { projectId: walletProjectId }))[0];
+  if (!native) throw new Error('Wallet environment missing');
+  const event = {
+    orgId: owner.orgId,
+    environmentId: native.id,
+    apiKeyId: 'p2-gateway-key',
+    walletId: 'wallet:p2-existing-runtime',
+    endpoint: '/wallets/register',
+    action: 'wallet_created',
+    succeeded: true,
+    sourceEventId: 'p2-existing-runtime-registration',
+  };
+  for (let replay = 0; replay < 2; replay += 1) {
+    const registered = await worker.fetch(
+      WALLET_CONSOLE_SERVICE_ORIGIN_V1 + WALLET_CONSOLE_OP_PATHS_V1.usageEvents,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+      },
+    );
+    expect(registered.status, await registered.clone().text()).toBe(200);
+  }
+  const listed = await call(
+    worker,
+    token,
+    `/console/wallets?projectId=${walletProjectId}&environmentId=${native.id}`,
+  );
+  expect(listed.status, await listed.clone().text()).toBe(200);
+  const wallets = object(await listed.json()).wallets;
+  expect(wallets).toHaveLength(1);
+  const refreshed = await call(worker, token, '/console/wallets/balances/refresh', {
+    wallets: [{ id: event.walletId, projectId: walletProjectId, environmentId: native.id }],
+  });
+  expect(refreshed.status, await refreshed.clone().text()).toBe(200);
+  expect(endpoint.requests).toEqual([
+    {
+      orgId: owner.orgId,
+      wallets: [{ walletId: event.walletId, projectId: walletProjectId, envId: native.key }],
+    },
+  ]);
+  const regional = await worker.fetch(
+    'https://wallet-console.internal/internal/tenant-deployment/v1/cutover',
+    { method: 'POST' },
+  );
+  expect(regional.status).toBe(503);
+  expect(await regional.json()).toMatchObject({ code: 'regional_wallet_unconfigured' });
+  expect((await call(worker, token, '/console/readyz')).status).toBe(200);
+  const scheduled = await worker.scheduled();
+  expect(scheduled.outcome).toBe('ok');
+  return {
+    automaticSetupReplayed: true,
+    environments: 3,
+    projectedWallets: 1,
+    runtimeIdentityRequests: endpoint.requests,
+    regionalMutationStatus: regional.status,
+    scheduledOutcome: scheduled.outcome,
+  };
 }
 
 function call(
@@ -145,12 +275,13 @@ async function accountWorkerJourney(
   const hosted = await buildWorker('hosted');
   const local = await buildWorker('local');
   const providers = new PaymentEndpoints();
+  const walletRuntime = new WalletRuntimeEndpoint();
   const bindings = {
     SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
     CONSOLE_SESSION_HMAC_SECRET: sessionSecret,
     CONSOLE_SESSION_ISSUER: 'p2-account',
     CONSOLE_SESSION_AUDIENCE: 'p2-account',
-    CONSOLE_BASE_URL: 'https://account.acceptance.invalid',
+    CONSOLE_BASE_URL: 'https://account.acceptance.invalid/?db_network=testnet',
     CONSOLE_PLATFORM_SUPPORT_EMAILS: 'owner@p2.invalid',
     CONSOLE_WEBHOOK_SECRET_KEY_ID: 'p2-webhooks',
     CONSOLE_WEBHOOK_SECRET_KEY_B64U: Buffer.from(webhookKey).toString('base64url'),
@@ -159,6 +290,41 @@ async function accountWorkerJourney(
   };
   const runtime = new Miniflare({
     workers: [
+      {
+        name: 'hosted-wallet',
+        modules: true,
+        modulesRules: [{ type: 'CompiledWasm', include: ['**/*.wasm'] }],
+        scriptPath: hosted,
+        modulesRoot: path.dirname(hosted),
+        compatibilityDate: '2026-07-17',
+        compatibilityFlags: ['nodejs_compat'],
+        d1Databases: { CONSOLE_DB: namespace },
+        bindings: {
+          SEAMS_TENANT_STORAGE_NAMESPACE: namespace,
+          SEAMS_TENANT_DEPLOYMENT_LANE: 'production-mainnet',
+          CONSOLE_SESSION_HMAC_SECRET: sessionSecret,
+          CONSOLE_SESSION_ISSUER: 'p2-account',
+          CONSOLE_SESSION_AUDIENCE: 'p2-account',
+          CONSOLE_BASE_URL: 'https://account.acceptance.invalid',
+          CONSOLE_WEBHOOK_SECRET_KEY_ID: 'p2-webhooks',
+          CONSOLE_WEBHOOK_SECRET_KEY_B64U: Buffer.from(webhookKey).toString('base64url'),
+          CONSOLE_EMAIL_INVITATION_SECRET_KEY_ID: 'p2-invitations',
+          CONSOLE_EMAIL_INVITATION_SECRET_KEY_B64U: Buffer.from(webhookKey).toString('base64url'),
+          CONSOLE_STEP_UP_RP_ID: 'account.acceptance.invalid',
+          CONSOLE_STEP_UP_ORIGIN: 'https://account.acceptance.invalid',
+          TENANT_ROOT_GRANT_AUTHORITY_SIGNING_KEY_ID: 'p2-grant-authority',
+          TENANT_ROOT_GRANT_AUTHORITY_SIGNING_SEED: Buffer.from(
+            new Uint8Array(32).fill(9),
+          ).toString('base64url'),
+          STRIPE_API_SK: 'sk_test_isolated',
+          STRIPE_WEBHOOK_SECRET: 'whsec_isolated',
+          CONSOLE_EMAIL_RUNTIME_PROFILE: 'DEVELOPMENT',
+          CONSOLE_EMAIL_PROVIDER: 'CAPTURE',
+          CONSOLE_EMAIL_FROM: 'Seams <no-reply@p2.invalid>',
+        },
+        serviceBindings: { WALLET_RUNTIME: walletRuntime.fetch.bind(walletRuntime) },
+        outboundService: providers.fetch.bind(providers),
+      },
       {
         name: 'hosted-missing',
         modules: true,
@@ -295,6 +461,9 @@ async function accountWorkerJourney(
     });
     expect(checkout.status, await checkout.clone().text()).toBe(201);
     const purchaseId = text(object(object(await checkout.json()).checkoutSession).purchaseId);
+    for (const href of providers.checkoutReturns) {
+      expect(new URL(href).searchParams.get('db_network')).toBe('testnet');
+    }
     for (let attempt = 0; attempt < 2; attempt += 1) {
       expect(
         (
@@ -357,8 +526,16 @@ async function accountWorkerJourney(
         ).json(),
       ),
     ).toHaveProperty('result');
+    const existingRuntime = await verifyExistingWalletRuntime(
+      runtime,
+      core,
+      database,
+      token,
+      walletRuntime,
+    );
     const evidence = {
       passed: true,
+      existingRuntime,
       statuses,
       creditBeforeRefundMinor: overview.creditBalanceMinor,
       providerRequests: providers.requests,

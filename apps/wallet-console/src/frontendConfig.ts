@@ -378,20 +378,26 @@ function buildDeployment(
   };
 }
 
+// Site pages sit at the origin root. BASE_URL is only the asset base: local dev
+// serves the marketing assets from /wallet-static/ and its page from /wallet.
 export function readFrontendSiteLinks(source: ImportMetaEnv): {
-  baseUrl: string;
+  walletPath: string;
   docsOrigin: string;
 } {
   const docsOrigin = stripTrailingSlash(
     toTrimmedString(source.VITE_DOCS_ORIGIN) || DEFAULT_DOCS_ORIGIN,
   );
-  const baseUrl = stripTrailingSlash(toTrimmedString(source.BASE_URL || '/')) || '/';
-  return { baseUrl, docsOrigin };
+  const walletSiteOrigin = toTrimmedString(source.VITE_WALLET_SITE_ORIGIN);
+  const walletPath = walletSiteOrigin
+    ? stripTrailingSlash(new URL(walletSiteOrigin).pathname) || '/'
+    : '/';
+  return { walletPath, docsOrigin };
 }
 
 function buildSiteConfig(source: ImportMetaEnv): FrontendConfigCandidate {
   const siteKind = source.VITE_SITE_ID === 'production' ? 'production' : 'staging';
-  const { baseUrl, docsOrigin } = readFrontendSiteLinks(source);
+  const { docsOrigin } = readFrontendSiteLinks(source);
+  const baseUrl = stripTrailingSlash(toTrimmedString(source.BASE_URL || '/')) || '/';
   const siteOrigin =
     toTrimmedString(source.VITE_SITE_ORIGIN) ||
     (siteKind === 'production' ? 'https://seams.sh' : 'https://staging.seams.sh');

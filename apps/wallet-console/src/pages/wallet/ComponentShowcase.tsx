@@ -33,6 +33,8 @@ const backgroundPreviews: readonly BackgroundPlacement[] = [
   { kind: 'receipt', x: 840, y: -500 },
   { kind: 'unlock', x: 1260, y: 520 },
   { kind: 'recovery', x: 1260, y: -400 },
+  { kind: 'payment', x: 840, y: 560 },
+  { kind: 'unlock', x: 1680, y: -250 },
   { kind: 'payment', x: 2100, y: -240 },
   { kind: 'receipt', x: 1680, y: 390 },
 ];

@@ -282,11 +282,12 @@
   font-weight: 500;
 }
 
+/* Background cards only hint at their action: a light button keeps the eye
+   on the live component in front. */
 .showcase-preview__primary {
-  background: var(--showcase-ink);
-  color: var(--h2-bg);
-  border-color: var(--showcase-ink);
-  box-shadow: 0 2px 2px var(--showcase-shadow);
+  background: var(--showcase-soft);
+  color: var(--showcase-muted);
+  border-color: var(--showcase-line);
 }
 .showcase-preview__primary > svg:last-of-type {
   width: 15px;

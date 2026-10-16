@@ -25,8 +25,13 @@ body {
 }
 
 /* Bound the tree inside the disclosure before the SDK measures its expansion.
-   The disclosure can then request only the room the host can actually provide. */
+   The disclosure can then request only the room the host can actually provide.
+   The bound is measured as the tree's whole box (its scroll height, with the
+   SDK's padding), so it sizes the border box: as a content height it would
+   add that padding again, and the card would overrun the frame and jump when
+   the SDK releases the height it drove. */
 .seams-review-technical > div > .seams-review-detail {
+  box-sizing: border-box;
   block-size: var(--checkout-details-height);
   overflow: auto;
   overscroll-behavior: contain;

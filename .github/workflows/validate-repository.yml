@@ -49,6 +49,18 @@ jobs:
       - name: Shared account acceptance
         run: pnpm -C tests exec playwright test -c playwright.config.ts 'e2e/console/shared-account-.*\.e2e\.test\.ts' e2e/console/shared-wallet-settlement.e2e.test.ts --reporter=line
 
+      - name: Save account browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-browser-evidence-${{ github.sha }}
+          path: |
+            tests/test-results/**/automatic-wallet-setup/*.png
+            tests/test-results/**/automatic-wallet-setup/*.json
+            tests/test-results/**/automatic-wallet-setup/trace.zip
+            tests/test-results/**/error-context.md
+          if-no-files-found: ignore
+
       - name: Build native service acceptance authority
         run: pnpm -C tests exec node helpers/buildSharedAccountPlatformWorker.mjs
 

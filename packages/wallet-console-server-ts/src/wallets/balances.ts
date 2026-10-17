@@ -19,7 +19,7 @@ import type { ConsoleWallet, ConsoleWalletGasBalances } from './types';
 
 const DEFAULT_NEAR_RPC_URL = 'https://rpc.testnet.fastnear.com';
 const DEFAULT_TEMPO_RPC_URL = 'https://rpc.moderato.tempo.xyz';
-const DEFAULT_ARC_RPC_URL = 'https://rpc.drpc.testnet.arc.network';
+const DEFAULT_ARC_RPC_URL = 'https://rpc.testnet.arc.io';
 const TEMPO_ALPHA_USD_TOKEN = '0x20c0000000000000000000000000000000000001';
 const BALANCE_OF_SELECTOR = '0x70a08231';
 const BALANCE_CACHE_TTL_MS = 5 * 60 * 1_000;

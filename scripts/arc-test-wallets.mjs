@@ -15,7 +15,7 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { arcTestnet } from 'viem/chains';
 
 const DEFAULT_WALLET_FILE = '.runtime/arc-test-wallets.json';
-const DEFAULT_RPC_URL = 'https://rpc.testnet.arc.network';
+const DEFAULT_RPC_URL = 'https://rpc.testnet.arc.io';
 const DEFAULT_WALLET_COUNT = 20;
 const MAX_WALLET_COUNT = 100;
 const ARC_TESTNET_CHAIN_ID = 5_042_002;

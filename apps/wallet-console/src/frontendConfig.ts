@@ -16,7 +16,8 @@ const DEFAULT_DOCS_ORIGIN = 'https://docs.localhost:4003';
 const DEFAULT_TEMPO_RPC_URL = 'https://rpc.moderato.tempo.xyz';
 const DEFAULT_TEMPO_EXPLORER_URL = 'https://explore.testnet.tempo.xyz';
 const DEFAULT_TEMPO_FEE_TOKEN = '0x20c0000000000000000000000000000000000001';
-const DEFAULT_ARC_RPC_URL = 'https://rpc.drpc.testnet.arc.network';
+const DEFAULT_ARC_RPC_URL = 'https://rpc.testnet.arc.io';
+const FALLBACK_ARC_RPC_URL = 'https://rpc.drpc.testnet.arc.io';
 const DEFAULT_ARC_EXPLORER_URL = 'https://testnet.arcscan.app';
 const DEFAULT_DEMO_CONTRACT_ID = 'seams-v1.testnet';
 
@@ -196,7 +197,7 @@ function resolveRouterAbConfig(
 function resolveArcRpcRequestUrl(arcRpcUrl: string): string {
   return Array.from(
     new Set(
-      [arcRpcUrl, DEFAULT_ARC_RPC_URL]
+      [arcRpcUrl, DEFAULT_ARC_RPC_URL, FALLBACK_ARC_RPC_URL]
         .flatMap((value) => value.split(/[\s,]+/u))
         .map((value) => value.trim())
         .filter(Boolean),

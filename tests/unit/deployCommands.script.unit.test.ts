@@ -77,7 +77,7 @@ mode = "off"
     const rendered = renderWorkerPlacement(source, resource);
     writeFileSync(config, rendered);
     expect(readWranglerConfig({ config, env: 'production-testnet' }).placement).toEqual({
-      region: 'aws:ap-northeast-3',
+      region: 'aws:ap-southeast-1',
     });
     expect(readWranglerConfig({ config, env: 'staging' }).placement).toEqual({ mode: 'off' });
     expect(readWranglerConfig({ config }).placement).toEqual({ region: 'aws:ap-east-1' });
@@ -89,7 +89,7 @@ mode = "off"
     );
     writeFileSync(config, renderWorkerPlacement(withoutPlacement, resource));
     expect(readWranglerConfig({ config, env: 'production-testnet' }).placement).toEqual({
-      region: 'aws:ap-northeast-3',
+      region: 'aws:ap-southeast-1',
     });
     expect(
       renderWorkerPlacement(source, readBackendLane('production-mainnet').resources.signingWorker),
@@ -101,10 +101,10 @@ mode = "off"
 
 test('production testnet Derivers run together beside their D1 primaries', () => {
   const resources = readBackendLane('production-testnet').resources;
-  expect(resources.deriverA.placementRegion).toBe('aws:ap-northeast-1');
-  expect(resources.deriverB.placementRegion).toBe('aws:ap-northeast-1');
-  expect(resources.deriverA.d1PrimaryColo).toBe('NRT');
-  expect(resources.deriverB.d1PrimaryColo).toBe('NRT');
+  expect(resources.deriverA.placementRegion).toBe('aws:ap-southeast-1');
+  expect(resources.deriverB.placementRegion).toBe('aws:ap-southeast-1');
+  expect(resources.deriverA.d1PrimaryColo).toBe('SIN');
+  expect(resources.deriverB.d1PrimaryColo).toBe('SIN');
 });
 
 test('D1 primary preflight rejects a Deriver in the wrong metro', () => {

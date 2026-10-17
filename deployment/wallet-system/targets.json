@@ -288,8 +288,8 @@
           },
           "deriverA": {
             "workerName": "router-ab-deriver-a-testnet",
-            "placementRegion": "aws:ap-northeast-1",
-            "d1PrimaryColo": "NRT",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-a.toml",
             "deploymentEnvironment": {
               "kind": "named",
@@ -298,8 +298,8 @@
           },
           "deriverB": {
             "workerName": "router-ab-deriver-b-testnet",
-            "placementRegion": "aws:ap-northeast-1",
-            "d1PrimaryColo": "NRT",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.deriver-b.toml",
             "deploymentEnvironment": {
               "kind": "named",
@@ -308,7 +308,8 @@
           },
           "signingWorker": {
             "workerName": "router-ab-signing-worker-testnet",
-            "placementRegion": "aws:ap-northeast-3",
+            "placementRegion": "aws:ap-southeast-1",
+            "d1PrimaryColo": "SIN",
             "configPath": "node_modules/@seams/wallet-server/cloudflare-router-ab/wrangler.signing-worker.toml",
             "deploymentEnvironment": {
               "kind": "named",
@@ -357,24 +358,26 @@
               "workerName": "seams-sdk-d1-gateway-testnet",
               "ingressRegion": "APAC",
               "consoleD1": {
-                "name": "seams-console-testnet",
-                "id": "204147dd-23a6-43b7-9f40-d4f96eb986f2"
+                "name": "seams-console-testnet-sin",
+                "id": "c5bfd5d4-b605-49bd-a8a3-bee2e5e6ab4a"
               },
               "regions": {
                 "US": {
                   "workerName": "seams-sdk-d1-gateway-testnet-us",
                   "placementRegion": "aws:us-east-1",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-testnet-us"
+                    "kind": "allocated",
+                    "name": "seams-signer-testnet-us",
+                    "id": "9c3d3444-9b8f-42d8-9ac5-509da2f29701"
                   }
                 },
                 "WEUR": {
                   "workerName": "seams-sdk-d1-gateway-testnet-weur",
                   "placementRegion": "aws:eu-west-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-testnet-weur"
+                    "kind": "allocated",
+                    "name": "seams-signer-testnet-weur",
+                    "id": "94530070-41a2-43de-96ac-9b1d7a5f9e28"
                   }
                 },
                 "APAC": {
@@ -382,16 +385,17 @@
                   "placementRegion": "aws:ap-southeast-1",
                   "signerD1": {
                     "kind": "allocated",
-                    "name": "seams-signer-testnet",
-                    "id": "dea0a6fe-4a0e-4893-8308-e8a06e12ee88"
+                    "name": "seams-signer-testnet-sin",
+                    "id": "a3820849-d700-48ad-a6ec-5434421d6a3a"
                   }
                 },
                 "OC": {
                   "workerName": "seams-sdk-d1-gateway-testnet-oc",
                   "placementRegion": "aws:ap-southeast-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-testnet-oc"
+                    "kind": "allocated",
+                    "name": "seams-signer-testnet-oc",
+                    "id": "e59c0185-3aee-4cf5-8896-6cfc0f822841"
                   }
                 }
               }

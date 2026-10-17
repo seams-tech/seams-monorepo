@@ -44,17 +44,26 @@ export function createD1TenantDeploymentRuntimeInspectorV1(options: {
     resources: [{ accountId: options.resource.accountId, databaseId: options.resource.databaseId }],
     async inspect(input) {
       assertNamespace(options.resource, input);
-      const [sourceDurableWalletCount, targetDurableWalletCount, inFlightCeremonyCount] =
-        await Promise.all([
-          input.source ? countWallets(options.database, input.source) : Promise.resolve(0),
-          countWallets(options.database, input.target),
-          countInFlightCeremonies(options.database, input.target, now()),
-        ]);
+      const [
+        sourceDurableWalletCount,
+        targetDurableWalletCount,
+        inFlightCeremonyCount,
+        sourcePendingPublications,
+        targetPendingPublications,
+      ] = await Promise.all([
+        input.source ? countWallets(options.database, input.source) : Promise.resolve(0),
+        countWallets(options.database, input.target),
+        countInFlightCeremonies(options.database, input.target, now()),
+        input.source ? countPendingPublications(options.database, input.source) : Promise.resolve(0),
+        countPendingPublications(options.database, input.target),
+      ]);
       return {
         acknowledgedBindingRevision: input.bindingRevision,
         sourceDurableWalletCount,
         targetDurableWalletCount,
-        inFlightCeremonyCount,
+        // A registration is in flight until Console acknowledges its completion.
+        inFlightCeremonyCount:
+          inFlightCeremonyCount + sourcePendingPublications + targetPendingPublications,
       };
     },
   };
@@ -231,6 +240,21 @@ async function countInFlightCeremonies(
     .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId, nowMs)
     .first<CountRow>();
   return parseCount(row?.count ?? 0, 'in-flight ceremony count');
+}
+
+async function countPendingPublications(
+  database: D1DatabaseLike,
+  scope: TenantDeploymentRuntimeScopeV1,
+): Promise<number> {
+  const row = await database
+    .prepare(
+      `SELECT COUNT(*) AS count
+         FROM wallet_registration_directory_publications
+        WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4`,
+    )
+    .bind(scope.namespace, scope.organizationId, scope.projectId, scope.environmentId)
+    .first<CountRow>();
+  return parseCount(row?.count ?? 0, 'pending registration publication count');
 }
 
 export function createTenantDeploymentRuntimeInspectionHandlerV1(options: {

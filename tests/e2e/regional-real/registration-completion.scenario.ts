@@ -20,7 +20,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const { expect } = await import(
   pathToFileURL(path.join(publicRoot, 'node_modules/@playwright/test/index.mjs')).href
 );
-const { IntendedBehaviourHarness, signAndVerifyNearMessage } = await import(
+const { IntendedBehaviourHarness } = await import(
   pathToFileURL(path.join(publicRoot, 'tests/e2e/intended-behaviours/harness.ts')).href
 );
 const { TracedD1Database } = await import(
@@ -235,8 +235,8 @@ async function verifyFencedFinalizationReplay(
   return { relocationBlockStatus: blocked.status, retiredHomeStatus: retired.status };
 }
 
-// Hold Console's completion reply until the real server seal finishes. This
-// catches a serial seal without using wall-clock latency as the assertion.
+// Hold Console's completion reply until the real server seal finishes. A
+// completion requested before the seal would show that the response waits for it.
 class RegistrationSealOverlap {
   private readonly completed = Promise.withResolvers<void>();
   private completionRequested = false;
@@ -277,19 +277,13 @@ class RegistrationSealOverlap {
   }
 }
 
+// Console commits the first completion, then its reply is lost. The registration
+// response does not wait for that reply; the Gateway cron resends the completion.
 class CompletionReplyLoss {
   readonly completions: unknown[] = [];
-  readonly statuses: number[] = [];
   walletId = '';
-  nearAccountId = '';
-  publicKey = '';
-  private request: Request | null = null;
-  private replay: Response | null = null;
 
-  constructor(
-    private readonly scenario: Scenario,
-    private readonly consoleFetch: (request: Request) => Promise<Response>,
-  ) {}
+  constructor(private readonly consoleFetch: (request: Request) => Promise<Response>) {}
 
   async fetch(request: Request): Promise<Response> {
     const completion = new URL(request.url).pathname.endsWith('/complete');
@@ -304,59 +298,26 @@ class CompletionReplyLoss {
     }
     return response;
   }
+}
 
-  async intercept(route: Route): Promise<void> {
-    // An SDK preflight warm-up carries no operation. Only the POST is observed.
-    if (route.request().method() !== 'POST') return await route.fallback();
-    const request = route.request();
-    this.request = new Request(request.url(), {
-      method: request.method(),
-      headers: await request.allHeaders(),
-      body: request.postDataBuffer(),
-    });
-    const first = await this.scenario.gateways.get('US').handle(this.request.clone(), 'ingress');
-    this.statuses.push(first.status);
-    assert.equal(first.ok, false);
-    assert.ok(this.walletId);
-    assert.deepEqual(await this.executionState(), {
-      state: 'registering',
-      registration_completion: 'established',
-    });
-    await expect.poll(this.retry.bind(this), { timeout: 45_000, intervals: [1_000] }).toBe(200);
-    assert.ok(this.replay);
-    const replay = this.replay;
-    const body = await replay.clone().json();
-    this.nearAccountId = body.ed25519.nearAccountId;
-    this.publicKey = body.ed25519.publicKey;
-    assert.deepEqual(await this.executionState(), {
-      state: 'active',
-      registration_completion: 'established',
-    });
-    assert.equal(this.completions.length, 2);
-    assert.deepEqual(this.completions[1], this.completions[0]);
-    await route.fulfill({
-      status: replay.status,
-      headers: Object.fromEntries(replay.headers),
-      body: await replay.text(),
-    });
-  }
+type RegionalGateway = ReturnType<Scenario['gateways']['get']>;
 
-  private async retry(): Promise<number> {
-    assert.ok(this.request);
-    this.replay = await this.scenario.gateways.get('WEUR').handle(this.request.clone(), 'ingress');
-    this.statuses.push(this.replay.status);
-    return this.replay.status;
-  }
+function executionState(gateway: RegionalGateway, walletId: string) {
+  return gateway.database
+    .prepare(
+      'SELECT state, registration_completion FROM wallet_execution_generations WHERE wallet_id = ?',
+    )
+    .bind(walletId)
+    .first();
+}
 
-  private executionState() {
-    return this.scenario.gateways
-      .get('US')
-      .database.prepare(
-        'SELECT state, registration_completion FROM wallet_execution_generations WHERE wallet_id = ?',
-      )
-      .bind(this.walletId)
-      .first();
-  }
+function pendingPublication(gateway: RegionalGateway, walletId: string) {
+  return gateway.database
+    .prepare(
+      'SELECT state, attempts FROM wallet_registration_directory_publications WHERE wallet_id = ?',
+    )
+    .bind(walletId)
+    .first();
 }
 
 export async function verifyRegistrationCompletion(
@@ -415,6 +376,8 @@ export async function verifyRegistrationCompletion(
     assert.equal(startups.length, 1);
     assert.ok(respond);
     assert.ok(startups[0].atMs <= respond.atMs, 'Wallet startup must precede respond');
+    // The Console completion follows the registration response.
+    await gateway.settle();
     const consoleRequests = [...scenario.consoleService.requests];
     assert.equal(consoleRequests.filter(isCompletion).length, 1);
     // Respond claims the passkey while the Yao execution runs. Finalization
@@ -427,7 +390,8 @@ export async function verifyRegistrationCompletion(
     assert.equal(consoleRequests.filter(isStandaloneSessionPublication).length, 0);
     assert.equal(consoleRequests.filter(isRegistrationHome).length, 0);
     assert.equal(sealOverlap.sealCalls, 1);
-    assert.equal(sealOverlap.completionRequestedBeforeSeal, true);
+    // The seal finishes before the response, so it never waits for Console.
+    assert.equal(sealOverlap.completionRequestedBeforeSeal, false);
     assert.equal(sealOverlap.sealCompletedBeforeReply, true);
     sealService.applyServerSeal = applyServerSeal;
     scenario.consoleService.fetch = consoleFetch;
@@ -520,42 +484,49 @@ export async function verifyLostRegistrationCompletion(
     localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
     output,
   });
-  const fault = new CompletionReplyLoss(
-    scenario,
-    scenario.consoleService.fetch.bind(scenario.consoleService),
-  );
+  const fault = new CompletionReplyLoss(scenario.consoleService.fetch.bind(scenario.consoleService));
   scenario.consoleService.fetch = fault.fetch.bind(fault);
+  const gateway = scenario.gateways.get('US');
   try {
     await scenario.routeContext(context, 'US');
-    await context.route('**/wallets/register/near-provisioning', fault.intercept.bind(fault));
-    await assert.rejects(harness.registerPasskeyEd25519YaoWallet(), /exact-method unlock/u);
-    await context.unroute('**/wallets/register/near-provisioning');
+    const [finalization] = await Promise.all([
+      page.waitForResponse(isNearFinalizationResponse),
+      harness.registerPasskeyEd25519YaoWallet(),
+    ]);
+    // Registration and signing do not wait for Console's completion reply.
+    assert.equal(finalization.status(), 200);
+    await gateway.settle();
+    assert.equal(fault.completions.length, 1);
+    assert.deepEqual(await executionState(gateway, fault.walletId), {
+      state: 'active',
+      registration_completion: 'established',
+    });
+    assert.deepEqual(await pendingPublication(gateway, fault.walletId), {
+      state: 'pending',
+      attempts: 1,
+    });
     const registrationConsoleRequests = [...scenario.consoleService.requests];
-    await page.goto(page.url());
-    await page.getByLabel('Wallet to unlock', { exact: true }).fill(fault.walletId);
-    await page.getByLabel('Require NEAR', { exact: true }).check();
-    await page.getByRole('button', { name: 'Unlock wallet', exact: true }).click();
-    await expect(page.getByTestId('wallet-unlock-result')).toHaveAttribute(
-      'data-state',
-      'unlocked',
-      { timeout: 60_000 },
-    );
+    // The Gateway cron resends the identical completion, then clears the record.
+    assert.deepEqual(await gateway.resumeRegistrationPublications(Date.now() + 3_600_000), {
+      acknowledged: 1,
+      deferred: 0,
+      refused: 0,
+    });
+    assert.equal(fault.completions.length, 2);
+    assert.deepEqual(fault.completions[1], fault.completions[0]);
+    assert.equal(await pendingPublication(gateway, fault.walletId), null);
     scenario.beginConsoleOutage();
     await scenario.routeContext(context, 'APAC');
-    const signature = await signAndVerifyNearMessage(page, 'Recovered combined completion', {
-      nearAccountId: fault.nearAccountId,
-      operationalPublicKey: fault.publicKey,
-    });
+    const signature = await harness.signNearMessage('Recovered combined completion');
     assert.deepEqual(scenario.consoleService.requests, []);
     await writeFile(
       path.join(output, 'proof.json'),
       JSON.stringify(
         {
           registrationConsoleRequests,
-          statuses: fault.statuses,
+          finalizationStatus: finalization.status(),
           identicalCompletionRetries: fault.completions.length,
-          signingFencedUntilCompletionAcknowledged: true,
-          exactMethodUnlockRequired: true,
+          responseWaitsForConsole: false,
           signature,
           signingConsoleCalls: 0,
         },

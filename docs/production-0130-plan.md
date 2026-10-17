@@ -24,6 +24,23 @@ The owner approved the Singapore move of production testnet, the missing secrets
 The Arc RPC default moved to `https://rpc.testnet.arc.io` (`10e4807d`; GitHub variables
 updated); Wallet 0.13.1 carries the SDK default.
 
+October 18 (JST):
+- Wallet 0.13.1 on npm (01:20); private pins `c6f71cdf`; `main` = `0f3af534` (pull request 46,
+  tree equal to `dev`).
+- CLI 0.13.0: signed by private run `39050177371`, verified locally (five files; an altered
+  binary and an altered signature fail), released as `seams-cli-v0.13.0`. The npm launcher
+  waits for the owner's npm login. GitHub masks the signer key id (a job secret) inside the
+  printed base64; the manifest was rebuilt from the public pin and matched the logged SHA-256.
+- Production testnet, deploy-only run `39051552770` (02:26): every backend component, the inert
+  bootstrap of the US, WEUR and OC Gateway names, and the Console on `seams-console-testnet-sin`.
+  The first run (`39050179163`) hit the 15-minute limit of the Gateway migration job: four
+  empty databases need 81 migrations each at about 5 s per migration. The runner skips applied
+  migrations, so the second run finished. Gateway `/healthz` answers 503
+  `tenant_deployment_unavailable` until activation; Console `/console/readyz` answers 200.
+- Next: the owner signs up and creates the organisation and project; then
+  `deploy-live-demo.yml` with `environment_id=<projectId>:dev`, after `CLOUDFLARE_API_TOKEN` is
+  in `production-live-demo` (the account id is set).
+
 ## Gates
 
 | # | Gate | Lanes | Where | Removed by |

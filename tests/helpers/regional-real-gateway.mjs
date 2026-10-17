@@ -55,6 +55,7 @@ export async function createRegionalRealGateway({
         export { WalletHomeCustodyBinding } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/routerAbServiceBindings.ts'))};
         export { createStaticWalletConsoleBindingV1, parseStaticWalletConsoleBindingConfigV1 } from ${JSON.stringify(resolve(candidate, 'src/router/cloudflare/runtime/staticWalletConsoleBinding.ts'))};
         export { ConsoleRegistrationHomeAdmission } from './packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
+        export { resumeGatewayRegistrationPublications } from './packages/wallet-console-server-ts/src/walletPlacement/registrationPublications';
         export { WalletHomeCatalog } from './packages/wallet-console-server-ts/src/walletPlacement/home';
         export { dispatchKnownWalletHome, resolveLocalRegistrationContinuation, readRegistrationContinuationLocator, readRequestSessionLocator, WalletRegionalDispatch, ConsoleRegistrationSetupDispatcher } from './packages/wallet-console-server-ts/src/walletPlacement/regionalDispatch';
         export { resolveGatewayDeployment, gatewaySessionResponse, GATEWAY_SESSION_PATH } from './packages/wallet-console-server-ts/src/walletPlacement/gatewaySession';
@@ -455,6 +456,34 @@ class RealRegionalGateway {
 
   waitUntil(promise) {
     this.pending.push(promise);
+  }
+
+  /** Settles the work that responses left to run after them, such as Console publications. */
+  async settle() {
+    while (this.pending.length > 0) await Promise.allSettled(this.pending.splice(0));
+  }
+
+  /** The Gateway cron's publication resumption, with this Gateway's writer and binding. */
+  async resumeRegistrationPublications(nowMs) {
+    const home = this.catalog.select(this.region);
+    const resource = { accountId: home.accountId, databaseId: home.databaseId };
+    const writer = this.api.parseTenantRuntimeWriterV1('gateway', this.writerVersion, resource);
+    const binding = await this.localAdmission.resolveRuntimeBinding('test', writer);
+    assert.ok(binding, 'Publication resumption requires an active binding');
+    return this.api.resumeGatewayRegistrationPublications({
+      database: this.api.DeploymentFencedDatabase.forRegionalWriter(this.database, binding, writer),
+      binding,
+      authority: new this.api.ConsoleRegistrationHomeAdmission({
+        environmentKey: this.environmentKey,
+        service: this.consoleService,
+        scope: this.scope,
+        writer,
+        localResource: resource,
+        catalogJson: this.consoleService.catalogJson,
+        ingressRegion: this.region,
+      }),
+      nowMs,
+    });
   }
 
   async handle(request, entry) {

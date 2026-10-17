@@ -1,0 +1,43 @@
+{
+  "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+  "patchSha256": "eed28bc04cb90d2bcbef62b986b53e631da29cf2e177106dbe755e8c7083fe4d",
+  "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+  "platform": "linux-arm64",
+  "profile": "release",
+  "baseImage": "rust:1.97.1-bookworm@sha256:0e2bcaef56d041a486784e54104a81aebe0da44bd03019bd70bc0401e42e4a97",
+  "imageId": "sha256:379c926df6cc7d85c3cd58379de1b753bfe2bf872ea7cad6da555cf0c5abcfc0",
+  "imageDigests": [
+    "seams-celld-r190@sha256:379c926df6cc7d85c3cd58379de1b753bfe2bf872ea7cad6da555cf0c5abcfc0"
+  ],
+  "labels": {
+    "org.opencontainers.image.revision": "90b43017241f81189453d326d05948f388b34652",
+    "org.opencontainers.image.title": "celld",
+    "org.opencontainers.image.version": "0.6.2-seams.4"
+  },
+  "version": "celld 0.6.2-seams.4",
+  "executableSha256": "97c35eb6b8dd7f7bd0f07d8f297e5865f75644d204c7975f7b074702a1f09f2b",
+  "buildCommand": [
+    "docker",
+    "build",
+    "--platform",
+    "linux/arm64",
+    "--build-arg",
+    "RUST_VERSION=1.97.1",
+    "--build-arg",
+    "CELLD_PROFILE=release",
+    "--build-arg",
+    "CELLD_COMMIT=90b43017241f81189453d326d05948f388b34652",
+    "--build-arg",
+    "CELLD_VERSION=0.6.2-seams.4",
+    "--tag",
+    "seams-celld-r190:0.6.2-seams.4-linux-arm64-runtime",
+    "<pristine-patched-source>"
+  ],
+  "upstreamDefaultTests": {
+    "commandsPassed": true,
+    "discoveredTests": 0,
+    "behaviorCoverage": "none; internal test sources are not included in this source configuration"
+  },
+  "clippy": "locked release all-targets with warnings denied; passed",
+  "scope": "Linux release container build and executable identity; provider and full Linux wallet lifecycle unverified"
+}

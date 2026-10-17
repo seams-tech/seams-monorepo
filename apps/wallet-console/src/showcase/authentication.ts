@@ -1,4 +1,7 @@
 import '@wallet-ui/sdk/wallet-ui.css';
+import '@fontsource/hanken-grotesk/400.css';
+import '@fontsource/hanken-grotesk/500.css';
+import '@fontsource/hanken-grotesk/600.css';
 import './showcase.css';
 import './authentication.css';
 import { schedulePlayback } from './playbackClock';
@@ -67,7 +70,6 @@ function login(
   };
 }
 
-const combinedAccess = location.pathname.includes('/showcase/access/');
 function noApproval(): void {}
 let cancelApproval: () => void = noApproval;
 
@@ -82,10 +84,8 @@ function mountMenu(viewModel: AuthMenuViewModel): AuthMenuSurfaceHandle {
 
 type AuthenticationState =
   | { kind: 'menu'; handle: AuthMenuSurfaceHandle; model: AuthMenuViewModel }
-  | { kind: 'result'; next: 'home' | 'recovery' };
-const initialModel = combinedAccess
-  ? linkMenu({ kind: 'ready', qrCodeDataURL: linkingCode, message: 'Waiting for approval' })
-  : registration();
+  | { kind: 'result' };
+const initialModel = registration();
 let state: AuthenticationState = {
   kind: 'menu',
   handle: mountMenu(initialModel),
@@ -94,11 +94,32 @@ let state: AuthenticationState = {
 const result = document.createElement('section');
 result.className = 'authentication-result';
 result.hidden = true;
-result.innerHTML =
-  '<h1></h1><p role="status"></p><button type="button" data-authentication-reset>Back</button>';
+result.innerHTML = `
+  <span class="authentication-result__icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+  </span>
+  <h1></h1>
+  <p role="status"></p>
+  <div class="authentication-result__actions">
+    <button type="button" data-showcase-next>
+      Next
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </button>
+    <button type="button" data-authentication-reset>Start over</button>
+  </div>`;
 stage.append(result);
-result.querySelector('button')?.addEventListener('click', continueAfterResult);
-if (combinedAccess) cancelApproval = schedulePlayback(approveLink, 4000);
+const next = result.querySelector<HTMLButtonElement>('[data-showcase-next]');
+// Next belongs to the component canvas; a standalone page has no next demo.
+if (next) next.hidden = window.parent === window;
+next?.addEventListener('click', showNextDemo);
+result.querySelector('[data-authentication-reset]')?.addEventListener('click', reset);
+
+// The canvas moves on when a visitor asks. Its player clicks with synthetic
+// events and advances the canvas itself, so only real input sends the request.
+function showNextDemo(event: MouseEvent): void {
+  if (!event.isTrusted) return;
+  window.parent.postMessage({ type: 'seams-showcase-next' }, window.location.origin);
+}
 
 function show(model: AuthMenuViewModel): void {
   cancelApproval();
@@ -117,15 +138,8 @@ function show(model: AuthMenuViewModel): void {
 function reset(): void {
   cancelApproval();
   if (state.kind === 'menu') state.handle.dispose();
-  state = { kind: 'result', next: 'home' };
-  if (combinedAccess) openLink();
-  else show(registration());
-}
-
-function continueAfterResult(): void {
-  if (state.kind === 'result' && state.next === 'recovery') {
-    show(recoveryEntry(recoveryCode, null));
-  } else reset();
+  state = { kind: 'result' };
+  show(registration());
 }
 
 function openLink(): void {
@@ -144,23 +158,25 @@ function approveLink(): void {
   }
 }
 
-function complete(heading: string, message: string, next: 'home' | 'recovery' = 'home'): void {
+function complete(heading: string, message: string): void {
   if (state.kind !== 'menu') return;
   cancelApproval();
   const returnFocus = state.handle.element.contains(document.activeElement);
   state.handle.dispose();
-  state = { kind: 'result', next };
+  state = { kind: 'result' };
   const title = result.querySelector('h1');
   const status = result.querySelector('p');
-  const button = result.querySelector('button');
+  const button = next && !next.hidden ? next : result.querySelector('button');
   if (title) title.textContent = heading;
   if (status) status.textContent = message;
-  if (button) {
-    button.textContent = next === 'recovery' ? 'Explore account recovery' : 'Back';
-    button.toggleAttribute('data-access-next', next === 'recovery');
-  }
   result.hidden = false;
   if (returnFocus) button?.focus({ preventScroll: true });
+}
+
+// The demo shows the new sign-in method as the end of recovery. The SDK's
+// separate unlock with that method is left out here.
+function completeRecovery(): void {
+  complete('Wallet recovered', 'Your wallet is ready on this device.');
 }
 
 function finishAuthentication(): void {
@@ -176,7 +192,7 @@ function promptAuthentication(mode: 'login' | 'register'): void {
 function recover(method: 'passkey' | 'google'): void {
   if (state.kind !== 'menu' || state.model.kind !== 'recovery') return;
   const code = state.model.recoveryCode;
-  if (code.replaceAll(/[^0-9]/g, '') !== recoveryCode.replaceAll('-', '')) {
+  if (code.toUpperCase().replaceAll(/[^0-9A-Z]/g, '') !== recoveryCode.replaceAll('-', '')) {
     show(recoveryEntry(code, 'Check your recovery code and try again.'));
     return;
   }
@@ -198,8 +214,7 @@ function onIntent(intent: AuthMenuIntent): void {
       promptAuthentication(intent.mode);
       return;
     case 'external_auth':
-      if (state.kind === 'menu' && state.model.kind === 'recovery')
-        show(googleRecovery('sign_in_ready', state.model.recoveryCode));
+      if (state.kind === 'menu' && state.model.kind === 'recovery') completeRecovery();
       else if (state.kind === 'menu') promptAuthentication(state.model.mode);
       return;
     case 'link_device_open':
@@ -209,11 +224,7 @@ function onIntent(intent: AuthMenuIntent): void {
       show(recoveryEntry(recoveryCode, null));
       return;
     case 'link_device_create_passkey':
-      complete(
-        'Device linked',
-        'Your wallet is ready on this device.',
-        combinedAccess ? 'recovery' : 'home',
-      );
+      complete('Device linked', 'Your wallet is ready on this device.');
       return;
     case 'recovery_code_changed':
       show(recoveryEntry(intent.recoveryCode, null));
@@ -225,11 +236,7 @@ function onIntent(intent: AuthMenuIntent): void {
       recover('google');
       return;
     case 'recovery_create_passkey':
-      if (state.kind === 'menu' && state.model.kind === 'recovery')
-        show(passkeyRecovery('sign_in_ready', state.model.recoveryCode));
-      return;
-    case 'recovery_sign_in':
-      complete('Wallet recovered', 'Your wallet is ready.');
+      if (state.kind === 'menu' && state.model.kind === 'recovery') completeRecovery();
       return;
     case 'close':
     case 'back':

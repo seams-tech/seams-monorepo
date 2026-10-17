@@ -3,18 +3,21 @@ type PlaybackStep = {
   afterConfirmation: boolean;
 };
 
+// The last visit presses Next; the player then moves the canvas on itself.
 const authenticationSteps: readonly PlaybackStep[] = [
   { selector: '[data-auth-menu-primary]', afterConfirmation: false },
-  { selector: '[data-authentication-reset]', afterConfirmation: false },
+  { selector: '[data-showcase-next]', afterConfirmation: false },
 ];
 
-const accessSteps: readonly PlaybackStep[] = [
-  { selector: '[data-link-device-passkey-action]', afterConfirmation: false },
-  { selector: '[data-access-next]', afterConfirmation: false },
-  { selector: '[data-recovery-target="passkey"]', afterConfirmation: false },
-  { selector: '[data-auth-menu-primary]', afterConfirmation: false },
-  { selector: '[data-auth-menu-primary]', afterConfirmation: false },
-  { selector: '[data-authentication-reset]', afterConfirmation: false },
+const accountSteps: readonly PlaybackStep[] = [
+  { selector: '[data-account-menu-item="authentication-methods"]', afterConfirmation: false },
+  { selector: 'button[aria-label="Back"]', afterConfirmation: false },
+  { selector: '[data-account-menu-item="scan-link-device"]', afterConfirmation: false },
+  { selector: 'button[aria-label="Back"]', afterConfirmation: false },
+  { selector: '[data-account-menu-item="recovery-codes"]', afterConfirmation: false },
+  { selector: '.seams-account-action.primary', afterConfirmation: false },
+  { selector: '.seams-account-recovery-acknowledgement', afterConfirmation: false },
+  { selector: '.seams-account-action.primary', afterConfirmation: false },
 ];
 
 const transferSteps: readonly PlaybackStep[] = [
@@ -29,8 +32,10 @@ const checkoutSteps: readonly PlaybackStep[] = [
   { selector: '.seams-receipt-dismiss', afterConfirmation: true },
 ];
 
+type PlaybackTarget = HTMLButtonElement | HTMLLabelElement;
+
 type CursorVisit = {
-  button: HTMLButtonElement;
+  button: PlaybackTarget;
   cursor: HTMLSpanElement;
   animation: Animation;
   position: string;
@@ -52,13 +57,13 @@ export class EmbeddedPlayback {
 
   constructor(
     private readonly frame: HTMLIFrameElement,
-    kind: 'create' | 'transaction-modal' | 'prediction-market' | 'access',
+    kind: 'create' | 'transaction-modal' | 'prediction-market' | 'profile',
     private readonly onComplete: () => void,
     private readonly onInteract: () => void,
   ) {
     switch (kind) {
-      case 'access':
-        this.steps = accessSteps;
+      case 'profile':
+        this.steps = accountSteps;
         break;
       case 'create':
         this.steps = authenticationSteps;
@@ -165,8 +170,13 @@ export class EmbeddedPlayback {
         !document.querySelector('[role="status"]')?.textContent?.includes('Transaction complete')
       )
         continue;
-      const button = document.querySelector<HTMLButtonElement>(step.selector);
-      if (!button || button.disabled || button.getBoundingClientRect().width === 0) continue;
+      const button = document.querySelector<PlaybackTarget>(step.selector);
+      if (
+        !button ||
+        ('disabled' in button && button.disabled) ||
+        button.getBoundingClientRect().width === 0
+      )
+        continue;
       this.visit = createCursorVisit(button);
       break;
     }
@@ -183,7 +193,7 @@ export class EmbeddedPlayback {
   }
 }
 
-function createCursorVisit(button: HTMLButtonElement): CursorVisit {
+function createCursorVisit(button: PlaybackTarget): CursorVisit {
   const cursor = button.ownerDocument.createElement('span');
   cursor.setAttribute('aria-hidden', 'true');
   cursor.dataset.playbackCursor = '';
@@ -199,19 +209,18 @@ function createCursorVisit(button: HTMLButtonElement): CursorVisit {
   const animation = cursor.animate(
     [
       { transform: 'translate(54px, 38px)', opacity: 0, offset: 0 },
-      { transform: 'translate(54px, 38px)', opacity: 1, offset: 0.12 },
-      { transform: 'translate(52px, 16px)', opacity: 1, offset: 0.25 },
-      { transform: 'translate(38px, -6px)', opacity: 1, offset: 0.34 },
-      { transform: 'translate(20px, -11px)', opacity: 1, offset: 0.43 },
-      { transform: 'translate(8px, -7px)', opacity: 1, offset: 0.48 },
-      { transform: 'translate(8px, -7px)', opacity: 1, offset: 0.65 },
-      { transform: 'translate(3px, -4px)', opacity: 1, offset: 0.74 },
-      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.84 },
-      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.92 },
-      { transform: 'translate(0, 0) scale(.88)', opacity: 1, offset: 0.96 },
+      {
+        transform: 'translate(54px, 38px)',
+        opacity: 1,
+        offset: 0.15,
+        easing: 'cubic-bezier(.23, 1, .32, 1)',
+      },
+      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.65 },
+      { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 0.87 },
+      { transform: 'translate(0, 0) scale(.88)', opacity: 1, offset: 0.94 },
       { transform: 'translate(0, 0) scale(1)', opacity: 1, offset: 1 },
     ],
-    { duration: 2000, easing: 'linear', fill: 'both' },
+    { duration: 1000, easing: 'linear', fill: 'both' },
   );
   return { button, cursor, animation, position, overflow };
 }

@@ -24,8 +24,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "types": [
-      "node",
-      "express"
+      "node"
     ],
     "useDefineForClassFields": false,
     "paths": {
@@ -52,9 +51,6 @@
       ],
       "@seams-internal/wallet-console-server/*": [
         "src/*"
-      ],
-      "express": [
-        "./node_modules/@types/express/index.d.ts"
       ],
       "*": [
         "./node_modules/*",

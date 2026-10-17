@@ -1785,17 +1785,23 @@ body:has(.h2-page) {
    section's corner tick; the pager escapes to root-level stacking because no
    ancestor creates a stacking context. */
 .h2-hero__split {
+  /* Minimum hero height; see .h2-hero__demo for how it is sized. */
+  --h2-hero-min-height: 671px;
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
 
+/* Top-aligned at the hero's minimum height, so a taller demo state grows the
+   row below the copy instead of re-centering the headline. */
 .h2-hero__main {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  align-self: start;
   min-width: 0;
+  min-height: var(--h2-hero-min-height);
   padding: 72px 44px 44px 36px;
 }
 
@@ -1881,27 +1887,24 @@ body:has(.h2-page) {
 }
 
 .h2-hero__demo {
-  /* Fixed height so swapping the NEAR/Tempo/Arc tab (or unlocking into the tx
-     card) never resizes this cell and shifts the pager + sections below. The
-     card is vertically centered, so a shorter tab just gains a little breathing
-     room instead of moving the page. Sized to the tallest steady state; single
-     knob below to retune. */
-  --h2-demo-fixed-height: 744px;
+  /* Minimum height sized to the unlocked NEAR/Tempo card, so unlocking (and
+     swapping those two tabs) never resizes this cell and shifts the pager +
+     sections below; the shorter login card is centered in the spare room. The
+     taller Arc tab (its funding box, plus any status message) grows the cell
+     instead of sizing every visit to it. The top padding clears the floating
+     navbar, which the hero runs under. --h2-hero-min-height is the knob to
+     retune. */
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* min-width:0 stops min-content widening the 1fr column; min-height:0 is the
-     load-bearing one — without it a grid item defaults to min-height:auto,
-     which resolves to content size and lets a tall tab (Arc) override the fixed
-     height and grow the row. min-height:0 makes the height a hard cap. */
+  /* min-width:0 stops min-content widening the 1fr column */
   min-width: 0;
-  min-height: 0;
-  padding: 50px 36px 36px;
+  min-height: var(--h2-hero-min-height);
+  padding: 78px 36px 32px;
   border-left: 1px solid var(--h2-stone);
   background-color: color-mix(in srgb, var(--h2-taupe) 55%, var(--h2-bg) 45%);
-  height: var(--h2-demo-fixed-height);
 }
 
 .h2-hero__demo .h2-themeswitch {
@@ -1923,6 +1926,21 @@ body:has(.h2-page) {
 
 .h2-page--wallet .passkey-demo {
   min-height: var(--h2-wallet-demo-shell-min-height);
+}
+
+/* In the hero the Live Demo label already separates the card from the cell
+   edge, so drop the shell's 2rem top inset; both the login and unlocked
+   states lose the same amount, which keeps unlocking from resizing the cell. */
+.h2-page--wallet .h2-hero__demo .passkey-demo {
+  padding-top: 0;
+}
+
+.h2-page--wallet .h2-hero__demo .passkey-demo--with-profile {
+  padding-top: 3.25rem;
+}
+
+.h2-page--wallet .h2-hero__demo .passkey-demo__profile-button-slot {
+  top: 0;
 }
 
 .h2-page--wallet .passkey-login-container-root {
@@ -2125,6 +2143,7 @@ body:has(.h2-page) {
   }
 
   .h2-hero__main {
+    min-height: 0;
     padding: 96px 22px 36px;
   }
 
@@ -2132,7 +2151,6 @@ body:has(.h2-page) {
     border-left: none;
     border-top: 1px solid var(--h2-stone);
     /* stacked layout: let the cell size to content again */
-    height: auto;
     min-height: 0;
     padding: 44px 22px 50px;
   }

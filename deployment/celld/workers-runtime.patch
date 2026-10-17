@@ -1,0 +1,1493 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 09b2f25..507362d 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -285,7 +285,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "celld"
+-version = "0.6.2"
++version = "0.6.2-seams.7"
+ dependencies = [
+  "aes",
+  "aes-gcm",
+diff --git a/crates/celld/Cargo.toml b/crates/celld/Cargo.toml
+index 98c9ac9..1e158a4 100644
+--- a/crates/celld/Cargo.toml
++++ b/crates/celld/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "celld"
+-version = "0.6.2"
++version = "0.6.2-seams.7"
+ edition = "2021"
+ rust-version = "1.94.1"
+ license = "Apache-2.0"
+diff --git a/crates/celld/cell_dispatch.rs b/crates/celld/cell_dispatch.rs
+index fc8abd3..fd887f3 100644
+--- a/crates/celld/cell_dispatch.rs
++++ b/crates/celld/cell_dispatch.rs
+@@ -349,13 +349,15 @@ async fn dispatch_local_fetch(
+                 // path, so the caller's `stub.fetch()` rejects whichever
+                 // node the caller runs on.
+                 anyhow::ensure!(upgrade, "TypeError: {WEBSOCKET_WITHOUT_UPGRADE}");
+-                let (cell, hibernatable) = crate::js::ws_core_registration(target);
+-                let kind = if hibernatable {
+-                    WebSocketKind::Hibernatable
+-                } else {
+-                    WebSocketKind::Regular
+-                };
+-                app.websocket_opened(cell, target.id, kind).await?;
++                if target.tunnel.is_none() {
++                    let (cell, hibernatable) = crate::js::ws_core_registration(target);
++                    let kind = if hibernatable {
++                        WebSocketKind::Hibernatable
++                    } else {
++                        WebSocketKind::Regular
++                    };
++                    app.websocket_opened(cell, target.id, kind).await?;
++                }
+             }
+             Ok(response)
+         })
+@@ -363,12 +365,18 @@ async fn dispatch_local_fetch(
+     let activity = completed.activity;
+     match completed.result.map_err(local_request_error) {
+         Ok(mut response) => {
+-            let body_active = response.stream.is_some();
+-            activity.set_phase("response_body", true, body_active);
+-            if let Some(stream) = response.stream.take() {
+-                response.stream = Some(local_response_stream(stream, activity, || {}));
+-            } else {
++            if response.websocket.is_some() {
++                // An upgrade transfers the socket, with no HTTP response body.
++                response.stream = None;
+                 drop(activity);
++            } else {
++                let body_active = response.stream.is_some();
++                activity.set_phase("response_body", true, body_active);
++                if let Some(stream) = response.stream.take() {
++                    response.stream = Some(local_response_stream(stream, activity, || {}));
++                } else {
++                    drop(activity);
++                }
+             }
+             CallAttempt::Local(Ok(response))
+         }
+diff --git a/crates/celld/deploy.rs b/crates/celld/deploy.rs
+index dc2e783..4198b49 100644
+--- a/crates/celld/deploy.rs
++++ b/crates/celld/deploy.rs
+@@ -318,6 +318,7 @@ struct Project {
+     queue_consumers: Vec<QueueConsumerConfig>,
+     has_queues: bool,
+     has_r2: bool,
++    has_services: bool,
+     containers: Vec<ContainerDecl>,
+     /// Set when `main` is a `.py` file: the Python behavior its
+     /// compatibility date and flags select.
+@@ -706,6 +707,17 @@ pub fn build(options: &Options) -> anyhow::Result<Built> {
+         // partially deserializing the manifest and failing at worker load.
+         required_features: {
+             let mut features = Vec::new();
++            if project.metadata["bindings"]
++                .as_array()
++                .is_some_and(|bindings| {
++                    bindings.iter().any(|binding| {
++                        binding["type"] == "durable_object_namespace"
++                            && binding.get("script_name").is_some()
++                    })
++                })
++            {
++                features.push(crate::protocol::FEATURE_EXTERNAL_DURABLE_OBJECTS_V1.to_string());
++            }
+             if built_assets.is_some() {
+                 features.push(FEATURE_ASSETS_V1.to_string());
+             }
+@@ -727,8 +739,12 @@ pub fn build(options: &Options) -> anyhow::Result<Built> {
+             if project.has_queues {
+                 features.push(FEATURE_QUEUES_V1.to_string());
+             }
++            if project.has_r2 || project.has_services {
++                features.push(crate::protocol::FEATURE_BINDING_BRANDS_V1.to_string());
++            }
+             if project.has_r2 {
+                 features.push(FEATURE_R2_V1.to_string());
++                features.push(crate::protocol::FEATURE_PHYSICAL_R2_V1.to_string());
+             }
+             if sqlite_vec {
+                 features.push(FEATURE_SQLITE_VEC_V1.to_string());
+@@ -739,6 +755,9 @@ pub fn build(options: &Options) -> anyhow::Result<Built> {
+             if python_runtime {
+                 features.push(FEATURE_PYTHON_WORKERS_V1.to_string());
+             }
++            features.push(crate::protocol::FEATURE_STREAMING_RESPONSE_CLONE_V1.to_string());
++            features.push(crate::protocol::FEATURE_RAW_EC_PUBLIC_KEYS_V1.to_string());
++            features.push(crate::protocol::FEATURE_PEER_DURABLE_WEBSOCKETS_V1.to_string());
+             features
+         },
+         raw_metadata: project.metadata,
+@@ -1414,12 +1433,35 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+             .get("class_name")
+             .and_then(Value::as_str)
+             .ok_or_else(|| anyhow!("durable object binding {name} has no `class_name`"))?;
+-        do_classes.push(class_name.to_string());
+-        bindings.push(json!({
++        let target_script = match binding.get("script_name") {
++            None => script_name.as_str(),
++            Some(value) => value
++                .as_str()
++                .filter(|name| valid_script_name(name))
++                .ok_or_else(|| {
++                    anyhow!("durable object binding {name} has an invalid `script_name`")
++                })?,
++        };
++        anyhow::ensure!(
++            !is_reserved_class(class_name),
++            "durable object binding {name} names reserved class {class_name}"
++        );
++        anyhow::ensure!(
++            binding.get("environment").is_none(),
++            "durable object binding {name} sets unsupported `environment`"
++        );
++        if target_script == script_name && !do_classes.iter().any(|class| class == class_name) {
++            do_classes.push(class_name.to_string());
++        }
++        let mut metadata = json!({
+             "type": "durable_object_namespace",
+             "name": name,
+             "class_name": class_name,
+-        }));
++        });
++        if target_script != script_name {
++            metadata["script_name"] = json!(target_script);
++        }
++        bindings.push(metadata);
+     }
+     let services = match object.get("services") {
+         None => &[][..],
+@@ -1793,6 +1835,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+         Some(Value::Array(buckets)) => buckets.as_slice(),
+         Some(_) => bail!("config `r2_buckets` must be an array"),
+     };
++    let physical_r2 = crate::r2_store::physical_specs()?;
+     let mut r2_binding_names = BTreeSet::new();
+     let mut r2_bucket_names = BTreeSet::new();
+     for bucket in r2_buckets {
+@@ -1831,6 +1874,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+             "type": "r2_bucket",
+             "name": binding,
+             "bucket_name": bucket_name,
++            "physical_bucket": physical_r2.get(bucket_name).ok_or_else(|| anyhow!("R2 binding {binding} has no physical bucket in CELLD_R2_BUCKETS"))?,
+         }));
+     }
+     // `worker_loaders` is how a Dynamic Workers project asks for a Worker
+@@ -2010,6 +2054,7 @@ fn read_project(path: &Path, root: &Path, overrides: &VarOverrides) -> anyhow::R
+         has_queues: !queue_producers.is_empty() || !queue_consumers.is_empty(),
+         queue_consumers,
+         has_r2: !r2_buckets.is_empty(),
++        has_services: service_count > 0,
+         containers,
+         python,
+     })
+diff --git a/crates/celld/engine_api.rs b/crates/celld/engine_api.rs
+index 0870bde..b6ca758 100644
+--- a/crates/celld/engine_api.rs
++++ b/crates/celld/engine_api.rs
+@@ -297,6 +297,14 @@ pub struct QueueBinding {
+     pub delivery_delay: u32,
+ }
+ 
++/// A binding to an object owned by another deployed Worker.
++#[derive(Clone)]
++pub struct ExternalDurableObjectBinding {
++    pub name: String,
++    pub class: String,
++    pub script: String,
++}
++
+ pub struct WorkerConfigOptions {
+     pub src: String,
+     pub script_name: String,
+diff --git a/crates/celld/fleet.rs b/crates/celld/fleet.rs
+index cc27ff1..bb38808 100644
+--- a/crates/celld/fleet.rs
++++ b/crates/celld/fleet.rs
+@@ -10,6 +10,7 @@
+ 
+ use crate::bucket::{Bucket, StorageProbeVerdict};
+ use crate::deploy;
++use crate::engine_api::ExternalDurableObjectBinding;
+ use crate::js::{ModuleSource, WorkerConfigOptions};
+ use crate::ownership_store::NodeLeaseWire;
+ use crate::protocol::{DeployPointer, Manifest, ModuleKind, Rollout};
+@@ -825,24 +826,75 @@ async fn load_worker_at_pointer(
+         };
+         modules.push(entry);
+     }
+-    let do_bindings = bindings(&manifest, "durable_object_namespace")
+-        .filter_map(|binding| {
+-            Some((
+-                binding.get("name")?.as_str()?.to_string(),
+-                binding.get("class_name")?.as_str()?.to_string(),
+-            ))
+-        })
+-        .collect();
+-    // (env name, bucket name). The bucket name is the key space the
+-    // binding owns inside the fleet bucket; see [[r2]].
+-    let r2_bindings = bindings(&manifest, "r2_bucket")
+-        .filter_map(|binding| {
+-            Some((
+-                binding.get("name")?.as_str()?.to_string(),
+-                binding.get("bucket_name")?.as_str()?.to_string(),
+-            ))
+-        })
+-        .collect();
++    let mut do_bindings = Vec::new();
++    let mut external_objects = Vec::new();
++    for binding in bindings(&manifest, "durable_object_namespace") {
++        let name = binding
++            .get("name")
++            .and_then(serde_json::Value::as_str)
++            .filter(|name| !name.is_empty())
++            .context("object binding has no name")?;
++        let class = binding
++            .get("class_name")
++            .and_then(serde_json::Value::as_str)
++            .filter(|class| !class.is_empty())
++            .context("object binding has no class_name")?;
++        let script = match binding.get("script_name") {
++            None => manifest.script_name.as_str(),
++            Some(value) => value
++                .as_str()
++                .filter(|script| !script.is_empty())
++                .context("object binding has invalid script_name")?,
++        };
++        anyhow::ensure!(
++            !deploy::is_reserved_class(class),
++            "object binding names reserved class {class}"
++        );
++        if script == manifest.script_name {
++            anyhow::ensure!(
++                manifest.do_classes.iter().any(|owned| owned == class),
++                "object binding {name} names undeclared local class {class}"
++            );
++            do_bindings.push((name.to_string(), class.to_string()));
++        } else {
++            anyhow::ensure!(
++                manifest
++                    .required_features
++                    .iter()
++                    .any(|feature| feature == crate::protocol::FEATURE_EXTERNAL_DURABLE_OBJECTS_V1),
++                "external object binding {name} requires the external object deployment feature"
++            );
++            external_objects.push(ExternalDurableObjectBinding {
++                name: name.to_string(),
++                class: class.to_string(),
++                script: script.to_string(),
++            });
++        }
++    }
++    let mut r2_bindings = Vec::new();
++    for binding in bindings(&manifest, "r2_bucket") {
++        anyhow::ensure!(
++            manifest
++                .required_features
++                .iter()
++                .any(|feature| feature == crate::protocol::FEATURE_PHYSICAL_R2_V1),
++            "R2 binding requires physical-r2-buckets-v1"
++        );
++        let name = binding
++            .get("name")
++            .and_then(serde_json::Value::as_str)
++            .context("R2 binding has no name")?;
++        let bucket = binding
++            .get("bucket_name")
++            .and_then(serde_json::Value::as_str)
++            .context("R2 binding has no bucket name")?;
++        let physical = binding
++            .get("physical_bucket")
++            .and_then(serde_json::Value::as_str)
++            .context("R2 binding has no physical bucket")?;
++        crate::r2_store::validate_physical_binding(bucket, physical)?;
++        r2_bindings.push((name.to_string(), bucket.to_string()));
++    }
+     // (env name, stable database identity). A Cloudflare database_id survives
+     // Worker renames and lets several Workers share the resource. A celld-only
+     // config without one falls back to the database name.
+@@ -954,6 +1006,7 @@ async fn load_worker_at_pointer(
+         loader_bindings,
+         assets,
+         services,
++        external_objects,
+         crons,
+         containers,
+         fence_image,
+@@ -972,6 +1025,7 @@ pub struct LoadedDeployment {
+     pub loader_bindings: Vec<String>,
+     pub assets: Option<crate::assets::AssetResolver>,
+     pub services: Vec<(String, String, Option<String>)>,
++    pub external_objects: Vec<ExternalDurableObjectBinding>,
+     /// `triggers.crons` from the manifest, driving the reserved cron cell.
+     pub crons: Vec<String>,
+     /// `containers` from the manifest: the classes whose cells supervise a
+diff --git a/crates/celld/generation.rs b/crates/celld/generation.rs
+index e2bd8ff..4776818 100644
+--- a/crates/celld/generation.rs
++++ b/crates/celld/generation.rs
+@@ -145,16 +145,16 @@ impl DeploymentGraph {
+         let mut cohosted = Vec::new();
+         while let Some(dependency) = dependencies.pop_front() {
+             let loaded = match dependency {
+-                Dependency::Service(target) => {
++                Dependency::Worker(target) => {
+                     if target == primary_script || loaded_scripts.contains_key(&target) {
+                         continue;
+                     }
+                     let loaded = fleet::load_named_worker(bucket, &target, node.clone())
+                         .await
+-                        .with_context(|| format!("load service binding target {target}"))?;
++                        .with_context(|| format!("load Worker binding target {target}"))?;
+                     if loaded.script_name != target {
+                         anyhow::bail!(
+-                            "service pointer {target} resolved script {}",
++                            "Worker pointer {target} resolved script {}",
+                             loaded.script_name
+                         );
+                     }
+@@ -235,8 +235,42 @@ impl DeploymentGraph {
+     }
+ }
+ 
++fn validate_external_object_owners(
++    primary: &LoadedDeployment,
++    cohosted: &[LoadedDeployment],
++) -> anyhow::Result<()> {
++    let scripts: BTreeMap<_, _> = std::iter::once(primary)
++        .chain(cohosted)
++        .map(|deployment| {
++            (
++                deployment.script_name.as_str(),
++                &deployment.options.do_classes,
++            )
++        })
++        .collect();
++    for deployment in std::iter::once(primary).chain(cohosted) {
++        for binding in &deployment.external_objects {
++            let classes = scripts.get(binding.script.as_str()).ok_or_else(|| {
++                anyhow!(
++                    "object binding {} has no owner script {}",
++                    binding.name,
++                    binding.script
++                )
++            })?;
++            anyhow::ensure!(
++                classes.contains(&binding.class),
++                "object binding {} targets class {} not owned by script {}",
++                binding.name,
++                binding.class,
++                binding.script
++            );
++        }
++    }
++    Ok(())
++}
++
+ enum Dependency {
+-    Service(String),
++    Worker(String),
+     Queue(String),
+ }
+ 
+@@ -261,7 +295,13 @@ fn dependencies_of(loaded: &LoadedDeployment) -> VecDeque<Dependency> {
+     loaded
+         .services
+         .iter()
+-        .map(|(_, script, _)| Dependency::Service(script.clone()))
++        .map(|(_, script, _)| Dependency::Worker(script.clone()))
++        .chain(
++            loaded
++                .external_objects
++                .iter()
++                .map(|binding| Dependency::Worker(binding.script.clone())),
++        )
+         .chain(queues.into_iter().map(Dependency::Queue))
+         .collect()
+ }
+@@ -467,6 +507,7 @@ impl Generation {
+     ) -> anyhow::Result<Self> {
+         let GenerationOptions { node, region } = options;
+         let DeploymentGraph { primary, cohosted } = graph;
++        validate_external_object_owners(&primary, &cohosted)?;
+         crate::runtime::init_engine();
+ 
+         // A Queue class is shared by every co-hosted script, but its broker
+@@ -556,6 +597,7 @@ impl Generation {
+                 loader_bindings,
+                 assets: resolver,
+                 services,
++                external_objects,
+                 crons,
+                 containers,
+                 fence_image: fence,
+@@ -570,6 +612,7 @@ impl Generation {
+             let config = Arc::new(
+                 WorkerConfig::new(options)
+                     .with_services(services)
++                    .with_external_objects(external_objects)
+                     .with_asset_binding(asset_binding)
+                     .with_loaders(loader_bindings)
+                     .with_queue_consumers(queue_catalog.clone())
+diff --git a/crates/celld/host_channels.rs b/crates/celld/host_channels.rs
+index b4969b9..192c0b9 100644
+--- a/crates/celld/host_channels.rs
++++ b/crates/celld/host_channels.rs
+@@ -272,13 +272,9 @@ pub(crate) fn outbound_ws_tx() -> Option<tokio::sync::mpsc::UnboundedSender<Outb
+     }
+     OUTBOUND_WS_TX.get().cloned()
+ }
+-/// The fleet bucket, once a node has opened one. Installed beside the
+-/// wake-entry gate at startup; absent for a bucketless run.
+-pub(crate) static R2_STORE: OnceLock<Bucket> = OnceLock::new();
+-
+-/// Give the R2 bindings the fleet bucket to live in.
+-pub fn set_r2_store(bucket: Bucket) {
+-    let _ = R2_STORE.set(bucket);
++/// Resolve explicit R2 stores before loading a deployment.
++pub fn set_r2_store(bucket: Bucket, endpoint: Option<&str>, region: &str) -> anyhow::Result<()> {
++    crate::r2_store::configure(&bucket, endpoint, region)
+ }
+ 
+ /// Why the output gate did not release a ticket.
+diff --git a/crates/celld/js.rs b/crates/celld/js.rs
+index ec40b41..ca67454 100644
+--- a/crates/celld/js.rs
++++ b/crates/celld/js.rs
+@@ -1886,6 +1886,7 @@ pub struct WorkerConfig {
+     origin: WorkerOrigin,
+     do_classes: Vec<String>,
+     bindings: Vec<(String, String)>,
++    external_objects: Vec<crate::engine_api::ExternalDurableObjectBinding>,
+     /// `r2_buckets`: (environment name, bucket name). The bucket name is
+     /// the key space the binding owns inside the fleet bucket; see [[r2]].
+     r2_bindings: Vec<(String, String)>,
+@@ -2050,6 +2051,7 @@ impl WorkerConfig {
+             origin: WorkerOrigin::Deployment,
+             do_classes,
+             bindings,
++            external_objects: Vec::new(),
+             r2_bindings,
+             d1_bindings,
+             kv_bindings,
+@@ -2081,6 +2083,14 @@ impl WorkerConfig {
+         self
+     }
+ 
++    pub(crate) fn with_external_objects(
++        mut self,
++        bindings: Vec<crate::engine_api::ExternalDurableObjectBinding>,
++    ) -> Self {
++        self.external_objects = bindings;
++        self
++    }
++
+     /// Whether cells of `class` supervise a container.
+     pub fn container_class(&self, class: &str) -> bool {
+         self.containers.iter().any(|spec| spec.class_name == class)
+@@ -5939,7 +5949,7 @@ impl Worker {
+                     .ok_or_else(|| anyhow!("DO class {cn} not exported"))?;
+                 register_class(scope, cn, cls)?;
+             }
+-            inject_namespace_keys(scope, script_name, do_classes)?;
++            inject_namespace_keys(scope, script_name, do_classes, &config.external_objects)?;
+             inject_crons(scope, &config.crons)?;
+             inject_workflows(scope, script_name, &config.workflow_bindings)?;
+             inject_containers(scope, &config.containers)?;
+diff --git a/crates/celld/js/bootstrap.rs b/crates/celld/js/bootstrap.rs
+index b00dc8f..9f44fd0 100644
+--- a/crates/celld/js/bootstrap.rs
++++ b/crates/celld/js/bootstrap.rs
+@@ -400,6 +400,7 @@ pub(super) fn inject_namespace_keys(
+     scope: &mut v8::PinScope,
+     script_name: &str,
+     do_classes: &[String],
++    external_objects: &[crate::engine_api::ExternalDurableObjectBinding],
+ ) -> Result<()> {
+     let cell = cell_state(scope)?;
+     let keys_key = v8::String::new(scope, "namespaceKeys").unwrap();
+@@ -410,9 +411,13 @@ pub(super) fn inject_namespace_keys(
+     let script_key = v8::String::new(scope, "script").unwrap();
+     let script_value = v8::String::new(scope, script_name).unwrap();
+     cell.set(scope, script_key.into(), script_value.into());
+-    for class_name in do_classes {
++    let owned = do_classes.iter().map(|class| (class.as_str(), script_name));
++    let referenced = external_objects
++        .iter()
++        .map(|binding| (binding.class.as_str(), binding.script.as_str()));
++    for (class_name, owner) in owned.chain(referenced) {
+         let class_key = v8::String::new(scope, class_name).unwrap();
+-        let namespace_key = super::namespace_key(script_name, class_name);
++        let namespace_key = super::namespace_key(owner, class_name);
+         let namespace_key = v8::String::new(scope, &namespace_key).unwrap();
+         if !keys
+             .set(scope, class_key.into(), namespace_key.into())
+@@ -615,6 +620,12 @@ pub(super) fn build_env(scope: &mut v8::PinScope, config: &WorkerConfig) -> Resu
+                 bname, cname
+             ));
+         }
++        for binding in &config.external_objects {
++            lines.push_str(&format!(
++                "e[{:?}] = __celld.__cell.makeNamespace({:?});\n",
++                binding.name, binding.class
++            ));
++        }
+         for (name, bucket) in r2_bindings {
+             lines.push_str(&format!(
+                 "e[{:?}] = __celld.__makeR2Bucket({:?}, {:?});\n",
+diff --git a/crates/celld/js/crypto.js b/crates/celld/js/crypto.js
+index 322658c..bce15eb 100644
+--- a/crates/celld/js/crypto.js
++++ b/crates/celld/js/crypto.js
+@@ -249,18 +249,32 @@
+           "secret", normalized, extractable, usages, { bytes: raw },
+         );
+       }
+-      // A Secure Curves public key has a `raw` form: the 32-byte point on
+-      // its own. It is checked before the asymmetric block below, because
+-      // that block reads `raw` bytes as a DER document and can only report a
+-      // parse failure for them.
+-      if (format === "raw" && _OKP_CURVES[name] !== undefined) {
+-        const imported = _extra("asym-key-import", {
+-          key: Array.from(_toBuf(keyData)),
+-          format: "raw",
+-          type: _OKP_CURVES[name],
+-          visibility: "public",
+-          passphrase: null,
+-        });
++      // Raw public points are decoded before the DER import path.
++      const rawEc = name === "ECDH" || name === "ECDSA";
++      let rawCurve = _OKP_CURVES[name];
++      if (format === "raw" && rawEc) {
++        rawCurve = _canonicalEcCurve(algorithm?.namedCurve);
++        if (rawCurve === undefined) throw _notSupported("unsupported EC curve");
++        for (const usage of usages) {
++          if (name === "ECDH" || usage !== "verify") {
++            throw new DOMException("invalid EC public key usage", "SyntaxError");
++          }
++        }
++      }
++      if (format === "raw" && rawCurve !== undefined) {
++        let imported;
++        try {
++          imported = _extra("asym-key-import", {
++            key: Array.from(_toBuf(keyData)),
++            format: "raw",
++            type: rawCurve,
++            visibility: "public",
++            passphrase: null,
++          });
++        } catch (error) {
++          if (rawEc) throw new DOMException("invalid EC public point", "DataError");
++          throw error;
++        }
+         return _makeKey(
+           "public",
+           _keyAlgorithm(name, algorithm, imported.keyType, imported.details),
+@@ -321,15 +335,12 @@
+     }
+ 
+     async exportKey(format, key) {
+-      // The `raw` form of a Secure Curves public key is its 32-byte point.
+-      // The branch below answers every `raw` request from the stored bytes,
+-      // which for an asymmetric key are its SPKI document -- so without this
+-      // arm an X25519 peer key exports as 44 bytes that no counterpart can
+-      // read, and nothing reports an error.
+-      if (format === "raw" && key?.type === "public" &&
+-          (key.__celldMaterial?.keyType === "ed25519" ||
+-            key.__celldMaterial?.keyType === "x25519")) {
+-        if (!key.extractable) {
++      // Export the public point, rather than its stored SPKI document.
++      if (format === "raw" &&
++          (key?.__celldMaterial?.keyType === "ec" ||
++            key?.__celldMaterial?.keyType === "ed25519" ||
++            key?.__celldMaterial?.keyType === "x25519")) {
++        if (key.type !== "public" || !key.extractable) {
+           throw new DOMException("key is not extractable", "InvalidAccessError");
+         }
+         return Uint8Array.from(_extra("asym-key-raw-public", {
+diff --git a/crates/celld/js/crypto.rs b/crates/celld/js/crypto.rs
+index 28a1ea5..5334db5 100644
+--- a/crates/celld/js/crypto.rs
++++ b/crates/celld/js/crypto.rs
+@@ -982,27 +982,29 @@ fn crypto_operation(operation: &str, args: &serde_json::Value) -> Result<serde_j
+                 let jwk = args.get("key").ok_or_else(|| anyhow!("missing JWK"))?;
+                 (key_from_jwk(jwk, want_private)?, want_private)
+             } else if format == "raw" {
+-                // Web Crypto's `raw` format for the Secure Curves: a public
+-                // key is its 32-byte point, with no structure around it. The
+-                // curve therefore cannot be read off the bytes and arrives in
+-                // `type`. Only a public key has a `raw` form, so `visibility`
+-                // is not consulted.
++                // The curve is external metadata for a raw public point.
++                use p256::pkcs8::EncodePublicKey;
+                 let key = crypto_bytes(args, "key")?;
+                 let curve = args
+                     .get("type")
+                     .and_then(serde_json::Value::as_str)
+                     .unwrap_or_default();
+-                let point: [u8; 32] = key
+-                    .as_slice()
+-                    .try_into()
+-                    .map_err(|_| anyhow!("a {curve} raw public key must be 32 bytes"))?;
+                 let der = match curve {
+-                    "X25519" => x25519_spki(&point),
++                    "P-256" => p256::PublicKey::from_sec1_bytes(&key)?
++                        .to_public_key_der()?
++                        .as_bytes()
++                        .to_vec(),
++                    "P-384" => p384::PublicKey::from_sec1_bytes(&key)?
++                        .to_public_key_der()?
++                        .as_bytes()
++                        .to_vec(),
++                    "P-521" => p521::PublicKey::from_sec1_bytes(&key)?
++                        .to_public_key_der()?
++                        .as_bytes()
++                        .to_vec(),
++                    "X25519" => x25519_spki(key.as_slice().try_into()?),
+                     "Ed25519" => {
+-                        use ed25519_dalek::pkcs8::EncodePublicKey;
+-                        // Unlike X25519, an Ed25519 point has to decompress
+-                        // to a curve point, so a bad one fails here.
+-                        ed25519_dalek::VerifyingKey::from_bytes(&point)
++                        ed25519_dalek::VerifyingKey::from_bytes(key.as_slice().try_into()?)
+                             .map_err(|_| anyhow!("invalid Ed25519 public key"))?
+                             .to_public_key_der()?
+                             .as_bytes()
+@@ -1294,6 +1296,25 @@ fn crypto_operation(operation: &str, args: &serde_json::Value) -> Result<serde_j
+             let der = crypto_bytes(args, "der")?;
+             let parsed = describe_key(&der, false)?;
+             let point = match parsed.kind {
++                "ec" => {
++                    use p256::elliptic_curve::sec1::ToEncodedPoint;
++                    use p256::pkcs8::DecodePublicKey;
++                    match parsed.details["namedCurve"].as_str() {
++                        Some("prime256v1") => p256::PublicKey::from_public_key_der(&der)?
++                            .to_encoded_point(false)
++                            .as_bytes()
++                            .to_vec(),
++                        Some("secp384r1") => p384::PublicKey::from_public_key_der(&der)?
++                            .to_encoded_point(false)
++                            .as_bytes()
++                            .to_vec(),
++                        Some("secp521r1") => p521::PublicKey::from_public_key_der(&der)?
++                            .to_encoded_point(false)
++                            .as_bytes()
++                            .to_vec(),
++                        _ => return Err(anyhow!("unsupported EC curve")),
++                    }
++                }
+                 "x25519" => x25519_material(&der, false)?.to_vec(),
+                 "ed25519" => {
+                     use ed25519_dalek::pkcs8::DecodePublicKey;
+diff --git a/crates/celld/js/harness.js b/crates/celld/js/harness.js
+index 074ea11..b43f31f 100644
+--- a/crates/celld/js/harness.js
++++ b/crates/celld/js/harness.js
+@@ -359,17 +359,24 @@ globalThis.Response = class Response {
+       { type: this.headers.get("content-type") || "" });
+   }
+   clone() {
+-    if (this.bodyUsed) throw new TypeError("Body has already been consumed");
+-    if (this._bodyBytes === null)
+-      throw new TypeError("Cannot clone a streaming response before consumption");
++    if (this.bodyUsed || this.body?.locked || this.body?._disturbed)
++      throw new TypeError("Body has already been consumed or locked");
++    let body = this.body === null ? null : this._bodyBytes;
++    if (this._bodyBytes === null) {
++      const [left, right] = this.body.tee();
++      this.body = left;
++      body = right;
++    }
+     const response = new Response(
+-      this.body === null ? null : this._bodyBytes,
++      body,
+       {
+         status: this.status, statusText: this.statusText, headers: this.headers,
+         webSocket: this.webSocket, __wsTarget: this._wsTarget, cf: this.cf,
+       },
+     );
+     response.type = this.type;
++    response.url = this.url;
++    response.redirected = this.redirected;
+     return response;
+   }
+ };
+@@ -1123,7 +1130,11 @@ const __r2Multipart = (binding, bucketName, key, id) => ({
+     await __r2_mp_abort(await id.host);
+   },
+ });
+-__celld.__makeR2Bucket = (binding, bucketName) => ({
++class R2Bucket {
++  constructor() { throw new TypeError("Illegal constructor"); }
++}
++__celld.__makeR2Bucket = (binding, bucketName) => Object.assign(
++  Object.create(R2Bucket.prototype), {
+   async head(key) {
+     const name = __r2Key(binding, "head", key);
+     const r = JSON.parse(await __r2_head(bucketName, name));
+@@ -3523,6 +3534,9 @@ __celld.__makeLoader = () => {
+   };
+ };
+ 
++class Fetcher {
++  constructor() { throw new TypeError("Illegal constructor"); }
++}
+ const __makeServiceBinding = __celld.__makeServiceBinding =
+   (script, entrypoint = null, propsSc = undefined) => {
+   const target = {
+@@ -3653,6 +3667,7 @@ const __makeServiceBinding = __celld.__makeServiceBinding =
+   const rpcEntrypoint = entrypoint === null ? "default" : entrypoint;
+   const session = __entrypointSession(
+     rpcEntrypoint, script === __cell.script, script, undefined, propsSc);
++  Object.setPrototypeOf(target, Fetcher.prototype);
+   const binding = new Proxy(target, {
+     getPrototypeOf: () => __cf.ServiceStub.prototype,
+     get: (base, prop) => {
+diff --git a/crates/celld/js/r2_ops.rs b/crates/celld/js/r2_ops.rs
+index 57d3f9a..7e06dfe 100644
+--- a/crates/celld/js/r2_ops.rs
++++ b/crates/celld/js/r2_ops.rs
+@@ -2,12 +2,8 @@
+ 
+ //! The V8 surface over an `r2_buckets` binding.
+ //!
+-//! celld does not run a blob service; it runs *on* one. A binding is
+-//! therefore served out of the fleet bucket the node already holds
+-//! credentials for, under the reserved `r2/<bucket_name>/` prefix — the
+-//! same durability, the same store, no second set of credentials. A node
+-//! with no bucket (a local run without `--bucket`) has nowhere to put a
+-//! blob, and every op says so rather than pretending.
++//! Each binding uses an explicitly configured physical bucket. Startup
++//! verifies the mapping against the deployment manifest before serving.
+ //!
+ //! Each op converts V8 values to Rust, calls `crate::r2_store`, and converts
+ //! the answer back. How an R2 object's record — `httpMetadata`,
+@@ -420,7 +416,7 @@ pub(super) fn op_r2_mp_begin(
+             checksums: BTreeMap::new(),
+             storage_class: request.storage_class,
+         };
+-        let upload = store()?
++        let upload = store(&bucket_name)?
+             .begin_multipart(&blob_key(&bucket_name, &key), &envelope.write())
+             .await
+             .map_err(|error| error.to_string())?;
+diff --git a/crates/celld/main.rs b/crates/celld/main.rs
+index 7fcf81f..46a96cd 100644
+--- a/crates/celld/main.rs
++++ b/crates/celld/main.rs
+@@ -2111,19 +2111,22 @@ pub(crate) async fn dispatch_forwarded_fetch(
+             match result {
+                 Ok(mut worker_response) => {
+                     if let Some(HttpResponseWebSocket::Cell(target)) = &worker_response.websocket {
+-                        let (cell, hibernatable) = celld::js::ws_core_registration(target);
+-                        let kind = if hibernatable {
+-                            WebSocketKind::Hibernatable
+-                        } else {
+-                            WebSocketKind::Regular
+-                        };
+-                        if let Err(error) = app.websocket_opened(cell, target.id, kind).await {
+-                            let reason = format!("WebSocket core registration failed: {error:#}");
+-                            websocket::reject_accepted_websocket(&app, target, &reason).await;
+-                            return ForwardedFetchOutcome::Reply(peer_response(response(
+-                                StatusCode::SERVICE_UNAVAILABLE,
+-                                reason,
+-                            )));
++                        if target.tunnel.is_none() {
++                            let (cell, hibernatable) = celld::js::ws_core_registration(target);
++                            let kind = if hibernatable {
++                                WebSocketKind::Hibernatable
++                            } else {
++                                WebSocketKind::Regular
++                            };
++                            if let Err(error) = app.websocket_opened(cell, target.id, kind).await {
++                                let reason =
++                                    format!("WebSocket core registration failed: {error:#}");
++                                websocket::reject_accepted_websocket(&app, target, &reason).await;
++                                return ForwardedFetchOutcome::Reply(peer_response(response(
++                                    StatusCode::SERVICE_UNAVAILABLE,
++                                    reason,
++                                )));
++                            }
+                         }
+                     }
+                     if let Some(HttpResponseWebSocket::Cell(target)) =
+@@ -3808,17 +3811,17 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+                 fleet::wait_for_deployment_pointer(&client).await?;
+             }
+             let peer_key = peer_auth::load_or_create(&client).await?;
++            celld::js::set_r2_store(
++                client.clone(),
++                settings.endpoint.as_deref(),
++                &settings.region,
++            )?;
+             let graph = DeploymentGraph::load(&client, node.clone()).await?;
+             let wake = Arc::new(celld::wake::WakeFlusher::new());
+             celld::js::set_arm_gate(ArmGate {
+                 bucket: client.clone(),
+                 flusher: wake.clone(),
+             });
+-            // An `r2_buckets` binding lives in the fleet bucket, under the
+-            // reserved `r2/<bucket_name>/` prefix. celld runs on blob storage
+-            // rather than providing it, so a binding gets the store the node
+-            // already holds credentials for instead of a second one.
+-            celld::js::set_r2_store(client.clone());
+             // celld treats replication as a node service, not as a property
+             // of today's manifest. Start it even for a stateless deployment
+             // so a later deployment can introduce cells without changing the
+@@ -4007,7 +4010,11 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+                     bucket: client.clone(),
+                     flusher: wake.clone(),
+                 });
+-                celld::js::set_r2_store(client.clone());
++                celld::js::set_r2_store(
++                    client.clone(),
++                    settings.endpoint.as_deref(),
++                    &settings.region,
++                )?;
+                 let bucket_ownership = Arc::new(
+                     BucketOwnership::new(
+                         client.clone(),
+@@ -4055,6 +4062,7 @@ async fn async_main(telemetry_config: Option<celld::telemetry::Config>) -> anyho
+                         .collect(),
+                     assets: None,
+                     services: Vec::new(),
++                    external_objects: Vec::new(),
+                     crons,
+                     containers: Vec::new(),
+                     fence_image: None,
+diff --git a/crates/celld/main/peer_tunnel.rs b/crates/celld/main/peer_tunnel.rs
+index b293707..ae42c55 100644
+--- a/crates/celld/main/peer_tunnel.rs
++++ b/crates/celld/main/peer_tunnel.rs
+@@ -263,14 +263,20 @@ async fn serve_do(upgraded: hyper::upgrade::Upgraded, app: AppHandle) {
+             // task a local client gets, and answer with the real 101. The
+             // Worker's application headers ride along; the sidecars and
+             // the hop framing die here.
+-            tokio::spawn(async move {
+-                match upgrade.await {
+-                    Ok(socket) => super::websocket::websocket_task(app, target, socket).await,
+-                    Err(error) => {
+-                        eprintln!("celld tunneled upgrade failed: {error}");
+-                    }
++            let websocket = match super::websocket::PendingWebSocket::new(
++                HttpResponseWebSocket::Cell(target),
++            ) {
++                Ok(websocket) => websocket,
++                Err(error) => {
++                    return Ok(peer_response(response(
++                        StatusCode::BAD_GATEWAY,
++                        format!("tunneled WebSocket upgrade: {error}"),
++                    )));
+                 }
+-            });
++            };
++            tokio::spawn(super::websocket::run_websocket_upgrade(
++                app, upgrade, websocket,
++            ));
+             let (accept_parts, _) = accept.into_parts();
+             let mut answer = Response::from_parts(
+                 accept_parts,
+@@ -528,9 +534,29 @@ pub(crate) async fn fetch(
+     control: &TunnelControl,
+     url: String,
+     method: String,
+-    headers: Vec<(String, String)>,
++    mut headers: Vec<(String, String)>,
+     body: celld::js::RequestBody,
+ ) -> anyhow::Result<Response<PooledResponseBody>> {
++    let websocket = headers.iter().any(|(name, value)| {
++        name.eq_ignore_ascii_case("upgrade") && value.eq_ignore_ascii_case("websocket")
++    });
++    let has_key = headers
++        .iter()
++        .any(|(name, _)| name.eq_ignore_ascii_case("sec-websocket-key"));
++    if websocket && !has_key {
++        // An isolate fetch specifies Upgrade only. The peer hop needs the
++        // network handshake that a browser or outbound fetch would supply.
++        headers.retain(|(name, _)| {
++            !name.eq_ignore_ascii_case("connection")
++                && !name.eq_ignore_ascii_case("sec-websocket-version")
++        });
++        headers.push(("connection".into(), "Upgrade".into()));
++        headers.push((
++            "sec-websocket-key".into(),
++            fastwebsockets::handshake::generate_key(),
++        ));
++        headers.push(("sec-websocket-version".into(), "13".into()));
++    }
+     send_inner(
+         peer,
+         "do",
+@@ -680,7 +706,7 @@ pub(crate) fn claim_upgrade(parked: u64) -> anyhow::Result<TunnelUpgradeClaim> {
+ }
+ 
+ impl TunnelUpgradeClaim {
+-    fn into_upgrade(self) -> hyper::upgrade::OnUpgrade {
++    pub(super) fn into_upgrade(self) -> hyper::upgrade::OnUpgrade {
+         self.upgrade
+     }
+ }
+diff --git a/crates/celld/main/websocket.rs b/crates/celld/main/websocket.rs
+index d528f18..7379878 100644
+--- a/crates/celld/main/websocket.rs
++++ b/crates/celld/main/websocket.rs
+@@ -271,17 +271,17 @@ async fn finish_websocket(
+ /// count before the Worker's response reaches this code, and `WsTarget` is plain
+ /// data: dropping it releases nothing. A rejection that only returns an error
+ /// status therefore leaks the registration and the count for the life of the
+-/// process, and the Worker never sees a close. A remote target is registered on
+-/// the owner node instead, so the entry node has nothing to release — the same
+-/// split that the upgrade-failure path makes. 1006 is the code for a connection
+-/// that closed without a close frame, which is exactly what happened.
++/// process, and the Worker never sees a close. A remote target owns a parked
++/// tunnel on this node; dropping that upgrade closes its connection to the owner.
++/// 1006 means the local connection closed without a close frame.
+ pub(super) async fn reject_accepted_websocket(
+     app: &AppHandle,
+     target: &celld::js::WsTarget,
+     reason: &str,
+ ) {
+-    if target.tunnel.is_none() {
+-        finish_websocket(app, target, 1006, reason.to_string(), false).await;
++    match target.tunnel {
++        Some(parked) => drop(super::peer_tunnel::claim_upgrade(parked)),
++        None => finish_websocket(app, target, 1006, reason.to_string(), false).await,
+     }
+ }
+ 
+@@ -330,7 +330,7 @@ pub(super) async fn refuse_websocket_without_upgrade(
+ /// Keep the response shape in one value through every validation and executor
+ /// exit. A tunneled response attaches its parked connection lifetime here,
+ /// so dropping an unfinished response cannot leave host state behind.
+-enum PendingWebSocket {
++pub(super) enum PendingWebSocket {
+     Worker(celld::js::websocket::WorkerWebSocket),
+     Cell(celld::js::WsTarget),
+     Tunnel {
+@@ -340,7 +340,7 @@ enum PendingWebSocket {
+ }
+ 
+ impl PendingWebSocket {
+-    fn new(websocket: HttpResponseWebSocket) -> anyhow::Result<Self> {
++    pub(super) fn new(websocket: HttpResponseWebSocket) -> anyhow::Result<Self> {
+         Ok(match websocket {
+             HttpResponseWebSocket::Worker(worker) => Self::Worker(worker),
+             HttpResponseWebSocket::Cell(target) => match target.tunnel {
+@@ -552,6 +552,17 @@ async fn local_websocket_pipe(
+     Ok(())
+ }
+ 
++// A binding is registered before the host attaches its remote tunnel.
++// Drop it on attachment failure or task cancellation as well as normal close.
++struct RemoteWebSocketRegistration(u64);
++
++impl Drop for RemoteWebSocketRegistration {
++    fn drop(&mut self) {
++        celld::js::ws_unregister(self.0);
++        celld::js::ws_pull_unregister(self.0);
++    }
++}
++
+ pub(crate) async fn outbound_websocket_task(
+     app: AppHandle,
+     request: celld::js::OutboundWsReq,
+@@ -570,9 +581,16 @@ pub(crate) async fn outbound_websocket_task(
+         facet,
+         reply,
+     } = request;
+-    if let Some(target) = target {
+-        return local_websocket_pipe(app, id, target, pull, reply).await;
+-    }
++    let _remote_registration = target
++        .as_ref()
++        .and_then(|target| target.tunnel.map(|_| RemoteWebSocketRegistration(id)));
++    let tunnel = match target {
++        Some(target) => match target.tunnel {
++            Some(parked) => Some(super::peer_tunnel::claim_upgrade(parked)?),
++            None => return local_websocket_pipe(app, id, target, pull, reply).await,
++        },
++        None => None,
++    };
+     let sink = match pull {
+         Some(pull) => OutboundWebSocketSink::Isolate(pull),
+         None => OutboundWebSocketSink::Cell {
+@@ -583,69 +601,81 @@ pub(crate) async fn outbound_websocket_task(
+             },
+         },
+     };
+-    let mut handshake = HeaderMap::new();
+-    for (name, value) in &headers {
+-        if matches!(
+-            name.to_ascii_lowercase().as_str(),
+-            "upgrade"
+-                | "connection"
+-                | "sec-websocket-key"
+-                | "sec-websocket-version"
+-                | "sec-websocket-protocol"
+-                | "host"
+-        ) {
+-            continue;
++    let connection = if let Some(tunnel) = tunnel {
++        let upgraded = tunnel.into_upgrade().await?;
++        celld::ws_client::Connection {
++            socket: fastwebsockets::WebSocket::after_handshake(
++                hyper_util::rt::TokioIo::new(upgraded),
++                fastwebsockets::Role::Client,
++            ),
++            headers: HeaderMap::new(),
+         }
+-        let (Ok(name), Ok(value)) = (
+-            HeaderName::from_bytes(name.as_bytes()),
+-            HeaderValue::from_str(value),
+-        ) else {
+-            continue;
+-        };
+-        handshake.insert(name, value);
+-    }
+-    if !protocols.is_empty() {
+-        handshake.insert(
+-            SEC_WEBSOCKET_PROTOCOL,
+-            HeaderValue::from_str(&protocols.join(", "))
+-                .context("invalid WebSocket subprotocol")?,
+-        );
+-    }
+-    let timeout = std::time::Duration::from_secs(10);
+-    let connected = tokio::time::timeout(timeout, celld::ws_client::connect(&url, handshake)).await;
+-    let connection = match connected {
+-        Ok(Ok(connection)) => connection,
+-        Ok(Err(celld::ws_client::Error::Declined(declined))) if want_response => {
+-            let declined = celld::js::DeclinedUpgrade {
+-                status: declined.status.as_u16(),
+-                headers: declined
+-                    .headers
+-                    .iter()
+-                    .map(|(name, value)| {
+-                        (
+-                            name.as_str().to_string(),
+-                            value.to_str().unwrap_or_default().to_string(),
+-                        )
+-                    })
+-                    .collect(),
+-                body: declined.body,
++    } else {
++        let mut handshake = HeaderMap::new();
++        for (name, value) in &headers {
++            if matches!(
++                name.to_ascii_lowercase().as_str(),
++                "upgrade"
++                    | "connection"
++                    | "sec-websocket-key"
++                    | "sec-websocket-version"
++                    | "sec-websocket-protocol"
++                    | "host"
++            ) {
++                continue;
++            }
++            let (Ok(name), Ok(value)) = (
++                HeaderName::from_bytes(name.as_bytes()),
++                HeaderValue::from_str(value),
++            ) else {
++                continue;
+             };
+-            let _ = reply.send(Ok(celld::js::OutboundWsOpen {
+-                protocol: None,
+-                declined: Some(declined),
+-            }));
+-            return Ok(());
++            handshake.insert(name, value);
+         }
+-        Ok(Err(error)) => {
+-            let _ = reply.send(Err(anyhow::anyhow!("{error}")));
+-            return Ok(());
++        if !protocols.is_empty() {
++            handshake.insert(
++                SEC_WEBSOCKET_PROTOCOL,
++                HeaderValue::from_str(&protocols.join(", "))
++                    .context("invalid WebSocket subprotocol")?,
++            );
+         }
+-        Err(_) => {
+-            let _ = reply.send(Err(anyhow::anyhow!(
+-                "outbound WebSocket handshake timed out after {}ms",
+-                timeout.as_millis()
+-            )));
+-            return Ok(());
++        let timeout = std::time::Duration::from_secs(10);
++        let connected =
++            tokio::time::timeout(timeout, celld::ws_client::connect(&url, handshake)).await;
++        match connected {
++            Ok(Ok(connection)) => connection,
++            Ok(Err(celld::ws_client::Error::Declined(declined))) if want_response => {
++                let declined = celld::js::DeclinedUpgrade {
++                    status: declined.status.as_u16(),
++                    headers: declined
++                        .headers
++                        .iter()
++                        .map(|(name, value)| {
++                            (
++                                name.as_str().to_string(),
++                                value.to_str().unwrap_or_default().to_string(),
++                            )
++                        })
++                        .collect(),
++                    body: declined.body,
++                };
++                let _ = reply.send(Ok(celld::js::OutboundWsOpen {
++                    protocol: None,
++                    declined: Some(declined),
++                }));
++                return Ok(());
++            }
++            Ok(Err(error)) => {
++                let _ = reply.send(Err(anyhow::anyhow!("{error}")));
++                return Ok(());
++            }
++            Err(_) => {
++                let _ = reply.send(Err(anyhow::anyhow!(
++                    "outbound WebSocket handshake timed out after {}ms",
++                    timeout.as_millis()
++                )));
++                return Ok(());
++            }
+         }
+     };
+     let socket = connection.socket;
+@@ -1230,7 +1260,7 @@ pub(crate) async fn handle_websocket(mut request: Request<Incoming>, app: AppHan
+ /// Finish the client upgrade through the same owned response value that
+ /// survives validation. Keeping this work in one future makes a failed client
+ /// upgrade and a cancelled executor task drop the same owned response.
+-async fn run_websocket_upgrade(
++pub(super) async fn run_websocket_upgrade(
+     task_app: AppHandle,
+     upgrade: fastwebsockets::upgrade::UpgradeFut,
+     websocket: PendingWebSocket,
+diff --git a/crates/celld/protocol.rs b/crates/celld/protocol.rs
+index a2f79f5..cfb9a49 100644
+--- a/crates/celld/protocol.rs
++++ b/crates/celld/protocol.rs
+@@ -71,11 +71,20 @@ pub const SUPPORTED_DEPLOYMENT_FEATURES: &[&str] = &[
+     FEATURE_QUEUES_V1,
+     FEATURE_SQLITE_VEC_V1,
+     FEATURE_R2_V1,
++    FEATURE_PHYSICAL_R2_V1,
++    FEATURE_BINDING_BRANDS_V1,
++    FEATURE_STREAMING_RESPONSE_CLONE_V1,
++    FEATURE_RAW_EC_PUBLIC_KEYS_V1,
++    FEATURE_PEER_DURABLE_WEBSOCKETS_V1,
+     FEATURE_WASM_V1,
+     FEATURE_WORKFLOWS_V1,
+     FEATURE_PYTHON_WORKERS_V1,
++    FEATURE_EXTERNAL_DURABLE_OBJECTS_V1,
+ ];
+ 
++/// External object bindings require owner-aware namespace resolution.
++pub const FEATURE_EXTERNAL_DURABLE_OBJECTS_V1: &str = "external-durable-objects-v1";
++
+ pub const FEATURE_ASSETS_V1: &str = "assets-v1";
+ /// A deployment with `containers`. Required because a build without the
+ /// container engine would load the manifest, build a `ctx` with no
+@@ -95,6 +104,11 @@ pub const FEATURE_CRON_V1: &str = "cron-v1";
+ /// application calls, at request time, on a node the developer is not
+ /// watching — the gate moves that failure to the deploy.
+ pub const FEATURE_R2_V1: &str = "r2-v1";
++pub const FEATURE_PHYSICAL_R2_V1: &str = "physical-r2-buckets-v1";
++pub const FEATURE_BINDING_BRANDS_V1: &str = "workers-rs-binding-brands-v1";
++pub const FEATURE_STREAMING_RESPONSE_CLONE_V1: &str = "streaming-response-clone-v1";
++pub const FEATURE_PEER_DURABLE_WEBSOCKETS_V1: &str = "peer-durable-websockets-v1";
++pub const FEATURE_RAW_EC_PUBLIC_KEYS_V1: &str = "raw-ec-public-keys-v1";
+ pub const FEATURE_SQLITE_VEC_V1: &str = "sqlite-vec-v1";
+ pub const FEATURE_WASM_V1: &str = "wasm-v1";
+ /// A deployment whose `main` is a `.py` file. Required because the bundle
+diff --git a/crates/celld/r2_cli.rs b/crates/celld/r2_cli.rs
+index d7ecbe9..7e6b310 100644
+--- a/crates/celld/r2_cli.rs
++++ b/crates/celld/r2_cli.rs
+@@ -8,20 +8,20 @@
+ //! A release pipeline publishes a build artifact with
+ //! `wrangler r2 object put` and the Worker serves it from its `r2_buckets`
+ //! binding. celld served the binding but had no command, so the only way to
+-//! seed a bucket was `aws s3 cp` straight into the fleet bucket. That works
++//! seed a bucket was `aws s3 cp` straight into the physical bucket. That works
+ //! for the bytes and loses the record: an R2 object carries
+ //! `customMetadata`, a `cacheExpiry`, and its checksums in a celld-private
+ //! envelope that a plain copy does not write. The result reads back with no
+ //! custom metadata, which is a silent difference rather than a failure.
+ //!
+-//! So this command does not implement R2. It installs the fleet bucket the
++//! So this command does not implement R2. It resolves the physical buckets the
+ //! same way a node does and calls [`crate::js::r2_ops`] — the functions the
+ //! binding's ops call. The key scoping, the envelope, the checksum set and
+ //! the single-request/multipart choice therefore have one implementation,
+ //! and an object written here is an object the binding could have written.
+ //!
+ //! Unlike `celld d1`, `celld kv` and `celld queue`, this command needs no
+-//! node. A binding reads the fleet bucket directly, so an operator with the
++//! node. A binding reads its physical bucket directly, so an operator with the
+ //! bucket credentials can publish into an empty fleet — which is what a
+ //! release pipeline that runs before a deployment needs.
+ 
+@@ -127,7 +127,11 @@ pub async fn run(arguments: Vec<String>) -> anyhow::Result<()> {
+     let storage = command.fleet.clone().resolve("celld r2")?;
+     // The binding's store, installed exactly as a node installs it, so
+     // every call below reaches the same keys the Worker reads.
+-    crate::js::set_r2_store(storage.open().await?);
++    crate::js::set_r2_store(
++        storage.open().await?,
++        storage.endpoint.as_deref(),
++        &storage.region,
++    )?;
+     let bucket = command.bucket.as_str();
+ 
+     match command.action {
+@@ -570,7 +574,7 @@ The bucket name is the `bucket_name` from the project's `r2_buckets` entry,
+ not the binding name. `get` writes the object to stdout as bytes, so an
+ artifact comes back byte for byte.
+ 
+-This command reads the fleet bucket directly and needs no running node, so
++This command reads the configured physical bucket directly and needs no running node, so
+ a release pipeline can publish an object before it deploys the Worker.
+ 
+ PUT OPTIONS
+diff --git a/crates/celld/r2_store.rs b/crates/celld/r2_store.rs
+index fae7ab8..1b04a73 100644
+--- a/crates/celld/r2_store.rs
++++ b/crates/celld/r2_store.rs
+@@ -2,7 +2,7 @@
+ 
+ //! The object-store side of an `r2_buckets` binding: the R2 object record,
+ //! the request shapes, and the reads and writes that `celld r2` and the cell
+-//! runtime share. Every engine reaches the fleet bucket through this module,
++//! runtime share. Every engine reaches its physical bucket through this module,
+ //! so an operator and a Worker cannot disagree about the key an object lives
+ //! under or the record it carries. The V8 ops live in `js/r2_ops.rs`.
+ 
+@@ -13,7 +13,7 @@ use crate::bucket::BlobMeta;
+ use crate::bucket::BlobRange;
+ use crate::bucket::BlobRead;
+ use crate::bucket::Bucket;
+-use crate::host_channels::R2_STORE;
++use anyhow::Context as _;
+ use futures_util::StreamExt as _;
+ use object_store::MultipartUpload;
+ use serde::Deserialize;
+@@ -42,18 +42,93 @@ const STREAM_PART: usize = 8 << 20;
+ /// refuses a hyphen in a metadata name.
+ const ENVELOPE: &str = "celld-r2";
+ 
+-/// The key space one binding owns inside the fleet bucket. `bucket_name`
++/// The key space one binding owns inside its physical bucket. `bucket_name`
+ /// comes from the deployment manifest, which validates it, so the prefix
+ /// cannot escape into the fleet's own keys.
+ pub(crate) fn blob_key(bucket_name: &str, key: &str) -> String {
+     format!("r2/{bucket_name}/{key}")
+ }
+ 
+-/// The fleet bucket, or the error every op answers without one.
+-pub(crate) fn store() -> Result<&'static Bucket, String> {
+-    R2_STORE.get().ok_or_else(|| {
+-        "R2 bindings need a fleet bucket: start celld with --bucket (or CELLD_BUCKET)".to_string()
+-    })
++/// Explicit physical buckets prevent role backups from sharing the fleet bucket.
++struct PhysicalStore {
++    spec: String,
++    bucket: Bucket,
++}
++
++static PHYSICAL_STORES: OnceLock<BTreeMap<String, PhysicalStore>> = OnceLock::new();
++
++pub(crate) fn physical_specs() -> anyhow::Result<BTreeMap<String, String>> {
++    let Some(raw) = crate::env_vars::optional::<String>("CELLD_R2_BUCKETS")? else {
++        return Ok(BTreeMap::new());
++    };
++    let specs: BTreeMap<String, String> = serde_json::from_str(&raw)
++        .context("CELLD_R2_BUCKETS must map binding bucket names to physical bucket URIs")?;
++    let mut destinations = std::collections::BTreeSet::new();
++    for (name, spec) in &specs {
++        anyhow::ensure!(
++            !name.is_empty()
++                && name
++                    .bytes()
++                    .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_'),
++            "invalid R2 binding bucket name"
++        );
++        let physical = spec
++            .strip_prefix("s3://")
++            .or_else(|| spec.strip_prefix("gs://"))
++            .context("physical R2 buckets require s3:// or gs://")?;
++        anyhow::ensure!(
++            !physical.is_empty()
++                && physical.bytes().all(|c| c.is_ascii_lowercase()
++                    || c.is_ascii_digit()
++                    || c == b'-'
++                    || c == b'.'),
++            "physical R2 buckets must name a whole bucket without a prefix"
++        );
++        anyhow::ensure!(
++            destinations.insert(spec),
++            "R2 bindings must use distinct physical buckets"
++        );
++    }
++    Ok(specs)
++}
++
++pub(crate) fn configure(
++    fleet: &Bucket,
++    endpoint: Option<&str>,
++    region: &str,
++) -> anyhow::Result<()> {
++    let mut stores = BTreeMap::new();
++    for (name, spec) in physical_specs()? {
++        let bucket = Bucket::open(&spec, endpoint, region, None, Some("r2"))?;
++        anyhow::ensure!(
++            bucket.backend != fleet.backend || bucket.name != fleet.name,
++            "R2 backups must use a physical bucket distinct from the fleet bucket"
++        );
++        stores.insert(name, PhysicalStore { spec, bucket });
++    }
++    PHYSICAL_STORES
++        .set(stores)
++        .map_err(|_| anyhow::anyhow!("R2 stores already configured"))
++}
++
++pub(crate) fn validate_physical_binding(name: &str, spec: &str) -> anyhow::Result<()> {
++    let store = PHYSICAL_STORES
++        .get()
++        .and_then(|stores| stores.get(name))
++        .context("R2 binding has no configured physical bucket")?;
++    anyhow::ensure!(
++        store.spec == spec,
++        "R2 physical bucket differs from deployment manifest"
++    );
++    Ok(())
++}
++
++pub(crate) fn store(bucket_name: &str) -> Result<&'static Bucket, String> {
++    PHYSICAL_STORES
++        .get()
++        .and_then(|stores| stores.get(bucket_name))
++        .map(|store| &store.bucket)
++        .ok_or_else(|| format!("R2 binding {bucket_name} has no configured physical bucket"))
+ }
+ 
+ // ---- the object record ---------------------------------------------------
+@@ -390,7 +465,7 @@ fn verify(
+ /// to disagree about which key an object lives under, and the answer is
+ /// only right because both sides scope the key the same way.
+ pub(crate) async fn head(bucket_name: &str, key: &str) -> Result<Option<BlobMeta>, String> {
+-    store()?
++    store(bucket_name)?
+         .head_blob(&blob_key(bucket_name, key))
+         .await
+         .map_err(|error| error.to_string())
+@@ -406,7 +481,7 @@ pub(crate) async fn read(
+     range: BlobRange,
+     conditions: &BlobConditions,
+ ) -> Result<BlobRead, String> {
+-    store()?
++    store(bucket_name)?
+         .get_blob(&blob_key(bucket_name, key), range, conditions)
+         .await
+         .map_err(|error| error.to_string())
+@@ -414,7 +489,7 @@ pub(crate) async fn read(
+ 
+ /// Remove every named key. Shared with `celld r2 delete`.
+ pub(crate) async fn delete(bucket_name: &str, keys: &[String]) -> Result<(), String> {
+-    let store = store()?;
++    let store = store(bucket_name)?;
+     let keys = keys
+         .iter()
+         .map(|key| blob_key(bucket_name, key))
+@@ -444,7 +519,7 @@ pub(crate) async fn list(
+ ) -> Result<serde_json::Value, String> {
+     let request = serde_json::from_str::<ListRequest>(request_json)
+         .map_err(|error| format!("invalid R2 list options: {error}"))?;
+-    let store = store()?;
++    let store = store(bucket_name)?;
+     let limit = match request.limit.unwrap_or(0) {
+         limit if limit > 0 => (limit as usize).min(LIST_LIMIT),
+         _ => LIST_LIMIT,
+@@ -545,7 +620,7 @@ pub(crate) async fn put_once(
+         storage_class: request.storage_class,
+     };
+     let conditions = BlobConditions::from(request.only_if.unwrap_or_default());
+-    let meta = store()?
++    let meta = store(&bucket_name)?
+         .put_blob(
+             &blob_key(&bucket_name, &key),
+             body.into(),
+@@ -604,7 +679,7 @@ pub(crate) fn open_put(
+     let request = serde_json::from_str::<PutRequest>(request_json)
+         .map_err(|error| format!("invalid R2 put options: {error}"))?;
+     // Fail before a byte moves if there is no bucket at all.
+-    store()?;
++    store(&bucket_name)?;
+     let digests = Digests::wanted(&request.verify, true);
+     Ok(PutStream {
+         bucket_name,
+@@ -656,7 +731,7 @@ impl PutStream {
+                 self.digests.md5 = None;
+             }
+             self.upload = Some(
+-                store()?
++                store(&self.bucket_name)?
+                     .begin_multipart(
+                         &blob_key(&self.bucket_name, &self.key),
+                         &self.envelope().write(),
+diff --git a/docs/services/r2.md b/docs/services/r2.md
+index 34bb3c6..2080c19 100644
+--- a/docs/services/r2.md
++++ b/docs/services/r2.md
+@@ -1,9 +1,13 @@
+ # R2
+ 
+ [R2](https://developers.cloudflare.com/r2/) is object storage. A Worker reaches
+-a bucket through an `r2_buckets` binding. celld stores the objects in the fleet
+-bucket that the node opened with `--bucket`, so R2 has the durability of that
+-object store. On a node without a fleet bucket, every R2 method fails. Read the
++a bucket through an `r2_buckets` binding. This private build requires `CELLD_R2_BUCKETS`, a JSON map from binding bucket
++names to distinct whole-bucket `s3://` or `gs://` URIs. The physical buckets
++must differ from the fleet bucket. Set the same map when deploying and starting
++nodes. Startup rejects missing mappings or a mapping that differs from the manifest.
++Changing a mapping requires a verified data migration and a coordinated restart.
++Cloud credentials remain on the node and use the existing cloud credential chain.
++Deployments require `physical-r2-buckets-v1`, which older runtimes reject. Read the
+ [Workers API reference](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)
+ for the API.
+ 
+@@ -31,7 +35,7 @@ bucket.
+ ## Keys and storage
+ 
+ Each binding has its own `bucket_name`, and celld stores key `<key>` as the
+-object `r2/<bucket_name>/<key>`. A key is 1 to 1024 bytes. A streamed `put()`
++object `r2/<bucket_name>/<key>` in its configured physical bucket. A key is 1 to 1024 bytes. A streamed `put()`
+ body that grows past 8 MiB becomes a multipart upload. `delete()` removes up to
+ 1000 keys in one call. celld has no public bucket URL, no presigned URL, and no
+ S3 endpoint, so put a Worker in front of the bytes to publish them.
+@@ -65,7 +69,7 @@ refuses that write.
+ 
+ ## Differences from Cloudflare
+ 
+-- An R2 binding uses the fleet bucket under `r2/<bucket_name>/`.
++- An R2 binding uses its configured physical bucket under `r2/<bucket_name>/`.
+ - The five content headers are stored as headers. `customMetadata`,
+   `cacheExpiry`, the checksums, and the storage class are stored together as
+   one JSON value, under the `celld-r2` user-metadata name (`celld_r2` on
+@@ -74,7 +78,7 @@ refuses that write.
+   metadata becomes its `customMetadata`, and its headers become its
+   `httpMetadata`. Use `celld r2 put` to write the complete record.
+ - `celld r2 get|head|put|delete|list` replaces `wrangler r2 object`. The
+-  command reads the fleet bucket directly, so it needs no running node.
++  command reads the configured physical bucket directly, so it needs no running node.
+ - An object `version` equals its content ETag, so identical content produces
+   the same version.
+ - `ssecKey` and `jurisdiction` are unavailable.

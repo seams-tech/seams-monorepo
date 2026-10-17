@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "2c0073bf9a5e9d1b6121487965ce4c2871267436",
+  "walletCheckout": "129c8391087703a6ba049b18a7d69a23a701b106",
+  "platform": "linux-arm64",
+  "binarySha256": "97c35eb6b8dd7f7bd0f07d8f297e5865f75644d204c7975f7b074702a1f09f2b",
+  "status": "passed",
+  "scope": "single-container Linux object and stream behavior",
+  "image": "sha256:379c926df6cc7d85c3cd58379de1b753bfe2bf872ea7cad6da555cf0c5abcfc0",
+  "version": "celld 0.6.2-seams.4",
+  "referenceSha256": "7fcb0dfa78f89d54f2f4e5eb33a7559c01232da13e38502ecbc35f240a9d9d6e",
+  "harnessSha256": "2d9fce177995653cb9a935229be096ef22d89b14651d477c7458c2a5e9fcc033",
+  "fixtureHashes": {
+    "owner": "f1757db99b33273cb9d1137cc37d1659b4b25522ba1ac8bb4dc6f56b36c8d9a6",
+    "caller": "29c845d6b985263aa684d28cab06bf8cdebb871987df3b18371eb4dc5019aa8b"
+  },
+  "streamClone": {
+    "originalText": "alpha\n\u03b2eta\nomega",
+    "copyText": "alpha\n\u03b2eta\nomega",
+    "originalStatus": 206,
+    "copyStatus": 206,
+    "originalHeader": "router",
+    "copyHeader": "router",
+    "rejectsConsumed": true,
+    "rejectsLocked": true,
+    "rejectsDisturbed": true
+  },
+  "object": {
+    "owner": "router",
+    "count": 2,
+    "id": "75736acaf0d7d1f31535a08ac5c036ef670966a14fd86fbbfe2cfcb6b7a65a86"
+  },
+  "cleanup": "owned runtime container removed; evidence retained"
+}

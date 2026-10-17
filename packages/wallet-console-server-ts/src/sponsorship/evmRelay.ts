@@ -1,12 +1,4 @@
-import type { Request, Response, Router as ExpressRouter } from 'express';
 import { createEvmClient, parseRpcHexQuantity as parseEvmRpcHexQuantity } from './evmRpcClient';
-import type { ConsoleBillingService } from '@seams-internal/console-server/billing/index';
-import type { WalletExecutionFunds } from './funds';
-import type { ConsoleObservabilityIngestionService } from '@seams-internal/console-server/observability/index';
-import type { ConsoleRuntimeSnapshotService } from '../runtimeSnapshots';
-import type { ConsoleSponsoredCallService } from '../sponsoredCalls';
-import type { ConsoleSponsorshipSpendCapService } from '../sponsorshipSpendCaps';
-import type { ConsoleWebhookService } from '@seams-internal/console-server/webhooks/index';
 import {
   type ServerEip1559UnsignedTx,
   computeEip1559TxHash,
@@ -17,40 +9,13 @@ import {
   keccak256Bytes,
 } from '@seams/wallet-server/cloud-host';
 import { SponsoredEvmExecutionError } from './executionFailure';
-import type { SponsorshipSpendPricingService } from './spendCaps';
-import type { RouterApiPublishableKeyAuthAdapter } from '@seams/wallet-server/cloud-host';
-import { coerceRouterLogger, type RouterLogger } from '@seams/wallet-server/cloud-host';
-import { handleRouterApiSponsoredEvmCall } from '../router/routerApiSponsoredEvmCall';
-import type { RouteDefinition } from '@seams/wallet-server/cloud-host';
 import { normalizeEvmAddress, type SponsoredEvmCall } from './evm';
-import { DEFAULT_SPONSORED_EVM_CALL_ROUTE } from './evmRoutes';
 import type {
   SponsoredEvmCallExecutorConfig,
   SponsoredEvmChainExecutorConfig,
-  SponsoredEvmExecutionAdapter,
-  SponsoredEvmExecutionAdapterResolver,
   SponsoredEvmExecutionResult,
 } from './evmExecutorTypes';
 import { resolveSponsoredEvmCallConfigFromRecord } from './evmExecutorConfig';
-
-export { DEFAULT_SPONSORED_EVM_CALL_ROUTE, DEFAULT_SPONSORED_EVM_CALL_ROUTE_ID } from './evmRoutes';
-
-export type RegisterSponsoredEvmCallRouteArgs = {
-  router: Pick<ExpressRouter, 'post' | 'options'>;
-  publishableKeyAuth: RouterApiPublishableKeyAuthAdapter;
-  billing: ConsoleBillingService;
-  ledger: ConsoleSponsoredCallService;
-  runtimeSnapshots: ConsoleRuntimeSnapshotService | null;
-  spendCaps?: ConsoleSponsorshipSpendCapService | null;
-  executionFunds?: WalletExecutionFunds | null;
-  pricing?: SponsorshipSpendPricingService | null;
-  webhooks?: ConsoleWebhookService | null;
-  observabilityIngestion?: ConsoleObservabilityIngestionService | null;
-  corsOrigins: string[];
-  config: SponsoredEvmCallExecutorConfig;
-  route?: string;
-  logger?: RouterLogger;
-};
 
 function normalizeTxHashOrThrow(value: unknown): `0x${string}` {
   const normalized = String(value || '').trim();
@@ -275,89 +240,4 @@ export function resolveSponsoredEvmExecutorForChain(
 ): SponsoredEvmChainExecutorConfig | null {
   if (!config) return null;
   return config.executorsByChain.get(chainId) || null;
-}
-
-class ExpressSponsoredEvmExecutionAdapter implements SponsoredEvmExecutionAdapter {
-  readonly executorKind = 'evm_eoa' as const;
-
-  readonly meta: {
-    readonly chainId: number;
-    readonly sponsorAddress: `0x${string}`;
-  };
-
-  constructor(
-    private readonly executor: SponsoredEvmChainExecutorConfig,
-    private readonly call: SponsoredEvmCall,
-  ) {
-    this.meta = {
-      chainId: executor.chainId,
-      sponsorAddress: executor.sponsorAddress,
-    };
-  }
-
-  async execute(): Promise<SponsoredEvmExecutionResult> {
-    return await executeSponsoredEvmCall({
-      executor: this.executor,
-      call: this.call,
-    });
-  }
-}
-
-const resolveSponsoredEvmExecutionAdapterForRoute: SponsoredEvmExecutionAdapterResolver = (
-  input,
-) => {
-  const executor = resolveSponsoredEvmExecutorForChain(input.config, input.chainId);
-  if (!executor) return null;
-  return new ExpressSponsoredEvmExecutionAdapter(executor, input.call);
-};
-
-export function registerSponsoredEvmCallRoute(args: RegisterSponsoredEvmCallRouteArgs): void {
-  const logger = coerceRouterLogger(args.logger || console);
-  const routePath = String(args.route || '').trim() || DEFAULT_SPONSORED_EVM_CALL_ROUTE;
-  const route: RouteDefinition = {
-    id: 'sponsored_evm_call',
-    surface: 'relay',
-    method: 'POST',
-    path: routePath,
-    auth: {
-      plane: 'api_credentials',
-      credentials: ['publishable_key'],
-      environmentBinding: 'required',
-      originBinding: 'required',
-    },
-    metering: { kind: 'gas', ledger: 'evm' },
-    requiredServices: ['routerApiSponsoredEvmCall'],
-    summary: 'Execute a sponsored EVM call',
-  };
-
-  args.router.options(route.path, (_req: Request, res: Response) => {
-    res.status(204).send();
-  });
-
-  args.router.post(route.path, async (req: Request, res: Response) => {
-    const response = await handleRouterApiSponsoredEvmCall({
-      body: req.body,
-      headers: (req.headers || {}) as Record<string, string | string[] | undefined>,
-      logger,
-      origin: String(req.headers?.origin || req.headers?.Origin || '').trim() || undefined,
-      route,
-      services: {
-        routerApiSponsoredEvmCall: {
-          billing: args.billing,
-          config: args.config,
-          resolveExecutionAdapter: resolveSponsoredEvmExecutionAdapterForRoute,
-          observabilityIngestion: args.observabilityIngestion || null,
-          executionFunds: args.executionFunds || null,
-          publishableKeyAuth: args.publishableKeyAuth,
-          pricing: args.pricing || null,
-          runtimeSnapshots: args.runtimeSnapshots,
-          spendCaps: args.spendCaps || null,
-          sponsoredCalls: args.ledger,
-          webhooks: args.webhooks || null,
-        },
-      },
-    });
-    for (const [name, value] of Object.entries(response.headers || {})) res.set(name, value);
-    res.status(response.status).json(response.body);
-  });
 }

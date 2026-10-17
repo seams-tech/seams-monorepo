@@ -1,0 +1,71 @@
+{
+  "sourceCommit": "129c8391087703a6ba049b18a7d69a23a701b106",
+  "candidateSha256": "bd678035c263be78f0b663c6a7731f9aac462cea372e14774625e2a61599c564",
+  "baselineSha256": "92ededd2bcfebeb1e78cc2d97219f00214a79eb6606f0eef48208fca3f98c15a",
+  "harnessSha256": "edf127b53a77cf6e3625c57d050ba35c19b3bdd24998c1b6a0cf5670ff7e1906",
+  "fixtureHashes": {
+    "role": "3c94f419c3eb44560f8a259da5c0145792cfc951e6b1de4e7dadda07e0a5dffb",
+    "router": "a41691c7e6122cee127a17a2069bad2e89c5f71e17a47889bf470a0205a43c37"
+  },
+  "runtime": "celld 0.6.2-seams.4 (debug)",
+  "moto": "5.1.14",
+  "topology": "one celld process; two role Workers; separate S3 emulator buckets; local fleet store",
+  "status": "passed",
+  "stage": "missing-bucket-write-failure",
+  "concurrentStreams": [
+    {
+      "size": 9437184
+    },
+    {
+      "size": 9437184
+    }
+  ],
+  "roles": {
+    "a": {
+      "bindings": {
+        "role": "a",
+        "names": ["BACKUP", "ROLE"]
+      },
+      "physicalKey": "r2/role-a/same-key",
+      "stored": "a-updated",
+      "conditionalWrite": "accepted-then-stale-refused",
+      "streamedBytes": 9437184
+    },
+    "b": {
+      "bindings": {
+        "role": "b",
+        "names": ["BACKUP", "ROLE"]
+      },
+      "physicalKey": "r2/role-b/same-key",
+      "stored": "b-updated",
+      "conditionalWrite": "accepted-then-stale-refused",
+      "streamedBytes": 9437184
+    }
+  },
+  "fleetReuse": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: R2 backups must use a physical bucket distinct from the fleet bucket\n"
+  },
+  "missing": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: load Worker binding target role-a\n\nCaused by:\n    R2 binding has no configured physical bucket\n"
+  },
+  "mismatch": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: load Worker binding target role-a\n\nCaused by:\n    R2 physical bucket differs from deployment manifest\n"
+  },
+  "duplicate": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: R2 bindings must use distinct physical buckets\n"
+  },
+  "downgrade": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: deployment requires feature \"workers-rs-binding-brands-v1\" this celld build does not support; upgrade celld\n"
+  },
+  "restart": "both-roles-preserved",
+  "failure": {
+    "status": 500,
+    "peerPreserved": true
+  },
+  "cleanup": "runtime and temporary emulator stopped; evidence retained"
+}

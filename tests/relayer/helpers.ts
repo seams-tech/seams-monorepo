@@ -8,20 +8,6 @@ import type { CfEnv, CfExecutionContext } from '@seams/wallet-server/cloud-host'
 const SESSION_COOKIE_NAME =
   String(process.env.SESSION_COOKIE_NAME || 'seams-jwt').trim() || 'seams-jwt';
 
-export function makeCfCtx(): {
-  ctx: CfExecutionContext;
-  waited: Array<Promise<unknown>>;
-} {
-  const waited: Array<Promise<unknown>> = [];
-  const ctx: CfExecutionContext = {
-    waitUntil(p: Promise<unknown>) {
-      waited.push(p);
-    },
-    passThroughOnException() {},
-  };
-  return { ctx, waited };
-}
-
 export async function callCf(
   handler: (request: Request, env?: CfEnv, ctx?: CfExecutionContext) => Promise<Response>,
   input: {
@@ -84,26 +70,9 @@ export function getPath(json: unknown, ...path: Array<string | number>): unknown
   return cursor;
 }
 
-export function randomNamespace(prefix: string): string {
-  return `${prefix}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
-}
-
 export function makeConsoleAuthAdapter(claims: ConsoleAuthClaims): ConsoleAuthAdapter {
   return {
     authenticate: async () => ({ ok: true, claims }),
-  };
-}
-
-export function makeGoogleEmailOtpRegistrationOffer(input: {
-  walletId: string;
-  candidateId?: string;
-  offerId?: string;
-}) {
-  const candidateId = input.candidateId || 'registration-candidate-1';
-  return {
-    offerId: input.offerId || 'registration-offer-1',
-    selectedCandidateId: candidateId,
-    candidates: [{ candidateId, walletId: input.walletId }] as const,
   };
 }
 

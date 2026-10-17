@@ -6,7 +6,8 @@ import type {
 import { parseWebAuthnRpId } from '@wallet-ui/shared-ts/src/utils/domainIds';
 import { paperIframeAppearance } from '@/context/app-themes';
 
-export const recoveryCode = '4821-7396-2058-1643';
+// A sample in the real code format: 32 Crockford Base32 characters in groups of four.
+export const recoveryCode = '7K2M-9QXD-4HWP-3RTN-8VBC-6JFS-2YGA-5EZK';
 
 type PasskeyTarget = Extract<AuthMenuRecoveryViewModel, { stage: 'passkey_ready' }>['target'];
 function recoveryTarget(): PasskeyTarget {

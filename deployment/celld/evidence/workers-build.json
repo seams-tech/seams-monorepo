@@ -1,0 +1,21 @@
+{
+  "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+  "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+  "sourceArchiveSha256": "52fadca649043d81c91f00a8f7826275bcf8480646f6ecebbcfeb83b11a31fa8",
+  "executableSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "version": "celld 0.6.2-seams.5 (debug)",
+  "profile": "dev",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "buildCommand": [
+    "cargo",
+    "build",
+    "--locked",
+    "-p",
+    "celld",
+    "--bin",
+    "celld"
+  ]
+}

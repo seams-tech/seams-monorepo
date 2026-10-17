@@ -1,0 +1,360 @@
+{
+  "status": "passed_for_recorded_scope",
+  "date": "2026-10-14",
+  "scope": "Rebuilt 0.11.0 candidates after the dev registration optimization, local celld/workerd Wallet contracts, Console onboarding, local restore and .5 to .7 upgrade, and Google active Yao owner loss.",
+  "publicRevision": "98281b53927a2b1a915456b213d0cead0d1c8ef7",
+  "privateRevisionBeforeEvidence": "1ab30d03951555e53f4f05f94cc90880860b587e",
+  "candidate": {
+    "kind": "local-packed-release-candidate",
+    "version": "0.11.0",
+    "sourceRevision": "98281b53927a2b1a915456b213d0cead0d1c8ef7",
+    "packages": {
+      "wallet-server": {
+        "archive": "/tmp/seams-r190-registration-rebase-packages/seams-wallet-server-0.11.0.tgz",
+        "archiveSha256": "573a96932d531ae543ee59ed8b1e1c12e3477ea0eb8aa7befea6af42de7e4d59",
+        "directory": "/tmp/seams-r190-registration-rebase-candidate/node_modules/@seams/wallet-server"
+      },
+      "wallet": {
+        "archive": "/tmp/seams-r190-registration-rebase-packages/seams-wallet-0.11.0.tgz",
+        "archiveSha256": "3db7eae302d49b0519e35271cade8935b8bcae99d44698cdcfe7ecee8145f859",
+        "directory": "/tmp/seams-r190-registration-rebase-candidate/node_modules/@seams/wallet"
+      }
+    }
+  },
+  "packageSnapshotHashes": {
+    "wallet-server": "cdcb440484548a0a9fc99f4af1d7d87b47100e31f08c12b84dc21b2c609b4a38",
+    "wallet": "bc7fe2cfa7f84504ece2b58bdc9659d07462418ec5a76604ab390c6066183a19"
+  },
+  "walletContracts": {
+    "celld": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-wallet-hjbq4e50/result.json",
+        "sha256": "0567c6cc8478f0389ff6daaa4803596389c1f76ee1252aa019a4193ce814731d"
+      },
+      "runtimeSha256": "a318bdcc2a1383dfb2dc06fb7fad2f0ef7493f54c2c223023dd76e5739547cad",
+      "passed": 16,
+      "skipped": 0,
+      "flaky": 0
+    },
+    "workerd": {
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-registration-rebase-6vmsknrp/result.json",
+        "sha256": "168da7dbbfd9659e014d9004722fdcff797a26ffb81a698e624eb140c224014f"
+      },
+      "passed": 16,
+      "skipped": 0,
+      "flaky": 0
+    }
+  },
+  "registrationReservation": {
+    "proof": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-0g5zt6c4/registration-reservation-proof.json",
+      "sha256": "9442144a60820b3e0c8dd5b35486c4fe3c8abeed671cd25b5fdc1d3868a14652"
+    },
+    "source": {
+      "path": "/Users/pta/Dev/rust/seams-wallet-r190/tests/e2e/registration-credential-reservation.e2e.mjs",
+      "sha256": "f305032a2ac438a331d13b09dd169118b673df29ee959fd3f24690fba6dcc35a"
+    },
+    "assertions": {
+      "refusedClaimLeavesNoWallet": true,
+      "lostClaimReplyLeavesNoWallet": true,
+      "commitRetainsClaimedWalletIdentity": true,
+      "failedLocalWriteRollsBack": true,
+      "exactCommitReplayPreservesRows": true,
+      "commitDoesNotRepeatDirectoryClaim": true,
+      "capabilityLookupReadsSignerRowAndWritesNothing": true,
+      "concurrentWalletPreserved": true,
+      "cancelledRegistrationRefusesWalletCommit": true,
+      "relocatingWalletRefusesWalletCommit": true
+    },
+    "walletCommitD1Calls": 1,
+    "walletAndSessionD1Calls": 2,
+    "scope": "Existing production D1 reservation and commit E2E on Miniflare. Call counts describe this scenario, not end-to-end provider latency."
+  },
+  "console": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-console-x6kx1wf0/result.json",
+      "sha256": "f892eee26117a246fe934ee9e2e0184ec09a38a0aaf662fb0c2eea767162845b"
+    },
+    "migrationCount": 76,
+    "scope": "production Console onboarding, exact replay, service binding and D1 persistence; no Wallet activation or Google claim"
+  },
+  "restoreAndUpgrade": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-0g5zt6c4/result.json",
+      "sha256": "09f6bde5ac30d22f9b09a057aa0ae1bc8f7e3b0e59afcc7d10c6569240b251f0"
+    },
+    "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+    "runtimeSha256": "a318bdcc2a1383dfb2dc06fb7fad2f0ef7493f54c2c223023dd76e5739547cad",
+    "sourceHashes": {
+      "tenant-root-restore.e2e.py": "3273bcfa65da08e6e5be16643e2b7d7f4cbf798a9740d608161418516d39607a",
+      "tenant-root-restore.mjs": "91f859b7c32dfa08884da3ccb19677a8d37d1c07fe037da57729ce10473a586d",
+      "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+      "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+      "test-private-d1.mjs": "d15878bf6fbff347ce14eeed154e13d26f5a25f48dedbf8aea1ed45d76ce720c"
+    },
+    "backupReadDenialPassed": true,
+    "retirementDeleteDenialPassed": true,
+    "shutdownBeforeUpgrade": {
+      "exitCode": 0,
+      "elapsedMs": 15135,
+      "freshApplicationRequest": {
+        "status": 503,
+        "draining": true
+      },
+      "admittedSigningReplay": {
+        "status": 200,
+        "storedReplyPreserved": true
+      }
+    },
+    "upgrade": {
+      "signing": {
+        "signatureSha256": "0dffc66d6987fab93273558b78c65db6858a381edeafc0bf47057b7e863d6a3d",
+        "storedSignaturePreserved": true,
+        "changedFinalize": {
+          "status": 500,
+          "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+        },
+        "consumedPrepare": {
+          "status": 409,
+          "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+        }
+      },
+      "durableRestoreOutcomePreserved": true,
+      "ownershipRecovery": {
+        "refusals": [],
+        "elapsedMs": 108
+      },
+      "epochs": {
+        "deriverA": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ],
+        "deriverB": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ]
+      },
+      "retirement": [
+        "superseded",
+        "superseded"
+      ],
+      "shutdown": {
+        "exitCode": 0,
+        "elapsedMs": 15115,
+        "freshApplicationRequest": {
+          "status": 503,
+          "draining": true
+        },
+        "admittedSigningReplay": {
+          "status": 200,
+          "storedReplyPreserved": true
+        }
+      }
+    },
+    "restart": {
+      "signing": {
+        "signatureSha256": "0dffc66d6987fab93273558b78c65db6858a381edeafc0bf47057b7e863d6a3d",
+        "storedSignaturePreserved": true,
+        "changedFinalize": {
+          "status": 500,
+          "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+        },
+        "consumedPrepare": {
+          "status": 409,
+          "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+        }
+      },
+      "durableRestoreOutcomePreserved": true,
+      "ownershipRecovery": {
+        "refusals": [],
+        "elapsedMs": 125
+      },
+      "epochs": {
+        "deriverA": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ],
+        "deriverB": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ]
+      },
+      "retirement": [
+        "superseded",
+        "superseded"
+      ],
+      "shutdown": {
+        "exitCode": 0,
+        "elapsedMs": 15259,
+        "freshApplicationRequest": {
+          "status": 503,
+          "draining": true
+        },
+        "admittedSigningReplay": {
+          "status": 200,
+          "storedReplyPreserved": true
+        }
+      }
+    },
+    "incompatibleDowngrade": {
+      "exitCode": 1,
+      "requiredFeature": "peer-durable-websockets-v1",
+      "servingAnnouncementObserved": false
+    },
+    "cleanupErrors": []
+  },
+  "googleOwnerLoss": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/google-yao-m8c9q32o/result.json",
+      "sha256": "f9b01c9ebe62adafef1bec8b5d9b7ff9da16c0864b2c1d63ff441c53ce0b1cbf"
+    },
+    "runtime": {
+      "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+      "patchSha256": "df1dab7009abf9dc8bcbbb07f694ff96a5106235927bfef9a63d770d14736bc7",
+      "sourceTransferSha256": "eab9480b2e926a063cebb0a56de0121efea98e1f3a45167c6c5d7f9ae6e3a7ea",
+      "executableSha256": "4cd1f113e51e69cf33e41f46c17dea65e8ff4989ad44597e2de9fea9239d5429",
+      "version": "celld 0.6.2-seams.7",
+      "platform": "Linux",
+      "architecture": "x86_64",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+      "buildCommand": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "celld",
+        "--bin",
+        "celld"
+      ],
+      "clippyCommand": [
+        "cargo",
+        "clippy",
+        "--release",
+        "--locked",
+        "-p",
+        "celld",
+        "--bin",
+        "celld",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "project": "seams-501403",
+    "publicRevision": "98281b53927a2b1a915456b213d0cead0d1c8ef7",
+    "sourceHashes": {
+      "google-yao.e2e.py": "923f363d59132fc22ecd2d826785f2f5d9ca125c2147a4f942eb967bd9527f83",
+      "google-yao.remote.py": "b926f920540cf7d80df6c91906507a9843cbeda3e5f568aaf16d7eab01fd8c98",
+      "yao-peer-disconnect.e2e.py": "9a1e24b44a598c2e38f33883e239105e541f3eb0917ca77568bccc9cc0eaf2d0",
+      "prepare-yao.mjs": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+      "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+      "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+      "render.mjs": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+      "yao-peer-disconnect-proxy.mjs": "126ddaf996b65d6bac5a24809eb191c2d8e749153b2d616a6d294b08700cab44",
+      "test-private-d1.mjs": "d15878bf6fbff347ce14eeed154e13d26f5a25f48dedbf8aea1ed45d76ce720c",
+      "cloudflare_private_d1_fixture.rs": "37c6535b901ea53e72d57031e24b551cc874f6882194d60e10147de9ccb5a040"
+    },
+    "signalUpperBoundMs": 6001.398875145242,
+    "ceremonyTimeoutMs": 15000,
+    "ownerEpochBefore": 1,
+    "ownerEpochAfter": 2,
+    "burnedPairRecovery": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "independentRegistrationCompleted": true,
+    "survivorRestarts": "0",
+    "finalVms": [
+      {
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED"
+      },
+      {
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED"
+      }
+    ],
+    "tunnelCleanup": [
+      {
+        "pid": 47308,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 55815,
+        "connectionRefused": true
+      },
+      {
+        "pid": 47210,
+        "returncode": 255,
+        "mode": "already-exited",
+        "forwardingPort": 55520,
+        "connectionRefused": true
+      }
+    ],
+    "remainingPeerRules": [],
+    "cleanupErrors": []
+  },
+  "validation": {
+    "build": {
+      "path": "/tmp/seams-r190-registration-rebase-build.log",
+      "sha256": "74588a0154401532060d76adeb093ac30145b28854dea61e948d4101083aa1e9"
+    },
+    "pack": {
+      "path": "/tmp/seams-r190-registration-rebase-pack.log",
+      "sha256": "142ae65984e9bed2eb9a555d6508434406adad7c613463fb920a53e7abae4eed"
+    },
+    "privateCheck": {
+      "path": "/tmp/seams-r190-registration-rebase-private-check.log",
+      "sha256": "0be83e21c7a4f501bf27e336943f434d5e4cf99a507d0d282bd7a073c441f48b"
+    },
+    "scriptChecks": {
+      "passed": 53,
+      "existingSkipped": 1,
+      "log": {
+        "path": "/tmp/seams-r190-registration-rebase-final-scripts.log",
+        "sha256": "40ffa06fbb6477017882058cbde32ae42ad25096d19c8bfee2213aad912dfedc"
+      }
+    }
+  },
+  "aggregateMaintainedSourceDelta": -31127,
+  "productionChangesInCheckpoint": false,
+  "limits": [
+    "Candidates remain unpublished. Private production pins remain on the existing release.",
+    "The full 16-contract suites are local. This Google run covers the distributed Yao owner-loss scenario only.",
+    "Restore, provider denial and .5 to .7 upgrade use local synthetic S3. Provider restore and fleet upgrade remain open.",
+    "The shutdown gate holds an admitted stored-response replay. It does not hold a fresh signing claim.",
+    "The .5 downgrade test proves refusal of an incompatible runtime. It does not qualify compatible rollback or mixed-version serving.",
+    "These functional checks do not establish latency equivalence. No production requests or validation calls were added in this checkpoint.",
+    "Distributed relocation and other in-flight claim failure cases remain open."
+  ]
+}

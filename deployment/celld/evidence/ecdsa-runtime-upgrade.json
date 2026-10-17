@@ -1,0 +1,174 @@
+{
+  "status": "passed",
+  "scope": "Verified ECDSA signature and consumed-presign refusal across an offline celld .5 to .6 upgrade and restart, following tenant-root restore and forward refresh; local synthetic S3",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-utv_v_pp/result.json",
+    "sha256": "058eceb146ea024068acfc7bd54f77507cae61bd029b0b19a55708ca35e43c3d"
+  },
+  "workerdControl": {
+    "result": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-tenant-root-ajiahf0f/result.json",
+      "sha256": "647e6bc506b34857a1452abea495ab39fb2d85431453c1490c8631e29b393f23"
+    },
+    "driver": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-tenant-root-ajiahf0f/effective-driver.py",
+      "sha256": "18f93f656cd890dc647170aacffcb496eed22b7b662ad0728dbf495022edb5dc"
+    },
+    "boundary": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/workerd-tenant-root-ajiahf0f/effective-boundary.mjs",
+      "sha256": "1ea6aaabed8a088a9cb81470ad9d7701fa8aa12f7a1868bb1b0f69dfefa9fcac"
+    },
+    "scope": "Same packaged Workers and behavioral assertions; no runtime upgrade or restart",
+    "scenario": {
+      "kind": "tenant_root_refresh_after_managed_restore_workers_e2e_v1",
+      "restoreRevision": 4,
+      "refreshStatus": 200,
+      "refreshRevision": 5,
+      "deriverA": [
+        [2, "retired"],
+        [3, "active"]
+      ],
+      "deriverB": [
+        [2, "retired"],
+        [3, "active"]
+      ],
+      "restoreRetryReturnsDurableOutcome": true,
+      "signing": {
+        "signatureVerified": true,
+        "signatureSha256": "698b6331b6f42045ffd7f784a0a33e02a03efc517a041cd8898be707ecfeaa25"
+      }
+    },
+    "state": {
+      "signing": {
+        "signatureSha256": "698b6331b6f42045ffd7f784a0a33e02a03efc517a041cd8898be707ecfeaa25",
+        "storedSignaturePreserved": true,
+        "changedFinalize": {
+          "status": 500,
+          "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+        },
+        "consumedPrepare": {
+          "status": 409,
+          "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+        }
+      },
+      "durableRestoreOutcomePreserved": true,
+      "ownershipRecovery": {
+        "refusals": [],
+        "elapsedMs": 5
+      },
+      "epochs": {
+        "deriverA": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ],
+        "deriverB": [
+          {
+            "tenant_root_share_epoch": 2,
+            "lifecycle": "retired"
+          },
+          {
+            "tenant_root_share_epoch": 3,
+            "lifecycle": "active"
+          }
+        ]
+      },
+      "retirement": ["superseded", "superseded"]
+    }
+  },
+  "publicRevision": "9214f7491e9bfad0962aa343f9adcf9b03241bd3",
+  "sourceHashes": {
+    "tenant-root-restore.e2e.py": "b3bb8fc916073d1155335eab7af7c9c2cfc35943056dfcd3eec00b50a27e9590",
+    "tenant-root-restore.mjs": "1ea6aaabed8a088a9cb81470ad9d7701fa8aa12f7a1868bb1b0f69dfefa9fcac",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "test-private-d1.mjs": "1cb8b1a8bb0b5114da1d3e44d1c8be4bac7de69749e7ec8e9e74a1218341a7c4"
+  },
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.11.0"
+  },
+  "initialSigning": {
+    "signatureVerified": true,
+    "signatureSha256": "15359fbaa0c2013a9673440a0740ea2201cf9582b231a91a4d1f667452247b96"
+  },
+  "previousRuntimeExitCode": -9,
+  "oldRuntimeStoppedBeforeDeployment": true,
+  "upgradeSigning": {
+    "signatureSha256": "15359fbaa0c2013a9673440a0740ea2201cf9582b231a91a4d1f667452247b96",
+    "storedSignaturePreserved": true,
+    "changedFinalize": {
+      "status": 500,
+      "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+    },
+    "consumedPrepare": {
+      "status": 409,
+      "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+    }
+  },
+  "restartSigning": {
+    "signatureSha256": "15359fbaa0c2013a9673440a0740ea2201cf9582b231a91a4d1f667452247b96",
+    "storedSignaturePreserved": true,
+    "changedFinalize": {
+      "status": 500,
+      "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+    },
+    "consumedPrepare": {
+      "status": 409,
+      "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+    }
+  },
+  "requestDeadline": "Original captured prepare expiry is checked before each replay; the test does not extend it",
+  "ownershipRecovery": {
+    "upgrade": {
+      "temporaryRefusals": 0,
+      "elapsedMs": 146
+    },
+    "restart": {
+      "temporaryRefusals": 22,
+      "elapsedMs": 6006
+    }
+  },
+  "cleanupErrors": [],
+  "failureClassifications": [
+    {
+      "classification": "valid_test_needs_update",
+      "cause": "The shared ECDSA activation helper sent internal-role credentials. The existing production route requires Gateway credentials.",
+      "repair": "Use the existing Gateway-only route set; production authentication remains unchanged."
+    },
+    {
+      "classification": "obsolete_test_or_fixture",
+      "cause": "The old public all-purpose workerd entrypoint omits required wallet object addresses.",
+      "disposition": "Left unqualified. The focused control uses runtime-issued addresses with the existing shared signing scenario."
+    },
+    {
+      "classification": "valid_test_needs_update",
+      "cause": "The first expiry assertion read the captured envelope rather than its nested request.",
+      "repair": "Read request.expires_at_ms; production request schema remains unchanged."
+    }
+  ],
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "findings": "Independent review confirmed cryptographic verification, exact signature replay, specific changed-input and consumed-state refusals, original expiry check, and test-only scope.",
+    "correction": "The previous drained-upgrade claim was unsupported. The final rerun records exit code -9. This is an offline forced-stop upgrade; graceful drain remains unqualified."
+  },
+  "latency": "No production handler, database call, runtime patch, or request-path validation changed in this checkpoint. No latency benchmark claim.",
+  "limits": [
+    "Local macOS ARM64 celld and synthetic S3; no additional Google qualification.",
+    "Final old-runtime exit code is -9. No graceful-drain, in-flight upgrade, mixed-version rollout, or rollback proof.",
+    "Restart required 22 temporary ownership refusals over 6006 ms. This measures recovery availability, not steady-state request latency.",
+    "No signing-effect count or latency benchmark. Exact stored replies and specific refusal reasons are measured.",
+    "Workerd control does not cover a runtime upgrade or restart.",
+    "Older root and Yao evidence uses drained terminology; it establishes offline process replacement only."
+  ],
+  "aggregateMaintainedSourceDelta": -33051
+}

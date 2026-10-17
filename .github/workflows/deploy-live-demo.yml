@@ -5,8 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       environment_id:
-        description: Development environment ID used by wallet.seams.sh
-        required: true
+        description: Development environment ID used by wallet.seams.sh; empty deploys without activation
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -50,9 +51,11 @@ jobs:
     steps:
       - run: echo "Production live-demo deployment authorized"
 
+  # The Console binds every regional Gateway and Wallet Runtime, so it
+  # deploys after the backend has created them.
   deploy_console:
     name: Deploy Console control plane
-    needs: authorize
+    needs: [authorize, deploy_wallet_system]
     uses: ./.github/workflows/deploy-console-backend.yml
     with:
       lane: production-testnet
@@ -64,8 +67,11 @@ jobs:
     uses: ./.github/workflows/deploy-production-testnet-backend.yml
     secrets: inherit
 
+  # The first deployment of an empty Console has no environment yet: the
+  # owner signs up and creates the project, then reruns with its id.
   cutover:
     name: Activate live-demo tenant binding
+    if: inputs.environment_id != ''
     needs: [deploy_console, deploy_wallet_system]
     runs-on: ubuntu-latest
     timeout-minutes: 15

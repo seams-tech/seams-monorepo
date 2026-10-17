@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
@@ -182,7 +183,7 @@ async function main(args) {
       migrateBackend(lane, options.component);
       return;
     case 'deploy':
-      deployBackend(lane, options.component);
+      await deployBackend(lane, options.component);
       return;
     case 'smoke':
       await smokeBackend(lane, options.component);
@@ -326,7 +327,8 @@ function printPlan(lane, component) {
     '  4. deploy tenant-root-control-plane after the three workers',
     '  5. deploy router after the control plane and all three workers complete',
     '  6. deploy wallet-runtime after router',
-    '  7. deploy gateway after router and wallet-runtime',
+    '  7. deploy gateway after router and wallet-runtime; an inert Worker first',
+    '     holds each missing regional Gateway name, then the real Gateways replace it',
     '  8. smoke Gateway, Wallet runtime, and Router A/B endpoints',
   ];
   process.stdout.write(`${lines.join('\n')}\n`);
@@ -971,7 +973,7 @@ function applyBackendMigration(migration) {
   runCommand('node', migrationArgs, { cwd: GATEWAY_ROOT });
 }
 
-function deployBackend(lane, component) {
+async function deployBackend(lane, component) {
   preflightBackend(lane, component);
   validateDeploymentKeyPairs(lane, component);
   switch (component) {
@@ -994,7 +996,7 @@ function deployBackend(lane, component) {
       deployWalletRuntime(lane);
       return;
     case 'gateway':
-      deployGateway(lane);
+      await deployGateway(lane);
       return;
     case 'console':
       deployConsole(lane);
@@ -1552,9 +1554,69 @@ function deployRegionalWalletRuntime(lane, region) {
   );
 }
 
-function deployGateway(lane) {
-  requireAllocatedWalletRegions(requireProvisionedLane(lane));
+async function deployGateway(lane) {
+  const resources = requireAllocatedWalletRegions(requireProvisionedLane(lane));
+  await bootstrapRegionalGateways(resources);
   for (const region of WALLET_REGIONS) deployRegionalGateway(lane, region);
+}
+
+// Every regional Gateway binds all four regional Gateways, and Cloudflare
+// requires a service binding's target to exist before the caller deploys. A
+// lane's first regional deployment therefore installs an inert Worker under
+// each missing regional name; the deployment loop replaces each of them.
+async function bootstrapRegionalGateways(resources) {
+  const accountId = requireEnvironmentValue('CLOUDFLARE_ACCOUNT_ID');
+  const apiToken = requireEnvironmentValue('CLOUDFLARE_API_TOKEN');
+  for (const region of WALLET_REGIONS) {
+    const workerName = resources[region].workerName;
+    if (await workerScriptExists(accountId, apiToken, workerName)) continue;
+    deployInertWorker(workerName);
+  }
+}
+
+async function workerScriptExists(accountId, apiToken, workerName) {
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/settings`,
+    {
+      headers: { authorization: `Bearer ${apiToken}` },
+      redirect: 'error',
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  if (response.status === 404) return false;
+  if (!response.ok) {
+    throw new Error(`Cloudflare read of ${workerName} failed with HTTP ${response.status}`);
+  }
+  return true;
+}
+
+function deployInertWorker(workerName) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'seams-inert-worker-'));
+  try {
+    fs.writeFileSync(
+      path.join(directory, 'inert.mjs'),
+      'export default { fetch() { return new Response(null, { status: 503 }); } };\n',
+    );
+    const config = path.join(directory, 'wrangler.toml');
+    fs.writeFileSync(
+      config,
+      [
+        `name = ${JSON.stringify(workerName)}`,
+        'main = "inert.mjs"',
+        `compatibility_date = ${JSON.stringify(GATEWAY_WORKER_COMPATIBILITY_DATE)}`,
+        'workers_dev = false',
+        '',
+      ].join('\n'),
+    );
+    process.stdout.write(`Installing an inert bootstrap Worker as ${workerName}\n`);
+    runCommand(
+      'pnpm',
+      ['exec', 'wrangler', 'deploy', '--config', config, '--message', 'regional bootstrap'],
+      { cwd: GATEWAY_ROOT },
+    );
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 }
 
 function deployRegionalGateway(lane, region) {

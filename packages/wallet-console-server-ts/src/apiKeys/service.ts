@@ -13,7 +13,7 @@ import {
   makeSecretPreview,
   parseApiKeySecret,
 } from './secret';
-import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary';
+import { normalizeCorsOrigin } from '@seams-internal/console-server/boundary/index';
 
 import type {
   ApiCredentialScopeValidation,

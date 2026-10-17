@@ -9,11 +9,6 @@ function stripTrailingSlash(path: string): string {
   return path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
-export function getSiteBase(): string {
-  const base = SITE_LINKS.baseUrl;
-  return stripTrailingSlash(base) || '/';
-}
-
 export function getDocsOrigin(): string {
   return stripTrailingSlash(SITE_LINKS.docsOrigin);
 }
@@ -25,10 +20,7 @@ export function isHttpUrl(value: string): boolean {
 function toSiteAbsolutePath(pathOrHash: string): string {
   if (!pathOrHash) return '/';
   if (pathOrHash.startsWith('#')) return `${window.location.pathname}${pathOrHash}`;
-  const normalized = pathOrHash.startsWith('/') ? pathOrHash : `/${pathOrHash}`;
-  const base = getSiteBase();
-  if (base === '/') return normalized;
-  return `${base}${normalized}`;
+  return pathOrHash.startsWith('/') ? pathOrHash : `/${pathOrHash}`;
 }
 
 export function maybeDocsHref(target: string): string | null {
@@ -41,7 +33,7 @@ export function maybeDocsHref(target: string): string | null {
 export function resolveHref(target: string): string {
   if (isHttpUrl(target)) return target;
 
-  if (target === '/wallet') return getSiteBase();
+  if (target === '/wallet') return SITE_LINKS.walletPath;
 
   const docsHref = maybeDocsHref(target);
   if (docsHref) return docsHref;

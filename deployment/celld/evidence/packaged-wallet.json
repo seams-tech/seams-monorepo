@@ -1,0 +1,217 @@
+{
+  "status": "passed",
+  "stage": "raw-ec-public-keys-downgrade-refusal",
+  "responses": {
+    "router": {
+      "status": 405,
+      "body": "Router A/B strict public route requires POST"
+    },
+    "deriver-a": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "deriver-b": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "signing-worker": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "tenant-root-control-plane": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    }
+  },
+  "runtimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "packageSnapshotHashes": {
+    "wallet-server": "a5ea313ccc22ea7620532055c77dfbb7d5033e46041d8c1f5f9003e484f0422f",
+    "wallet": "9957454c44374c011981aa433aba3a28e0adc809b6685bed8466c1dd39282698"
+  },
+  "harnessSha256": "ef823a68a71c2c90287beb5c507e3debc07e05579fdad88f508ac5f1a2d609b6",
+  "sourceCommit": "10d60df51f16c896815cb1584cee074c08d115bc",
+  "scope": "packaged roles, tenant-root provisioning, crash replay, Gateway, and mixed-wallet browser signing",
+  "runtime": "celld 0.6.2-seams.5 (debug)",
+  "esbuild": "0.28.1",
+  "moto": "5.1.14",
+  "preparationSha256": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+  "sdkPackage": "0.9.4",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.9.4"
+  },
+  "manifestSha256": "1ff567b48e7f96785b29c4f70172860eef228eb5cf37e9b97942d7573acd5db6",
+  "fingerprints": {
+    "router": "758db06fb89c0610553b36b6a2bb81e926802c2282f710f03e3a26a614b60ee8",
+    "deriver-a": "08ef12304ec1f86178479d4f6ab7c301fe37750c1263b0296e60717abc15b701",
+    "deriver-b": "3514308c7b2cdcd9070a1adebcbf2a9f2a2011f6bd0ab8e0da82e2aa7a9930e6",
+    "signing-worker": "1ee6e4dc897b288d1849d8bd307cdcf1da08a873e769f24198f2f2c95453abd3",
+    "tenant-root-control-plane": "f1d0652d29c3ade90b6b6ad9772ac0871c69ccfb4009fc051287ae10390faaa3"
+  },
+  "takeoverRefusals": 7,
+  "takeoverSeconds": 9.250717125134543,
+  "tenantRoot": {
+    "kind": "wallet_local_tenant_root_ready_v1",
+    "identityDigestB64u": "q5Yryx9JSxuaZuJhJ7dv7Q72J7zJ8m4UwQvxjQKfwhY",
+    "custodyLineageB64u": "N1A_m86t2rOrf9G7LJ8SaQ",
+    "revision": 1,
+    "rootCommitmentB64u": "_n1CThO1IQO7D4YbEs-x_UNSX5Xf13Ng3ZAjfAYXWl8",
+    "replayed": true
+  },
+  "exactGrantReplay": "same-result-after-process-kill-and-fresh-node",
+  "gatewayPreparationSha256": "b021ccc8b54beb9e78adf80a2abb4e2adef439dccf5f2308c045463a70300686",
+  "gatewayEntrySha256": "f9eafa66c7f67598dc401e04b7a14fe9666d0097176fbed1b9222f1dc266e314",
+  "gatewayReady": {
+    "status": 200,
+    "body": "{\"ok\":true,\"thresholdEd25519\":{\"configured\":true},\"cors\":{\"allowedOrigins\":[\"http://localhost:49455\",\"http://localhost:49456\"]}}"
+  },
+  "walletCheckout": "6b968b6f3d1325f3a8e67f6768911f1b5d9dab24",
+  "sdkDistSha256": "30bc95a35789351eb97f32de5a84a3a484688a9d1c0d48e307e0b778e38c74a3",
+  "sdkPackageSha256": "45d3977c85c709bf1ba13be4ad6233fe3f73382cb6ea4a101cbf4e3d80cc52b6",
+  "browserContracts": [
+    "EVM registration and signatures complete while NEAR execution is held",
+    "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+    "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+    "exact finalize retry at the Router returns the SigningWorker stored signature",
+    "passkey unlock restores immediate export and shared-budget signing",
+    "a committed Passkey recovery survives a lost finalization response and runtime reset",
+    "lock retains durable presignatures across a fresh unlock",
+    "a cross-tab lock prevents delayed restoration from recreating its credential",
+    "a fresh unlock survives a delayed restoration response from another tab",
+    "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+    "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+    "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+    "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+    "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+    "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+    "a linked device revoked with an email code across a refused commit is answered from what committed"
+  ],
+  "browserSourceHashes": {
+    "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+    "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+    "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+    "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+    "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+  },
+  "browserOutcomes": [
+    {
+      "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "EVM registration and signatures complete while NEAR execution is held",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "lock retains durable presignatures across a fresh unlock",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "a fresh unlock survives a delayed restoration response from another tab",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    },
+    {
+      "title": "passkey unlock restores immediate export and shared-budget signing",
+      "expectedStatus": "passed",
+      "results": [
+        "passed"
+      ]
+    }
+  ],
+  "previousRuntime": "celld 0.6.2-seams.4 (debug)",
+  "previousRuntimeSha256": "bd678035c263be78f0b663c6a7731f9aac462cea372e14774625e2a61599c564",
+  "runtimeFeatureDowngrade": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: deployment requires feature \"raw-ec-public-keys-v1\" this celld build does not support; upgrade celld\n"
+  },
+  "cleanup": "runtime and temporary emulator stopped; evidence retained"
+}

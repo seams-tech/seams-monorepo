@@ -1,0 +1,120 @@
+{
+  "status": "passed",
+  "stage": "streaming-clone-downgrade-refusal",
+  "responses": {
+    "router": {
+      "status": 405,
+      "body": "Router A/B strict public route requires POST"
+    },
+    "deriver-a": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "deriver-b": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "signing-worker": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    },
+    "tenant-root-control-plane": {
+      "status": 403,
+      "body": "InvalidLocalHttpRequest: Router A/B private Worker request is missing valid service auth"
+    }
+  },
+  "runtimeSha256": "bd678035c263be78f0b663c6a7731f9aac462cea372e14774625e2a61599c564",
+  "harnessSha256": "9ef4f4243f1c57afb2820fa9e40f886b2cf380f60b8bc671ff5402886f93407e",
+  "sourceCommit": "2c0073bf9a5e9d1b6121487965ce4c2871267436",
+  "scope": "packaged roles, tenant-root provisioning, crash replay, Gateway, and mixed-wallet browser signing",
+  "runtime": "celld 0.6.2-seams.4 (debug)",
+  "esbuild": "0.28.1",
+  "moto": "5.1.14",
+  "preparationSha256": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.9.3"
+  },
+  "manifestSha256": "8d1e46b35e154e3277f18e09ea5c9e28ca8076969d355ad1f96041b7e62bddd8",
+  "fingerprints": {
+    "router": "9aa6adbab32e5358ec10422887961436e7fef549c9c740331e05f51aa6f095e7",
+    "deriver-a": "9d5e7b103536e7ebb8171d92441c5e9e3d0ffc56e7fa2c14ae366b4c830a6021",
+    "deriver-b": "7d00d2bd13540dbf54852a229719bb49f63e13f63156eae27ed6d02bf155bfd5",
+    "signing-worker": "70f940a849724cee4ccbd8aab11645858179e95578badd8dab090a657a816e90",
+    "tenant-root-control-plane": "6ea385bf5cdad01cd1363343344884ee9c96dc3497896a398c49f3757b6c501a"
+  },
+  "takeoverRefusals": 5,
+  "takeoverSeconds": 8.673432917101309,
+  "tenantRoot": {
+    "kind": "wallet_local_tenant_root_ready_v1",
+    "identityDigestB64u": "q5Yryx9JSxuaZuJhJ7dv7Q72J7zJ8m4UwQvxjQKfwhY",
+    "custodyLineageB64u": "jQHrXkQpahGmUdCtK3KW5Q",
+    "revision": 1,
+    "rootCommitmentB64u": "FtWiUHATPUF1TVJlvC6uO4ZIMtJGnz3alU2KjOcWFSM",
+    "replayed": true
+  },
+  "exactGrantReplay": "same-result-after-process-kill-and-fresh-node",
+  "gatewayPreparationSha256": "f07073f2999843124c7f65168d60284438cc4e0cf97b963c3ee0315abf369318",
+  "gatewayEntrySha256": "f9eafa66c7f67598dc401e04b7a14fe9666d0097176fbed1b9222f1dc266e314",
+  "gatewayReady": {
+    "status": 200,
+    "body": "{\"ok\":true,\"thresholdEd25519\":{\"configured\":true},\"cors\":{\"allowedOrigins\":[\"http://localhost:61146\",\"http://localhost:61147\"]}}"
+  },
+  "sdkPackage": "0.9.3",
+  "walletCheckout": "129c8391087703a6ba049b18a7d69a23a701b106",
+  "sdkDistSha256": "a7b359f31347652627a30c226fdb3af9c51a67088217c0881a72dd380761a803",
+  "sdkPackageSha256": "3de8ddfa21b68839562cc1683c7fe3089034249881bef6d3eb08c6009240cb72",
+  "browserContracts": [
+    "EVM registration and signatures complete while NEAR execution is held",
+    "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+    "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+    "exact finalize retry at the Router returns the SigningWorker stored signature",
+    "passkey unlock restores immediate export and shared-budget signing",
+    "a committed Passkey recovery survives a lost finalization response and runtime reset"
+  ],
+  "browserSourceHashes": {
+    "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+    "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+    "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+    "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3"
+  },
+  "browserOutcomes": [
+    {
+      "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    },
+    {
+      "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    },
+    {
+      "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    },
+    {
+      "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    },
+    {
+      "title": "EVM registration and signatures complete while NEAR execution is held",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    },
+    {
+      "title": "passkey unlock restores immediate export and shared-budget signing",
+      "expectedStatus": "passed",
+      "results": ["passed"]
+    }
+  ],
+  "previousRuntime": "celld 0.6.2-seams.3 (debug)",
+  "previousRuntimeSha256": "2d799446e82c2f4a90251afb5fd63f7dd9109fac0d48a15bf4e8d7b7485e873e",
+  "streamingCloneDowngrade": {
+    "exitCode": 1,
+    "output": "<jemalloc>: option background_thread currently supports pthread only\nError: deployment requires feature \"streaming-response-clone-v1\" this celld build does not support; upgrade celld\n"
+  },
+  "cleanup": "runtime and temporary emulator stopped; evidence retained"
+}

@@ -1,0 +1,110 @@
+{
+  "status": "passed",
+  "scope": "Local object-store read denial during dual-authorized restore with exactly one missing Deriver A active share, followed by identical-request recovery, refresh, shutdown, and upgrade checks",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-sv4hsu2e/result.json",
+    "sha256": "594381d2fc3e9a6069ca1789b008b8f96462a274b2fd2498abfc202fa8635c3b"
+  },
+  "providerRefusal": {
+    "deniedRole": "deriver-a",
+    "independentRoleReadable": "deriver-b",
+    "providerReadStatus": 403,
+    "restoreStatus": 500,
+    "restoreBody": "InvalidLocalServiceConfig: tenant-root managed-restore staging request service returned HTTP status 500: InvalidLocalServiceConfig: tenant-root backup lookup failed: Error: read s3://backup-deriver-a/r2/router-ab-deriver-a-tenant-root-managed-backup/tenant-root-managed-backup/v1/deriver-a/f8dc8f7baa31e0d69af34ae7683272d4582ad71c73edd8c70d3d3f64d2de3cea/IyMjIyMjIyMjIyMjIyMjIw/1.bin",
+    "roleShareMetadataUnchanged": true
+  },
+  "instrumentProbe": {
+    "path": "/tmp/seams-r190-backup-policy-probe.json",
+    "sha256": "0ad27cc81b8f76cefa74e6ac3908bd6bca510a900177a2242b714787eec74990"
+  },
+  "instrumentProbeSource": {
+    "path": "/tmp/seams-r190-probe-backup-policy.py",
+    "sha256": "efd4a112c5a1b0047859eb2d9a43d4c6c92116faf848099a30b3438b2541daef"
+  },
+  "sourceHashes": {
+    "tenant-root-restore.e2e.py": "ddce2f80365c0afa1cdcee610e2e2a5285e5e502bc242ce9537e0a4ec2bb4815",
+    "tenant-root-restore.mjs": "694dd24fa0228478a533e7e171e7090531e07b04e8e7d7f564026ae1eb9935c2",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "test-private-d1.mjs": "1cb8b1a8bb0b5114da1d3e44d1c8be4bac7de69749e7ec8e9e74a1218341a7c4"
+  },
+  "publicRevision": "953e085450598033f1c14f6d52deb2ffdf86f147",
+  "package": {
+    "name": "@seams/wallet-server",
+    "version": "0.11.0"
+  },
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "recoveredScenario": {
+    "kind": "tenant_root_refresh_after_managed_restore_workers_e2e_v1",
+    "restoreRevision": 4,
+    "refreshStatus": 200,
+    "refreshRevision": 5,
+    "deriverA": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "deriverB": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "restoreRetryReturnsDurableOutcome": true,
+    "signing": {
+      "signatureVerified": true,
+      "signatureSha256": "3e3ef0d7679cbeb7740c4d5b021a43cbf7d9f6ddcb97fd8074b8c85baad17679"
+    }
+  },
+  "upgradeSigning": {
+    "signatureSha256": "3e3ef0d7679cbeb7740c4d5b021a43cbf7d9f6ddcb97fd8074b8c85baad17679",
+    "storedSignaturePreserved": true,
+    "changedFinalize": {
+      "status": 500,
+      "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+    },
+    "consumedPrepare": {
+      "status": 409,
+      "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+    }
+  },
+  "restartSigning": {
+    "signatureSha256": "3e3ef0d7679cbeb7740c4d5b021a43cbf7d9f6ddcb97fd8074b8c85baad17679",
+    "storedSignaturePreserved": true,
+    "changedFinalize": {
+      "status": 500,
+      "body": "InvalidLocalServiceConfig: Router A/B ECDSA derivation finalize service returned HTTP status 500: InvalidLocalServiceConfig: SigningWorker wallet-DO ECDSA claim and consume returned 409: ReplayedLocalRequest: SigningWorker ECDSA effect identity or authorization changed"
+    },
+    "consumedPrepare": {
+      "status": 409,
+      "body": "ReplayedLocalRequest: SigningWorker ECDSA pool command used a stale revision"
+    }
+  },
+  "cleanupErrors": [],
+  "failureClassification": {
+    "classification": "valid_test_needs_update",
+    "cause": "The emulator does not apply the s3:GetObject policy to HEAD. The first fault check therefore did not deny access.",
+    "probe": {
+      "beforeGet": 200,
+      "deniedHead": 200,
+      "deniedGet": 403
+    },
+    "repair": "Use real GET for the positive and negative access controls. One intermediate attempted edit retained HEAD and failed the same instrument check.",
+    "firstAttempt": {
+      "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-1v3ucyla/result.json",
+      "sha256": "28159e83ac9bcae1bfaa87806420fd22c086a31530f6a6fcb0504278e78df95b"
+    }
+  },
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "result": "Raw result and matching source hashes verified; no material blocker within the stated scope."
+  },
+  "limits": [
+    "One local macOS ARM64 node and Moto S3. No GCS IAM or provider-outage qualification.",
+    "Exactly one A active share is missing. No both-share or all-replica-loss qualification.",
+    "The comparison covers identity digest, lineage, epoch, and lifecycle. It excludes share bytes and other restore tables. The artifact records the assertion result, not raw compared rows.",
+    "The shared workerd control does not inject this provider-specific fault.",
+    "Only test code changed. No production request, database call, runtime patch, or blocking validation was added."
+  ],
+  "aggregateMaintainedSourceDelta": -32829
+}

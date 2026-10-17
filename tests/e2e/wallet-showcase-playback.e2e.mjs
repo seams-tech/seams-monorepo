@@ -62,24 +62,22 @@ try {
     'Transaction complete',
     { timeout: 20000 },
   );
-  await selection(gallery, 'Link & recover');
-  const access = gallery.frameLocator('iframe[title="Link and recover"]');
-  await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible();
-  await gallery.getByRole('button', { name: 'Pause playback', exact: true }).click();
-  await page.waitForTimeout(4500);
-  await expect(access.getByRole('img', { name: 'QR code to link this device' })).toBeVisible();
-  await resume(page, gallery);
-  await expect(access.getByRole('heading', { name: 'Device linked' })).toBeVisible({
+  await selection(gallery, 'Recover and Link Devices');
+  const management = gallery.frameLocator('iframe[title="Recover and Link Devices"]');
+  await expect(
+    management.getByRole('heading', { name: 'Authentication methods', exact: true }),
+  ).toBeVisible({
     timeout: 15000,
   });
-  await expect(access.getByLabel('Recovery code', { exact: true })).toBeVisible({ timeout: 15000 });
-  await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible({
-    timeout: 20000,
-  });
-  await selection(gallery, 'Account management');
-  await expect(gallery.getByText('Your wallet is now available on this device.')).toBeVisible({
-    timeout: 15000,
-  });
+  await expect(management.getByText('Passkey', { exact: true })).toBeVisible();
+  await expect(management.getByText('Email OTP', { exact: true })).toBeVisible();
+  await expect(management.getByRole('heading', { name: 'Link a device', exact: true })).toBeVisible(
+    { timeout: 15000 },
+  );
+  await expect(
+    management.getByRole('heading', { name: 'Your recovery codes', exact: true }),
+  ).toBeVisible({ timeout: 15000 });
+  await page.screenshot({ path: `${artifacts}/account-recovery.png` });
   await selection(gallery, 'Authentication');
   await expect(
     gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
@@ -106,7 +104,6 @@ try {
         passed: true,
         automaticFullCarousel: true,
         pausedReceiptClock: true,
-        pausedLinkApproval: true,
         manualTakeover: true,
         restartedOnPlay: true,
       },

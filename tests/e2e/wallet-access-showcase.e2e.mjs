@@ -45,56 +45,25 @@ try {
   await auth.getByLabel('Recovery code', { exact: true }).fill('1234');
   await auth.getByRole('button', { name: 'Recover with Passkey', exact: true }).press('Enter');
   await expect(auth.getByRole('alert')).toContainText('Check your recovery code');
-  await auth.getByLabel('Recovery code', { exact: true }).fill('4821-7396-2058-1643');
+  await auth
+    .getByLabel('Recovery code', { exact: true })
+    .fill('7K2M-9QXD-4HWP-3RTN-8VBC-6JFS-2YGA-5EZK');
   await auth.getByRole('button', { name: 'Recover with Passkey', exact: true }).press('Enter');
   await auth.getByRole('button', { name: 'Create new passkey', exact: true }).press('Enter');
-  await auth.getByRole('button', { name: 'Unlock with new passkey', exact: true }).press('Enter');
   await expect(auth.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible();
-  await auth.getByRole('button', { name: 'Back', exact: true }).press('Enter');
+  await auth.getByRole('button', { name: 'Start over', exact: true }).press('Enter');
   await expect(auth.getByRole('button', { name: 'Create wallet with passkey' })).toBeVisible();
 
-  await gallery
-    .getByRole('radiogroup', { name: 'Components', exact: true })
-    .getByRole('radio', { name: 'Link & recover', exact: true })
-    .locator('..')
-    .click();
-  await gallery.evaluate(position);
-  await page.mouse.move(5, 5);
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await gallery.getByRole('button', { name: 'Play playback', exact: true }).click();
-  await page.mouse.move(5, 5);
-  const access = gallery.frameLocator('iframe[title="Link and recover"]');
-  for (let cycle = 0; cycle < 2; cycle += 1) {
-    await expect(access.getByRole('button', { name: 'Create passkey', exact: true })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(access.getByRole('heading', { name: 'Device linked' })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(access.getByLabel('Recovery code', { exact: true })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(
-      access.getByRole('button', { name: 'Create new passkey', exact: true }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect(
-      access.getByRole('button', { name: 'Unlock with new passkey', exact: true }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect(access.getByRole('heading', { name: 'Wallet recovered' })).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(
-      gallery
-        .getByRole('radiogroup', { name: 'Components', exact: true })
-        .getByRole('radio', { name: 'Account management', exact: true }),
-    ).toBeChecked({ timeout: 15000 });
-    await gallery
+  // Next on a success card moves the canvas to the following component.
+  await auth.getByRole('button', { name: 'Create wallet with passkey' }).press('Enter');
+  await expect(auth.getByRole('status')).toContainText("You're logged in.");
+  await auth.getByRole('button', { name: 'Next', exact: true }).press('Enter');
+  await expect(
+    gallery
       .getByRole('radiogroup', { name: 'Components', exact: true })
-      .getByRole('radio', { name: 'Link & recover', exact: true })
-      .locator('..')
-      .click();
-    await page.mouse.move(5, 5);
-  }
+      .getByRole('radio', { name: 'Transactions', exact: true }),
+  ).toBeChecked();
+
   await writeFile(
     `${artifacts}/result.json`,
     JSON.stringify(
@@ -102,7 +71,6 @@ try {
         passed: true,
         sdkMenus: true,
         authenticationEntryPoints: true,
-        replayCycles: 2,
         invalidRecoveryCode: true,
         backNavigation: true,
       },
@@ -111,7 +79,7 @@ try {
     ),
   );
   console.log(
-    'Passed SDK linking/recovery menus, Authentication entry points, validation, reset, and replay.',
+    'Passed SDK linking/recovery menus, Authentication entry points, validation, and reset.',
   );
 } catch (error) {
   await context.pages()[0]?.screenshot({ path: `${artifacts}/failure.png` });

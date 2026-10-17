@@ -1,0 +1,391 @@
+{
+  "status": "passed",
+  "scope": "local real Yao peer interruption through the shared Durable Object proxy on workerd and celld; native persistent-state restart",
+  "publicTestRevision": "15f29ac93c344dc27d25af5886daa89a9271c5aa",
+  "publicSourceHashes": {
+    "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs": "1716659727a41f1fe79b741159ffa107a3fbb79154c48417152fcf34ec41b3b5",
+    "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-proxy.mjs": "0629b4ab0dda0b6c1e85ac3833edaadaad22ad6b235c41803e9df4116747db42",
+    "crates/router-ab-cloudflare/scripts/test-private-d1.mjs": "29f745cde2e3889e32e4424c95615a4093794eb8b5496944f4e449f70ff196f0"
+  },
+  "qualifiedApplicationVersion": "0.11.0",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "workerFilesMatchPackedCandidate": {
+    "router": [
+      {
+        "path": "crates/router-ab-cloudflare/build/router/build-stamp.json",
+        "sha256": "a66cee02d8d9feb04b1bb9a434c0e34b414dff82dbcac069c5af12e4a2527e16"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/router/index.js",
+        "sha256": "69aab9f4c134291aa1d2318f6880b9434aca2e072ebd1c04e285a3199c894348"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/router/index_bg.wasm",
+        "sha256": "6f3fa185c06a8b9a08f9c52033fb03be2771969bb6b3fb8fae49c481de2ba546"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/router/package.json",
+        "sha256": "b56654b7de9c02929cb9275608ad1d94e693b7b8c590fe00cda3df541ed08ca5"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/router/worker/shim.mjs",
+        "sha256": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+      }
+    ],
+    "deriver-a": [
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-a/build-stamp.json",
+        "sha256": "a0957c7d1e70d5eb812f346e5d389a91b6aded40e0755ff167419a57098a5e21"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-a/index.js",
+        "sha256": "664779414c1a791a6d20047fea9cf899c531724a7b53e82e311b5a67635ccbf3"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-a/index_bg.wasm",
+        "sha256": "8ecd20714e4daed1fffaac1ffdcfc153d52ccd870e9bfabccea37020be9ca973"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-a/package.json",
+        "sha256": "b56654b7de9c02929cb9275608ad1d94e693b7b8c590fe00cda3df541ed08ca5"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-a/worker/shim.mjs",
+        "sha256": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+      }
+    ],
+    "deriver-b": [
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-b/build-stamp.json",
+        "sha256": "c91f751a95e46b5201f5bdf510db9a2ec5cbb368dd1b672bacf7d060d2e57517"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-b/index.js",
+        "sha256": "0dbf970e7b89055bbd3f8920825d3e188181436377a7405146683d0c557c56d1"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-b/index_bg.wasm",
+        "sha256": "4a63d311a0b927fb862736db4df5f168a0e14884440f65a166d0c6d50c9a1fb8"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-b/package.json",
+        "sha256": "b56654b7de9c02929cb9275608ad1d94e693b7b8c590fe00cda3df541ed08ca5"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/deriver-b/worker/shim.mjs",
+        "sha256": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+      }
+    ],
+    "signing-worker": [
+      {
+        "path": "crates/router-ab-cloudflare/build/signing-worker/build-stamp.json",
+        "sha256": "8ef144c89a48bb9e67c1178a1d105176f386688fb07fbd99ce2f8314d7f3e19d"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/signing-worker/index.js",
+        "sha256": "a6825becc86517e5c222f8cca0415a7761ec901d2686a0428f8219dc2b65a951"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/signing-worker/index_bg.wasm",
+        "sha256": "6e67a8a4d2a9cede64dcffcc41266e80b27b29090e762ab1c2b71058f272bb17"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/signing-worker/package.json",
+        "sha256": "b56654b7de9c02929cb9275608ad1d94e693b7b8c590fe00cda3df541ed08ca5"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/signing-worker/worker/shim.mjs",
+        "sha256": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+      }
+    ],
+    "tenant-root-control-plane": [
+      {
+        "path": "crates/router-ab-cloudflare/build/tenant-root-control-plane/build-stamp.json",
+        "sha256": "bb0f2ee1f238b7c355931a0bcde5ec57c89063a0db063d2a0d8f4fbdb63986c4"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/tenant-root-control-plane/index.js",
+        "sha256": "d46b6a2d3e00ac042c193a715d6d9c0ed1f0e129a8dc8da1bed55bf9130e5f15"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/tenant-root-control-plane/index_bg.wasm",
+        "sha256": "f67996f5f97ea31b340235b626e112b3138e96595a3fbb8454e771865e9f1dda"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/tenant-root-control-plane/package.json",
+        "sha256": "b56654b7de9c02929cb9275608ad1d94e693b7b8c590fe00cda3df541ed08ca5"
+      },
+      {
+        "path": "crates/router-ab-cloudflare/build/tenant-root-control-plane/worker/shim.mjs",
+        "sha256": "ac99177861405a6046923cbacabbd6adfa1853a56d0c679b9f5e09097c2f4728"
+      }
+    ]
+  },
+  "celld": {
+    "status": "passed",
+    "scope": "real packaged Yao pair disconnect, exact retry, independent wallet and restart; local synthetic S3",
+    "runtimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+    "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+    "sourceHashes": {
+      "driver": "dda9b547cab6fbf1af98491b7aaf1941d3d10c116333fa360e0b2597357fceaf",
+      "preparer": "11cd48d3831435bd2f4e5d0db260de0c569cad260161ac18bc59344002eca5b5",
+      "proxy": "0629b4ab0dda0b6c1e85ac3833edaadaad22ad6b235c41803e9df4116747db42"
+    },
+    "faultObservation": {
+      "httpStatus": 200,
+      "reply": {
+        "status": "recoverable_failure",
+        "code": "service_unavailable",
+        "retry_after_ms": 1000
+      },
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "connection": {
+        "connectionAttempts": 1,
+        "connections": 1,
+        "refusals": [],
+        "aMessages": 1,
+        "bMessages": 2,
+        "disconnected": true,
+        "aClosed": true,
+        "bClosed": false,
+        "aClose": {
+          "code": 1000,
+          "reason": "pair execution ended"
+        }
+      }
+    },
+    "fault": {
+      "httpStatus": 200,
+      "status": "recoverable_failure",
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "connection": {
+        "connectionAttempts": 1,
+        "connections": 1,
+        "refusals": [],
+        "aMessages": 1,
+        "bMessages": 2,
+        "disconnected": true,
+        "aClosed": true,
+        "bClosed": false,
+        "aClose": {
+          "code": 1000,
+          "reason": "pair execution ended"
+        }
+      },
+      "exactRetryStatus": 503
+    },
+    "independentWalletCompleted": true,
+    "restart": {
+      "roleStates": {
+        "deriver-a": "burned",
+        "deriver-b": "burned"
+      },
+      "exactRetryStatus": 503,
+      "newProtocolConnections": 0
+    },
+    "cleanup": "owned native process and local S3 emulator stopped"
+  },
+  "workerd": {
+    "runtimeVersion": "workerd 2026-07-10",
+    "runtimeSha256": "7c73ffdb375a571cf3c49c8bba582ef144ffe90d2cf287ad972e32bc0936408e",
+    "outcome": {
+      "kind": "yao_pair_connection_e2e_v1",
+      "scenario": "protocol-disconnect",
+      "plan": {
+        "outcome": "burned",
+        "connection": "disconnect",
+        "b": "burned"
+      },
+      "firstRun": {
+        "httpStatus": 200,
+        "status": "recoverable_failure",
+        "code": "service_unavailable",
+        "elapsedMs": 165
+      },
+      "preparationDelivery": {
+        "forwarded": true,
+        "status": 200,
+        "body": "{\"status\":\"prepared\"}"
+      },
+      "reproduce": "ROUTER_AB_WORKER_BUILD_PROFILE=release node crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs protocol-disconnect",
+      "roleStatesAfterFirstRun": {
+        "deriverA": "burned",
+        "deriverB": "burned"
+      },
+      "admissionsAfterFirstRun": {
+        "deriverA": ["admitted"],
+        "deriverB": ["admitted"]
+      },
+      "connection": {
+        "connectionAttempts": 1,
+        "connections": 1,
+        "refusals": [],
+        "aMessages": 1,
+        "bMessages": 2,
+        "disconnected": true,
+        "aClosed": true,
+        "bClosed": true,
+        "bClose": {
+          "code": 1011,
+          "reason": "E2E peer disconnect"
+        },
+        "aClose": {
+          "code": 1011,
+          "reason": "E2E peer disconnect"
+        }
+      },
+      "exactRetryDidNotRestartProtocol": true,
+      "waitedForPreparation": [],
+      "independentWalletCompleted": true
+    }
+  },
+  "nativeArtifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-yao-disconnect-z7_6ezkb",
+  "nativeResultSha256": "3123c5752f54ddd811d0daeac7b0be74f78820d3f7f7efca7724ffc2399b1fac",
+  "restartProxyTakeover": {
+    "refusalCount": 21,
+    "firstRefusal": {
+      "status": 500,
+      "body": "Worker failed: rejected: Error: rejected: DurableObjectRoutingError: The Durable Object owner is currently unreachable [at __durableObjectRoutingError (<anonymous>:2055:12) <- at invoke (<anonymous>:5196:30) <- at async Proxy.doFetch (<anonymous>:5246:30)]"
+    },
+    "finalEvidence": {
+      "connectionAttempts": 0,
+      "connections": 0,
+      "refusals": [],
+      "aMessages": 0,
+      "bMessages": 0,
+      "disconnected": false,
+      "aClosed": false,
+      "bClosed": false
+    }
+  },
+  "controls": {
+    "r190-ws-bridge": {
+      "artifactDirectory": "/Users/pta/Dev/rust/seams-wallet-r190/.artifacts/r190-ws-bridge",
+      "controllerSha256": "f5a7de7f5a0e73d5eda3eec7c46d1e2ef62e4189bba5c09d4946b5445e2ee5c9",
+      "resultSha256": "c2e43f3805b4ef8db08d6364ed983e9930d6cfe056ccf05d67d68ce1a9cc8c97",
+      "sourceHashes": {
+        "client": "e32cc3706511a7d7d74381525b02b6f7167e636f6d24555fa6fab0c39c3698f6",
+        "bridge": "5142dbf03944d6a305fd0b614cc2fc662f5d5acb4b230cd88a00c15e218629ac",
+        "owner": "6c01393497ac29f482c145c6df79230fbf76d6514a72180e46750f0b0e9e5624"
+      },
+      "runs": [
+        {
+          "runtime": "workerd",
+          "retained": false,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        },
+        {
+          "runtime": "celld",
+          "retained": false,
+          "outcome": {
+            "kind": "no-socket",
+            "status": 101
+          }
+        },
+        {
+          "runtime": "workerd",
+          "retained": true,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        },
+        {
+          "runtime": "celld",
+          "retained": true,
+          "outcome": {
+            "kind": "no-socket",
+            "status": 101
+          }
+        }
+      ]
+    },
+    "r190-ws-bridge-do": {
+      "artifactDirectory": "/Users/pta/Dev/rust/seams-wallet-r190/.artifacts/r190-ws-bridge-do",
+      "controllerSha256": "97dd02712fbec48a44babea8525a2c6c8953a8b058678f6900af3ff5c60bfde7",
+      "resultSha256": "8a8bf06a4ddccefd70266d97e339098424dab871d0eee879310b94c80f6043c2",
+      "sourceHashes": {
+        "client": "e32cc3706511a7d7d74381525b02b6f7167e636f6d24555fa6fab0c39c3698f6",
+        "bridge": "cf551677ac0c05423700bdde37a9efee30827d8d74cc66f2788de537231de5dd",
+        "owner": "6c01393497ac29f482c145c6df79230fbf76d6514a72180e46750f0b0e9e5624"
+      },
+      "runs": [
+        {
+          "runtime": "workerd",
+          "retained": false,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        },
+        {
+          "runtime": "celld",
+          "retained": false,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        },
+        {
+          "runtime": "workerd",
+          "retained": true,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        },
+        {
+          "runtime": "celld",
+          "retained": true,
+          "outcome": {
+            "kind": "message",
+            "data": "echo:ping"
+          }
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "The native topology uses one local process, persistent local state and a synthetic S3 service. Distributed Google Yao recovery and complete storage-loss restore remain open.",
+    "The fault bridge is a Durable Object on both runtimes. Worker-created socket handoff across the sampled celld service binding remains unqualified.",
+    "Echo control observations accumulate across retention arms. Their return-phase marker precedes host-side request retirement.",
+    "Native close-event ordering and the sampled upstream 1006 callback differ from workerd. This record does not establish general WebSocket close parity.",
+    "The independent wallet completes registration. Separate selected Wallet contracts establish signature verification.",
+    "Cleanup is established through completed process-stop calls and the final driver record. This run has no separate listener-closure artifact."
+  ],
+  "diagnosis": "deployment/celld/yao-diagnostics.md",
+  "commands": {
+    "celld": [
+      "python3",
+      "tests/e2e/celld/yao-peer-disconnect.e2e.py",
+      "/tmp/seams-r190-raw-ec-reviewed-build/celld",
+      "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server",
+      "/tmp/seams-r190-s3/bin/python",
+      "node_modules/.bin/esbuild",
+      "/Users/pta/Dev/rust/seams-wallet-r190"
+    ],
+    "workerd": {
+      "environment": {
+        "ROUTER_AB_WORKER_BUILD_PROFILE": "release"
+      },
+      "argv": [
+        "node",
+        "crates/router-ab-cloudflare/scripts/yao-peer-disconnect-evidence.mjs",
+        "protocol-disconnect"
+      ]
+    }
+  },
+  "independentReview": {
+    "status": "reviewed",
+    "findings": "Raw native and workerd outcomes, source and control hashes, fault threshold, restart refusal count, lifecycle outcomes and stated scope were independently checked. Native close-event and cleanup observation limits remain explicit. The packed 0.11.0 manifest and all 25 files across five Worker roles also match their recorded sizes and hashes."
+  }
+}

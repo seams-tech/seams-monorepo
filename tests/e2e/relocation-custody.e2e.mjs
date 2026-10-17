@@ -17,11 +17,13 @@ const candidate = process.env.SEAMS_WALLET_SERVER_CANDIDATE;
 if (!candidate) throw new Error('SEAMS_WALLET_SERVER_CANDIDATE is required');
 const publicRoot = resolve(candidate, '../..');
 const includeEcdsa = process.argv.includes('--with-ecdsa');
-const output = resolve(
-  import.meta.dirname,
-  '../../.artifacts/r155d-addresses',
-  includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
-);
+const output =
+  process.env.SEAMS_RELOCATION_OUTPUT ??
+  resolve(
+    import.meta.dirname,
+    '../../.artifacts/r155d-addresses',
+    includeEcdsa ? 'composed-mixed-relocation' : 'composed-relocation',
+  );
 const custody = await createRelocationCustodyWorkers(publicRoot, { includeEcdsa });
 try {
   await mkdir(output, { recursive: true });
@@ -345,11 +347,25 @@ async function verifyEcdsaAfterMove(custody) {
   const api = await import(
     pathToFileURL(resolve(publicRoot, 'crates/router-ab-cloudflare/scripts/test-private-d1.mjs'))
   );
-  await api.rejectDelayedPresignPublication(
-    custody.topology,
-    custody.ecdsa.delayedPublication,
-    /ExpiredLocalRequest: Presign authority is unavailable/,
+  const namespace = await custody.topology.getDurableObjectNamespace(
+    'SIGNING_WORKER_WALLET_DO',
+    'fixture-signing-worker',
   );
+  const source = namespace.get(namespace.idFromString(custody.addresses.signing_worker));
+  const delayed = await source.fetch(
+    'https://router-ab-do.internal/router-ab/internal/signing-worker/wallet',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-router-ab-internal-service-auth': 'private-d1-integration-auth',
+      },
+      body: JSON.stringify(custody.ecdsa.delayedPublication),
+    },
+  );
+  const delayedBody = await delayed.text();
+  assert.equal(delayed.ok, false, delayedBody);
+  assert.match(delayedBody, /ExpiredLocalRequest: Presign authority is unavailable/);
   custody.ecdsa.state.executionHome = {
     workerName: 'destination-signing-worker',
     ownershipGeneration: 2,
@@ -400,7 +416,7 @@ async function evictDestinationWallet(custody) {
   for (const role of ['router', 'deriver_a', 'deriver_b', 'signing_worker']) {
     assert.notEqual(addresses[role], source[role], 'Destination uses fresh role addresses');
   }
-  const objectClass = 'RouterAbSigningWorkerWalletDurableObject';
+  const objectClass = 'DestinationRouterAbSigningWorkerWalletDurableObject';
   const worker = 'destination-signing-worker';
   const ids = await custody.rawTopology.listDurableObjectIds(objectClass, worker);
   assert.ok(ids.includes(addresses.signing_worker), 'The persisted destination object must exist');

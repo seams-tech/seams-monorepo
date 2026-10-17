@@ -1,0 +1,158 @@
+{
+  "status": "passed",
+  "scope": "single-node service supervision and loopback HTTPS on a task-owned ordinary Google VM; no distributed Wallet claim",
+  "project": "seams-501403",
+  "zone": "us-central1-c",
+  "machineType": "e2-standard-4",
+  "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/single-vm-service-pd178dv0",
+  "resultSha256": "45a8cd7c2c02aae7ba9b68c42a832eff3db6e330a9dfb77b3367db660d911645",
+  "inputs": {
+    "id": "pd178dv0",
+    "project": "seams-501403",
+    "instance": "r190q-20261013-e7f9b0-ordinary-final",
+    "zone": "us-central1-c",
+    "bucket": "gs://seams-501403-r190q-20261013-e7f9b0-fleet/service-pd178dv0",
+    "runtimeSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b"
+  },
+  "sourceHashes": {
+    "worker.mjs": "dfa0026d6bce34b06059ee48f24aacf8ddfc9eab80c340c0c00f86982e739caf",
+    "nginx.conf.example": "b4e33b87b69fd2350b1993955deadaeb1cd49930078b1cc4728567b0f472af2c",
+    "remote.py": "718d56aa0fa5ca588e4a0bf53b603b04fc63a4e745cc44e59f2afc70da6f5a1e",
+    "wrangler.json": "92dcad60fa5d231a16241b687367b12c98a3944b16204a53791d07cfb91d6ef7",
+    "celld.service": "33acde5e4648f6d81b4e3f01237de0042ee7c7e4055b33a9201ea6b0ecafdb02",
+    "inputs.json": "70e40381f6ca6a1d17694ce9c1ba6e29ccceceaf12d4bbf6afa57f29afadfbb3",
+    "native-release.tar.gz": "69bf5c7ca317c1ca1aa0fa4664a24c63d6cc1a2d331ea4a0e3cbb4a294e1a334",
+    "controller": "fb0d46e9c8c8a561162b874042d48e244ffa840fe688cb98fdf487a6450819e9"
+  },
+  "result": {
+    "startedAtUtc": "2026-10-13 16:30:51 UTC",
+    "status": "passed",
+    "scope": "single-node process supervision, HTTPS forwarding and body limits; synthetic object restart continuity",
+    "stage": "supervised-restarts",
+    "runtimeSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "nginxPackageVersion": "1.24.0-2ubuntu7.18",
+    "nginxSha256": "a24def283d640db0bcad3c81b0630a3444b3079f6c50c956c9bd39330eaca544",
+    "effectiveUnitSha256": "da6ddc1a475e0a1c14144fde0b926ccca80a80ef44c218971560012b14f42c37",
+    "initialService": {
+      "MainPID": "2234",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "trustedForwarding": {
+      "status": 200,
+      "body": "{\"url\":\"https://r190.test:8443/inspect\",\"bytes\":5}",
+      "tls": "TLSv1.3",
+      "certificateSha256": "fa99288840f200b1a1b61d104f51dc0e266ed30c097ab447b0162fea54254188"
+    },
+    "exactBodyLimit": {
+      "status": 200,
+      "bytes": 1048576
+    },
+    "oversizedBody": {
+      "status": 413,
+      "bytes": 1048577
+    },
+    "healthReadiness": [
+      {
+        "status": 503,
+        "at": 1791909096.8792126
+      },
+      {
+        "status": 200,
+        "at": 1791909097.8891594
+      }
+    ],
+    "operatorBoundary": {
+      "privateStatus": 200,
+      "publicStatus": 404
+    },
+    "acknowledgedCounter": {
+      "status": 200,
+      "body": "{\"count\":1}",
+      "tls": "TLSv1.3",
+      "certificateSha256": "fa99288840f200b1a1b61d104f51dc0e266ed30c097ab447b0162fea54254188"
+    },
+    "afterGracefulRestart": {
+      "MainPID": "2271",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "gracefulCounter": {
+      "response": {
+        "status": 200,
+        "body": "{\"count\":1}",
+        "tls": "TLSv1.3",
+        "certificateSha256": "fa99288840f200b1a1b61d104f51dc0e266ed30c097ab447b0162fea54254188"
+      },
+      "observations": [
+        {
+          "status": 200,
+          "at": 1791909115.3804038
+        }
+      ]
+    },
+    "freshAcknowledgedCounterBeforeCrash": {
+      "status": 200,
+      "body": "{\"count\":2}",
+      "tls": "TLSv1.3",
+      "certificateSha256": "fa99288840f200b1a1b61d104f51dc0e266ed30c097ab447b0162fea54254188"
+    },
+    "afterForcedRestart": {
+      "MainPID": "2298",
+      "Result": "success",
+      "NRestarts": "1",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "forcedCounter": {
+      "response": {
+        "status": 200,
+        "body": "{\"count\":2}",
+        "tls": "TLSv1.3",
+        "certificateSha256": "fa99288840f200b1a1b61d104f51dc0e266ed30c097ab447b0162fea54254188"
+      },
+      "observations": [
+        {
+          "status": 200,
+          "at": 1791909125.7829425
+        }
+      ]
+    },
+    "cleanup": {
+      "r190-nginx-provider.service": {
+        "stopExitCode": 0
+      },
+      "r190-celld-provider.service": {
+        "stopExitCode": 0
+      },
+      "syntheticPrivateKey": "removed from input directory and VM configuration"
+    }
+  },
+  "command": "python3 tests/e2e/celld/google-single-vm.e2e.py .artifacts/celld-gcp-r190q-20261013-e7f9b0 ordinary",
+  "limitations": [
+    "The certificate is synthetic and trusted by this client only. Public certificate issuance and external reachability remain deployment work.",
+    "The body limit is measured through Nginx. Native enforcement is not tested independently.",
+    "The counter checks single-node disk and process continuity. It does not qualify Wallet one-use material, concurrent operations, lost disks, or distributed restore.",
+    "Run one driver at a time on each VM. Service names, configuration paths, binary path, and ports are shared.",
+    "The earlier Confidential VM counter proof used count 1 after a graceful restart. This ordinary-VM proof adds a fresh count 2 immediately before SIGKILL."
+  ],
+  "earlierSetupFailures": [
+    {
+      "classification": "environment_or_infrastructure_failure",
+      "record": "single-vm-service-155136",
+      "fact": "Nginx could not create its default proxy temporary directory as the celld account. All temporary directories now use its service-owned state directory."
+    },
+    {
+      "classification": "valid_test_needs_update",
+      "record": "single-vm-service-160934",
+      "fact": "The immediate health assertion ran before fleet readiness. The successful control recorded health 503 followed by 200 one second later."
+    }
+  ]
+}

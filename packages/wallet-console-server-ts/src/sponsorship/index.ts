@@ -28,13 +28,11 @@ export type {
   SponsoredEvmCallExecutorConfig,
   SponsoredEvmExecutionResult,
 } from './evmExecutorTypes';
-export type { RegisterSponsoredEvmCallRouteArgs } from './evmRelay';
 export { DEFAULT_SPONSORED_EVM_CALL_ROUTE, DEFAULT_SPONSORED_EVM_CALL_ROUTE_ID } from './evmRoutes';
 export {
   executeSponsoredEvmCall,
   resolveSponsoredEvmExecutorForChain,
   resolveSponsoredEvmCallConfigFromEnv,
-  registerSponsoredEvmCallRoute,
 } from './evmRelay';
 export type {
   SponsorshipExecutionAdapter,

@@ -175,9 +175,9 @@ export const DemoPage: React.FC = () => {
   ];
 
   /* The header is constant across tabs; only the chain section changes height.
-     AnimatedHeight eases that resize between NEAR/Tempo/Arc. The fixed-height
-     .h2-hero__demo cell (card centered) absorbs the change, so the container
-     never shifts the page around it. */
+     AnimatedHeight eases that resize between NEAR/Tempo/Arc. The .h2-hero__demo
+     cell (card centered) absorbs NEAR/Tempo within its minimum height; the
+     taller Arc view grows the cell, and the easing carries that too. */
   return (
     <div className="demo-card-reveal">
       <div className="demo-page-header">

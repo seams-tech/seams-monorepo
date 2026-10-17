@@ -15,6 +15,7 @@ import {
 import { WalletPlacementConsoleBinding } from '../../walletPlacement/consoleBinding';
 import { parseTenantRuntimeWriterV1 } from '../../tenantDeployment/resourceVerification';
 import { ConsoleRegistrationHomeAdmission } from '../../walletPlacement/registrationAdmission';
+import { resumeGatewayRegistrationPublications } from '../../walletPlacement/registrationPublications';
 import { resolveGatewayDeployment } from '../../walletPlacement/gatewaySession';
 import { regionForRegistrationIngress } from '../../walletPlacement/home';
 import type { CfExecutionContext, CfScheduledEvent } from '@seams/wallet-server/cloud-host';
@@ -29,10 +30,7 @@ import {
   WalletHomeCustodyBinding,
 } from '@seams/wallet-server/cloud-host';
 import { resolveEmailOtpDeliveryProviderFromEnv } from '../../email/otp/emailOtpProviders';
-import {
-  bindTenantDeploymentToRuntimeEnvironmentV1,
-  resolveBoundTenantDeploymentRuntimeEnvironmentV1,
-} from '../../tenantDeployment/runtimeBinding';
+import { bindTenantDeploymentToRuntimeEnvironmentV1 } from '../../tenantDeployment/runtimeBinding';
 import { tenantDeploymentPublicProjectionResponseV1 } from '../../tenantDeployment/publicProjection';
 import { tenantD1ResourceChallengeResponseV1 } from '../../tenantDeployment/resourceChallenge';
 
@@ -272,9 +270,43 @@ async function scheduled(
     accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
     databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
   });
-  const boundEnv = await resolveBoundTenantDeploymentRuntimeEnvironmentV1(env, writer);
-  if (!boundEnv) throw new Error('Active regional deployment admission is required');
-  await runRouterAbPrewarmScheduledV1(event, boundEnv);
+  const local = new D1RegionalDeploymentAdmission(
+    env.SIGNER_DB,
+    TenantDeploymentD1ResourceIdentityV1.parse({
+      namespace: env.SEAMS_TENANT_STORAGE_NAMESPACE,
+      accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+      databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+    }),
+  );
+  const binding = await local.resolveRuntimeBinding(env.SEAMS_TENANT_DEPLOYMENT_LANE, writer);
+  if (!binding) throw new Error('Active regional deployment admission is required');
+  const database = DeploymentFencedDatabase.forRegionalWriter(env.SIGNER_DB, binding, writer);
+  const boundEnv = {
+    ...bindTenantDeploymentToRuntimeEnvironmentV1(env, binding),
+    SIGNER_DB: database,
+  };
+  const [prewarm, publications] = await Promise.allSettled([
+    runRouterAbPrewarmScheduledV1(event, boundEnv),
+    resumeGatewayRegistrationPublications({
+      database,
+      binding,
+      authority: new ConsoleRegistrationHomeAdmission({
+        service: env.WALLET_CONSOLE,
+        writer,
+        scope: binding.tenant,
+        environmentKey: binding.mode.environment === 'development' ? 'dev' : 'prod',
+        localResource: {
+          accountId: env.SEAMS_D1_HOME_ACCOUNT_ID,
+          databaseId: env.SEAMS_D1_HOME_DATABASE_ID,
+        },
+        catalogJson: env.SEAMS_WALLET_HOME_CATALOG_JSON,
+        // Reservation alone reads the ingress region; a resumed completion reserves nothing.
+        ingressRegion: 'US',
+      }),
+    }),
+  ]);
+  if (prewarm.status === 'rejected') throw prewarm.reason;
+  if (publications.status === 'rejected') throw publications.reason;
 }
 
 async function fetch(

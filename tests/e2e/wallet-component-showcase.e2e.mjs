@@ -9,8 +9,7 @@ const components = [
   'Authentication',
   'Transactions',
   'Custom Components',
-  'Link & recover',
-  'Account management',
+  'Recover and Link Devices',
 ];
 
 function recordError(error) {
@@ -119,15 +118,12 @@ async function expectSelection(gallery, name) {
           .getByRole('button', { name: 'Buy Yes', exact: true }),
       ).toBeVisible();
       break;
-    case 'Link & recover':
+    case 'Recover and Link Devices':
       await expect(
         gallery
-          .frameLocator('iframe[title="Link and recover"]')
-          .locator('.seams-auth-menu-surface'),
+          .frameLocator('iframe[title="Recover and Link Devices"]')
+          .getByRole('button', { name: 'Accounts', exact: true }),
       ).toBeVisible();
-      break;
-    case 'Account management':
-      await expect(gallery.getByRole('heading', { name: 'At home, everywhere.' })).toBeVisible();
       break;
     default:
       throw new Error(`Unknown showcase component: ${name}`);
@@ -145,8 +141,8 @@ try {
   const gallery = page.getByRole('region', { name: 'Wallet component showcase' });
   const selector = gallery.getByRole('radiogroup', { name: 'Components', exact: true });
   const pagination = gallery.getByRole('radiogroup', { name: 'Component pagination' });
-  await expect(selector.getByRole('radio')).toHaveCount(5);
-  await expect(pagination.getByRole('radio')).toHaveCount(5);
+  await expect(selector.getByRole('radio')).toHaveCount(4);
+  await expect(pagination.getByRole('radio')).toHaveCount(4);
   await expectSelection(gallery, 'Transactions');
   await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
   await expectSelection(gallery, 'Authentication');
@@ -156,19 +152,27 @@ try {
     .getByRole('button', { name: 'Create wallet with passkey', exact: true })
     .click();
   await expect(
+    gallery.frameLocator('iframe[title="Authentication"]').locator('.seams-spinner'),
+  ).toBeVisible();
+  await expect(
     gallery.frameLocator('iframe[title="Authentication"]').getByRole('status'),
   ).toContainText("You're logged in.");
+  await expect(
+    gallery
+      .frameLocator('iframe[title="Authentication"]')
+      .getByRole('button', { name: 'Next', exact: true }),
+  ).toBeVisible();
   await gallery
     .frameLocator('iframe[title="Authentication"]')
-    .getByRole('button', { name: 'Back', exact: true })
+    .getByRole('button', { name: 'Start over', exact: true })
     .click();
   await gallery.evaluate(positionForCapture);
   const authentication = gallery.frameLocator('iframe[title="Authentication"]');
-  await authentication.getByRole('button', { name: 'Unlock wallet', exact: true }).click();
+  await authentication.getByRole('button', { name: 'Unlock wallet', exact: true }).press('Enter');
   await expect(
     authentication.getByRole('button', { name: 'Unlock with passkey', exact: true }),
   ).toBeVisible();
-  await authentication.getByRole('button', { name: 'Create a wallet', exact: true }).click();
+  await authentication.getByRole('button', { name: 'Create a wallet', exact: true }).press('Enter');
   await expect(
     authentication.getByRole('button', { name: 'Create wallet with passkey', exact: true }),
   ).toBeVisible();
@@ -203,15 +207,12 @@ try {
   });
 
   await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Link & recover');
-  await capture(gallery, 'desktop-link-recover');
-  await gallery.getByRole('button', { name: 'Next component' }).click();
-  await expectSelection(gallery, 'Account management');
+  await expectSelection(gallery, 'Recover and Link Devices');
   await capture(gallery, 'desktop-account');
   await gallery.getByRole('button', { name: 'Next component' }).click();
   await expectSelection(gallery, 'Authentication');
   await gallery.getByRole('button', { name: 'Previous component' }).click();
-  await expectSelection(gallery, 'Account management');
+  await expectSelection(gallery, 'Recover and Link Devices');
 
   // Either selector changes the same carousel, including native arrow-key navigation.
   await selector.getByRole('radio', { name: 'Authentication', exact: true }).locator('..').click();
@@ -219,10 +220,10 @@ try {
   await page.keyboard.press('ArrowRight');
   await expectSelection(gallery, 'Transactions');
   await pagination
-    .getByRole('radio', { name: 'Account management', exact: true })
+    .getByRole('radio', { name: 'Recover and Link Devices', exact: true })
     .locator('..')
     .click();
-  await expectSelection(gallery, 'Account management');
+  await expectSelection(gallery, 'Recover and Link Devices');
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const checked = [];
@@ -256,7 +257,7 @@ try {
     ),
   );
   console.log(
-    'Passed the five-component carousel, synchronized selectors, wraparound, full transaction lifecycles, and mobile layouts.',
+    'Passed the four-component carousel, synchronized selectors, wraparound, full transaction lifecycles, and mobile layouts.',
   );
 } finally {
   await context.tracing.stop({ path: `${artifacts}/trace.zip` });

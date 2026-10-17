@@ -1,0 +1,111 @@
+{
+  "status": "passed",
+  "scope": "Local simulated B backup-deletion denial, retirement-pending refusal, identical-request refresh recovery, selected backup GET404, then shutdown and upgrade checks",
+  "result": {
+    "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-2mmw3zzi/result.json",
+    "sha256": "19c4f81cb066d20d7e1ae237e7a3baa3406c75a91c1551d5a6e7e0639c0168c0"
+  },
+  "sourceHashes": {
+    "tenant-root-restore.e2e.py": "3273bcfa65da08e6e5be16643e2b7d7f4cbf798a9740d608161418516d39607a",
+    "tenant-root-restore.mjs": "91f859b7c32dfa08884da3ccb19677a8d37d1c07fe037da57729ce10473a586d",
+    "prepare-wallet.mjs": "b6567b33312734332c16b1c07f54ca45ccfce6540d700c80d9a6c0da5401d830",
+    "packaged-wallet.e2e.py": "230de8cfe562ff6e1e100132cccb50f880d8f93f9e2d08d27990aee6529634e7",
+    "test-private-d1.mjs": "1cb8b1a8bb0b5114da1d3e44d1c8be4bac7de69749e7ec8e9e74a1218341a7c4"
+  },
+  "publicRevision": "953e085450598033f1c14f6d52deb2ffdf86f147",
+  "packageSha256": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+  "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+  "previousRuntimeSha256": "407a69bfee8818baf5652858c90bed6f3520e38f6e1fa15f38c4a72576200902",
+  "runtimeSha256": "879ce57c4f6d12700d3122cb70bf53dfd1e3b765f0bba33e0e35e9b208bfa46e",
+  "retirement": {
+    "deniedRole": "deriver-b",
+    "providerDeleteStatus": 403,
+    "refreshStatus": 409,
+    "code": "tenant_root_retirement_pending",
+    "reportedRetirement": {
+      "deriver_a": "erased",
+      "deriver_b": "pending"
+    },
+    "pendingReason": "tenant-root cleanup request service returned HTTP status 500: InvalidLocalServiceConfig: tenant-root backup cleanup failed: Error: R2 delete removed 0 of 1 keys; the rest failed",
+    "activeShareMetadataUnchanged": true,
+    "retiredBackupStillReadable": true,
+    "recoveredRefreshStatus": 200,
+    "backupReadAfterRecoveryStatus": 404
+  },
+  "scenario": {
+    "kind": "tenant_root_refresh_after_managed_restore_workers_e2e_v1",
+    "restoreRevision": 4,
+    "refreshStatus": 200,
+    "refreshRevision": 5,
+    "deriverA": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "deriverB": [
+      [2, "retired"],
+      [3, "active"]
+    ],
+    "restoreRetryReturnsDurableOutcome": true,
+    "signing": {
+      "signatureVerified": true,
+      "signatureSha256": "216ee993a683cd170a85131c1ab4f9176ec57f5db31c7281c1fd8b597a204d5a"
+    }
+  },
+  "instrumentProbe": {
+    "path": "/tmp/seams-r190-retirement-policy-probe.json",
+    "sha256": "8a92e26a3d6f5d010123124a02e80661a8fd6439c5484833aebc7a990b152871"
+  },
+  "instrumentProbeSource": {
+    "path": "/tmp/seams-r190-retirement-policy-probe.py",
+    "sha256": "25b6606d97851720d0e6b76f0b4003fc591c84d01c74ba3955bb3d65dfd119ca"
+  },
+  "earlierAttempts": [
+    {
+      "classification": "valid_test_needs_update",
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-13pv6bjm/result.json",
+        "sha256": "9ab10704772bc6214d1f894bbef885e2515b44e1de97f632ba489bdd23648714"
+      },
+      "cause": "Incomplete local test-variable rename. Corrected before the final run; lint passes."
+    },
+    {
+      "classification": "environment_or_infrastructure_failure",
+      "result": {
+        "path": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-tenant-root-restore-8aw4izec/result.json",
+        "sha256": "bef4f84bb0754d9f2a1781718186bcdc54768dc85ccf7451742bdef56fe0c3fb"
+      },
+      "cause": "Native .5 process crashed before fault injection. Root cause is unknown. Cleanup reported a permission error; later process inspection found no matching processes."
+    }
+  ],
+  "unresolvedCrash": {
+    "report": {
+      "path": "/Users/pta/Library/Logs/DiagnosticReports/celld-2026-10-14-122741.ips",
+      "sha256": "c394ac3287f9c5304b1fab8d1467aabe858b97454a73047547bd7e1a808c38fa"
+    },
+    "captureTime": "2026-10-14 12:27:36.1332 +0900",
+    "pid": 92320,
+    "signal": "SIGILL",
+    "binaryUuid": "61ab8d2b-caad-37ba-a9fe-94daa99b4c4f",
+    "matchedBuild": ".5 macOS ARM64",
+    "instrument": "macOS crash report and dwarfdump --uuid for both runtime binaries",
+    "cause": "unknown; the passing repeat does not establish a cause or eliminate a runtime defect",
+    "beforeFaultInjection": {
+      "signingReplaySaved": false,
+      "policyRequestsInFailedRun": 0,
+      "policyRequestsInPassingControl": 4,
+      "failedProviderLogSha256": "6239eeb2b24efa4b33678c0fe9a3bc17832279beb4b912c92785d65054bdbdff"
+    }
+  },
+  "cleanupErrors": [],
+  "review": {
+    "reviewer": "review_r190_runtime",
+    "result": "Final source hashes, direct post-recovery GET404, identical-request retry, and crash identity verified. No material objection within the stated local scope."
+  },
+  "limits": [
+    "Local Moto S3, one missing A share, one runtime node. No GCS IAM, provider-outage, or both-share-loss qualification.",
+    "Only active share metadata must remain unchanged during retirement refusal. Existing cleanup may erase the old local row before backup deletion succeeds.",
+    "GET404 establishes that the selected object is no longer retrievable by this request. It does not prove cryptographic erasure or destruction of every storage copy.",
+    "No production handler, runtime patch, database call, or request-path validation changed."
+  ],
+  "aggregateMaintainedSourceDelta": -32734
+}

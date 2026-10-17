@@ -1,0 +1,487 @@
+{
+  "status": "passed",
+  "scope": "all 16 selected public Wallet contracts on each of two single-VM Google configurations using the rebased 0.11.0 archives; no distributed or live cutover claim",
+  "project": "seams-501403",
+  "candidate": {
+    "kind": "local-packed-release-candidate",
+    "status": "built; qualification pending",
+    "version": "0.11.0",
+    "sourceParentRevision": "128de796beb92707bb286e377feb1cf396a47cef",
+    "packages": {
+      "wallet-server": {
+        "archive": "/tmp/seams-r190-rebased-packages/seams-wallet-server-0.11.0.tgz",
+        "archiveSha256": "78f2586bf4f7c71ea89dd0e1dbf6101576f9b96d093bcc97e9faad78ed71d26f",
+        "directory": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet-server"
+      },
+      "wallet": {
+        "archive": "/tmp/seams-r190-rebased-packages/seams-wallet-0.11.0.tgz",
+        "archiveSha256": "53bb488dc34256edab4c597b25fd177fafdea2f672154ab5b9fb1792e8fb8806",
+        "directory": "/tmp/seams-r190-rebased-candidate-011/node_modules/@seams/wallet"
+      }
+    }
+  },
+  "targets": {
+    "confidential": {
+      "status": "passed",
+      "scope": "all 16 selected unchanged Wallet contracts on a fresh Google fleet using the rebased 0.11.0 archives and production renderer; no distributed or Console claim",
+      "stage": "browser-contracts",
+      "runtime": {
+        "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+        "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+        "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+        "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+        "version": "celld 0.6.2-seams.5",
+        "platform": "Linux",
+        "architecture": "x86_64",
+        "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+        "buildCommand": [
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "-p",
+          "celld",
+          "--bin",
+          "celld"
+        ],
+        "clippyCommand": [
+          "cargo",
+          "clippy",
+          "--release",
+          "--locked",
+          "-p",
+          "celld",
+          "--bin",
+          "celld",
+          "--",
+          "-D",
+          "warnings"
+        ]
+      },
+      "packageSnapshotHashes": {
+        "wallet-server": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+        "wallet": "40d087ee930283654368847bd5f4c4d8bb55217774a9d261436a5c5c4eedcac4"
+      },
+      "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+      "workerFingerprints": {
+        "router": "b615e91af5946b6b4de41200c5ec3cab1151562abda2a017adfd3388e3ef15bc",
+        "deriver-a": "a2d8b95d930ca7f5aa761d69461a171371e77db18bdf9293b28fdbe8641ee4e2",
+        "deriver-b": "e44d2bed91616af6ed45f85daaaec13e67c1c770f65379ed0e8bd2c493da5e4d",
+        "signing-worker": "3ba9dbb27758b207b6dfb9c047f006a60e12917c00b9fc2e4c606b346b8588f1",
+        "tenant-root-control-plane": "0a1437213c7c7136b478d527725a3bfc2af6a93a7aa7402ce78000f49d094eef"
+      },
+      "deploymentArchiveSha256": "fa582fe194f340de0ebe19a8505ccd6ebe29a75b6e7f9627406d6552630a5547",
+      "gatewayArchiveSha256": "383a5b592d926917d614cd6af85b5de458bd98c3b1557b8d0ececa40a9accda7",
+      "sourceHashes": {
+        "controller": "d09188acddc1c2d4773013cd1f0c4c13f1630b357b7efb0667d74bbdde298792",
+        "remote": "aeb869299e7f8c75be8e4d26c643fa28cab833b99fd0d73cca51a7d2edf8d094",
+        "renderer": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+        "httpObserver": "368fa1a36039f0a9408c5f2d390d62636020eb6627a6927fa040c86205cb4c28"
+      },
+      "readinessMeasurements": [
+        {
+          "path": "/.well-known/celld/health",
+          "status": 200,
+          "seconds": 0.3187518329359591
+        },
+        {
+          "path": "/.well-known/celld/health",
+          "status": 503,
+          "seconds": 0.3069542080629617
+        },
+        {
+          "path": "/readyz",
+          "status": 200,
+          "seconds": 0.4423546658363193
+        },
+        {
+          "path": "/__intended-e2e",
+          "status": 200,
+          "seconds": 0.014725625049322844
+        },
+        {
+          "path": "/wallet-service",
+          "status": 200,
+          "seconds": 0.006822249852120876
+        }
+      ],
+      "takeoverRefusals": 0,
+      "browserSourceHashes": {
+        "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+        "passkey.presign-pool.contract.test.ts": "4a775a57d0f2b0a3364a9726a6fa801ed946026dda58be9ca6a199007e99ba23",
+        "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+        "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+        "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+      },
+      "browserOutcomes": [
+        {
+          "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "EVM registration and signatures complete while NEAR execution is held",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "lock retains durable presignatures across a fresh unlock",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a fresh unlock survives a delayed restoration response from another tab",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "passkey unlock restores immediate export and shared-budget signing",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        }
+      ],
+      "remoteRuntimeCleanup": "stopped",
+      "cleanup": "local browser tools and SSH tunnel stopped; task-owned Google resources retained",
+      "zone": "us-central1-c",
+      "machineType": "n2d-standard-2",
+      "tee": "AMD SEV-SNP",
+      "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/wallet-final-011-confidential-5h7858mi",
+      "resultSha256": "13d6da3a37e2f8cb2a850107fe98546f718b3fe9cad45de97312aca2eb836780",
+      "publicContractRevision": "128de796beb92707bb286e377feb1cf396a47cef",
+      "processBeforeCleanup": {
+        "MainPID": "6087",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-13 16:29:20 UTC",
+        "ExecMainExitTimestamp": "",
+        "ExecMainPID": "6087",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-celld-wallet-watch-dukr92zi.service",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "processAfterCleanup": {
+        "MainPID": "0",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "",
+        "ExecMainExitTimestamp": "",
+        "ExecMainPID": "0",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-celld-wallet-watch-dukr92zi.service",
+        "ActiveState": "inactive",
+        "SubState": "dead"
+      }
+    },
+    "ordinary": {
+      "status": "passed",
+      "scope": "all 16 selected unchanged Wallet contracts on a fresh Google fleet using the rebased 0.11.0 archives and production renderer; no distributed or Console claim",
+      "stage": "browser-contracts",
+      "runtime": {
+        "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+        "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+        "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+        "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+        "version": "celld 0.6.2-seams.5",
+        "platform": "Linux",
+        "architecture": "x86_64",
+        "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+        "buildCommand": [
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "-p",
+          "celld",
+          "--bin",
+          "celld"
+        ],
+        "clippyCommand": [
+          "cargo",
+          "clippy",
+          "--release",
+          "--locked",
+          "-p",
+          "celld",
+          "--bin",
+          "celld",
+          "--",
+          "-D",
+          "warnings"
+        ]
+      },
+      "packageSnapshotHashes": {
+        "wallet-server": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+        "wallet": "40d087ee930283654368847bd5f4c4d8bb55217774a9d261436a5c5c4eedcac4"
+      },
+      "manifestSha256": "d9b32aca2996a035b50da2777eff59300a15d1fe931a551b97f478975daa22cb",
+      "workerFingerprints": {
+        "router": "b615e91af5946b6b4de41200c5ec3cab1151562abda2a017adfd3388e3ef15bc",
+        "deriver-a": "a2d8b95d930ca7f5aa761d69461a171371e77db18bdf9293b28fdbe8641ee4e2",
+        "deriver-b": "e44d2bed91616af6ed45f85daaaec13e67c1c770f65379ed0e8bd2c493da5e4d",
+        "signing-worker": "3ba9dbb27758b207b6dfb9c047f006a60e12917c00b9fc2e4c606b346b8588f1",
+        "tenant-root-control-plane": "0a1437213c7c7136b478d527725a3bfc2af6a93a7aa7402ce78000f49d094eef"
+      },
+      "deploymentArchiveSha256": "f38358a91b8dfba2e5701cdffc37463b52dfe0f531c187a742bfa5122ee2b7fd",
+      "gatewayArchiveSha256": "4221e832573c40317df6a9c34ff541a3aa520852bb3005d6ee83a6db3231e02b",
+      "sourceHashes": {
+        "controller": "d09188acddc1c2d4773013cd1f0c4c13f1630b357b7efb0667d74bbdde298792",
+        "remote": "aeb869299e7f8c75be8e4d26c643fa28cab833b99fd0d73cca51a7d2edf8d094",
+        "renderer": "8c0480068e7b96407ec9162542bc50cacce9a83b34695ecbe8028d2c98d2d8e9",
+        "httpObserver": "368fa1a36039f0a9408c5f2d390d62636020eb6627a6927fa040c86205cb4c28"
+      },
+      "readinessMeasurements": [
+        {
+          "path": "/.well-known/celld/health",
+          "status": 200,
+          "seconds": 0.32229187502525747
+        },
+        {
+          "path": "/.well-known/celld/health",
+          "status": 503,
+          "seconds": 0.31129945791326463
+        },
+        {
+          "path": "/readyz",
+          "status": 200,
+          "seconds": 0.46184558398090303
+        },
+        {
+          "path": "/__intended-e2e",
+          "status": 200,
+          "seconds": 0.017188042169436812
+        },
+        {
+          "path": "/wallet-service",
+          "status": 200,
+          "seconds": 0.007938750088214874
+        }
+      ],
+      "takeoverRefusals": 0,
+      "browserSourceHashes": {
+        "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+        "passkey.presign-pool.contract.test.ts": "7c4cf9a42c6050285188eaa4a94049797689b68df6b0114d59959ec984411abc",
+        "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+        "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+        "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+      },
+      "browserOutcomes": [
+        {
+          "title": "a linked device links a third device on an ECDSA-only wallet, which signs Tempo",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a linked device links a third device, which signs NEAR and Tempo and exports both keys",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a linked device revoked with an email code across a refused commit is answered from what committed",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a fresh browser recovers a Passkey-founded wallet with one code, signs, and refuses reuse",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a recovery retires the replaced activation: a delayed finalize is refused, a made signature answers, and the recovered wallet signs",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a superseded recovery attempt that reaches the SigningWorker late is refused, and the current attempt signs",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a committed Passkey recovery survives a lost finalization response and runtime reset",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "sustained Tempo and Arc signing uses fresh presignatures beyond pool capacity",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "EVM registration and signatures complete while NEAR execution is held",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "lock retains durable presignatures across a fresh unlock",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a cross-tab lock prevents delayed restoration from recreating its credential",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "a fresh unlock survives a delayed restoration response from another tab",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        },
+        {
+          "title": "passkey unlock restores immediate export and shared-budget signing",
+          "expectedStatus": "passed",
+          "results": ["passed"]
+        }
+      ],
+      "remoteRuntimeCleanup": "stopped",
+      "cleanup": "local browser tools and SSH tunnel stopped; task-owned Google resources retained",
+      "zone": "us-central1-c",
+      "machineType": "e2-standard-4",
+      "tee": "none",
+      "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/wallet-final-011-ordinary-hb0elrtc",
+      "resultSha256": "238e7ff645e2f5aafaa7fbc7ecd81f714dc4c4b9b0e9041cd84d735c394d81b7",
+      "publicContractRevision": "b0972642e21fb966e5e92cb9a2a6d31b99eaafd0",
+      "processBeforeCleanup": {
+        "MainPID": "2876",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-13 16:41:21 UTC",
+        "ExecMainExitTimestamp": "",
+        "ExecMainPID": "2876",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-celld-wallet-watch-whanecai.service",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "processAfterCleanup": {
+        "MainPID": "0",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "",
+        "ExecMainExitTimestamp": "",
+        "ExecMainPID": "0",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-celld-wallet-watch-whanecai.service",
+        "ActiveState": "inactive",
+        "SubState": "dead"
+      }
+    }
+  },
+  "limitations": [
+    "Both targets use one runtime node for these passes. Distributed Wallet qualification is separate.",
+    "The ordinary run uses the test cleanup that removes native VM-only SQLite inspections. The three affected Workers contracts also pass locally on both runtimes. Public outcome assertions remain common across hosts.",
+    "The runtime and application artifacts are uninstrumented. Browser transport tracing, where enabled, operates in the local Vite process.",
+    "These passes qualify these unpublished local archives. Release promotion and exact private package pins remain pending.",
+    "Compatibility with SEV-SNP does not establish attestation-controlled key release.",
+    "Earlier unexplained export, listener, and HTTP-response failures remain recorded in google-wallet.json. Later passing runs do not establish their causes."
+  ],
+  "setupFailure": {
+    "classification": "environment_or_infrastructure_failure",
+    "record": "wallet-final-011-confidential-ox5n68n8",
+    "fact": "The local 0.3-second readiness helper timed out before provisioning. The native process remained active until cleanup.",
+    "control": "The repeated cloud probe allows 10 seconds per HTTP response and records response times. The complete suite then passes.",
+    "limit": "The original HTTP timings were not recorded. This control does not establish their exact duration or sole cause."
+  },
+  "resourceCleanup": {
+    "checkedAtUtc": "2026-10-13T17:41:22.066076+00:00",
+    "project": "seams-501403",
+    "instances": [
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-ordinary",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/e2-standard-4",
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      }
+    ],
+    "peerFirewallRules": [],
+    "retained": "Task-owned attached disks, synthetic test buckets and service account remain tracked. All qualification VMs are stopped.",
+    "earlierCleanupRepair": "Removed r190-wallet-peer-yn09rw51-allow and r190-wallet-peer-yn09rw51-deny after final audit found them left by the earlier controller cleanup failure."
+  }
+}

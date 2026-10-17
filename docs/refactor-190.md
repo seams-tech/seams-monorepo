@@ -1,20 +1,60 @@
 # R190 — One Workers backend for managed and self-hosted deployment
 
-Status: planned. No runtime migration or adapter removal has started.
-Date: October 11, 2026.
+Status: merged into local `dev` in both repositories on October 16, 2026. Deployment and publication remain paused.
+The integration preserves the shared checkouts' concurrent uncommitted work. No remote push was performed.
+Source integration commits: private `1e4d47e1`, public `b69a0ef5`.
+
+## Local review checkpoint — October 14, 2026
+
+The recorded local candidate passed 15 selected Wallet contracts on each runtime. One Google-backed case required a fresh test identity.
+
+Both R190 branches rebased cleanly onto local `dev`: public `fcbff95f` and private `2018b490`.
+The public branch removes Express, Node Gateway, and native VM hosts. The private branch removes the Wallet Console Express entrypoint.
+The generic Console backend remains for its separate product responsibilities.
+The runtime patch and test-only probes preserve the Workers application model. The maintained source reduction is 30,796 lines across both repositories.
+
+| Local check | Result |
+| --- | --- |
+| Public package build, full type-check, and packed boundaries | Passed |
+| Private `pnpm check` | Passed |
+| Retained Rust development targets and 38 Cargo lock files | Passed |
+| Public bloat check | Passed; the baseline now preserves the reductions |
+| Wallet contracts on celld and workerd | 15 passed on each, with matching package snapshots and no flakes |
+| Registration reservation and Console onboarding/replay | Passed |
+| Nginx TLS ingress, spoofed headers, body integrity and size limit | Passed after the review fix |
+| Deployment script checks | 53 passed, one existing skip |
+
+The review found that the Nginx example forwarded caller-supplied client-IP headers to the Wallet's IP controls.
+A local HTTPS test reproduced the issue. The proxy now replaces those headers with the direct socket peer address.
+It also removes the caller-supplied `Forwarded` header. No application database call or request round trip was added.
+
+One Google-backed device-revocation contract was excluded from both fresh local selections because its test identity expired.
+The earlier 16-contract evidence remains valid for its recorded source revision. It does not replace this missing check on the latest candidate.
+The initial full type-check failed on missing worktree dependency links. Repairing those ignored links resolved it without a source change.
+See [the review record and repeatable evidence](../deployment/celld/evidence/local-review.json).
+
+Review the public host removal and exports first, then the private consumers and runtime patch.
+Keep package publication, exact private package-pin updates, and cloud rollout separate from the merge decision.
+The 0.11.0 candidates remain unpublished. Private production dependencies remain pinned to 0.10.1.
+The provider qualification items at the end of this plan are deferred while deployment is paused.
 
 ## Decision and purpose
 
 Use one Workers backend implementation for Cloudflare and self-hosted deployment.
-Run the self-hosted backend through celld on ordinary AWS or Google Cloud VMs.
+Run the self-hosted backend through celld on Google Cloud VMs. AWS qualification is outside this refactor.
 Remove the application adapters that exist to host the backend in Node.js,
 Express, or the separate native VM server.
 
-The primary goals are correctness and less code. A lifecycle change should have
+The primary goals are correctness and less code.
+Completion requires a net reduction in maintained code across both repositories.
+Count application source, tests, deployment scripts, handwritten configuration, and the complete private runtime patch.
+Exclude documentation, generated files, lockfiles, and binaries. Moves receive zero reduction credit.
+New acceptance and deployment code must be outweighed by deletion of the retired implementations. A lifecycle change should have
 one application implementation. Hosting should not require us to reproduce
 service bindings, object execution, SQL behavior, or background-task handling.
-Latency and hosting cost are optional measurements. Neither determines whether
-this refactor succeeds.
+The refactor must add no latency to application request paths. Do not add sequential database reads, blocking calls,
+or extra validation to compensate for a hosting change. Preserve the existing call order and concurrency.
+Test-only fault injection, inspection, and restart waits stay outside production artifacts. Hosting cost remains an optional measurement.
 
 The shared contract is the Workers programming model: fetch handlers, bindings,
 Durable Objects, and the storage APIs the wallet uses. Celld and workerd currently
@@ -37,7 +77,7 @@ Wallet cryptography and domain state machines
           +---------+---------+
           |                   |
  Cloudflare hosting     Celld on Linux VMs
-                        AWS or Google Cloud
+                        Google Cloud
 ```
 
 Both hosts execute the same released application code and WASM artifacts.
@@ -48,6 +88,8 @@ Google Cloud must be a straightforward, documented deployment target. Use Comput
 Engine VMs, attached disks, Cloud Storage, and HTTPS ingress with the same application
 release. Celld supplies D1 and KV APIs, so this deployment requires no separate
 Postgres or Redis service. The topology must preserve the role-isolation gates below.
+Use project `seams-501403`; `eigen-413918` was deleted. Qualification uses region `us-central1`. Final ordinary and SEV-SNP runs use zone `us-central1-c`.
+AWS is outside the current implementation and acceptance scope.
 
 The same release should also run on a supported Google Confidential VM configuration
 without a wallet-specific hosting adapter. Verify this compatibility during implementation.
@@ -93,13 +135,13 @@ name does not identify a classic-server host. Preserve those functions where use
 
 Paths in this table are relative to `seams-monorepo`.
 
-| Area                  | Current files                                                                                                              | Planned treatment                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Move consumers to the existing Worker/fetch composition, then remove obsolete routes and re-exports |
-| Hosted composition    | `packages/wallet-console-server-ts/src/router/cloudflare/`                                                                 | Keep Gateway, Runtime, and Console behavior shared across hosts                                     |
-| Deployment            | `scripts/deploy-backend.mjs`, `deployment/wallet-system/targets.json`                                                      | Extend existing deployment boundaries only as needed for celld                                      |
-| Local runtime         | `scripts/local-wallet/`                                                                                                    | Consume exact packaged Worker releases and the selected runtime configuration                       |
-| Private tests         | `tests/relayer/`, `tests/e2e/hosted-product/`, `tests/e2e/regional-real/`                                                  | Preserve Console/product invariants while removing dependency on Express hosting                    |
+| Area                  | Current files                                                                                                              | Planned treatment                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Console Express entry | `packages/wallet-console-server-ts/src/router/express-adaptor.ts`, `packages/wallet-console-server-ts/src/router/express/` | Removed. Existing Worker/fetch composition owns the retained behavior            |
+| Hosted composition    | `packages/wallet-console-server-ts/src/router/cloudflare/`                                                                 | Keep Gateway, Runtime, and Console behavior shared across hosts                  |
+| Deployment            | `scripts/deploy-backend.mjs`, `deployment/wallet-system/targets.json`                                                      | Extend existing deployment boundaries only as needed for celld                   |
+| Local runtime         | `scripts/local-wallet/`                                                                                                    | Consume exact packaged Worker releases and the selected runtime configuration    |
+| Private tests         | `tests/relayer/`, `tests/e2e/hosted-product/`, `tests/e2e/regional-real/`                                                  | Preserve Console/product invariants while removing dependency on Express hosting |
 
 Some tests import domain services through Express re-exports. Move those imports
 to their owning modules. An import through an adapter does not prove that the
@@ -125,13 +167,13 @@ implementation risk. It does not prove identical behavior across runtimes.
 
 ## Phase 1 — Establish the compatibility and deletion inventory
 
-- [ ] Record current commits, released package versions, runtime versions, and artifact hashes.
+- [x] Record current commits, released package versions, runtime versions, and artifact hashes in the acceptance records.
 - [ ] Trace active production, local-development, CLI, package-export, and test callers of each host adapter.
 - [ ] Classify each candidate as host-only, shared domain code, external integration, or independent tooling.
-- [ ] Record candidate file counts and non-generated source lines using the existing bloat report where available.
+- [x] Record initial candidate file counts and non-generated source lines below. The native hosting modules are removed. Independent initializer and protocol helpers remain.
 - [ ] Inventory the exact Worker APIs, SQL features, migrations, and binding graph used by all roles and Console composition.
-- [ ] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
-- [ ] Prove the complete role graph loads without changes to protocol or domain logic.
+- [x] Pin a celld release and verify its artifacts. Recheck its compatibility documentation against that release.
+- [x] Prove the five-role graph loads without changes to protocol or domain logic. Exact package `@seams/wallet-server@0.9.3` passes the load check; lifecycle acceptance remains open.
 
 Celld's general service support is insufficient evidence for our deployment.
 Resolve these specific gates before building a replacement host path:
@@ -169,15 +211,85 @@ Sources: [celld limitations](https://github.com/denoland/celld/blob/main/docs/li
 Exit: every required binding and behavior has a runnable check or a recorded
 blocker. No classic-host deletion occurs while a required gate remains blocked.
 
+### October 13 stock-runtime compatibility result
+
+The public branch adds `tests/e2e/celld-bindings.e2e.mjs` and an evidence record at
+`docs/evidence/celld-bindings.md`. The probe uses the verified celld 0.6.2 release
+at source revision `90b43017241f81189453d326d05948f388b34652`.
+
+Local Durable Object persistence and service calls pass on celld. Adding an
+external object binding causes startup to fail with a duplicate-class error.
+The same two-worker object-ownership contract passes under workerd through Miniflare.
+The runtime parser drops `script_name` and treats the external class as local.
+
+Our Router, control plane, and Derivers require external bindings to the same
+Router-owned namespace. This failure blocks the role-graph gate. Classify it as
+`environment_or_infrastructure_failure`, with no Wallet production regression established.
+
+The separate A/B backup-bucket gate also remains unresolved. Celld maps R2 bucket
+names to prefixes in one fleet bucket. This mapping does not establish the storage
+isolation required by our deployment contract.
+
+No application adapter, dependency, export, or launch path was removed. AWS,
+Google Cloud, and Confidential VM execution remain unverified. The straightforward
+Google Cloud target remains a requirement. It is not yet an implemented capability.
+
+Resume Phase 2 only after a supported runtime passes the external-binding gate
+and preserves storage separation. A runtime fork or changed custody boundary
+requires a separate design decision. No upstream contact was made.
+
+Implementation stays on `codex/refactor-190-workers-backend` in both repositories.
+Rebase these branches onto current `dev` before each resumed implementation checkpoint.
+Record the resulting source revisions in each new evidence run.
+
+### October 13 private runtime proof
+
+The user selected a private celld patch to preserve direct object calls and avoid
+an extra Router dispatch. The patch and build procedure live in
+[`deployment/celld/README.md`](../deployment/celld/README.md).
+No upstream PR or maintainer contact is authorized or required.
+
+Private build `0.6.2-seams.1` passes the expanded local binding check. It preserves
+object IDs and state created by stock celld. It resolves external owners, retains
+their environments, handles dependency cycles, and rejects invalid owners.
+Stock celld rejects the new deployment feature before serving traffic.
+
+This proof retains celld's existing requirement for unique owned class names
+across the fleet. It changes no Wallet protocol, application route, or secret boundary.
+The complete Wallet graph, release WASM, distributed behavior, and provider deployment
+still require evidence. The later `0.6.2-seams.2` proof verifies distinct physical buckets locally. Cloud permissions and distributed operation remain open.
+Application adapter deletion still requires the lifecycle and provider gates below.
+
+### Remaining implementation sequence
+
+1. Rebase the isolated branches onto current local `dev` at each checkpoint.
+2. Build the pinned private runtime through `deployment/celld/build.mjs` and rerun the binding acceptance test. The macOS debug run passes; Linux release qualification remains open.
+3. Resolve separate physical A/B backup buckets before constructing the replacement deployment.
+4. Load the complete role graph and release WASM, then run lifecycle and failure acceptance scenarios.
+5. Verify Linux operation on Google Cloud and a supported Google Confidential VM.
+6. Replace host consumers, delete classic-host code, and rerun acceptance on the final release.
+
+Source inspection confirms that the pinned runtime has one R2 storage handle.
+`crates/celld/r2_store.rs` selects that handle for all bindings and prefixes keys with the binding bucket name.
+`crates/celld/deploy.rs` accepts bucket names without a physical bucket mapping.
+The existing patch changes neither path. Separate physical buckets therefore need additional runtime work or a verified alternative topology.
+The user authorized the remaining storage work. Private build `0.6.2-seams.2` adds explicit physical buckets and passes local storage acceptance. Cloud qualification remains open.
+
+Current consumers also prevent immediate adapter deletion. Public lifecycle evidence reads SQLite through
+`nodeSqlite.ts`, and the step-up-expiry and sponsored-account-ownership E2Es use the Node database path.
+Private Console account-router and sponsored-call history tests now execute the Worker transport. The Express branches were retired with their implementation.
+Preserve their behavioral assertions when changing their launch boundaries.
+These are confirmed consumers, not an exhaustive deletion inventory.
+
 ## Phase 2 — Run the existing application artifacts on celld
 
-- [ ] Start with fresh test wallets and isolated test resources.
+- [x] Start with fresh test wallets and isolated test resources.
 - [ ] Build Worker artifacts in `seams-wallet` and consume an exact package release in the private repository.
-- [ ] Reuse the packaged artifact inventory and existing configuration rendering. Add no competing resource manifest or general provider framework.
-- [ ] Render the celld-supported JSON/JSONC configuration from the established configuration inputs. Keep build steps outside that configuration where required.
-- [ ] Keep secrets out of bundles, committed configuration, and evidence artifacts.
-- [ ] Verify native binding access and application authentication between roles.
-- [ ] Run the shared fetch handlers and Durable Object implementations on both runtimes.
+- [x] Reuse the packaged artifact inventory and existing configuration rendering. Add no competing resource manifest or general provider framework.
+- [x] Render the celld-supported JSON/JSONC configuration from the established configuration inputs. Keep build steps outside that configuration where required.
+- [x] Keep secrets out of bundles, committed configuration, and evidence artifacts.
+- [x] Verify native binding access and application authentication between roles.
+- [x] Run the shared fetch handlers and Durable Object implementations on both runtimes.
 - [ ] Make any necessary API change once in shared code, only when it preserves both hosts' behavior.
 
 Provider differences belong in deployment configuration or external process
@@ -235,16 +347,16 @@ host path that currently provides it.
 
 ## Phase 4 — Make self-hosted operation repeatable
 
-- [ ] Document and verify Linux VM deployment on AWS and Google Cloud using the same application package.
-- [ ] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
-- [ ] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
+- [x] Document and verify Linux VM deployment on Google Cloud using the same application package.
+- [x] Provide a repeatable Google Cloud setup covering VM image, disks, bucket permissions, secrets, ingress, and startup, without application changes.
+- [x] Run the lifecycle acceptance scenarios on a supported Google Confidential VM configuration. Record its OS, machine type, and TEE technology.
 - [ ] Use multiple celld nodes, persistent disks, and a qualified regional S3/GCS bucket for the distributed acceptance runs.
 - [ ] Configure TLS ingress, trusted forwarded headers, private peer access, and network confidentiality.
-- [ ] Document fleet administrator access separately from application role permissions.
+- [x] Document fleet administrator access separately from application role permissions.
 - [ ] Verify startup, health checks, drain, restart, backup, restore, and runtime upgrade procedures.
 - [ ] Keep incompatible releases from serving the same lifecycle concurrently. Drain and fence them instead of adding permanent compatibility branches.
 - [ ] Define rollback using durable-state compatibility. Never restore consumed signing material or revive an old ownership generation.
-- [ ] Record the complete topology and its failure scope. Do not infer automatic regional placement from Cloudflare location hints.
+- [x] Record the complete topology and its failure scope. Do not infer automatic regional placement from Cloudflare location hints.
 
 Celld's fleet credentials control its deployment and durable state. The private
 listener includes operator capabilities. Bindings alone do not isolate a role
@@ -262,21 +374,21 @@ writes before destination activation. Keep migration logic at the persistence
 boundary and remove it when the migration finishes. A code rollback must never
 undo a completed authority transfer.
 
-Exit: both cloud VM targets have repeatable deployment evidence. Every active
+Exit: ordinary and Confidential Google Cloud VMs have repeatable deployment evidence. Every active
 classic-host consumer has a verified replacement and a state-safe cutover path.
 
 ## Phase 5 — Delete the classic-host implementation
 
 - [ ] Move all supported callers and test launchers to the shared Worker path.
-- [ ] Remove Express request/response conversion and classic-host HTTP bridges.
-- [ ] Remove the Node Gateway host, its task emulation, and host-specific WASM loader.
-- [ ] Remove native VM routing, persistence, scheduler, and server-startup code whose only consumer was the retired backend.
-- [ ] Remove host-selection interfaces and builders after their last alternative implementation disappears.
-- [ ] Remove obsolete package exports, build entries, environment options, scripts, dependencies, CI jobs, and documentation.
-- [ ] Preserve domain helpers that happened to be re-exported by an adapter. Import them from their owning modules.
-- [ ] Preserve CLI, cryptographic verification, and developer tools with independent consumers. Do not delete `router-ab-dev` wholesale without this check.
+- [x] Remove Express request/response conversion and classic-host HTTP bridges.
+- [x] Remove the Node Gateway host, its task emulation, and host-specific WASM loader.
+- [x] Remove native VM routing, persistence, scheduler, and server-startup code whose only consumer was the retired backend.
+- [x] Remove host-selection interfaces and builders after their last alternative implementation disappears.
+- [x] Remove obsolete package exports, build entries, environment options, scripts, dependencies, CI jobs, and documentation.
+- [x] Preserve domain helpers that happened to be re-exported by an adapter. Import them from their owning modules.
+- [x] Preserve CLI, cryptographic verification, and developer tools with independent consumers. Do not delete `router-ab-dev` wholesale without this check.
 - [ ] Update the public deployment contract and release notes for removed Express/Node entrypoints. Update private consumers to the exact replacement package release.
-- [ ] Delete the replaced paths in the same change set that completes their replacement. Add no deprecated aliases or compatibility packages.
+- [x] Delete the replaced paths in the same change set that completes their replacement. Add no deprecated aliases or compatibility packages.
 
 Recompute the inventory after deletion. Report removed and added files, source
 lines, runtime dependencies, build targets, and host-specific branches. Exclude
@@ -303,11 +415,11 @@ Record any new runtime launch command beside its evidence.
 Completion requires all of the following:
 
 - [ ] One released set of handlers and WASM artifacts serves both hosting models.
-- [ ] AWS and Google Cloud deployment require no Node/Express application backend.
+- [x] Google Cloud deployment requires no Node/Express application backend.
 - [ ] Existing lifecycle and custody guarantees pass on both runtime implementations.
 - [ ] Role isolation, persistence, failover, and cutover gates have evidence.
-- [ ] Classic-host code and its exclusive dependencies are removed.
-- [ ] The final inventory shows a net reduction in host-specific application code.
+- [x] Classic-host code and its exclusive dependencies are removed.
+- [ ] The final inventory shows a net reduction in maintained code across both repositories, including tests, deployment code, configuration, and the celld patch.
 - [ ] Public specs, package exports, local commands, and private deployment docs agree.
 - [ ] E2E evidence is independently verifiable and repeatable from the recorded inputs.
 
@@ -324,3 +436,593 @@ bundle. Correctness evidence and completed code deletion are both required.
 Coordinate with current registration work and preserve its edits. Reuse its
 accepted release baseline when freezing a candidate. R190 adds no latency target
 and does not repeat those optimization experiments.
+
+## October 13 physical-storage and packaged-graph checkpoint
+
+Private build `0.6.2-seams.2` requires separate physical R2 buckets through operator configuration.
+The deployment manifest records the mapping, and runtime startup refuses a missing or changed mapping.
+The pinned-source build and the original object-binding acceptance test pass.
+The storage scenario passes concurrent A/B streaming, multipart writes, conditional rejection, direct bucket reads,
+restart, invalid configuration, downgrade refusal, and a failed write after physical bucket removal.
+No application storage adapter or protocol change was introduced.
+
+The exact installed `@seams/wallet-server@0.9.3` artifact files pass manifest hash verification.
+All five role Workers load with their release WASM on one celld process using an S3 emulator fleet bucket.
+Router rejects GET with 405. The four private roles reject missing service authentication with 403.
+This establishes module loading and request dispatch, not successful wallet lifecycle operations.
+The Gateway and private Console composition are outside this five-role check.
+
+Celld must bundle the packaged entry shims. Its `no_bundle` path does not follow imported JavaScript.
+The installed esbuild 0.28.1 supports celld's `es2024` target; the older 0.21.5 executable does not.
+These are deployment-boundary requirements. No Worker source change was required.
+
+An independent reviewer checked the patch and raw evidence. The final storage run includes the requested concurrent upload check.
+See [runtime build, reproduction commands, and evidence](../deployment/celld/README.md).
+Remaining work includes complete wallet operations and failure scenarios, Linux release qualification,
+cloud credentials and permissions, distributed durability, Confidential VMs, migration inventory, and adapter deletion.
+That checkpoint preceded provider selection. Current qualification uses Google project `seams-501403` in `us-central1`. Task-owned resources are recorded in the provider evidence.
+
+## October 13 Wallet lifecycle checkpoint
+
+Private build `0.6.2-seams.4` runs the same Wallet Server and Wallet SDK 0.9.3 artifacts without an application adapter.
+The complete role graph and Gateway apply their D1 migrations, provision a tenant root, and preserve its result after a forced process kill.
+Exact saved-grant replay refuses access while the prior lease remains authoritative, then returns the original durable result.
+Six unchanged browser contracts pass: mixed registration and signing, lost-response retry, quota contention,
+stored-signature replay, unlock/export/shared-budget signing, and recovery after response loss.
+The harness verifies the exact six titles and rejects skipped tests.
+
+Runtime fixes now cover external object ownership, explicit physical R2 buckets, workers-rs binding identities,
+and unread streaming response copies. The focused stream probe reproduces the real browser failure on `.3` and passes on `.4`.
+The preceding private runtime refuses the `.4` clone feature before serving a new deployment.
+See [build inputs, diagnostic controls, commands, and result records](../deployment/celld/README.md).
+
+These are single-process, emulator-backed Wallet checks. The recovery contract resets the browser runtime.
+It does not prove celld process recovery during that flow. VM-only direct ledger assertions in the existing contracts remain unmeasured.
+The remaining lifecycle matrix, private Console composition, distributed failures, provider permissions,
+Confidential VM operation, active-deployment inventory, and state-safe cutover still block host retirement.
+
+### Initial host inventory
+
+Counts include all source lines, including comments and blank lines. They exclude generated files, documentation, and lockfiles.
+These are candidate counts, not claimed deletions. Counts come from `Path.read_text().splitlines()` over the listed paths.
+
+| Source group                                                              | Files |  Lines | Classification and next action                                                                                                                |
+| ------------------------------------------------------------------------- | ----: | -----: | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public `packages/wallet-server/src/router/node/*.ts`                      |     6 |    684 | Host HTTP, SQLite, migrations, WASM loading, checks, and process lifecycle. Replace test and VM-launch consumers.                             |
+| Public Express Router and signing-session-seal transports                 |     2 |    304 | Transport conversion and Express route registration. Move callers to the existing fetch surface.                                              |
+| Public `storage/syncSqlite.ts`                                            |     1 |    114 | Node-host SQL facade. Production consumers are in the Node Gateway group. Preserve each test invariant through D1.                            |
+| Public `crates/router-ab-dev/src/**/*.rs`                                 |    35 | 22,302 | Mixed ownership. Includes VM hosts, initializer, evidence tools, fixtures, and cryptographic helpers. Do not claim or delete the whole count. |
+| Private Console Express Router, observability routes, and re-export entry |     3 |  5,248 | Transport and composition. Preserve each domain helper and Worker behavior while replacing route callers.                                     |
+| Private `sponsorship/evmRelay.ts`                                         |     1 |    363 | Mixed domain helpers and Express registration. Remove only the retired transport after callers move.                                          |
+
+The nine public TypeScript candidates total 1,102 lines.
+Confirmed consumers include `node-http-body-limit.e2e.mjs`, `step-up-expiry.e2e.mjs`,
+`sponsored-account-ownership.e2e.mjs`, `tests/r150-hosted/gateway/admissionPolicy.e2e.mjs`,
+public intended-behavior evidence readers, package build entries, and the VM intended-services launcher.
+The published `@seams/wallet-server/router/express` export requires an intentional release change.
+External deployments and state ownership still need an operator inventory.
+
+The native initializer remains required by packaged Worker configuration preparation.
+`ed25519-signing-evidence.mjs` uses the `cloudflare_private_d1_fixture` example to construct signing inputs for independent signature verification.
+Cloudflare private-D1 fixtures and the Ed25519-Yao client registration test also use native-crate helpers.
+Preserve these tools or move their independently required code before deleting native hosting modules.
+
+Four private Console tests now import domain services from their owning modules.
+They retain their Express and Worker behavior assertions. The unused 51-line Express re-export entry was deleted after its last callers moved to the owning modules.
+This removes a misleading dependency before the transport replacement. The existing 19 selected checks pass.
+No application host was removed in this checkpoint.
+
+### Net reduction requirement
+
+The [current source-size checkpoint](../deployment/celld/evidence/source-size-checkpoint.json) measures the R190 changes against each branch's current `dev` merge base.
+This excludes concurrent SDK work from R190's reduction claim.
+It includes the complete maintained patch file, including diff context, and the added acceptance code.
+The checkpoint currently removes 33,713 maintained lines in aggregate. It includes the complete patch and acceptance code. Other completion gates remain open.
+The final aggregate must be negative after the classic hosts and their exclusive support code are removed.
+Run the existing public bloat gate as well; its ratchets do not replace this net-line requirement.
+
+## October 13 expanded lifecycle and Google checkpoint
+
+Private runtime `0.6.2-seams.5` adds validated raw EC public-key import/export to the existing runtime patch.
+All 16 selected unchanged browser contracts pass on celld and workerd with no skips.
+The candidate retains the released Wallet Server/SDK 0.9.4 Worker and WASM artifacts.
+It rebuilds the Server's local delayed-request hooks and their validation export after the instance-affinity diagnosis.
+These are local test hooks. The change removes in-memory Maps and uses the existing tenant-scoped D1 store.
+The matching delayed-finalize and superseded-recovery contracts pass on both runtimes.
+See the [diagnostic record and current limitations](../deployment/celld/README.md#raw-ec-and-delayed-request-diagnostics).
+
+A native Linux x86-64 release builds and passes Clippy with locked dependencies on Google Cloud.
+The same executable passes external-object access, raw EC operations, concurrent A/B streams, multipart writes,
+conditional rejection, direct bucket checks, and forced-kill recovery with fresh node caches.
+It passes on an ordinary `n2d-standard-4` VM in `us-central1-a` and a SEV-SNP `n2d-standard-2` VM in `us-central1-c`.
+The kernel reports active AMD SEV, SEV-ES, and SEV-SNP features. This establishes compatibility for that configuration.
+It does not establish attestation-controlled key release.
+A separate Google IAM test denies B bucket access, observes application failure, and confirms A remains writable.
+The task-owned B grant was restored. These are runtime primitives, so full Wallet and distributed qualification remain open.
+
+The implementation still requires classic-host removal and a net reduction in maintained lines.
+No reduction from concurrent SDK work counts toward R190. The later Console deletion makes the current aggregate negative.
+
+## October 13 Console host removal
+
+The private Wallet Console now has one Worker/fetch implementation.
+The 5,085-line Express router and 112-line Express observability routes are removed.
+The earlier 51-line re-export facade is also gone.
+The sponsored-EVM module loses 120 lines of unused Express registration and retains its execution functions.
+Its direct Express dependency, type dependency, build external, and TypeScript alias are removed.
+The generic Console package retains independently used Express support outside this Wallet backend.
+
+The account-router and sponsored-call history cases keep their Worker behavior assertions.
+Obsolete Express transport checks are deleted. The existing route declaration ownership checks remain.
+Eight retained route checks and both production Worker composition E2Es pass.
+The package builds, and `pnpm check` passes with existing lint warnings.
+A missing workspace dependency link caused the first check failure; an isolated locked dependency install resolved it.
+See [Console Worker evidence](../deployment/celld/evidence/console-worker.json).
+
+Google full-Wallet qualification remains open. One run reached an Ed25519 export failure;
+the two linked-device contracts then passed six repeated diagnostic runs without reproducing that error.
+A later full run lost the remote runtime listener after seven successful contracts.
+Kernel logs show no OOM event. The SSH session record does not establish the process exit cause.
+The next run uses systemd with automatic restart disabled, warning logs enabled, and recorded exit status.
+No application failure has been dismissed because a repeat run passed.
+
+## October 13 Google Wallet and object ownership checkpoint
+
+All 16 selected unchanged browser contracts pass on an ordinary Google VM and a SEV-SNP VM.
+Each run uses real GCS, the same private `.5` executable, and the frozen 0.9.4 candidate described above.
+Systemd disables automatic restart and records process state and shutdown.
+These passes do not qualify the final R190 package.
+
+The two-VM object scenario preserves counter 1 across ownership epochs 1, 2, and 3.
+A paused owner is replaced. The resumed process exits with status 3.
+A peer partition refuses the sampled request, and the healed connection reads the same state.
+After the current owner is killed, the survivor takes ownership, increments to 2, and reads the same value through an alias.
+This checks one object with sequential requests. Wallet one-use material, concurrent writes, and restore remain open.
+
+The review found a stale initial provider hash and an omitted replacement-controller hash.
+A separate record hashes both actual deployment archives and the effective controller.
+The ordinary runtime log was unavailable after the scheduled VM stop. Google zone capacity prevented its restart.
+The measured process status does not establish the precise exit reason.
+Both task VMs are stopped. Task-owned disks, buckets, and the service account remain recorded.
+
+The earlier export error, unmanaged listener loss, and local browser HTTP error remain unexplained.
+The later successful runs do not identify those causes.
+See [Google Wallet and object evidence](../deployment/celld/evidence/google-wallet.json).
+
+## October 14 final local package checkpoint
+
+The implementation branch prepares Wallet Server and SDK version 0.11.0. Version 0.10.0 is already published.
+Both packages build from the rebased source and fresh release WASM. The package boundary checks pass.
+All 16 selected unchanged Wallet contracts pass without skips on celld and workerd using the exact packed archives.
+The preceding private `.4` runtime refuses the `.5` raw-EC requirement before serving.
+The private Console passes its onboarding/replay scenario through celld and both production composition E2Es through workerd.
+See [final local package evidence](../deployment/celld/evidence/final-local-packages.json).
+
+The native Rust HTTP servers, SQLite hosts, scheduler, controller and host-specific tests are removed.
+The retained initializer and independent Cloudflare fixture builder execute successfully.
+All 18 retained helper tests, 10 client registration tests and 209 Workers binding/ownership checks pass.
+All 38 Cargo locks pass, and the public bloat gate passes.
+
+Console qualification exposed an initialization bug shared by both hosts.
+The account bundle disabled schema creation, but billing still created dependent schema.
+The shared constructor now honors that setting. All 74 unchanged migrations and onboarding pass afterward.
+See the [measured diagnosis](../deployment/celld/console-diagnostics.md).
+
+The deployment renderer consumes the existing Wrangler configuration and explicit protected per-Worker secret values.
+It bundles Worker code and copies unchanged SQL into one protected deployment directory.
+The production Console E2E exercises this renderer. It adds no resource authority manifest.
+The single-VM unit and HTTPS example pass operational qualification on Google Cloud.
+The ordinary-VM proof verifies a fresh acknowledged counter write across SIGKILL and automatic restart.
+See [single-VM evidence and limits](../deployment/celld/evidence/google-single-vm.json).
+Version 0.11.0 remains unpublished, and the private production package pins remain unchanged until release promotion.
+
+## October 14 final Google package checkpoint
+
+The rebased 0.11.0 archives pass all 16 selected Wallet contracts on an ordinary Google VM and an AMD SEV-SNP VM.
+Both runs use the same Linux runtime digest and production deployment renderer. They require no application host branch.
+The ordinary VM uses `e2-standard-4` in `us-central1-c` after repeated AMD capacity failures in zone a.
+The Confidential VM retains `n2d-standard-2` with SEV-SNP in zone c.
+Each process remains active without automatic restart until recorded cleanup.
+The evidence verifies the exact package and contract source hashes for each run.
+See [final Google package evidence](../deployment/celld/evidence/google-wallet-final-packages.json).
+
+The retired native-VM SQLite test inspections are removed. Their three Workers signing contracts pass on both local runtimes.
+They still verify quota contention, stored signing replies, wrong-wallet refusal, and exact replay.
+Private `pnpm check` passes, including 53 deployment-script checks and one existing skip.
+The public package boundary and bloat gates also pass.
+
+The two-node Wallet process-loss scenario passes its three-contract control and three-contract fault run.
+The fault interrupts the ingress node after a committed reply and preserves the survivor process and storage.
+Stored reply replay and wrong-wallet refusal pass across that fault. Quota contention and Router replay pass afterward.
+Signer owner placement and signing-effect counts were not measured.
+See [one-node failure evidence and limits](../deployment/celld/evidence/google-wallet-one-node-failure.json).
+
+Production Console onboarding and all 75 migrations also pass on the Confidential VM with real GCS.
+See [Google Console evidence](../deployment/celld/evidence/google-console.json).
+Release promotion, state-safe deployment procedures, and the remaining distributed restore/lifecycle matrix remain open.
+The deployment inventory was subsequently confirmed below.
+
+## October 14 local Yao failure checkpoint
+
+The real Yao peer-disconnect scenario passes on workerd and celld through one shared object proxy.
+The proxy disconnects on B's second message. Both roles retain burned state, exact retry opens no new connection,
+and an independent wallet completes registration. Celld preserves the burned pair after a local restart.
+The runtime patch and application code remain unchanged.
+See [Yao evidence](../deployment/celld/evidence/yao-peer-disconnect.json) and [diagnosis and limits](../deployment/celld/yao-diagnostics.md).
+Distributed Yao recovery remains open. The sampled Worker-created WebSocket handoff also remains unqualified.
+
+## October 14 deployment inventory
+
+The operator confirms that only Workers are deployed. No deployed wallet uses the retired Express, Node Gateway, or native VM hosts.
+R190 therefore requires no live migration from those retired hosts.
+Existing Workers deployments retain their durable state. A future move from Cloudflare to celld still requires the authorized relocation or recovery flow.
+This inventory closes the classic-host consumer gate. It does not establish distributed restore correctness.
+
+## October 14 cross-node runtime qualification
+
+Private celld `.6` fixes two measured cross-node WebSocket defects without changing Wallet handlers or persisted Wallet records.
+The build-time patch completes the peer handshake and attaches accepted sockets to the remote owner's tunnel.
+Failed or cancelled attachment releases native socket registration. New manifests require `peer-durable-websockets-v1`.
+The `.5` runtime rejects those manifests before serving.
+
+The clean `.6` macOS build passes bindings, all three echo controls, real two-node Yao owner loss, and all 16 selected Wallet contracts.
+The Linux release passes real Yao interruption across ordinary and SEV-SNP Google VMs in `seams-501403`.
+Both roles retain burned state after B-owner SIGKILL. The exact retry opens no new connection.
+B moves to the surviving VM with epoch 2. The survivor keeps its process ID and reports zero restarts.
+Both VMs are stopped. Temporary peer rules are removed. Cleanup reports no errors.
+See [the exact build and qualification record](../deployment/celld/evidence/peer-websocket-runtime.json).
+
+Both R190 branches are rebased onto current local `dev`: public `2f634225` and private `c02d6c58`.
+The public rebase changes documentation only relative to the tested tree. The private rebase preserves the celld and Wallet test sources.
+Post-rebase private checks and public bloat checks pass. The maintained source reduction remains 33,713 lines.
+The earlier full Google Wallet and Console evidence uses `.5`; the new `.6` Google proof covers this distributed Yao scenario.
+
+## October 14 tenant-root restore and offline upgrade
+
+The existing workerd restore scenario is now shared with the private celld acceptance runner.
+The scenario removes exactly one active Deriver A share, obtains dual authorization, restores from managed backup,
+and performs the mandatory forward refresh. A later refresh erases epoch 1 and leaves epoch 2 retired and epoch 3 active.
+An exact restore retry keeps its original activation receipt and lifecycle revision after the later refresh.
+
+The local celld check uses unchanged 0.11.0 Worker artifacts and synthetic S3 storage.
+It also checks an offline `.5` to `.6` runtime upgrade and a subsequent restart against the same durable state.
+Temporary owner-unreachable refusals are recorded during lease recovery. HTTP readiness alone does not prove object readiness.
+The final restart records 25 temporary ownership refusals over 6.743 seconds before replay succeeds.
+The maintained source reduction is now 33,275 lines, including the new acceptance runner.
+See [the restore and upgrade evidence](../deployment/celld/evidence/tenant-root-restore.json).
+
+This is a single-node availability restore with one missing share. Provider partitions, both-share loss, relocation,
+in-flight work during retirement, consumed signing material across upgrades, and mixed-version rollout remain separate gates.
+
+## October 14 burned-pair upgrade checkpoint
+
+The existing real Yao fault runner now checks an offline `.5` to `.6` upgrade and another restart.
+It disconnects after B's second protocol message. Both roles report burned state before and after each runtime transition.
+Exact retries return 503 and open zero additional protocol connections. An independent wallet registers before the upgrade.
+The runner uses the same 0.11.0 packaged Workers and the shared public fault proxy.
+See [the Yao upgrade evidence](../deployment/celld/evidence/yao-runtime-upgrade.json).
+
+This closes the local burned-Yao-pair upgrade check. ECDSA consumed presigns, mixed-version serving,
+ownership-generation preservation during upgrade, provider partitions, and rollback remain open.
+The aggregate maintained source reduction is now 33,258 lines.
+
+## October 14 ECDSA upgrade checkpoint
+
+The existing restore runner now creates and verifies a real ECDSA signature before tenant-root restore.
+After the offline `.5` to `.6` upgrade and another restart, it requires the same stored signature.
+Changed finalization input must fail with an effect-identity conflict.
+The captured prepare request must fail with a stale-revision conflict while its original deadline is still valid.
+These checks keep the original request deadline and require the specific consumed-state conflict.
+The same packaged Worker artifacts and assertions run through the address-aware workerd test boundary.
+See [the ECDSA upgrade evidence](../deployment/celld/evidence/ecdsa-runtime-upgrade.json).
+
+The public scenario needed its current Gateway credential for ECDSA activation.
+Its old all-purpose workerd entrypoint also omits required wallet object addresses and remains outside this qualification.
+The focused control supplies runtime-issued addresses. Production authentication and request paths are unchanged.
+
+The R190 public branch includes `dev` commit `8c77470f`, which updates CLI versions and documentation.
+This rebase changes no packaged Worker code. No new live request, database validation, or blocking call was added.
+
+Earlier records called these upgrades “drained.” The stop helper can send SIGKILL after eight seconds.
+The evidence proves the old process stopped before deployment, with no test request in flight. Graceful drain remains unqualified.
+The final old process exited through SIGKILL (`-9`). Restart recovery recorded 22 temporary refusals over 6.006 seconds.
+The aggregate maintained source reduction is now 33,051 lines, including all new test code and the full runtime patch.
+
+## October 14 rebase after Console query optimization
+
+Both isolated R190 branches rebase cleanly onto local `dev`: public `66262a36` and private `072f28ba`.
+Private `dev` supplies Console query optimizations, migration `0099`, and exact Wallet package pins at `0.10.1`.
+Public `dev` changes a CLI error message. The packaged Wallet Worker code and celld patch remain unchanged.
+
+The private frozen-lockfile install and `pnpm check` pass, including 53 script tests and one existing skip.
+The public bloat check passes. Both production Console composition E2Es pass on workerd.
+The binding E2E initially failed because its bundler omitted the runtime-provided `cloudflare:workers` module.
+This was `valid_test_needs_update`. Its external-module setting now matches the production renderer.
+The targeted rerun passes. Production request paths remain unchanged.
+
+Celld `.6` passes Console onboarding, exact replay, and all 76 migrations with the existing `0.11.0` candidate.
+The raw result is `.artifacts/celld-console-sm_0b2ha/result.json`.
+Its SHA-256 is `0dbc1616b1e3e1c71b7e57be726168db6592716c71153eb53ceb584018a0e1d3`.
+The aggregate maintained source reduction remains 33,051 lines against the new `dev` bases.
+Earlier Google results retain their recorded revisions and migration counts. This rebase adds local qualification only.
+
+## October 14 shutdown qualification
+
+The local upgrade runner now allows the deployment service's existing 45-second stop bound.
+The preceding helper forced a stop after eight seconds. The unchanged runtimes exit normally in about 15.1 seconds in the control.
+The new scenario holds an admitted observer request before it invokes the Router.
+After SIGTERM, a fresh application request must receive the explicit draining refusal.
+The held request then completes the exact stored-signature replay, and the process must exit with status zero.
+These checks run before upgrade and after both `.6` checkpoints.
+
+The incompatible `.5` executable refuses the `.6` required feature against the same manifests and durable state.
+The subsequent `.6` restart must preserve the signature, consumed-material refusals, restore receipt, and root retirement state.
+This establishes refusal of an incompatible downgrade. Compatible rollback and mixed-version operation remain open.
+The test does not claim that a fresh SigningWorker claim was already executing when shutdown began.
+No production handler, runtime patch, database call, or deployment timeout changed.
+See [the shutdown evidence](../deployment/celld/evidence/shutdown-runtime-upgrade.json).
+The aggregate maintained source reduction is now 32,946 lines.
+
+| Fact | Instrument and scope |
+| --- | --- |
+| Earlier stop exited through SIGKILL (`-9`) | Archived `utv_v_pp` E2E result and the eight-second helper |
+| Longer SIGTERM control exited zero three times at about 15.1 seconds | Archived `j01xmzgg` result with unchanged runtimes |
+| One early held-request run failed on a health 503 before its second stop | Archived `c1g6c2sw` traceback; readiness was an invalid admission precondition |
+| Final admission probe requires the exact draining response | E2E checks a fresh application request while the held request remains pending |
+
+| Candidate cause | Evidence | Conclusion |
+| --- | --- | --- |
+| The test stopped the runtime too early | Exit `-9` at the old bound; exit zero after about 15.1 seconds at the longer bound | Supported for these runs |
+| SIGTERM was ignored | The control exits without SIGKILL | Contradicted for these runs |
+| The runtime cannot finish the measured shutdown | Three control exits and exact durable-state checks pass | Contradicted for this scenario |
+| Health readiness directly measures request admission | Application state checks passed before the health 503 | The test now measures application admission directly |
+
+## October 14 backup-read refusal checkpoint
+
+The existing restore runner now denies real object reads from the local A backup bucket.
+It first proves that A's object is readable. During denial, A returns 403 and B remains readable.
+The authorized restore returns a backup-lookup failure. Selected role-share identity, lineage, epoch, and lifecycle metadata remain unchanged.
+After the policy is removed, A becomes readable and the identical authorized request completes restore and forward refresh.
+The subsequent shutdown, upgrade, incompatible-downgrade refusal, and stored-signature checks also pass.
+See [backup-read refusal evidence](../deployment/celld/evidence/backup-read-refusal.json).
+
+The first fault instrument used HEAD, which the local emulator allowed despite the GET denial policy.
+An isolated control measured GET 200 before denial, HEAD 200 under denial, and GET 403 under denial.
+This was `valid_test_needs_update`. The corrected test uses GET for its access controls.
+No production request path, runtime patch, database call, or blocking validation changed.
+
+| Candidate cause of the initial fault-check failure | Measurement | Conclusion |
+| --- | --- | --- |
+| The deny policy does not block reads | GET returns 403 under the same policy | Contradicted |
+| HEAD does not exercise the denied action in this emulator | HEAD remains 200 while GET becomes 403 | Supported |
+| Wallet restore bypasses the denied backup | The initial instrument failed before calling restore; the corrected run reports backup lookup failure | Not supported by either run |
+
+This covers local simulated read denial with one missing A share. GCS IAM, provider outages, retirement failures, and both-share loss remain open.
+The metadata comparison excludes share bytes and other restore tables.
+The aggregate maintained source reduction is now 32,829 lines.
+
+## October 14 retirement-deletion refusal checkpoint
+
+The local provider test now also denies deletion of B's actual retired epoch-1 backup.
+An independent DELETE receives 403. The next refresh returns 409 `tenant_root_retirement_pending`, with B pending.
+Active-share metadata does not advance, and the selected retired backup remains readable.
+After the deny policy is removed, the identical refresh succeeds. A direct GET of that selected backup then returns 404.
+The shared restore, refresh, shutdown, downgrade-refusal, and restart assertions pass afterward.
+See [retirement-deletion evidence](../deployment/celld/evidence/retirement-delete-refusal.json).
+
+The assertion intentionally permits erasure of an old local share before its backup deletion succeeds.
+The existing contract keeps the retirement pending until provider cleanup finishes.
+GET 404 establishes that this selected object is no longer retrievable. It does not establish cryptographic erasure.
+No production request path, runtime patch, database call, or blocking validation changed.
+The aggregate maintained source reduction is now 32,734 lines.
+
+A preceding local attempt crashed before provider fault injection.
+The macOS report identifies SIGILL in the `.5` binary by UUID. Its cause remains unknown.
+The same-source repeat passed. That success does not explain the crash or eliminate a runtime defect.
+The failed attempt also recorded a cleanup permission error; later inspection found no matching test processes.
+
+| Fact | Instrument |
+| --- | --- |
+| Native process received SIGILL at 12:27:36 JST | macOS crash report for PID 92320 |
+| Crashed image matches `.5`, while `.6` has a different UUID | Crash report and `dwarfdump --uuid` |
+| No backup-policy requests or saved signing replay existed in the crashed attempt | Failed `8aw4izec` log and artifacts; passing control logs four policy requests |
+| Same-source repeat passed with no cleanup errors | Archived final run `2mmw3zzi` |
+
+| Candidate explanation | Evidence | Conclusion |
+| --- | --- | --- |
+| Injected provider deletion triggered this crash | Crash preceded provider fault artifacts and injection | Contradicted for this attempt |
+| The `.6` executable crashed | Report UUID matches `.5` | Contradicted |
+| A specific runtime, compiler, or application defect caused SIGILL | JIT/Wasm frames identify execution context without the cause | Unresolved; reproduction or a symbolized native diagnosis is needed |
+
+## October 14 composed relocation control
+
+The existing Ed25519 and mixed Ed25519/ECDSA relocation scenarios pass on workerd.
+All 25 release Worker files match the packed `0.11.0` candidate byte for byte.
+The scenarios verify directory-coordinated owner approval, an unfinished signing round during freeze,
+lost-response recovery, independent destination addresses, source cleanup, and verified destination signatures.
+The mixed scenario also verifies stale-generation refusal, exact prepare replay after stored-ID eviction,
+and refusal of a delayed source publication after the move.
+See [the workerd relocation control](../deployment/celld/evidence/relocation-workerd-control.json).
+
+This preparation exposed a compiled-package import defect. Six Console imports now use the existing `boundary/index` entrypoint.
+Normal package builds and private checks pass. No alias or production request call was added.
+The Rust fixture generator now emits a valid `:dev` tenant environment.
+The test boundary supplies persisted wallet addresses to direct object calls and uses the stored object ID for eviction.
+The stale-generation assertion now requires the current generation-mismatch error.
+
+The shared eviction helper requires `topology.evictWalletObject`. Older raw Miniflare callers do not provide it and remain unqualified.
+The private fixture covers generation 1 to 2. It does not establish return or repeated relocation.
+Directory/Runtime composition and Chromium session reconciliation are local. Hosted SDK acceptance and celld relocation remain open.
+The existing celld restore/upgrade runner also passes with the regenerated development fixture, including both provider-denial cases and shutdown checks.
+This regression check does not exercise relocation on celld.
+The aggregate maintained source reduction is now 32,684 lines.
+Both branches then rebased cleanly onto local `dev`: public `16fa2169` and private `201b916e`.
+The incoming changes contain release records and the verified staging target update. Qualification code and Worker bytes are unchanged.
+
+## October 14 composed celld relocation
+
+The mixed Ed25519/ECDSA relocation scenario now passes on `0.6.2-seams.6` and workerd.
+Both runs use the same test sources and application input trees. All 25 Worker files still match the packed candidate.
+The native runtime exits with code 0 and no cleanup errors.
+See [the celld relocation evidence](../deployment/celld/evidence/relocation-celld.json).
+
+The scenario verifies owner approval, an unfinished round during freeze, lost-finalize recovery, source cleanup,
+stored destination addresses, replay after eviction, verified destination signatures, and delayed source-publication refusal.
+The test bridge adds no production request, database read, or blocking validation.
+The maintained source reduction is 31,931 lines, including this acceptance code and the complete celld patch.
+
+This is one local generation-1-to-2 move. Custody Workers and their bound stores run on celld.
+Directory/Runtime handlers remain in Node, and Directory D1 remains in Miniflare.
+Router and SigningWorker databases are separate. Deriver role databases and tenant-root authority remain shared.
+The test does not relocate root shares or establish hosted deployment, distributed, or latency claims.
+
+Celld rejects duplicate Durable Object class exports across co-hosted scripts.
+The test re-exports destination classes with distinct names on both runtimes. Their Worker implementation and WASM remain unchanged.
+This qualifies the aliased deployment schema. Deployments with unchanged duplicate class names remain unsupported.
+The relay covers the exercised JSON-safe D1 operations and buffered callbacks.
+
+Migration setup now reuses the public test SQL splitter, which tracks CASE nesting inside trigger bodies.
+The callback relay removes transport headers before forwarding through Node fetch.
+The earlier `transfer-encoding` failure was a test infrastructure defect.
+Both final runs pass after these boundary fixes. Independent review found no blocker within the stated scope.
+Both branches then rebased onto current local `dev`: public `9f57952c` and private `d7103cdf`.
+All 37 recorded source files and 13 application input trees remain unchanged. The deployment-script checks pass again.
+
+## October 14 WebSocket lifecycle correction
+
+Private runtime `.7` corrects two defects exposed by stronger owner-loss qualification.
+A fresh wallet after takeover left a proxy pinned to an HTTP response body during shutdown.
+A separate remote passthrough echo triggered a nonresident-object panic in celld's ownership core.
+The runtime now releases upgrade body activity, keeps remote socket registration on its owner,
+and reuses the existing owned tunnel path for relay and rejection cleanup.
+No Wallet handler, database call, or network round trip was added.
+
+The clean macOS build passes binding acceptance and all 16 selected Wallet contracts.
+The four-case passthrough fixture fails on `.6` and passes on `.7`, including clean shutdown.
+The full local active-claim and post-takeover Wallet scenario also drains on `.7`.
+Linux release build and Clippy pass. The corrected Google run confirms SIGKILL within 6,195 ms, below the 15-second timeout.
+Takeover preserves burned state and refuses retry without another protocol connection.
+Independent registration succeeds on the unchanged survivor, and shutdown completes without the earlier stall.
+Both VMs are stopped. Temporary peer rules are removed.
+See [the measured evidence and remaining limits](../deployment/celld/evidence/websocket-passthrough.json).
+
+The initial Google trial observed running claims and later burned-state takeover, but it did not bound signal timing before the 15-second timeout.
+It also logged a stalled drain despite exit code 0. Its raw success field does not qualify either missing guarantee.
+The driver now enforces the timing bound and rejects stalled shutdown.
+The maintained source reduction is 31,315 lines, including the new acceptance fixture and complete patch.
+
+Both R190 branches rebased cleanly onto local `dev`: public `565d4d24` and private `8fe70b89`.
+The rebase includes registration batching, session observation fixes, and automatic Console Wallet provisioning.
+Fresh 0.11.0 candidates build and pass all 16 selected contracts on both celld and workerd with matching package snapshots.
+Private `pnpm check` passes. The package candidates remain unpublished.
+
+## October 14 live-peer partition qualification
+
+The Google Yao scenario now passes explicit TCP rejection and silent peer packet loss on `.7`.
+Both faults begin while A/B claims are running, before the 15-second ceremony timeout.
+The silent case releases the held reply, observes further A messages while B remains at its earlier message count, and records dropped packets.
+Both processes stay alive, owner records remain unchanged, and shared-storage leases renew.
+After healing, both pairs remain burned and retry opens no new protocol connection.
+Fresh registration succeeds. The silent case samples distinct A/B owners before that fresh execution.
+
+Both qualified runs stop the VMs, remove temporary host/cloud rules, and verify closed SSH forwarding ports.
+The first trial's functional checks passed, but a local process-group permission error failed cleanup.
+That raw failed record is retained. The revised cleanup checks the managed process and its known port after VM shutdown.
+No production handler, runtime patch, database call, or request round trip changed.
+See [the partition evidence and precise limits](../deployment/celld/evidence/peer-partitions.json).
+The maintained source reduction is 31,127 lines, including the added acceptance code.
+
+## October 14 registration rebase qualification
+
+Both branches rebased onto local `dev`: public `24e93a78` and private `eca55b5d`.
+The public rebase includes concurrent founding-record reads during Router registration consumption.
+Fresh 0.11.0 archives pass all 16 selected Wallet contracts on celld `.7` and workerd.
+Both suites use identical package snapshots, with no skipped or flaky contracts.
+The existing registration reservation E2E also passes, including one batched database call for the wallet commit.
+Private `pnpm check` passes. Console onboarding and replay pass on `.7` with all 76 migrations.
+
+The local restore scenario now qualifies `.5` to `.7` with the rebuilt candidate.
+Backup GET denial and retired-backup DELETE denial preserve their required refusal and recovery behavior.
+The upgrade and restart preserve the exact ECDSA signature and refuse consumed-presign reuse.
+All three admitted-replay shutdown checkpoints exit zero. The incompatible `.5` downgrade refuses to serve.
+See [the source-bound qualification record](../deployment/celld/evidence/registration-rebase-qualification.json).
+
+The rebuilt candidate also passes timed Yao owner loss across ordinary and SEV-SNP Google VMs.
+SIGKILL is confirmed within 6,002 ms of execution submission, before the 15-second ceremony timeout.
+The replacement owner advances epoch 1 to 2. Both role claims remain burned, and retry opens no new protocol connection.
+Fresh registration succeeds on the unchanged survivor. Both VMs stop, temporary rules are removed, and SSH forwarding ports close.
+
+No production handler, runtime patch, database call, or request round trip changed in this checkpoint.
+The maintained source reduction remains 31,127 lines against the rebased `dev` branches.
+The candidates remain unpublished. These functional checks do not establish provider latency equivalence.
+
+## October 14 Google runtime state compatibility
+
+The Google Yao runner now checks a drained `.7` to `.6` to `.7` cycle after active owner loss.
+The ordinary survivor uses the same GCS fleet and local watch directory for both replacements.
+The test verifies each running executable hash and requires a successful stop before replacement.
+It deploys no new manifest and restores no storage snapshot during the cycle.
+
+Both checkpoints preserve burned A/B claims and exact tenant-root creation receipt replay.
+An exact pair retry opens no new protocol connection. Runtime ownership epochs advance from 1 through 4.
+Both VMs stop, temporary peer rules are removed, and the SSH forwarding ports close.
+The deployment script checks pass: 53 passed and one existing skip.
+See [the runtime-cycle evidence](../deployment/celld/evidence/google-runtime-cycle.json).
+
+This qualifies the measured durable-state compatibility. The known `.6` WebSocket defects still prevent recommending `.6` for production.
+The claims are burned before each drain, and the Confidential peer stays stopped during the cycle.
+Fresh claims during drain, mixed-version serving, and ECDSA state across provider upgrades remain open.
+No production handler, runtime patch, database call, or request round trip changed.
+The maintained source reduction is 31,092 lines, including the added acceptance code.
+
+## October 14 two-process relocation
+
+The mixed Ed25519/ECDSA relocation scenario now passes across two local celld `.7` processes.
+The runner directs source and destination entrypoints to their respective processes and shares one synthetic S3 fleet.
+The completion snapshots identify the real wallet objects through their persisted source and destination addresses.
+All four source roles reside on one process. All four destination roles reside on the other.
+Eviction locates the actual resident process before testing stored-result replay.
+
+The unchanged scenario verifies owner approval, pending signing during freeze, lost-finalize recovery, and source cleanup.
+It also verifies destination signatures, stale-generation refusal, and refusal of delayed source presign publication.
+The production presign alarm also runs during source freeze, and the expired refill is refused.
+Both native runtimes exit zero with no stalled shutdown or panic in their logs.
+All 25 release Worker files match the candidate manifest. Source snapshots and input-tree hashes remain unchanged during the run.
+See [the two-process evidence](../deployment/celld/evidence/relocation-two-node.json).
+
+This is one generation-1-to-2 move on one machine. Deriver stores and tenant-root authority remain shared.
+Directory/Runtime handlers remain in Node, and Directory storage remains in Miniflare.
+Google-hosted relocation, provider faults during relocation, return moves, and repeated moves remain open.
+No production handler, runtime patch, database call, or request round trip changed.
+The maintained source reduction is 31,020 lines, including the stronger acceptance topology.
+
+## October 16 legacy and test sweep
+
+The broader sweep removes another 785 maintained lines net: 755 public and 30 private.
+The count compares the updated branch heads before cleanup against this change. Documentation and lockfiles are excluded.
+
+The unused signing-only self-hosted router, Worker factory, and public exports are removed.
+Their three unit cases only injected incomplete fake service bags and compared health responses.
+The Node Redis TCP client, RESP parser, TCP session-seal adapters, and unused automatic backend selectors are also removed.
+The active D1 path and typed in-memory/HTTP provider APIs remain.
+Unused SDK Express dependencies and type settings are removed, along with three orphaned relayer fixture helpers.
+No new unit tests or source guards were added.
+
+Real workerd D1/DO storage transfer, rollback, restart, and registration reservation E2Es pass.
+Console onboarding, exact replay, and unauthorized activation also pass through real celld Workers.
+Its older driver needed the current scenario's required productService input. The same real Worker binding now supplies it.
+Public builds, full type-checks, packed boundaries, the lower bloat guard, and private checks pass.
+Ignored worktree dependency links required repair before the full type-check could resolve the current React profile export.
+See [the scoped audit, classifications, and retained evidence](../deployment/celld/evidence/legacy-sweep.json).
+
+Cryptographic vectors, type fixtures, and tests of active persistence, auth, and failure behavior remain.
+No deployment, publication, or merge occurred. The removed public exports require a later package release.
+No application database read or request round trip was added.
+
+## Deferred deployment qualification (paused)
+
+1. Finish the distributed lifecycle matrix: other in-flight claim failures and partition topologies, Google-hosted relocation, and retirement/authorized restore with provider failures. Local two-process relocation, one-share restore, and retirement evidence are recorded above.
+2. Promote the reviewed 0.11.0 package candidates, update private consumers to exact published versions, and repeat deployed product acceptance.
+3. Complete provider upgrade and rollback qualification, including ownership generations, active claims, and mixed-version serving. Local upgrades cover root records, burned Yao pairs, consumed ECDSA presigns, admitted stored-response replay during shutdown, and incompatible-downgrade refusal. No classic-host state migration is required.
+
+Resume these deployment checks only after the user authorizes deployment work. Local review and the merge decision come first.

@@ -24,9 +24,10 @@
       "origin": "https://test.console.seams.sh",
       "siteOrigin": "https://wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-testnet",
+      "placementRegion": "aws:ap-southeast-1",
       "database": {
-        "name": "seams-console-testnet",
-        "id": "204147dd-23a6-43b7-9f40-d4f96eb986f2"
+        "name": "seams-console-testnet-sin",
+        "id": "c5bfd5d4-b605-49bd-a8a3-bee2e5e6ab4a"
       },
       "emailDelivery": {
         "kind": "resend",

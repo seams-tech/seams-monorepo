@@ -1,0 +1,251 @@
+{
+  "status": "passed",
+  "scope": "three public Workers signing contracts with a two-node control, then one ingress node killed after a committed reply; survivor process and local storage preserved",
+  "project": "seams-501403",
+  "publicContractRevision": "e6bbe22701ded1a90f403fd2e909984886855949",
+  "artifactDirectory": "/Users/pta/.codex/worktrees/refactor-190/seams-monorepo/.artifacts/celld-gcp-r190q-20261013-e7f9b0/wallet-one-node-failover-rcjdonvj",
+  "resultSha256": "1d0beec113edd1aef56856f72cbd3efcb0e70026bf3bc1dc4383eb5f19b4f54e",
+  "sourceHashes": {
+    "remote.py": "80b936e0aa3472d5297ce3d5e857d66ea1fa5ceabedaa230a7c4fa0c75be8a59",
+    "fault.py": "c970e787526465432378eece4a7b071eb6e295d65ab614eb64fe178c21042488",
+    "effective-controller.py": "d2c2bf86360f2b2434e8490ac8f6d54033da65a8742c73f86c36eded80df4bbc"
+  },
+  "browserSourceHashes": {
+    "passkey.registration.contract.test.ts": "50d5fbb428f5eec359bf4dc0e4a26855e54b12518520d58f7319ff1da217dc17",
+    "passkey.presign-pool.contract.test.ts": "1671dee77e218b58ade26a8d02881ac2e287f44781e0cd7a68b07ad39b3c2b49",
+    "passkey.unlock.contract.test.ts": "ad56c41ebc877022501127774923c5089f9a7af9215243b628a603d3dceecd32",
+    "passkey.recovery.contract.test.ts": "2eceedd57869a3d443189c066177889ac5d4aab9101de2285d0a6501b4bcc2c3",
+    "passkey.device-linking.contract.test.ts": "8df8744e733ed0404538cf86ab21d585720e56afacd3ea6aa549060f2b25daee"
+  },
+  "runtime": {
+    "sourceRevision": "90b43017241f81189453d326d05948f388b34652",
+    "patchSha256": "c25c8575dbdb9f10dfe05530b892dcbd5037117a94279d2fafac55dacca889b4",
+    "sourceTransferSha256": "f6a1c3202dd926648f87ab7378c7d193e2ae7a114058c536bd36ea6abea4aaf6",
+    "executableSha256": "ba955103b797b1c514ad42e045c32518bdfd5005318b49b47d05d5ae0c9aeb8b",
+    "version": "celld 0.6.2-seams.5",
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "buildCommand": ["cargo", "build", "--release", "--locked", "-p", "celld", "--bin", "celld"],
+    "clippyCommand": [
+      "cargo",
+      "clippy",
+      "--release",
+      "--locked",
+      "-p",
+      "celld",
+      "--bin",
+      "celld",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "packageSnapshotHashes": {
+    "wallet-server": "5e8dc4b562c815db310b0d5d36eef178244ad222b675f81d05fcf4cdbf76fd09",
+    "wallet": "40d087ee930283654368847bd5f4c4d8bb55217774a9d261436a5c5c4eedcac4"
+  },
+  "nodes": [
+    {
+      "kind": "ordinary",
+      "name": "r190q-20261013-e7f9b0-ordinary-final",
+      "zone": "us-central1-c",
+      "privateIp": "10.128.0.4"
+    },
+    {
+      "kind": "confidential",
+      "name": "r190q-20261013-e7f9b0-snp",
+      "zone": "us-central1-c",
+      "privateIp": "10.128.0.3"
+    }
+  ],
+  "runs": {
+    "control": [
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ],
+    "fault": [
+      {
+        "title": "concurrent prepare and admitted ECDSA finalize lost_response retry preserve one signing effect",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "distinct concurrent prepares consume the last quota use once and preserve the winning claim",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      },
+      {
+        "title": "exact finalize retry at the Router returns the SigningWorker stored signature",
+        "expectedStatus": "passed",
+        "results": ["passed"]
+      }
+    ]
+  },
+  "nativeFailover": {
+    "status": "passed",
+    "requestSha256": "185f2757c5227093c13a9d02165cef4f084977881d976d99b4f085f9dc8f4674",
+    "committedReplySha256": "7b193a541e34bc705a300c165d8cffb8c098ef8974e87bb155bf1975c7121712",
+    "startedAt": 1791912123.727262,
+    "killedPrimary": {
+      "beforeStop": {
+        "MainPID": "4338",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-13 17:20:37 UTC",
+        "ExecMainExitTimestamp": "",
+        "ExecMainPID": "4338",
+        "ExecMainCode": "0",
+        "ExecMainStatus": "0",
+        "Id": "r190-celld-wallet-watch-1b1zm_w5.service",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "afterStop": {
+        "MainPID": "0",
+        "Result": "signal",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-13 17:20:37 UTC",
+        "ExecMainExitTimestamp": "Tue 2026-10-13 17:22:09 UTC",
+        "ExecMainPID": "4338",
+        "ExecMainCode": "2",
+        "ExecMainStatus": "9",
+        "Id": "r190-celld-wallet-watch-1b1zm_w5.service",
+        "ActiveState": "failed",
+        "SubState": "failed"
+      }
+    },
+    "readiness": [
+      {
+        "status": 0,
+        "at": 1791912129.956606
+      },
+      {
+        "status": 0,
+        "at": 1791912130.463995
+      },
+      {
+        "status": 0,
+        "at": 1791912130.974234
+      },
+      {
+        "status": 0,
+        "at": 1791912131.480736
+      },
+      {
+        "status": 0,
+        "at": 1791912131.988951
+      },
+      {
+        "status": 0,
+        "at": 1791912132.499289
+      },
+      {
+        "status": 0,
+        "at": 1791912133.001128
+      },
+      {
+        "status": 0,
+        "at": 1791912133.505549
+      },
+      {
+        "status": 200,
+        "at": 1791912134.6827352
+      }
+    ],
+    "survivor": {
+      "MainPID": "8323",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Tue 2026-10-13 17:21:10 UTC",
+      "ExecMainExitTimestamp": "",
+      "ExecMainPID": "8323",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "Id": "r190-celld-wallet-watch-3k6wnwhp.service",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "survivorStayedActive": true,
+    "completedAt": 1791912145.8308978
+  },
+  "closedOwnedListeners": {
+    "gateway": true,
+    "app": true,
+    "wallet": true
+  },
+  "cleanupErrors": [],
+  "limitations": [
+    "The first signing contract crosses the failure. The quota and Router-replay contracts run afterward on the survivor.",
+    "The killed node is the ingress node. Owner placement of the relevant SigningWorker was not measured.",
+    "Equal stored replies and later refusal are observed. This proof does not directly count SigningWorker effects or prove every one-use-material invariant.",
+    "The survivor process and its existing local state remain available. This is not recovery after losing all local replicas.",
+    "Relocation, tenant-root retirement, authorized restore, in-flight claim partitions, and live cutover remain separate gates."
+  ],
+  "earlierExperiments": [
+    {
+      "artifact": "wallet-native-failover-x75k68y3",
+      "status": "inconclusive; stopped",
+      "classification": "environment_or_infrastructure_failure",
+      "facts": "The HTTP proxy buffers responses and lacks transparent streaming/WebSocket support. The fault kills both nodes and bypasses both old local directories. Its stall does not establish a product defect."
+    },
+    {
+      "artifact": "wallet-one-node-failover-yn09rw51",
+      "status": "browser checks passed; controller cleanup failed",
+      "classification": "environment_or_infrastructure_failure",
+      "facts": "All six browser checks passed. Cleanup raised PermissionError while signaling a process group after replacing the primary tunnel; the failing PID was not recorded. A later audit found the primary PID and all three owned listeners absent. The final repeated driver reaps that tunnel and verifies closed listeners."
+    }
+  ],
+  "independentReview": {
+    "status": "no contradiction found in requested evidence",
+    "checks": [
+      "controller and helper source hashes",
+      "public contract revision and all five source hashes",
+      "both native runtimes stopped",
+      "both temporary firewall rules deleted and tags removed",
+      "all three owned listeners closed"
+    ],
+    "limit": "The reviewer did not rerun the tests and retains the stated fault-scope limits."
+  },
+  "resourceCleanup": {
+    "checkedAtUtc": "2026-10-13T17:41:22.066076+00:00",
+    "project": "seams-501403",
+    "instances": [
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-ordinary",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-a"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/e2-standard-4",
+        "name": "r190q-20261013-e7f9b0-ordinary-final",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      },
+      {
+        "machineType": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c/machineTypes/n2d-standard-2",
+        "name": "r190q-20261013-e7f9b0-snp",
+        "status": "TERMINATED",
+        "zone": "https://www.googleapis.com/compute/v1/projects/seams-501403/zones/us-central1-c"
+      }
+    ],
+    "peerFirewallRules": [],
+    "retained": "Task-owned attached disks, synthetic test buckets and service account remain tracked. All qualification VMs are stopped.",
+    "earlierCleanupRepair": "Removed r190-wallet-peer-yn09rw51-allow and r190-wallet-peer-yn09rw51-deny after final audit found them left by the earlier controller cleanup failure."
+  }
+}

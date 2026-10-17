@@ -603,14 +603,15 @@ function isRegistrationStatus(request: { stage: string; path: string }): boolean
  * adds one must raise its ceiling here and say why. Finalize ends with its
  * cleanup, one read and one delete. They run after the response, and the trace
  * holds those that finish before it is read. The ceiling includes both.
+ * Respond claims the passkey in the background with one write, which the trace
+ * holds in the same way.
  *
  * Setup reads and stores the wallet's object addresses: one read and one
  * write. Every other request takes them from the Gateway's admission query.
  */
 const ROUND_TRIP_CEILINGS: Readonly<Record<string, number>> = {
   '/wallets/register/setup': 4,
-  '/wallets/register/respond': 5,
-  '/router-ab/ed25519/yao/registration/execute': 1,
+  '/wallets/register/respond': 6,
   '/wallets/register/near-provisioning': 13,
   '/router-ab/ed25519/sign/prepare': 2,
   '/router-ab/ed25519/sign': 3,

@@ -8,6 +8,22 @@ October 16–17 (`1ac8588d`, `417f94be`).
 
 Every file below is the same on `origin/dev` and `origin/main` unless stated.
 
+## Progress (October 17–18)
+
+The owner approved the Singapore move of production testnet, the missing secrets and the
+`dev` → `main` merge on October 17. Done on `dev`:
+
+| Gate | State |
+| --- | --- |
+| 2, 3 | `2cf5411f`: production testnet targets the eight empty databases of October 12, all regions allocated; Console and role Workers at `aws:ap-southeast-1` with a SIN primary check. The three role database variables name the `-sin` databases |
+| 4 | `3ad02775`: the Gateway deploy installs an inert Worker under each missing regional Gateway name, then deploys the real Gateways |
+| 5 | The three service-auth secrets are set in the `*-gateway`, `*-mpc-router` and `*-signing-worker` environments of both production lanes (generated, never printed) |
+| 6 | **Open, owner:** `production-live-demo` still has no `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`. The Console accepts activation only from that environment's OIDC subject, and the cutover writes D1 rows with the token in the same process |
+| 7, 8 | `3ad02775`: the live-demo Console deploys after the backend; an empty `environment_id` deploys without the cutover |
+
+The Arc RPC default moved to `https://rpc.testnet.arc.io` (`10e4807d`; GitHub variables
+updated); Wallet 0.13.1 carries the SDK default.
+
 ## Gates
 
 | # | Gate | Lanes | Where | Removed by |

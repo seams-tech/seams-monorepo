@@ -18,10 +18,11 @@ import {
 } from '../../components/DashboardTable';
 import { DashboardInlineModal } from '../../components/DashboardInlineModal';
 import { useDashboardConsoleSession } from '../../consoleSession';
+import { consoleSessionHref } from '../../consoleNavigation';
 import { getDashboardProjectLabel } from '../../utils/scopeLabels';
 import {
   clearDashboardUiState,
-  replaceDashboardSelectedContext,
+  persistDashboardSelectedContext,
 } from '../../useDashboardUiPreferences';
 import { isDashboardDefaultOrganizationName } from '../../utils/organizationIdentity';
 import {
@@ -289,13 +290,15 @@ export function AccountSettingsPage(): React.JSX.Element {
           const nextContext = await switchDashboardAccountOrganizationContext(organization.id);
           const nextPath = nextContext.onboardingComplete ? '/dashboard' : '/dashboard/onboarding';
           clearDashboardUiState();
-          replaceDashboardSelectedContext({
+          // The closing dashboard still has the previous session. Broadcasting
+          // this selection lets that screen restore its old account before unload.
+          persistDashboardSelectedContext({
             organization: nextContext.orgId,
             project: nextContext.projectId || '',
             environment: '',
           });
           if (typeof window !== 'undefined') {
-            window.location.assign(nextPath);
+            window.location.assign(consoleSessionHref(nextPath));
             return;
           }
           go(nextPath);

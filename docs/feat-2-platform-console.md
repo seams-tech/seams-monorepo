@@ -1,14 +1,13 @@
 # Separate Platform and Wallet consoles
 
-Status: implementation is committed on `codex/feat-2-platform-console`.
-The staging backend and frontends are deployed. DNS and identity providers are configured.
-Wallet Google and GitHub sign-in, account navigation, and the staging origin cutover pass.
-Satyr staging and its private account connection are deployed.
-Satyr Google sign-in and automatic setup pass. Invitation acceptance is implemented.
-Live Satyr workspace entry passes. Setup completes without an automatic page reload.
-Saved appearance applies before the first visible frame. The organisation list has one loading layout.
-The user accepted startup at roughly 2.5 seconds. Production cutover remains pending.
-Date: October 15, 2026.
+Status: the Console split is merged and deployed to staging and production.
+Platform and Wallet have separate production domains. Google and GitHub sign-in
+passed on both domains after the exact provider origins and callbacks were saved.
+Satyr is deployed with its private account connection. Nini Corp is attached to its
+approved Platform account and Satyr project, and its existing workspace opens.
+Invitation acceptance and automatic product setup pass. The existing Wallet Gateway
+and runtime versions remain unchanged by this release.
+Date: October 17, 2026.
 
 ## Outcome
 
@@ -22,8 +21,9 @@ Reuse the current shared UI, session, HTTP, and account code. Keep Satyr separat
 | `console.wallet.seams.sh` | Wallet environments, credentials, sponsorship, and operations              | Wallet entrypoint in `apps/wallet-console`        |
 | `satyr.seams.sh`          | Agents, Cases, workflows, and integrations                                 | Existing Satyr frontend in the `satyr` repository |
 
-These are target domains, not a statement of current deployment. Current production
-Console configuration uses `wallet.seams.sh`. Wallet marketing remains there.
+The two Console target domains are live. Satyr production currently uses
+`https://satyr-edge.n6378056.workers.dev/portal`; `satyr.seams.sh` remains a future
+custom-domain change. Wallet marketing remains at `wallet.seams.sh`.
 Preserve `api.wallet.seams.sh`, `sign.seams.sh`, and Wallet passkey relying-party IDs.
 
 This plan builds on [Shared Account Platform](feat-1-shared-account-platform.md).
@@ -91,10 +91,30 @@ or additional database is required.
   recipients can join an existing developer account without creating another account.
   Keep the invitation token and verified-email checks in the existing access service.
 
-Wallet automatic setup and the Wallet-only navigation change are deployed to staging.
-Satyr's developer-account/project picker and automatic provisioning are deployed to
-its isolated staging environment. Its existing private account onboarding endpoints
-are available before browser acceptance. Record local acceptance and deployment separately.
+Wallet automatic setup and Wallet-only navigation are deployed to staging and production.
+Satyr's developer-account/project picker and automatic provisioning are deployed in
+both environments. Record local acceptance and deployment separately.
+
+### Account selection and first-user onboarding
+
+Account settings must retain the chosen organisation and project after Open and reload.
+Document navigation after switching or creating an organisation carries the selected
+account network and scope in the existing Console URL parameters. The closing dashboard
+must not receive a selection event that lets its previous session restore the old scope.
+
+A new Wallet user completes organisation and project creation in Platform Console,
+then follows its Wallet Console link with the chosen network, organisation, and project.
+Each domain authenticates its own session. The existing Wallet identity can sign in
+again after account creation to obtain its scoped session. No token crosses domains.
+Account and project creation do not provision Wallet. The authorised Wallet visit
+performs setup, and reload observes the existing result or resumes a pending operation.
+
+The composed browser acceptance covers both account-switch directions and reload,
+first organisation and project creation across separate hosts, reauthentication on
+return to Wallet, an interrupted activation reply, and creation of another organisation.
+It produces screenshots, browser traces, and JSON reports with the resulting scope
+and environment count. Provider authorization is simulated in this local journey;
+live Google and GitHub checks are recorded separately in the release evidence.
 
 ## Step 1 — Separate the frontend builds
 
@@ -495,22 +515,16 @@ Wildcard matching remains disabled. Existing callbacks are preserved during acce
 - `https://console.staging.wallet.seams.sh/dashboard/login`
 - `https://staging.wallet.seams.sh/dashboard/login`
 
-Remaining actions, in order:
+Production cutover completed on October 17. Both Console domains pass readiness checks.
+Production Satyr has its `ACCOUNT_PLATFORM` service binding and the acknowledged Nini Corp
+account attachment. Google and GitHub accept the exact production Console origins and
+callbacks. Existing provider entries remain available to their current consumers.
 
-1. Repeat the verified sequence for production after staging acceptance passes.
-   Confirm production Satyr's existing organizations and private account connection
-   before releasing its account-service admission changes. Its current live Worker
-   lacks the source configuration's `ACCOUNT_PLATFORM` binding.
-   Deploy marketing redirects after both Console frontends pass readiness checks.
-   Retire old callbacks and browser routes after their links and in-flight sign-in
-   journeys no longer need them. The `all` command checks all project mappings before
-   deploying Console frontends.
-
-The active staging configuration now uses `CONSOLE_BASE_URL=https://staging.console.seams.sh`
+The active staging configuration uses `CONSOLE_BASE_URL=https://staging.console.seams.sh?db_network=testnet`
 and `CONSOLE_STEP_UP_ORIGIN=https://console.staging.wallet.seams.sh`.
-`CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh` is preserved. Keep old entrypoints
-available until the remaining acceptance checks pass. Deployment evidence, screenshots, and pending actions are recorded
-under `.artifacts/platform-console/rollout/`, including `report.json` and `signin-journey.json`.
+`CONSOLE_STEP_UP_RP_ID=staging.wallet.seams.sh` is preserved. Current production evidence
+is recorded under `.artifacts/platform-console/release-20261017/`, including `report.md`,
+`release.json`, provider sign-in screenshots, and the final service-state proof.
 
 ## P2 architecture review fixes — October 16, 2026
 

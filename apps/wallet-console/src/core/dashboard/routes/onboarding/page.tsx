@@ -6,8 +6,8 @@ import { DashboardLoadingState } from '../../components/DashboardLoadingState';
 import {
   clearDashboardUiState,
   persistDashboardSelectedContext,
-  replaceDashboardSelectedContext,
 } from '../../useDashboardUiPreferences';
+import { consoleSessionHref } from '../../consoleNavigation';
 import {
   deriveDashboardOrganizationSlug,
   isDashboardDefaultOrganizationName,
@@ -389,13 +389,13 @@ export function DashboardOnboardingPage({
         });
         const nextContext = await switchDashboardAccountOrganizationContext(createdOrganization.id);
         clearDashboardUiState();
-        replaceDashboardSelectedContext({
+        persistDashboardSelectedContext({
           organization: nextContext.orgId,
           project: nextContext.projectId || '',
           environment: '',
         });
         if (typeof window !== 'undefined') {
-          window.location.assign('/dashboard/onboarding');
+          window.location.assign(consoleSessionHref('/dashboard/onboarding'));
           return;
         }
         go('/dashboard/onboarding');
@@ -738,8 +738,8 @@ export function DashboardOnboardingPage({
             >
               <h2>Create your first project</h2>
               <p className="dashboard-onboarding-panel__lead">
-                Add your first project. You can enable Wallet and configure its environments after
-                account setup.
+                Add your first project. Wallet sets itself up automatically when you open the
+                project in Wallet Console.
               </p>
               <form
                 className="dashboard-onboarding-form dashboard-view-grid dashboard-view-grid--two"

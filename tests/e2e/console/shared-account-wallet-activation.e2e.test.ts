@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
+import { expect, test, type Browser, type Page, type Route, type TestInfo } from '@playwright/test';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -662,6 +662,16 @@ class WalletConsoleBrowserIdentity implements HostedConsoleIdentityPort {
 
   async verifyGithubOAuthCode(input: { code: string }): Promise<ConsoleGithubLoginResult> {
     switch (input.code) {
+      case 'fresh-wallet-user':
+        return {
+          ok: true,
+          verified: true,
+          userId: 'fresh-wallet-user',
+          providerSubject: 'fresh-wallet-user',
+          sub: 'fresh-wallet-user',
+          email: 'fresh@activation.invalid',
+          name: 'Fresh Wallet user',
+        };
       case 'invited-platform-user':
         return {
           ok: true,
@@ -793,6 +803,7 @@ async function completeBrowserGithubAuthorization(
 
 class WalletConsoleBrowserTransport {
   readonly enableRequests: string[] = [];
+  readonly organizationSwitches: string[] = [];
   readonly authExchanges: { readonly status: number; readonly body: unknown }[] = [];
   private loseNextEnableReply = true;
   private readonly pending: Promise<unknown>[] = [];
@@ -810,6 +821,12 @@ class WalletConsoleBrowserTransport {
   async handle(route: Route): Promise<void> {
     const incoming = route.request();
     const url = new URL(incoming.url());
+    const contextSwitch = url.pathname.match(
+      /^\/console\/account\/organizations\/([^/]+)\/switch-context$/,
+    );
+    if (incoming.method() === 'POST' && contextSwitch) {
+      this.organizationSwitches.push(decodeURIComponent(contextSwitch[1]));
+    }
     const enable = incoming.method() === 'POST' && url.pathname.endsWith('/services/wallet/enable');
     if (enable) this.enableRequests.push(incoming.postData() ?? '');
     const request = new Request(`${origin}${url.pathname}${url.search}`, {
@@ -868,8 +885,164 @@ function createBrowserAuthHandler(
   });
 }
 
+async function completeFreshUserAuthorization(
+  origins: readonly string[],
+  route: Route,
+): Promise<void> {
+  const authorization = new URL(route.request().url());
+  const callback = new URL(authorization.searchParams.get('redirect_uri') ?? '');
+  expect(origins).toContain(callback.origin);
+  await completeBrowserGithubAuthorization(callback.origin, 'fresh-wallet-user', route);
+}
+
+async function verifyFreshUserOnboarding(input: {
+  readonly browser: Browser;
+  readonly database: D1DatabaseLike;
+  readonly appUrl: string;
+  readonly platformUrl: string;
+  readonly handlers: ReadonlyMap<string, HostedConsoleAuthHandler>;
+  readonly evidence: string;
+}): Promise<void> {
+  const page = await input.browser.newPage();
+  page.setDefaultTimeout(15_000);
+  page.setDefaultNavigationTimeout(15_000);
+  const context = page.context();
+  const transport = new WalletConsoleBrowserTransport(input.handlers);
+  await context.tracing.start({ screenshots: true, snapshots: true });
+  try {
+    await page.route('**/console/**', transport.handle.bind(transport));
+    await page.route(
+      'https://github.com/login/oauth/authorize?*',
+      completeFreshUserAuthorization.bind(null, [
+        new URL(input.appUrl).origin,
+        new URL(input.platformUrl).origin,
+      ]),
+    );
+    await page.goto(new URL('/dashboard/login?db_network=mainnet', input.appUrl).href);
+    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Continue with GitHub', exact: true }),
+    ).toBeVisible();
+    expect(new URL(page.url()).origin).toBe(new URL(input.platformUrl).origin);
+    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Name your organization', exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: path.join(input.evidence, 'fresh-organization-step.png'),
+      fullPage: true,
+    });
+    await page.getByLabel('Organization name', { exact: true }).fill('Fresh customer');
+    await page.getByRole('button', { name: 'Continue to project setup', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Create your first project', exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Create your first project', exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: path.join(input.evidence, 'fresh-project-step.png'),
+      fullPage: true,
+    });
+    await page.getByRole('textbox', { name: /^Project name/ }).fill('Fresh Wallet');
+    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
+    await expect(page.getByLabel('Account settings page')).toBeVisible();
+    const walletLink = page.getByRole('link', { name: 'Wallet Console', exact: true });
+    const href = await walletLink.getAttribute('href');
+    if (!href) throw new Error('Platform omitted the Wallet Console link');
+    const selected = new URL(href);
+    expect(selected.origin).toBe(new URL(input.appUrl).origin);
+    expect(selected.searchParams.get('db_network')).toBe('mainnet');
+    const orgId = selected.searchParams.get('db_org');
+    const projectId = selected.searchParams.get('db_project');
+    if (!orgId || !projectId) throw new Error('New account omitted its selected project');
+    expect(await environmentCount(input.database, projectId)).toBe(0);
+    await page.screenshot({
+      path: path.join(input.evidence, 'fresh-account-ready.png'),
+      fullPage: true,
+    });
+    await walletLink.click();
+    await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
+    // A lost activation reply must resume the same setup after a reload.
+    await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Manage your wallets', exact: true }),
+    ).toBeVisible();
+    expect(await environmentCount(input.database, projectId)).toBe(3);
+    expect(transport.enableRequests).toHaveLength(1);
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Manage your wallets', exact: true }),
+    ).toBeVisible();
+    const accountHref = await page
+      .getByRole('link', { name: 'Account settings', exact: true })
+      .getAttribute('href');
+    if (!accountHref) throw new Error('Wallet omitted the selected account link');
+    expect(new URL(accountHref).searchParams.get('db_org')).toBe(orgId);
+    expect(new URL(accountHref).searchParams.get('db_project')).toBe(projectId);
+    expect(transport.enableRequests).toHaveLength(1);
+    await page.screenshot({
+      path: path.join(input.evidence, 'fresh-wallet-ready.png'),
+      fullPage: true,
+    });
+    // Creating another organisation also replaces the account session before
+    // document navigation. Its project must stay in the newly created account.
+    await page.goto(accountHref);
+    await page.getByRole('button', { name: 'Create an organization', exact: true }).click();
+    await page.getByLabel('Organization name', { exact: true }).fill('Second fresh account');
+    await page.getByRole('button', { name: 'Continue to project setup', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Create your first project', exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await page.getByRole('textbox', { name: /^Project name/ }).fill('Second fresh project');
+    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
+    await expect(page.getByRole('row').filter({ hasText: 'Second fresh account' })).toContainText(
+      'Current',
+    );
+    const secondAccountHref = await page
+      .getByRole('link', { name: 'Wallet Console', exact: true })
+      .getAttribute('href');
+    if (!secondAccountHref) throw new Error('Second account omitted its Wallet link');
+    const secondSelection = new URL(secondAccountHref);
+    expect(secondSelection.searchParams.get('db_org')).not.toBe(orgId);
+    expect(secondSelection.searchParams.get('db_network')).toBe('mainnet');
+    const secondProjectId = secondSelection.searchParams.get('db_project');
+    if (!secondProjectId) throw new Error('Second account omitted its project');
+    expect(await environmentCount(input.database, secondProjectId)).toBe(0);
+    expect(await environmentCount(input.database, projectId)).toBe(3);
+    await writeFile(
+      path.join(input.evidence, 'fresh-user-report.json'),
+      JSON.stringify(
+        {
+          organizationId: orgId,
+          projectId,
+          accountCreation: true,
+          projectCreation: true,
+          reloadDuringOnboarding: true,
+          separateHostAuthentication: true,
+          selectedNetwork: 'mainnet',
+          environments: 3,
+          lostActivationReplyRecovered: true,
+          noDuplicateActivationAfterReload: true,
+          additionalAccountCreationPreservesSelection: true,
+          additionalProjectId: secondProjectId,
+          authExchanges: transport.authExchanges,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await context.tracing.stop({ path: path.join(input.evidence, 'fresh-user-trace.zip') });
+    await context.close();
+  }
+}
+
 async function verifyAutomaticWalletSetup(
-  { page }: { page: Page },
+  { page, browser }: { page: Page; browser: Browser },
   testInfo: TestInfo,
 ): Promise<void> {
   testInfo.setTimeout(180_000);
@@ -920,6 +1093,7 @@ async function verifyAutomaticWalletSetup(
     const walletOrigin = new URL(resolvedUrl);
     walletOrigin.hostname = 'localhost';
     const appUrl = walletOrigin.href;
+    platform.config.define['import.meta.env.VITE_WALLET_CONSOLE_ORIGIN'] = JSON.stringify(appUrl);
     const database = await databaseFor(worker);
     await migrate(database);
     const product = await compose(database);
@@ -1008,6 +1182,24 @@ async function verifyAutomaticWalletSetup(
     await expect(page.getByRole('link', { name: 'Project services', exact: true })).toHaveCount(0);
     expect(await environmentCount(database, projectId)).toBe(0);
     expect(transport.enableRequests).toHaveLength(0);
+
+    const originalAccount = page.getByRole('row').filter({ hasText: 'Automatic Wallet setup' });
+    const secondAccount = page.getByRole('row').filter({ hasText: 'Second Wallet account' });
+    await originalAccount.getByRole('button', { name: 'Open', exact: true }).click();
+    await expect(originalAccount).toContainText('Current');
+    await secondAccount.getByRole('button', { name: 'Open', exact: true }).click();
+    await expect(secondAccount).toContainText('Current');
+    await page.reload();
+    await expect(secondAccount).toContainText('Current');
+    await originalAccount.getByRole('button', { name: 'Open', exact: true }).click();
+    await expect(originalAccount).toContainText('Current');
+    await page.reload();
+    await expect(originalAccount).toContainText('Current');
+    expect(transport.organizationSwitches).toEqual([secondOrgId, owner.orgId]);
+    await page.screenshot({
+      path: path.join(evidence, 'account-switch-reloaded.png'),
+      fullPage: true,
+    });
 
     const walletEntry = new URL('/dashboard/api-keys', appUrl);
     walletEntry.searchParams.set('db_org', owner.orgId);
@@ -1251,6 +1443,17 @@ async function verifyAutomaticWalletSetup(
       page.getByText('Wallet access is disabled for this project.', { exact: false }),
     ).toBeVisible();
     expect(transport.enableRequests).toHaveLength(3);
+    await verifyFreshUserOnboarding({
+      browser,
+      database,
+      appUrl,
+      platformUrl,
+      handlers: new Map([
+        [new URL(appUrl).origin, handler],
+        [new URL(platformUrl).origin, platformHandler],
+      ]),
+      evidence,
+    });
     await writeFile(
       path.join(evidence, 'report.json'),
       JSON.stringify(
@@ -1261,10 +1464,12 @@ async function verifyAutomaticWalletSetup(
           secondProjectId,
           foreignContextDenied: true,
           ownedAccountSelectionPreserved: true,
+          accountSettingsSwitchSurvivesReload: true,
+          accountSettingsSwitchHasNoReverseRequest: true,
           incompleteAccountDoesNotOverrideRequestedAccount: true,
           reauthenticatedAfterUnscopedIdentity: true,
           networkPreservedAfterProviderCallback: true,
-          developmentSelectionUsesTestnet: true,
+          developmentSelectionPreservesAccountNetwork: true,
           invitationAcceptance: {
             fixedProviderCallback: true,
             walletLinkRedirectsToPlatform: true,

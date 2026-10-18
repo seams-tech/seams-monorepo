@@ -48,6 +48,12 @@ export interface OrganizationAuthorizationLookup {
   readonly userId: string;
 }
 
+/** The emails of an organization's active owners, oldest owner first. */
+export interface OrganizationOwnerEmails {
+  readonly orgId: string;
+  readonly emails: readonly string[];
+}
+
 export interface ConsoleOrganizationAccessService {
   bootstrapInitialOwner(input: BootstrapInitialOwnerInput): Promise<ActiveOwnerMembership>;
   listMemberships(
@@ -118,6 +124,9 @@ export interface ConsoleOrganizationAccessService {
     lookup: OrganizationAuthorizationLookup,
   ): Promise<OrganizationAuthorization | null>;
   getAuthorizationVersion(orgId: string): Promise<number | null>;
+  /** Platform support read: it checks no membership, so only a route that
+   * already requires platform support may call it. */
+  listActiveOwnerEmails(orgIds: readonly string[]): Promise<readonly OrganizationOwnerEmails[]>;
   listOwnerEvents(ctx: OrganizationAccessContext): Promise<readonly OrganizationOwnerEvent[]>;
   purgeOrganization(orgId: string): Promise<void>;
 }
@@ -1270,6 +1279,17 @@ class InMemoryConsoleOrganizationAccessService implements ConsoleOrganizationAcc
 
   async getAuthorizationVersion(orgId: string): Promise<number | null> {
     return this.stores.get(normalizeRequiredString(orgId, 'orgId'))?.authorizationVersion ?? null;
+  }
+
+  async listActiveOwnerEmails(
+    orgIds: readonly string[],
+  ): Promise<readonly OrganizationOwnerEmails[]> {
+    return Array.from(new Set(orgIds)).map((orgId) => {
+      const owners = Array.from(this.stores.get(orgId)?.memberships.values() ?? [])
+        .filter((membership) => membership.kind === 'active' && membership.role === 'OWNER')
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+      return { orgId, emails: owners.map((membership) => membership.email) };
+    });
   }
 
   async listOwnerEvents(

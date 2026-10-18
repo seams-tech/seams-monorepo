@@ -48,6 +48,7 @@ export type {
   BootstrapInitialOwnerInput,
   VerifiedInvitationAccount,
   OrganizationAuthorizationLookup,
+  OrganizationOwnerEmails,
   ConsoleOrganizationAccessService,
   InMemoryConsoleOrganizationAccessServiceOptions,
 } from './service';

@@ -8,16 +8,45 @@ import {
   formatUsdMinor,
   getDashboardPlatformBillingAccount,
   reconcileDashboardPlatformBillingRefund,
-  searchDashboardPlatformBillingOrganizations,
+  searchDashboardPlatformBillingAccounts,
+  type DashboardBillingAccountActivityEntry,
   type DashboardBillingAccountActivityEventType,
-  type DashboardBillingManualAdjustmentKind,
-  type DashboardPlatformBillingOrganization,
+  type DashboardBillingRefund,
+  type DashboardPlatformBillingAccountSummary,
+  type DashboardPlatformBillingBalance,
   type DashboardPlatformBillingLookupRequest,
   type DashboardPlatformBillingLookupResult,
+  type DashboardPlatformBillingOrganization,
 } from './consoleBillingApi';
-import type { BillingMetric } from './billingShared';
-import { DashboardInlineModal } from '../../components/DashboardInlineModal';
-import { BillingAccountActivitySection, BillingContextSummarySection } from './billingSections';
+import {
+  DashboardTable,
+  DashboardTableActionButton,
+  DashboardTableActionMenu,
+  DashboardTableCell,
+  DashboardTableHeader,
+  DashboardTableHeaderCell,
+  DashboardTableIntro,
+  DashboardTableRow,
+  DashboardTableState,
+  DashboardTableStatus,
+  dashboardTableColumns,
+  useDashboardTablePagination,
+} from '../../components/DashboardTable';
+import { describeAccountActivityType, formatTimestampUtcParts } from './billingSections';
+import {
+  PlatformAdjustmentDialog,
+  PlatformRefundDialog,
+  describePlatformAdjustmentReason,
+  describePlatformLiveAccess,
+  formatBalanceUsdMinor,
+  formatSignedUsdMinor,
+  readPlatformBillingReversedEntryId,
+  resolvePlatformLiveAccessState,
+  type PlatformAdjustmentDialogRequest,
+  type PlatformAdjustmentSubmission,
+  type PlatformRefundSubmission,
+  type PlatformRefundTarget,
+} from './PlatformBillingDialogs';
 
 const PLATFORM_BILLING_ACTIVITY_LIMIT = 50;
 const PLATFORM_BILLING_SEARCH_LIMIT = 10;
@@ -37,21 +66,41 @@ const PLATFORM_BILLING_EVENT_TYPE_OPTIONS: Array<{
   { value: 'DISPUTE_OPENED', label: 'Disputes opened' },
   { value: 'DISPUTE_WON', label: 'Disputes won' },
 ];
+const PLATFORM_ACTIVITY_TABLE_COLUMNS = dashboardTableColumns(
+  '1fr',
+  '1.7fr',
+  '0.8fr',
+  '1.3fr',
+  '0.7fr',
+);
+const PLATFORM_PAYMENTS_TABLE_COLUMNS = dashboardTableColumns(
+  '1fr',
+  '1.5fr',
+  '0.8fr',
+  '0.8fr',
+  '0.7fr',
+);
+const PLATFORM_REFUNDS_TABLE_COLUMNS = dashboardTableColumns(
+  '1.4fr',
+  '1.4fr',
+  '0.8fr',
+  '0.9fr',
+  '0.7fr',
+);
+/* Refunds in these states hold part of a purchase; failed and canceled ones do not. */
+const PLATFORM_REFUND_HOLDING_STATUSES: ReadonlySet<DashboardBillingRefund['status']> = new Set([
+  'requested',
+  'provider_pending',
+  'succeeded',
+]);
 
-function parseUsdAmountInputToMinor(input: string): number | null {
-  const normalized = String(input || '').trim();
-  if (!normalized) return null;
-  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized)) return null;
-  const [whole, fraction = ''] = normalized.split('.');
-  return Number.parseInt(whole, 10) * 100 + Number.parseInt(fraction.padEnd(2, '0'), 10);
-}
+type PlatformBillingTab = 'activity' | 'payments';
 
-function describeManualAdjustmentKind(input: DashboardBillingManualAdjustmentKind): string {
-  return input === 'support_credit' ? 'Manual support credit' : 'Manual admin debit';
-}
-
-function describePlatformAdjustmentAction(input: DashboardBillingManualAdjustmentKind): string {
-  return input === 'support_credit' ? 'support credit' : 'admin debit';
+interface PlatformPaymentsState {
+  orgId: string;
+  loading: boolean;
+  error: string;
+  purchases: DashboardBillingAccountActivityEntry[];
 }
 
 function normalizePlatformBillingSearchValue(value: string): string {
@@ -67,7 +116,7 @@ function scorePlatformBillingSearchCandidate(query: string, value: string, offse
   if (normalized.startsWith(query)) {
     return offset + 10 + Math.max(0, normalized.length - query.length);
   }
-  const tokens = normalized.split(/[\s_-]+/).filter(Boolean);
+  const tokens = normalized.split(/[\s_@.-]+/).filter(Boolean);
   const tokenIndex = tokens.findIndex((token) => token.startsWith(query));
   if (tokenIndex >= 0) return offset + 30 + tokenIndex;
   const containsIndex = normalized.indexOf(query);
@@ -75,30 +124,31 @@ function scorePlatformBillingSearchCandidate(query: string, value: string, offse
   return Number.POSITIVE_INFINITY;
 }
 
-function scorePlatformBillingOrganization(
+function scorePlatformBillingAccount(
   query: string,
-  organization: DashboardPlatformBillingOrganization,
+  account: DashboardPlatformBillingAccountSummary,
 ): number {
   return Math.min(
-    scorePlatformBillingSearchCandidate(query, organization.name, 0),
-    scorePlatformBillingSearchCandidate(query, organization.id, 20),
+    scorePlatformBillingSearchCandidate(query, account.organization.name, 0),
+    scorePlatformBillingSearchCandidate(query, account.organization.id, 20),
+    ...account.ownerEmails.map((email) => scorePlatformBillingSearchCandidate(query, email, 40)),
   );
 }
 
-function sortPlatformBillingOrganizations(
-  organizations: DashboardPlatformBillingOrganization[],
+function sortPlatformBillingAccounts(
+  accounts: DashboardPlatformBillingAccountSummary[],
   query: string,
-): DashboardPlatformBillingOrganization[] {
+): DashboardPlatformBillingAccountSummary[] {
   const normalizedQuery = normalizePlatformBillingSearchValue(query);
-  if (!normalizedQuery) return [...organizations];
-  return [...organizations].sort((left, right) => {
+  if (!normalizedQuery) return [...accounts];
+  return [...accounts].sort((left, right) => {
     const scoreDiff =
-      scorePlatformBillingOrganization(normalizedQuery, left) -
-      scorePlatformBillingOrganization(normalizedQuery, right);
+      scorePlatformBillingAccount(normalizedQuery, left) -
+      scorePlatformBillingAccount(normalizedQuery, right);
     if (scoreDiff !== 0) return scoreDiff;
-    const primaryDiff = left.name.localeCompare(right.name);
+    const primaryDiff = left.organization.name.localeCompare(right.organization.name);
     if (primaryDiff !== 0) return primaryDiff;
-    return left.id.localeCompare(right.id);
+    return left.organization.id.localeCompare(right.organization.id);
   });
 }
 
@@ -120,18 +170,6 @@ function buildLookupRequest(input: {
   };
 }
 
-function buildLookupRequestFromOrganization(input: {
-  organization: DashboardPlatformBillingOrganization;
-  periodMonthUtc: string;
-  eventType: 'all' | DashboardBillingAccountActivityEventType;
-}): DashboardPlatformBillingLookupRequest {
-  return buildLookupRequest({
-    orgId: input.organization.id,
-    periodMonthUtc: input.periodMonthUtc,
-    eventType: input.eventType,
-  });
-}
-
 function buildOrganizationKey(organization: DashboardPlatformBillingOrganization): string {
   return `organization:${organization.id}`;
 }
@@ -140,8 +178,19 @@ function describeOrganizationTitle(organization: DashboardPlatformBillingOrganiz
   return organization.name || organization.id;
 }
 
-function describeOrganizationMeta(organization: DashboardPlatformBillingOrganization): string {
-  return [organization.id, organization.status || 'ACTIVE'].filter(Boolean).join(' • ');
+function describeOwners(ownerEmails: readonly string[]): string {
+  if (ownerEmails.length === 0) return 'no active owner';
+  if (ownerEmails.length === 1) return `owner ${ownerEmails[0]}`;
+  return `owners ${ownerEmails[0]} +${ownerEmails.length - 1}`;
+}
+
+function readLookupBalance(
+  lookupResult: DashboardPlatformBillingLookupResult,
+): DashboardPlatformBillingBalance {
+  return {
+    creditBalanceMinor: lookupResult.overview.creditBalanceMinor,
+    lowBalanceThresholdMinor: lookupResult.overview.lowBalanceThresholdMinor,
+  };
 }
 
 function readPlatformBillingRouteSelection(): { orgId: string; orgName: string } {
@@ -187,6 +236,307 @@ function writePlatformBillingRouteSelection(input: {
   }
 }
 
+function PlatformLiveAccessPill(props: { balance: DashboardPlatformBillingBalance }) {
+  const access = describePlatformLiveAccess(resolvePlatformLiveAccessState(props.balance));
+  return (
+    <DashboardTableStatus tone={access.tone}>
+      {access.tone === 'danger' ? 'Blocked' : access.tone === 'warning' ? 'Low' : 'Enabled'}
+    </DashboardTableStatus>
+  );
+}
+
+function PlatformTimestamp(props: { value: string }): React.JSX.Element {
+  const createdAt = formatTimestampUtcParts(props.value);
+  return (
+    <div className="dashboard-billing-activity-table__stack" title={props.value}>
+      <strong className="dashboard-data-table__summary dashboard-billing-activity-table__timestamp">
+        {createdAt.primary}
+      </strong>
+      {createdAt.secondary ? (
+        <span className="dashboard-data-table__subline dashboard-data-table__subline--muted dashboard-billing-activity-table__timestamp-detail">
+          {createdAt.secondary}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function PlatformSignedAmount(props: { amountMinor: number }): React.JSX.Element {
+  const { amountMinor } = props;
+  return (
+    <strong
+      className={`dashboard-data-table__summary dashboard-platform-amount dashboard-platform-amount--${amountMinor < 0 ? 'debit' : 'credit'}`}
+    >
+      {formatSignedUsdMinor(amountMinor)}
+    </strong>
+  );
+}
+
+function PlatformActivityTable(props: {
+  entries: DashboardBillingAccountActivityEntry[];
+  controls: React.ReactNode;
+  onReverse: (entry: DashboardBillingAccountActivityEntry) => void;
+}): React.JSX.Element {
+  const { entries, controls, onReverse } = props;
+  const pagination = useDashboardTablePagination(entries, {
+    initialRowsPerPage: 10,
+    itemLabel: 'event',
+    itemLabelPlural: 'events',
+  });
+  const reversedEntryIds = React.useMemo(
+    () =>
+      new Set(
+        entries
+          .map((entry) => readPlatformBillingReversedEntryId(entry.idempotencyKey))
+          .filter((entryId): entryId is string => entryId !== null),
+      ),
+    [entries],
+  );
+  return (
+    <DashboardTable
+      ariaLabel="Account activity"
+      className="dashboard-billing-activity-table dashboard-platform-account__table"
+      columns={PLATFORM_ACTIVITY_TABLE_COLUMNS}
+      pagination={pagination.pagination}
+    >
+      <DashboardTableIntro className="dashboard-billing-table__intro">
+        {controls}
+      </DashboardTableIntro>
+      {entries.length === 0 ? (
+        <DashboardTableState>No ledger events match the filters.</DashboardTableState>
+      ) : (
+        <>
+          <DashboardTableHeader>
+            <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>Event</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+              Amount
+            </DashboardTableHeaderCell>
+            <DashboardTableHeaderCell>Reason</DashboardTableHeaderCell>
+            <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+              Action
+            </DashboardTableHeaderCell>
+          </DashboardTableHeader>
+          {pagination.rows.map((entry) => {
+            const reversedEntryId = readPlatformBillingReversedEntryId(entry.idempotencyKey);
+            const detail = reversedEntryId
+              ? `Reverses ${reversedEntryId}`
+              : entry.note || entry.relatedPurchaseId || entry.relatedInvoiceId || null;
+            const isManual = entry.type === 'MANUAL_ADJUSTMENT';
+            return (
+              <DashboardTableRow key={entry.id}>
+                <DashboardTableCell>
+                  <PlatformTimestamp value={entry.createdAt} />
+                </DashboardTableCell>
+                <DashboardTableCell title={entry.id}>
+                  <div className="dashboard-billing-activity-table__stack">
+                    <strong className="dashboard-data-table__summary">
+                      {describeAccountActivityType(entry)}
+                    </strong>
+                    {detail ? (
+                      <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
+                        {detail}
+                      </span>
+                    ) : null}
+                  </div>
+                </DashboardTableCell>
+                <DashboardTableCell align="end">
+                  <PlatformSignedAmount amountMinor={entry.amountMinor} />
+                </DashboardTableCell>
+                <DashboardTableCell>
+                  <div className="dashboard-billing-activity-table__stack">
+                    <span className="dashboard-data-table__summary">
+                      {describePlatformAdjustmentReason(entry.reasonCode) || '-'}
+                    </span>
+                    {entry.actorUserId ? (
+                      <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
+                        by {entry.actorUserId}
+                      </span>
+                    ) : null}
+                  </div>
+                </DashboardTableCell>
+                <DashboardTableCell align="end">
+                  {!isManual || reversedEntryId ? (
+                    '-'
+                  ) : reversedEntryIds.has(entry.id) ? (
+                    <DashboardTableStatus tone="neutral">Reversed</DashboardTableStatus>
+                  ) : (
+                    <DashboardTableActionButton onClick={() => onReverse(entry)}>
+                      Reverse
+                    </DashboardTableActionButton>
+                  )}
+                </DashboardTableCell>
+              </DashboardTableRow>
+            );
+          })}
+        </>
+      )}
+    </DashboardTable>
+  );
+}
+
+function PlatformPaymentsPanel(props: {
+  payments: PlatformPaymentsState | null;
+  refunds: DashboardBillingRefund[];
+  refundActionId: string;
+  onRefund: (target: PlatformRefundTarget) => void;
+  onReconcile: (refundId: string) => void;
+}): React.JSX.Element {
+  const { payments, refunds, refundActionId, onRefund, onReconcile } = props;
+  const heldByPurchase = React.useMemo(() => {
+    const held = new Map<string, number>();
+    for (const refund of refunds) {
+      if (!PLATFORM_REFUND_HOLDING_STATUSES.has(refund.status)) continue;
+      held.set(refund.purchaseId, (held.get(refund.purchaseId) || 0) + refund.amountMinor);
+    }
+    return held;
+  }, [refunds]);
+  const purchases = (payments?.purchases || []).filter((entry) => entry.relatedPurchaseId);
+  return (
+    <div className="dashboard-platform-account__payments">
+      <DashboardTable
+        ariaLabel="Credit purchases"
+        className="dashboard-platform-account__table"
+        columns={PLATFORM_PAYMENTS_TABLE_COLUMNS}
+      >
+        <DashboardTableIntro className="dashboard-billing-table__intro">
+          <h3 className="dashboard-billing-table__title">Credit purchases</h3>
+        </DashboardTableIntro>
+        {!payments || payments.loading ? (
+          <DashboardTableState>Loading purchases...</DashboardTableState>
+        ) : payments.error ? (
+          <DashboardTableState>{payments.error}</DashboardTableState>
+        ) : purchases.length === 0 ? (
+          <DashboardTableState>This account has no Stripe purchases.</DashboardTableState>
+        ) : (
+          <>
+            <DashboardTableHeader>
+              <DashboardTableHeaderCell>When (UTC)</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>Purchase</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+                Paid
+              </DashboardTableHeaderCell>
+              <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+                Refunded
+              </DashboardTableHeaderCell>
+              <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+                Action
+              </DashboardTableHeaderCell>
+            </DashboardTableHeader>
+            {purchases.map((entry) => {
+              const purchaseId = entry.relatedPurchaseId as string;
+              const heldMinor = heldByPurchase.get(purchaseId) || 0;
+              const refundableMinor = Math.max(0, entry.amountMinor - heldMinor);
+              return (
+                <DashboardTableRow key={entry.id}>
+                  <DashboardTableCell>
+                    <PlatformTimestamp value={entry.createdAt} />
+                  </DashboardTableCell>
+                  <DashboardTableCell title={purchaseId}>
+                    <code className="dashboard-billing-activity-table__token">{purchaseId}</code>
+                  </DashboardTableCell>
+                  <DashboardTableCell align="end">
+                    {formatUsdMinor(entry.amountMinor)}
+                  </DashboardTableCell>
+                  <DashboardTableCell align="end">
+                    {heldMinor > 0 ? formatUsdMinor(heldMinor) : '-'}
+                  </DashboardTableCell>
+                  <DashboardTableCell align="end">
+                    <DashboardTableActionButton
+                      tone="danger"
+                      disabled={refundableMinor <= 0 || Boolean(refundActionId)}
+                      onClick={() =>
+                        onRefund({
+                          purchaseId,
+                          purchasedMinor: entry.amountMinor,
+                          refundableMinor,
+                        })
+                      }
+                    >
+                      Refund
+                    </DashboardTableActionButton>
+                  </DashboardTableCell>
+                </DashboardTableRow>
+              );
+            })}
+          </>
+        )}
+      </DashboardTable>
+      <DashboardTable
+        ariaLabel="Refunds"
+        className="dashboard-platform-account__table"
+        columns={PLATFORM_REFUNDS_TABLE_COLUMNS}
+      >
+        <DashboardTableIntro className="dashboard-billing-table__intro">
+          <h3 className="dashboard-billing-table__title">Refunds</h3>
+        </DashboardTableIntro>
+        {refunds.length === 0 ? (
+          <DashboardTableState>No refunds have been requested.</DashboardTableState>
+        ) : (
+          <>
+            <DashboardTableHeader>
+              <DashboardTableHeaderCell>Refund</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>Purchase</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+                Amount
+              </DashboardTableHeaderCell>
+              <DashboardTableHeaderCell>Status</DashboardTableHeaderCell>
+              <DashboardTableHeaderCell className="dashboard-data-table__header-cell--end">
+                Action
+              </DashboardTableHeaderCell>
+            </DashboardTableHeader>
+            {refunds.map((refund) => (
+              <DashboardTableRow key={refund.id}>
+                <DashboardTableCell title={refund.reason}>
+                  <div className="dashboard-billing-activity-table__stack">
+                    <code className="dashboard-billing-activity-table__token">{refund.id}</code>
+                    <span className="dashboard-data-table__subline dashboard-data-table__subline--muted">
+                      {refund.reason}
+                    </span>
+                  </div>
+                </DashboardTableCell>
+                <DashboardTableCell title={refund.purchaseId}>
+                  <code className="dashboard-billing-activity-table__token">
+                    {refund.purchaseId}
+                  </code>
+                </DashboardTableCell>
+                <DashboardTableCell align="end">
+                  {formatUsdMinor(refund.amountMinor)}
+                </DashboardTableCell>
+                <DashboardTableCell>
+                  <DashboardTableStatus
+                    tone={
+                      refund.status === 'succeeded'
+                        ? 'success'
+                        : refund.status === 'failed'
+                          ? 'danger'
+                          : 'neutral'
+                    }
+                  >
+                    {refund.status.replace('_', ' ')}
+                  </DashboardTableStatus>
+                </DashboardTableCell>
+                <DashboardTableCell align="end">
+                  {refund.status === 'requested' || refund.status === 'provider_pending' ? (
+                    <DashboardTableActionButton
+                      disabled={Boolean(refundActionId)}
+                      onClick={() => onReconcile(refund.id)}
+                    >
+                      {refundActionId === refund.id ? 'Checking...' : 'Check status'}
+                    </DashboardTableActionButton>
+                  ) : (
+                    '-'
+                  )}
+                </DashboardTableCell>
+              </DashboardTableRow>
+            ))}
+          </>
+        )}
+      </DashboardTable>
+    </div>
+  );
+}
+
 export function PlatformBillingView(): React.JSX.Element {
   const initialRouteSelection = readPlatformBillingRouteSelection();
   const [searchInput, setSearchInput] = React.useState<string>(
@@ -202,9 +552,9 @@ export function PlatformBillingView(): React.JSX.Element {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [searchLoading, setSearchLoading] = React.useState<boolean>(false);
   const [searchError, setSearchError] = React.useState<string>('');
-  const [searchResults, setSearchResults] = React.useState<DashboardPlatformBillingOrganization[]>(
-    [],
-  );
+  const [searchResults, setSearchResults] = React.useState<
+    DashboardPlatformBillingAccountSummary[]
+  >([]);
   const [searchPerformed, setSearchPerformed] = React.useState<boolean>(false);
   const [lookupError, setLookupError] = React.useState<string>('');
   const [lookupResult, setLookupResult] =
@@ -219,38 +569,24 @@ export function PlatformBillingView(): React.JSX.Element {
     () => requestedRouteSelection.orgName || requestedRouteSelection.orgId,
     [requestedRouteSelection.orgId, requestedRouteSelection.orgName],
   );
-  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = React.useState<boolean>(false);
-  const [startingAdjustmentKind, setStartingAdjustmentKind] = React.useState<
-    DashboardBillingManualAdjustmentKind | ''
-  >('');
-  const [adjustmentActionError, setAdjustmentActionError] = React.useState<string>('');
-  const [adjustmentActionMessage, setAdjustmentActionMessage] = React.useState<string>('');
-  const [adjustmentKind, setAdjustmentKind] =
-    React.useState<DashboardBillingManualAdjustmentKind>('support_credit');
-  const [adjustmentAmountInput, setAdjustmentAmountInput] = React.useState<string>('');
-  const [adjustmentReasonCode, setAdjustmentReasonCode] = React.useState<string>('');
-  const [adjustmentRelatedInvoiceId, setAdjustmentRelatedInvoiceId] = React.useState<string>('');
-  const [adjustmentNote, setAdjustmentNote] = React.useState<string>('');
-  const [refundPurchaseId, setRefundPurchaseId] = React.useState<string>('');
-  const [refundAmountInput, setRefundAmountInput] = React.useState<string>('');
-  const [refundReason, setRefundReason] = React.useState<string>('');
+  const [activeTab, setActiveTab] = React.useState<PlatformBillingTab>('activity');
+  const [adjustmentDialog, setAdjustmentDialog] =
+    React.useState<PlatformAdjustmentDialogRequest | null>(null);
+  const [refundTarget, setRefundTarget] = React.useState<PlatformRefundTarget | null>(null);
   const [refundActionId, setRefundActionId] = React.useState<string>('');
-  const [refundActionError, setRefundActionError] = React.useState<string>('');
+  const [payments, setPayments] = React.useState<PlatformPaymentsState | null>(null);
   const searchRequestIdRef = React.useRef<number>(0);
+  const paymentsRequestIdRef = React.useRef<number>(0);
   const skipRequestedRouteSelectionEffectRef = React.useRef<boolean>(false);
   const suppressSearchValueRef = React.useRef<string>(
     initialRouteSelection.orgName || initialRouteSelection.orgId,
   );
   const searchListboxId = React.useId();
-  const createAdjustmentButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const wasAdjustmentModalOpenRef = React.useRef<boolean>(false);
+  const tabsId = React.useId();
 
-  const resetAdjustmentDraft = React.useCallback(() => {
-    setAdjustmentKind('support_credit');
-    setAdjustmentAmountInput('');
-    setAdjustmentReasonCode('');
-    setAdjustmentRelatedInvoiceId('');
-    setAdjustmentNote('');
+  const closeAccountDialogs = React.useCallback(() => {
+    setAdjustmentDialog(null);
+    setRefundTarget(null);
   }, []);
 
   const loadLookup = React.useCallback(async (request: DashboardPlatformBillingLookupRequest) => {
@@ -271,13 +607,46 @@ export function PlatformBillingView(): React.JSX.Element {
     }
   }, []);
 
+  const loadPayments = React.useCallback(async (orgId: string) => {
+    const requestId = paymentsRequestIdRef.current + 1;
+    paymentsRequestIdRef.current = requestId;
+    setPayments((current) => ({
+      orgId,
+      loading: true,
+      error: '',
+      purchases: current?.orgId === orgId ? current.purchases : [],
+    }));
+    try {
+      const result = await getDashboardPlatformBillingAccount(
+        buildLookupRequest({ orgId, periodMonthUtc: '', eventType: 'CREDIT_PURCHASE' }),
+      );
+      if (paymentsRequestIdRef.current !== requestId) return;
+      setPayments({ orgId, loading: false, error: '', purchases: result.activity });
+    } catch (error: unknown) {
+      if (paymentsRequestIdRef.current !== requestId) return;
+      setPayments({
+        orgId,
+        loading: false,
+        error: error instanceof Error ? error.message : String(error),
+        purchases: [],
+      });
+    }
+  }, []);
+
+  const lookupOrgId = lookupResult?.organization.id || '';
+  React.useEffect(() => {
+    if (activeTab !== 'payments' || !lookupOrgId) return;
+    if (payments?.orgId === lookupOrgId) return;
+    void loadPayments(lookupOrgId);
+  }, [activeTab, loadPayments, lookupOrgId, payments?.orgId]);
+
   const fetchSearchResults = React.useCallback(
-    async (query: string, limit: number): Promise<DashboardPlatformBillingOrganization[]> => {
-      const results = await searchDashboardPlatformBillingOrganizations({
+    async (query: string, limit: number): Promise<DashboardPlatformBillingAccountSummary[]> => {
+      const results = await searchDashboardPlatformBillingAccounts({
         query,
         limit,
       });
-      return query ? sortPlatformBillingOrganizations(results, query) : results;
+      return query ? sortPlatformBillingAccounts(results, query) : results;
     },
     [],
   );
@@ -344,15 +713,12 @@ export function PlatformBillingView(): React.JSX.Element {
     setSearchPerformed(false);
     setSearchResultsMode('search');
     setLookupError('');
-    setAdjustmentActionError('');
-    setAdjustmentActionMessage('');
-    setRefundActionError('');
     setPeriodMonthUtcFilter('');
     setEventTypeFilter('all');
-    setIsAdjustmentModalOpen(false);
+    setActiveTab('activity');
+    closeAccountDialogs();
     setIsSearchDropdownOpen(false);
     setActiveSearchIndex(-1);
-    resetAdjustmentDraft();
 
     if (!requestedRouteSelection.orgId) {
       setLookupResult(null);
@@ -367,7 +733,7 @@ export function PlatformBillingView(): React.JSX.Element {
         eventType: 'all',
       }),
     );
-  }, [loadLookup, requestedRouteSelection.orgId, requestedSearchValue, resetAdjustmentDraft]);
+  }, [closeAccountDialogs, loadLookup, requestedRouteSelection.orgId, requestedSearchValue]);
 
   React.useEffect(() => {
     if (!normalizedSearchInput) {
@@ -381,16 +747,13 @@ export function PlatformBillingView(): React.JSX.Element {
       setLookupResult(null);
       setActiveLookupRequest(null);
       setLookupError('');
-      setAdjustmentActionError('');
-      setAdjustmentActionMessage('');
-      setRefundActionError('');
       setPeriodMonthUtcFilter('');
       setEventTypeFilter('all');
-      setIsAdjustmentModalOpen(false);
+      setActiveTab('activity');
+      closeAccountDialogs();
       setIsSearchDropdownOpen(false);
       setActiveSearchIndex(-1);
       suppressSearchValueRef.current = '';
-      resetAdjustmentDraft();
       return;
     }
 
@@ -407,7 +770,7 @@ export function PlatformBillingView(): React.JSX.Element {
     }
 
     void runSearchRequest(normalizedSearchInput, 'search', PLATFORM_BILLING_SEARCH_LIMIT);
-  }, [normalizedSearchInput, resetAdjustmentDraft, runSearchRequest]);
+  }, [closeAccountDialogs, normalizedSearchInput, runSearchRequest]);
 
   React.useEffect(() => {
     if (!searchResults.length) {
@@ -422,8 +785,8 @@ export function PlatformBillingView(): React.JSX.Element {
 
   const onLoadSearchOrganization = React.useCallback(
     async (organization: DashboardPlatformBillingOrganization) => {
-      const request = buildLookupRequestFromOrganization({
-        organization,
+      const request = buildLookupRequest({
+        orgId: organization.id,
         periodMonthUtc: periodMonthUtcFilter,
         eventType: eventTypeFilter,
       });
@@ -437,11 +800,8 @@ export function PlatformBillingView(): React.JSX.Element {
       setSearchResults([]);
       setSearchPerformed(false);
       setLookupError('');
-      setAdjustmentActionError('');
-      setAdjustmentActionMessage('');
-      setRefundActionError('');
-      setIsAdjustmentModalOpen(false);
-      resetAdjustmentDraft();
+      setActiveTab('activity');
+      closeAccountDialogs();
       const result = await loadLookup(request);
       if (result) {
         skipRequestedRouteSelectionEffectRef.current = true;
@@ -456,7 +816,7 @@ export function PlatformBillingView(): React.JSX.Element {
         });
       }
     },
-    [eventTypeFilter, loadLookup, periodMonthUtcFilter, resetAdjustmentDraft],
+    [closeAccountDialogs, eventTypeFilter, loadLookup, periodMonthUtcFilter],
   );
 
   const onSearchInputChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -521,23 +881,27 @@ export function PlatformBillingView(): React.JSX.Element {
         if (!selectedMatch) return;
         event.preventDefault();
         const option = document.getElementById(
-          `${searchListboxId}-${buildOrganizationKey(selectedMatch)}`,
+          `${searchListboxId}-${buildOrganizationKey(selectedMatch.organization)}`,
         );
         if (!option) {
-          void onLoadSearchOrganization(selectedMatch);
+          void onLoadSearchOrganization(selectedMatch.organization);
           return;
         }
-        void blinkMenuItem(option)?.then(() => onLoadSearchOrganization(selectedMatch));
+        void blinkMenuItem(option)?.then(() =>
+          onLoadSearchOrganization(selectedMatch.organization),
+        );
       }
     },
     [activeSearchIndex, onLoadSearchOrganization, searchListboxId, searchResults],
   );
 
+  const reloadAccount = React.useCallback(async () => {
+    if (activeLookupRequest) await loadLookup(activeLookupRequest);
+    if (lookupOrgId && payments?.orgId === lookupOrgId) await loadPayments(lookupOrgId);
+  }, [activeLookupRequest, loadLookup, loadPayments, lookupOrgId, payments?.orgId]);
+
   const onApplyActivityFilters = React.useCallback(async () => {
-    if (!activeLookupRequest) {
-      setLookupError('Load a billing account before applying activity filters.');
-      return;
-    }
+    if (!activeLookupRequest) return;
     await loadLookup(
       buildLookupRequest({
         orgId: activeLookupRequest.orgId,
@@ -562,256 +926,93 @@ export function PlatformBillingView(): React.JSX.Element {
     );
   }, [activeLookupRequest, loadLookup]);
 
-  const onOpenAdjustmentModal = React.useCallback(() => {
-    if (!lookupResult?.organization.id) return;
-    setAdjustmentActionError('');
-    resetAdjustmentDraft();
-    setIsAdjustmentModalOpen(true);
-  }, [lookupResult?.organization.id, resetAdjustmentDraft]);
+  const onReverseEntry = React.useCallback((entry: DashboardBillingAccountActivityEntry) => {
+    if (entry.type !== 'MANUAL_ADJUSTMENT' || entry.amountMinor === 0) return;
+    setAdjustmentDialog({
+      kind: entry.amountMinor < 0 ? 'support_credit' : 'admin_debit',
+      reversal: { ledgerEntryId: entry.id, amountMinor: Math.abs(entry.amountMinor) },
+    });
+  }, []);
 
-  const onCloseAdjustmentModal = React.useCallback(() => {
-    if (startingAdjustmentKind) return;
-    setIsAdjustmentModalOpen(false);
-    setAdjustmentActionError('');
-    resetAdjustmentDraft();
-  }, [resetAdjustmentDraft, startingAdjustmentKind]);
-
-  const adjustmentAmountMinor = React.useMemo(
-    () => parseUsdAmountInputToMinor(adjustmentAmountInput),
-    [adjustmentAmountInput],
-  );
-  const isAdjustmentAmountValid = adjustmentAmountMinor != null && adjustmentAmountMinor > 0;
-  const normalizedAdjustmentReasonCode = String(adjustmentReasonCode || '').trim();
-  const normalizedAdjustmentRelatedInvoiceId = String(adjustmentRelatedInvoiceId || '').trim();
-  const normalizedAdjustmentNote = String(adjustmentNote || '').trim();
-  const currentCreditBalanceMinor = lookupResult?.overview.creditBalanceMinor || 0;
-  const adjustmentDeltaMinor = isAdjustmentAmountValid
-    ? adjustmentKind === 'support_credit'
-      ? adjustmentAmountMinor
-      : -adjustmentAmountMinor
-    : 0;
-  const projectedBalanceMinor = currentCreditBalanceMinor + adjustmentDeltaMinor;
-  const adjustmentDeltaLabel =
-    adjustmentDeltaMinor >= 0
-      ? `+${formatUsdMinor(Math.abs(adjustmentDeltaMinor))}`
-      : `-${formatUsdMinor(Math.abs(adjustmentDeltaMinor))}`;
-  const adjustmentPreviewLabel = isAdjustmentAmountValid
-    ? `Impact preview: ${formatUsdMinor(currentCreditBalanceMinor)} -> ${formatUsdMinor(projectedBalanceMinor)} (${adjustmentDeltaLabel}).`
-    : 'Enter a positive amount to preview projected balance impact.';
-  const adjustmentPreviewClassName = `dashboard-form-hint dashboard-billing-adjustment-preview${projectedBalanceMinor < 0 ? ' dashboard-billing-adjustment-preview--warning' : ''}`;
-  const canSubmitManualAdjustment =
-    Boolean(lookupResult?.organization.id) &&
-    isAdjustmentAmountValid &&
-    Boolean(normalizedAdjustmentReasonCode) &&
-    Boolean(normalizedAdjustmentNote) &&
-    !startingAdjustmentKind;
-  const adjustmentButtonLabel =
-    startingAdjustmentKind === adjustmentKind
-      ? 'Applying adjustment...'
-      : adjustmentKind === 'support_credit'
-        ? 'Apply support credit'
-        : 'Apply admin debit';
-
-  const onAdjustmentSubmit = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (
-        !lookupResult?.organization.id ||
-        !canSubmitManualAdjustment ||
-        adjustmentAmountMinor == null
-      ) {
-        return;
-      }
-      setStartingAdjustmentKind(adjustmentKind);
-      setAdjustmentActionError('');
-      setAdjustmentActionMessage('');
-      const organizationLabel = lookupResult.organization.name || lookupResult.organization.id;
-      const idempotencyKey = [
-        'platform_billing_adjustment',
-        lookupResult.organization.id,
-        adjustmentKind,
-        String(Date.now()),
-        Math.random().toString(16).slice(2, 10),
-      ].join(':');
-      try {
-        const result =
-          adjustmentKind === 'support_credit'
-            ? await createDashboardPlatformBillingManualSupportCredit({
-                orgId: lookupResult.organization.id,
-                amountMinor: adjustmentAmountMinor,
-                reasonCode: normalizedAdjustmentReasonCode,
-                note: normalizedAdjustmentNote,
-                idempotencyKey,
-                ...(normalizedAdjustmentRelatedInvoiceId
-                  ? { relatedInvoiceId: normalizedAdjustmentRelatedInvoiceId }
-                  : {}),
-              })
-            : await createDashboardPlatformBillingManualAdminDebit({
-                orgId: lookupResult.organization.id,
-                amountMinor: adjustmentAmountMinor,
-                reasonCode: normalizedAdjustmentReasonCode,
-                note: normalizedAdjustmentNote,
-                idempotencyKey,
-                ...(normalizedAdjustmentRelatedInvoiceId
-                  ? { relatedInvoiceId: normalizedAdjustmentRelatedInvoiceId }
-                  : {}),
-              });
-        const resultingBalanceLabel = formatUsdMinor(result.creditBalanceMinor);
-        const amountLabel = formatUsdMinor(adjustmentAmountMinor);
-        setAdjustmentActionMessage(
-          result.created
-            ? adjustmentKind === 'support_credit'
-              ? `Granted ${amountLabel} customer ${describePlatformAdjustmentAction(adjustmentKind)} to ${organizationLabel}. Balance is now ${resultingBalanceLabel}.`
-              : `Applied ${amountLabel} customer ${describePlatformAdjustmentAction(adjustmentKind)} to ${organizationLabel}. Balance is now ${resultingBalanceLabel}.`
-            : `Existing customer ${describePlatformAdjustmentAction(adjustmentKind)} kept for ${organizationLabel}. Balance remains ${resultingBalanceLabel}.`,
+  const onSubmitAdjustment = React.useCallback(
+    async (submission: PlatformAdjustmentSubmission): Promise<void> => {
+      if (!lookupResult) return;
+      const organization = lookupResult.organization;
+      const request = {
+        orgId: organization.id,
+        amountMinor: submission.amountMinor,
+        reasonCode: submission.reasonCode,
+        note: submission.note,
+        idempotencyKey: submission.idempotencyKey,
+        ...(submission.relatedInvoiceId ? { relatedInvoiceId: submission.relatedInvoiceId } : {}),
+      };
+      const result =
+        submission.kind === 'support_credit'
+          ? await createDashboardPlatformBillingManualSupportCredit(request)
+          : await createDashboardPlatformBillingManualAdminDebit(request);
+      const amountLabel = formatUsdMinor(submission.amountMinor);
+      const balanceLabel = formatBalanceUsdMinor(result.creditBalanceMinor);
+      const name = describeOrganizationTitle(organization);
+      if (!result.created) {
+        toast.message(
+          readPlatformBillingReversedEntryId(submission.idempotencyKey)
+            ? `That entry was already reversed. ${name} has ${balanceLabel}.`
+            : `The ledger already holds this adjustment. ${name} has ${balanceLabel}.`,
         );
-        resetAdjustmentDraft();
-        setIsAdjustmentModalOpen(false);
-        if (activeLookupRequest) {
-          await loadLookup(activeLookupRequest);
-        }
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        setAdjustmentActionError(`Failed to apply bill adjustment: ${message}`);
-      } finally {
-        setStartingAdjustmentKind('');
+      } else if (submission.kind === 'support_credit') {
+        toast.success(`Added ${amountLabel} credit to ${name}. The balance is ${balanceLabel}.`);
+      } else {
+        toast.success(`Debited ${amountLabel} from ${name}. The balance is ${balanceLabel}.`);
       }
+      setAdjustmentDialog(null);
+      await reloadAccount();
     },
-    [
-      activeLookupRequest,
-      adjustmentAmountMinor,
-      adjustmentKind,
-      canSubmitManualAdjustment,
-      loadLookup,
-      lookupResult?.organization.id,
-      lookupResult?.organization.name,
-      normalizedAdjustmentNote,
-      normalizedAdjustmentReasonCode,
-      normalizedAdjustmentRelatedInvoiceId,
-      resetAdjustmentDraft,
-    ],
+    [lookupResult, reloadAccount],
   );
 
-  const summaryMetrics = React.useMemo<BillingMetric[]>(() => {
-    const overview = lookupResult?.overview;
-    if (!overview) return [];
-    return [
-      {
-        label: 'Balance',
-        value: formatUsdMinor(overview.creditBalanceMinor),
-        hint:
-          overview.creditBalanceMinor <= 0
-            ? 'Add credits to fund service usage'
-            : overview.creditBalanceMinor <= overview.lowBalanceThresholdMinor
-              ? `Warning at ${formatUsdMinor(overview.lowBalanceThresholdMinor)}`
-              : 'Prepaid balance is available',
-      },
-      {
-        label: 'Monthly active wallets',
-        value: String(overview.monthlyActiveResources || 0),
-        hint: `Billing month ${overview.currentMonthUtc}`,
-      },
-      {
-        label: 'Recent usage',
-        value: formatUsdMinor(overview.recentUsageDebitMinor || 0),
-        hint: 'Current month debit total',
-      },
-      {
-        label: 'Recent top-ups',
-        value: formatUsdMinor(overview.recentCreditPurchasedMinor || 0),
-        hint: `${overview.documentCount || 0} billing document${overview.documentCount === 1 ? '' : 's'}`,
-      },
-    ];
-  }, [lookupResult?.overview]);
-
-  const refundAmountMinor = React.useMemo(
-    () => parseUsdAmountInputToMinor(refundAmountInput),
-    [refundAmountInput],
-  );
-  const canSubmitRefund =
-    Boolean(lookupResult?.organization.id) &&
-    Boolean(String(refundPurchaseId || '').trim()) &&
-    Boolean(String(refundReason || '').trim()) &&
-    refundAmountMinor != null &&
-    refundAmountMinor > 0 &&
-    !refundActionId;
-
-  const onRefundSubmit = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (!lookupResult?.organization.id || !canSubmitRefund || refundAmountMinor == null) return;
+  const onSubmitRefund = React.useCallback(
+    async (submission: PlatformRefundSubmission): Promise<void> => {
+      if (!lookupResult) return;
       setRefundActionId('create');
-      setRefundActionError('');
       try {
         const result = await createDashboardPlatformBillingRefund({
           orgId: lookupResult.organization.id,
-          purchaseId: String(refundPurchaseId || '').trim(),
-          amountMinor: refundAmountMinor,
-          reason: String(refundReason || '').trim(),
-          idempotencyKey: [
-            'platform_billing_refund',
-            lookupResult.organization.id,
-            String(Date.now()),
-            Math.random().toString(16).slice(2, 10),
-          ].join(':'),
+          ...submission,
         });
         toast.success(
-          `Refund ${result.refund.id} is ${result.refund.status}. Balance is ${formatUsdMinor(result.creditBalanceMinor)}.`,
+          `Refund ${result.refund.id} is ${result.refund.status.replace('_', ' ')}. The balance is ${formatBalanceUsdMinor(result.creditBalanceMinor)}.`,
         );
-        setRefundPurchaseId('');
-        setRefundAmountInput('');
-        setRefundReason('');
-        if (activeLookupRequest) await loadLookup(activeLookupRequest);
-      } catch (error: unknown) {
-        setRefundActionError(error instanceof Error ? error.message : String(error));
+        setRefundTarget(null);
+        await reloadAccount();
       } finally {
         setRefundActionId('');
       }
     },
-    [
-      activeLookupRequest,
-      canSubmitRefund,
-      loadLookup,
-      lookupResult?.organization.id,
-      refundAmountMinor,
-      refundPurchaseId,
-      refundReason,
-    ],
+    [lookupResult, reloadAccount],
   );
 
   const onRefundReconcile = React.useCallback(
     async (refundId: string) => {
       if (!lookupResult?.organization.id || !refundId || refundActionId) return;
       setRefundActionId(refundId);
-      setRefundActionError('');
       try {
         const result = await reconcileDashboardPlatformBillingRefund({
           orgId: lookupResult.organization.id,
           refundId,
         });
-        toast.success(`Refund ${refundId} is ${result.refund.status}.`);
-        if (activeLookupRequest) await loadLookup(activeLookupRequest);
+        toast.success(`Refund ${refundId} is ${result.refund.status.replace('_', ' ')}.`);
+        await reloadAccount();
       } catch (error: unknown) {
-        setRefundActionError(error instanceof Error ? error.message : String(error));
+        toast.error(error instanceof Error ? error.message : String(error));
       } finally {
         setRefundActionId('');
       }
     },
-    [activeLookupRequest, loadLookup, lookupResult?.organization.id, refundActionId],
+    [lookupResult?.organization.id, refundActionId, reloadAccount],
   );
 
-  React.useEffect(() => {
-    const wasOpen = wasAdjustmentModalOpenRef.current;
-    wasAdjustmentModalOpenRef.current = isAdjustmentModalOpen;
-    if (!wasOpen || isAdjustmentModalOpen) return;
-    const frameId = window.requestAnimationFrame(() => {
-      createAdjustmentButtonRef.current?.focus();
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, [isAdjustmentModalOpen]);
-
   const accountActivityControls = (
-    <div className="dashboard-billing-filters" role="group" aria-label="Platform billing filters">
+    <div className="dashboard-billing-filters" role="group" aria-label="Activity filters">
       <label className="dashboard-form-field">
         <span>Period</span>
         <input
@@ -828,13 +1029,9 @@ export function PlatformBillingView(): React.JSX.Element {
           value={eventTypeFilter}
           onChange={(event) =>
             setEventTypeFilter(
-              String(event.target.value || '')
-                .trim()
-                .toUpperCase() === 'ALL'
+              event.target.value === 'all'
                 ? 'all'
-                : (String(event.target.value || '')
-                    .trim()
-                    .toUpperCase() as DashboardBillingAccountActivityEventType),
+                : (event.target.value as DashboardBillingAccountActivityEventType),
             )
           }
         >
@@ -862,7 +1059,7 @@ export function PlatformBillingView(): React.JSX.Element {
           onClick={onResetActivityFilters}
           disabled={loading || !activeLookupRequest}
         >
-          Reset filters
+          Reset
         </button>
       </div>
     </div>
@@ -872,69 +1069,81 @@ export function PlatformBillingView(): React.JSX.Element {
     isSearchDropdownOpen &&
     (searchLoading || searchPerformed || searchResults.length > 0 || Boolean(searchError));
 
+  const accountBalance = lookupResult ? readLookupBalance(lookupResult) : null;
+  const accountLiveState = accountBalance ? resolvePlatformLiveAccessState(accountBalance) : null;
+  const accountLiveAccess = accountLiveState ? describePlatformLiveAccess(accountLiveState) : null;
+  const accountOrganization = lookupResult
+    ? {
+        id: lookupResult.organization.id,
+        name: describeOrganizationTitle(lookupResult.organization),
+      }
+    : null;
+  const pendingMinor = lookupResult
+    ? lookupResult.overview.creditBalanceMinor - lookupResult.overview.availableBalanceMinor
+    : 0;
+
   return (
     <>
       <section className="dashboard-view__section dashboard-billing-filters-panel dashboard-platform-billing-search-card">
         <div className="dashboard-billing-table__intro">
-          <p className="dashboard-pagination-note">
-            Search by customer organization name or ID to review account activity and apply bill
-            adjustments.
-          </p>
-          <div className="dashboard-billing-filters dashboard-platform-billing-search-form">
-            <div
-              className="dashboard-platform-billing-search-combobox"
-              onFocus={onSearchFieldFocus}
-              onBlur={onSearchFieldBlur}
-            >
-              <label className="dashboard-form-field dashboard-platform-billing-search-form__name">
-                <span>Search</span>
-                <input
-                  className="dashboard-input"
-                  type="text"
-                  role="combobox"
-                  aria-autocomplete="list"
-                  aria-expanded={showSearchResults}
-                  aria-controls={showSearchResults ? searchListboxId : undefined}
-                  aria-activedescendant={
-                    showSearchResults && activeSearchIndex >= 0 && searchResults[activeSearchIndex]
-                      ? `${searchListboxId}-${buildOrganizationKey(searchResults[activeSearchIndex]!)}`
-                      : undefined
-                  }
-                  value={searchInput}
-                  onChange={onSearchInputChange}
-                  onKeyDown={onSearchInputKeyDown}
-                  placeholder="Organization name, org_123 or member email"
-                  autoComplete="off"
-                />
-              </label>
-              {showSearchResults ? (
-                <div
-                  className="dashboard-platform-billing-search-dropdown"
-                  id={searchListboxId}
-                  role="listbox"
-                  aria-label="Platform billing search suggestions"
-                >
-                  {searchLoading ? (
-                    <p className="dashboard-platform-billing-search-dropdown__state">
-                      Searching...
-                    </p>
-                  ) : searchError ? (
-                    <p className="dashboard-platform-billing-search-dropdown__state">
-                      Search failed. Refine the customer lookup and try again.
-                    </p>
-                  ) : searchResults.length === 0 ? (
-                    <p className="dashboard-platform-billing-search-dropdown__state">
-                      {searchResultsMode === 'recent' ? (
-                        'No organizations have been created yet.'
-                      ) : (
-                        <>
-                          No customer accounts matched <code>{normalizedSearchInput || '-'}</code>.
-                        </>
-                      )}
-                    </p>
-                  ) : (
-                    searchResults.map((organization, index) => {
-                      const organizationKey = buildOrganizationKey(organization);
+          <div
+            className="dashboard-platform-billing-search-combobox"
+            onFocus={onSearchFieldFocus}
+            onBlur={onSearchFieldBlur}
+          >
+            <label className="dashboard-form-field">
+              <span>Find an account</span>
+              <input
+                className="dashboard-input"
+                type="search"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSearchResults}
+                aria-controls={showSearchResults ? searchListboxId : undefined}
+                aria-activedescendant={
+                  showSearchResults && activeSearchIndex >= 0 && searchResults[activeSearchIndex]
+                    ? `${searchListboxId}-${buildOrganizationKey(searchResults[activeSearchIndex]!.organization)}`
+                    : undefined
+                }
+                value={searchInput}
+                onChange={onSearchInputChange}
+                onKeyDown={onSearchInputKeyDown}
+                placeholder="Organization name, org_123 or member email"
+                autoComplete="off"
+              />
+            </label>
+            {showSearchResults ? (
+              <div
+                className="dashboard-platform-billing-search-dropdown"
+                id={searchListboxId}
+                role="listbox"
+                aria-label="Matching accounts"
+              >
+                {searchLoading ? (
+                  <p className="dashboard-platform-billing-search-dropdown__state">Searching...</p>
+                ) : searchError ? (
+                  <p className="dashboard-platform-billing-search-dropdown__state">
+                    The search failed. Change the text and try again.
+                  </p>
+                ) : searchResults.length === 0 ? (
+                  <p className="dashboard-platform-billing-search-dropdown__state">
+                    {searchResultsMode === 'recent' ? (
+                      'No organizations exist yet.'
+                    ) : (
+                      <>
+                        No account matches <code>{normalizedSearchInput || '-'}</code>.
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <>
+                    {searchResultsMode === 'recent' ? (
+                      <p className="dashboard-platform-billing-search-dropdown__heading">
+                        Newest organizations
+                      </p>
+                    ) : null}
+                    {searchResults.map((account, index) => {
+                      const organizationKey = buildOrganizationKey(account.organization);
                       const isActive = index === activeSearchIndex;
                       return (
                         <button
@@ -948,303 +1157,172 @@ export function PlatformBillingView(): React.JSX.Element {
                           onMouseEnter={() => setActiveSearchIndex(index)}
                           onClick={(event) => {
                             void blinkMenuItem(event.currentTarget)?.then(() =>
-                              onLoadSearchOrganization(organization),
+                              onLoadSearchOrganization(account.organization),
                             );
                           }}
                           disabled={loading}
                         >
-                          <span className="dashboard-platform-billing-search-option__kind">
-                            {searchResultsMode === 'recent' ? 'Recent' : 'Organization'}
-                          </span>
                           <span className="dashboard-platform-billing-search-option__copy">
-                            <strong>{describeOrganizationTitle(organization)}</strong>
-                            <span>{describeOrganizationMeta(organization)}</span>
+                            <strong>{describeOrganizationTitle(account.organization)}</strong>
+                            <span>
+                              {account.organization.id} · {describeOwners(account.ownerEmails)}
+                            </span>
+                          </span>
+                          <span className="dashboard-platform-billing-search-option__balance">
+                            <PlatformLiveAccessPill balance={account.balance} />
+                            <strong>
+                              {formatBalanceUsdMinor(account.balance.creditBalanceMinor)}
+                            </strong>
                           </span>
                         </button>
                       );
-                    })
-                  )}
-                </div>
-              ) : null}
-            </div>
+                    })}
+                  </>
+                )}
+              </div>
+            ) : null}
           </div>
-          {searchError ? <p className="dashboard-form-alert">{searchError}</p> : null}
           {lookupError ? <p className="dashboard-form-alert">{lookupError}</p> : null}
         </div>
       </section>
 
-      {lookupResult ? (
-        <>
-          <BillingContextSummarySection
-            context={{
-              organization: `${lookupResult.organization.name} (${lookupResult.organization.id})`,
-              project: lookupResult.project
-                ? `${lookupResult.project.name} (${lookupResult.project.id})`
-                : '-',
-              thirdLabel: 'Resolved by',
-              thirdValue:
-                lookupResult.resolvedBy === 'project_id' ? 'Project ID' : 'Organization ID',
-            }}
-            title="Customer Organization Account"
-            description="Reviewing customer organization's billing account as a platform admin"
-            ariaLabel="Customer organization account summary"
-            metrics={summaryMetrics}
-          />
-
-          <BillingAccountActivitySection
-            accountActivity={lookupResult.activity}
-            accountActivityError=""
-            controls={accountActivityControls}
-            emptyStateText="No ledger events match the current filters."
-          />
-
-          <section
-            className="dashboard-table-wrapper dashboard-platform-billing-adjustment-shell"
-            aria-label="Customer refunds"
-          >
-            <div className="dashboard-table-limit dashboard-billing-table__intro">
-              <h3 className="dashboard-billing-table__title">Customer refunds</h3>
-              <p className="dashboard-billing-table__description">
-                Refund settled Stripe purchases for <code>{lookupResult.organization.id}</code>.
+      {lookupResult && accountBalance && accountLiveAccess && accountOrganization ? (
+        <section className="dashboard-view-card dashboard-platform-account" aria-label="Account">
+          <header className="dashboard-platform-account__header">
+            <div className="dashboard-platform-account__identity">
+              <h2>{accountOrganization.name}</h2>
+              <p>
+                <code>{accountOrganization.id}</code>
+                {' · '}
+                {describeOwners(lookupResult.ownerEmails)}
+                {lookupResult.projects.length > 0
+                  ? ` · ${lookupResult.projects.length === 1 ? 'project' : 'projects'} ${lookupResult.projects.map((project) => project.name).join(', ')}`
+                  : ' · no projects'}
               </p>
-              <form className="dashboard-billing-adjustment-form" onSubmit={onRefundSubmit}>
-                <div className="dashboard-billing-adjustment-grid">
-                  <label className="dashboard-form-field">
-                    <span>Purchase ID</span>
-                    <input
-                      className="dashboard-input"
-                      value={refundPurchaseId}
-                      onChange={(event) => setRefundPurchaseId(event.target.value)}
-                      placeholder="bcp_xxx"
-                    />
-                  </label>
-                  <label className="dashboard-form-field">
-                    <span>Amount (USD)</span>
-                    <input
-                      className="dashboard-input"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={refundAmountInput}
-                      onChange={(event) => setRefundAmountInput(event.target.value)}
-                      placeholder="10.00"
-                    />
-                  </label>
-                </div>
-                <label className="dashboard-form-field">
-                  <span>Reason</span>
-                  <input
-                    className="dashboard-input"
-                    value={refundReason}
-                    onChange={(event) => setRefundReason(event.target.value)}
-                    placeholder="Customer refund request"
-                  />
-                </label>
-                {refundActionError ? (
-                  <p className="dashboard-form-alert" role="alert">
-                    {refundActionError}
-                  </p>
-                ) : null}
-                <div className="dashboard-form-actions">
-                  <button
-                    type="submit"
-                    className="dashboard-pagination-button"
-                    disabled={!canSubmitRefund}
-                  >
-                    {refundActionId === 'create' ? 'Requesting refund...' : 'Request refund'}
-                  </button>
-                </div>
-              </form>
             </div>
-            <table className="dashboard-table">
-              <thead>
-                <tr>
-                  <th scope="col">Refund</th>
-                  <th scope="col">Purchase</th>
-                  <th scope="col">Amount</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lookupResult.refunds.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>No refunds have been requested.</td>
-                  </tr>
-                ) : (
-                  lookupResult.refunds.map((refund) => (
-                    <tr key={refund.id}>
-                      <td>
-                        <code>{refund.id}</code>
-                      </td>
-                      <td>
-                        <code>{refund.purchaseId}</code>
-                      </td>
-                      <td>{formatUsdMinor(refund.amountMinor)}</td>
-                      <td>{refund.status}</td>
-                      <td>
-                        {refund.status === 'requested' || refund.status === 'provider_pending' ? (
-                          <button
-                            type="button"
-                            className="dashboard-pagination-button dashboard-pagination-button--secondary"
-                            disabled={Boolean(refundActionId)}
-                            onClick={() => {
-                              void onRefundReconcile(refund.id);
-                            }}
-                          >
-                            {refundActionId === refund.id ? 'Checking...' : 'Reconcile'}
-                          </button>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </section>
-
-          <section
-            className="dashboard-table-wrapper dashboard-platform-billing-adjustment-shell"
-            aria-label="Customer billing adjustments"
-          >
-            <div className="dashboard-table-limit dashboard-billing-table__intro dashboard-platform-billing-adjustment-shell__intro">
-              <div className="dashboard-platform-billing-adjustment-shell__copy">
-                <h3 className="dashboard-billing-table__title">Customer billing adjustments</h3>
-                <p className="dashboard-billing-table__description">
-                  Apply manual support credits or admin debits to{' '}
-                  <code>{lookupResult.organization.id}</code>.
-                </p>
-              </div>
-              <div className="dashboard-form-actions">
-                <button
-                  type="button"
-                  className="dashboard-pagination-button"
-                  ref={createAdjustmentButtonRef}
-                  onClick={onOpenAdjustmentModal}
-                >
-                  Create Bill Adjustment
-                </button>
-              </div>
-              {adjustmentActionMessage ? (
-                <p className="dashboard-info-banner">{adjustmentActionMessage}</p>
-              ) : null}
+            <div className="dashboard-platform-account__actions">
+              <button
+                type="button"
+                className="dashboard-pagination-button dashboard-pagination-button--primary dashboard-pagination-button--with-icon"
+                onClick={() => setAdjustmentDialog({ kind: 'support_credit', reversal: null })}
+              >
+                <span aria-hidden="true">+</span> Add credit
+              </button>
+              <DashboardTableActionMenu
+                ariaLabel="More account actions"
+                items={[
+                  {
+                    label: 'Debit balance',
+                    tone: 'danger',
+                    onSelect: () => setAdjustmentDialog({ kind: 'admin_debit', reversal: null }),
+                  },
+                ]}
+              />
             </div>
-          </section>
+          </header>
 
-          <DashboardInlineModal
-            isOpen={isAdjustmentModalOpen}
-            ariaLabel="Create Bill Adjustment modal"
-            ariaLabelledBy="platform-billing-adjustment-dialog-title"
-            ariaDescribedBy="platform-billing-adjustment-dialog-description"
-            onRequestClose={onCloseAdjustmentModal}
-            className="dashboard-billing-adjustment-card dashboard-billing-meta-card"
+          <div className="dashboard-platform-account__metrics">
+            <article className="dashboard-platform-account__metric">
+              <p className="dashboard-kpi-card__label">Balance</p>
+              <p
+                className={`dashboard-platform-account__balance dashboard-kpi-card__value--${accountLiveAccess.tone}`}
+              >
+                {formatBalanceUsdMinor(accountBalance.creditBalanceMinor)}
+              </p>
+              <p className="dashboard-kpi-card__hint">
+                {pendingMinor > 0
+                  ? `${formatBalanceUsdMinor(lookupResult.overview.availableBalanceMinor)} available; ${formatUsdMinor(pendingMinor)} is held`
+                  : `Low-balance warning at ${formatUsdMinor(accountBalance.lowBalanceThresholdMinor)}`}
+              </p>
+            </article>
+            <article className="dashboard-platform-account__metric">
+              <p className="dashboard-kpi-card__label">Live environments</p>
+              <p
+                className={`dashboard-platform-account__state dashboard-kpi-card__value--${accountLiveAccess.tone}`}
+              >
+                {accountLiveAccess.label}
+              </p>
+              <p className="dashboard-kpi-card__hint">
+                {accountLiveState === 'BLOCKED'
+                  ? 'Needs a balance above $0'
+                  : 'Projects can create staging and production environments'}
+              </p>
+            </article>
+            <article className="dashboard-platform-account__metric">
+              <p className="dashboard-kpi-card__label">This month</p>
+              <p className="dashboard-platform-account__state">
+                {lookupResult.overview.monthlyActiveResources} active wallets
+              </p>
+              <p className="dashboard-kpi-card__hint">
+                {formatUsdMinor(lookupResult.overview.recentUsageDebitMinor)} used ·{' '}
+                {formatUsdMinor(lookupResult.overview.recentCreditPurchasedMinor)} bought
+              </p>
+            </article>
+          </div>
+
+          <div
+            className="dashboard-platform-account__tabs"
+            role="tablist"
+            aria-label="Account records"
           >
-            <h2 id="platform-billing-adjustment-dialog-title">Create Bill Adjustment</h2>
-            <p
-              className="dashboard-pagination-note"
-              id="platform-billing-adjustment-dialog-description"
-            >
-              Apply manual support credits or admin debits to{' '}
-              <code>{lookupResult.organization.id}</code>.
-            </p>
-            <form className="dashboard-billing-adjustment-form" onSubmit={onAdjustmentSubmit}>
-              <div className="dashboard-billing-adjustment-grid">
-                <label className="dashboard-form-field">
-                  <span>Adjustment type</span>
-                  <select
-                    className="dashboard-input"
-                    autoFocus
-                    value={adjustmentKind}
-                    onChange={(event) =>
-                      setAdjustmentKind(
-                        String(event.target.value) === 'admin_debit'
-                          ? 'admin_debit'
-                          : 'support_credit',
-                      )
-                    }
-                  >
-                    <option value="support_credit">Manual support credit</option>
-                    <option value="admin_debit">Manual admin debit</option>
-                  </select>
-                </label>
-                <label className="dashboard-form-field">
-                  <span>Amount (USD)</span>
-                  <input
-                    className="dashboard-input"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={adjustmentAmountInput}
-                    onChange={(event) => setAdjustmentAmountInput(event.target.value)}
-                    placeholder="25.00"
-                  />
-                </label>
-              </div>
-              <label className="dashboard-form-field">
-                <span>Reason code</span>
-                <input
-                  className="dashboard-input"
-                  type="text"
-                  value={adjustmentReasonCode}
-                  onChange={(event) => setAdjustmentReasonCode(event.target.value)}
-                  placeholder="incident_credit"
-                />
-              </label>
-              <label className="dashboard-form-field">
-                <span>Related document ID (optional)</span>
-                <input
-                  className="dashboard-input"
-                  type="text"
-                  value={adjustmentRelatedInvoiceId}
-                  onChange={(event) => setAdjustmentRelatedInvoiceId(event.target.value)}
-                  placeholder="receipt_bcp_xxx or inv_202603_001"
-                />
-              </label>
-              <label className="dashboard-form-field">
-                <span>Operator note</span>
-                <textarea
-                  className="dashboard-input dashboard-textarea"
-                  value={adjustmentNote}
-                  onChange={(event) => setAdjustmentNote(event.target.value)}
-                  placeholder="Describe why this adjustment is required."
-                />
-              </label>
-              <p className={adjustmentPreviewClassName}>{adjustmentPreviewLabel}</p>
-              <p className="dashboard-form-hint">
-                Selected action: {describeManualAdjustmentKind(adjustmentKind)}.
-              </p>
-              <p className="dashboard-form-hint">
-                Link a document ID to surface this adjustment on that document timeline.
-              </p>
-              {adjustmentActionError ? (
-                <p className="dashboard-form-alert" role="alert">
-                  {adjustmentActionError}
-                </p>
-              ) : null}
-              <div className="dashboard-form-actions">
-                <button
-                  type="button"
-                  className="dashboard-pagination-button dashboard-pagination-button--secondary"
-                  onClick={onCloseAdjustmentModal}
-                  disabled={Boolean(startingAdjustmentKind)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="dashboard-pagination-button"
-                  disabled={!canSubmitManualAdjustment}
-                >
-                  {adjustmentButtonLabel}
-                </button>
-              </div>
-            </form>
-          </DashboardInlineModal>
-        </>
+            {(
+              [
+                ['activity', 'Activity'],
+                ['payments', 'Payments and refunds'],
+              ] as const
+            ).map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                id={`${tabsId}-${tab}`}
+                aria-selected={activeTab === tab}
+                aria-controls={`${tabsId}-${tab}-panel`}
+                className="dashboard-platform-account__tab"
+                onClick={() => setActiveTab(tab)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div
+            role="tabpanel"
+            id={`${tabsId}-${activeTab}-panel`}
+            aria-labelledby={`${tabsId}-${activeTab}`}
+          >
+            {activeTab === 'activity' ? (
+              <PlatformActivityTable
+                entries={lookupResult.activity}
+                controls={accountActivityControls}
+                onReverse={onReverseEntry}
+              />
+            ) : (
+              <PlatformPaymentsPanel
+                payments={payments?.orgId === lookupOrgId ? payments : null}
+                refunds={lookupResult.refunds}
+                refundActionId={refundActionId}
+                onRefund={setRefundTarget}
+                onReconcile={(refundId) => {
+                  void onRefundReconcile(refundId);
+                }}
+              />
+            )}
+          </div>
+
+          <PlatformAdjustmentDialog
+            request={adjustmentDialog}
+            organization={accountOrganization}
+            balance={accountBalance}
+            onClose={() => setAdjustmentDialog(null)}
+            onSubmit={onSubmitAdjustment}
+          />
+          <PlatformRefundDialog
+            target={refundTarget}
+            organization={accountOrganization}
+            onClose={() => setRefundTarget(null)}
+            onSubmit={onSubmitRefund}
+          />
+        </section>
       ) : null}
     </>
   );

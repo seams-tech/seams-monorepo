@@ -134,6 +134,13 @@ export interface BillingOverview {
   documentCount: number;
 }
 
+/** The prepaid balance of one organization, without the other overview reads. */
+export interface BillingCreditBalanceSummary {
+  orgId: string;
+  creditBalanceMinor: number;
+  lowBalanceThresholdMinor: number;
+}
+
 export interface BillingProductExecutionDebitRequest {
   amountMinor: number;
   sourceEventId: string;

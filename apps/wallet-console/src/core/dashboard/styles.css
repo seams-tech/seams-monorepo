@@ -4767,10 +4767,6 @@ details.dashboard-view__section[open] > summary {
   white-space: nowrap;
 }
 
-.dashboard-billing-meta-card {
-  gap: 12px;
-}
-
 .dashboard-billing-top-up-grid {
   display: grid;
   gap: 12px;
@@ -4809,34 +4805,9 @@ details.dashboard-view__section[open] > summary {
   margin-top: auto;
 }
 
-.dashboard-billing-adjustment-card {
-  padding: 16px 18px;
-  border-color: color-mix(in srgb, var(--dashboard-active-border) 34%, var(--dashboard-border) 66%);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--dashboard-surface) 88%, var(--dashboard-muted) 12%),
-    color-mix(in srgb, var(--dashboard-surface) 94%, var(--dashboard-active) 6%)
-  );
-}
-
 .dashboard-billing-adjustment-form {
   display: grid;
   gap: 12px;
-}
-
-.dashboard-billing-adjustment-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.dashboard-billing-adjustment-preview {
-  color: var(--dashboard-ink);
-  font-weight: 600;
-}
-
-.dashboard-billing-adjustment-preview--warning {
-  color: var(--dashboard-danger);
 }
 
 .dashboard-billing-meta-list {
@@ -4887,11 +4858,6 @@ details.dashboard-view__section[open] > summary {
   gap: 10px;
 }
 
-.dashboard-platform-billing-search-form {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px 12px;
-}
-
 .dashboard-platform-billing-search-combobox {
   position: relative;
   min-width: 0;
@@ -4931,7 +4897,9 @@ details.dashboard-view__section[open] > summary {
   background: color-mix(in srgb, var(--dashboard-surface) 88%, var(--dashboard-muted) 12%);
   color: var(--dashboard-ink);
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
   padding: 10px 12px;
   text-align: left;
   font: inherit;
@@ -4954,14 +4922,6 @@ details.dashboard-view__section[open] > summary {
   opacity: 0.7;
 }
 
-.dashboard-platform-billing-search-option__kind {
-  font-size: var(--dashboard-text-caption);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--dashboard-ink-soft);
-}
-
 .dashboard-platform-billing-search-option__copy {
   min-width: 0;
   display: grid;
@@ -4982,10 +4942,225 @@ details.dashboard-view__section[open] > summary {
   overflow-wrap: anywhere;
 }
 
-.dashboard-platform-billing-adjustment-shell {
+/* The state pill and the balance sit at the row end, so a blocked account
+   reads at a glance down the list. */
+.dashboard-platform-billing-search-option__balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--dashboard-text-compact);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-platform-billing-search-dropdown__heading {
+  margin: 0;
+  padding: 2px 4px;
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-platform-account {
   display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dashboard-platform-account__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
-  padding: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-platform-account__identity {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-platform-account__identity h2 {
+  margin: 0;
+  font-size: var(--dashboard-text-heading);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.dashboard-platform-account__identity p {
+  margin: 0;
+  font-size: var(--dashboard-text-supporting);
+  color: var(--dashboard-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.dashboard-platform-account__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-platform-account__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dashboard-platform-account__metric {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  border-right: 1px solid var(--dashboard-border);
+}
+
+.dashboard-platform-account__metric:last-child {
+  border-right: 0;
+}
+
+.dashboard-platform-account__balance {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-platform-account__state {
+  margin: 0;
+  font-size: var(--dashboard-text-body);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.dashboard-platform-account__tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--dashboard-border);
+}
+
+.dashboard-platform-account__tab {
+  margin-bottom: -1px;
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--dashboard-ink-soft);
+  font: inherit;
+  font-size: var(--dashboard-text-compact);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dashboard-platform-account__tab[aria-selected='true'] {
+  border-bottom-color: var(--dashboard-ink);
+  color: var(--dashboard-ink);
+}
+
+.dashboard-platform-account__payments {
+  display: grid;
+  gap: 16px;
+}
+
+.dashboard-platform-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-platform-amount--credit {
+  color: var(--dashboard-success);
+}
+
+.dashboard-platform-amount--debit {
+  color: var(--dashboard-danger);
+}
+
+/* A debit or a refund takes money away: the red edge sets it apart from the
+   credit dialog, which looks like every other dashboard dialog. */
+.dashboard-platform-adjustment-dialog--danger {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--dashboard-danger) 40%, transparent),
+    var(--dashboard-shadow-md);
+}
+
+.dashboard-platform-adjustment-dialog__heading {
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-platform-adjustment-dialog__heading p {
+  margin: 0;
+}
+
+.dashboard-platform-adjustment-dialog__amount {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard-platform-adjustment-dialog__amount .dashboard-input {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+/* A reversal fixes the amount; the field reads as a value, not as an input. */
+.dashboard-platform-adjustment-dialog__amount .dashboard-input[readonly] {
+  background: var(--dashboard-alpha-50);
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-platform-adjustment-dialog__preset[aria-pressed='true'],
+.dashboard-platform-adjustment-dialog__preset[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--dashboard-ink);
+  background: var(--dashboard-ink);
+  color: #ffffff;
+}
+
+.dashboard-platform-adjustment-dialog__more summary {
+  cursor: pointer;
+  font-size: var(--dashboard-text-compact);
+  color: var(--dashboard-ink-soft);
+}
+
+.dashboard-platform-adjustment-dialog__more[open] summary {
+  margin-bottom: 10px;
+}
+
+.dashboard-platform-adjustment-preview {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: var(--dashboard-text-compact);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-platform-adjustment-preview--credit {
+  background: var(--dashboard-success-soft);
+  color: var(--dashboard-success);
+}
+
+.dashboard-platform-adjustment-preview--debit {
+  background: var(--dashboard-danger-soft);
+  color: var(--dashboard-danger);
+}
+
+.dashboard-platform-adjustment-preview__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-platform-adjustment-preview__row strong {
+  font-weight: 600;
+}
+
+.dashboard-platform-adjustment-preview__warning {
+  margin: 4px 0 0;
+  font-weight: 600;
 }
 
 .dashboard-billing-activity-table__heading {
@@ -5024,22 +5199,6 @@ details.dashboard-view__section[open] > summary {
 
 .dashboard-billing-activity-table__token--muted {
   color: var(--dashboard-ink-soft);
-}
-
-.dashboard-platform-billing-adjustment-shell__intro {
-  border-radius: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-}
-
-.dashboard-platform-billing-adjustment-shell__copy {
-  min-width: 0;
-  display: grid;
-  gap: 12px;
-}
-
-.dashboard-platform-billing-adjustment-shell__intro .dashboard-info-banner {
-  grid-column: 1 / -1;
 }
 
 .dashboard-billing-filters__period {
@@ -8298,12 +8457,21 @@ select.dashboard-input {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-platform-billing-search-form {
+  .dashboard-billing-filters__period {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-billing-filters__period {
+  .dashboard-platform-account__metrics {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-platform-account__metric {
+    border-right: 0;
+    border-bottom: 1px solid var(--dashboard-border);
+  }
+
+  .dashboard-platform-account__metric:last-child {
+    border-bottom: 0;
   }
 
   .dashboard-billing-filters__period-input--start,
@@ -8331,14 +8499,6 @@ select.dashboard-input {
   }
 
   .dashboard-billing-overview__context {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-billing-adjustment-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-platform-billing-adjustment-shell__intro {
     grid-template-columns: 1fr;
   }
 

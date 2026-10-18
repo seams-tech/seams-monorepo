@@ -3,6 +3,7 @@ import type { ConsoleBillingService } from '../billing/service';
 import type {
   BillingAccountActivityRequest,
   BillingAccountActivityResult,
+  BillingCreditBalanceSummary,
   BillingManualAdjustmentRequest,
   BillingOverview,
   BillingRefund,
@@ -17,6 +18,7 @@ import {
 } from '../billing/requests';
 import type { ConsoleOrgProjectService } from '../orgProjectEnv/service';
 import type { ConsoleOrganization, ConsoleProject } from '../orgProjectEnv/types';
+import type { ConsoleOrganizationAccessService } from '../teamRbac';
 import {
   readRequiredStringField,
   readOptionalQueryStringField,
@@ -71,10 +73,19 @@ export interface PlatformBillingOrganizationSearchRequest {
 export interface PlatformBillingLookupResult {
   resolvedBy: 'org_id' | 'project_id';
   organization: ConsoleOrganization;
+  ownerEmails: readonly string[];
   project: ConsoleProject | null;
+  projects: ConsoleProject[];
   overview: BillingOverview;
   activity: BillingAccountActivityResult;
   refunds: BillingRefund[];
+}
+
+/** One search result: enough to tell accounts apart and to see a blocked one. */
+export interface PlatformBillingAccountSummary {
+  organization: ConsoleOrganization;
+  ownerEmails: readonly string[];
+  balance: BillingCreditBalanceSummary;
 }
 
 const DEFAULT_PLATFORM_BILLING_ORGANIZATION_SEARCH_LIMIT = 10;
@@ -162,6 +173,7 @@ export async function resolvePlatformBillingLookup(input: {
   claims: ConsoleAuthClaims;
   billing: ConsoleBillingService;
   orgProjects: ConsoleOrgProjectService;
+  organizationAccess: ConsoleOrganizationAccessService;
   request: PlatformBillingLookupRequest;
 }): Promise<PlatformBillingLookupResult> {
   const requestedOrgId = String(input.request.orgId || '').trim();
@@ -203,9 +215,9 @@ export async function resolvePlatformBillingLookup(input: {
 
   const readCtx = toPlatformLookupReadContext(input.claims, targetOrgId);
   const organization = await input.orgProjects.getOrganization(readCtx);
+  const projects = await input.orgProjects.listProjects(readCtx);
   let project: ConsoleProject | null = null;
   if (requestedProjectId) {
-    const projects = await input.orgProjects.listProjects(readCtx);
     project = projects.find((entry) => entry.id === requestedProjectId) || null;
     if (!project) {
       throw new ConsoleBillingError(
@@ -217,16 +229,19 @@ export async function resolvePlatformBillingLookup(input: {
   }
 
   const billingCtx = toPlatformBillingContext(input.claims, targetOrgId);
-  const [overview, activity, refunds] = await Promise.all([
+  const [overview, activity, refunds, owners] = await Promise.all([
     input.billing.getOverview(billingCtx),
     input.billing.listAccountActivity(billingCtx, input.request.activity),
     input.billing.listRefunds(billingCtx),
+    input.organizationAccess.listActiveOwnerEmails([targetOrgId]),
   ]);
 
   return {
     resolvedBy,
     organization,
+    ownerEmails: owners[0]?.emails ?? [],
     project,
+    projects,
     overview,
     activity,
     refunds,
@@ -234,8 +249,26 @@ export async function resolvePlatformBillingLookup(input: {
 }
 
 export async function searchPlatformBillingOrganizations(input: {
+  billing: ConsoleBillingService;
   orgProjects: ConsoleOrgProjectService;
+  organizationAccess: ConsoleOrganizationAccessService;
   request: PlatformBillingOrganizationSearchRequest;
-}): Promise<ConsoleOrganization[]> {
-  return input.orgProjects.searchOrganizations(input.request);
+}): Promise<PlatformBillingAccountSummary[]> {
+  const organizations = await input.orgProjects.searchOrganizations(input.request);
+  const orgIds = organizations.map((organization) => organization.id);
+  const [owners, balances] = await Promise.all([
+    input.organizationAccess.listActiveOwnerEmails(orgIds),
+    input.billing.listCreditBalances(orgIds),
+  ]);
+  const ownersByOrg = new Map(owners.map((entry) => [entry.orgId, entry.emails]));
+  const balancesByOrg = new Map(balances.map((entry) => [entry.orgId, entry]));
+  return organizations.map((organization) => {
+    const balance = balancesByOrg.get(organization.id);
+    if (!balance) throw new Error(`Billing balance read omitted ${organization.id}`);
+    return {
+      organization,
+      ownerEmails: ownersByOrg.get(organization.id) ?? [],
+      balance,
+    };
+  });
 }

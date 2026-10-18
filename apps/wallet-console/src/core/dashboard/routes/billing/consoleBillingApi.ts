@@ -368,6 +368,18 @@ export interface DashboardPlatformBillingOrganization {
   status: string;
 }
 
+export interface DashboardPlatformBillingBalance {
+  creditBalanceMinor: number;
+  lowBalanceThresholdMinor: number;
+}
+
+/** One search result: the organization, its owners and its balance. */
+export interface DashboardPlatformBillingAccountSummary {
+  organization: DashboardPlatformBillingOrganization;
+  ownerEmails: string[];
+  balance: DashboardPlatformBillingBalance;
+}
+
 export interface DashboardPlatformBillingProject {
   id: string;
   orgId: string;
@@ -393,7 +405,9 @@ export interface DashboardPlatformBillingSearchRequest {
 export interface DashboardPlatformBillingLookupResult {
   resolvedBy: 'org_id' | 'project_id';
   organization: DashboardPlatformBillingOrganization;
+  ownerEmails: string[];
   project: DashboardPlatformBillingProject | null;
+  projects: DashboardPlatformBillingProject[];
   overview: DashboardBillingOverview;
   activity: DashboardBillingAccountActivityEntry[];
   refunds: DashboardBillingRefund[];
@@ -477,7 +491,7 @@ interface ConsolePlatformBillingLookupResponse {
 interface ConsolePlatformBillingSearchResponse {
   ok?: boolean;
   message?: string;
-  organizations?: unknown;
+  accounts?: unknown;
 }
 
 interface ConsoleBillingErrorBody {
@@ -1103,6 +1117,32 @@ function decodePlatformBillingProject(raw: unknown): DashboardPlatformBillingPro
   };
 }
 
+function decodeEmailList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((entry) => String(entry || '').trim()).filter(Boolean);
+}
+
+function decodePlatformBillingAccountSummary(
+  raw: unknown,
+): DashboardPlatformBillingAccountSummary | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const row = raw as Record<string, unknown>;
+  const organization = decodePlatformBillingOrganization(row.organization);
+  const balance =
+    row.balance && typeof row.balance === 'object' && !Array.isArray(row.balance)
+      ? (row.balance as Record<string, unknown>)
+      : null;
+  if (!organization || !balance) return null;
+  return {
+    organization,
+    ownerEmails: decodeEmailList(row.ownerEmails),
+    balance: {
+      creditBalanceMinor: Number(balance.creditBalanceMinor || 0),
+      lowBalanceThresholdMinor: Number(balance.lowBalanceThresholdMinor || 0),
+    },
+  };
+}
+
 function decodeAccountActivity(
   raw: unknown,
 ): { entries: DashboardBillingAccountActivityEntry[] } | null {
@@ -1146,7 +1186,11 @@ function decodePlatformBillingLookupResult(
   return {
     resolvedBy: resolvedByRaw === 'project_id' ? 'project_id' : 'org_id',
     organization,
+    ownerEmails: decodeEmailList(row.ownerEmails),
     project: row.project == null ? null : decodePlatformBillingProject(row.project),
+    projects: (Array.isArray(row.projects) ? row.projects : [])
+      .map((entry) => decodePlatformBillingProject(entry))
+      .filter((entry): entry is DashboardPlatformBillingProject => entry !== null),
     overview,
     activity: activity.entries,
     refunds: refundsRaw
@@ -1155,13 +1199,13 @@ function decodePlatformBillingLookupResult(
   };
 }
 
-function decodePlatformBillingOrganizations(
+function decodePlatformBillingAccountSummaries(
   raw: unknown,
-): DashboardPlatformBillingOrganization[] | null {
+): DashboardPlatformBillingAccountSummary[] | null {
   if (!Array.isArray(raw)) return null;
   return raw
-    .map((entry) => decodePlatformBillingOrganization(entry))
-    .filter((entry): entry is DashboardPlatformBillingOrganization => entry !== null);
+    .map((entry) => decodePlatformBillingAccountSummary(entry))
+    .filter((entry): entry is DashboardPlatformBillingAccountSummary => entry !== null);
 }
 
 async function fetchJson(path: string): Promise<Record<string, unknown>> {
@@ -1350,9 +1394,9 @@ export async function getDashboardPlatformBillingAccount(
   return result;
 }
 
-export async function searchDashboardPlatformBillingOrganizations(
+export async function searchDashboardPlatformBillingAccounts(
   input: DashboardPlatformBillingSearchRequest,
-): Promise<DashboardPlatformBillingOrganization[]> {
+): Promise<DashboardPlatformBillingAccountSummary[]> {
   const params = new URLSearchParams();
   params.set('query', String(input.query || '').trim());
   if (input.limit && Number.isFinite(input.limit) && input.limit > 0) {
@@ -1362,9 +1406,9 @@ export async function searchDashboardPlatformBillingOrganizations(
   const body = (await fetchJson(
     `/console/platform/billing/search${suffix ? `?${suffix}` : ''}`,
   )) as ConsolePlatformBillingSearchResponse;
-  const organizations = decodePlatformBillingOrganizations(body.organizations);
-  if (!organizations) throw new Error('Platform billing organization search response was invalid');
-  return organizations;
+  const accounts = decodePlatformBillingAccountSummaries(body.accounts);
+  if (!accounts) throw new Error('Platform billing account search response was invalid');
+  return accounts;
 }
 
 async function postPlatformBillingManualAdjustment(

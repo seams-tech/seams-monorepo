@@ -67,8 +67,8 @@ async function requestGithubOidcToken() {
 async function run() {
   const options = parseArguments(process.argv.slice(2));
   const lane = readBackendLane(options.lane);
-  if (lane.id !== 'staging-testnet' && lane.id !== 'production-testnet') {
-    throw new Error('tenant cutover requires staging-testnet or production-testnet');
+  if (!['staging-testnet', 'production-testnet', 'production-mainnet'].includes(lane.id)) {
+    throw new Error('tenant cutover requires a staging or production lane');
   }
   const token = await requestGithubOidcToken();
   if (options.kind === 'verify_resource') {

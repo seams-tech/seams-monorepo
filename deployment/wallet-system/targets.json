@@ -590,16 +590,18 @@
                   "workerName": "seams-sdk-d1-gateway-us",
                   "placementRegion": "aws:us-east-1",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-us"
+                    "kind": "allocated",
+                    "name": "seams-signer-us",
+                    "id": "7d19f495-dd40-4950-ad5a-d2da3b421adf"
                   }
                 },
                 "WEUR": {
                   "workerName": "seams-sdk-d1-gateway-weur",
                   "placementRegion": "aws:eu-west-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-weur"
+                    "kind": "allocated",
+                    "name": "seams-signer-weur",
+                    "id": "cd9026b7-d5cd-4478-aff1-d5d03ab1a500"
                   }
                 },
                 "APAC": {
@@ -615,17 +617,18 @@
                   "workerName": "seams-sdk-d1-gateway-oc",
                   "placementRegion": "aws:ap-southeast-2",
                   "signerD1": {
-                    "kind": "pending",
-                    "name": "seams-signer-oc"
+                    "kind": "allocated",
+                    "name": "seams-signer-oc",
+                    "id": "c963d120-99d8-422d-97ae-63efe560087f"
                   }
                 }
               }
             },
             "tenant": {
               "namespace": "seams-production",
-              "orgId": "org_production",
-              "projectId": "project_production",
-              "environmentId": "project_production:prod"
+              "orgId": "org_ty5o34k5w9p7",
+              "projectId": "proj_mu6auwge_v8ulud",
+              "environmentId": "proj_mu6auwge_v8ulud:prod"
             },
             "origins": {
               "gateway": "https://api.wallet.seams.sh",

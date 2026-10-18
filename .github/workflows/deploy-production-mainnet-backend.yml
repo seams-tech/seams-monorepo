@@ -2,6 +2,14 @@ name: Deploy / production-mainnet / backend
 
 on:
   workflow_dispatch:
+    inputs:
+      activation_only:
+        description: Activate the deployed mainnet backend without rebuilding
+        type: boolean
+        default: false
+      environment_id:
+        description: Production Console environment ID (<projectId>:prod) required for activation
+        type: string
 
 permissions:
   actions: write
@@ -18,6 +26,7 @@ env:
 
 jobs:
   build:
+    if: ${{ !inputs.activation_only }}
     name: Build / production-mainnet / backend
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -58,7 +67,7 @@ jobs:
     needs:
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     environment:
       name: production-gateway
     env:
@@ -450,3 +459,33 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh cache delete "$BACKEND_BUILD_CACHE_KEY" --repo "$GITHUB_REPOSITORY"
+
+  # The Console accepts mainnet activation only from this job: environment
+  # production-gateway, ref main and this workflow file.
+  activate:
+    if: ${{ inputs.activation_only }}
+    name: Activate / production-mainnet / tenant binding
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-gateway
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require main branch
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify regional resources and activate tenant
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENVIRONMENT_ID: ${{ inputs.environment_id }}
+        run: pnpm tenant:cutover --lane production-mainnet --environment-id "$ENVIRONMENT_ID"
+      - name: Verify readiness
+        run: pnpm deploy:backend smoke --lane production-mainnet --component wallet-system

@@ -500,12 +500,19 @@ async function hydrateDeploymentBinding(
   return applyDeploymentBinding(deployment, siteOrigin, binding);
 }
 
+// Mainnet is optional. A lane that is not activated, unreachable, failing or
+// bound to another surface hides mainnet; it must not take testnet down with it.
 async function hydrateOptionalDeploymentBinding(
   deployment: FrontendDeployment,
   siteOrigin: string,
 ): Promise<FrontendDeployment | null> {
-  const binding = await fetchDeploymentBinding(deployment);
-  return binding ? applyDeploymentBinding(deployment, siteOrigin, binding) : null;
+  try {
+    const binding = await fetchDeploymentBinding(deployment);
+    return binding ? applyDeploymentBinding(deployment, siteOrigin, binding) : null;
+  } catch (error: unknown) {
+    console.warn('Mainnet deployment discovery failed; mainnet stays hidden.', error);
+    return null;
+  }
 }
 
 async function hydrateSiteBindings(config: FrontendConfigCandidate): Promise<FrontendConfig> {

@@ -52,6 +52,16 @@ export function walletConsoleHref(pathname: string): string {
     .href;
 }
 
+/** Wallet onboarding ends in Wallet Console with the organization and project it
+    created. Other products keep onboarding flows of their own. */
+export function walletConsoleOverviewHref(
+  context: Pick<TopbarContextState, 'organization' | 'project'>,
+): string {
+  const url = new URL(walletConsoleHref('/dashboard/overview'));
+  setConsoleContext(url, context);
+  return url.href;
+}
+
 export function sharedAccountHref(pathname: string): string {
   return import.meta.env.MODE === 'wallet' && isSharedAccountPath(pathname.split('?')[0])
     ? platformConsoleHref(pathname)

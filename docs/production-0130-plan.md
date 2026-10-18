@@ -24,6 +24,36 @@ The owner approved the Singapore move of production testnet, the missing secrets
 The Arc RPC default moved to `https://rpc.testnet.arc.io` (`10e4807d`; GitHub variables
 updated); Wallet 0.13.1 carries the SDK default.
 
+October 18 (JST):
+- Wallet 0.13.1 on npm (01:20); private pins `c6f71cdf`; `main` = `0f3af534` (pull request 46,
+  tree equal to `dev`).
+- CLI 0.13.0: signed by private run `39050177371`, verified locally (five files; an altered
+  binary and an altered signature fail), released as `seams-cli-v0.13.0`. The npm launcher
+  waits for the owner's npm login. GitHub masks the signer key id (a job secret) inside the
+  printed base64; the manifest was rebuilt from the public pin and matched the logged SHA-256.
+- Production testnet, deploy-only run `39051552770` (02:26): every backend component, the inert
+  bootstrap of the US, WEUR and OC Gateway names, and the Console on `seams-console-testnet-sin`.
+  The first run (`39050179163`) hit the 15-minute limit of the Gateway migration job: four
+  empty databases need 81 migrations each at about 5 s per migration. The runner skips applied
+  migrations, so the second run finished. Gateway `/healthz` answers 503
+  `tenant_deployment_unavailable` until activation; Console `/console/readyz` answers 200.
+- The owner signed up on the testnet network of the dashboard (the production dashboard
+  opens on mainnet by default, whose Console holds the older `proj_mu6auwge_v8ulud`) and
+  created organisation `org_p33k44j8030r` and project `proj_6d5399e80124498aa29d6866e84a9de4`
+  at 20:06, and set `CLOUDFLARE_API_TOKEN` in `production-live-demo`.
+- Activation run `39122039194` (20:19) passed with
+  `environment_id=proj_6d5399e80124498aa29d6866e84a9de4:dev`, including both smoke steps.
+  `/healthz` and `/readyz` answer 200; the public projection names the environment, a managed
+  publishable key, application origin `https://wallet.seams.sh` and hosted wallet
+  `https://test.sign.seams.sh`.
+- Verification: three hosted NEAR registrations, each with a first signed message, passed
+  (`.artifacts/prodtest-0131/verify.sh`; candidate wallet assets, live backend). All three
+  signatures verified independently (Node Ed25519, separate NEP-413 encoding; altered fields
+  rejected). The Console lists the three wallets as ACTIVE; no directory publication is pending
+  in the four regional databases. First-use registrations took 5.4, 4.5 and 3.0 s.
+- Hosted wallet `test.sign.seams.sh` deployed from `main` with Wallet revision `5137cf36`
+  (surface `wallet-host`, lane `production-testnet`; mainnet unchanged).
+
 ## Gates
 
 | # | Gate | Lanes | Where | Removed by |

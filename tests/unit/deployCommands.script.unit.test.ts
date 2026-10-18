@@ -990,9 +990,12 @@ test('Wallet-system and Console workflows use separate deployment authority', ()
       return Array.isArray(job.needs) ? job.needs : job.needs ? [job.needs] : [];
     };
 
-    // Staging also carries the activation-only job for an already deployed candidate.
+    // Staging and mainnet also carry the activation-only job for an already
+    // deployed candidate; production testnet activates through the live demo.
     const trailingJobs =
-      lane.id === 'staging-testnet' ? ['cleanup_build_cache', 'activate'] : ['cleanup_build_cache'];
+      lane.id === 'production-testnet'
+        ? ['cleanup_build_cache']
+        : ['cleanup_build_cache', 'activate'];
     expect(Object.keys(workflow.jobs)).toEqual([...workflowOrder, ...trailingJobs]);
     expect(workflow.env?.DEPLOY_LANE).toBe(lane.id);
     expect(workflowSource).toContain(`--lane "$DEPLOY_LANE"`);

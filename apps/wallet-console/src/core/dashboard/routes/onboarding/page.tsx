@@ -7,7 +7,7 @@ import {
   clearDashboardUiState,
   persistDashboardSelectedContext,
 } from '../../useDashboardUiPreferences';
-import { consoleSessionHref } from '../../consoleNavigation';
+import { consoleSessionHref, walletConsoleOverviewHref } from '../../consoleNavigation';
 import {
   deriveDashboardOrganizationSlug,
   isDashboardDefaultOrganizationName,
@@ -588,7 +588,11 @@ export function DashboardOnboardingPage({
       project: completionProjectId,
       environment: '',
     });
-    go('/dashboard/overview');
+    go(
+      import.meta.env.MODE === 'platform'
+        ? walletConsoleOverviewHref({ organization: completionOrgId, project: completionProjectId })
+        : '/dashboard/overview',
+    );
   }, [completionOrgId, completionProjectId, go, onboardingComplete]);
 
   const showOrganizationStep = !onboardingComplete && visibleStep === 'organization';

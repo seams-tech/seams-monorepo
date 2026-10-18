@@ -1,6 +1,5 @@
 /* Dashboard tokens live on :root, not on .dashboard-shell: surfaces that
-   portal out of the shell (the command palette escapes the top bar's
-   backdrop-filter containing block) still have to resolve them. */
+   portal out of the shell (the command palette) still have to resolve them. */
 :root {
   /* Type roles: captions, supporting copy, compact text/controls, body, and headings. */
   --dashboard-text-caption: 0.8125rem;
@@ -143,10 +142,6 @@ textarea {
   --dashboard-surface: #ffffff;
 }
 
-.dashboard-shell--route-overview .dashboard-topbar {
-  background: #ffffff;
-}
-
 .dashboard-shell--route-overview .dashboard-main {
   padding: calc(24px + var(--dashboard-topbar-height)) 24px 24px;
 }
@@ -199,9 +194,7 @@ textarea {
   min-height: var(--dashboard-topbar-height);
   padding: 4px 16px 4px 12px;
   border-bottom: 1px solid var(--dashboard-border);
-  background: color-mix(in srgb, var(--dashboard-surface) 72%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--dashboard-surface);
 }
 
 .dashboard-topbar__lead {
@@ -1906,10 +1899,9 @@ textarea {
   position: relative;
   isolation: isolate;
   min-height: 0;
-  /* Content runs under the translucent bar rather than starting below it, so
-     the blur has something to blur. The negative margin overlaps the scroll
-     container with the topbar row; the top padding keeps the page title clear
-     of it. Both live here so the shorthand cannot reset the padding. */
+  /* The scroll container overlaps the topbar row and scrolls under the opaque
+     bar. The negative margin makes the overlap; the top padding keeps the page
+     title clear of it. Both live here so the shorthand cannot reset the padding. */
   margin-top: calc(-1 * var(--dashboard-topbar-height));
   padding: calc(32px + var(--dashboard-topbar-height)) 40px 64px;
   overflow: auto;
@@ -7902,8 +7894,6 @@ select.dashboard-input {
     gap: 8px;
     padding: max(12px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 16px
       max(20px, env(safe-area-inset-left));
-    background: var(--dashboard-surface);
-    backdrop-filter: none;
   }
 
   .dashboard-topbar__lead,

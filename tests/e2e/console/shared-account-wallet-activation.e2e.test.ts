@@ -1003,16 +1003,17 @@ async function verifyFreshUserOnboarding(input: {
     ).toBeVisible();
     await page.reload();
     await page.getByRole('textbox', { name: /^Project name/ }).fill('Second fresh project');
-    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
-    await expect(page.getByRole('row').filter({ hasText: 'Second fresh account' })).toContainText(
-      'Current',
+    const secondWalletEntry = page.waitForRequest(
+      (request) =>
+        request.isNavigationRequest() &&
+        new URL(request.url()).origin === new URL(input.appUrl).origin,
     );
-    const secondAccountHref = await page
-      .getByRole('link', { name: 'Wallet Console', exact: true })
-      .getAttribute('href');
-    if (!secondAccountHref) throw new Error('Second account omitted its Wallet link');
-    const secondSelection = new URL(secondAccountHref);
-    expect(secondSelection.searchParams.get('db_org')).not.toBe(orgId);
+    await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
+    const secondSelection = new URL((await secondWalletEntry).url());
+    expect(secondSelection.pathname).toBe('/dashboard/overview');
+    const secondOrgId = secondSelection.searchParams.get('db_org');
+    if (!secondOrgId) throw new Error('Second account omitted its organization');
+    expect(secondOrgId).not.toBe(orgId);
     expect(secondSelection.searchParams.get('db_network')).toBe('mainnet');
     const secondProjectId = secondSelection.searchParams.get('db_project');
     if (!secondProjectId) throw new Error('Second account omitted its project');

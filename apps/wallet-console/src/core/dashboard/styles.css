@@ -291,6 +291,44 @@ textarea {
   color: var(--dashboard-ink);
 }
 
+/* Testnet | Mainnet. Each network has its own account store, so a switch
+   reloads account settings in the other one. */
+.dashboard-topbar__network {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 9999px;
+  background: var(--dashboard-surface);
+}
+
+.dashboard-topbar__network-option {
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--dashboard-graphite);
+  font: inherit;
+  font-size: var(--dashboard-text-caption);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dashboard-motion-fast) ease,
+    color var(--dashboard-motion-fast) ease;
+}
+
+.dashboard-topbar__network-option:hover {
+  color: var(--dashboard-ink);
+}
+
+.dashboard-topbar__network-option[aria-pressed='true'] {
+  background: var(--dashboard-ink);
+  color: var(--dashboard-surface);
+  cursor: default;
+}
+
 .dashboard-account-menu {
   position: relative;
 }

@@ -946,23 +946,28 @@ async function verifyFreshUserOnboarding(input: {
       fullPage: true,
     });
     await page.getByRole('textbox', { name: /^Project name/ }).fill('Fresh Wallet');
+    const walletEntry = page.waitForRequest(
+      (request) =>
+        request.isNavigationRequest() &&
+        new URL(request.url()).origin === new URL(input.appUrl).origin,
+    );
     await page.getByRole('button', { name: 'Finish onboarding', exact: true }).click();
-    await expect(page.getByLabel('Account settings page')).toBeVisible();
-    const walletLink = page.getByRole('link', { name: 'Wallet Console', exact: true });
-    const href = await walletLink.getAttribute('href');
-    if (!href) throw new Error('Platform omitted the Wallet Console link');
-    const selected = new URL(href);
-    expect(selected.origin).toBe(new URL(input.appUrl).origin);
+    // Wallet onboarding ends in Wallet Console with the new organization and
+    // project, not in Platform account settings.
+    const selected = new URL((await walletEntry).url());
+    expect(selected.pathname).toBe('/dashboard/overview');
     expect(selected.searchParams.get('db_network')).toBe('mainnet');
     const orgId = selected.searchParams.get('db_org');
     const projectId = selected.searchParams.get('db_project');
     if (!orgId || !projectId) throw new Error('New account omitted its selected project');
     expect(await environmentCount(input.database, projectId)).toBe(0);
+    await expect(
+      page.getByRole('button', { name: 'Continue with GitHub', exact: true }),
+    ).toBeVisible();
     await page.screenshot({
       path: path.join(input.evidence, 'fresh-account-ready.png'),
       fullPage: true,
     });
-    await walletLink.click();
     await page.getByRole('button', { name: 'Continue with GitHub', exact: true }).click();
     // A lost activation reply must resume the same setup after a reload.
     await expect(page.getByRole('heading', { name: 'Wallet setup unavailable' })).toBeVisible();

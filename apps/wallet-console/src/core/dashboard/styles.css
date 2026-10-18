@@ -2270,6 +2270,10 @@ textarea {
   border-radius: 9999px;
   border: 1px solid var(--dashboard-border);
   background: url('/gradients/web/aqua-evergreen.jpg') center / cover no-repeat;
+  /* Size the image to the border box. Under the default padding box the image
+     is a square 1px inside the round clip, and the faint border shows flat
+     edges at the four sides. */
+  background-origin: border-box;
 }
 
 .dashboard-data-table__intro {

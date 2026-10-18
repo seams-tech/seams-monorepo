@@ -106,3 +106,32 @@ work for the owner to approve; it is not part of 0.13.0.
 
 Wallet custody and recovery keys, the release signing root, and production data. No production
 database that holds data is deleted.
+
+## Production frontends and mainnet (October 18, JST)
+
+The owner approved the Console fixes, the site fix and a deployment of the current release
+over mainnet ("there are no wallets on mainnet"). Private `main` = `5dc467b7` (pull request 47).
+
+- Frontends: Platform Console (run `39126146478`), Wallet Console (`39126235231`) and
+  `wallet.seams.sh` (`39126286912`, Wallet revision `5137cf36`). The site loads with mainnet
+  hidden: the mainnet projection fails, and a failed optional mainnet discovery now hides
+  mainnet instead of failing the page (`5b5ce6d5`). The testnet live demo renders.
+- Mainnet facts before the deploy: `seams-signer` held 0 wallets, 0 signers and 0 ceremonies;
+  the Console wallet index had no mainnet rows. The mainnet Console database is the account
+  store of the production dashboards (organisations "Seams Technologies" with project
+  "Seams Wallet", and "Nini Corp" with project "Satyr"), so it stays; so do the APAC signer
+  database and the role databases. The empty US, WEUR and OC databases are allocated
+  (`c6528b9d`); the lane is not moved to Singapore, which would need a Console move.
+- Gate 10: `69d0d025` adds the mainnet activation path (Console scope `production-gateway`,
+  ref `main`, `deploy-production-mainnet-backend.yml`; `activation_only` job). Gate 11: the
+  tenant block and `ROUTER_AB_PROJECT_POLICY_BOOTSTRAP_JSON` name `org_ty5o34k5w9p7`,
+  `proj_mu6auwge_v8ulud`, `proj_mu6auwge_v8ulud:prod`.
+- Mainnet backend run `39126113752`: every component deployed, including the inert bootstrap
+  of the US, WEUR and OC Gateway names; only the last smoke step failed, with 503
+  `tenant_deployment_unavailable`, as before any activation. Mainnet Console run
+  `39128509358` passed; Console readiness 200; the account data is intact (2 organisations,
+  2 projects, 1 key).
+- Open, owner: `proj_mu6auwge_v8ulud:prod` is DISABLED. A `prod` environment turns ACTIVE only
+  with live access, which needs a credit balance above 0 for the organisation. Then:
+  `deploy-production-mainnet-backend.yml` with `activation_only=true` and
+  `environment_id=proj_mu6auwge_v8ulud:prod`, then the `sign.seams.sh` wallet host.

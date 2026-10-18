@@ -2460,6 +2460,11 @@ textarea {
   text-align: right;
 }
 
+/* Header cells are flex rows, so text-align alone leaves the label at the start. */
+.dashboard-data-table__header-cell--end {
+  justify-content: flex-end;
+}
+
 .dashboard-data-table__cell--event {
   gap: 10px;
 }

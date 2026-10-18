@@ -215,6 +215,9 @@ function buildConsoleConfig(
   if (regionalWalletConfigured) {
     vars.SEAMS_WALLET_HOME_CATALOG_JSON = walletHomeCatalogJson(deployment);
   }
+  if (consoleTarget.platformSupportEmails) {
+    vars.CONSOLE_PLATFORM_SUPPORT_EMAILS = consoleTarget.platformSupportEmails.join(',');
+  }
   addOptionalStringVar(vars, 'GOOGLE_OIDC_CLIENT_ID', deployment.optional.googleOidcClientId);
   addOptionalStringVar(
     vars,

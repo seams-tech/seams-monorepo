@@ -135,3 +135,11 @@ over mainnet ("there are no wallets on mainnet"). Private `main` = `5dc467b7` (p
   with live access, which needs a credit balance above 0 for the organisation. Then:
   `deploy-production-mainnet-backend.yml` with `activation_only=true` and
   `environment_id=proj_mu6auwge_v8ulud:prod`, then the `sign.seams.sh` wallet host.
+- Live access for the owner's organisation: the owner chose the existing audited manual support
+  credit over a new billing exemption. `31629e43` renders a Console target's
+  `platformSupportEmails` into `CONSOLE_PLATFORM_SUPPORT_EMAILS`; `599dcafe` lists the owner on
+  staging and production mainnet (pull request 48, `main` = `f4547915`). Mainnet Console run
+  `39138413834`; both serving versions carry the variable. The owner signs in again (the
+  platform support claim is set at sign-in), grants "Seams Technologies" a support credit in
+  Platform billing, then turns the Wallet service off and on for "Seams Wallet" so that
+  `proj_mu6auwge_v8ulud:prod` is provisioned with live access.

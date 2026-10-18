@@ -6,6 +6,7 @@
       "origin": "https://staging.wallet.seams.sh",
       "siteOrigin": "https://staging.wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-staging",
+      "platformSupportEmails": ["n6378056@gmail.com"],
       "placementRegion": "aws:ap-southeast-1",
       "database": {
         "name": "seams-console-sin-candidate-20261014",
@@ -43,6 +44,7 @@
       "origin": "https://wallet.seams.sh",
       "siteOrigin": "https://wallet.seams.sh",
       "workerName": "seams-sdk-d1-console",
+      "platformSupportEmails": ["n6378056@gmail.com"],
       "database": {
         "name": "seams-console",
         "id": "b928549b-8cd8-41db-9e66-36e95afbe295"

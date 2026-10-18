@@ -213,6 +213,7 @@ function parseConsoleTarget(value, laneId) {
     'billing',
   ];
   if (Object.hasOwn(target, 'placementRegion')) keys.push('placementRegion');
+  if (Object.hasOwn(target, 'platformSupportEmails')) keys.push('platformSupportEmails');
   requireExactKeys(target, keys, targetPath);
   const database = requireObject(target.database, targetPath + '.database');
   requireExactKeys(database, ['name', 'id'], targetPath + '.database');
@@ -245,12 +246,33 @@ function parseConsoleTarget(value, laneId) {
       ),
     }),
     emailDelivery: parseConsoleEmailDelivery(target.emailDelivery, targetPath + '.emailDelivery'),
+    ...(Object.hasOwn(target, 'platformSupportEmails')
+      ? {
+          platformSupportEmails: parsePlatformSupportEmails(
+            target.platformSupportEmails,
+            targetPath + '.platformSupportEmails',
+          ),
+        }
+      : {}),
     billing: Object.freeze({
       enabled: true,
       owner: 'console',
       secrets: parseSecretNames(billing.secrets, targetPath + '.billing.secrets'),
     }),
   });
+}
+
+// Platform support accounts reach the audited Platform billing tools (support
+// credits, debits, refunds) for every organisation of the lane.
+function parsePlatformSupportEmails(value, pathName) {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(pathName + ' must be a non-empty list of email addresses');
+  }
+  const emails = value.map((email, index) =>
+    requireEmailAddress(email, pathName + '[' + index + ']').toLowerCase(),
+  );
+  if (new Set(emails).size !== emails.length) throw new Error(pathName + ' repeats an address');
+  return Object.freeze(emails);
 }
 
 function parseConsoleEmailDelivery(value, pathName) {

@@ -446,6 +446,7 @@ export async function createD1ConsoleOrgProjectService(
         return rows.map(parseOrgRow);
       }
       const candidateLimit = Math.max(limit * 5, 25);
+      // Platform support also finds an organization by an active member's email.
       const rows = await queryD1All(
         database,
         `SELECT *
@@ -454,9 +455,18 @@ export async function createD1ConsoleOrgProjectService(
             AND (
               LOWER(name) LIKE ?
               OR LOWER(id) LIKE ?
+              OR EXISTS (
+                SELECT 1
+                  FROM organization_memberships AS member
+                 WHERE member.namespace = organizations.namespace
+                   AND member.org_id = organizations.id
+                   AND member.kind = 'ACTIVE'
+                   AND member.removed_at_ms IS NULL
+                   AND member.email_normalized LIKE ?
+              )
             )
           LIMIT ?`,
-        [namespace, `%${query}%`, `%${query}%`, candidateLimit],
+        [namespace, `%${query}%`, `%${query}%`, `%${query}%`, candidateLimit],
       );
       return sortOrganizationSearchResults(rows.map(parseOrgRow), query).slice(0, limit);
     },
@@ -652,7 +662,6 @@ export async function createD1ConsoleOrgProjectService(
         projectId,
       });
     },
-
   };
 
   return service;

@@ -903,7 +903,7 @@ export function PlatformBillingView(): React.JSX.Element {
                   value={searchInput}
                   onChange={onSearchInputChange}
                   onKeyDown={onSearchInputKeyDown}
-                  placeholder="Watchbook or org_123"
+                  placeholder="Organization name, org_123 or member email"
                   autoComplete="off"
                 />
               </label>

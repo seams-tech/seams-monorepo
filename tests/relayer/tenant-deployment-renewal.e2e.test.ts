@@ -22,6 +22,7 @@ import {
 } from '../helpers/tenantDeploymentFixtures';
 import type { TenantDeploymentRuntimeScopeV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import { provisioningScenario } from '../helpers/tenantDeploymentProvisioningScenario';
+import { renewUnusedCreationGrant } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/renewal';
 import { regionalReadinessScenario } from '../helpers/regionalReadinessScenario';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -250,6 +251,18 @@ test('regional deployment renewal preserves the browser key and retires previous
     endpoint.apiKeys = apiKeys;
     endpoint.environmentId = environmentId;
     const initialProofs = proofs(reference);
+    const creation = scenario.provisionerOptions.tenantRootCreation;
+    const expired = await creation.grants.findGrantByOperationId(scenario.root.operationId);
+    if (!expired || expired.status !== 'ISSUED')
+      throw new Error('Expired initial authorization missing');
+    const [firstRenewal, concurrentRenewal] = await Promise.all([
+      renewUnusedCreationGrant(creation, expired),
+      renewUnusedCreationGrant(creation, expired),
+    ]);
+    expect(firstRenewal.grantDigestB64u).toBe(concurrentRenewal.grantDigestB64u);
+    expect(firstRenewal.custodyLineageB64u).toBe(expired.custodyLineageB64u);
+    expect(firstRenewal.grantNonceB64u).toBe(expired.grantNonceB64u);
+    expect(firstRenewal.expiresAtMs).toBeGreaterThan(expired.expiresAtMs);
     router.creationAvailable = false;
     await expect(
       provisioner.provision({
@@ -277,7 +290,14 @@ test('regional deployment renewal preserves the browser key and retires previous
     });
     expect(initial.disposition).toBe('reused');
     expect(initial.activationSequence).toBe(1);
-    expect(router.creationRequests).toEqual(['fixture-grant', 'fixture-grant']);
+    expect(router.creationRequests).toHaveLength(2);
+    expect(router.creationRequests[0]).toBe(router.creationRequests[1]);
+    expect(router.creationRequests[0]).not.toBe(scenario.root.originalGrant.grantB64u);
+    expect(router.renewalRequests).toEqual([
+      scenario.root.originalGrant.grantB64u,
+      scenario.root.originalGrant.grantB64u,
+    ]);
+    expect(router.creationRequests[0]).toBe(firstRenewal.grantB64u);
     const initialBinding = await store.resolveActiveBinding(reference.deploymentLane);
     if (!initialBinding) throw new Error('Missing active binding');
     await checkWriters(store, initialProofs, initial.bindingRevision);
@@ -336,7 +356,11 @@ test('regional deployment renewal preserves the browser key and retires previous
         )
       )?.status,
     ).toBe(404);
-    const oldDatabase = DeploymentFencedDatabase.forRegionalWriter(usDatabase, initialBinding, oldWriter);
+    const oldDatabase = DeploymentFencedDatabase.forRegionalWriter(
+      usDatabase,
+      initialBinding,
+      oldWriter,
+    );
     await usDatabase.prepare('CREATE TABLE deployment_write_probe (value TEXT NOT NULL)').run();
     await oldDatabase
       .prepare('INSERT INTO deployment_write_probe VALUES (?1)')
@@ -604,6 +628,8 @@ test('regional deployment renewal preserves the browser key and retires previous
       failedRootAndCredentialAttemptsReleased: failed,
       authenticatedCanaries: endpoint.accepted,
       interruptedRootCreationResumed: router.creationRequests.length === 2,
+      concurrentAuthorizationRenewalsUsedOnePersistedGrant:
+        firstRenewal.grantDigestB64u === concurrentRenewal.grantDigestB64u,
       limits: [
         'Local D1 and production Console services; provider proofs and Router status are controlled fixtures.',
         'Canary endpoint authenticates the real persisted browser key; no wallet ceremony or regional latency is measured.',

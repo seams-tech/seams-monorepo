@@ -55,8 +55,17 @@ export interface TenantRootCreationGrantStoreV1 {
   findGrantByIdentity(
     identity: TenantRootIdentityV1,
   ): Promise<TenantRootCreationGrantRecordV1 | null>;
+  renewUnusedGrant(
+    input: TenantRootCreationGrantRenewalInputV1,
+  ): Promise<TenantRootCreationGrantRecordV1>;
   putOrGetGrant(input: TenantRootCreationGrantIssueV1): Promise<TenantRootCreationGrantRecordV1>;
   markActiveFromReady(
     input: TenantRootCreationGrantReadyInputV1,
   ): Promise<TenantRootCreationGrantRecordV1>;
 }
+
+export type TenantRootCreationGrantRenewalInputV1 = {
+  readonly previous: Extract<TenantRootCreationGrantRecordV1, { readonly status: 'ISSUED' }>;
+  readonly renewed: TenantRootCreationGrantIssueV1;
+  readonly expiredThroughMs: number;
+};

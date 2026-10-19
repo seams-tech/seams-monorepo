@@ -39,6 +39,7 @@ import {
 import { isTenantRootCreationGrantStoreError } from './service';
 import type { TenantRootCreationGrantServiceV1 } from './service';
 import type { TenantRootCreationGrantRecordV1, TenantRootIdentityV1 } from './types';
+import { renewUnusedCreationGrant } from './renewal';
 
 export const TENANT_ROOT_CREATION_CONSOLE_PATH_V1 = '/console/tenant-root/creation';
 export const TENANT_ROOT_REFRESH_CONSOLE_PATH_V1 = '/console/tenant-root/refresh';
@@ -342,18 +343,20 @@ export async function ensureTenantRootActiveV1(input: {
 }> {
   const issued = await issueGrant(input.dependencies, input.operationId, input.identity);
   if (issued.record.status === 'ACTIVE') return { record: issued.record, replayed: true };
-  const ready = await createAtRouter(input.dependencies, issued.record);
+  const authorized = await renewUnusedCreationGrant(input.dependencies, issued.record);
+  if (authorized.status === 'ACTIVE') return { record: authorized, replayed: true };
+  const ready = await createAtRouter(input.dependencies, authorized);
   if (
-    ready.identityDigestB64u !== issued.record.identityDigestB64u ||
-    ready.custodyLineageB64u !== issued.record.custodyLineageB64u
+    ready.identityDigestB64u !== authorized.identityDigestB64u ||
+    ready.custodyLineageB64u !== authorized.custodyLineageB64u
   ) {
     throw new Error('Router tenant-root creation response changed the issued identity');
   }
   const record = await input.dependencies.grants.markActiveFromReady({
     operationId: input.operationId,
     identity: input.identity,
-    identityDigestB64u: issued.record.identityDigestB64u,
-    custodyLineageB64u: issued.record.custodyLineageB64u,
+    identityDigestB64u: authorized.identityDigestB64u,
+    custodyLineageB64u: authorized.custodyLineageB64u,
     ready: {
       revision: ready.revision,
       rootCommitmentB64u: ready.rootCommitmentB64u,

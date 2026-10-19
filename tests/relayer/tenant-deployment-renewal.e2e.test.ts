@@ -23,9 +23,27 @@ import {
 import type { TenantDeploymentRuntimeScopeV1 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/runtimeInspection';
 import { provisioningScenario } from '../helpers/tenantDeploymentProvisioningScenario';
 import { renewUnusedCreationGrant } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/renewal';
+import type { TenantRootCreationGrantServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/service';
+import type { TenantRootCreationGrantRenewalInputV1 } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/types';
 import { regionalReadinessScenario } from '../helpers/regionalReadinessScenario';
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+
+class RenewalClock {
+  constructor(readonly atMs: number) {}
+  now(): Date {
+    return new Date(this.atMs);
+  }
+}
+
+class RenewalProposals {
+  readonly digests: string[] = [];
+  constructor(readonly commit: TenantRootCreationGrantServiceV1['renewUnusedGrant']) {}
+  async run(input: TenantRootCreationGrantRenewalInputV1) {
+    this.digests.push(input.renewed.grantDigestB64u);
+    return this.commit(input);
+  }
+}
 
 class CanaryEndpoint {
   apiKeys: ConsoleApiKeyService | null = null;
@@ -255,10 +273,18 @@ test('regional deployment renewal preserves the browser key and retires previous
     const expired = await creation.grants.findGrantByOperationId(scenario.root.operationId);
     if (!expired || expired.status !== 'ISSUED')
       throw new Error('Expired initial authorization missing');
+    const firstClock = new RenewalClock(Date.now() - 2000);
+    const secondClock = new RenewalClock(firstClock.atMs + 1000);
+    const commitRenewal = creation.grants.renewUnusedGrant.bind(creation.grants);
+    const proposals = new RenewalProposals(commitRenewal);
+    creation.grants.renewUnusedGrant = proposals.run.bind(proposals);
     const [firstRenewal, concurrentRenewal] = await Promise.all([
-      renewUnusedCreationGrant(creation, expired),
-      renewUnusedCreationGrant(creation, expired),
+      renewUnusedCreationGrant({ ...creation, now: firstClock.now.bind(firstClock) }, expired),
+      renewUnusedCreationGrant({ ...creation, now: secondClock.now.bind(secondClock) }, expired),
     ]);
+    creation.grants.renewUnusedGrant = commitRenewal;
+    expect(proposals.digests).toHaveLength(2);
+    expect(new Set(proposals.digests).size).toBe(2);
     expect(firstRenewal.grantDigestB64u).toBe(concurrentRenewal.grantDigestB64u);
     expect(firstRenewal.custodyLineageB64u).toBe(expired.custodyLineageB64u);
     expect(firstRenewal.grantNonceB64u).toBe(expired.grantNonceB64u);
@@ -630,6 +656,7 @@ test('regional deployment renewal preserves the browser key and retires previous
       interruptedRootCreationResumed: router.creationRequests.length === 2,
       concurrentAuthorizationRenewalsUsedOnePersistedGrant:
         firstRenewal.grantDigestB64u === concurrentRenewal.grantDigestB64u,
+      concurrentAuthorizationProposalsDiffer: new Set(proposals.digests).size === 2,
       limits: [
         'Local D1 and production Console services; provider proofs and Router status are controlled fixtures.',
         'Canary endpoint authenticates the real persisted browser key; no wallet ceremony or regional latency is measured.',

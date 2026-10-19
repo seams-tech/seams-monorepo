@@ -179,7 +179,7 @@ function sendAccountError(error: unknown): Response {
   );
 }
 
-function requireOrganizationAccessService(
+export function requireOrganizationAccessService(
   ctx: AccountConsoleContext,
 ): ConsoleOrganizationAccessService | Response {
   if (ctx.organizationAccess) return ctx.organizationAccess;

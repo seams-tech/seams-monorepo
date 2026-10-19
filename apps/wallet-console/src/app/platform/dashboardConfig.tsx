@@ -68,11 +68,11 @@ const groups: SidebarGroup[] = [
   },
   {
     key: 'platform',
-    label: 'Platform',
+    label: 'Admin',
     items: [
       {
         key: 'platform-billing',
-        label: 'Customer Accounts',
+        label: 'Admin support',
         path: '/platform/billing',
         icon: CreditCardIcon,
         component: PlatformBillingPage,

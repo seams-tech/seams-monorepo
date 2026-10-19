@@ -135,3 +135,18 @@ over mainnet ("there are no wallets on mainnet"). Private `main` = `5dc467b7` (p
   with live access, which needs a credit balance above 0 for the organisation. Then:
   `deploy-production-mainnet-backend.yml` with `activation_only=true` and
   `environment_id=proj_mu6auwge_v8ulud:prod`, then the `sign.seams.sh` wallet host.
+- Live access for the owner's organisation: the owner chose the existing audited manual support
+  credit over a new billing exemption. `31629e43` renders a Console target's
+  `platformSupportEmails` into `CONSOLE_PLATFORM_SUPPORT_EMAILS`; `599dcafe` lists the owner on
+  staging and production mainnet (pull request 48, `main` = `f4547915`). Mainnet Console run
+  `39138413834`; both serving versions carry the variable. The owner signs in again (the
+  platform support claim is set at sign-in), grants "Seams Technologies" a support credit in
+  Platform billing, then turns the Wallet service off and on for "Seams Wallet" so that
+  `proj_mu6auwge_v8ulud:prod` is provisioned with live access.
+- 2026-10-19: the first attempt posted an admin debit, not a credit (ledger entry
+  `ble_mve0hn1y_et7016wt`, −$50.00), so the balance is −$50.00. The old dialog chose credit or
+  debit with one small select. Pull request 49 (head `9052c1a8`, with `f0c15f30`) redesigns
+  Admin support: separate credit and debit dialogs, a before-and-after preview, and a Reverse
+  action per manual adjustment with one idempotency key per entry. It waits for GitHub Actions,
+  which stopped on the private organisation's billing. After its Console deployment the owner
+  reverses the debit, adds a credit, and turns the Wallet service off and on.

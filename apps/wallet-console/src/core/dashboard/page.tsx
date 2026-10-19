@@ -12,6 +12,7 @@ import React from 'react';
 import { assertNever } from '@seams-internal/console-shared/accountPlatform/boundary';
 import type { SidebarProjectGroup } from './layout/DashboardSidebar';
 import DashboardNavigation from './layout/DashboardNavigation';
+import type { DashboardNetworkSwitch } from './layout/DashboardTopbar';
 import { DASHBOARD_PAGE_ACTIONS_SLOT_ID } from './components/DashboardPageActions';
 import { DashboardLoadingState } from './components/DashboardLoadingState';
 import type {
@@ -169,7 +170,7 @@ function withConsoleNetworkOptions(
   options: TopbarOption[],
   runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
 ): TopbarOption[] {
-  if (import.meta.env.MODE !== 'wallet' || runtime.availableNetworks.length < 2) return options;
+  if (runtime.availableNetworks.length < 2) return options;
   const mainnet = runtime.selectedNetwork === 'mainnet';
   return [
     ...options,
@@ -183,6 +184,15 @@ function withConsoleNetworkOptions(
       label: mainnet ? 'Switch to Testnet' : 'Switch to Mainnet',
     },
   ];
+}
+
+// Each network has its own account store. The top bar shows the switch on wide
+// screens; the account menu above carries it on narrow ones.
+function consoleNetworkSwitch(
+  runtime: Pick<ConsoleRuntimeState, 'selectedNetwork' | 'availableNetworks'>,
+): DashboardNetworkSwitch | undefined {
+  if (runtime.availableNetworks.length < 2) return undefined;
+  return { selected: runtime.selectedNetwork, onSelect: navigateToConsoleNetwork };
 }
 
 function selectConsoleNetworkOption(value: string): boolean {
@@ -1163,6 +1173,7 @@ function DashboardPageInner<ProductRoute extends string, ProductGroupKey extends
         onSelectContext={onSelectContext}
         dropdownOptions={dropdownOptions}
         pageTitle={activeView.label}
+        network={consoleNetworkSwitch(frontendRuntime)}
         groups={visibleSidebarGroups}
         externalLinks={linksWithConsoleContext(composition.externalLinks ?? [], selectedContext)}
         activeRoute={activeRoute}
@@ -1362,6 +1373,7 @@ function InitialOnboardingShell<ProductRoute extends string, ProductGroupKey ext
         onSelectContext={selectTopbarContext}
         dropdownOptions={dropdownOptions}
         pageTitle="Onboarding"
+        network={consoleNetworkSwitch(frontendRuntime)}
         groups={composition.sidebarGroups}
         activeRoute={DASHBOARD_ONBOARDING_ROUTE}
         isSidebarExpanded={isSidebarExpanded}

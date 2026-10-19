@@ -54,6 +54,7 @@ import {
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import type { SidebarIconComponent, TopbarMenuKey, TopbarOption } from '../types';
 import { getDocsOrigin } from '@core/router/siteRouting';
+import type { ConsoleNetwork } from '@core/runtime';
 
 export type TopbarSearchItem = {
   label: string;
@@ -62,8 +63,20 @@ export type TopbarSearchItem = {
   icon: SidebarIconComponent;
 };
 
+/** The account network this Console reads, and the switch to the other one. */
+export type DashboardNetworkSwitch = {
+  readonly selected: ConsoleNetwork;
+  readonly onSelect: (network: ConsoleNetwork) => void;
+};
+
+const CONSOLE_NETWORKS: readonly { readonly value: ConsoleNetwork; readonly label: string }[] = [
+  { value: 'testnet', label: 'Testnet' },
+  { value: 'mainnet', label: 'Mainnet' },
+];
+
 export type DashboardTopbarProps = {
   workspace?: SidebarWorkspaceProps;
+  network?: DashboardNetworkSwitch;
   isSidebarExpanded: boolean;
   onToggleSidebar: () => void;
   homeProps: DashboardHomeLinkProps;
@@ -277,6 +290,7 @@ export function DashboardTopbar({
   onToggleSidebar,
   homeProps,
   pageTitle,
+  network,
   onSelectContext,
   dropdownOptions,
   accountLabel,
@@ -324,6 +338,24 @@ export function DashboardTopbar({
       Docs
     </a>
   );
+
+  const networkSwitch = network ? (
+    <div className="dashboard-topbar__network" role="group" aria-label="Network">
+      {CONSOLE_NETWORKS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className="dashboard-topbar__network-option"
+          aria-pressed={network.selected === option.value}
+          onClick={() => {
+            if (network.selected !== option.value) network.onSelect(option.value);
+          }}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   const accountMenuElement = (
     <div className="dashboard-account-menu">
@@ -424,6 +456,7 @@ export function DashboardTopbar({
       )}
 
       <div className="dashboard-topbar__utilities">
+        {networkSwitch}
         {docsLink}
         {accountMenuElement}
       </div>

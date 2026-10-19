@@ -12,7 +12,10 @@ import DashboardSidebar, {
   type DashboardLinkPropsFactory,
   type DashboardWorkspaceNavigation,
 } from './DashboardSidebar';
-import DashboardTopbar, { type TopbarSearchItem } from './DashboardTopbar';
+import DashboardTopbar, {
+  type DashboardNetworkSwitch,
+  type TopbarSearchItem,
+} from './DashboardTopbar';
 
 export type { DashboardWorkspaceNavigation } from './DashboardSidebar';
 
@@ -27,6 +30,7 @@ export type DashboardNavigationProps<Route extends string, GroupKey extends stri
   onSelectContext: (menu: TopbarMenuKey, value: string) => void;
   dropdownOptions: Record<TopbarMenuKey, TopbarOption[]>;
   pageTitle: string;
+  network?: DashboardNetworkSwitch;
   groups: SidebarGroup<Route, GroupKey>[];
   externalLinks?: readonly DashboardExternalLink[];
   activeRoute: Route;
@@ -55,6 +59,7 @@ export function DashboardNavigation<Route extends string, GroupKey extends strin
   onSelectContext,
   dropdownOptions,
   pageTitle,
+  network,
   groups,
   externalLinks,
   activeRoute,
@@ -84,6 +89,7 @@ export function DashboardNavigation<Route extends string, GroupKey extends strin
         onToggleSidebar={onToggleSidebar}
         homeProps={homeProps}
         pageTitle={pageTitle}
+        network={network}
         onSelectContext={onSelectContext}
         dropdownOptions={dropdownOptions}
         accountLabel={accountLabel}

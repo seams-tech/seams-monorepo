@@ -34,6 +34,7 @@ import type {
   BillingAccountActivityResult,
   BillingManualAdjustmentRequest,
   BillingManualAdjustmentResult,
+  BillingCreditBalanceSummary,
   BillingMonthlyActiveResources,
   BillingOverview,
   BillingRefund,
@@ -64,6 +65,9 @@ export interface ConsoleBillingRefundSupportContext extends ConsoleBillingContex
 
 export interface ConsoleBillingService {
   getOverview(ctx: ConsoleBillingContext): Promise<BillingOverview>;
+  /** Reads balances only: an organization without a billing account reads as
+   * $0 with the default threshold, and no account is created. */
+  listCreditBalances(orgIds: readonly string[]): Promise<BillingCreditBalanceSummary[]>;
   getProductExecutionDebitsByIds(
     ctx: ConsoleBillingContext,
     ledgerEntryIds: string[],
@@ -1574,6 +1578,18 @@ export function createInMemoryConsoleBillingService(
         recentCreditPurchasedMinor: getCurrentMonthPurchasedMinor(store, currentMonthUtc),
         documentCount: projectedInvoices.length,
       };
+    },
+
+    async listCreditBalances(orgIds: readonly string[]): Promise<BillingCreditBalanceSummary[]> {
+      return Array.from(new Set(orgIds)).map((orgId) => {
+        const store = orgStores.get(orgId);
+        return {
+          orgId,
+          creditBalanceMinor: store ? getMemoryStoreBalance(store) : 0,
+          lowBalanceThresholdMinor:
+            store?.lowBalanceThresholdMinor ?? DEFAULT_LOW_BALANCE_THRESHOLD_MINOR,
+        };
+      });
     },
 
     async getProductExecutionDebitsByIds(

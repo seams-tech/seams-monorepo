@@ -23,6 +23,7 @@ import type { AccountConsoleContext } from './context';
 import {
   requireConsoleAuth,
   requireConsoleRoutePolicy,
+  requireOrganizationAccessService,
   emitConsoleAuditEvent,
   decodePathPart,
 } from './accountRoutes';
@@ -303,13 +304,17 @@ export async function handleConsoleBillingRoutes(
       const projectsOrResponse = ctx.orgProjects;
       if (!projectsOrResponse)
         return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
-      const organizations = await searchPlatformBillingOrganizations({
+      const organizationAccess = requireOrganizationAccessService(ctx);
+      if (organizationAccess instanceof Response) return organizationAccess;
+      const accounts = await searchPlatformBillingOrganizations({
+        billing,
         orgProjects: projectsOrResponse,
+        organizationAccess,
         request: parsePlatformBillingSearchRequest(
           Object.fromEntries(ctx.url.searchParams.entries()),
         ),
       });
-      return json({ ok: true, organizations }, { status: 200 });
+      return json({ ok: true, accounts }, { status: 200 });
     }
 
     if (ctx.method === 'GET' && ctx.pathname === '/console/platform/billing/account') {
@@ -318,10 +323,13 @@ export async function handleConsoleBillingRoutes(
       const projectsOrResponse = ctx.orgProjects;
       if (!projectsOrResponse)
         return json({ ok: false, code: 'org_project_not_configured' }, { status: 503 });
+      const organizationAccess = requireOrganizationAccessService(ctx);
+      if (organizationAccess instanceof Response) return organizationAccess;
       const result = await resolvePlatformBillingLookup({
         claims: auth.claims,
         billing,
         orgProjects: projectsOrResponse,
+        organizationAccess,
         request: parsePlatformBillingLookupRequest(
           Object.fromEntries(ctx.url.searchParams.entries()),
         ),

@@ -27,6 +27,7 @@ import type {
   ConsoleOrganizationAccessService,
   OrganizationAccessContext,
   OrganizationAuthorizationLookup,
+  OrganizationOwnerEmails,
   VerifiedInvitationAccount,
 } from './service';
 import {
@@ -2647,6 +2648,30 @@ class D1ConsoleOrganizationAccessService implements ConsoleOrganizationAccessD1S
   async getAuthorizationVersion(orgId: string): Promise<number | null> {
     const organization = await loadOrganizationState(this.state, normalizeRequired(orgId, 'orgId'));
     return organization?.authorizationVersion ?? null;
+  }
+
+  async listActiveOwnerEmails(
+    orgIds: readonly string[],
+  ): Promise<readonly OrganizationOwnerEmails[]> {
+    const ids = Array.from(new Set(orgIds));
+    if (ids.length === 0) return [];
+    const rows = await queryD1All(
+      this.state.database,
+      `SELECT org_id, email
+         FROM organization_memberships
+        WHERE namespace = ?
+          AND org_id IN (${ids.map(() => '?').join(', ')})
+          AND role = 'OWNER'
+          AND kind = 'ACTIVE'
+        ORDER BY created_at_ms ASC, id ASC`,
+      [this.state.namespace, ...ids],
+    );
+    return ids.map((orgId) => ({
+      orgId,
+      emails: rows
+        .filter((row) => normalizeRowString(row.org_id) === orgId)
+        .map((row) => normalizeRowString(row.email)),
+    }));
   }
 
   async listOwnerEvents(

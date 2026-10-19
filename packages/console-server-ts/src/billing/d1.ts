@@ -68,6 +68,7 @@ import type {
   BillingManualAdjustmentRequest,
   BillingManualAdjustmentResult,
   BillingMonthlyActiveResources,
+  BillingCreditBalanceSummary,
   BillingOverview,
   BillingRefund,
   BillingRefundReconcileRequest,
@@ -3864,6 +3865,41 @@ export async function createD1ConsoleBillingService(
         recentCreditPurchasedMinor,
         documentCount: await countProjectedInvoices(state, ctx.orgId),
       };
+    },
+
+    async listCreditBalances(orgIds: readonly string[]): Promise<BillingCreditBalanceSummary[]> {
+      const ids = Array.from(new Set(orgIds));
+      if (ids.length === 0) return [];
+      const rows = await queryD1All(
+        state.database,
+        `SELECT
+            account.org_id AS org_id,
+            account.low_balance_threshold_minor AS low_balance_threshold_minor,
+            COALESCE(
+              (
+                SELECT SUM(
+                  CASE posting.direction
+                    WHEN 'CREDIT' THEN posting.amount_minor
+                    ELSE -posting.amount_minor
+                  END
+                )
+                  FROM billing_ledger_postings posting
+                 WHERE posting.namespace = account.namespace
+                   AND posting.org_id = account.org_id
+                   AND posting.account_code = 'org_prepaid_liability'
+              ),
+              0
+            ) AS credit_balance_minor
+           FROM billing_accounts account
+          WHERE account.namespace = ?
+            AND account.org_id IN (${ids.map(() => '?').join(', ')})`,
+        [state.namespace, ...ids],
+      );
+      const accounts = new Map(rows.map((row) => [String(row.org_id), parseBillingAccount(row)]));
+      return ids.map((orgId) => {
+        const account = accounts.get(orgId) ?? parseBillingAccount(null);
+        return { orgId, ...account };
+      });
     },
 
     async getProductExecutionDebitsByIds(

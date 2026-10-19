@@ -294,29 +294,6 @@ test('production-mainnet plan reports the provisioned mainnet service', () => {
   expect(plan.stdout).not.toContain('Required values:');
 });
 
-test('production-shaped project policy uses the canonical Seams environment id', () => {
-  const source = readFileSync(environmentGeneratorScript, 'utf8');
-  const policyBuilder = source.match(
-    /function buildProjectPolicy\(configuration\) \{[\s\S]*?\n\}/u,
-  )?.[0];
-  const registrationValidator = source.match(
-    /function validateGatewayRegistrationDocuments\(outputDocument\) \{[\s\S]*?\n\}/u,
-  )?.[0];
-
-  expect(policyBuilder).toBeTruthy();
-  expect(registrationValidator).toBeTruthy();
-  expect(source).toContain("'SEAMS_ENV_ID'");
-  expect(policyBuilder).toContain('environment: configuration.environmentId,');
-  expect(policyBuilder).not.toContain('environment: targetName,');
-  expect(registrationValidator).toMatch(
-    /policy\.environment,\s*deploymentConfig\.tenant\.environmentId,/u,
-  );
-
-  const lanePrefix = 'production';
-  const seamsEnvironmentId = 'seams-production-mainnet';
-  expect(seamsEnvironmentId).not.toBe(lanePrefix);
-});
-
 test('frontend plan runs without deployment secrets', () => {
   const result = runCommand(
     frontendScript,

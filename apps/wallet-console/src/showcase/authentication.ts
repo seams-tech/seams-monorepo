@@ -94,9 +94,15 @@ let state: AuthenticationState = {
 const result = document.createElement('section');
 result.className = 'authentication-result';
 result.hidden = true;
+result.tabIndex = -1;
 result.innerHTML = `
   <span class="authentication-result__icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" pathLength="1" /></svg>
+    <svg viewBox="0 0 56 56" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <circle class="authentication-result__track" cx="28" cy="28" r="26.75" stroke-width="2.5" />
+      <circle class="authentication-result__arc" cx="28" cy="28" r="26.75" stroke-width="2.5" pathLength="100" />
+      <circle class="authentication-result__seal" cx="28" cy="28" r="28" />
+      <path class="authentication-result__check" d="M36.7 21.5 24.75 33.4l-5.4-5.4" stroke-width="2.7" pathLength="1" />
+    </svg>
   </span>
   <h1></h1>
   <p role="status"></p>
@@ -158,6 +164,11 @@ function approveLink(): void {
   }
 }
 
+// The busy spinner closes into the check before the actions appear. The
+// actions stay disabled until then, so the canvas player waits for them too.
+const resultEntryMilliseconds = 1000;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
 function complete(heading: string, message: string): void {
   if (state.kind !== 'menu') return;
   cancelApproval();
@@ -166,11 +177,25 @@ function complete(heading: string, message: string): void {
   state = { kind: 'result' };
   const title = result.querySelector('h1');
   const status = result.querySelector('p');
-  const button = next && !next.hidden ? next : result.querySelector('button');
+  const actions = [...result.querySelectorAll<HTMLButtonElement>('button')];
+  const button =
+    next && !next.hidden
+      ? next
+      : result.querySelector<HTMLButtonElement>('[data-authentication-reset]');
   if (title) title.textContent = heading;
   if (status) status.textContent = message;
   result.hidden = false;
-  if (returnFocus) button?.focus({ preventScroll: true });
+  const reveal = (): void => {
+    for (const action of actions) action.disabled = false;
+    if (returnFocus) button?.focus({ preventScroll: true });
+  };
+  if (reducedMotion.matches) {
+    reveal();
+    return;
+  }
+  for (const action of actions) action.disabled = true;
+  if (returnFocus) result.focus({ preventScroll: true });
+  cancelApproval = schedulePlayback(reveal, resultEntryMilliseconds);
 }
 
 // The demo shows the new sign-in method as the end of recovery. The SDK's
@@ -179,14 +204,15 @@ function completeRecovery(): void {
   complete('Wallet recovered', 'Your wallet is ready on this device.');
 }
 
-function finishAuthentication(): void {
-  complete('Success', "You're logged in.");
+function finishAuthentication(mode: 'login' | 'register'): void {
+  if (mode === 'register') complete('Wallet created', 'Your wallet is ready on this device.');
+  else complete("You're in", 'Your wallet is unlocked.');
 }
 
 function promptAuthentication(mode: 'login' | 'register'): void {
   const status: AuthMenuLoginViewModel['status'] = { kind: 'busy', headline: 'Signing you in…' };
   show(mode === 'register' ? registration(status) : login(status));
-  cancelApproval = schedulePlayback(finishAuthentication, 2000);
+  cancelApproval = schedulePlayback(() => finishAuthentication(mode), 2000);
 }
 
 function recover(method: 'passkey' | 'google'): void {

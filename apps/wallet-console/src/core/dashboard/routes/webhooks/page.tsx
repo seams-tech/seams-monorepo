@@ -45,6 +45,7 @@ import {
   type DashboardConsoleWebhookDelivery,
   type DashboardConsoleWebhookEndpoint,
 } from './consoleWebhooksApi';
+import { DashboardTableSkeletonRows } from '../../components/DashboardSkeleton';
 
 const WEBHOOK_ENDPOINTS_TABLE_COLUMNS = dashboardTableColumns(2.5, 0.7, 0.9, 1.8);
 const WEBHOOK_DELIVERIES_TABLE_COLUMNS = dashboardTableColumns(1.9, 0.8, 0.65, 0.6, 0.9, 0.6);
@@ -475,7 +476,7 @@ export function WebhooksPage({
             <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
           </DashboardTableHeader>
           {session.loading || loading ? (
-            <DashboardTableState>Loading webhook endpoints...</DashboardTableState>
+            <DashboardTableSkeletonRows label="Loading webhook endpoints" columns={4} />
           ) : !session.claims ? (
             <DashboardTableState>
               Webhooks unavailable: {session.errorMessage || 'unauthorized'}.

@@ -23,6 +23,10 @@ import {
   getInvoiceStatusBadgeClassName,
   type BillingMetric,
 } from './billingShared';
+import {
+  DashboardPageSkeleton,
+  DashboardTableSkeletonRows,
+} from '../../components/DashboardSkeleton';
 
 const BILLING_INVOICE_LINE_ITEMS_TABLE_COLUMNS = dashboardTableColumns(
   1,
@@ -141,7 +145,12 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
 
       {invoiceDetailLoading ? (
         <section className="dashboard-view__section">
-          <p>Loading billing document...</p>
+          <DashboardPageSkeleton
+            label="Loading billing document"
+            metrics={3}
+            rows={4}
+            columns={5}
+          />
         </section>
       ) : invoiceDetailError ? (
         <section className="dashboard-view__section">
@@ -242,7 +251,7 @@ export function BillingInvoiceDetailView(props: BillingInvoiceDetailViewProps): 
               <DashboardTableHeaderCell>Document</DashboardTableHeaderCell>
             </DashboardTableHeader>
             {lineItemsLoading ? (
-              <DashboardTableState>Loading line items...</DashboardTableState>
+              <DashboardTableSkeletonRows label="Loading line items" columns={8} />
             ) : lineItemsError ? (
               <DashboardTableState>Line items unavailable: {lineItemsError}</DashboardTableState>
             ) : lineItems.length === 0 ? (

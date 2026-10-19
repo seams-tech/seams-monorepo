@@ -16,6 +16,7 @@ import {
   type DashboardBillingUsageCharges,
 } from './consoleBillingApi';
 import { BillingMetricsGrid } from './billingShared';
+import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
 
 interface BillingCostGroup {
   readonly id: string;
@@ -149,7 +150,7 @@ export function BillingUsageCostsSection(props: {
   }
   switch (state.kind) {
     case 'loading':
-      return <p className="dashboard-pagination-note">Loading usage costs...</p>;
+      return <DashboardPageSkeleton label="Loading usage costs" metrics={0} rows={3} columns={4} />;
     case 'failed':
       return (
         <p className="dashboard-pagination-note" role="alert">

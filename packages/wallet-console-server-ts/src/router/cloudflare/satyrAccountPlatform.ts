@@ -10,6 +10,7 @@ import type { D1DatabaseLike } from '@seams-internal/console-server/boundary/d1'
 import { textValue } from '@seams-internal/console-shared/accountPlatform/boundary';
 import { createConsoleEmailInvitationSecretCipherFromEnv } from './cron';
 import { SatyrAccountOnboarding } from '@seams-internal/console-server/accountPlatform/onboarding';
+import { SatyrInstanceRelease } from '@seams-internal/console-server/accountPlatform/satyrRelease';
 import {
   createSatyrProvisioningAdapterFromEnvironment,
   type SatyrProvisioningEnvironment,
@@ -41,7 +42,25 @@ export class SatyrAccountPlatform extends WorkerEntrypoint<SatyrAccountPlatformE
         consoleBaseUrl: textValue(this.env.CONSOLE_BASE_URL, 'CONSOLE_BASE_URL'),
       },
     });
-    if (new URL(request.url).pathname.startsWith('/account-platform/v1/onboarding/')) {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/account-platform/v1/satyr/instance-release') {
+      const provisioning = createSatyrProvisioningAdapterFromEnvironment(
+        this.env,
+        services.serviceAccess,
+        globalThis.fetch.bind(globalThis),
+      );
+      if (!provisioning)
+        return Response.json(
+          { kind: 'rejected', error: { code: 'authority_unavailable' } },
+          { status: 503 },
+        );
+      return new SatyrInstanceRelease(
+        services,
+        provisioning,
+        this.ctx.waitUntil.bind(this.ctx),
+      ).fetch(request);
+    }
+    if (pathname.startsWith('/account-platform/v1/onboarding/')) {
       const producer = await createAccountServiceProducerFromEnvironment(this.env);
       const provisioning = createSatyrProvisioningAdapterFromEnvironment(
         this.env,

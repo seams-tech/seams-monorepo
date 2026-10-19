@@ -21,6 +21,13 @@
       "policyEnvironment": "explicit-scope",
       "identityAndRestrictionsPreserved": true,
       "generatorValidationPassed": true
+    },
+    {
+      "case": "canonical-staging",
+      "tenantEnvironmentId": "proj_mu6auwge_v8ulud:staging",
+      "policyEnvironment": "staging",
+      "identityAndRestrictionsPreserved": true,
+      "generatorValidationPassed": true
     }
   ],
   "productionObservation": {

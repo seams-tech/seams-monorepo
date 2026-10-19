@@ -1499,6 +1499,9 @@ function runtimePolicyEnvironment(tenant) {
   if (tenant.environmentId === `${tenant.projectId}:dev`) {
     return 'dev';
   }
+  if (tenant.environmentId === `${tenant.projectId}:staging`) {
+    return 'staging';
+  }
   if (tenant.environmentId === `${tenant.projectId}:prod`) {
     return 'prod';
   }

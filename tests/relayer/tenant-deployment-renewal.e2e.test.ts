@@ -250,6 +250,15 @@ test('regional deployment renewal preserves the browser key and retires previous
     endpoint.apiKeys = apiKeys;
     endpoint.environmentId = environmentId;
     const initialProofs = proofs(reference);
+    router.creationAvailable = false;
+    await expect(
+      provisioner.provision({
+        deploymentLane: reference.deploymentLane,
+        environmentId,
+        authorization: { kind: 'activate', verifications: initialProofs },
+      }),
+    ).rejects.toThrow('Control-plane service authentication refused');
+    router.creationAvailable = true;
     const activate = store.activateBinding.bind(store);
     const lostReply = new LostActivationReply(activate);
     store.activateBinding = lostReply.activateBinding.bind(lostReply);
@@ -268,7 +277,7 @@ test('regional deployment renewal preserves the browser key and retires previous
     });
     expect(initial.disposition).toBe('reused');
     expect(initial.activationSequence).toBe(1);
-    expect(router.creationRequests).toEqual(['fixture-grant']);
+    expect(router.creationRequests).toEqual(['fixture-grant', 'fixture-grant']);
     const initialBinding = await store.resolveActiveBinding(reference.deploymentLane);
     if (!initialBinding) throw new Error('Missing active binding');
     await checkWriters(store, initialProofs, initial.bindingRevision);
@@ -563,7 +572,7 @@ test('regional deployment renewal preserves the browser key and retires previous
         "SELECT COUNT(*) AS count FROM tenant_deployment_cutovers WHERE json_extract(state_json, '$.kind') = 'failed'",
       )
       .first('count');
-    expect(failed).toBe(5);
+    expect(failed).toBe(6);
     expect(endpoint.accepted).toBe(0);
     const evidence = {
       kind: 'regional_deployment_renewal_evidence_v1',
@@ -594,7 +603,7 @@ test('regional deployment renewal preserves the browser key and retires previous
       unavailableApacBlockedRenewal: true,
       failedRootAndCredentialAttemptsReleased: failed,
       authenticatedCanaries: endpoint.accepted,
-      interruptedRootCreationResumed: router.creationRequests.length === 1,
+      interruptedRootCreationResumed: router.creationRequests.length === 2,
       limits: [
         'Local D1 and production Console services; provider proofs and Router status are controlled fixtures.',
         'Canary endpoint authenticates the real persisted browser key; no wallet ceremony or regional latency is measured.',

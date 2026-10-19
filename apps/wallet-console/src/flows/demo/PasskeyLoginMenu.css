@@ -18,3 +18,19 @@
     margin: 0rem;
   }
 }
+
+/* The landing preview and the hosted menu's anchor share one cell. The preview
+   stays above the anchor's skeleton until the hosted menu paints over both. */
+.landing-auth-menu-stack {
+  display: grid;
+  width: min(100%, 420px);
+}
+
+.landing-auth-menu-stack > * {
+  grid-area: 1 / 1;
+}
+
+.landing-auth-menu-preview {
+  position: relative;
+  z-index: 1;
+}

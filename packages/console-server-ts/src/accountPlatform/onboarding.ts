@@ -137,11 +137,15 @@ export class SatyrAccountOnboarding {
     const organizations = [];
     for (const organization of await this.services.account.listOrganizations(identity)) {
       if (!canManageProjects(organization)) continue;
-      const projects = await this.services.orgProjects.listProjects(
-        { orgId: organization.id, actorUserId: identity.userId },
-        { status: 'ACTIVE' },
-      );
-      organizations.push({ id: organization.id, name: organization.name, projects });
+      const context = { orgId: organization.id, actorUserId: identity.userId };
+      const projects = await this.services.orgProjects.listProjects(context, { status: 'ACTIVE' });
+      // A project whose Satyr instance is disabled or archived cannot be set up again.
+      const closed = await this.services.accountPlatform.closedServiceProjects(context, 'satyr');
+      organizations.push({
+        id: organization.id,
+        name: organization.name,
+        projects: projects.filter((project) => !closed.has(project.id)),
+      });
     }
     return accepted({ organizations });
   }

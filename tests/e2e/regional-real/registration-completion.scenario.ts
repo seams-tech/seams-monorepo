@@ -622,3 +622,164 @@ function isNearFinalizationResponse(response: BrowserResponse): boolean {
     new URL(response.url()).pathname === '/wallets/register/near-provisioning'
   );
 }
+
+// Delay the real cleanup transaction. Registration and its first signature must
+// remain usable while the obsolete ceremony record still exists.
+class HeldCeremonyCleanup extends TracedD1Database {
+  private armed = false;
+  private readonly released = Promise.withResolvers<void>();
+  heldDeletes = 0;
+  timedOut = false;
+
+  release(): void {
+    this.released.resolve();
+  }
+
+  async intercept(route: Route): Promise<void> {
+    if (route.request().method() === 'POST') this.armed = true;
+    await route.fallback();
+  }
+
+  private releaseAfterTimeout(): void {
+    this.timedOut = true;
+    this.release();
+  }
+
+  async measure<T>(
+    method: string,
+    queries: readonly ReadQuery[],
+    execute: () => Promise<T>,
+  ): Promise<T> {
+    if (this.armed && queries.some(isCeremonyDelete)) {
+      this.heldDeletes += 1;
+      const timeout = setTimeout(this.releaseAfterTimeout.bind(this), 10_000);
+      try {
+        await this.released.promise;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    return super.measure(method, queries, execute);
+  }
+}
+
+function isCeremonyDelete(query: ReadQuery): boolean {
+  return query.kind === 'DELETE' && query.tables.includes('registration_ceremony_records');
+}
+
+function isActivationResponse(response: BrowserResponse): boolean {
+  return response.request().method() === 'POST' &&
+    new URL(response.url()).pathname === '/wallets/register/activate';
+}
+
+async function verifyRegistrationWhileCleanupWaits(
+  signerSet: 'ecdsa_only' | 'mixed',
+  { harness, context, page }: BrowserFixture,
+  testInfo: TestInfo,
+): Promise<void> {
+  const output = path.resolve(root, '.artifacts/registration-wait-audit/cleanup', signerSet);
+  const scenario = await createRegionalRealGateway({
+    root,
+    candidate,
+    lostAcknowledgements: 0,
+    localRoot: process.env.SEAMS_INTENDED_ROUTER_AB_ROOT,
+    output,
+  });
+  const gateway = scenario.gateways.get('US');
+  const originalDatabase = gateway.database;
+  const cleanup = new HeldCeremonyCleanup(originalDatabase);
+  const intercept = cleanup.intercept.bind(cleanup);
+  gateway.database = cleanup;
+  try {
+    await scenario.routeContext(context, 'US');
+    await context.route('**/wallets/register/activate', intercept);
+    const responsePending = page.waitForResponse(isActivationResponse);
+    if (signerSet === 'mixed') await harness.registerPasskeyWallet();
+    else await harness.registerPasskeyEcdsaOnlyWallet();
+    const response = await responsePending;
+    assert.equal(response.status(), 200);
+    assert.ok(cleanup.heldDeletes > 0, 'The real cleanup request must reach the held database');
+    assert.equal(cleanup.timedOut, false, 'Registration waited for obsolete ceremony deletion');
+    const first = await response.json();
+    const request = response.request();
+    const ceremonyId = request.postDataJSON().registrationCeremonyId;
+    assert.equal(typeof ceremonyId, 'string');
+    const recordsWhileHeld = await ceremonyRecordCount(gateway, ceremonyId);
+    assert.equal(recordsWhileHeld, 1);
+    const replayRequest = new Request(request.url(), {
+      method: 'POST',
+      headers: await request.allHeaders(),
+      body: request.postDataBuffer(),
+    });
+    const replay = await gateway.handle(replayRequest.clone(), 'ingress');
+    assert.equal(replay.status, 200);
+    const projection = await replay.json();
+    assert.equal(projection.registrationEstablishedSession.kind, 'already_committed');
+    assert.equal(
+      projection.registrationEstablishedSession.session.walletSessionId,
+      first.registrationEstablishedSession.session.walletSessionId,
+    );
+    assert.equal('operationCredential' in projection.registrationEstablishedSession.session, false);
+    const signing = await harness.signTempoTransaction('post_registration');
+    assert.equal(cleanup.timedOut, false, 'Signing waited for obsolete ceremony deletion');
+    if (signerSet === 'mixed') await harness.awaitNearReady();
+    assert.equal(cleanup.timedOut, false, 'NEAR readiness waited for obsolete ceremony deletion');
+    cleanup.release();
+    await gateway.settle();
+    const recordsAfterCleanup = await ceremonyRecordCount(gateway, ceremonyId);
+    assert.equal(recordsAfterCleanup, 0);
+    const afterCleanup = await gateway.handle(replayRequest.clone(), 'ingress');
+    assert.equal(afterCleanup.status, 200);
+    assert.equal((await afterCleanup.json()).registrationEstablishedSession.kind, 'already_committed');
+    await gateway.settle();
+    await harness.lockWallet();
+    await harness.assertWalletLocked();
+    harness.assertNoLifecycleViolations();
+    await writeFile(path.join(output, 'proof.json'), JSON.stringify({
+      signerSet,
+      registrationCompletedWhileCleanupHeld: true,
+      recordsWhileHeld,
+      recordsAfterCleanup,
+      nearReadyWhileCleanupHeld: signerSet === 'mixed',
+      replayBeforeAndAfterCleanup: true,
+      replayRetainedSessionWithoutCredential: true,
+      firstSignatureWhileCleanupHeld: signing,
+      heldDeletes: cleanup.heldDeletes,
+      cleanupWatchdogExpired: cleanup.timedOut,
+      lockClearsAuthentication: true,
+    }, null, 2));
+  } finally {
+    cleanup.release();
+    try {
+      await harness.lockWallet();
+    } catch {
+      // A failed registration can leave no session to lock.
+    }
+    await context.unroute('**/wallets/register/activate', intercept);
+    await gateway.settle();
+    gateway.database = originalDatabase;
+    await harness.attachTrace(testInfo);
+    await scenario.close();
+  }
+}
+
+async function ceremonyRecordCount(gateway: RegionalGateway, ceremonyId: string): Promise<number> {
+  const row = await gateway.database.prepare(
+    "SELECT count(*) AS count FROM registration_ceremony_records WHERE record_scope = 'ceremony' AND record_id = ?",
+  ).bind(`gateway-registration:${ceremonyId}`).first();
+  return row.count;
+}
+
+export async function verifyEcdsaRegistrationWhileCleanupWaits(
+  { harness, context, page }: BrowserFixture,
+  testInfo: TestInfo,
+): Promise<void> {
+  await verifyRegistrationWhileCleanupWaits('ecdsa_only', { harness, context, page }, testInfo);
+}
+
+export async function verifyMixedRegistrationWhileCleanupWaits(
+  { harness, context, page }: BrowserFixture,
+  testInfo: TestInfo,
+): Promise<void> {
+  await verifyRegistrationWhileCleanupWaits('mixed', { harness, context, page }, testInfo);
+}

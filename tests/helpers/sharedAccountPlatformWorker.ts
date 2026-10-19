@@ -43,6 +43,7 @@ import {
 } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import type { OrganizationAccessContext } from '../../packages/console-server-ts/src/teamRbac';
 import { SatyrAccountOnboarding } from '../../packages/console-server-ts/src/accountPlatform/onboarding';
+import { SatyrInstanceRelease } from '../../packages/console-server-ts/src/accountPlatform/satyrRelease';
 
 const namespace = 'shared-account-satyr-e2e';
 const prefix = '/__fixture/account-platform/v1/';
@@ -367,6 +368,16 @@ class AccountWorkerFixture {
   }
 
   private async serviceRequest(request: Request, pathname: string): Promise<Response> {
+    if (pathname === '/account-platform/v1/satyr/instance-release') {
+      const lifetime = new OnboardingTestLifetime();
+      const response = await new SatyrInstanceRelease(
+        this.core,
+        this.provisioning,
+        lifetime.waitUntil.bind(lifetime),
+      ).fetch(request);
+      await lifetime.finish();
+      return response;
+    }
     if (pathname.startsWith('/account-platform/v1/onboarding/')) {
       if (this.faults.has('onboarding_outage')) return outage();
       const lifetime = new OnboardingTestLifetime();

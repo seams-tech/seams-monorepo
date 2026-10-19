@@ -45,6 +45,7 @@ import { ScopePicker } from '../../components/ScopePicker';
 import { networkForConsoleEnvironmentId } from '../../environmentNetwork';
 import { getDashboardEnvironmentLabel } from '../../utils/scopeLabels';
 import type { ApiCredentialScope, ApiCredentialScopeCatalog } from './apiKeyScopeCatalog';
+import { DashboardTableSkeletonRows } from '../../components/DashboardSkeleton';
 
 const DEFAULT_RATE_LIMIT_BUCKET = 'default_web_v1';
 const DEFAULT_QUOTA_BUCKET = 'free_registrations_v1';
@@ -985,7 +986,7 @@ export function ApiKeyManagementPage({
           <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
         </DashboardTableHeader>
         {session.loading || loading ? (
-          <DashboardTableState>Loading credentials...</DashboardTableState>
+          <DashboardTableSkeletonRows label="Loading credentials" columns={5} />
         ) : !session.claims ? (
           <DashboardTableState>
             Credentials unavailable: {session.errorMessage || 'unauthorized'}.

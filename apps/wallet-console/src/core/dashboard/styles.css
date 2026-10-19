@@ -2736,6 +2736,8 @@ textarea {
   max-width: 100%;
   min-height: 32px;
   padding: 0 10px;
+  /* The cell breaks long ids anywhere; a button label breaks only between words. */
+  overflow-wrap: normal;
   border: 1px solid var(--dashboard-alpha-200);
   border-radius: var(--dashboard-radius-md);
   background: var(--dashboard-surface);
@@ -2750,6 +2752,20 @@ textarea {
     background-color var(--dashboard-motion-fast) ease,
     border-color var(--dashboard-motion-fast) ease,
     color var(--dashboard-motion-fast) ease;
+}
+
+/* A square control for an action whose icon says enough (download); the label
+   travels as aria-label and title. */
+/* Two classes, so the narrow-screen padding of row buttons does not squeeze the icon. */
+.dashboard-data-table__action-button.dashboard-data-table__action-button--icon {
+  inline-size: 32px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.dashboard-data-table__action-button--icon:disabled svg {
+  animation: dashboard-loading-spin 1.2s linear infinite;
 }
 
 .dashboard-data-table__action-button:hover {
@@ -7793,6 +7809,127 @@ select.dashboard-input {
 @keyframes dashboard-loading-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Skeletons: soft bars in the shape of the content that follows. They fade in
+   after a short delay, so a fast load shows no flash, and a light band sweeps
+   across them while the data loads. */
+.dashboard-skeleton {
+  display: block;
+  max-inline-size: 100%;
+  block-size: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--dashboard-alpha-150) 0%,
+    var(--dashboard-alpha-150) 40%,
+    var(--dashboard-alpha-50) 50%,
+    var(--dashboard-alpha-150) 60%,
+    var(--dashboard-alpha-150) 100%
+  );
+  background-size: 300% 100%;
+  animation:
+    dashboard-skeleton-in 240ms ease-out 160ms both,
+    dashboard-skeleton-sweep 1.6s ease-in-out 400ms infinite;
+}
+
+.dashboard-skeleton--label {
+  block-size: 10px;
+}
+
+.dashboard-skeleton--value {
+  block-size: 22px;
+  border-radius: var(--dashboard-radius-md);
+}
+
+.dashboard-page-skeleton {
+  display: grid;
+  gap: 24px;
+}
+
+.dashboard-page-skeleton__metrics {
+  display: grid;
+  grid-template-columns: repeat(var(--dashboard-skeleton-metrics, 3), minmax(0, 1fr));
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  background: var(--dashboard-surface);
+  overflow: hidden;
+}
+
+.dashboard-page-skeleton__metric {
+  display: grid;
+  gap: 12px;
+  padding: 18px 16px;
+  border-right: 1px solid var(--dashboard-border);
+}
+
+.dashboard-page-skeleton__metric:last-child {
+  border-right: 0;
+}
+
+.dashboard-page-skeleton__table {
+  border: 1px solid var(--dashboard-border);
+  border-radius: 12px;
+  background: var(--dashboard-surface);
+  overflow: hidden;
+}
+
+.dashboard-page-skeleton__row {
+  display: grid;
+  grid-template-columns: repeat(var(--dashboard-skeleton-columns, 4), minmax(0, 1fr));
+  align-items: center;
+  gap: 24px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--dashboard-line);
+}
+
+.dashboard-page-skeleton__row:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-page-skeleton__row--header {
+  padding-block: 14px;
+  border-bottom-color: var(--dashboard-border);
+}
+
+.dashboard-table-skeleton .dashboard-data-table__cell {
+  padding-block: 18px;
+}
+
+@keyframes dashboard-skeleton-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dashboard-skeleton-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-skeleton {
+    animation: dashboard-skeleton-in 240ms ease-out 160ms both;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-page-skeleton__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-page-skeleton__metric {
+    border-right: 0;
+    border-bottom: 1px solid var(--dashboard-border);
+  }
+
+  .dashboard-page-skeleton__metric:last-child {
+    border-bottom: 0;
   }
 }
 

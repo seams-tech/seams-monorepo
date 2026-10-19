@@ -43,6 +43,7 @@ import {
   type DashboardProjectAccessAssignment,
   type DashboardProjectAccessLevel,
 } from './consoleTeamRbacApi';
+import { DashboardTableSkeletonRows } from '../../components/DashboardSkeleton';
 
 const MEMBERSHIP_COLUMNS = dashboardTableColumns(2, 1.25, 0.8, 1.05);
 const INVITATION_COLUMNS = dashboardTableColumns(2, 1.2, 0.9, 1.05);
@@ -701,7 +702,7 @@ export function TeamMembersPage(): React.JSX.Element {
                 <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
               </DashboardTableHeader>
               {loading || session.loading ? (
-                <DashboardTableState>Loading memberships…</DashboardTableState>
+                <DashboardTableSkeletonRows label="Loading memberships" columns={4} />
               ) : errorMessage ? (
                 <DashboardTableState>{errorMessage}</DashboardTableState>
               ) : pagination.rows.length === 0 ? (
@@ -821,7 +822,7 @@ export function TeamMembersPage(): React.JSX.Element {
                 <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
               </DashboardTableHeader>
               {loading ? (
-                <DashboardTableState>Loading invitations…</DashboardTableState>
+                <DashboardTableSkeletonRows label="Loading invitations" columns={4} rows={2} />
               ) : invitations.length === 0 ? (
                 <DashboardTableState>No pending invitations.</DashboardTableState>
               ) : (

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Download, LoaderCircle } from 'lucide-react';
 import {
   DashboardTable,
   DashboardTableActionButton,
@@ -19,6 +20,7 @@ import {
   getInvoiceStatusBadgeClassName,
   type BillingMetric,
 } from './billingShared';
+import { DashboardTableSkeletonRows } from '../../components/DashboardSkeleton';
 
 export interface BillingInvoicesViewProps {
   invoiceMetrics: BillingMetric[];
@@ -40,16 +42,17 @@ export interface BillingInvoicesViewProps {
   onDownloadInvoicePdf: (invoiceId: string) => Promise<void>;
 }
 
+// One size per header cell: a ninth size once left Actions in the narrow eighth column.
+// Actions is fixed: "View" and the download icon stay on one line at any table width.
 const BILLING_INVOICES_TABLE_COLUMNS = dashboardTableColumns(
-  1.05,
-  0.8,
-  0.8,
+  1.2,
+  0.75,
   0.75,
   0.9,
-  0.8,
-  0.75,
-  0.75,
   1,
+  0.75,
+  0.65,
+  '136px',
 );
 
 export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.Element {
@@ -164,7 +167,7 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
           <DashboardTableHeaderCell>Actions</DashboardTableHeaderCell>
         </DashboardTableHeader>
         {invoiceListLoading ? (
-          <DashboardTableState>Loading billing documents...</DashboardTableState>
+          <DashboardTableSkeletonRows label="Loading billing documents" columns={8} />
         ) : invoices.length === 0 ? (
           <DashboardTableState>
             {hasAnyInvoices
@@ -175,8 +178,10 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
           <>
             {invoicesPagination.rows.map((invoice) => (
               <DashboardTableRow key={invoice.id}>
-                <DashboardTableCell title={invoice.id}>{invoice.id}</DashboardTableCell>
-                <DashboardTableCell>
+                <DashboardTableCell title={invoice.id}>
+                  <code>{invoice.id}</code>
+                </DashboardTableCell>
+                <DashboardTableCell truncate>
                   {invoice.documentType === 'PURCHASE_RECEIPT' ? 'Receipt' : 'Statement'}
                 </DashboardTableCell>
                 <DashboardTableCell>
@@ -192,16 +197,28 @@ export function BillingInvoicesView(props: BillingInvoicesViewProps): React.JSX.
                 <DashboardTableCell>{formatUsdMinor(invoice.amountPaidMinor)}</DashboardTableCell>
                 <DashboardTableCell>
                   <DashboardTableActionGroup>
-                    <DashboardTableActionButton onClick={() => onOpenInvoice(invoice.id)}>
-                      View document
+                    <DashboardTableActionButton
+                      aria-label="View document"
+                      onClick={() => onOpenInvoice(invoice.id)}
+                    >
+                      View
                     </DashboardTableActionButton>
                     <DashboardTableActionButton
+                      className="dashboard-data-table__action-button--icon"
+                      aria-label={
+                        downloadingInvoicePdfId === invoice.id ? 'Downloading PDF' : 'Download PDF'
+                      }
+                      title="Download PDF"
                       onClick={() => {
                         void onDownloadInvoicePdf(invoice.id);
                       }}
                       disabled={downloadingInvoicePdfId === invoice.id}
                     >
-                      {downloadingInvoicePdfId === invoice.id ? 'Downloading...' : 'Download PDF'}
+                      {downloadingInvoicePdfId === invoice.id ? (
+                        <LoaderCircle size={16} strokeWidth={1.75} aria-hidden="true" />
+                      ) : (
+                        <Download size={16} strokeWidth={1.75} aria-hidden="true" />
+                      )}
                     </DashboardTableActionButton>
                   </DashboardTableActionGroup>
                 </DashboardTableCell>

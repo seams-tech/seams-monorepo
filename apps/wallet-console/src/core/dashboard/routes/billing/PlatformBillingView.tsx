@@ -47,6 +47,7 @@ import {
   type PlatformRefundSubmission,
   type PlatformRefundTarget,
 } from './PlatformBillingDialogs';
+import { DashboardTableSkeletonRows } from '../../components/DashboardSkeleton';
 
 const PLATFORM_BILLING_ACTIVITY_LIMIT = 50;
 const PLATFORM_BILLING_SEARCH_LIMIT = 10;
@@ -403,7 +404,7 @@ function PlatformPaymentsPanel(props: {
           <h3 className="dashboard-billing-table__title">Credit purchases</h3>
         </DashboardTableIntro>
         {!payments || payments.loading ? (
-          <DashboardTableState>Loading purchases...</DashboardTableState>
+          <DashboardTableSkeletonRows label="Loading purchases" columns={5} rows={2} />
         ) : payments.error ? (
           <DashboardTableState>{payments.error}</DashboardTableState>
         ) : purchases.length === 0 ? (

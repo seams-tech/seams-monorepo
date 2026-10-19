@@ -36,6 +36,7 @@ import {
   type DashboardAccountOrganization,
   type DashboardAccountProfile,
 } from './consoleAccountApi';
+import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
 
 function formatTimestamp(value: string): string {
   return formatDashboardTimestamp(value, '—');
@@ -340,7 +341,7 @@ export function AccountSettingsPage(): React.JSX.Element {
   if (loading) {
     return (
       <section className="dashboard-account-settings" aria-label="Account settings loading state">
-        <p className="dashboard-pagination-note">Loading account settings...</p>
+        <DashboardPageSkeleton label="Loading account settings" metrics={2} rows={2} columns={4} />
       </section>
     );
   }

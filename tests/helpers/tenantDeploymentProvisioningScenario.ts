@@ -25,6 +25,7 @@ import { regionalBinding, seedAdoptionRoot } from './tenantDeploymentFixtures';
 
 class RootRouter {
   available = true;
+  creationAvailable = true;
   readonly creationRequests: string[] = [];
   constructor(readonly identityDigest: string) {}
 
@@ -42,6 +43,9 @@ class RootRouter {
         throw new Error('Creation grant missing from Router request');
       }
       this.creationRequests.push(body.creation_grant_b64u);
+      if (!this.creationAvailable) {
+        return new Response('Control-plane service authentication refused', { status: 503 });
+      }
       return Response.json({
         identity_digest_b64u: this.identityDigest,
         custody_lineage_b64u: 'adoption-lineage',

@@ -324,14 +324,11 @@ async function createAtRouter(
       body: JSON.stringify({ creation_grant_b64u: record.grantB64u }),
     },
   );
-  const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const message =
-      body && typeof body === 'object' && !Array.isArray(body)
-        ? String((body as Record<string, unknown>).message ?? response.statusText)
-        : response.statusText;
+    const message = (await response.text()).trim() || response.statusText;
     throw new Error(`Router tenant-root creation failed (HTTP ${response.status}): ${message}`);
   }
+  const body: unknown = await response.json();
   return parseRouterCreationReadyResponse(body);
 }
 

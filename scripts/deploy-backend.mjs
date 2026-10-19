@@ -1397,9 +1397,7 @@ function deployTenantRootControlPlane(lane) {
   // Object binding resolves immediately; it deploys BEFORE the Router so the
   // Router's service binding to it resolves on the Router's next deploy.
   const resource = lane.resources.tenantRootControlPlane;
-  if (lane.id !== 'production-mainnet') {
-    putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
-  }
+  putWorkerSecret(resource, 'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET');
   putWorkerSecret(resource, 'TENANT_ROOT_CONTROL_PLANE_ISSUER_SIGNING_KEY');
   const args = workerDeployArguments(resource);
   args.push(

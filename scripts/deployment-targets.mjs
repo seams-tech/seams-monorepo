@@ -474,9 +474,8 @@ export function componentSecretNames(lane, component) {
         'ROUTER_AB_GATEWAY_TO_ROUTER_AUTH_SECRET',
       ];
     case 'tenant-root-control-plane':
-      // Production internal-service authentication is provisioned on the Worker.
       return [
-        ...(lane.id === 'production-mainnet' ? [] : ['ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET']),
+        'ROUTER_AB_INTERNAL_SERVICE_AUTH_SECRET',
         'TENANT_ROOT_CONTROL_PLANE_ISSUER_SIGNING_KEY',
       ];
     default:

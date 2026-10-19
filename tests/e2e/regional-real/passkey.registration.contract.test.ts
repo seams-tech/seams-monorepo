@@ -1,4 +1,9 @@
-import { verifyRegistrationCompletion, verifyLostRegistrationCompletion } from './registration-completion.scenario';
+import {
+  verifyRegistrationCompletion,
+  verifyLostRegistrationCompletion,
+  verifyEcdsaRegistrationWhileCleanupWaits,
+  verifyMixedRegistrationWhileCleanupWaits,
+} from './registration-completion.scenario';
 import { verifyClaimFailureAfterConsume } from './registration-claim.scenario';
 import { createHash, randomUUID } from 'node:crypto';
 import type { ConsoleRegistrationHomeAdmission } from '../../../packages/wallet-console-server-ts/src/walletPlacement/registrationAdmission';
@@ -1156,3 +1161,12 @@ test('NEAR registration retries a credential claim failure after Router consumpt
 function isRegistrationSetupCall(pathname: string): boolean {
   return pathname === '/internal/wallet-placement/v1/registration-setup';
 }
+
+test(
+  'ECDSA registration and signing complete while ceremony cleanup waits',
+  verifyEcdsaRegistrationWhileCleanupWaits,
+);
+test(
+  'mixed registration and signing complete while ceremony cleanup waits',
+  verifyMixedRegistrationWhileCleanupWaits,
+);

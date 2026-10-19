@@ -52,6 +52,9 @@ export type TenantRootCreationGrantReadyInputV1 = {
 
 export interface TenantRootCreationGrantStoreV1 {
   findGrantByOperationId(operationId: string): Promise<TenantRootCreationGrantRecordV1 | null>;
+  findGrantByIdentity(
+    identity: TenantRootIdentityV1,
+  ): Promise<TenantRootCreationGrantRecordV1 | null>;
   putOrGetGrant(input: TenantRootCreationGrantIssueV1): Promise<TenantRootCreationGrantRecordV1>;
   markActiveFromReady(
     input: TenantRootCreationGrantReadyInputV1,

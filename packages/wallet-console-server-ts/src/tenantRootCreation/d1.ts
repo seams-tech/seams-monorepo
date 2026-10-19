@@ -192,6 +192,24 @@ export function createD1TenantRootCreationGrantServiceV1(
       return await readByOperation(database, namespace, requiredText(operationId, 'operationId'));
     },
 
+    async findGrantByIdentity(identity) {
+      const row = await queryD1One(
+        database,
+        `SELECT * FROM tenant_root_creation_grants
+         WHERE namespace = ?1 AND org_id = ?2 AND project_id = ?3 AND env_id = ?4
+           AND signing_root_id = ?5 AND signing_root_version = ?6`,
+        [
+          namespace,
+          identity.orgId,
+          identity.projectId,
+          identity.envId,
+          identity.signingRootId,
+          identity.signingRootVersion,
+        ],
+      );
+      return row ? parseRecord(row) : null;
+    },
+
     async putOrGetGrant(rawInput) {
       const input = normalizeIssue(rawInput);
       const existingOperation = await readByOperation(database, namespace, input.operationId);

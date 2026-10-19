@@ -268,6 +268,7 @@ test('regional deployment renewal preserves the browser key and retires previous
     });
     expect(initial.disposition).toBe('reused');
     expect(initial.activationSequence).toBe(1);
+    expect(router.creationRequests).toEqual(['fixture-grant']);
     const initialBinding = await store.resolveActiveBinding(reference.deploymentLane);
     if (!initialBinding) throw new Error('Missing active binding');
     await checkWriters(store, initialProofs, initial.bindingRevision);
@@ -593,6 +594,7 @@ test('regional deployment renewal preserves the browser key and retires previous
       unavailableApacBlockedRenewal: true,
       failedRootAndCredentialAttemptsReleased: failed,
       authenticatedCanaries: endpoint.accepted,
+      interruptedRootCreationResumed: router.creationRequests.length === 1,
       limits: [
         'Local D1 and production Console services; provider proofs and Router status are controlled fixtures.',
         'Canary endpoint authenticates the real persisted browser key; no wallet ceremony or regional latency is measured.',

@@ -1,5 +1,6 @@
 import type { RegionalDeploymentInstaller } from '../../packages/wallet-console-server-ts/src/tenantDeployment/regionalAdmission';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
+import { createHash } from 'node:crypto';
 import { createD1ConsoleApiKeyService } from '../../packages/wallet-console-server-ts/src/apiKeys/d1';
 import { createCloudflareD1AccountServiceBundle } from '../../packages/console-server-ts/src/router/cloudflare/d1AccountServices';
 import { createD1ConsoleWalletEnvironmentService } from '../../packages/wallet-console-server-ts/src/environments/d1';
@@ -27,12 +28,17 @@ class RootRouter {
   available = true;
   creationAvailable = true;
   readonly creationRequests: string[] = [];
-  constructor(readonly identityDigest: string) {}
+  readonly renewalRequests: string[] = [];
+  constructor(readonly root: Awaited<ReturnType<typeof seedAdoptionRoot>>) {}
 
   async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     if (!this.available) return new Response('Unavailable', { status: 503 });
     const request = new Request(input, init);
-    if (new URL(request.url).pathname === '/router-ab/internal/tenant-root/creation/v1/create') {
+    const path = new URL(request.url).pathname;
+    if (
+      path === '/router-ab/internal/tenant-root/creation/v1/create' ||
+      path === '/router-ab/internal/tenant-root/creation/v1/renewal-fence'
+    ) {
       const body: unknown = await request.json();
       if (
         typeof body !== 'object' ||
@@ -42,13 +48,23 @@ class RootRouter {
       ) {
         throw new Error('Creation grant missing from Router request');
       }
+      if (path.endsWith('/renewal-fence')) {
+        this.renewalRequests.push(body.creation_grant_b64u);
+        return Response.json({
+          kind: 'renewal_permitted',
+          grant_digest_b64u: createHash('sha256')
+            .update(Buffer.from(body.creation_grant_b64u, 'base64url'))
+            .digest('base64url'),
+          expired_through_ms: this.root.originalGrant.expiresAtMs,
+        });
+      }
       this.creationRequests.push(body.creation_grant_b64u);
       if (!this.creationAvailable) {
         return new Response('Control-plane service authentication refused', { status: 503 });
       }
       return Response.json({
-        identity_digest_b64u: this.identityDigest,
-        custody_lineage_b64u: 'adoption-lineage',
+        identity_digest_b64u: this.root.identityDigestB64u,
+        custody_lineage_b64u: this.root.custodyLineageId,
         revision: 1,
         journal_digest_b64u: 'fixture-journal',
         capability_digest_b64u: 'fixture-capability',
@@ -57,8 +73,8 @@ class RootRouter {
       });
     }
     return Response.json({
-      identity_digest_b64u: this.identityDigest,
-      custody_lineage_b64u: 'adoption-lineage',
+      identity_digest_b64u: this.root.identityDigestB64u,
+      custody_lineage_b64u: this.root.custodyLineageId,
       root_commitment_b64u: 'adoption-commitment',
       lifecycle_revision: 1,
       active_epoch: 1,
@@ -129,7 +145,7 @@ export async function provisioningScenario(
   });
   if (!parsedIdentity.ok) throw new Error('Invalid provisioning fixture identity');
   const root = await seedAdoptionRoot(database, namespace, parsedIdentity.value, 'ISSUED');
-  const router = new RootRouter(root.identityDigestB64u);
+  const router = new RootRouter(root);
   const tenantRootState = createTenantRootSecurityStateReaderV1({
     activeRoots: new D1TenantRootActiveLineageResolverV1(database, namespace),
     router,
@@ -174,8 +190,8 @@ export async function provisioningScenario(
       grants: createD1TenantRootCreationGrantServiceV1({ database, namespace }),
       router,
       internalServiceAuthSecret: 'fixture',
-      grantAuthorityKeyId: 'fixture',
-      grantAuthoritySigningSeedB64u: 'unused-existing-root',
+      grantAuthorityKeyId: 'fixture-key',
+      grantAuthoritySigningSeedB64u: Buffer.alloc(32, 0x53).toString('base64url'),
     },
     tenantRootState,
     candidates: adapter,
@@ -196,6 +212,7 @@ export async function provisioningScenario(
     reference,
     context,
     environmentId: environment.id,
+    root,
   };
 }
 

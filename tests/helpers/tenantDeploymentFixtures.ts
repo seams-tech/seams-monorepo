@@ -20,7 +20,7 @@ import type {
   ExpectedActiveTenantDeploymentBindingV1,
 } from '../../packages/wallet-console-server-ts/src/tenantDeployment/types';
 import type { D1DatabaseLike } from '@seams/wallet-server/cloud-host';
-import { tenantRootIdentityDigestB64uV1 } from '@seams/wallet-server/cloud-host';
+import { signTenantRootCreationGrantV1 } from '@seams/wallet-server/cloud-host';
 import type { TenantRootIdentityV1 } from '../../packages/wallet-console-shared-ts/src/tenant-root';
 import { createD1TenantRootCreationGrantServiceV1 } from '../../packages/wallet-console-server-ts/src/tenantRootCreation/d1';
 
@@ -31,26 +31,37 @@ export async function seedAdoptionRoot(
   status: 'ISSUED' | 'ACTIVE',
 ) {
   const grants = createD1TenantRootCreationGrantServiceV1({ database, namespace });
-  const identityDigestB64u = await tenantRootIdentityDigestB64uV1(identity);
   const now = Date.now();
+  const issuedAtMs = status === 'ISSUED' ? now - 40_000 : now - 1;
+  const expiresAtMs = status === 'ISSUED' ? now - 10_000 : now + 60_000;
+  const signed = await signTenantRootCreationGrantV1({
+    identity,
+    custodyLineage: new Uint8Array(16).fill(0x51),
+    grantNonce: new Uint8Array(32).fill(0x52),
+    issuedAtMs,
+    expiresAtMs,
+    grantKeyId: 'fixture-key',
+    signingSeedB64u: Buffer.alloc(32, 0x53).toString('base64url'),
+  });
+  const identityDigestB64u = signed.identityDigestB64u;
   await grants.putOrGetGrant({
     operationId: 'adoption-fixture-root',
     identity,
     identityDigestB64u,
-    custodyLineageB64u: 'adoption-lineage',
-    grantNonceB64u: 'fixture-nonce',
-    grantKeyId: 'fixture-key',
-    grantB64u: 'fixture-grant',
-    grantDigestB64u: 'fixture-digest',
-    issuedAtMs: now,
-    expiresAtMs: now + 60_000,
+    custodyLineageB64u: signed.custodyLineageB64u,
+    grantNonceB64u: signed.grantNonceB64u,
+    grantKeyId: signed.grantKeyId,
+    grantB64u: signed.grantB64u,
+    grantDigestB64u: signed.grantDigestB64u,
+    issuedAtMs: signed.issuedAtMs,
+    expiresAtMs: signed.expiresAtMs,
   });
   if (status === 'ACTIVE') {
     await grants.markActiveFromReady({
       operationId: 'adoption-fixture-root',
       identity,
       identityDigestB64u,
-      custodyLineageB64u: 'adoption-lineage',
+      custodyLineageB64u: signed.custodyLineageB64u,
       ready: {
         revision: 1,
         rootCommitmentB64u: 'adoption-commitment',
@@ -60,8 +71,10 @@ export async function seedAdoptionRoot(
     });
   }
   return {
+    operationId: 'adoption-fixture-root',
     identityDigestB64u,
-    custodyLineageId: 'adoption-lineage',
+    custodyLineageId: signed.custodyLineageB64u,
+    originalGrant: signed,
     signingRootId: identity.signingRootId,
     signingRootVersion: identity.signingRootVersion,
   };

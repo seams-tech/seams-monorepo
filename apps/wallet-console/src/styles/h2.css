@@ -1786,7 +1786,7 @@ body:has(.h2-page) {
    ancestor creates a stacking context. */
 .h2-hero__split {
   /* Minimum hero height; see .h2-hero__demo for how it is sized. */
-  --h2-hero-min-height: 671px;
+  --h2-hero-min-height: 639px;
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -210,6 +210,60 @@ export function createD1TenantRootCreationGrantServiceV1(
       return row ? parseRecord(row) : null;
     },
 
+    async renewUnusedGrant(rawInput) {
+      const input = normalizeIssue(rawInput.renewed);
+      const previous = rawInput.previous;
+      const fence = positiveSafeInteger(rawInput.expiredThroughMs, 'expiredThroughMs');
+      const timestamp = positiveSafeInteger(now().getTime(), 'current time');
+      if (
+        !sameOperationScope(previous, input) ||
+        previous.custodyLineageB64u !== input.custodyLineageB64u ||
+        previous.grantNonceB64u !== input.grantNonceB64u ||
+        fence < previous.expiresAtMs ||
+        fence > timestamp ||
+        input.issuedAtMs < fence ||
+        input.expiresAtMs <= fence
+      ) {
+        throw new TenantRootCreationGrantStoreError(
+          'invalid_input',
+          'Renewed authorization does not preserve the fenced creation scope',
+        );
+      }
+      await database
+        .prepare(
+          `UPDATE tenant_root_creation_grants
+         SET grant_key_id = ?1, grant_b64u = ?2, grant_digest_b64u = ?3,
+             issued_at_ms = ?4, expires_at_ms = ?5, updated_at_ms = ?6
+         WHERE namespace = ?7 AND operation_id = ?8 AND status = 'ISSUED'
+           AND grant_digest_b64u = ?9 AND expires_at_ms <= ?6`,
+        )
+        .bind(
+          input.grantKeyId,
+          input.grantB64u,
+          input.grantDigestB64u,
+          input.issuedAtMs,
+          input.expiresAtMs,
+          timestamp,
+          namespace,
+          input.operationId,
+          previous.grantDigestB64u,
+        )
+        .run();
+      const stored = await readByOperation(database, namespace, input.operationId);
+      if (
+        !stored ||
+        !sameOperationScope(stored, input) ||
+        stored.custodyLineageB64u !== input.custodyLineageB64u ||
+        stored.grantNonceB64u !== input.grantNonceB64u
+      ) {
+        throw new TenantRootCreationGrantStoreError(
+          'grant_operation_conflict',
+          'Renewed authorization resolved to a different creation scope',
+        );
+      }
+      return stored;
+    },
+
     async putOrGetGrant(rawInput) {
       const input = normalizeIssue(rawInput);
       const existingOperation = await readByOperation(database, namespace, input.operationId);

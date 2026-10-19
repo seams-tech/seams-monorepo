@@ -1488,11 +1488,21 @@ function buildProjectPolicy(configuration) {
   return {
     org_id: configuration.orgId,
     project_id: configuration.projectId,
-    environment: configuration.environmentId,
+    environment: runtimePolicyEnvironment(configuration),
     allowed_work_kinds: ['registration_prepare', 'key_export', 'recovery', 'server_share_refresh'],
     allow_normal_signing: true,
     rejected_retry_after_ms: 1000,
   };
+}
+
+function runtimePolicyEnvironment(tenant) {
+  if (tenant.environmentId === `${tenant.projectId}:dev`) {
+    return 'dev';
+  }
+  if (tenant.environmentId === `${tenant.projectId}:prod`) {
+    return 'prod';
+  }
+  return tenant.environmentId;
 }
 
 function generateCeremonyPrivateJwk() {
@@ -2258,7 +2268,7 @@ function validateGatewayRegistrationDocuments(outputDocument) {
   );
   assertGeneratedValueEqual(
     policy.environment,
-    deploymentConfig.tenant.environmentId,
+    runtimePolicyEnvironment(deploymentConfig.tenant),
     'MPCRouter project policy environment',
   );
   const ceremonyJwk = JSON.parse(gateway.secrets.ROUTER_AB_CEREMONY_JWT_PRIVATE_JWK);

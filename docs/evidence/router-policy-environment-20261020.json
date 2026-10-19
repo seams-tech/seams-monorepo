@@ -1,0 +1,56 @@
+{
+  "kind": "router_project_policy_environment_generation_v1",
+  "cases": [
+    {
+      "case": "production",
+      "tenantEnvironmentId": "proj_mu6auwge_v8ulud:prod",
+      "policyEnvironment": "prod",
+      "identityAndRestrictionsPreserved": true,
+      "generatorValidationPassed": true
+    },
+    {
+      "case": "development",
+      "tenantEnvironmentId": "proj_mu6auwge_v8ulud:dev",
+      "policyEnvironment": "dev",
+      "identityAndRestrictionsPreserved": true,
+      "generatorValidationPassed": true
+    },
+    {
+      "case": "explicit-scope",
+      "tenantEnvironmentId": "explicit-scope",
+      "policyEnvironment": "explicit-scope",
+      "identityAndRestrictionsPreserved": true,
+      "generatorValidationPassed": true
+    }
+  ],
+  "productionObservation": {
+    "registeredRuntimePolicyEnvironment": "prod",
+    "oldRouterPolicyEnvironment": "proj_mu6auwge_v8ulud:prod",
+    "signPrepareStatus": 400
+  },
+  "validation": "Actual offline CLI output with fresh generated key material, no prepare or apply. Mainnet lane stays constant while the environment input changes. Full documents remain private artifacts.",
+  "reproduce": {
+    "command": [
+      "node",
+      "deployment/wallet-system/scripts/generate-github-env-values.mjs",
+      "--lane",
+      "production-mainnet",
+      "--component",
+      "wallet-system",
+      "--values-file",
+      "<empty-file>",
+      "--environment-id",
+      "<tenantEnvironmentId>",
+      "--json"
+    ],
+    "assertions": [
+      "Gateway tenant environment ID equals the input unchanged.",
+      "Router policy environment equals the listed key or explicit scope.",
+      "Organization, project and all policy restrictions remain unchanged."
+    ]
+  },
+  "limits": [
+    "No production state changes occur during the offline generator cases.",
+    "Live signing must be verified after the policy deployment."
+  ]
+}

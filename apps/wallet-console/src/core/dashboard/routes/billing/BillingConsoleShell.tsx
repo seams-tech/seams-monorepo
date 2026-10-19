@@ -37,6 +37,7 @@ import {
   parseBillingSubview,
   type BillingMetric,
 } from './billingShared';
+import { DashboardPageSkeleton } from '../../components/DashboardSkeleton';
 
 export interface BillingConsoleShellProps {
   defaultPath: '/dashboard/billing/account' | '/dashboard/invoices' | '/platform/billing';
@@ -667,7 +668,7 @@ export function BillingConsoleShell(props: BillingConsoleShellProps): React.JSX.
 
       {session.loading || loading ? (
         <section className="dashboard-view__section">
-          <p>Loading billing data...</p>
+          <DashboardPageSkeleton label="Loading billing data" metrics={4} rows={5} columns={5} />
         </section>
       ) : !session.claims ? (
         <section className="dashboard-view__section">

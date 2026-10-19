@@ -173,6 +173,7 @@ export const ACCOUNT_PLATFORM_D1_SCHEMA_SQL = Object.freeze([
         AND (
           (i.phase = 'failed' AND NEW.command = previous.command)
           OR (NEW.command = 'enable' AND i.phase = 'disabled' AND i.desired_state = 'disabled')
+          OR (NEW.command = 'enable' AND NEW.service_id = 'wallet' AND i.phase = 'active')
           OR (NEW.command = 'disable' AND i.phase IN ('provisioning', 'active'))
           OR (NEW.command = 'archive' AND i.phase = 'disabled' AND i.desired_state = 'disabled'
             AND i.observed_state = 'disabled' AND i.observed_revision = i.desired_revision)

@@ -287,6 +287,11 @@ Wallet Console does not provision Satyr or expose a Project services page. Neith
 product requires a manual enable screen. Keep the service lifecycle API for internal
 provisioning, permissions, and deliberate administrative restrictions.
 
+An owner can refresh live Wallet access from Deployment status after a prepaid
+top-up. The control repeats the existing enable command for an active Wallet
+service and checks that production becomes active. It retains the operation
+identity after a lost response. It does not reopen a disabled or archived service.
+
 ### Required operation payloads
 
 These are semantic field names for the shared contract. Reuse existing types for

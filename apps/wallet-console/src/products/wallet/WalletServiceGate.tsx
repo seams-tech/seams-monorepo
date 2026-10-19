@@ -18,11 +18,11 @@ type SetupState =
   | { kind: 'enabling' }
   | { kind: 'failed'; message: string };
 
-function operationStorageKey(organizationId: string, projectId: string): string {
+export function operationStorageKey(organizationId: string, projectId: string): string {
   return `seams:wallet-enable:${JSON.stringify([requireConsoleBaseUrl(), organizationId, projectId])}`;
 }
 
-function readStoredOperation(key: string): ServiceOperation | null {
+export function readStoredOperation(key: string): ServiceOperation | null {
   try {
     const value: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? 'null');
     if (
@@ -57,7 +57,7 @@ function retainPendingOperation(key: string, service: ServiceStatus): void {
   } catch {}
 }
 
-function writeStoredOperation(key: string, operation: ServiceOperation): void {
+export function writeStoredOperation(key: string, operation: ServiceOperation): void {
   try {
     window.sessionStorage.setItem(key, JSON.stringify(operation));
   } catch {

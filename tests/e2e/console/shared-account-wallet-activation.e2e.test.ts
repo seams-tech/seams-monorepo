@@ -810,6 +810,10 @@ class WalletConsoleBrowserTransport {
 
   constructor(private readonly handlers: ReadonlyMap<string, HostedConsoleAuthHandler>) {}
 
+  dropNextEnableReply(): void {
+    this.loseNextEnableReply = true;
+  }
+
   waitUntil(work: Promise<unknown>): void {
     this.pending.push(work);
   }
@@ -1435,20 +1439,54 @@ async function verifyAutomaticWalletSetup(
       page.getByRole('button', { name: 'Create credential', exact: true }),
     ).toBeVisible();
 
+    await page.goto(new URL('/dashboard/deployment-status', appUrl).href);
+    const refreshAccess = page.getByRole('button', {
+      name: 'Refresh live Wallet access',
+      exact: true,
+    });
+    await refreshAccess.click();
+    await expect(
+      page.getByText('Live Wallet access requires prepaid credit.', { exact: false }),
+    ).toBeVisible();
+    await product.core.billing.grantManualSupportCredit(owner, {
+      amountMinor: 1000,
+      reasonCode: 'live_access_acceptance',
+      note: 'Isolated top-up after Wallet setup',
+      idempotencyKey: 'live-access-credit',
+    });
+    transport.dropNextEnableReply();
+    await refreshAccess.click();
+    await expect(
+      page.getByRole('alert').filter({ hasText: /Failed to fetch|NetworkError/ }),
+    ).toBeVisible();
+    await page.reload();
+    await refreshAccess.click();
+    await expect(page.getByText('Live Wallet access is enabled.', { exact: true })).toBeVisible();
+    expect(transport.enableRequests).toHaveLength(5);
+    await page.getByRole('button', { name: 'Selected Wallet, Development', exact: true }).click();
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Production', exact: true }),
+    ).toBeEnabled();
+    await page.screenshot({
+      path: path.join(evidence, 'live-access-after-top-up.png'),
+      fullPage: true,
+    });
+    await page.keyboard.press('Escape');
+
     const disabled = await changeService(
       product.router,
       token,
       projectId,
       'disable',
       'disable-auto',
-      2,
+      4,
     );
     expect(disabled.status).toBe(200);
     await page.reload();
     await expect(
       page.getByText('Wallet access is disabled for this project.', { exact: false }),
     ).toBeVisible();
-    expect(transport.enableRequests).toHaveLength(3);
+    expect(transport.enableRequests).toHaveLength(5);
     await verifyFreshUserOnboarding({
       browser,
       database,
@@ -1494,6 +1532,8 @@ async function verifyAutomaticWalletSetup(
           enableRequests: transport.enableRequests,
           environments: await environmentCount(database, projectId),
           disabledStatePreserved: true,
+          liveAccessAfterTopUp: true,
+          liveAccessLostReplyRecoveredAfterReload: true,
         },
         null,
         2,

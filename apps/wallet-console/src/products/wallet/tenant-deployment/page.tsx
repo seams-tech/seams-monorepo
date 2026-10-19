@@ -9,7 +9,149 @@ import {
 } from '@core/dashboard/selectedContext';
 import { listDashboardAuditEvents } from '@core/dashboard/routes/audit/consoleAuditApi';
 import { getActiveFrontendDeployment } from '@core/runtime';
+import {
+  DASHBOARD_ENVIRONMENTS_UPDATED_EVENT,
+  listDashboardEnvironments,
+} from '@core/dashboard/consoleContextApi';
+import {
+  changeProjectService,
+  getServiceStatus,
+  type ServiceStatus,
+} from '@core/dashboard/routes/services/consoleServicesApi';
+import {
+  operationStorageKey,
+  readStoredOperation,
+  writeStoredOperation,
+} from '../WalletServiceGate';
 import './tenantDeployment.css';
+
+type LiveAccessState =
+  | { readonly kind: 'idle' | 'pending' | 'ready' }
+  | { readonly kind: 'error'; readonly message: string };
+
+function scheduleAccessCheck(resolve: () => void): void {
+  window.setTimeout(resolve, 1000);
+}
+
+async function waitForWalletAccess(
+  organizationId: string,
+  projectId: string,
+  initial: ServiceStatus,
+): Promise<void> {
+  let service = initial;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    switch (service.kind) {
+      case 'active':
+        return;
+      case 'provisioning':
+        await new Promise<void>(scheduleAccessCheck);
+        service = await getServiceStatus(organizationId, projectId, 'wallet');
+        break;
+      case 'absent':
+      case 'disabled':
+      case 'archived':
+      case 'failed':
+        throw new Error('Wallet access could not be refreshed. Check the project service status.');
+      default:
+        return assertNeverStatus(service);
+    }
+  }
+  throw new Error('Wallet access is still being prepared. Retry to check its progress.');
+}
+
+async function refreshLiveWalletAccess(
+  organizationId: string,
+  projectId: string,
+  setState: React.Dispatch<React.SetStateAction<LiveAccessState>>,
+): Promise<void> {
+  setState({ kind: 'pending' });
+  const key = `${operationStorageKey(organizationId, projectId)}:live-access`;
+  try {
+    const stored = readStoredOperation(key);
+    let service = await getServiceStatus(organizationId, projectId, 'wallet');
+    switch (service.kind) {
+      case 'active':
+        if (stored === null || service.operationId !== stored.operationId) {
+          const operation = stored ?? {
+            operationId: crypto.randomUUID(),
+            desiredRevision: service.desiredRevision + 1,
+          };
+          writeStoredOperation(key, operation);
+          service = await changeProjectService(
+            organizationId,
+            projectId,
+            'wallet',
+            'enable',
+            operation,
+          );
+        }
+        break;
+      case 'provisioning':
+        break;
+      case 'absent':
+      case 'disabled':
+      case 'archived':
+      case 'failed':
+        throw new Error('Only an active Wallet service can refresh live access.');
+      default:
+        return assertNeverStatus(service);
+    }
+    await waitForWalletAccess(organizationId, projectId, service);
+    window.sessionStorage.removeItem(key);
+    const environments = await listDashboardEnvironments({ projectId });
+    const production = environments.find(isProductionEnvironment);
+    if (!production || production.status === 'ARCHIVED') {
+      throw new Error(
+        'The production environment is unavailable. Check the project service status.',
+      );
+    }
+    if (production.status !== 'ACTIVE') {
+      throw new Error(
+        'Live Wallet access requires prepaid credit. Add credits, then refresh access.',
+      );
+    }
+    window.dispatchEvent(new Event(DASHBOARD_ENVIRONMENTS_UPDATED_EVENT));
+    setState({ kind: 'ready' });
+  } catch (error: unknown) {
+    setState({
+      kind: 'error',
+      message:
+        error instanceof Error ? error.message : 'Live Wallet access could not be refreshed.',
+    });
+  }
+}
+
+function isProductionEnvironment(environment: { readonly key: string }): boolean {
+  return environment.key === 'prod';
+}
+
+function LiveWalletAccessControl(props: {
+  readonly organizationId: string;
+  readonly projectId: string;
+}): React.JSX.Element {
+  const [state, setState] = React.useState<LiveAccessState>({ kind: 'idle' });
+  return (
+    <section className="tenant-deployment-section" aria-labelledby="live-wallet-access-title">
+      <h2 id="live-wallet-access-title">Live Wallet access</h2>
+      <p>After you add prepaid credits, refresh access to enable production for this project.</p>
+      <button
+        type="button"
+        className="dashboard-pagination-button"
+        disabled={state.kind === 'pending'}
+        onClick={refreshLiveWalletAccess.bind(
+          null,
+          props.organizationId,
+          props.projectId,
+          setState,
+        )}
+      >
+        {state.kind === 'pending' ? 'Refreshing live access…' : 'Refresh live Wallet access'}
+      </button>
+      {state.kind === 'ready' ? <p role="status">Live Wallet access is enabled.</p> : null}
+      {state.kind === 'error' ? <p role="alert">{state.message}</p> : null}
+    </section>
+  );
+}
 
 type DeploymentStatus =
   | { readonly kind: 'loading' }
@@ -191,7 +333,7 @@ export function TenantDeploymentPage(): React.JSX.Element {
     };
   }, [isOwner, selectedContext.environment, selectedContext.project, refreshSequence]);
 
-  if (!isOwner) {
+  if (!session.claims || !isOwner) {
     return (
       <section className="dashboard-page tenant-deployment-page">
         <h1>Deployment status</h1>
@@ -221,6 +363,11 @@ export function TenantDeploymentPage(): React.JSX.Element {
           Refresh deployment status
         </button>
       </DashboardPageActions>
+      <LiveWalletAccessControl
+        key={JSON.stringify([session.claims.orgId, selectedContext.project])}
+        organizationId={session.claims.orgId}
+        projectId={selectedContext.project}
+      />
       <DeploymentStatusNotice status={status} />
       {status.kind === 'ready' ? (
         <>

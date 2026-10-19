@@ -25,6 +25,7 @@
       "origin": "https://test.console.seams.sh",
       "siteOrigin": "https://wallet.seams.sh",
       "workerName": "seams-sdk-d1-console-testnet",
+      "platformSupportEmails": ["n6378056@gmail.com"],
       "placementRegion": "aws:ap-southeast-1",
       "database": {
         "name": "seams-console-testnet-sin",

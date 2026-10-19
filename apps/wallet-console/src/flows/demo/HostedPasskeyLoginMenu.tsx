@@ -10,6 +10,7 @@ import React from 'react';
 import { toast } from 'sonner';
 
 import './PasskeyLoginMenu.css';
+import { AuthMenuPreview } from './AuthMenuPreview';
 import { FRONTEND_CONFIG } from '@/config';
 import {
   cancelGoogleIdTokenRequest,
@@ -199,8 +200,56 @@ function syncAuthMenuContainerLock(
   if (container) container.inert = lockState === 'cleaning_up';
 }
 
+// The wallet client sets this on the menu's anchor once the hosted menu paints there.
+const HOSTED_MENU_PLACEHOLDER_OPACITY_VAR = '--seams-auth-menu-placeholder-opacity';
+
+type DemoMenuPhase = 'preview' | 'opening' | 'live';
+
+function hostedMenuHasPainted(anchor: HTMLElement): boolean {
+  return anchor.style.getPropertyValue(HOSTED_MENU_PLACEHOLDER_OPACITY_VAR) === '0';
+}
+
+function finishOpeningWhenHostedMenuPaints(
+  anchor: HTMLElement,
+  setPhase: React.Dispatch<React.SetStateAction<DemoMenuPhase>>,
+): void {
+  if (hostedMenuHasPainted(anchor)) setPhase('live');
+}
+
+// The preview stays over the hosted menu's skeleton until the menu paints, so a
+// visitor never sees the skeleton between the two.
+function watchHostedMenuPaint(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  phase: DemoMenuPhase,
+  setPhase: React.Dispatch<React.SetStateAction<DemoMenuPhase>>,
+): () => void {
+  if (phase !== 'opening') return noop;
+  const anchor = containerRef.current?.querySelector<HTMLElement>('[data-seams-auth-menu-host]');
+  if (!anchor) return noop;
+  const check = finishOpeningWhenHostedMenuPaints.bind(null, anchor, setPhase);
+  const observer = new MutationObserver(check);
+  observer.observe(anchor, { attributes: true, attributeFilter: ['style'] });
+  check();
+  return observer.disconnect.bind(observer);
+}
+
+function startOpening(phase: DemoMenuPhase): DemoMenuPhase {
+  return phase === 'preview' ? 'opening' : phase;
+}
+
+const HOSTED_AUTH_MENU_COPY = {
+  login: { subtitle: 'Continue with a passkey or Google' },
+  register: { subtitle: 'Continue with a passkey or Google' },
+} as const;
+
 export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
   const authMenuContainerRef = React.useRef<HTMLDivElement>(null);
+  // A landing visitor sees a preview until they use the demo; only then does the
+  // wallet host load its runtime and the page load the Google script.
+  const [phase, setPhase] = React.useState<DemoMenuPhase>('preview');
+  const startDemo = React.useCallback(() => setPhase(startOpening), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(watchHostedMenuPaint.bind(null, authMenuContainerRef, phase, setPhase), [phase]);
   // Effect bodies are standalone to keep the component readable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(subscribeToHostedAuthMenuErrors.bind(null, authMenuContainerRef), []);
@@ -218,7 +267,9 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
   const [googleSsoReadiness, setGoogleSsoReadiness] = React.useState<GoogleSsoReadiness>({
     kind: 'checking',
   });
+  const demoInUse = phase !== 'preview';
   React.useEffect(() => {
+    if (!demoInUse) return;
     let cancelled = false;
     setGoogleSsoReadiness({ kind: 'checking' });
     prepareGoogleSsoReadiness(relayerBaseUrl)
@@ -232,7 +283,7 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
     return () => {
       cancelled = true;
     };
-  }, [relayerBaseUrl]);
+  }, [demoInUse, relayerBaseUrl]);
 
   const externalAuthBroker = React.useCallback(
     async (
@@ -266,17 +317,26 @@ export function HostedPasskeyLoginMenu(props: HostedPasskeyLoginMenuProps) {
       data-wallet-lock-state={walletLockState.kind}
     >
       {walletLockState.kind === 'idle' ? (
-        <HostedSeamsAuthMenu
-          initialMode={resolvedInitialMode}
-          registrationAccountInput="implicit_wallet"
-          showRegistrationInput={false}
-          copy={{
-            login: { subtitle: 'Continue with a passkey or Google' },
-            register: { subtitle: 'Continue with a passkey or Google' },
-          }}
-          externalAuthBroker={externalAuthBroker}
-          onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
-        />
+        <div className="landing-auth-menu-stack">
+          {phase === 'live' ? null : (
+            <AuthMenuPreview
+              initialMode={resolvedInitialMode}
+              copy={HOSTED_AUTH_MENU_COPY}
+              usable={phase === 'preview'}
+              onUse={startDemo}
+            />
+          )}
+          {phase === 'preview' ? null : (
+            <HostedSeamsAuthMenu
+              initialMode={resolvedInitialMode}
+              registrationAccountInput="implicit_wallet"
+              showRegistrationInput={false}
+              copy={HOSTED_AUTH_MENU_COPY}
+              externalAuthBroker={externalAuthBroker}
+              onOutcome={handleHostedAuthMenuOutcomeAndCancelGoogleRequest.bind(null, refreshSession)}
+            />
+          )}
+        </div>
       ) : null}
     </div>
   );

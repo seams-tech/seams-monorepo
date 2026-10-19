@@ -25,10 +25,33 @@ import { regionalBinding, seedAdoptionRoot } from './tenantDeploymentFixtures';
 
 class RootRouter {
   available = true;
+  readonly creationRequests: string[] = [];
   constructor(readonly identityDigest: string) {}
 
-  async fetch(): Promise<Response> {
+  async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     if (!this.available) return new Response('Unavailable', { status: 503 });
+    const request = new Request(input, init);
+    if (new URL(request.url).pathname === '/router-ab/internal/tenant-root/creation/v1/create') {
+      const body: unknown = await request.json();
+      if (
+        typeof body !== 'object' ||
+        body === null ||
+        !('creation_grant_b64u' in body) ||
+        typeof body.creation_grant_b64u !== 'string'
+      ) {
+        throw new Error('Creation grant missing from Router request');
+      }
+      this.creationRequests.push(body.creation_grant_b64u);
+      return Response.json({
+        identity_digest_b64u: this.identityDigest,
+        custody_lineage_b64u: 'adoption-lineage',
+        revision: 1,
+        journal_digest_b64u: 'fixture-journal',
+        capability_digest_b64u: 'fixture-capability',
+        status: { kind: 'ready', root_commitment_b64u: 'adoption-commitment' },
+        replayed: true,
+      });
+    }
     return Response.json({
       identity_digest_b64u: this.identityDigest,
       custody_lineage_b64u: 'adoption-lineage',
@@ -101,7 +124,7 @@ export async function provisioningScenario(
     signingRootVersion: environment.signingRootVersion,
   });
   if (!parsedIdentity.ok) throw new Error('Invalid provisioning fixture identity');
-  const root = await seedAdoptionRoot(database, namespace, parsedIdentity.value);
+  const root = await seedAdoptionRoot(database, namespace, parsedIdentity.value, 'ISSUED');
   const router = new RootRouter(root.identityDigestB64u);
   const tenantRootState = createTenantRootSecurityStateReaderV1({
     activeRoots: new D1TenantRootActiveLineageResolverV1(database, namespace),

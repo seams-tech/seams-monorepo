@@ -28,6 +28,7 @@ export async function seedAdoptionRoot(
   database: D1DatabaseLike,
   namespace: string,
   identity: TenantRootIdentityV1,
+  status: 'ISSUED' | 'ACTIVE',
 ) {
   const grants = createD1TenantRootCreationGrantServiceV1({ database, namespace });
   const identityDigestB64u = await tenantRootIdentityDigestB64uV1(identity);
@@ -44,18 +45,20 @@ export async function seedAdoptionRoot(
     issuedAtMs: now,
     expiresAtMs: now + 60_000,
   });
-  await grants.markActiveFromReady({
-    operationId: 'adoption-fixture-root',
-    identity,
-    identityDigestB64u,
-    custodyLineageB64u: 'adoption-lineage',
-    ready: {
-      revision: 1,
-      rootCommitmentB64u: 'adoption-commitment',
-      journalDigestB64u: 'fixture-journal',
-      capabilityDigestB64u: 'fixture-capability',
-    },
-  });
+  if (status === 'ACTIVE') {
+    await grants.markActiveFromReady({
+      operationId: 'adoption-fixture-root',
+      identity,
+      identityDigestB64u,
+      custodyLineageB64u: 'adoption-lineage',
+      ready: {
+        revision: 1,
+        rootCommitmentB64u: 'adoption-commitment',
+        journalDigestB64u: 'fixture-journal',
+        capabilityDigestB64u: 'fixture-capability',
+      },
+    });
+  }
   return {
     identityDigestB64u,
     custodyLineageId: 'adoption-lineage',

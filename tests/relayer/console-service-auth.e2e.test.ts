@@ -934,7 +934,7 @@ test('production Console service bindings enforce durable credential changes and
 
     const lineageRoot = buildTenantRootIdentityFromAuthenticatedDeploymentV1(lineageIdentity);
     if (!lineageRoot.ok) throw new Error('Invalid tenant-root identity fixture');
-    const createdRoot = await seedAdoptionRoot(database, namespace, lineageRoot.value);
+    const createdRoot = await seedAdoptionRoot(database, namespace, lineageRoot.value, 'ACTIVE');
     const createdLineage =
       await client.tenantRootActiveLineage.resolveActiveLineage(lineageIdentity);
     expect(createdLineage).toEqual({

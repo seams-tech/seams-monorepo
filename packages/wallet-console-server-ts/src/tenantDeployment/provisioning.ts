@@ -268,9 +268,12 @@ async function ensureActiveTenantRoot(input: {
   } catch (error) {
     if (!(error instanceof TenantRootSecurityStateUnavailableError)) throw error;
   }
+  const existing = await input.options.tenantRootCreation.grants.findGrantByIdentity(
+    input.identity,
+  );
   await ensureTenantRootActiveV1({
     dependencies: input.options.tenantRootCreation,
-    operationId: `tenant-deployment:${input.operationId}`,
+    operationId: existing?.operationId ?? `tenant-deployment:${input.operationId}`,
     identity: input.identity,
   });
   return await input.options.tenantRootState.readStatus({ identity: input.identity });

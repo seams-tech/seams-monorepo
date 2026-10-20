@@ -527,8 +527,9 @@ function ApiNote({ title, body, icon: Icon, field }: ApiNoteProps): React.JSX.El
    shows on it; this much more keeps its movement subtle but visible. */
 const BANNER_FLOW = 3;
 
-/* A banner on a moving gradient field. The field holds its frame while it is
-   off screen (GrainField), so the banner needs no observer of its own. */
+/* A grey banner that fades into a moving gradient the first time it comes
+   into view, and stays lit after that. Once lit, the field holds its frame
+   while it is off screen (GrainField). */
 export function FieldBanner({
   field,
   className,
@@ -538,9 +539,33 @@ export function FieldBanner({
   className?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [lit, setLit] = React.useState(false);
+
+  React.useEffect(() => {
+    const banner = ref.current;
+    if (!banner) return undefined;
+    /* the viewport's bottom edge counts as 12rem higher, so the fade starts
+       once the banner has scrolled that much further in */
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setLit(true);
+        observer.disconnect();
+      },
+      { rootMargin: `0px 0px ${-12 * rem}px 0px`, threshold: 0.5 },
+    );
+    observer.observe(banner);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className={`${className ? `${className} ` : ''}h2-banner h2-banner--field`}>
-      <GrainField field={field} flow={BANNER_FLOW} />
+    <div
+      ref={ref}
+      className={`${className ? `${className} ` : ''}h2-banner h2-banner--field${lit ? ' is-lit' : ''}`}
+    >
+      <GrainField field={field} playing={lit} flow={BANNER_FLOW} />
       {children}
     </div>
   );

@@ -3058,19 +3058,45 @@ body:has(.h2-page) {
   background: var(--h2-bg);
 }
 
-/* A banner on a moving gradient field, with white copy (FieldBanner). */
+/* A banner that keeps its grey card at rest and fades into a moving
+   gradient field, with white copy, the first time it comes into view; it
+   stays lit after that (FieldBanner). */
 .h2-banner--field {
   position: relative;
   isolation: isolate;
   overflow: hidden;
 }
 
-.h2-banner--field .h2-banner__title {
+.h2-banner--field .grain-field {
+  opacity: 0;
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-banner--field.is-lit .grain-field {
+  opacity: 1;
+}
+
+.h2-banner--field .h2-banner__title,
+.h2-banner--field .h2-banner__sub {
+  transition:
+    color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    text-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-banner--field .grain-field,
+  .h2-banner--field .h2-banner__title,
+  .h2-banner--field .h2-banner__sub {
+    transition: none;
+  }
+}
+
+.h2-banner--field.is-lit .h2-banner__title {
   color: #ffffff;
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.22);
 }
 
-.h2-banner--field .h2-banner__sub {
+.h2-banner--field.is-lit .h2-banner__sub {
   color: rgba(255, 255, 255, 0.86);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
 }

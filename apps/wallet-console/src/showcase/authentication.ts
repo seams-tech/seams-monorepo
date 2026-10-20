@@ -169,10 +169,37 @@ function approveLink(): void {
 const resultEntryMilliseconds = 1000;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+type RingAnchor = { readonly cardTop: number; readonly ringTop: number };
+
+// Where the SDK's passkey wait draws its ring, read before the menu goes.
+function ringAnchor(menu: HTMLElement): RingAnchor | null {
+  const card = menu.querySelector('.seams-signup-menu-root');
+  const ring = menu.querySelector('.seams-passkey-prompt');
+  if (!card || !ring) return null;
+  return { cardTop: card.getBoundingClientRect().top, ringTop: ring.getBoundingClientRect().top };
+}
+
+// After a passkey wait, the result card takes the SDK card's place: the same
+// top edge, and its ring at the height of the waiting ring. Only the content
+// changes, and the card grows downward. The offsets are measured, because the
+// SDK card's rows above the ring and the result's actions differ by context.
+function anchorResult(anchor: RingAnchor | null): void {
+  result.classList.toggle('authentication-result--anchored', anchor !== null);
+  result.style.paddingTop = '';
+  result.style.translate = '';
+  const icon = result.querySelector('.authentication-result__icon');
+  if (!anchor || !icon) return;
+  const padding = parseFloat(getComputedStyle(result).paddingTop);
+  const offset = icon.getBoundingClientRect().top - result.getBoundingClientRect().top;
+  result.style.paddingTop = `${padding + anchor.ringTop - anchor.cardTop - offset}px`;
+  result.style.translate = `0 ${anchor.cardTop - result.getBoundingClientRect().top}px`;
+}
+
 function complete(heading: string, message: string): void {
   if (state.kind !== 'menu') return;
   cancelApproval();
   const returnFocus = state.handle.element.contains(document.activeElement);
+  const anchor = ringAnchor(state.handle.element);
   state.handle.dispose();
   state = { kind: 'result' };
   const title = result.querySelector('h1');
@@ -185,6 +212,7 @@ function complete(heading: string, message: string): void {
   if (title) title.textContent = heading;
   if (status) status.textContent = message;
   result.hidden = false;
+  anchorResult(anchor);
   const reveal = (): void => {
     for (const action of actions) action.disabled = false;
     if (returnFocus) button?.focus({ preventScroll: true });

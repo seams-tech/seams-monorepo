@@ -26,6 +26,12 @@
   outline: none;
 }
 
+/* An anchored result replaces the SDK card in place, so it does not slide in:
+   the slide would move the ring. */
+.authentication-result--anchored {
+  animation: none;
+}
+
 /* The ring continues the busy spinner, closes, and fills as a seal for the
    check. Each phase is a keyframe animation so the canvas clock can pause it. */
 .authentication-result__icon {

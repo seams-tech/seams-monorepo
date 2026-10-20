@@ -3139,7 +3139,7 @@ body:has(.h2-page) {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   padding-top: 16px;
   padding-bottom: 16px;
 }
@@ -3211,6 +3211,52 @@ body:has(.h2-page) {
   font-size: var(--h2-text-md);
   line-height: 1.5;
   color: var(--h2-smoke);
+}
+
+/* The API rows follow elevenlabs.io's API rows: regular-weight titles,
+   larger copy and notes, and the copy set 48px in from the row's corner.
+   Scoped to the grid so the console band's legend keeps its own type. */
+.h2-startrow__grid > .h2-startrow__text {
+  padding-block: 32px;
+  padding-inline-start: 12px;
+}
+
+.h2-startrow__grid > .h2-startrow__text h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 26px;
+  letter-spacing: 0.01em;
+}
+
+.h2-startrow__grid > .h2-startrow__text p {
+  max-width: 480px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.01em;
+}
+
+.h2-startrow__grid .h2-startrow__notes {
+  gap: 24px 32px;
+  margin-top: 40px;
+}
+
+.h2-startrow__grid .h2-startrow__notes strong {
+  margin-bottom: 1px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.h2-startrow__grid .h2-startrow__notes span {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+@media (max-width: 980px) {
+  .h2-startrow__grid > .h2-startrow__text {
+    padding: 0;
+  }
 }
 
 .h2-startrow__visual {
@@ -3464,16 +3510,24 @@ body:has(.h2-page) {
   white-space: pre;
 }
 
-/* compact variant for the get-started rows: snug card, striking tokens */
+/* the get-started rows' code card: white, a half-pixel ring and a soft
+   two-step lift, with readable 13px code */
 .h2-code--lg {
-  border-radius: 16px;
-  padding: 22px 24px;
-  font-size: var(--h2-text-sm);
-  line-height: 1.7;
-  /* keep the hairline ring, add a whisper of lift off the row */
+  border-radius: 20px;
+  padding: 24px;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--h2-ink);
   box-shadow:
-    0 0 0 1px var(--h2-stone),
-    0 10px 24px -22px rgba(15, 23, 42, 0.12);
+    0 0 0 0.5px rgba(0, 0, 0, 0.125),
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.04);
+  /* long lines still scroll on phones, without a scrollbar across the card */
+  scrollbar-width: none;
+}
+
+.h2-code--lg::-webkit-scrollbar {
+  display: none;
 }
 
 .h2-code .tok-kw {
@@ -3489,15 +3543,15 @@ body:has(.h2-page) {
 }
 
 .h2-code--lg .tok-kw {
-  color: #d0342c;
+  color: #e8273a;
 }
 
 .h2-code--lg .tok-prop {
-  color: #2e63c4;
+  color: #0a59d2;
 }
 
 .h2-code--lg .tok-str {
-  color: var(--h2-ink);
+  color: #052f70;
 }
 
 @media (max-width: 980px) {

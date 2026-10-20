@@ -3403,7 +3403,7 @@ body:has(.h2-page) {
    the stage's open bottom edge. */
 
 /* the banner card sits 0.5rem below the rule, as the band headings do; the
-   tiles below take their own 10px gap */
+   band below sets its own gap */
 .h2-consolehead {
   padding-block: 0.5rem 0;
 }
@@ -3411,67 +3411,83 @@ body:has(.h2-page) {
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  /* 0.5rem from the column borders, as the banner card above, and 10px
-     below it, the tiles' own gap. The stage runs off the section's bottom
-     edge, so the shell keeps no bottom padding — any gap here would float
-     the open-bottomed card above the rule instead of meeting it. */
-  padding: 10px 0.5rem 0;
+  /* 0.5rem from the column borders, as the banner card above. The top
+     leaves room for the upper half of the switch on the stage's border. The
+     stage runs off the section's bottom edge, so the shell keeps no bottom
+     padding — any gap here would float the open-bottomed card above the
+     rule instead of meeting it. */
+  padding: 40px 0.5rem 0;
 }
 
-/* Two equal row tiles, styled as the custody section's rows: a light taupe
-   card at rest that steps up to full taupe, with full-ink type, while its
-   screen is on stage. */
-.h2-consoleband__legend {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  /* the tiles label the stage, so they sit closer to it than the band gap */
-  margin-bottom: -20px;
-}
-
-.h2-consoleband__tab {
+/* The stage and the switch that sits on its top border */
+.h2-consoleband__stagewrap {
   position: relative;
+}
+
+/* A segmented switch, as the component showcase's selector: a white pill
+   centred on the stage's top border, a dot and a label per screen. */
+.h2-consoleband__switch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
   display: grid;
-  gap: 3px;
-  padding: 14px;
+  grid-template-columns: repeat(2, max-content);
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--h2-ink) 7%, var(--h2-bg));
+  border-radius: 9999px;
+  background: var(--h2-bg);
+}
+
+.h2-consoleband__choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 6px 16px;
   border: 0;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--h2-taupe) 40%, transparent);
+  border-radius: 9999px;
+  background: none;
+  color: color-mix(in srgb, var(--h2-ink) 55%, var(--h2-bg));
   font-family: inherit;
-  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
-.h2-consoleband__tab:hover {
-  background: color-mix(in srgb, var(--h2-taupe) 70%, transparent);
-}
-
-.h2-consoleband__tab.is-active {
-  background: var(--h2-taupe);
-}
-
-.h2-consoleband__tab strong {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--h2-ash);
-  transition: color 150ms ease;
-}
-
-.h2-consoleband__tab > span:last-child {
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: var(--h2-smoke);
-}
-
-.h2-consoleband__tab.is-active strong,
-.h2-consoleband__tab:hover strong {
+.h2-consoleband__choice.is-active {
   color: var(--h2-ink);
 }
 
-.h2-consoleband__tab:focus-visible {
-  outline: 2px solid var(--h2-smoke);
+@media (hover: hover) and (pointer: fine) {
+  .h2-consoleband__choice:hover {
+    background: color-mix(in srgb, var(--h2-ink) 3%, var(--h2-bg));
+  }
+}
+
+.h2-consoleband__choice:focus-visible {
+  outline: 2px solid var(--h2-ink);
   outline-offset: 2px;
+}
+
+.h2-consoleband__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--h2-stone);
+}
+
+.h2-consoleband__choice.is-active .h2-consoleband__dot {
+  background: var(--h2-ink);
 }
 
 /* Never seen: it only times the cycle, as the custody rows cycle with no
@@ -3607,10 +3623,6 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 760px) {
-  .h2-consoleband__tab > span:last-child {
-    font-size: 14px;
-  }
-
   .h2-consoleband__stage {
     border-radius: 18px 18px 0 0;
   }

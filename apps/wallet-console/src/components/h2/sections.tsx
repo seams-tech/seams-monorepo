@@ -1031,13 +1031,11 @@ const CONSOLE_SCREENS = [
   {
     id: 'overview' as const,
     label: 'Overview',
-    blurb: 'Wallets, approvals, and your team',
     src: '/wallet-preview/wallet-console-dashboard.png?v=1',
   },
   {
     id: 'audit' as const,
     label: 'Audit logs',
-    blurb: 'Every action, logged and exportable',
     src: '/wallet-preview/wallet-console-audit.png?v=1',
     callout: 'Export to CSV for your auditors',
   },
@@ -1295,7 +1293,7 @@ export function H2Start(): React.JSX.Element {
           </div>
         </FieldBanner>
       </div>
-      {/* no rule above: the tiles and stage read as the banner's own row */}
+      {/* no rule above: the switch and stage read as the banner's own row */}
       <div className="h2-startrow">
         <div
           ref={consoleBandRef}
@@ -1308,60 +1306,67 @@ export function H2Start(): React.JSX.Element {
           onFocus={(event) => setConsoleFocusHeld(event.target.matches(':focus-visible'))}
           onBlur={() => setConsoleFocusHeld(false)}
         >
-          {/* `aria-pressed` rather than tabs: the stage is an image, so there
-              is no tab panel for a tab to own. */}
-          <div className="h2-consoleband__legend" role="group" aria-label="Show a console screen">
-            {CONSOLE_SCREENS.map((screen) => {
-              const selected = consoleFocus === screen.id;
-              return (
-                <button
+          {/* The switch sits on the stage's top border, as the component
+              showcase's selector sits on its section rule. It lives outside
+              the stage because the stage clips its cards. `aria-pressed`
+              rather than tabs: the stage is an image, so there is no tab
+              panel for a tab to own. */}
+          <div className="h2-consoleband__stagewrap">
+            <div className="h2-consoleband__switch" role="group" aria-label="Show a console screen">
+              {CONSOLE_SCREENS.map((screen) => {
+                const selected = consoleFocus === screen.id;
+                return (
+                  <button
+                    key={screen.id}
+                    type="button"
+                    className={`h2-consoleband__choice${selected ? ' is-active' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => setConsoleFocus(screen.id)}
+                  >
+                    {selected ? (
+                      <span
+                        className="h2-consoleband__progress"
+                        aria-hidden="true"
+                        onAnimationEnd={advanceConsole}
+                      />
+                    ) : null}
+                    <span className="h2-consoleband__dot" aria-hidden="true" />
+                    {screen.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              className="h2-consoleband__stage"
+              role="img"
+              aria-label={`Wallet console overview and audit log pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
+            >
+              {CONSOLE_SCREENS.map((screen) => (
+                // the back card is a pointer shortcut to the same switch as
+                // its button; the switch stays the accessible control
+                <div
                   key={screen.id}
-                  type="button"
-                  className={`h2-consoleband__tab${selected ? ' is-active' : ''}`}
-                  aria-pressed={selected}
+                  className={`h2-consoleband__screen${consoleFocus === screen.id ? ' is-active' : ''}`}
                   onClick={() => setConsoleFocus(screen.id)}
                 >
-                  {selected ? (
+                  <img
+                    src={screen.src}
+                    alt=""
+                    width={2970}
+                    height={1680}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  {'callout' in screen ? (
                     <span
-                      className="h2-consoleband__progress"
-                      aria-hidden="true"
-                      onAnimationEnd={advanceConsole}
-                    />
+                      className={`h2-consoleband__callout h2-consoleband__callout--${screen.id}`}
+                    >
+                      {screen.callout}
+                    </span>
                   ) : null}
-                  <strong>{screen.label}</strong>
-                  <span>{screen.blurb}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div
-            className="h2-consoleband__stage"
-            role="img"
-            aria-label={`Wallet console overview and audit log pages, ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} in front`}
-          >
-            {CONSOLE_SCREENS.map((screen) => (
-              // the back card is a pointer shortcut to the same switch as
-              // its tile; the tiles stay the accessible control
-              <div
-                key={screen.id}
-                className={`h2-consoleband__screen${consoleFocus === screen.id ? ' is-active' : ''}`}
-                onClick={() => setConsoleFocus(screen.id)}
-              >
-                <img
-                  src={screen.src}
-                  alt=""
-                  width={2970}
-                  height={1680}
-                  loading="lazy"
-                  decoding="async"
-                />
-                {'callout' in screen ? (
-                  <span className={`h2-consoleband__callout h2-consoleband__callout--${screen.id}`}>
-                    {screen.callout}
-                  </span>
-                ) : null}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

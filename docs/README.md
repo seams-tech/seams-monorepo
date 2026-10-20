@@ -6,6 +6,9 @@ This repository owns Console procedures and deployment.
 
 ## Console procedures
 
+[Console split history](feat-2-platform-console.md) records the completed separation
+of Platform and Wallet entry points and the reasons for that design.
+
 - [Onboarding](wallet-saas/console-docs/wallet-console-onboarding.md): organization,
   project, and Development environment creation. Activation remains separate.
 - [API keys](wallet-saas/console-docs/api-keys.md): environment credentials and origins.

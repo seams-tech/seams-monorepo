@@ -58,6 +58,8 @@ type Gpu = {
 const FRAME_MS = 1000 / 30;
 const MAX_STEP_S = 0.1;
 const MAX_SIDE = 2048;
+/* the grain changes 8 times a second; on every frame it looks like static */
+const GRAIN_STEP_MS = 125;
 
 const VERTEX_SHADER = `
 attribute vec2 aPosition;
@@ -330,7 +332,7 @@ function tick(now: number): void {
   let moving = false;
   if (due) {
     lastFrame = now;
-    grainFrame = (grainFrame + 1) % 251;
+    grainFrame = Math.floor(now / GRAIN_STEP_MS) % 251;
   }
   for (const view of views) {
     if (!view.visible || view.width === 0 || view.height === 0) continue;

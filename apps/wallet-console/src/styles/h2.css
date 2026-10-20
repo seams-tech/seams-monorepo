@@ -3395,10 +3395,9 @@ body:has(.h2-page) {
   justify-items: center;
 }
 
-/* Wallet console band: heading + two-page legend above a tinted stage that
-   crops two console screens, elevenlabs.io-style — the overview screen in
-   front at the left, the policy screen sliding out of the right edge. All
-   screen geometry is percentage-based so the stage scales proportionally. */
+/* Wallet console band: heading, then a row of tabs over a tinted stage that
+   shows one console screen at a time. The active tab's progress line runs
+   the cycle; the screen is cropped by the stage's open bottom edge. */
 .h2-consoleband {
   display: grid;
   gap: 30px;
@@ -3409,10 +3408,7 @@ body:has(.h2-page) {
   padding-bottom: 0;
 }
 
-/* legend columns track the stage split so each label sits over its screen */
-/* display-scale title, matching the custody section's heading */
-/* the band's intro runs wider than the API rows' copy, so it sets in two
-   lines, and its buttons sit closer to the tabs below */
+/* the band's intro runs wider than the API rows' copy */
 .h2-consoleband .h2-startrow__text {
   padding-bottom: 0;
 }
@@ -3424,7 +3420,8 @@ body:has(.h2-page) {
 /* heading and copy on the left, the call to action on the right */
 .h2-consoleband__intro {
   display: flex;
-  align-items: center;
+  /* the button sits on the subtitle's line, not centred on the block */
+  align-items: flex-end;
   justify-content: space-between;
   gap: 32px;
   padding-inline-end: 0;
@@ -3434,6 +3431,7 @@ body:has(.h2-page) {
   flex: none;
 }
 
+/* display-scale title, matching the custody section's heading */
 .h2-startrow__text h3.h2-consoleband__title {
   margin: 0 0 14px;
   font-size: clamp(27px, 2.9vw, 38px);
@@ -3442,101 +3440,126 @@ body:has(.h2-page) {
   line-height: 1.08;
 }
 
-/* legend columns track the stage split so each row sits over its screen */
+/* Two equal tabs on one hairline. They stay quiet: the active one steps up
+   to full ink and carries the progress line, so neither reads as a block. */
 .h2-consoleband__legend {
-  /* the two screen tiles share the full width */
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: -4px;
-  /* The row's fill is the widest thing in the band, so it sets the reader's
-     sense of the left edge. Pulling it out past the shell to align the label
-     text instead left the panel hanging to the left of the heading it belongs
-     to; align the fill and let the labels indent. */
-  margin-inline: 0;
+  gap: 24px;
+  margin-top: 14px;
+  /* the tabs label the stage, so they sit closer to it than the band gap */
+  margin-bottom: -18px;
 }
 
-/* The legend rows are the stage's control surface, styled as the pillar tabs
-   are: a soft-filled row with a chipped icon, quiet until selected. */
 .h2-consoleband__tab {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 14px;
-  background: transparent;
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 16px 0 6px;
+  border: 0;
+  border-top: 1px solid var(--h2-stone);
+  background: none;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease;
 }
 
-/* The selected row is carried mostly by its ink stepping up to full weight;
-   the fill is only a hint behind it, well short of the pillar tabs' solid
-   taupe, which reads as a block at this row's width. */
-.h2-consoleband__tab:hover {
-  background: color-mix(in srgb, var(--h2-taupe) 30%, transparent);
-}
-
-.h2-consoleband__tab.is-active {
-  background: color-mix(in srgb, var(--h2-taupe) 60%, transparent);
-}
-
-.h2-consoleband__tab-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-/* Sized off the pillar tabs rather than the shared note tokens: those are
-   dense-UI sizes for captions, and these rows are the section's controls. */
-.h2-startrow__notes .h2-consoleband__tab-copy strong {
-  margin-bottom: 0;
-  font-size: 18px;
+.h2-consoleband__tab strong {
+  font-size: 17px;
   font-weight: 600;
   color: var(--h2-ash);
   transition: color 150ms ease;
 }
 
-.h2-consoleband__tab.is-active .h2-consoleband__tab-copy strong,
-.h2-consoleband__tab:hover .h2-consoleband__tab-copy strong {
+.h2-consoleband__tab > span:last-child {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--h2-ash);
+  transition: color 150ms ease;
+}
+
+.h2-consoleband__tab.is-active strong,
+.h2-consoleband__tab:hover strong {
   color: var(--h2-ink);
 }
 
-.h2-startrow__notes .h2-consoleband__tab-copy span {
-  font-size: 14.5px;
-  line-height: 1.45;
+.h2-consoleband__tab.is-active > span:last-child,
+.h2-consoleband__tab:hover > span:last-child {
   color: var(--h2-smoke);
 }
 
-/* The call-to-action tile is filled black like the primary buttons, so it
-   reads as the band's action and not as a third screen. It comes after the
-   tab rules so their hover ink does not darken its title, and it sets its
-   own hover color so the global link hover does not tint the arrow. */
+.h2-consoleband__tab:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* Sits on the tab's hairline. It fills while the band is in view and
+   unattended; its animationend advances the screen (see ConsoleBand). The
+   held state keeps the animation paused, not removed, so the line resumes
+   where it stopped. */
+.h2-consoleband__progress {
+  position: absolute;
+  inset-inline-start: 0;
+  top: -1px;
+  width: 100%;
+  height: 2px;
+  background: var(--h2-ink);
+  transform-origin: left;
+  animation: h2-consoleband-progress 6s linear forwards paused;
+}
+
+.h2-consoleband[data-cycling] .h2-consoleband__progress {
+  animation-play-state: running;
+}
+
+@keyframes h2-consoleband-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .h2-consoleband__stage {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 14 / 5;
+  aspect-ratio: 16 / 8.4;
   /* Open-bottomed: the stage meets the section rule rather than closing
-     above it, so the screens read as continuing past the fold. */
+     above it, so the screen reads as continuing past the fold. */
   border-radius: 26px 26px 0 0;
   border: 1px solid var(--h2-stone);
   border-bottom: 0;
   background: var(--h2-taupe);
 }
 
-/* each card window shows a left-crop of its page at readable scale: the img
-   is wider than the card, so the card's fixed width crops the right side and
-   the stage bottom crops the rest */
+/* One screen at a time, large enough to read: the screens stack in the same
+   place and crossfade, the incoming one rising slightly. */
 .h2-consoleband__screen {
   position: absolute;
+  inset-inline: 4%;
+  /* 4% of the stage's width, restated against its 16/8.4 height */
+  inset-block-start: 7.6%;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid #e3ded6;
   background: var(--h2-bg);
-  box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 30px 70px -34px rgba(15, 23, 42, 0.32);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(0.985);
+  transition:
+    opacity 450ms ease,
+    transform 550ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 0s linear 550ms;
+}
+
+.h2-consoleband__screen.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
 }
 
 .h2-consoleband__screen img {
@@ -3545,67 +3568,57 @@ body:has(.h2-page) {
   height: auto;
 }
 
-/* The screens overlap by about a third and swap focus with a sliding soft
-   mask (the elevenlabs.io mechanic): each card carries a fixed gradient mask
-   twice its width, and only mask-position, translateY, and z-index change
-   between states — the unfocused card's overlapped edge dissolves, the
-   focused one reveals fully. Rest state = audit focused. */
-.h2-consoleband__screen--overview {
-  inset-inline-start: 3.5%;
-  /* 3.5% of the stage's width, restated against its height: block insets
-     resolve on the other axis, so matching the side gap means scaling by the
-     14/5 ratio (3.5 × 2.8 = 9.8) and then staggering this card 2 below. */
-  inset-block-start: 11.8%;
-  z-index: 0;
-  width: 62%;
-  mask-image: linear-gradient(to right, white 65%, transparent 70%);
-  mask-size: 200% 100%;
-  /* rest: the fade completes where the audit card begins — at 62% wide the
-     cards overlap by 31% of the stage, which is exactly half of each card,
-     so the dissolve lands at 0.5 of this one's width. */
-  mask-position: 90% 0;
-  transform: translateY(12px);
+/* Names what the screen proves. Positioned against the screenshot, so it
+   tracks the control it points at as the stage scales. */
+.h2-consoleband__callout {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 10px;
+  background: var(--h2-ink);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
 }
 
-.h2-consoleband__screen--audit {
-  inset-inline-end: 3.5%;
-  inset-block-start: 9.8%;
-  z-index: 1;
-  width: 62%;
-  mask-image: linear-gradient(to left, white 55%, transparent 60.5%);
-  mask-size: 200% 100%;
-  mask-position: 95% 0;
+.h2-consoleband__callout::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3ecf8e;
 }
 
-@media (hover: hover) {
-  .h2-consoleband__screen {
-    transition:
-      mask-position 500ms ease,
-      transform 500ms ease;
-  }
+.h2-consoleband__screen.is-active .h2-consoleband__callout {
+  opacity: 1;
+  transform: none;
+  transition-delay: 350ms;
+}
 
-  /* Focusing the overview slides its mask off the edge and dissolves the
-     audit screen's overlap instead. This keys off the stage's data-focus,
-     which holds the last hovered card, rather than off `:has(:hover)` —
-     `:hover` only describes the pointer's current position, so on mouse-out
-     the stage snapped back and the audit screen animated forward every
-     time. Held state means whichever card was last hovered stays in front. */
-  .h2-consoleband__stage[data-focus='overview'] .h2-consoleband__screen--overview {
-    z-index: 1;
-    mask-position: 15% 0;
-    transform: translateY(0);
-  }
-
-  .h2-consoleband__stage[data-focus='overview'] .h2-consoleband__screen--audit {
-    z-index: 0;
-    mask-position: 27% 0;
-    transform: translateY(12px);
-  }
+/* just below the audit page's Export button */
+.h2-consoleband__callout--audit {
+  inset-inline-end: 2.7%;
+  top: 23.5%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-consoleband__screen {
+  .h2-consoleband__screen,
+  .h2-consoleband__callout {
     transition: none;
+  }
+
+  /* no animation means no animationend, so the tabs become manual only */
+  .h2-consoleband__progress {
+    animation: none;
   }
 }
 
@@ -3618,7 +3631,12 @@ body:has(.h2-page) {
   }
 
   .h2-consoleband__legend {
-    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 6px;
+  }
+
+  .h2-consoleband__tab > span:last-child {
+    font-size: 14px;
   }
 
   .h2-consoleband__intro {
@@ -3627,33 +3645,22 @@ body:has(.h2-page) {
     gap: 20px;
   }
 
-  /* Sized so a single 90% card very nearly fills the stage: the wide
-     layout's ratio left a quarter of the band empty under the card, which
-     an open bottom edge only makes more obvious. */
+  /* Sized so a 90% card very nearly fills the stage: a wider ratio left a
+     quarter of the band empty under the card. */
   .h2-consoleband__stage {
     aspect-ratio: 15 / 8;
+    border-radius: 18px 18px 0 0;
   }
 
-  /* One screen at a time, chosen by the legend rows. The pair cannot overlap
-     legibly at this width, but hiding one outright would leave its row a
-     control that does nothing, so they swap instead. */
-  .h2-consoleband__stage .h2-consoleband__screen {
-    width: 90%;
-    inset-inline-start: 5%;
-    inset-inline-end: auto;
+  .h2-consoleband__screen {
+    inset-inline: 5%;
     /* 5% of width against a 15/8 stage: 5 × 1.875 = 9.375 */
     inset-block-start: 9.4%;
-    mask-image: none;
-    opacity: 0;
-    visibility: hidden;
   }
 
-  .h2-consoleband__stage[data-focus='overview'] .h2-consoleband__screen--overview,
-  .h2-consoleband__stage[data-focus='audit'] .h2-consoleband__screen--audit {
-    z-index: 1;
-    opacity: 1;
-    visibility: visible;
-    transform: none;
+  /* too small to point at anything legibly at this width */
+  .h2-consoleband__callout {
+    display: none;
   }
 }
 

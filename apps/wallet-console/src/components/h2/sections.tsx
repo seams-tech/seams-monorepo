@@ -1039,8 +1039,11 @@ const CONSOLE_SCREENS = [
     label: 'Audit logs',
     blurb: 'Every action, logged and exportable',
     src: '/wallet-preview/wallet-console-audit.png?v=1',
+    callout: 'Export to CSV for your auditors',
   },
 ];
+
+type ConsoleScreenId = (typeof CONSOLE_SCREENS)[number]['id'];
 
 type ApiNoteProps = {
   title: string;
@@ -1138,12 +1141,31 @@ export function H2Start(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const dashboardProps = linkProps('/dashboard');
   const docsProps = linkProps('/docs/concepts/');
-  /* Which console screen sits in front. CSS `:has(:hover)` cannot express
-     this: it only knows what the pointer is on *now*, so leaving either card
-     snapped the stage back to its rest state and the right screen animated
-     forward on every mouse-out. Holding the last hover here leaves the card
-     the reader was just looking at in front. */
-  const [consoleFocus, setConsoleFocus] = React.useState<'overview' | 'audit'>('audit');
+  /* Which console screen is on stage. The active tab's progress line is a
+     CSS animation; its `animationend` advances to the next screen, so
+     pausing the animation (pointer on the band, band off screen) pauses the
+     cycle with no timer to keep in step. Reduced motion drops the animation,
+     which leaves the tabs as plain manual controls. */
+  const [consoleFocus, setConsoleFocus] = React.useState<ConsoleScreenId>('overview');
+  const [consolePointerHeld, setConsolePointerHeld] = React.useState(false);
+  const [consoleFocusHeld, setConsoleFocusHeld] = React.useState(false);
+  const [consoleInView, setConsoleInView] = React.useState(false);
+  const consoleBandRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const band = consoleBandRef.current;
+    if (!band || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setConsoleInView(entry.isIntersecting), {
+      threshold: 0.35,
+    });
+    observer.observe(band);
+    return () => observer.disconnect();
+  }, []);
+
+  const advanceConsole = () => {
+    const index = CONSOLE_SCREENS.findIndex((screen) => screen.id === consoleFocus);
+    setConsoleFocus(CONSOLE_SCREENS[(index + 1) % CONSOLE_SCREENS.length].id);
+  };
 
   return (
     <section
@@ -1253,10 +1275,20 @@ export function H2Start(): React.JSX.Element {
           split API rows above, so it carries their middle tick */}
       <div className="h2-spacer h2-rule h2-rule--midtick" aria-hidden="true" />
 
-      {/* row 3: wallet console — two console pages staged side by side,
-          the right one cropped by the panel (elevenlabs.io-style band) */}
+      {/* row 3: wallet console — tabs over a tinted stage that shows one
+          console screen at a time, cropped by the open bottom edge */}
       <div className="h2-startrow h2-rule">
-        <div className="h2-shell h2-consoleband">
+        <div
+          ref={consoleBandRef}
+          className="h2-shell h2-consoleband"
+          data-cycling={consoleInView && !consolePointerHeld && !consoleFocusHeld ? '' : undefined}
+          onPointerEnter={() => setConsolePointerHeld(true)}
+          onPointerLeave={() => setConsolePointerHeld(false)}
+          // keyboard focus holds the screen; a clicked tab keeps focus after
+          // the pointer leaves, so mouse focus must not
+          onFocus={(event) => setConsoleFocusHeld(event.target.matches(':focus-visible'))}
+          onBlur={() => setConsoleFocusHeld(false)}
+        >
           {/* heading and copy on the left, the call to action on the right */}
           <div className="h2-startrow__text h2-consoleband__intro">
             <div>
@@ -1264,7 +1296,7 @@ export function H2Start(): React.JSX.Element {
               <p>Manage wallets, policies, and your team in one place. No code needed.</p>
             </div>
             <a
-              className="h2-btn h2-btn--primary h2-btn--lg"
+              className="h2-btn h2-btn--primary"
               href={dashboardProps.href}
               onClick={dashboardProps.onClick}
             >
@@ -1272,15 +1304,9 @@ export function H2Start(): React.JSX.Element {
               <ArrowRightAnim size={12} />
             </a>
           </div>
-          {/* The legend doubles as the control: each row brings its own screen
-              to the front, so the labels are the same affordance as hovering
-              the cards themselves. `aria-pressed` rather than tabs — both
-              screens stay on stage, only their order changes. */}
-          <div
-            className="h2-startrow__notes h2-consoleband__legend"
-            role="group"
-            aria-label="Bring a console screen to the front"
-          >
+          {/* `aria-pressed` rather than tabs: the stage is an image, so there
+              is no tab panel for a tab to own. */}
+          <div className="h2-consoleband__legend" role="group" aria-label="Show a console screen">
             {CONSOLE_SCREENS.map((screen) => {
               const selected = consoleFocus === screen.id;
               return (
@@ -1291,25 +1317,28 @@ export function H2Start(): React.JSX.Element {
                   aria-pressed={selected}
                   onClick={() => setConsoleFocus(screen.id)}
                 >
-                  <span className="h2-consoleband__tab-copy">
-                    <strong>{screen.label}</strong>
-                    <span>{screen.blurb}</span>
-                  </span>
+                  {selected ? (
+                    <span
+                      className="h2-consoleband__progress"
+                      aria-hidden="true"
+                      onAnimationEnd={advanceConsole}
+                    />
+                  ) : null}
+                  <strong>{screen.label}</strong>
+                  <span>{screen.blurb}</span>
                 </button>
               );
             })}
           </div>
           <div
             className="h2-consoleband__stage"
-            data-focus={consoleFocus}
             role="img"
-            aria-label="Wallet console overview and audit log pages"
+            aria-label={`Wallet console ${CONSOLE_SCREENS.find((screen) => screen.id === consoleFocus)?.label} page`}
           >
             {CONSOLE_SCREENS.map((screen) => (
               <div
                 key={screen.id}
-                className={`h2-consoleband__screen h2-consoleband__screen--${screen.id}`}
-                onPointerEnter={() => setConsoleFocus(screen.id)}
+                className={`h2-consoleband__screen${consoleFocus === screen.id ? ' is-active' : ''}`}
               >
                 <img
                   src={screen.src}
@@ -1319,6 +1348,11 @@ export function H2Start(): React.JSX.Element {
                   loading="lazy"
                   decoding="async"
                 />
+                {'callout' in screen ? (
+                  <span className={`h2-consoleband__callout h2-consoleband__callout--${screen.id}`}>
+                    {screen.callout}
+                  </span>
+                ) : null}
               </div>
             ))}
           </div>
@@ -1730,7 +1764,7 @@ export function H2Cta(): React.JSX.Element {
 
   return (
     <section className="h2-section h2-section--banner h2-rule" aria-labelledby="h2-cta-title">
-      <FieldBanner field="mauve-ember">
+      <FieldBanner field="slate-amber">
         <div>
           <h2 id="h2-cta-title" className="h2-display h2-banner__title">
             Wallets your users can never lose

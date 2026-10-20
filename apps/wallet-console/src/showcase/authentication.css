@@ -22,13 +22,21 @@
   animation: authentication-result-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
+/* The passkey wait's text, rows and footer fade out before the result card
+   replaces it; the ring stays. */
+.authentication-wait--leaving
+  :is(.seams-menu-origin, .seams-back-button, .seams-waiting-message, .seams-auth-footer) {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
 .authentication-result:focus {
   outline: none;
 }
 
 /* An anchored result replaces the SDK card in place, so it does not slide in:
    the slide would move the ring. It keeps the SDK card's height until the
-   seal lands, then grows downward while the text rises into the new room. */
+   seal lands, then grows about its centre while the text fades in. */
 .authentication-result--anchored {
   overflow: hidden;
   animation: authentication-result-grow 380ms cubic-bezier(0.32, 0.72, 0, 1) 640ms both;
@@ -96,7 +104,7 @@
 .authentication-result h1,
 .authentication-result p,
 .authentication-result__actions {
-  animation: authentication-result-rise 360ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: authentication-result-fade 360ms ease-out both;
 }
 
 .authentication-result h1 {
@@ -214,11 +222,9 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 @keyframes authentication-result-grow {
   from {
     height: var(--authentication-result-from-height);
-    translate: var(--authentication-result-from-translate);
   }
   to {
     height: var(--authentication-result-to-height);
-    translate: var(--authentication-result-to-translate);
   }
 }
 
@@ -257,10 +263,9 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
   }
 }
 
-@keyframes authentication-result-rise {
+@keyframes authentication-result-fade {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 }
 

@@ -131,6 +131,7 @@ function show(model: AuthMenuViewModel): void {
   cancelApproval();
   result.hidden = true;
   if (state.kind === 'menu') {
+    state.handle.element.classList.remove('authentication-wait--leaving');
     const manual = state.handle.element.contains(document.activeElement);
     if (!manual) state.handle.element.inert = true;
     state.handle.update(model);
@@ -167,6 +168,8 @@ function approveLink(): void {
 // The busy spinner closes into the check before the actions appear. The
 // actions stay disabled until then, so the canvas player waits for them too.
 const resultEntryMilliseconds = 1000;
+const waitMilliseconds = 1000;
+const waitFadeMilliseconds = 200;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 type RingAnchor = {
@@ -198,24 +201,19 @@ function anchorResult(anchor: RingAnchor | null): void {
   result.style.translate = '';
   result.style.removeProperty('--authentication-result-from-height');
   result.style.removeProperty('--authentication-result-to-height');
-  result.style.removeProperty('--authentication-result-from-translate');
-  result.style.removeProperty('--authentication-result-to-translate');
   const icon = result.querySelector('.authentication-result__icon');
   if (!anchor || !icon) return;
   const padding = parseFloat(getComputedStyle(result).paddingTop);
   const offset = icon.getBoundingClientRect().top - result.getBoundingClientRect().top;
   result.style.paddingTop = `${padding + anchor.ringTop - anchor.cardTop - offset}px`;
+  // The card opens from the SDK card's height to its own as the text fades
+  // in. The stage centres the card, so it grows up and down about the SDK
+  // card's centre; the shift places that centre where the SDK card's was.
   const box = result.getBoundingClientRect();
-  const shift = anchor.cardTop - box.top;
-  result.style.translate = `0 ${shift}px`;
-  // The card opens from the SDK card's height to its own as the text rises.
-  // The stage centres the card, so the shift starts half the growth higher
-  // and the top edge holds while the card grows.
   const growth = box.height - anchor.cardHeight;
+  result.style.translate = `0 ${anchor.cardTop - box.top - growth / 2}px`;
   result.style.setProperty('--authentication-result-from-height', `${anchor.cardHeight}px`);
   result.style.setProperty('--authentication-result-to-height', `${box.height}px`);
-  result.style.setProperty('--authentication-result-from-translate', `0 ${shift - growth / 2}px`);
-  result.style.setProperty('--authentication-result-to-translate', `0 ${shift}px`);
 }
 
 function complete(heading: string, message: string): void {
@@ -272,7 +270,15 @@ function promptAuthentication(mode: 'login' | 'register', method: 'passkey' | 'g
         }
       : { kind: 'busy', headline: 'Signing you in…' };
   show(mode === 'register' ? registration(status) : login(status));
-  cancelApproval = schedulePlayback(() => finishAuthentication(mode), 2000);
+  if (reducedMotion.matches) {
+    cancelApproval = schedulePlayback(() => finishAuthentication(mode), waitMilliseconds);
+    return;
+  }
+  // The wait's text fades out before the result replaces the card.
+  cancelApproval = schedulePlayback(() => {
+    if (state.kind === 'menu') state.handle.element.classList.add('authentication-wait--leaving');
+    cancelApproval = schedulePlayback(() => finishAuthentication(mode), waitFadeMilliseconds);
+  }, waitMilliseconds - waitFadeMilliseconds);
 }
 
 function recover(method: 'passkey' | 'google'): void {

@@ -101,7 +101,7 @@ result.innerHTML = `
       <circle class="authentication-result__track" cx="28" cy="28" r="26.75" stroke-width="2.5" />
       <circle class="authentication-result__arc" cx="28" cy="28" r="26.75" stroke-width="2.5" pathLength="100" />
       <circle class="authentication-result__seal" cx="28" cy="28" r="28" />
-      <path class="authentication-result__check" d="M36.7 21.5 24.75 33.4l-5.4-5.4" stroke-width="2.7" pathLength="1" />
+      <path class="authentication-result__check" d="M36.7 21.5 24.75 33.4l-5.4-5.4" stroke-width="3.2" pathLength="1" />
     </svg>
   </span>
   <h1></h1>
@@ -209,8 +209,17 @@ function finishAuthentication(mode: 'login' | 'register'): void {
   else complete("You're in", 'Your wallet is unlocked.');
 }
 
-function promptAuthentication(mode: 'login' | 'register'): void {
-  const status: AuthMenuLoginViewModel['status'] = { kind: 'busy', headline: 'Signing you in…' };
+// A passkey wait shows the SDK's passkey ring; the result card's ring then
+// closes into the check in the same place.
+function promptAuthentication(mode: 'login' | 'register', method: 'passkey' | 'google'): void {
+  const status: AuthMenuLoginViewModel['status'] =
+    method === 'passkey'
+      ? {
+          kind: 'busy',
+          headline: mode === 'register' ? 'Creating passkey wallet…' : 'Unlocking wallet…',
+          illustration: 'passkey',
+        }
+      : { kind: 'busy', headline: 'Signing you in…' };
   show(mode === 'register' ? registration(status) : login(status));
   cancelApproval = schedulePlayback(() => finishAuthentication(mode), 2000);
 }
@@ -237,11 +246,11 @@ function onIntent(intent: AuthMenuIntent): void {
       if (state.kind === 'menu') show(intent.mode === 'register' ? registration() : login());
       return;
     case 'submit':
-      promptAuthentication(intent.mode);
+      promptAuthentication(intent.mode, 'passkey');
       return;
     case 'external_auth':
       if (state.kind === 'menu' && state.model.kind === 'recovery') completeRecovery();
-      else if (state.kind === 'menu') promptAuthentication(state.model.mode);
+      else if (state.kind === 'menu') promptAuthentication(state.model.mode, 'google');
       return;
     case 'link_device_open':
       openLink();

@@ -3534,8 +3534,11 @@ body:has(.h2-page) {
 .h2-consoleband__screen {
   position: absolute;
   inset-inline-start: 4%;
-  /* front card: 10% of the stage's height from the top */
-  inset-block-start: 10%;
+  /* Front card. The back card rises 7% of the stage's height above it
+     (see the transform below), so this puts the back card's top 33px down:
+     clear of the 21px lower half of the switch on the border, with a 12px
+     gap, at every width. */
+  inset-block-start: calc(7% + 33px);
   width: 80%;
   overflow: hidden;
   border-radius: 14px;

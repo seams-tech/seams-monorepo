@@ -1,0 +1,361 @@
+{
+  "purpose": "Measure D1 directly on the production Deriver B database using isolated temporary tables, without Wallet WASM or local Durable Object storage.",
+  "databaseId": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2",
+  "workerName": "seams-d1-admission-probe-409e118a",
+  "sourceSha256": "317c22abf37e0c5b19a8b84e9fef34a71c1ba48a8769780813372e520e4540d6",
+  "egressColo": "colo=SIN",
+  "primaryColos": [
+    "SIN"
+  ],
+  "allQueriesPrimary": true,
+  "attemptCounts": [
+    1
+  ],
+  "groups": {
+    "read": {
+      "count": 60,
+      "medianMs": 7.0,
+      "minMs": 6,
+      "maxMs": 12,
+      "above100ms": 0,
+      "maxSqlMs": 0.47400000000000003,
+      "changedDbValues": [
+        false
+      ],
+      "firstStatementRowChanges": [
+        0
+      ],
+      "firstStatementRowsWritten": [
+        0
+      ]
+    },
+    "unchanged": {
+      "count": 60,
+      "medianMs": 8.0,
+      "minMs": 6,
+      "maxMs": 15,
+      "above100ms": 0,
+      "maxSqlMs": 0.6364,
+      "changedDbValues": [
+        true
+      ],
+      "firstStatementRowChanges": [
+        1
+      ],
+      "firstStatementRowsWritten": [
+        1
+      ]
+    },
+    "write": {
+      "count": 60,
+      "medianMs": 9.0,
+      "minMs": 8,
+      "maxMs": 1015,
+      "above100ms": 5,
+      "maxSqlMs": 0.7361,
+      "changedDbValues": [
+        true
+      ],
+      "firstStatementRowChanges": [
+        1
+      ],
+      "firstStatementRowsWritten": [
+        1
+      ]
+    }
+  },
+  "slowCalls": [
+    {
+      "operation": "write",
+      "sequence": 11,
+      "startedAt": 1792536886881,
+      "endedAt": 1792536887168,
+      "elapsedMs": 287,
+      "sqlMs": 0.29819999999999997,
+      "statements": [
+        {
+          "sqlMs": 0.1041,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0894,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0687,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.036,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 12,
+      "startedAt": 1792536887425,
+      "endedAt": 1792536887858,
+      "elapsedMs": 433,
+      "sqlMs": 0.4011,
+      "statements": [
+        {
+          "sqlMs": 0.1685,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0943,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0781,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0602,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 27,
+      "startedAt": 1792536891981,
+      "endedAt": 1792536892964,
+      "elapsedMs": 983,
+      "sqlMs": 0.2656,
+      "statements": [
+        {
+          "sqlMs": 0.1111,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0569,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0451,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0525,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 42,
+      "startedAt": 1792536897059,
+      "endedAt": 1792536898074,
+      "elapsedMs": 1015,
+      "sqlMs": 0.2561,
+      "statements": [
+        {
+          "sqlMs": 0.1352,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0525,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0376,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0308,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 56,
+      "startedAt": 1792536901915,
+      "endedAt": 1792536902539,
+      "elapsedMs": 624,
+      "sqlMs": 0.252,
+      "statements": [
+        {
+          "sqlMs": 0.1373,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0447,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0403,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0297,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    }
+  ],
+  "cleanup": {
+    "name": "seams-d1-admission-probe-409e118a",
+    "database": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2",
+    "phase": "complete",
+    "createdTables": [
+      "diagnostic_admission_409e118a",
+      "diagnostic_root_409e118a"
+    ],
+    "cleaned": true,
+    "workerCreationAttempted": true,
+    "versions": [
+      {
+        "version_id": "1cf918cc-3b69-4f9e-939e-63bd993660d5",
+        "percentage": 100
+      }
+    ],
+    "roleVersionsBefore": [
+      {
+        "version_id": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+        "percentage": 100
+      }
+    ],
+    "sourceSha256": "317c22abf37e0c5b19a8b84e9fef34a71c1ba48a8769780813372e520e4540d6",
+    "cleanupErrors": []
+  },
+  "limits": [
+    "Synthetic four-statement batches on two one-row diagnostic tables do not reproduce the full registration operation or establish Wallet-workload parity.",
+    "A read completes before each measured write pair, and write order alternates. The read after each 250 ms timer can include timer-related clock uncertainty.",
+    "All batches use fresh first-primary sessions. Native Worker execution colo was not independently captured; targeted placement and trace egress are recorded separately from D1 primary location.",
+    "Existing wallet rows were not mutation targets. Only the two task-created diagnostic tables were inserted, updated and dropped. Original table schemas were checked after cleanup.",
+    "This probe adds bounded database traffic. It is not a before/after performance comparison or a latency fix.",
+    "SQL duration excludes service dispatch and write acknowledgement. Internal D1 timing remains unexposed.",
+    "Fast results cannot establish a production-database-specific defect or rule out an intermittent stall."
+  ],
+  "artifacts": {
+    ".artifacts/d1-production-table-probe-20261021-retry/worker-deployed.mjs": "317c22abf37e0c5b19a8b84e9fef34a71c1ba48a8769780813372e520e4540d6",
+    ".artifacts/d1-production-table-probe-20261021-retry/run.py": "f604433afc22485f7ed1ac4579ba1554e43f0b79ba8521529ecc65a2469d4556",
+    ".artifacts/d1-production-table-probe-20261021-retry/result.json": "69537cd5a097154f9abe4e81310b4b5855eb4e2fa988a1212e6f84ffb1d41781",
+    ".artifacts/d1-production-table-probe-20261021-retry/original-schema-hashes.json": "e9feab80cff6e826c7abd5b68a27e75df634f60233a2c8236ec798167f1ce25a"
+  },
+  "finding": "Five of 60 updates that changed a stored value exceeded 100 ms, with a maximum of 1015 ms. Sixty reads and 60 updates assigning the existing value stayed at or below 15 ms. The pause reproduces without Wallet WASM or Durable Object storage. The two UPDATE forms differ in SQL text and parameter binding; an identical-SQL control follows.",
+  "limitationsOfChangedDbMetadata": "D1 reports changed_db=true and one row written for both update categories. These fields alone do not identify a physical durable write."
+}

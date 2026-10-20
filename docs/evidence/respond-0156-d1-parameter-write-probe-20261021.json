@@ -1,0 +1,368 @@
+{
+  "purpose": "Measure D1 directly on the production Deriver B database using isolated temporary tables, without Wallet WASM or local Durable Object storage.",
+  "databaseId": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2",
+  "workerName": "seams-d1-admission-probe-f48dd7af",
+  "sourceSha256": "929926faf0a368cac72eb72f0d5f49aa675d570beac15c6b1798d264fb158086",
+  "egressColo": "colo=SIN",
+  "primaryColos": [
+    "SIN"
+  ],
+  "allQueriesPrimary": true,
+  "attemptCounts": [
+    1
+  ],
+  "groups": {
+    "read": {
+      "count": 60,
+      "medianMs": 6.0,
+      "minMs": 5,
+      "maxMs": 9,
+      "above100ms": 0,
+      "maxSqlMs": 0.7311,
+      "changedDbValues": [
+        false
+      ],
+      "firstStatementRowChanges": [
+        0
+      ],
+      "firstStatementRowsWritten": [
+        0
+      ]
+    },
+    "unchanged": {
+      "count": 60,
+      "medianMs": 7.0,
+      "minMs": 5,
+      "maxMs": 10,
+      "above100ms": 0,
+      "maxSqlMs": 1.9348,
+      "changedDbValues": [
+        true
+      ],
+      "firstStatementRowChanges": [
+        1
+      ],
+      "firstStatementRowsWritten": [
+        1
+      ]
+    },
+    "write": {
+      "count": 60,
+      "medianMs": 8.0,
+      "minMs": 6,
+      "maxMs": 1057,
+      "above100ms": 4,
+      "maxSqlMs": 0.43389999999999995,
+      "changedDbValues": [
+        true
+      ],
+      "firstStatementRowChanges": [
+        1
+      ],
+      "firstStatementRowsWritten": [
+        1
+      ]
+    }
+  },
+  "slowCalls": [
+    {
+      "operation": "write",
+      "sequence": 11,
+      "startedAt": 1792537077087,
+      "endedAt": 1792537077581,
+      "elapsedMs": 494,
+      "sqlMs": 0.2977,
+      "statements": [
+        {
+          "sqlMs": 0.1258,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0473,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0567,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0679,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 27,
+      "startedAt": 1792537081919,
+      "endedAt": 1792537082785,
+      "elapsedMs": 866,
+      "sqlMs": 0.2618,
+      "statements": [
+        {
+          "sqlMs": 0.1404,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0498,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0397,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0319,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 43,
+      "startedAt": 1792537087109,
+      "endedAt": 1792537087930,
+      "elapsedMs": 821,
+      "sqlMs": 0.35810000000000003,
+      "statements": [
+        {
+          "sqlMs": 0.1546,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0777,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.066,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0598,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    },
+    {
+      "operation": "write",
+      "sequence": 58,
+      "startedAt": 1792537091981,
+      "endedAt": 1792537093038,
+      "elapsedMs": 1057,
+      "sqlMs": 0.3839,
+      "statements": [
+        {
+          "sqlMs": 0.1749,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 1,
+          "changedDb": true,
+          "rowsRead": 1,
+          "rowsWritten": 1
+        },
+        {
+          "sqlMs": 0.0702,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0774,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        },
+        {
+          "sqlMs": 0.0614,
+          "attempts": 1,
+          "colo": "SIN",
+          "primary": true,
+          "changes": 0,
+          "changedDb": false,
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ]
+    }
+  ],
+  "cleanup": {
+    "name": "seams-d1-admission-probe-f48dd7af",
+    "database": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2",
+    "phase": "complete",
+    "createdTables": [
+      "diagnostic_admission_f48dd7af",
+      "diagnostic_root_f48dd7af"
+    ],
+    "cleaned": true,
+    "workerCreationAttempted": true,
+    "versions": [
+      {
+        "version_id": "bcd3197c-3e09-4ce9-a911-8af8871bf64e",
+        "percentage": 100
+      }
+    ],
+    "roleVersionsBefore": [
+      {
+        "version_id": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+        "percentage": 100
+      }
+    ],
+    "sourceSha256": "929926faf0a368cac72eb72f0d5f49aa675d570beac15c6b1798d264fb158086",
+    "cleanupErrors": []
+  },
+  "limits": [
+    "Synthetic four-statement batches on two one-row diagnostic tables do not reproduce the full registration operation or establish Wallet-workload parity.",
+    "A read completes before each measured write pair, and write order alternates. The read after each 250 ms timer can include timer-related clock uncertainty.",
+    "All batches use fresh first-primary sessions. Native Worker execution colo was not independently captured; targeted placement and trace egress are recorded separately from D1 primary location.",
+    "Existing wallet rows were not mutation targets. Only the two task-created diagnostic tables were inserted, updated and dropped. Original table schemas were checked after cleanup.",
+    "This probe adds bounded database traffic. It is not a before/after performance comparison or a latency fix.",
+    "SQL duration excludes service dispatch and write acknowledgement. Internal D1 timing remains unexposed.",
+    "Fast results cannot establish a production-database-specific defect or rule out an intermittent stall."
+  ],
+  "artifacts": {
+    ".artifacts/d1-production-parameter-probe-20261021/worker-deployed.mjs": "929926faf0a368cac72eb72f0d5f49aa675d570beac15c6b1798d264fb158086",
+    ".artifacts/d1-production-parameter-probe-20261021/run.py": "f604433afc22485f7ed1ac4579ba1554e43f0b79ba8521529ecc65a2469d4556",
+    ".artifacts/d1-production-parameter-probe-20261021/result.json": "3cc271105e1b53618ca6b442dec941f724eb48cfe6b484e51bfc14174defed06",
+    ".artifacts/d1-production-parameter-probe-20261021/original-schema-hashes.json": "e9feab80cff6e826c7abd5b68a27e75df634f60233a2c8236ec798167f1ce25a"
+  },
+  "finding": "With identical parameterized UPDATE text and binding shape, 4 of 60 updates changing the stored value took 494\u20131057 ms. All 60 updates assigning the existing value took 5\u201310 ms. The long-delay class reproduces on the production B D1 database without Wallet Rust/WASM or wallet-owned Durable Object storage.",
+  "controlledDifference": "Both update categories use UPDATE <diagnostic_table> SET value = ?1 WHERE id = 1 AND status = admitted, followed by the same three SELECT statements. Only the bound value differs: the existing value or the next sequence value. Order alternates by round.",
+  "measured": [
+    "Reads: median 6 ms, range 5\u20139 ms, 60 samples.",
+    "Existing-value updates: median 7 ms, range 5\u201310 ms, 60 samples.",
+    "Value-changing updates: median 8 ms, range 6\u20131057 ms, 60 samples. Four exceed 100 ms.",
+    "Value-changing SQL execution never exceeded 0.4339 ms. Every statement reports one attempt on the SIN primary.",
+    "Both update categories report changed_db=true and one row written.",
+    "The original database table schemas match after diagnostic cleanup. Existing wallet rows were not mutation targets."
+  ],
+  "inferred": [
+    "The reproduced pause does not require Wallet cryptography, WASM startup, or wallet-owned Durable Object storage.",
+    "SQL text and parameter-binding shape do not explain the difference in this control.",
+    "The database service path used to complete value-changing writes is the leading location of the pause."
+  ],
+  "unknown": [
+    "Internal D1 queueing, storage commit, replication acknowledgement, and response scheduling are not separately exposed.",
+    "The experiment does not identify the exact internal mechanism of the original 740 ms admission interval.",
+    "No runtime change with a verified latency improvement is established."
+  ],
+  "reproductionParity": "The same production D1 primary reproduces long waits outside SQL execution. Full Wallet admission-workload parity is not established.",
+  "causeTable": [
+    {
+      "cause": "Wallet Rust/WASM or local Durable Object storage required for the pause",
+      "status": "Contradicted for this reproduction",
+      "evidence": "Standalone JavaScript Worker with only a D1 binding reproduces 494\u20131057 ms waits."
+    },
+    {
+      "cause": "Different SQL text or parameter binding caused the update difference",
+      "status": "Contradicted in the second probe",
+      "evidence": "Both update categories use identical parameterized SQL and result reads."
+    },
+    {
+      "cause": "Slow SQL execution or automatic retries",
+      "status": "Contradicted for the observed slow calls",
+      "evidence": "SQL below 0.434 ms, one reported attempt per statement."
+    },
+    {
+      "cause": "Internal D1 value-changing write completion",
+      "status": "Leading explanation; exact mechanism unavailable",
+      "evidence": "Only updates changing the stored value stall in both runs."
+    },
+    {
+      "cause": "Timestamp artifact alone",
+      "status": "Weakened, not fully excluded",
+      "evidence": "Read completion anchors the clock before alternating writes; the clock remains a platform clock."
+    }
+  ],
+  "latencyFixStatus": "No verified runtime fix. Authorization and durability requirements remain unchanged.",
+  "precedingAttempts": [
+    {
+      "artifact": ".artifacts/d1-isolated-admission-20261021/state.json",
+      "outcome": "No Singapore primary in three bounded APAC creation attempts. All three empty task-created databases removed. No latency run."
+    },
+    {
+      "artifact": ".artifacts/d1-production-table-probe-20261021/state.json",
+      "outcome": "HTTP 403 before reaching the probe handler. Task-created Worker and tables removed. No latency result used."
+    }
+  ]
+}

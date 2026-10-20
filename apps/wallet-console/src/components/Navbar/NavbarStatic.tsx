@@ -161,7 +161,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#scale',
       icon: Rocket,
       meta: 'Volume',
-      field: 'slate-amber',
+      field: 'mauve-ember',
     },
   ],
   footerLinks: [{ label: 'Compare plans', to: '/pricing/' }],

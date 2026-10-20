@@ -24,7 +24,7 @@ export function HeroDemoCell({
 }: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return (
     <div className="h2-hero__demo" {...rest}>
-      <GrainField field="slate-amber" pace={HERO_FIELD_PACE} />
+      <GrainField field="teal-peach" pace={HERO_FIELD_PACE} />
       {children}
     </div>
   );

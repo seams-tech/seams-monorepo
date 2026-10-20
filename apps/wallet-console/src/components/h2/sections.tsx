@@ -486,7 +486,7 @@ const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
     title: 'Passkey sign-up',
     body: 'A non-custodial wallet in one call',
     icon: Fingerprint,
-    field: 'teal-peach',
+    field: 'sky-sand',
   },
   { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'periwinkle' },
 ];
@@ -705,7 +705,7 @@ export function H2Start(): React.JSX.Element {
           the open bottom edge. The banner row's top rule closes the split
           API rows above, so it carries their middle tick. */}
       <div className="h2-consolehead h2-rule h2-rule--midtick">
-        <FieldBanner field="sky-sand">
+        <FieldBanner field="teal-peach">
           <div>
             <h3 className="h2-display h2-banner__title">Wallet console</h3>
             <p className="h2-banner__sub">
@@ -1200,7 +1200,7 @@ export function H2Cta(): React.JSX.Element {
 
   return (
     <section className="h2-section h2-section--banner h2-rule" aria-labelledby="h2-cta-title">
-      <FieldBanner field="slate-amber">
+      <FieldBanner field="teal-peach">
         <div>
           <h2 id="h2-cta-title" className="h2-display h2-banner__title">
             Wallets your users can never lose

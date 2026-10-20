@@ -259,7 +259,7 @@ export function ComponentShowcase(): React.JSX.Element {
       <section className="component-showcase__intro h2-rule">
         {/* a grey card that fades into a moving gradient, as the page's
             other banners do */}
-        <FieldBanner field="azure-coral">
+        <FieldBanner field="teal-peach">
           <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
             Use built-in wallet components,
             <br />

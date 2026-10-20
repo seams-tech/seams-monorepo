@@ -94,6 +94,17 @@ expose Chromium's automatic CORS preflight. Negative timing fields mean unavaila
 The recorder never waits for OPTIONS completion; that wait can stall artifact
 collection after the signing flow finishes.
 
+Registration responses retain `cfRay` and allowlisted wallet, ceremony, and public
+protocol-session identifiers. Match Gateway requests by Ray ID. Match role admission
+logs by the hexadecimal protocol-session identifier, then follow the object's ID
+across tail events. A later event can contain logs from earlier work on that object;
+time-window proximity alone does not establish ownership.
+
+Report authentication duration beside post-passkey latency: setup preparation runs
+during authentication. Keep first-of-run samples separate from steady measurements,
+record competing lane traffic, and distinguish local assets from hosted assets.
+A first sample after an SDK deployment does not prove a cold backend.
+
 Select `--grep 'sample [123]:'` for the three main samples. Select `--grep post-idle`
 for the separate idle case. It obtains a fresh signing grant, measures one signature,
 waits 65 seconds, and measures another signature for the same wallet. It writes

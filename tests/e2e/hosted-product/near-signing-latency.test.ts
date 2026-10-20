@@ -293,12 +293,48 @@ async function registrationResponseEvidence(observations: NearEvidence) {
       path: pathname,
       status: entry.response.status(),
       serverTiming: await entry.response.headerValue('Server-Timing'),
+      cfRay: await entry.response.headerValue('cf-ray'),
+      correlationIds: registrationCorrelationIds(body),
       accountProvisioning: body.accountProvisioning ?? null,
       resolvedAccountKind: body.resolvedAccount?.kind ?? null,
       diagnostics: body.registrationDiagnostics ?? null,
     });
   }
   return responses;
+}
+
+function registrationCorrelationIds(body: unknown) {
+  const values: { field: string; value: string | number[] }[] = [];
+  collectRegistrationCorrelationIds(body, '$', values);
+  return values;
+}
+
+function collectRegistrationCorrelationIds(
+  value: unknown,
+  field: string,
+  output: { field: string; value: string | number[] }[],
+): void {
+  if (!value || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    const next = field + '.' + key;
+    if (
+      (key === 'walletId' || key === 'registrationCeremonyId' || key === 'lifecycle_id') &&
+      typeof child === 'string'
+    ) {
+      output.push({ field: next, value: child });
+    } else if (
+      key === 'session_id' && Array.isArray(child) &&
+      child.length === 32 && child.every(isPublicByte)
+    ) {
+      output.push({ field: next, value: child });
+    } else {
+      collectRegistrationCorrelationIds(child, next, output);
+    }
+  }
+}
+
+function isPublicByte(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 255;
 }
 
 test('hosted NEAR-only post-idle sample 4: same wallet and signing grant', runNearIdleBenchmark);

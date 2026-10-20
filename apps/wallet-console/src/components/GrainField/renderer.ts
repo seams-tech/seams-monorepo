@@ -16,7 +16,7 @@ export type GrainStyle = {
   speed: number;
 };
 
-export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.4, grain: 0.08, speed: 1 };
+export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.55, grain: 0.08, speed: 1.4 };
 
 export type GrainFieldHandle = {
   setPlaying(playing: boolean): void;

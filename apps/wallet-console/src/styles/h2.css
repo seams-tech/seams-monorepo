@@ -3414,12 +3414,12 @@ body:has(.h2-page) {
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  /* one inset from the column borders, as the banner card above. The top
-     leaves room for the upper half of the switch on the stage's border. The
-     stage runs off the section's bottom edge, so the shell keeps no bottom
-     padding — any gap here would float the open-bottomed card above the
-     rule instead of meeting it. */
-  padding: 40px var(--h2-inset) 0;
+  /* one inset from the column borders, as the banner card above, and 0.5rem
+     below the banner, so the switch on the stage's border overlaps the
+     banner's lower edge. The stage runs off the section's bottom edge, so
+     the shell keeps no bottom padding — any gap here would float the
+     open-bottomed card above the rule instead of meeting it. */
+  padding: 0.5rem var(--h2-inset) 0;
 }
 
 /* The stage and the switch that sits on its top border */

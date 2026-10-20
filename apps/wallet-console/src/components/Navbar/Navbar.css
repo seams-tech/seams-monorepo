@@ -241,6 +241,15 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   pointer-events: auto;
 }
 
+/* A wide pane near the bar's right edge moves the inline `left`; glide it
+   with the grid-shell's size morph, or the content jumps sideways first. */
+.navbar-static__access-popup.is-morphing {
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .navbar-static__access-card {
   position: relative;
   overflow: hidden;

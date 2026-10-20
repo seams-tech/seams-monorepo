@@ -325,7 +325,8 @@ export function NavbarStatic({
       const zoom = shell.offsetWidth ? shellRect.width / shell.offsetWidth : 1;
       const anchor = (firstTrigger.getBoundingClientRect().left - shellRect.left) / zoom;
       // Only yield the anchor if a wide panel would overhang the bar's right edge.
-      setPopupLeft(Math.max(8, Math.min(anchor, shellRect.width / zoom - paneW - 8)));
+      // Whole pixels keep the pane text on the pixel grid when it settles.
+      setPopupLeft(Math.round(Math.max(8, Math.min(anchor, shellRect.width / zoom - paneW - 8))));
     }
     setPaneMorphEnabled(previousOpen !== null && previousOpen !== openDropdown);
     setPaneSize({ w: paneW, h: paneH });

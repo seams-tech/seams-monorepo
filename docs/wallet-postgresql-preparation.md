@@ -4,6 +4,8 @@ The Wallet role store now exposes explicit transaction requirements through its 
 [Wallet storage portability](../../seams-wallet/docs/storage-portability.md)
 describes the public implementation and its remaining SQL work.
 PostgreSQL support remains unimplemented and untested.
+The target is one PostgreSQL implementation that can use RDS or another PostgreSQL provider.
+Provider credentials, TLS, connection setup, and pooling belong at the host boundary.
 
 This change covers the Rust tenant-root role store in `seams-wallet`.
 The private Console and Gateway composition still use D1.

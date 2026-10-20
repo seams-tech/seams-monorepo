@@ -1,0 +1,353 @@
+{
+  "date": "2026-10-20",
+  "finding": "Two serial WASM downloads after server finalization explain most of the roughly 600 ms gap beyond respond and finalize in a traced hosted registration.",
+  "scope": "Post-passkey registration. Hosted measurements use published SDK 0.15.4 and unchanged staging backend. Passkey interaction duration is excluded.",
+  "measurement": {
+    "stages": "Sequential SDK near_only stages. Nested session_hydration diagnostics are excluded to prevent double counting.",
+    "assets": "Playwright request.timing responseEnd measures browser request elapsed time. Observer offsets locate requests within stages; they are not used to calculate transfer duration.",
+    "control": "Local HTTPS asset server with 250 ms response delay for each of the two WASM files. Remote staging Gateway remains unchanged. No browser request interception.",
+    "candidate": "Current dev TypeScript build (package version 0.15.5), with exact published 0.15.4 WASM bytes copied into the test asset tree. This is a focused asset-loading reproduction, not a production latency claim.",
+    "overlap": "The second final candidate delays the main-thread Yao asset by 6000 ms. Activation must join the pending initialization. Exactly one fetch and a valid subsequent signature are required."
+  },
+  "hostedSamples": [
+    {
+      "rawArtifact": ".artifacts/registration-asset-timing-20261020/00-current-remote/group-01/registration-1.json",
+      "rawSha256": "738a402c1d48c87b13a9c53eb0363858bebe605e29cfd25cf6b021a59d7e57cb",
+      "postPasskeyMs": 4701,
+      "sequentialStagesMs": {
+        "respond": 3121.5,
+        "custody": 12.3,
+        "provision_checkpoint": 3,
+        "finalize": 968.2,
+        "publication": 19.4,
+        "session_hydration": 8,
+        "material_activation": 300.6,
+        "export_capability": 265.6,
+        "wallet_ready": 2.4
+      },
+      "stageSumMs": 4701.0,
+      "gapBeyondRespondAndFinalizeMs": 611.3,
+      "activationAndExportMs": 566.2,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 289.501,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.4,
+          "requestObservedAfterAuthenticationMs": 4125.538
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 257.145,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.975,
+          "requestObservedAfterAuthenticationMs": 4426.471
+        }
+      ],
+      "assetRequestElapsedTotalMs": 546.646,
+      "gapLessAssetRequestsMs": 64.654,
+      "verifiedSignatureAndSignedFieldTampering": true
+    },
+    {
+      "rawArtifact": ".artifacts/registration-asset-timing-20261020/02-current-remote/group-01/registration-1.json",
+      "rawSha256": "521dec761993a1f16b15dd99be0d115ebd894dc4478ae55e83f2fad576e9dcda",
+      "postPasskeyMs": 2976,
+      "sequentialStagesMs": {
+        "respond": 1827,
+        "custody": 11.3,
+        "provision_checkpoint": 2.6,
+        "finalize": 663.5,
+        "publication": 12.8,
+        "session_hydration": 7.2,
+        "material_activation": 246.4,
+        "export_capability": 203.8,
+        "wallet_ready": 1.9
+      },
+      "stageSumMs": 2976.5,
+      "gapBeyondRespondAndFinalizeMs": 485.5,
+      "activationAndExportMs": 450.2,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 232.864,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.534,
+          "requestObservedAfterAuthenticationMs": 2513.374
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 196.297,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 1.105,
+          "requestObservedAfterAuthenticationMs": 2760.46
+        }
+      ],
+      "assetRequestElapsedTotalMs": 429.161,
+      "gapLessAssetRequestsMs": 56.339,
+      "verifiedSignatureAndSignedFieldTampering": true
+    }
+  ],
+  "localAssetSamples": [
+    {
+      "rawArtifact": ".artifacts/registration-asset-timing-20261020/01-current-local/group-01/registration-1.json",
+      "rawSha256": "a02b7c08a24b4ba453b15083a425d406292e69e2dd78d8ce5cebc01b083fbe1e",
+      "postPasskeyMs": 2774,
+      "sequentialStagesMs": {
+        "respond": 1430.2,
+        "custody": 10,
+        "provision_checkpoint": 5.9,
+        "finalize": 1285.5,
+        "publication": 15.1,
+        "session_hydration": 8.2,
+        "material_activation": 12.2,
+        "export_capability": 6,
+        "wallet_ready": 1.1
+      },
+      "stageSumMs": 2774.2,
+      "gapBeyondRespondAndFinalizeMs": 58.3,
+      "activationAndExportMs": 18.2,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 3.169,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.59,
+          "requestObservedAfterAuthenticationMs": 2748.048
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 1.527,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.656,
+          "requestObservedAfterAuthenticationMs": 2760.206
+        }
+      ],
+      "assetRequestElapsedTotalMs": 4.696,
+      "gapLessAssetRequestsMs": 53.604,
+      "verifiedSignatureAndSignedFieldTampering": true
+    },
+    {
+      "rawArtifact": ".artifacts/registration-asset-timing-20261020/03-current-local/group-01/registration-1.json",
+      "rawSha256": "e8dcf657f25f8d095053e21a50aa6ab7675dbf114392369797be458bfbad3793",
+      "postPasskeyMs": 1566,
+      "sequentialStagesMs": {
+        "respond": 1074.9,
+        "custody": 10.4,
+        "provision_checkpoint": 3.9,
+        "finalize": 438.1,
+        "publication": 11.5,
+        "session_hydration": 6.7,
+        "material_activation": 11.3,
+        "export_capability": 7.2,
+        "wallet_ready": 1.8
+      },
+      "stageSumMs": 1565.8,
+      "gapBeyondRespondAndFinalizeMs": 53.0,
+      "activationAndExportMs": 18.5,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 2.922,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.614,
+          "requestObservedAfterAuthenticationMs": 1538.997
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 1.491,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.644,
+          "requestObservedAfterAuthenticationMs": 1550.343
+        }
+      ],
+      "assetRequestElapsedTotalMs": 4.413,
+      "gapLessAssetRequestsMs": 48.587,
+      "verifiedSignatureAndSignedFieldTampering": true
+    }
+  ],
+  "delayedAssetControls": [
+    {
+      "rawArtifact": ".artifacts/registration-wasm-prewarm-20261020/00-control/group-01/registration-1.json",
+      "rawSha256": "4ad6e4579a8aa20f82899002c537b30072ebc7554bfbd445f6dd0dcbec6bb1c0",
+      "postPasskeyMs": 3189,
+      "sequentialStagesMs": {
+        "respond": 2049.2,
+        "custody": 8.1,
+        "provision_checkpoint": 4.6,
+        "finalize": 588.9,
+        "publication": 12,
+        "session_hydration": 8.1,
+        "material_activation": 260,
+        "export_capability": 256.4,
+        "wallet_ready": 1.6
+      },
+      "stageSumMs": 3188.9,
+      "gapBeyondRespondAndFinalizeMs": 550.9,
+      "activationAndExportMs": 516.4,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 252.863,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.588,
+          "requestObservedAfterAuthenticationMs": 2664.505
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 251.943,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.588,
+          "requestObservedAfterAuthenticationMs": 2924.547
+        }
+      ],
+      "assetRequestElapsedTotalMs": 504.806,
+      "gapLessAssetRequestsMs": 46.094,
+      "verifiedSignatureAndSignedFieldTampering": true
+    },
+    {
+      "rawArtifact": ".artifacts/registration-wasm-prewarm-20261020/03-control/group-01/registration-1.json",
+      "rawSha256": "a5ce2d7e634369b701337af3b747ad222bdf2e3d1be56ef8c853964d4e537608",
+      "postPasskeyMs": 2334,
+      "sequentialStagesMs": {
+        "respond": 913.7,
+        "custody": 8.7,
+        "provision_checkpoint": 2.4,
+        "finalize": 857.2,
+        "publication": 13.2,
+        "session_hydration": 7.7,
+        "material_activation": 269.7,
+        "export_capability": 260,
+        "wallet_ready": 1.4
+      },
+      "stageSumMs": 2334.0,
+      "gapBeyondRespondAndFinalizeMs": 563.1,
+      "activationAndExportMs": 529.7,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 258,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 0.036,
+          "requestObservedAfterAuthenticationMs": 1796.017
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 253.411,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": 1.424,
+          "requestObservedAfterAuthenticationMs": 2066.062
+        }
+      ],
+      "assetRequestElapsedTotalMs": 511.411,
+      "gapLessAssetRequestsMs": 51.689,
+      "verifiedSignatureAndSignedFieldTampering": true
+    }
+  ],
+  "finalCandidateSamples": [
+    {
+      "rawArtifact": ".artifacts/registration-wasm-prewarm-verified-20261020/00-candidate/group-01/registration-1.json",
+      "rawSha256": "7bc348246fe79053985f5ccd869b11653369117a9f4470b5d95b87a35fd5649e",
+      "postPasskeyMs": 2463,
+      "sequentialStagesMs": {
+        "respond": 1567,
+        "custody": 14,
+        "provision_checkpoint": 3.9,
+        "finalize": 846.1,
+        "publication": 13.7,
+        "session_hydration": 7.8,
+        "material_activation": 6.3,
+        "export_capability": 3,
+        "wallet_ready": 1.1
+      },
+      "stageSumMs": 2462.9,
+      "gapBeyondRespondAndFinalizeMs": 49.9,
+      "activationAndExportMs": 9.3,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 251.835,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": -4336.003,
+          "requestObservedAfterAuthenticationMs": -1889.467
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 251.737,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": -3137.614,
+          "requestObservedAfterAuthenticationMs": -684.838
+        }
+      ],
+      "verifiedSignatureAndSignedFieldTampering": true
+    },
+    {
+      "rawArtifact": ".artifacts/registration-wasm-prewarm-verified-20261020/01-candidate-overlap/group-01/registration-1.json",
+      "rawSha256": "c477e7bcb0bfd09a87de31246c75717d784742bcb465a910f7e9e80ea1aa8649",
+      "postPasskeyMs": 4131,
+      "sequentialStagesMs": {
+        "respond": 1744.2,
+        "custody": 14.6,
+        "provision_checkpoint": 3.9,
+        "finalize": 643.1,
+        "publication": 9.9,
+        "session_hydration": 5.5,
+        "material_activation": 1706,
+        "export_capability": 2.7,
+        "wallet_ready": 1.1
+      },
+      "stageSumMs": 4131.0,
+      "gapBeyondRespondAndFinalizeMs": 1743.7,
+      "activationAndExportMs": 1708.7,
+      "assets": [
+        {
+          "path": "/sdk/router_ab_ed25519_yao_client_bg.wasm",
+          "browserRequestElapsedMs": 6005.464,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": -4307.536,
+          "requestObservedAfterAuthenticationMs": -1894.403
+        },
+        {
+          "path": "/sdk/workers/wasm_signer_worker_bg.wasm",
+          "browserRequestElapsedMs": 252.341,
+          "requestsObserved": 1,
+          "requestObservedAfterPriorStageMs": -4345.013,
+          "requestObservedAfterAuthenticationMs": -225.739
+        }
+      ],
+      "verifiedSignatureAndSignedFieldTampering": true
+    }
+  ],
+  "sdkFixCommit": "4e4d825e",
+  "fix": [
+    "Start main-thread Yao module initialization in shared NEAR passkey registration warmup, including the NEAR-only path.",
+    "Start near-signer module initialization when the NEAR custody ceremony begins, overlapping the Router request.",
+    "Share one retryable main-thread module initialization promise, so overlapping preload and activation cannot replace the live WASM instance.",
+    "Keep capability establishment, session validation, persistence, and secret operations in their original authorized order."
+  ],
+  "comparisonLimits": [
+    "The historical 0.13 baseline served iframe assets locally. It hid these network transfers.",
+    "The three affected registration/client/worker source files did not change between the published 0.13 and 0.15.4 commits. The measured asset cost is not evidence of a newly introduced 0.15 SDK computation cost.",
+    "The earlier pooled 588 ms local SDK gap vanished in tighter interleaving: 1768 ms vs 1777.5 ms medians. Route composition differed in the pooled comparison.",
+    "This fix does not explain the separate NRT production warmup with 5021 ms respond and 6769 ms post-passkey duration. A/B elapsed protocol time greatly exceeded own invocation CPU; the precise backend wait remains unresolved.",
+    "Production has not received this SDK change. No production latency improvement is claimed."
+  ],
+  "otherInvestigations": {
+    "network": "Fixed-address probes reproduced PDX TCP connect around 131 ms followed by NRT around 11 ms at the same address. This establishes transport variation before Wallet execution.",
+    "storage": "Staging A/B storage-sync observer was removed and all original worker versions restored. No multi-second acknowledgement was captured. Route changes confounded aggregate before/observed/after latency, so no storage speedup is claimed."
+  },
+  "validation": {
+    "sdkBuildIncludingTypeScript": "passed",
+    "bloatRatchet": "passed",
+    "finalCandidateRegistrationAndSignatureProofs": 2,
+    "sourceFiles": [
+      "packages/wallet/src/SeamsWeb/operations/registration/registration.ts",
+      "packages/wallet/src/core/signingEngine/threshold/ed25519/yaoClient.ts",
+      "packages/wallet/src/core/signingEngine/workerManager/workers/wallet-custody-ceremony.worker.ts"
+    ],
+    "sourceSha256": {
+      "packages/wallet/src/SeamsWeb/operations/registration/registration.ts": "bc5b92e2418900d2d182e8e9b0ca532715ecfe49b5d0820815f9ef1bb103bf3c",
+      "packages/wallet/src/core/signingEngine/threshold/ed25519/yaoClient.ts": "5f182a74cee3d38996f47010aac3f44f7a293a1af7e94d9721fd61e4206a382f",
+      "packages/wallet/src/core/signingEngine/workerManager/workers/wallet-custody-ceremony.worker.ts": "4d973e7225966df2ab46c749bf5322cc66183a124c46305003e765a22a50cba2"
+    }
+  }
+}

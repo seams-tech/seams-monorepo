@@ -11,8 +11,8 @@ Platform owns payment methods, credit policy, invoices, and collection. Products
 continue to report durable usage through the existing account integration.
 
 This feature builds on [Shared Account Platform](feat-1-shared-account-platform.md).
-It is independent of the [Console split](feat-2-platform-console.md). It requires
-no frontend moves, new Worker, new database, or new subscription engine.
+It uses the existing Console compositions. It requires no frontend moves,
+new Worker, new database, or new subscription engine.
 
 ## Terminology and scope
 

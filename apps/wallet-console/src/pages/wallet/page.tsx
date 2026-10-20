@@ -30,6 +30,7 @@ export function WalletPage(): React.JSX.Element {
         <H2Networks />
         <ComponentShowcase />
         <H2Start />
+        <H2Spacer />
         <H2Security />
         <H2Spacer />
         <H2Cta />

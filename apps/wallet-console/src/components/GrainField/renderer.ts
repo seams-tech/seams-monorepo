@@ -16,7 +16,7 @@ export type GrainStyle = {
   speed: number;
 };
 
-export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.55, grain: 0.08, speed: 1.4 };
+export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.75, grain: 0.08, speed: 1.9 };
 
 export type GrainFieldHandle = {
   setPlaying(playing: boolean): void;
@@ -37,6 +37,8 @@ type View = {
   height: number;
   /* seconds of motion so far; a paused field resumes where it stopped */
   clock: number;
+  /* scales the style's distortion for this field alone */
+  flow: number;
   /* needs a frame even while paused: new, resized or restored */
   stale: boolean;
 };
@@ -302,7 +304,7 @@ function draw(view: View): void {
   gl.uniform2f(gpu.cover, cover ? width / side : 1, cover ? height / side : 1);
   gl.uniform1f(gpu.time, view.clock);
   gl.uniform1f(gpu.seed, view.seed);
-  gl.uniform1f(gpu.distortion, style.distortion);
+  gl.uniform1f(gpu.distortion, style.distortion * view.flow);
   gl.uniform1f(gpu.grain, style.grain);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   /* the viewport sits at the bottom left of the shared canvas; copy it out
@@ -364,6 +366,7 @@ function deviceSide(side: number): number {
 export function addGrainField(
   canvas: HTMLCanvasElement,
   source: GrainFieldSource,
+  flow = 1,
 ): GrainFieldHandle {
   watchEnvironment();
   const view: View = {
@@ -376,6 +379,7 @@ export function addGrainField(
     width: 0,
     height: 0,
     clock: 0,
+    flow,
     stale: true,
   };
   views.add(view);

@@ -174,6 +174,11 @@ body:has(.h2-page) {
   font-size: 15px;
 }
 
+/* the stripe arrow trails the label at the button's own 7px gap */
+.h2-btn .stripe-arrow > .HoverArrow {
+  margin-left: 0;
+}
+
 /* ---------- flat navbar (structural reskin of NavbarStatic on this page) ---------- */
 
 .h2-page .navbar-static {
@@ -331,6 +336,12 @@ body:has(.h2-page) {
 
 .h2-section {
   padding: 86px 0;
+}
+
+/* variant for a section that holds a banner card: the card sits 0.5rem in
+   from the rules (before --flush-bottom, which still wins below) */
+.h2-section--banner {
+  padding-block: 0.5rem;
 }
 
 /* variant for sections whose content should hug the surrounding rules */
@@ -1648,7 +1659,7 @@ body:has(.h2-page) {
 /* ---------- networks strip: brand-mark lockups ---------- */
 
 .h2-logos {
-  padding-block: 4rem 5rem;
+  padding-block: 1.75rem 2rem;
 }
 
 .h2-logos__row {
@@ -1867,22 +1878,11 @@ body:has(.h2-page) {
 .h2-fork__chip {
   width: 16px;
   height: 16px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border-radius: 5px;
-  background-size: cover;
-  background-position: center;
   box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
-}
-
-.h2-fork__chip--wallet {
-  background-image: url('/gradients/web/sky-sand.jpg');
-}
-
-.h2-fork__chip--harness {
-  background-image: url('/gradients/web/cyan-lime.jpg');
-}
-
-.h2-fork__chip--api {
-  background-image: url('/gradients/web/dusk-blue-mauve.jpg');
 }
 
 .h2-hero__note {
@@ -2947,7 +2947,9 @@ body:has(.h2-page) {
   display: grid;
   grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
   gap: 58px;
-  align-items: start;
+  /* centre the text column on the figure so the copy spans the same band
+     as the drawing instead of stopping high above the pager */
+  align-items: center;
 }
 
 .h2-security__title {
@@ -2956,14 +2958,19 @@ body:has(.h2-page) {
 }
 
 .h2-security__item {
-  margin-bottom: 26px;
+  margin-bottom: 36px;
   max-width: 432px;
+}
+
+/* no trailing margin, or the centred column sits half a gap high */
+.h2-security__item:last-child {
+  margin-bottom: 0;
 }
 
 .h2-security__item h3 {
   margin: 0 0 7px;
   font-size: var(--h2-text-title);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--h2-ink);
 }
 
@@ -2972,6 +2979,8 @@ body:has(.h2-page) {
   font-size: var(--h2-text-xl);
   line-height: 1.6;
   color: var(--h2-smoke);
+  /* no one-word last line when a narrow column wraps the body */
+  text-wrap: pretty;
 }
 
 .h2-security__visuals {
@@ -3203,31 +3212,20 @@ body:has(.h2-page) {
 
 /* ---------- get-started band (stacked two-column rows) ---------- */
 
+/* the heading is a banner card, 0.5rem above the first row's rule */
 .h2-starthead {
-  display: block;
-  padding-bottom: 50px;
+  margin-bottom: 0.5rem;
 }
 
-/* the band heading runs at the custody section's display scale; the wider
-   measure keeps it to two lines at that size */
-.h2-starthead .h2-eco__title {
-  font-size: clamp(27px, 2.9vw, 38px);
-  max-width: 620px;
-}
-
-.h2-starthead__cta {
-  margin-top: 24px;
-}
-
-/* the row's 50px vertical rhythm lives on the text column, not the grid, so
-   the code card can run to within 1rem of the row rules */
+/* the row's vertical rhythm lives on the text column, not the grid, so the
+   code card can run to within 0.5rem of the row rules */
 .h2-startrow__grid {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
-  padding-top: 16px;
-  padding-bottom: 16px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 /* hairline between the two even halves; the halves pad away from it, and
@@ -3248,10 +3246,10 @@ body:has(.h2-page) {
 
 .h2-startrow__grid > .h2-code {
   align-self: stretch;
-  margin-inline-start: 16px;
-  /* run through the shell's inline padding so the right gap matches the
-     1rem clearance on the other sides */
-  margin-inline-end: -20px;
+  margin-inline-start: 0.5rem;
+  /* run through the shell's 36px inline padding so the right gap matches the
+     0.5rem clearance on the other sides */
+  margin-inline-end: calc(0.5rem - 36px);
 }
 
 .h2-startrow__text h3 {
@@ -3300,10 +3298,11 @@ body:has(.h2-page) {
 }
 
 /* The API rows follow elevenlabs.io's API rows: regular-weight titles,
-   larger copy and notes, and the copy set 48px in from the row's corner.
-   Scoped to the grid so the console band's legend keeps its own type. */
+   larger copy and notes, and the copy set 48px in from the row's corner
+   (40px here plus the grid's 0.5rem). Scoped to the grid so the console
+   band's legend keeps its own type. */
 .h2-startrow__grid > .h2-startrow__text {
-  padding-block: 32px;
+  padding-block: 40px;
   padding-inline-start: 12px;
 }
 
@@ -3325,12 +3324,12 @@ body:has(.h2-page) {
 /* the API notes stack in one column */
 .h2-startrow__grid .h2-startrow__notes {
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .h2-startrow__grid .h2-startrow__notes strong {
-  margin-bottom: 1px;
+  margin-bottom: 0;
   font-size: 15px;
   font-weight: 400;
   line-height: 22px;
@@ -3345,6 +3344,50 @@ body:has(.h2-page) {
   .h2-startrow__grid > .h2-startrow__text {
     padding: 0;
   }
+}
+
+/* API row notes: the icon sits in white on a small gradient tile, as in the
+   navbar's plans menu, with the text to its right */
+.h2-apinote {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+}
+
+.h2-apinote__tile {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  color: #ffffff;
+}
+
+.h2-apinote__tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  pointer-events: none;
+}
+
+.h2-apinote__tile svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+/* the name and its one-liner share a line; on a narrow screen the
+   one-liner wraps below the name */
+.h2-apinote__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  min-width: 0;
 }
 
 .h2-startrow__visual {
@@ -3368,6 +3411,29 @@ body:has(.h2-page) {
 
 /* legend columns track the stage split so each label sits over its screen */
 /* display-scale title, matching the custody section's heading */
+/* the band's intro runs wider than the API rows' copy, so it sets in two
+   lines, and its buttons sit closer to the tabs below */
+.h2-consoleband .h2-startrow__text {
+  padding-bottom: 0;
+}
+
+.h2-consoleband .h2-startrow__text p {
+  max-width: none;
+}
+
+/* heading and copy on the left, the call to action on the right */
+.h2-consoleband__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding-inline-end: 0;
+}
+
+.h2-consoleband__intro .h2-btn {
+  flex: none;
+}
+
 .h2-startrow__text h3.h2-consoleband__title {
   margin: 0 0 14px;
   font-size: clamp(27px, 2.9vw, 38px);
@@ -3378,7 +3444,8 @@ body:has(.h2-page) {
 
 /* legend columns track the stage split so each row sits over its screen */
 .h2-consoleband__legend {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* the two screen tiles share the full width */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: -4px;
   /* The row's fill is the widest thing in the band, so it sets the reader's
@@ -3394,7 +3461,7 @@ body:has(.h2-page) {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px;
+  padding: 10px 14px;
   border: none;
   border-radius: 14px;
   background: transparent;
@@ -3444,6 +3511,10 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
+/* The call-to-action tile is filled black like the primary buttons, so it
+   reads as the band's action and not as a third screen. It comes after the
+   tab rules so their hover ink does not darken its title, and it sets its
+   own hover color so the global link hover does not tint the arrow. */
 .h2-consoleband__stage {
   position: relative;
   overflow: hidden;
@@ -3550,6 +3621,12 @@ body:has(.h2-page) {
     grid-template-columns: 1fr 1fr;
   }
 
+  .h2-consoleband__intro {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
   /* Sized so a single 90% card very nearly fills the stage: the wide
      layout's ratio left a quarter of the band empty under the card, which
      an open bottom edge only makes more obvious. */
@@ -3598,18 +3675,18 @@ body:has(.h2-page) {
   white-space: pre;
 }
 
-/* the get-started rows' code card: white, a half-pixel ring and a soft
-   two-step lift, with readable 13px code */
+/* the get-started rows' code card: a very light beige (the banners' tint)
+   with a tight shadow for an edge, and readable 13px code */
 .h2-code--lg {
   border-radius: 20px;
   padding: 24px;
   font-size: 13px;
   line-height: 22px;
   color: var(--h2-ink);
+  background: color-mix(in srgb, var(--h2-taupe) 60%, var(--h2-bg));
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.125),
-    0 1px 1px rgba(0, 0, 0, 0.04),
-    0 2px 4px rgba(0, 0, 0, 0.04);
+    0 0 0 1px rgba(10, 10, 10, 0.05),
+    0 1px 3px rgba(10, 10, 10, 0.06);
   /* long lines still scroll on phones, without a scrollbar across the card */
   scrollbar-width: none;
 }
@@ -3664,10 +3741,6 @@ body:has(.h2-page) {
     margin-inline-start: 0;
     margin-inline-end: 0;
   }
-
-  .h2-starthead {
-    padding-bottom: 36px;
-  }
 }
 
 /* ---------- demo placeholder ---------- */
@@ -3701,182 +3774,139 @@ body:has(.h2-page) {
 
 /* ---------- closing call to action ---------- */
 
-/* The page closes on its one colour accent: a white band whose right side
-   fades into the sky-sand grain. Three mask layers draw the fade's edge, a
-   slanted sweep and two soft lobes, and each drifts on its own slow path, so
-   the boundary between white and grain keeps shifting a little. The grain is
-   its own layer: the section's pseudo-elements already draw the rule and its
-   ticks. */
-.h2-cta {
-  background: var(--h2-bg);
-}
-
-.h2-cta__grain {
-  --h2-cta-mask:
-    linear-gradient(100deg, transparent 30%, #000 58%),
-    radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent),
-    radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent);
-  position: absolute;
-  inset: 0 0 0 24%;
-  background: url('/gradients/web/sky-sand.jpg') center / cover;
-  -webkit-mask-image: var(--h2-cta-mask);
-  mask-image: var(--h2-cta-mask);
-  -webkit-mask-size:
-    120% 100%,
-    80% 170%,
-    64% 150%;
-  mask-size:
-    120% 100%,
-    80% 170%,
-    64% 150%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position:
-    30% 0%,
-    15% 20%,
-    45% 100%;
-  mask-position:
-    30% 0%,
-    15% 20%,
-    45% 100%;
-  animation: h2-cta-drift 36s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes h2-cta-drift {
-  33% {
-    -webkit-mask-position:
-      60% 0%,
-      30% 80%,
-      30% 10%;
-    mask-position:
-      60% 0%,
-      30% 80%,
-      30% 10%;
-  }
-  66% {
-    -webkit-mask-position:
-      45% 0%,
-      5% 60%,
-      55% 60%;
-    mask-position:
-      45% 0%,
-      5% 60%,
-      55% 60%;
-  }
-  100% {
-    -webkit-mask-position:
-      75% 0%,
-      25% 0%,
-      35% 90%;
-    mask-position:
-      75% 0%,
-      25% 0%,
-      35% 90%;
-  }
-}
-
-.h2-cta__inner {
-  position: relative;
+/* The shared banner: a quiet grey card with the heading on the left and the
+   actions on the right. The closing call to action and the get-started
+   heading both use it. */
+.h2-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 32px;
-  padding-block: 64px;
+  /* 0.5rem from the column borders, as from the rules */
+  margin-inline: 0.5rem;
+  padding: 52px 56px;
+  border-radius: var(--h2-radius-card);
+  /* the console tabs' highlight: 60% taupe on white */
+  background: color-mix(in srgb, var(--h2-taupe) 60%, var(--h2-bg));
 }
 
-.h2-cta__title {
+.h2-banner__title {
   margin: 0;
-  font-size: clamp(24px, 2.6vw, 34px);
-  font-weight: 400;
-  line-height: 1.12;
+  max-width: 620px;
+  font-size: clamp(27px, 2.9vw, 38px);
 }
 
-.h2-cta__sub {
-  margin: 10px 0 0;
+.h2-banner__sub {
+  margin: 12px 0 0;
   font-size: 16px;
   line-height: 24px;
   color: var(--h2-smoke);
+  text-wrap: pretty;
 }
 
-.h2-cta__actions {
+.h2-banner__actions {
   display: flex;
   flex: none;
   gap: 10px;
 }
 
-/* on the grain the outline button needs its own white ground */
-.h2-cta .h2-btn--outline {
+/* on the grey card the outline button needs its own white ground */
+.h2-banner .h2-btn--outline {
   background: var(--h2-bg);
 }
 
-@media (max-width: 760px) {
-  .h2-cta__inner {
-    flex-direction: column;
-    align-items: flex-start;
-    padding-block: 48px 56px;
-  }
-
-  /* stacked, the grain rises from the bottom behind the buttons */
-  .h2-cta__grain {
-    --h2-cta-mask:
-      linear-gradient(to bottom, transparent 52%, #000 86%),
-      radial-gradient(closest-side, rgba(0, 0, 0, 0.85), transparent),
-      radial-gradient(closest-side, rgba(0, 0, 0, 0.7), transparent);
-    inset: 0;
-    -webkit-mask-size:
-      100% 120%,
-      80% 40%,
-      70% 34%;
-    mask-size:
-      100% 120%,
-      80% 40%,
-      70% 34%;
-    -webkit-mask-position:
-      0% 30%,
-      10% 90%,
-      90% 100%;
-    mask-position:
-      0% 30%,
-      10% 90%,
-      90% 100%;
-    animation-name: h2-cta-drift-stacked;
-  }
+/* A banner that keeps its grey card at rest and fades into a moving
+   gradient field, with white copy, while it is in view (FieldBanner). */
+.h2-banner--field {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
-@keyframes h2-cta-drift-stacked {
-  50% {
-    -webkit-mask-position:
-      0% 60%,
-      70% 100%,
-      20% 85%;
-    mask-position:
-      0% 60%,
-      70% 100%,
-      20% 85%;
-  }
-  100% {
-    -webkit-mask-position:
-      0% 45%,
-      30% 80%,
-      80% 95%;
-    mask-position:
-      0% 45%,
-      30% 80%,
-      80% 95%;
-  }
+.h2-banner--field .grain-field {
+  opacity: 0;
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-banner--field.is-lit .grain-field {
+  opacity: 1;
+}
+
+.h2-banner--field .h2-banner__title,
+.h2-banner--field .h2-banner__sub {
+  transition:
+    color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    text-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .h2-cta__grain {
-    animation: none;
+  .h2-banner--field .grain-field,
+  .h2-banner--field .h2-banner__title,
+  .h2-banner--field .h2-banner__sub {
+    transition: none;
   }
 }
 
-/* ---------- blank ruled row above the closing rows ---------- */
+.h2-banner--field.is-lit .h2-banner__title {
+  color: #ffffff;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.22);
+}
+
+.h2-banner--field.is-lit .h2-banner__sub {
+  color: rgba(255, 255, 255, 0.86);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 760px) {
+  .h2-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 32px 24px;
+  }
+}
+
+/* ---------- equal ruled bands ---------- */
+
+/* Five ruled bands share one height: the network logos, the showcase
+   heading, the get-started banner, the blank row and the closing banner.
+   It fits a banner row (0.5rem insets, 52px paddings) around the taller of
+   a two-line heading and a one-line heading over the 36px subtitle. At
+   760px and below each band keeps its own height. */
+.h2-page {
+  --h2-band-title: clamp(27px, 2.9vw, 38px);
+  --h2-band-h: calc(
+    1rem + 104px + 1.08 * var(--h2-band-title) + max(1.08 * var(--h2-band-title), 36px)
+  );
+}
+
+@media (min-width: 761px) {
+  /* the card centres its copy in the band; the smaller paddings let a
+     heading that wraps below 860px still fit */
+  .h2-banner {
+    min-height: calc(var(--h2-band-h) - 1rem);
+    padding-block: 24px;
+  }
+
+  .h2-logos {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: calc(var(--h2-band-h) / 2);
+    padding-block: 0;
+  }
+}
+
+/* ---------- blank ruled row between sections ---------- */
 
 .h2-spacer {
-  height: clamp(120px, 14vw, 200px);
+  height: calc(var(--h2-band-h) / 4);
+}
+
+@media (max-width: 760px) {
+  .h2-spacer {
+    height: 24px;
+  }
 }
 
 /* ---------- footer ---------- */

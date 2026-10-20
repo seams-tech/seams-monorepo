@@ -47,8 +47,8 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 }
 
 // The keychain and the racks answer to where the pointer is, so their plays
-// sweep across each key and each cabinet; the lock and the phones run their
-// whole sequence from a single point.
+// sweep across each key and each cabinet; the lock, the phones and the
+// signing diagram run their whole sequence from a single point.
 const keychainPlay: PlayPath = [
   [210, 245, 0],
   [210, 245, 450],
@@ -85,7 +85,7 @@ const figures = {
   },
   signing: {
     title: 'Two shares, one signed transaction',
-    document: figureDocument(signing, 200, 160, []),
+    document: figureDocument(signing, 200, 160, [[200, 160, 0]]),
   },
 };
 

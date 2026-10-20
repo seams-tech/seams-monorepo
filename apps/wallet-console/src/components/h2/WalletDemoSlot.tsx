@@ -1,5 +1,6 @@
 import React from 'react';
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
+import { GrainField } from '@/components/GrainField/GrainField';
 
 function loadWalletDemo() {
   return import('./WalletDemo');
@@ -10,14 +11,28 @@ const WalletDemo = React.lazy(loadWalletDemo);
 type DemoState = { kind: 'ready' } | { kind: 'unavailable' };
 type DemoProps = { authDefaultModeWhenNoDetectedAccount?: HostedAuthMenuMode };
 
+/* The hero's demo cell: the live card on a moving gradient. Every state of
+   the cell (loading, ready, unavailable) uses it, so the gradient never
+   drops out while the demo loads. */
+export function HeroDemoCell({
+  children,
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element {
+  return (
+    <div className="h2-hero__demo" {...rest}>
+      <GrainField field="sky-sand" />
+      {children}
+    </div>
+  );
+}
+
 function reloadPage(): void {
   window.location.reload();
 }
 
 function DemoUnavailable(): React.JSX.Element {
   return (
-    <div className="h2-hero__demo">
-      <p className="h2-demo-label">Live demo</p>
+    <HeroDemoCell>
       <div className="h2-demo__unavailable" role="status">
         <p>The live demo is temporarily unavailable.</p>
         <p>You can still explore the wallet features below.</p>
@@ -25,7 +40,7 @@ function DemoUnavailable(): React.JSX.Element {
           Reload page
         </button>
       </div>
-    </div>
+    </HeroDemoCell>
   );
 }
 
@@ -39,7 +54,7 @@ export class WalletDemoSlot extends React.Component<DemoProps, DemoState> {
   render(): React.ReactNode {
     if (this.state.kind === 'unavailable') return <DemoUnavailable />;
     return (
-      <React.Suspense fallback={<div className="h2-hero__demo" aria-label="Loading live demo" />}>
+      <React.Suspense fallback={<HeroDemoCell aria-label="Loading live demo" />}>
         <WalletDemo {...this.props} />
       </React.Suspense>
     );

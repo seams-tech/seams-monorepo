@@ -10,9 +10,17 @@
   color: var(--showcase-ink);
 }
 
+/* No top padding: the demos sit close under the selector and the heading */
 .component-showcase__frame {
-  padding-top: 24px;
+  padding-top: 0;
   background: var(--h2-bg);
+}
+
+/* The canvas now starts at the section's top rule and would paint over it,
+   so the rule and its ticks rise above the canvas, still under the selector */
+.component-showcase.h2-rule::before,
+.component-showcase.h2-rule::after {
+  z-index: 3;
 }
 
 .component-showcase__selector {
@@ -27,8 +35,8 @@
   max-width: calc(100% - 44px);
   gap: 4px;
   margin: 0;
-  padding: 4px;
-  border: 1px solid var(--h2-stone);
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--h2-ink) 7%, var(--h2-bg));
   border-radius: 9999px;
   background: var(--h2-bg);
 }
@@ -55,9 +63,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: 34px;
   gap: 9px;
-  padding: 9px 16px;
+  padding: 6px 16px;
   border-radius: 9999px;
   color: var(--showcase-muted);
   font-size: 12px;
@@ -89,36 +97,47 @@
 
 .component-showcase__viewport {
   position: relative;
-  height: 660px;
+  /* 10px above and below the 620px demo frames */
+  height: 640px;
   isolation: isolate;
   overflow: clip;
 }
 
-/* The band's heading sits over the canvas's top-left corner, on the edge fade
-   and clear of the centred card, so the canvas needs no section of its own. */
-.component-showcase__title {
-  position: absolute;
-  top: 80px;
-  left: 36px;
-  z-index: 4;
-  margin: 0;
-  max-width: 300px;
-  pointer-events: none;
+/* The band's heading sits in its own ruled row above the showcase. The
+   bottom padding leaves room for the selector, which straddles the rule. */
+/* The band holds a gradient banner card 0.5rem in from the rules, as the
+   page's other banners sit. The selector, which straddles the bottom rule,
+   sits over the card's lower edge. */
+.component-showcase__intro {
+  display: flex;
+  flex-direction: column;
+  padding-block: 0.5rem;
 }
 
-/* Below 1100px the centred card reaches the corner, so the heading returns to
-   the flow above the canvas. */
-@media (max-width: 1099px) {
-  .component-showcase__title {
-    position: static;
-    max-width: none;
-    padding: 16px 36px 0;
+.component-showcase__intro .h2-banner {
+  flex: 1;
+  min-height: 0;
+}
+
+/* at 900px and below the selector has two rows and reaches about 40px into
+   the card, so the card keeps its copy clear of it */
+@media (max-width: 900px) {
+  .component-showcase__intro .h2-banner {
+    padding-bottom: 64px;
   }
 }
 
-@media (max-width: 760px) {
-  .component-showcase__title {
-    padding-inline: 22px;
+/* the size of the page's other section headings */
+.component-showcase__intro h2 {
+  margin: 0;
+  max-width: none;
+  font-size: clamp(27px, 2.9vw, 38px);
+}
+
+/* As tall as the page's other ruled bands (--h2-band-h in h2.css) */
+@media (min-width: 761px) {
+  .component-showcase__intro {
+    min-height: var(--h2-band-h);
   }
 }
 
@@ -156,6 +175,16 @@
   opacity: 1;
   z-index: 2;
   pointer-events: auto;
+}
+
+/* A demo's ghost keeps roughly the height of its live card, so the canvas
+   has no wide empty band around a demo slot that is not selected */
+.showcase-preview[data-preview='transaction-modal'] {
+  min-height: 400px;
+}
+
+.showcase-preview[data-preview='profile'] {
+  min-height: 470px;
 }
 
 .component-showcase__fade {
@@ -202,10 +231,6 @@
   height: 620px;
   border: 0;
   background: transparent;
-}
-
-.component-showcase__viewport:has(.showcase-preview__embed[data-preview='profile']) {
-  height: 820px;
 }
 
 .showcase-preview__embed[data-preview='profile'] {

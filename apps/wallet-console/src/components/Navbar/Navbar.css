@@ -34,6 +34,29 @@
   padding: 0 1rem;
 }
 
+/* Slides up out of view on a scroll down and back on a scroll up. The
+   offset clears the bar's top inset and its shadow. The transform is set
+   only while hidden: a transform on this fixed element would otherwise
+   become the containing block for its fixed descendants. Keyboard focus
+   inside the bar brings it back. */
+.navbar-static {
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar-static.is-hidden {
+  transform: translateY(calc(-100% - 48px));
+}
+
+.navbar-static.is-hidden:focus-within {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar-static {
+    transition: none;
+  }
+}
+
 .navbar-static__shell {
   position: relative;
   width: max-content;
@@ -44,13 +67,16 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   column-gap: 28px;
-  border-radius: 1rem;
-  padding: 6px 8px 6px 20px;
+  /* full pill like the page buttons; 20px inner pills + 6px padding keep the
+     curves concentric */
+  border-radius: 9999px;
+  padding: 6px 6px 6px 20px;
   border: 1px solid var(--navbar-border);
   background: var(--navbar-background);
+  /* soft and subtle: a faint contact line plus a wide, low-alpha haze */
   box-shadow:
-    0 14px 32px -20px rgba(4, 3, 14, 0.42),
-    0 3px 10px -6px rgba(4, 3, 14, 0.24);
+    0 1px 2px rgba(4, 3, 14, 0.04),
+    0 8px 24px -14px rgba(4, 3, 14, 0.12);
   transition:
     background 300ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -59,15 +85,15 @@
 .navbar-static__shell.is-scrolled {
   background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px rgba(4, 3, 14, 0.5),
-    0 4px 12px -7px rgba(4, 3, 14, 0.3);
+    0 1px 2px rgba(4, 3, 14, 0.05),
+    0 10px 28px -14px rgba(4, 3, 14, 0.16);
 }
 
 html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   background: var(--navbar-background);
   box-shadow:
-    0 18px 42px -22px rgba(15, 23, 42, 0.28),
-    0 4px 12px -7px rgba(15, 23, 42, 0.16);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px -14px rgba(15, 23, 42, 0.1);
 }
 
 .navbar-static__left {
@@ -358,6 +384,7 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   height: 32px;
   margin-top: 0;
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .navbar-static__menu-row-icon--tile::after {
@@ -517,7 +544,7 @@ html[data-seams-theme='light'] .navbar-static {
   justify-content: center;
   gap: 0.35rem;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 9999px;
   padding: 0 0.9rem;
   border: 1px solid transparent;
   font-size: 13px;
@@ -575,7 +602,7 @@ html[data-seams-theme='light'] .navbar-static {
   appearance: none;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 9999px;
   border: 1px solid var(--navbar-border);
   background: var(--navbar-surface2);
   color: var(--navbar-text);
@@ -845,7 +872,9 @@ html[data-seams-theme='light'] .navbar-static {
   .navbar-static__shell {
     width: calc(100vw - 1rem);
     min-height: 58px;
-    padding: 0.45rem 0.5rem;
+    /* 9px around the 40px toggle keeps it concentric with the 29px pill;
+       the wordmark needs more room from the round left end */
+    padding: 0.45rem 9px 0.45rem 1.1rem;
   }
 
   .navbar-static__pill--solid {

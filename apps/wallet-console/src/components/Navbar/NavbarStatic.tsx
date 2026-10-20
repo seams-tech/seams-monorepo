@@ -146,7 +146,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#starter',
       icon: Sprout,
       meta: 'Included',
-      field: 'cyan-lime',
+      field: 'periwinkle',
     },
     {
       title: 'Growth',
@@ -154,7 +154,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#growth',
       icon: TrendingUp,
       meta: 'Usage-based',
-      field: 'cobalt',
+      field: 'azure-coral',
     },
     {
       title: 'Scale',
@@ -162,7 +162,7 @@ const pricingDropdownPane: DropdownPane = {
       to: '/pricing/#scale',
       icon: Rocket,
       meta: 'Volume',
-      field: 'ember',
+      field: 'slate-amber',
     },
   ],
   footerLinks: [
@@ -272,6 +272,11 @@ export function NavbarStatic({
   const OPEN_DELAY_MS = 0;
   const CLOSE_DELAY_MS = 120;
   const SCROLL_THRESHOLD_PX = 8;
+  /* Near the top the bar always shows; past it, the bar hides on a scroll
+     down and returns on a scroll up. A small dead band ignores jitter from
+     trackpad momentum. */
+  const HIDE_AFTER_PX = 80;
+  const SCROLL_DIRECTION_DEADBAND_PX = 6;
 
   const { go, linkProps } = useSiteRouter();
   const rootRef = React.useRef<HTMLElement | null>(null);
@@ -301,6 +306,7 @@ export function NavbarStatic({
   // closed snaps to size so the panel doesn't grow out of the previous shape.
   const [paneMorphEnabled, setPaneMorphEnabled] = React.useState<boolean>(false);
   const [hasScrolled, setHasScrolled] = React.useState<boolean>(false);
+  const [isScrollHidden, setIsScrollHidden] = React.useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState<boolean>(false);
   const [isMobileProductsOpen, setIsMobileProductsOpen] = React.useState<boolean>(false);
   const [isMobileDocumentationOpen, setIsMobileDocumentationOpen] = React.useState<boolean>(false);
@@ -411,8 +417,19 @@ export function NavbarStatic({
   }, [clearDropdownTimers]);
 
   React.useEffect(() => {
+    let lastY = window.scrollY;
     const onScroll = () => {
-      setHasScrolled(window.scrollY > SCROLL_THRESHOLD_PX);
+      const y = window.scrollY;
+      setHasScrolled(y > SCROLL_THRESHOLD_PX);
+      if (y <= HIDE_AFTER_PX) {
+        setIsScrollHidden(false);
+        lastY = y;
+        return;
+      }
+      const delta = y - lastY;
+      if (Math.abs(delta) < SCROLL_DIRECTION_DEADBAND_PX) return;
+      setIsScrollHidden(delta > 0);
+      lastY = y;
     };
 
     onScroll();
@@ -420,7 +437,10 @@ export function NavbarStatic({
     return () => {
       window.removeEventListener('scroll', onScroll);
     };
-  }, [SCROLL_THRESHOLD_PX]);
+  }, [SCROLL_THRESHOLD_PX, HIDE_AFTER_PX, SCROLL_DIRECTION_DEADBAND_PX]);
+
+  // an open dropdown or mobile menu keeps the bar on screen
+  const isHidden = isScrollHidden && openDropdown === null && !isMobileMenuOpen;
 
   const getNavLinkProps = React.useCallback(
     (to: string) => {
@@ -681,7 +701,7 @@ export function NavbarStatic({
                       }
                       aria-hidden
                     >
-                      {row.field ? <GrainField field={row.field} playing={false} /> : null}
+                      {row.field ? <GrainField field={row.field} playing={isActive} /> : null}
                       <Icon size={16} strokeWidth={1.7} />
                     </span>
                     <span className="navbar-static__menu-row-text">
@@ -743,7 +763,7 @@ export function NavbarStatic({
       ref={rootRef}
       className={`navbar-static${appearance === 'light' ? ' navbar-static--light' : ''}${
         layout === 'compact' ? ' navbar-static--compact' : ''
-      }`}
+      }${isHidden ? ' is-hidden' : ''}`}
       aria-label="Primary"
     >
       <div className={`navbar-static__shell${hasScrolled ? ' is-scrolled' : ''}`}>

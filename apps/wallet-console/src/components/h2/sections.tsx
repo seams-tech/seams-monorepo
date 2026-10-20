@@ -6,10 +6,12 @@ import {
   ChevronRight,
   Fingerprint,
   KeyRound,
+  LifeBuoy,
   ListChecks,
   ScrollText,
   Server,
   Share2,
+  ShieldCheck,
   Smartphone,
   Wallet,
 } from 'lucide-react';
@@ -21,6 +23,8 @@ import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
+import { GrainField } from '@/components/GrainField/GrainField';
+import type { GrainFieldName } from '@/components/GrainField/fields';
 import '@/styles/h2.css';
 
 /* Shared section library for the h2 marketing pages (/, /wallet, /ecommerce).
@@ -29,12 +33,11 @@ import '@/styles/h2.css';
 
 /* ---------- demo hero ---------- */
 
-/* Compact product forks under the CTAs. Chips reuse the case-cover gradients
-   so each product keeps one fabric. */
-const productForks = [
-  { label: 'Wallet', to: '/wallet', chip: 'h2-fork__chip--wallet' },
-  { label: 'Harness', to: 'https://seams.sh/ecommerce', chip: 'h2-fork__chip--harness' },
-  { label: 'API', to: '/docs/concepts/', chip: 'h2-fork__chip--api' },
+/* Compact product forks under the CTAs, each on its own moving gradient chip */
+const productForks: readonly { label: string; to: string; field: GrainFieldName }[] = [
+  { label: 'Wallet', to: '/wallet', field: 'teal-peach' },
+  { label: 'Harness', to: 'https://seams.sh/ecommerce', field: 'mauve-ember' },
+  { label: 'API', to: '/docs/concepts/', field: 'azure-coral' },
 ];
 
 export type H2DemoHeroProps = {
@@ -78,9 +81,11 @@ export function H2DemoHero({
               onClick={startProps.onClick}
             >
               Start building
+              <ArrowRightAnim size={12} />
             </a>
             <a className="h2-btn h2-btn--outline" href={authProps.href} onClick={authProps.onClick}>
               How auth works
+              <ArrowRightAnim size={12} />
             </a>
           </div>
           <div className="h2-hero__forks" aria-label="Products">
@@ -93,7 +98,9 @@ export function H2DemoHero({
                   href={forkProps.href}
                   onClick={forkProps.onClick}
                 >
-                  <span className={`h2-fork__chip ${fork.chip}`} aria-hidden />
+                  <span className="h2-fork__chip" aria-hidden>
+                    <GrainField field={fork.field} />
+                  </span>
                   {fork.label}
                 </a>
               );
@@ -133,6 +140,7 @@ export function H2Ecosystem(): React.JSX.Element {
           </div>
           <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
             Read the docs
+            <ArrowRightAnim size={12} />
           </a>
         </div>
         <EcosystemLattice />
@@ -691,26 +699,41 @@ export function H2Cases(): React.JSX.Element {
 
 type SecurityView = 'features' | 'signing';
 
-/* `feature` names the capability whose figure plays in the features view.
-   Every change takes a new `turn`, which restarts the progress line. */
-type SecurityPosition = { view: SecurityView; feature: number; turn: number };
+/* `feature` names the capability whose figure leads the features view, and
+   `trailing` the one before it while a play longer than the stagger runs
+   out (-1 for none). Every change of lead takes a new `turn`, which restarts
+   the progress line. */
+type SecurityPosition = { view: SecurityView; feature: number; trailing: number; turn: number };
 
 const SIGNING_VIEW_MS = 6000;
+/* Each figure starts this long after the one before it. */
+const FEATURE_STAGGER_MS = 3000;
 
 function otherSecurityView(position: SecurityPosition): SecurityPosition {
   const view = position.view === 'features' ? 'signing' : 'features';
-  return { view, feature: 0, turn: position.turn + 1 };
+  return { view, feature: 0, trailing: -1, turn: position.turn + 1 };
 }
 
 function nextSecurityPosition(position: SecurityPosition): SecurityPosition {
   if (position.view === 'signing' || position.feature === walletCapabilities.length - 1) {
     return otherSecurityView(position);
   }
-  return { view: 'features', feature: position.feature + 1, turn: position.turn + 1 };
+  const runsOn = walletCapabilities[position.feature].playMs > FEATURE_STAGGER_MS;
+  return {
+    view: 'features',
+    feature: position.feature + 1,
+    trailing: runsOn ? position.feature : -1,
+    turn: position.turn + 1,
+  };
 }
 
 function focusSecurityFeature(feature: number, position: SecurityPosition): SecurityPosition {
-  return { view: 'features', feature, turn: position.turn + 1 };
+  return { view: 'features', feature, trailing: -1, turn: position.turn + 1 };
+}
+
+// Keeps the turn, so the progress line runs on.
+function endTrailingPlay(position: SecurityPosition): SecurityPosition {
+  return { ...position, trailing: -1 };
 }
 
 function releaseHoveredFeature(feature: number, hovered: number | null): number | null {
@@ -719,7 +742,7 @@ function releaseHoveredFeature(feature: number, hovered: number | null): number 
 
 function securityPositionMs(position: SecurityPosition): number {
   if (position.view === 'signing') return SIGNING_VIEW_MS;
-  return walletCapabilities[position.feature].playMs;
+  return FEATURE_STAGGER_MS;
 }
 
 const MOTION_ALLOWED = '(prefers-reduced-motion: no-preference)';
@@ -773,7 +796,9 @@ type WalletCapability = {
   label: string;
   title: string;
   copy: string;
-  /* How long the figure holds the stage: its play, then a beat to read it. */
+  /* How long the figure plays from the start of its turn: its play, then a
+     beat to read it. Turns start FEATURE_STAGGER_MS apart, so a longer play
+     runs on beside the next figure. */
   playMs: number;
 };
 
@@ -781,29 +806,29 @@ const walletCapabilities: readonly WalletCapability[] = [
   {
     figure: 'keychain',
     label: 'Keys you control',
-    title: 'Non-custodial by design',
-    copy: 'Signing authority is split between the user’s device and your infrastructure. Neither can sign alone. Exporting keys requires fresh authorization.',
+    title: 'Non-custodial',
+    copy: 'Neither the user’s device nor your infrastructure can sign alone.',
     playMs: 3600,
   },
   {
     figure: 'interlock',
     label: 'Scoped permissions',
-    title: 'Permissions, enforced',
-    copy: 'Scope what apps and agents can do. Approvals, budgets, and revocation checks run before transactions are signed.',
+    title: 'Permissions',
+    copy: 'Set what apps and agents can do. Checks run before signing.',
     playMs: 5600,
   },
   {
     figure: 'devices',
     label: 'Linked devices',
-    title: 'Your wallet, across devices',
-    copy: 'Link another device to your wallet for access and recovery. Keep control as you move between devices.',
+    title: 'Multiple devices',
+    copy: 'Link another device for access and recovery.',
     playMs: 3600,
   },
   {
     figure: 'infrastructure',
     label: 'Self-hostable',
-    title: 'Your infrastructure. Your control.',
-    copy: 'Run threshold signing on your own serverless infrastructure.',
+    title: 'Self-hosted',
+    copy: 'Run signing on your own serverless infrastructure.',
     playMs: 3800,
   },
 ];
@@ -855,9 +880,11 @@ function WalletCapabilityCell({
 }
 
 export function H2Security(): React.JSX.Element {
+  // The page opens on the signing diagram; the features view follows it.
   const [position, setPosition] = React.useState<SecurityPosition>({
-    view: 'features',
+    view: 'signing',
     feature: 0,
+    trailing: -1,
     turn: 0,
   });
   const [paused, setPaused] = React.useState(false);
@@ -875,9 +902,17 @@ export function H2Security(): React.JSX.Element {
     motionAllowed,
     serverMotionAllowed,
   );
-  const { view } = position;
+  const { view, trailing } = position;
   // Reduced motion keeps every figure at rest and every bullet plain.
   const playingFeature = autoplay && view === 'features' ? position.feature : -1;
+  const trailingFeature = autoplay && view === 'features' ? trailing : -1;
+  // The figure before the lead finishes its play, then rests.
+  React.useEffect(() => {
+    if (trailing < 0) return undefined;
+    const runsOnMs = walletCapabilities[trailing].playMs - FEATURE_STAGGER_MS;
+    const timer = window.setTimeout(setPosition.bind(null, endTrailingPlay), runsOnMs);
+    return () => window.clearTimeout(timer);
+  }, [trailing]);
   const advance = setPosition.bind(null, nextSecurityPosition);
   const switchView = setPosition.bind(null, otherSecurityView);
   const progressStyle = {
@@ -911,7 +946,7 @@ export function H2Security(): React.JSX.Element {
         <div className="h2-security">
           <div>
             <h2 id="h2-security-title" className="h2-display h2-security__title">
-              Custody and control, engineered in
+              Custody and control, built in
             </h2>
             {walletCapabilities.map((capability, index) => (
               <SecurityItem
@@ -934,14 +969,14 @@ export function H2Security(): React.JSX.Element {
                     key={capability.figure}
                     capability={capability}
                     index={index}
-                    playing={index === playingFeature}
+                    playing={index === playingFeature || index === trailingFeature}
                     onHover={focusFeature}
                   />
                 ))}
               </div>
               {view === 'signing' && (
                 <div className="h2-security__view h2-security__signing is-active">
-                  <WalletFigure figure="signing" />
+                  <WalletFigure figure="signing" playing={autoplay} />
                 </div>
               )}
             </div>
@@ -996,22 +1031,113 @@ const CONSOLE_SCREENS = [
   {
     id: 'overview' as const,
     label: 'Overview',
-    blurb: 'Wallets, approvals, and team activity at a glance',
+    blurb: 'Wallets, approvals, and your team',
     src: '/wallet-preview/wallet-console-dashboard.png?v=1',
   },
   {
     id: 'audit' as const,
     label: 'Audit logs',
-    blurb: 'Every action attributed, timestamped, and exportable',
+    blurb: 'Every action, logged and exportable',
     src: '/wallet-preview/wallet-console-audit.png?v=1',
   },
 ];
+
+type ApiNoteProps = {
+  title: string;
+  body: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  field: GrainFieldName;
+};
+
+const ACCOUNT_NOTES: readonly ApiNoteProps[] = [
+  {
+    title: 'Passkey sign-up',
+    body: 'A non-custodial wallet in one call',
+    icon: Fingerprint,
+    field: 'teal-peach',
+  },
+  { title: 'Recovery', body: 'Email or a linked device', icon: LifeBuoy, field: 'periwinkle' },
+];
+
+const POLICY_NOTES: readonly ApiNoteProps[] = [
+  {
+    title: 'Scoped keys',
+    body: 'Limits and expiry per action',
+    icon: KeyRound,
+    field: 'azure-coral',
+  },
+  {
+    title: 'Approvals',
+    body: 'The owner signs with a passkey',
+    icon: ShieldCheck,
+    field: 'mauve-ember',
+  },
+];
+
+/* A note with its icon in white on a gradient tile that flows while it is
+   on screen. */
+function ApiNote({ title, body, icon: Icon, field }: ApiNoteProps): React.JSX.Element {
+  return (
+    <div className="h2-apinote">
+      <div className="h2-apinote__tile" aria-hidden>
+        <GrainField field={field} />
+        <Icon size={18} strokeWidth={1.7} />
+      </div>
+      <div className="h2-apinote__text">
+        <strong>{title}</strong>
+        <span>{body}</span>
+      </div>
+    </div>
+  );
+}
+
+/* A wide banner spreads each colour over its width, so the site's flow barely
+   shows on it; this much more keeps its movement subtle but visible. */
+const BANNER_FLOW = 3;
+
+/* A grey banner that fades into a moving gradient while it is in view, and
+   back to grey once it leaves. */
+export function FieldBanner({
+  field,
+  className,
+  children,
+}: {
+  field: GrainFieldName;
+  className?: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [lit, setLit] = React.useState(false);
+
+  React.useEffect(() => {
+    const banner = ref.current;
+    if (!banner) return undefined;
+    /* the viewport's bottom edge counts as 12rem higher, so the fade starts
+       once the banner has scrolled that much further in */
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const observer = new IntersectionObserver(([entry]) => setLit(entry.isIntersecting), {
+      rootMargin: `0px 0px ${-12 * rem}px 0px`,
+      threshold: 0.5,
+    });
+    observer.observe(banner);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`${className ? `${className} ` : ''}h2-banner h2-banner--field${lit ? ' is-lit' : ''}`}
+    >
+      <GrainField field={field} playing={lit} flow={BANNER_FLOW} />
+      {children}
+    </div>
+  );
+}
 
 export function H2Start(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const dashboardProps = linkProps('/dashboard');
   const docsProps = linkProps('/docs/concepts/');
-  const contactProps = linkProps('/contact/');
   /* Which console screen sits in front. CSS `:has(:hover)` cannot express
      this: it only knows what the pointer is on *now*, so leaving either card
      snapped the stage back to its rest state and the right screen animated
@@ -1021,44 +1147,31 @@ export function H2Start(): React.JSX.Element {
 
   return (
     <section
-      className="h2-section h2-section--flush-bottom h2-rule"
+      className="h2-section h2-section--flush-bottom h2-section--banner h2-rule"
       aria-labelledby="h2-start-title"
     >
-      <div className="h2-shell">
-        <div className="h2-eco__head h2-starthead">
-          <div>
-            <h2 id="h2-start-title" className="h2-display h2-eco__title">
-              Start in the wallet console, or build it into your product
-            </h2>
-            <a
-              className="h2-btn h2-btn--primary h2-starthead__cta"
-              href={docsProps.href}
-              onClick={docsProps.onClick}
-            >
-              Explore documentation
-            </a>
-          </div>
+      <FieldBanner field="teal-peach" className="h2-starthead">
+        <h2 id="h2-start-title" className="h2-display h2-banner__title">
+          Add wallets and permissions with a few API calls
+        </h2>
+        <div className="h2-banner__actions">
+          <a className="h2-btn h2-btn--primary" href={docsProps.href} onClick={docsProps.onClick}>
+            Explore documentation
+            <ArrowRightAnim size={12} />
+          </a>
         </div>
-      </div>
+      </FieldBanner>
 
       {/* row 1: accounts & wallets API */}
       <div className="h2-startrow h2-rule h2-rule--midtick">
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
             <h3>Accounts &amp; Wallets API</h3>
-            <p>
-              Register a passkey and get a working account: non-custodial wallet included, recovery
-              built in, every action signed.
-            </p>
+            <p>One passkey creates the account and its wallet. Recovery is built in.</p>
             <div className="h2-startrow__notes">
-              <div>
-                <strong>Passkey register</strong>
-                <span>One call to a working wallet</span>
-              </div>
-              <div>
-                <strong>Recovery</strong>
-                <span>Email + linked devices, no seed phrases</span>
-              </div>
+              {ACCOUNT_NOTES.map((note) => (
+                <ApiNote key={note.title} {...note} />
+              ))}
             </div>
           </div>
           <div className="h2-code h2-code--lg" aria-label="Register a wallet with the SDK">
@@ -1095,19 +1208,11 @@ export function H2Start(): React.JSX.Element {
         <div className="h2-shell h2-startrow__grid">
           <div className="h2-startrow__text">
             <h3>Policy &amp; Delegation API</h3>
-            <p>
-              Grant staff and agents scoped credentials with limits and expiry. Risky actions route
-              to the owner for passkey approval.
-            </p>
+            <p>Give staff and agents scoped keys. Risky actions wait for the owner.</p>
             <div className="h2-startrow__notes">
-              <div>
-                <strong>Scoped credentials</strong>
-                <span>Per-action limits and expiry</span>
-              </div>
-              <div>
-                <strong>Approval gates</strong>
-                <span>Owner passkey for risky actions</span>
-              </div>
+              {POLICY_NOTES.map((note) => (
+                <ApiNote key={note.title} {...note} />
+              ))}
             </div>
           </div>
           <div className="h2-code h2-code--lg" aria-label="Grant a scoped credential with the SDK">
@@ -1144,32 +1249,28 @@ export function H2Start(): React.JSX.Element {
         </div>
       </div>
 
+      {/* blank ruled row before the console band; its top rule closes the
+          split API rows above, so it carries their middle tick */}
+      <div className="h2-spacer h2-rule h2-rule--midtick" aria-hidden="true" />
+
       {/* row 3: wallet console — two console pages staged side by side,
           the right one cropped by the panel (elevenlabs.io-style band) */}
-      <div className="h2-startrow h2-rule h2-rule--midtick">
+      <div className="h2-startrow h2-rule">
         <div className="h2-shell h2-consoleband">
-          <div className="h2-startrow__text">
-            <h3 className="h2-consoleband__title">Wallet console</h3>
-            <p>
-              Manage wallets, signing policy, team access, and pending approvals from one dashboard.
-              Invite staff and agents without writing code.
-            </p>
-            <div className="h2-startrow__ctas">
-              <a
-                className="h2-btn h2-btn--primary"
-                href={dashboardProps.href}
-                onClick={dashboardProps.onClick}
-              >
-                Open wallet console
-              </a>
-              <a
-                className="h2-btn h2-btn--outline"
-                href={contactProps.href}
-                onClick={contactProps.onClick}
-              >
-                Talk to us
-              </a>
+          {/* heading and copy on the left, the call to action on the right */}
+          <div className="h2-startrow__text h2-consoleband__intro">
+            <div>
+              <h3 className="h2-consoleband__title">Wallet console</h3>
+              <p>Manage wallets, policies, and your team in one place. No code needed.</p>
             </div>
+            <a
+              className="h2-btn h2-btn--primary h2-btn--lg"
+              href={dashboardProps.href}
+              onClick={dashboardProps.onClick}
+            >
+              Open wallet console
+              <ArrowRightAnim size={12} />
+            </a>
           </div>
           {/* The legend doubles as the control: each row brings its own screen
               to the front, so the labels are the same affordance as hovering
@@ -1614,13 +1715,13 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   },
 ];
 
-/* ---------- blank ruled row: breathing room above the closing rows ---------- */
+/* ---------- blank ruled row: breathing room between sections ---------- */
 
 export function H2Spacer(): React.JSX.Element {
   return <div className="h2-spacer h2-rule" aria-hidden="true" />;
 }
 
-/* ---------- closing call to action: a cream band fading into grain ---------- */
+/* ---------- closing call to action: the shared grey banner ---------- */
 
 export function H2Cta(): React.JSX.Element {
   const { linkProps } = useSiteRouter();
@@ -1628,24 +1729,25 @@ export function H2Cta(): React.JSX.Element {
   const startProps = linkProps('/dashboard');
 
   return (
-    <section className="h2-cta h2-rule" aria-labelledby="h2-cta-title">
-      <div className="h2-cta__grain" aria-hidden="true" />
-      <div className="h2-shell h2-cta__inner">
+    <section className="h2-section h2-section--banner h2-rule" aria-labelledby="h2-cta-title">
+      <FieldBanner field="mauve-ember">
         <div>
-          <h2 id="h2-cta-title" className="h2-display h2-cta__title">
+          <h2 id="h2-cta-title" className="h2-display h2-banner__title">
             Wallets your users can never lose
           </h2>
-          <p className="h2-cta__sub">Passkeys, split keys and recovery in one SDK.</p>
+          <p className="h2-banner__sub">Passkeys, split keys and recovery in one SDK.</p>
         </div>
-        <div className="h2-cta__actions">
+        <div className="h2-banner__actions">
           <a className="h2-btn h2-btn--outline" href={docsProps.href} onClick={docsProps.onClick}>
             Explore docs
+            <ArrowRightAnim size={12} />
           </a>
           <a className="h2-btn h2-btn--primary" href={startProps.href} onClick={startProps.onClick}>
             Start building
+            <ArrowRightAnim size={12} />
           </a>
         </div>
-      </div>
+      </FieldBanner>
     </section>
   );
 }

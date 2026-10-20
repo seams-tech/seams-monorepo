@@ -74,6 +74,12 @@ uses port 8443, or `SEAMS_HOSTED_CANDIDATE_PORT`, and needs `openssl` for its
 self-signed certificate. The other hosted tests keep the routed assets because
 they inject faults.
 
+The asset server applies cache policies from the generated wallet asset manifest.
+Implicit registration artifacts include `assetTimings` for browser request observations
+and `assetTransfers` for SDK requests received by the HTTPS server. Each record keeps
+the asset path and version. Use server observations to count transfers; browser
+request events alone do not establish cache hits or misses.
+
 The test has three main NEAR-only samples. Each case verifies
 the first signature, two warm signatures, unlock and its first signature, then a
 three-signature sequence. The test rejects ECDSA signer assets. The SDK timer

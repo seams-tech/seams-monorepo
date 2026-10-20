@@ -27,9 +27,11 @@ const { GatewayRequestEvidence } = await import(
 );
 
 type Timing = { at: number; event: string; stage: string | null; durationMs: number };
+type AssetRequest = { request: Request; observedAt: number };
 class NearEvidence {
   readonly timings: Timing[] = [];
   readonly assets = new Set<string>();
+  readonly assetRequests: AssetRequest[] = [];
   readonly accessKeyRequests: number[] = [];
   readonly responses: { at: number; response: Response }[] = [];
   observeResponse(response: Response): void {
@@ -76,7 +78,10 @@ class NearEvidence {
   }
   observeRequest(request: Request): void {
     const url = new URL(request.url());
-    if (/\.(?:js|wasm)$/u.test(url.pathname)) this.assets.add(url.pathname);
+    if (/\.(?:js|wasm)$/u.test(url.pathname)) {
+      this.assets.add(url.pathname);
+      this.assetRequests.push({ request, observedAt: performance.now() });
+    }
     if (url.pathname.startsWith('/console/') || url.pathname.startsWith('/internal/'))
       this.consoleRequests.push(url.pathname);
     if (request.method() !== 'POST') return;
@@ -152,6 +157,17 @@ function isOtherSigner(asset: string): boolean {
   );
 }
 
+function assetRequestTiming(startedAt: number, asset: AssetRequest) {
+  const url = new URL(asset.request.url());
+  const timing = asset.request.timing();
+  return {
+    path: url.pathname,
+    assetVersion: url.searchParams.get('v'),
+    requestObservedOffsetMs: asset.observedAt - startedAt,
+    browserRequestElapsedMs: timing.responseEnd >= 0 ? timing.responseEnd : null,
+  };
+}
+
 // Latency samples run without request interception, so they pay real CORS preflights.
 const candidateAssets = new CandidateAssetServer();
 test.use({ launchOptions: { args: candidateAssets.browserArguments } });
@@ -188,6 +204,7 @@ async function runNearRegistrationBenchmark(
   context.on('request', observations.observeRequest.bind(observations));
   context.on('response', observations.observeResponse.bind(observations));
   gateway.start(context);
+  const firstAssetRequest = candidateAssets.requests.length;
   let outcome = 'failed';
   let startedAt = performance.now();
   let registrationMs: number | null = null;
@@ -227,6 +244,8 @@ async function runNearRegistrationBenchmark(
           registrationResponses: await registrationResponseEvidence(observations),
           setupRequests: setupRequestEvidence(observations),
           assets: [...observations.assets],
+          assetTimings: observations.assetRequests.map(assetRequestTiming.bind(null, startedAt)),
+          assetTransfers: candidateAssets.requests.slice(firstAssetRequest),
           notes: [
             outcome === 'succeeded'
               ? 'Fresh implicit account. NEP-413 signature verified against its registered key; changed message rejected.'

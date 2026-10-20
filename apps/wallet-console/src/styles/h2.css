@@ -3402,19 +3402,20 @@ body:has(.h2-page) {
    The active tab's progress line runs the cycle; the screen is cropped by
    the stage's open bottom edge. */
 
-/* the banner card sits 0.5rem in from the rules, as the band headings do */
+/* the banner card sits 0.5rem below the rule, as the band headings do; the
+   tiles below take their own 10px gap */
 .h2-consolehead {
-  padding-block: 0.5rem;
+  padding-block: 0.5rem 0;
 }
 
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  /* 0.5rem from the column borders, as the banner card above. The stage runs
-     off the section's bottom edge, so the shell keeps no bottom padding —
-     any gap here would float the open-bottomed card above the rule instead
-     of meeting it. */
-  padding: 0.5rem 0.5rem 0;
+  /* 0.5rem from the column borders, as the banner card above, and 10px
+     below it, the tiles' own gap. The stage runs off the section's bottom
+     edge, so the shell keeps no bottom padding — any gap here would float
+     the open-bottomed card above the rule instead of meeting it. */
+  padding: 10px 0.5rem 0;
 }
 
 /* Two equal row tiles, styled as the custody section's rows: a light taupe

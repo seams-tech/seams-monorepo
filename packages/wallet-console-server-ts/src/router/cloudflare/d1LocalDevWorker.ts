@@ -47,6 +47,10 @@ import { attachConsoleRouteSurface } from '@seams-internal/console-server/router
 import { resolveCompleteWalletConsoleRouteSurface } from '../walletConsoleRouteDefinitions';
 import {
   createCloudflareD1RouterApiAuthService,
+  LocalRegistrationSetupAuthority,
+  D1WalletObjectAddresses,
+  WalletHomeCustodyBinding,
+  walletObjectIdentity,
   createCloudflareLinkedDeviceEd25519SourcePreservingRouterEndpointV1,
   createCloudflareOrdinaryInactiveSignerMaterialActivationEndpointV1,
   createCloudflareOrdinaryInactiveSignerMaterialDeactivationEndpointV1,
@@ -1461,12 +1465,27 @@ async function resolveLocalTenantDeploymentRuntimeEnv(
     SEAMS_LOCAL_CONSOLE_ORG_ID: binding.tenant.organizationId,
     SEAMS_LOCAL_CONSOLE_PROJECT_ID: binding.tenant.projectId,
     SEAMS_LOCAL_CONSOLE_ENVIRONMENT_ID: binding.tenant.environmentId,
+    MPC_ROUTER: new WalletHomeCustodyBinding(
+      env.MPC_ROUTER,
+      'US',
+      env.SIGNER_DB,
+      binding.tenant.namespace,
+      null,
+    ),
+    SIGNING_WORKER: new WalletHomeCustodyBinding(
+      env.SIGNING_WORKER,
+      'US',
+      env.SIGNER_DB,
+      binding.tenant.namespace,
+      null,
+    ),
   };
 }
 
 async function createLocalRouterApiHandler(
   env: LocalD1DevEnv,
   routerFetch: LocalEd25519YaoRouterFetchV1,
+  ctx: CfExecutionContext,
 ): Promise<FetchHandler> {
   const orgId = await resolveLocalRouterOrganizationId(env);
   const sponsoredEvmCallConfig = await resolveSponsoredEvmCallConfigFromWorkerEnv(env);
@@ -1509,10 +1528,11 @@ async function createLocalRouterApiHandler(
     readLocalLinkedAuthorities.bind(undefined, routerApiServiceState),
   );
   const ecdsaStrictPorts = localEcdsaStrictPorts(env, orgId);
-  routerApiServiceState.service = createLocalD1RouterApiAuthService(
+  routerApiServiceState.service = await createLocalD1RouterApiAuthService(
     env,
     orgId,
     ed25519YaoComposition,
+    ctx,
   );
   const routerApiService = requireLocalRouterApiService(routerApiServiceState);
   const ed25519Yao =
@@ -1775,13 +1795,11 @@ type LocalLinkedDeviceTenantRootInput = Parameters<
 
 type LocalActiveTenantRootResolver = (
   input: Parameters<
-    ReturnType<
-      typeof createLocalD1RouterApiAuthService
-    >['walletRegistration']['resolveActiveEd25519TenantRoot']
+    LocalRouterApiService['walletRegistration']['resolveActiveEd25519TenantRoot']
   >[0],
 ) => Promise<Awaited<ReturnType<RouterAbEd25519YaoTenantRootResolverV1>>>;
 
-type LocalRouterApiService = ReturnType<typeof createLocalD1RouterApiAuthService>;
+type LocalRouterApiService = Awaited<ReturnType<typeof createLocalD1RouterApiAuthService>>;
 type LocalRouterApiServiceState = { service: LocalRouterApiService | null };
 type LocalActiveTenantRootInput = Parameters<LocalActiveTenantRootResolver>[0];
 type LocalTenantRootResolutionResult = Awaited<ReturnType<RouterAbEd25519YaoTenantRootResolverV1>>;
@@ -2146,22 +2164,82 @@ async function createLocalEd25519YaoProductComposition(
   };
 }
 
-function createLocalD1RouterApiAuthService(
+async function createLocalD1RouterApiAuthService(
   env: LocalD1DevEnv,
   orgId: string,
-  ed25519Yao: LocalEd25519YaoProductCompositionState = { kind: 'disabled' },
+  ed25519Yao: LocalEd25519YaoProductCompositionState,
+  ctx: CfExecutionContext,
 ) {
+  const deployment = await createD1TenantDeploymentBindingReaderV1({
+    database: env.CONSOLE_DB,
+  }).resolveActiveBinding(LOCAL_TENANT_DEPLOYMENT_LANE);
+  if (!deployment) throw new Error('Local registration requires an active tenant deployment');
   return createCloudflareD1RouterApiAuthService({
     ...localD1RouterApiAuthServiceOptions(env, orgId, ed25519Yao),
+    registrationAuthority: new LocalRegistrationSetupAuthority(env.SIGNER_DB, {
+      namespace: deployment.tenant.namespace,
+      orgId: deployment.tenant.organizationId,
+      projectId: deployment.tenant.projectId,
+      envId: deployment.mode.environment === 'development' ? 'dev' : 'prod',
+    }),
+    startRegistrationWallets: startLocalRegistrationWallets.bind(null, env, orgId, ed25519Yao, ctx),
     signerWasmModuleOrPath: loadCloudflareSignerWasmModule,
   });
+}
+
+async function startLocalRegistrationWallets(
+  env: LocalD1DevEnv,
+  orgId: string,
+  composition: LocalEd25519YaoProductCompositionState,
+  ctx: CfExecutionContext,
+  registration: Parameters<
+    NonNullable<CloudflareD1RouterApiAuthServiceOptions['startRegistrationWallets']>
+  >[0],
+): Promise<void> {
+  const scope = {
+    namespace: localTenantStorageNamespace(env),
+    orgId,
+    projectId: localConsoleProjectId(env),
+    envId: localConsoleEnvironmentId(env),
+  };
+  const identity = walletObjectIdentity(
+    registration.walletId,
+    registration.ownershipGeneration,
+    scope,
+  );
+  switch (registration.kind) {
+    case 'objects':
+      await new D1WalletObjectAddresses(env.SIGNER_DB, scope).initialize(
+        identity,
+        env.MPC_ROUTER,
+        localGatewayToRouterAuthSecret(env),
+      );
+      return;
+    case 'pair':
+      if (composition.kind !== 'enabled')
+        throw new Error('Registration pair requires the NEAR runtime');
+      ctx.waitUntil(
+        composition.requestScoped.backend.prepareRegistrationPair(
+          identity,
+          registration.admissionRequest,
+          registration.admissionReceipt,
+          registration.expiresAtMs,
+        ),
+      );
+      return;
+    default: {
+      const unexpected: never = registration;
+      throw new Error(`Unknown registration startup: ${String(unexpected)}`);
+    }
+  }
 }
 
 function localRouterApiHandler(
   env: LocalD1DevEnv,
   routerFetch: LocalEd25519YaoRouterFetchV1,
+  ctx: CfExecutionContext,
 ): Promise<FetchHandler> {
-  return createLocalRouterApiHandler(env, routerFetch);
+  return createLocalRouterApiHandler(env, routerFetch, ctx);
 }
 
 function routerApiRequest(request: Request, pathname: string): Request {
@@ -2424,7 +2502,7 @@ async function handleLocalRouterApiRequestV1(
   const rawFaultToken = request.headers.get(LOCAL_INTENDED_YAO_FAULT_TOKEN_HEADER_V1);
   const sanitizedRequest = requestWithoutLocalIntendedYaoFaultHeadersV1(request);
   if (rawFaultMode === null && rawFaultToken === null) {
-    const handler = await localRouterApiHandler(env, { kind: 'direct' });
+    const handler = await localRouterApiHandler(env, { kind: 'direct' }, ctx);
     return await handler(routerApiRequest(sanitizedRequest, pathname), env, ctx);
   }
 
@@ -2448,10 +2526,14 @@ async function handleLocalRouterApiRequestV1(
   const controller = new LocalIntendedYaoFaultControllerV1(createRouterAbServiceBindingFetch(env));
   controller.arm(faultMode);
   try {
-    const handler = await localRouterApiHandler(env, {
-      kind: 'fault_injected',
-      controller,
-    });
+    const handler = await localRouterApiHandler(
+      env,
+      {
+        kind: 'fault_injected',
+        controller,
+      },
+      ctx,
+    );
     const response = await handler(routerApiRequest(sanitizedRequest, pathname), env, ctx);
     return responseWithLocalIntendedYaoFaultOutcomeV1(
       response,

@@ -1,0 +1,4088 @@
+{
+  "conclusion": "First-sign preparation improved. Median first signing decreased by 15.1%. Post-passkey registration was unchanged. The combined SDK median improved by 7.5%, but its descriptive confidence interval includes no improvement.",
+  "stagingUrl": "https://staging.sign.seams.sh",
+  "baselineVersion": "0.15.6",
+  "candidateVersion": "0.15.7-staging.a48231b6",
+  "candidateKind": "Staging-only exact-commit artifact; not published to npm. Private package pins remain 0.15.6.",
+  "buildInputs": {
+    "sourceCommit": "a48231b68c7175aeff0d1b8aae3a50db6989a331",
+    "candidateVersion": "0.15.7-staging.a48231b6",
+    "prebuiltWasm": [
+      {
+        "module": "wasm/near_signer",
+        "sha256": "ee9e94717aa612afc71ea79d4b8be1b9926bace0da047ed0e3c59149f80e3844",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "crates/router-ab-ed25519-yao-client",
+        "sha256": "36bebc75eb39b058c4c8c8f1f66407829b3a033bc81cdb0e48a856f9670f6761",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/router_ab_ecdsa_client",
+        "sha256": "ee0a01a6dcf8be6032531d12b7b2075f2cc7659617e1b4dbe397447c8c29f6fa",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/evm_crypto",
+        "sha256": "9fdd02e40fd3ac270a95bbb7f3fba899e3f474ade05e1d90c2b04c7e28ed8abd",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/tempo_signer",
+        "sha256": "7c57527ff90f462ccbbd0583af97c3173224643007aa3fb107782227ee3b7df3",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/shamir3pass_runtime",
+        "sha256": "19b24e7f68ebeb3bede1b6a37c455d42c23d505f34413aceeb3cf888cb26501a",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/email_otp_runtime",
+        "sha256": "801d02b1fe872d6ea8cd893b96e8ce174ef4d4261f58f0be90c79b960e4efe28",
+        "source": "published @seams/wallet@0.15.6"
+      },
+      {
+        "module": "wasm/wallet_custody_ceremony",
+        "sha256": "624307cfa7b93bac63b299db511efab3dd0dc3c84a77caa61f5f1c4017acb5df",
+        "source": "published @seams/wallet@0.15.6"
+      }
+    ]
+  },
+  "before": {
+    "backend": {
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "6d5163de-7b9a-468d-bc71-4ff3728ceca0",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "a724fb71-fefa-4546-a534-3febb9c5fb96",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "41dd4710-c245-49d3-aee6-8584cd98280b",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "4ebb445a-9aba-450b-b5b7-45bf22db29b1",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane-staging": [
+        {
+          "version_id": "79121134-0088-472c-a2f7-43e16f48dcc7",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "68ea37a3-6820-452e-944f-712f88ca5fbb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "0fa9bb1c-9c64-416a-874c-f63df39efbb0",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "eebcc2c4-1036-43d5-9b75-1dd69a79fe37",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "80ea2fc9-6735-4078-b89c-0a40df24a9c5",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "d7fb9d28-c34c-4f44-907e-c0a774b4ea39",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "fde1b322-b876-4626-83d8-91037c1402f3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "649c2aee-c6f7-4a0f-846d-bac4c36dc0c7",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "cf398b33-9edf-4de5-9c57-7219f01dac29",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "1b25f14b-7008-411b-97a3-33b312c6c554",
+          "percentage": 100
+        }
+      ]
+    },
+    "deploymentId": "bac0c43a-4b65-495a-8b53-c777413db6d9",
+    "timeMs": 1792530925009
+  },
+  "after": {
+    "timeMs": 1792531400720,
+    "backend": {
+      "router-ab-deriver-a-staging": [
+        {
+          "version_id": "6d5163de-7b9a-468d-bc71-4ff3728ceca0",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b-staging": [
+        {
+          "version_id": "a724fb71-fefa-4546-a534-3febb9c5fb96",
+          "percentage": 100
+        }
+      ],
+      "router-ab-mpc-router-staging": [
+        {
+          "version_id": "41dd4710-c245-49d3-aee6-8584cd98280b",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker-staging": [
+        {
+          "version_id": "4ebb445a-9aba-450b-b5b7-45bf22db29b1",
+          "percentage": 100
+        }
+      ],
+      "router-ab-tenant-root-control-plane-staging": [
+        {
+          "version_id": "79121134-0088-472c-a2f7-43e16f48dcc7",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-console-staging": [
+        {
+          "version_id": "68ea37a3-6820-452e-944f-712f88ca5fbb",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging": [
+        {
+          "version_id": "0fa9bb1c-9c64-416a-874c-f63df39efbb0",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-oc": [
+        {
+          "version_id": "eebcc2c4-1036-43d5-9b75-1dd69a79fe37",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-us": [
+        {
+          "version_id": "80ea2fc9-6735-4078-b89c-0a40df24a9c5",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway-staging-weur": [
+        {
+          "version_id": "d7fb9d28-c34c-4f44-907e-c0a774b4ea39",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging": [
+        {
+          "version_id": "fde1b322-b876-4626-83d8-91037c1402f3",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-oc": [
+        {
+          "version_id": "649c2aee-c6f7-4a0f-846d-bac4c36dc0c7",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-us": [
+        {
+          "version_id": "cf398b33-9edf-4de5-9c57-7219f01dac29",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime-staging-weur": [
+        {
+          "version_id": "1b25f14b-7008-411b-97a3-33b312c6c554",
+          "percentage": 100
+        }
+      ]
+    },
+    "deploymentId": "4cb4310e-3b89-4300-85f0-c5e1068b93b2",
+    "version": "0.15.7-staging.a48231b6",
+    "measurementSourcesUnchanged": true,
+    "verificationRetry": "Wrangler OAuth refreshed after final guard returned 401; browser cohort had already passed."
+  },
+  "servedCandidate": {
+    "deploymentId": "4cb4310e-3b89-4300-85f0-c5e1068b93b2",
+    "version": "0.15.7-staging.a48231b6",
+    "checks": [
+      {
+        "path": "/wallet-service",
+        "sha256": "387636dcde419cea242bd7fe3769ba9a7e46d65ab27b37daf261626fdaa19398"
+      },
+      {
+        "path": "/sdk/wallet-iframe-host-runtime.js",
+        "sha256": "cf12e0d1ca20d7c527ed60d6cda07e19d0903ecdf5aa8943f15d42bce1b62478"
+      },
+      {
+        "path": "/sdk/workers/near-signer.worker.js",
+        "sha256": "ffae3597f1cf03576317f166a4ca41357a566b64dfeea43f69ebc7938208e0e1"
+      },
+      {
+        "path": "/sdk/registration-B-hroI3l.js",
+        "sha256": "1129f2ac32170f424210d23ead470a36a12169baa9f3cc94eadf9607a67e312f"
+      },
+      {
+        "path": "/sdk/registration-waZ0Kgg4.js",
+        "sha256": "aea811d3f3f594d19fc22d87ff0c6ef1512e161cbdb27ede4406c547b6e1b5d4"
+      }
+    ]
+  },
+  "candidateSmoke": [
+    {
+      "name": "settings root",
+      "ok": true,
+      "status": 200,
+      "attempts": 1
+    },
+    {
+      "name": "settings route",
+      "ok": true,
+      "status": 200,
+      "attempts": 1
+    },
+    {
+      "name": "wallet service",
+      "ok": true,
+      "status": 200,
+      "attempts": 1
+    },
+    {
+      "name": "candidate version",
+      "ok": true,
+      "status": 200,
+      "attempts": 1
+    },
+    {
+      "name": "Yao WASM",
+      "ok": true,
+      "status": 200,
+      "attempts": 1
+    }
+  ],
+  "matchedAssets": {
+    "unchangedPublishedWorkers": [
+      {
+        "path": "sdk/workers/wasm_signer_worker_bg.wasm",
+        "sha256": "ee9e94717aa612afc71ea79d4b8be1b9926bace0da047ed0e3c59149f80e3844"
+      },
+      {
+        "path": "sdk/workers/shamir3pass_runtime.js",
+        "sha256": "85d48cb5c81e385b70660cee22735c45e5bd2b3ee9aae9aee31e70777057bb21"
+      },
+      {
+        "path": "sdk/workers/shamir3pass_runtime_bg.wasm",
+        "sha256": "19b24e7f68ebeb3bede1b6a37c455d42c23d505f34413aceeb3cf888cb26501a"
+      },
+      {
+        "path": "sdk/workers/ecdsa-derivation-client.worker.js",
+        "sha256": "386377e2dcee4edfbb72e2321ec291da637f933455ede52e6edb77c7f6596364"
+      },
+      {
+        "path": "sdk/workers/email_otp_runtime_bg.wasm",
+        "sha256": "801d02b1fe872d6ea8cd893b96e8ce174ef4d4261f58f0be90c79b960e4efe28"
+      },
+      {
+        "path": "sdk/workers/email_otp_runtime.js",
+        "sha256": "aacd3399d66b2b3bc9e5e74c785fd0c37a4e1de1791720b627cb39e4998d7f09"
+      },
+      {
+        "path": "sdk/workers/evm-crypto.worker.js",
+        "sha256": "ec0592e0db2af0a1f0306ca229f6449989739a89840f442040dd2943db413337"
+      },
+      {
+        "path": "sdk/workers/wallet_custody_ceremony_bg.wasm",
+        "sha256": "624307cfa7b93bac63b299db511efab3dd0dc3c84a77caa61f5f1c4017acb5df"
+      },
+      {
+        "path": "sdk/workers/shamir3pass.worker.js",
+        "sha256": "123fe429e6edad4cf669ba9a570c1d8500e6bb94e32aa10c750b91bf5282a65a"
+      },
+      {
+        "path": "sdk/workers/router_ab_ed25519_yao_client_bg.wasm",
+        "sha256": "36bebc75eb39b058c4c8c8f1f66407829b3a033bc81cdb0e48a856f9670f6761"
+      },
+      {
+        "path": "sdk/workers/ecdsa-presign-client.worker.js",
+        "sha256": "7316fae697466e360f0d8079afbf5c7db1f64f8d90c43d4dfe9e7f865fa3a394"
+      },
+      {
+        "path": "sdk/workers/tempo-signer.worker.js",
+        "sha256": "b5276cc2164f8a50adece3c335c568c0f8595628625ae43367f4a4990a94dab3"
+      },
+      {
+        "path": "sdk/workers/evm_crypto_bg.wasm",
+        "sha256": "9fdd02e40fd3ac270a95bbb7f3fba899e3f474ade05e1d90c2b04c7e28ed8abd"
+      },
+      {
+        "path": "sdk/workers/passkey-confirm.worker.js",
+        "sha256": "4f7f52e3fe301eb4297411f87362ec129c57ceb106f0b248bf78fa2c37ab651d"
+      },
+      {
+        "path": "sdk/workers/passkey-mpc-export.worker.js",
+        "sha256": "389d4a7048ca482890b91fd52b80634880ce9d1daef2db184ad1ba51d326f6cb"
+      },
+      {
+        "path": "sdk/workers/tempo_signer_bg.wasm",
+        "sha256": "7c57527ff90f462ccbbd0583af97c3173224643007aa3fb107782227ee3b7df3"
+      },
+      {
+        "path": "sdk/workers/ecdsa-online-client.worker.js",
+        "sha256": "60fd7b2838cd96928d4a995621943ca0e8ae0ea8a63706eafba2f45d4cb2d96d"
+      },
+      {
+        "path": "sdk/workers/near-signer.worker.js",
+        "sha256": "ffae3597f1cf03576317f166a4ca41357a566b64dfeea43f69ebc7938208e0e1"
+      },
+      {
+        "path": "sdk/workers/wallet_custody_ceremony.js",
+        "sha256": "d92338329d01cad2ed29c897e0a41574f505455656a25c77ffdfadbbef32580f"
+      },
+      {
+        "path": "sdk/workers/email-otp.worker.js",
+        "sha256": "d22a0013c9fd72c09276af157c24190c1412bcb1cdd2edff6c58ec3c54914a07"
+      },
+      {
+        "path": "sdk/workers/wallet-custody-ceremony.worker.js",
+        "sha256": "b74b14fe94ad46d8f6c0a98c4c69f42eb7922a73b3dfa18e01dacc105ee3e1e8"
+      },
+      {
+        "path": "sdk/workers/router_ab_ecdsa_client_bg.wasm",
+        "sha256": "ee0a01a6dcf8be6032531d12b7b2075f2cc7659617e1b4dbe397447c8c29f6fa"
+      },
+      {
+        "path": "sdk/workers/passkey-mpc-session.worker.js",
+        "sha256": "71aedecb1d9666a014fe84bc86f51e1533ff9c38c6648fa4410427290b5c8398"
+      },
+      {
+        "path": "sdk/workers/device-linking-key.worker.js",
+        "sha256": "42a4edadfe7ce955281ad24087322fc7a6b80ed44d7ad206b50a7211fb60f141"
+      }
+    ],
+    "bundler": "build:sdk, matching release-wallet-packages.yml via build:packages",
+    "wasmMode": "published production release",
+    "workerNote": "Unchanged workers reused from exact published 0.15.6 package to avoid Bun formatting differences."
+  },
+  "analysis": {
+    "method": {
+      "primarySequence": [
+        "03-baseline",
+        "04-candidate",
+        "05-baseline-repeat",
+        "06-candidate-repeat"
+      ],
+      "samplesPerBlock": 10,
+      "supplemental": [
+        "02-baseline"
+      ],
+      "supplementalReason": "Concurrent benchmark PID 89273 observed before candidate data collection. Keep complete block separate from primary comparison.",
+      "aborted": [
+        "01-baseline"
+      ],
+      "abortedReason": "EADDRINUSE before any registration.",
+      "metrics": [
+        "SDK registration",
+        "registration after passkey",
+        "SDK first NEP-413 signature",
+        "SDK registration plus signature",
+        "harness registration to independently verified signature"
+      ],
+      "controls": [
+        "Fixed parent test application",
+        "Fresh browser context per sample",
+        "Published release JavaScript bundling settings and production WASM",
+        "Byte-identical baseline and candidate WASM",
+        "Unchanged backend deployment IDs",
+        "No artificial network delays",
+        "No request interception",
+        "Automated passkey and confirmation"
+      ],
+      "limits": [
+        "Backend cold state is unproven",
+        "20 samples per version cannot establish p99",
+        "Fixed local parent test page; wallet iframe and all SDK requests served remotely",
+        "NEP-413 message signing does not measure transaction submission or finality"
+      ]
+    },
+    "comparisons": {
+      "sdkRegistrationMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 2418.5499999821186,
+          "p95Ms": 3426.699999988079,
+          "minMs": 2024.5,
+          "maxMs": 3999.099999964237
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 2283.4000000059605,
+          "p95Ms": 3257.899999976158,
+          "minMs": 2012.7999999523163,
+          "maxMs": 4311.5
+        },
+        "candidateMinusBaselineMedianMs": -135.14999997615814,
+        "medianReductionPercent": 5.588058960003199,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -602.1999999880791,
+          120.50000005960464
+        ]
+      },
+      "postPasskeyMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 1080.5,
+          "p95Ms": 1919,
+          "minMs": 816,
+          "maxMs": 2202
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 1080.0,
+          "p95Ms": 1537,
+          "minMs": 822,
+          "maxMs": 1559
+        },
+        "candidateMinusBaselineMedianMs": -0.5,
+        "medianReductionPercent": 0.04627487274409996,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -208.5,
+          178.0
+        ]
+      },
+      "firstSigningMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 604.2499999701977,
+          "p95Ms": 831.3000000119209,
+          "minMs": 500,
+          "maxMs": 1029.300000011921
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 513.0,
+          "p95Ms": 814.6000000238419,
+          "minMs": 452.19999998807907,
+          "maxMs": 833.8000000119209
+        },
+        "candidateMinusBaselineMedianMs": -91.24999997019768,
+        "medianReductionPercent": 15.101365324732848,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -157.9500000178814,
+          -17.19999998807907
+        ]
+      },
+      "firstSigningWithoutConfirmationMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 421.90000000596046,
+          "p95Ms": 703.6999999880791,
+          "minMs": 273.30000001192093,
+          "maxMs": 885.8000000119209
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 242.90000000596046,
+          "p95Ms": 550.4000000357628,
+          "minMs": 183.5,
+          "maxMs": 567.8000000119209
+        },
+        "candidateMinusBaselineMedianMs": -179.0,
+        "medianReductionPercent": 42.427115429597336,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -225.4000000357628,
+          -85.2000000178814
+        ]
+      },
+      "sdkCombinedMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 3101.150000035763,
+          "p95Ms": 4035.199999988079,
+          "minMs": 2537.400000035763,
+          "maxMs": 4604.8999999165535
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 2868.5999999940395,
+          "p95Ms": 3742.5,
+          "minMs": 2549.599999964237,
+          "maxMs": 4980.300000011921
+        },
+        "candidateMinusBaselineMedianMs": -232.55000004172325,
+        "medianReductionPercent": 7.498831080052286,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -749.4999999403954,
+          165.7000000178814
+        ]
+      },
+      "sdkCombinedWithoutInteractionsMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 2597.5500000417233,
+          "p95Ms": 3482.599999964237,
+          "minMs": 1715.4000000357628,
+          "maxMs": 4138.099999964237
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 2074.6500000059605,
+          "p95Ms": 2928.100000023842,
+          "minMs": 1610.5,
+          "maxMs": 4086.199999988079
+        },
+        "candidateMinusBaselineMedianMs": -522.9000000357628,
+        "medianReductionPercent": 20.1305075947475,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -858.6999999880791,
+          -74.15000006556511
+        ]
+      },
+      "registrationToVerifiedMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 4623.605104,
+          "p95Ms": 5426.04775,
+          "minMs": 3004.2671249999985,
+          "maxMs": 6125.707083000001
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 3769.7269580000006,
+          "p95Ms": 4652.987708000002,
+          "minMs": 2932.496874999997,
+          "maxMs": 6144.787875
+        },
+        "candidateMinusBaselineMedianMs": -853.8781459999996,
+        "medianReductionPercent": 18.467800056308604,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -1584.6169585000007,
+          -3.658937500000775
+        ]
+      },
+      "harnessRegistrationMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 3145.405666499998,
+          "p95Ms": 3911.2664170000003,
+          "minMs": 2302.1646670000046,
+          "maxMs": 4645.965333
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 3057.9551665,
+          "p95Ms": 3812.522791999996,
+          "minMs": 2256.4902920000022,
+          "maxMs": 4665.698833
+        },
+        "candidateMinusBaselineMedianMs": -87.4504999999981,
+        "medianReductionPercent": 2.780261412109278,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -842.3358959999987,
+          332.44058349999887
+        ]
+      },
+      "harnessFirstSigningMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 1477.4500210000006,
+          "p95Ms": 1514.7813329999994,
+          "minMs": 692.326583,
+          "maxMs": 1538.7226669999995
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 692.7158339999987,
+          "p95Ms": 1497.8108329999995,
+          "minMs": 675.2100419999988,
+          "maxMs": 1508.2042920000022
+        },
+        "candidateMinusBaselineMedianMs": -784.7341870000018,
+        "medianReductionPercent": 53.11409359680814,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -805.071686999996,
+          -7.18645800000013
+        ]
+      },
+      "confirmationMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 205.69999998807907,
+          "p95Ms": 226.69999998807907,
+          "minMs": 100.60000002384186,
+          "maxMs": 236.9000000357628
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 268.0499999821186,
+          "p95Ms": 276.60000002384186,
+          "minMs": 259.10000002384186,
+          "maxMs": 291.89999997615814
+        },
+        "candidateMinusBaselineMedianMs": 62.349999994039536,
+        "medianReductionPercent": -30.3111327164088,
+        "iidBootstrapMedianDifference95PercentMs": [
+          50.89999997615814,
+          108.99999997019768
+        ]
+      },
+      "webAuthnMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 415.64999997615814,
+          "p95Ms": 690.9000000357628,
+          "minMs": 95.5,
+          "maxMs": 695.8999999761581
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 529.75,
+          "p95Ms": 657,
+          "minMs": 114.39999997615814,
+          "maxMs": 703.1999999880791
+        },
+        "candidateMinusBaselineMedianMs": 114.10000002384186,
+        "medianReductionPercent": -27.450980399467504,
+        "iidBootstrapMedianDifference95PercentMs": [
+          52.25000002980232,
+          190.30000001192093
+        ]
+      },
+      "preConfirmationMs": {
+        "baseline": {
+          "n": 20,
+          "medianMs": 86.75,
+          "p95Ms": 168,
+          "minMs": 64.30000001192093,
+          "maxMs": 180.10000002384186
+        },
+        "candidate": {
+          "n": 20,
+          "medianMs": 7.249999970197678,
+          "p95Ms": 9.100000023841858,
+          "minMs": 5.300000011920929,
+          "maxMs": 9.100000023841858
+        },
+        "candidateMinusBaselineMedianMs": -79.50000002980232,
+        "medianReductionPercent": 91.64265133118424,
+        "iidBootstrapMedianDifference95PercentMs": [
+          -123.35000002384186,
+          -66.00000005960464
+        ]
+      }
+    },
+    "blocks": {
+      "03-baseline": {
+        "sdkRegistrationMs": {
+          "n": 10,
+          "medianMs": 2188.0000000298023,
+          "p95Ms": 3193.5,
+          "minMs": 2024.5,
+          "maxMs": 3193.5
+        },
+        "postPasskeyMs": {
+          "n": 10,
+          "medianMs": 988.0,
+          "p95Ms": 1919,
+          "minMs": 816,
+          "maxMs": 1919
+        },
+        "firstSigningMs": {
+          "n": 10,
+          "medianMs": 541.9499999880791,
+          "p95Ms": 690.5,
+          "minMs": 500,
+          "maxMs": 690.5
+        },
+        "firstSigningWithoutConfirmationMs": {
+          "n": 10,
+          "medianMs": 345.7000000178814,
+          "p95Ms": 479.80000001192093,
+          "minMs": 273.30000001192093,
+          "maxMs": 479.80000001192093
+        },
+        "sdkCombinedMs": {
+          "n": 10,
+          "medianMs": 2750.199999988079,
+          "p95Ms": 3884,
+          "minMs": 2537.400000035763,
+          "maxMs": 3884
+        },
+        "sdkCombinedWithoutInteractionsMs": {
+          "n": 10,
+          "medianMs": 2130.449999988079,
+          "p95Ms": 3048.899999976158,
+          "minMs": 1715.4000000357628,
+          "maxMs": 3048.899999976158
+        },
+        "registrationToVerifiedMs": {
+          "n": 10,
+          "medianMs": 3796.7804584999994,
+          "p95Ms": 5426.04775,
+          "minMs": 3004.2671249999985,
+          "maxMs": 5426.04775
+        },
+        "harnessRegistrationMs": {
+          "n": 10,
+          "medianMs": 2369.1174585000026,
+          "p95Ms": 3911.2664170000003,
+          "minMs": 2302.1646670000046,
+          "maxMs": 3911.2664170000003
+        },
+        "harnessFirstSigningMs": {
+          "n": 10,
+          "medianMs": 709.9162499999993,
+          "p95Ms": 1514.7813329999994,
+          "minMs": 692.326583,
+          "maxMs": 1514.7813329999994
+        },
+        "confirmationMs": {
+          "n": 10,
+          "medianMs": 210.94999998807907,
+          "p95Ms": 226.69999998807907,
+          "minMs": 165.80000001192093,
+          "maxMs": 226.69999998807907
+        },
+        "webAuthnMs": {
+          "n": 10,
+          "medianMs": 484.69999998807907,
+          "p95Ms": 695.8999999761581,
+          "minMs": 95.5,
+          "maxMs": 695.8999999761581
+        },
+        "preConfirmationMs": {
+          "n": 10,
+          "medianMs": 78.75,
+          "p95Ms": 127.5,
+          "minMs": 70.19999998807907,
+          "maxMs": 127.5
+        }
+      },
+      "05-baseline-repeat": {
+        "sdkRegistrationMs": {
+          "n": 10,
+          "medianMs": 2647.550000011921,
+          "p95Ms": 3999.099999964237,
+          "minMs": 2298.199999988079,
+          "maxMs": 3999.099999964237
+        },
+        "postPasskeyMs": {
+          "n": 10,
+          "medianMs": 1186.0,
+          "p95Ms": 2202,
+          "minMs": 873,
+          "maxMs": 2202
+        },
+        "firstSigningMs": {
+          "n": 10,
+          "medianMs": 668.1500000059605,
+          "p95Ms": 1029.300000011921,
+          "minMs": 529.3999999761581,
+          "maxMs": 1029.300000011921
+        },
+        "firstSigningWithoutConfirmationMs": {
+          "n": 10,
+          "medianMs": 466.30000001192093,
+          "p95Ms": 885.8000000119209,
+          "minMs": 309.80000001192093,
+          "maxMs": 885.8000000119209
+        },
+        "sdkCombinedMs": {
+          "n": 10,
+          "medianMs": 3449.9999999701977,
+          "p95Ms": 4604.8999999165535,
+          "minMs": 2827.599999964237,
+          "maxMs": 4604.8999999165535
+        },
+        "sdkCombinedWithoutInteractionsMs": {
+          "n": 10,
+          "medianMs": 2901.5,
+          "p95Ms": 4138.099999964237,
+          "minMs": 2238.400000035763,
+          "maxMs": 4138.099999964237
+        },
+        "registrationToVerifiedMs": {
+          "n": 10,
+          "medianMs": 4688.980770999999,
+          "p95Ms": 6125.707083000001,
+          "minMs": 3846.991334000002,
+          "maxMs": 6125.707083000001
+        },
+        "harnessRegistrationMs": {
+          "n": 10,
+          "medianMs": 3196.1436665,
+          "p95Ms": 4645.965333,
+          "minMs": 3109.063916,
+          "maxMs": 4645.965333
+        },
+        "harnessFirstSigningMs": {
+          "n": 10,
+          "medianMs": 1492.8371044999985,
+          "p95Ms": 1538.7226669999995,
+          "minMs": 709.0217090000006,
+          "maxMs": 1538.7226669999995
+        },
+        "confirmationMs": {
+          "n": 10,
+          "medianMs": 150.80000001192093,
+          "p95Ms": 236.9000000357628,
+          "minMs": 100.60000002384186,
+          "maxMs": 236.9000000357628
+        },
+        "webAuthnMs": {
+          "n": 10,
+          "medianMs": 415.64999997615814,
+          "p95Ms": 461.5,
+          "minMs": 314.7999999523163,
+          "maxMs": 461.5
+        },
+        "preConfirmationMs": {
+          "n": 10,
+          "medianMs": 134.90000000596046,
+          "p95Ms": 180.10000002384186,
+          "minMs": 64.30000001192093,
+          "maxMs": 180.10000002384186
+        }
+      },
+      "04-candidate": {
+        "sdkRegistrationMs": {
+          "n": 10,
+          "medianMs": 2380.4000000059605,
+          "p95Ms": 4311.5,
+          "minMs": 2012.7999999523163,
+          "maxMs": 4311.5
+        },
+        "postPasskeyMs": {
+          "n": 10,
+          "medianMs": 1138.0,
+          "p95Ms": 1559,
+          "minMs": 822,
+          "maxMs": 1559
+        },
+        "firstSigningMs": {
+          "n": 10,
+          "medianMs": 542.4500000178814,
+          "p95Ms": 814.6000000238419,
+          "minMs": 471.30000001192093,
+          "maxMs": 814.6000000238419
+        },
+        "firstSigningWithoutConfirmationMs": {
+          "n": 10,
+          "medianMs": 268.05000001192093,
+          "p95Ms": 550.4000000357628,
+          "minMs": 206.4000000357628,
+          "maxMs": 550.4000000357628
+        },
+        "sdkCombinedMs": {
+          "n": 10,
+          "medianMs": 3072.850000023842,
+          "p95Ms": 4980.300000011921,
+          "minMs": 2549.599999964237,
+          "maxMs": 4980.300000011921
+        },
+        "sdkCombinedWithoutInteractionsMs": {
+          "n": 10,
+          "medianMs": 2218.850000023842,
+          "p95Ms": 4086.199999988079,
+          "minMs": 1610.5,
+          "maxMs": 4086.199999988079
+        },
+        "registrationToVerifiedMs": {
+          "n": 10,
+          "medianMs": 4178.5387500000015,
+          "p95Ms": 6144.787875,
+          "minMs": 2996.9205410000004,
+          "maxMs": 6144.787875
+        },
+        "harnessRegistrationMs": {
+          "n": 10,
+          "medianMs": 3090.6542709999994,
+          "p95Ms": 4665.698833,
+          "minMs": 2298.100958,
+          "maxMs": 4665.698833
+        },
+        "harnessFirstSigningMs": {
+          "n": 10,
+          "medianMs": 1085.6874375000007,
+          "p95Ms": 1508.2042920000022,
+          "minMs": 679.2411250000005,
+          "maxMs": 1508.2042920000022
+        },
+        "confirmationMs": {
+          "n": 10,
+          "medianMs": 265.34999999403954,
+          "p95Ms": 291.89999997615814,
+          "minMs": 259.10000002384186,
+          "maxMs": 291.89999997615814
+        },
+        "webAuthnMs": {
+          "n": 10,
+          "medianMs": 547.1999999880791,
+          "p95Ms": 703.1999999880791,
+          "minMs": 114.39999997615814,
+          "maxMs": 703.1999999880791
+        },
+        "preConfirmationMs": {
+          "n": 10,
+          "medianMs": 7.550000011920929,
+          "p95Ms": 9.100000023841858,
+          "minMs": 5.5,
+          "maxMs": 9.100000023841858
+        }
+      },
+      "06-candidate-repeat": {
+        "sdkRegistrationMs": {
+          "n": 10,
+          "medianMs": 2199.2000000178814,
+          "p95Ms": 2482.100000023842,
+          "minMs": 2110.5,
+          "maxMs": 2482.100000023842
+        },
+        "postPasskeyMs": {
+          "n": 10,
+          "medianMs": 992.5,
+          "p95Ms": 1255,
+          "minMs": 915,
+          "maxMs": 1255
+        },
+        "firstSigningMs": {
+          "n": 10,
+          "medianMs": 506.94999998807907,
+          "p95Ms": 833.8000000119209,
+          "minMs": 452.19999998807907,
+          "maxMs": 833.8000000119209
+        },
+        "firstSigningWithoutConfirmationMs": {
+          "n": 10,
+          "medianMs": 240.0,
+          "p95Ms": 567.8000000119209,
+          "minMs": 183.5,
+          "maxMs": 567.8000000119209
+        },
+        "sdkCombinedMs": {
+          "n": 10,
+          "medianMs": 2777.050000011921,
+          "p95Ms": 3026.7000000476837,
+          "minMs": 2596.2999999523163,
+          "maxMs": 3026.7000000476837
+        },
+        "sdkCombinedWithoutInteractionsMs": {
+          "n": 10,
+          "medianMs": 1988.7999999821186,
+          "p95Ms": 2345,
+          "minMs": 1760.1000000834465,
+          "maxMs": 2345
+        },
+        "registrationToVerifiedMs": {
+          "n": 10,
+          "medianMs": 3410.0203125000007,
+          "p95Ms": 4623.622209,
+          "minMs": 2932.496874999997,
+          "maxMs": 4623.622209
+        },
+        "harnessRegistrationMs": {
+          "n": 10,
+          "medianMs": 2365.0183954999998,
+          "p95Ms": 3133.333584,
+          "minMs": 2256.4902920000022,
+          "maxMs": 3133.333584
+        },
+        "harnessFirstSigningMs": {
+          "n": 10,
+          "medianMs": 685.1520624999994,
+          "p95Ms": 1490.2886250000001,
+          "minMs": 675.2100419999988,
+          "maxMs": 1490.2886250000001
+        },
+        "confirmationMs": {
+          "n": 10,
+          "medianMs": 269.2999999821186,
+          "p95Ms": 276.60000002384186,
+          "minMs": 265.69999998807907,
+          "maxMs": 276.60000002384186
+        },
+        "webAuthnMs": {
+          "n": 10,
+          "medianMs": 524.5999999940395,
+          "p95Ms": 647.6999999880791,
+          "minMs": 279.5,
+          "maxMs": 647.6999999880791
+        },
+        "preConfirmationMs": {
+          "n": 10,
+          "medianMs": 6.8499999940395355,
+          "p95Ms": 7.300000011920929,
+          "minMs": 5.300000011920929,
+          "maxMs": 7.300000011920929
+        }
+      }
+    },
+    "samples": {
+      "baseline": [
+        {
+          "block": "03-baseline",
+          "sample": "registration-1.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3074.699999988079,
+          "postPasskeyMs": 1837,
+          "firstSigningMs": 566.8000000119209,
+          "firstSigningWithoutConfirmationMs": 355.60000002384186,
+          "sdkCombinedMs": 3641.5,
+          "sdkCombinedWithoutInteractionsMs": 2739.399999976158,
+          "registrationToVerifiedMs": 5426.04775,
+          "harnessRegistrationMs": 3911.2664170000003,
+          "harnessFirstSigningMs": 1514.7813329999994,
+          "confirmationMs": 211.19999998807907,
+          "webAuthnMs": 690.9000000357628,
+          "preConfirmationMs": 75.80000001192093,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 774.7951249999996,
+          "signerDownloadMs": 17.425,
+          "wasmDownloadMs": 49.276,
+          "phases": {
+            "near_only.setup": 199.69999998807907,
+            "near_only.authentication": 690.9000000357628,
+            "session_seal_preparation": 5.400000035762787,
+            "near_only.respond": 1496.5,
+            "near_only.custody": 8.299999952316284,
+            "near_only.provision_checkpoint": 3.100000023841858,
+            "near_only.finalize": 292,
+            "near_only.publication": 17.5,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.200000047683716,
+            "near_only.wallet_ready": 1.699999988079071,
+            "prepare_sent": 0.7000000476837158,
+            "pre_confirmation": 75.80000001192093,
+            "confirmation": 211.19999998807907,
+            "prepare": 68.40000003576279,
+            "client_share": 3.399999976158142,
+            "finalize": 176.60000002384186,
+            "signature_total": 249.89999997615814,
+            "confirmed_to_signed": 251.89999997615814
+          },
+          "artifactSha256": "19c593804612f3db187bcc449e122ac2abbdd58df64c5fe68e1c54d54350911b"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-10.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2037.4000000357628,
+          "postPasskeyMs": 846,
+          "firstSigningMs": 500,
+          "firstSigningWithoutConfirmationMs": 273.30000001192093,
+          "sdkCombinedMs": 2537.400000035763,
+          "sdkCombinedWithoutInteractionsMs": 1925.5000000596046,
+          "registrationToVerifiedMs": 3004.83425,
+          "harnessRegistrationMs": 2302.1646670000046,
+          "harnessFirstSigningMs": 702.6695829999953,
+          "confirmationMs": 226.69999998807907,
+          "webAuthnMs": 385.19999998807907,
+          "preConfirmationMs": 70.19999998807907,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 184.64808400000038,
+          "signerDownloadMs": 15.333,
+          "wasmDownloadMs": 46.206,
+          "phases": {
+            "near_only.setup": 450.4000000357628,
+            "near_only.authentication": 385.19999998807907,
+            "session_seal_preparation": 6.100000023841858,
+            "near_only.respond": 522,
+            "near_only.custody": 6.699999988079071,
+            "near_only.provision_checkpoint": 1.9000000357627869,
+            "near_only.finalize": 287.69999998807907,
+            "near_only.publication": 12.800000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 5.5,
+            "near_only.session_hydration": 5.699999988079071,
+            "near_only.material_activation": 5.399999976158142,
+            "near_only.export_capability": 2.800000011920929,
+            "near_only.wallet_ready": 1.199999988079071,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 70.19999998807907,
+            "confirmation": 226.69999998807907,
+            "prepare": 0,
+            "client_share": 3.5,
+            "finalize": 178.80000001192093,
+            "signature_total": 183.70000004768372,
+            "confirmed_to_signed": 185.80000001192093
+          },
+          "artifactSha256": "a3d8c818316fe8532d618098f78d1171e57362e5c58c7fffdb9e69a092d3d853"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-2.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2271.5,
+          "postPasskeyMs": 1080,
+          "firstSigningMs": 521.1999999880791,
+          "firstSigningWithoutConfirmationMs": 329.0999999642372,
+          "sdkCombinedMs": 2792.699999988079,
+          "sdkCombinedWithoutInteractionsMs": 2394.2999999523163,
+          "registrationToVerifiedMs": 3775.8169579999994,
+          "harnessRegistrationMs": 3083.4903749999994,
+          "harnessFirstSigningMs": 692.326583,
+          "confirmationMs": 192.10000002384186,
+          "webAuthnMs": 206.30000001192093,
+          "preConfirmationMs": 98.39999997615814,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 740.024625,
+          "signerDownloadMs": 20.689,
+          "wasmDownloadMs": 70.53,
+          "phases": {
+            "near_only.setup": 635.3000000119209,
+            "near_only.authentication": 206.30000001192093,
+            "session_seal_preparation": 5.799999952316284,
+            "near_only.respond": 703.8000000119209,
+            "near_only.custody": 11.599999964237213,
+            "near_only.provision_checkpoint": 3.300000011920929,
+            "near_only.finalize": 324.80000001192093,
+            "near_only.publication": 18.5,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.699999988079071,
+            "near_only.session_hydration": 7,
+            "near_only.material_activation": 6.5,
+            "near_only.export_capability": 3.100000023841858,
+            "near_only.wallet_ready": 1.5999999642372131,
+            "prepare_sent": 0.5999999642372131,
+            "pre_confirmation": 98.39999997615814,
+            "confirmation": 192.10000002384186,
+            "prepare": 0,
+            "client_share": 3.5,
+            "finalize": 209,
+            "signature_total": 213.5999999642372,
+            "confirmed_to_signed": 217.10000002384186
+          },
+          "artifactSha256": "ce610ed6d4bb491acec3b85b2f59154e6d2f810acf2e60bb79397b7760551a03"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-3.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2358.900000035763,
+          "postPasskeyMs": 1081,
+          "firstSigningMs": 547.3999999761581,
+          "firstSigningWithoutConfirmationMs": 365.0,
+          "sdkCombinedMs": 2906.300000011921,
+          "sdkCombinedWithoutInteractionsMs": 2628.400000035763,
+          "registrationToVerifiedMs": 3855.7412079999995,
+          "harnessRegistrationMs": 3151.4311660000003,
+          "harnessFirstSigningMs": 704.3100419999992,
+          "confirmationMs": 182.39999997615814,
+          "webAuthnMs": 95.5,
+          "preConfirmationMs": 102.40000003576279,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 744.3316249999989,
+          "signerDownloadMs": 20.668,
+          "wasmDownloadMs": 69.795,
+          "phases": {
+            "near_only.setup": 780,
+            "near_only.authentication": 95.5,
+            "session_seal_preparation": 6.199999988079071,
+            "near_only.respond": 773.9000000357628,
+            "near_only.custody": 12.099999964237213,
+            "near_only.provision_checkpoint": 4,
+            "near_only.finalize": 259.30000001192093,
+            "near_only.publication": 13.300000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.900000035762787,
+            "near_only.session_hydration": 7.199999988079071,
+            "near_only.material_activation": 6.800000011920929,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.4000000357627869,
+            "prepare_sent": 0.7000000476837158,
+            "pre_confirmation": 102.40000003576279,
+            "confirmation": 182.39999997615814,
+            "prepare": 41.30000001192093,
+            "client_share": 3.199999988079071,
+            "finalize": 187.80000001192093,
+            "signature_total": 234,
+            "confirmed_to_signed": 236
+          },
+          "artifactSha256": "8f4959ee503cf616e6dea6363788516da7cb293184f608645348a035d4891603"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-4.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2024.5,
+          "postPasskeyMs": 816,
+          "firstSigningMs": 521.5,
+          "firstSigningWithoutConfirmationMs": 302.0,
+          "sdkCombinedMs": 2546,
+          "sdkCombinedWithoutInteractionsMs": 1715.4000000357628,
+          "registrationToVerifiedMs": 3023.817416,
+          "harnessRegistrationMs": 2308.2949580000004,
+          "harnessFirstSigningMs": 715.5224579999995,
+          "confirmationMs": 219.5,
+          "webAuthnMs": 611.0999999642372,
+          "preConfirmationMs": 72.20000004768372,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 219.3794999999991,
+          "signerDownloadMs": 16.351,
+          "wasmDownloadMs": 48.032,
+          "phases": {
+            "near_only.setup": 243.19999998807907,
+            "near_only.authentication": 611.0999999642372,
+            "session_seal_preparation": 6.300000011920929,
+            "near_only.respond": 559.4000000357628,
+            "near_only.custody": 10.899999976158142,
+            "near_only.provision_checkpoint": 2.900000035762787,
+            "near_only.finalize": 217.5999999642372,
+            "near_only.publication": 11.400000035762787,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.800000011920929,
+            "near_only.session_hydration": 5.099999964237213,
+            "near_only.material_activation": 5.300000011920929,
+            "near_only.export_capability": 2.600000023841858,
+            "near_only.wallet_ready": 1.0999999642372131,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 72.20000004768372,
+            "confirmation": 219.5,
+            "prepare": 0,
+            "client_share": 3.400000035762787,
+            "finalize": 203.80000001192093,
+            "signature_total": 208.30000001192093,
+            "confirmed_to_signed": 211
+          },
+          "artifactSha256": "4803d3b1b453cb1299bd1e97e28e43a75e6a0b2af6d93752ad787078b9eec584"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-5.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2192.600000023842,
+          "postPasskeyMs": 1000,
+          "firstSigningMs": 536.5,
+          "firstSigningWithoutConfirmationMs": 335.80000001192093,
+          "sdkCombinedMs": 2729.100000023842,
+          "sdkCombinedWithoutInteractionsMs": 1948.3000000715256,
+          "registrationToVerifiedMs": 3004.2671249999985,
+          "harnessRegistrationMs": 2306.884374999998,
+          "harnessFirstSigningMs": 697.3827500000007,
+          "confirmationMs": 200.69999998807907,
+          "webAuthnMs": 580.0999999642372,
+          "preConfirmationMs": 93.69999998807907,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 31.4775410000002,
+          "signerDownloadMs": 18.9,
+          "wasmDownloadMs": 66.708,
+          "phases": {
+            "near_only.setup": 281.4000000357628,
+            "near_only.authentication": 580.0999999642372,
+            "session_seal_preparation": 5.599999964237213,
+            "near_only.respond": 745.1000000238419,
+            "near_only.custody": 11.599999964237213,
+            "near_only.provision_checkpoint": 3,
+            "near_only.finalize": 204.4000000357628,
+            "near_only.publication": 18.899999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.5,
+            "near_only.session_hydration": 6.800000011920929,
+            "near_only.material_activation": 6.300000011920929,
+            "near_only.export_capability": 2.899999976158142,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 93.69999998807907,
+            "confirmation": 200.69999998807907,
+            "prepare": 10.399999976158142,
+            "client_share": 3,
+            "finalize": 210.0999999642372,
+            "signature_total": 225,
+            "confirmed_to_signed": 227.30000001192093
+          },
+          "artifactSha256": "6de0a4eeeda0f1756bc256a7e41d194b3c11805a74ceb39fa15219f3e2fb1748"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-6.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2101.699999988079,
+          "postPasskeyMs": 844,
+          "firstSigningMs": 602.6999999880791,
+          "firstSigningWithoutConfirmationMs": 436.89999997615814,
+          "sdkCombinedMs": 2704.399999976158,
+          "sdkCombinedWithoutInteractionsMs": 2158.4999999403954,
+          "registrationToVerifiedMs": 3855.0682500000003,
+          "harnessRegistrationMs": 2379.909958,
+          "harnessFirstSigningMs": 1475.158292,
+          "confirmationMs": 165.80000001192093,
+          "webAuthnMs": 380.10000002384186,
+          "preConfirmationMs": 127.5,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 206.9925000000003,
+          "signerDownloadMs": 24.822,
+          "wasmDownloadMs": 93.278,
+          "phases": {
+            "near_only.setup": 360,
+            "near_only.authentication": 380.10000002384186,
+            "session_seal_preparation": 6.199999988079071,
+            "near_only.respond": 568.5,
+            "near_only.custody": 12.399999976158142,
+            "near_only.provision_checkpoint": 3.100000023841858,
+            "near_only.finalize": 236.39999997615814,
+            "near_only.publication": 8.600000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 5.300000011920929,
+            "near_only.session_hydration": 5.399999976158142,
+            "near_only.material_activation": 5.900000035762787,
+            "near_only.export_capability": 2.5,
+            "near_only.wallet_ready": 1.5,
+            "prepare_sent": 0.5999999642372131,
+            "pre_confirmation": 127.5,
+            "confirmation": 165.80000001192093,
+            "prepare": 62.200000047683716,
+            "client_share": 3.299999952316284,
+            "finalize": 214.80000001192093,
+            "signature_total": 283,
+            "confirmed_to_signed": 285.19999998807907
+          },
+          "artifactSha256": "6c85ca8eb70b93207288ec807c241b3b0d98587ec76a143608cc8b9cbda3d3aa"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-7.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3193.5,
+          "postPasskeyMs": 1919,
+          "firstSigningMs": 690.5,
+          "firstSigningWithoutConfirmationMs": 479.80000001192093,
+          "sdkCombinedMs": 3884,
+          "sdkCombinedWithoutInteractionsMs": 3048.899999976158,
+          "registrationToVerifiedMs": 5373.085083000002,
+          "harnessRegistrationMs": 3901.710041000002,
+          "harnessFirstSigningMs": 1471.3750419999997,
+          "confirmationMs": 210.69999998807907,
+          "webAuthnMs": 624.4000000357628,
+          "preConfirmationMs": 79.80000001192093,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 651.0874579999982,
+          "signerDownloadMs": 15.638,
+          "wasmDownloadMs": 54.81,
+          "phases": {
+            "near_only.setup": 254.69999998807907,
+            "near_only.authentication": 624.4000000357628,
+            "session_seal_preparation": 5.399999976158142,
+            "near_only.respond": 1625.0999999642372,
+            "near_only.custody": 11.199999988079071,
+            "near_only.provision_checkpoint": 3.400000035762787,
+            "near_only.finalize": 246,
+            "near_only.publication": 14.300000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 6.599999964237213,
+            "near_only.export_capability": 3.300000011920929,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5999999642372131,
+            "pre_confirmation": 79.80000001192093,
+            "confirmation": 210.69999998807907,
+            "prepare": 56.5,
+            "client_share": 3.600000023841858,
+            "finalize": 312.89999997615814,
+            "signature_total": 374.39999997615814,
+            "confirmed_to_signed": 376.9000000357628
+          },
+          "artifactSha256": "a9ff48afd21abb6f6541a5047c47338b3b9c7df2c33217309bdd6e75edd8db9c"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-8.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2183.400000035763,
+          "postPasskeyMs": 976,
+          "firstSigningMs": 532.1000000238419,
+          "firstSigningWithoutConfirmationMs": 308.30000001192093,
+          "sdkCombinedMs": 2715.5000000596046,
+          "sdkCombinedWithoutInteractionsMs": 2102.400000035763,
+          "registrationToVerifiedMs": 3011.094124999996,
+          "harnessRegistrationMs": 2308.281667000003,
+          "harnessFirstSigningMs": 702.8124579999931,
+          "confirmationMs": 223.80000001192093,
+          "webAuthnMs": 389.30000001192093,
+          "preConfirmationMs": 77.69999998807907,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 49.80016700000124,
+          "signerDownloadMs": 15.584,
+          "wasmDownloadMs": 53.499,
+          "phases": {
+            "near_only.setup": 420.69999998807907,
+            "near_only.authentication": 389.30000001192093,
+            "session_seal_preparation": 5.600000023841858,
+            "near_only.respond": 531.1999999880791,
+            "near_only.custody": 6.699999988079071,
+            "near_only.provision_checkpoint": 2.100000023841858,
+            "near_only.finalize": 416.19999998807907,
+            "near_only.publication": 6.899999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.800000011920929,
+            "near_only.session_hydration": 5,
+            "near_only.material_activation": 4.800000011920929,
+            "near_only.export_capability": 2.399999976158142,
+            "near_only.wallet_ready": 1,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 77.69999998807907,
+            "confirmation": 223.80000001192093,
+            "prepare": 0,
+            "client_share": 3.300000011920929,
+            "finalize": 209.89999997615814,
+            "signature_total": 215,
+            "confirmed_to_signed": 216.89999997615814
+          },
+          "artifactSha256": "7450d38d2e7b7c14a4c51a09c652fad9660a1523b3b9d92b9e5df8717e3cc28a"
+        },
+        {
+          "block": "03-baseline",
+          "sample": "registration-9.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2151.7999999523163,
+          "postPasskeyMs": 908,
+          "firstSigningMs": 619.5,
+          "firstSigningWithoutConfirmationMs": 406.9000000357628,
+          "sdkCombinedMs": 2771.2999999523163,
+          "sdkCombinedWithoutInteractionsMs": 1862.800000011921,
+          "registrationToVerifiedMs": 3817.7439589999994,
+          "harnessRegistrationMs": 2358.324959000005,
+          "harnessFirstSigningMs": 1459.4189999999944,
+          "confirmationMs": 212.5999999642372,
+          "webAuthnMs": 695.8999999761581,
+          "preConfirmationMs": 74.30000001192093,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 131.81395799999882,
+          "signerDownloadMs": 14.382,
+          "wasmDownloadMs": 50.37,
+          "phases": {
+            "near_only.setup": 203.9000000357628,
+            "near_only.authentication": 695.8999999761581,
+            "session_seal_preparation": 5.699999988079071,
+            "near_only.respond": 644,
+            "near_only.custody": 12.300000011920929,
+            "near_only.provision_checkpoint": 4,
+            "near_only.finalize": 214.0999999642372,
+            "near_only.publication": 14.600000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.600000023841858,
+            "near_only.material_activation": 6.799999952316284,
+            "near_only.export_capability": 3.100000023841858,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 74.30000001192093,
+            "confirmation": 212.5999999642372,
+            "prepare": 81,
+            "client_share": 3.5,
+            "finalize": 226.19999998807907,
+            "signature_total": 313.19999998807907,
+            "confirmed_to_signed": 315.19999998807907
+          },
+          "artifactSha256": "1c67bfb9dd743f2cccbc65685b2d6c4f5eb1df45bd0bf37ad6297d5cb5a8b34e"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-1.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2475.5,
+          "postPasskeyMs": 1183,
+          "firstSigningMs": 831.3000000119209,
+          "firstSigningWithoutConfirmationMs": 703.6999999880791,
+          "sdkCombinedMs": 3306.800000011921,
+          "sdkCombinedWithoutInteractionsMs": 2724.399999976158,
+          "registrationToVerifiedMs": 4785.316999999999,
+          "harnessRegistrationMs": 3246.5943329999996,
+          "harnessFirstSigningMs": 1538.7226669999995,
+          "confirmationMs": 127.60000002384186,
+          "webAuthnMs": 454.80000001192093,
+          "preConfirmationMs": 168,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 655.195041,
+          "signerDownloadMs": 28.023,
+          "wasmDownloadMs": 126.78,
+          "phases": {
+            "near_only.setup": 272.5,
+            "near_only.authentication": 454.80000001192093,
+            "session_seal_preparation": 6,
+            "near_only.respond": 676.5,
+            "near_only.custody": 14.599999964237213,
+            "near_only.provision_checkpoint": 3.800000011920929,
+            "near_only.finalize": 452.30000001192093,
+            "near_only.publication": 16.30000001192093,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.899999976158142,
+            "near_only.material_activation": 7.300000011920929,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.8999999761581421,
+            "pre_confirmation": 168,
+            "confirmation": 127.60000002384186,
+            "prepare": 95.69999998807907,
+            "client_share": 3.5,
+            "finalize": 405,
+            "signature_total": 506.69999998807907,
+            "confirmed_to_signed": 509.10000002384186
+          },
+          "artifactSha256": "6340369234e42a6e2ff8d05843dac1dc91619fbc6f25beb27b0bdcb7d3f997ad"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-10.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2900,
+          "postPasskeyMs": 873,
+          "firstSigningMs": 696,
+          "firstSigningWithoutConfirmationMs": 473.7000000476837,
+          "sdkCombinedMs": 3596,
+          "sdkCombinedWithoutInteractionsMs": 2920.400000035763,
+          "registrationToVerifiedMs": 4630.802875000001,
+          "harnessRegistrationMs": 3139.3801669999957,
+          "harnessFirstSigningMs": 1491.4227080000055,
+          "confirmationMs": 222.29999995231628,
+          "webAuthnMs": 453.30000001192093,
+          "preConfirmationMs": 64.30000001192093,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 183.91608299999643,
+          "signerDownloadMs": 14.573,
+          "wasmDownloadMs": 40.054,
+          "phases": {
+            "near_only.setup": 414,
+            "near_only.authentication": 453.30000001192093,
+            "session_seal_preparation": 5.699999988079071,
+            "near_only.respond": 619.1999999880791,
+            "near_only.custody": 12.199999988079071,
+            "near_only.provision_checkpoint": 4.300000011920929,
+            "near_only.finalize": 206.19999998807907,
+            "near_only.publication": 10.800000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 8,
+            "near_only.session_hydration": 8.199999988079071,
+            "near_only.material_activation": 7.5,
+            "near_only.export_capability": 3.5,
+            "near_only.wallet_ready": 1.5,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 64.30000001192093,
+            "confirmation": 222.29999995231628,
+            "prepare": 191.5,
+            "client_share": 3.400000035762787,
+            "finalize": 183.39999997615814,
+            "signature_total": 380,
+            "confirmed_to_signed": 382
+          },
+          "artifactSha256": "4d1373bbfae00c4b966c2f2672cec4f97f7ac484b72cc074a4b3068a409c42e8"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-2.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2484.100000023842,
+          "postPasskeyMs": 1238,
+          "firstSigningMs": 667.3000000119209,
+          "firstSigningWithoutConfirmationMs": 453.89999997615814,
+          "sdkCombinedMs": 3151.400000035763,
+          "sdkCombinedWithoutInteractionsMs": 2566.7000000476837,
+          "registrationToVerifiedMs": 4616.407333,
+          "harnessRegistrationMs": 3109.063916,
+          "harnessFirstSigningMs": 1507.343417,
+          "confirmationMs": 213.4000000357628,
+          "webAuthnMs": 371.2999999523163,
+          "preConfirmationMs": 70.60000002384186,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 585.9781669999993,
+          "signerDownloadMs": 18.595,
+          "wasmDownloadMs": 40.746,
+          "phases": {
+            "near_only.setup": 416.5,
+            "near_only.authentication": 371.2999999523163,
+            "session_seal_preparation": 6,
+            "near_only.respond": 709.7000000476837,
+            "near_only.custody": 14.299999952316284,
+            "near_only.provision_checkpoint": 2.800000011920929,
+            "near_only.finalize": 475.5,
+            "near_only.publication": 14.600000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.800000011920929,
+            "near_only.session_hydration": 8,
+            "near_only.material_activation": 7.899999976158142,
+            "near_only.export_capability": 3.5,
+            "near_only.wallet_ready": 1.600000023841858,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 70.60000002384186,
+            "confirmation": 213.4000000357628,
+            "prepare": 123.79999995231628,
+            "client_share": 3.399999976158142,
+            "finalize": 225.39999997615814,
+            "signature_total": 354.30000001192093,
+            "confirmed_to_signed": 356.19999998807907
+          },
+          "artifactSha256": "2c0dad978b8cbe5be84ddce5518f5f041be026e065a3430001998c417544318a"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-3.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3426.699999988079,
+          "postPasskeyMs": 2202,
+          "firstSigningMs": 608.5,
+          "firstSigningWithoutConfirmationMs": 458.89999997615814,
+          "sdkCombinedMs": 4035.199999988079,
+          "sdkCombinedWithoutInteractionsMs": 3482.599999964237,
+          "registrationToVerifiedMs": 5393.404666999999,
+          "harnessRegistrationMs": 3909.3369170000005,
+          "harnessFirstSigningMs": 1484.0677499999983,
+          "confirmationMs": 149.60000002384186,
+          "webAuthnMs": 403,
+          "preConfirmationMs": 136.19999998807907,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 406.985584,
+          "signerDownloadMs": 70.772,
+          "wasmDownloadMs": 57.353,
+          "phases": {
+            "near_only.setup": 289.9000000357628,
+            "near_only.authentication": 403,
+            "session_seal_preparation": 5.400000035762787,
+            "near_only.respond": 1640.8999999761581,
+            "near_only.custody": 13.300000011920929,
+            "near_only.provision_checkpoint": 7.899999976158142,
+            "near_only.finalize": 504.30000001192093,
+            "near_only.publication": 15.5,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.199999988079071,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 7.5,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.4000000357627869,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 136.19999998807907,
+            "confirmation": 149.60000002384186,
+            "prepare": 40.89999997615814,
+            "client_share": 3.400000035762787,
+            "finalize": 255.69999998807907,
+            "signature_total": 301.39999997615814,
+            "confirmed_to_signed": 303.5
+          },
+          "artifactSha256": "bf2127abc27be5f0f1fec279e112184c016be5a98879f098a5801fdc121f5cb4"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-4.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2298.199999988079,
+          "postPasskeyMs": 1035,
+          "firstSigningMs": 529.3999999761581,
+          "firstSigningWithoutConfirmationMs": 309.80000001192093,
+          "sdkCombinedMs": 2827.599999964237,
+          "sdkCombinedWithoutInteractionsMs": 2238.400000035763,
+          "registrationToVerifiedMs": 3846.991334000002,
+          "harnessRegistrationMs": 3137.9696250000015,
+          "harnessFirstSigningMs": 709.0217090000006,
+          "confirmationMs": 219.5999999642372,
+          "webAuthnMs": 369.5999999642372,
+          "preConfirmationMs": 70.30000001192093,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 798.3220000000001,
+          "signerDownloadMs": 13.862,
+          "wasmDownloadMs": 47.062,
+          "phases": {
+            "near_only.setup": 424.19999998807907,
+            "near_only.authentication": 369.5999999642372,
+            "session_seal_preparation": 6.5,
+            "near_only.respond": 669.2000000476837,
+            "near_only.custody": 14.699999988079071,
+            "near_only.provision_checkpoint": 3.599999964237213,
+            "near_only.finalize": 309.5,
+            "near_only.publication": 20,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.800000011920929,
+            "near_only.session_hydration": 7.300000011920929,
+            "near_only.material_activation": 6.600000023841858,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.199999988079071,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 70.30000001192093,
+            "confirmation": 219.5999999642372,
+            "prepare": 0,
+            "client_share": 3.399999976158142,
+            "finalize": 207.10000002384186,
+            "signature_total": 211.80000001192093,
+            "confirmed_to_signed": 214.30000001192093
+          },
+          "artifactSha256": "c868db1768ebf9054957752dcb5565367d43c99e83c363d06e664842bdd2b2e2"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-5.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2479.800000011921,
+          "postPasskeyMs": 1189,
+          "firstSigningMs": 571.1000000238419,
+          "firstSigningWithoutConfirmationMs": 334.19999998807907,
+          "sdkCombinedMs": 3050.900000035763,
+          "sdkCombinedWithoutInteractionsMs": 2385.7000000476837,
+          "registrationToVerifiedMs": 4662.106334,
+          "harnessRegistrationMs": 3167.1650420000005,
+          "harnessFirstSigningMs": 1494.9412919999995,
+          "confirmationMs": 236.9000000357628,
+          "webAuthnMs": 428.2999999523163,
+          "preConfirmationMs": 64.59999996423721,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 624.0061249999999,
+          "signerDownloadMs": 17.011,
+          "wasmDownloadMs": 37.524,
+          "phases": {
+            "near_only.setup": 202.70000004768372,
+            "near_only.authentication": 428.2999999523163,
+            "session_seal_preparation": 6.100000023841858,
+            "near_only.respond": 923.2000000476837,
+            "near_only.custody": 9.399999976158142,
+            "near_only.provision_checkpoint": 1.699999988079071,
+            "near_only.finalize": 233.60000002384186,
+            "near_only.publication": 8,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.5,
+            "near_only.session_hydration": 4.699999988079071,
+            "near_only.material_activation": 4.699999988079071,
+            "near_only.export_capability": 2.400000035762787,
+            "near_only.wallet_ready": 1,
+            "prepare_sent": 0.40000003576278687,
+            "pre_confirmation": 64.59999996423721,
+            "confirmation": 236.9000000357628,
+            "prepare": 43.10000002384186,
+            "client_share": 4,
+            "finalize": 200.89999997615814,
+            "signature_total": 249.9000000357628,
+            "confirmed_to_signed": 252.69999998807907
+          },
+          "artifactSha256": "80667bb2b06071154b1d7b282739e5f15226d3d8e362736a74812bebc3136f17"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-6.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3104.400000035763,
+          "postPasskeyMs": 1138,
+          "firstSigningMs": 669,
+          "firstSigningWithoutConfirmationMs": 568.3999999761581,
+          "sdkCombinedMs": 3773.400000035763,
+          "sdkCombinedWithoutInteractionsMs": 3211.300000011921,
+          "registrationToVerifiedMs": 5354.543375000001,
+          "harnessRegistrationMs": 3846.8559590000004,
+          "harnessFirstSigningMs": 1507.6874160000007,
+          "confirmationMs": 100.60000002384186,
+          "webAuthnMs": 461.5,
+          "preConfirmationMs": 180.10000002384186,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 684.2996249999997,
+          "signerDownloadMs": 18.465,
+          "wasmDownloadMs": 149.572,
+          "phases": {
+            "near_only.setup": 988.5999999642372,
+            "near_only.authentication": 461.5,
+            "session_seal_preparation": 6.300000011920929,
+            "near_only.respond": 754.8000000119209,
+            "near_only.custody": 12.300000011920929,
+            "near_only.provision_checkpoint": 4.199999988079071,
+            "near_only.finalize": 333,
+            "near_only.publication": 12.600000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 6.800000011920929,
+            "near_only.session_hydration": 7.099999964237213,
+            "near_only.material_activation": 8.400000035762787,
+            "near_only.export_capability": 3.699999988079071,
+            "near_only.wallet_ready": 1.5999999642372131,
+            "prepare_sent": 1.100000023841858,
+            "pre_confirmation": 180.10000002384186,
+            "confirmation": 100.60000002384186,
+            "prepare": 78.19999998807907,
+            "client_share": 3.399999976158142,
+            "finalize": 270.19999998807907,
+            "signature_total": 354.89999997615814,
+            "confirmed_to_signed": 358.0999999642372
+          },
+          "artifactSha256": "174e67f03d468389e556ffda63def6c84b1f482f2e0b6d0ad32d94693e60b192"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-7.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2811,
+          "postPasskeyMs": 1493,
+          "firstSigningMs": 698.0999999642372,
+          "firstSigningWithoutConfirmationMs": 573.1999999880791,
+          "sdkCombinedMs": 3509.099999964237,
+          "sdkCombinedWithoutInteractionsMs": 2941.800000011921,
+          "registrationToVerifiedMs": 4669.740124999997,
+          "harnessRegistrationMs": 3177.731749999999,
+          "harnessFirstSigningMs": 1492.0083749999976,
+          "confirmationMs": 124.89999997615814,
+          "webAuthnMs": 442.39999997615814,
+          "preConfirmationMs": 161,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 323.07941699999355,
+          "signerDownloadMs": 16.3,
+          "wasmDownloadMs": 132.962,
+          "phases": {
+            "near_only.setup": 349.89999997615814,
+            "near_only.authentication": 442.39999997615814,
+            "session_seal_preparation": 7.100000023841858,
+            "near_only.respond": 1123.2000000476837,
+            "near_only.custody": 10,
+            "near_only.provision_checkpoint": 3.5,
+            "near_only.finalize": 317.89999997615814,
+            "near_only.publication": 16.30000001192093,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 2,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 8.799999952316284,
+            "near_only.session_hydration": 9.199999988079071,
+            "near_only.material_activation": 7.699999988079071,
+            "near_only.export_capability": 3.600000023841858,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.7000000476837158,
+            "pre_confirmation": 161,
+            "confirmation": 124.89999997615814,
+            "prepare": 85,
+            "client_share": 3.600000023841858,
+            "finalize": 293.39999997615814,
+            "signature_total": 383.69999998807907,
+            "confirmed_to_signed": 385.80000001192093
+          },
+          "artifactSha256": "9cb00a0d4923d1bd5c9f44bd6ee1358073cefdd1b45520cf82bfd96ddeb149f0"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-8.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3999.099999964237,
+          "postPasskeyMs": 1241,
+          "firstSigningMs": 605.7999999523163,
+          "firstSigningWithoutConfirmationMs": 453.7999999523163,
+          "sdkCombinedMs": 4604.8999999165535,
+          "sdkCombinedWithoutInteractionsMs": 4138.099999964237,
+          "registrationToVerifiedMs": 6125.707083000001,
+          "harnessRegistrationMs": 4645.965333,
+          "harnessFirstSigningMs": 1479.741750000001,
+          "confirmationMs": 152,
+          "webAuthnMs": 314.7999999523163,
+          "preConfirmationMs": 133.60000002384186,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 583.653624999999,
+          "signerDownloadMs": 60.034,
+          "wasmDownloadMs": 65.474,
+          "phases": {
+            "near_only.setup": 1920.800000011921,
+            "near_only.authentication": 314.7999999523163,
+            "session_seal_preparation": 5.599999964237213,
+            "near_only.respond": 841.7000000476837,
+            "near_only.custody": 16.099999964237213,
+            "near_only.provision_checkpoint": 3,
+            "near_only.finalize": 345.9000000357628,
+            "near_only.publication": 14.899999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 7.199999988079071,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.2000000476837158,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 133.60000002384186,
+            "confirmation": 152,
+            "prepare": 92.5,
+            "client_share": 3.5,
+            "finalize": 205.60000002384186,
+            "signature_total": 303.0999999642372,
+            "confirmed_to_signed": 304.89999997615814
+          },
+          "artifactSha256": "aafb124928d4584d1e1d3825ca8b99997d80c775c72c12ff1054aad2b8d20e95"
+        },
+        {
+          "block": "05-baseline-repeat",
+          "sample": "registration-9.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2361.599999964237,
+          "postPasskeyMs": 1024,
+          "firstSigningMs": 1029.300000011921,
+          "firstSigningWithoutConfirmationMs": 885.8000000119209,
+          "sdkCombinedMs": 3390.899999976158,
+          "sdkCombinedWithoutInteractionsMs": 2882.599999964237,
+          "registrationToVerifiedMs": 4708.221417000001,
+          "harnessRegistrationMs": 3214.555583000001,
+          "harnessFirstSigningMs": 1493.6658339999994,
+          "confirmationMs": 143.5,
+          "webAuthnMs": 364.80000001192093,
+          "preConfirmationMs": 151.5999999642372,
+          "signerRequestBeforeRegistrationEnd": false,
+          "signerRequestRelativeToRegistrationEndMs": 776.4549590000024,
+          "signerDownloadMs": 104.633,
+          "wasmDownloadMs": 36.094,
+          "phases": {
+            "near_only.setup": 325.5999999642372,
+            "near_only.authentication": 364.80000001192093,
+            "session_seal_preparation": 6.199999988079071,
+            "near_only.respond": 708.6000000238419,
+            "near_only.custody": 13.399999976158142,
+            "near_only.provision_checkpoint": 3.800000011920929,
+            "near_only.finalize": 266.5,
+            "near_only.publication": 11.800000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 1,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.399999976158142,
+            "near_only.session_hydration": 7.599999964237213,
+            "near_only.material_activation": 7.400000035762787,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.699999988079071,
+            "prepare_sent": 0.699999988079071,
+            "pre_confirmation": 151.5999999642372,
+            "confirmation": 143.5,
+            "prepare": 135.30000001192093,
+            "client_share": 3.599999964237213,
+            "finalize": 572.8000000119209,
+            "signature_total": 713.5999999642372,
+            "confirmed_to_signed": 715.6000000238419
+          },
+          "artifactSha256": "e3c078fafbb33f0038ce055237b30a8c6cfb95a8d5361557501bba37b4abc997"
+        }
+      ],
+      "candidate": [
+        {
+          "block": "04-candidate",
+          "sample": "registration-1.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 4311.5,
+          "postPasskeyMs": 1537,
+          "firstSigningMs": 668.8000000119209,
+          "firstSigningWithoutConfirmationMs": 403.5,
+          "sdkCombinedMs": 4980.300000011921,
+          "sdkCombinedWithoutInteractionsMs": 4086.199999988079,
+          "registrationToVerifiedMs": 6144.787875,
+          "harnessRegistrationMs": 4665.698833,
+          "harnessFirstSigningMs": 1479.0890419999996,
+          "confirmationMs": 265.30000001192093,
+          "webAuthnMs": 628.8000000119209,
+          "preConfirmationMs": 7.199999988079071,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2435.71025,
+          "signerDownloadMs": 37.784,
+          "wasmDownloadMs": 39.515,
+          "phases": {
+            "near_only.setup": 259,
+            "near_only.authentication": 628.8000000119209,
+            "session_seal_preparation": 5.800000011920929,
+            "near_only.respond": 1224.800000011921,
+            "near_only.custody": 11.100000023841858,
+            "near_only.provision_checkpoint": 2.299999952316284,
+            "near_only.finalize": 265.80000001192093,
+            "near_only.publication": 15,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 1,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.800000011920929,
+            "near_only.session_hydration": 7,
+            "near_only.material_activation": 6.100000023841858,
+            "near_only.export_capability": 3.099999964237213,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 1,
+            "pre_confirmation": 7.199999988079071,
+            "confirmation": 265.30000001192093,
+            "prepare": 177,
+            "client_share": 3.399999976158142,
+            "finalize": 197.10000002384186,
+            "signature_total": 379,
+            "confirmed_to_signed": 381
+          },
+          "artifactSha256": "d0995aa35d856f661e94f96c95fc70ec4b19132ce2c53985e0eaf0f134c4bdd0"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-10.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2237.300000011921,
+          "postPasskeyMs": 1062,
+          "firstSigningMs": 515.8000000119209,
+          "firstSigningWithoutConfirmationMs": 247.10000002384186,
+          "sdkCombinedMs": 2753.100000023842,
+          "sdkCombinedWithoutInteractionsMs": 1995.300000011921,
+          "registrationToVerifiedMs": 3750.323959000001,
+          "harnessRegistrationMs": 3064.1407499999987,
+          "harnessFirstSigningMs": 686.1832090000025,
+          "confirmationMs": 268.69999998807907,
+          "webAuthnMs": 489.10000002384186,
+          "preConfirmationMs": 6.100000023841858,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1860.9072919999962,
+          "signerDownloadMs": 16.658,
+          "wasmDownloadMs": 75.65,
+          "phases": {
+            "near_only.setup": 298.5,
+            "near_only.authentication": 489.10000002384186,
+            "session_seal_preparation": 5.899999976158142,
+            "near_only.respond": 779.1000000238419,
+            "near_only.custody": 9.399999976158142,
+            "near_only.provision_checkpoint": 2.399999976158142,
+            "near_only.finalize": 249.20000004768372,
+            "near_only.publication": 7.899999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.799999952316284,
+            "near_only.session_hydration": 4.899999976158142,
+            "near_only.material_activation": 5.100000023841858,
+            "near_only.export_capability": 2.600000023841858,
+            "near_only.wallet_ready": 1.0999999642372131,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 6.100000023841858,
+            "confirmation": 268.69999998807907,
+            "prepare": 0,
+            "client_share": 3.800000011920929,
+            "finalize": 213.5,
+            "signature_total": 218.69999998807907,
+            "confirmed_to_signed": 220.89999997615814
+          },
+          "artifactSha256": "3797b0ca5518b14fc060d9e408cb4a0c7253dcdb50f676e063d08f25becc5be9"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-2.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2012.7999999523163,
+          "postPasskeyMs": 822,
+          "firstSigningMs": 536.8000000119209,
+          "firstSigningWithoutConfirmationMs": 244.9000000357628,
+          "sdkCombinedMs": 2549.599999964237,
+          "sdkCombinedWithoutInteractionsMs": 1610.5,
+          "registrationToVerifiedMs": 2996.9205410000004,
+          "harnessRegistrationMs": 2298.100958,
+          "harnessFirstSigningMs": 698.8195830000004,
+          "confirmationMs": 291.89999997615814,
+          "webAuthnMs": 647.1999999880791,
+          "preConfirmationMs": 5.5,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1675.4059590000006,
+          "signerDownloadMs": 13.006,
+          "wasmDownloadMs": 67.403,
+          "phases": {
+            "near_only.setup": 195.9000000357628,
+            "near_only.authentication": 647.1999999880791,
+            "session_seal_preparation": 5.699999988079071,
+            "near_only.respond": 579.6999999880791,
+            "near_only.custody": 8.400000035762787,
+            "near_only.provision_checkpoint": 2.099999964237213,
+            "near_only.finalize": 211,
+            "near_only.publication": 7.300000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.5,
+            "near_only.session_hydration": 4.800000011920929,
+            "near_only.material_activation": 5,
+            "near_only.export_capability": 2.5,
+            "near_only.wallet_ready": 1,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 5.5,
+            "confirmation": 291.89999997615814,
+            "prepare": 0,
+            "client_share": 3.5,
+            "finalize": 218,
+            "signature_total": 223,
+            "confirmed_to_signed": 225.10000002384186
+          },
+          "artifactSha256": "fd19af6987443c1a333e6e5b1f3f49d5d41214a9bd488dec3fffdccffb621b83"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-3.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2753.5,
+          "postPasskeyMs": 1559,
+          "firstSigningMs": 548.1000000238419,
+          "firstSigningWithoutConfirmationMs": 289.0,
+          "sdkCombinedMs": 3301.600000023842,
+          "sdkCombinedWithoutInteractionsMs": 2928.100000023842,
+          "registrationToVerifiedMs": 4554.0349590000005,
+          "harnessRegistrationMs": 3081.4796669999996,
+          "harnessFirstSigningMs": 1472.555292000001,
+          "confirmationMs": 259.10000002384186,
+          "webAuthnMs": 114.39999997615814,
+          "preConfirmationMs": 9.100000023841858,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2329.8324169999996,
+          "signerDownloadMs": 28.104,
+          "wasmDownloadMs": 50.141,
+          "phases": {
+            "near_only.setup": 644.3000000119209,
+            "near_only.authentication": 114.39999997615814,
+            "session_seal_preparation": 6.099999964237213,
+            "near_only.respond": 837.8000000119209,
+            "near_only.custody": 7,
+            "near_only.provision_checkpoint": 2.300000011920929,
+            "near_only.finalize": 672.0999999642372,
+            "near_only.publication": 17.200000047683716,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 1,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 8.400000035762787,
+            "near_only.session_hydration": 8.699999988079071,
+            "near_only.material_activation": 8.800000011920929,
+            "near_only.export_capability": 3.299999952316284,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 9.100000023841858,
+            "confirmation": 259.10000002384186,
+            "prepare": 0,
+            "client_share": 3.5,
+            "finalize": 243.30000001192093,
+            "signature_total": 248.20000004768372,
+            "confirmed_to_signed": 250.5999999642372
+          },
+          "artifactSha256": "ec34f849cdd1798c0222ae2912709376c85d7f9875e755983a9f94bb5bd39fd4"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-4.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2374.199999988079,
+          "postPasskeyMs": 1098,
+          "firstSigningMs": 570.3000000119209,
+          "firstSigningWithoutConfirmationMs": 296.10000002384186,
+          "sdkCombinedMs": 2944.5,
+          "sdkCombinedWithoutInteractionsMs": 2157.699999988079,
+          "registrationToVerifiedMs": 4652.987708000002,
+          "harnessRegistrationMs": 3144.783416,
+          "harnessFirstSigningMs": 1508.2042920000022,
+          "confirmationMs": 274.19999998807907,
+          "webAuthnMs": 512.6000000238419,
+          "preConfirmationMs": 7.699999988079071,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1984.1504160000004,
+          "signerDownloadMs": 14.779,
+          "wasmDownloadMs": 46.992,
+          "phases": {
+            "near_only.setup": 361.69999998807907,
+            "near_only.authentication": 512.6000000238419,
+            "session_seal_preparation": 5.799999952316284,
+            "near_only.respond": 593.6999999880791,
+            "near_only.custody": 9,
+            "near_only.provision_checkpoint": 1.800000011920929,
+            "near_only.finalize": 464.69999998807907,
+            "near_only.publication": 11.100000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.399999976158142,
+            "near_only.session_hydration": 6.899999976158142,
+            "near_only.material_activation": 6.100000023841858,
+            "near_only.export_capability": 3,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5999999642372131,
+            "pre_confirmation": 7.699999988079071,
+            "confirmation": 274.19999998807907,
+            "prepare": 0,
+            "client_share": 3.600000023841858,
+            "finalize": 253.70000004768372,
+            "signature_total": 258.80000001192093,
+            "confirmed_to_signed": 261.5
+          },
+          "artifactSha256": "9064b8e620c7caf7810f61c208aa75089501a69a54b049634d393d5cd10541e8"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-5.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2386.600000023842,
+          "postPasskeyMs": 1178,
+          "firstSigningMs": 814.6000000238419,
+          "firstSigningWithoutConfirmationMs": 550.4000000357628,
+          "sdkCombinedMs": 3201.2000000476837,
+          "sdkCombinedWithoutInteractionsMs": 2280.0000000596046,
+          "registrationToVerifiedMs": 4597.639707999999,
+          "harnessRegistrationMs": 3099.8288749999992,
+          "harnessFirstSigningMs": 1497.8108329999995,
+          "confirmationMs": 264.19999998807907,
+          "webAuthnMs": 657,
+          "preConfirmationMs": 7.5,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2047.2302909999999,
+          "signerDownloadMs": 14.28,
+          "wasmDownloadMs": 52.578,
+          "phases": {
+            "near_only.setup": 199.39999997615814,
+            "near_only.authentication": 657,
+            "session_seal_preparation": 5.699999988079071,
+            "near_only.respond": 861.1999999880791,
+            "near_only.custody": 14.100000023841858,
+            "near_only.provision_checkpoint": 3,
+            "near_only.finalize": 266.80000001192093,
+            "near_only.publication": 13.800000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.100000023841858,
+            "near_only.session_hydration": 7.399999976158142,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.100000023841858,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 7.5,
+            "confirmation": 264.19999998807907,
+            "prepare": 92.90000003576279,
+            "client_share": 3.5,
+            "finalize": 415.9000000357628,
+            "signature_total": 513.8999999761581,
+            "confirmed_to_signed": 516.7999999523163
+          },
+          "artifactSha256": "0adec2ae9f5a252593d17a4664a0c07aa51d4971935db6157ffb712908b27942"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-6.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2777.2999999523163,
+          "postPasskeyMs": 1518,
+          "firstSigningMs": 488.30000001192093,
+          "firstSigningWithoutConfirmationMs": 228.0,
+          "sdkCombinedMs": 3265.599999964237,
+          "sdkCombinedWithoutInteractionsMs": 2443.399999976158,
+          "registrationToVerifiedMs": 3846.8548330000012,
+          "harnessRegistrationMs": 3159.1646660000006,
+          "harnessFirstSigningMs": 687.6901670000007,
+          "confirmationMs": 260.30000001192093,
+          "webAuthnMs": 561.8999999761581,
+          "preConfirmationMs": 9.100000023841858,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2391.8806670000013,
+          "signerDownloadMs": 15.137,
+          "wasmDownloadMs": 41.272,
+          "phases": {
+            "near_only.setup": 300,
+            "near_only.authentication": 561.8999999761581,
+            "session_seal_preparation": 5.899999976158142,
+            "near_only.respond": 642.7000000476837,
+            "near_only.custody": 13.199999988079071,
+            "near_only.provision_checkpoint": 3.099999964237213,
+            "near_only.finalize": 823,
+            "near_only.publication": 16.100000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.5,
+            "near_only.session_hydration": 7.899999976158142,
+            "near_only.material_activation": 7.5,
+            "near_only.export_capability": 3.200000047683716,
+            "near_only.wallet_ready": 1.2999999523162842,
+            "prepare_sent": 0.6000000238418579,
+            "pre_confirmation": 9.100000023841858,
+            "confirmation": 260.30000001192093,
+            "prepare": 0,
+            "client_share": 3.600000023841858,
+            "finalize": 184.0999999642372,
+            "signature_total": 189,
+            "confirmed_to_signed": 191.69999998807907
+          },
+          "artifactSha256": "dfe8b01c12dddf48026c5d1595004feaddd0e2082eb98b1994585298bebd06d0"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-7.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2091.199999988079,
+          "postPasskeyMs": 864,
+          "firstSigningMs": 600.3000000119209,
+          "firstSigningWithoutConfirmationMs": 334.9000000357628,
+          "sdkCombinedMs": 2691.5,
+          "sdkCombinedWithoutInteractionsMs": 2015.8000000715256,
+          "registrationToVerifiedMs": 3832.3675839999996,
+          "harnessRegistrationMs": 2338.656959,
+          "harnessFirstSigningMs": 1493.7106249999997,
+          "confirmationMs": 265.39999997615814,
+          "webAuthnMs": 410.2999999523163,
+          "preConfirmationMs": 7.699999988079071,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1648.674500000001,
+          "signerDownloadMs": 16.202,
+          "wasmDownloadMs": 62.981,
+          "phases": {
+            "near_only.setup": 360.4000000357628,
+            "near_only.authentication": 410.2999999523163,
+            "session_seal_preparation": 5.599999964237213,
+            "near_only.respond": 591.6000000238419,
+            "near_only.custody": 9,
+            "near_only.provision_checkpoint": 1.899999976158142,
+            "near_only.finalize": 226,
+            "near_only.publication": 16.400000035762787,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.599999964237213,
+            "near_only.session_hydration": 7.899999976158142,
+            "near_only.material_activation": 7,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.2000000476837158,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.699999988079071,
+            "confirmation": 265.39999997615814,
+            "prepare": 0,
+            "client_share": 3.699999988079071,
+            "finalize": 296.19999998807907,
+            "signature_total": 301.39999997615814,
+            "confirmed_to_signed": 303.39999997615814
+          },
+          "artifactSha256": "c8533e1b2d0247377ba4b91d8523902e93a0ff91f57134dd8bfdd07572559bfa"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-8.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2085.899999976158,
+          "postPasskeyMs": 890,
+          "firstSigningMs": 471.30000001192093,
+          "firstSigningWithoutConfirmationMs": 206.4000000357628,
+          "sdkCombinedMs": 2557.199999988079,
+          "sdkCombinedWithoutInteractionsMs": 1759.800000011921,
+          "registrationToVerifiedMs": 2999.1869579999984,
+          "harnessRegistrationMs": 2319.945832999998,
+          "harnessFirstSigningMs": 679.2411250000005,
+          "confirmationMs": 264.89999997615814,
+          "webAuthnMs": 532.5,
+          "preConfirmationMs": 7.300000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1677.664874999995,
+          "signerDownloadMs": 23.457,
+          "wasmDownloadMs": 94.322,
+          "phases": {
+            "near_only.setup": 241.80000001192093,
+            "near_only.authentication": 532.5,
+            "session_seal_preparation": 5.800000011920929,
+            "near_only.respond": 575.5999999642372,
+            "near_only.custody": 10.300000011920929,
+            "near_only.provision_checkpoint": 2.399999976158142,
+            "near_only.finalize": 266.9000000357628,
+            "near_only.publication": 16,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.299999952316284,
+            "near_only.session_hydration": 7.699999988079071,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.100000023841858,
+            "near_only.wallet_ready": 1.399999976158142,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.300000011920929,
+            "confirmation": 264.89999997615814,
+            "prepare": 0,
+            "client_share": 3.699999988079071,
+            "finalize": 173.0999999642372,
+            "signature_total": 178.19999998807907,
+            "confirmed_to_signed": 180.9000000357628
+          },
+          "artifactSha256": "06d01b5c0568593588dafa67d587b63ce0e58ca269f17372969252b536dac15c"
+        },
+        {
+          "block": "04-candidate",
+          "sample": "registration-9.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 3257.899999976158,
+          "postPasskeyMs": 1330,
+          "firstSigningMs": 484.60000002384186,
+          "firstSigningWithoutConfirmationMs": 212.50000005960464,
+          "sdkCombinedMs": 3742.5,
+          "sdkCombinedWithoutInteractionsMs": 2767.2000000476837,
+          "registrationToVerifiedMs": 4510.222667000002,
+          "harnessRegistrationMs": 3812.522791999996,
+          "harnessFirstSigningMs": 697.6998750000057,
+          "confirmationMs": 272.0999999642372,
+          "webAuthnMs": 703.1999999880791,
+          "preConfirmationMs": 7.600000023841858,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2980.7012500000055,
+          "signerDownloadMs": 12.963,
+          "wasmDownloadMs": 47.778,
+          "phases": {
+            "near_only.setup": 934.4000000357628,
+            "near_only.authentication": 703.1999999880791,
+            "session_seal_preparation": 7.5,
+            "near_only.respond": 1043.1000000238419,
+            "near_only.custody": 10.799999952316284,
+            "near_only.provision_checkpoint": 6.600000023841858,
+            "near_only.finalize": 234,
+            "near_only.publication": 16.600000023841858,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 3,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.300000011920929,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.5,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.600000023841858,
+            "confirmation": 272.0999999642372,
+            "prepare": 0,
+            "client_share": 3.699999988079071,
+            "finalize": 169.9000000357628,
+            "signature_total": 175.0999999642372,
+            "confirmed_to_signed": 178.30000001192093
+          },
+          "artifactSha256": "7a7528d274e42268382c0a2e8613b8b1db1621ba029cd4554e8815de0514156a"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-1.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2482.100000023842,
+          "postPasskeyMs": 1255,
+          "firstSigningMs": 544.6000000238419,
+          "firstSigningWithoutConfirmationMs": 268.0,
+          "sdkCombinedMs": 3026.7000000476837,
+          "sdkCombinedWithoutInteractionsMs": 2106.5,
+          "registrationToVerifiedMs": 4623.622209,
+          "harnessRegistrationMs": 3133.333584,
+          "harnessFirstSigningMs": 1490.2886250000001,
+          "confirmationMs": 276.60000002384186,
+          "webAuthnMs": 643.6000000238419,
+          "preConfirmationMs": 6.099999964237213,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2145.248917,
+          "signerDownloadMs": 16.707,
+          "wasmDownloadMs": 58.848,
+          "phases": {
+            "near_only.setup": 233.89999997615814,
+            "near_only.authentication": 643.6000000238419,
+            "session_seal_preparation": 6.100000023841858,
+            "near_only.respond": 914.6000000238419,
+            "near_only.custody": 15.799999952316284,
+            "near_only.provision_checkpoint": 4.400000035762787,
+            "near_only.finalize": 283.5999999642372,
+            "near_only.publication": 17.900000035762787,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 1,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.699999988079071,
+            "near_only.session_hydration": 7.899999976158142,
+            "near_only.material_activation": 6.800000011920929,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.199999988079071,
+            "prepare_sent": 0.800000011920929,
+            "pre_confirmation": 6.099999964237213,
+            "confirmation": 276.60000002384186,
+            "prepare": 0,
+            "client_share": 3.599999964237213,
+            "finalize": 238.69999998807907,
+            "signature_total": 243.5,
+            "confirmed_to_signed": 245.80000001192093
+          },
+          "artifactSha256": "b488bc843faa2c9e9b2f1ab6f4ca143371a24e7c593c9e2ea92fc2b2e1d42e8c"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-10.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2128.600000023842,
+          "postPasskeyMs": 919,
+          "firstSigningMs": 505.0999999642372,
+          "firstSigningWithoutConfirmationMs": 239.39999997615814,
+          "sdkCombinedMs": 2633.699999988079,
+          "sdkCombinedWithoutInteractionsMs": 1821.199999988079,
+          "registrationToVerifiedMs": 2987.256207999999,
+          "harnessRegistrationMs": 2305.092499999999,
+          "harnessFirstSigningMs": 682.163708,
+          "confirmationMs": 265.69999998807907,
+          "webAuthnMs": 546.8000000119209,
+          "preConfirmationMs": 7.300000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1791.2766669999983,
+          "signerDownloadMs": 15.01,
+          "wasmDownloadMs": 59.824,
+          "phases": {
+            "near_only.setup": 313.10000002384186,
+            "near_only.authentication": 546.8000000119209,
+            "session_seal_preparation": 6,
+            "near_only.respond": 626.2999999523163,
+            "near_only.custody": 13,
+            "near_only.provision_checkpoint": 3,
+            "near_only.finalize": 237.10000002384186,
+            "near_only.publication": 20.399999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7,
+            "near_only.session_hydration": 7.300000011920929,
+            "near_only.material_activation": 6.900000035762787,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.399999976158142,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.300000011920929,
+            "confirmation": 265.69999998807907,
+            "prepare": 12.899999976158142,
+            "client_share": 3.5,
+            "finalize": 191.10000002384186,
+            "signature_total": 210.5,
+            "confirmed_to_signed": 212.5
+          },
+          "artifactSha256": "3bf7cf642bf4132024dd6a0960006b61b9f4095e13e01e541ecf981d32864fb1"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-2.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2178.599999964237,
+          "postPasskeyMs": 953,
+          "firstSigningMs": 833.8000000119209,
+          "firstSigningWithoutConfirmationMs": 567.8000000119209,
+          "sdkCombinedMs": 3012.399999976158,
+          "sdkCombinedWithoutInteractionsMs": 2224.199999988079,
+          "registrationToVerifiedMs": 3783.1228330000004,
+          "harnessRegistrationMs": 2337.5979579999994,
+          "harnessFirstSigningMs": 1445.524875000001,
+          "confirmationMs": 266,
+          "webAuthnMs": 522.1999999880791,
+          "preConfirmationMs": 7.299999952316284,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1846.0670410000012,
+          "signerDownloadMs": 15.217,
+          "wasmDownloadMs": 74.48,
+          "phases": {
+            "near_only.setup": 359.19999998807907,
+            "near_only.authentication": 522.1999999880791,
+            "session_seal_preparation": 6.300000011920929,
+            "near_only.respond": 653.8000000119209,
+            "near_only.custody": 13.5,
+            "near_only.provision_checkpoint": 3.199999988079071,
+            "near_only.finalize": 249.60000002384186,
+            "near_only.publication": 13.599999964237213,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 7.199999988079071,
+            "near_only.session_hydration": 7.600000023841858,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.100000023841858,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.299999952316284,
+            "confirmation": 266,
+            "prepare": 171.0999999642372,
+            "client_share": 3.300000011920929,
+            "finalize": 365.7999999523163,
+            "signature_total": 542,
+            "confirmed_to_signed": 544.1000000238419
+          },
+          "artifactSha256": "7ef40188f329cf8b816286b114e1d779919f8f2fbf96f9021be6900e31ae1ea2"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-3.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2189.600000023842,
+          "postPasskeyMs": 915,
+          "firstSigningMs": 489.9000000357628,
+          "firstSigningWithoutConfirmationMs": 218.20000004768372,
+          "sdkCombinedMs": 2679.5000000596046,
+          "sdkCombinedWithoutInteractionsMs": 1760.1000000834465,
+          "registrationToVerifiedMs": 3078.7893330000006,
+          "harnessRegistrationMs": 2392.438833,
+          "harnessFirstSigningMs": 686.3505000000005,
+          "confirmationMs": 271.69999998807907,
+          "webAuthnMs": 647.6999999880791,
+          "preConfirmationMs": 6.699999988079071,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1815.7477920000001,
+          "signerDownloadMs": 13.765,
+          "wasmDownloadMs": 45.029,
+          "phases": {
+            "near_only.setup": 240.10000002384186,
+            "near_only.authentication": 647.6999999880791,
+            "session_seal_preparation": 6.199999988079071,
+            "near_only.respond": 559,
+            "near_only.custody": 12.300000011920929,
+            "near_only.provision_checkpoint": 2.899999976158142,
+            "near_only.finalize": 309.19999998807907,
+            "near_only.publication": 13.5,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7,
+            "near_only.session_hydration": 7.200000047683716,
+            "near_only.material_activation": 6.599999964237213,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 6.699999988079071,
+            "confirmation": 271.69999998807907,
+            "prepare": 0,
+            "client_share": 4.100000023841858,
+            "finalize": 183.19999998807907,
+            "signature_total": 189.30000001192093,
+            "confirmed_to_signed": 191.39999997615814
+          },
+          "artifactSha256": "493e076c3e006090033518ae529b52043a0658c64e720e9b362c360858daa05a"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-4.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2208.800000011921,
+          "postPasskeyMs": 1000,
+          "firstSigningMs": 505.60000002384186,
+          "firstSigningWithoutConfirmationMs": 239.69999998807907,
+          "sdkCombinedMs": 2714.400000035763,
+          "sdkCombinedWithoutInteractionsMs": 1897,
+          "registrationToVerifiedMs": 2996.778083000001,
+          "harnessRegistrationMs": 2321.5680410000023,
+          "harnessFirstSigningMs": 675.2100419999988,
+          "confirmationMs": 265.9000000357628,
+          "webAuthnMs": 551.5,
+          "preConfirmationMs": 6.800000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1895.3131250000006,
+          "signerDownloadMs": 12.553,
+          "wasmDownloadMs": 59.408,
+          "phases": {
+            "near_only.setup": 329.19999998807907,
+            "near_only.authentication": 551.5,
+            "session_seal_preparation": 5.800000011920929,
+            "near_only.respond": 673.4000000357628,
+            "near_only.custody": 15,
+            "near_only.provision_checkpoint": 3.299999952316284,
+            "near_only.finalize": 276,
+            "near_only.publication": 12.200000047683716,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 2,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 6.699999988079071,
+            "near_only.session_hydration": 7,
+            "near_only.material_activation": 7.799999952316284,
+            "near_only.export_capability": 3.800000011920929,
+            "near_only.wallet_ready": 1.4000000357627869,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 6.800000011920929,
+            "confirmation": 265.9000000357628,
+            "prepare": 0,
+            "client_share": 4,
+            "finalize": 210.5999999642372,
+            "signature_total": 215.89999997615814,
+            "confirmed_to_signed": 218.0999999642372
+          },
+          "artifactSha256": "418940cfe85902582488c620a6fa43fa9766031e66997ca0e24edc84bf405fdd"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-5.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2329.5,
+          "postPasskeyMs": 1137,
+          "firstSigningMs": 510.19999998807907,
+          "firstSigningWithoutConfirmationMs": 240.30000001192093,
+          "sdkCombinedMs": 2839.699999988079,
+          "sdkCombinedWithoutInteractionsMs": 2042.800000011921,
+          "registrationToVerifiedMs": 3756.331083000001,
+          "harnessRegistrationMs": 3074.1742080000004,
+          "harnessFirstSigningMs": 682.1568750000006,
+          "confirmationMs": 269.89999997615814,
+          "webAuthnMs": 527,
+          "preConfirmationMs": 5.800000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2005.3097080000007,
+          "signerDownloadMs": 15.179,
+          "wasmDownloadMs": 39.797,
+          "phases": {
+            "near_only.setup": 330,
+            "near_only.authentication": 527,
+            "session_seal_preparation": 6.799999952316284,
+            "near_only.respond": 873.8999999761581,
+            "near_only.custody": 6.400000035762787,
+            "near_only.provision_checkpoint": 1.699999988079071,
+            "near_only.finalize": 226.19999998807907,
+            "near_only.publication": 10.300000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 1,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 6.699999988079071,
+            "near_only.session_hydration": 7.100000023841858,
+            "near_only.material_activation": 6.699999988079071,
+            "near_only.export_capability": 3.199999988079071,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 5.800000011920929,
+            "confirmation": 269.89999997615814,
+            "prepare": 0,
+            "client_share": 4.099999964237213,
+            "finalize": 209.5,
+            "signature_total": 215,
+            "confirmed_to_signed": 217.20000004768372
+          },
+          "artifactSha256": "4bbd1a05e723c559f931b5e1056780fd4ec96d3a230afd71de21ff706937600b"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-6.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2444,
+          "postPasskeyMs": 1253,
+          "firstSigningMs": 530.1999999880791,
+          "firstSigningWithoutConfirmationMs": 257.0999999642372,
+          "sdkCombinedMs": 2974.199999988079,
+          "sdkCombinedWithoutInteractionsMs": 2182.099999964237,
+          "registrationToVerifiedMs": 3741.251292000001,
+          "harnessRegistrationMs": 3051.769583000001,
+          "harnessFirstSigningMs": 689.4817089999997,
+          "confirmationMs": 273.10000002384186,
+          "webAuthnMs": 519,
+          "preConfirmationMs": 7.300000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2100.568374999999,
+          "signerDownloadMs": 17.594,
+          "wasmDownloadMs": 49.385,
+          "phases": {
+            "near_only.setup": 316.69999998807907,
+            "near_only.authentication": 519,
+            "session_seal_preparation": 6.400000035762787,
+            "near_only.respond": 576.5,
+            "near_only.custody": 13,
+            "near_only.provision_checkpoint": 2.899999976158142,
+            "near_only.finalize": 637.6000000238419,
+            "near_only.publication": 7.800000011920929,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 0,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 2,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 2,
+            "session_hydration": 4.800000011920929,
+            "near_only.session_hydration": 5.099999964237213,
+            "near_only.material_activation": 6,
+            "near_only.export_capability": 2.5,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.5,
+            "pre_confirmation": 7.300000011920929,
+            "confirmation": 273.10000002384186,
+            "prepare": 0,
+            "client_share": 3.5,
+            "finalize": 223.4000000357628,
+            "signature_total": 228.39999997615814,
+            "confirmed_to_signed": 230.5
+          },
+          "artifactSha256": "71a526f9109ed704696bb4c6dd03d8c35ab4186d698a7c68f0c807b3fe773c04"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-7.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2407.100000023842,
+          "postPasskeyMs": 1199,
+          "firstSigningMs": 490.39999997615814,
+          "firstSigningWithoutConfirmationMs": 217.39999997615814,
+          "sdkCombinedMs": 2897.5,
+          "sdkCombinedWithoutInteractionsMs": 2345,
+          "registrationToVerifiedMs": 3791.250208999998,
+          "harnessRegistrationMs": 3095.3002500000002,
+          "harnessFirstSigningMs": 695.9499589999978,
+          "confirmationMs": 273,
+          "webAuthnMs": 279.5,
+          "preConfirmationMs": 7,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -2127.7962499999994,
+          "signerDownloadMs": 13.64,
+          "wasmDownloadMs": 58.866,
+          "phases": {
+            "near_only.setup": 635.8999999761581,
+            "near_only.authentication": 279.5,
+            "session_seal_preparation": 6.199999988079071,
+            "near_only.respond": 924.3999999761581,
+            "near_only.custody": 7.100000023841858,
+            "near_only.provision_checkpoint": 1.800000011920929,
+            "near_only.finalize": 231.30000001192093,
+            "near_only.publication": 15.199999988079071,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.5,
+            "near_only.session_hydration": 7.699999988079071,
+            "near_only.material_activation": 6.899999976158142,
+            "near_only.export_capability": 3.200000047683716,
+            "near_only.wallet_ready": 1.2999999523162842,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 7,
+            "confirmation": 273,
+            "prepare": 0.10000002384185791,
+            "client_share": 3.800000011920929,
+            "finalize": 176.80000001192093,
+            "signature_total": 182.0999999642372,
+            "confirmed_to_signed": 184.19999998807907
+          },
+          "artifactSha256": "ff4fb2fca459155c3bb6e9ea597d87e131ab360f6a03bff6b1bd7fff2c56b88c"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-8.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2110.5,
+          "postPasskeyMs": 918,
+          "firstSigningMs": 508.2999999523163,
+          "firstSigningWithoutConfirmationMs": 240.89999997615814,
+          "sdkCombinedMs": 2618.7999999523163,
+          "sdkCombinedWithoutInteractionsMs": 1896,
+          "registrationToVerifiedMs": 2997.8483749999978,
+          "harnessRegistrationMs": 2313.8947499999995,
+          "harnessFirstSigningMs": 683.9536249999983,
+          "confirmationMs": 267.39999997615814,
+          "webAuthnMs": 455.39999997615814,
+          "preConfirmationMs": 6.899999976158142,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1820.6168339999967,
+          "signerDownloadMs": 16.016,
+          "wasmDownloadMs": 48.202,
+          "phases": {
+            "near_only.setup": 435,
+            "near_only.authentication": 455.39999997615814,
+            "session_seal_preparation": 6,
+            "near_only.respond": 548.8000000119209,
+            "near_only.custody": 6.300000011920929,
+            "near_only.provision_checkpoint": 1.899999976158142,
+            "near_only.finalize": 320.4000000357628,
+            "near_only.publication": 20.19999998807907,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 2,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.399999976158142,
+            "near_only.session_hydration": 7.699999988079071,
+            "near_only.material_activation": 7.300000011920929,
+            "near_only.export_capability": 3.399999976158142,
+            "near_only.wallet_ready": 1.5,
+            "prepare_sent": 0.3999999761581421,
+            "pre_confirmation": 6.899999976158142,
+            "confirmation": 267.39999997615814,
+            "prepare": 0,
+            "client_share": 3.800000011920929,
+            "finalize": 205.5999999642372,
+            "signature_total": 210.69999998807907,
+            "confirmed_to_signed": 212.69999998807907
+          },
+          "artifactSha256": "c04c67e1736995bdb59591f89e9ad93d526e895b04c9c0bfd2beae7633445072"
+        },
+        {
+          "block": "06-candidate-repeat",
+          "sample": "registration-9.json",
+          "outcome": "succeeded",
+          "sdkRegistrationMs": 2144.099999964237,
+          "postPasskeyMs": 985,
+          "firstSigningMs": 452.19999998807907,
+          "firstSigningWithoutConfirmationMs": 183.5,
+          "sdkCombinedMs": 2596.2999999523163,
+          "sdkCombinedWithoutInteractionsMs": 1934.7999999523163,
+          "registrationToVerifiedMs": 2932.496874999997,
+          "harnessRegistrationMs": 2256.4902920000022,
+          "harnessFirstSigningMs": 676.0065829999949,
+          "confirmationMs": 268.69999998807907,
+          "webAuthnMs": 392.80000001192093,
+          "preConfirmationMs": 5.300000011920929,
+          "signerRequestBeforeRegistrationEnd": true,
+          "signerRequestRelativeToRegistrationEndMs": -1852.3210409999956,
+          "signerDownloadMs": 13.368,
+          "wasmDownloadMs": 50.829,
+          "phases": {
+            "near_only.setup": 461.80000001192093,
+            "near_only.authentication": 392.80000001192093,
+            "session_seal_preparation": 5.799999952316284,
+            "near_only.respond": 720.1999999880791,
+            "near_only.custody": 15.300000011920929,
+            "near_only.provision_checkpoint": 3.5,
+            "near_only.finalize": 207.30000001192093,
+            "near_only.publication": 19.399999976158142,
+            "session_hydration.worker_ready": 0,
+            "session_hydration.worker_put": 1,
+            "session_hydration.sealed_record_existing_read": 0,
+            "session_hydration.sealed_record_apply_server_seal": 0,
+            "session_hydration.sealed_record_apply_runtime_setup": 1,
+            "session_hydration.sealed_record_apply_client_seal": 3,
+            "session_hydration.sealed_record_apply_server_route": 0,
+            "session_hydration.sealed_record_apply_client_unseal": 3,
+            "session_hydration.sealed_record_apply_policy_update": 0,
+            "session_hydration.sealed_record_register": 1,
+            "session_hydration.sealed_record_verify_read": 0,
+            "session_hydration.sealed_record_persist": 3,
+            "session_hydration": 7.199999988079071,
+            "near_only.session_hydration": 7.5,
+            "near_only.material_activation": 6.900000035762787,
+            "near_only.export_capability": 3.399999976158142,
+            "near_only.wallet_ready": 1.300000011920929,
+            "prepare_sent": 0.40000003576278687,
+            "pre_confirmation": 5.300000011920929,
+            "confirmation": 268.69999998807907,
+            "prepare": 0,
+            "client_share": 3.599999964237213,
+            "finalize": 157.19999998807907,
+            "signature_total": 162.19999998807907,
+            "confirmed_to_signed": 164.4000000357628
+          },
+          "artifactSha256": "a4633b9a1e987fce78368b0a8f0029fdb66a992dc326d9d4cc184f9e1858c801"
+        }
+      ]
+    },
+    "bootstrapLimit": "Descriptive IID bootstrap. Sequential blocks can have time-dependent network and backend effects."
+  },
+  "independentProofs": {
+    "verifier": "Node.js crypto Ed25519 with independent NEP-413 Borsh encoding",
+    "arms": [
+      "02-baseline",
+      "03-baseline",
+      "04-candidate",
+      "05-baseline-repeat",
+      "06-candidate-repeat"
+    ],
+    "results": [
+      {
+        "name": "02-baseline/registration-1.json",
+        "publicKey": "ed25519:FkyXw6PrAHrurmEPkSg1jMfr2LuFPNbYiFZGpNzszHy2",
+        "digestHex": "8522e222433514db160a0bffe0eed9edf28a4576d3d84cbb47865ce348df2e59",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-10.json",
+        "publicKey": "ed25519:9MFnNC2f5wQ2dd8PQfp9Dnk9za3rC92rmiQ12R4vYcxD",
+        "digestHex": "2a59d0d667971474487c47a66ad67480c615e0440f54cabcaca84dea759a0d2f",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-2.json",
+        "publicKey": "ed25519:9tJqPSsi3jHZQpfASrLHwfge6N16cDoH6NpTh5FCKoGr",
+        "digestHex": "e29cc1974dc504f4aab682d06baff18fe25eed9aa63130c3ed12282bea36ee2f",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-3.json",
+        "publicKey": "ed25519:8of3u3cQnMvs4Vsump2JXzCZAgmcWd96EXAq9DKepeTU",
+        "digestHex": "6c1cf8dbd5a957baea81981fcf5cdcea977a71b85afce4ec6c63d446b60fbef8",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-4.json",
+        "publicKey": "ed25519:EjgXbYC5xqrkGsRXzWsV64YoiihuXMSAdvi4QcPovoNV",
+        "digestHex": "c5db2778a6bb793a172b34ce5eb278e66f9589dc9bc5fce6be2c7955b70f75ac",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-5.json",
+        "publicKey": "ed25519:G1jrkx35bdDQhZCK4wxbXZbkuL4qRPuY1dP1zejECGsA",
+        "digestHex": "e586dea3fb4a66006cf8ffaf5f63d09e057698e174f93c5e936bc8d8d348d9a8",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-6.json",
+        "publicKey": "ed25519:GhFSEu4JfyGZcHieQkz8h4hNGs8S2SSu2QhU5rB2JCDf",
+        "digestHex": "8fa71f1f90ca86108e04d68301824db62c06397ff815daa9f19b2004556f097b",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-7.json",
+        "publicKey": "ed25519:7UcbuQ72acHJb8LkvZ4Gce3KCq9LnUanBqmeoshLwzYM",
+        "digestHex": "56e897783aefc85ac99ddd84913f567f512ed868151fd37bc09655fc6ccb16dd",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-8.json",
+        "publicKey": "ed25519:GZ1K8xfAqF8LQzgcU1UAsy323EkHDaDxefZcryiYNGmF",
+        "digestHex": "54ea68c377f4f43a6541b80468fd3b7bbcbaf27ca4bb1f95b7456f9ce6c79c89",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "02-baseline/registration-9.json",
+        "publicKey": "ed25519:B8aYUuhaXEasMFgKcF55vy43ZX8bsE1Ef12dsugsKUK1",
+        "digestHex": "d85e6f7f8b9257fa9740cad77cb2735e30eb6b3e2bc525d3263aa8306178ae9f",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-1.json",
+        "publicKey": "ed25519:CQE9ELbSpKRxUBfhV5Pxp5XERSrMpURAfqtiMRZQV82",
+        "digestHex": "98f9b99e71a5f67f7fcab85cbbb13c910677aa0d1e933ebaaab8879948f72103",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-10.json",
+        "publicKey": "ed25519:778RyjVMN1FprqGfJDTEJrJ26MLcZJ11uUX8DawKvryx",
+        "digestHex": "9fcb6b14740c04ee85246fc1a241672ea60a814b4e2fe08cc5af041392e50ca1",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-2.json",
+        "publicKey": "ed25519:C8ifhjZNKgUtyBkiCshJXBNKDTWEC8qCCvBCdfGDqdb8",
+        "digestHex": "a67e92fa28aa56b04652ab7c41d87fbe26a49a77ebe53ed543a9ad05a898acce",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-3.json",
+        "publicKey": "ed25519:4XPq3KJ1MdoA8nLBzF5zvbiZSzbYVxaSuhMVA9M6u9Mm",
+        "digestHex": "c9d94815dcdf298b0671ca95108cb1277305d0704ad564e7c3c131621b28d715",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-4.json",
+        "publicKey": "ed25519:82wVPxyMNxipmPnvg8RS6q8b89c1V7C4AfR8Knp7Y8Js",
+        "digestHex": "5fec57673493cdec6d66d75bec43ef5a0416fad1bd797a1deb24a02b9f6132c8",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-5.json",
+        "publicKey": "ed25519:ErcCut83twZ5hggZznJeqVeyhFMcPZQZxF3cv7SYCres",
+        "digestHex": "09fe4cd32777a5312a08b7415bcd2ea2dd9e63441e8fa30aa457411fb2d3aeac",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-6.json",
+        "publicKey": "ed25519:FC8h9PwNtpA8bx3h4WpAAJpv2gjXKcbft23ApjRrq5JP",
+        "digestHex": "c7be1d885846e2476bbbb1b24f41726d784fae8168086c3c374ca380cf0139f2",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-7.json",
+        "publicKey": "ed25519:7TfNRSFX9FXJ2Uca3CUQxcmK1QV7EWSNibCxwsFfhwrN",
+        "digestHex": "adc90bb1d274ea42dc28331e448b027bfeb9089ac6c7de3b2635c794f4e3f141",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-8.json",
+        "publicKey": "ed25519:8UwmWEspbiVfnkEqZXAh8R1XwfgmnQmxzowAzuA6J3mk",
+        "digestHex": "edb1bc229b00a8e91aa5e37e073f650b957b42c18d93886c30860bb04df666a4",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "03-baseline/registration-9.json",
+        "publicKey": "ed25519:HzkGCQydnMw3ouU9B8aZmFvkHJcpYxTc9kyTLrC2gUYQ",
+        "digestHex": "3c39b943fb1dbd40e0545cd57c1624102f9fcd86fd3d6ca782da5ed38274e591",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-1.json",
+        "publicKey": "ed25519:7E15FpXKRCzQ2QmPCtzoHDVU1E23nw1mt4cFU6Zcivtn",
+        "digestHex": "0d8f53f81011a6642015c27696f5bae0f3d815836573577da08a00b645105bb0",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-10.json",
+        "publicKey": "ed25519:2rhvpP79dwcEeqiDYgniwDuYG45HwetWqpffXXmuqsxE",
+        "digestHex": "51321a054327bfc020c6922ff2fd24baaa32d29b887b8a2509b1a6d48b3de5b2",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-2.json",
+        "publicKey": "ed25519:E631nvQvQiBQoEVajAx5ZWMAdR8ydggjxdPphqZvQoVt",
+        "digestHex": "2ec851bc92d4a65d1a557227ce6370b0168cb24b64f11e73b137622a8a0a693a",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-3.json",
+        "publicKey": "ed25519:DjcShjqnPBx5dHiCqog864yq7AXXL1Htn3t5ietGwF8N",
+        "digestHex": "4bd7f3ffeb07e615cb53154db10022cd07d7ea5ecbd62ba0f34b3ed7a39fc2c6",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-4.json",
+        "publicKey": "ed25519:7tnakJTBgEo38HbsdLMarkzdfFe21zF9Uebkez4hB1QK",
+        "digestHex": "1bca85ad1cf162f09a675b9c721c643f64c58de19c8ed7a43f3c16925a794c67",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-5.json",
+        "publicKey": "ed25519:PSPThVVknLX3gfVwGasDsmqsMbzcQeabTvn3jmpXQhh",
+        "digestHex": "3a1d2945206d46844f5e3986de238f718d4d15c4b98f4617fbbc0e4503dd4b1e",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-6.json",
+        "publicKey": "ed25519:B7K5jQKokEYnY1qUCJ5YE6g4YBroYRp3QiriyyU4WAfj",
+        "digestHex": "9d8bc3a624be2c0bb182578d05c22731e76228155aa3182717bcab04f5acbd9b",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-7.json",
+        "publicKey": "ed25519:DyzFCu8X2YJPDpqm65jbbYckpBUZ5qNcG86tRWxffyU2",
+        "digestHex": "4ef6dbd1a49778dc4d042f75ae1c1340944d50ada99c6659322caa0333ca7f14",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-8.json",
+        "publicKey": "ed25519:CUVAckZcRu5JtRHL8WJALknZoeGXRFQq8rfEtCvFhrFS",
+        "digestHex": "edb86715840d2735f773dafb1e3b3065421817e135a88dd550a70ef7e42e9a93",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "04-candidate/registration-9.json",
+        "publicKey": "ed25519:LWQGbQLF8bHjxWKeEk4ziuCa1R4K47PCnkMGLfxdyhr",
+        "digestHex": "74290437d00bd7afdbeade5d5e2a132e3472318c48bcd7dec746c0f3e45fbb37",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-1.json",
+        "publicKey": "ed25519:Ro3jCMtJWmxCTSCafpVrPhk6ET9gUTBMykKjm8pJRBc",
+        "digestHex": "232a1f3bde938bfcb121b0ca12b76bbfe24c6812467e4a4749cd1b087cde4c47",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-10.json",
+        "publicKey": "ed25519:F4Ctm1rzKuJNWKZyGQUJHv3n8JXyHJYqADXQ4L71YVJD",
+        "digestHex": "ff34e7e23d8ba206cd8d45f536391e75071d1ddd4eb1c5246988ddbfb1e9cf8f",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-2.json",
+        "publicKey": "ed25519:BZkh7P7XbQrDbzxwxUMRWocDGPDmDC2GfFn4eua7D6LR",
+        "digestHex": "047a9846b25e17fe0cbd3b5d41cb0d278c61d2fe636286ca4a1133dc67d60e2a",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-3.json",
+        "publicKey": "ed25519:H5xgX1kMWsTfhHFnoCABrJZEEaUNz3AVjUb8N8CW819m",
+        "digestHex": "b2498b5e1bab19c0b8dc94099785c86b41257392835083c7a09bec909d3e46bd",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-4.json",
+        "publicKey": "ed25519:GuZKrTZhvHBRANxHbGSRXifWRxxLhkcaaHLqopeQJfiG",
+        "digestHex": "f7c31f81633ae948dc8c522b351fe8aa62af90cc3ccd3134bd8361a8bcf8bac5",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-5.json",
+        "publicKey": "ed25519:25p75CP6EarqpwyBog4dTZNf1zBZGnDzx4eHQm6uq6Ya",
+        "digestHex": "bd55bf6261301c1f2e3d80280292b6b90c1ce1814f48eccf415631a4e37ad5e7",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-6.json",
+        "publicKey": "ed25519:5poATmu5o7vBPbvhx2mozEAgra7EfDmH65wX1T4iNZEE",
+        "digestHex": "933513f37995924a6b2ed4995007cad58e92b157ae2cb30e534489da1cd1fe32",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-7.json",
+        "publicKey": "ed25519:EbKLW6ywVjXiFUoSsEJwD9rmPTBXD4qVR7uLGEHXpsMK",
+        "digestHex": "f9eef0a85c31d516717d22faaef3513c318a749cde302931d494bef4463d7326",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-8.json",
+        "publicKey": "ed25519:EN45MZdTed1MCnhVKqXH49Urv2643ocrPd3DLFaptZJs",
+        "digestHex": "ba3dea2a69875da443e6c5904ca0c5cf82df19a337550203d104b12a548f3ea2",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "05-baseline-repeat/registration-9.json",
+        "publicKey": "ed25519:GuLHBH1ZgG84Gf7xsmjZDA5GX16CBPY9R59QYiecruR6",
+        "digestHex": "ce711b43af965ca639f13f54d41f970ddce2faed613c36a48777f32e1ed07c8b",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-1.json",
+        "publicKey": "ed25519:GJdUj5qRZ4cKKyzXThkZojHsbopBYLkPaK97BxGXco7y",
+        "digestHex": "16a2f5f3222acca9560d4dacdc73e95bdf5107d9141a0cd03890ec59c11d5fbf",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-10.json",
+        "publicKey": "ed25519:2AyyZapf8MzbbevmQQRzD2PXgiRCyECtQS17orPiMEFN",
+        "digestHex": "47f3c733291df31135b30c7299a8361beb586ac1cc670c90fc94612b3d5e6165",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-2.json",
+        "publicKey": "ed25519:BogFrBEQL12ysgJNwXxWzqpp1gJ2qERcYSrnB71STJHG",
+        "digestHex": "958033cd25d793d15872ceb2b7d935d29401239a5123e5d1900ebeaaf1c08632",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-3.json",
+        "publicKey": "ed25519:DjCrvVkJiVj9MccPQwuHyyVkCysHwXa2cH7H7NiFXWdM",
+        "digestHex": "0f5e37eef4dc2d78624a5dba1835b1d14bbcc3404b5c6385da8263d0a69a2ac8",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-4.json",
+        "publicKey": "ed25519:3Jb3ekA5gi7W6yz45sgJtrMpHkVHjz3xyZCKpcPkPzv5",
+        "digestHex": "02fff3d18dc68e2f0d38232cf150a71562cd11c55808993e0b1e8be4464bd225",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-5.json",
+        "publicKey": "ed25519:F35RqCwpRFvfRoD25oL6oF3vRU7n1chTXpMxX4Ckps2S",
+        "digestHex": "9e250c0acc2dd4e831f64f33a3375721bd58eb4430fc9af98c537a36daab43b9",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-6.json",
+        "publicKey": "ed25519:JAht96P65mj5PL2HRGfyoR5nB7QsbPauKVdafM6FqS3y",
+        "digestHex": "9395a74b0dfd2b2e39b896e0ad5ed35905dc76dfca6e8a5bb0ff7b315579eef1",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-7.json",
+        "publicKey": "ed25519:Fr9DSRtTP4bUntC3CePanUSHCpN1qZqBzSQvs8kYWE9g",
+        "digestHex": "e85c7dd998499c36b490840cc77fa7031b9b803c66cf91141a570bbb3a461b8e",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-8.json",
+        "publicKey": "ed25519:HGi3nSvH6pCLMPAZEZNM4ABjadp9buMtUAuYvRRviFrq",
+        "digestHex": "62d4a0da6e7c60a999d34ad0ed625d73c946a5c600c736d8024978e1d267d312",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      },
+      {
+        "name": "06-candidate-repeat/registration-9.json",
+        "publicKey": "ed25519:G3TUmWXaSbmNT9zip5ybe3UP9mqboeM5eGHMt471S3k",
+        "digestHex": "c271ebc6ed9e64aa6d0073e3fcc38c5f42e625d4e30db0df9fc9da6f1f74644a",
+        "verified": true,
+        "tamperRejections": [
+          "message",
+          "recipient",
+          "nonce",
+          "callbackUrl"
+        ],
+        "stateExcludedFromSignedPayload": true
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "label": "01-baseline",
+      "version": "0.15.6",
+      "deploymentId": "bac0c43a-4b65-495a-8b53-c777413db6d9",
+      "startedAtMs": 1792530927243,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792530928379,
+      "exitCode": 1
+    },
+    {
+      "label": "02-baseline",
+      "version": "0.15.6",
+      "deploymentId": "bac0c43a-4b65-495a-8b53-c777413db6d9",
+      "startedAtMs": 1792530947927,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792530991375,
+      "exitCode": 0
+    },
+    {
+      "label": "03-baseline",
+      "version": "0.15.6",
+      "deploymentId": "bac0c43a-4b65-495a-8b53-c777413db6d9",
+      "startedAtMs": 1792531007187,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792531049974,
+      "exitCode": 0
+    },
+    {
+      "label": "04-candidate",
+      "version": "0.15.7-staging.a48231b6",
+      "deploymentId": "d621d690-b0e0-4243-a7af-79cf1533af3a",
+      "startedAtMs": 1792531156354,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792531203449,
+      "exitCode": 0
+    },
+    {
+      "label": "05-baseline-repeat",
+      "version": "0.15.6",
+      "deploymentId": "bac0c43a-4b65-495a-8b53-c777413db6d9",
+      "startedAtMs": 1792531256108,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792531311371,
+      "exitCode": 0
+    },
+    {
+      "label": "06-candidate-repeat",
+      "version": "0.15.7-staging.a48231b6",
+      "deploymentId": "4cb4310e-3b89-4300-85f0-c5e1068b93b2",
+      "startedAtMs": 1792531330703,
+      "browserCache": "fresh context per sample",
+      "backendColdState": "unproven",
+      "parentSite": "/Users/pta/Dev/rust/seams-monorepo/.artifacts/release-0156-smoke-20261021/staging/site",
+      "endedAtMs": 1792531370738,
+      "exitCode": 0
+    }
+  ],
+  "measurementSources": {
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/near-hosted-speed-20261021/harness/candidate-assets.ts": "b77844e8ccd3cf0d52b4600fa1448e315dcf8d76e29b0ae6d57e15df47ebdc27",
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/near-hosted-speed-20261021/harness/near-signing-latency.test.ts": "088ecf979f8ec68894b4a67fc8aeb1cb8e441789d5a619861e71428665741f85",
+    "/Users/pta/Dev/rust/seams-monorepo/.artifacts/near-hosted-speed-20261021/playwright.config.mjs": "eb780b7e07497f65ecd2b3ce96e6fbacc14bdda2f9f399d6278a2a2163405252",
+    "/Users/pta/Dev/rust/seams-wallet/tests/e2e/intended-behaviours/harness.ts": "c31ee59ed2c4c4edcb39c4699cd09c1f9493569c32b619adf1112753226e4c6f",
+    "/Users/pta/Dev/rust/seams-wallet/tests/e2e/intended-behaviours/gateway-request-evidence.ts": "b74663b44568682f9dabbb23ddf11531d88034b93ab97a57a77709be69c3a935"
+  },
+  "candidateArchive": {
+    "path": ".artifacts/near-hosted-speed-20261021/candidate-host.tar.gz",
+    "sha256": "fc61812a1cdaa4ba45a98aaeba48a54f18765999add7d5ff9f8a921c5997eb5d"
+  },
+  "artifactRoot": ".artifacts/near-hosted-speed-20261021",
+  "verificationEvents": [
+    "Port collision before registration: infrastructure failure. Retained as block 01.",
+    "Block 02 ran alongside another benchmark. Retained separately; exclusion fixed before candidate measurements.",
+    "The rollback API completed before the old manifest propagated. No sample ran until version verification passed.",
+    "Final backend check returned OAuth 401. Wrangler session refreshed; all 14 backend version IDs then matched.",
+    "Initial analysis incorrectly expected one signer WASM request. Corrected to distinguish the versioned signing-worker request from the unversioned custody-worker request. No production change.",
+    "Default smoke expected installed 0.15.6 and was stopped. The same five checks passed on the first attempt with the explicit candidate version."
+  ]
+}

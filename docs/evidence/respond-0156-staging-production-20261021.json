@@ -1,0 +1,609 @@
+{
+  "sdkVersion": "0.15.6",
+  "samplesPerLane": 6,
+  "design": "Alternating staging/production, reversing order in each pair. Fresh browser context and wallet per sample. Actual hosted iframe and Gateway; local HTTPS parent only. No request interception.",
+  "stability": {
+    "samplesPerLane": 6,
+    "sdkVersion": "0.15.6",
+    "unchangedBackend": true,
+    "unchangedSdk": true,
+    "unchangedHarness": true
+  },
+  "summaries": {
+    "staging": {
+      "postPasskeyMs": {
+        "count": 6,
+        "medianMs": 1245.0,
+        "minMs": 955,
+        "maxMs": 1990
+      },
+      "respondStageMs": {
+        "count": 6,
+        "medianMs": 874.45,
+        "minMs": 620.3,
+        "maxMs": 1604.4
+      },
+      "browserRespondMs": {
+        "count": 6,
+        "medianMs": 873.053,
+        "minMs": 617.693,
+        "maxMs": 1602.789
+      },
+      "gatewayWallMs": {
+        "count": 6,
+        "medianMs": 769.5,
+        "minMs": 522,
+        "maxMs": 1163
+      },
+      "browserMinusGatewayWallMs": {
+        "count": 6,
+        "medianMs": 103.553,
+        "minMs": 94.986,
+        "maxMs": 439.789
+      },
+      "serverTiming": {
+        "yao_admission_root_wait": {
+          "count": 6,
+          "medianMs": 98.0,
+          "minMs": 0.0,
+          "maxMs": 208.0
+        },
+        "yao_admission_bind": {
+          "count": 6,
+          "medianMs": 118.5,
+          "minMs": 22.0,
+          "maxMs": 233.0
+        },
+        "yao_router_execution": {
+          "count": 6,
+          "medianMs": 595.0,
+          "minMs": 466.0,
+          "maxMs": 848.0
+        },
+        "yao_router_prepare_pair": {
+          "count": 6,
+          "medianMs": 101.5,
+          "minMs": 77.0,
+          "maxMs": 223.0
+        },
+        "yao_router_role_execution": {
+          "count": 6,
+          "medianMs": 392.5,
+          "minMs": 355.0,
+          "maxMs": 654.0
+        }
+      }
+    },
+    "production": {
+      "postPasskeyMs": {
+        "count": 6,
+        "medianMs": 1772.5,
+        "minMs": 1161,
+        "maxMs": 2252
+      },
+      "respondStageMs": {
+        "count": 6,
+        "medianMs": 1277.25,
+        "minMs": 721,
+        "maxMs": 1846
+      },
+      "browserRespondMs": {
+        "count": 6,
+        "medianMs": 1275.882,
+        "minMs": 717.257,
+        "maxMs": 1844.43
+      },
+      "gatewayWallMs": {
+        "count": 6,
+        "medianMs": 1187.0,
+        "minMs": 615,
+        "maxMs": 1755
+      },
+      "browserMinusGatewayWallMs": {
+        "count": 6,
+        "medianMs": 89.927,
+        "minMs": 87.171,
+        "maxMs": 102.257
+      },
+      "serverTiming": {
+        "yao_admission_root_wait": {
+          "count": 6,
+          "medianMs": 105.5,
+          "minMs": 3.0,
+          "maxMs": 184.0
+        },
+        "yao_admission_bind": {
+          "count": 6,
+          "medianMs": 123.0,
+          "minMs": 17.0,
+          "maxMs": 436.0
+        },
+        "yao_router_execution": {
+          "count": 6,
+          "medianMs": 809.0,
+          "minMs": 547.0,
+          "maxMs": 1700.0
+        },
+        "yao_router_prepare_pair": {
+          "count": 6,
+          "medianMs": 155.5,
+          "minMs": 86.0,
+          "maxMs": 425.0
+        },
+        "yao_router_role_execution": {
+          "count": 6,
+          "medianMs": 587.0,
+          "minMs": 417.0,
+          "maxMs": 1538.0
+        }
+      }
+    }
+  },
+  "rows": [
+    {
+      "sample": "00-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/00-staging/group-01/registration-1.json",
+      "artifactSha256": "853a8a7b34d5b54d4544eccc3a1d4b2158cbf51ca9c89ad59a1e763584765de8",
+      "postPasskeyMs": 1905,
+      "respondStageMs": 1263.3,
+      "browserRespondMs": 1261.846,
+      "gatewayWallMs": 1151,
+      "gatewayCpuMs": 70,
+      "browserMinusGatewayWallMs": 110.846,
+      "requestColo": "NRT",
+      "responseRay": "a4db08b81d19d4fc-NRT",
+      "traceId": "49d82e4165a6c389cf0ce717665fa7e0",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 16.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 10.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 208.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 15.0,
+        "yao_admission_bind": 233.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 848.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 223.0,
+        "yao_router_role_execution": 550.0,
+        "yao_router_signing_worker_delivery": 44.0
+      }
+    },
+    {
+      "sample": "01-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/01-production/group-01/registration-1.json",
+      "artifactSha256": "8425828dc5ece1b8e30e96ed94d673b43b02b691512a47ce84541da5c26b9267",
+      "postPasskeyMs": 1530,
+      "respondStageMs": 1065.6,
+      "browserRespondMs": 1064.171,
+      "gatewayWallMs": 977,
+      "gatewayCpuMs": 31,
+      "browserMinusGatewayWallMs": 87.171,
+      "requestColo": "NRT",
+      "responseRay": "a4db09c71c0fefd0-NRT",
+      "traceId": "1f48daec78c11fc4c0c7aa0a04c9f8ef",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 10.0,
+        "respond_authority_verify": 15.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 9.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 184.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 12.0,
+        "yao_admission_bind": 205.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 704.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 131.0,
+        "yao_router_role_execution": 522.0,
+        "yao_router_signing_worker_delivery": 40.0
+      }
+    },
+    {
+      "sample": "02-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/02-production/group-01/registration-1.json",
+      "artifactSha256": "caace2a90eb6c8b62631430c04f736f914dc8f387a4ac420906913b27e17e3d9",
+      "postPasskeyMs": 1730,
+      "respondStageMs": 827.4,
+      "browserRespondMs": 824.423,
+      "gatewayWallMs": 734,
+      "gatewayCpuMs": 32,
+      "browserMinusGatewayWallMs": 90.423,
+      "requestColo": "NRT",
+      "responseRay": "a4db09ed38ab1314-NRT",
+      "traceId": "a8dd1a404292c0d1502c528238a22bb3",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 8.0,
+        "respond_authority_verify": 6.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 6.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 116.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 15.0,
+        "yao_admission_bind": 137.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 547.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 119.0,
+        "yao_router_role_execution": 417.0,
+        "yao_router_signing_worker_delivery": 35.0
+      }
+    },
+    {
+      "sample": "03-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/03-staging/group-01/registration-1.json",
+      "artifactSha256": "0e0f5b632a0c128efa033cee1a8752b1f3d95c87f6378fe62502c611ad27e3e3",
+      "postPasskeyMs": 1990,
+      "respondStageMs": 1604.4,
+      "browserRespondMs": 1602.789,
+      "gatewayWallMs": 1163,
+      "gatewayCpuMs": 116,
+      "browserMinusGatewayWallMs": 439.789,
+      "requestColo": "NRT",
+      "responseRay": "a4db0a197fe8deb3-NRT",
+      "traceId": "e4bf26242198aa1a8f9a958fbd43052f",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 9.0,
+        "respond_authority_verify": 13.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 9.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 196.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 17.0,
+        "yao_admission_bind": 222.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 835.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 100.0,
+        "yao_router_role_execution": 654.0,
+        "yao_router_signing_worker_delivery": 39.0
+      }
+    },
+    {
+      "sample": "04-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/04-staging/group-01/registration-1.json",
+      "artifactSha256": "3eb43e9cbf2348d0363a95884e0a35f8853159aae12047de3a260465053c920a",
+      "postPasskeyMs": 1338,
+      "respondStageMs": 927.4,
+      "browserRespondMs": 925.979,
+      "gatewayWallMs": 816,
+      "gatewayCpuMs": 57,
+      "browserMinusGatewayWallMs": 109.979,
+      "requestColo": "NRT",
+      "responseRay": "a4db0a501b17d48a-NRT",
+      "traceId": "0c58055fcdb2da70c42b7ac4999dd501",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 8.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 8.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 195.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 12.0,
+        "yao_admission_bind": 215.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 535.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 103.0,
+        "yao_router_role_execution": 377.0,
+        "yao_router_signing_worker_delivery": 34.0
+      }
+    },
+    {
+      "sample": "05-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/05-production/group-01/registration-1.json",
+      "artifactSha256": "1070c3ac467954cef27a155a94a896d0930207caaa8494ec3f40e82aaa2e2c4b",
+      "postPasskeyMs": 1815,
+      "respondStageMs": 1488.9,
+      "browserRespondMs": 1487.593,
+      "gatewayWallMs": 1399,
+      "gatewayCpuMs": 32,
+      "browserMinusGatewayWallMs": 88.593,
+      "requestColo": "NRT",
+      "responseRay": "a4db0a76e87bd75b-NRT",
+      "traceId": "40cfa480bc3457bfcbb689cac2510160",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 7.0,
+        "respond_authority_verify": 4.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 4.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 98.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 7.0,
+        "yao_admission_bind": 109.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 1259.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 419.0,
+        "yao_router_role_execution": 652.0,
+        "yao_router_signing_worker_delivery": 202.0
+      }
+    },
+    {
+      "sample": "06-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/06-production/group-01/registration-1.json",
+      "artifactSha256": "e00fe2fe085969e7f626181184db8e380d22b5172669d2bf788cfe87bc9361e9",
+      "postPasskeyMs": 1161,
+      "respondStageMs": 721,
+      "browserRespondMs": 717.257,
+      "gatewayWallMs": 615,
+      "gatewayCpuMs": 14,
+      "browserMinusGatewayWallMs": 102.257,
+      "requestColo": "NRT",
+      "responseRay": "a4db0a9dff065eb4-NRT",
+      "traceId": "35b0752b94577f5bcf7875a571aedee0",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 7.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 6.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 3.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 8.0,
+        "yao_admission_bind": 17.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 563.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 86.0,
+        "yao_router_role_execution": 459.0,
+        "yao_router_signing_worker_delivery": 20.0
+      }
+    },
+    {
+      "sample": "07-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/07-staging/group-01/registration-1.json",
+      "artifactSha256": "285f717483195f752fd558286896b05194388b523f206bf3dfc542a19e15df3a",
+      "postPasskeyMs": 1152,
+      "respondStageMs": 755.1,
+      "browserRespondMs": 752.986,
+      "gatewayWallMs": 658,
+      "gatewayCpuMs": 26,
+      "browserMinusGatewayWallMs": 94.986,
+      "requestColo": "NRT",
+      "responseRay": "a4db0ac09f094e13-NRT",
+      "traceId": "71462f004fd56f7946bc2238fc437053",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 12.0,
+        "respond_authority_verify": 9.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 8.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 0.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 14.0,
+        "yao_admission_bind": 22.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 551.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 86.0,
+        "yao_router_role_execution": 355.0,
+        "yao_router_signing_worker_delivery": 40.0
+      }
+    },
+    {
+      "sample": "08-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/08-staging/group-01/registration-1.json",
+      "artifactSha256": "2207ccb094390916b681347dfda4cdf75f79240b016de22da8a945cc608c2592",
+      "postPasskeyMs": 1084,
+      "respondStageMs": 821.5,
+      "browserRespondMs": 820.128,
+      "gatewayWallMs": 723,
+      "gatewayCpuMs": 45,
+      "browserMinusGatewayWallMs": 97.128,
+      "requestColo": "NRT",
+      "responseRay": "a4db0aeb8a89387b-NRT",
+      "traceId": "af8d1b1cb0f177c4d261fbf529decdea",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 11.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 9.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 0.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 13.0,
+        "yao_admission_bind": 22.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 639.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 194.0,
+        "yao_router_role_execution": 408.0,
+        "yao_router_signing_worker_delivery": 115.0
+      }
+    },
+    {
+      "sample": "09-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/09-production/group-01/registration-1.json",
+      "artifactSha256": "0bc28e6b5ec3c6b6a5cc576138361b284feebc0e83430377eb32463088a8053f",
+      "postPasskeyMs": 2024,
+      "respondStageMs": 1490.1,
+      "browserRespondMs": 1488.917,
+      "gatewayWallMs": 1397,
+      "gatewayCpuMs": 44,
+      "browserMinusGatewayWallMs": 91.917,
+      "requestColo": "NRT",
+      "responseRay": "a4db0b0d7b20e35c-NRT",
+      "traceId": "5d842a8cdeb3adf442fe1540bde2d9c8",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 8.0,
+        "respond_authority_verify": 9.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 113.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 316.0,
+        "yao_admission_bind": 436.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 914.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 180.0,
+        "yao_router_role_execution": 712.0,
+        "yao_router_signing_worker_delivery": 34.0
+      }
+    },
+    {
+      "sample": "10-production",
+      "lane": "production",
+      "artifact": ".artifacts/respond-0156-20261021/10-production/group-01/registration-1.json",
+      "artifactSha256": "d287ea82e03f358f899cfdbabc193f24d3fdad187fc39373260e30005914fead",
+      "postPasskeyMs": 2252,
+      "respondStageMs": 1846,
+      "browserRespondMs": 1844.43,
+      "gatewayWallMs": 1755,
+      "gatewayCpuMs": 34,
+      "browserMinusGatewayWallMs": 89.43,
+      "requestColo": "NRT",
+      "responseRay": "a4db0b387af4e368-NRT",
+      "traceId": "f2492880b69cffd642fd0a8483699bf2",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 9.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 3.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 10.0,
+        "yao_admission_bind": 20.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 1700.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 425.0,
+        "yao_router_role_execution": 1538.0,
+        "yao_router_signing_worker_delivery": 42.0
+      }
+    },
+    {
+      "sample": "11-staging",
+      "lane": "staging",
+      "artifact": ".artifacts/respond-0156-20261021/11-staging/group-01/registration-1.json",
+      "artifactSha256": "22f56acc1eb6a354b4f63eb8933b8dc82357bb0cd2246e7804c3d8d7c308466a",
+      "postPasskeyMs": 955,
+      "respondStageMs": 620.3,
+      "browserRespondMs": 617.693,
+      "gatewayWallMs": 522,
+      "gatewayCpuMs": 12,
+      "browserMinusGatewayWallMs": 95.693,
+      "requestColo": "NRT",
+      "responseRay": "a4db0b687cfaeb74-NRT",
+      "traceId": "e95286df9dd32c2ae2a8f3d9d0e47409",
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 7.0,
+        "respond_authority_verify": 7.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 11.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 1.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 10.0,
+        "yao_admission_bind": 22.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 466.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 77.0,
+        "yao_router_role_execution": 365.0,
+        "yao_router_signing_worker_delivery": 32.0
+      }
+    }
+  ],
+  "limits": [
+    "Six samples per lane do not characterize tail latency.",
+    "Gateway wall time can include background work. Browser minus Gateway wall is arithmetic residual, not measured transport latency.",
+    "Root wait is nested within admission bind. Router preparation and A execution overlap. Do not sum those spans.",
+    "Staging tails include unrelated traffic. This record joins Gateway POST by CF-Ray and Router spans by trace ID.",
+    "The first sample verifier initially lacked arms.json. Its successful raw registration was preserved, metadata was supplied, and its independent proof then passed. No registration was rerun or excluded."
+  ],
+  "consolePlacement": [
+    {
+      "worker": "seams-sdk-d1-console",
+      "version": "1b77e78f-80f6-4304-9703-59194001a6b5",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 30,
+            "region": "aws:ap-southeast-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "CONSOLE_DB",
+          "id": "b928549b-8cd8-41db-9e66-36e95afbe295",
+          "colo": "SIN",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "worker": "seams-sdk-d1-console-staging",
+      "version": "68ea37a3-6820-452e-944f-712f88ca5fbb",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 30,
+            "region": "aws:ap-southeast-1",
+            "type": "region"
+          }
+        ]
+      },
+      "databases": [
+        {
+          "binding": "CONSOLE_DB",
+          "id": "6b2e86ec-2295-4475-b405-40f5f774ca1a",
+          "colo": "SIN",
+          "primary": true
+        }
+      ]
+    }
+  ],
+  "finding": "The 2.338 s respond smoke sample did not reproduce as a steady delay. Six production registrations finished within 2.252 s after passkey completion, with variable admission and role-preparation waits.",
+  "causeTable": [
+    {
+      "cause": "Consistent production respond floor near 2.34 seconds",
+      "status": "contradicted",
+      "evidence": "Production respond range 0.721\u20131.846 seconds in six alternating samples."
+    },
+    {
+      "cause": "Console primary outside Singapore",
+      "status": "contradicted",
+      "evidence": "Read-only primary queries returned SIN for staging and production; both Console Workers target Singapore."
+    },
+    {
+      "cause": "Remaining client activation WASM downloads",
+      "status": "contradicted for deployed fix",
+      "evidence": "The 0.15.6 deployment checks recorded 9\u201310 ms activation plus export."
+    },
+    {
+      "cause": "Admission and root-preparation waiting",
+      "status": "observed; precise platform cost unresolved",
+      "evidence": "Production sample09 admission commit316ms. Sample10 A preparation1246ms, with a pending prepare_registration D1 batch reported1359ms. D1 SQL execution metadata is not yet captured."
+    },
+    {
+      "cause": "Transport or edge dispatch variation",
+      "status": "possible",
+      "evidence": "Staging sample03 browser minus matching Gateway wall439.789ms; usual residual87\u2013111ms. This residual is not a direct RTT measurement."
+    }
+  ]
+}

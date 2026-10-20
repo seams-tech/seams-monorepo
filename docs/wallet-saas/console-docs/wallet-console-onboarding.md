@@ -50,6 +50,11 @@ It validates successful responses with the shared projection decoder.
   available audit evidence.
 
 An owner can refresh deployment status after an operator completes activation.
+
+SDK 0.15.4 registration still requires the selected environment's publishable
+key and allowed application and wallet origins. Completing Console onboarding
+does not establish Wallet deployment readiness. See [API credentials](api-keys.md)
+and the [current public deployment guide](https://wallet.seams.sh/docs/deploy-and-operate/hosted-integration).
 Only the existing protected workflow can authorize hosted activation. A Console
 session does not grant that authority. Gateway and Wallet runtime admission checks
 continue to enforce deployment readiness.

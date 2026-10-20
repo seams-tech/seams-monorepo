@@ -43,7 +43,7 @@
     "recovery:local": "node ./scripts/local-wallet/recovery-local.mjs",
     "wallet-system:local": "seams-wallet-server-local",
     "gateway:server": "pnpm -C packages/wallet-console-server-ts d1:local:dev",
-    "docs:preview": "pnpm -C apps/seams-site exec vite preview --outDir ../../.artifacts/wallet-docs --host 127.0.0.1 --port 4006",
+    "docs:preview": "pnpm -C apps/seams-site exec vite preview --base /docs/ --outDir ../../.artifacts/wallet-docs --host 127.0.0.1 --port 4006",
     "test": "pnpm test:console",
     "test:unit": "pnpm -C tests test:unit",
     "test:scripts": "pnpm -C tests test:scripts",

@@ -25,6 +25,16 @@ switches the Console and Gateway endpoints together.
 
 ## Browser registration
 
+The current private applications use published Wallet SDK 0.15.4 with iframe
+protocol 16.0.0. Configure `VITE_WALLET_ORIGIN`, `VITE_RELAYER_URL`, and
+`VITE_SEAMS_PUBLISHABLE_KEY` from the selected environment. Allow both the
+application origin and the hosted wallet origin. A key for another environment
+cannot authorize this environment's registration.
+
+Follow the [public quickstart](https://wallet.seams.sh/docs/) for the compiled
+provider and hosted-menu examples. `authMenu.prepare()` only downloads code.
+The hosted registration view prepares its wallet and passkey challenge.
+
 The browser sends its environment's `publishable_key` directly to
 `POST /wallets/register/setup` as a bearer credential together with
 `X-Seams-Environment-Id`. The Gateway validates the key, environment, origin,
@@ -42,6 +52,12 @@ Deferred NEAR provisioning completes through
 Add-signer and add-auth-method intent routes use the same publishable-key,
 environment, and origin binding. Their later ceremony routes use the
 request-specific wallet proof.
+
+Since 0.13, activation commits wallet custody before Console acknowledges the
+directory publication. Signing can work while the wallet is absent from the
+Console list. The Gateway's scheduled handler retries that publication. Region
+moves wait for acknowledgment. An absent row immediately after registration
+does not authorize creating a replacement wallet.
 
 ## Backend access
 

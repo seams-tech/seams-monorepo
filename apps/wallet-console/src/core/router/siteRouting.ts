@@ -1,6 +1,7 @@
 const FRONTEND_CONFIG = {
   baseUrl: String(import.meta.env.VITE_SITE_ORIGIN ?? '').trim() || '/',
-  docsOrigin: String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://docs.seams.sh',
+  docsOrigin:
+    String(import.meta.env.VITE_DOCS_ORIGIN ?? '').trim() || 'https://wallet.seams.sh/docs',
 };
 
 const DOCS_PREFIX = '/docs';

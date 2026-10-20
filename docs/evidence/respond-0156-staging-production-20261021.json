@@ -625,7 +625,7 @@
     {
       "cause": "Admission and root-preparation waiting",
       "status": "observed; precise platform cost unresolved",
-      "evidence": "Production sample09 admission commit316ms. Sample10 A preparation1246ms, with a pending prepare_registration D1 batch reported1359ms. D1 SQL execution metadata is not yet captured."
+      "evidence": "Production sample09 admission commit316ms. Sample10 A preparation1246ms, with a pending prepare_registration D1 batch reported1359ms. D1 SQL execution metadata was not captured for that original stalled request."
     },
     {
       "cause": "Transport or edge dispatch variation",

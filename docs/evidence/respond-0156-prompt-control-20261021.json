@@ -1,0 +1,1199 @@
+{
+  "sdkVersion": "0.15.6",
+  "environment": "production-mainnet",
+  "design": "Eight fresh-wallet registrations, actual hosted iframe and Gateway. Extra delay before the virtual authenticator create call: 0,1200,1200,0 repeated twice. Parent assets are local. No request interception.",
+  "stability": {
+    "samples": 8,
+    "promptDelaysMs": [
+      0,
+      1200,
+      1200,
+      0,
+      0,
+      1200,
+      1200,
+      0
+    ],
+    "sdkVersion": "0.15.6",
+    "unchangedBackend": true,
+    "unchangedSdk": true,
+    "unchangedHarness": true
+  },
+  "observedRespondPosts": 8,
+  "ownRespondPosts": 8,
+  "groups": {
+    "0": {
+      "count": 4,
+      "authenticationStageMs": {
+        "medianMs": 645.55,
+        "minMs": 250.5,
+        "maxMs": 879.1
+      },
+      "respondMs": {
+        "medianMs": 938.95,
+        "minMs": 631.1,
+        "maxMs": 1217.1
+      },
+      "postPasskeyMs": {
+        "medianMs": 1422.5,
+        "minMs": 894,
+        "maxMs": 1739
+      }
+    },
+    "1200": {
+      "count": 4,
+      "authenticationStageMs": {
+        "medianMs": 1730.9,
+        "minMs": 1441.5,
+        "maxMs": 2053
+      },
+      "respondMs": {
+        "medianMs": 939.3,
+        "minMs": 628,
+        "maxMs": 1561.4
+      },
+      "postPasskeyMs": {
+        "medianMs": 1303.5,
+        "minMs": 1199,
+        "maxMs": 1894
+      }
+    }
+  },
+  "rows": [
+    {
+      "sample": "00-production",
+      "extraPromptDelayMs": 0,
+      "authenticationStageMs": 879.1,
+      "respondMs": 1156.9,
+      "postPasskeyMs": 1630,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 11.0,
+        "respond_authority_verify": 7.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 165.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 14.0,
+        "yao_admission_bind": 186.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 812.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 307.0,
+        "yao_router_role_execution": 534.0,
+        "yao_router_signing_worker_delivery": 44.0
+      },
+      "responseRay": "a4db3d50a9bd2038-NRT",
+      "protocolSessionHex": "44ddd337ce7a1fd3b45bc19cdf2afd4aa8575fc758ca0215c3904761afdd62d6",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/00-production/group-01/registration-1.json",
+      "artifactSha256": "26a6d89b987e2fb314536d610053df88a9f76d2c0412a8d5528bac725c9b61c7",
+      "roles": {
+        "a": {
+          "objectId": "0e9f84c1a1a636d91502b1bc2b52aaf9c872a51d7c5ab20fcc44d7bd4666dc01",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 54
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 95
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 95
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 175
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 75
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 107
+            }
+          ]
+        },
+        "b": {
+          "objectId": "68ece0ec7ac183789e654dc6e71acf66ec1e010589f60655e947e488ac9fa7f7",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 10
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 12
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 64
+            },
+            {
+              "span": "deriver_b.await_preparation",
+              "durationMs": 65
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 50
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "01-production",
+      "extraPromptDelayMs": 1200,
+      "authenticationStageMs": 2053,
+      "respondMs": 895.3,
+      "postPasskeyMs": 1199,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 16.0,
+        "respond_authority_verify": 7.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 89.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 9.0,
+        "yao_admission_bind": 105.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 641.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 132.0,
+        "yao_router_role_execution": 494.0,
+        "yao_router_signing_worker_delivery": 34.0
+      },
+      "responseRay": "a4db3d867f9ae369-NRT",
+      "protocolSessionHex": "7e917332c7d666118b50ad4d0e26e270a0e90022b9f1f3241e6aa34e77e69e7e",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/01-production/group-01/registration-1.json",
+      "artifactSha256": "2f129f3f5a654a292018503ba162321894bbbce5bbf920d091290136ff06d00e",
+      "roles": {
+        "a": {
+          "objectId": "281d2da9c1550b950fff811a9ec256267f2dedc236fee26a0fa81aa11d6bcaf5",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 86
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 86
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 48
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 87
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 97
+            }
+          ]
+        },
+        "b": {
+          "objectId": "e9d8ea67c0de4cf62cf50006c5ecac5500c49a39f2951d6d07bd5b6ec3752cb5",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 6
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 8
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 66
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 48
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "02-production",
+      "extraPromptDelayMs": 1200,
+      "authenticationStageMs": 1667.8,
+      "respondMs": 983.3,
+      "postPasskeyMs": 1375,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 10.0,
+        "respond_authority_verify": 12.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 9.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 1.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 11.0,
+        "yao_admission_bind": 21.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 794.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 411.0,
+        "yao_router_role_execution": 622.0,
+        "yao_router_signing_worker_delivery": 34.0
+      },
+      "responseRay": "a4db3db5ed40e3bf-NRT",
+      "protocolSessionHex": "2cf1ad0dd10742937a35db0fa81faa0d6524a600058fbf6511d9dcc4ca5bb2ce",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/02-production/group-01/registration-1.json",
+      "artifactSha256": "83f1e495ec87b3c0739bfa3fdf369ad6656ccfffe77f6dd05db8ede860885fda",
+      "roles": {
+        "a": {
+          "objectId": "e488ed483edff0d590e805dff7f0323823aeb8ec071d95fbaf8ea5963c23f58a",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 84
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 84
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 282
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 76
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 98
+            }
+          ]
+        },
+        "b": {
+          "objectId": "1239d3796422b9e992e490589ca72abbb57ec722a632f5eb8e7bd6aa68ea470f",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 317
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 8
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 364
+            },
+            {
+              "span": "deriver_b.await_preparation",
+              "durationMs": 195
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 42
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "03-production",
+      "extraPromptDelayMs": 0,
+      "authenticationStageMs": 545,
+      "respondMs": 1217.1,
+      "postPasskeyMs": 1739,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 9.0,
+        "respond_authority_verify": 8.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 10.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 175.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 11.0,
+        "yao_admission_bind": 196.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 842.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 132.0,
+        "yao_router_role_execution": 450.0,
+        "yao_router_signing_worker_delivery": 36.0
+      },
+      "responseRay": "a4db3ddbdc5a8b0e-NRT",
+      "protocolSessionHex": "7ceed5fa761b9cdf803074184f4778ba01d330d94a96d42b1764b3c5059f31ef",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/03-production/group-01/registration-1.json",
+      "artifactSha256": "9d7db91156a4705c7dcafa4f3347642181c41de976b971eb20026aabf7456d6d",
+      "roles": {
+        "a": {
+          "objectId": "a75d53e3f1ede1d16673b08e7337ea7aaf6b2a1cb7aa24974b9aa706d243fe29",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 92
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 92
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 54
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 100
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 206
+            }
+          ]
+        },
+        "b": {
+          "objectId": "b8a5e2bfdb7d9258cbff1bcea3b78d2a05c12530a5d1e7da4fa73b2a576d316f",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 13
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 14
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 48
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 82
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "04-production",
+      "extraPromptDelayMs": 0,
+      "authenticationStageMs": 250.5,
+      "respondMs": 721,
+      "postPasskeyMs": 1215,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 9.0,
+        "respond_authority_verify": 7.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 0.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 9.0,
+        "yao_admission_bind": 16.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 559.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 75.0,
+        "yao_router_role_execution": 435.0,
+        "yao_router_signing_worker_delivery": 34.0
+      },
+      "responseRay": "a4db3e031ac36468-NRT",
+      "protocolSessionHex": "eedd5e4b381bb434d4f0332f247d6cfcadc9e8cadfe9b115025ea39e3c7c2221",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/04-production/group-01/registration-1.json",
+      "artifactSha256": "de2a980dc492c85ae33b0483c6d8c201afc65fd82573ad34cceb56bab4091088",
+      "roles": {
+        "a": {
+          "objectId": "c42d5f9eca006d39fa25fb9ebd6ef8887c2963475a692f64fc26492ec7c3364c",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 101
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 101
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 54
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 95
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 119
+            }
+          ]
+        },
+        "b": {
+          "objectId": "7d4c46f31a1be93d0825153c4a756ac604a8ba9fb12f4b82adf4120b0a6d5d23",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 9
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 9
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 58
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 65
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "05-production",
+      "extraPromptDelayMs": 1200,
+      "authenticationStageMs": 1441.5,
+      "respondMs": 1561.4,
+      "postPasskeyMs": 1894,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 10.0,
+        "respond_authority_verify": 7.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 7.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 118.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 10.0,
+        "yao_admission_bind": 135.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 1255.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 848.0,
+        "yao_router_role_execution": 1069.0,
+        "yao_router_signing_worker_delivery": 52.0
+      },
+      "responseRay": "a4db3e3239ad266c-NRT",
+      "protocolSessionHex": "09081b6c25d244cb5b9b985d9d23a8486b8779a0d26c3252e2afa4a84e039e73",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/05-production/group-01/registration-1.json",
+      "artifactSha256": "a49f4aa80180d2bb0ed11f5a80b2d46c0342b9a299e36d3814225a058ba64a4d",
+      "roles": {
+        "a": {
+          "objectId": "a7f990b6a4f3b6f2d40f20ad24c644dec4f25673736ad768865d2bd710b26f8b",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 71
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 92
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 92
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 752
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 1
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 79
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 98
+            }
+          ]
+        },
+        "b": {
+          "objectId": "a4893c9ba88f353175391f2467722e8fe09d35af87bc20f579947739c0feafec",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 740
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 13
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 789
+            },
+            {
+              "span": "deriver_b.await_preparation",
+              "durationMs": 625
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 51
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "06-production",
+      "extraPromptDelayMs": 1200,
+      "authenticationStageMs": 1794,
+      "respondMs": 628,
+      "postPasskeyMs": 1232,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 7.0,
+        "respond_authority_verify": 6.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 6.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 0.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 12.0,
+        "yao_admission_bind": 18.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 484.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 71.0,
+        "yao_router_role_execution": 390.0,
+        "yao_router_signing_worker_delivery": 30.0
+      },
+      "responseRay": "a4db3e608b839a37-NRT",
+      "protocolSessionHex": "e1a0e4ac6dc4ea0985c4d019d4cb8081e3b1abd7502183ad00a5455e5b701e7a",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/06-production/group-01/registration-1.json",
+      "artifactSha256": "4d487bdd29ec8b4004708324ad765ae2e6c49cc86ddda8f8f14fff57dfcb535b",
+      "roles": {
+        "a": {
+          "objectId": "6002c31534c5030afb5b173b997f83386789e24355309b2f3a445c9a52d78c6e",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 9
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 88
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 88
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 49
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 90
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 105
+            }
+          ]
+        },
+        "b": {
+          "objectId": "f6e6d4034bc86bef620b9dd42c0e734794d8bc3a6b0de3cc6f443f5bdb67bfb2",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 8
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 9
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 62
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 59
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sample": "07-production",
+      "extraPromptDelayMs": 0,
+      "authenticationStageMs": 746.1,
+      "respondMs": 631.1,
+      "postPasskeyMs": 894,
+      "serverTimingMs": {
+        "ecdsa_respond_d1_load": 7.0,
+        "respond_authority_verify": 5.0,
+        "yao_admission_request": 0.0,
+        "yao_admission_state_read": 5.0,
+        "yao_admission_authorization": 0.0,
+        "yao_admission_root_wait": 1.0,
+        "yao_admission_backend": 0.0,
+        "yao_admission_commit": 8.0,
+        "yao_admission_bind": 14.0,
+        "yao_d1_admission_read": 0.0,
+        "yao_router_execution": 479.0,
+        "yao_result_reconstruction": 0.0,
+        "yao_router_prepare_pair": 54.0,
+        "yao_router_role_execution": 377.0,
+        "yao_router_signing_worker_delivery": 35.0
+      },
+      "responseRay": "a4db3e8d3fd98e1a-NRT",
+      "protocolSessionHex": "5a23b70dfae543680d8ccaf0ab7b55a0c1c3382ca2f1f957a056e453b83a9571",
+      "artifact": ".artifacts/respond-prompt-control-0156-20261021/07-production/group-01/registration-1.json",
+      "artifactSha256": "7b0a98454e804fe4b66b09cfa8f90ee0155e76abe59629a30cfd7b9995ce2c2f",
+      "roles": {
+        "a": {
+          "objectId": "f4efd42c298126d86f5120ddbe9472346327c13f442f8759da5a4592c2025398",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 97
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_a.target_prepared",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.prepare_in_execute",
+              "durationMs": 97
+            },
+            {
+              "span": "deriver_a.peer_ready",
+              "durationMs": 65
+            },
+            {
+              "span": "deriver_a.claim_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.preface_exchange",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.yao_protocol",
+              "durationMs": 91
+            },
+            {
+              "span": "deriver_a.output_seal",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.outcome_record",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_a.admission_settle_background",
+              "durationMs": 114
+            }
+          ]
+        },
+        "b": {
+          "objectId": "d834970548a098719ab4f1b9b8cf679b38693efd28427fe085b667384f8158aa",
+          "observedColos": [
+            "SIN"
+          ],
+          "rootAccesses": [
+            {
+              "access": "prepare_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 0
+            },
+            {
+              "access": "bind_registration",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 9
+            },
+            {
+              "access": "read_admitted",
+              "initial_read_and_open_ms": 0,
+              "batch_ms": 16
+            }
+          ],
+          "roleSpans": [
+            {
+              "span": "deriver_b.session_do",
+              "durationMs": 52
+            },
+            {
+              "span": "deriver_b.input_private_key",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.transport",
+              "durationMs": 0
+            },
+            {
+              "span": "deriver_b.yao_protocol",
+              "durationMs": 50
+            },
+            {
+              "span": "deriver_b.output_serialization",
+              "durationMs": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "finding": "Adding 1.2 seconds before the virtual passkey call did not reduce median respond latency in this small control. A delayed sample still waited740ms in B input-bound admission, while setup preparation had already been admitted.",
+  "limits": [
+    "Four samples per group cannot characterize tail latency or rule out a benefit for other pending-preparation cases.",
+    "The delay changes preparation lead time and request timing. It is a diagnostic intervention, not a performance fix or a real Touch ID measurement.",
+    "Actual authentication-stage durations still vary and are reported for every sample.",
+    "Role logs are joined by exact public protocol-session key, then object ID across events. No time-window join is used.",
+    "Root wait is nested in admission bind; peer preparation and role execution overlap. Do not add those durations.",
+    "The 740ms input-bound admission call does not identify how much time was transport, durable acknowledgement, queueing, or execution. Original long preparation stall was not reproduced."
+  ],
+  "roleD1Placement": [
+    {
+      "worker": "router-ab-deriver-a",
+      "databaseId": "10a3cda4-2271-4484-af26-a7f926ba739c",
+      "version": "ebc3578b-ebd5-42d4-ba03-e007118756bb",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 30,
+            "region": "aws:ap-southeast-1",
+            "type": "region"
+          }
+        ]
+      },
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.33
+        },
+        "duration": 0.33,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 286720,
+        "rows_read": 0,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    },
+    {
+      "worker": "router-ab-deriver-b",
+      "databaseId": "f619fa0e-8c1d-4fa2-8e75-e2909ac20dc2",
+      "version": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+      "placement": {
+        "mode": "targeted",
+        "target": [
+          {
+            "id": 30,
+            "region": "aws:ap-southeast-1",
+            "type": "region"
+          }
+        ]
+      },
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "SIN",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.0982
+        },
+        "duration": 0.0982,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 286720,
+        "rows_read": 0,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ]
+}

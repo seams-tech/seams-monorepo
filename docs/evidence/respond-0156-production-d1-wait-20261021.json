@@ -1,0 +1,1102 @@
+{
+  "sdkVersion": "0.15.6",
+  "environment": "production-mainnet",
+  "finding": "A production Deriver B bind-registration batch reproduced a 672 ms wait. The JavaScript D1 call and enclosing Rust timer both measured 672 ms. The four SQL statements totaled 0.466 ms, each with one attempt, on the Singapore primary. The remaining interval is inside the D1 call, outside reported SQL execution.",
+  "method": "Eight fresh wallet registrations using the actual hosted iframe and Gateway. Local parent. An extra 1200 ms precedes the virtual authenticator call. A temporary observer wraps only Deriver B D1 methods. Original WASM bytes, bindings, placement, and runtime settings remain unchanged. Original Worker restored after the experiment.",
+  "rows": [
+    {
+      "sample": "00-production",
+      "protocolSessionHex": "04d99483c7f7f7e153b4c47d5f3af1e84e88f7a871d7aa398a75c6f0d9e8a4d5",
+      "objectId": "737a6738f7cd340c2b7773809a5f06595a6dafd4f916841495d07cd8dd8211f3",
+      "authenticationMs": 2089.599999964237,
+      "respondMs": 2234.7000000476837,
+      "postPasskeyMs": 2566,
+      "rustBatchMs": 8,
+      "jsD1CallMs": 8,
+      "sqlMs": 0.4702,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792533961084,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "737a6738f7cd340c2b7773809a5f06595a6dafd4f916841495d07cd8dd8211f3",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792533961076,
+          1792533961076,
+          1792533961076,
+          1792533961076
+        ],
+        "started_at_ms": 1792533961076,
+        "finished_at_ms": 1792533961084,
+        "elapsed_ms": 8,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.2133,
+            "timings": {
+              "sql_duration_ms": 0.2133
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0837,
+            "timings": {
+              "sql_duration_ms": 0.0837
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0916,
+            "timings": {
+              "sql_duration_ms": 0.0916
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0816,
+            "timings": {
+              "sql_duration_ms": 0.0816
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/00-production/group-01/registration-1.json",
+      "artifactSha256": "d1487b02ce46f7056458de29407b79cbc0535e9b63c27271b1db71f895c4bda2"
+    },
+    {
+      "sample": "01-production",
+      "protocolSessionHex": "9f4f8a19a4775486dc93a462c67234c13f592f7da112f18e38908b893a8cd83a",
+      "objectId": "158a95b09075355537eaf0004d613f798b87a6e643efdb8a2b8778132a3e5682",
+      "authenticationMs": 1846.5,
+      "respondMs": 865.1000000238419,
+      "postPasskeyMs": 1269,
+      "rustBatchMs": 10,
+      "jsD1CallMs": 10,
+      "sqlMs": 0.4414,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792533969709,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "158a95b09075355537eaf0004d613f798b87a6e643efdb8a2b8778132a3e5682",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792533969699,
+          1792533969699,
+          1792533969699,
+          1792533969699
+        ],
+        "started_at_ms": 1792533969699,
+        "finished_at_ms": 1792533969709,
+        "elapsed_ms": 10,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.2114,
+            "timings": {
+              "sql_duration_ms": 0.2114
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0789,
+            "timings": {
+              "sql_duration_ms": 0.0789
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.071,
+            "timings": {
+              "sql_duration_ms": 0.071
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0801,
+            "timings": {
+              "sql_duration_ms": 0.0801
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/01-production/group-01/registration-1.json",
+      "artifactSha256": "66991d8050db04b414057ffce5d3b8e165d8bf12d42efa42f1dfb89aec8376d5"
+    },
+    {
+      "sample": "02-production",
+      "protocolSessionHex": "e933d7d55e0ef34105621485de40101c454badfb0ffe4f7700ebe2bfa263fb4c",
+      "objectId": "410160c2f5873a66de07425c5688ad40f1aa74a7eab378fcce59300c32198ac1",
+      "authenticationMs": 1617.699999988079,
+      "respondMs": 1335.8999999761581,
+      "postPasskeyMs": 1622,
+      "rustBatchMs": 672,
+      "jsD1CallMs": 672,
+      "sqlMs": 0.466,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792533977861,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "410160c2f5873a66de07425c5688ad40f1aa74a7eab378fcce59300c32198ac1",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792533977189,
+          1792533977189,
+          1792533977189,
+          1792533977189
+        ],
+        "started_at_ms": 1792533977189,
+        "finished_at_ms": 1792533977861,
+        "elapsed_ms": 672,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.1976,
+            "timings": {
+              "sql_duration_ms": 0.1976
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0969,
+            "timings": {
+              "sql_duration_ms": 0.0969
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0835,
+            "timings": {
+              "sql_duration_ms": 0.0835
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.088,
+            "timings": {
+              "sql_duration_ms": 0.088
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/02-production/group-01/registration-1.json",
+      "artifactSha256": "c40b6a3c22c2f4f17071d40b1c8d07c6347b7594d8c9fd22f454bf7616b1649d"
+    },
+    {
+      "sample": "03-production",
+      "protocolSessionHex": "8d9374c397d988fac182784231430e654aa21f68db17c406fc1ded8385533551",
+      "objectId": "5ebd41790c069b8fc0704dc461f060e24c598fbd5fc6cf84b83a1e3a76a01762",
+      "authenticationMs": 1981.8999999761581,
+      "respondMs": 718.7000000476837,
+      "postPasskeyMs": 1134,
+      "rustBatchMs": 10,
+      "jsD1CallMs": 10,
+      "sqlMs": 0.6497,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792533986199,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "5ebd41790c069b8fc0704dc461f060e24c598fbd5fc6cf84b83a1e3a76a01762",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792533986189,
+          1792533986189,
+          1792533986189,
+          1792533986189
+        ],
+        "started_at_ms": 1792533986189,
+        "finished_at_ms": 1792533986199,
+        "elapsed_ms": 10,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.3776,
+            "timings": {
+              "sql_duration_ms": 0.3776
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.1389,
+            "timings": {
+              "sql_duration_ms": 0.1389
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0777,
+            "timings": {
+              "sql_duration_ms": 0.0777
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0555,
+            "timings": {
+              "sql_duration_ms": 0.0555
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/03-production/group-01/registration-1.json",
+      "artifactSha256": "38d190aa0f7821fcf7d27fd3f1238c6046fad6f14eb474a604cecb82ddbe1d2c"
+    },
+    {
+      "sample": "04-production",
+      "protocolSessionHex": "560d76f17edcafb665c5bdd83e5114cc31cdd8d58032843b8045d90859491858",
+      "objectId": "cab63162c930751c2cdc5e018779cee93373da2b2757367afcb9abe3ad28c97e",
+      "authenticationMs": 1461.3999999761581,
+      "respondMs": 1082.5,
+      "postPasskeyMs": 1357,
+      "rustBatchMs": 7,
+      "jsD1CallMs": 7,
+      "sqlMs": 0.76,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792533993877,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "cab63162c930751c2cdc5e018779cee93373da2b2757367afcb9abe3ad28c97e",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792533993870,
+          1792533993870,
+          1792533993870,
+          1792533993870
+        ],
+        "started_at_ms": 1792533993870,
+        "finished_at_ms": 1792533993877,
+        "elapsed_ms": 7,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.5075,
+            "timings": {
+              "sql_duration_ms": 0.5075
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0872,
+            "timings": {
+              "sql_duration_ms": 0.0872
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0858,
+            "timings": {
+              "sql_duration_ms": 0.0858
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0795,
+            "timings": {
+              "sql_duration_ms": 0.0795
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/04-production/group-01/registration-1.json",
+      "artifactSha256": "487483c5b47653e8c0ee8bf35cc36a4bbf1028f5be20c608ad44c4372e695179"
+    },
+    {
+      "sample": "05-production",
+      "protocolSessionHex": "dcae0b6c96e85cf2b27c4dc7a27d1e825b9f7758f96a41574357954619d43e3e",
+      "objectId": "2eb9b1dc994076d7d00b6778e2205730d3cfc521da53732ddc5121856f40c3a0",
+      "authenticationMs": 1778.3999999761581,
+      "respondMs": 815.8000000119209,
+      "postPasskeyMs": 1096,
+      "rustBatchMs": 17,
+      "jsD1CallMs": 17,
+      "sqlMs": 0.6592,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792534001025,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "2eb9b1dc994076d7d00b6778e2205730d3cfc521da53732ddc5121856f40c3a0",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792534001008,
+          1792534001008,
+          1792534001008,
+          1792534001008
+        ],
+        "started_at_ms": 1792534001008,
+        "finished_at_ms": 1792534001025,
+        "elapsed_ms": 17,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.2355,
+            "timings": {
+              "sql_duration_ms": 0.2355
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0937,
+            "timings": {
+              "sql_duration_ms": 0.0937
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.1741,
+            "timings": {
+              "sql_duration_ms": 0.1741
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.1559,
+            "timings": {
+              "sql_duration_ms": 0.1559
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/05-production/group-01/registration-1.json",
+      "artifactSha256": "c8adc43afc52245dadbd791d5071afd1495db910febd941e39d25da63bd0339a"
+    },
+    {
+      "sample": "06-production",
+      "protocolSessionHex": "fcec52857bf2d7e7fc186f0dd498f9dce796fa94a2b52d86c4dc88ec40756cc6",
+      "objectId": "7447280afb9712fffaa53fcf0f3d443722bea3ef4615cd08a504acb8c16bbab9",
+      "authenticationMs": 1485.1000000238419,
+      "respondMs": 679.8999999761581,
+      "postPasskeyMs": 1077,
+      "rustBatchMs": 9,
+      "jsD1CallMs": 9,
+      "sqlMs": 0.7856,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792534008150,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "7447280afb9712fffaa53fcf0f3d443722bea3ef4615cd08a504acb8c16bbab9",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792534008141,
+          1792534008141,
+          1792534008141,
+          1792534008141
+        ],
+        "started_at_ms": 1792534008141,
+        "finished_at_ms": 1792534008150,
+        "elapsed_ms": 9,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.3016,
+            "timings": {
+              "sql_duration_ms": 0.3016
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.2073,
+            "timings": {
+              "sql_duration_ms": 0.2073
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.1524,
+            "timings": {
+              "sql_duration_ms": 0.1524
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.1243,
+            "timings": {
+              "sql_duration_ms": 0.1243
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/06-production/group-01/registration-1.json",
+      "artifactSha256": "0040c97a802e5639e517e613a672871ec00b536377737d6357b6d0df54c40ad3"
+    },
+    {
+      "sample": "07-production",
+      "protocolSessionHex": "3ee1ec1ef695f714d9d529ddcd770682f14ebe6f916ac7c224d1a62356001327",
+      "objectId": "ca4004eb91aa981346ae472ce2f7fd42acc1ce8c27f8b86d6b640dc7d8d45372",
+      "authenticationMs": 1882.1000000238419,
+      "respondMs": 717,
+      "postPasskeyMs": 988,
+      "rustBatchMs": 10,
+      "jsD1CallMs": 10,
+      "sqlMs": 0.454,
+      "attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "d1Colos": [
+        "SIN"
+      ],
+      "d1Primary": true,
+      "doColos": [
+        "SIN"
+      ],
+      "rustLogTimestamp": 1792534015663,
+      "binding": {
+        "event": "d1_wait_observation",
+        "role": "deriver_b",
+        "object_id": "ca4004eb91aa981346ae472ce2f7fd42acc1ce8c27f8b86d6b640dc7d8d45372",
+        "id": 3,
+        "operation": "batch",
+        "statements": [
+          {
+            "operation": "UPDATE",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_root_use_admissions"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          },
+          {
+            "operation": "SELECT",
+            "table": "tenant_root_role_shares"
+          }
+        ],
+        "statement_prepared_at_ms": [
+          1792534015653,
+          1792534015653,
+          1792534015653,
+          1792534015653
+        ],
+        "started_at_ms": 1792534015653,
+        "finished_at_ms": 1792534015663,
+        "elapsed_ms": 10,
+        "metadata": [
+          {
+            "total_attempts": 1,
+            "duration": 0.2387,
+            "timings": {
+              "sql_duration_ms": 0.2387
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 1,
+            "rows_read": 1,
+            "rows_written": 1,
+            "changed_db": true
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0748,
+            "timings": {
+              "sql_duration_ms": 0.0748
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0799,
+            "timings": {
+              "sql_duration_ms": 0.0799
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          },
+          {
+            "total_attempts": 1,
+            "duration": 0.0606,
+            "timings": {
+              "sql_duration_ms": 0.0606
+            },
+            "served_by": "v3-prod",
+            "served_by_colo": "SIN",
+            "served_by_region": "APAC",
+            "served_by_primary": true,
+            "changes": 0,
+            "rows_read": 1,
+            "rows_written": 0,
+            "changed_db": false
+          }
+        ],
+        "outcome": "success"
+      },
+      "artifact": ".artifacts/d1-production-0156-20261021/07-production/group-01/registration-1.json",
+      "artifactSha256": "08ccded6109fdbeec0dd3a99c28318ff6f126b8f281c53eaa55194bf9cf6bcbd"
+    }
+  ],
+  "completion": {
+    "samples": 8,
+    "promptDelaysMs": [
+      1200,
+      1200,
+      1200,
+      1200,
+      1200,
+      1200,
+      1200,
+      1200
+    ],
+    "sdkVersion": "0.15.6",
+    "unchangedBackend": true,
+    "unchangedSdk": true,
+    "unchangedHarness": true
+  },
+  "restoration": {
+    "phase": "complete",
+    "restored": true,
+    "expectedVersions": {
+      "router-ab-mpc-router": [
+        {
+          "version_id": "df719c67-0729-4eb7-8a37-3bf0edd5dbeb",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-a": [
+        {
+          "version_id": "ebc3578b-ebd5-42d4-ba03-e007118756bb",
+          "percentage": 100
+        }
+      ],
+      "router-ab-deriver-b": [
+        {
+          "version_id": "778b2440-5686-4917-bf9a-3e7e127d0e42",
+          "percentage": 100
+        }
+      ],
+      "router-ab-signing-worker": [
+        {
+          "version_id": "82bc7dae-1408-4c63-858d-17f35c613ae0",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-gateway": [
+        {
+          "version_id": "27670629-672a-4f0e-85f3-0517a2025597",
+          "percentage": 100
+        }
+      ],
+      "seams-sdk-d1-wallet-runtime": [
+        {
+          "version_id": "510f59ad-70f7-4134-88ba-5d818b0fcf0c",
+          "percentage": 100
+        }
+      ]
+    },
+    "cleanupErrors": []
+  },
+  "sources": {
+    ".artifacts/d1-production-0156-20261021/observer.mjs": "985f4ce73990c078ecdc3c6f728ebe85188c918ecc9f8d8b4c73bc02aecf67e7",
+    ".artifacts/d1-production-0156-20261021/prepare.py": "133506f42ee8a78a84c632cca49f9fc762ee98d6f3c3c9c43d0eca0a68c2cfb9",
+    ".artifacts/d1-production-0156-20261021/experiment.py": "64b66973c12ec9adc57c0cab9cb5cf66fcb3c7b144b217cf8b24b9c216a8aeb9",
+    ".artifacts/d1-production-0156-20261021/run.py": "8fefd35f3e6b03c26d1ccae8c0ed2b2f823d5870a60a7161492133fa9e566ecd",
+    ".artifacts/d1-production-0156-20261021/summarize.py": "88d1a0fa660e62c36c884fb595bbdb044d8c0fb1256d9476758ad63ccf0af43e",
+    ".artifacts/d1-production-0156-20261021/tails/router-ab-deriver-b.jsonl": "0db5818e743348394b6632acee4ac8ca94fc64f3a565a8b114d8a793fe312337"
+  },
+  "limits": [
+    "The original 740 ms call has no SQL or retry metadata. The 672 ms call reproduces the same operation and delay class, not the exact original request.",
+    "D1 elapsed time includes local output gates, service dispatch, database queueing/durability, response transport, and callback scheduling. This observer cannot separate those parts.",
+    "Worker clocks are clamped. Equal Rust and JavaScript durations exclude a separately observed gap, but do not prove zero Rust CPU work.",
+    "This temporary observer adds promise continuations and logging. These measurements establish attribution, not a performance improvement.",
+    "Virtual authentication duration does not measure a human Touch ID interaction. Post-passkey time uses the explicit registration.post_touch_id span."
+  ],
+  "causeTable": [
+    {
+      "cause": "Slow SQL or table scan",
+      "status": "Contradicted for the 672 ms call",
+      "evidence": "Four SQL statements total 0.466 ms; each reads one row."
+    },
+    {
+      "cause": "D1 automatic retries",
+      "status": "Contradicted for the 672 ms call",
+      "evidence": "Every statement reports total_attempts=1."
+    },
+    {
+      "cause": "Role or primary database outside Singapore",
+      "status": "Contradicted at observed colo granularity",
+      "evidence": "Wallet DO host and D1 execution metadata both report SIN."
+    },
+    {
+      "cause": "Rust statement construction or continuation accounts for the stall",
+      "status": "No separate delay observed",
+      "evidence": "The JavaScript D1 call itself measures the full 672 ms."
+    },
+    {
+      "cause": "Local durable storage gate or D1 service wait",
+      "status": "Open",
+      "evidence": "Both fit the elapsed time outside SQL. Concurrent local-storage confirmation is the next measurement."
+    }
+  ]
+}

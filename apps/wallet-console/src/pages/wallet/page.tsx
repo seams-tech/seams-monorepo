@@ -1,7 +1,7 @@
 import React from 'react';
 import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
-  H2Components,
+  H2Cta,
   H2DemoHero,
   H2Faq,
   H2Footer,
@@ -19,21 +19,20 @@ export function WalletPage(): React.JSX.Element {
       <div className="h2-col">
         <H2DemoHero
           authDefaultModeWhenNoDetectedAccount="register"
-          title={<>Non&#8209;custodial wallets, opened with a passkey</>}
+          title={<>Wallets that open with a passkey</>}
           sub={
             <>
-              Embed wallets your users can never lose: keys split between their device and your
-              infrastructure, recovery through email and linked devices, and every action signed.
-              Register right here to see it work.
+              Users sign in with Face ID or a fingerprint. No seed phrases, only they control their
+              funds, and email gets them back in. Try it here.
             </>
           }
         />
         <H2Networks />
-        <H2Components />
         <ComponentShowcase />
         <H2Security />
         <H2Start />
         <H2Faq audience="wallet" />
+        <H2Cta />
         <H2Footer />
       </div>
     </div>

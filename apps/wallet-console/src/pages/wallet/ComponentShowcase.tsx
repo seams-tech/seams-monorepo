@@ -251,7 +251,7 @@ export function ComponentShowcase(): React.JSX.Element {
   return (
     <section
       className="component-showcase h2-rule"
-      aria-label="Wallet component showcase"
+      aria-labelledby="component-showcase-title"
       data-playback={playback.kind}
       data-pause-reason={playback.kind === 'paused' ? playback.reason : undefined}
       onPointerDownCapture={setPointerMotion}
@@ -266,6 +266,12 @@ export function ComponentShowcase(): React.JSX.Element {
         >
           {previews.map(renderSelectorChoice.bind(null, selected))}
         </div>
+        <h2
+          id="component-showcase-title"
+          className="h2-display h2-eco__title component-showcase__title"
+        >
+          Use the built-in wallet components, or design your own
+        </h2>
         <div
           className="component-showcase__viewport"
           id="showcase-canvas"

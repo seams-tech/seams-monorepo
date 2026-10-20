@@ -14,7 +14,11 @@ function scriptSource(html: string, id: 'hl-kernel' | 'hl-figure'): string {
   return html.slice(contentStart, end);
 }
 
-function figureDocument(html: string, pointerX: number, pointerY: number): string {
+// Keyframes for the host's synthetic pointer: x and y in the 400 by 320 frame,
+// then the time in ms from the start of the play.
+type PlayPath = ReadonlyArray<readonly [x: number, y: number, ms: number]>;
+
+function figureDocument(html: string, pointerX: number, pointerY: number, play: PlayPath): string {
   return `<!doctype html>
 <html lang="en" data-theme="light">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,36 +39,124 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #stage:focus-visible { outline: 1px solid #777169; outline-offset: -3px; border-radius: 8px; }
 #read { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style></head>
-<body><div id="stage" data-pointer-x="${pointerX}" data-pointer-y="${pointerY}"></div><output id="read" aria-live="polite"></output>
+<body><div id="stage" data-pointer-x="${pointerX}" data-pointer-y="${pointerY}" data-play="${play.join(' ')}"></div><output id="read" aria-live="polite"></output>
 <script>${scriptSource(html, 'hl-kernel')}</script>
 <script>${embed}</script>
 <script type="module">${scriptSource(html, 'hl-figure')}</script>
 </body></html>`;
 }
 
+// The keychain and the racks answer to where the pointer is, so their plays
+// sweep across each key and each cabinet; the lock and the phones run their
+// whole sequence from a single point.
+const keychainPlay: PlayPath = [
+  [210, 245, 0],
+  [210, 245, 450],
+  [140, 225, 750],
+  [140, 225, 1200],
+  [70, 195, 1500],
+  [70, 195, 1950],
+  [60, 140, 2250],
+];
+const infrastructurePlay: PlayPath = [
+  [145, 100, 0],
+  [150, 195, 1000],
+  [190, 170, 1500],
+  [190, 170, 1900],
+  [255, 195, 2400],
+];
+
 const figures = {
-  keychain: { title: 'Keys you control', document: figureDocument(keychain, 150, 180) },
-  interlock: { title: 'Scoped permissions', document: figureDocument(interlock, 200, 160) },
-  devices: { title: 'Linked devices', document: figureDocument(devices, 200, 160) },
-  infrastructure: { title: 'Self-hostable', document: figureDocument(infrastructure, 205, 157) },
+  keychain: {
+    title: 'Keys you control',
+    document: figureDocument(keychain, 150, 180, keychainPlay),
+  },
+  interlock: {
+    title: 'Scoped permissions',
+    document: figureDocument(interlock, 200, 160, [[200, 160, 0]]),
+  },
+  devices: {
+    title: 'Linked devices',
+    document: figureDocument(devices, 200, 160, [[200, 160, 0]]),
+  },
+  infrastructure: {
+    title: 'Self-hostable',
+    document: figureDocument(infrastructure, 205, 157, infrastructurePlay),
+  },
   signing: {
     title: 'Two shares, one signed transaction',
-    document: figureDocument(signing, 200, 160),
+    document: figureDocument(signing, 200, 160, []),
   },
 };
 
 export type WalletFigureName = keyof typeof figures;
 
-export function WalletFigure({ figure }: { figure: WalletFigureName }): React.JSX.Element {
-  const { title, document } = figures[figure];
+type HostCommand = 'play' | 'rest' | 'outside';
+
+function sendHostCommand(frame: HTMLIFrameElement | null, command: HostCommand | null): void {
+  // The sandboxed figure has an opaque origin, so no narrower target exists.
+  if (command) frame?.contentWindow?.postMessage({ hairline: command }, '*');
+}
+
+/* `playing` hands the figure to the host page: true plays it as if hovered,
+   false returns it to rest. Leave it unset for a figure the page never plays.
+   `onHover` hears a visitor's mouse enter (true) and leave (false) the frame. */
+export function WalletFigure({
+  figure,
+  playing,
+  onHover,
+}: {
+  figure: WalletFigureName;
+  playing?: boolean;
+  onHover?: (inside: boolean) => void;
+}): React.JSX.Element {
+  const { title, document: source } = figures[figure];
+  const frame = React.useRef<HTMLIFrameElement>(null);
+  let command: HostCommand | null = null;
+  if (playing !== undefined) command = playing ? 'play' : 'rest';
+  React.useEffect(() => sendHostCommand(frame.current, command), [command]);
+  // A lazy frame loads after the first command, so it receives the latest one again.
+  const loaded = React.useCallback(() => sendHostCommand(frame.current, command), [command]);
+  React.useEffect(() => {
+    if (!onHover) return undefined;
+    const hover = onHover;
+    let inside = false;
+    function release(): void {
+      if (!inside) return;
+      inside = false;
+      document.removeEventListener('pointermove', pointerOutside);
+      hover(false);
+    }
+    // A frame is not always told that the mouse left it, but a pointer event on
+    // this page proves that it did.
+    function pointerOutside(): void {
+      sendHostCommand(frame.current, 'outside');
+      release();
+    }
+    function heard(event: MessageEvent): void {
+      if (event.source !== frame.current?.contentWindow) return;
+      if (event.data?.hairline === 'leave') release();
+      if (event.data?.hairline !== 'hover' || inside) return;
+      inside = true;
+      document.addEventListener('pointermove', pointerOutside);
+      hover(true);
+    }
+    window.addEventListener('message', heard);
+    return () => {
+      window.removeEventListener('message', heard);
+      document.removeEventListener('pointermove', pointerOutside);
+    };
+  }, [onHover]);
   return (
     <iframe
+      ref={frame}
       className="h2-wallet-figure"
       data-figure={figure}
       title={title}
-      srcDoc={document}
+      srcDoc={source}
       sandbox="allow-scripts"
       loading="lazy"
+      onLoad={loaded}
     />
   );
 }

@@ -384,32 +384,30 @@ html[data-seams-theme='light'] .navbar-static__shell.is-scrolled {
   border-left: 1px solid var(--navbar-access-divider);
 }
 
-/* Gradient promo card (small box — the only imagery in the menus) */
+/* Gradient promo card (small box — the only imagery in the menus). The
+   GrainField canvas sits behind the text inside the isolated card. */
 .navbar-static__menu-highlight {
+  position: relative;
+  isolation: isolate;
   display: grid;
   align-content: end;
   gap: 3px;
   width: 190px;
   padding: 14px;
   border-radius: 10px;
-  background-size: cover;
-  background-position: center;
   color: #ffffff;
   text-decoration: none;
-  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
   transition: filter 140ms ease;
 }
 
-.navbar-static__menu-highlight--aqua {
-  background-image: url('/gradients/web/aqua-evergreen.jpg');
-}
-
-.navbar-static__menu-highlight--bluegreen {
-  background-image: url('/gradients/web/blue-green.jpg');
-}
-
-.navbar-static__menu-highlight--ember {
-  background-image: url('/gradients/web/cobalt-gold-ember.jpg');
+/* the hairline edge, drawn over the canvas */
+.navbar-static__menu-highlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.08);
+  pointer-events: none;
 }
 
 .navbar-static__menu-highlight:hover,

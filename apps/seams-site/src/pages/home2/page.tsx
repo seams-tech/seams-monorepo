@@ -21,6 +21,7 @@ import SeamsLogo from '@/components/icons/SeamsLogo';
 import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { useSiteRouter } from '@/app/router/useSiteRouter';
 import {
+  H2Cta,
   H2Ecosystem,
   H2Faq,
   H2Footer,
@@ -679,6 +680,7 @@ function HomeFrame({ hero }: HomeFrameProps): React.JSX.Element {
         <H2Pillars />
         <H2Security />
         <H2Faq audience="home" />
+        <H2Cta />
         <H2Footer />
       </div>
     </div>

@@ -94,6 +94,34 @@
   overflow: clip;
 }
 
+/* The band's heading sits over the canvas's top-left corner, on the edge fade
+   and clear of the centred card, so the canvas needs no section of its own. */
+.component-showcase__title {
+  position: absolute;
+  top: 80px;
+  left: 36px;
+  z-index: 4;
+  margin: 0;
+  max-width: 300px;
+  pointer-events: none;
+}
+
+/* Below 1100px the centred card reaches the corner, so the heading returns to
+   the flow above the canvas. */
+@media (max-width: 1099px) {
+  .component-showcase__title {
+    position: static;
+    max-width: none;
+    padding: 16px 36px 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .component-showcase__title {
+    padding-inline: 22px;
+  }
+}
+
 .component-showcase__glow {
   position: absolute;
   inset: 8% 5%;

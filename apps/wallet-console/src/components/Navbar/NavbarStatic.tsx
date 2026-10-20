@@ -16,6 +16,8 @@ import {
   X,
 } from 'lucide-react';
 import { ArrowRightAnim } from '../ArrowRightAnim';
+import { GrainField } from '../GrainField/GrainField';
+import type { GrainFieldName } from '../GrainField/fields';
 import SeamsWordmark from '../icons/SeamsWordmark';
 import { isModifiedClick, useSiteRouter } from '@/app/router/useSiteRouter';
 import { blinkMenuItem } from '../menuItemBlink';
@@ -32,14 +34,12 @@ type MenuRow = {
   meta?: string;
 };
 
-/** Which gradient asset backs the pane's highlight card (see Navbar.css). */
-type MenuHighlightTone = 'aqua' | 'bluegreen' | 'ember';
-
 type MenuHighlight = {
   title: string;
   description: string;
   to: string;
-  tone: MenuHighlightTone;
+  /** The moving gradient behind the card. */
+  field: GrainFieldName;
 };
 
 type MenuFooterLink = {
@@ -95,7 +95,7 @@ const documentationDropdownPane: DropdownPane = {
     title: 'Live demo',
     description: 'Create a passkey wallet on the Embedded Wallet page',
     to: '/wallet',
-    tone: 'aqua',
+    field: 'aqua-evergreen',
   },
   footerLinks: [{ label: 'Plan pricing', to: '/pricing/' }],
 };
@@ -128,7 +128,7 @@ const productsDropdownPane: DropdownPane = {
     title: 'Architecture',
     description: 'How passkeys, policy, and signing fit together',
     to: '/docs/concepts/architecture',
-    tone: 'bluegreen',
+    field: 'cobalt',
   },
   footerLinks: [{ label: 'Read the docs', to: '/docs/' }],
 };
@@ -194,7 +194,7 @@ const aboutDropdownPane: DropdownPane = {
     title: 'Plan a rollout',
     description: 'Talk through marketplaces and merchant fleets',
     to: '/contact/',
-    tone: 'ember',
+    field: 'ember',
   },
   footerLinks: [{ label: 'Contact sales', to: '/contact/' }],
 };
@@ -681,12 +681,13 @@ export function NavbarStatic({
             {pane.highlight && highlightProps ? (
               <div className="navbar-static__menu-side">
                 <a
-                  className={`navbar-static__menu-highlight navbar-static__menu-highlight--${pane.highlight.tone}`}
+                  className="navbar-static__menu-highlight"
                   role="menuitem"
                   href={highlightProps.href}
                   onClick={highlightProps.onClick}
                   tabIndex={isActive ? undefined : -1}
                 >
+                  <GrainField field={pane.highlight.field} playing={isActive} />
                   <span className="navbar-static__menu-highlight-title">
                     {pane.highlight.title}
                   </span>

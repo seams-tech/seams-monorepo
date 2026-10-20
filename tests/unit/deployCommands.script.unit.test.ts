@@ -91,9 +91,14 @@ mode = "off"
     expect(readWranglerConfig({ config, env: 'production-testnet' }).placement).toEqual({
       region: 'aws:ap-southeast-1',
     });
-    expect(
+    writeFileSync(
+      config,
       renderWorkerPlacement(source, readBackendLane('production-mainnet').resources.signingWorker),
-    ).toBe(source);
+    );
+    expect(readWranglerConfig({ config }).placement).toEqual({
+      region: 'aws:ap-southeast-1',
+    });
+    expect(readWranglerConfig({ config, env: 'staging' }).placement).toEqual({ mode: 'off' });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

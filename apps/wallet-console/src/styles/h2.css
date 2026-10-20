@@ -3410,11 +3410,11 @@ body:has(.h2-page) {
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  padding-top: 36px;
-  /* The stage runs off the section's bottom edge, so the shell keeps no
-     bottom padding — any gap here would float the open-bottomed card above
-     the rule instead of meeting it. */
-  padding-bottom: 0;
+  /* 0.5rem from the column borders, as the banner card above. The stage runs
+     off the section's bottom edge, so the shell keeps no bottom padding —
+     any gap here would float the open-bottomed card above the rule instead
+     of meeting it. */
+  padding: 0.5rem 0.5rem 0;
 }
 
 /* Two equal row tiles, styled as the custody section's rows: a light taupe
@@ -3597,13 +3597,6 @@ body:has(.h2-page) {
 }
 
 @media (max-width: 760px) {
-  .h2-consoleband {
-    padding-top: 24px;
-    /* Matches the wide layout: the stage is open-bottomed at every width, so
-       keeping 24px here would leave its cut edge floating above the rule. */
-    padding-bottom: 0;
-  }
-
   .h2-consoleband__tab > span:last-child {
     font-size: 14px;
   }

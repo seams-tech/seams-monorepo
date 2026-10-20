@@ -1295,7 +1295,8 @@ export function H2Start(): React.JSX.Element {
           </div>
         </FieldBanner>
       </div>
-      <div className="h2-startrow h2-rule">
+      {/* no rule above: the tiles and stage read as the banner's own row */}
+      <div className="h2-startrow">
         <div
           ref={consoleBandRef}
           className="h2-shell h2-consoleband"

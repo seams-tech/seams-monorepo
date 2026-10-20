@@ -169,14 +169,23 @@ function approveLink(): void {
 const resultEntryMilliseconds = 1000;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-type RingAnchor = { readonly cardTop: number; readonly ringTop: number };
+type RingAnchor = {
+  readonly cardTop: number;
+  readonly cardHeight: number;
+  readonly ringTop: number;
+};
 
 // Where the SDK's passkey wait draws its ring, read before the menu goes.
 function ringAnchor(menu: HTMLElement): RingAnchor | null {
   const card = menu.querySelector('.seams-signup-menu-root');
   const ring = menu.querySelector('.seams-passkey-prompt');
   if (!card || !ring) return null;
-  return { cardTop: card.getBoundingClientRect().top, ringTop: ring.getBoundingClientRect().top };
+  const cardBox = card.getBoundingClientRect();
+  return {
+    cardTop: cardBox.top,
+    cardHeight: cardBox.height,
+    ringTop: ring.getBoundingClientRect().top,
+  };
 }
 
 // After a passkey wait, the result card takes the SDK card's place: the same
@@ -187,12 +196,26 @@ function anchorResult(anchor: RingAnchor | null): void {
   result.classList.toggle('authentication-result--anchored', anchor !== null);
   result.style.paddingTop = '';
   result.style.translate = '';
+  result.style.removeProperty('--authentication-result-from-height');
+  result.style.removeProperty('--authentication-result-to-height');
+  result.style.removeProperty('--authentication-result-from-translate');
+  result.style.removeProperty('--authentication-result-to-translate');
   const icon = result.querySelector('.authentication-result__icon');
   if (!anchor || !icon) return;
   const padding = parseFloat(getComputedStyle(result).paddingTop);
   const offset = icon.getBoundingClientRect().top - result.getBoundingClientRect().top;
   result.style.paddingTop = `${padding + anchor.ringTop - anchor.cardTop - offset}px`;
-  result.style.translate = `0 ${anchor.cardTop - result.getBoundingClientRect().top}px`;
+  const box = result.getBoundingClientRect();
+  const shift = anchor.cardTop - box.top;
+  result.style.translate = `0 ${shift}px`;
+  // The card opens from the SDK card's height to its own as the text rises.
+  // The stage centres the card, so the shift starts half the growth higher
+  // and the top edge holds while the card grows.
+  const growth = box.height - anchor.cardHeight;
+  result.style.setProperty('--authentication-result-from-height', `${anchor.cardHeight}px`);
+  result.style.setProperty('--authentication-result-to-height', `${box.height}px`);
+  result.style.setProperty('--authentication-result-from-translate', `0 ${shift - growth / 2}px`);
+  result.style.setProperty('--authentication-result-to-translate', `0 ${shift}px`);
 }
 
 function complete(heading: string, message: string): void {

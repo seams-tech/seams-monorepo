@@ -1,0 +1,99 @@
+{
+  "sdkVersion": "0.15.6",
+  "sourceCommit": "82457e7037de38549282948f6ad9ceb2ed4ff1a0",
+  "releaseRun": 39446008395,
+  "before": {
+    "staging": {
+      "version": "0.15.4",
+      "protocolVersion": "16.0.0"
+    },
+    "production-mainnet": {
+      "version": "0.15.4",
+      "protocolVersion": "16.0.0"
+    }
+  },
+  "packages": {
+    "@seams/wallet": {
+      "version": "0.15.6",
+      "gitHead": "82457e7037de38549282948f6ad9ceb2ed4ff1a0",
+      "dist.integrity": "sha512-OGcM2w4hneikXe4JUYUAmLi4ApeInsah0522kYAqEU/TUkj7Rwb1b75XH4pneYhaFRhYbFaoXomwsIU6CPWmLQ==",
+      "dist.shasum": "dbc56639705063167bdabe89ff9d81cbf2ef0905"
+    },
+    "@seams/wallet-server": {
+      "version": "0.15.6",
+      "gitHead": "82457e7037de38549282948f6ad9ceb2ed4ff1a0",
+      "dist.integrity": "sha512-BH02fuQeUesFTR0IYYi0mR2AEhh4b30iRYdIZiL3v9ve4vZEd6SV/ffau+007vfxFUGzBAs1hoRSMrUBRGEc+A==",
+      "dist.shasum": "c31106cdeb22acb64a9535470d6564e1b8257010"
+    }
+  },
+  "privateDevCommit": "18ef2f099abcd7c945a12b92d6c8f01d6162dcde",
+  "stagingRun": 39453325510,
+  "privateMainCommit": "21f7b8404d2fecf334bfb3b436c9f34fec10e8c0",
+  "productionRun": 39453553377,
+  "after": {
+    "staging": {
+      "version": "0.15.6",
+      "assetsMatchPublishedPackage": [
+        {
+          "path": "/sdk/registration-CyF7nOXs.js",
+          "sha256": "bbec163548405c0c82413a6ce473aa3d1e12e8b39857dcb96d7fd1249e5b40d1"
+        },
+        {
+          "path": "/sdk/registration-yoF0o52H.js",
+          "sha256": "a216cbe9a92db24ed2cd2e4bbb2eb7f0a7826dda5cb60aad789d81c8c22975b5"
+        },
+        {
+          "path": "/sdk/workers/wallet-custody-ceremony.worker.js",
+          "sha256": "b74b14fe94ad46d8f6c0a98c4c69f42eb7922a73b3dfa18e01dacc105ee3e1e8"
+        }
+      ]
+    },
+    "production-mainnet": {
+      "version": "0.15.6",
+      "assetsMatchPublishedPackage": [
+        {
+          "path": "/sdk/registration-CyF7nOXs.js",
+          "sha256": "bbec163548405c0c82413a6ce473aa3d1e12e8b39857dcb96d7fd1249e5b40d1"
+        },
+        {
+          "path": "/sdk/registration-yoF0o52H.js",
+          "sha256": "a216cbe9a92db24ed2cd2e4bbb2eb7f0a7826dda5cb60aad789d81c8c22975b5"
+        },
+        {
+          "path": "/sdk/workers/wallet-custody-ceremony.worker.js",
+          "sha256": "b74b14fe94ad46d8f6c0a98c4c69f42eb7922a73b3dfa18e01dacc105ee3e1e8"
+        }
+      ]
+    }
+  },
+  "smokeSamples": {
+    "staging": {
+      "count": 1,
+      "postPasskeyMs": 2461,
+      "respondMs": 1807,
+      "finalizeMs": 613.8,
+      "materialActivationMs": 5.9,
+      "exportCapabilityMs": 3,
+      "verifiedSignatureAndSignedFieldTampering": true,
+      "artifact": ".artifacts/release-0156-smoke-20261021/staging/deployed/group-01/registration-1.json",
+      "artifactSha256": "1a1efe25e11b347d06edf337579a9c93424b13d730db7be4e8f12cb3f901da57"
+    },
+    "production": {
+      "count": 1,
+      "postPasskeyMs": 2870,
+      "respondMs": 2338.2,
+      "finalizeMs": 485.1,
+      "materialActivationMs": 6.9,
+      "exportCapabilityMs": 3.2,
+      "verifiedSignatureAndSignedFieldTampering": true,
+      "artifact": ".artifacts/release-0156-smoke-20261021/production/deployed/group-01/registration-1.json",
+      "artifactSha256": "a2c19c067f722f18177514b7397ed37147fb69800649952464b9af449ac39d1f"
+    }
+  },
+  "deploymentResults": {
+    "staging": "success",
+    "production-mainnet": "success"
+  },
+  "measurementLimits": "One automated registration per environment, after passkey completion. These are deployment smoke checks, not a baseline or a savings estimate. Production respond remains above the desired total-latency budget.",
+  "backend": "Rust and custody backend source are unchanged from 0.15.4. This release deployed the hosted browser SDK; custody services and stored wallets were not redeployed or migrated."
+}

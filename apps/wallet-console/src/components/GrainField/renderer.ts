@@ -16,7 +16,7 @@ export type GrainStyle = {
   speed: number;
 };
 
-export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.4, grain: 0.08, speed: 1 };
+export const DEFAULT_GRAIN_STYLE: GrainStyle = { distortion: 0.75, grain: 0.08, speed: 1.9 };
 
 export type GrainFieldHandle = {
   setPlaying(playing: boolean): void;
@@ -37,6 +37,10 @@ type View = {
   height: number;
   /* seconds of motion so far; a paused field resumes where it stopped */
   clock: number;
+  /* scales the style's distortion for this field alone */
+  flow: number;
+  /* scales the style's speed for this field alone */
+  pace: number;
   /* needs a frame even while paused: new, resized or restored */
   stale: boolean;
 };
@@ -50,7 +54,6 @@ type Gpu = {
   seed: WebGLUniformLocation | null;
   distortion: WebGLUniformLocation | null;
   grain: WebGLUniformLocation | null;
-  grainFrame: WebGLUniformLocation | null;
   textures: Map<string, WebGLTexture>;
 };
 
@@ -84,7 +87,6 @@ uniform float uTime;
 uniform float uSeed;
 uniform float uDistortion;
 uniform float uGrain;
-uniform float uGrainFrame;
 varying vec2 vUv;
 
 const float GRID = ${GRAIN_FIELD_GRID_SIZE.toFixed(1)};
@@ -152,7 +154,8 @@ void main() {
     noise(1.3 * b + 1.2 * warp + vec2(8.3, 2.8) - 0.07 * t)
   );
   vec3 color = field(0.5 + (p + flow * uDistortion) / aspect * uCover);
-  color += (hash12(gl_FragCoord.xy + uGrainFrame * vec2(13.0, 7.0)) - 0.5) * uGrain;
+  /* the grain stays fixed to the screen while the field flows under it */
+  color += (hash12(gl_FragCoord.xy) - 0.5) * uGrain;
   gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -162,7 +165,6 @@ const views = new Set<View>();
 let gpu: Gpu | null | undefined;
 let request = 0;
 let lastFrame = 0;
-let grainFrame = 0;
 let reducedMotion: MediaQueryList | null = null;
 let style = DEFAULT_GRAIN_STYLE;
 
@@ -233,7 +235,6 @@ function createGpu(): Gpu | null {
     seed: gl.getUniformLocation(program, 'uSeed'),
     distortion: gl.getUniformLocation(program, 'uDistortion'),
     grain: gl.getUniformLocation(program, 'uGrain'),
-    grainFrame: gl.getUniformLocation(program, 'uGrainFrame'),
     textures: new Map(),
   };
 }
@@ -305,9 +306,8 @@ function draw(view: View): void {
   gl.uniform2f(gpu.cover, cover ? width / side : 1, cover ? height / side : 1);
   gl.uniform1f(gpu.time, view.clock);
   gl.uniform1f(gpu.seed, view.seed);
-  gl.uniform1f(gpu.distortion, style.distortion);
+  gl.uniform1f(gpu.distortion, style.distortion * view.flow);
   gl.uniform1f(gpu.grain, style.grain);
-  gl.uniform1f(gpu.grainFrame, grainFrame);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   /* the viewport sits at the bottom left of the shared canvas; copy it out
      before this task ends, while the drawing buffer still holds it */
@@ -328,16 +328,13 @@ function tick(now: number): void {
   const due = now - lastFrame >= FRAME_MS - 1;
   const step = Math.min((now - lastFrame) / 1000, MAX_STEP_S);
   let moving = false;
-  if (due) {
-    lastFrame = now;
-    grainFrame = (grainFrame + 1) % 251;
-  }
+  if (due) lastFrame = now;
   for (const view of views) {
     if (!view.visible || view.width === 0 || view.height === 0) continue;
     const animate = animates(view);
     moving ||= animate;
     if (animate && due) {
-      view.clock += step * style.speed;
+      view.clock += step * style.speed * view.pace;
       draw(view);
     } else if (view.stale) {
       draw(view);
@@ -371,6 +368,8 @@ function deviceSide(side: number): number {
 export function addGrainField(
   canvas: HTMLCanvasElement,
   source: GrainFieldSource,
+  flow = 1,
+  pace = 1,
 ): GrainFieldHandle {
   watchEnvironment();
   const view: View = {
@@ -383,6 +382,8 @@ export function addGrainField(
     width: 0,
     height: 0,
     clock: 0,
+    flow,
+    pace,
     stale: true,
   };
   views.add(view);

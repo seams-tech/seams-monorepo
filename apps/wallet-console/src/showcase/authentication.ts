@@ -1,3 +1,4 @@
+import './embeddedFocus';
 import '@wallet-ui/sdk/wallet-ui.css';
 import '@fontsource/hanken-grotesk/400.css';
 import '@fontsource/hanken-grotesk/500.css';
@@ -175,6 +176,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 type RingAnchor = {
   readonly cardTop: number;
   readonly cardHeight: number;
+  readonly cardRadius: string;
   readonly ringTop: number;
 };
 
@@ -187,6 +189,7 @@ function ringAnchor(menu: HTMLElement): RingAnchor | null {
   return {
     cardTop: cardBox.top,
     cardHeight: cardBox.height,
+    cardRadius: getComputedStyle(card).borderTopLeftRadius,
     ringTop: ring.getBoundingClientRect().top,
   };
 }
@@ -201,19 +204,21 @@ function anchorResult(anchor: RingAnchor | null): void {
   result.style.translate = '';
   result.style.removeProperty('--authentication-result-from-height');
   result.style.removeProperty('--authentication-result-to-height');
+  result.style.removeProperty('--authentication-result-from-radius');
   const icon = result.querySelector('.authentication-result__icon');
   if (!anchor || !icon) return;
   const padding = parseFloat(getComputedStyle(result).paddingTop);
   const offset = icon.getBoundingClientRect().top - result.getBoundingClientRect().top;
   result.style.paddingTop = `${padding + anchor.ringTop - anchor.cardTop - offset}px`;
-  // The card opens from the SDK card's height to its own as the text fades
-  // in. The stage centres the card, so it grows up and down about the SDK
-  // card's centre; the shift places that centre where the SDK card's was.
+  // The card opens from the SDK card's height and corners to its own as the
+  // text fades in. The stage centres the card, so it grows up and down about
+  // the SDK card's centre; the shift places that centre where the SDK card's was.
   const box = result.getBoundingClientRect();
   const growth = box.height - anchor.cardHeight;
   result.style.translate = `0 ${anchor.cardTop - box.top - growth / 2}px`;
   result.style.setProperty('--authentication-result-from-height', `${anchor.cardHeight}px`);
   result.style.setProperty('--authentication-result-to-height', `${box.height}px`);
+  result.style.setProperty('--authentication-result-from-radius', anchor.cardRadius);
 }
 
 function complete(heading: string, message: string): void {

@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import { GrainField } from '@/components/GrainField/GrainField';
 import { DashboardMenu, DashboardMenuItem, useDashboardMenu } from './DashboardMenu';
 
 export type DashboardTableTone = 'neutral' | 'success' | 'warning' | 'danger';
@@ -411,7 +412,14 @@ export function DashboardTableCell(props: DashboardTableCellProps): React.JSX.El
 
 export function DashboardTableState(props: DashboardTableStateProps): React.JSX.Element {
   const { className, children } = props;
-  return <p className={clsx('dashboard-data-table__state', className)}>{children}</p>;
+  return (
+    <p className={clsx('dashboard-data-table__state', className)}>
+      <span className="dashboard-data-table__state-disc" aria-hidden="true">
+        <GrainField field="aqua-evergreen" playing={false} />
+      </span>
+      {children}
+    </p>
+  );
 }
 
 export function DashboardTableFooter(props: DashboardTableFooterProps): React.JSX.Element {

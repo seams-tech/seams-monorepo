@@ -165,9 +165,7 @@ export function CompanyPage(): React.JSX.Element {
               <div className="company-hero__ctas">
                 <InternalAnchor className="h2-btn h2-btn--primary h2-btn--lg" to="/docs/concepts/">
                   Start building
-                </InternalAnchor>
-                <InternalAnchor className="h2-btn h2-btn--outline h2-btn--lg" to="/contact/">
-                  Contact sales
+                  <ArrowRightAnim size={12} />
                 </InternalAnchor>
               </div>
             </div>

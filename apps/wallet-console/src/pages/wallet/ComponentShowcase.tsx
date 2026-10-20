@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import { ComponentPreview } from './ComponentPreview';
 import { BackgroundPreview, type BackgroundPreviewKind } from './BackgroundPreview';
+import { FieldBanner } from '@/components/h2/sections';
 import './component-showcase.css';
 
 export type PreviewId = 'create' | 'transaction-modal' | 'prediction-market' | 'profile';
@@ -24,19 +25,23 @@ const previews: readonly Preview[] = [
 
 type BackgroundPlacement = { kind: BackgroundPreviewKind; x: number; y: number };
 
+/* Columns sit 420px apart; within a column the cards keep about 60px
+   between them, so the canvas reads as one dense sheet of components. */
 const backgroundPreviews: readonly BackgroundPlacement[] = [
+  { kind: 'payment', x: -420, y: -570 },
   { kind: 'unlock', x: -420, y: -60 },
   { kind: 'recovery', x: -420, y: 360 },
+  { kind: 'unlock', x: 0, y: -500 },
   { kind: 'receipt', x: 0, y: 490 },
   { kind: 'payment', x: 420, y: -360 },
   { kind: 'recovery', x: 420, y: 580 },
   { kind: 'receipt', x: 840, y: -500 },
-  { kind: 'unlock', x: 1260, y: 520 },
+  { kind: 'payment', x: 840, y: 400 },
   { kind: 'recovery', x: 1260, y: -400 },
-  { kind: 'payment', x: 840, y: 560 },
+  { kind: 'unlock', x: 1260, y: 520 },
   { kind: 'unlock', x: 1680, y: -250 },
+  { kind: 'receipt', x: 1680, y: 300 },
   { kind: 'payment', x: 2100, y: -240 },
-  { kind: 'receipt', x: 1680, y: 390 },
 ];
 
 // Both selectors resolve to the same component at the DOM boundary.
@@ -249,88 +254,96 @@ export function ComponentShowcase(): React.JSX.Element {
   React.useEffect(listenForPreviewNext.bind(null, setSelected), []);
 
   return (
-    <section
-      className="component-showcase h2-rule"
-      aria-labelledby="component-showcase-title"
-      data-playback={playback.kind}
-      data-pause-reason={playback.kind === 'paused' ? playback.reason : undefined}
-      onPointerDownCapture={setPointerMotion}
-      onKeyDownCapture={setKeyboardMotion}
-    >
-      <div className="component-showcase__frame">
-        <div
-          className="component-showcase__selector"
-          role="radiogroup"
-          aria-label="Components"
-          onChange={selectPreview.bind(null, setSelected)}
-        >
-          {previews.map(renderSelectorChoice.bind(null, selected))}
-        </div>
-        <h2
-          id="component-showcase-title"
-          className="h2-display h2-eco__title component-showcase__title"
-        >
-          Use the built-in wallet components, or design your own
-        </h2>
-        <div
-          className="component-showcase__viewport"
-          id="showcase-canvas"
-          ref={observeCanvas.bind(null, visibilityObserver)}
-        >
-          <div className="component-showcase__glow" aria-hidden="true" />
-          <div
-            className="component-showcase__world"
-            style={{ transform: `translate(${-selected.x}px, ${-selected.y}px)` }}
-          >
-            {previews.map(renderPreview.bind(null, selected, run, onComplete, onInteract))}
-            {backgroundPreviews.map(renderBackground)}
-          </div>
-          <div className="component-showcase__fade" aria-hidden="true" />
-        </div>
-      </div>
-      <button
-        type="button"
-        className="h2-pager__btn component-showcase__playback"
-        aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
-        title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
-        onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
+    <>
+      {/* the band's heading gets its own ruled row, under the network logos */}
+      <section className="component-showcase__intro h2-rule">
+        {/* a grey card that fades into a moving gradient, as the page's
+            other banners do */}
+        <FieldBanner field="teal-peach">
+          <h2 id="component-showcase-title" className="h2-display h2-eco__title h2-banner__title">
+            Use built-in wallet components,
+            <br />
+            or use your own.
+          </h2>
+        </FieldBanner>
+      </section>
+      <section
+        className="component-showcase h2-rule"
+        aria-labelledby="component-showcase-title"
+        data-playback={playback.kind}
+        data-pause-reason={playback.kind === 'paused' ? playback.reason : undefined}
+        onPointerDownCapture={setPointerMotion}
+        onKeyDownCapture={setKeyboardMotion}
       >
-        {playback.kind === 'playing' ? (
-          <svg viewBox="0 0 24 24" aria-hidden="true" stroke="currentColor" strokeLinecap="round">
-            <path d="M8 5v14M16 5v14" />
-          </svg>
-        ) : (
-          <Play aria-hidden />
-        )}
-      </button>
-      <div className="component-showcase__navigation">
-        <div className="component-showcase__rail" aria-label="Component navigation">
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Previous component"
-            onClick={stepPreview.bind(null, setSelected, selected, -1)}
-          >
-            <ChevronLeft aria-hidden />
-          </button>
+        <div className="component-showcase__frame">
           <div
-            className="h2-pager__dots"
+            className="component-showcase__selector"
             role="radiogroup"
-            aria-label="Component pagination"
+            aria-label="Components"
             onChange={selectPreview.bind(null, setSelected)}
           >
-            {previews.map(renderRailChoice.bind(null, selected))}
+            {previews.map(renderSelectorChoice.bind(null, selected))}
           </div>
-          <button
-            type="button"
-            className="h2-pager__btn"
-            aria-label="Next component"
-            onClick={stepPreview.bind(null, setSelected, selected, 1)}
+          <div
+            className="component-showcase__viewport"
+            id="showcase-canvas"
+            ref={observeCanvas.bind(null, visibilityObserver)}
           >
-            <ChevronRight aria-hidden />
-          </button>
+            <div className="component-showcase__glow" aria-hidden="true" />
+            <div
+              className="component-showcase__world"
+              style={{ transform: `translate(${-selected.x}px, ${-selected.y}px)` }}
+            >
+              {previews.map(renderPreview.bind(null, selected, run, onComplete, onInteract))}
+              {backgroundPreviews.map(renderBackground)}
+            </div>
+            <div className="component-showcase__fade" aria-hidden="true" />
+          </div>
         </div>
-      </div>
-    </section>
+        <button
+          type="button"
+          className="h2-pager__btn component-showcase__playback"
+          aria-label={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+          title={playback.kind === 'playing' ? 'Pause playback' : 'Play playback'}
+          onClick={togglePlayback.bind(null, playback, setPlayback, setRun)}
+        >
+          {playback.kind === 'playing' ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true" stroke="currentColor" strokeLinecap="round">
+              <path d="M8 5v14M16 5v14" />
+            </svg>
+          ) : (
+            <Play aria-hidden />
+          )}
+        </button>
+        <div className="component-showcase__navigation">
+          <div className="component-showcase__rail" aria-label="Component navigation">
+            <button
+              type="button"
+              className="h2-pager__btn"
+              aria-label="Previous component"
+              onClick={stepPreview.bind(null, setSelected, selected, -1)}
+            >
+              <ChevronLeft aria-hidden />
+            </button>
+            <div
+              className="h2-pager__dots"
+              role="radiogroup"
+              aria-label="Component pagination"
+              onChange={selectPreview.bind(null, setSelected)}
+            >
+              {previews.map(renderRailChoice.bind(null, selected))}
+            </div>
+            <button
+              type="button"
+              className="h2-pager__btn"
+              aria-label="Next component"
+              onClick={stepPreview.bind(null, setSelected, selected, 1)}
+            >
+              <ChevronRight aria-hidden />
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

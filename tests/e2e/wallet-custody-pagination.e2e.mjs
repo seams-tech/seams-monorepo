@@ -66,9 +66,6 @@ try {
     ignoreHTTPSErrors: true,
   });
   await page.goto(`${origin}/wallet`);
-  // The component showcase swaps demo frames on its own clock, and a new frame
-  // can take focus; hold it so this run sees only the custody section.
-  await page.getByRole('button', { name: 'Pause playback' }).click();
   const section = page.locator('#wallet-security');
   const progress = section.locator('.h2-security__progress-fill');
   await section.scrollIntoViewIfNeeded();

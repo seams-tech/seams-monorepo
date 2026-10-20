@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-20",
+  "scope": "Authorized production test-wallet reset and Singapore APAC deployment",
+  "privateDeploymentCommit": "354a5164231c949c138eaf410098f39bfe199678",
+  "publicReleaseCommit": "77abcda17789eb9ecfd00f927d71b17fb8a4d8f0",
+  "walletServerVersion": "0.15.4",
+  "hostedClientVersion": "0.15.2",
+  "deployment": {
+    "consoleRun": 39386619214,
+    "backendRun": 39386622407,
+    "backendRunOutcome": "All deployment steps succeeded; cancelled the pre-activation smoke wait to release the workflow concurrency lock for activation",
+    "activationRun": 39387415082,
+    "activationAndReadiness": "passed"
+  },
+  "reset": {
+    "oldWalletRecordsDeleted": 185,
+    "oldWalletHomeRecordsDeleted": 187,
+    "oldNamespacesDeleted": 6,
+    "freshNamespacesCreated": 6,
+    "oldBackupObjectsDeleted": 10,
+    "retiredDatabasesDeleted": 4,
+    "retiredDatabaseAbsenceVerified": true,
+    "protectedConsoleTablesUnchanged": 45,
+    "otherRegionalDatabaseIdentitiesPreserved": [
+      "US",
+      "WEUR",
+      "OC"
+    ],
+    "originalDatabaseGuardsRestored": true,
+    "temporaryWriteGuardsRemoved": true
+  },
+  "placement": {
+    "replacementDatabasePrimaries": [
+      "SIN",
+      "SIN",
+      "SIN",
+      "SIN"
+    ],
+    "configuredApacWorkerTarget": "aws:ap-southeast-1",
+    "newWalletObjectHint": "apac-se",
+    "walletObjectHosts": {
+      "router-ab-mpc-router": {
+        "SIN": 9
+      },
+      "router-ab-deriver-b": {
+        "SIN": 9
+      },
+      "router-ab-signing-worker": {
+        "SIN": 9
+      },
+      "router-ab-deriver-a": {
+        "SIN": 9
+      }
+    },
+    "stageMediansMs": {
+      "near_only.respond": 1839.3,
+      "near_only.finalize": 405.2
+    }
+  },
+  "measurement": {
+    "metric": "registration.post_touch_id",
+    "boundary": "Resolved passkey proof to wallet ready",
+    "browser": "Chromium with automated WebAuthn; physical Touch ID duration excluded",
+    "parent": "Local HTTPS test parent using published client 0.15.2",
+    "iframe": "https://sign.seams.sh",
+    "gateway": "https://api.wallet.seams.sh",
+    "results": {
+      "count": 9,
+      "p50Ms": 2409,
+      "p90Ms": 3270.4,
+      "minMs": 1728,
+      "maxMs": 3340,
+      "above2500Ms": 4
+    },
+    "independentlyVerifiedSignatures": 9
+  },
+  "limitations": [
+    "Nine sequential fresh-wallet samples do not establish a latency guarantee.",
+    "Four of nine registrations exceeded 2500 ms after passkey completion.",
+    "Cloudflare execution-region analytics were rate-limited; actual stateless Worker and shared custody coordinator locations remain unverified.",
+    "US, Western Europe, and Oceania infrastructure identities were preserved; full regional custody colocation outside APAC was not changed."
+  ],
+  "validation": {
+    "publicReleaseRun": 39379655786,
+    "publicValidationRun": 39379655023,
+    "publicRegistrationContractsPassed": 15,
+    "privateValidationRuns": [
+      39385096971,
+      39385102390
+    ],
+    "deploymentScriptChecksPassed": 53,
+    "earlierCiFailure": "One protocol-rejection test returned 503 instead of 409. It passed locally and in the subsequent complete validation without a production-code change; underlying transient cause remains unknown."
+  }
+}

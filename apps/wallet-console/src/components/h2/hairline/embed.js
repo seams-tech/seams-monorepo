@@ -89,6 +89,13 @@ function hostRest() {
   stopPlay();
   if (!visitorControls()) dispatchPointer('pointerleave', 0, 0);
 }
+// Focus hands the figure to the visitor. A figure's own Enter toggles it, so
+// the host's play gives way to rest first, or Enter would stop the figure.
+function onFocus() {
+  if (mouseInside) return;
+  stopPlay();
+  dispatchPointer('pointerleave', 0, 0);
+}
 // When the visitor lets go during the host's turn, the figure plays again from
 // rest; the pause lets a rest message from the host land first.
 function resumeHostPlay() {
@@ -141,6 +148,7 @@ function hairline(figure) {
   stage.addEventListener('click', onTouch);
   stage.addEventListener('pointerenter', onPointerEnter);
   stage.addEventListener('pointerleave', onPointerLeave);
+  stage.addEventListener('focus', onFocus);
   stage.addEventListener('blur', resumeHostPlay);
   window.addEventListener('message', onHostMessage);
 }

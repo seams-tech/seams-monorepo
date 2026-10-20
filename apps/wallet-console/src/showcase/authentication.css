@@ -35,8 +35,8 @@
 }
 
 /* An anchored result replaces the SDK card in place, so it does not slide in:
-   the slide would move the ring. It keeps the SDK card's height until the
-   seal lands, then grows about its centre while the text fades in. */
+   the slide would move the ring. It keeps the SDK card's height and corners
+   until the seal lands, then grows about its centre while the text fades in. */
 .authentication-result--anchored {
   overflow: hidden;
   animation: authentication-result-grow 380ms cubic-bezier(0.32, 0.72, 0, 1) 640ms both;
@@ -222,6 +222,7 @@ html[data-showcase-clock='paused'] .authentication-result__icon::after {
 @keyframes authentication-result-grow {
   from {
     height: var(--authentication-result-from-height);
+    border-radius: var(--authentication-result-from-radius);
   }
   to {
     height: var(--authentication-result-to-height);

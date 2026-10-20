@@ -1,3 +1,4 @@
+import './embeddedFocus';
 import '@seams/wallet/react/styles';
 import './showcase.css';
 import './checkout.css';

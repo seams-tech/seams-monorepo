@@ -6,6 +6,7 @@ import { PlusIcon } from '../icons/SidebarIcons';
 import DashboardSidebarToggleIcon from '../icons/DashboardSidebarToggleIcon';
 import { getDocsOrigin } from '@core/router/siteRouting';
 import SeamsWordmark from '@core/components/SeamsWordmark';
+import { GrainField } from '@/components/GrainField/GrainField';
 import type { DashboardProduct, DashboardProductId, SidebarGroup, TopbarOption } from '../types';
 
 export type DashboardLinkPropsFactory = (to: string) => {
@@ -406,11 +407,9 @@ function SidebarProductSwitcher({
         aria-expanded={menu.open}
         onClick={menu.toggle}
       >
-        <span
-          className="dashboard-product-switcher__avatar"
-          style={{ backgroundImage: `url('${current.gradient}')` }}
-          aria-hidden="true"
-        />
+        <span className="dashboard-product-switcher__avatar" aria-hidden="true">
+          <GrainField field={current.gradient} playing={false} />
+        </span>
         <span className="dashboard-product-switcher__label">{current.name}</span>
         <RailCaret className="dashboard-product-switcher__caret" />
       </button>
@@ -428,9 +427,10 @@ function SidebarProductSwitcher({
             avatar={
               <span
                 className="dashboard-rail-menu__item-avatar dashboard-rail-menu__item-avatar--image"
-                style={{ backgroundImage: `url('${product.gradient}')` }}
                 aria-hidden="true"
-              />
+              >
+                <GrainField field={product.gradient} playing={false} />
+              </span>
             }
             name={product.name}
             description={product.description}

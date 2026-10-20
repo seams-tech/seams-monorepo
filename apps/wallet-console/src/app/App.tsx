@@ -13,9 +13,6 @@ const PricingPage = React.lazy(() =>
 const CompanyPage = React.lazy(() =>
   import('../pages/company/page').then((module) => ({ default: module.CompanyPage })),
 );
-const ContactPage = React.lazy(() =>
-  import('../pages/contact/page').then((module) => ({ default: module.ContactPage })),
-);
 
 function WalletMarketingPage(): React.JSX.Element {
   return (
@@ -58,9 +55,6 @@ function AppRoute({ pathname }: { pathname: string }): React.JSX.Element {
   }
   if (pathname === '/company') {
     return <CompanyPage />;
-  }
-  if (pathname === '/contact') {
-    return <ContactPage />;
   }
   return <WalletMarketingPage />;
 }

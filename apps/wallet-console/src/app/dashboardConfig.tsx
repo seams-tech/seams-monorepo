@@ -72,7 +72,7 @@ export const DASHBOARD_PRODUCTS: DashboardProduct[] = [
     id: 'embedded-wallets',
     name: 'Embedded wallets',
     description: 'Passkey wallets, policies & gas',
-    gradient: '/gradients/web/aqua-evergreen.jpg',
+    gradient: 'aqua-evergreen',
     available: true,
   },
 ];

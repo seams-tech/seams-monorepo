@@ -1,4 +1,5 @@
 import React from 'react';
+import type { GrainFieldName } from '@/components/GrainField/fields';
 
 export type SidebarGroupKey = 'overview' | 'administration' | 'billing' | 'platform';
 
@@ -21,8 +22,8 @@ export type DashboardProduct = {
   id: DashboardProductId;
   name: string;
   description: string;
-  /** Public path to a brand gradient asset used for the product avatar. */
-  gradient: string;
+  /** The brand gradient drawn in the product avatar. */
+  gradient: GrainFieldName;
   /** Live products are selectable; not-yet-shipped ones render as "Soon". */
   available: boolean;
 };

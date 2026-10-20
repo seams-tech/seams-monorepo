@@ -3,7 +3,6 @@ import NavbarCompact from '@/components/Navbar/NavbarCompact';
 import {
   H2Cta,
   H2DemoHero,
-  H2Faq,
   H2Footer,
   H2Networks,
   H2Security,
@@ -29,11 +28,10 @@ export function WalletPage(): React.JSX.Element {
         />
         <H2Networks />
         <ComponentShowcase />
-        <H2Security />
         <H2Start />
-        <H2Faq audience="wallet" />
+        <H2Security />
         <H2Cta />
-        <H2Footer />
+        <H2Footer faq="wallet" />
       </div>
     </div>
   );

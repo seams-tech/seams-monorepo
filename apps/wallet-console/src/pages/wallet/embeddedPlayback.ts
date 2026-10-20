@@ -158,7 +158,7 @@ export class EmbeddedPlayback {
       if (animation.playState === 'finished') {
         this.clearVisit();
         this.step = (this.step + 1) % this.steps.length;
-        button.click();
+        clickWithoutFocus(button);
         if (this.step === 0) this.onComplete();
       }
       return;
@@ -191,6 +191,14 @@ export class EmbeddedPlayback {
     button.style.overflow = overflow;
     this.visit = null;
   }
+}
+
+// A label's click focuses its control, which would take focus from the page;
+// clicking the control itself toggles it without moving focus. The label lives
+// in the demo frame's realm, so instanceof against this page's classes fails.
+function clickWithoutFocus(target: PlaybackTarget): void {
+  if ('control' in target && target.control) target.control.click();
+  else target.click();
 }
 
 function createCursorVisit(button: PlaybackTarget): CursorVisit {

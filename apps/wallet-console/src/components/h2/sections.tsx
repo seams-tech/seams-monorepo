@@ -1037,7 +1037,7 @@ const CONSOLE_SCREENS = [
     id: 'audit' as const,
     label: 'Audit logs',
     src: '/wallet-preview/wallet-console-audit.png?v=1',
-    callout: 'Export to CSV for your auditors',
+    callout: 'Export to CSV in one click',
   },
 ];
 

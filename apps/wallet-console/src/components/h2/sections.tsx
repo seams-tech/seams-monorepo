@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Fingerprint,
@@ -15,6 +16,7 @@ import {
 import type { HostedAuthMenuMode } from '@seams/wallet/react';
 import { WalletDemoSlot } from './WalletDemoSlot';
 import SeamsWordmark from '@/components/icons/SeamsWordmark';
+import { ArrowRightAnim } from '@/components/ArrowRightAnim';
 import { EcosystemLattice } from '@/components/h2/EcosystemLattice';
 import { WalletFigure, type WalletFigureName } from '@/components/h2/WalletFigure';
 import { NETWORK_MARKS, NetworkMarkLockup } from '@/components/icons/NetworkMarks';
@@ -1230,69 +1232,322 @@ export function H2Start(): React.JSX.Element {
 type FaqItem = {
   q: string;
   a: string;
+  more?: { label: string; to: string };
 };
 
-type H2FaqProps = {
-  audience: 'home' | 'wallet';
+/* one footer column: a grey heading over its questions */
+type FaqGroup = {
+  heading: string;
+  items: readonly FaqItem[];
 };
 
-const faqs: Record<H2FaqProps['audience'], readonly FaqItem[]> = {
+type FaqAudience = 'home' | 'wallet';
+
+const faqs: Record<FaqAudience, readonly FaqGroup[]> = {
   home: [
     {
-      q: 'What is Seams?',
-      a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
+      heading: 'Seams',
+      items: [
+        {
+          q: 'What is Seams?',
+          a: 'Seams is key and credential infrastructure for ecommerce: one SDK for authentication, non-custodial wallets, a credentials and permissions layer, and delegated access for staff and AI agents.',
+        },
+        {
+          q: 'How do we get started?',
+          a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
+        },
+      ],
     },
     {
-      q: 'What can AI agents do with Seams?',
-      a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
-    },
-    {
-      q: 'How do merchants stay in control?',
-      a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
-    },
-    {
-      q: 'How do we get started?',
-      a: 'The SDK is self-serve: install it, register an account with a passkey, and apply a policy template. For marketplaces and merchant fleets, contact us and we’ll plan the rollout together.',
+      heading: 'Agents',
+      items: [
+        {
+          q: 'What can AI agents do with Seams?',
+          a: 'Agents get their own identity and scoped credentials. They can act on commerce events: follow-ups, refunds, listing updates, but only inside the merchant’s policy. Risky actions route to a human approval gate with passkey or biometric confirmation.',
+        },
+        {
+          q: 'How do merchants stay in control?',
+          a: 'Policy runs before anything executes: roles, amount limits, thresholds, expiry, and revocation. Every decision is attributed and logged, and delegated credentials can be revoked at any time.',
+        },
+      ],
     },
   ],
   wallet: [
     {
-      q: 'Is Seams custodial?',
-      a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
+      heading: 'Security',
+      items: [
+        {
+          q: 'Is Seams custodial?',
+          a: 'No. Signing keys are split between the user’s device and your infrastructure: neither side can sign alone, and exporting a key always requires a fresh authorized flow from the owner.',
+          more: { label: 'The custody model', to: '/docs/concepts/custody/' },
+        },
+        {
+          q: 'What if a user loses their device?',
+          a: 'They recover on a new device with their email or recovery code, then add a new passkey. The wallet and its address stay the same, so no funds have to move.',
+          more: { label: 'Wallet sessions', to: '/docs/concepts/sessions/wallet-sessions' },
+        },
+      ],
     },
     {
-      q: 'How does API authentication work?',
-      a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
+      heading: 'Integration',
+      items: [
+        {
+          q: 'How do API keys work?',
+          a: 'Your backend authenticates with API keys; end users and agents authenticate with passkeys and scoped credentials. Signing always requires the user-side key share, so API keys alone can never move funds or export keys.',
+          more: { label: 'Sign-in methods', to: '/docs/concepts/auth-methods/' },
+        },
+        {
+          q: 'Which networks are supported?',
+          a: 'Ethereum and EVM networks, NEAR, Stripe Tempo, Circle Arc, Hyperliquid, and Polygon today, with more networks added as merchant demand grows.',
+        },
+      ],
     },
     {
-      q: 'Which networks does Seams support?',
-      a: 'Ethereum and EVM networks, NEAR, Stripe Tempo, Circle Arc, Hyperliquid, and Polygon today, with more networks added as merchant demand grows.',
-    },
-    {
-      q: 'How is usage metered?',
-      a: 'Plans are based on monthly active wallets, with overage pricing as you grow: from a free tier for launch through usage-based Growth and Professional plans. See the pricing page for details.',
+      heading: 'Hosting & pricing',
+      items: [
+        {
+          q: 'Can we run Seams ourselves?',
+          a: 'Yes. Use the hosted service, or run signing on your own serverless infrastructure. The SDK and the custody model are the same either way.',
+          more: { label: 'Architecture', to: '/docs/concepts/architecture' },
+        },
+        {
+          q: 'How is usage metered?',
+          a: 'Plans are based on monthly active wallets, with overage pricing as you grow: from a free tier for launch through usage-based Growth and Professional plans.',
+          more: { label: 'See pricing', to: '/pricing/' },
+        },
+      ],
     },
   ],
 };
 
-function renderFaqItem(item: FaqItem): React.JSX.Element {
-  return (
-    <details key={item.q}>
-      <summary>{item.q}</summary>
-      <p>{item.a}</p>
-    </details>
-  );
-}
+type FaqPopFrame = { left: number; top: number; w: number; h: number };
 
-export function H2Faq({ audience }: H2FaqProps): React.JSX.Element {
+/* The footer FAQ, set like the link columns under it: a grey heading over
+   each column, and each question a row with a chevron. Every answer opens
+   below its question in one shared popover that moves and resizes between
+   questions, as the navbar menus do. A hover opens the card and the
+   pointer can move into it to reach its link; a click pins it open. */
+function H2FooterFaq({ groups }: { groups: readonly FaqGroup[] }): React.JSX.Element {
+  const CLOSE_DELAY_MS = 120;
+  /* the card's inner padding, so the answer text lines up with the question */
+  const POP_INSET_PX = 20;
+
+  const { linkProps } = useSiteRouter();
+  const baseId = React.useId();
+  const entries = React.useMemo(
+    () => groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.heading }))),
+    [groups],
+  );
+  const rootRef = React.useRef<HTMLElement | null>(null);
+  const triggerRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const paneRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const closeTimerRef = React.useRef<number | null>(null);
+  const prevOpenRef = React.useRef<number | null>(null);
+  const lastPointerRef = React.useRef<string>('mouse');
+  const [open, setOpen] = React.useState<number | null>(null);
+  const [pinned, setPinned] = React.useState<boolean>(false);
+  const [frame, setFrame] = React.useState<FaqPopFrame | null>(null);
+  // Move and resize only between questions; a first open snaps into place.
+  const [morph, setMorph] = React.useState<boolean>(false);
+  const [layoutTick, setLayoutTick] = React.useState<number>(0);
+
+  const cancelClose = React.useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = React.useCallback(() => {
+    cancelClose();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpen(null);
+      setPinned(false);
+      closeTimerRef.current = null;
+    }, CLOSE_DELAY_MS);
+  }, [cancelClose]);
+
+  React.useEffect(() => cancelClose, [cancelClose]);
+
+  React.useLayoutEffect(() => {
+    const previous = prevOpenRef.current;
+    prevOpenRef.current = open;
+    // Keep the last frame while closing so the card fades out in place.
+    if (open === null) {
+      setMorph(false);
+      return;
+    }
+    const root = rootRef.current;
+    const trigger = triggerRefs.current[open];
+    const pane = paneRefs.current[open];
+    if (!root || !trigger || !pane) return;
+    const rootRect = root.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const w = pane.offsetWidth;
+    const h = pane.offsetHeight;
+    const left = Math.max(
+      -POP_INSET_PX,
+      Math.min(triggerRect.left - rootRect.left - POP_INSET_PX, rootRect.width - w + POP_INSET_PX),
+    );
+    // No gap: the card's padded top bridges the question to the card, so the
+    // pointer never crosses the question below on its way in.
+    const top = triggerRect.bottom - rootRect.top;
+    setMorph(previous !== null && previous !== open);
+    setFrame({ left, top, w, h });
+  }, [open, layoutTick]);
+
+  React.useEffect(() => {
+    if (open === null) return;
+    const onResize = () => setLayoutTick((tick) => tick + 1);
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
+      setOpen(null);
+      setPinned(false);
+    };
+    window.addEventListener('resize', onResize);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [open]);
+
+  const closeOnLeave = (event: React.PointerEvent) => {
+    if (event.pointerType !== 'mouse' || pinned) return;
+    scheduleClose();
+  };
+
+  const close = () => {
+    setOpen(null);
+    setPinned(false);
+  };
+
+  let entryIndex = 0;
+
   return (
-    <section className="h2-section h2-rule" aria-labelledby="h2-faq-title">
-      <div className="h2-shell">
-        <div className="h2-faq">
-          <h2 id="h2-faq-title" className="h2-display h2-faq__title">
-            Frequently asked questions
-          </h2>
-          <div className="h2-faq__list">{faqs[audience].map(renderFaqItem)}</div>
+    <section
+      ref={rootRef}
+      className="h2-footer__faq"
+      aria-labelledby={`${baseId}-title`}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || open === null) return;
+        triggerRefs.current[open]?.focus();
+        close();
+      }}
+      onBlurCapture={(event) => {
+        const next = event.relatedTarget;
+        if (next instanceof Node && rootRef.current?.contains(next)) return;
+        close();
+      }}
+    >
+      <h2 id={`${baseId}-title`} className="h2-footer__faq-title">
+        FAQs
+      </h2>
+
+      <div className="h2-footer__links">
+        {groups.map((group) => (
+          <div className="h2-footer__col" key={group.heading}>
+            <h3>{group.heading}</h3>
+            {group.items.map((item) => {
+              const index = entryIndex++;
+              return (
+                <button
+                  key={item.q}
+                  ref={(el) => {
+                    triggerRefs.current[index] = el;
+                  }}
+                  type="button"
+                  id={`${baseId}-q-${index}`}
+                  className={`h2-footer__faq-q${open === index ? ' is-open' : ''}`}
+                  aria-expanded={open === index}
+                  aria-controls={`${baseId}-a-${index}`}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== 'mouse') return;
+                    cancelClose();
+                    // a pinned card stays put while the pointer travels to it
+                    if (pinned && open === index) return;
+                    setPinned(false);
+                    setOpen(index);
+                  }}
+                  onPointerLeave={closeOnLeave}
+                  onPointerDown={(event) => {
+                    lastPointerRef.current = event.pointerType;
+                  }}
+                  onClick={(event) => {
+                    cancelClose();
+                    // A mouse click pins the hover preview; a second click,
+                    // like a keyboard or touch press, toggles it closed.
+                    const isMouse = lastPointerRef.current === 'mouse' && event.detail > 0;
+                    if (open === index && (pinned || !isMouse)) {
+                      close();
+                      return;
+                    }
+                    setOpen(index);
+                    setPinned(true);
+                  }}
+                >
+                  {item.q.slice(0, item.q.lastIndexOf(' ') + 1)}
+                  {/* the last word and the chevron never wrap apart */}
+                  <span className="h2-footer__faq-tail">
+                    {item.q.slice(item.q.lastIndexOf(' ') + 1)}
+                    <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div
+        className={`h2-faq-pop${open !== null ? ' is-open' : ''}${morph ? ' is-morphing' : ''}`}
+        style={frame ? { left: frame.left, top: frame.top } : undefined}
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') cancelClose();
+        }}
+        onPointerLeave={closeOnLeave}
+      >
+        <div className="h2-faq-pop__card">
+          <div
+            className="h2-faq-pop__shell"
+            style={frame ? { width: frame.w, height: frame.h } : undefined}
+          >
+            {entries.map((item, index) => {
+              const state =
+                open === index
+                  ? 'is-active'
+                  : open !== null && index < open
+                    ? 'is-before'
+                    : 'is-after';
+              const moreProps = item.more ? linkProps(item.more.to) : null;
+              return (
+                <div
+                  key={item.q}
+                  ref={(el) => {
+                    paneRefs.current[index] = el;
+                  }}
+                  id={`${baseId}-a-${index}`}
+                  role="region"
+                  aria-labelledby={`${baseId}-q-${index}`}
+                  className={`h2-faq-pop__pane ${state}`}
+                >
+                  <p className="h2-faq-pop__heading">{item.group}</p>
+                  <p className="h2-faq-pop__answer">{item.a}</p>
+                  {item.more && moreProps ? (
+                    <a
+                      className="h2-faq-pop__more"
+                      href={moreProps.href}
+                      onClick={moreProps.onClick}
+                      tabIndex={open === index ? 0 : -1}
+                    >
+                      {item.more.label}
+                      <ArrowRightAnim size={10} />
+                    </a>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -1359,6 +1614,12 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
   },
 ];
 
+/* ---------- blank ruled row: breathing room above the closing rows ---------- */
+
+export function H2Spacer(): React.JSX.Element {
+  return <div className="h2-spacer h2-rule" aria-hidden="true" />;
+}
+
 /* ---------- closing call to action: a cream band fading into grain ---------- */
 
 export function H2Cta(): React.JSX.Element {
@@ -1389,7 +1650,12 @@ export function H2Cta(): React.JSX.Element {
   );
 }
 
-export function H2Footer(): React.JSX.Element {
+type H2FooterProps = {
+  /* pages with an FAQ show it as the footer's first row, above the links */
+  faq?: FaqAudience;
+};
+
+export function H2Footer({ faq }: H2FooterProps): React.JSX.Element {
   const { linkProps } = useSiteRouter();
   const homeProps = linkProps('https://seams.sh/');
 
@@ -1403,25 +1669,31 @@ export function H2Footer(): React.JSX.Element {
             </a>
           </div>
 
-          <div className="h2-footer__links">
-            {footerGroups.map((group) => (
-              <div className="h2-footer__col" key={group.heading}>
-                <h3>{group.heading}</h3>
-                {group.links.map((link) => {
-                  const props = linkProps(link.to);
-                  return (
-                    <a
-                      key={link.label}
-                      href={props.href}
-                      onClick={props.onClick}
-                      {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : null)}
-                    >
-                      {link.label}
-                    </a>
-                  );
-                })}
-              </div>
-            ))}
+          <div className="h2-footer__main">
+            {faq ? <H2FooterFaq groups={faqs[faq]} /> : null}
+
+            <div className="h2-footer__links">
+              {footerGroups.map((group) => (
+                <div className="h2-footer__col" key={group.heading}>
+                  <h3>{group.heading}</h3>
+                  {group.links.map((link) => {
+                    const props = linkProps(link.to);
+                    return (
+                      <a
+                        key={link.label}
+                        href={props.href}
+                        onClick={props.onClick}
+                        {...(link.external
+                          ? { target: '_blank', rel: 'noopener noreferrer' }
+                          : null)}
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

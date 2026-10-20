@@ -3322,10 +3322,8 @@ body:has(.h2-page) {
   letter-spacing: 0.01em;
 }
 
-/* the API notes stack in one column */
 .h2-startrow__grid .h2-startrow__notes {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
+  gap: 24px 32px;
   margin-top: 40px;
 }
 
@@ -3670,68 +3668,6 @@ body:has(.h2-page) {
   }
 }
 
-/* ---------- FAQ ---------- */
-
-.h2-faq {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 44px;
-  align-items: start;
-}
-
-.h2-faq__title {
-  font-size: clamp(27px, 2.9vw, 38px);
-}
-
-.h2-faq__list details {
-  border-bottom: 1px dashed var(--h2-stone);
-}
-
-.h2-faq__list summary {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px 2px;
-  font-size: var(--h2-text-title);
-  font-weight: 500;
-  color: var(--h2-ink);
-  cursor: pointer;
-}
-
-.h2-faq__list summary::-webkit-details-marker {
-  display: none;
-}
-
-.h2-faq__list summary::after {
-  content: '+';
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--h2-ash);
-  transition: transform 150ms ease;
-}
-
-.h2-faq__list details[open] summary::after {
-  transform: rotate(45deg);
-}
-
-.h2-faq__list details p {
-  margin: 0;
-  padding: 0 2px 18px;
-  font-size: var(--h2-text-xl);
-  line-height: 1.6;
-  color: var(--h2-smoke);
-  max-width: 560px;
-}
-
-@media (max-width: 900px) {
-  .h2-faq {
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-}
-
 /* ---------- demo placeholder ---------- */
 
 .h2-demo__placeholder {
@@ -3935,9 +3871,18 @@ body:has(.h2-page) {
   }
 }
 
+/* ---------- blank ruled row above the closing rows ---------- */
+
+.h2-spacer {
+  height: clamp(120px, 14vw, 200px);
+}
+
 /* ---------- footer ---------- */
 
+/* the footer runs 1px past the column on each side, so its white ground
+   covers the column borders: no vertical dividers beside the footer */
 .h2-footer {
+  margin-inline: -1px;
   background: var(--h2-bg);
 }
 
@@ -3945,17 +3890,22 @@ body:has(.h2-page) {
   padding: 72px 36px 64px;
 }
 
+/* four equal columns: the logo in the first, the FAQ and link groups in
+   the other three (their inner grids share the gap, so the columns align) */
 .h2-footer__grid {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr);
-  gap: 48px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 48px 32px;
   align-items: start;
 }
 
+/* the logo sits 0.5rem in from the column border, in line with the banner
+   card's edge above, rather than at the footer's 36px inset */
 .h2-footer__brand {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-left: calc(0.5rem - 36px);
 }
 
 .h2-footer__brand a {
@@ -3965,7 +3915,7 @@ body:has(.h2-page) {
 
 .h2-footer__links {
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 48px 32px;
 }
 
@@ -3975,13 +3925,12 @@ body:has(.h2-page) {
   align-items: start;
 }
 
+/* grey sentence-case headings over plain ink rows */
 .h2-footer__col h3 {
-  margin: 0 0 14px;
-  font-family: var(--h2-label);
-  font-size: var(--h2-text-xs);
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-size: var(--h2-text-body);
+  font-weight: 400;
+  line-height: 1.3;
   color: var(--h2-ash);
 }
 
@@ -3997,6 +3946,217 @@ body:has(.h2-page) {
   color: var(--h2-smoke);
 }
 
+/* the FAQ row sits over the link rows, under the same micro-label */
+.h2-footer__main {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 56px;
+  min-width: 0;
+}
+
+/* ---------- footer FAQ ---------- */
+
+/* The FAQ uses the link columns' grid, so its columns line up with them */
+.h2-footer__faq {
+  position: relative;
+}
+
+/* a small subtitle over the FAQ columns, darker than the column headings */
+.h2-footer__faq-title {
+  margin: 0 0 18px;
+  font-family: var(--h2-label);
+  font-size: var(--h2-text-base);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--h2-graphite);
+}
+
+/* each question reads as a footer link with a chevron, like a menu row */
+/* block, not flex: a wrapped question keeps its chevron after the last word */
+.h2-footer__faq-q {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--h2-text-body);
+  line-height: 1.3;
+  text-align: left;
+  color: var(--h2-ink);
+  cursor: pointer;
+}
+
+.h2-footer__faq-tail {
+  white-space: nowrap;
+}
+
+.h2-footer__faq-q svg {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: -2px;
+  color: var(--h2-ash);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 150ms ease;
+}
+
+.h2-footer__faq-q:hover,
+.h2-footer__faq-q.is-open {
+  color: var(--h2-smoke);
+}
+
+.h2-footer__faq-q.is-open svg {
+  transform: rotate(180deg);
+  color: var(--h2-ink);
+}
+
+.h2-footer__faq-q:focus-visible {
+  outline: 2px solid var(--h2-ink);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* One card for all answers. It opens with the navbar's soft scale and drop;
+   between questions it moves and resizes in place while the answers
+   crossfade with a short slide in the direction of travel. */
+.h2-faq-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  /* an invisible bridge from the question to the card, as in the navbar */
+  padding-top: 8px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.h2-faq-pop.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* the open card takes the pointer, so the pointer can reach its link */
+.h2-faq-pop.is-open,
+.h2-faq-pop.is-open .h2-faq-pop__pane.is-active {
+  pointer-events: auto;
+}
+
+.h2-faq-pop.is-morphing {
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-faq-pop__card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--h2-stone);
+  background: var(--h2-bg);
+  box-shadow:
+    0 18px 48px -20px rgba(4, 3, 14, 0.28),
+    0 6px 18px -10px rgba(4, 3, 14, 0.16);
+}
+
+.h2-faq-pop__shell {
+  position: relative;
+}
+
+.h2-faq-pop.is-morphing .h2-faq-pop__shell {
+  transition:
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h2-faq-pop__pane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(340px, calc(100vw - 48px));
+  padding: 16px 20px 18px;
+  opacity: 0;
+  filter: blur(3px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 250ms cubic-bezier(0.5, 1, 0.89, 1),
+    opacity 180ms ease,
+    filter 180ms ease,
+    visibility 0s linear 200ms;
+}
+
+.h2-faq-pop__pane.is-active {
+  opacity: 1;
+  filter: blur(0);
+  visibility: visible;
+  transform: translateX(0);
+  z-index: 2;
+  transition:
+    transform 250ms cubic-bezier(0.5, 1, 0.89, 1),
+    opacity 180ms ease,
+    filter 180ms ease,
+    visibility 0s;
+}
+
+.h2-faq-pop__pane.is-before {
+  transform: translateX(-16px);
+}
+
+.h2-faq-pop__pane.is-after {
+  transform: translateX(16px);
+}
+
+.h2-faq-pop__heading {
+  margin: 0 0 8px;
+  font-size: var(--h2-text-xl);
+  line-height: 1.3;
+  color: var(--h2-ash);
+}
+
+.h2-faq-pop__answer {
+  margin: 0;
+  font-size: var(--h2-text-body);
+  line-height: 1.6;
+  color: var(--h2-graphite);
+  text-wrap: pretty;
+}
+
+.h2-faq-pop__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: var(--h2-text-lg);
+  font-weight: 500;
+  color: var(--h2-ink);
+}
+
+.h2-faq-pop__more:hover {
+  color: var(--h2-smoke);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .h2-faq-pop,
+  .h2-faq-pop.is-morphing,
+  .h2-faq-pop.is-morphing .h2-faq-pop__shell,
+  .h2-faq-pop__pane,
+  .h2-faq-pop__pane.is-active {
+    transition: none;
+  }
+}
+
 @media (max-width: 860px) {
   .h2-footer__inner {
     padding: 48px 24px 44px;
@@ -4007,13 +4167,27 @@ body:has(.h2-page) {
     gap: 36px;
   }
 
+  .h2-footer__brand {
+    margin-left: 0;
+  }
+
   .h2-footer__links {
     gap: 32px 24px;
+  }
+
+  .h2-footer__main {
+    grid-column: auto;
+    gap: 40px;
   }
 }
 
 @media (max-width: 520px) {
   .h2-footer__links {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* questions are too long for two phone columns */
+  .h2-footer__faq .h2-footer__links {
+    grid-template-columns: 1fr;
   }
 }

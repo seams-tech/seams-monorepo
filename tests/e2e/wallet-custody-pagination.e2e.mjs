@@ -37,7 +37,17 @@ function signingLabelsArePlaced() {
 }
 
 function approachCompletion(element) {
-  element.getAnimations()[0].currentTime = 5900;
+  const animation = element.getAnimations()[0];
+  animation.currentTime = animation.effect.getComputedTiming().duration - 100;
+}
+
+function activeBullet() {
+  return document.querySelector('#wallet-security .h2-security__item.is-active h3')?.textContent;
+}
+
+function bulletIsActive(name) {
+  const bullet = document.querySelector('#wallet-security .h2-security__item.is-active h3');
+  return bullet?.textContent === name;
 }
 
 function clearFocus() {
@@ -56,6 +66,9 @@ try {
     ignoreHTTPSErrors: true,
   });
   await page.goto(`${origin}/wallet`);
+  // The component showcase swaps demo frames on its own clock, and a new frame
+  // can take focus; hold it so this run sees only the custody section.
+  await page.getByRole('button', { name: 'Pause playback' }).click();
   const section = page.locator('#wallet-security');
   const progress = section.locator('.h2-security__progress-fill');
   await section.scrollIntoViewIfNeeded();
@@ -64,14 +77,41 @@ try {
   assert.equal(await section.getByRole('button', { name: 'Wallet capabilities' }).count(), 0);
   assert.equal(await section.getByRole('button', { name: 'How signing works' }).count(), 0);
 
-  // Observe a complete real timer cycle, including the progress-line movement.
+  // Start a fresh features view, so a slow page load cannot use up the first turn.
+  const nextView = section.getByRole('button', { name: 'Next custody view' });
+  if ((await section.getAttribute('data-view')) === 'features') await nextView.click();
+  await nextView.click();
+  await page.evaluate(clearFocus);
+  await page.mouse.move(0, 0);
+
+  // Each capability's figure plays in turn, with its bullet and label lit.
+  assert.equal(await page.evaluate(activeBullet), 'Non-custodial');
+  assert.equal(
+    await section.locator('.h2-security__cell.is-active span').textContent(),
+    'Keys you control',
+  );
+  const keychain = page.frameLocator('iframe[data-figure="keychain"]').locator('#read');
+  await keychain.filter({ hasText: /^key 0/ }).waitFor({ timeout: 3000 });
+
+  // Observe a complete real timer turn, including the progress-line movement.
   const initial = await progress.evaluate(progressState);
   await page.waitForTimeout(400);
   const advancing = await progress.evaluate(progressState);
   assert.ok(advancing.time > initial.time);
   assert.notEqual(advancing.transform, initial.transform);
-  await page.locator('#wallet-security[data-view="signing"]').waitFor({ timeout: 7000 });
+  await page.waitForFunction(bulletIsActive, 'Permissions', { timeout: 4500 });
+  assert.ok((await progress.evaluate(progressState)).time < 1500, 'Each figure starts a new timer');
+  const interlock = page.frameLocator('iframe[data-figure="interlock"]').locator('#read');
+  await interlock.filter({ hasText: /picking|aligning|pin|unlocked/ }).waitFor({ timeout: 2000 });
+  await keychain.filter({ hasText: /^rest$/ }).waitFor({ timeout: 2000 });
+  for (const bullet of ['Multiple devices', 'Self-hosted']) {
+    await progress.evaluate(approachCompletion);
+    await page.waitForFunction(bulletIsActive, bullet, { timeout: 2000 });
+  }
+  await progress.evaluate(approachCompletion);
+  await page.locator('#wallet-security[data-view="signing"]').waitFor({ timeout: 2000 });
   assert.ok((await progress.evaluate(progressState)).time < 1500, 'Each view starts a new timer');
+  assert.equal(await page.evaluate(activeBullet), undefined, 'The signing view lights no bullet');
   assert.equal(await section.locator('.h2-pager__dot.is-active').count(), 1);
   const firstSigning = page.frameLocator('iframe[data-figure="signing"]');
   await firstSigning.locator('#stage svg text').first().waitFor();
@@ -116,13 +156,21 @@ try {
   await progress.evaluate(approachCompletion);
   await page.locator('#wallet-security[data-view="features"]').waitFor();
 
-  const figures = section.locator('.h2-security__visuals');
-  await figures.hover();
+  // Hovering a figure hands it the turn and holds the timer.
+  await section.locator('iframe[data-figure="devices"]').hover();
+  await page.waitForFunction(bulletIsActive, 'Multiple devices', { timeout: 1000 });
   const hovered = await progress.evaluate(progressState);
   assert.equal(hovered.state, 'paused');
   await page.waitForTimeout(300);
   assert.equal((await progress.evaluate(progressState)).time, hovered.time);
   await section.screenshot({ path: `${artifacts}/desktop-features.png` });
+  await page.mouse.move(0, 0);
+  await page.locator('#wallet-security[data-paused="false"]').waitFor({ timeout: 1000 });
+  assert.equal(
+    (await progress.evaluate(progressState)).state,
+    'running',
+    'Leaving resumes the turn',
+  );
 
   // Reduced motion disables timed changes; keyboard pagination still works on mobile.
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -130,6 +178,7 @@ try {
   await section.scrollIntoViewIfNeeded();
   await page.mouse.move(0, 0);
   assert.equal((await progress.evaluate(progressState)).state, 'none');
+  assert.equal(await page.evaluate(activeBullet), undefined, 'Reduced motion lights no bullet');
   await page.waitForTimeout(6200);
   assert.equal(await section.getAttribute('data-view'), 'features');
   assert.equal(await page.evaluate(hasOverflow), false);
@@ -159,6 +208,8 @@ try {
       {
         passed: true,
         timedCycle: true,
+        figureTurns: true,
+        hoverTurn: true,
         progressRestart: true,
         arrowWraparound: true,
         interactionPause: true,
@@ -173,7 +224,7 @@ try {
     ),
   );
   console.log(
-    'Passed timed cycling, progress, arrows, interaction pause, persistent pause, reduced motion, and mobile keyboard navigation.',
+    'Passed figure turns, timed cycling, progress, arrows, hover turns, interaction pause, persistent pause, reduced motion, and mobile keyboard navigation.',
   );
 } finally {
   await browser.close();

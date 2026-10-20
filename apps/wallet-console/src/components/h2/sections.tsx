@@ -689,8 +689,51 @@ export function H2Cases(): React.JSX.Element {
 
 type SecurityView = 'features' | 'signing';
 
-function nextSecurityView(view: SecurityView): SecurityView {
-  return view === 'features' ? 'signing' : 'features';
+/* `feature` names the capability whose figure plays in the features view.
+   Every change takes a new `turn`, which restarts the progress line. */
+type SecurityPosition = { view: SecurityView; feature: number; turn: number };
+
+const SIGNING_VIEW_MS = 6000;
+
+function otherSecurityView(position: SecurityPosition): SecurityPosition {
+  const view = position.view === 'features' ? 'signing' : 'features';
+  return { view, feature: 0, turn: position.turn + 1 };
+}
+
+function nextSecurityPosition(position: SecurityPosition): SecurityPosition {
+  if (position.view === 'signing' || position.feature === walletCapabilities.length - 1) {
+    return otherSecurityView(position);
+  }
+  return { view: 'features', feature: position.feature + 1, turn: position.turn + 1 };
+}
+
+function focusSecurityFeature(feature: number, position: SecurityPosition): SecurityPosition {
+  return { view: 'features', feature, turn: position.turn + 1 };
+}
+
+function releaseHoveredFeature(feature: number, hovered: number | null): number | null {
+  return hovered === feature ? null : hovered;
+}
+
+function securityPositionMs(position: SecurityPosition): number {
+  if (position.view === 'signing') return SIGNING_VIEW_MS;
+  return walletCapabilities[position.feature].playMs;
+}
+
+const MOTION_ALLOWED = '(prefers-reduced-motion: no-preference)';
+
+function watchMotionPreference(notify: () => void): () => void {
+  const query = window.matchMedia(MOTION_ALLOWED);
+  query.addEventListener('change', notify);
+  return query.removeEventListener.bind(query, 'change', notify);
+}
+
+function motionAllowed(): boolean {
+  return window.matchMedia(MOTION_ALLOWED).matches;
+}
+
+function serverMotionAllowed(): boolean {
+  return false;
 }
 
 function notifySecurityFocusChanged(notify: () => void): void {
@@ -721,53 +764,126 @@ function securityServerHasFocus(): boolean {
   return false;
 }
 
-const walletCapabilities: ReadonlyArray<{ figure: WalletFigureName; label: string }> = [
-  { figure: 'keychain', label: 'Keys you control' },
-  { figure: 'interlock', label: 'Scoped permissions' },
-  { figure: 'devices', label: 'Linked devices' },
-  { figure: 'infrastructure', label: 'Self-hostable' },
-];
-
-function WalletCapability({
-  figure,
-  label,
-}: {
+/* The bullets and the figure grid come from one list, so a bullet can never
+   light up beside another capability's figure. */
+type WalletCapability = {
   figure: WalletFigureName;
   label: string;
+  title: string;
+  copy: string;
+  /* How long the figure holds the stage: its play, then a beat to read it. */
+  playMs: number;
+};
+
+const walletCapabilities: readonly WalletCapability[] = [
+  {
+    figure: 'keychain',
+    label: 'Keys you control',
+    title: 'Non-custodial by design',
+    copy: 'Signing authority is split between the user’s device and your infrastructure. Neither can sign alone. Exporting keys requires fresh authorization.',
+    playMs: 3600,
+  },
+  {
+    figure: 'interlock',
+    label: 'Scoped permissions',
+    title: 'Permissions, enforced',
+    copy: 'Scope what apps and agents can do. Approvals, budgets, and revocation checks run before transactions are signed.',
+    playMs: 5600,
+  },
+  {
+    figure: 'devices',
+    label: 'Linked devices',
+    title: 'Your wallet, across devices',
+    copy: 'Link another device to your wallet for access and recovery. Keep control as you move between devices.',
+    playMs: 3600,
+  },
+  {
+    figure: 'infrastructure',
+    label: 'Self-hostable',
+    title: 'Your infrastructure. Your control.',
+    copy: 'Run threshold signing on your own serverless infrastructure.',
+    playMs: 3800,
+  },
+];
+
+function SecurityItem({
+  capability,
+  active,
+}: {
+  capability: WalletCapability;
+  active: boolean;
 }): React.JSX.Element {
   return (
-    <div className="h2-security__cell">
-      <WalletFigure figure={figure} />
-      <span>{label}</span>
+    <div className={`h2-security__item${active ? ' is-active' : ''}`}>
+      <h3>{capability.title}</h3>
+      <p>{capability.copy}</p>
     </div>
   );
 }
 
-function renderWalletCapability(capability: {
-  figure: WalletFigureName;
-  label: string;
+function WalletCapabilityCell({
+  capability,
+  index,
+  playing,
+  onHover,
+}: {
+  capability: WalletCapability;
+  index: number;
+  playing: boolean;
+  onHover: (index: number, inside: boolean) => void;
 }): React.JSX.Element {
+  const hovered = React.useCallback((inside: boolean) => onHover(index, inside), [onHover, index]);
   return (
-    <WalletCapability key={capability.figure} figure={capability.figure} label={capability.label} />
+    <div className={`h2-security__cell${playing ? ' is-active' : ''}`}>
+      <WalletFigure figure={capability.figure} playing={playing} onHover={hovered} />
+      <span>{capability.label}</span>
+    </div>
   );
 }
 
 export function H2Security(): React.JSX.Element {
-  const [view, setView] = React.useState<SecurityView>('features');
+  const [position, setPosition] = React.useState<SecurityPosition>({
+    view: 'features',
+    feature: 0,
+    turn: 0,
+  });
   const [paused, setPaused] = React.useState(false);
+  // The page sees no pointer inside a figure's frame, so each frame reports it.
+  const [hoveredFeature, setHoveredFeature] = React.useState<number | null>(null);
   const figureFocused = React.useSyncExternalStore(
     watchSecurityFocus,
     securityFigureHasFocus,
     securityServerHasFocus,
   );
-  const advance = setView.bind(null, nextSecurityView(view));
+  const autoplay = React.useSyncExternalStore(
+    watchMotionPreference,
+    motionAllowed,
+    serverMotionAllowed,
+  );
+  const { view } = position;
+  // Reduced motion keeps every figure at rest and every bullet plain.
+  const playingFeature = autoplay && view === 'features' ? position.feature : -1;
+  const advance = setPosition.bind(null, nextSecurityPosition);
+  const switchView = setPosition.bind(null, otherSecurityView);
+  const progressStyle = {
+    '--h2-security-progress-ms': `${securityPositionMs(position)}ms`,
+  } as React.CSSProperties;
+  // Hovering a figure hands it the turn and holds the timer until the mouse leaves.
+  const focusFeature = React.useCallback((feature: number, inside: boolean) => {
+    if (!inside) {
+      setHoveredFeature(releaseHoveredFeature.bind(null, feature));
+      return;
+    }
+    setHoveredFeature(feature);
+    setPosition(focusSecurityFeature.bind(null, feature));
+  }, []);
   return (
     <section
       id="wallet-security"
       className="h2-section h2-rule h2-security-section"
       aria-labelledby="h2-security-title"
       data-view={view}
-      data-paused={paused || figureFocused}
+      data-paused={paused || figureFocused || hoveredFeature !== null}
     >
       <div className="h2-shell">
         <div className="h2-security">
@@ -775,31 +891,13 @@ export function H2Security(): React.JSX.Element {
             <h2 id="h2-security-title" className="h2-display h2-security__title">
               Custody and control, engineered in
             </h2>
-            <div className="h2-security__item">
-              <h3>Non-custodial by design</h3>
-              <p>
-                Signing authority is split between the user&rsquo;s device and your infrastructure.
-                Neither can sign alone. Exporting keys requires fresh authorization.
-              </p>
-            </div>
-            <div className="h2-security__item">
-              <h3>Permissions, enforced</h3>
-              <p>
-                Scope what apps and agents can do. Approvals, budgets, and revocation checks run
-                before transactions are signed.
-              </p>
-            </div>
-            <div className="h2-security__item">
-              <h3>Your wallet, across devices</h3>
-              <p>
-                Link another device to your wallet for access and recovery. Keep control as you move
-                between devices.
-              </p>
-            </div>
-            <div className="h2-security__item">
-              <h3>Your infrastructure. Your control.</h3>
-              <p>Run threshold signing on your own serverless infrastructure.</p>
-            </div>
+            {walletCapabilities.map((capability, index) => (
+              <SecurityItem
+                key={capability.figure}
+                capability={capability}
+                active={index === playingFeature}
+              />
+            ))}
           </div>
           <div className="h2-security__visuals">
             <div className="h2-security__stage">
@@ -807,7 +905,15 @@ export function H2Security(): React.JSX.Element {
                 className={`h2-security__view h2-security__grid${view === 'features' ? ' is-active' : ''}`}
                 aria-hidden={view !== 'features'}
               >
-                {walletCapabilities.map(renderWalletCapability)}
+                {walletCapabilities.map((capability, index) => (
+                  <WalletCapabilityCell
+                    key={capability.figure}
+                    capability={capability}
+                    index={index}
+                    playing={index === playingFeature}
+                    onHover={focusFeature}
+                  />
+                ))}
               </div>
               {view === 'signing' && (
                 <div className="h2-security__view h2-security__signing is-active">
@@ -819,14 +925,19 @@ export function H2Security(): React.JSX.Element {
         </div>
       </div>
       <div className="h2-security__progress" aria-hidden="true">
-        <span key={view} className="h2-security__progress-fill" onAnimationEnd={advance} />
+        <span
+          key={position.turn}
+          className="h2-security__progress-fill"
+          style={progressStyle}
+          onAnimationEnd={advance}
+        />
       </div>
       <div className="h2-pager" role="group" aria-label="Custody views">
         <button
           type="button"
           className="h2-pager__btn"
           aria-label="Previous custody view"
-          onClick={advance}
+          onClick={switchView}
         >
           <ChevronLeft aria-hidden />
         </button>
@@ -844,7 +955,7 @@ export function H2Security(): React.JSX.Element {
           type="button"
           className="h2-pager__btn"
           aria-label="Next custody view"
-          onClick={advance}
+          onClick={switchView}
         >
           <ChevronRight aria-hidden />
         </button>

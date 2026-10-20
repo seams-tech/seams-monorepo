@@ -8,6 +8,9 @@
      the two-panel hero band is 1fr 1fr inside it, so +32px here = +1rem per
      column. */
   --h2-col-max: 1120px;
+  /* the gap between a card and the rules and column borders around it:
+     banners, code cards, the console band */
+  --h2-inset: 1rem;
   /* canvas + surfaces */
   --h2-bg: #ffffff;
   /* section-level card/panel rounding (hero card, duo panels, pillars, flow) */
@@ -338,10 +341,10 @@ body:has(.h2-page) {
   padding: 86px 0;
 }
 
-/* variant for a section that holds a banner card: the card sits 0.5rem in
+/* variant for a section that holds a banner card: the card sits one inset in
    from the rules (before --flush-bottom, which still wins below) */
 .h2-section--banner {
-  padding-block: 0.5rem;
+  padding-block: var(--h2-inset);
 }
 
 /* variant for sections whose content should hug the surrounding rules */
@@ -3214,20 +3217,20 @@ body:has(.h2-page) {
 
 /* ---------- get-started band (stacked two-column rows) ---------- */
 
-/* the heading is a banner card, 0.5rem above the first row's rule */
+/* the heading is a banner card, one inset above the first row's rule */
 .h2-starthead {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--h2-inset);
 }
 
 /* the row's vertical rhythm lives on the text column, not the grid, so the
-   code card can run to within 0.5rem of the row rules */
+   code card can run to within one inset of the row rules */
 .h2-startrow__grid {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-top: var(--h2-inset);
+  padding-bottom: var(--h2-inset);
 }
 
 /* hairline between the two even halves; the halves pad away from it, and
@@ -3248,10 +3251,10 @@ body:has(.h2-page) {
 
 .h2-startrow__grid > .h2-code {
   align-self: stretch;
-  margin-inline-start: 0.5rem;
+  margin-inline-start: var(--h2-inset);
   /* run through the shell's 36px inline padding so the right gap matches the
-     0.5rem clearance on the other sides */
-  margin-inline-end: calc(0.5rem - 36px);
+     inset on the other sides */
+  margin-inline-end: calc(var(--h2-inset) - 36px);
 }
 
 .h2-startrow__text h3 {
@@ -3301,10 +3304,10 @@ body:has(.h2-page) {
 
 /* The API rows follow elevenlabs.io's API rows: regular-weight titles,
    larger copy and notes, and the copy set 48px in from the row's corner
-   (40px here plus the grid's 0.5rem). Scoped to the grid so the console
+   (this padding plus the grid's inset). Scoped to the grid so the console
    band's legend keeps its own type. */
 .h2-startrow__grid > .h2-startrow__text {
-  padding-block: 40px;
+  padding-block: calc(48px - var(--h2-inset));
   padding-inline-start: 12px;
 }
 
@@ -3402,21 +3405,21 @@ body:has(.h2-page) {
    The active tab's progress line runs the cycle; the screen is cropped by
    the stage's open bottom edge. */
 
-/* the banner card sits 0.5rem below the rule, as the band headings do; the
-   band below sets its own gap */
+/* the banner card sits one inset below the rule, as the band headings do;
+   the band below sets its own gap */
 .h2-consolehead {
-  padding-block: 0.5rem 0;
+  padding-block: var(--h2-inset) 0;
 }
 
 .h2-consoleband {
   display: grid;
   gap: 30px;
-  /* 0.5rem from the column borders, as the banner card above. The top
+  /* one inset from the column borders, as the banner card above. The top
      leaves room for the upper half of the switch on the stage's border. The
      stage runs off the section's bottom edge, so the shell keeps no bottom
      padding — any gap here would float the open-bottomed card above the
      rule instead of meeting it. */
-  padding: 40px 0.5rem 0;
+  padding: 40px var(--h2-inset) 0;
 }
 
 /* The stage and the switch that sits on its top border */
@@ -3761,8 +3764,8 @@ body:has(.h2-page) {
   align-items: center;
   justify-content: space-between;
   gap: 32px;
-  /* 0.5rem from the column borders, as from the rules */
-  margin-inline: 0.5rem;
+  /* one inset from the column borders, as from the rules */
+  margin-inline: var(--h2-inset);
   padding: 52px 56px;
   border-radius: var(--h2-radius-card);
   /* the console tabs' highlight: 60% taupe on white */
@@ -3850,13 +3853,14 @@ body:has(.h2-page) {
 /* Five ruled bands share one height: the network logos, the showcase
    heading, the get-started and wallet console banners, and the closing
    banner.
-   It fits a banner row (0.5rem insets, 52px paddings) around the taller of
+   It fits a banner row (two insets, 52px paddings) around the taller of
    a two-line heading and a one-line heading over the 36px subtitle. At
    760px and below each band keeps its own height. */
 .h2-page {
   --h2-band-title: clamp(27px, 2.9vw, 38px);
   --h2-band-h: calc(
-    1rem + 104px + 1.08 * var(--h2-band-title) + max(1.08 * var(--h2-band-title), 36px)
+    2 * var(--h2-inset) + 104px + 1.08 * var(--h2-band-title) +
+      max(1.08 * var(--h2-band-title), 36px)
   );
 }
 
@@ -3864,7 +3868,7 @@ body:has(.h2-page) {
   /* the card centres its copy in the band; the smaller paddings let a
      heading that wraps below 860px still fit */
   .h2-banner {
-    min-height: calc(var(--h2-band-h) - 1rem);
+    min-height: calc(var(--h2-band-h) - 2 * var(--h2-inset));
     padding-block: 24px;
   }
 
@@ -3899,13 +3903,13 @@ body:has(.h2-page) {
   align-items: start;
 }
 
-/* the logo sits 0.5rem in from the column border, in line with the banner
+/* the logo sits one inset in from the column border, in line with the banner
    card's edge above, rather than at the footer's 36px inset */
 .h2-footer__brand {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-left: calc(0.5rem - 36px);
+  margin-left: calc(var(--h2-inset) - 36px);
 }
 
 .h2-footer__brand a {

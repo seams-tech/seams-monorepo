@@ -105,13 +105,13 @@
 
 /* The band's heading sits in its own ruled row above the showcase. The
    bottom padding leaves room for the selector, which straddles the rule. */
-/* The band holds a gradient banner card 0.5rem in from the rules, as the
+/* The band holds a gradient banner card one inset in from the rules, as the
    page's other banners sit. The selector, which straddles the bottom rule,
    sits over the card's lower edge. */
 .component-showcase__intro {
   display: flex;
   flex-direction: column;
-  padding-block: 0.5rem;
+  padding-block: var(--h2-inset);
 }
 
 .component-showcase__intro .h2-banner {

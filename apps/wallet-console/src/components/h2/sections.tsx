@@ -527,9 +527,8 @@ function ApiNote({ title, body, icon: Icon, field }: ApiNoteProps): React.JSX.El
    shows on it; this much more keeps its movement subtle but visible. */
 const BANNER_FLOW = 3;
 
-/* A grey banner that fades into a moving gradient the first time it comes
-   into view, and stays lit after that. Once lit, the field holds its frame
-   while it is off screen (GrainField). */
+/* A grey banner that fades into a moving gradient while it is in view, and
+   back to grey once it leaves. */
 export function FieldBanner({
   field,
   className,
@@ -548,14 +547,10 @@ export function FieldBanner({
     /* the viewport's bottom edge counts as 12rem higher, so the fade starts
        once the banner has scrolled that much further in */
     const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        setLit(true);
-        observer.disconnect();
-      },
-      { rootMargin: `0px 0px ${-12 * rem}px 0px`, threshold: 0.5 },
-    );
+    const observer = new IntersectionObserver(([entry]) => setLit(entry.isIntersecting), {
+      rootMargin: `0px 0px ${-12 * rem}px 0px`,
+      threshold: 0.5,
+    });
     observer.observe(banner);
     return () => observer.disconnect();
   }, []);

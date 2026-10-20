@@ -3059,7 +3059,7 @@ body:has(.h2-page) {
 }
 
 /* A banner that keeps its grey card at rest and fades into a moving
-   gradient field the first time it comes into view; it stays lit after that
+   gradient field while it is in view, and back to grey once it leaves
    (FieldBanner). The copy stays black in both states. */
 .h2-banner--field {
   position: relative;

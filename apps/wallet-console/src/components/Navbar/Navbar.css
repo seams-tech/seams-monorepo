@@ -557,16 +557,6 @@ html[data-seams-theme='light'] .navbar-static {
     border-color 180ms ease;
 }
 
-.navbar-static__pill--ghost {
-  border-color: var(--navbar-border);
-  color: var(--navbar-text);
-  background: var(--navbar-surface2);
-}
-
-.navbar-static__pill--ghost:hover {
-  background: var(--navbar-surface3);
-}
-
 .navbar-static__pill--solid {
   color: var(--navbar-text-button);
   background: var(--navbar-primary);
@@ -724,10 +714,6 @@ html[data-seams-theme='light'] .navbar-static {
   }
 
   .navbar-static__access-popup {
-    display: none;
-  }
-
-  .navbar-static__pill--ghost {
     display: none;
   }
 

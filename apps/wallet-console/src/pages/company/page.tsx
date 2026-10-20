@@ -167,10 +167,6 @@ export function CompanyPage(): React.JSX.Element {
                   Start building
                   <ArrowRightAnim size={12} />
                 </InternalAnchor>
-                <InternalAnchor className="h2-btn h2-btn--outline h2-btn--lg" to="/contact/">
-                  Contact sales
-                  <ArrowRightAnim size={12} />
-                </InternalAnchor>
               </div>
             </div>
           </header>

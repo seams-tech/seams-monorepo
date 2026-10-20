@@ -229,18 +229,6 @@ body:has(.h2-page) {
   border-radius: 9999px;
 }
 
-/* Contact Sales stays in ink and marks hover with a grey fill alone — no accent
-   colour, no border — so nothing in the nav competes with the solid Dashboard
-   pill beside it. */
-.h2-page .navbar-static__pill--ghost {
-  color: var(--h2-ink);
-}
-
-.h2-page .navbar-static__pill--ghost:hover {
-  color: var(--h2-ink);
-  background: var(--h2-taupe);
-}
-
 .h2-page .navbar-static--compact {
   top: 0.5rem;
 }

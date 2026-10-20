@@ -4,7 +4,6 @@ import {
   Building2,
   ChevronDown,
   Fingerprint,
-  LifeBuoy,
   ListChecks,
   Menu,
   PenLine,
@@ -165,10 +164,7 @@ const pricingDropdownPane: DropdownPane = {
       field: 'slate-amber',
     },
   ],
-  footerLinks: [
-    { label: 'Compare plans', to: '/pricing/' },
-    { label: 'Contact sales', to: '/contact/' },
-  ],
+  footerLinks: [{ label: 'Compare plans', to: '/pricing/' }],
 };
 
 const aboutDropdownPane: DropdownPane = {
@@ -188,20 +184,8 @@ const aboutDropdownPane: DropdownPane = {
       to: '/company/#blog',
       icon: PenLine,
     },
-    {
-      title: 'Support',
-      description: 'Get help from the team',
-      to: '/contact/',
-      icon: LifeBuoy,
-    },
   ],
-  highlight: {
-    title: 'Plan a rollout',
-    description: 'Talk through marketplaces and merchant fleets',
-    to: '/contact/',
-    field: 'ember',
-  },
-  footerLinks: [{ label: 'Contact sales', to: '/contact/' }],
+  footerLinks: [],
 };
 
 const dropdownPanes: DropdownPane[] = [
@@ -584,7 +568,6 @@ export function NavbarStatic({
 
   const homeProps = getNavLinkProps('https://seams.sh/');
   const aboutRootProps = getNavLinkProps('/company/');
-  const contactSalesProps = getNavLinkProps('/contact/');
   const getStartedProps = getNavLinkProps('/dashboard');
 
   const openDashboardEntry = React.useCallback(() => {
@@ -735,24 +718,26 @@ export function NavbarStatic({
               </div>
             ) : null}
           </div>
-          <div className="navbar-static__menu-footer">
-            {pane.footerLinks.map((link) => {
-              const linkNavProps = getMenuItemProps(link.to);
-              return (
-                <a
-                  key={link.label}
-                  className="navbar-static__menu-footer-link"
-                  role="menuitem"
-                  href={linkNavProps.href}
-                  onClick={linkNavProps.onClick}
-                  tabIndex={isActive ? undefined : -1}
-                >
-                  <span>{link.label}</span>
-                  <ArrowRightAnim size={12} />
-                </a>
-              );
-            })}
-          </div>
+          {pane.footerLinks.length > 0 ? (
+            <div className="navbar-static__menu-footer">
+              {pane.footerLinks.map((link) => {
+                const linkNavProps = getMenuItemProps(link.to);
+                return (
+                  <a
+                    key={link.label}
+                    className="navbar-static__menu-footer-link"
+                    role="menuitem"
+                    href={linkNavProps.href}
+                    onClick={linkNavProps.onClick}
+                    tabIndex={isActive ? undefined : -1}
+                  >
+                    <span>{link.label}</span>
+                    <ArrowRightAnim size={12} />
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -794,14 +779,6 @@ export function NavbarStatic({
               onClick={onDashboardClick}
             >
               <span>Dashboard</span>
-              <ArrowRightAnim size={14} />
-            </a>
-            <a
-              className="navbar-static__pill navbar-static__pill--ghost"
-              href={contactSalesProps.href}
-              onClick={contactSalesProps.onClick}
-            >
-              <span>Contact Sales</span>
               <ArrowRightAnim size={14} />
             </a>
             <button
@@ -1013,14 +990,6 @@ export function NavbarStatic({
               );
             })}
           </section>
-          <a
-            className="navbar-static__mobile-subitem"
-            href={contactSalesProps.href}
-            onClick={contactSalesProps.onClick}
-          >
-            <span>Talk to us</span>
-            <small>Plan pricing and deployment options with the Seams team</small>
-          </a>
         </div>
         <div className="navbar-static__mobile-cta-row">
           <a
@@ -1029,14 +998,6 @@ export function NavbarStatic({
             onClick={onDashboardClick}
           >
             <span>Dashboard</span>
-            <ArrowRightAnim size={14} />
-          </a>
-          <a
-            className="navbar-static__pill navbar-static__pill--ghost"
-            href={contactSalesProps.href}
-            onClick={contactSalesProps.onClick}
-          >
-            <span>Contact Sales</span>
             <ArrowRightAnim size={14} />
           </a>
         </div>

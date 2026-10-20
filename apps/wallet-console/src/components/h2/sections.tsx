@@ -1167,7 +1167,6 @@ const footerGroups: { heading: string; links: H2FooterLink[] }[] = [
     links: [
       { label: 'About', to: '/company/' },
       { label: 'Blog', to: '/company/#blog' },
-      { label: 'Contact', to: '/contact/' },
     ],
   },
 ];
